@@ -10,6 +10,7 @@ import {
   Settings,
   ChevronRight,
   Zap,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -92,6 +93,36 @@ export default function Sidebar() {
             </Link>
           );
         })}
+
+        <div className="px-3 mt-5 mb-3">
+          <span className="text-[10px] font-semibold text-gray-600 uppercase tracking-widest">
+            AI Assistant
+          </span>
+        </div>
+
+        <Link
+          href="/openclaw"
+          className={cn(
+            "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group",
+            pathname === "/openclaw"
+              ? "bg-brand-600/20 text-brand-400 border border-brand-500/20"
+              : "text-gray-400 hover:text-gray-200 hover:bg-gray-800"
+          )}
+        >
+          <Sparkles
+            size={16}
+            className={cn(
+              "transition-colors",
+              pathname === "/openclaw"
+                ? "text-brand-400"
+                : "text-gray-500 group-hover:text-gray-300"
+            )}
+          />
+          <span className="flex-1">OpenClaw</span>
+          {pathname === "/openclaw" && (
+            <ChevronRight size={14} className="text-brand-500" />
+          )}
+        </Link>
 
         <div className="px-3 mt-5 mb-3">
           <span className="text-[10px] font-semibold text-gray-600 uppercase tracking-widest">
