@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, Bot, User, Loader2, AlertCircle, Sparkles } from "lucide-react";
+import { Send, Bot, User, Loader2, AlertCircle, Sparkles, Key, Eye, EyeOff, ExternalLink } from "lucide-react";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
 }
+
+const LS_KEY = "openclaw_api_key";
 
 const SUGGESTED_PROMPTS = [
   "What are the top growth opportunities this quarter?",
@@ -16,7 +18,66 @@ const SUGGESTED_PROMPTS = [
   "Recommend actions to hit $6M monthly revenue",
 ];
 
+function SetupScreen({ onSave }: { onSave: (key: string) => void }) {
+  const [value, setValue] = useState("");
+  const [show, setShow] = useState(false);
+
+  const save = () => {
+    const k = value.trim();
+    if (!k) return;
+    localStorage.setItem(LS_KEY, k);
+    onSave(k);
+  };
+
+  return (
+    <div className="flex flex-col items-center justify-center flex-1 px-8 py-10 text-center gap-5">
+      <div className="w-16 h-16 rounded-2xl bg-brand-600/10 border border-brand-500/20 flex items-center justify-center">
+        <Key size={26} className="text-brand-400" />
+      </div>
+      <div>
+        <h3 className="text-base font-semibold text-gray-200">Configure OpenClaw</h3>
+        <p className="text-sm text-gray-500 mt-1 max-w-xs leading-relaxed">
+          Enter your Anthropic API key to activate the assistant. The key is saved locally in your browser.
+        </p>
+      </div>
+      <div className="w-full max-w-sm relative">
+        <input
+          type={show ? "text" : "password"}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && save()}
+          placeholder="sk-ant-..."
+          className="w-full px-4 py-3 pr-10 bg-gray-800 border border-gray-700 rounded-xl text-sm text-gray-200 placeholder:text-gray-600 focus:outline-none focus:border-brand-500 transition-colors"
+        />
+        <button
+          onClick={() => setShow((v) => !v)}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-400"
+        >
+          {show ? <EyeOff size={16} /> : <Eye size={16} />}
+        </button>
+      </div>
+      <button
+        onClick={save}
+        disabled={!value.trim()}
+        className="w-full max-w-sm py-3 bg-brand-600 hover:bg-brand-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl transition-colors"
+      >
+        Save and activate
+      </button>
+      <a
+        href="https://console.anthropic.com"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-1 text-xs text-brand-400 hover:text-brand-300 transition-colors"
+      >
+        Get your key at console.anthropic.com
+        <ExternalLink size={12} />
+      </a>
+    </div>
+  );
+}
+
 export default function OpenClaw() {
+  const [apiKey, setApiKey] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -25,12 +86,17 @@ export default function OpenClaw() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
+    const stored = localStorage.getItem(LS_KEY);
+    if (stored) setApiKey(stored);
+  }, []);
+
+  useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
   const sendMessage = async (text: string) => {
     const userMsg = text.trim();
-    if (!userMsg || loading) return;
+    if (!userMsg || loading || !apiKey) return;
 
     const newMessages: Message[] = [...messages, { role: "user", content: userMsg }];
     setMessages(newMessages);
@@ -43,12 +109,19 @@ export default function OpenClaw() {
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-anthropic-key": apiKey,
+        },
         body: JSON.stringify({ messages: newMessages }),
       });
 
       if (!res.ok) {
         const data = await res.json();
+        if (data.error === "API_KEY_REQUIRED") {
+          setApiKey(null);
+          localStorage.removeItem(LS_KEY);
+        }
         throw new Error(data.error || `HTTP ${res.status}`);
       }
 
@@ -88,7 +161,10 @@ export default function OpenClaw() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Something went wrong";
       setError(msg);
-      setMessages((prev) => prev.slice(0, -1)); // remove empty assistant message if present
+      setMessages((prev) => {
+        const last = prev[prev.length - 1];
+        return last?.role === "assistant" && !last.content ? prev.slice(0, -1) : prev;
+      });
     } finally {
       setLoading(false);
     }
@@ -106,6 +182,14 @@ export default function OpenClaw() {
     e.target.style.height = "auto";
     e.target.style.height = `${Math.min(e.target.scrollHeight, 160)}px`;
   };
+
+  if (!apiKey) {
+    return (
+      <div className="flex flex-col h-full">
+        <SetupScreen onSave={setApiKey} />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -198,9 +282,18 @@ export default function OpenClaw() {
             )}
           </button>
         </div>
-        <p className="text-[10px] text-gray-700 text-center mt-1.5">
-          Powered by Claude · JACQES BI data as of Mar 2026
-        </p>
+        <div className="flex items-center justify-between mt-1.5">
+          <p className="text-[10px] text-gray-700">
+            Powered by Claude · JACQES BI data as of Mar 2026
+          </p>
+          <button
+            onClick={() => { setApiKey(null); localStorage.removeItem(LS_KEY); setMessages([]); }}
+            className="flex items-center gap-1 text-[10px] text-gray-700 hover:text-gray-500 transition-colors"
+            title="Change API key"
+          >
+            <Key size={10} />Change key
+          </button>
+        </div>
       </div>
     </div>
   );
