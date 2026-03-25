@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
+import OpenClawWidget from "@/components/OpenClawWidget";
 
 export const metadata: Metadata = {
   title: "JACQES BI — Business Intelligence Dashboard",
@@ -25,6 +26,7 @@ export default function RootLayout({
             <main className="flex-1 overflow-y-auto">
               {children}
             </main>
+            <OpenClawWidget />
           </div>
         </div>
       </body>
