@@ -12,22 +12,20 @@ import { cn } from "@/lib/utils";
 
 // ── Route membership ───────────────────────────────────────────────────────────
 
-// Routes that belong to the JACQES BU context
-const JACQES_ROUTES = [
-  "/", "/desempenho", "/carteira", "/analise",
+// Routes that belong to the JACQES BU context (no "/" — root redirects to AWQ)
+const JACQES_PREFIXES = [
+  "/jacqes", "/desempenho", "/carteira", "/analise",
   "/csops", "/revenue", "/reports",
 ];
 
 function isJacqesRoute(pathname: string) {
-  return JACQES_ROUTES.some((r) =>
-    r === "/" ? pathname === "/" : pathname.startsWith(r)
-  );
+  return JACQES_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
 // ── Nav items ─────────────────────────────────────────────────────────────────
 
 const jacqesNav = [
-  { label: "Visão Geral",  href: "/",           icon: LayoutDashboard },
+  { label: "Visão Geral",  href: "/jacqes",     icon: LayoutDashboard },
   { label: "Desempenho",   href: "/desempenho", icon: TrendingUp },
   { label: "Carteira",     href: "/carteira",   icon: Users },
   { label: "Análise",      href: "/analise",    icon: Activity },
@@ -57,7 +55,7 @@ const businessUnits = [
     id: "jacqes",
     label: "JACQES",
     sub: "Agência · AWQ Group",
-    href: "/",
+    href: "/jacqes",
     icon: BarChart3,
     color: "bg-brand-600",
   },
@@ -219,8 +217,7 @@ function AwqSidebar({ pathname }: { pathname: string }) {
 // ── JACQES sidebar (full BU navigation) ──────────────────────────────────────
 
 function JacqesSidebar({ pathname }: { pathname: string }) {
-  const isActive = (href: string) =>
-    href === "/" ? pathname === "/" : pathname.startsWith(href);
+  const isActive = (href: string) => pathname.startsWith(href);
 
   return (
     <>
