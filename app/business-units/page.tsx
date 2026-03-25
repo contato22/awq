@@ -7,7 +7,7 @@ const BUS = [
     id: "jacqes",
     label: "JACQES",
     sub: "Agência · AWQ Group",
-    href: "/jacqes",
+        href: "https://contato22.github.io/jacqes-bi/",
     color: "bg-brand-600",
     borderColor: "border-brand-200",
     bgColor: "bg-brand-50",
