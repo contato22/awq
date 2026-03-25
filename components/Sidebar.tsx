@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Zap,
   Sparkles,
+  Bot,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -99,6 +100,26 @@ export default function Sidebar() {
             AI Assistant
           </span>
         </div>
+
+        <Link
+          href="/agents"
+          className={cn(
+            "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group",
+            pathname === "/agents"
+              ? "bg-amber-600/20 text-amber-400 border border-amber-500/20"
+              : "text-gray-400 hover:text-gray-200 hover:bg-gray-800"
+          )}
+        >
+          <Bot
+            size={16}
+            className={cn(
+              "transition-colors",
+              pathname === "/agents" ? "text-amber-400" : "text-gray-500 group-hover:text-gray-300"
+            )}
+          />
+          <span className="flex-1">Agents</span>
+          {pathname === "/agents" && <ChevronRight size={14} className="text-amber-500" />}
+        </Link>
 
         <Link
           href="/openclaw"

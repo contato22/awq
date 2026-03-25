@@ -22,46 +22,38 @@ Top Products:
 4. Enterprise Reporting (Add-on) — $580,000, 124 units, -2.1% (declining)
 5. Custom Dashboards (Service) — $523,000, 98 units, +6.8% (stable)
 
-Customer Segments:
-- Enterprise: 42% of revenue
-- SMB: 31%
-- Startup: 18%
-- Individual: 9%
+Customer Segments: Enterprise 42%, SMB 31%, Startup 18%, Individual 9%
 
 Regional Performance:
-- North America: $1,928,600, 1,542 customers, +14.2%
-- Europe: $1,445,000, 1,089 customers, +11.8%
-- Asia Pacific: $896,500, 712 customers, +22.5%
-- Middle East & Africa: $337,200, 284 customers, +31.0%
-- Latin America: $214,200, 220 customers, +8.4%
+- North America: $1,928,600, +14.2%
+- Europe: $1,445,000, +11.8%
+- Asia Pacific: $896,500, +22.5%
+- Middle East & Africa: $337,200, +31.0%
+- Latin America: $214,200, +8.4%
 
-Acquisition Channels:
-- Organic Search: 48,200 sessions, 1,204 conversions, $1.42M revenue, CAC $0
-- Paid Search: 22,400 sessions, 672 conversions, $890K revenue, CAC $180
-- Direct: 18,900 sessions, 511 conversions, $760K revenue, CAC $0
-- Referral: 12,500 sessions, 375 conversions, $640K revenue, CAC $45
-- Social Media: 31,000 sessions, 496 conversions, $580K revenue, CAC $95
-- Email: 14,700 sessions, 588 conversions, $531.5K revenue, CAC $12
+Acquisition Channels (best ROI): Organic Search CAC $0, Email CAC $12, Referral CAC $45
 
 Active Alerts:
 - 12 enterprise customers not ordering in 45+ days (at-risk)
-- Q1 2026 revenue exceeded target by 8.3% ($4.82M vs $4.45M goal)
-- APAC showing 22.5% YoY growth — capacity planning needed
-- Analytics Suite NPS dropped from 48 to 32 this month
+- Q1 2026 revenue exceeded target by 8.3%
+- APAC showing 22.5% YoY growth
+- Analytics Suite NPS dropped from 48 to 32
 
-Be concise, data-driven, and strategic. Use specific numbers when answering. Format responses clearly with bullet points when listing multiple items.`;
+Be concise, data-driven, and strategic. Use specific numbers. Format with bullet points when listing items.`;
 
 export async function POST(req: NextRequest) {
   try {
     const { messages } = await req.json();
 
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey || apiKey === "sk-ant-api03-placeholder") {
+    // Accept API key from client header (localStorage flow) or server env
+    const clientKey = req.headers.get("x-anthropic-key");
+    const serverKey = process.env.ANTHROPIC_API_KEY;
+    const apiKey = clientKey || (serverKey !== "sk-ant-api03-placeholder" ? serverKey : null);
+
+    if (!apiKey) {
       return new Response(
-        JSON.stringify({
-          error: "ANTHROPIC_API_KEY not configured. Please set a valid API key in .env.local.",
-        }),
-        { status: 503, headers: { "Content-Type": "application/json" } }
+        JSON.stringify({ error: "API_KEY_REQUIRED" }),
+        { status: 401, headers: { "Content-Type": "application/json" } }
       );
     }
 
@@ -108,8 +100,9 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error("OpenClaw API error:", error);
+    const msg = error instanceof Error ? error.message : "Failed to process request";
     return new Response(
-      JSON.stringify({ error: "Failed to process request" }),
+      JSON.stringify({ error: msg }),
       { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }
