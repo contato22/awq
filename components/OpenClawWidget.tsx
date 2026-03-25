@@ -114,8 +114,6 @@ export default function OpenClawWidget() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  if (pathname === "/openclaw") return null;
-
   const buLabel = BU_LABEL[pathname] ?? pathname.slice(1);
   const suggested = BU_PROMPTS[pathname] ?? BU_PROMPTS["/"];
 
@@ -185,6 +183,8 @@ export default function OpenClawWidget() {
       setLoading(false);
     }
   }, [messages, loading, apiKey]);
+
+  if (pathname === "/openclaw") return null;
 
   return (
     <>
