@@ -55,7 +55,7 @@ const businessUnits = [
     id: "jacqes",
     label: "JACQES",
     sub: "Agência · AWQ Group",
-    href: "/jacqes",
+    href: "https://contato22.github.io/jacqes-bi/",
     icon: BarChart3,
     color: "bg-brand-600",
   },
