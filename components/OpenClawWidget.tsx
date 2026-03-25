@@ -12,23 +12,45 @@ interface Message {
   content: string;
 }
 
+type BuContext = "awq" | "jacqes" | "caza" | "venture";
+
 const LS_KEY = "openclaw_api_key";
 
-const BU_LABEL: Record<string, string> = {
-  "/": "Overview",
-  "/revenue": "Revenue",
-  "/customers": "Customers",
-  "/reports": "Reports",
-  "/settings": "Settings",
-  "/agents": "Agents",
+function getBuContext(pathname: string): BuContext {
+  if (pathname.startsWith("/awq") || pathname.startsWith("/business-units")) return "awq";
+  if (pathname.startsWith("/caza-vision")) return "caza";
+  if (pathname.startsWith("/awq-venture")) return "venture";
+  return "jacqes";
+}
+
+const BU_LABELS: Record<BuContext, string> = {
+  awq: "AWQ Group",
+  jacqes: "JACQES",
+  caza: "Caza Vision",
+  venture: "AWQ Venture",
 };
 
-const BU_PROMPTS: Record<string, string[]> = {
-  "/": ["Qual BU precisa mais atenção?", "Resuma os KPIs em uma frase", "Quais alertas são críticos?"],
-  "/revenue": ["Por que a margem subiu para 67.4%?", "Qual canal tem melhor ROI?", "Projete receita para Q2"],
-  "/customers": ["Quais clientes estão em maior risco?", "Como melhorar o LTV médio?", "Qual segmento tem mais churn?"],
-  "/reports": ["Gere um resumo executivo rápido", "O que incluir no board pack Q2?", "Quais métricas o board valoriza?"],
-  "/agents": ["Como os agentes estão se saindo?", "Qual BU precisa intervenção?", "Resumo do AWQ Master Agent"],
+const BU_PROMPTS: Record<BuContext, string[]> = {
+  awq: [
+    "Compare o desempenho entre as BUs",
+    "Qual BU tem maior potencial de crescimento?",
+    "Resuma o estado consolidado do grupo",
+  ],
+  jacqes: [
+    "Quais clientes estão em maior risco de churn?",
+    "Por que a margem subiu para 67.4%?",
+    "Como melhorar o score médio dos clientes?",
+  ],
+  caza: [
+    "Quais são as prioridades para o lançamento Q2?",
+    "Como posicionar a Caza Vision no mercado proptech?",
+    "Que métricas devo acompanhar no pipeline?",
+  ],
+  venture: [
+    "Como estruturar o portfólio inicial do fundo?",
+    "Quais setores priorizar nos primeiros investimentos?",
+    "Como calcular o IRR target para o fundo?",
+  ],
 };
 
 // ── Setup screen ───────────────────────────────────────────────────────────────
@@ -114,8 +136,19 @@ export default function OpenClawWidget() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  const buLabel = BU_LABEL[pathname] ?? pathname.slice(1);
-  const suggested = BU_PROMPTS[pathname] ?? BU_PROMPTS["/"];
+  // Reset messages when BU context changes
+  const buContext = getBuContext(pathname);
+  const prevBuRef = useRef<BuContext>(buContext);
+  useEffect(() => {
+    if (prevBuRef.current !== buContext) {
+      setMessages([]);
+      setError(null);
+      prevBuRef.current = buContext;
+    }
+  }, [buContext]);
+
+  const buLabel = BU_LABELS[buContext];
+  const suggested = BU_PROMPTS[buContext];
 
   const sendMessage = useCallback(async (text: string) => {
     const userMsg = text.trim();
@@ -135,7 +168,7 @@ export default function OpenClawWidget() {
           "Content-Type": "application/json",
           "x-anthropic-key": apiKey,
         },
-        body: JSON.stringify({ messages: newMessages }),
+        body: JSON.stringify({ messages: newMessages, buContext }),
       });
 
       if (!res.ok) {
@@ -182,7 +215,7 @@ export default function OpenClawWidget() {
     } finally {
       setLoading(false);
     }
-  }, [messages, loading, apiKey]);
+  }, [messages, loading, apiKey, buContext]);
 
   if (pathname === "/openclaw") return null;
 
@@ -213,7 +246,7 @@ export default function OpenClawWidget() {
             <div className="flex-1">
               <div className="text-xs font-semibold text-gray-200">Open Claw</div>
               <div className="text-[10px] text-gray-600 mt-0.5">
-                {apiKey ? `${buLabel} · JACQES BI` : "Configuração necessária"}
+                {apiKey ? `OpenClaw · ${buLabel}` : "Configuração necessária"}
               </div>
             </div>
             <div className="flex items-center gap-1">
@@ -241,7 +274,7 @@ export default function OpenClawWidget() {
               <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3 min-h-0">
                 {messages.length === 0 && (
                   <div className="space-y-2 pt-1">
-                    <p className="text-[11px] text-gray-600 px-1 mb-3">Pergunte sobre esta BU:</p>
+                    <p className="text-[11px] text-gray-600 px-1 mb-3">Pergunte sobre {buLabel}:</p>
                     {suggested.map((p) => (
                       <button
                         key={p}
@@ -306,7 +339,7 @@ export default function OpenClawWidget() {
                         sendMessage(input);
                       }
                     }}
-                    placeholder="Pergunte sobre esta BU..."
+                    placeholder={`Pergunte sobre ${buLabel}...`}
                     rows={1}
                     className="flex-1 bg-transparent text-[11px] text-gray-200 placeholder:text-gray-600 resize-none focus:outline-none min-h-[20px] max-h-20"
                     disabled={loading}

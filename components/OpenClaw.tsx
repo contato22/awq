@@ -10,12 +10,15 @@ interface Message {
 
 const LS_KEY = "openclaw_api_key";
 
+// Full-page OpenClaw is accessed via the JACQES sidebar — context is always JACQES
+const BU_CONTEXT = "jacqes";
+
 const SUGGESTED_PROMPTS = [
-  "What are the top growth opportunities this quarter?",
-  "Which customers are at highest churn risk?",
-  "Compare APAC vs Europe revenue performance",
-  "What's driving the Analytics Suite NPS decline?",
-  "Recommend actions to hit $6M monthly revenue",
+  "Quais clientes estão em maior risco de churn?",
+  "Por que a margem subiu para 67.4%?",
+  "Compare APAC vs Europe em receita",
+  "O que está causando a queda de NPS do Analytics Suite?",
+  "Como atingir $6M de receita mensal?",
 ];
 
 function SetupScreen({ onSave }: { onSave: (key: string) => void }) {
@@ -35,9 +38,9 @@ function SetupScreen({ onSave }: { onSave: (key: string) => void }) {
         <Key size={26} className="text-brand-400" />
       </div>
       <div>
-        <h3 className="text-base font-semibold text-gray-200">Configure OpenClaw</h3>
+        <h3 className="text-base font-semibold text-gray-200">Configurar OpenClaw</h3>
         <p className="text-sm text-gray-500 mt-1 max-w-xs leading-relaxed">
-          Enter your Anthropic API key to activate the assistant. The key is saved locally in your browser.
+          Insira sua chave da API Anthropic para ativar o assistente. A chave é salva localmente no seu navegador.
         </p>
       </div>
       <div className="w-full max-w-sm relative">
@@ -61,7 +64,7 @@ function SetupScreen({ onSave }: { onSave: (key: string) => void }) {
         disabled={!value.trim()}
         className="w-full max-w-sm py-3 bg-brand-600 hover:bg-brand-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl transition-colors"
       >
-        Save and activate
+        Salvar e ativar
       </button>
       <a
         href="https://console.anthropic.com"
@@ -69,7 +72,7 @@ function SetupScreen({ onSave }: { onSave: (key: string) => void }) {
         rel="noopener noreferrer"
         className="flex items-center gap-1 text-xs text-brand-400 hover:text-brand-300 transition-colors"
       >
-        Get your key at console.anthropic.com
+        Obter chave no console.anthropic.com
         <ExternalLink size={12} />
       </a>
     </div>
@@ -113,7 +116,7 @@ export default function OpenClaw() {
           "Content-Type": "application/json",
           "x-anthropic-key": apiKey,
         },
-        body: JSON.stringify({ messages: newMessages }),
+        body: JSON.stringify({ messages: newMessages, buContext: BU_CONTEXT }),
       });
 
       if (!res.ok) {
@@ -159,7 +162,7 @@ export default function OpenClaw() {
         }
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Something went wrong";
+      const msg = err instanceof Error ? err.message : "Algo deu errado";
       setError(msg);
       setMessages((prev) => {
         const last = prev[prev.length - 1];
@@ -200,9 +203,9 @@ export default function OpenClaw() {
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-600 to-brand-400 flex items-center justify-center mb-4 shadow-lg">
               <Sparkles size={24} className="text-white" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-200 mb-1">OpenClaw AI</h3>
+            <h3 className="text-lg font-semibold text-gray-200 mb-1">OpenClaw · JACQES</h3>
             <p className="text-sm text-gray-500 mb-6 max-w-xs">
-              Your JACQES BI intelligence assistant. Ask anything about your business data.
+              Assistente de inteligência de negócios da JACQES. Pergunte qualquer coisa sobre clientes, receita, CS e operações.
             </p>
             <div className="space-y-2 w-full max-w-sm">
               {SUGGESTED_PROMPTS.map((prompt) => (
@@ -235,7 +238,7 @@ export default function OpenClaw() {
               {msg.content || (
                 <span className="flex items-center gap-1.5 text-gray-500">
                   <Loader2 size={12} className="animate-spin" />
-                  Thinking...
+                  Pensando...
                 </span>
               )}
             </div>
@@ -265,7 +268,7 @@ export default function OpenClaw() {
             value={input}
             onChange={handleTextareaChange}
             onKeyDown={handleKeyDown}
-            placeholder="Ask OpenClaw anything about your data..."
+            placeholder="Pergunte sobre clientes, receita, CS ou operações JACQES..."
             rows={1}
             className="flex-1 bg-transparent text-sm text-gray-200 placeholder:text-gray-600 resize-none focus:outline-none min-h-[24px] max-h-40"
             disabled={loading}
@@ -289,9 +292,9 @@ export default function OpenClaw() {
           <button
             onClick={() => { setApiKey(null); localStorage.removeItem(LS_KEY); setMessages([]); }}
             className="flex items-center gap-1 text-[10px] text-gray-700 hover:text-gray-500 transition-colors"
-            title="Change API key"
+            title="Trocar chave de API"
           >
-            <Key size={10} />Change key
+            <Key size={10} />Trocar chave
           </button>
         </div>
       </div>
