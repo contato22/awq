@@ -169,18 +169,31 @@ function SidebarFooter() {
   );
 }
 
+const awqNav = [
+  { label: "Visão Geral", href: "/awq", icon: LayoutDashboard },
+  { label: "Business Units", href: "/business-units", icon: Building2 },
+];
+
 // ── AWQ Group sidebar (Business Units only) ───────────────────────────────────
 
 function AwqSidebar({ pathname }: { pathname: string }) {
+  const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
+
   return (
     <>
       <AwqHeader />
 
       <nav className="flex-1 overflow-y-auto px-3 py-2">
         <SectionLabel>AWQ Group</SectionLabel>
+        <div className="space-y-0.5">
+          {awqNav.map((item) => (
+            <NavItem key={item.href} {...item} active={isActive(item.href)} />
+          ))}
+        </div>
 
         {/* Business Units section */}
-        <div className="space-y-2 mt-2">
+        <SectionLabel>Business Units</SectionLabel>
+        <div className="space-y-2 mt-1">
           {businessUnits.map((bu) => (
             <Link
               key={bu.id}
