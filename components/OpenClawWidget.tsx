@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import {
   Sparkles, X, Send, Bot, User, Loader2, AlertCircle,
-  Minimize2, Key, Eye, EyeOff, ExternalLink,
+  Minimize2, Key, Eye, EyeOff, ExternalLink, RotateCcw,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 
@@ -79,6 +79,7 @@ function SetupScreen({ onSave }: { onSave: (key: string) => void }) {
 
       <div className="w-full relative">
         <input
+          autoFocus
           type={show ? "text" : "password"}
           value={value}
           onChange={(e) => setValue(e.target.value)}
@@ -244,22 +245,31 @@ export default function OpenClawWidget() {
               <Sparkles size={12} className="text-white" />
             </div>
             <div className="flex-1">
-              <div className="text-xs font-semibold text-gray-200">Open Claw</div>
+              <div className="text-xs font-semibold text-gray-200">OpenClaw</div>
               <div className="text-[10px] text-gray-600 mt-0.5">
-                {apiKey ? `OpenClaw · ${buLabel}` : "Configuração necessária"}
+                {apiKey ? buLabel : "Configuração necessária"}
               </div>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0.5">
+              {apiKey && messages.length > 0 && (
+                <button
+                  onClick={() => { setMessages([]); setError(null); }}
+                  className="p-1.5 text-gray-600 hover:text-gray-400 transition-colors"
+                  title="Nova conversa"
+                >
+                  <RotateCcw size={12} />
+                </button>
+              )}
               {apiKey && (
                 <button
-                  onClick={() => { setApiKey(null); localStorage.removeItem(LS_KEY); setMessages([]); }}
-                  className="p-1 text-gray-700 hover:text-gray-500 transition-colors"
-                  title="Remover chave"
+                  onClick={() => { setApiKey(null); localStorage.removeItem(LS_KEY); setMessages([]); setError(null); }}
+                  className="p-1.5 text-gray-700 hover:text-gray-500 transition-colors"
+                  title="Trocar chave de API"
                 >
                   <Key size={12} />
                 </button>
               )}
-              <button onClick={() => setOpen(false)} className="p-1 text-gray-600 hover:text-gray-400 transition-colors">
+              <button onClick={() => setOpen(false)} className="p-1.5 text-gray-600 hover:text-gray-400 transition-colors">
                 <Minimize2 size={13} />
               </button>
             </div>
@@ -273,8 +283,17 @@ export default function OpenClawWidget() {
               {/* Messages */}
               <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3 min-h-0">
                 {messages.length === 0 && (
-                  <div className="space-y-2 pt-1">
-                    <p className="text-[11px] text-gray-600 px-1 mb-3">Pergunte sobre {buLabel}:</p>
+                  <div className="pt-2">
+                    <div className="flex items-center gap-2 px-1 mb-3">
+                      <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-brand-600 to-brand-400 flex items-center justify-center shrink-0">
+                        <Sparkles size={11} className="text-white" />
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-medium text-gray-300">OpenClaw</p>
+                        <p className="text-[10px] text-gray-600">Contexto: {buLabel}</p>
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
                     {suggested.map((p) => (
                       <button
                         key={p}
@@ -284,6 +303,7 @@ export default function OpenClawWidget() {
                         {p}
                       </button>
                     ))}
+                    </div>
                   </div>
                 )}
 

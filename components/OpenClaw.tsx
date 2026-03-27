@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, Bot, User, Loader2, AlertCircle, Sparkles, Key, Eye, EyeOff, ExternalLink } from "lucide-react";
+import { Send, Bot, User, Loader2, AlertCircle, Sparkles, Key, Eye, EyeOff, ExternalLink, RotateCcw } from "lucide-react";
 
 interface Message {
   role: "user" | "assistant";
@@ -45,6 +45,7 @@ function SetupScreen({ onSave }: { onSave: (key: string) => void }) {
       </div>
       <div className="w-full max-w-sm relative">
         <input
+          autoFocus
           type={show ? "text" : "password"}
           value={value}
           onChange={(e) => setValue(e.target.value)}
@@ -287,15 +288,26 @@ export default function OpenClaw() {
         </div>
         <div className="flex items-center justify-between mt-1.5">
           <p className="text-[10px] text-gray-700">
-            Powered by Claude · JACQES BI data as of Mar 2026
+            Powered by Claude · JACQES · Mar 2026
           </p>
-          <button
-            onClick={() => { setApiKey(null); localStorage.removeItem(LS_KEY); setMessages([]); }}
-            className="flex items-center gap-1 text-[10px] text-gray-700 hover:text-gray-500 transition-colors"
-            title="Trocar chave de API"
-          >
-            <Key size={10} />Trocar chave
-          </button>
+          <div className="flex items-center gap-3">
+            {messages.length > 0 && (
+              <button
+                onClick={() => { setMessages([]); setError(null); }}
+                className="flex items-center gap-1 text-[10px] text-gray-700 hover:text-gray-400 transition-colors"
+                title="Nova conversa"
+              >
+                <RotateCcw size={10} />Nova conversa
+              </button>
+            )}
+            <button
+              onClick={() => { setApiKey(null); localStorage.removeItem(LS_KEY); setMessages([]); setError(null); }}
+              className="flex items-center gap-1 text-[10px] text-gray-700 hover:text-gray-500 transition-colors"
+              title="Trocar chave de API"
+            >
+              <Key size={10} />Trocar chave
+            </button>
+          </div>
         </div>
       </div>
     </div>
