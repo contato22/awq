@@ -173,12 +173,16 @@ export default function OpenClawWidget() {
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        if (data.error === "API_KEY_REQUIRED") {
-          setApiKey(null);
-          localStorage.removeItem(LS_KEY);
-        }
-        throw new Error(data.error || `HTTP ${res.status}`);
+        let errorMsg = `HTTP ${res.status}`;
+        try {
+          const data = await res.json();
+          if (data.error === "API_KEY_REQUIRED") {
+            setApiKey(null);
+            localStorage.removeItem(LS_KEY);
+          }
+          errorMsg = data.error || errorMsg;
+        } catch { /* response was HTML, not JSON */ }
+        throw new Error(errorMsg);
       }
 
       const reader = res.body!.getReader();
@@ -194,17 +198,18 @@ export default function OpenClawWidget() {
           if (!line.startsWith("data: ")) continue;
           const d = line.slice(6).trim();
           if (d === "[DONE]") break;
-          try {
-            const { text: t } = JSON.parse(d);
-            if (t) {
-              assistantText += t;
-              setMessages((prev) => {
-                const updated = [...prev];
-                updated[updated.length - 1] = { role: "assistant", content: assistantText };
-                return updated;
-              });
-            }
-          } catch { /* ignore */ }
+          let parsed: { text?: string; error?: string } | null = null;
+          try { parsed = JSON.parse(d); } catch { /* malformed SSE line, skip */ }
+          if (!parsed) continue;
+          if (parsed.error) throw new Error(parsed.error);
+          if (parsed.text) {
+            assistantText += parsed.text;
+            setMessages((prev) => {
+              const updated = [...prev];
+              updated[updated.length - 1] = { role: "assistant", content: assistantText };
+              return updated;
+            });
+          }
         }
       }
     } catch (err) {

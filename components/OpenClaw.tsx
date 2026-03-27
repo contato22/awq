@@ -121,12 +121,16 @@ export default function OpenClaw() {
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        if (data.error === "API_KEY_REQUIRED") {
-          setApiKey(null);
-          localStorage.removeItem(LS_KEY);
-        }
-        throw new Error(data.error || `HTTP ${res.status}`);
+        let errorMsg = `HTTP ${res.status}`;
+        try {
+          const data = await res.json();
+          if (data.error === "API_KEY_REQUIRED") {
+            setApiKey(null);
+            localStorage.removeItem(LS_KEY);
+          }
+          errorMsg = data.error || errorMsg;
+        } catch { /* response was HTML, not JSON */ }
+        throw new Error(errorMsg);
       }
 
       const reader = res.body!.getReader();
@@ -139,26 +143,21 @@ export default function OpenClaw() {
         const { done, value } = await reader.read();
         if (done) break;
 
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split("\n");
-
-        for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            const data = line.slice(6).trim();
-            if (data === "[DONE]") break;
-            try {
-              const { text } = JSON.parse(data);
-              if (text) {
-                assistantText += text;
-                setMessages((prev) => {
-                  const updated = [...prev];
-                  updated[updated.length - 1] = { role: "assistant", content: assistantText };
-                  return updated;
-                });
-              }
-            } catch {
-              // ignore malformed SSE
-            }
+        for (const line of decoder.decode(value, { stream: true }).split("\n")) {
+          if (!line.startsWith("data: ")) continue;
+          const d = line.slice(6).trim();
+          if (d === "[DONE]") break;
+          let parsed: { text?: string; error?: string } | null = null;
+          try { parsed = JSON.parse(d); } catch { /* malformed SSE line, skip */ }
+          if (!parsed) continue;
+          if (parsed.error) throw new Error(parsed.error);
+          if (parsed.text) {
+            assistantText += parsed.text;
+            setMessages((prev) => {
+              const updated = [...prev];
+              updated[updated.length - 1] = { role: "assistant", content: assistantText };
+              return updated;
+            });
           }
         }
       }
