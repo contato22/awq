@@ -95,7 +95,7 @@ const businessUnits = [
         id: "caza",
         label: "Caza Vision",
         sub: "Tecnologia · AWQ Group",
-        href: "/caza-vision",
+        href: "https://contato22.github.io/awq/business-units/",
         icon: Building2,
         color: "bg-emerald-600",
     },
