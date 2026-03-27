@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
 import {
     LayoutDashboard,
     TrendingUp,
@@ -155,30 +156,45 @@ function AwqHeader() {
 }
 
 // ── Footer (shared) ───────────────────────────────────────────────────────────
+const ROLE_LABELS: Record<string, string> = {
+  owner: "Owner",
+  admin: "Admin",
+  analyst: "Analyst",
+  "cs-ops": "CS Ops",
+};
+
 function SidebarFooter() {
-    return (
-          <div className="px-4 py-4 border-t border-gray-100">
-                <div className="flex items-center gap-3 px-1">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-awq-gold to-amber-600 flex items-center justify-center text-xs font-bold text-white shrink-0">
-                                  AD
-                        </div>
-                        <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2">
-                                              <span className="text-sm font-semibold text-gray-800 truncate">Admin</span>
-                                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-200">
-                                                            ADMIN
-                                              </span>
-                                  </div>
-                                  <div className="text-[10px] text-gray-400 truncate">Administrador</div>
-                        </div>
-                        <button
-                                    className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                                    title="Sair"
-                                  >
-                                  <LogOut size={14} />
-                        </button>
-                </div>
+  const { data: session } = useSession();
+  const name = session?.user?.name ?? "—";
+  const role = session?.user?.role ?? "";
+  const initials = name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
+
+  return (
+    <div className="px-4 py-4 border-t border-gray-100">
+      <div className="flex items-center gap-3 px-1">
+        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-awq-gold to-amber-600 flex items-center justify-center text-xs font-bold text-white shrink-0">
+          {initials}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold text-gray-800 truncate">{name}</span>
+            {role && (
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-200">
+                {ROLE_LABELS[role] ?? role}
+              </span>
+            )}
           </div>
+          <div className="text-[10px] text-gray-400 truncate">{session?.user?.email ?? ""}</div>
+        </div>
+        <button
+          onClick={() => signOut({ callbackUrl: "/login" })}
+          className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+          title="Sair"
+        >
+          <LogOut size={14} />
+        </button>
+      </div>
+    </div>
         );
 }
 
