@@ -66,10 +66,10 @@ export default function FinancialPage() {
                                             <div key={card.label} className="card p-5 flex items-start gap-4">
                                                             <div className={"w-10 h-10 rounded-xl " + card.bg + " flex items-center justify-center shrink-0"}>
                                                                               <Icon size={18} className={card.color} />
-                                                            </div>div>
+                                                            </div>
                                                             <div className="flex-1 min-w-0">
-                                                                              <div className="text-2xl font-bold text-white">{card.value}</div>div>
-                                                                              <div className="text-xs font-medium text-gray-400 mt-0.5">{card.label}</div>div>
+                                                                              <div className="text-2xl font-bold text-white">{card.value}</div>
+                                                                              <div className="text-xs font-medium text-gray-400 mt-0.5">{card.label}</div>
                                                                               <div className="flex items-center gap-1 mt-1">
                                                                                   {card.up ? (
                                                                       <ArrowUpRight size={11} className="text-emerald-400" />
@@ -78,79 +78,79 @@ export default function FinancialPage() {
                                                                     )}
                                                                                                   <span className={"text-[10px] font-semibold " + (card.up ? "text-emerald-400" : "text-red-400")}>
                                                                                                       {card.delta}
-                                                                                                      </span>span>
-                                                                                                  <span className="text-[10px] text-gray-600">{card.sub}</span>span>
-                                                                              </div>div>
-                                                            </div>div>
-                                            </div>div>
+                                                                                                      </span>
+                                                                                                  <span className="text-[10px] text-gray-600">{card.sub}</span>
+                                                                              </div>
+                                                            </div>
+                                            </div>
                                           );
           })}
-                        </div>div>
+                        </div>
                 
                         <div className="card p-5">
-                                  <h2 className="text-sm font-semibold text-white mb-4">Evolucao de Receita Mensal</h2>h2>
+                                  <h2 className="text-sm font-semibold text-white mb-4">Evolucao de Receita Mensal</h2>
                                   <div className="overflow-x-auto">
                                               <table className="w-full text-sm">
                                                             <thead>
                                                                             <tr className="border-b border-gray-800">
-                                                                                              <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Mes</th>th>
-                                                                                              <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Receita</th>th>
-                                                                                              <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Despesas</th>th>
-                                                                                              <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Lucro</th>th>
-                                                                                              <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Margem</th>th>
-                                                                            </tr>tr>
-                                                            </thead>thead>
+                                                                                              <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Mes</th>
+                                                                                              <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Receita</th>
+                                                                                              <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Despesas</th>
+                                                                                              <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Lucro</th>
+                                                                                              <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Margem</th>
+                                                                            </tr>
+                                                            </thead>
                                                             <tbody>
                                                                 {revenueData.map((row) => {
                                 const marginPct = ((row.profit / row.revenue) * 100).toFixed(1);
                                 return (
                                                         <tr key={row.month} className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
-                                                                              <td className="py-2.5 px-3 text-gray-300 font-medium">{row.month}</td>td>
-                                                                              <td className="py-2.5 px-3 text-right text-white font-semibold">{fmt(row.revenue)}</td>td>
-                                                                              <td className="py-2.5 px-3 text-right text-red-400">{fmt(row.expenses)}</td>td>
-                                                                              <td className="py-2.5 px-3 text-right text-emerald-400 font-semibold">{fmt(row.profit)}</td>td>
+                                                                              <td className="py-2.5 px-3 text-gray-300 font-medium">{row.month}</td>
+                                                                              <td className="py-2.5 px-3 text-right text-white font-semibold">{fmt(row.revenue)}</td>
+                                                                              <td className="py-2.5 px-3 text-right text-red-400">{fmt(row.expenses)}</td>
+                                                                              <td className="py-2.5 px-3 text-right text-emerald-400 font-semibold">{fmt(row.profit)}</td>
                                                                               <td className="py-2.5 px-3 text-right">
-                                                                                                      <span className="badge badge-green">{marginPct}%</span>span>
-                                                                                  </td>td>
-                                                        </tr>tr>
+                                                                                                      <span className="badge badge-green">{marginPct}%</span>
+                                                                                  </td>
+                                                        </tr>
                                                       );
           })}
-                                                            </tbody>tbody>
-                                              </table>table>
-                                  </div>div>
-                        </div>div>
+                                                            </tbody>
+                                              </table>
+                                  </div>
+                        </div>
                 
                         <div className="card p-5">
-                                  <h2 className="text-sm font-semibold text-white mb-4">Canais de Aquisicao</h2>h2>
+                                  <h2 className="text-sm font-semibold text-white mb-4">Canais de Aquisicao</h2>
                                   <div className="overflow-x-auto">
                                               <table className="w-full text-sm">
                                                             <thead>
                                                                             <tr className="border-b border-gray-800">
-                                                                                              <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Canal</th>th>
-                                                                                              <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Sessoes</th>th>
-                                                                                              <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Conversoes</th>th>
-                                                                                              <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Receita</th>th>
-                                                                                              <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">CAC</th>th>
-                                                                            </tr>tr>
-                                                            </thead>thead>
+                                                                                              <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Canal</th>
+                                                                                              <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Sessoes</th>
+                                                                                              <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Conversoes</th>
+                                                                                              <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Receita</th>
+                                                                                              <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">CAC</th>
+                                                                            </tr>
+                                                            </thead>
                                                             <tbody>
                                                                 {channelData.map((ch) => (
                                 <tr key={ch.channel} className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
-                                                    <td className="py-2.5 px-3 text-gray-300 font-medium">{ch.channel}</td>td>
-                                                    <td className="py-2.5 px-3 text-right text-gray-400">{ch.sessions.toLocaleString()}</td>td>
-                                                    <td className="py-2.5 px-3 text-right text-brand-400">{ch.conversions.toLocaleString()}</td>td>
-                                                    <td className="py-2.5 px-3 text-right text-white font-semibold">{fmt(ch.revenue)}</td>td>
+                                                    <td className="py-2.5 px-3 text-gray-300 font-medium">{ch.channel}</td>
+                                                    <td className="py-2.5 px-3 text-right text-gray-400">{ch.sessions.toLocaleString()}</td>
+                                                    <td className="py-2.5 px-3 text-right text-brand-400">{ch.conversions.toLocaleString()}</td>
+                                                    <td className="py-2.5 px-3 text-right text-white font-semibold">{fmt(ch.revenue)}</td>
                                                     <td className="py-2.5 px-3 text-right text-gray-400">
-                                                        {ch.cac === 0 ? <span className="text-emerald-400">Organico</span>span> : "$" + ch.cac}
-                                                    </td>td>
-                                </tr>tr>
+                                                        {ch.cac === 0 ? <span className="text-emerald-400">Organico</span> : "$" + ch.cac}
+                                                    </td>
+                                </tr>
                               ))}
-                                                            </tbody>tbody>
-                                              </table>table>
-                                  </div>div>
-                        </div>div>
+                                                            </tbody>
+                                              </table>
+                                  </div>
+                        </div>
                 
-                </div>div>
-          </>>
+                </div>
+          </>
         );
-}</>
+}

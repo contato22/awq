@@ -129,6 +129,7 @@ export default function SettingsPage() {
               { name: "Alex Whitmore", email: "alex@awqgroup.com", role: "Owner" },
               { name: "Sam Chen", email: "s.chen@jacqes.com", role: "Admin" },
               { name: "Priya Nair", email: "p.nair@jacqes.com", role: "Analyst" },
+              { name: "Danilo", email: "danilo@jacqes.com", role: "CS Ops" },
             ].map((member) => (
               <div key={member.email} className="flex items-center gap-3 py-2 border-b border-gray-800 last:border-0">
                 <div className="w-7 h-7 rounded-full bg-gradient-to-br from-brand-600 to-brand-400 flex items-center justify-center text-[10px] font-bold text-white">

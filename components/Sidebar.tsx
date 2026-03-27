@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
 import {
     LayoutDashboard,
     TrendingUp,
@@ -177,6 +178,13 @@ function AwqHeader() {
 }
 
 // ── Footer (shared) ───────────────────────────────────────────────────────────
+const ROLE_LABELS: Record<string, string> = {
+  owner: "Owner",
+  admin: "Admin",
+  analyst: "Analyst",
+  "cs-ops": "CS Ops",
+};
+
 function SidebarFooter() {
     return (
         <div className="px-4 py-4 border-t border-gray-100">
