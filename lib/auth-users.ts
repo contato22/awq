@@ -49,7 +49,7 @@ export const USERS: AuthUser[] = [
 export const ROLE_ALLOWED_PREFIXES: Record<Role, string[]> = {
   owner: ["/"], // unrestricted
   admin: [
-    "/awq", "/business-units", "/caza-vision", "/awq-venture",
+    "/awq", "/business-units", "/financial", "/caza-vision", "/awq-venture",
     "/jacqes", "/desempenho", "/carteira", "/analise", "/csops",
     "/revenue", "/reports", "/categorias", "/customers",
     "/carreira", "/agents", "/openclaw", "/settings",
