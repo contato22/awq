@@ -119,9 +119,9 @@ function NavItem({
                           size={16}
                           className={cn(active ? "text-brand-600" : "text-gray-400 group-hover:text-gray-600")}
                         />
-                <span className="flex-1">{label}</span>span>
+                <span className="flex-1">{label}</span>
             {active && <ChevronRight size={14} className="text-brand-500" />}
-          </Link>Link>
+          </Link>
         );
 }
 
@@ -130,8 +130,8 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
           <div className="px-3 mb-1 mt-5">
                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
                   {children}
-                </span>span>
-          </div>div>
+                </span>
+          </div>
         );
 }
 
@@ -142,15 +142,15 @@ function AwqHeader() {
                 <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-awq-gold to-amber-600 flex items-center justify-center shadow-md">
                                   <Zap size={17} className="text-white" />
-                        </div>div>
+                        </div>
                         <div>
-                                  <div className="text-sm font-bold text-gray-900">AWQ Group</div>div>
+                                  <div className="text-sm font-bold text-gray-900">AWQ Group</div>
                                   <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
                                               Plataforma Central
-                                  </div>div>
-                        </div>div>
-                </div>div>
-          </div>div>
+                                  </div>
+                        </div>
+                </div>
+          </div>
         );
 }
 
@@ -161,24 +161,24 @@ function SidebarFooter() {
                 <div className="flex items-center gap-3 px-1">
                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-awq-gold to-amber-600 flex items-center justify-center text-xs font-bold text-white shrink-0">
                                   AD
-                        </div>div>
+                        </div>
                         <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2">
-                                              <span className="text-sm font-semibold text-gray-800 truncate">Admin</span>span>
+                                              <span className="text-sm font-semibold text-gray-800 truncate">Admin</span>
                                               <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-200">
                                                             ADMIN
-                                              </span>span>
-                                  </div>div>
-                                  <div className="text-[10px] text-gray-400 truncate">Administrador</div>div>
-                        </div>div>
+                                              </span>
+                                  </div>
+                                  <div className="text-[10px] text-gray-400 truncate">Administrador</div>
+                        </div>
                         <button
                                     className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                                     title="Sair"
                                   >
                                   <LogOut size={14} />
-                        </button>button>
-                </div>div>
-          </div>div>
+                        </button>
+                </div>
+          </div>
         );
 }
 
@@ -195,15 +195,15 @@ function AwqSidebar({ pathname }: { pathname: string }) {
           <>
                 <AwqHeader />
                 <nav className="flex-1 overflow-y-auto px-3 py-2">
-                        <SectionLabel>AWQ Group</SectionLabel>SectionLabel>
+                        <SectionLabel>AWQ Group</SectionLabel>
                         <div className="space-y-0.5">
                           {awqNav.map((item) => (
                         <NavItem key={item.href} {...item} active={isActive(item.href)} />
                       ))}
-                        </div>div>
+                        </div>
                 
                   {/* Business Units section */}
-                        <SectionLabel>Business Units</SectionLabel>SectionLabel>
+                        <SectionLabel>Business Units</SectionLabel>
                         <div className="space-y-2 mt-1">
                           {businessUnits.map((bu) => (
                         <Link
@@ -213,25 +213,25 @@ function AwqSidebar({ pathname }: { pathname: string }) {
                                       >
                                       <div className={`w-8 h-8 rounded-lg ${bu.color} flex items-center justify-center shrink-0`}>
                                                       <bu.icon size={14} className="text-white" />
-                                      </div>div>
+                                      </div>
                                       <div className="flex-1 min-w-0">
                                                       <div className="text-sm font-semibold text-gray-800 group-hover:text-brand-700">
                                                         {bu.label}
-                                                      </div>div>
-                                                      <div className="text-[10px] text-gray-400">{bu.sub}</div>div>
-                                      </div>div>
+                                                      </div>
+                                                      <div className="text-[10px] text-gray-400">{bu.sub}</div>
+                                      </div>
                                       <ChevronRight size={14} className="text-gray-300 group-hover:text-brand-400" />
-                        </Link>Link>
+                        </Link>
                       ))}
-                        </div>div>
+                        </div>
                 
-                        <SectionLabel>Sistema</SectionLabel>SectionLabel>
+                        <SectionLabel>Sistema</SectionLabel>
                         <div className="space-y-0.5">
                           {sistemaNav.map((item) => (
                         <NavItem key={item.href} {...item} active={pathname === item.href} />
                       ))}
-                        </div>div>
-                </nav>nav>
+                        </div>
+                </nav>
                 <SidebarFooter />
           </>>
         );
@@ -251,14 +251,14 @@ function JacqesSidebar({ pathname }: { pathname: string }) {
                                   >
                                   <div className="w-7 h-7 rounded-lg bg-brand-600 flex items-center justify-center shrink-0">
                                               <BarChart3 size={13} className="text-white" />
-                                  </div>div>
+                                  </div>
                                   <div className="flex-1 min-w-0">
-                                              <div className="text-sm font-bold text-brand-700 truncate">JACQES</div>div>
-                                              <div className="text-[10px] text-brand-500 truncate">Agência · AWQ Group</div>div>
-                                  </div>div>
+                                              <div className="text-sm font-bold text-brand-700 truncate">JACQES</div>
+                                              <div className="text-[10px] text-brand-500 truncate">Agência · AWQ Group</div>
+                                  </div>
                                   <ChevronDown size={14} className="text-brand-400 shrink-0" />
-                        </Link>Link>
-                </div>div>
+                        </Link>
+                </div>
           
             {/* Back to AWQ link */}
                 <div className="px-4 pt-2">
@@ -268,35 +268,35 @@ function JacqesSidebar({ pathname }: { pathname: string }) {
                                   >
                                   <ChevronLeft size={11} />
                                   Voltar para AWQ Group
-                        </Link>Link>
-                </div>div>
+                        </Link>
+                </div>
           
                 <nav className="flex-1 overflow-y-auto px-3 py-2">
-                        <SectionLabel>JACQES · Navegação</SectionLabel>SectionLabel>
+                        <SectionLabel>JACQES · Navegação</SectionLabel>
                         <div className="space-y-0.5">
                           {jacqesNav.map((item) => (
                         <NavItem key={item.href} {...item} active={isActive(item.href)} />
                       ))}
-                        </div>div>
-                        <SectionLabel>Gestão</SectionLabel>SectionLabel>
+                        </div>
+                        <SectionLabel>Gestão</SectionLabel>
                         <div className="space-y-0.5">
                           {gestaoNav.map((item) => (
                         <NavItem key={item.href} {...item} active={isActive(item.href)} />
                       ))}
-                        </div>div>
-                        <SectionLabel>IA & Agentes</SectionLabel>SectionLabel>
+                        </div>
+                        <SectionLabel>IA & Agentes</SectionLabel>
                         <div className="space-y-0.5">
                           {aiNav.map((item) => (
                         <NavItem key={item.href} {...item} active={isActive(item.href)} />
                       ))}
-                        </div>div>
-                        <SectionLabel>Sistema</SectionLabel>SectionLabel>
+                        </div>
+                        <SectionLabel>Sistema</SectionLabel>
                         <div className="space-y-0.5">
                           {sistemaNav.map((item) => (
                         <NavItem key={item.href} {...item} active={isActive(item.href)} />
                       ))}
-                        </div>div>
-                </nav>nav>
+                        </div>
+                </nav>
                 <SidebarFooter />
           </>>
         );
@@ -309,6 +309,6 @@ export default function Sidebar() {
     return (
           <aside className="w-[260px] flex-shrink-0 bg-white border-r border-gray-200 flex flex-col h-full">
             {jacqesMode ? <JacqesSidebar pathname={pathname} /> : <AwqSidebar pathname={pathname} />}
-          </aside>aside>
+          </aside>
         );
 }</></></Link>
