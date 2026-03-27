@@ -233,7 +233,7 @@ function AwqSidebar({ pathname }: { pathname: string }) {
                         </div>
                 </nav>
                 <SidebarFooter />
-          </>>
+          </>
         );
 }
 
@@ -298,7 +298,7 @@ function JacqesSidebar({ pathname }: { pathname: string }) {
                         </div>
                 </nav>
                 <SidebarFooter />
-          </>>
+          </>
         );
 }
 
@@ -311,4 +311,4 @@ export default function Sidebar() {
             {jacqesMode ? <JacqesSidebar pathname={pathname} /> : <AwqSidebar pathname={pathname} />}
           </aside>
         );
-}</></></Link>
+      }
