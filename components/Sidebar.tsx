@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 // Routes that belong to the JACQES BU context (no "/" — root redirects to AWQ)
 const JACQES_PREFIXES = [
   "/jacqes", "/desempenho", "/carteira", "/analise",
-  "/csops", "/revenue", "/reports",
+  "/csops", "/revenue", "/financial", "/reports",
 ];
 
 function isJacqesRoute(pathname: string) {
@@ -30,7 +30,7 @@ const jacqesNav = [
   { label: "Carteira",     href: "/carteira",   icon: Users },
   { label: "Análise",      href: "/analise",    icon: Activity },
   { label: "CS Ops",       href: "/csops",      icon: HeartPulse },
-  { label: "Financial",    href: "/revenue",    icon: DollarSign },
+  { label: "Financial",    href: "/financial",  icon: DollarSign },
   { label: "Relatórios",   href: "/reports",    icon: BarChart3 },
   { label: "Categorias",   href: "/categorias", icon: Tag },
 ];
