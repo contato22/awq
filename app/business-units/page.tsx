@@ -6,7 +6,7 @@ const BUS = [
   {
     id: "jacqes",
     label: "JACQES",
-    sub: "Agência · AWQ Group",
+    sub: "Agência",
         href: "https://contato22.github.io/jacqes-bi/",
     color: "bg-brand-600",
     borderColor: "border-brand-200",
@@ -25,7 +25,7 @@ const BUS = [
   {
     id: "caza",
     label: "Caza Vision",
-    sub: "Tecnologia · AWQ Group",
+    sub: "Tecnologia",
     href: "/caza-vision",
     color: "bg-emerald-600",
     borderColor: "border-emerald-200",
@@ -44,7 +44,7 @@ const BUS = [
   {
     id: "venture",
     label: "AWQ Venture",
-    sub: "Investimentos · AWQ Group",
+    sub: "Investimentos",
     href: "/awq-venture",
     color: "bg-amber-600",
     borderColor: "border-amber-200",

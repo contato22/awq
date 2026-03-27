@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 // Routes that belong to the JACQES BU context (no "/" — root redirects to AWQ)
 const JACQES_PREFIXES = [
   "/jacqes", "/desempenho", "/carteira", "/analise",
-  "/csops", "/revenue", "/reports",
+  "/csops", "/revenue", "/financial", "/reports",
 ];
 
 function isJacqesRoute(pathname: string) {
@@ -54,7 +54,7 @@ const businessUnits = [
   {
     id: "jacqes",
     label: "JACQES",
-    sub: "Agência · AWQ Group",
+    sub: "Agência",
     href: "https://contato22.github.io/jacqes-bi/",
     icon: BarChart3,
     color: "bg-brand-600",
@@ -62,7 +62,7 @@ const businessUnits = [
   {
     id: "caza",
     label: "Caza Vision",
-    sub: "Tecnologia · AWQ Group",
+    sub: "Tecnologia",
     href: "/caza-vision",
     icon: Building2,
     color: "bg-emerald-600",
@@ -70,7 +70,7 @@ const businessUnits = [
   {
     id: "venture",
     label: "AWQ Venture",
-    sub: "Investimentos · AWQ Group",
+    sub: "Investimentos",
     href: "/awq-venture",
     icon: TrendingUp,
     color: "bg-amber-600",
@@ -172,6 +172,7 @@ function SidebarFooter() {
 const awqNav = [
   { label: "Visão Geral", href: "/awq", icon: LayoutDashboard },
   { label: "Business Units", href: "/business-units", icon: Building2 },
+  { label: "Financial", href: "/financial", icon: DollarSign },
 ];
 
 // ── AWQ Group sidebar (Business Units only) ───────────────────────────────────
@@ -247,7 +248,7 @@ function JacqesSidebar({ pathname }: { pathname: string }) {
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-sm font-bold text-brand-700 truncate">JACQES</div>
-            <div className="text-[10px] text-brand-500 truncate">Agência · AWQ Group</div>
+            <div className="text-[10px] text-brand-500 truncate">Agência</div>
           </div>
           <ChevronDown size={14} className="text-brand-400 shrink-0" />
         </Link>

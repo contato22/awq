@@ -2,7 +2,7 @@ import Header from "@/components/Header";
 import Link from "next/link";
 import {
   BarChart3, Building2, TrendingUp, DollarSign, Users,
-  Activity, Zap, ChevronRight, ArrowUpRight,
+  Activity, Zap, ChevronRight, ArrowUpRight, LineChart,
 } from "lucide-react";
 
 const GROUP_KPIS = [
@@ -44,7 +44,7 @@ const BUS = [
   {
     id: "jacqes",
     label: "JACQES",
-    sub: "Agência · AWQ Group",
+    sub: "Agência",
     href: "https://contato22.github.io/jacqes-bi/",
     color: "bg-brand-600",
     icon: BarChart3,
@@ -59,7 +59,7 @@ const BUS = [
   {
     id: "caza",
     label: "Caza Vision",
-    sub: "Tecnologia · AWQ Group",
+    sub: "Tecnologia",
     href: "/caza-vision",
     color: "bg-emerald-600",
     icon: Building2,
@@ -74,7 +74,7 @@ const BUS = [
   {
     id: "venture",
     label: "AWQ Venture",
-    sub: "Investimentos · AWQ Group",
+    sub: "Investimentos",
     href: "/awq-venture",
     color: "bg-amber-600",
     icon: TrendingUp,
@@ -188,6 +188,33 @@ export default function AwqGroupPage() {
             </div>
           </div>
         </div>
+
+        {/* Financial quick access */}
+        <Link
+          href="/financial"
+          className="card p-4 flex items-center gap-4 border border-gray-800 hover:border-brand-700 hover:bg-brand-900/20 transition-all group"
+        >
+          <div className="w-10 h-10 rounded-xl bg-brand-600/20 border border-brand-700/40 flex items-center justify-center shrink-0">
+            <LineChart size={18} className="text-brand-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-bold text-white">Financial</div>
+            <div className="text-xs text-gray-500 mt-0.5">Receita, margem e canais de aquisição</div>
+          </div>
+          <div className="hidden sm:flex items-center gap-6 mr-2">
+            {[
+              { label: "Receita Total", value: "$4.82M" },
+              { label: "Lucro Total", value: "$3.24M" },
+              { label: "Margem Média", value: "67.4%" },
+            ].map((s) => (
+              <div key={s.label} className="text-center">
+                <div className="text-sm font-bold text-white">{s.value}</div>
+                <div className="text-[10px] text-gray-600">{s.label}</div>
+              </div>
+            ))}
+          </div>
+          <ChevronRight size={16} className="text-brand-400 shrink-0" />
+        </Link>
       </div>
     </>
   );
