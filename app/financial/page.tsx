@@ -1,6 +1,12 @@
+import type { Metadata } from "next";
 import Header from "@/components/Header";
-import { revenueData, channelData, kpis } from "@/lib/data";
+import { revenueData, channelData } from "@/lib/data";
 import { DollarSign, TrendingUp, BarChart3, ArrowUpRight, ArrowDownRight } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "Financial — AWQ Group",
+  description: "Receita, margem e canais de aquisição do AWQ Group.",
+};
 
 function fmt(n: number) {
       if (n >= 1_000_000) return "$" + (n / 1_000_000).toFixed(2) + "M";
