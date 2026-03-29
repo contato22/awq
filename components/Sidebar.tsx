@@ -387,7 +387,8 @@ function CazaSidebar({ pathname }: { pathname: string }) {
 
 // ── Root Sidebar ──────────────────────────────────────────────────────────────
 export default function Sidebar() {
-    const pathname = usePathname();
+    const rawPathname = usePathname();
+    const pathname = rawPathname ?? "";
     const jacqesMode = isJacqesRoute(pathname);
     const cazaMode   = isCazaRoute(pathname);
     return (

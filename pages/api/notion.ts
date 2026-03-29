@@ -1,8 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import type { NextApiRequest, NextApiResponse } from "next";
 
 const NOTION_VERSION = "2022-06-28";
-
-// ─── Notion REST helpers ──────────────────────────────────────────────────────
 
 async function queryDatabase(databaseId: string, apiKey: string) {
   const res = await fetch(
@@ -15,7 +13,6 @@ async function queryDatabase(databaseId: string, apiKey: string) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ page_size: 100 }),
-      cache: "no-store",
     }
   );
   if (!res.ok) {
@@ -48,8 +45,6 @@ function getProp(
   }
   return null;
 }
-
-// ─── Mappers per database type ────────────────────────────────────────────────
 
 function mapFinancial(page: { id: string; properties: Record<string, NotionPropertyValue> }) {
   const p = page.properties;
@@ -92,18 +87,16 @@ function mapClient(page: { id: string; properties: Record<string, NotionProperty
   };
 }
 
-// ─── Route handler ────────────────────────────────────────────────────────────
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== "GET") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
 
-export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const database = searchParams.get("database") ?? "financial";
+  const database = (req.query.database as string) ?? "financial";
 
   const apiKey = process.env.NOTION_API_KEY;
   if (!apiKey) {
-    return NextResponse.json(
-      { source: "mock", data: null, error: "NOTION_API_KEY não configurada" },
-      { status: 200 }
-    );
+    return res.status(200).json({ source: "mock", data: null, error: "NOTION_API_KEY não configurada" });
   }
 
   const envMap: Record<string, string | undefined> = {
@@ -114,10 +107,11 @@ export async function GET(req: NextRequest) {
 
   const dbId = envMap[database];
   if (!dbId) {
-    return NextResponse.json(
-      { source: "mock", data: null, error: `NOTION_DATABASE_ID_CAZA_${database.toUpperCase()} não configurada` },
-      { status: 200 }
-    );
+    return res.status(200).json({
+      source: "mock",
+      data: null,
+      error: `NOTION_DATABASE_ID_CAZA_${database.toUpperCase()} não configurada`,
+    });
   }
 
   try {
@@ -133,12 +127,9 @@ export async function GET(req: NextRequest) {
     const mapper = mappers[database] ?? mapFinancial;
     const data = pages.map(mapper);
 
-    return NextResponse.json({ source: "notion", data, total: data.length });
+    return res.status(200).json({ source: "notion", data, total: data.length });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro desconhecido";
-    return NextResponse.json(
-      { source: "mock", data: null, error: message },
-      { status: 200 }
-    );
+    return res.status(200).json({ source: "mock", data: null, error: message });
   }
 }

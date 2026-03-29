@@ -138,7 +138,7 @@ export default function OpenClawWidget() {
   }, [messages, loading]);
 
   // Reset messages when BU context changes
-  const buContext = getBuContext(pathname);
+  const buContext = getBuContext(pathname ?? "");
   const prevBuRef = useRef<BuContext>(buContext);
   useEffect(() => {
     if (prevBuRef.current !== buContext) {

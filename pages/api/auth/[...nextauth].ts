@@ -1,10 +1,9 @@
-export const dynamic = 'force-dynamic';
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { findUserByEmail } from "@/lib/auth-users";
 
-const handler = NextAuth({
+export default NextAuth({
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -28,14 +27,16 @@ const handler = NextAuth({
   callbacks: {
     jwt({ token, user }) {
       if (user) {
-        token.id = user.id;
-        token.role = user.role;
+        token.id = (user as { id: string }).id;
+        token.role = (user as { role: string }).role;
       }
       return token;
     },
     session({ session, token }) {
-      session.user.id = token.id;
-      session.user.role = token.role;
+      if (session.user) {
+        (session.user as { id?: string }).id = token.id as string;
+        (session.user as { role?: string }).role = token.role as string;
+      }
       return session;
     },
   },
@@ -46,5 +47,3 @@ const handler = NextAuth({
     strategy: "jwt",
   },
 });
-
-export { handler as GET, handler as POST };
