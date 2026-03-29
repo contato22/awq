@@ -34,12 +34,12 @@ const BUS = [
         badgeColor: "bg-emerald-100 text-emerald-600 border-emerald-200",
         icon: Building2,
         kpis: [
-          { label: "Projetos", value: "—" },
-          { label: "Equipe", value: "—" },
-          { label: "Pipeline", value: "—" },
+          { label: "Imóveis Ativos", value: "87" },
+          { label: "Transações", value: "34" },
+          { label: "GCI YTD", value: "R$2.42M" },
               ],
-        status: "Em breve",
-        statusColor: "badge-yellow",
+        status: "Ativa",
+        statusColor: "badge-green",
   },
   {
         id: "venture",
@@ -71,20 +71,20 @@ export default function BusinessUnitsPage() {
                         <div className="grid grid-cols-3 gap-4">
                           {[
             { icon: Building2, label: "Total de BUs", value: "3" },
-            { icon: Users, label: "BUs Ativas", value: "1" },
+            { icon: Users, label: "BUs Ativas", value: "2" },
             { icon: DollarSign, label: "Receita Consolidada", value: "$4.82M" },
                       ].map((s) => (
                                     <div key={s.label} className="card p-5 flex items-center gap-4">
                                                   <div className="w-9 h-9 rounded-xl bg-gray-800 border border-gray-700 flex items-center justify-center">
                                                                   <s.icon size={16} className="text-gray-400" />
-                                                  </div>
+                                                  </div>div>
                                                   <div>
-                                                                  <div className="text-xl font-bold text-white">{s.value}</div>
-                                                                  <div className="text-xs text-gray-500 mt-0.5">{s.label}</div>
-                                                  </div>
-                                    </div>
+                                                                  <div className="text-xl font-bold text-white">{s.value}</div>div>
+                                                                  <div className="text-xs text-gray-500 mt-0.5">{s.label}</div>div>
+                                                  </div>div>
+                                    </div>div>
                                   ))}
-                        </div>
+                        </div>div>
                 
                   {/* BU Cards */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -103,38 +103,38 @@ export default function BusinessUnitsPage() {
                                                         <div className="flex items-start justify-between">
                                                                           <div className={`w-11 h-11 rounded-xl ${bu.color} flex items-center justify-center shadow-md`}>
                                                                                               <Icon size={20} className="text-white" />
-                                                                          </div>
-                                                                          <span className={`badge ${bu.statusColor}`}>{bu.status}</span>
-                                                        </div>
+                                                                          </div>div>
+                                                                          <span className={`badge ${bu.statusColor}`}>{bu.status}</span>span>
+                                                        </div>div>
                                         
                                           {/* Name */}
                                                         <div>
-                                                                          <div className="text-lg font-bold text-white">{bu.label}</div>
-                                                                          <div className="text-xs text-gray-500 mt-0.5">{bu.sub}</div>
-                                                        </div>
+                                                                          <div className="text-lg font-bold text-white">{bu.label}</div>div>
+                                                                          <div className="text-xs text-gray-500 mt-0.5">{bu.sub} · AWQ Group</div>div>
+                                                        </div>div>
                                         
                                           {/* KPIs */}
                                                         <div className="grid grid-cols-3 gap-2 pt-3 border-t border-gray-800">
                                                           {bu.kpis.map((kpi) => (
                                                                               <div key={kpi.label} className="text-center">
-                                                                                                    <div className="text-sm font-bold text-white">{kpi.value}</div>
-                                                                                                    <div className="text-[10px] text-gray-600 mt-0.5">{kpi.label}</div>
-                                                                              </div>
+                                                                                                    <div className="text-sm font-bold text-white">{kpi.value}</div>div>
+                                                                                                    <div className="text-[10px] text-gray-600 mt-0.5">{kpi.label}</div>div>
+                                                                              </div>div>
                                                                             ))}
-                                                        </div>
+                                                        </div>div>
                                         
                                           {/* CTA */}
                                                         <div className="flex items-center justify-between pt-1">
                                                                           <span className="text-xs text-gray-500">
                                                                             {isActive ? "Clique para acessar" : "Em desenvolvimento"}
-                                                                          </span>
+                                                                          </span>span>
                                                           {isActive && <ChevronRight size={14} className="text-brand-400" />}
-                                                        </div>
-                                        </Link>
+                                                        </div>div>
+                                        </Link>Link>
                                       );
           })}
-                        </div>
-                </div>
-          </>
+                        </div>div>
+                </div>div>
+          </>>
         );
-}
+}</>
