@@ -64,7 +64,7 @@ const BUS = [
     id: "advisor",
     label: "Advisor",
     sub: "Consultoria",
-    href: "/advisor",
+    href: "https://contato22.github.io/advisor-bi/",
     color: "bg-violet-600",
     borderColor: "border-violet-200",
     bgColor: "bg-violet-50",

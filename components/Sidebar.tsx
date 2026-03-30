@@ -126,7 +126,7 @@ const businessUnits = [
         id: "advisor",
         label: "Advisor",
         sub: "Consultoria · AWQ Group",
-        href: "/advisor",
+        href: "https://contato22.github.io/advisor-bi/",
         icon: Briefcase,
         color: "bg-violet-600",
     },
