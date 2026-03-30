@@ -110,7 +110,7 @@ const businessUnits = [
         id: "caza",
         label: "Caza Vision",
         sub: "Produtora · AWQ Group",
-        href: "/business-units",
+        href: "/caza-vision",
         icon: Building2,
         color: "bg-emerald-600",
     },

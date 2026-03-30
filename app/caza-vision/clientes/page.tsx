@@ -1,6 +1,23 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import { cazaClients } from "@/lib/caza-data";
-import { Tag, TrendingUp, Users, Building2 } from "lucide-react";
+import { Tag, TrendingUp, Users, Building2, Database, CloudOff, AlertCircle } from "lucide-react";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface ClienteRow {
+  id:           string;
+  name:         string;
+  email:        string;
+  phone:        string;
+  type:         string;
+  budget_anual: number;
+  status:       string;
+  segmento:     string;
+  since:        string;
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -33,30 +50,72 @@ const statusConfig: Record<string, string> = {
   "Perdido":      "bg-red-500/10 text-red-400 border border-red-500/20 text-[10px] font-semibold px-2 py-0.5 rounded-full",
 };
 
-// ─── Summary counts ───────────────────────────────────────────────────────────
-
-const counts = {
-  total:       cazaClients.length,
-  ativos:      cazaClients.filter((c) => c.status === "Ativo" || c.status === "Em Proposta").length,
-  convertidos: cazaClients.filter((c) => c.status === "Convertido").length,
-  perdidos:    cazaClients.filter((c) => c.status === "Perdido").length,
-};
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ClientesPage() {
+  const [clients, setClients] = useState<ClienteRow[]>([]);
+  const [source, setSource]   = useState<"notion" | "mock" | "loading">("loading");
+  const [notionError, setNotionError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/notion?database=clients")
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.source === "notion" && Array.isArray(json.data) && json.data.length > 0) {
+          setClients(json.data as ClienteRow[]);
+          setSource("notion");
+        } else {
+          setClients(cazaClients as ClienteRow[]);
+          setSource("mock");
+          setNotionError(json.error ?? null);
+        }
+      })
+      .catch(() => {
+        setClients(cazaClients as ClienteRow[]);
+        setSource("mock");
+      });
+  }, []);
+
+  const total       = clients.length;
+  const ativos      = clients.filter((c) => c.status === "Ativo" || c.status === "Em Proposta").length;
+  const convertidos = clients.filter((c) => c.status === "Convertido").length;
+  const perdidos    = clients.filter((c) => c.status === "Perdido").length;
+
   return (
     <>
       <Header title="Clientes" subtitle="Marcas, agências e empresas — Caza Vision" />
       <div className="px-8 py-6 space-y-6">
 
+        {/* ── Source badge ────────────────────────────────────────────────── */}
+        <div className="flex items-center gap-2">
+          {source === "loading" && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-800 border border-gray-700 text-xs text-gray-400">
+              <Database size={11} /> Conectando ao Notion…
+            </span>
+          )}
+          {source === "notion" && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-400">
+              <Database size={11} /> Dados ao vivo — Notion
+            </span>
+          )}
+          {source === "mock" && (
+            <span
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-xs text-amber-400"
+              title={notionError ?? ""}
+            >
+              <CloudOff size={11} /> Dados de demonstração
+              {notionError && <span className="text-[10px] text-gray-500 ml-1">({notionError})</span>}
+            </span>
+          )}
+        </div>
+
         {/* ── Summary strip ───────────────────────────────────────────────── */}
         <div className="grid grid-cols-4 gap-4">
           {[
-            { label: "Total de Clientes", value: counts.total,       color: "text-white"       },
-            { label: "Ativos / Em Proposta", value: counts.ativos,   color: "text-emerald-400" },
-            { label: "Convertidos",       value: counts.convertidos, color: "text-brand-400"   },
-            { label: "Perdidos",          value: counts.perdidos,    color: "text-red-400"     },
+            { label: "Total de Clientes",    value: total,       color: "text-white"       },
+            { label: "Ativos / Em Proposta", value: ativos,      color: "text-emerald-400" },
+            { label: "Convertidos",          value: convertidos, color: "text-brand-400"   },
+            { label: "Perdidos",             value: perdidos,    color: "text-red-400"     },
           ].map((s) => (
             <div key={s.label} className="card p-4 text-center">
               <div className={`text-3xl font-bold ${s.color}`}>{s.value}</div>
@@ -68,6 +127,11 @@ export default function ClientesPage() {
         {/* ── Clients table ───────────────────────────────────────────────── */}
         <div className="card p-5">
           <h2 className="text-sm font-semibold text-white mb-4">Todos os Clientes</h2>
+          {source === "loading" ? (
+            <div className="flex items-center justify-center py-12 text-gray-600 text-sm gap-2">
+              <AlertCircle size={16} /> Carregando…
+            </div>
+          ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -81,7 +145,7 @@ export default function ClientesPage() {
                 </tr>
               </thead>
               <tbody>
-                {cazaClients.map((c) => {
+                {clients.map((c) => {
                   const TypeIcon = typeIcon[c.type] ?? Users;
                   return (
                     <tr key={c.id} className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
@@ -99,10 +163,10 @@ export default function ClientesPage() {
                       <td className="py-2.5 px-3 text-right text-white font-semibold text-xs">
                         {c.budget_anual > 0 ? fmtR(c.budget_anual) : <span className="text-gray-600">—</span>}
                       </td>
-                      <td className="py-2.5 px-3 text-xs text-gray-400">{c.segmento}</td>
-                      <td className="py-2.5 px-3 text-[11px] text-gray-600">{c.since}</td>
+                      <td className="py-2.5 px-3 text-xs text-gray-400">{c.segmento || "—"}</td>
+                      <td className="py-2.5 px-3 text-[11px] text-gray-600">{c.since || "—"}</td>
                       <td className="py-2.5 px-3">
-                        <span className={statusConfig[c.status] ?? ""}>{c.status}</span>
+                        <span className={statusConfig[c.status] ?? "badge"}>{c.status}</span>
                       </td>
                     </tr>
                   );
@@ -110,6 +174,7 @@ export default function ClientesPage() {
               </tbody>
             </table>
           </div>
+          )}
         </div>
 
       </div>

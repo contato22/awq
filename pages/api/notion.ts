@@ -140,20 +140,30 @@ function monthIndex(label: string): number {
 type ProjetoMapped = ReturnType<typeof mapProjeto>;
 
 function aggregateByMonth(rows: ProjetoMapped[]) {
-  const map = new Map<string, { receita: number; expenses: number; profit: number; orcamento: number }>();
+  const map = new Map<string, { receita: number; alimentacao: number; gasolina: number; expenses: number; profit: number; orcamento: number }>();
   for (const row of rows) {
     if (!row.prazo) continue;
     const label = monthLabel(String(row.prazo));
-    const acc = map.get(label) ?? { receita: 0, expenses: 0, profit: 0, orcamento: 0 };
-    acc.receita    += row.valor;
-    acc.expenses   += row.despesas;
-    acc.profit     += row.lucro;
-    acc.orcamento  += row.valor;
+    const acc = map.get(label) ?? { receita: 0, alimentacao: 0, gasolina: 0, expenses: 0, profit: 0, orcamento: 0 };
+    acc.receita     += row.valor;
+    acc.alimentacao += row.alimentacao;
+    acc.gasolina    += row.gasolina;
+    acc.expenses    += row.despesas;
+    acc.profit      += row.lucro;
+    acc.orcamento   += row.valor;
     map.set(label, acc);
   }
   return Array.from(map.entries())
     .sort(([a], [b]) => monthIndex(a) - monthIndex(b))
-    .map(([month, d]) => ({ month, receita: d.receita, expenses: d.expenses, profit: d.profit, orcamento: d.orcamento }));
+    .map(([month, d]) => ({
+      month,
+      receita:     d.receita,
+      alimentacao: d.alimentacao,
+      gasolina:    d.gasolina,
+      expenses:    d.expenses,
+      profit:      d.profit,
+      orcamento:   d.orcamento,
+    }));
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
