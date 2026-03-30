@@ -13,13 +13,10 @@ export default NextAuth({
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
-
         const user = findUserByEmail(credentials.email);
         if (!user) return null;
-
         const valid = await bcrypt.compare(credentials.password, user.passwordHash);
         if (!valid) return null;
-
         return { id: user.id, name: user.name, email: user.email, role: user.role };
       },
     }),
@@ -40,10 +37,6 @@ export default NextAuth({
       return session;
     },
   },
-  pages: {
-    signIn: "/login",
-  },
-  session: {
-    strategy: "jwt",
-  },
+  pages: { signIn: "/login" },
+  session: { strategy: "jwt" },
 });

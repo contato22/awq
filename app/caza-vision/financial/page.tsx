@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Header from "@/components/Header";
-import { cazaRevenueData, propertyTypeRevenue, type CazaRevenuePoint } from "@/lib/caza-data";
+import { cazaRevenueData, projectTypeRevenue, type CazaRevenuePoint } from "@/lib/caza-data";
 import {
   DollarSign,
   TrendingUp,
@@ -33,14 +33,13 @@ export default function CazaFinancialPage() {
       .then((r) => r.json())
       .then((json) => {
         if (json.source === "notion" && Array.isArray(json.data) && json.data.length > 0) {
-          // Normalize Notion data to match CazaRevenuePoint shape
           const mapped: CazaRevenuePoint[] = json.data.map(
             (d: Record<string, unknown>) => ({
               month:    String(d.month ?? ""),
-              gci:      Number(d.gci ?? 0),
+              receita:  Number(d.receita ?? 0),
               expenses: Number(d.expenses ?? 0),
               profit:   Number(d.profit ?? 0),
-              volume:   Number(d.volume ?? 0),
+              orcamento:Number(d.orcamento ?? 0),
             })
           );
           setRows(mapped);
@@ -60,20 +59,20 @@ export default function CazaFinancialPage() {
   const rows2026 = rows.filter((r) => r.month.includes("26") || !r.month.match(/\d{2}$/));
   const dataForSummary = rows2026.length > 0 ? rows2026 : rows;
 
-  const totalGCI      = dataForSummary.reduce((s, r) => s + r.gci, 0);
+  const totalReceita  = dataForSummary.reduce((s, r) => s + r.receita, 0);
   const totalExpenses = dataForSummary.reduce((s, r) => s + r.expenses, 0);
   const totalProfit   = dataForSummary.reduce((s, r) => s + r.profit, 0);
-  const totalVolume   = dataForSummary.reduce((s, r) => s + r.volume, 0);
+  const totalOrcamento= dataForSummary.reduce((s, r) => s + r.orcamento, 0);
 
   const lastRow = rows[rows.length - 1];
   const prevRow = rows[rows.length - 2];
-  const lastDelta = prevRow ? (((lastRow.gci - prevRow.gci) / prevRow.gci) * 100).toFixed(1) : "0.0";
-  const overallMargin = totalGCI > 0 ? ((totalProfit / totalGCI) * 100).toFixed(1) : "0.0";
+  const lastDelta = prevRow ? (((lastRow.receita - prevRow.receita) / prevRow.receita) * 100).toFixed(1) : "0.0";
+  const overallMargin = totalReceita > 0 ? ((totalProfit / totalReceita) * 100).toFixed(1) : "0.0";
 
   const summaryCards = [
     {
-      label: "GCI Total (YTD 2026)",
-      value: fmtR(totalGCI),
+      label: "Receita Total (YTD 2026)",
+      value: fmtR(totalReceita),
       sub:   `Margem ${overallMargin}%`,
       icon:  DollarSign,
       color: "text-emerald-400",
@@ -92,8 +91,8 @@ export default function CazaFinancialPage() {
       delta: "+26.3%",
     },
     {
-      label: `GCI — ${lastRow.month}`,
-      value: fmtR(lastRow.gci),
+      label: `Receita — ${lastRow.month}`,
+      value: fmtR(lastRow.receita),
       sub:   "Melhor mês do período",
       icon:  BarChart3,
       color: "text-violet-400",
@@ -102,8 +101,8 @@ export default function CazaFinancialPage() {
       delta: `${parseFloat(lastDelta) >= 0 ? "+" : ""}${lastDelta}%`,
     },
     {
-      label: "Volume Total (VGV)",
-      value: fmtR(totalVolume),
+      label: "Orç. Gerenciado (VPG)",
+      value: fmtR(totalOrcamento),
       sub:   `${dataForSummary.length} meses acumulados`,
       icon:  DollarSign,
       color: "text-amber-400",
@@ -117,7 +116,7 @@ export default function CazaFinancialPage() {
     <>
       <Header
         title="Financial — Caza Vision"
-        subtitle="GCI, margem e volume de transações imobiliárias"
+        subtitle="Receita, margem e volume de projetos de produção"
       />
       <div className="px-8 py-6 space-y-6">
 
@@ -176,34 +175,34 @@ export default function CazaFinancialPage() {
           })}
         </div>
 
-        {/* ── Monthly GCI Table ─────────────────────────────────────────────── */}
+        {/* ── Monthly Revenue Table ─────────────────────────────────────────── */}
         <div className="card p-5">
-          <h2 className="text-sm font-semibold text-white mb-4">Evolução de GCI Mensal</h2>
+          <h2 className="text-sm font-semibold text-white mb-4">Evolução de Receita Mensal</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-800">
                   <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Mês</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">GCI</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Receita</th>
                   <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Despesas</th>
                   <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Lucro</th>
                   <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Margem</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Volume (VGV)</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Orç. Gerenciado</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((row) => {
-                  const margin = row.gci > 0 ? ((row.profit / row.gci) * 100).toFixed(1) : "0.0";
+                  const margin = row.receita > 0 ? ((row.profit / row.receita) * 100).toFixed(1) : "0.0";
                   return (
                     <tr key={row.month} className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
                       <td className="py-2.5 px-3 text-gray-300 font-medium">{row.month}</td>
-                      <td className="py-2.5 px-3 text-right text-white font-semibold">{fmtR(row.gci)}</td>
+                      <td className="py-2.5 px-3 text-right text-white font-semibold">{fmtR(row.receita)}</td>
                       <td className="py-2.5 px-3 text-right text-red-400">{fmtR(row.expenses)}</td>
                       <td className="py-2.5 px-3 text-right text-emerald-400 font-semibold">{fmtR(row.profit)}</td>
                       <td className="py-2.5 px-3 text-right">
                         <span className="badge badge-green">{margin}%</span>
                       </td>
-                      <td className="py-2.5 px-3 text-right text-gray-400">{fmtR(row.volume)}</td>
+                      <td className="py-2.5 px-3 text-right text-gray-400">{fmtR(row.orcamento)}</td>
                     </tr>
                   );
                 })}
@@ -212,28 +211,26 @@ export default function CazaFinancialPage() {
           </div>
         </div>
 
-        {/* ── Property Type Revenue ─────────────────────────────────────────── */}
+        {/* ── Revenue by Project Type ───────────────────────────────────────── */}
         <div className="card p-5">
-          <h2 className="text-sm font-semibold text-white mb-4">GCI por Tipo de Imóvel</h2>
+          <h2 className="text-sm font-semibold text-white mb-4">Receita por Tipo de Projeto</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-800">
                   <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Tipo</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Transações</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Volume (VGV)</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">GCI</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Preço Médio</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Projetos</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Receita</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Ticket Médio</th>
                 </tr>
               </thead>
               <tbody>
-                {propertyTypeRevenue.map((pt) => (
+                {projectTypeRevenue.map((pt) => (
                   <tr key={pt.type} className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
                     <td className="py-2.5 px-3 text-gray-300 font-medium">{pt.type}</td>
-                    <td className="py-2.5 px-3 text-right text-brand-400">{pt.transactions.toLocaleString("pt-BR")}</td>
-                    <td className="py-2.5 px-3 text-right text-white font-semibold">{fmtR(pt.volume)}</td>
-                    <td className="py-2.5 px-3 text-right text-emerald-400 font-semibold">{fmtR(pt.gci)}</td>
-                    <td className="py-2.5 px-3 text-right text-gray-400">{fmtR(pt.avgPrice)}</td>
+                    <td className="py-2.5 px-3 text-right text-brand-400">{pt.projetos.toLocaleString("pt-BR")}</td>
+                    <td className="py-2.5 px-3 text-right text-emerald-400 font-semibold">{fmtR(pt.receita)}</td>
+                    <td className="py-2.5 px-3 text-right text-gray-400">{fmtR(pt.avgValue)}</td>
                   </tr>
                 ))}
               </tbody>

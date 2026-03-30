@@ -1,6 +1,6 @@
 import Header from "@/components/Header";
 import { cazaClients } from "@/lib/caza-data";
-import { ShoppingBag, TrendingUp, Users, Handshake } from "lucide-react";
+import { Tag, TrendingUp, Users, Building2 } from "lucide-react";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -13,31 +13,31 @@ function fmtR(n: number) {
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 const typeIcon: Record<string, React.ElementType> = {
-  Comprador: ShoppingBag,
-  Vendedor: Handshake,
-  Investidor: TrendingUp,
-  Locatário: Users,
+  Marca:   Tag,
+  Agência: Building2,
+  Empresa: Building2,
+  Startup: TrendingUp,
 };
 
 const typeColor: Record<string, string> = {
-  Comprador: "text-brand-400",
-  Vendedor: "text-emerald-400",
-  Investidor: "text-amber-400",
-  Locatário: "text-violet-400",
+  Marca:   "text-brand-400",
+  Agência: "text-emerald-400",
+  Empresa: "text-amber-400",
+  Startup: "text-violet-400",
 };
 
 const statusConfig: Record<string, string> = {
-  "Ativo":          "badge badge-green",
-  "Em Negociação":  "badge badge-yellow",
-  "Convertido":     "badge badge-blue",
-  "Perdido":        "bg-red-500/10 text-red-400 border border-red-500/20 text-[10px] font-semibold px-2 py-0.5 rounded-full",
+  "Ativo":        "badge badge-green",
+  "Em Proposta":  "badge badge-yellow",
+  "Convertido":   "badge badge-blue",
+  "Perdido":      "bg-red-500/10 text-red-400 border border-red-500/20 text-[10px] font-semibold px-2 py-0.5 rounded-full",
 };
 
 // ─── Summary counts ───────────────────────────────────────────────────────────
 
 const counts = {
   total:       cazaClients.length,
-  ativos:      cazaClients.filter((c) => c.status === "Ativo" || c.status === "Em Negociação").length,
+  ativos:      cazaClients.filter((c) => c.status === "Ativo" || c.status === "Em Proposta").length,
   convertidos: cazaClients.filter((c) => c.status === "Convertido").length,
   perdidos:    cazaClients.filter((c) => c.status === "Perdido").length,
 };
@@ -47,16 +47,16 @@ const counts = {
 export default function ClientesPage() {
   return (
     <>
-      <Header title="Clientes" subtitle="Compradores, vendedores e investidores — Caza Vision" />
+      <Header title="Clientes" subtitle="Marcas, agências e empresas — Caza Vision" />
       <div className="px-8 py-6 space-y-6">
 
         {/* ── Summary strip ───────────────────────────────────────────────── */}
         <div className="grid grid-cols-4 gap-4">
           {[
-            { label: "Total de Clientes", value: counts.total, color: "text-white" },
-            { label: "Ativos / Em Negociação", value: counts.ativos, color: "text-emerald-400" },
-            { label: "Convertidos", value: counts.convertidos, color: "text-brand-400" },
-            { label: "Perdidos", value: counts.perdidos, color: "text-red-400" },
+            { label: "Total de Clientes", value: counts.total,       color: "text-white"       },
+            { label: "Ativos / Em Proposta", value: counts.ativos,   color: "text-emerald-400" },
+            { label: "Convertidos",       value: counts.convertidos, color: "text-brand-400"   },
+            { label: "Perdidos",          value: counts.perdidos,    color: "text-red-400"     },
           ].map((s) => (
             <div key={s.label} className="card p-4 text-center">
               <div className={`text-3xl font-bold ${s.color}`}>{s.value}</div>
@@ -74,8 +74,8 @@ export default function ClientesPage() {
                 <tr className="border-b border-gray-800">
                   <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Cliente</th>
                   <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Perfil</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Budget</th>
-                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Cidade</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Budget Anual</th>
+                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Segmento</th>
                   <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Desde</th>
                   <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Status</th>
                 </tr>
@@ -97,9 +97,9 @@ export default function ClientesPage() {
                         </div>
                       </td>
                       <td className="py-2.5 px-3 text-right text-white font-semibold text-xs">
-                        {c.budget > 0 ? fmtR(c.budget) : <span className="text-gray-600">—</span>}
+                        {c.budget_anual > 0 ? fmtR(c.budget_anual) : <span className="text-gray-600">—</span>}
                       </td>
-                      <td className="py-2.5 px-3 text-xs text-gray-400">{c.city}</td>
+                      <td className="py-2.5 px-3 text-xs text-gray-400">{c.segmento}</td>
                       <td className="py-2.5 px-3 text-[11px] text-gray-600">{c.since}</td>
                       <td className="py-2.5 px-3">
                         <span className={statusConfig[c.status] ?? ""}>{c.status}</span>

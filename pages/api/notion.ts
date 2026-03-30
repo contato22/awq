@@ -49,41 +49,41 @@ function getProp(
 function mapFinancial(page: { id: string; properties: Record<string, NotionPropertyValue> }) {
   const p = page.properties;
   return {
-    month:    getProp(p, ["Mês", "Mes", "Month", "Nome", "Title"], "title") ?? "",
-    gci:      getProp(p, ["GCI", "Receita", "Revenue", "Comissão", "Comissao"], "number") ?? 0,
-    expenses: getProp(p, ["Despesas", "Expenses", "Custos"], "number") ?? 0,
-    profit:   getProp(p, ["Lucro", "Profit", "Resultado"], "number") ?? 0,
-    volume:   getProp(p, ["Volume", "Volume de Transações", "Volume de Transacoes", "VGV"], "number") ?? 0,
+    month:     getProp(p, ["Mês", "Mes", "Month", "Nome", "Title"], "title") ?? "",
+    receita:   getProp(p, ["Receita", "Revenue", "GCI", "Comissão", "Comissao"], "number") ?? 0,
+    expenses:  getProp(p, ["Despesas", "Expenses", "Custos"], "number") ?? 0,
+    profit:    getProp(p, ["Lucro", "Profit", "Resultado"], "number") ?? 0,
+    orcamento: getProp(p, ["Orçamento", "Orcamento", "VPG", "Volume", "Budget"], "number") ?? 0,
   };
 }
 
-function mapProperty(page: { id: string; properties: Record<string, NotionPropertyValue> }) {
+function mapProjeto(page: { id: string; properties: Record<string, NotionPropertyValue> }) {
   const p = page.properties;
   return {
-    id:           page.id,
-    address:      getProp(p, ["Endereço", "Endereco", "Address", "Nome", "Title"], "title") ?? "",
-    neighborhood: getProp(p, ["Bairro", "Neighborhood", "Localização", "Localizacao"], "rich_text") ?? "",
-    type:         getProp(p, ["Tipo", "Type", "Categoria"], "select") ?? "Residencial",
-    status:       getProp(p, ["Status", "Situação", "Situacao"], "select") ?? "Disponível",
-    price:        getProp(p, ["Preço", "Preco", "Price", "Valor"], "number") ?? 0,
-    area:         getProp(p, ["Área", "Area", "m²", "Tamanho"], "number") ?? 0,
-    agent:        getProp(p, ["Agente", "Agent", "Corretor", "Responsável"], "rich_text") ?? "",
-    listedAt:     getProp(p, ["Data", "Listed At", "Cadastro", "Created"], "date") ?? "",
+    id:      page.id,
+    titulo:  getProp(p, ["Título", "Titulo", "Nome", "Title", "Projeto"], "title") ?? "",
+    cliente: getProp(p, ["Cliente", "Client", "Marca"], "rich_text") ?? "",
+    tipo:    getProp(p, ["Tipo", "Type", "Categoria"], "select") ?? "Vídeo Publicitário",
+    status:  getProp(p, ["Status", "Situação", "Situacao"], "select") ?? "Em Produção",
+    valor:   getProp(p, ["Valor", "Value", "Budget", "Price"], "number") ?? 0,
+    prazo:   getProp(p, ["Prazo", "Deadline", "Data Entrega"], "date") ?? "",
+    diretor: getProp(p, ["Diretor", "Director", "Responsável", "Agente"], "rich_text") ?? "",
+    inicio:  getProp(p, ["Início", "Inicio", "Start", "Data Início"], "date") ?? "",
   };
 }
 
 function mapClient(page: { id: string; properties: Record<string, NotionPropertyValue> }) {
   const p = page.properties;
   return {
-    id:     page.id,
-    name:   getProp(p, ["Nome", "Name", "Title"], "title") ?? "",
-    email:  getProp(p, ["Email", "E-mail"], "rich_text") ?? "",
-    phone:  getProp(p, ["Telefone", "Phone", "Celular"], "rich_text") ?? "",
-    type:   getProp(p, ["Tipo", "Type", "Perfil"], "select") ?? "Comprador",
-    budget: getProp(p, ["Budget", "Orçamento", "Orcamento", "Valor"], "number") ?? 0,
-    status: getProp(p, ["Status"], "select") ?? "Ativo",
-    city:   getProp(p, ["Cidade", "City"], "rich_text") ?? "",
-    since:  getProp(p, ["Data", "Desde", "Since", "Cadastro"], "date") ?? "",
+    id:           page.id,
+    name:         getProp(p, ["Nome", "Name", "Title"], "title") ?? "",
+    email:        getProp(p, ["Email", "E-mail"], "rich_text") ?? "",
+    phone:        getProp(p, ["Telefone", "Phone", "Celular"], "rich_text") ?? "",
+    type:         getProp(p, ["Tipo", "Type", "Perfil"], "select") ?? "Marca",
+    budget_anual: getProp(p, ["Budget Anual", "Budget", "Orçamento", "Orcamento", "Valor"], "number") ?? 0,
+    status:       getProp(p, ["Status"], "select") ?? "Ativo",
+    segmento:     getProp(p, ["Segmento", "Segment", "Setor", "Cidade", "City"], "rich_text") ?? "",
+    since:        getProp(p, ["Data", "Desde", "Since", "Cadastro"], "date") ?? "",
   };
 }
 
@@ -120,7 +120,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const mappers: Record<string, (p: typeof pages[0]) => object> = {
       financial:  mapFinancial,
-      properties: mapProperty,
+      properties: mapProjeto,
       clients:    mapClient,
     };
 
