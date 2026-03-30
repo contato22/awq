@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import { cazaRevenueData } from "@/lib/caza-data";
+import { fetchNotionData } from "@/lib/notion-fetch";
 import {
   DollarSign,
   TrendingUp,
@@ -50,31 +51,24 @@ export default function CazaFinancialPage() {
   }));
 
   useEffect(() => {
-    fetch("/api/notion?database=financial")
-      .then((r) => r.json())
-      .then((json) => {
-        if (json.source === "notion" && Array.isArray(json.data) && json.data.length > 0) {
-          const mapped: MonthRow[] = json.data.map((d: Record<string, unknown>) => ({
-            month:       String(d.month       ?? ""),
-            receita:     Number(d.receita     ?? 0),
-            alimentacao: Number(d.alimentacao ?? 0),
-            gasolina:    Number(d.gasolina    ?? 0),
-            expenses:    Number(d.expenses    ?? 0),
-            profit:      Number(d.profit      ?? 0),
-          }));
-          setRows(mapped);
-          setSource("notion");
-        } else {
-          setRows(mockRows);
-          setSource("mock");
-          setNotionError(json.error ?? null);
-        }
-      })
-      .catch(() => {
+    fetchNotionData("financial").then((json) => {
+      if (json.source === "notion" && Array.isArray(json.data) && json.data.length > 0) {
+        const mapped: MonthRow[] = (json.data as Record<string, unknown>[]).map((d) => ({
+          month:       String(d.month       ?? ""),
+          receita:     Number(d.receita     ?? 0),
+          alimentacao: Number(d.alimentacao ?? 0),
+          gasolina:    Number(d.gasolina    ?? 0),
+          expenses:    Number(d.expenses    ?? 0),
+          profit:      Number(d.profit      ?? 0),
+        }));
+        setRows(mapped);
+        setSource("notion");
+      } else {
         setRows(mockRows);
         setSource("mock");
-        setNotionError("Falha ao conectar com Notion");
-      });
+        setNotionError(json.error ?? null);
+      }
+    });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

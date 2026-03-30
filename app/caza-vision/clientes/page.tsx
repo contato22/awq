@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import { cazaClients } from "@/lib/caza-data";
+import { fetchNotionData } from "@/lib/notion-fetch";
 import { Tag, TrendingUp, Users, Building2, Database, CloudOff, AlertCircle } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -58,22 +59,16 @@ export default function ClientesPage() {
   const [notionError, setNotionError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/notion?database=clients")
-      .then((r) => r.json())
-      .then((json) => {
-        if (json.source === "notion" && Array.isArray(json.data) && json.data.length > 0) {
-          setClients(json.data as ClienteRow[]);
-          setSource("notion");
-        } else {
-          setClients(cazaClients as ClienteRow[]);
-          setSource("mock");
-          setNotionError(json.error ?? null);
-        }
-      })
-      .catch(() => {
+    fetchNotionData("clients").then((json) => {
+      if (json.source === "notion" && Array.isArray(json.data) && json.data.length > 0) {
+        setClients(json.data as ClienteRow[]);
+        setSource("notion");
+      } else {
         setClients(cazaClients as ClienteRow[]);
         setSource("mock");
-      });
+        setNotionError(json.error ?? null);
+      }
+    });
   }, []);
 
   const total       = clients.length;
