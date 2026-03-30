@@ -23,11 +23,14 @@ async function queryDatabase(databaseId: string, apiKey: string) {
 }
 
 type NotionPropertyValue =
-  | { type: "number"; number: number | null }
-  | { type: "title"; title: Array<{ plain_text: string }> }
+  | { type: "number";    number: number | null }
+  | { type: "title";     title: Array<{ plain_text: string }> }
   | { type: "rich_text"; rich_text: Array<{ plain_text: string }> }
-  | { type: "select"; select: { name: string } | null }
-  | { type: "date"; date: { start: string } | null };
+  | { type: "select";    select: { name: string } | null }
+  | { type: "date";      date: { start: string } | null }
+  | { type: "checkbox";  checkbox: boolean }
+  | { type: "people";    people: Array<{ id: string; name?: string; person?: { email?: string } }> }
+  | { type: "formula";   formula: { type: string; number?: number; string?: string; boolean?: boolean } };
 
 function getProp(
   props: Record<string, NotionPropertyValue>,
@@ -38,6 +41,7 @@ function getProp(
     const p = props[key];
     if (!p) continue;
     if (type === "number" && p.type === "number") return p.number ?? 0;
+    if (type === "number" && p.type === "formula" && p.formula.type === "number") return p.formula.number ?? 0;
     if (type === "title" && p.type === "title") return p.title[0]?.plain_text ?? "";
     if (type === "rich_text" && p.type === "rich_text") return p.rich_text[0]?.plain_text ?? "";
     if (type === "select" && p.type === "select") return p.select?.name ?? "";
@@ -46,32 +50,57 @@ function getProp(
   return null;
 }
 
+function getCheckbox(props: Record<string, NotionPropertyValue>, keys: string[]): boolean {
+  for (const key of keys) {
+    const p = props[key];
+    if (p && p.type === "checkbox") return p.checkbox;
+  }
+  return false;
+}
+
+function getPeople(props: Record<string, NotionPropertyValue>, keys: string[]): string {
+  for (const key of keys) {
+    const p = props[key];
+    if (p && p.type === "people" && p.people.length > 0) {
+      return p.people[0].name ?? "";
+    }
+  }
+  return "";
+}
+
+// ─── Financial mapper (P&L database) ─────────────────────────────────────────
 function mapFinancial(page: { id: string; properties: Record<string, NotionPropertyValue> }) {
   const p = page.properties;
   return {
-    month:     getProp(p, ["Mês", "Mes", "Month", "Nome", "Title"], "title") ?? "",
-    receita:   getProp(p, ["Receita", "Revenue", "GCI", "Comissão", "Comissao"], "number") ?? 0,
-    expenses:  getProp(p, ["Despesas", "Expenses", "Custos"], "number") ?? 0,
-    profit:    getProp(p, ["Lucro", "Profit", "Resultado"], "number") ?? 0,
+    month:     getProp(p, ["Mês", "Mes", "Month", "Nome", "Title", "Período", "Periodo"], "title") ?? "",
+    receita:   getProp(p, ["Receita", "Revenue", "Faturamento", "Total Receita"], "number") ?? 0,
+    expenses:  getProp(p, ["Despesas", "Expenses", "Custos", "Total Despesas"], "number") ?? 0,
+    profit:    getProp(p, ["Lucro", "Profit", "Resultado", "Saldo"], "number") ?? 0,
     orcamento: getProp(p, ["Orçamento", "Orcamento", "VPG", "Volume", "Budget"], "number") ?? 0,
   };
 }
 
+// ─── Projects mapper — DATA BASE (real schema) ────────────────────────────────
+// Columns: Nome do projeto (title), Prioridade (select), Responsável (people),
+//          COMPETÊNCIA (date), Recebimento (date), Recebido (checkbox), Orçamento (number)
 function mapProjeto(page: { id: string; properties: Record<string, NotionPropertyValue> }) {
   const p = page.properties;
+  const recebido = getCheckbox(p, ["Recebido", "Pago", "Received", "Concluído", "Concluido"]);
+  const responsavel = getPeople(p, ["Responsável", "Responsavel", "Assigned", "Resp."]);
   return {
     id:      page.id,
-    titulo:  getProp(p, ["Título", "Titulo", "Nome", "Title", "Projeto"], "title") ?? "",
-    cliente: getProp(p, ["Cliente", "Client", "Marca"], "rich_text") ?? "",
-    tipo:    getProp(p, ["Tipo", "Type", "Categoria"], "select") ?? "Vídeo Publicitário",
-    status:  getProp(p, ["Status", "Situação", "Situacao"], "select") ?? "Em Produção",
-    valor:   getProp(p, ["Valor", "Value", "Budget", "Price"], "number") ?? 0,
-    prazo:   getProp(p, ["Prazo", "Deadline", "Data Entrega"], "date") ?? "",
-    diretor: getProp(p, ["Diretor", "Director", "Responsável", "Agente"], "rich_text") ?? "",
-    inicio:  getProp(p, ["Início", "Inicio", "Start", "Data Início"], "date") ?? "",
+    titulo:  getProp(p, ["Nome do projeto", "Nome", "Title", "Título", "Projeto"], "title") ?? "",
+    prioridade: getProp(p, ["Prioridade", "Priority"], "select") ?? "",
+    diretor: responsavel || String(getProp(p, ["Responsável", "Responsavel", "Diretor"], "rich_text") ?? ""),
+    prazo:   getProp(p, ["COMPETÊNCIA", "Competência", "Competencia", "Prazo", "Data", "Due Date"], "date") ?? "",
+    recebimento: getProp(p, ["Recebimento", "Data Recebimento", "Payment Date"], "date") ?? "",
+    recebido,
+    valor:   Number(getProp(p, ["Orçamento", "Orcamento", "Valor", "Budget", "Price"], "number") ?? 0),
+    status:  recebido ? "Entregue" : "Em Produção",
   };
 }
 
+// ─── Clients mapper ───────────────────────────────────────────────────────────
 function mapClient(page: { id: string; properties: Record<string, NotionPropertyValue> }) {
   const p = page.properties;
   return {

@@ -1,6 +1,23 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Header from "@/components/Header";
-import { projetos } from "@/lib/caza-data";
-import { Film, CheckCircle2, Clock, Clapperboard } from "lucide-react";
+import { projetos as mockProjetos } from "@/lib/caza-data";
+import { Film, CheckCircle2, Clock, Clapperboard, Database, CloudOff, AlertCircle } from "lucide-react";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface ProjetoRow {
+  id: string;
+  titulo: string;
+  prioridade: string;
+  diretor: string;
+  prazo: string;
+  recebimento: string;
+  recebido: boolean;
+  valor: number;
+  status: string;
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -10,42 +27,102 @@ function fmtR(n: number) {
   return "R$" + n;
 }
 
+function fmtDate(d: string) {
+  if (!d) return "—";
+  const [y, m, day] = d.split("-");
+  return `${day}/${m}/${y}`;
+}
+
 // ─── Config ───────────────────────────────────────────────────────────────────
 
-const statusConfig: Record<string, { className: string; Icon: React.ElementType }> = {
-  "Em Produção":         { className: "badge badge-blue",   Icon: Film        },
-  "Em Edição":           { className: "badge badge-yellow", Icon: Clock       },
-  "Entregue":            { className: "badge badge-green",  Icon: CheckCircle2},
-  "Aguardando Aprovação":{ className: "bg-violet-500/10 text-violet-400 border border-violet-500/20 text-[10px] font-semibold px-2 py-0.5 rounded-full", Icon: Clock },
-};
-
-// ─── Summary counts ───────────────────────────────────────────────────────────
-
-const counts = {
-  total:      projetos.length,
-  producao:   projetos.filter((p) => p.status === "Em Produção" || p.status === "Em Edição").length,
-  aprovacao:  projetos.filter((p) => p.status === "Aguardando Aprovação").length,
-  entregues:  projetos.filter((p) => p.status === "Entregue").length,
+const prioridadeColor: Record<string, string> = {
+  Alta:   "text-red-400",
+  Média:  "text-amber-400",
+  Baixa:  "text-emerald-400",
 };
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ProjetosPage() {
+  const [rows, setRows] = useState<ProjetoRow[]>([]);
+  const [source, setSource] = useState<"notion" | "mock" | "loading">("loading");
+  const [notionError, setNotionError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/notion?database=properties")
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.source === "notion" && Array.isArray(json.data) && json.data.length > 0) {
+          setRows(json.data as ProjetoRow[]);
+          setSource("notion");
+        } else {
+          // Fallback: convert mock data to ProjetoRow shape
+          setRows(mockProjetos.map((p) => ({
+            id:          p.id,
+            titulo:      p.titulo,
+            prioridade:  "",
+            diretor:     p.diretor,
+            prazo:       p.prazo,
+            recebimento: "",
+            recebido:    p.status === "Entregue",
+            valor:       p.valor,
+            status:      p.status,
+          })));
+          setSource("mock");
+          setNotionError(json.error ?? null);
+        }
+      })
+      .catch(() => {
+        setRows(mockProjetos.map((p) => ({
+          id: p.id, titulo: p.titulo, prioridade: "", diretor: p.diretor,
+          prazo: p.prazo, recebimento: "", recebido: p.status === "Entregue",
+          valor: p.valor, status: p.status,
+        })));
+        setSource("mock");
+      });
+  }, []);
+
+  const total      = rows.length;
+  const emProducao = rows.filter((p) => !p.recebido).length;
+  const entregues  = rows.filter((p) => p.recebido).length;
+  const totalValor = rows.reduce((s, p) => s + p.valor, 0);
+
   return (
     <>
-      <Header title="Projetos" subtitle="Carteira de projetos ativos — Caza Vision" />
+      <Header title="Projetos" subtitle="Carteira de projetos — Caza Vision" />
       <div className="px-8 py-6 space-y-6">
+
+        {/* ── Source badge ────────────────────────────────────────────────── */}
+        <div className="flex items-center gap-2">
+          {source === "loading" && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-800 border border-gray-700 text-xs text-gray-400">
+              <Database size={11} /> Conectando ao Notion…
+            </span>
+          )}
+          {source === "notion" && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-400">
+              <Database size={11} /> Dados ao vivo — Notion
+            </span>
+          )}
+          {source === "mock" && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-xs text-amber-400"
+              title={notionError ?? ""}>
+              <CloudOff size={11} /> Dados de demonstração
+              {notionError && <span className="text-[10px] text-gray-500 ml-1">({notionError})</span>}
+            </span>
+          )}
+        </div>
 
         {/* ── Summary strip ───────────────────────────────────────────────── */}
         <div className="grid grid-cols-4 gap-4">
           {[
-            { label: "Total de Projetos",  value: counts.total,     color: "text-white"        },
-            { label: "Em Produção/Edição", value: counts.producao,  color: "text-brand-400"    },
-            { label: "Aguard. Aprovação",  value: counts.aprovacao, color: "text-amber-400"    },
-            { label: "Entregues",          value: counts.entregues, color: "text-emerald-400"  },
+            { label: "Total de Projetos",  value: total,       color: "text-white",        fmt: String },
+            { label: "Em Produção",        value: emProducao,  color: "text-brand-400",    fmt: String },
+            { label: "Entregues / Pagos",  value: entregues,   color: "text-emerald-400",  fmt: String },
+            { label: "Volume Total",       value: totalValor,  color: "text-amber-400",    fmt: fmtR   },
           ].map((s) => (
             <div key={s.label} className="card p-4 text-center">
-              <div className={`text-3xl font-bold ${s.color}`}>{s.value}</div>
+              <div className={`text-3xl font-bold ${s.color}`}>{s.fmt(s.value)}</div>
               <div className="text-xs text-gray-500 mt-1">{s.label}</div>
             </div>
           ))}
@@ -54,54 +131,65 @@ export default function ProjetosPage() {
         {/* ── Projects table ──────────────────────────────────────────────── */}
         <div className="card p-5">
           <h2 className="text-sm font-semibold text-white mb-4">Todos os Projetos</h2>
+          {source === "loading" ? (
+            <div className="flex items-center justify-center py-12 text-gray-600 text-sm gap-2">
+              <AlertCircle size={16} /> Carregando…
+            </div>
+          ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-800">
-                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Ref.</th>
                   <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Projeto</th>
-                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Tipo</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Valor</th>
-                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Diretor</th>
-                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Prazo</th>
+                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Prioridade</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Orçamento</th>
+                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Responsável</th>
+                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Competência</th>
+                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Recebimento</th>
                   <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Status</th>
                 </tr>
               </thead>
               <tbody>
-                {projetos.map((p) => {
-                  const sc = statusConfig[p.status];
-                  const StatusIcon = sc?.Icon ?? CheckCircle2;
-                  return (
-                    <tr key={p.id} className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
-                      <td className="py-2.5 px-3 text-gray-600 text-[11px] font-mono">{p.id}</td>
-                      <td className="py-2.5 px-3">
-                        <div className="text-gray-300 font-medium text-xs">{p.titulo}</div>
-                        <div className="flex items-center gap-1 text-[10px] text-gray-600 mt-0.5">
-                          <Clapperboard size={9} />
-                          {p.cliente}
-                        </div>
-                      </td>
-                      <td className="py-2.5 px-3">
-                        <div className="flex items-center gap-1.5 text-xs text-emerald-400">
-                          <Film size={12} />
-                          {p.tipo}
-                        </div>
-                      </td>
-                      <td className="py-2.5 px-3 text-right text-white font-semibold text-xs">{fmtR(p.valor)}</td>
-                      <td className="py-2.5 px-3 text-xs text-gray-400">{p.diretor}</td>
-                      <td className="py-2.5 px-3 text-xs text-gray-400">{p.prazo}</td>
-                      <td className="py-2.5 px-3">
-                        <span className={`inline-flex items-center gap-1 ${sc?.className ?? ""}`}>
-                          <StatusIcon size={9} />
-                          {p.status}
+                {rows.map((p) => (
+                  <tr key={p.id} className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
+                    <td className="py-2.5 px-3">
+                      <div className="flex items-center gap-1.5 text-gray-300 font-medium text-xs">
+                        <Clapperboard size={11} className="text-gray-600 shrink-0" />
+                        {p.titulo || "—"}
+                      </div>
+                    </td>
+                    <td className="py-2.5 px-3 text-xs">
+                      {p.prioridade ? (
+                        <span className={`font-semibold ${prioridadeColor[p.prioridade] ?? "text-gray-400"}`}>
+                          {p.prioridade}
                         </span>
-                      </td>
-                    </tr>
-                  );
-                })}
+                      ) : <span className="text-gray-600">—</span>}
+                    </td>
+                    <td className="py-2.5 px-3 text-right text-white font-semibold text-xs">
+                      {p.valor > 0 ? fmtR(p.valor) : <span className="text-gray-600">—</span>}
+                    </td>
+                    <td className="py-2.5 px-3 text-xs text-gray-400">
+                      {p.diretor || <span className="text-gray-600">—</span>}
+                    </td>
+                    <td className="py-2.5 px-3 text-xs text-gray-400">{fmtDate(p.prazo)}</td>
+                    <td className="py-2.5 px-3 text-xs text-gray-400">{fmtDate(p.recebimento)}</td>
+                    <td className="py-2.5 px-3">
+                      {p.recebido ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                          <CheckCircle2 size={9} /> Recebido
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-500/10 text-brand-400 border border-brand-500/20">
+                          <Clock size={9} /> Em Aberto
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
+          )}
         </div>
 
       </div>
