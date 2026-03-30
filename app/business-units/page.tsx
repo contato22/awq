@@ -25,7 +25,7 @@ const BUS = [
   {
     id: "caza",
     label: "Caza Vision",
-    sub: "Tecnologia",
+    sub: "Produtora",
     href: "/caza-vision",
     color: "bg-emerald-600",
     borderColor: "border-emerald-200",
@@ -34,9 +34,9 @@ const BUS = [
     badgeColor: "bg-emerald-100 text-emerald-600 border-emerald-200",
     icon: Building2,
     kpis: [
-      { label: "Imóveis Ativos", value: "87" },
-      { label: "Transações", value: "34" },
-      { label: "GCI YTD", value: "R$2.42M" },
+      { label: "Projetos Ativos", value: "23" },
+      { label: "Proj. Entregues", value: "34" },
+      { label: "Receita YTD", value: "R$2.42M" },
     ],
     status: "Ativa",
     statusColor: "badge-green",

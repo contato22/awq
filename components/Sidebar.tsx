@@ -23,7 +23,7 @@ import {
     Tag,
     Building2,
     LineChart,
-    Home,
+    Film,
     FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -69,7 +69,7 @@ const jacqesNav = [
 
 const cazaNav = [
     { label: "Visão Geral", href: "/caza-vision",           icon: LayoutDashboard },
-    { label: "Imóveis",     href: "/caza-vision/imoveis",   icon: Home            },
+    { label: "Projetos",     href: "/caza-vision/imoveis",   icon: Film            },
     { label: "Clientes",    href: "/caza-vision/clientes",  icon: Users           },
     { label: "Financial",   href: "/caza-vision/financial", icon: DollarSign      },
     { label: "Pipeline",    href: "/caza-vision/pipeline",  icon: Activity        },
@@ -109,8 +109,8 @@ const businessUnits = [
     {
         id: "caza",
         label: "Caza Vision",
-        sub: "Tecnologia · AWQ Group",
-        href: "https://contato22.github.io/awq/business-units/",
+        sub: "Produtora · AWQ Group",
+        href: "/business-units",
         icon: Building2,
         color: "bg-emerald-600",
     },
@@ -365,7 +365,7 @@ function CazaSidebar({ pathname }: { pathname: string }) {
                     </div>
                     <div className="flex-1 min-w-0">
                         <div className="text-sm font-bold text-emerald-700 truncate">Caza Vision</div>
-                        <div className="text-[10px] text-emerald-500 truncate">Proptech · AWQ Group</div>
+                        <div className="text-[10px] text-emerald-500 truncate">Produtora · AWQ Group</div>
                     </div>
                     <ChevronDown size={14} className="text-emerald-400 shrink-0" />
                 </Link>
