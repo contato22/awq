@@ -123,6 +123,39 @@ function mapClient(page: { id: string; properties: Record<string, NotionProperty
   };
 }
 
+// ─── Financial aggregation — group projects by COMPETÊNCIA month ──────────────
+const MONTH_NAMES = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+
+function monthLabel(isoDate: string): string {
+  // "YYYY-MM-DD" → "Mmm/YY"
+  const [year, month] = isoDate.split("-");
+  return `${MONTH_NAMES[parseInt(month, 10) - 1]}/${year.slice(2)}`;
+}
+
+function monthIndex(label: string): number {
+  const [m, y] = label.split("/");
+  return parseInt("20" + y, 10) * 12 + MONTH_NAMES.indexOf(m);
+}
+
+type ProjetoMapped = ReturnType<typeof mapProjeto>;
+
+function aggregateByMonth(rows: ProjetoMapped[]) {
+  const map = new Map<string, { receita: number; expenses: number; profit: number; orcamento: number }>();
+  for (const row of rows) {
+    if (!row.prazo) continue;
+    const label = monthLabel(String(row.prazo));
+    const acc = map.get(label) ?? { receita: 0, expenses: 0, profit: 0, orcamento: 0 };
+    acc.receita    += row.valor;
+    acc.expenses   += row.despesas;
+    acc.profit     += row.lucro;
+    acc.orcamento  += row.valor;
+    map.set(label, acc);
+  }
+  return Array.from(map.entries())
+    .sort(([a], [b]) => monthIndex(a) - monthIndex(b))
+    .map(([month, d]) => ({ month, receita: d.receita, expenses: d.expenses, profit: d.profit, orcamento: d.orcamento }));
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -154,14 +187,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const result = await queryDatabase(dbId, apiKey);
     const pages = result.results as Array<{ id: string; properties: Record<string, NotionPropertyValue> }>;
 
-    const mappers: Record<string, (p: typeof pages[0]) => object> = {
-      financial:  mapFinancial,
-      properties: mapProjeto,
-      clients:    mapClient,
-    };
+    let data: object[];
 
-    const mapper = mappers[database] ?? mapFinancial;
-    const data = pages.map(mapper);
+    if (database === "financial") {
+      // Same DB as projects — aggregate by COMPETÊNCIA month
+      const projetos = pages.map(mapProjeto);
+      data = aggregateByMonth(projetos);
+    } else {
+      const mappers: Record<string, (p: typeof pages[0]) => object> = {
+        properties: mapProjeto,
+        clients:    mapClient,
+      };
+      const mapper = mappers[database] ?? mapProjeto;
+      data = pages.map(mapper);
+    }
 
     return res.status(200).json({ source: "notion", data, total: data.length });
   } catch (err) {
