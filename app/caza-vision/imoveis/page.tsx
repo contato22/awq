@@ -16,6 +16,10 @@ interface ProjetoRow {
   recebimento: string;
   recebido: boolean;
   valor: number;
+  alimentacao: number;
+  gasolina: number;
+  despesas: number;
+  lucro: number;
   status: string;
 }
 
@@ -66,6 +70,10 @@ export default function ProjetosPage() {
             recebimento: "",
             recebido:    p.status === "Entregue",
             valor:       p.valor,
+            alimentacao: 0,
+            gasolina:    0,
+            despesas:    0,
+            lucro:       p.valor,
             status:      p.status,
           })));
           setSource("mock");
@@ -76,16 +84,18 @@ export default function ProjetosPage() {
         setRows(mockProjetos.map((p) => ({
           id: p.id, titulo: p.titulo, prioridade: "", diretor: p.diretor,
           prazo: p.prazo, recebimento: "", recebido: p.status === "Entregue",
-          valor: p.valor, status: p.status,
+          valor: p.valor, alimentacao: 0, gasolina: 0, despesas: 0, lucro: p.valor, status: p.status,
         })));
         setSource("mock");
       });
   }, []);
 
-  const total      = rows.length;
-  const emProducao = rows.filter((p) => !p.recebido).length;
-  const entregues  = rows.filter((p) => p.recebido).length;
-  const totalValor = rows.reduce((s, p) => s + p.valor, 0);
+  const total         = rows.length;
+  const emProducao    = rows.filter((p) => !p.recebido).length;
+  const entregues     = rows.filter((p) => p.recebido).length;
+  const totalValor    = rows.reduce((s, p) => s + p.valor, 0);
+  const totalDespesas = rows.reduce((s, p) => s + (p.despesas ?? 0), 0);
+  const totalLucro    = rows.reduce((s, p) => s + (p.lucro ?? p.valor), 0);
 
   return (
     <>
@@ -114,12 +124,14 @@ export default function ProjetosPage() {
         </div>
 
         {/* ── Summary strip ───────────────────────────────────────────────── */}
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 xl:grid-cols-6 gap-4">
           {[
-            { label: "Total de Projetos",  value: total,       color: "text-white",        fmt: String },
-            { label: "Em Produção",        value: emProducao,  color: "text-brand-400",    fmt: String },
-            { label: "Entregues / Pagos",  value: entregues,   color: "text-emerald-400",  fmt: String },
-            { label: "Volume Total",       value: totalValor,  color: "text-amber-400",    fmt: fmtR   },
+            { label: "Total Projetos",    value: total,         color: "text-white",       fmt: String },
+            { label: "Em Aberto",         value: emProducao,    color: "text-brand-400",   fmt: String },
+            { label: "Recebidos",         value: entregues,     color: "text-emerald-400", fmt: String },
+            { label: "Orçamento Total",   value: totalValor,    color: "text-white",       fmt: fmtR   },
+            { label: "Despesas",          value: totalDespesas, color: "text-red-400",     fmt: fmtR   },
+            { label: "Lucro Líquido",     value: totalLucro,    color: "text-emerald-400", fmt: fmtR   },
           ].map((s) => (
             <div key={s.label} className="card p-4 text-center">
               <div className={`text-3xl font-bold ${s.color}`}>{s.fmt(s.value)}</div>
@@ -143,9 +155,11 @@ export default function ProjetosPage() {
                   <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Projeto</th>
                   <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Prioridade</th>
                   <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Orçamento</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Alimentação</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Gasolina</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Lucro</th>
                   <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Responsável</th>
                   <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Competência</th>
-                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Recebimento</th>
                   <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Status</th>
                 </tr>
               </thead>
@@ -168,11 +182,19 @@ export default function ProjetosPage() {
                     <td className="py-2.5 px-3 text-right text-white font-semibold text-xs">
                       {p.valor > 0 ? fmtR(p.valor) : <span className="text-gray-600">—</span>}
                     </td>
+                    <td className="py-2.5 px-3 text-right text-xs text-red-400">
+                      {p.alimentacao > 0 ? fmtR(p.alimentacao) : <span className="text-gray-600">—</span>}
+                    </td>
+                    <td className="py-2.5 px-3 text-right text-xs text-red-400">
+                      {p.gasolina > 0 ? fmtR(p.gasolina) : <span className="text-gray-600">—</span>}
+                    </td>
+                    <td className="py-2.5 px-3 text-right text-xs font-semibold text-emerald-400">
+                      {p.lucro > 0 ? fmtR(p.lucro) : <span className="text-gray-600">—</span>}
+                    </td>
                     <td className="py-2.5 px-3 text-xs text-gray-400">
                       {p.diretor || <span className="text-gray-600">—</span>}
                     </td>
                     <td className="py-2.5 px-3 text-xs text-gray-400">{fmtDate(p.prazo)}</td>
-                    <td className="py-2.5 px-3 text-xs text-gray-400">{fmtDate(p.recebimento)}</td>
                     <td className="py-2.5 px-3">
                       {p.recebido ? (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">

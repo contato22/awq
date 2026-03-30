@@ -85,18 +85,25 @@ function mapFinancial(page: { id: string; properties: Record<string, NotionPrope
 //          COMPETÊNCIA (date), Recebimento (date), Recebido (checkbox), Orçamento (number)
 function mapProjeto(page: { id: string; properties: Record<string, NotionPropertyValue> }) {
   const p = page.properties;
-  const recebido = getCheckbox(p, ["Recebido", "Pago", "Received", "Concluído", "Concluido"]);
+  const recebido    = getCheckbox(p, ["Recebido", "Pago", "Received", "Concluído", "Concluido"]);
   const responsavel = getPeople(p, ["Responsável", "Responsavel", "Assigned", "Resp."]);
+  const alimentacao = Number(getProp(p, ["Alimentação", "Alimentacao", "Alimentação ", "Aliment."], "number") ?? 0);
+  const gasolina    = Number(getProp(p, ["Gasolina", "Combustível", "Combustivel", "Gas"], "number") ?? 0);
+  const orcamento   = Number(getProp(p, ["Orçamento", "Orcamento", "Valor", "Budget", "Price"], "number") ?? 0);
   return {
-    id:      page.id,
-    titulo:  getProp(p, ["Nome do projeto", "Nome", "Title", "Título", "Projeto"], "title") ?? "",
-    prioridade: getProp(p, ["Prioridade", "Priority"], "select") ?? "",
-    diretor: responsavel || String(getProp(p, ["Responsável", "Responsavel", "Diretor"], "rich_text") ?? ""),
-    prazo:   getProp(p, ["COMPETÊNCIA", "Competência", "Competencia", "Prazo", "Data", "Due Date"], "date") ?? "",
+    id:          page.id,
+    titulo:      getProp(p, ["Nome do projeto", "Nome", "Title", "Título", "Projeto"], "title") ?? "",
+    prioridade:  getProp(p, ["Prioridade", "Priority"], "select") ?? "",
+    diretor:     responsavel || String(getProp(p, ["Responsável", "Responsavel", "Diretor"], "rich_text") ?? ""),
+    prazo:       getProp(p, ["COMPETÊNCIA", "Competência", "Competencia", "Prazo", "Data", "Due Date"], "date") ?? "",
     recebimento: getProp(p, ["Recebimento", "Data Recebimento", "Payment Date"], "date") ?? "",
     recebido,
-    valor:   Number(getProp(p, ["Orçamento", "Orcamento", "Valor", "Budget", "Price"], "number") ?? 0),
-    status:  recebido ? "Entregue" : "Em Produção",
+    valor:       orcamento,
+    alimentacao,
+    gasolina,
+    despesas:    alimentacao + gasolina,
+    lucro:       orcamento - alimentacao - gasolina,
+    status:      recebido ? "Entregue" : "Em Produção",
   };
 }
 
