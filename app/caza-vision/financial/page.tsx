@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import { cazaRevenueData } from "@/lib/caza-data";
+import { fetchNotionData } from "@/lib/notion-fetch";
 import {
   DollarSign,
   TrendingUp,
@@ -16,10 +17,12 @@ import {
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface MonthRow {
-  month:    string;
-  receita:  number; // sum of Orçamento
-  expenses: number; // sum of Alimentação + Gasolina
-  profit:   number; // receita - expenses
+  month:       string;
+  receita:     number; // sum of Orçamento
+  alimentacao: number; // sum of Alimentação
+  gasolina:    number; // sum of Gasolina
+  expenses:    number; // alimentacao + gasolina
+  profit:      number; // receita - expenses
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -39,36 +42,33 @@ export default function CazaFinancialPage() {
 
   // Fallback mock rows (from demo data)
   const mockRows: MonthRow[] = cazaRevenueData.map((r) => ({
-    month:    r.month,
-    receita:  r.receita,
-    expenses: r.expenses,
-    profit:   r.profit,
+    month:       r.month,
+    receita:     r.receita,
+    alimentacao: Math.round(r.expenses * 0.6), // mock split: 60% food, 40% fuel
+    gasolina:    Math.round(r.expenses * 0.4),
+    expenses:    r.expenses,
+    profit:      r.profit,
   }));
 
   useEffect(() => {
-    fetch("/api/notion?database=financial")
-      .then((r) => r.json())
-      .then((json) => {
-        if (json.source === "notion" && Array.isArray(json.data) && json.data.length > 0) {
-          const mapped: MonthRow[] = json.data.map((d: Record<string, unknown>) => ({
-            month:    String(d.month    ?? ""),
-            receita:  Number(d.receita  ?? 0),
-            expenses: Number(d.expenses ?? 0),
-            profit:   Number(d.profit   ?? 0),
-          }));
-          setRows(mapped);
-          setSource("notion");
-        } else {
-          setRows(mockRows);
-          setSource("mock");
-          setNotionError(json.error ?? null);
-        }
-      })
-      .catch(() => {
+    fetchNotionData("financial").then((json) => {
+      if (json.source === "notion" && Array.isArray(json.data) && json.data.length > 0) {
+        const mapped: MonthRow[] = (json.data as Record<string, unknown>[]).map((d) => ({
+          month:       String(d.month       ?? ""),
+          receita:     Number(d.receita     ?? 0),
+          alimentacao: Number(d.alimentacao ?? 0),
+          gasolina:    Number(d.gasolina    ?? 0),
+          expenses:    Number(d.expenses    ?? 0),
+          profit:      Number(d.profit      ?? 0),
+        }));
+        setRows(mapped);
+        setSource("notion");
+      } else {
         setRows(mockRows);
         setSource("mock");
-        setNotionError("Falha ao conectar com Notion");
-      });
+        setNotionError(json.error ?? null);
+      }
+    });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -87,6 +87,13 @@ export default function CazaFinancialPage() {
     ? (((lastRow.receita - prevRow.receita) / prevRow.receita) * 100).toFixed(1)
     : "0.0";
 
+  // Calculate YoY delta: compare YTD sum this year vs same months last year
+  const prevYtdRows  = rows.filter((r) => r.month.includes("/25")).slice(0, ytdRows.length || summary.length);
+  const prevReceita  = prevYtdRows.reduce((s, r) => s + r.receita, 0);
+  const prevLucro    = prevYtdRows.reduce((s, r) => s + r.profit,  0);
+  const receitaDelta = prevReceita > 0 ? (((totalReceita - prevReceita) / prevReceita) * 100).toFixed(1) : null;
+  const lucroDelta   = prevLucro   > 0 ? (((totalLucro   - prevLucro)   / prevLucro)   * 100).toFixed(1) : null;
+
   const summaryCards = [
     {
       label: `Receita YTD ${ytdRows.length > 0 ? "2026" : ""}`.trim(),
@@ -95,13 +102,13 @@ export default function CazaFinancialPage() {
       icon:  DollarSign,
       color: "text-emerald-400",
       bg:    "bg-emerald-500/10",
-      delta: "+24.0%",
-      up:    true,
+      delta: receitaDelta ? `${parseFloat(receitaDelta) >= 0 ? "+" : ""}${receitaDelta}%` : "",
+      up:    receitaDelta ? parseFloat(receitaDelta) >= 0 : true,
     },
     {
       label: "Despesas YTD",
       value: fmtR(totalDespesas),
-      sub:   `Alim. + Gasolina`,
+      sub:   "Alim. + Gasolina",
       icon:  BarChart3,
       color: "text-red-400",
       bg:    "bg-red-500/10",
@@ -115,8 +122,8 @@ export default function CazaFinancialPage() {
       icon:  TrendingUp,
       color: "text-brand-400",
       bg:    "bg-brand-500/10",
-      delta: "+26.3%",
-      up:    true,
+      delta: lucroDelta ? `${parseFloat(lucroDelta) >= 0 ? "+" : ""}${lucroDelta}%` : "",
+      up:    lucroDelta ? parseFloat(lucroDelta) >= 0 : true,
     },
     {
       label: lastRow ? `Receita — ${lastRow.month}` : "Último Mês",
@@ -217,17 +224,17 @@ export default function CazaFinancialPage() {
                   const margin = row.receita > 0
                     ? ((row.profit / row.receita) * 100).toFixed(1)
                     : "0.0";
-                  // expenses = alimentacao + gasolina; we only have the total from API
-                  // split not available at this level — show total in one cell
                   return (
                     <tr key={row.month} className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
                       <td className="py-2.5 px-3 text-gray-300 font-medium">{row.month}</td>
                       <td className="py-2.5 px-3 text-right text-white font-semibold">{fmtR(row.receita)}</td>
-                      <td className="py-2.5 px-3 text-right text-gray-500 text-xs" colSpan={2}>
-                        <span className="text-red-400">{fmtR(row.expenses)}</span>
-                        <span className="text-gray-600 ml-1">(total)</span>
+                      <td className="py-2.5 px-3 text-right text-red-400 text-xs">
+                        {row.alimentacao > 0 ? fmtR(row.alimentacao) : <span className="text-gray-600">—</span>}
                       </td>
-                      <td className="py-2.5 px-3 text-right text-red-400">{fmtR(row.expenses)}</td>
+                      <td className="py-2.5 px-3 text-right text-red-400 text-xs">
+                        {row.gasolina > 0 ? fmtR(row.gasolina) : <span className="text-gray-600">—</span>}
+                      </td>
+                      <td className="py-2.5 px-3 text-right text-red-400 font-semibold">{fmtR(row.expenses)}</td>
                       <td className="py-2.5 px-3 text-right text-emerald-400 font-semibold">{fmtR(row.profit)}</td>
                       <td className="py-2.5 px-3 text-right">
                         <span className="badge badge-green">{margin}%</span>
@@ -240,7 +247,8 @@ export default function CazaFinancialPage() {
                 <tr className="border-t border-gray-700">
                   <td className="py-2.5 px-3 text-xs font-bold text-gray-400">TOTAL</td>
                   <td className="py-2.5 px-3 text-right text-white font-bold">{fmtR(rows.reduce((s, r) => s + r.receita, 0))}</td>
-                  <td colSpan={2} />
+                  <td className="py-2.5 px-3 text-right text-red-400 font-bold text-xs">{fmtR(rows.reduce((s, r) => s + r.alimentacao, 0))}</td>
+                  <td className="py-2.5 px-3 text-right text-red-400 font-bold text-xs">{fmtR(rows.reduce((s, r) => s + r.gasolina, 0))}</td>
                   <td className="py-2.5 px-3 text-right text-red-400 font-bold">{fmtR(rows.reduce((s, r) => s + r.expenses, 0))}</td>
                   <td className="py-2.5 px-3 text-right text-emerald-400 font-bold">{fmtR(rows.reduce((s, r) => s + r.profit, 0))}</td>
                   <td />

@@ -25,10 +25,19 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Fetch Notion data (pre-build)
+        run: node scripts/fetch-notion-static.mjs
+        env:
+          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
+          NOTION_DATABASE_ID_CAZA_PROPERTIES: ${{ secrets.NOTION_DATABASE_ID_CAZA_PROPERTIES }}
+          NOTION_DATABASE_ID_CAZA_FINANCIAL: ${{ secrets.NOTION_DATABASE_ID_CAZA_FINANCIAL }}
+          NOTION_DATABASE_ID_CAZA_CLIENTS: ${{ secrets.NOTION_DATABASE_ID_CAZA_CLIENTS }}
+
       - name: Build
         run: npm run build
         env:
           STATIC_EXPORT: "1"
+          NEXT_PUBLIC_STATIC_DATA: "1"
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import { projetos as mockProjetos } from "@/lib/caza-data";
+import { fetchNotionData } from "@/lib/notion-fetch";
 import { Film, CheckCircle2, Clock, Clapperboard, Database, CloudOff, AlertCircle } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -52,42 +53,24 @@ export default function ProjetosPage() {
   const [source, setSource] = useState<"notion" | "mock" | "loading">("loading");
   const [notionError, setNotionError] = useState<string | null>(null);
 
+  const mockFallback = mockProjetos.map((p) => ({
+    id: p.id, titulo: p.titulo, prioridade: "", diretor: p.diretor,
+    prazo: p.prazo, recebimento: "", recebido: p.status === "Entregue",
+    valor: p.valor, alimentacao: 0, gasolina: 0, despesas: 0, lucro: p.valor, status: p.status,
+  }));
+
   useEffect(() => {
-    fetch("/api/notion?database=properties")
-      .then((r) => r.json())
-      .then((json) => {
-        if (json.source === "notion" && Array.isArray(json.data) && json.data.length > 0) {
-          setRows(json.data as ProjetoRow[]);
-          setSource("notion");
-        } else {
-          // Fallback: convert mock data to ProjetoRow shape
-          setRows(mockProjetos.map((p) => ({
-            id:          p.id,
-            titulo:      p.titulo,
-            prioridade:  "",
-            diretor:     p.diretor,
-            prazo:       p.prazo,
-            recebimento: "",
-            recebido:    p.status === "Entregue",
-            valor:       p.valor,
-            alimentacao: 0,
-            gasolina:    0,
-            despesas:    0,
-            lucro:       p.valor,
-            status:      p.status,
-          })));
-          setSource("mock");
-          setNotionError(json.error ?? null);
-        }
-      })
-      .catch(() => {
-        setRows(mockProjetos.map((p) => ({
-          id: p.id, titulo: p.titulo, prioridade: "", diretor: p.diretor,
-          prazo: p.prazo, recebimento: "", recebido: p.status === "Entregue",
-          valor: p.valor, alimentacao: 0, gasolina: 0, despesas: 0, lucro: p.valor, status: p.status,
-        })));
+    fetchNotionData("properties").then((json) => {
+      if (json.source === "notion" && Array.isArray(json.data) && json.data.length > 0) {
+        setRows(json.data as ProjetoRow[]);
+        setSource("notion");
+      } else {
+        setRows(mockFallback);
         setSource("mock");
-      });
+        setNotionError(json.error ?? null);
+      }
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const total         = rows.length;
