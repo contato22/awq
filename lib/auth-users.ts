@@ -50,6 +50,7 @@ export const ROLE_ALLOWED_PREFIXES: Record<Role, string[]> = {
   owner: ["/"], // unrestricted
   admin: [
     "/awq", "/business-units", "/financial", "/caza-vision", "/awq-venture",
+    "/advisor",
     "/jacqes", "/desempenho", "/carteira", "/analise", "/csops",
     "/revenue", "/reports", "/categorias", "/customers",
     "/carreira", "/agents", "/openclaw", "/settings",

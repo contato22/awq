@@ -24,6 +24,7 @@ import {
     Building2,
     LineChart,
     Home,
+    FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -40,12 +41,18 @@ const JACQES_PREFIXES = [
 
 const CAZA_PREFIXES = ["/caza-vision"];
 
+const ADVISOR_PREFIXES = ["/advisor"];
+
 function isJacqesRoute(pathname: string) {
     return JACQES_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
 function isCazaRoute(pathname: string) {
     return CAZA_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
+
+function isAdvisorRoute(pathname: string) {
+    return ADVISOR_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
 // ── Nav items ────────────────────────────────────────────────────────────────
@@ -67,6 +74,13 @@ const cazaNav = [
     { label: "Financial",   href: "/caza-vision/financial", icon: DollarSign      },
     { label: "Pipeline",    href: "/caza-vision/pipeline",  icon: Activity        },
     { label: "Relatórios",  href: "/caza-vision/relatorios",icon: BarChart3       },
+];
+
+const advisorNav = [
+    { label: "Visão Geral", href: "/advisor",          icon: LayoutDashboard },
+    { label: "Clientes",    href: "/advisor/clientes",  icon: Users           },
+    { label: "Portfólio",   href: "/advisor/portfolio", icon: LineChart       },
+    { label: "Relatórios",  href: "/advisor/relatorios",icon: FileText        },
 ];
 
 const gestaoNav = [
@@ -107,6 +121,14 @@ const businessUnits = [
         href: "/awq-venture",
         icon: TrendingUp,
         color: "bg-amber-600",
+    },
+    {
+        id: "advisor",
+        label: "Advisor",
+        sub: "Consultoria · AWQ Group",
+        href: "/advisor",
+        icon: Briefcase,
+        color: "bg-violet-600",
     },
 ];
 
@@ -385,18 +407,81 @@ function CazaSidebar({ pathname }: { pathname: string }) {
     );
 }
 
+// ── Advisor sidebar ───────────────────────────────────────────────────────────
+function AdvisorSidebar({ pathname }: { pathname: string }) {
+    const isActive = (href: string) =>
+        href === "/advisor" ? pathname === href : pathname.startsWith(href);
+    return (
+        <>
+            <AwqHeader />
+            {/* Advisor company selector */}
+            <div className="px-3 pt-3">
+                <Link
+                    href="/business-units"
+                    className="flex items-center gap-3 px-3 py-2.5 bg-violet-50 border border-violet-200 rounded-xl hover:bg-violet-100 transition-colors group"
+                >
+                    <div className="w-7 h-7 rounded-lg bg-violet-600 flex items-center justify-center shrink-0">
+                        <Briefcase size={13} className="text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <div className="text-sm font-bold text-violet-700 truncate">Advisor</div>
+                        <div className="text-[10px] text-violet-500 truncate">Consultoria · AWQ Group</div>
+                    </div>
+                    <ChevronDown size={14} className="text-violet-400 shrink-0" />
+                </Link>
+            </div>
+
+            {/* Back to AWQ link */}
+            <div className="px-4 pt-2">
+                <Link
+                    href="/business-units"
+                    className="flex items-center gap-1.5 text-[10px] text-gray-400 hover:text-violet-600 transition-colors"
+                >
+                    <ChevronLeft size={11} />
+                    Voltar para AWQ Group
+                </Link>
+            </div>
+
+            <nav className="flex-1 overflow-y-auto px-3 py-2">
+                <SectionLabel>Advisor · Navegação</SectionLabel>
+                <div className="space-y-0.5">
+                    {advisorNav.map((item) => (
+                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
+                    ))}
+                </div>
+                <SectionLabel>IA & Agentes</SectionLabel>
+                <div className="space-y-0.5">
+                    {aiNav.map((item) => (
+                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
+                    ))}
+                </div>
+                <SectionLabel>Sistema</SectionLabel>
+                <div className="space-y-0.5">
+                    {sistemaNav.map((item) => (
+                        <NavItem key={item.href} {...item} active={pathname === item.href} />
+                    ))}
+                </div>
+            </nav>
+            <SidebarFooter />
+        </>
+    );
+}
+
 // ── Root Sidebar ──────────────────────────────────────────────────────────────
 export default function Sidebar() {
     const rawPathname = usePathname();
     const pathname = rawPathname ?? "";
     const jacqesMode = isJacqesRoute(pathname);
     const cazaMode   = isCazaRoute(pathname);
+    const advisorMode = isAdvisorRoute(pathname);
     return (
         <aside className="w-[260px] flex-shrink-0 bg-white border-r border-gray-200 flex flex-col h-full">
             {jacqesMode ? (
                 <JacqesSidebar pathname={pathname} />
             ) : cazaMode ? (
                 <CazaSidebar pathname={pathname} />
+            ) : advisorMode ? (
+                <AdvisorSidebar pathname={pathname} />
             ) : (
                 <AwqSidebar pathname={pathname} />
             )}

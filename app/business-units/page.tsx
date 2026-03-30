@@ -1,6 +1,6 @@
 import Header from "@/components/Header";
 import Link from "next/link";
-import { BarChart3, Building2, TrendingUp, ChevronRight, Users, DollarSign } from "lucide-react";
+import { BarChart3, Building2, TrendingUp, ChevronRight, Users, DollarSign, Briefcase } from "lucide-react";
 
 const BUS = [
   {
@@ -60,6 +60,25 @@ const BUS = [
     status: "Em breve",
     statusColor: "badge-yellow",
   },
+  {
+    id: "advisor",
+    label: "Advisor",
+    sub: "Consultoria",
+    href: "/advisor",
+    color: "bg-violet-600",
+    borderColor: "border-violet-200",
+    bgColor: "bg-violet-50",
+    textColor: "text-violet-700",
+    badgeColor: "bg-violet-100 text-violet-600 border-violet-200",
+    icon: Briefcase,
+    kpis: [
+      { label: "Clientes", value: "—" },
+      { label: "AUM", value: "—" },
+      { label: "Retorno", value: "—" },
+    ],
+    status: "Ativa",
+    statusColor: "badge-green",
+  },
 ];
 
 export default function BusinessUnitsPage() {
@@ -70,8 +89,8 @@ export default function BusinessUnitsPage() {
         {/* Summary */}
         <div className="grid grid-cols-3 gap-4">
           {[
-            { icon: Building2, label: "Total de BUs", value: "3" },
-            { icon: Users, label: "BUs Ativas", value: "2" },
+            { icon: Building2, label: "Total de BUs", value: "4" },
+            { icon: Users, label: "BUs Ativas", value: "3" },
             { icon: DollarSign, label: "Receita Consolidada", value: "$4.82M" },
           ].map((s) => (
             <div key={s.label} className="card p-5 flex items-center gap-4">
