@@ -270,6 +270,13 @@ function AwqSidebar({ pathname }: { pathname: string }) {
                     ))}
                 </div>
 
+                <SectionLabel>IA & Agentes</SectionLabel>
+                <div className="space-y-0.5">
+                    {aiNav.map((item) => (
+                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
+                    ))}
+                </div>
+
                 <SectionLabel>Sistema</SectionLabel>
                 <div className="space-y-0.5">
                     {sistemaNav.map((item) => (
