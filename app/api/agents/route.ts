@@ -77,14 +77,14 @@ export async function POST(req: NextRequest) {
           const messages: MessageParam[] = [{ role: "user", content: agent.prompt }];
 
           let iterations = 0;
-          const MAX_ITERATIONS = 5;
+          const MAX_ITERATIONS = 8;
 
           while (iterations < MAX_ITERATIONS) {
             iterations++;
 
             const response = await client.messages.create({
               model: "claude-opus-4-6",
-              max_tokens: 1024,
+              max_tokens: 2048,
               system: agent.system,
               tools: agentTools.length > 0 ? agentTools : undefined,
               messages,
@@ -144,14 +144,22 @@ export async function POST(req: NextRequest) {
                   if (parsed.data && Array.isArray(parsed.data)) {
                     summary = `${parsed.data.length} registros lidos`;
                   } else if (parsed.updated) {
-                    summary = "Registro atualizado no Notion";
+                    summary = "Notion atualizado";
                   } else if (parsed.created) {
-                    summary = `Alerta criado (${parsed.page_id?.slice(0, 8)}...)`;
+                    summary = "Alerta criado no Notion";
+                  } else if (parsed.written === true) {
+                    summary = `Arquivo salvo: ${parsed.path ?? toolBlock.input?.path ?? ""}`;
+                  } else if (parsed.written === false) {
+                    summary = `Escrita negada: ${parsed.error ?? "path não permitido"}`;
+                  } else if (parsed.files) {
+                    summary = `${parsed.files.length} arquivos listados`;
                   } else {
                     summary = "Concluído";
                   }
                 } catch {
-                  summary = String(result).slice(0, 80);
+                  // Plain text result (e.g. file content)
+                  const preview = String(result).slice(0, 60).replace(/\n/g, " ");
+                  summary = toolBlock.name === "read_file" ? `Lido (${String(result).length} chars)` : preview;
                 }
 
                 send({ type: "tool_result", name: toolBlock.name, summary });

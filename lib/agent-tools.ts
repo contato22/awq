@@ -1,29 +1,61 @@
 /**
  * agent-tools.ts
- * Anthropic tool definitions + server-side execution functions for BU agents.
- * Used in server/Vercel mode only (not available in static/GitHub Pages export).
+ * Anthropic tool definitions + server-side execution for BU agents.
+ *
+ * Tools available:
+ *   Notion (server mode): query_notion_database, update_notion_record, create_notion_alert
+ *   Filesystem:           read_file, write_file, list_directory
+ *
+ * Static/GitHub Pages mode: only analysis (no server). Data is pre-injected into context.
  */
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Tool = any;
 type ToolResultBlockParam = { type: "tool_result"; tool_use_id: string; content: string };
 
+import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync } from "fs";
+import { join, dirname } from "path";
+
 const NOTION_VERSION = "2022-06-28";
+
+// Repo root in server context
+const REPO_ROOT = process.env.VERCEL_ROOT ?? process.cwd();
+
+// Files the agent is allowed to write (whitelist)
+const WRITABLE_PATHS = [
+  "lib/data.ts",
+  "lib/caza-data.ts",
+  "public/data/",
+  "app/financial/page.tsx",
+  "app/caza-vision/page.tsx",
+  "app/awq/page.tsx",
+  "app/customers/page.tsx",
+  "app/products/page.tsx",
+  "app/overview/page.tsx",
+];
+
+function isWritable(filePath: string): boolean {
+  const normalized = filePath.replace(/^\//, "");
+  return WRITABLE_PATHS.some((allowed) =>
+    allowed.endsWith("/") ? normalized.startsWith(allowed) : normalized === allowed
+  );
+}
 
 // ── Tool definitions (Anthropic schema) ─────────────────────────────────────
 
 export const AGENT_TOOLS: Tool[] = [
+  // ── Notion tools ──────────────────────────────────────────────────────────
   {
     name: "query_notion_database",
     description:
-      "Fetch live records from a Notion database. Use this to read current project status, client data, or financial records before making decisions.",
+      "Fetch live records from a Notion database. Use this to read current project status, client data, or financial records BEFORE making decisions or taking action.",
     input_schema: {
       type: "object" as const,
       properties: {
         database: {
           type: "string",
           enum: ["properties", "clients", "financial"],
-          description: "Which Notion database to query: 'properties' for projects, 'clients' for client list, 'financial' for P&L.",
+          description: "'properties' for projects/pipeline, 'clients' for client list, 'financial' for P&L.",
         },
       },
       required: ["database"],
@@ -32,23 +64,16 @@ export const AGENT_TOOLS: Tool[] = [
   {
     name: "update_notion_record",
     description:
-      "Update fields on an existing Notion page (e.g., change project status, priority, add a note). Only use when a concrete operational change is needed.",
+      "Update fields on an existing Notion page — e.g., change project status/priority, mark as urgent, add a note. Take this action when you identify a record that needs to be changed.",
     input_schema: {
       type: "object" as const,
       properties: {
-        page_id: {
-          type: "string",
-          description: "The Notion page ID to update.",
-        },
+        page_id: { type: "string", description: "Notion page ID to update." },
         properties: {
           type: "object",
-          description:
-            "Key-value pairs to update. Supported: status (select), priority (select), note (rich_text). Example: { status: 'Urgente', note: 'CS intervention required' }",
+          description: "Fields to update: status (select), priority (select), note (rich_text), value (number).",
         },
-        reason: {
-          type: "string",
-          description: "Brief justification for this update.",
-        },
+        reason: { type: "string", description: "Why this update is needed." },
       },
       required: ["page_id", "properties", "reason"],
     },
@@ -56,41 +81,75 @@ export const AGENT_TOOLS: Tool[] = [
   {
     name: "create_notion_alert",
     description:
-      "Create a new action item / alert record in Notion to flag something for the team. Use for CS interventions, revenue risks, fund milestones.",
+      "Create a new action item / alert in Notion for the team — CS interventions, revenue risks, fund milestones. Use when you identify something that needs human follow-up that you cannot resolve through code.",
     input_schema: {
       type: "object" as const,
       properties: {
-        database: {
-          type: "string",
-          enum: ["properties", "clients"],
-          description: "Target database for the new record.",
-        },
-        title: {
-          type: "string",
-          description: "Short title of the alert (e.g., 'URGENT: CV002 Banco XP approval stuck').",
-        },
-        body: {
-          type: "string",
-          description: "Detailed description of the alert / recommended action.",
-        },
-        priority: {
-          type: "string",
-          enum: ["Alta", "Média", "Baixa"],
-          description: "Priority level.",
-        },
+        database: { type: "string", enum: ["properties", "clients"] },
+        title: { type: "string", description: "Short title, e.g. 'URGENT: CV002 Banco XP stuck 10 days'." },
+        body: { type: "string", description: "Detailed description of the issue and recommended action." },
+        priority: { type: "string", enum: ["Alta", "Média", "Baixa"] },
       },
       required: ["database", "title", "body", "priority"],
     },
   },
+
+  // ── Filesystem tools ───────────────────────────────────────────────────────
+  {
+    name: "read_file",
+    description:
+      "Read the content of a source file in the repository. Use this to understand current frontend components, backend logic, or data before proposing or making changes.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        path: {
+          type: "string",
+          description: "File path relative to repo root, e.g. 'lib/data.ts' or 'app/financial/page.tsx'.",
+        },
+      },
+      required: ["path"],
+    },
+  },
+  {
+    name: "write_file",
+    description:
+      "Write or update a source file in the repository. Use this to fix data, update frontend components, or improve backend logic. ALWAYS read the file first before writing. Only write to relevant data/page files — do NOT touch config files.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        path: {
+          type: "string",
+          description: "File path relative to repo root, e.g. 'lib/data.ts'.",
+        },
+        content: {
+          type: "string",
+          description: "Complete new file content. Must be valid TypeScript/JavaScript.",
+        },
+        reason: {
+          type: "string",
+          description: "Brief explanation of what was changed and why.",
+        },
+      },
+      required: ["path", "content", "reason"],
+    },
+  },
+  {
+    name: "list_directory",
+    description: "List files in a directory of the repository to understand the code structure.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        path: {
+          type: "string",
+          description: "Directory path relative to repo root, e.g. 'app' or 'lib'.",
+        },
+      },
+      required: ["path"],
+    },
+  },
 ];
 
-// ── Tool execution ────────────────────────────────────────────────────────────
-
-interface QueryResult {
-  source: string;
-  data: unknown[] | null;
-  error?: string;
-}
+// ── Notion helpers ────────────────────────────────────────────────────────────
 
 async function notionQuery(databaseId: string, notionKey: string): Promise<unknown[]> {
   const res = await fetch(`https://api.notion.com/v1/databases/${databaseId}/query`, {
@@ -102,17 +161,14 @@ async function notionQuery(databaseId: string, notionKey: string): Promise<unkno
     },
     body: JSON.stringify({ page_size: 50 }),
   });
-  if (!res.ok) throw new Error(`Notion ${res.status}`);
+  if (!res.ok) throw new Error(`Notion ${res.status}: ${await res.text()}`);
   const data = await res.json();
-  // Return simplified view of pages
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (data.results as any[]).map((p: any) => ({
     id: p.id,
-    // Grab the first title property
-    title: Object.values(p.properties as Record<string, { type: string; title?: { plain_text: string }[] }>).find(
-      (v) => v.type === "title"
-    )?.title?.[0]?.plain_text ?? "(sem título)",
-    // Select fields
+    title: Object.values(
+      p.properties as Record<string, { type: string; title?: { plain_text: string }[] }>
+    ).find((v) => v.type === "title")?.title?.[0]?.plain_text ?? "(sem título)",
     ...Object.fromEntries(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (Object.entries(p.properties) as [string, any][]).flatMap(([k, v]: [string, any]) => {
@@ -120,6 +176,7 @@ async function notionQuery(databaseId: string, notionKey: string): Promise<unkno
         if (v.type === "number" && v.number !== undefined) return [[k, v.number]];
         if (v.type === "date" && v.date) return [[k, v.date.start]];
         if (v.type === "rich_text" && v.rich_text?.length) return [[k, v.rich_text[0].plain_text]];
+        if (v.type === "checkbox") return [[k, v.checkbox]];
         return [];
       })
     ),
@@ -138,7 +195,6 @@ async function notionUpdatePage(
     } else if (typeof v === "number") {
       notionProps[k] = { number: v };
     } else {
-      // treat as select
       notionProps[k] = { select: { name: String(v) } };
     }
   }
@@ -172,7 +228,7 @@ async function notionCreatePage(
       parent: { database_id: databaseId },
       properties: {
         "Nome do projeto": { title: [{ text: { content: title } }] },
-        "Prioridade": { select: { name: priority } },
+        Prioridade: { select: { name: priority } },
       },
       children: [
         {
@@ -187,7 +243,49 @@ async function notionCreatePage(
   return { created: res.ok, page_id: data.id };
 }
 
-// ── Main tool executor ────────────────────────────────────────────────────────
+// ── Filesystem helpers ────────────────────────────────────────────────────────
+
+function safeReadFile(filePath: string): string {
+  const abs = join(REPO_ROOT, filePath.replace(/^\//, ""));
+  if (!existsSync(abs)) return `File not found: ${filePath}`;
+  const content = readFileSync(abs, "utf8");
+  // Truncate very large files to prevent token overflow
+  if (content.length > 12000) {
+    return content.slice(0, 12000) + `\n... [truncated — ${content.length} chars total]`;
+  }
+  return content;
+}
+
+function safeWriteFile(
+  filePath: string,
+  content: string
+): { written: boolean; error?: string } {
+  const normalized = filePath.replace(/^\//, "");
+  if (!isWritable(normalized)) {
+    return { written: false, error: `Path '${filePath}' is not in the writable whitelist.` };
+  }
+  try {
+    const abs = join(REPO_ROOT, normalized);
+    const dir = dirname(abs);
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+    writeFileSync(abs, content, "utf8");
+    return { written: true };
+  } catch (err) {
+    return { written: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+function safeListDir(dirPath: string): string[] {
+  try {
+    const abs = join(REPO_ROOT, dirPath.replace(/^\//, ""));
+    if (!existsSync(abs)) return [];
+    return readdirSync(abs).map((f) => join(dirPath, f));
+  } catch {
+    return [];
+  }
+}
+
+// ── Tool executor ─────────────────────────────────────────────────────────────
 
 interface ToolInput {
   database?: string;
@@ -197,30 +295,34 @@ interface ToolInput {
   title?: string;
   body?: string;
   priority?: string;
+  path?: string;
+  content?: string;
+}
+
+export interface NotionEnv {
+  notionKey: string;
+  dbProperties: string;
+  dbClients: string;
+  dbFinancial: string;
 }
 
 export async function executeTool(
   toolName: string,
   toolInput: ToolInput,
-  env: {
-    notionKey: string;
-    dbProperties: string;
-    dbClients: string;
-    dbFinancial: string;
-  }
+  env: NotionEnv
 ): Promise<ToolResultBlockParam["content"]> {
   try {
+    // ── Notion ───────────────────────────────────────────────────────────────
     if (toolName === "query_notion_database") {
       const dbMap: Record<string, string> = {
         properties: env.dbProperties,
         clients: env.dbClients,
-        financial: env.dbProperties, // reuses projects DB aggregated
+        financial: env.dbProperties,
       };
       const dbId = dbMap[toolInput.database ?? "properties"];
-      if (!dbId) return `Notion database ID for '${toolInput.database}' not configured.`;
+      if (!dbId) return `Notion database '${toolInput.database}' not configured.`;
       const rows = await notionQuery(dbId, env.notionKey);
-      const result: QueryResult = { source: "notion", data: rows };
-      return JSON.stringify(result);
+      return JSON.stringify({ source: "notion", data: rows, count: rows.length });
     }
 
     if (toolName === "update_notion_record") {
@@ -230,9 +332,8 @@ export async function executeTool(
     }
 
     if (toolName === "create_notion_alert") {
-      const dbId =
-        toolInput.database === "clients" ? env.dbClients : env.dbProperties;
-      if (!dbId) return `Database ID for '${toolInput.database}' not configured.`;
+      const dbId = toolInput.database === "clients" ? env.dbClients : env.dbProperties;
+      if (!dbId) return `Database '${toolInput.database}' not configured.`;
       const result = await notionCreatePage(
         dbId,
         toolInput.title ?? "Alert",
@@ -241,6 +342,24 @@ export async function executeTool(
         env.notionKey
       );
       return JSON.stringify(result);
+    }
+
+    // ── Filesystem ───────────────────────────────────────────────────────────
+    if (toolName === "read_file") {
+      if (!toolInput.path) return "Missing path.";
+      return safeReadFile(toolInput.path);
+    }
+
+    if (toolName === "write_file") {
+      if (!toolInput.path || !toolInput.content) return "Missing path or content.";
+      const result = safeWriteFile(toolInput.path, toolInput.content);
+      return JSON.stringify({ ...result, path: toolInput.path, reason: toolInput.reason });
+    }
+
+    if (toolName === "list_directory") {
+      if (!toolInput.path) return "Missing path.";
+      const files = safeListDir(toolInput.path);
+      return JSON.stringify({ files });
     }
 
     return `Unknown tool: ${toolName}`;

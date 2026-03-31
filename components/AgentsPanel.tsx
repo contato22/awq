@@ -21,11 +21,49 @@ function detectStaticMode(): boolean {
 const BUILTIN_KEY = process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY ?? "";
 
 const LS_KEY = "openclaw_api_key";
+const LS_LAST_RUN = "openclaw_last_auto_run";
+const AUTO_RUN_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 // Key priority: localStorage (user override) > built-in (always works) > null
 function resolveKey(): string | null {
   const stored = typeof window !== "undefined" ? localStorage.getItem(LS_KEY) : null;
   return stored || BUILTIN_KEY || null;
+}
+
+function shouldAutoRun(): boolean {
+  if (typeof window === "undefined") return false;
+  const last = localStorage.getItem(LS_LAST_RUN);
+  if (!last) return true;
+  return Date.now() - parseInt(last, 10) > AUTO_RUN_INTERVAL_MS;
+}
+
+function markAutoRun() {
+  if (typeof window !== "undefined") {
+    localStorage.setItem(LS_LAST_RUN, String(Date.now()));
+  }
+}
+
+// Fetch pre-built Notion data (static mode) — saved by fetch-notion-static.mjs
+async function fetchStaticData(): Promise<string> {
+  const endpoints = [
+    { label: "Projetos Caza Vision", url: "/data/caza-properties.json" },
+    { label: "Clientes Caza Vision", url: "/data/caza-clients.json" },
+    { label: "Financial", url: "/data/caza-financial.json" },
+  ];
+  const results: string[] = [];
+  for (const ep of endpoints) {
+    try {
+      const res = await fetch(ep.url);
+      if (res.ok) {
+        const data = await res.json();
+        const rows = Array.isArray(data) ? data : data?.data ?? [];
+        results.push(`[${ep.label}] ${rows.length} registros: ${JSON.stringify(rows.slice(0, 8))}`);
+      }
+    } catch { /* skip missing files */ }
+  }
+  return results.length > 0
+    ? `\n\n=== LIVE DATA (from last build) ===\n${results.join("\n")}\n`
+    : "";
 }
 
 interface ToolEvent {
@@ -205,9 +243,20 @@ export default function AgentsPanel() {
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [agents, setAgents] = useState<AgentResult[]>([]);
   const [runningAll, setRunningAll] = useState(false);
+  const [autoRunTriggered, setAutoRunTriggered] = useState(false);
+  const [lastRunLabel, setLastRunLabel] = useState<string>("");
 
+  // Load agents list
   useEffect(() => {
-    setApiKey(resolveKey());
+    const key = resolveKey();
+    setApiKey(key);
+
+    // Last run label for UI
+    const last = typeof window !== "undefined" ? localStorage.getItem(LS_LAST_RUN) : null;
+    if (last) {
+      const mins = Math.floor((Date.now() - parseInt(last, 10)) / 60000);
+      setLastRunLabel(mins < 2 ? "agora mesmo" : `há ${mins} min`);
+    }
 
     if (detectStaticMode()) {
       setAgents(AGENTS.map((a) => ({ ...a, content: "", status: "idle" as const })));
@@ -238,6 +287,10 @@ export default function AgentsPanel() {
 
       if (detectStaticMode()) {
         const agent = AGENTS.find((a) => a.id === agentId)!;
+        // Inject pre-built Notion data so agents have live context even in static mode
+        const liveData = await fetchStaticData();
+        const enrichedPrompt = agent.prompt + liveData;
+
         const res = await fetch("https://api.anthropic.com/v1/messages", {
           method: "POST",
           headers: {
@@ -248,10 +301,10 @@ export default function AgentsPanel() {
           },
           body: JSON.stringify({
             model: "claude-opus-4-6",
-            max_tokens: 512,
+            max_tokens: 1024,
             stream: true,
             system: agent.system,
-            messages: [{ role: "user", content: agent.prompt }],
+            messages: [{ role: "user", content: enrichedPrompt }],
           }),
         });
 
@@ -359,13 +412,24 @@ export default function AgentsPanel() {
     }
   }, [apiKey]);
 
-  const runAllAgents = async () => {
+  const runAllAgents = useCallback(async () => {
     if (!apiKey || runningAll) return;
     setRunningAll(true);
+    markAutoRun();
+    setLastRunLabel("agora mesmo");
     await Promise.all(BU_AGENTS.map((id) => runAgent(id)));
     await runAgent("awq-master");
     setRunningAll(false);
-  };
+  }, [apiKey, runningAll, runAgent]);
+
+  // Auto-run: trigger once agents are loaded + key available + 1h throttle
+  useEffect(() => {
+    if (autoRunTriggered) return;
+    if (!apiKey || agents.length === 0) return;
+    if (!shouldAutoRun()) return;
+    setAutoRunTriggered(true);
+    runAllAgents();
+  }, [apiKey, agents, autoRunTriggered, runAllAgents]);
 
   // Only block rendering if there's truly no key available anywhere
   if (!apiKey) return <NoKeyScreen onSave={(k) => setApiKey(k)} />;
@@ -378,23 +442,32 @@ export default function AgentsPanel() {
   return (
     <div className="space-y-6">
       <div className="card p-4 flex items-center gap-4 flex-wrap">
-        <div className="flex items-center gap-2 flex-1">
-          <Sparkles size={14} className="text-brand-400" />
-          <span className="text-xs font-semibold text-gray-300">Multi-Agent Sistema</span>
-          <span className="badge badge-blue">{doneCount}/{agents.length} concluídos</span>
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <Sparkles size={14} className="text-brand-400 shrink-0" />
+          <span className="text-xs font-semibold text-gray-300">Agentes Autônomos</span>
+          <span className="badge badge-blue shrink-0">{doneCount}/{agents.length} concluídos</span>
+          {lastRunLabel && !runningAll && (
+            <span className="text-[10px] text-gray-600 truncate">· último ciclo {lastRunLabel}</span>
+          )}
+          {runningAll && (
+            <span className="text-[10px] text-brand-400 flex items-center gap-1">
+              <Loader2 size={9} className="animate-spin" />ciclo autônomo em execução
+            </span>
+          )}
         </div>
         <button
           onClick={runAllAgents}
           disabled={runningAll || !apiKey}
-          className="btn-primary flex items-center gap-2 text-xs disabled:opacity-50"
+          className="btn-secondary flex items-center gap-1.5 text-xs disabled:opacity-40"
+          title="Forçar ciclo agora"
         >
           {runningAll ? (
-            <><Loader2 size={12} className="animate-spin" />Executando...</>
+            <Loader2 size={11} className="animate-spin" />
           ) : (
-            <><Play size={12} />Executar todos os agentes</>
+            <RefreshCw size={11} />
           )}
+          Ciclo manual
         </button>
-        {/* Only show key switcher when not using built-in key */}
         {!usingBuiltin && (
           <button
             onClick={() => {
@@ -402,7 +475,6 @@ export default function AgentsPanel() {
               setApiKey(BUILTIN_KEY || null);
             }}
             className="btn-secondary text-xs flex items-center gap-1.5"
-            title="Remover chave e reconfigurar"
           >
             <Key size={12} />Trocar chave
           </button>
@@ -413,7 +485,7 @@ export default function AgentsPanel() {
         <div className="flex items-center gap-2 mb-3">
           <Bot size={14} className="text-gray-500" />
           <span className="text-[10px] font-semibold text-gray-600 uppercase tracking-widest">
-            Agentes por BU — Auto-gerenciamento
+            Agentes BU — Gestão Autônoma Front+Back+DB
           </span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
