@@ -5,7 +5,7 @@
  * GitHub Pages pages then read from /awq/data/*.json instead of /api/notion.
  */
 
-import { writeFileSync, mkdirSync } from "fs";
+import { writeFileSync, mkdirSync, existsSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 
@@ -320,8 +320,12 @@ function aggregateVenture(rows) {
 
 // --- Main ---
 
-function write(filename, data) {
+function write(filename, data, { skipIfExists = false } = {}) {
     const path = join(OUT_DIR, filename);
+    if (skipIfExists && existsSync(path)) {
+        console.log(` SKIP ${filename} (already exists, keeping committed version)`);
+        return;
+    }
     writeFileSync(path, JSON.stringify(data, null, 2), "utf8");
     console.log(` OK ${filename} (${Array.isArray(data) ? data.length : Object.keys(data).length} records)`);
 }
@@ -333,7 +337,7 @@ async function main() {
           write("caza-properties.json", []);
           write("caza-financial.json", []);
           write("caza-clients.json", []);
-          write("venture-sales.json", { rows: [], totalFechado: 0, totalLeads: 0, byCategoria: {}, byCanal: [], byQuarter: {}, byQCat: {} });
+          write("venture-sales.json", { rows: [], totalFechado: 0, totalLeads: 0, byCategoria: {}, byCanal: [], byQuarter: {}, byQCat: {} }, { skipIfExists: true });
           return;
     }
 
@@ -380,7 +384,7 @@ async function main() {
         write("venture-sales.json", agg);
   } else {
         console.warn(" NOTION_DATABASE_ID_VENTURE_SALES not set");
-        write("venture-sales.json", { rows: [], totalFechado: 0, totalLeads: 0, byCategoria: {}, byCanal: [], byQuarter: {}, byQCat: {} });
+        write("venture-sales.json", { rows: [], totalFechado: 0, totalLeads: 0, byCategoria: {}, byCanal: [], byQuarter: {}, byQCat: {} }, { skipIfExists: true });
   }
 
   console.log("Done.");
