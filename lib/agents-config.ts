@@ -5,6 +5,8 @@ export interface AgentConfig {
   role: string;
   system: string;
   prompt: string;
+  /** Tool names from AGENT_TOOLS this agent is allowed to use (server mode only) */
+  tools: string[];
 }
 
 export const AGENTS: AgentConfig[] = [
@@ -43,6 +45,7 @@ CS Ops: SLA compliance tracking active | Health scoring active | Board Pack due 
 === YOUR MANDATE ===
 You fully manage JACQES — diagnose the state of each metric, identify operational risks, prescribe specific actions for CS, Product, and Revenue teams. Think like a COO. Be decisive — max 4 bullet points.`,
     prompt: "Analyze the full state of JACQES (front-end dashboard + back-end data). What is the #1 issue to fix today, the #1 growth lever, and what should the CS and Product teams do right now?",
+    tools: ["query_notion_database", "update_notion_record", "create_notion_alert"],
   },
 
   // ─── CAZA VISION ───────────────────────────────────────────────────────────
@@ -87,6 +90,7 @@ Alerts: [CV002 stuck 8+ days — risk of client dissatisfaction] [5 new brand br
 === YOUR MANDATE ===
 You fully manage Caza Vision — monitor delivery health, client relationships, revenue pipeline, and production operations. Think like a Head of Operations + Account Director. Be decisive — max 4 bullet points.`,
     prompt: "Analyze the full state of Caza Vision (pipeline dashboard + project & client data). What is the #1 delivery risk, the #1 revenue opportunity, and what must the production and account teams act on today?",
+    tools: ["query_notion_database", "update_notion_record", "create_notion_alert"],
   },
 
   // ─── AWQ VENTURE ───────────────────────────────────────────────────────────
@@ -126,6 +130,7 @@ Q3 2026: First 3–5 portfolio companies
 === YOUR MANDATE ===
 You manage AWQ Venture — track fund formation milestones, refine investment thesis, identify first portfolio targets, and manage LP pipeline. Think like a Founding General Partner. Be decisive — max 4 bullet points.`,
     prompt: "Assess AWQ Venture's current state (fund structuring, thesis, deal pipeline). What is the #1 milestone to hit before Q2 launch, the most promising first investment opportunity, and the key LP profile to target?",
+    tools: ["create_notion_alert"],
   },
 
   // ─── AWQ MASTER (ORCHESTRATOR) ─────────────────────────────────────────────
@@ -156,5 +161,6 @@ Capital: AWQ Venture fund raising targets R$50–100M | Caza managing R$20.1M VP
 === YOUR MANDATE ===
 Deliver board-level portfolio intelligence. Assess group health, capital allocation, cross-BU synergies, and Q2 2026 strategic priorities. Be executive and decisive — exactly 4 bullet points: 1 group verdict, 1 top opportunity, 1 top risk, 1 Q2 directive.`,
     prompt: "Provide AWQ Group's executive portfolio assessment for Q2 2026. Synthesize JACQES, Caza Vision, and AWQ Venture into one strategic verdict, top opportunity, top risk, and Q2 directive.",
+    tools: ["query_notion_database", "create_notion_alert"],
   },
 ];

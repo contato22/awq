@@ -1,8 +1,30 @@
+/**
+ * /api/agents — Server-side agent runner with tool use (agentic loop).
+ *
+ * GET  → returns manifest of all agents (id, name, bu, role)
+ * POST → runs an agent in an agentic loop:
+ *        1. Call Claude with tools
+ *        2. If Claude invokes a tool → execute it (Notion read/write) → feed result back
+ *        3. Repeat until stop_reason = "end_turn"
+ *        4. Stream SSE events: { type: "tool_call", name, input }
+ *                              { type: "tool_result", name, summary }
+ *                              { text: "..." }
+ *                              "data: [DONE]"
+ */
+
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest } from "next/server";
 import { AGENTS } from "@/lib/agents-config";
+import { AGENT_TOOLS, executeTool } from "@/lib/agent-tools";
 
 export type { AgentConfig } from "@/lib/agents-config";
+
+export async function GET() {
+  return new Response(
+    JSON.stringify(AGENTS.map(({ id, name, bu, role }) => ({ id, name, bu, role }))),
+    { headers: { "Content-Type": "application/json" } }
+  );
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,50 +35,148 @@ export async function POST(req: NextRequest) {
     const apiKey = clientKey || (serverKey !== "sk-ant-api03-placeholder" ? serverKey : null);
 
     if (!apiKey) {
-      return new Response(
-        JSON.stringify({ error: "API_KEY_REQUIRED" }),
-        { status: 401, headers: { "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "API_KEY_REQUIRED" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     const agent = AGENTS.find((a) => a.id === agentId);
     if (!agent) {
-      return new Response(
-        JSON.stringify({ error: "Agent not found" }),
-        { status: 404, headers: { "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Agent not found" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
+    // Notion env config for tool execution
+    const notionEnv = {
+      notionKey: process.env.NOTION_API_KEY ?? "",
+      dbProperties: process.env.NOTION_DATABASE_ID_CAZA_PROPERTIES ?? "",
+      dbClients: process.env.NOTION_DATABASE_ID_CAZA_CLIENTS ?? "",
+      dbFinancial: process.env.NOTION_DATABASE_ID_CAZA_PROPERTIES ?? "",
+    };
+    const hasNotion = !!notionEnv.notionKey;
+
+    // Filter tools to those configured for this agent
+    const agentTools = hasNotion
+      ? AGENT_TOOLS.filter((t) => agent.tools.includes(t.name))
+      : [];
+
     const client = new Anthropic({ apiKey });
-
-    const stream = client.messages.stream({
-      model: "claude-opus-4-6",
-      max_tokens: 512,
-      system: agent.system,
-      messages: [{ role: "user", content: agent.prompt }],
-    });
-
     const encoder = new TextEncoder();
+
     const readable = new ReadableStream({
       async start(controller) {
+        const send = (obj: object) =>
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(obj)}\n\n`));
+
         try {
-          controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify({ agentId, agentName: agent.name })}\n\n`)
-          );
-          for await (const event of stream) {
-            if (
-              event.type === "content_block_delta" &&
-              event.delta.type === "text_delta"
-            ) {
-              controller.enqueue(
-                encoder.encode(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`)
-              );
+          // ── Agentic loop ────────────────────────────────────────────────────
+          type MessageParam = Anthropic.MessageParam;
+          const messages: MessageParam[] = [{ role: "user", content: agent.prompt }];
+
+          let iterations = 0;
+          const MAX_ITERATIONS = 5;
+
+          while (iterations < MAX_ITERATIONS) {
+            iterations++;
+
+            const response = await client.messages.create({
+              model: "claude-opus-4-6",
+              max_tokens: 1024,
+              system: agent.system,
+              tools: agentTools.length > 0 ? agentTools : undefined,
+              messages,
+            });
+
+            // Stream any text blocks
+            for (const block of response.content) {
+              if (block.type === "text") {
+                // Chunk text to simulate streaming
+                const words = block.text.split(" ");
+                let buffer = "";
+                for (const word of words) {
+                  buffer += (buffer ? " " : "") + word;
+                  if (buffer.length > 40) {
+                    send({ text: buffer });
+                    buffer = "";
+                    await new Promise((r) => setTimeout(r, 0));
+                  }
+                }
+                if (buffer) send({ text: buffer });
+              }
             }
+
+            // If stop reason is end_turn (no tools called) → we're done
+            if (response.stop_reason === "end_turn") break;
+
+            // Handle tool calls
+            if (response.stop_reason === "tool_use") {
+              const toolUseBlocks = response.content.filter(
+                (b): b is Anthropic.ToolUseBlock => b.type === "tool_use"
+              );
+
+              // Append assistant message with tool_use blocks
+              messages.push({ role: "assistant", content: response.content });
+
+              // Execute each tool and collect results
+              const toolResults: Anthropic.ToolResultBlockParam[] = [];
+              for (const toolBlock of toolUseBlocks) {
+                // Notify frontend of tool call
+                send({
+                  type: "tool_call",
+                  name: toolBlock.name,
+                  input: toolBlock.input,
+                });
+
+                type ToolInput = Parameters<typeof executeTool>[1];
+                const result = await executeTool(
+                  toolBlock.name,
+                  toolBlock.input as ToolInput,
+                  notionEnv
+                );
+
+                // Summarize result for frontend notification
+                let summary = "";
+                try {
+                  const parsed = JSON.parse(typeof result === "string" ? result : JSON.stringify(result));
+                  if (parsed.data && Array.isArray(parsed.data)) {
+                    summary = `${parsed.data.length} registros lidos`;
+                  } else if (parsed.updated) {
+                    summary = "Registro atualizado no Notion";
+                  } else if (parsed.created) {
+                    summary = `Alerta criado (${parsed.page_id?.slice(0, 8)}...)`;
+                  } else {
+                    summary = "Concluído";
+                  }
+                } catch {
+                  summary = String(result).slice(0, 80);
+                }
+
+                send({ type: "tool_result", name: toolBlock.name, summary });
+
+                toolResults.push({
+                  type: "tool_result",
+                  tool_use_id: toolBlock.id,
+                  content: typeof result === "string" ? result : JSON.stringify(result),
+                });
+              }
+
+              // Feed results back to continue the loop
+              messages.push({ role: "user", content: toolResults });
+              continue;
+            }
+
+            // Any other stop reason → exit
+            break;
           }
+
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));
           controller.close();
         } catch (err) {
-          controller.error(err);
+          send({ error: err instanceof Error ? err.message : "Agent failed" });
+          controller.close();
         }
       },
     });
@@ -70,16 +190,9 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error("Agent error:", error);
-    return new Response(
-      JSON.stringify({ error: "Agent failed" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: "Agent failed" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
-}
-
-export async function GET() {
-  return new Response(
-    JSON.stringify(AGENTS.map(({ id, name, role }) => ({ id, name, role }))),
-    { headers: { "Content-Type": "application/json" } }
-  );
 }

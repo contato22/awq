@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import {
   Bot, Play, RefreshCw, Loader2, CheckCircle2,
   AlertCircle, Monitor, TrendingUp, Film,
-  Building2, Key, Sparkles,
+  Building2, Key, Sparkles, Database, Zap,
 } from "lucide-react";
 import { AGENTS } from "@/lib/agents-config";
 
@@ -28,6 +28,12 @@ function resolveKey(): string | null {
   return stored || BUILTIN_KEY || null;
 }
 
+interface ToolEvent {
+  type: "tool_call" | "tool_result";
+  name: string;
+  summary?: string;
+}
+
 interface AgentResult {
   id: string;
   name: string;
@@ -36,6 +42,7 @@ interface AgentResult {
   status: "idle" | "running" | "done" | "error";
   timestamp?: string;
   errorMsg?: string;
+  toolEvents?: ToolEvent[];
 }
 
 const AGENT_META: Record<string, { icon: React.ElementType; color: string; buColor: string }> = {
@@ -89,6 +96,31 @@ function AgentCard({ agent, onRun }: { agent: AgentResult; onRun: (id: string) =
         </div>
       </div>
 
+      {/* Tool activity strip */}
+      {agent.toolEvents && agent.toolEvents.length > 0 && (
+        <div className="mb-3 flex flex-wrap gap-1.5">
+          {agent.toolEvents.map((ev, i) => (
+            <span
+              key={i}
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                ev.type === "tool_call"
+                  ? "bg-brand-500/10 text-brand-400 border border-brand-500/20"
+                  : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+              }`}
+            >
+              {ev.type === "tool_call" ? (
+                <Zap size={9} />
+              ) : (
+                <Database size={9} />
+              )}
+              {ev.type === "tool_call"
+                ? ev.name.replace(/_/g, " ")
+                : ev.summary ?? "ok"}
+            </span>
+          ))}
+        </div>
+      )}
+
       <div className="min-h-[60px]">
         {agent.status === "idle" && (
           <p className="text-[11px] text-gray-600 italic">Clique em ▶ para executar análise automática</p>
@@ -96,7 +128,9 @@ function AgentCard({ agent, onRun }: { agent: AgentResult; onRun: (id: string) =
         {agent.status === "running" && !agent.content && (
           <div className="flex items-center gap-2 text-[11px] text-gray-500">
             <Loader2 size={11} className="animate-spin" />
-            Analisando dados...
+            {agent.toolEvents?.some((e) => e.type === "tool_call")
+              ? "Consultando banco de dados..."
+              : "Analisando dados..."}
           </div>
         )}
         {agent.content && (
@@ -195,7 +229,7 @@ export default function AgentsPanel() {
 
     setAgents((prev) =>
       prev.map((a) =>
-        a.id === agentId ? { ...a, status: "running", content: "", errorMsg: undefined } : a
+        a.id === agentId ? { ...a, status: "running", content: "", errorMsg: undefined, toolEvents: [] } : a
       )
     );
 
@@ -276,14 +310,36 @@ export default function AgentsPanel() {
             const d = line.slice(6).trim();
             if (d === "[DONE]") break;
             try {
-              const parsed = JSON.parse(d) as { text?: string };
+              const parsed = JSON.parse(d) as {
+                text?: string;
+                type?: string;
+                name?: string;
+                summary?: string;
+                error?: string;
+              };
               if (parsed.text) {
-                text += parsed.text;
+                text += (text && !text.endsWith(" ") ? " " : "") + parsed.text;
                 setAgents((prev) =>
                   prev.map((a) => (a.id === agentId ? { ...a, content: text } : a))
                 );
+              } else if (parsed.type === "tool_call" || parsed.type === "tool_result") {
+                setAgents((prev) =>
+                  prev.map((a) =>
+                    a.id === agentId
+                      ? {
+                          ...a,
+                          toolEvents: [
+                            ...(a.toolEvents ?? []),
+                            { type: parsed.type as "tool_call" | "tool_result", name: parsed.name ?? "", summary: parsed.summary },
+                          ],
+                        }
+                      : a
+                  )
+                );
+              } else if (parsed.error) {
+                throw new Error(parsed.error);
               }
-            } catch { /* ignore */ }
+            } catch (e) { if (e instanceof Error && e.message !== "Unexpected end of JSON input") throw e; }
           }
         }
       }
