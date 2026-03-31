@@ -48,21 +48,9 @@ export const USERS: AuthUser[] = [
 // Routes each role is allowed to access (prefix-based)
 export const ROLE_ALLOWED_PREFIXES: Record<Role, string[]> = {
   owner: ["/"], // unrestricted
-  admin: [
-    "/awq", "/business-units", "/financial", "/caza-vision", "/awq-venture",
-    "/advisor",
-    "/jacqes", "/desempenho", "/carteira", "/analise", "/csops",
-    "/revenue", "/reports", "/categorias", "/customers",
-    "/carreira", "/agents", "/openclaw", "/settings",
-  ],
-  analyst: [
-    "/jacqes", "/desempenho", "/carteira", "/analise", "/csops",
-    "/revenue", "/reports", "/categorias", "/customers",
-    "/carreira", "/openclaw",
-  ],
-  "cs-ops": [
-    "/csops", "/carteira", "/customers", "/categorias", "/openclaw",
-  ],
+  admin: ["/"], // full access
+  analyst: ["/"], // full access
+  "cs-ops": ["/"], // full access
 };
 
 export function canAccess(role: Role, pathname: string): boolean {
