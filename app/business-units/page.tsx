@@ -1,6 +1,33 @@
 import Header from "@/components/Header";
 import Link from "next/link";
 import { BarChart3, Building2, TrendingUp, ChevronRight, Users, DollarSign, Briefcase } from "lucide-react";
+import { kpis as jacqesKpis, revenueData } from "@/lib/data";
+import { cazaRevenueData } from "@/lib/caza-data";
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function fmtUSD(n: number) {
+  if (n >= 1_000_000) return "$" + (n / 1_000_000).toFixed(2) + "M";
+  if (n >= 1_000) return "$" + (n / 1_000).toFixed(0) + "K";
+  return "$" + n;
+}
+function fmtBRL(n: number) {
+  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
+  if (n >= 1_000) return "R$" + (n / 1_000).toFixed(0) + "K";
+  return "R$" + n;
+}
+
+// ── JACQES (lib/data.ts) ──────────────────────────────────────────────────────
+const jRevenue = jacqesKpis.find(k => k.id === "revenue")!.value; // 4_821_500
+const jMargin  = jacqesKpis.find(k => k.id === "margin")!.value;  // 67.4
+const jProfit  = revenueData[revenueData.length - 1].profit;       // 3_241_500
+
+// ── Caza Vision (lib/caza-data.ts) ───────────────────────────────────────────
+const cazaYtd  = cazaRevenueData.filter(r => r.month.includes("/26"));
+const cReceita = cazaYtd.reduce((s, r) => s + r.receita, 0); // 2_418_000
+const cLucro   = cazaYtd.reduce((s, r) => s + r.profit,  0); // 1_730_000
+const cMargem  = cReceita > 0 ? (cLucro / cReceita * 100) : 0;
+
+// ── Data ──────────────────────────────────────────────────────────────────────
 
 const BUS = [
   {
@@ -15,9 +42,9 @@ const BUS = [
     badgeColor: "bg-brand-100 text-brand-600 border-brand-200",
     icon: BarChart3,
     kpis: [
-      { label: "Receita", value: "$4.82M" },
-      { label: "Lucro", value: "$3.24M" },
-      { label: "Margem", value: "67.4%" },
+      { label: "Receita", value: fmtUSD(jRevenue) },
+      { label: "Lucro",   value: fmtUSD(jProfit) },
+      { label: "Margem",  value: jMargin.toFixed(1) + "%" },
     ],
     status: "Ativa",
     statusColor: "badge-green",
@@ -34,9 +61,9 @@ const BUS = [
     badgeColor: "bg-emerald-100 text-emerald-600 border-emerald-200",
     icon: Building2,
     kpis: [
-      { label: "Receita YTD", value: "R$2.42M" },
-      { label: "Lucro YTD", value: "R$1.73M" },
-      { label: "Margem", value: "71.5%" },
+      { label: "Receita YTD", value: fmtBRL(cReceita) },
+      { label: "Lucro YTD",   value: fmtBRL(cLucro) },
+      { label: "Margem",      value: cMargem.toFixed(1) + "%" },
     ],
     status: "Ativa",
     statusColor: "badge-green",
@@ -54,8 +81,8 @@ const BUS = [
     icon: TrendingUp,
     kpis: [
       { label: "Portfolio", value: "—" },
-      { label: "AUM", value: "—" },
-      { label: "IRR", value: "—" },
+      { label: "AUM",       value: "—" },
+      { label: "IRR",       value: "—" },
     ],
     status: "Em breve",
     statusColor: "badge-yellow",
@@ -73,13 +100,16 @@ const BUS = [
     icon: Briefcase,
     kpis: [
       { label: "Clientes", value: "—" },
-      { label: "AUM", value: "—" },
-      { label: "Retorno", value: "—" },
+      { label: "AUM",      value: "—" },
+      { label: "Retorno",  value: "—" },
     ],
     status: "Ativa",
     statusColor: "badge-green",
   },
 ];
+
+const activeBUs   = BUS.filter(b => b.status === "Ativa").length;
+const consolidado = fmtUSD(jRevenue);
 
 export default function BusinessUnitsPage() {
   return (
@@ -89,9 +119,9 @@ export default function BusinessUnitsPage() {
         {/* Summary */}
         <div className="grid grid-cols-3 gap-4">
           {[
-            { icon: Building2, label: "Total de BUs", value: "4" },
-            { icon: Users, label: "BUs Ativas", value: "3" },
-            { icon: DollarSign, label: "Receita Consolidada", value: "$4.82M" },
+            { icon: Building2,  label: "Total de BUs",         value: String(BUS.length) },
+            { icon: Users,      label: "BUs Ativas",           value: String(activeBUs) },
+            { icon: DollarSign, label: "Receita Consolidada",  value: consolidado },
           ].map((s) => (
             <div key={s.label} className="card p-5 flex items-center gap-4">
               <div className="w-9 h-9 rounded-xl bg-gray-800 border border-gray-700 flex items-center justify-center">

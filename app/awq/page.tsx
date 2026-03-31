@@ -13,11 +13,39 @@ import {
     LineChart,
     Briefcase,
 } from "lucide-react";
+import { kpis as jacqesKpis, revenueData } from "@/lib/data";
+import { cazaRevenueData } from "@/lib/caza-data";
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function fmtUSD(n: number) {
+  if (n >= 1_000_000) return "$" + (n / 1_000_000).toFixed(2) + "M";
+  if (n >= 1_000) return "$" + (n / 1_000).toFixed(0) + "K";
+  return "$" + n;
+}
+function fmtBRL(n: number) {
+  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
+  if (n >= 1_000) return "R$" + (n / 1_000).toFixed(0) + "K";
+  return "R$" + n;
+}
+
+// ── JACQES (lib/data.ts) ──────────────────────────────────────────────────────
+const jRevenue   = jacqesKpis.find(k => k.id === "revenue")!.value;   // 4_821_500
+const jMargin    = jacqesKpis.find(k => k.id === "margin")!.value;    // 67.4
+const jCustomers = jacqesKpis.find(k => k.id === "customers")!.value; // 3_847
+const jProfit    = revenueData[revenueData.length - 1].profit;         // 3_241_500
+
+// ── Caza Vision (lib/caza-data.ts) ───────────────────────────────────────────
+const cazaYtd  = cazaRevenueData.filter(r => r.month.includes("/26"));
+const cReceita = cazaYtd.reduce((s, r) => s + r.receita, 0); // 2_418_000
+const cLucro   = cazaYtd.reduce((s, r) => s + r.profit,  0); // 1_730_000
+const cMargem  = cReceita > 0 ? (cLucro / cReceita * 100) : 0;
+
+// ── Data ──────────────────────────────────────────────────────────────────────
 
 const GROUP_KPIS = [
   {
         label: "Receita Consolidada",
-        value: "$4.82M",
+        value: fmtUSD(jRevenue),
         sub: "YTD · Março 2026",
         icon: DollarSign,
         color: "text-emerald-500",
@@ -33,7 +61,7 @@ const GROUP_KPIS = [
   },
   {
         label: "Clientes no Grupo",
-        value: "3.847",
+        value: jCustomers.toLocaleString("pt-BR"),
         sub: "Base ativa JACQES",
         icon: Users,
         color: "text-violet-500",
@@ -41,13 +69,13 @@ const GROUP_KPIS = [
   },
   {
         label: "Margem Média",
-        value: "67.4%",
+        value: jMargin.toFixed(1) + "%",
         sub: "Grupo consolidado",
         icon: Activity,
         color: "text-amber-500",
         bg: "bg-amber-500/10",
   },
-  ];
+];
 
 const BUS = [
   {
@@ -60,10 +88,10 @@ const BUS = [
         status: "Ativa",
         statusColor: "badge-green",
         kpis: [
-          { label: "Receita", value: "$4.82M" },
-          { label: "Lucro", value: "$3.24M" },
-          { label: "Margem", value: "67.4%" },
-              ],
+          { label: "Receita", value: fmtUSD(jRevenue) },
+          { label: "Lucro",   value: fmtUSD(jProfit) },
+          { label: "Margem",  value: jMargin.toFixed(1) + "%" },
+        ],
   },
   {
         id: "caza",
@@ -75,10 +103,10 @@ const BUS = [
         status: "Ativa",
         statusColor: "badge-green",
         kpis: [
-          { label: "Receita YTD", value: "R$2.42M" },
-          { label: "Lucro YTD", value: "R$1.73M" },
-          { label: "Margem", value: "71.5%" },
-              ],
+          { label: "Receita YTD", value: fmtBRL(cReceita) },
+          { label: "Lucro YTD",   value: fmtBRL(cLucro) },
+          { label: "Margem",      value: cMargem.toFixed(1) + "%" },
+        ],
   },
   {
         id: "venture",
@@ -91,9 +119,9 @@ const BUS = [
         statusColor: "badge-yellow",
         kpis: [
           { label: "Portfolio", value: "—" },
-          { label: "AUM", value: "—" },
-          { label: "IRR", value: "—" },
-              ],
+          { label: "AUM",       value: "—" },
+          { label: "IRR",       value: "—" },
+        ],
   },
   {
         id: "advisor",
@@ -106,18 +134,18 @@ const BUS = [
         statusColor: "badge-green",
         kpis: [
           { label: "Clientes", value: "—" },
-          { label: "AUM", value: "—" },
-          { label: "Retorno", value: "—" },
-              ],
+          { label: "AUM",      value: "—" },
+          { label: "Retorno",  value: "—" },
+        ],
   },
-  ];
+];
 
 const ACTIVITY = [
-  { label: "JACQES atingiu margem de 67.4% em Março", time: "Hoje", type: "success" },
-  { label: "3.847 clientes ativos na base JACQES", time: "Atualizado", type: "info" },
-  { label: "Caza Vision — 23 projetos ativos, R$2.42M receita YTD", time: "Atualizado", type: "success" },
+  { label: `JACQES atingiu margem de ${jMargin.toFixed(1)}% em Março`, time: "Hoje", type: "success" },
+  { label: `${jCustomers.toLocaleString("pt-BR")} clientes ativos na base JACQES`, time: "Atualizado", type: "info" },
+  { label: `Caza Vision — ${fmtBRL(cReceita)} receita YTD, margem ${cMargem.toFixed(1)}%`, time: "Atualizado", type: "success" },
   { label: "AWQ Venture — estruturação do fundo em andamento", time: "Planejado", type: "warn" },
-  ];
+];
 
 export default function AwqGroupPage() {
     return (
@@ -142,7 +170,7 @@ export default function AwqGroupPage() {
                                       );
           })}
                         </div>
-                
+
                   {/* Business Units + Activity */}
                         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
                           {/* BU cards */}
@@ -185,7 +213,7 @@ export default function AwqGroupPage() {
                                           );
           })}
                                   </div>
-                        
+
                           {/* Activity */}
                                   <div className="card p-5">
                                               <div className="flex items-center gap-2 mb-4">
@@ -213,7 +241,7 @@ export default function AwqGroupPage() {
                                               </div>
                                   </div>
                         </div>
-                
+
                   {/* Financial quick access */}
                         <Link
                                     href="/financial"
@@ -228,9 +256,9 @@ export default function AwqGroupPage() {
                                   </div>
                                   <div className="hidden sm:flex items-center gap-6 mr-2">
                                     {[
-                                    { label: "Receita Total", value: "$4.82M" },
-                                    { label: "Lucro Total", value: "$3.24M" },
-                                    { label: "Margem Média", value: "67.4%" },
+                                    { label: "Receita Total", value: fmtUSD(jRevenue) },
+                                    { label: "Lucro Total",   value: fmtUSD(jProfit) },
+                                    { label: "Margem Média",  value: jMargin.toFixed(1) + "%" },
                                                 ].map((s) => (
                                                                 <div key={s.label} className="text-center">
                                                                                 <div className="text-sm font-bold text-white">{s.value}</div>
