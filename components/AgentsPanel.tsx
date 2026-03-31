@@ -6,6 +6,11 @@ import {
   AlertCircle, LayoutDashboard, TrendingUp, Users,
   FileBarChart, Building2, Key, Sparkles,
 } from "lucide-react";
+import { AGENTS } from "@/lib/agents-config";
+
+// GitHub Pages static export: call Anthropic API directly from browser.
+// Server/Vercel mode: call the Next.js API route proxy.
+const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 
 const LS_KEY = "openclaw_api_key";
 
@@ -25,8 +30,6 @@ const AGENT_META: Record<string, { icon: React.ElementType; color: string; buCol
   reports: { icon: FileBarChart, color: "text-purple-400", buColor: "bg-purple-500/10 border-purple-500/20" },
   "awq-master": { icon: Building2, color: "text-amber-400", buColor: "bg-amber-500/10 border-amber-500/20" },
 };
-
-const AGENT_IDS = ["overview", "revenue", "customers", "reports", "awq-master"];
 
 const BU_AGENTS = ["overview", "revenue", "customers", "reports"];
 
@@ -145,7 +148,7 @@ function NoKeyScreen() {
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && save()}
-          placeholder="sk-ant-... ou sk-..."
+          placeholder="sk-ant-..."
           className="w-full px-4 py-3 pr-10 bg-gray-800 border border-gray-700 rounded-xl text-sm text-gray-200 placeholder:text-gray-600 focus:outline-none focus:border-brand-500 transition-colors"
         />
         <button
@@ -176,25 +179,20 @@ export default function AgentsPanel() {
     const key = localStorage.getItem(LS_KEY);
     setApiKey(key);
 
-    // Initialize agent states from server manifest
-    fetch("/api/agents")
-      .then((r) => r.json())
-      .then((list: { id: string; name: string; role: string }[]) => {
-        setAgents(
-          list.map((a) => ({ ...a, content: "", status: "idle" as const }))
-        );
-      })
-      .catch(() => {
-        setAgents(
-          AGENT_IDS.map((id) => ({
-            id,
-            name: id,
-            role: "",
-            content: "",
-            status: "idle" as const,
-          }))
-        );
-      });
+    if (IS_STATIC) {
+      // Static mode: use shared config directly — no server manifest needed
+      setAgents(AGENTS.map((a) => ({ ...a, content: "", status: "idle" as const })));
+    } else {
+      // Server mode: fetch manifest from API route
+      fetch("/api/agents")
+        .then((r) => r.json())
+        .then((list: { id: string; name: string; role: string }[]) => {
+          setAgents(list.map((a) => ({ ...a, content: "", status: "idle" as const })));
+        })
+        .catch(() => {
+          setAgents(AGENTS.map((a) => ({ ...a, content: "", status: "idle" as const })));
+        });
+    }
   }, []);
 
   const runAgent = useCallback(async (agentId: string, key?: string) => {
@@ -202,52 +200,102 @@ export default function AgentsPanel() {
     if (!activeKey) return;
 
     setAgents((prev) =>
-      prev.map((a) =>
-        a.id === agentId ? { ...a, status: "running", content: "" } : a
-      )
+      prev.map((a) => (a.id === agentId ? { ...a, status: "running", content: "" } : a))
     );
 
     try {
-      const res = await fetch("/api/agents", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-anthropic-key": activeKey,
-        },
-        body: JSON.stringify({ agentId }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        if (data.error === "API_KEY_REQUIRED") {
-          setApiKey(null);
-          localStorage.removeItem(LS_KEY);
-        }
-        throw new Error(data.error);
-      }
-
-      const reader = res.body!.getReader();
-      const decoder = new TextDecoder();
       let text = "";
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        for (const line of decoder.decode(value, { stream: true }).split("\n")) {
-          if (!line.startsWith("data: ")) continue;
-          const d = line.slice(6).trim();
-          if (d === "[DONE]") break;
-          try {
-            const parsed = JSON.parse(d);
-            if (parsed.text) {
-              text += parsed.text;
-              setAgents((prev) =>
-                prev.map((a) =>
-                  a.id === agentId ? { ...a, content: text } : a
-                )
-              );
-            }
-          } catch { /* ignore */ }
+      if (IS_STATIC) {
+        // ── Static / GitHub Pages mode ────────────────────────────────────────
+        // Call Anthropic API directly from the browser (no server required).
+        const agent = AGENTS.find((a) => a.id === agentId)!;
+        const res = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: {
+            "x-api-key": activeKey,
+            "anthropic-version": "2023-06-01",
+            "anthropic-dangerous-direct-browser-access": "true",
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "claude-opus-4-6",
+            max_tokens: 512,
+            stream: true,
+            system: agent.system,
+            messages: [{ role: "user", content: agent.prompt }],
+          }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error((err as { error?: { message?: string } }).error?.message ?? `HTTP ${res.status}`);
+        }
+
+        const reader = res.body!.getReader();
+        const decoder = new TextDecoder();
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          for (const line of decoder.decode(value, { stream: true }).split("\n")) {
+            if (!line.startsWith("data: ")) continue;
+            const d = line.slice(6).trim();
+            if (!d) continue;
+            try {
+              const parsed = JSON.parse(d) as {
+                type: string;
+                delta?: { type: string; text: string };
+              };
+              if (parsed.type === "content_block_delta" && parsed.delta?.type === "text_delta") {
+                text += parsed.delta.text;
+                setAgents((prev) =>
+                  prev.map((a) => (a.id === agentId ? { ...a, content: text } : a))
+                );
+              }
+            } catch { /* ignore malformed lines */ }
+          }
+        }
+      } else {
+        // ── Server / Vercel mode ──────────────────────────────────────────────
+        const res = await fetch("/api/agents", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-anthropic-key": activeKey,
+          },
+          body: JSON.stringify({ agentId }),
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          if (data.error === "API_KEY_REQUIRED") {
+            setApiKey(null);
+            localStorage.removeItem(LS_KEY);
+          }
+          throw new Error(data.error);
+        }
+
+        const reader = res.body!.getReader();
+        const decoder = new TextDecoder();
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          for (const line of decoder.decode(value, { stream: true }).split("\n")) {
+            if (!line.startsWith("data: ")) continue;
+            const d = line.slice(6).trim();
+            if (d === "[DONE]") break;
+            try {
+              const parsed = JSON.parse(d) as { text?: string };
+              if (parsed.text) {
+                text += parsed.text;
+                setAgents((prev) =>
+                  prev.map((a) => (a.id === agentId ? { ...a, content: text } : a))
+                );
+              }
+            } catch { /* ignore */ }
+          }
         }
       }
 
@@ -260,9 +308,7 @@ export default function AgentsPanel() {
       );
     } catch {
       setAgents((prev) =>
-        prev.map((a) =>
-          a.id === agentId ? { ...a, status: "error" } : a
-        )
+        prev.map((a) => (a.id === agentId ? { ...a, status: "error" } : a))
       );
     }
   }, [apiKey]);
