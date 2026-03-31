@@ -25,6 +25,8 @@ import {
     LineChart,
     Film,
     FileText,
+    Calculator,
+    Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -43,6 +45,8 @@ const CAZA_PREFIXES = ["/caza-vision"];
 
 const ADVISOR_PREFIXES = ["/advisor"];
 
+const VENTURE_PREFIXES = ["/awq-venture"];
+
 function isJacqesRoute(pathname: string) {
     return JACQES_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
@@ -55,32 +59,46 @@ function isAdvisorRoute(pathname: string) {
     return ADVISOR_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
+function isVentureRoute(pathname: string) {
+    return VENTURE_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
+
 // ── Nav items ────────────────────────────────────────────────────────────────
 const jacqesNav = [
-    { label: "Visão Geral", href: "/jacqes",     icon: LayoutDashboard },
-    { label: "Desempenho",  href: "/desempenho",  icon: TrendingUp       },
-    { label: "Carteira",    href: "/carteira",    icon: Users            },
-    { label: "Análise",     href: "/analise",     icon: Activity         },
-    { label: "CS Ops",      href: "/csops",       icon: HeartPulse       },
-    { label: "Financial",   href: "/revenue",     icon: DollarSign       },
-    { label: "Relatórios",  href: "/reports",     icon: BarChart3        },
-    { label: "Categorias",  href: "/categorias",  icon: Tag              },
+    { label: "Visão Geral",    href: "/jacqes",                 icon: LayoutDashboard },
+    { label: "Desempenho",     href: "/desempenho",             icon: TrendingUp       },
+    { label: "Carteira",       href: "/carteira",               icon: Users            },
+    { label: "Análise",        href: "/analise",                icon: Activity         },
+    { label: "CS Ops",         href: "/csops",                  icon: HeartPulse       },
+    { label: "Financial",      href: "/jacqes/financial",       icon: DollarSign       },
+    { label: "Customers",      href: "/jacqes/customers",       icon: Users            },
+    { label: "Unit Economics", href: "/jacqes/unit-economics",  icon: Calculator       },
+    { label: "Budget",         href: "/jacqes/budget",          icon: Wallet           },
+    { label: "Relatórios",     href: "/reports",                icon: BarChart3        },
+    { label: "Categorias",     href: "/categorias",             icon: Tag              },
 ];
 
 const cazaNav = [
-    { label: "Visão Geral", href: "/caza-vision",           icon: LayoutDashboard },
-    { label: "Projetos",     href: "/caza-vision/imoveis",   icon: Film            },
-    { label: "Clientes",    href: "/caza-vision/clientes",  icon: Users           },
-    { label: "Financial",   href: "/caza-vision/financial", icon: DollarSign      },
-    { label: "Pipeline",    href: "/caza-vision/pipeline",  icon: Activity        },
-    { label: "Relatórios",  href: "/caza-vision/relatorios",icon: BarChart3       },
+    { label: "Visão Geral",    href: "/caza-vision",                   icon: LayoutDashboard },
+    { label: "Projetos",       href: "/caza-vision/imoveis",           icon: Film            },
+    { label: "Clientes",       href: "/caza-vision/clientes",          icon: Users           },
+    { label: "Financial",      href: "/caza-vision/financial",         icon: DollarSign      },
+    { label: "Unit Economics", href: "/caza-vision/unit-economics",    icon: Calculator      },
+    { label: "Pipeline",       href: "/caza-vision/pipeline",          icon: Activity        },
+    { label: "Relatórios",     href: "/caza-vision/relatorios",        icon: BarChart3       },
 ];
 
 const advisorNav = [
-    { label: "Visão Geral", href: "/advisor",          icon: LayoutDashboard },
-    { label: "Clientes",    href: "/advisor/clientes",  icon: Users           },
-    { label: "Portfólio",   href: "/advisor/portfolio", icon: LineChart       },
-    { label: "Relatórios",  href: "/advisor/relatorios",icon: FileText        },
+    { label: "Visão Geral", href: "/advisor",              icon: LayoutDashboard },
+    { label: "Financial",   href: "/advisor/financial",    icon: DollarSign      },
+    { label: "Customers",   href: "/advisor/customers",    icon: Users           },
+    { label: "Portfólio",   href: "/advisor/portfolio",    icon: LineChart       },
+    { label: "Relatórios",  href: "/advisor/relatorios",   icon: FileText        },
+];
+
+const ventureNav = [
+    { label: "Visão Geral", href: "/awq-venture",           icon: LayoutDashboard },
+    { label: "Financial",   href: "/awq-venture/financial", icon: DollarSign      },
 ];
 
 const gestaoNav = [
@@ -474,13 +492,74 @@ function AdvisorSidebar({ pathname }: { pathname: string }) {
     );
 }
 
+// ── AWQ Venture sidebar ───────────────────────────────────────────────────────
+function AwqVentureSidebar({ pathname }: { pathname: string }) {
+    const isActive = (href: string) =>
+        href === "/awq-venture" ? pathname === href : pathname.startsWith(href);
+    return (
+        <>
+            <AwqHeader />
+            {/* AWQ Venture company selector */}
+            <div className="px-3 pt-3">
+                <Link
+                    href="/business-units"
+                    className="flex items-center gap-3 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-xl hover:bg-amber-100 transition-colors group"
+                >
+                    <div className="w-7 h-7 rounded-lg bg-amber-600 flex items-center justify-center shrink-0">
+                        <TrendingUp size={13} className="text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <div className="text-sm font-bold text-amber-700 truncate">AWQ Venture</div>
+                        <div className="text-[10px] text-amber-500 truncate">Investimentos · AWQ Group</div>
+                    </div>
+                    <ChevronDown size={14} className="text-amber-400 shrink-0" />
+                </Link>
+            </div>
+
+            {/* Back to AWQ link */}
+            <div className="px-4 pt-2">
+                <Link
+                    href="/business-units"
+                    className="flex items-center gap-1.5 text-[10px] text-gray-400 hover:text-amber-600 transition-colors"
+                >
+                    <ChevronLeft size={11} />
+                    Voltar para AWQ Group
+                </Link>
+            </div>
+
+            <nav className="flex-1 overflow-y-auto px-3 py-2">
+                <SectionLabel>AWQ Venture · Navegação</SectionLabel>
+                <div className="space-y-0.5">
+                    {ventureNav.map((item) => (
+                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
+                    ))}
+                </div>
+                <SectionLabel>IA & Agentes</SectionLabel>
+                <div className="space-y-0.5">
+                    {aiNav.map((item) => (
+                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
+                    ))}
+                </div>
+                <SectionLabel>Sistema</SectionLabel>
+                <div className="space-y-0.5">
+                    {sistemaNav.map((item) => (
+                        <NavItem key={item.href} {...item} active={pathname === item.href} />
+                    ))}
+                </div>
+            </nav>
+            <SidebarFooter />
+        </>
+    );
+}
+
 // ── Root Sidebar ──────────────────────────────────────────────────────────────
 export default function Sidebar() {
     const rawPathname = usePathname();
     const pathname = rawPathname ?? "";
-    const jacqesMode = isJacqesRoute(pathname);
-    const cazaMode   = isCazaRoute(pathname);
+    const jacqesMode  = isJacqesRoute(pathname);
+    const cazaMode    = isCazaRoute(pathname);
     const advisorMode = isAdvisorRoute(pathname);
+    const ventureMode = isVentureRoute(pathname);
     return (
         <aside className="w-[260px] flex-shrink-0 bg-white border-r border-gray-200 flex flex-col h-full">
             {jacqesMode ? (
@@ -489,6 +568,8 @@ export default function Sidebar() {
                 <CazaSidebar pathname={pathname} />
             ) : advisorMode ? (
                 <AdvisorSidebar pathname={pathname} />
+            ) : ventureMode ? (
+                <AwqVentureSidebar pathname={pathname} />
             ) : (
                 <AwqSidebar pathname={pathname} />
             )}

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import { cazaClients } from "@/lib/caza-data";
 import { fetchNotionData } from "@/lib/notion-fetch";
-import { Tag, TrendingUp, Users, Building2, Database, CloudOff, AlertCircle } from "lucide-react";
+import { Tag, TrendingUp, Users, Building2, Database, CloudOff, AlertCircle, BarChart3, DollarSign } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -71,10 +71,15 @@ export default function ClientesPage() {
     });
   }, []);
 
-  const total       = clients.length;
-  const ativos      = clients.filter((c) => c.status === "Ativo" || c.status === "Em Proposta").length;
-  const convertidos = clients.filter((c) => c.status === "Convertido").length;
-  const perdidos    = clients.filter((c) => c.status === "Perdido").length;
+  const total          = clients.length;
+  const ativos         = clients.filter((c) => c.status === "Ativo" || c.status === "Em Proposta").length;
+  const convertidos    = clients.filter((c) => c.status === "Convertido").length;
+  const perdidos       = clients.filter((c) => c.status === "Perdido").length;
+  const totalWallet    = clients.reduce((s, c) => s + c.budget_anual, 0);
+  const avgBudget      = total > 0 ? Math.round(totalWallet / total) : 0;
+  const ativosWallet   = clients
+    .filter((c) => c.status === "Ativo")
+    .reduce((s, c) => s + c.budget_anual, 0);
 
   return (
     <>
@@ -105,18 +110,53 @@ export default function ClientesPage() {
         </div>
 
         {/* ── Summary strip ───────────────────────────────────────────────── */}
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
           {[
-            { label: "Total de Clientes",    value: total,       color: "text-white"       },
-            { label: "Ativos / Em Proposta", value: ativos,      color: "text-emerald-400" },
-            { label: "Convertidos",          value: convertidos, color: "text-brand-400"   },
-            { label: "Perdidos",             value: perdidos,    color: "text-red-400"     },
-          ].map((s) => (
-            <div key={s.label} className="card p-4 text-center">
-              <div className={`text-3xl font-bold ${s.color}`}>{s.value}</div>
-              <div className="text-xs text-gray-500 mt-1">{s.label}</div>
-            </div>
-          ))}
+            { label: "Total de Clientes",    value: String(total),       color: "text-white",       icon: Users       },
+            { label: "Ativos / Em Proposta", value: String(ativos),      color: "text-emerald-400", icon: BarChart3   },
+            { label: "Wallet Total (Ativos)", value: fmtR(ativosWallet), color: "text-brand-400",   icon: DollarSign  },
+            { label: "Budget Médio / Cliente", value: fmtR(avgBudget),   color: "text-amber-400",   icon: TrendingUp  },
+          ].map((s) => {
+            const Icon = s.icon;
+            return (
+              <div key={s.label} className="card p-4 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-gray-800 flex items-center justify-center shrink-0">
+                  <Icon size={15} className={s.color} />
+                </div>
+                <div>
+                  <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
+                  <div className="text-xs text-gray-500 mt-0.5">{s.label}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* ── Financial Summary ────────────────────────────────────────────── */}
+        <div className="card p-5">
+          <h2 className="text-sm font-semibold text-white mb-4">Concentração de Budget por Cliente</h2>
+          <div className="space-y-2">
+            {[...clients]
+              .filter((c) => c.budget_anual > 0)
+              .sort((a, b) => b.budget_anual - a.budget_anual)
+              .map((c) => {
+                const share = totalWallet > 0 ? (c.budget_anual / totalWallet) * 100 : 0;
+                return (
+                  <div key={c.id} className="flex items-center gap-3">
+                    <span className="text-xs text-gray-400 w-32 shrink-0 truncate">{c.name}</span>
+                    <div className="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-emerald-500 rounded-full"
+                        style={{ width: `${share}%` }}
+                      />
+                    </div>
+                    <span className="text-xs font-semibold text-white w-18 text-right shrink-0">{fmtR(c.budget_anual)}</span>
+                    <span className="text-[10px] text-gray-600 w-10 text-right shrink-0">{share.toFixed(0)}%</span>
+                    <span className={`${statusConfig[c.status] ?? "badge"} shrink-0`}>{c.status}</span>
+                  </div>
+                );
+              })}
+          </div>
         </div>
 
         {/* ── Clients table ───────────────────────────────────────────────── */}
@@ -134,6 +174,7 @@ export default function ClientesPage() {
                   <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Cliente</th>
                   <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Perfil</th>
                   <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Budget Anual</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Wallet %</th>
                   <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Segmento</th>
                   <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Desde</th>
                   <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Status</th>
@@ -157,6 +198,13 @@ export default function ClientesPage() {
                       </td>
                       <td className="py-2.5 px-3 text-right text-white font-semibold text-xs">
                         {c.budget_anual > 0 ? fmtR(c.budget_anual) : <span className="text-gray-600">—</span>}
+                      </td>
+                      <td className="py-2.5 px-3 text-right text-xs">
+                        {c.budget_anual > 0 && totalWallet > 0 ? (
+                          <span className="text-brand-400 font-semibold">
+                            {((c.budget_anual / totalWallet) * 100).toFixed(0)}%
+                          </span>
+                        ) : <span className="text-gray-600">—</span>}
                       </td>
                       <td className="py-2.5 px-3 text-xs text-gray-400">{c.segmento || "—"}</td>
                       <td className="py-2.5 px-3 text-[11px] text-gray-600">{c.since || "—"}</td>
