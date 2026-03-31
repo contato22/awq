@@ -351,13 +351,15 @@ async function main() {
   }
 
   // Financial (same DB as properties -- aggregate by month)
-  if (DB_FIN) {
-        const pages = await queryDatabase(DB_FIN);
+  // Falls back to properties DB if NOTION_DATABASE_ID_CAZA_FINANCIAL is not set
+  const finDb = DB_FIN || DB_PROPS;
+  if (finDb) {
+        const pages = await queryDatabase(finDb);
         const projetos = pages.map(mapProjeto);
         const monthly = aggregateByMonth(projetos);
         write("caza-financial.json", monthly);
   } else {
-        console.warn(" NOTION_DATABASE_ID_CAZA_FINANCIAL not set");
+        console.warn(" NOTION_DATABASE_ID_CAZA_FINANCIAL and NOTION_DATABASE_ID_CAZA_PROPERTIES not set");
         write("caza-financial.json", []);
   }
 
