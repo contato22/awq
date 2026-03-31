@@ -43,7 +43,7 @@ const JACQES_PREFIXES = [
 
 const CAZA_PREFIXES = ["/caza-vision"];
 
-const ADVISOR_PREFIXES = ["/advisor"];
+const ADVISOR_PREFIXES = ["/advisor", "/clientes"];
 
 const VENTURE_PREFIXES = ["/awq-venture"];
 
@@ -91,7 +91,7 @@ const cazaNav = [
 const advisorNav = [
     { label: "Visão Geral", href: "/advisor",              icon: LayoutDashboard },
     { label: "Financial",   href: "/advisor/financial",    icon: DollarSign      },
-    { label: "Customers",   href: "/advisor/customers",    icon: Users           },
+    { label: "Clientes",    href: "/clientes",             icon: Users           },
     { label: "Portfólio",   href: "/advisor/portfolio",    icon: LineChart       },
     { label: "Relatórios",  href: "/advisor/relatorios",   icon: FileText        },
 ];

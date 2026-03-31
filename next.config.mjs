@@ -8,7 +8,7 @@ const nextConfig = {
     ...(isStaticExport
             ? {
                       output: "export",
-                      basePath: "/awq",
+                      basePath: process.env.NEXT_PUBLIC_BASE_PATH || "/awq",
                       images: { unoptimized: true },
                       trailingSlash: true,
             }
