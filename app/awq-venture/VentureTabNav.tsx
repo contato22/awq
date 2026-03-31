@@ -19,7 +19,7 @@ export default function VentureTabNav() {
 
   const isActive = (href: string) => {
     if (href === "/awq-venture") return pathname === "/awq-venture";
-    return pathname.startsWith(href);
+    return pathname?.startsWith(href) ?? false;
   };
 
   return (

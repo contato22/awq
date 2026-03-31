@@ -9,8 +9,7 @@
  * Static/GitHub Pages mode: only analysis (no server). Data is pre-injected into context.
  */
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Tool = any;
+import type { Tool } from "@anthropic-ai/sdk/resources/messages/messages";
 type ToolResultBlockParam = { type: "tool_result"; tool_use_id: string; content: string };
 
 import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync } from "fs";
@@ -163,15 +162,14 @@ async function notionQuery(databaseId: string, notionKey: string): Promise<unkno
   });
   if (!res.ok) throw new Error(`Notion ${res.status}: ${await res.text()}`);
   const data = await res.json();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (data.results as any[]).map((p: any) => ({
+  type NotionProp = { type: string; title?: { plain_text: string }[]; select?: { name: string }; number?: number; date?: { start: string }; rich_text?: { plain_text: string }[]; checkbox?: boolean };
+  type NotionPage = { id: string; properties: Record<string, NotionProp> };
+  return (data.results as NotionPage[]).map((p) => ({
     id: p.id,
-    title: Object.values(
-      p.properties as Record<string, { type: string; title?: { plain_text: string }[] }>
-    ).find((v) => v.type === "title")?.title?.[0]?.plain_text ?? "(sem título)",
+    title: Object.values(p.properties)
+      .find((v) => v.type === "title")?.title?.[0]?.plain_text ?? "(sem título)",
     ...Object.fromEntries(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (Object.entries(p.properties) as [string, any][]).flatMap(([k, v]: [string, any]) => {
+      (Object.entries(p.properties) as [string, NotionProp][]).flatMap(([k, v]): [string, unknown][] => {
         if (v.type === "select" && v.select) return [[k, v.select.name]];
         if (v.type === "number" && v.number !== undefined) return [[k, v.number]];
         if (v.type === "date" && v.date) return [[k, v.date.start]];

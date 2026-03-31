@@ -415,7 +415,7 @@ export default function BankAccountsPage() {
               <div className="card p-6 text-center">
                 <CreditCard size={28} className="text-gray-300 mx-auto mb-2" />
                 <div className="text-sm font-semibold text-gray-500">Nenhuma conta</div>
-                <div className="text-xs text-gray-400 mt-1">Clique em "Nova Conta" para começar</div>
+                <div className="text-xs text-gray-400 mt-1">Clique em &quot;Nova Conta&quot; para começar</div>
               </div>
             )}
 
@@ -709,7 +709,7 @@ Ex:
                     <div className="text-center py-12">
                       <Upload size={28} className="text-gray-300 mx-auto mb-2" />
                       <div className="text-sm font-semibold text-gray-400">Nenhum extrato carregado</div>
-                      <div className="text-xs text-gray-400 mt-1">Clique em "Carregar Extrato" para importar</div>
+                      <div className="text-xs text-gray-400 mt-1">Clique em &quot;Carregar Extrato&quot; para importar</div>
                     </div>
                   ) : (
                     <div className="overflow-x-auto">

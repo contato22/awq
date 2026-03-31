@@ -54,7 +54,8 @@ function Gauge({ value }: { value: number }) {
   const needleY = cy + r * Math.sin(angle);
 
   // arc helpers
-  function arc(startA: number, endA: number, color: string) {
+  function arc(startA: number, endA: number, color?: string) {
+    void color;
     const x1 = cx + r * Math.cos(startA);
     const y1 = cy + r * Math.sin(startA);
     const x2 = cx + r * Math.cos(endA);
