@@ -1,10 +1,12 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   Legend, ResponsiveContainer,
 } from "recharts";
+import { fetchVentureSales, VentureSalesData } from "@/lib/notion-fetch";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -117,6 +119,31 @@ const detalhamento = [
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function YoY2025Page() {
+  const [venture, setVenture] = useState<VentureSalesData | null>(null);
+
+  useEffect(() => {
+    fetchVentureSales().then(setVenture);
+  }, []);
+
+  // Override bar chart data with real values when available
+  const liveBarData = venture ? [
+    { trimestre: "Q1", ...Object.fromEntries(Object.entries(venture.byQCat.Q1 ?? {}).map(([k, v]) => [k, v])) },
+    { trimestre: "Q2", ...Object.fromEntries(Object.entries(venture.byQCat.Q2 ?? {}).map(([k, v]) => [k, v])) },
+    { trimestre: "Q3", ...Object.fromEntries(Object.entries(venture.byQCat.Q3 ?? {}).map(([k, v]) => [k, v])) },
+    { trimestre: "Q4", ...Object.fromEntries(Object.entries(venture.byQCat.Q4 ?? {}).map(([k, v]) => [k, v])) },
+  ] : receitaBarData;
+
+  const liveDetalhamento = venture
+    ? Object.entries(venture.byCategoria).map(([cat, total]) => ({
+        cat,
+        q1: venture.byQCat.Q1?.[cat] ?? 0,
+        q2: venture.byQCat.Q2?.[cat] ?? 0,
+        q3: venture.byQCat.Q3?.[cat] ?? 0,
+        q4: venture.byQCat.Q4?.[cat] ?? 0,
+        total,
+      }))
+    : detalhamento;
+
   return (
     <>
       {/* Header */}
@@ -186,7 +213,7 @@ export default function YoY2025Page() {
           <div className="text-base font-bold text-gray-900 mb-0.5">Receita por Trimestre</div>
           <div className="text-xs text-gray-400 mb-4">Comparação de categorias por trimestre</div>
           <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={receitaBarData} margin={{ top: 4, right: 8, bottom: 4, left: 8 }}>
+            <BarChart data={liveBarData} margin={{ top: 4, right: 8, bottom: 4, left: 8 }}>
               <CartesianGrid strokeDasharray="4 4" stroke="#f0f0f0" />
               <XAxis dataKey="trimestre" tick={{ fontSize: 11, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
               <YAxis tickFormatter={fmtK} tick={{ fontSize: 11, fill: "#9ca3af" }} axisLine={false} tickLine={false} width={52} />
@@ -267,7 +294,7 @@ export default function YoY2025Page() {
             </tr>
           </thead>
           <tbody>
-            {detalhamento.map((row) => (
+            {liveDetalhamento.map((row) => (
               <tr key={row.cat} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                 <td className="py-3 px-3 text-sm text-gray-700 font-medium">{row.cat}</td>
                 <td className="py-3 px-3 text-right text-sm text-gray-600">R$ {fmtBRL(row.q1)}</td>

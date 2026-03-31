@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer
 } from "recharts";
 import { BarChart2, RefreshCw } from "lucide-react";
+import { fetchVentureSales, VentureSalesData } from "@/lib/notion-fetch";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -103,12 +104,7 @@ const receitaAnual2026 = [
   { mes: "Dez", total: null,  om: null,  seguro: null, meta: 120000 },
 ];
 
-const canais = [
-  { canal: "Não informado", leads: 354, pct: 74, valor: 1189409.49, color: "#1e3a8a" },
-  { canal: "Indicação",     leads: 29,  pct: 6,  valor: 469598.96,  color: "#ef4444" },
-  { canal: "Cliente Ativo", leads: 21,  pct: 4,  valor: 498506.14,  color: "#9ca3af" },
-  { canal: "Site/ADS",      leads: 17,  pct: 4,  valor: 192101.32,  color: "#374151" },
-];
+const CANAL_COLORS = ["#1e3a8a", "#ef4444", "#9ca3af", "#374151", "#f97316", "#16a34a", "#7c3aed"];
 
 const periods = ["Anual", "Semestral", "Trimestral", "Mensal", "Diário"] as const;
 
@@ -117,12 +113,23 @@ const periods = ["Anual", "Semestral", "Trimestral", "Mensal", "Diário"] as con
 export default function PoCPage() {
   const [period, setPeriod] = useState<typeof periods[number]>("Anual");
   const [year, setYear] = useState<"2025" | "2026">("2026");
+  const [venture, setVenture] = useState<VentureSalesData | null>(null);
 
-  const totalFechados = 42506.99;
+  useEffect(() => {
+    fetchVentureSales().then(setVenture);
+  }, []);
+
+  const totalFechados = venture?.totalFechado ?? 42506.99;
   const meta          = 120000;
-  const om            = 40411.97;
-  const seguro        = 2095.02;
-  const faturamento   = 433687.08;
+  const om            = venture?.byCategoria["O&M"] ?? 40411.97;
+  const seguro        = venture?.byCategoria["Seguro"] ?? 2095.02;
+  const faturamento   = Object.values(venture?.byCategoria ?? {}).reduce((s, v) => s + v, 0) || 433687.08;
+  const canais        = (venture?.byCanal ?? [
+    { canal: "Não informado", leads: 354, pct: 74, valor: 1189409.49 },
+    { canal: "Indicação",     leads: 29,  pct: 6,  valor: 469598.96  },
+    { canal: "Cliente Ativo", leads: 21,  pct: 4,  valor: 498506.14  },
+    { canal: "Site/ADS",      leads: 17,  pct: 4,  valor: 192101.32  },
+  ]).map((c, i) => ({ ...c, color: CANAL_COLORS[i % CANAL_COLORS.length] }));
 
   const kpis = [
     { label: "Total Fechados",    value: `R$ ${fmtBRL(totalFechados)}`, sub: "O&M + Seguro",                pct: Math.round((totalFechados / meta) * 100) },

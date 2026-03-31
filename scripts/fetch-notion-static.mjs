@@ -13,10 +13,11 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = join(__dirname, "..", "public", "data");
 
 const NOTION_VERSION = "2022-06-28";
-const API_KEY  = process.env.NOTION_API_KEY;
-const DB_PROPS = process.env.NOTION_DATABASE_ID_CAZA_PROPERTIES;
-const DB_FIN   = process.env.NOTION_DATABASE_ID_CAZA_FINANCIAL;
-const DB_CLI   = process.env.NOTION_DATABASE_ID_CAZA_CLIENTS;
+const API_KEY        = process.env.NOTION_API_KEY;
+const DB_PROPS       = process.env.NOTION_DATABASE_ID_CAZA_PROPERTIES;
+const DB_FIN         = process.env.NOTION_DATABASE_ID_CAZA_FINANCIAL;
+const DB_CLI         = process.env.NOTION_DATABASE_ID_CAZA_CLIENTS;
+const DB_VENTURE     = process.env.NOTION_DATABASE_ID_VENTURE_SALES;
 
 const MONTH_NAMES = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 
@@ -174,6 +175,149 @@ function aggregateByMonth(rows) {
       .map(([month, d]) => ({ month, ...d }));
 }
 
+// --- Venture Sales Mapper ---
+
+async function queryAllPages(dbId) {
+    const results = [];
+    let cursor = undefined;
+    do {
+        const body = { page_size: 100 };
+        if (cursor) body.start_cursor = cursor;
+        const res = await fetch(`https://api.notion.com/v1/databases/${dbId}/query`, {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${API_KEY}`,
+                "Notion-Version": NOTION_VERSION,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(body),
+        });
+        if (!res.ok) throw new Error(`Notion ${res.status}: ${await res.text()}`);
+        const json = await res.json();
+        results.push(...json.results);
+        cursor = json.has_more ? json.next_cursor : undefined;
+    } while (cursor);
+    return results;
+}
+
+function getNum(props, keys) {
+    for (const key of keys) {
+        const p = props[key];
+        if (!p) continue;
+        if (p.type === "number") return p.number ?? 0;
+        if (p.type === "formula" && p.formula?.type === "number") return p.formula.number ?? 0;
+        if (p.type === "currency") return p.currency ?? 0;
+    }
+    return 0;
+}
+
+function getSel(props, keys) {
+    for (const key of keys) {
+        const p = props[key];
+        if (!p) continue;
+        if (p.type === "select")       return p.select?.name ?? "";
+        if (p.type === "multi_select") return p.multi_select?.[0]?.name ?? "";
+        if (p.type === "status")       return p.status?.name ?? "";
+    }
+    return "";
+}
+
+function getDate(props, keys) {
+    for (const key of keys) {
+        const p = props[key];
+        if (p && p.type === "date") return p.date?.start ?? "";
+    }
+    return "";
+}
+
+function getText(props, keys) {
+    for (const key of keys) {
+        const p = props[key];
+        if (!p) continue;
+        if (p.type === "title")     return p.title?.[0]?.plain_text ?? "";
+        if (p.type === "rich_text") return p.rich_text?.[0]?.plain_text ?? "";
+    }
+    return "";
+}
+
+function mapVentureSale(page) {
+    const p = page.properties;
+
+    // Debug first record
+    if (!mapVentureSale._logged) {
+        mapVentureSale._logged = true;
+        console.log("  [venture] property names:", Object.keys(p).join(", "));
+        for (const [k, v] of Object.entries(p)) {
+            console.log(`    ${k}: ${v.type}`);
+        }
+    }
+
+    const nome      = getText(p, ["Nome", "Name", "Title", "Cliente", "Título", "Titulo", "Company"]);
+    const valor     = getNum(p,  ["Valor", "Value", "Amount", "Receita", "Fechado", "Valor Fechado",
+                                  "Valor Total", "Total", "MRR", "ARR", "Faturamento"]);
+    const categoria = getSel(p,  ["Categoria", "Category", "Tipo", "Produto", "Tag", "Tags",
+                                  "Tipo de Serviço", "Tipo de Servico", "Serviço", "Servico"]);
+    const canal     = getSel(p,  ["Canal", "Canal de Aquisição", "Canal de Aquisicao", "Origem",
+                                  "Source", "Indicação", "Indicacao", "Lead Source", "Canal Lead"]);
+    const status    = getSel(p,  ["Status", "Stage", "Etapa"]);
+    const data      = getDate(p, ["Data", "Date", "Data Fechamento", "Fechamento", "Data de Fechamento",
+                                  "COMPETENCIA", "Competência", "Competencia", "Mês", "Mes"]);
+
+    return { id: page.id, nome, valor, categoria, canal, status, data };
+}
+
+function aggregateVenture(rows) {
+    // Totals by category
+    const byCategoria = {};
+    const byCanal     = {};
+    const byQuarter   = { Q1: 0, Q2: 0, Q3: 0, Q4: 0 };
+    const byQCat      = { Q1: {}, Q2: {}, Q3: {}, Q4: {} };
+    let totalFechado  = 0;
+    let totalLeads    = 0;
+
+    for (const r of rows) {
+        const v = r.valor ?? 0;
+        const cat = r.categoria || "Sem categoria";
+        byCategoria[cat] = (byCategoria[cat] ?? 0) + v;
+
+        const canal = r.canal || "Não informado";
+        if (!byCanal[canal]) byCanal[canal] = { leads: 0, valor: 0 };
+        byCanal[canal].leads++;
+        byCanal[canal].valor += v;
+
+        if (r.data) {
+            const month = parseInt((r.data || "").split("-")[1] || "0", 10);
+            const q = month <= 3 ? "Q1" : month <= 6 ? "Q2" : month <= 9 ? "Q3" : "Q4";
+            byQuarter[q] = (byQuarter[q] ?? 0) + v;
+            byQCat[q][cat] = (byQCat[q][cat] ?? 0) + v;
+        }
+
+        if (r.status && /fech|won|ganho|pago|ativo/i.test(r.status)) {
+            totalFechado += v;
+        }
+        totalLeads++;
+    }
+
+    const totalValor = Object.values(byCanal).reduce((s, c) => s + c.valor, 0);
+
+    return {
+        rows,
+        totalFechado,
+        totalLeads,
+        byCategoria,
+        byCanal: Object.entries(byCanal)
+            .sort((a, b) => b[1].leads - a[1].leads)
+            .map(([canal, d]) => ({
+                canal,
+                leads: d.leads,
+                valor: d.valor,
+                pct: totalLeads > 0 ? Math.round((d.leads / totalLeads) * 100) : 0,
+            })),
+        byQuarter,
+        byQCat,
+    };
+}
+
 // --- Main ---
 
 function write(filename, data) {
@@ -189,6 +333,7 @@ async function main() {
           write("caza-properties.json", []);
           write("caza-financial.json", []);
           write("caza-clients.json", []);
+          write("venture-sales.json", { rows: [], totalFechado: 0, totalLeads: 0, byCategoria: {}, byCanal: [], byQuarter: {}, byQCat: {} });
           return;
     }
 
@@ -224,6 +369,18 @@ async function main() {
   } else {
         console.warn(" NOTION_DATABASE_ID_CAZA_CLIENTS not set");
         write("caza-clients.json", []);
+  }
+
+  // AWQ Venture Sales
+  if (DB_VENTURE) {
+        console.log("Fetching AWQ Venture sales database...");
+        const pages = await queryAllPages(DB_VENTURE);
+        const rows  = pages.map(mapVentureSale);
+        const agg   = aggregateVenture(rows);
+        write("venture-sales.json", agg);
+  } else {
+        console.warn(" NOTION_DATABASE_ID_VENTURE_SALES not set");
+        write("venture-sales.json", { rows: [], totalFechado: 0, totalLeads: 0, byCategoria: {}, byCanal: [], byQuarter: {}, byQCat: {} });
   }
 
   console.log("Done.");
