@@ -34,3 +34,4 @@ next-env.d.ts
 # Notion static data (generated at CI build time — except pre-seeded files)
 /public/data/*.json
 !/public/data/venture-sales.json
+!/public/data/jacqes-kpis.json
