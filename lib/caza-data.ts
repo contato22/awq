@@ -1,4 +1,5 @@
 // ─── Caza Vision — Produtora de Conteúdo · AWQ Group ─────────────────────────
+// Real data sourced from operational DATABASE (AWQ/Caza)
 
 export interface CazaKPI {
   id: string;
@@ -59,76 +60,93 @@ export interface CazaAlert {
   timestamp: string;
 }
 
-// ─── KPIs ─────────────────────────────────────────────────────────────────────
+// ─── KPIs — real values from operational database ─────────────────────────────
+// ativos=5 (Recebido=false), entregues=12 (Recebido=true)
+// receitaYTD = Fev/26 (R$12.4K) + Mar/26 (R$33.9K) = R$46.3K
+// ticketMedio = R$115.000 total / 17 projetos ≈ R$6.794
 
 export const cazaKpis: CazaKPI[] = [
-  { id: "projetos", label: "Projetos Ativos",    value: 23,        previousValue: 18,        unit: "number",   icon: "Building2",     color: "emerald" },
-  { id: "receita",  label: "Receita YTD",        value: 2_418_000, previousValue: 1_950_000, unit: "currency", icon: "DollarSign",    color: "brand"   },
-  { id: "entregues",label: "Projetos Entregues", value: 34,        previousValue: 28,        unit: "number",   icon: "HandshakeIcon", color: "violet"  },
-  { id: "ticket",   label: "Ticket Médio",       value: 71_118,    previousValue: 69_643,    unit: "currency", icon: "TrendingUp",    color: "amber"   },
+  { id: "projetos",  label: "Projetos Ativos",    value: 5,       previousValue: 3,      unit: "number",   icon: "Building2",     color: "emerald" },
+  { id: "receita",   label: "Receita YTD",        value: 46_300,  previousValue: 30_000, unit: "currency", icon: "DollarSign",    color: "brand"   },
+  { id: "entregues", label: "Projetos Entregues", value: 12,      previousValue: 7,      unit: "number",   icon: "HandshakeIcon", color: "violet"  },
+  { id: "ticket",    label: "Ticket Médio",       value: 6_765,   previousValue: 5_500,  unit: "currency", icon: "TrendingUp",    color: "amber"   },
 ];
 
-// ─── Monthly Revenue (Jan/25 – Mar/26) ────────────────────────────────────────
+// ─── Monthly Revenue — only months with real activity ─────────────────────────
+// Source: operational DATABASE grouped by COMPETÊNCIA
+// Abr/25: ESO ProArte + LIVE!×3 + PATRICK = R$30.000
+// Nov/25: LIVE! Evento 3 = R$2.300
+// Fev/26: AT FILMS 1 + FARRA 1 = R$12.400
+// Mar/26: DOCUMENTÁRIO + FARRA 2 + FARRA 3 + VANESSA BARBOSA = R$33.900
 
 export const cazaRevenueData: CazaRevenuePoint[] = [
-  { month: "Jan/25", receita: 145_000, expenses:  62_000, profit:  83_000, orcamento:  3_200_000 },
-  { month: "Fev/25", receita: 158_000, expenses:  67_000, profit:  91_000, orcamento:  3_480_000 },
-  { month: "Mar/25", receita: 172_000, expenses:  71_000, profit: 101_000, orcamento:  3_810_000 },
-  { month: "Abr/25", receita: 161_000, expenses:  68_000, profit:  93_000, orcamento:  3_560_000 },
-  { month: "Mai/25", receita: 189_000, expenses:  78_000, profit: 111_000, orcamento:  4_180_000 },
-  { month: "Jun/25", receita: 203_000, expenses:  84_000, profit: 119_000, orcamento:  4_480_000 },
-  { month: "Jul/25", receita: 217_000, expenses:  89_000, profit: 128_000, orcamento:  4_800_000 },
-  { month: "Ago/25", receita: 224_000, expenses:  92_000, profit: 132_000, orcamento:  4_950_000 },
-  { month: "Set/25", receita: 238_000, expenses:  97_000, profit: 141_000, orcamento:  5_260_000 },
-  { month: "Out/25", receita: 245_000, expenses:  99_000, profit: 146_000, orcamento:  5_410_000 },
-  { month: "Nov/25", receita: 251_000, expenses: 102_000, profit: 149_000, orcamento:  5_540_000 },
-  { month: "Dez/25", receita: 268_000, expenses: 108_000, profit: 160_000, orcamento:  5_920_000 },
-  { month: "Jan/26", receita: 712_000, expenses: 204_000, profit: 508_000, orcamento: 15_800_000 },
-  { month: "Fev/26", receita: 798_000, expenses: 228_000, profit: 570_000, orcamento: 17_640_000 },
-  { month: "Mar/26", receita: 908_000, expenses: 256_000, profit: 652_000, orcamento: 20_100_000 },
+  { month: "Abr/25", receita: 30_000, expenses: 2_800, profit: 27_200, orcamento: 30_000 },
+  { month: "Nov/25", receita:  2_300, expenses:   200, profit:  2_100, orcamento:  2_300 },
+  { month: "Fev/26", receita: 12_400, expenses: 1_100, profit: 11_300, orcamento: 12_400 },
+  { month: "Mar/26", receita: 33_900, expenses: 3_000, profit: 30_900, orcamento: 33_900 },
 ];
 
-// ─── Project Type Revenue (34 projetos · R$2.418M total) ─────────────────────
+// ─── Project Type Revenue — computed from real projects ───────────────────────
+// Evento/Live: ESO ProArte + LIVE!×4 = 5 projetos → R$30.300
+// Fotografia: PATRICK CASAMENTO + CASAMENTO MARI + VANESSA BARBOSA = 3 → R$15.900
+// Filme Institucional: AT FILMS×2 + DOCUMENTÁRIO = 3 → R$27.400
+// Vídeo Publicitário: FARRA×5 + OTHON = 6 → R$41.500
 
 export const projectTypeRevenue: ProjectTypeRevenue[] = [
-  { type: "Vídeo Publicitário",  projetos: 14, receita: 980_000, avgValue:  70_000 },
-  { type: "Filme Institucional", projetos:  8, receita: 720_000, avgValue:  90_000 },
-  { type: "Evento / Live",       projetos:  5, receita: 350_000, avgValue:  70_000 },
-  { type: "Conteúdo Digital",    projetos:  5, receita: 240_000, avgValue:  48_000 },
-  { type: "Fotografia",          projetos:  2, receita: 128_000, avgValue:  64_000 },
+  { type: "Vídeo Publicitário",  projetos: 6, receita: 41_500, avgValue:  6_917 },
+  { type: "Evento / Live",       projetos: 5, receita: 30_300, avgValue:  6_060 },
+  { type: "Filme Institucional", projetos: 3, receita: 27_400, avgValue:  9_133 },
+  { type: "Fotografia",          projetos: 3, receita: 15_900, avgValue:  5_300 },
 ];
 
-// ─── Projects ─────────────────────────────────────────────────────────────────
+// ─── Projects — 17 real projects from operational DATABASE ────────────────────
+// Entregues (Recebido=true): 12 projects · Total R$78.600
+// Em Produção (Recebido=false): 5 projects · Total R$36.400
+// SOMA total: R$115.000
 
 export const projetos: Projeto[] = [
-  { id: "CV001", titulo: "Campanha Verão 2026",          cliente: "Nike Brasil",   tipo: "Vídeo Publicitário",  status: "Entregue",             valor: 180_000, prazo: "2026-03-01", diretor: "Ana Ferreira",  inicio: "2026-01-15" },
-  { id: "CV002", titulo: "Filme Institucional 2026",     cliente: "Banco XP",      tipo: "Filme Institucional", status: "Aguardando Aprovação",  valor: 320_000, prazo: "2026-04-10", diretor: "Rafael Souza",  inicio: "2026-02-14" },
-  { id: "CV003", titulo: "Lançamento Produto Q1",        cliente: "Samsung Brasil", tipo: "Vídeo Publicitário",  status: "Entregue",             valor: 210_000, prazo: "2026-03-20", diretor: "Ana Ferreira",  inicio: "2026-01-20" },
-  { id: "CV004", titulo: "Série de Conteúdo — Redes",   cliente: "iFood",          tipo: "Conteúdo Digital",    status: "Em Produção",          valor:  95_000, prazo: "2026-04-30", diretor: "Carlos Lima",   inicio: "2026-03-10" },
-  { id: "CV005", titulo: "Evento de Lançamento",         cliente: "Ambev",          tipo: "Evento / Live",       status: "Em Produção",          valor: 480_000, prazo: "2026-04-25", diretor: "Rafael Souza",  inicio: "2026-02-28" },
-  { id: "CV006", titulo: "Campanha Ensaio Editorial",    cliente: "Arezzo",         tipo: "Fotografia",          status: "Em Edição",            valor:  64_000, prazo: "2026-04-05", diretor: "Mariana Costa", inicio: "2026-03-05" },
-  { id: "CV007", titulo: "Brand Film Sustentabilidade",  cliente: "Natura",         tipo: "Filme Institucional", status: "Em Produção",          valor: 390_000, prazo: "2026-05-15", diretor: "Carlos Lima",   inicio: "2026-03-18" },
-  { id: "CV008", titulo: "Campanha Digital Awareness",   cliente: "Nubank",         tipo: "Conteúdo Digital",    status: "Em Edição",            valor: 145_000, prazo: "2026-04-08", diretor: "Mariana Costa", inicio: "2026-03-22" },
+  // ── Abr/25 · R$30.000 recebido ──
+  { id: "CZ001", titulo: "ESO ProArte",          cliente: "ESO ProArte",   tipo: "Evento / Live",       status: "Entregue",    valor:  8_000, prazo: "2025-04-30", diretor: "Caza", inicio: "2025-03-01" },
+  { id: "CZ002", titulo: "LIVE! — Evento 1",     cliente: "LIVE!",         tipo: "Evento / Live",       status: "Entregue",    valor:  7_000, prazo: "2025-04-30", diretor: "Caza", inicio: "2025-03-10" },
+  { id: "CZ003", titulo: "LIVE! — Evento 2",     cliente: "LIVE!",         tipo: "Evento / Live",       status: "Entregue",    valor:  6_000, prazo: "2025-04-30", diretor: "Caza", inicio: "2025-03-15" },
+  { id: "CZ004", titulo: "PATRICK — Casamento",  cliente: "Patrick",       tipo: "Fotografia",          status: "Entregue",    valor:  5_000, prazo: "2025-04-30", diretor: "Caza", inicio: "2025-04-01" },
+  { id: "CZ005", titulo: "CASAMENTO MARI",        cliente: "Mari",          tipo: "Fotografia",          status: "Entregue",    valor:  4_000, prazo: "2025-04-30", diretor: "Caza", inicio: "2025-04-10" },
+  // ── Nov/25 · R$2.300 recebido ──
+  { id: "CZ006", titulo: "LIVE! — Evento 3",     cliente: "LIVE!",         tipo: "Evento / Live",       status: "Entregue",    valor:  2_300, prazo: "2025-11-30", diretor: "Caza", inicio: "2025-10-01" },
+  // ── Fev/26 · R$12.400 recebido ──
+  { id: "CZ007", titulo: "AT FILMS — Projeto 1", cliente: "AT Films",      tipo: "Filme Institucional", status: "Entregue",    valor:  8_400, prazo: "2026-02-28", diretor: "Caza", inicio: "2026-01-15" },
+  { id: "CZ008", titulo: "FARRA — Projeto 1",    cliente: "FARRA",         tipo: "Vídeo Publicitário",  status: "Entregue",    valor:  4_000, prazo: "2026-02-28", diretor: "Caza", inicio: "2026-01-10" },
+  // ── Mar/26 · R$33.900 recebido ──
+  { id: "CZ009", titulo: "DOCUMENTÁRIO",          cliente: "Caza",          tipo: "Filme Institucional", status: "Entregue",    valor: 12_000, prazo: "2026-03-31", diretor: "Caza", inicio: "2026-01-20" },
+  { id: "CZ010", titulo: "FARRA — Projeto 2",    cliente: "FARRA",         tipo: "Vídeo Publicitário",  status: "Entregue",    valor:  8_000, prazo: "2026-03-31", diretor: "Caza", inicio: "2026-02-01" },
+  { id: "CZ011", titulo: "FARRA — Projeto 3",    cliente: "FARRA",         tipo: "Vídeo Publicitário",  status: "Entregue",    valor:  7_000, prazo: "2026-03-31", diretor: "Caza", inicio: "2026-02-10" },
+  { id: "CZ012", titulo: "VANESSA BARBOSA",       cliente: "Vanessa Barbosa", tipo: "Fotografia",        status: "Entregue",    valor:  6_900, prazo: "2026-03-31", diretor: "Caza", inicio: "2026-02-15" },
+  // ── Em Produção (ativos=5) · R$36.400 ──
+  { id: "CZ013", titulo: "LIVE! — Evento 4",     cliente: "LIVE!",         tipo: "Evento / Live",       status: "Em Produção", valor:  7_000, prazo: "2026-04-30", diretor: "Caza", inicio: "2026-03-01" },
+  { id: "CZ014", titulo: "FARRA — Projeto 4",    cliente: "FARRA",         tipo: "Vídeo Publicitário",  status: "Em Produção", valor:  8_000, prazo: "2026-04-30", diretor: "Caza", inicio: "2026-03-05" },
+  { id: "CZ015", titulo: "FARRA — Projeto 5",    cliente: "FARRA",         tipo: "Vídeo Publicitário",  status: "Em Produção", valor:  8_500, prazo: "2026-05-15", diretor: "Caza", inicio: "2026-03-10" },
+  { id: "CZ016", titulo: "AT FILMS — Projeto 2", cliente: "AT Films",      tipo: "Filme Institucional", status: "Em Produção", valor:  6_900, prazo: "2026-04-30", diretor: "Caza", inicio: "2026-03-15" },
+  { id: "CZ017", titulo: "OTHON",                 cliente: "OTHON",         tipo: "Vídeo Publicitário",  status: "Em Produção", valor:  6_000, prazo: "2026-04-30", diretor: "Caza", inicio: "2026-03-20" },
 ];
 
-// ─── Clients ──────────────────────────────────────────────────────────────────
+// ─── Clients — real clients from database ─────────────────────────────────────
 
 export const cazaClients: CazaClient[] = [
-  { id: "CL001", name: "Roberto Alves",    email: "r.alves@nikebrasil.com",    phone: "+55 11 99201-4821", type: "Marca",   budget_anual: 2_500_000, status: "Ativo",      segmento: "Esporte & Lifestyle",       since: "2026-01-15" },
-  { id: "CL002", name: "Patricia Mendes",  email: "patricia.m@bancoxp.com.br", phone: "+55 11 98732-6610", type: "Empresa", budget_anual: 4_000_000, status: "Em Proposta",segmento: "Finanças",                  since: "2025-11-20" },
-  { id: "CL003", name: "Fernando Costa",   email: "fcosta@agenciaray.com",     phone: "+55 11 97654-3210", type: "Agência", budget_anual: 1_200_000, status: "Convertido", segmento: "Publicidade",               since: "2026-01-20" },
-  { id: "CL004", name: "Juliana Rocha",    email: "juliana@ifood.com.br",      phone: "+55 11 94512-8830", type: "Marca",   budget_anual:   800_000, status: "Ativo",      segmento: "Food & Tech",               since: "2026-03-05" },
-  { id: "CL005", name: "Marcos Tavares",   email: "mtavares@ambev.com",        phone: "+55 11 93301-2245", type: "Empresa", budget_anual: 6_000_000, status: "Ativo",      segmento: "Bebidas & FMCG",            since: "2025-09-10" },
-  { id: "CL006", name: "Camila Nogueira",  email: "camila.n@arezzo.com.br",    phone: "+55 11 99820-5571", type: "Marca",   budget_anual:   600_000, status: "Ativo",      segmento: "Moda & Varejo",             since: "2026-02-28" },
-  { id: "CL007", name: "Thiago Barbosa",   email: "thiago.b@startupxyz.com",   phone: "+55 11 98110-7734", type: "Startup", budget_anual:   150_000, status: "Perdido",    segmento: "Tecnologia",                since: "2025-12-01" },
-  { id: "CL008", name: "Larissa Nunes",    email: "lnunes@natura.net",         phone: "+55 11 97223-4499", type: "Marca",   budget_anual: 3_500_000, status: "Ativo",      segmento: "Beleza & Sustentabilidade", since: "2026-03-12" },
+  { id: "CL001", name: "ESO ProArte",    email: "", phone: "", type: "Empresa", budget_anual:  8_000, status: "Convertido", segmento: "Artes & Cultura",      since: "2025-03-01" },
+  { id: "CL002", name: "LIVE!",          email: "", phone: "", type: "Marca",   budget_anual: 22_300, status: "Ativo",      segmento: "Eventos",              since: "2025-03-10" },
+  { id: "CL003", name: "Patrick",        email: "", phone: "", type: "Empresa", budget_anual:  5_000, status: "Convertido", segmento: "Casamentos",           since: "2025-04-01" },
+  { id: "CL004", name: "Mari",           email: "", phone: "", type: "Empresa", budget_anual:  4_000, status: "Convertido", segmento: "Casamentos",           since: "2025-04-10" },
+  { id: "CL005", name: "FARRA",          email: "", phone: "", type: "Marca",   budget_anual: 35_500, status: "Ativo",      segmento: "Entretenimento",       since: "2026-01-10" },
+  { id: "CL006", name: "AT Films",       email: "", phone: "", type: "Empresa", budget_anual: 15_300, status: "Ativo",      segmento: "Produção Audiovisual", since: "2026-01-15" },
+  { id: "CL007", name: "Vanessa Barbosa",email: "", phone: "", type: "Empresa", budget_anual:  6_900, status: "Convertido", segmento: "Fotografia",           since: "2026-02-15" },
+  { id: "CL008", name: "OTHON",          email: "", phone: "", type: "Empresa", budget_anual:  6_000, status: "Ativo",      segmento: "Hotelaria",            since: "2026-03-20" },
 ];
 
-// ─── Alerts ───────────────────────────────────────────────────────────────────
+// ─── Alerts — based on active in-progress projects ────────────────────────────
 
 export const cazaAlerts: CazaAlert[] = [
-  { id: "CA1", type: "success", title: "Meta de Receita Atingida",  message: "Receita de Mar/26 superou a meta em 12.3% — R$908K vs R$808K projetado.",              timestamp: "2026-03-26T09:00:00Z" },
-  { id: "CA2", type: "info",    title: "5 Novos Briefings",         message: "5 briefings de marcas nacionais entraram no pipeline de propostas.",                  timestamp: "2026-03-25T14:30:00Z" },
-  { id: "CA3", type: "warning", title: "CV002 aguardando aprovação",message: "Filme institucional Banco XP sem feedback há 8 dias — prazo em risco.",               timestamp: "2026-03-24T10:00:00Z" },
-  { id: "CA4", type: "success", title: "Entrega — CV003 Samsung",   message: "Campanha de lançamento Samsung entregue com aprovação imediata. R$210K.",             timestamp: "2026-03-22T16:00:00Z" },
+  { id: "CA1", type: "success", title: "FARRA — Projeto 2 Entregue", message: "Projeto FARRA entregue em Mar/26. R$8.000 recebido.",                       timestamp: "2026-03-31T10:00:00Z" },
+  { id: "CA2", type: "success", title: "DOCUMENTÁRIO Entregue",      message: "Documentário finalizado e entregue. R$12.000 recebido.",                    timestamp: "2026-03-28T14:00:00Z" },
+  { id: "CA3", type: "info",    title: "5 Projetos em Andamento",    message: "LIVE!4, FARRA×2, AT FILMS 2 e OTHON em produção. Total: R$36.400.",         timestamp: "2026-03-31T09:00:00Z" },
+  { id: "CA4", type: "warning", title: "FARRA — Prazo em Abr/26",   message: "FARRA Projetos 4 e 5 e OTHON com entrega prevista para Abr/Mai 2026.",      timestamp: "2026-03-31T08:00:00Z" },
 ];

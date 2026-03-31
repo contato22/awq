@@ -178,10 +178,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({ source: "mock", data: null, error: "NOTION_API_KEY não configurada" });
   }
 
-  // "financial" reuses the same projects DB — aggregated view of the same data
   const projectsDb = process.env.NOTION_DATABASE_ID_CAZA_PROPERTIES;
+  const financialDb = process.env.NOTION_DATABASE_ID_CAZA_FINANCIAL || projectsDb;
   const envMap: Record<string, string | undefined> = {
-    financial:  projectsDb,
+    financial:  financialDb,
     properties: projectsDb,
     clients:    process.env.NOTION_DATABASE_ID_CAZA_CLIENTS,
   };
@@ -205,9 +205,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     let data: object[];
 
     if (database === "financial") {
-      // Same DB as projects — aggregate by COMPETÊNCIA month
-      const projetos = pages.map(mapProjeto);
-      data = aggregateByMonth(projetos);
+      if (process.env.NOTION_DATABASE_ID_CAZA_FINANCIAL) {
+        // Dedicated P&L database — read Mês/Receita/Despesas/Lucro/Orçamento directly
+        data = pages.map(mapFinancial);
+      } else {
+        // Fallback: aggregate project COMPETÊNCIA dates into monthly buckets
+        const projetos = pages.map(mapProjeto);
+        data = aggregateByMonth(projetos);
+      }
     } else {
       const mappers: Record<string, (p: typeof pages[0]) => object> = {
         properties: mapProjeto,
