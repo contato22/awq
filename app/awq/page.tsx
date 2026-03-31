@@ -11,6 +11,7 @@ import {
     ChevronRight,
     ArrowUpRight,
     LineChart,
+    Briefcase,
 } from "lucide-react";
 
 const GROUP_KPIS = [
@@ -24,8 +25,8 @@ const GROUP_KPIS = [
   },
   {
         label: "Business Units Ativas",
-        value: "1 / 3",
-        sub: "JACQES operacional",
+        value: "3 / 4",
+        sub: "JACQES, Caza Vision e Advisor",
         icon: Building2,
         color: "text-brand-500",
         bg: "bg-brand-500/10",
@@ -67,16 +68,16 @@ const BUS = [
   {
         id: "caza",
         label: "Caza Vision",
-        sub: "Tecnologia",
+        sub: "Produtora",
         href: "/caza-vision",
         color: "bg-emerald-600",
         icon: Building2,
-        status: "Em breve",
-        statusColor: "badge-yellow",
+        status: "Ativa",
+        statusColor: "badge-green",
         kpis: [
-          { label: "Projetos", value: "—" },
-          { label: "Equipe", value: "—" },
-          { label: "Pipeline", value: "—" },
+          { label: "Proj. Ativos", value: "23" },
+          { label: "Entregues", value: "34" },
+          { label: "Receita YTD", value: "R$2.42M" },
               ],
   },
   {
@@ -94,12 +95,27 @@ const BUS = [
           { label: "IRR", value: "—" },
               ],
   },
+  {
+        id: "advisor",
+        label: "Advisor",
+        sub: "Consultoria",
+        href: "https://contato22.github.io/advisor-bi/",
+        color: "bg-violet-600",
+        icon: Briefcase,
+        status: "Ativa",
+        statusColor: "badge-green",
+        kpis: [
+          { label: "Clientes", value: "—" },
+          { label: "AUM", value: "—" },
+          { label: "Retorno", value: "—" },
+              ],
+  },
   ];
 
 const ACTIVITY = [
   { label: "JACQES atingiu margem de 67.4% em Março", time: "Hoje", type: "success" },
   { label: "3.847 clientes ativos na base JACQES", time: "Atualizado", type: "info" },
-  { label: "Caza Vision — lançamento previsto para Q2 2026", time: "Planejado", type: "warn" },
+  { label: "Caza Vision — 23 projetos ativos, R$2.42M receita YTD", time: "Atualizado", type: "success" },
   { label: "AWQ Venture — estruturação do fundo em andamento", time: "Planejado", type: "warn" },
   ];
 
