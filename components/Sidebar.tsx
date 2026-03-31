@@ -152,8 +152,13 @@ const businessUnits = [
 
 const awqNav = [
     { label: "Visão Geral",    href: "/awq",            icon: LayoutDashboard },
-    { label: "Business Units", href: "/business-units", icon: Building2       },
-    { label: "Financial",      href: "/financial",      icon: LineChart       },
+    { label: "Business Units", href: "/business-units",  icon: Building2       },
+    { label: "Financial",      href: "/awq/financial",   icon: LineChart       },
+    { label: "Cash Flow",      href: "/awq/cashflow",    icon: Zap             },
+    { label: "Budget",         href: "/awq/budget",      icon: Wallet          },
+    { label: "Forecast",       href: "/awq/forecast",    icon: TrendingUp      },
+    { label: "Allocations",    href: "/awq/allocations", icon: Wallet          },
+    { label: "Risk",           href: "/awq/risk",        icon: Activity        },
 ];
 
 // ── Shared helpers ────────────────────────────────────────────────────────────

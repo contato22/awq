@@ -540,8 +540,8 @@ export default function AwqGroupPage() {
             { label: "Forecast",     sub: "Cenários 2026",            href: "/awq/forecast",    icon: TrendingUp, color: "text-violet-400",  bg: "bg-violet-500/10"  },
             { label: "Allocations",  sub: "Capital por BU",           href: "/awq/allocations", icon: Wallet,     color: "text-amber-400",   bg: "bg-amber-500/10"   },
             { label: "Risk",         sub: "Risk signals",             href: "/awq/risk",        icon: AlertTriangle, color: "text-red-400",  bg: "bg-red-500/10"     },
-            { label: "KPIs",         sub: "Scorecard consolidado",    href: "/awq/kpis",        icon: Activity,   color: "text-gray-400",    bg: "bg-gray-500/10"    },
-            { label: "Portfolio",    sub: "Visão do grupo",           href: "/awq/portfolio",   icon: BarChart3,  color: "text-brand-400",   bg: "bg-brand-500/10"   },
+            { label: "BUs",          sub: "Todas as unidades",         href: "/business-units",  icon: Activity,   color: "text-gray-400",    bg: "bg-gray-500/10"    },
+            { label: "AWQ Venture",  sub: "Portfólio de investimentos",href: "/awq-venture",     icon: BarChart3,  color: "text-amber-400",   bg: "bg-amber-500/10"   },
           ].map((item) => {
             const Icon = item.icon;
             return (
