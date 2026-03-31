@@ -8,17 +8,25 @@ import {
 } from "lucide-react";
 import { AGENTS } from "@/lib/agents-config";
 
-// Static mode = GitHub Pages (no server). Detected via:
-// 1. Build-time env var NEXT_PUBLIC_STATIC_DATA=1 (inlined by Next.js)
-// 2. Runtime fallback: hostname contains "github.io"
-// Both ensure agents call Anthropic API directly from the browser.
+// Static mode = GitHub Pages (no server). Detected via build-time env var
+// or runtime hostname fallback.
 function detectStaticMode(): boolean {
   if (process.env.NEXT_PUBLIC_STATIC_DATA === "1") return true;
   if (typeof window !== "undefined" && window.location.hostname.includes("github.io")) return true;
   return false;
 }
 
+// Built-in API key baked at build time from GitHub Secret ANTHROPIC_API_KEY.
+// Allows 24/7 operation without users needing to configure anything.
+const BUILTIN_KEY = process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY ?? "";
+
 const LS_KEY = "openclaw_api_key";
+
+// Key priority: localStorage (user override) > built-in (always works) > null
+function resolveKey(): string | null {
+  const stored = typeof window !== "undefined" ? localStorage.getItem(LS_KEY) : null;
+  return stored || BUILTIN_KEY || null;
+}
 
 interface AgentResult {
   id: string;
@@ -41,13 +49,7 @@ const AGENT_META: Record<string, { icon: React.ElementType; color: string; buCol
 const BU_AGENTS = ["overview", "revenue", "customers", "reports"];
 
 // ── Single agent card ──────────────────────────────────────────────────────────
-function AgentCard({
-  agent,
-  onRun,
-}: {
-  agent: AgentResult;
-  onRun: (id: string) => void;
-}) {
+function AgentCard({ agent, onRun }: { agent: AgentResult; onRun: (id: string) => void }) {
   const meta = AGENT_META[agent.id];
   const Icon = meta.icon;
 
@@ -63,7 +65,6 @@ function AgentCard({
             <div className="text-[10px] text-gray-600 mt-0.5">{agent.role}</div>
           </div>
         </div>
-
         <div className="flex items-center gap-2">
           {agent.status === "done" && <CheckCircle2 size={14} className="text-emerald-400" />}
           {agent.status === "error" && <AlertCircle size={14} className="text-red-400" />}
@@ -91,9 +92,7 @@ function AgentCard({
 
       <div className="min-h-[60px]">
         {agent.status === "idle" && (
-          <p className="text-[11px] text-gray-600 italic">
-            Clique em ▶ para executar análise automática
-          </p>
+          <p className="text-[11px] text-gray-600 italic">Clique em ▶ para executar análise automática</p>
         )}
         {agent.status === "running" && !agent.content && (
           <div className="flex items-center gap-2 text-[11px] text-gray-500">
@@ -102,14 +101,10 @@ function AgentCard({
           </div>
         )}
         {agent.content && (
-          <div className="text-[11px] text-gray-300 leading-relaxed whitespace-pre-wrap">
-            {agent.content}
-          </div>
+          <div className="text-[11px] text-gray-300 leading-relaxed whitespace-pre-wrap">{agent.content}</div>
         )}
         {agent.status === "error" && (
-          <p className="text-[11px] text-red-400">
-            {agent.errorMsg ?? "Falha ao executar agente"}
-          </p>
+          <p className="text-[11px] text-red-400">{agent.errorMsg ?? "Falha ao executar agente"}</p>
         )}
       </div>
 
@@ -122,8 +117,8 @@ function AgentCard({
   );
 }
 
-// ── No key screen ──────────────────────────────────────────────────────────────
-function NoKeyScreen() {
+// ── No key screen — only shown when BUILTIN_KEY is absent ──────────────────────
+function NoKeyScreen({ onSave }: { onSave: (k: string) => void }) {
   const [value, setValue] = useState("");
   const [show, setShow] = useState(false);
 
@@ -131,7 +126,7 @@ function NoKeyScreen() {
     const k = value.trim();
     if (!k) return;
     localStorage.setItem(LS_KEY, k);
-    window.location.reload();
+    onSave(k);
   };
 
   return (
@@ -179,8 +174,7 @@ export default function AgentsPanel() {
   const [runningAll, setRunningAll] = useState(false);
 
   useEffect(() => {
-    const key = localStorage.getItem(LS_KEY);
-    setApiKey(key);
+    setApiKey(resolveKey());
 
     if (detectStaticMode()) {
       setAgents(AGENTS.map((a) => ({ ...a, content: "", status: "idle" as const })));
@@ -210,8 +204,6 @@ export default function AgentsPanel() {
       let text = "";
 
       if (detectStaticMode()) {
-        // ── Static / GitHub Pages mode ────────────────────────────────────────
-        // Call Anthropic API directly from the browser (no server required).
         const agent = AGENTS.find((a) => a.id === agentId)!;
         const res = await fetch("https://api.anthropic.com/v1/messages", {
           method: "POST",
@@ -248,10 +240,7 @@ export default function AgentsPanel() {
             const d = line.slice(6).trim();
             if (!d) continue;
             try {
-              const parsed = JSON.parse(d) as {
-                type: string;
-                delta?: { type: string; text: string };
-              };
+              const parsed = JSON.parse(d) as { type: string; delta?: { type: string; text: string } };
               if (parsed.type === "content_block_delta" && parsed.delta?.type === "text_delta") {
                 text += parsed.delta.text;
                 setAgents((prev) =>
@@ -262,21 +251,17 @@ export default function AgentsPanel() {
           }
         }
       } else {
-        // ── Server / Vercel mode ──────────────────────────────────────────────
         const res = await fetch("/api/agents", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-anthropic-key": activeKey,
-          },
+          headers: { "Content-Type": "application/json", "x-anthropic-key": activeKey },
           body: JSON.stringify({ agentId }),
         });
 
         if (!res.ok) {
           const data = await res.json();
           if (data.error === "API_KEY_REQUIRED") {
-            setApiKey(null);
             localStorage.removeItem(LS_KEY);
+            setApiKey(BUILTIN_KEY || null);
           }
           throw new Error(data.error);
         }
@@ -327,15 +312,16 @@ export default function AgentsPanel() {
     setRunningAll(false);
   };
 
-  if (!apiKey) return <NoKeyScreen />;
+  // Only block rendering if there's truly no key available anywhere
+  if (!apiKey) return <NoKeyScreen onSave={(k) => setApiKey(k)} />;
 
   const buAgents = agents.filter((a) => BU_AGENTS.includes(a.id));
   const masterAgent = agents.find((a) => a.id === "awq-master");
   const doneCount = agents.filter((a) => a.status === "done").length;
+  const usingBuiltin = !localStorage.getItem(LS_KEY) && !!BUILTIN_KEY;
 
   return (
     <div className="space-y-6">
-      {/* Control bar */}
       <div className="card p-4 flex items-center gap-4 flex-wrap">
         <div className="flex items-center gap-2 flex-1">
           <Sparkles size={14} className="text-brand-400" />
@@ -353,16 +339,21 @@ export default function AgentsPanel() {
             <><Play size={12} />Executar todos os agentes</>
           )}
         </button>
-        <button
-          onClick={() => { setApiKey(null); localStorage.removeItem(LS_KEY); }}
-          className="btn-secondary text-xs flex items-center gap-1.5"
-          title="Remover chave e reconfigurar"
-        >
-          <Key size={12} />Trocar chave
-        </button>
+        {/* Only show key switcher when not using built-in key */}
+        {!usingBuiltin && (
+          <button
+            onClick={() => {
+              localStorage.removeItem(LS_KEY);
+              setApiKey(BUILTIN_KEY || null);
+            }}
+            className="btn-secondary text-xs flex items-center gap-1.5"
+            title="Remover chave e reconfigurar"
+          >
+            <Key size={12} />Trocar chave
+          </button>
+        )}
       </div>
 
-      {/* BU Agents grid */}
       <div>
         <div className="flex items-center gap-2 mb-3">
           <Bot size={14} className="text-gray-500" />
@@ -377,7 +368,6 @@ export default function AgentsPanel() {
         </div>
       </div>
 
-      {/* AWQ Master Agent */}
       {masterAgent && (
         <div>
           <div className="flex items-center gap-2 mb-3">
