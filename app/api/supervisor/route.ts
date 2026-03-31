@@ -160,7 +160,7 @@ export async function POST(req: NextRequest) {
                 try {
                   const p = JSON.parse(typeof result === "string" ? result : JSON.stringify(result));
                   if (p.data && Array.isArray(p.data)) summary = `${p.data.length} registros`;
-                  else if (p.written === true) summary = `salvo: ${p.path ?? tb.input?.path ?? ""}`;
+                  else if (p.written === true) summary = `salvo: ${p.path ?? (tb.input as Record<string, unknown>)?.path ?? ""}`;
                   else if (p.written === false) summary = `negado: ${p.error ?? ""}`;
                   else if (p.updated) summary = "atualizado no Notion";
                   else if (p.created) summary = "alerta criado";

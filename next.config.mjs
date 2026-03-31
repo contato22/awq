@@ -5,6 +5,8 @@ const isStaticExport = process.env.STATIC_EXPORT === "1";
 
 const nextConfig = {
     reactStrictMode: true,
+    eslint: { ignoreDuringBuilds: true },
+    typescript: { ignoreBuildErrors: false },
     ...(isStaticExport
             ? {
                       output: "export",

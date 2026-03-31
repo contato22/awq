@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - claude/add-avva-client-data-xiLSu
   workflow_dispatch:
 
 permissions:

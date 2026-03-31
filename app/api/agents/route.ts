@@ -148,7 +148,7 @@ export async function POST(req: NextRequest) {
                   } else if (parsed.created) {
                     summary = "Alerta criado no Notion";
                   } else if (parsed.written === true) {
-                    summary = `Arquivo salvo: ${parsed.path ?? toolBlock.input?.path ?? ""}`;
+                    summary = `Arquivo salvo: ${parsed.path ?? (toolBlock.input as Record<string, unknown>)?.path ?? ""}`;
                   } else if (parsed.written === false) {
                     summary = `Escrita negada: ${parsed.error ?? "path não permitido"}`;
                   } else if (parsed.files) {
