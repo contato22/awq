@@ -71,7 +71,7 @@ const cazaNav = [
     { label: "Visão Geral", href: "/caza-vision",           icon: LayoutDashboard },
     { label: "Projetos",     href: "/caza-vision/imoveis",   icon: Film            },
     { label: "Clientes",    href: "/caza-vision/clientes",  icon: Users           },
-    { label: "Financial",   href: "/caza-vision/financial", icon: DollarSign      },
+    { label: "ERP",         href: "/caza-vision/financial", icon: DollarSign      },
     { label: "Pipeline",    href: "/caza-vision/pipeline",  icon: Activity        },
     { label: "Relatórios",  href: "/caza-vision/relatorios",icon: BarChart3       },
 ];

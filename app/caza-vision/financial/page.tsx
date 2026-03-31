@@ -140,7 +140,7 @@ export default function CazaFinancialPage() {
   return (
     <>
       <Header
-        title="Financial — Caza Vision"
+        title="ERP — Caza Vision"
         subtitle="Receita, despesas e lucro por projeto · agrupado por mês"
       />
       <div className="px-8 py-6 space-y-6">
