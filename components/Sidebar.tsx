@@ -98,6 +98,8 @@ const advisorNav = [
 
 const ventureNav = [
     { label: "Visão Geral", href: "/awq-venture",           icon: LayoutDashboard },
+    { label: "Portfólio",   href: "/awq-venture/portfolio", icon: Briefcase       },
+    { label: "Pipeline",    href: "/awq-venture/pipeline",  icon: Activity        },
     { label: "Financial",   href: "/awq-venture/financial", icon: DollarSign      },
 ];
 
