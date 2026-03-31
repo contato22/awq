@@ -16,7 +16,7 @@ const BUS = [
     icon: BarChart3,
     kpis: [
       { label: "Receita", value: "$4.82M" },
-      { label: "Clientes", value: "3.847" },
+      { label: "Lucro", value: "$3.24M" },
       { label: "Margem", value: "67.4%" },
     ],
     status: "Ativa",
@@ -34,9 +34,9 @@ const BUS = [
     badgeColor: "bg-emerald-100 text-emerald-600 border-emerald-200",
     icon: Building2,
     kpis: [
-      { label: "Projetos Ativos", value: "23" },
-      { label: "Proj. Entregues", value: "34" },
       { label: "Receita YTD", value: "R$2.42M" },
+      { label: "Lucro YTD", value: "R$1.73M" },
+      { label: "Margem", value: "71.5%" },
     ],
     status: "Ativa",
     statusColor: "badge-green",
