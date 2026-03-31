@@ -11,6 +11,11 @@ export default withAuth(
       return NextResponse.redirect(new URL("/login", req.url));
     }
 
+    // Skip RBAC for API routes — each API handler manages its own authorization
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.next();
+    }
+
     const role = token.role as Role;
 
     if (!canAccess(role, pathname)) {
