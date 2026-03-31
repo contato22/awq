@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import { projetos as mockProjetos } from "@/lib/caza-data";
 import { fetchNotionData } from "@/lib/notion-fetch";
-import { Film, CheckCircle2, Clock, Clapperboard, Database, CloudOff, AlertCircle } from "lucide-react";
+import { Film, CheckCircle2, Clock, Clapperboard, Database, CloudOff, AlertCircle, TrendingUp } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -123,6 +123,44 @@ export default function ProjetosPage() {
           ))}
         </div>
 
+        {/* ── Margin Analytics ────────────────────────────────────────────── */}
+        {rows.length > 0 && (
+          <div className="card p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <TrendingUp size={14} className="text-emerald-400" />
+              <h2 className="text-sm font-semibold text-white">Análise de Margem por Projeto</h2>
+            </div>
+            <div className="space-y-2">
+              {rows
+                .filter((p) => p.valor > 0)
+                .sort((a, b) => {
+                  const mA = (a.lucro ?? a.valor) / a.valor;
+                  const mB = (b.lucro ?? b.valor) / b.valor;
+                  return mB - mA;
+                })
+                .map((p) => {
+                  const lucro  = p.lucro ?? p.valor;
+                  const margin = p.valor > 0 ? (lucro / p.valor) * 100 : 0;
+                  return (
+                    <div key={p.id} className="flex items-center gap-3">
+                      <span className="text-[11px] text-gray-400 w-44 shrink-0 truncate">{p.titulo || "—"}</span>
+                      <div className="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${margin >= 60 ? "bg-emerald-500" : margin >= 40 ? "bg-amber-500" : "bg-red-500"}`}
+                          style={{ width: `${Math.min(margin, 100)}%` }}
+                        />
+                      </div>
+                      <span className={`text-[11px] font-bold w-10 text-right shrink-0 ${margin >= 60 ? "text-emerald-400" : margin >= 40 ? "text-amber-400" : "text-red-400"}`}>
+                        {margin.toFixed(0)}%
+                      </span>
+                      <span className="text-[10px] text-gray-600 w-16 text-right shrink-0">{fmtR(lucro)}</span>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        )}
+
         {/* ── Projects table ──────────────────────────────────────────────── */}
         <div className="card p-5">
           <h2 className="text-sm font-semibold text-white mb-4">Todos os Projetos</h2>
@@ -192,6 +230,17 @@ export default function ProjetosPage() {
                   </tr>
                 ))}
               </tbody>
+              <tfoot>
+                <tr className="border-t border-gray-700">
+                  <td className="py-2.5 px-3 text-xs font-bold text-gray-400">TOTAL</td>
+                  <td colSpan={2} />
+                  <td className="py-2.5 px-3 text-right text-white font-bold text-xs">{fmtR(totalValor)}</td>
+                  <td className="py-2.5 px-3 text-right text-red-400 font-bold text-xs">{totalDespesas > 0 ? fmtR(totalDespesas) : "—"}</td>
+                  <td className="py-2.5 px-3 text-right text-red-400 font-bold text-xs">—</td>
+                  <td className="py-2.5 px-3 text-right text-emerald-400 font-bold text-xs">{fmtR(totalLucro)}</td>
+                  <td colSpan={3} />
+                </tr>
+              </tfoot>
             </table>
           </div>
           )}

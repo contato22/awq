@@ -12,6 +12,7 @@ import {
   ArrowDownRight,
   Database,
   CloudOff,
+  Minus,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -31,6 +32,31 @@ function fmtR(n: number) {
   if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
   if (n >= 1_000)     return "R$" + (n / 1_000).toFixed(0) + "K";
   return "R$" + n.toLocaleString("pt-BR");
+}
+
+// ─── Budget vs Actual Data ────────────────────────────────────────────────────
+
+const budgetVsActual = [
+  { month: "Jan/26", budgetReceita: 620_000, budgetLucro: 186_000 },
+  { month: "Fev/26", budgetReceita: 720_000, budgetLucro: 216_000 },
+  { month: "Mar/26", budgetReceita: 808_000, budgetLucro: 242_400 },
+];
+
+function variance(actual: number, budget: number) {
+  if (budget === 0) return 0;
+  return ((actual - budget) / budget) * 100;
+}
+
+function varIcon(v: number) {
+  if (v > 0.5) return <ArrowUpRight size={10} className="text-emerald-400" />;
+  if (v < -0.5) return <ArrowDownRight size={10} className="text-red-400" />;
+  return <Minus size={10} className="text-gray-500" />;
+}
+
+function varColor(v: number) {
+  if (v > 0.5) return "text-emerald-400";
+  if (v < -0.5) return "text-red-400";
+  return "text-gray-500";
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -254,6 +280,59 @@ export default function CazaFinancialPage() {
                   <td />
                 </tr>
               </tfoot>
+            </table>
+          </div>
+        </div>
+
+        {/* ── Budget vs Actual ──────────────────────────────────────────────── */}
+        <div className="card p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold text-white">Budget vs Actual — 2026</h2>
+            <div className="flex items-center gap-4 text-[11px]">
+              <span className="flex items-center gap-1.5 text-gray-500"><span className="w-3 h-0.5 bg-gray-600 inline-block rounded" /> Budget</span>
+              <span className="flex items-center gap-1.5 text-emerald-400"><span className="w-3 h-0.5 bg-emerald-400 inline-block rounded" /> Realizado</span>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-800">
+                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Mês</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Budget Receita</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Realizado</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Var. Receita</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Budget Lucro</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Lucro Real</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Var. Lucro</th>
+                </tr>
+              </thead>
+              <tbody>
+                {budgetVsActual.map((b) => {
+                  const actual = rows.find((r) => r.month === b.month);
+                  if (!actual) return null;
+                  const varR = variance(actual.receita, b.budgetReceita);
+                  const varL = variance(actual.profit,  b.budgetLucro);
+                  return (
+                    <tr key={b.month} className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
+                      <td className="py-2.5 px-3 text-xs font-medium text-gray-300">{b.month}</td>
+                      <td className="py-2.5 px-3 text-right text-xs text-gray-500">{fmtR(b.budgetReceita)}</td>
+                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-white">{fmtR(actual.receita)}</td>
+                      <td className="py-2.5 px-3 text-right text-xs">
+                        <span className={`flex items-center justify-end gap-0.5 font-semibold ${varColor(varR)}`}>
+                          {varIcon(varR)}{varR >= 0 ? "+" : ""}{varR.toFixed(1)}%
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-3 text-right text-xs text-gray-500">{fmtR(b.budgetLucro)}</td>
+                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-emerald-400">{fmtR(actual.profit)}</td>
+                      <td className="py-2.5 px-3 text-right text-xs">
+                        <span className={`flex items-center justify-end gap-0.5 font-semibold ${varColor(varL)}`}>
+                          {varIcon(varL)}{varL >= 0 ? "+" : ""}{varL.toFixed(1)}%
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
             </table>
           </div>
         </div>
