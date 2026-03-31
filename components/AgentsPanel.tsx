@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   Bot, Play, RefreshCw, Loader2, CheckCircle2,
-  AlertCircle, LayoutDashboard, TrendingUp, Users,
-  FileBarChart, Building2, Key, Sparkles,
+  AlertCircle, Monitor, TrendingUp, Film,
+  Building2, Key, Sparkles,
 } from "lucide-react";
 import { AGENTS } from "@/lib/agents-config";
 
@@ -39,14 +39,13 @@ interface AgentResult {
 }
 
 const AGENT_META: Record<string, { icon: React.ElementType; color: string; buColor: string }> = {
-  overview: { icon: LayoutDashboard, color: "text-brand-400", buColor: "bg-brand-500/10 border-brand-500/20" },
-  revenue: { icon: TrendingUp, color: "text-emerald-400", buColor: "bg-emerald-500/10 border-emerald-500/20" },
-  customers: { icon: Users, color: "text-cyan-400", buColor: "bg-cyan-500/10 border-cyan-500/20" },
-  reports: { icon: FileBarChart, color: "text-purple-400", buColor: "bg-purple-500/10 border-purple-500/20" },
-  "awq-master": { icon: Building2, color: "text-amber-400", buColor: "bg-amber-500/10 border-amber-500/20" },
+  jacqes:       { icon: Monitor,   color: "text-brand-400",  buColor: "bg-brand-500/10 border-brand-500/20" },
+  "caza-vision":{ icon: Film,      color: "text-cyan-400",   buColor: "bg-cyan-500/10 border-cyan-500/20" },
+  "awq-venture":{ icon: TrendingUp,color: "text-emerald-400",buColor: "bg-emerald-500/10 border-emerald-500/20" },
+  "awq-master": { icon: Building2, color: "text-amber-400",  buColor: "bg-amber-500/10 border-amber-500/20" },
 };
 
-const BU_AGENTS = ["overview", "revenue", "customers", "reports"];
+const BU_AGENTS = ["jacqes", "caza-vision", "awq-venture"];
 
 // ── Single agent card ──────────────────────────────────────────────────────────
 function AgentCard({ agent, onRun }: { agent: AgentResult; onRun: (id: string) => void }) {
