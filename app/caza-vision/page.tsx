@@ -40,10 +40,10 @@ function pct(current: number, previous: number) {
 // ─── Status badges ────────────────────────────────────────────────────────────
 
 const statusConfig: Record<string, { label: string; className: string; Icon: React.ElementType }> = {
-  "Em Produção":         { label: "Em Produção",         className: "bg-brand-500/10 text-brand-400 border border-brand-500/20",       Icon: Clock       },
-  "Em Edição":           { label: "Em Edição",           className: "bg-amber-500/10 text-amber-400 border border-amber-500/20",       Icon: Clock       },
-  "Entregue":            { label: "Entregue",            className: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20", Icon: CheckCircle2 },
-  "Aguardando Aprovação":{ label: "Aguardando Aprovação",className: "bg-violet-500/10 text-violet-400 border border-violet-500/20",   Icon: CheckCircle2 },
+  "Em Produção":         { label: "Em Produção",         className: "bg-brand-50 text-brand-600 border border-brand-200",       Icon: Clock       },
+  "Em Edição":           { label: "Em Edição",           className: "bg-amber-50 text-amber-700 border border-amber-200",       Icon: Clock       },
+  "Entregue":            { label: "Entregue",            className: "bg-emerald-50 text-emerald-600 border border-emerald-200", Icon: CheckCircle2 },
+  "Aguardando Aprovação":{ label: "Aguardando Aprovação",className: "bg-violet-50 text-violet-700 border border-violet-200",   Icon: CheckCircle2 },
 };
 
 const alertIcon: Record<string, React.ElementType> = {
@@ -54,10 +54,10 @@ const alertIcon: Record<string, React.ElementType> = {
 };
 
 const alertColor: Record<string, string> = {
-  success: "text-emerald-400",
-  info: "text-brand-400",
-  warning: "text-amber-400",
-  error: "text-red-400",
+  success: "text-emerald-600",
+  info: "text-brand-600",
+  warning: "text-amber-700",
+  error: "text-red-600",
 };
 
 // ─── KPI icons ─────────────────────────────────────────────────────────────────
@@ -70,10 +70,10 @@ const kpiIconMap: Record<string, React.ElementType> = {
 };
 
 const kpiColorMap: Record<string, { text: string; bg: string }> = {
-  emerald: { text: "text-emerald-400", bg: "bg-emerald-500/10" },
-  brand:   { text: "text-brand-400",   bg: "bg-brand-500/10"   },
-  violet:  { text: "text-violet-400",  bg: "bg-violet-500/10"  },
-  amber:   { text: "text-amber-400",   bg: "bg-amber-500/10"   },
+  emerald: { text: "text-emerald-600", bg: "bg-emerald-50" },
+  brand:   { text: "text-brand-600",   bg: "bg-brand-50"   },
+  violet:  { text: "text-violet-700",  bg: "bg-violet-50"  },
+  amber:   { text: "text-amber-700",   bg: "bg-amber-50"   },
 };
 
 // ─── Pipeline Summary ─────────────────────────────────────────────────────────
@@ -116,18 +116,18 @@ export default function CazaVisionPage() {
                   <Icon size={18} className={colors.text} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-2xl font-bold text-white">{displayValue}</div>
+                  <div className="text-2xl font-bold text-gray-900">{displayValue}</div>
                   <div className="text-xs font-medium text-gray-400 mt-0.5">{kpi.label}</div>
                   <div className="flex items-center gap-1 mt-1">
                     {up ? (
-                      <ArrowUpRight size={11} className="text-emerald-400" />
+                      <ArrowUpRight size={11} className="text-emerald-600" />
                     ) : (
-                      <ArrowDownRight size={11} className="text-red-400" />
+                      <ArrowDownRight size={11} className="text-red-600" />
                     )}
-                    <span className={`text-[10px] font-semibold ${up ? "text-emerald-400" : "text-red-400"}`}>
+                    <span className={`text-[10px] font-semibold ${up ? "text-emerald-600" : "text-red-600"}`}>
                       {up ? "+" : ""}{delta}%
                     </span>
-                    <span className="text-[10px] text-gray-600">vs período anterior</span>
+                    <span className="text-[10px] text-gray-400">vs período anterior</span>
                   </div>
                 </div>
               </div>
@@ -140,7 +140,7 @@ export default function CazaVisionPage() {
 
           {/* Pipeline */}
           <div className="card p-5">
-            <h2 className="text-sm font-semibold text-white mb-4">Pipeline de Projetos</h2>
+            <h2 className="text-sm font-semibold text-gray-900 mb-4">Pipeline de Projetos</h2>
             <div className="space-y-3">
               {pipeline.map((s) => {
                 const total = pipeline.reduce((sum, x) => sum + x.count, 0);
@@ -148,21 +148,21 @@ export default function CazaVisionPage() {
                 return (
                   <div key={s.stage} className="flex items-center gap-3">
                     <div className="w-32 text-xs text-gray-400 text-right shrink-0">{s.stage}</div>
-                    <div className="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden">
+                    <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
                       <div className={`h-full rounded-full ${s.color}`} style={{ width: `${widthPct}%` }} />
                     </div>
-                    <div className="w-8 text-xs font-semibold text-white text-right shrink-0">{s.count}</div>
+                    <div className="w-8 text-xs font-semibold text-gray-900 text-right shrink-0">{s.count}</div>
                   </div>
                 );
               })}
             </div>
             {/* Project type split */}
-            <div className="mt-5 pt-4 border-t border-gray-800 grid grid-cols-3 gap-2">
+            <div className="mt-5 pt-4 border-t border-gray-200 grid grid-cols-3 gap-2">
               {projectTypeRevenue.slice(0, 3).map((pt) => (
                 <div key={pt.type} className="text-center">
-                  <div className="text-sm font-bold text-white">{pt.projetos}</div>
+                  <div className="text-sm font-bold text-gray-900">{pt.projetos}</div>
                   <div className="text-[10px] text-gray-500 mt-0.5">{pt.type.split(" ")[0]}</div>
-                  <div className="text-[10px] text-emerald-400">{fmtCurrency(pt.receita)}</div>
+                  <div className="text-[10px] text-emerald-600">{fmtCurrency(pt.receita)}</div>
                 </div>
               ))}
             </div>
@@ -170,16 +170,16 @@ export default function CazaVisionPage() {
 
           {/* Alerts */}
           <div className="card p-5">
-            <h2 className="text-sm font-semibold text-white mb-4">Alertas & Destaques</h2>
+            <h2 className="text-sm font-semibold text-gray-900 mb-4">Alertas & Destaques</h2>
             <div className="space-y-3">
               {cazaAlerts.map((alert) => {
                 const Icon = alertIcon[alert.type] ?? Info;
                 const color = alertColor[alert.type] ?? "text-gray-400";
                 return (
-                  <div key={alert.id} className="flex items-start gap-3 p-3 rounded-xl bg-gray-800/50 border border-gray-700/50">
+                  <div key={alert.id} className="flex items-start gap-3 p-3 rounded-xl bg-gray-100 border border-gray-300/50">
                     <Icon size={15} className={`${color} mt-0.5 shrink-0`} />
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs font-semibold text-white">{alert.title}</div>
+                      <div className="text-xs font-semibold text-gray-900">{alert.title}</div>
                       <div className="text-[11px] text-gray-400 mt-0.5">{alert.message}</div>
                     </div>
                   </div>
@@ -192,10 +192,10 @@ export default function CazaVisionPage() {
         {/* ── Receita Trend (last 3 months) ─────────────────────────────────── */}
         <div className="card p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-white">Receita — Últimos 3 Meses</h2>
+            <h2 className="text-sm font-semibold text-gray-900">Receita — Últimos 3 Meses</h2>
             <div className="flex items-center gap-1">
-              <ArrowUpRight size={13} className="text-emerald-400" />
-              <span className="text-xs font-semibold text-emerald-400">
+              <ArrowUpRight size={13} className="text-emerald-600" />
+              <span className="text-xs font-semibold text-emerald-600">
                 +{pct(lastMonth.receita, prevMonth.receita)}% vs mês anterior
               </span>
             </div>
@@ -204,15 +204,15 @@ export default function CazaVisionPage() {
             {cazaRevenueData.slice(-3).map((m) => {
               const margin = ((m.profit / m.receita) * 100).toFixed(1);
               return (
-                <div key={m.month} className="p-4 rounded-xl bg-gray-800/50 border border-gray-700/50">
+                <div key={m.month} className="p-4 rounded-xl bg-gray-100 border border-gray-300/50">
                   <div className="text-xs text-gray-500 mb-2">{m.month}</div>
-                  <div className="text-lg font-bold text-white">{fmtCurrency(m.receita)}</div>
-                  <div className="text-[11px] text-emerald-400 mt-1">Receita</div>
-                  <div className="mt-2 pt-2 border-t border-gray-700/50 flex justify-between text-[10px]">
-                    <span className="text-red-400">{fmtCurrency(m.expenses)} despesas</span>
+                  <div className="text-lg font-bold text-gray-900">{fmtCurrency(m.receita)}</div>
+                  <div className="text-[11px] text-emerald-600 mt-1">Receita</div>
+                  <div className="mt-2 pt-2 border-t border-gray-300/50 flex justify-between text-[10px]">
+                    <span className="text-red-600">{fmtCurrency(m.expenses)} despesas</span>
                     <span className="text-gray-500">{margin}% margem</span>
                   </div>
-                  <div className="text-[10px] text-gray-600 mt-1">Orç: {fmtCurrency(m.orcamento)}</div>
+                  <div className="text-[10px] text-gray-400 mt-1">Orç: {fmtCurrency(m.orcamento)}</div>
                 </div>
               );
             })}
@@ -222,15 +222,15 @@ export default function CazaVisionPage() {
         {/* ── Recent Projects ───────────────────────────────────────────────── */}
         <div className="card p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-white">Projetos Recentes</h2>
-            <a href="/caza-vision/imoveis" className="text-xs text-emerald-400 hover:text-emerald-300 transition-colors">
+            <h2 className="text-sm font-semibold text-gray-900">Projetos Recentes</h2>
+            <a href="/caza-vision/imoveis" className="text-xs text-emerald-600 hover:text-emerald-300 transition-colors">
               Ver todos →
             </a>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-800">
+                <tr className="border-b border-gray-200">
                   <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Projeto</th>
                   <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Tipo</th>
                   <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Valor</th>
@@ -244,12 +244,12 @@ export default function CazaVisionPage() {
                   const sc = statusConfig[p.status];
                   const StatusIcon = sc?.Icon ?? CheckCircle2;
                   return (
-                    <tr key={p.id} className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
+                    <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-100 transition-colors">
                       <td className="py-2.5 px-3">
-                        <div className="text-gray-300 font-medium text-xs truncate max-w-[180px]">
+                        <div className="text-gray-400 font-medium text-xs truncate max-w-[180px]">
                           {p.titulo}
                         </div>
-                        <div className="flex items-center gap-1 text-[10px] text-gray-600 mt-0.5">
+                        <div className="flex items-center gap-1 text-[10px] text-gray-400 mt-0.5">
                           <Film size={9} />
                           {p.cliente}
                         </div>
@@ -259,7 +259,7 @@ export default function CazaVisionPage() {
                           {p.tipo}
                         </div>
                       </td>
-                      <td className="py-2.5 px-3 text-right text-white font-semibold text-xs">
+                      <td className="py-2.5 px-3 text-right text-gray-900 font-semibold text-xs">
                         {fmtCurrency(p.valor)}
                       </td>
                       <td className="py-2.5 px-3 text-xs text-gray-400">{p.diretor}</td>

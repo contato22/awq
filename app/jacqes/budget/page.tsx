@@ -100,21 +100,21 @@ const budgetLines = [
 ];
 
 const categoryBudget = [
-  { category: "Marketing & Growth",   budget: 480_000, actual: 412_000, icon: TrendingUp,    color: "text-brand-400"   },
-  { category: "Salários & Benefícios",budget: 1_240_000, actual: 1_180_000, icon: DollarSign, color: "text-violet-400" },
-  { category: "Tecnologia & Infra",   budget: 180_000, actual: 154_000, icon: BarChart3,     color: "text-emerald-400" },
-  { category: "Vendas & Comissões",   budget: 320_000, actual: 348_000, icon: TrendingUp,    color: "text-amber-400"   },
+  { category: "Marketing & Growth",   budget: 480_000, actual: 412_000, icon: TrendingUp,    color: "text-brand-600"   },
+  { category: "Salários & Benefícios",budget: 1_240_000, actual: 1_180_000, icon: DollarSign, color: "text-violet-700" },
+  { category: "Tecnologia & Infra",   budget: 180_000, actual: 154_000, icon: BarChart3,     color: "text-emerald-600" },
+  { category: "Vendas & Comissões",   budget: 320_000, actual: 348_000, icon: TrendingUp,    color: "text-amber-700"   },
   { category: "G&A",                  budget: 240_000, actual: 228_000, icon: BarChart3,     color: "text-gray-400"    },
-  { category: "Desp. Operacionais",   budget: 120_000, actual: 132_000, icon: AlertTriangle, color: "text-red-400"     },
+  { category: "Desp. Operacionais",   budget: 120_000, actual: 132_000, icon: AlertTriangle, color: "text-red-600"     },
 ];
 
 // ─── Color helpers ────────────────────────────────────────────────────────────
 
 function varColor(v: number, isExpense: boolean) {
   if (isExpense) {
-    return v > 0 ? "text-red-400" : "text-emerald-400";
+    return v > 0 ? "text-red-600" : "text-emerald-600";
   }
-  return v > 0 ? "text-emerald-400" : "text-red-400";
+  return v > 0 ? "text-emerald-600" : "text-red-600";
 }
 
 function varBadge(v: number, isExpense: boolean) {
@@ -125,8 +125,8 @@ function varBadge(v: number, isExpense: boolean) {
 }
 
 function rowTextColor(type: string) {
-  if (type === "subtotal" || type === "ebitda" || type === "net") return "text-white font-bold";
-  return "text-gray-300";
+  if (type === "subtotal" || type === "ebitda" || type === "net") return "text-gray-900 font-bold";
+  return "text-gray-400";
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -153,8 +153,8 @@ export default function JacqesBudgetPage() {
               delta: `${receitaVar >= 0 ? "+" : ""}${receitaVar.toFixed(1)}% vs budget YTD`,
               up: receitaVar >= 0,
               icon: DollarSign,
-              color: "text-emerald-400",
-              bg: "bg-emerald-500/10",
+              color: "text-emerald-600",
+              bg: "bg-emerald-50",
             },
             {
               label: "Budget EBITDA 2026",
@@ -163,8 +163,8 @@ export default function JacqesBudgetPage() {
               delta: `${ebitdaVar >= 0 ? "+" : ""}${ebitdaVar.toFixed(1)}% vs budget YTD`,
               up: ebitdaVar >= 0,
               icon: BarChart3,
-              color: "text-brand-400",
-              bg: "bg-brand-500/10",
+              color: "text-brand-600",
+              bg: "bg-brand-50",
             },
             {
               label: "Forecast Receita 2026",
@@ -173,8 +173,8 @@ export default function JacqesBudgetPage() {
               delta: "+4.0% acima do budget",
               up: true,
               icon: TrendingUp,
-              color: "text-violet-400",
-              bg: "bg-violet-500/10",
+              color: "text-violet-700",
+              bg: "bg-violet-50",
             },
             {
               label: "% Budget Executado",
@@ -183,8 +183,8 @@ export default function JacqesBudgetPage() {
               delta: "Ritmo adequado",
               up: true,
               icon: CheckCircle2,
-              color: "text-amber-400",
-              bg: "bg-amber-500/10",
+              color: "text-amber-700",
+              bg: "bg-amber-50",
             },
           ].map((card) => {
             const Icon = card.icon;
@@ -194,15 +194,15 @@ export default function JacqesBudgetPage() {
                   <Icon size={18} className={card.color} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-2xl font-bold text-white">{card.value}</div>
+                  <div className="text-2xl font-bold text-gray-900">{card.value}</div>
                   <div className="text-xs font-medium text-gray-400 mt-0.5">{card.label}</div>
                   <div className="flex items-center gap-1 mt-1">
                     {card.up
-                      ? <ArrowUpRight size={11} className="text-emerald-400" />
-                      : <ArrowDownRight size={11} className="text-red-400" />}
-                    <span className={`text-[10px] font-semibold ${card.up ? "text-emerald-400" : "text-red-400"}`}>{card.delta}</span>
+                      ? <ArrowUpRight size={11} className="text-emerald-600" />
+                      : <ArrowDownRight size={11} className="text-red-600" />}
+                    <span className={`text-[10px] font-semibold ${card.up ? "text-emerald-600" : "text-red-600"}`}>{card.delta}</span>
                   </div>
-                  <div className="text-[10px] text-gray-600 mt-0.5">{card.sub}</div>
+                  <div className="text-[10px] text-gray-400 mt-0.5">{card.sub}</div>
                 </div>
               </div>
             );
@@ -211,13 +211,13 @@ export default function JacqesBudgetPage() {
 
         {/* ── Budget vs Actual vs Forecast ─────────────────────────────────── */}
         <div className="card p-5">
-          <h2 className="text-sm font-semibold text-white mb-4">
+          <h2 className="text-sm font-semibold text-gray-900 mb-4">
             Budget vs Realizado vs Forecast — Linhas Principais · 2026
           </h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-800">
+                <tr className="border-b border-gray-200">
                   <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Linha</th>
                   <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Budget Ano</th>
                   <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Budget YTD</th>
@@ -236,22 +236,22 @@ export default function JacqesBudgetPage() {
                   return (
                     <tr
                       key={row.category}
-                      className={`border-b border-gray-800/50 transition-colors ${isSubtotal ? "bg-gray-800/20" : "hover:bg-gray-800/30"}`}
+                      className={`border-b border-gray-100 transition-colors ${isSubtotal ? "bg-gray-50" : "hover:bg-gray-100"}`}
                     >
                       <td className={`py-2.5 px-3 text-xs ${rowTextColor(row.type)}`}>{row.category}</td>
                       <td className="py-2.5 px-3 text-right text-xs text-gray-500">{fmtR(row.budgetAno)}</td>
                       <td className="py-2.5 px-3 text-right text-xs text-gray-500">{fmtR(row.budgetYtd)}</td>
-                      <td className={`py-2.5 px-3 text-right text-xs font-semibold ${isExpense ? "text-red-400" : "text-white"}`}>
+                      <td className={`py-2.5 px-3 text-right text-xs font-semibold ${isExpense ? "text-red-600" : "text-gray-900"}`}>
                         {fmtR(row.actualYtd)}
                       </td>
                       <td className="py-2.5 px-3 text-right text-xs">
                         {varBadge(v, isExpense) ?? (
-                          <span className="text-gray-600 flex items-center justify-end gap-0.5">
+                          <span className="text-gray-400 flex items-center justify-end gap-0.5">
                             <Minus size={10} /> —
                           </span>
                         )}
                       </td>
-                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-emerald-400">{fmtR(row.forecast)}</td>
+                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-emerald-600">{fmtR(row.forecast)}</td>
                       <td className="py-2.5 px-3 text-right text-xs text-gray-500">{execPct}</td>
                     </tr>
                   );
@@ -263,7 +263,7 @@ export default function JacqesBudgetPage() {
 
         {/* ── Category Budget ───────────────────────────────────────────────── */}
         <div className="card p-5">
-          <h2 className="text-sm font-semibold text-white mb-4">Budget por Categoria — YTD Jan–Mar 2026</h2>
+          <h2 className="text-sm font-semibold text-gray-900 mb-4">Budget por Categoria — YTD Jan–Mar 2026</h2>
           <div className="space-y-4">
             {categoryBudget.map((cat) => {
               const Icon = cat.icon;
@@ -276,11 +276,11 @@ export default function JacqesBudgetPage() {
                   <div className="flex items-center justify-between mb-1.5">
                     <div className="flex items-center gap-2">
                       <Icon size={12} className={cat.color} />
-                      <span className="text-xs text-gray-300">{cat.category}</span>
+                      <span className="text-xs text-gray-400">{cat.category}</span>
                     </div>
                     <div className="flex items-center gap-3 text-[11px]">
                       <span className="text-gray-500">Budget: {fmtR(cat.budget)}</span>
-                      <span className={`font-semibold ${overBudget ? "text-red-400" : "text-emerald-400"}`}>
+                      <span className={`font-semibold ${overBudget ? "text-red-600" : "text-emerald-600"}`}>
                         Real: {fmtR(cat.actual)}
                       </span>
                       <span className={`font-bold ${varColor(v, isExpense)}`}>
@@ -288,7 +288,7 @@ export default function JacqesBudgetPage() {
                       </span>
                     </div>
                   </div>
-                  <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full ${overBudget ? "bg-red-500" : "bg-emerald-500"}`}
                       style={{ width: `${usedPct}%` }}

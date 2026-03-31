@@ -63,8 +63,8 @@ const summaryCards = [
     delta: "+18.4%",
     up: true,
     icon: DollarSign,
-    color: "text-emerald-400",
-    bg: "bg-emerald-500/10",
+    color: "text-emerald-600",
+    bg: "bg-emerald-50",
   },
   {
     label: "Lucro Bruto YTD",
@@ -73,8 +73,8 @@ const summaryCards = [
     delta: "+12.1%",
     up: true,
     icon: TrendingUp,
-    color: "text-brand-400",
-    bg: "bg-brand-500/10",
+    color: "text-brand-600",
+    bg: "bg-brand-50",
   },
   {
     label: "EBITDA YTD",
@@ -83,8 +83,8 @@ const summaryCards = [
     delta: "+9.3%",
     up: true,
     icon: BarChart3,
-    color: "text-violet-400",
-    bg: "bg-violet-500/10",
+    color: "text-violet-700",
+    bg: "bg-violet-50",
   },
   {
     label: "Lucro Líquido YTD",
@@ -93,29 +93,29 @@ const summaryCards = [
     delta: "+7.8%",
     up: true,
     icon: TrendingDown,
-    color: "text-amber-400",
-    bg: "bg-amber-500/10",
+    color: "text-amber-700",
+    bg: "bg-amber-50",
   },
 ];
 
 // ─── Color helpers ────────────────────────────────────────────────────────────
 
 function dreRowColor(type: string, value: number): string {
-  if (type === "revenue") return "text-white";
-  if (type === "subtotal" || type === "ebitda" || type === "net") return "text-white";
-  if (value < 0) return "text-red-400";
-  return "text-emerald-400";
+  if (type === "revenue") return "text-gray-900";
+  if (type === "subtotal" || type === "ebitda" || type === "net") return "text-gray-900";
+  if (value < 0) return "text-red-600";
+  return "text-emerald-600";
 }
 
 function varColor(v: number) {
-  if (v > 0) return "text-emerald-400";
-  if (v < 0) return "text-red-400";
+  if (v > 0) return "text-emerald-600";
+  if (v < 0) return "text-red-600";
   return "text-gray-500";
 }
 
 function varIcon(v: number) {
-  if (v > 0) return <ArrowUpRight size={11} className="text-emerald-400" />;
-  if (v < 0) return <ArrowDownRight size={11} className="text-red-400" />;
+  if (v > 0) return <ArrowUpRight size={11} className="text-emerald-600" />;
+  if (v < 0) return <ArrowDownRight size={11} className="text-red-600" />;
   return <Minus size={11} className="text-gray-500" />;
 }
 
@@ -148,16 +148,16 @@ export default function JacqesFinancialPage() {
                   <Icon size={18} className={card.color} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-2xl font-bold text-white">{card.value}</div>
+                  <div className="text-2xl font-bold text-gray-900">{card.value}</div>
                   <div className="text-xs font-medium text-gray-400 mt-0.5">{card.label}</div>
                   <div className="flex items-center gap-1 mt-1">
                     {card.up
-                      ? <ArrowUpRight size={11} className="text-emerald-400" />
-                      : <ArrowDownRight size={11} className="text-red-400" />}
-                    <span className={`text-[10px] font-semibold ${card.up ? "text-emerald-400" : "text-red-400"}`}>
+                      ? <ArrowUpRight size={11} className="text-emerald-600" />
+                      : <ArrowDownRight size={11} className="text-red-600" />}
+                    <span className={`text-[10px] font-semibold ${card.up ? "text-emerald-600" : "text-red-600"}`}>
                       {card.delta}
                     </span>
-                    <span className="text-[10px] text-gray-600">{card.sub}</span>
+                    <span className="text-[10px] text-gray-400">{card.sub}</span>
                   </div>
                 </div>
               </div>
@@ -169,13 +169,13 @@ export default function JacqesFinancialPage() {
 
           {/* ── DRE ──────────────────────────────────────────────────────────── */}
           <div className="xl:col-span-2 card p-5">
-            <h2 className="text-sm font-semibold text-white mb-4">
+            <h2 className="text-sm font-semibold text-gray-900 mb-4">
               DRE — Demonstração do Resultado · Jan–Mar 2026 (YTD)
             </h2>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-800">
+                  <tr className="border-b border-gray-200">
                     <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Linha</th>
                     <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Valor YTD</th>
                     <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">% Receita</th>
@@ -191,16 +191,16 @@ export default function JacqesFinancialPage() {
                     return (
                       <tr
                         key={i}
-                        className={`border-b border-gray-800/50 transition-colors ${isSubtotal ? "bg-gray-800/20" : "hover:bg-gray-800/30"}`}
+                        className={`border-b border-gray-100 transition-colors ${isSubtotal ? "bg-gray-50" : "hover:bg-gray-100"}`}
                       >
-                        <td className={`py-2 px-3 text-xs ${isSubtotal ? "font-bold text-gray-100" : "text-gray-400"}`}
+                        <td className={`py-2 px-3 text-xs ${isSubtotal ? "font-bold text-gray-800" : "text-gray-400"}`}
                           style={{ paddingLeft: `${(row.indent * 16) + 12}px` }}>
                           {row.label}
                         </td>
                         <td className={`py-2 px-3 text-right text-xs ${isSubtotal ? "font-bold" : ""} ${dreRowColor(row.type, row.value)}`}>
                           {fmtR(row.value)}
                         </td>
-                        <td className="py-2 px-3 text-right text-[11px] text-gray-600">
+                        <td className="py-2 px-3 text-right text-[11px] text-gray-400">
                           {row.type === "subtotal" || row.type === "ebitda" || row.type === "net"
                             ? <span className="badge badge-green">{pctReceita}</span>
                             : pctReceita}
@@ -215,7 +215,7 @@ export default function JacqesFinancialPage() {
 
           {/* ── Margem Visual ────────────────────────────────────────────────── */}
           <div className="card p-5 flex flex-col gap-4">
-            <h2 className="text-sm font-semibold text-white">Margens — YTD 2026</h2>
+            <h2 className="text-sm font-semibold text-gray-900">Margens — YTD 2026</h2>
             {[
               { label: "Margem Bruta",    value: 2_603_400, base: 4_339_000, color: "bg-emerald-500" },
               { label: "Margem EBITDA",   value: 866_800,   base: 4_339_000, color: "bg-brand-500"   },
@@ -227,9 +227,9 @@ export default function JacqesFinancialPage() {
                 <div key={m.label}>
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs text-gray-400">{m.label}</span>
-                    <span className="text-xs font-bold text-white">{p.toFixed(1)}%</span>
+                    <span className="text-xs font-bold text-gray-900">{p.toFixed(1)}%</span>
                   </div>
-                  <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                     <div
                       className={`h-full ${m.color} rounded-full transition-all`}
                       style={{ width: `${Math.min(p, 100)}%` }}
@@ -239,15 +239,15 @@ export default function JacqesFinancialPage() {
               );
             })}
 
-            <div className="border-t border-gray-800 pt-4 mt-2">
-              <div className="text-xs font-semibold text-gray-300 mb-3">Composição de Despesas</div>
+            <div className="border-t border-gray-200 pt-4 mt-2">
+              <div className="text-xs font-semibold text-gray-400 mb-3">Composição de Despesas</div>
               {[
-                { label: "Custo dos Serviços",  value: 1_735_600, color: "text-red-400"    },
+                { label: "Custo dos Serviços",  value: 1_735_600, color: "text-red-600"    },
                 { label: "Desp. Comerciais",    value: 347_120,   color: "text-orange-400" },
-                { label: "Desp. Administrativas",value: 520_680,  color: "text-amber-400"  },
+                { label: "Desp. Administrativas",value: 520_680,  color: "text-amber-700"  },
                 { label: "Desp. Pessoal",       value: 868_800,   color: "text-yellow-400" },
               ].map((d) => (
-                <div key={d.label} className="flex items-center justify-between py-1.5 border-b border-gray-800/50 last:border-0">
+                <div key={d.label} className="flex items-center justify-between py-1.5 border-b border-gray-100 last:border-0">
                   <span className="text-xs text-gray-500">{d.label}</span>
                   <span className={`text-xs font-semibold ${d.color}`}>{fmtR(d.value)}</span>
                 </div>
@@ -259,16 +259,16 @@ export default function JacqesFinancialPage() {
         {/* ── Budget vs Actual ──────────────────────────────────────────────── */}
         <div className="card p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-white">Budget vs Actual — Receita Mensal 2026</h2>
+            <h2 className="text-sm font-semibold text-gray-900">Budget vs Actual — Receita Mensal 2026</h2>
             <div className="flex items-center gap-4 text-[11px]">
               <span className="flex items-center gap-1.5 text-gray-500"><span className="w-3 h-0.5 bg-gray-600 inline-block rounded" /> Budget</span>
-              <span className="flex items-center gap-1.5 text-emerald-400"><span className="w-3 h-0.5 bg-emerald-400 inline-block rounded" /> Realizado</span>
+              <span className="flex items-center gap-1.5 text-emerald-600"><span className="w-3 h-0.5 bg-emerald-400 inline-block rounded" /> Realizado</span>
             </div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-800">
+                <tr className="border-b border-gray-200">
                   <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Mês</th>
                   <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Budget Receita</th>
                   <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Realizado</th>
@@ -284,43 +284,43 @@ export default function JacqesFinancialPage() {
                   const varR = isFuture ? null : variance(row.receitaActual, row.receitaBudget);
                   const varE = isFuture ? null : variance(row.ebitdaActual, row.ebitdaBudget);
                   return (
-                    <tr key={row.month} className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
-                      <td className="py-2.5 px-3 text-gray-300 font-medium text-xs">{row.month}</td>
+                    <tr key={row.month} className="border-b border-gray-100 hover:bg-gray-100 transition-colors">
+                      <td className="py-2.5 px-3 text-gray-400 font-medium text-xs">{row.month}</td>
                       <td className="py-2.5 px-3 text-right text-gray-500 text-xs">{fmtR(row.receitaBudget)}</td>
                       <td className="py-2.5 px-3 text-right text-xs font-semibold">
                         {isFuture
-                          ? <span className="text-gray-700">—</span>
-                          : <span className="text-white">{fmtR(row.receitaActual)}</span>}
+                          ? <span className="text-gray-400">—</span>
+                          : <span className="text-gray-900">{fmtR(row.receitaActual)}</span>}
                       </td>
                       <td className="py-2.5 px-3 text-right text-xs">
                         {varR !== null ? (
                           <span className={`flex items-center justify-end gap-0.5 font-semibold ${varColor(varR)}`}>
                             {varIcon(varR)}{varR >= 0 ? "+" : ""}{varR.toFixed(1)}%
                           </span>
-                        ) : <span className="text-gray-700">—</span>}
+                        ) : <span className="text-gray-400">—</span>}
                       </td>
                       <td className="py-2.5 px-3 text-right text-gray-500 text-xs">{fmtR(row.ebitdaBudget)}</td>
                       <td className="py-2.5 px-3 text-right text-xs font-semibold">
                         {isFuture
-                          ? <span className="text-gray-700">—</span>
-                          : <span className="text-brand-400">{fmtR(row.ebitdaActual)}</span>}
+                          ? <span className="text-gray-400">—</span>
+                          : <span className="text-brand-600">{fmtR(row.ebitdaActual)}</span>}
                       </td>
                       <td className="py-2.5 px-3 text-right text-xs">
                         {varE !== null ? (
                           <span className={`flex items-center justify-end gap-0.5 font-semibold ${varColor(varE)}`}>
                             {varIcon(varE)}{varE >= 0 ? "+" : ""}{varE.toFixed(1)}%
                           </span>
-                        ) : <span className="text-gray-700">—</span>}
+                        ) : <span className="text-gray-400">—</span>}
                       </td>
                     </tr>
                   );
                 })}
               </tbody>
               <tfoot>
-                <tr className="border-t border-gray-700">
+                <tr className="border-t border-gray-300">
                   <td className="py-2.5 px-3 text-xs font-bold text-gray-400">YTD REAL</td>
                   <td className="py-2.5 px-3 text-right text-gray-500 text-xs font-bold">{fmtR(ytdBudgetReceita)}</td>
-                  <td className="py-2.5 px-3 text-right text-white font-bold text-xs">{fmtR(ytdActualReceita)}</td>
+                  <td className="py-2.5 px-3 text-right text-gray-900 font-bold text-xs">{fmtR(ytdActualReceita)}</td>
                   <td className="py-2.5 px-3 text-right text-xs">
                     <span className={`flex items-center justify-end gap-0.5 font-bold ${varColor(ytdVarReceita)}`}>
                       {varIcon(ytdVarReceita)}{ytdVarReceita >= 0 ? "+" : ""}{ytdVarReceita.toFixed(1)}%

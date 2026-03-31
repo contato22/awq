@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import {
   Bot, Play, RefreshCw, Loader2, CheckCircle2,
   AlertCircle, Monitor, TrendingUp, Film,
-  Building2, Key, Sparkles, Database, Zap,
+  Building2, Key, Sparkles,
 } from "lucide-react";
 import { AGENTS } from "@/lib/agents-config";
 
@@ -21,55 +21,11 @@ function detectStaticMode(): boolean {
 const BUILTIN_KEY = process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY ?? "";
 
 const LS_KEY = "openclaw_api_key";
-const LS_LAST_RUN = "openclaw_last_auto_run";
-const AUTO_RUN_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 // Key priority: localStorage (user override) > built-in (always works) > null
 function resolveKey(): string | null {
   const stored = typeof window !== "undefined" ? localStorage.getItem(LS_KEY) : null;
   return stored || BUILTIN_KEY || null;
-}
-
-function shouldAutoRun(): boolean {
-  if (typeof window === "undefined") return false;
-  const last = localStorage.getItem(LS_LAST_RUN);
-  if (!last) return true;
-  return Date.now() - parseInt(last, 10) > AUTO_RUN_INTERVAL_MS;
-}
-
-function markAutoRun() {
-  if (typeof window !== "undefined") {
-    localStorage.setItem(LS_LAST_RUN, String(Date.now()));
-  }
-}
-
-// Fetch pre-built Notion data (static mode) — saved by fetch-notion-static.mjs
-async function fetchStaticData(): Promise<string> {
-  const endpoints = [
-    { label: "Projetos Caza Vision", url: "/data/caza-properties.json" },
-    { label: "Clientes Caza Vision", url: "/data/caza-clients.json" },
-    { label: "Financial", url: "/data/caza-financial.json" },
-  ];
-  const results: string[] = [];
-  for (const ep of endpoints) {
-    try {
-      const res = await fetch(ep.url);
-      if (res.ok) {
-        const data = await res.json();
-        const rows = Array.isArray(data) ? data : data?.data ?? [];
-        results.push(`[${ep.label}] ${rows.length} registros: ${JSON.stringify(rows.slice(0, 8))}`);
-      }
-    } catch { /* skip missing files */ }
-  }
-  return results.length > 0
-    ? `\n\n=== LIVE DATA (from last build) ===\n${results.join("\n")}\n`
-    : "";
-}
-
-interface ToolEvent {
-  type: "tool_call" | "tool_result";
-  name: string;
-  summary?: string;
 }
 
 interface AgentResult {
@@ -80,14 +36,13 @@ interface AgentResult {
   status: "idle" | "running" | "done" | "error";
   timestamp?: string;
   errorMsg?: string;
-  toolEvents?: ToolEvent[];
 }
 
 const AGENT_META: Record<string, { icon: React.ElementType; color: string; buColor: string }> = {
-  jacqes:       { icon: Monitor,   color: "text-brand-400",  buColor: "bg-brand-500/10 border-brand-500/20" },
-  "caza-vision":{ icon: Film,      color: "text-cyan-400",   buColor: "bg-cyan-500/10 border-cyan-500/20" },
-  "awq-venture":{ icon: TrendingUp,color: "text-emerald-400",buColor: "bg-emerald-500/10 border-emerald-500/20" },
-  "awq-master": { icon: Building2, color: "text-amber-400",  buColor: "bg-amber-500/10 border-amber-500/20" },
+  jacqes:       { icon: Monitor,   color: "text-brand-600",  buColor: "bg-brand-50 border-brand-500/20" },
+  "caza-vision":{ icon: Film,      color: "text-cyan-700",   buColor: "bg-cyan-50 border-cyan-500/20" },
+  "awq-venture":{ icon: TrendingUp,color: "text-emerald-600",buColor: "bg-emerald-50 border-emerald-500/20" },
+  "awq-master": { icon: Building2, color: "text-amber-700",  buColor: "bg-amber-50 border-amber-500/20" },
 };
 
 const BU_AGENTS = ["jacqes", "caza-vision", "awq-venture"];
@@ -105,21 +60,21 @@ function AgentCard({ agent, onRun }: { agent: AgentResult; onRun: (id: string) =
             <Icon size={16} className={meta.color} />
           </div>
           <div>
-            <div className="text-sm font-semibold text-gray-200">{agent.name}</div>
-            <div className="text-[10px] text-gray-600 mt-0.5">{agent.role}</div>
+            <div className="text-sm font-semibold text-gray-400">{agent.name}</div>
+            <div className="text-[10px] text-gray-400 mt-0.5">{agent.role}</div>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {agent.status === "done" && <CheckCircle2 size={14} className="text-emerald-400" />}
-          {agent.status === "error" && <AlertCircle size={14} className="text-red-400" />}
-          {agent.status === "running" && <Loader2 size={14} className="text-brand-400 animate-spin" />}
+          {agent.status === "done" && <CheckCircle2 size={14} className="text-emerald-600" />}
+          {agent.status === "error" && <AlertCircle size={14} className="text-red-600" />}
+          {agent.status === "running" && <Loader2 size={14} className="text-brand-600 animate-spin" />}
           <button
             onClick={() => onRun(agent.id)}
             disabled={agent.status === "running"}
             className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
               agent.status === "done"
-                ? "bg-gray-800 hover:bg-gray-700 text-gray-400"
-                : "bg-brand-600/20 hover:bg-brand-600/40 text-brand-400"
+                ? "bg-gray-100 hover:bg-gray-200 text-gray-400"
+                : "bg-brand-600/20 hover:bg-brand-600/40 text-brand-600"
             }`}
             title="Executar agente"
           >
@@ -134,53 +89,26 @@ function AgentCard({ agent, onRun }: { agent: AgentResult; onRun: (id: string) =
         </div>
       </div>
 
-      {/* Tool activity strip */}
-      {agent.toolEvents && agent.toolEvents.length > 0 && (
-        <div className="mb-3 flex flex-wrap gap-1.5">
-          {agent.toolEvents.map((ev, i) => (
-            <span
-              key={i}
-              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                ev.type === "tool_call"
-                  ? "bg-brand-500/10 text-brand-400 border border-brand-500/20"
-                  : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-              }`}
-            >
-              {ev.type === "tool_call" ? (
-                <Zap size={9} />
-              ) : (
-                <Database size={9} />
-              )}
-              {ev.type === "tool_call"
-                ? ev.name.replace(/_/g, " ")
-                : ev.summary ?? "ok"}
-            </span>
-          ))}
-        </div>
-      )}
-
       <div className="min-h-[60px]">
         {agent.status === "idle" && (
-          <p className="text-[11px] text-gray-600 italic">Clique em ▶ para executar análise automática</p>
+          <p className="text-[11px] text-gray-400 italic">Clique em ▶ para executar análise automática</p>
         )}
         {agent.status === "running" && !agent.content && (
           <div className="flex items-center gap-2 text-[11px] text-gray-500">
             <Loader2 size={11} className="animate-spin" />
-            {agent.toolEvents?.some((e) => e.type === "tool_call")
-              ? "Consultando banco de dados..."
-              : "Analisando dados..."}
+            Analisando dados...
           </div>
         )}
         {agent.content && (
-          <div className="text-[11px] text-gray-300 leading-relaxed whitespace-pre-wrap">{agent.content}</div>
+          <div className="text-[11px] text-gray-400 leading-relaxed whitespace-pre-wrap">{agent.content}</div>
         )}
         {agent.status === "error" && (
-          <p className="text-[11px] text-red-400">{agent.errorMsg ?? "Falha ao executar agente"}</p>
+          <p className="text-[11px] text-red-600">{agent.errorMsg ?? "Falha ao executar agente"}</p>
         )}
       </div>
 
       {agent.timestamp && (
-        <div className="mt-3 pt-2 border-t border-gray-800 text-[10px] text-gray-700">
+        <div className="mt-3 pt-2 border-t border-gray-200 text-[10px] text-gray-400">
           Última análise: {agent.timestamp}
         </div>
       )}
@@ -203,10 +131,10 @@ function NoKeyScreen({ onSave }: { onSave: (k: string) => void }) {
   return (
     <div className="card p-10 flex flex-col items-center text-center gap-4 max-w-md mx-auto">
       <div className="w-14 h-14 rounded-2xl bg-brand-600/10 border border-brand-500/20 flex items-center justify-center">
-        <Key size={22} className="text-brand-400" />
+        <Key size={22} className="text-brand-600" />
       </div>
       <div>
-        <div className="text-base font-semibold text-gray-200">Configurar Open Claw</div>
+        <div className="text-base font-semibold text-gray-400">Configurar Open Claw</div>
         <div className="text-xs text-gray-500 mt-1 leading-relaxed max-w-xs">
           Insira sua chave da API Anthropic para ativar os agentes autônomos de cada BU.
         </div>
@@ -218,11 +146,11 @@ function NoKeyScreen({ onSave }: { onSave: (k: string) => void }) {
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && save()}
           placeholder="sk-ant-..."
-          className="w-full px-4 py-3 pr-10 bg-gray-800 border border-gray-700 rounded-xl text-sm text-gray-200 placeholder:text-gray-600 focus:outline-none focus:border-brand-500 transition-colors"
+          className="w-full px-4 py-3 pr-10 bg-gray-100 border border-gray-300 rounded-xl text-sm text-gray-400 placeholder:text-gray-400 focus:outline-none focus:border-brand-500 transition-colors"
         />
         <button
           onClick={() => setShow((v) => !v)}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-400"
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-400"
         >
           {show ? "🙈" : "👁"}
         </button>
@@ -230,7 +158,7 @@ function NoKeyScreen({ onSave }: { onSave: (k: string) => void }) {
       <button
         onClick={save}
         disabled={!value.trim()}
-        className="w-full py-3 bg-brand-600 hover:bg-brand-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl transition-colors"
+        className="w-full py-3 bg-brand-600 hover:bg-brand-500 disabled:opacity-40 disabled:cursor-not-allowed text-gray-900 text-sm font-semibold rounded-xl transition-colors"
       >
         Salvar e ativar agentes
       </button>
@@ -243,20 +171,9 @@ export default function AgentsPanel() {
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [agents, setAgents] = useState<AgentResult[]>([]);
   const [runningAll, setRunningAll] = useState(false);
-  const [autoRunTriggered, setAutoRunTriggered] = useState(false);
-  const [lastRunLabel, setLastRunLabel] = useState<string>("");
 
-  // Load agents list
   useEffect(() => {
-    const key = resolveKey();
-    setApiKey(key);
-
-    // Last run label for UI
-    const last = typeof window !== "undefined" ? localStorage.getItem(LS_LAST_RUN) : null;
-    if (last) {
-      const mins = Math.floor((Date.now() - parseInt(last, 10)) / 60000);
-      setLastRunLabel(mins < 2 ? "agora mesmo" : `há ${mins} min`);
-    }
+    setApiKey(resolveKey());
 
     if (detectStaticMode()) {
       setAgents(AGENTS.map((a) => ({ ...a, content: "", status: "idle" as const })));
@@ -278,7 +195,7 @@ export default function AgentsPanel() {
 
     setAgents((prev) =>
       prev.map((a) =>
-        a.id === agentId ? { ...a, status: "running", content: "", errorMsg: undefined, toolEvents: [] } : a
+        a.id === agentId ? { ...a, status: "running", content: "", errorMsg: undefined } : a
       )
     );
 
@@ -287,10 +204,6 @@ export default function AgentsPanel() {
 
       if (detectStaticMode()) {
         const agent = AGENTS.find((a) => a.id === agentId)!;
-        // Inject pre-built Notion data so agents have live context even in static mode
-        const liveData = await fetchStaticData();
-        const enrichedPrompt = agent.prompt + liveData;
-
         const res = await fetch("https://api.anthropic.com/v1/messages", {
           method: "POST",
           headers: {
@@ -301,10 +214,10 @@ export default function AgentsPanel() {
           },
           body: JSON.stringify({
             model: "claude-opus-4-6",
-            max_tokens: 1024,
+            max_tokens: 512,
             stream: true,
             system: agent.system,
-            messages: [{ role: "user", content: enrichedPrompt }],
+            messages: [{ role: "user", content: agent.prompt }],
           }),
         });
 
@@ -363,36 +276,14 @@ export default function AgentsPanel() {
             const d = line.slice(6).trim();
             if (d === "[DONE]") break;
             try {
-              const parsed = JSON.parse(d) as {
-                text?: string;
-                type?: string;
-                name?: string;
-                summary?: string;
-                error?: string;
-              };
+              const parsed = JSON.parse(d) as { text?: string };
               if (parsed.text) {
-                text += (text && !text.endsWith(" ") ? " " : "") + parsed.text;
+                text += parsed.text;
                 setAgents((prev) =>
                   prev.map((a) => (a.id === agentId ? { ...a, content: text } : a))
                 );
-              } else if (parsed.type === "tool_call" || parsed.type === "tool_result") {
-                setAgents((prev) =>
-                  prev.map((a) =>
-                    a.id === agentId
-                      ? {
-                          ...a,
-                          toolEvents: [
-                            ...(a.toolEvents ?? []),
-                            { type: parsed.type as "tool_call" | "tool_result", name: parsed.name ?? "", summary: parsed.summary },
-                          ],
-                        }
-                      : a
-                  )
-                );
-              } else if (parsed.error) {
-                throw new Error(parsed.error);
               }
-            } catch (e) { if (e instanceof Error && e.message !== "Unexpected end of JSON input") throw e; }
+            } catch { /* ignore */ }
           }
         }
       }
@@ -412,24 +303,13 @@ export default function AgentsPanel() {
     }
   }, [apiKey]);
 
-  const runAllAgents = useCallback(async () => {
+  const runAllAgents = async () => {
     if (!apiKey || runningAll) return;
     setRunningAll(true);
-    markAutoRun();
-    setLastRunLabel("agora mesmo");
     await Promise.all(BU_AGENTS.map((id) => runAgent(id)));
     await runAgent("awq-master");
     setRunningAll(false);
-  }, [apiKey, runningAll, runAgent]);
-
-  // Auto-run: trigger once agents are loaded + key available + 1h throttle
-  useEffect(() => {
-    if (autoRunTriggered) return;
-    if (!apiKey || agents.length === 0) return;
-    if (!shouldAutoRun()) return;
-    setAutoRunTriggered(true);
-    runAllAgents();
-  }, [apiKey, agents, autoRunTriggered, runAllAgents]);
+  };
 
   // Only block rendering if there's truly no key available anywhere
   if (!apiKey) return <NoKeyScreen onSave={(k) => setApiKey(k)} />;
@@ -442,32 +322,23 @@ export default function AgentsPanel() {
   return (
     <div className="space-y-6">
       <div className="card p-4 flex items-center gap-4 flex-wrap">
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-          <Sparkles size={14} className="text-brand-400 shrink-0" />
-          <span className="text-xs font-semibold text-gray-300">Agentes Autônomos</span>
-          <span className="badge badge-blue shrink-0">{doneCount}/{agents.length} concluídos</span>
-          {lastRunLabel && !runningAll && (
-            <span className="text-[10px] text-gray-600 truncate">· último ciclo {lastRunLabel}</span>
-          )}
-          {runningAll && (
-            <span className="text-[10px] text-brand-400 flex items-center gap-1">
-              <Loader2 size={9} className="animate-spin" />ciclo autônomo em execução
-            </span>
-          )}
+        <div className="flex items-center gap-2 flex-1">
+          <Sparkles size={14} className="text-brand-600" />
+          <span className="text-xs font-semibold text-gray-400">Multi-Agent Sistema</span>
+          <span className="badge badge-blue">{doneCount}/{agents.length} concluídos</span>
         </div>
         <button
           onClick={runAllAgents}
           disabled={runningAll || !apiKey}
-          className="btn-secondary flex items-center gap-1.5 text-xs disabled:opacity-40"
-          title="Forçar ciclo agora"
+          className="btn-primary flex items-center gap-2 text-xs disabled:opacity-50"
         >
           {runningAll ? (
-            <Loader2 size={11} className="animate-spin" />
+            <><Loader2 size={12} className="animate-spin" />Executando...</>
           ) : (
-            <RefreshCw size={11} />
+            <><Play size={12} />Executar todos os agentes</>
           )}
-          Ciclo manual
         </button>
+        {/* Only show key switcher when not using built-in key */}
         {!usingBuiltin && (
           <button
             onClick={() => {
@@ -475,6 +346,7 @@ export default function AgentsPanel() {
               setApiKey(BUILTIN_KEY || null);
             }}
             className="btn-secondary text-xs flex items-center gap-1.5"
+            title="Remover chave e reconfigurar"
           >
             <Key size={12} />Trocar chave
           </button>
@@ -484,8 +356,8 @@ export default function AgentsPanel() {
       <div>
         <div className="flex items-center gap-2 mb-3">
           <Bot size={14} className="text-gray-500" />
-          <span className="text-[10px] font-semibold text-gray-600 uppercase tracking-widest">
-            Agentes BU — Gestão Autônoma Front+Back+DB
+          <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+            Agentes por BU — Auto-gerenciamento
           </span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -499,7 +371,7 @@ export default function AgentsPanel() {
         <div>
           <div className="flex items-center gap-2 mb-3">
             <Building2 size={14} className="text-gray-500" />
-            <span className="text-[10px] font-semibold text-gray-600 uppercase tracking-widest">
+            <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
               AWQ Master Agent — Gestão de Portfolio
             </span>
           </div>

@@ -69,7 +69,7 @@ export default function FinancialPage() {
       value: fmt(ytdReceita),
       sub: "+14.7% YTD Março 2026",
       icon: DollarSign,
-      color: "text-emerald-400",
+      color: "text-emerald-600",
       bg: "bg-emerald-400/10",
     },
     {
@@ -85,7 +85,7 @@ export default function FinancialPage() {
       value: fmtBRL(caixaTotal),
       sub: "Todas as BUs ativas",
       icon: BarChart3,
-      color: "text-cyan-400",
+      color: "text-cyan-700",
       bg: "bg-cyan-400/10",
     },
     {
@@ -93,7 +93,7 @@ export default function FinancialPage() {
       value: `+${variacaoBudget}%`,
       sub: `${fmt(variacaoAbsoluta)} acima do orçamento`,
       icon: Target,
-      color: "text-amber-400",
+      color: "text-amber-700",
       bg: "bg-amber-400/10",
     },
   ];
@@ -110,26 +110,26 @@ export default function FinancialPage() {
         {summaryCards.map((card) => {
           const Icon = card.icon;
           return (
-            <div key={card.label} className="rounded-2xl border border-white/5 bg-white/3 p-5">
+            <div key={card.label} className="rounded-2xl border border-gray-100 bg-gray-50 p-5">
               <div className="flex items-start justify-between mb-3">
                 <div className={`rounded-xl p-2 ${card.bg}`}>
                   <Icon className={`h-5 w-5 ${card.color}`} />
                 </div>
               </div>
-              <p className="text-2xl font-bold text-white">{card.value}</p>
-              <p className="mt-1 text-sm text-white/50">{card.label}</p>
-              <p className="mt-0.5 text-xs text-emerald-400">{card.sub}</p>
+              <p className="text-2xl font-bold text-gray-900">{card.value}</p>
+              <p className="mt-1 text-sm text-gray-500">{card.label}</p>
+              <p className="mt-0.5 text-xs text-emerald-600">{card.sub}</p>
             </div>
           );
         })}
       </div>
 
       {/* Alertas Financeiros */}
-      <div className="rounded-2xl border border-white/5 bg-white/3 p-5">
+      <div className="rounded-2xl border border-gray-100 bg-gray-50 p-5">
         <div className="flex items-center gap-2 mb-4">
-          <AlertTriangle className="h-4 w-4 text-amber-400" />
-          <h3 className="text-sm font-semibold text-white">Alertas Financeiros</h3>
-          <span className="ml-auto rounded-full bg-amber-400/20 px-2 py-0.5 text-xs text-amber-400">
+          <AlertTriangle className="h-4 w-4 text-amber-700" />
+          <h3 className="text-sm font-semibold text-gray-900">Alertas Financeiros</h3>
+          <span className="ml-auto rounded-full bg-amber-400/20 px-2 py-0.5 text-xs text-amber-700">
             {alertasFinanceiros.length} ativos
           </span>
         </div>
@@ -155,18 +155,18 @@ export default function FinancialPage() {
                 }`}
               />
               <div>
-                <p className="text-sm font-medium text-white">{a.titulo}</p>
-                <p className="text-xs text-white/50">{a.detalhe}</p>
+                <p className="text-sm font-medium text-gray-900">{a.titulo}</p>
+                <p className="text-xs text-gray-500">{a.detalhe}</p>
               </div>
-              <span className="ml-auto text-xs text-white/30">{a.bu}</span>
+              <span className="ml-auto text-xs text-gray-400">{a.bu}</span>
             </div>
           ))}
         </div>
       </div>
 
       {/* Ranking de BUs por EBITDA */}
-      <div className="rounded-2xl border border-white/5 bg-white/3 p-5">
-        <h3 className="mb-4 text-sm font-semibold text-white">Ranking de BUs — Receita & EBITDA</h3>
+      <div className="rounded-2xl border border-gray-100 bg-gray-50 p-5">
+        <h3 className="mb-4 text-sm font-semibold text-gray-900">Ranking de BUs — Receita & EBITDA</h3>
         <div className="flex flex-col gap-3">
           {ebitdaPorBU
             .filter((b) => b.receita > 0)
@@ -176,37 +176,37 @@ export default function FinancialPage() {
                 <div key={bu.bu} className="flex flex-col gap-1">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-white/30">#{i + 1}</span>
-                      <span className="text-sm font-medium text-white">{bu.bu}</span>
+                      <span className="text-xs text-gray-400">#{i + 1}</span>
+                      <span className="text-sm font-medium text-gray-900">{bu.bu}</span>
                       <span
                         className={`rounded-full px-2 py-0.5 text-xs ${
                           bu.status === "ativa"
-                            ? "bg-emerald-400/20 text-emerald-400"
-                            : "bg-white/10 text-white/40"
+                            ? "bg-emerald-400/20 text-emerald-600"
+                            : "bg-gray-100 text-gray-500"
                         }`}
                       >
                         {bu.status}
                       </span>
                     </div>
                     <div className="flex items-center gap-4 text-xs">
-                      <span className="text-white/50">
-                        Receita: <span className="text-white">{fmt(bu.receita)}</span>
+                      <span className="text-gray-500">
+                        Receita: <span className="text-gray-900">{fmt(bu.receita)}</span>
                       </span>
-                      <span className="text-white/50">
-                        EBITDA: <span className="text-emerald-400">{bu.margem.toFixed(1)}%</span>
+                      <span className="text-gray-500">
+                        EBITDA: <span className="text-emerald-600">{bu.margem.toFixed(1)}%</span>
                       </span>
-                      <span className="text-white/50">
+                      <span className="text-gray-500">
                         ROIC: <span className="text-purple-400">{bu.roic > 0 ? bu.roic.toFixed(1) + "%" : "—"}</span>
                       </span>
                     </div>
                   </div>
-                  <div className="h-1.5 w-full rounded-full bg-white/5">
+                  <div className="h-1.5 w-full rounded-full bg-gray-50">
                     <div
                       className="h-1.5 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500"
                       style={{ width: `${pct}%` }}
                     />
                   </div>
-                  <p className="text-right text-xs text-white/30">{pct.toFixed(1)}% da receita do grupo</p>
+                  <p className="text-right text-xs text-gray-400">{pct.toFixed(1)}% da receita do grupo</p>
                 </div>
               );
             })}
@@ -214,17 +214,17 @@ export default function FinancialPage() {
       </div>
 
       {/* Budget vs Actual */}
-      <div className="rounded-2xl border border-white/5 bg-white/3 p-5">
+      <div className="rounded-2xl border border-gray-100 bg-gray-50 p-5">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-white">Budget vs Actual — AWQ Group (YTD 2026)</h3>
+          <h3 className="text-sm font-semibold text-gray-900">Budget vs Actual — AWQ Group (YTD 2026)</h3>
           <div className="flex gap-2 text-xs">
             <span className="flex items-center gap-1">
               <span className="h-2 w-2 rounded-full bg-indigo-400" /> Realizado
             </span>
-            <span className="flex items-center gap-1 text-white/40">
+            <span className="flex items-center gap-1 text-gray-500">
               <span className="h-2 w-2 rounded-full bg-white/30" /> Budget
             </span>
-            <span className="flex items-center gap-1 text-white/40">
+            <span className="flex items-center gap-1 text-gray-500">
               <span className="h-2 w-2 rounded-full bg-amber-400" /> Forecast
             </span>
           </div>
@@ -232,7 +232,7 @@ export default function FinancialPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="text-white/30 border-b border-white/5">
+              <tr className="text-gray-400 border-b border-gray-100">
                 <th className="py-2 text-left font-medium">Mês</th>
                 <th className="py-2 text-right font-medium">Realizado</th>
                 <th className="py-2 text-right font-medium">Budget</th>
@@ -247,15 +247,15 @@ export default function FinancialPage() {
                 const deltaPct = ((delta / row.budget) * 100).toFixed(1);
                 const positivo = delta >= 0;
                 return (
-                  <tr key={row.mes} className="border-b border-white/3 hover:bg-white/3">
-                    <td className="py-2 font-medium text-white">{row.mes}</td>
-                    <td className="py-2 text-right text-white">{fmt(row.realizado)}</td>
-                    <td className="py-2 text-right text-white/40">{fmt(row.budget)}</td>
-                    <td className="py-2 text-right text-amber-400">{fmt(row.forecast)}</td>
-                    <td className={`py-2 text-right font-medium ${positivo ? "text-emerald-400" : "text-red-400"}`}>
+                  <tr key={row.mes} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="py-2 font-medium text-gray-900">{row.mes}</td>
+                    <td className="py-2 text-right text-gray-900">{fmt(row.realizado)}</td>
+                    <td className="py-2 text-right text-gray-500">{fmt(row.budget)}</td>
+                    <td className="py-2 text-right text-amber-700">{fmt(row.forecast)}</td>
+                    <td className={`py-2 text-right font-medium ${positivo ? "text-emerald-600" : "text-red-600"}`}>
                       {positivo ? "+" : ""}{fmt(Math.abs(delta))}
                     </td>
-                    <td className={`py-2 text-right font-semibold ${positivo ? "text-emerald-400" : "text-red-400"}`}>
+                    <td className={`py-2 text-right font-semibold ${positivo ? "text-emerald-600" : "text-red-600"}`}>
                       {positivo ? "+" : ""}{deltaPct}%
                     </td>
                   </tr>
@@ -263,13 +263,13 @@ export default function FinancialPage() {
               })}
             </tbody>
             <tfoot>
-              <tr className="border-t border-white/10 font-semibold">
-                <td className="py-2 text-white">YTD Total</td>
-                <td className="py-2 text-right text-white">{fmt(ytdReceita)}</td>
-                <td className="py-2 text-right text-white/40">{fmt(ytdBudget)}</td>
-                <td className="py-2 text-right text-amber-400">—</td>
-                <td className="py-2 text-right text-emerald-400">+{fmt(variacaoAbsoluta)}</td>
-                <td className="py-2 text-right text-emerald-400">+{variacaoBudget}%</td>
+              <tr className="border-t border-gray-200 font-semibold">
+                <td className="py-2 text-gray-900">YTD Total</td>
+                <td className="py-2 text-right text-gray-900">{fmt(ytdReceita)}</td>
+                <td className="py-2 text-right text-gray-500">{fmt(ytdBudget)}</td>
+                <td className="py-2 text-right text-amber-700">—</td>
+                <td className="py-2 text-right text-emerald-600">+{fmt(variacaoAbsoluta)}</td>
+                <td className="py-2 text-right text-emerald-600">+{variacaoBudget}%</td>
               </tr>
             </tfoot>
           </table>
@@ -277,15 +277,15 @@ export default function FinancialPage() {
       </div>
 
       {/* Evolução de Receita Mensal */}
-      <div className="rounded-2xl border border-white/5 bg-white/3 p-5">
+      <div className="rounded-2xl border border-gray-100 bg-gray-50 p-5">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-white">Evolução de Receita Mensal</h3>
-          <span className="text-xs text-white/30">Receita · Despesas · Lucro · Margem</span>
+          <h3 className="text-sm font-semibold text-gray-900">Evolução de Receita Mensal</h3>
+          <span className="text-xs text-gray-400">Receita · Despesas · Lucro · Margem</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/5 text-left text-xs text-white/30">
+              <tr className="border-b border-gray-100 text-left text-xs text-gray-400">
                 <th className="py-2 font-medium">Mês</th>
                 <th className="py-2 text-right font-medium">Receita</th>
                 <th className="py-2 text-right font-medium">Despesas</th>
@@ -303,19 +303,19 @@ export default function FinancialPage() {
                   ? ((row.revenue - budgetRow.budget) / budgetRow.budget * 100).toFixed(1)
                   : null;
                 return (
-                  <tr key={row.month} className="border-b border-white/3 hover:bg-white/2">
-                    <td className="py-2 font-medium text-white">{row.month}</td>
-                    <td className="py-2 text-right text-white">{fmt(row.revenue)}</td>
-                    <td className="py-2 text-right text-red-400">{fmt(row.expenses)}</td>
-                    <td className="py-2 text-right text-emerald-400">{fmt(row.profit)}</td>
+                  <tr key={row.month} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="py-2 font-medium text-gray-900">{row.month}</td>
+                    <td className="py-2 text-right text-gray-900">{fmt(row.revenue)}</td>
+                    <td className="py-2 text-right text-red-600">{fmt(row.expenses)}</td>
+                    <td className="py-2 text-right text-emerald-600">{fmt(row.profit)}</td>
                     <td className="py-2 text-right">
                       <span
                         className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                           margemNum >= 65
-                            ? "bg-emerald-400/20 text-emerald-400"
+                            ? "bg-emerald-400/20 text-emerald-600"
                             : margemNum >= 60
-                            ? "bg-amber-400/20 text-amber-400"
-                            : "bg-red-400/20 text-red-400"
+                            ? "bg-amber-400/20 text-amber-700"
+                            : "bg-red-400/20 text-red-600"
                         }`}
                       >
                         {margem}%
@@ -323,7 +323,7 @@ export default function FinancialPage() {
                     </td>
                     <td
                       className={`py-2 text-right text-xs font-medium ${
-                        delta && parseFloat(delta) >= 0 ? "text-emerald-400" : "text-red-400"
+                        delta && parseFloat(delta) >= 0 ? "text-emerald-600" : "text-red-600"
                       }`}
                     >
                       {delta ? (parseFloat(delta) >= 0 ? "+" : "") + delta + "%" : "—"}
@@ -337,12 +337,12 @@ export default function FinancialPage() {
       </div>
 
       {/* Canais de Aquisição */}
-      <div className="rounded-2xl border border-white/5 bg-white/3 p-5">
-        <h3 className="mb-4 text-sm font-semibold text-white">Canais de Aquisição</h3>
+      <div className="rounded-2xl border border-gray-100 bg-gray-50 p-5">
+        <h3 className="mb-4 text-sm font-semibold text-gray-900">Canais de Aquisição</h3>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/5 text-left text-xs text-white/30">
+              <tr className="border-b border-gray-100 text-left text-xs text-gray-400">
                 <th className="py-2 font-medium">Canal</th>
                 <th className="py-2 text-right font-medium">Sessões</th>
                 <th className="py-2 text-right font-medium">Conversões</th>
@@ -355,17 +355,17 @@ export default function FinancialPage() {
               {channelData.map((row) => {
                 const convRate = ((row.conversions / row.sessions) * 100).toFixed(2);
                 return (
-                  <tr key={row.channel} className="border-b border-white/3 hover:bg-white/2">
-                    <td className="py-2 font-medium text-white">{row.channel}</td>
-                    <td className="py-2 text-right text-white/60">{row.sessions.toLocaleString()}</td>
-                    <td className="py-2 text-right text-cyan-400">{row.conversions.toLocaleString()}</td>
-                    <td className="py-2 text-right text-white">{fmt(row.revenue)}</td>
+                  <tr key={row.channel} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="py-2 font-medium text-gray-900">{row.channel}</td>
+                    <td className="py-2 text-right text-gray-900/60">{row.sessions.toLocaleString()}</td>
+                    <td className="py-2 text-right text-cyan-700">{row.conversions.toLocaleString()}</td>
+                    <td className="py-2 text-right text-gray-900">{fmt(row.revenue)}</td>
                     <td className="py-2 text-right">
-                      <span className={row.cac === 0 ? "text-emerald-400" : "text-white/60"}>
+                      <span className={row.cac === 0 ? "text-emerald-600" : "text-gray-900/60"}>
                         {row.cac === 0 ? "Orgânico" : "$" + row.cac}
                       </span>
                     </td>
-                    <td className="py-2 text-right text-white/50">{convRate}%</td>
+                    <td className="py-2 text-right text-gray-500">{convRate}%</td>
                   </tr>
                 );
               })}

@@ -15,12 +15,12 @@ const alertConfig = {
   },
   success: {
     Icon: CheckCircle,
-    classes: "border-emerald-500/30 bg-emerald-500/5 text-emerald-400",
+    classes: "border-emerald-500/30 bg-emerald-500/5 text-emerald-600",
     dot: "bg-emerald-400",
   },
   error: {
     Icon: XCircle,
-    classes: "border-red-500/30 bg-red-500/5 text-red-400",
+    classes: "border-red-500/30 bg-red-500/5 text-red-600",
     dot: "bg-red-400",
   },
 };

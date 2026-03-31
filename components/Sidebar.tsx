@@ -185,7 +185,7 @@ function NavItem({
         >
             <Icon
                 size={16}
-                className={cn(active ? "text-brand-600" : "text-gray-400 group-hover:text-gray-600")}
+                className={cn(active ? "text-brand-600" : "text-gray-400 group-hover:text-gray-400")}
             />
             <span className="flex-1">{label}</span>
             {active && <ChevronRight size={14} className="text-brand-500" />}
@@ -209,7 +209,7 @@ function AwqHeader() {
         <div className="px-5 py-5 border-b border-gray-100">
             <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-awq-gold to-amber-600 flex items-center justify-center shadow-md">
-                    <Zap size={17} className="text-white" />
+                    <Zap size={17} className="text-gray-900" />
                 </div>
                 <div>
                     <div className="text-sm font-bold text-gray-900">AWQ Group</div>
@@ -234,7 +234,7 @@ function SidebarFooter() {
     return (
         <div className="px-4 py-4 border-t border-gray-100">
             <div className="flex items-center gap-3 px-1">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-awq-gold to-amber-600 flex items-center justify-center text-xs font-bold text-white shrink-0">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-awq-gold to-amber-600 flex items-center justify-center text-xs font-bold text-gray-900 shrink-0">
                     AD
                 </div>
                 <div className="flex-1 min-w-0">
@@ -247,7 +247,7 @@ function SidebarFooter() {
                     <div className="text-[10px] text-gray-400 truncate">Administrador</div>
                 </div>
                 <button
-                    className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                    className="p-1.5 text-gray-400 hover:text-gray-400 hover:bg-gray-100 rounded-lg transition-colors"
                     title="Sair"
                 >
                     <LogOut size={14} />
@@ -280,7 +280,7 @@ function AwqSidebar({ pathname }: { pathname: string }) {
                             className="flex items-center gap-3 px-3 py-3 rounded-xl border border-gray-200 hover:border-brand-200 hover:bg-brand-50 transition-all group"
                         >
                             <div className={`w-8 h-8 rounded-lg ${bu.color} flex items-center justify-center shrink-0`}>
-                                <bu.icon size={14} className="text-white" />
+                                <bu.icon size={14} className="text-gray-900" />
                             </div>
                             <div className="flex-1 min-w-0">
                                 <div className="text-sm font-semibold text-gray-800 group-hover:text-brand-700">
@@ -288,7 +288,7 @@ function AwqSidebar({ pathname }: { pathname: string }) {
                                 </div>
                                 <div className="text-[10px] text-gray-400">{bu.sub}</div>
                             </div>
-                            <ChevronRight size={14} className="text-gray-300 group-hover:text-brand-400" />
+                            <ChevronRight size={14} className="text-gray-400 group-hover:text-brand-600" />
                         </Link>
                     ))}
                 </div>
@@ -325,13 +325,13 @@ function JacqesSidebar({ pathname }: { pathname: string }) {
                     className="flex items-center gap-3 px-3 py-2.5 bg-brand-50 border border-brand-200 rounded-xl hover:bg-brand-100 transition-colors group"
                 >
                     <div className="w-7 h-7 rounded-lg bg-brand-600 flex items-center justify-center shrink-0">
-                        <BarChart3 size={13} className="text-white" />
+                        <BarChart3 size={13} className="text-gray-900" />
                     </div>
                     <div className="flex-1 min-w-0">
                         <div className="text-sm font-bold text-brand-700 truncate">JACQES</div>
                         <div className="text-[10px] text-brand-500 truncate">Agência · AWQ Group</div>
                     </div>
-                    <ChevronDown size={14} className="text-brand-400 shrink-0" />
+                    <ChevronDown size={14} className="text-brand-600 shrink-0" />
                 </Link>
             </div>
 
@@ -391,13 +391,13 @@ function CazaSidebar({ pathname }: { pathname: string }) {
                     className="flex items-center gap-3 px-3 py-2.5 bg-emerald-50 border border-emerald-200 rounded-xl hover:bg-emerald-100 transition-colors group"
                 >
                     <div className="w-7 h-7 rounded-lg bg-emerald-600 flex items-center justify-center shrink-0">
-                        <Building2 size={13} className="text-white" />
+                        <Building2 size={13} className="text-gray-900" />
                     </div>
                     <div className="flex-1 min-w-0">
                         <div className="text-sm font-bold text-emerald-700 truncate">Caza Vision</div>
                         <div className="text-[10px] text-emerald-500 truncate">Produtora · AWQ Group</div>
                     </div>
-                    <ChevronDown size={14} className="text-emerald-400 shrink-0" />
+                    <ChevronDown size={14} className="text-emerald-600 shrink-0" />
                 </Link>
             </div>
 
@@ -451,13 +451,13 @@ function AdvisorSidebar({ pathname }: { pathname: string }) {
                     className="flex items-center gap-3 px-3 py-2.5 bg-violet-50 border border-violet-200 rounded-xl hover:bg-violet-100 transition-colors group"
                 >
                     <div className="w-7 h-7 rounded-lg bg-violet-600 flex items-center justify-center shrink-0">
-                        <Briefcase size={13} className="text-white" />
+                        <Briefcase size={13} className="text-gray-900" />
                     </div>
                     <div className="flex-1 min-w-0">
                         <div className="text-sm font-bold text-violet-700 truncate">Advisor</div>
                         <div className="text-[10px] text-violet-500 truncate">Consultoria · AWQ Group</div>
                     </div>
-                    <ChevronDown size={14} className="text-violet-400 shrink-0" />
+                    <ChevronDown size={14} className="text-violet-700 shrink-0" />
                 </Link>
             </div>
 
@@ -511,13 +511,13 @@ function AwqVentureSidebar({ pathname }: { pathname: string }) {
                     className="flex items-center gap-3 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-xl hover:bg-amber-100 transition-colors group"
                 >
                     <div className="w-7 h-7 rounded-lg bg-amber-600 flex items-center justify-center shrink-0">
-                        <TrendingUp size={13} className="text-white" />
+                        <TrendingUp size={13} className="text-gray-900" />
                     </div>
                     <div className="flex-1 min-w-0">
                         <div className="text-sm font-bold text-amber-700 truncate">AWQ Venture</div>
                         <div className="text-[10px] text-amber-500 truncate">Investimentos · AWQ Group</div>
                     </div>
-                    <ChevronDown size={14} className="text-amber-400 shrink-0" />
+                    <ChevronDown size={14} className="text-amber-700 shrink-0" />
                 </Link>
             </div>
 

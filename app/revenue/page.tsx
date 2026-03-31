@@ -23,7 +23,7 @@ interface CustomTooltipProps {
 function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-gray-900 border border-gray-700 rounded-xl p-3.5 shadow-xl shadow-black/40 min-w-[140px]">
+    <div className="bg-white border border-gray-300 rounded-xl p-3.5 shadow-xl shadow-black/40 min-w-[140px]">
       <div className="text-xs font-semibold text-gray-400 mb-2">{label}</div>
       {payload.map((entry) => (
         <div key={entry.name} className="flex items-center justify-between gap-4 text-xs py-0.5">
@@ -31,7 +31,7 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
             <span className="w-2 h-2 rounded-sm" style={{ backgroundColor: entry.fill }} />
             <span className="text-gray-400 capitalize">{entry.name}</span>
           </div>
-          <span className="font-semibold text-white">
+          <span className="font-semibold text-gray-900">
             {formatCurrency(entry.value, "USD", true)}
           </span>
         </div>
@@ -60,11 +60,11 @@ export default function RevenuePage() {
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
           {summaryStats.map((stat) => (
             <div key={stat.label} className="card p-5">
-              <div className="text-2xl font-bold text-white tabular-nums">{stat.value}</div>
+              <div className="text-2xl font-bold text-gray-900 tabular-nums">{stat.value}</div>
               <div className="text-sm text-gray-500 mt-1">{stat.label}</div>
               <div
                 className={`text-xs font-medium mt-3 ${
-                  stat.positive ? "text-emerald-400" : "text-red-400"
+                  stat.positive ? "text-emerald-600" : "text-red-600"
                 }`}
               >
                 {stat.sub}
@@ -76,7 +76,7 @@ export default function RevenuePage() {
         {/* Bar chart */}
         <div className="card p-6">
           <div className="mb-6">
-            <h2 className="text-sm font-semibold text-white">Monthly Revenue vs Profit</h2>
+            <h2 className="text-sm font-semibold text-gray-900">Monthly Revenue vs Profit</h2>
             <p className="text-xs text-gray-500 mt-0.5">FY 2025 — grouped bar comparison</p>
           </div>
           <ResponsiveContainer width="100%" height={300}>
@@ -117,7 +117,7 @@ export default function RevenuePage() {
         {/* Margin progression */}
         <div className="card p-6">
           <div className="mb-5">
-            <h2 className="text-sm font-semibold text-white">Gross Margin Progression</h2>
+            <h2 className="text-sm font-semibold text-gray-900">Gross Margin Progression</h2>
             <p className="text-xs text-gray-500 mt-0.5">Month-by-month profit margin trend</p>
           </div>
           <div className="grid grid-cols-6 md:grid-cols-12 gap-2">
@@ -126,14 +126,14 @@ export default function RevenuePage() {
               const pct = parseFloat(margin);
               return (
                 <div key={d.month} className="flex flex-col items-center gap-2">
-                  <div className="text-xs font-semibold text-white">{margin}%</div>
-                  <div className="w-full h-16 bg-gray-800 rounded-md overflow-hidden flex items-end">
+                  <div className="text-xs font-semibold text-gray-900">{margin}%</div>
+                  <div className="w-full h-16 bg-gray-100 rounded-md overflow-hidden flex items-end">
                     <div
                       className="w-full bg-gradient-to-t from-brand-700 to-brand-500 rounded-md transition-all"
                       style={{ height: `${pct}%` }}
                     />
                   </div>
-                  <div className="text-[10px] text-gray-600">{d.month}</div>
+                  <div className="text-[10px] text-gray-400">{d.month}</div>
                 </div>
               );
             })}

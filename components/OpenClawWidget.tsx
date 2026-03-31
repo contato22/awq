@@ -68,10 +68,10 @@ function SetupScreen({ onSave }: { onSave: (key: string) => void }) {
   return (
     <div className="flex flex-col items-center justify-center flex-1 px-5 py-6 text-center gap-4">
       <div className="w-14 h-14 rounded-2xl bg-brand-600/10 border border-brand-500/20 flex items-center justify-center">
-        <Key size={22} className="text-brand-400" />
+        <Key size={22} className="text-brand-600" />
       </div>
       <div>
-        <div className="text-sm font-semibold text-gray-200">Configurar Open Claw</div>
+        <div className="text-sm font-semibold text-gray-400">Configurar Open Claw</div>
         <div className="text-[11px] text-gray-500 mt-1 leading-relaxed">
           Insira sua chave da API Anthropic para ativar o agente. A chave é salva localmente no seu navegador.
         </div>
@@ -85,11 +85,11 @@ function SetupScreen({ onSave }: { onSave: (key: string) => void }) {
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && save()}
           placeholder="sk-ant-... ou sk-..."
-          className="w-full px-3 py-2.5 pr-9 bg-gray-800 border border-gray-700 rounded-xl text-xs text-gray-200 placeholder:text-gray-600 focus:outline-none focus:border-brand-500 transition-colors"
+          className="w-full px-3 py-2.5 pr-9 bg-gray-100 border border-gray-300 rounded-xl text-xs text-gray-400 placeholder:text-gray-400 focus:outline-none focus:border-brand-500 transition-colors"
         />
         <button
           onClick={() => setShow((v) => !v)}
-          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-400"
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-400"
         >
           {show ? <EyeOff size={14} /> : <Eye size={14} />}
         </button>
@@ -98,7 +98,7 @@ function SetupScreen({ onSave }: { onSave: (key: string) => void }) {
       <button
         onClick={save}
         disabled={!value.trim()}
-        className="w-full py-2.5 bg-brand-600 hover:bg-brand-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-xl transition-colors"
+        className="w-full py-2.5 bg-brand-600 hover:bg-brand-500 disabled:opacity-40 disabled:cursor-not-allowed text-gray-900 text-xs font-semibold rounded-xl transition-colors"
       >
         Salvar e ativar
       </button>
@@ -107,7 +107,7 @@ function SetupScreen({ onSave }: { onSave: (key: string) => void }) {
         href="https://console.anthropic.com"
         target="_blank"
         rel="noopener noreferrer"
-        className="flex items-center gap-1 text-[11px] text-brand-400 hover:text-brand-300 transition-colors"
+        className="flex items-center gap-1 text-[11px] text-brand-600 hover:text-brand-500 transition-colors"
       >
         Obter chave no console.anthropic.com
         <ExternalLink size={10} />
@@ -231,27 +231,27 @@ export default function OpenClawWidget() {
       <button
         onClick={() => setOpen((v) => !v)}
         className={`fixed bottom-6 right-6 z-50 w-12 h-12 rounded-2xl shadow-2xl flex items-center justify-center transition-all duration-200 ${
-          open ? "bg-gray-700 hover:bg-gray-600" : "bg-gradient-to-br from-brand-600 to-brand-500 hover:scale-105 shadow-brand-900/50"
+          open ? "bg-gray-200 hover:bg-gray-600" : "bg-gradient-to-br from-brand-600 to-brand-500 hover:scale-105 shadow-brand-900/50"
         }`}
         title={open ? "Fechar OpenClaw" : "Abrir OpenClaw"}
       >
-        {open ? <X size={18} className="text-white" /> : <Sparkles size={18} className="text-white" />}
+        {open ? <X size={18} className="text-gray-900" /> : <Sparkles size={18} className="text-gray-900" />}
       </button>
 
       {/* Chat panel */}
       {open && (
         <div
-          className="fixed z-50 w-80 bg-gray-900 border border-gray-700/80 rounded-2xl shadow-2xl shadow-black/60 flex flex-col overflow-hidden"
+          className="fixed z-50 w-80 bg-white border border-gray-300/80 rounded-2xl shadow-2xl shadow-black/60 flex flex-col overflow-hidden"
           style={{ height: 480, bottom: "5.5rem", right: "1.5rem" }}
         >
           {/* Header */}
-          <div className="flex items-center gap-2.5 px-4 py-3 border-b border-gray-800 shrink-0">
+          <div className="flex items-center gap-2.5 px-4 py-3 border-b border-gray-200 shrink-0">
             <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-brand-600 to-brand-400 flex items-center justify-center">
-              <Sparkles size={12} className="text-white" />
+              <Sparkles size={12} className="text-gray-900" />
             </div>
             <div className="flex-1">
-              <div className="text-xs font-semibold text-gray-200">OpenClaw</div>
-              <div className="text-[10px] text-gray-600 mt-0.5">
+              <div className="text-xs font-semibold text-gray-400">OpenClaw</div>
+              <div className="text-[10px] text-gray-400 mt-0.5">
                 {apiKey ? buLabel : "Configuração necessária"}
               </div>
             </div>
@@ -259,7 +259,7 @@ export default function OpenClawWidget() {
               {apiKey && messages.length > 0 && (
                 <button
                   onClick={() => { setMessages([]); setError(null); }}
-                  className="p-1.5 text-gray-600 hover:text-gray-400 transition-colors"
+                  className="p-1.5 text-gray-400 hover:text-gray-400 transition-colors"
                   title="Nova conversa"
                 >
                   <RotateCcw size={12} />
@@ -268,13 +268,13 @@ export default function OpenClawWidget() {
               {apiKey && (
                 <button
                   onClick={() => { setApiKey(null); localStorage.removeItem(LS_KEY); setMessages([]); setError(null); }}
-                  className="p-1.5 text-gray-700 hover:text-gray-500 transition-colors"
+                  className="p-1.5 text-gray-400 hover:text-gray-500 transition-colors"
                   title="Trocar chave de API"
                 >
                   <Key size={12} />
                 </button>
               )}
-              <button onClick={() => setOpen(false)} className="p-1.5 text-gray-600 hover:text-gray-400 transition-colors">
+              <button onClick={() => setOpen(false)} className="p-1.5 text-gray-400 hover:text-gray-400 transition-colors">
                 <Minimize2 size={13} />
               </button>
             </div>
@@ -291,11 +291,11 @@ export default function OpenClawWidget() {
                   <div className="pt-2">
                     <div className="flex items-center gap-2 px-1 mb-3">
                       <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-brand-600 to-brand-400 flex items-center justify-center shrink-0">
-                        <Sparkles size={11} className="text-white" />
+                        <Sparkles size={11} className="text-gray-900" />
                       </div>
                       <div>
-                        <p className="text-[11px] font-medium text-gray-300">OpenClaw</p>
-                        <p className="text-[10px] text-gray-600">Contexto: {buLabel}</p>
+                        <p className="text-[11px] font-medium text-gray-400">OpenClaw</p>
+                        <p className="text-[10px] text-gray-400">Contexto: {buLabel}</p>
                       </div>
                     </div>
                     <div className="space-y-1.5">
@@ -303,7 +303,7 @@ export default function OpenClawWidget() {
                       <button
                         key={p}
                         onClick={() => sendMessage(p)}
-                        className="w-full text-left px-3 py-2 text-[11px] text-gray-400 bg-gray-800/60 hover:bg-gray-800 border border-gray-700/50 hover:border-gray-600 rounded-lg transition-colors"
+                        className="w-full text-left px-3 py-2 text-[11px] text-gray-400 bg-gray-100/60 hover:bg-gray-100 border border-gray-300/50 hover:border-gray-600 rounded-lg transition-colors"
                       >
                         {p}
                       </button>
@@ -316,13 +316,13 @@ export default function OpenClawWidget() {
                   <div key={i} className={`flex gap-2 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                     {msg.role === "assistant" && (
                       <div className="w-5 h-5 rounded-md bg-gradient-to-br from-brand-600 to-brand-400 flex items-center justify-center shrink-0 mt-0.5">
-                        <Bot size={10} className="text-white" />
+                        <Bot size={10} className="text-gray-900" />
                       </div>
                     )}
                     <div className={`max-w-[85%] rounded-xl px-3 py-2 text-[11px] leading-relaxed whitespace-pre-wrap ${
                       msg.role === "user"
-                        ? "bg-brand-600 text-white rounded-br-sm"
-                        : "bg-gray-800 text-gray-200 rounded-bl-sm border border-gray-700/40"
+                        ? "bg-brand-600 text-gray-900 rounded-br-sm"
+                        : "bg-gray-100 text-gray-400 rounded-bl-sm border border-gray-300/40"
                     }`}>
                       {msg.content || (
                         <span className="flex items-center gap-1.5 text-gray-500">
@@ -331,15 +331,15 @@ export default function OpenClawWidget() {
                       )}
                     </div>
                     {msg.role === "user" && (
-                      <div className="w-5 h-5 rounded-md bg-gray-700 flex items-center justify-center shrink-0 mt-0.5">
-                        <User size={10} className="text-gray-300" />
+                      <div className="w-5 h-5 rounded-md bg-gray-200 flex items-center justify-center shrink-0 mt-0.5">
+                        <User size={10} className="text-gray-400" />
                       </div>
                     )}
                   </div>
                 ))}
 
                 {error && (
-                  <div className="flex items-start gap-1.5 px-3 py-2 bg-red-950/40 border border-red-800/50 rounded-lg text-[10px] text-red-400">
+                  <div className="flex items-start gap-1.5 px-3 py-2 bg-red-950/40 border border-red-800/50 rounded-lg text-[10px] text-red-600">
                     <AlertCircle size={11} className="shrink-0 mt-0.5" />
                     <span>{error}</span>
                   </div>
@@ -348,8 +348,8 @@ export default function OpenClawWidget() {
               </div>
 
               {/* Input */}
-              <div className="border-t border-gray-800 px-3 py-2.5 shrink-0">
-                <div className="flex items-end gap-2 bg-gray-800 border border-gray-700 rounded-xl px-2.5 py-1.5 focus-within:border-brand-500 transition-colors">
+              <div className="border-t border-gray-200 px-3 py-2.5 shrink-0">
+                <div className="flex items-end gap-2 bg-gray-100 border border-gray-300 rounded-xl px-2.5 py-1.5 focus-within:border-brand-500 transition-colors">
                   <textarea
                     ref={textareaRef}
                     value={input}
@@ -366,7 +366,7 @@ export default function OpenClawWidget() {
                     }}
                     placeholder={`Pergunte sobre ${buLabel}...`}
                     rows={1}
-                    className="flex-1 bg-transparent text-[11px] text-gray-200 placeholder:text-gray-600 resize-none focus:outline-none min-h-[20px] max-h-20"
+                    className="flex-1 bg-transparent text-[11px] text-gray-400 placeholder:text-gray-400 resize-none focus:outline-none min-h-[20px] max-h-20"
                     disabled={loading}
                   />
                   <button
@@ -374,7 +374,7 @@ export default function OpenClawWidget() {
                     disabled={!input.trim() || loading}
                     className="w-6 h-6 rounded-lg bg-brand-600 hover:bg-brand-500 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-colors shrink-0"
                   >
-                    {loading ? <Loader2 size={11} className="text-white animate-spin" /> : <Send size={11} className="text-white" />}
+                    {loading ? <Loader2 size={11} className="text-gray-900 animate-spin" /> : <Send size={11} className="text-gray-900" />}
                   </button>
                 </div>
               </div>

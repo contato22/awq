@@ -62,8 +62,8 @@ export default function AwqAllocationsPage() {
               sub:   "Todas as BUs",
               delta: "+R$15M em 2026",
               icon:  Wallet,
-              color: "text-amber-400",
-              bg:    "bg-amber-500/10",
+              color: "text-amber-700",
+              bg:    "bg-amber-50",
             },
             {
               label: "ROIC Médio (Ops)",
@@ -71,8 +71,8 @@ export default function AwqAllocationsPage() {
               sub:   "excl. Venture",
               delta: "+5.2pp vs 2025",
               icon:  TrendingUp,
-              color: "text-emerald-400",
-              bg:    "bg-emerald-500/10",
+              color: "text-emerald-600",
+              bg:    "bg-emerald-50",
             },
             {
               label: "Melhor ROIC",
@@ -80,8 +80,8 @@ export default function AwqAllocationsPage() {
               sub:   `${buData.reduce((a, b) => a.roic > b.roic ? a : b).roic.toFixed(0)}% ROIC`,
               delta: "Advisor lidera",
               icon:  BarChart3,
-              color: "text-violet-400",
-              bg:    "bg-violet-500/10",
+              color: "text-violet-700",
+              bg:    "bg-violet-50",
             },
             {
               label: "BUs p/ Expandir",
@@ -89,8 +89,8 @@ export default function AwqAllocationsPage() {
               sub:   "Caza Vision + Advisor",
               delta: "Capital adicional aprovado",
               icon:  Zap,
-              color: "text-brand-400",
-              bg:    "bg-brand-500/10",
+              color: "text-brand-600",
+              bg:    "bg-brand-50",
             },
           ].map((card) => {
             const Icon = card.icon;
@@ -100,12 +100,12 @@ export default function AwqAllocationsPage() {
                   <Icon size={18} className={card.color} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-2xl font-bold text-white">{card.value}</div>
+                  <div className="text-2xl font-bold text-gray-900">{card.value}</div>
                   <div className="text-xs font-medium text-gray-400 mt-0.5">{card.label}</div>
                   <div className="flex items-center gap-1 mt-1">
-                    <ArrowUpRight size={11} className="text-emerald-400" />
-                    <span className="text-[10px] font-semibold text-emerald-400">{card.delta}</span>
-                    <span className="text-[10px] text-gray-600">{card.sub}</span>
+                    <ArrowUpRight size={11} className="text-emerald-600" />
+                    <span className="text-[10px] font-semibold text-emerald-600">{card.delta}</span>
+                    <span className="text-[10px] text-gray-400">{card.sub}</span>
                   </div>
                 </div>
               </div>
@@ -115,11 +115,11 @@ export default function AwqAllocationsPage() {
 
         {/* ── Capital Allocation Table ──────────────────────────────────────── */}
         <div className="card p-5">
-          <h2 className="text-sm font-semibold text-white mb-4">Capital por BU — ROIC, Payback e Decisão</h2>
+          <h2 className="text-sm font-semibold text-gray-900 mb-4">Capital por BU — ROIC, Payback e Decisão</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-800">
+                <tr className="border-b border-gray-200">
                   <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">BU</th>
                   <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Capital Alocado</th>
                   <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">% do Total</th>
@@ -138,37 +138,37 @@ export default function AwqAllocationsPage() {
                   const share   = (bu.capitalAllocated / totalCap) * 100;
                   const pb      = paybackMonths[bu.id];
                   return (
-                    <tr key={bu.id} className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
+                    <tr key={bu.id} className="border-b border-gray-100 hover:bg-gray-100 transition-colors">
                       <td className="py-2.5 px-3">
                         <div className="flex items-center gap-2">
                           <div className={`w-2 h-2 rounded-full ${bu.color}`} />
                           <span className={`text-xs font-bold ${bu.accentColor}`}>{bu.name}</span>
                         </div>
-                        <div className="text-[10px] text-gray-600 ml-4">{bu.sub.split(" · ")[0]}</div>
+                        <div className="text-[10px] text-gray-400 ml-4">{bu.sub.split(" · ")[0]}</div>
                       </td>
-                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-white">{fmtR(bu.capitalAllocated)}</td>
+                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-gray-900">{fmtR(bu.capitalAllocated)}</td>
                       <td className="py-2.5 px-3 text-right text-xs text-gray-400">{share.toFixed(0)}%</td>
-                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-white">{fmtR(bu.netIncome)}</td>
+                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-gray-900">{fmtR(bu.netIncome)}</td>
                       <td className="py-2.5 px-3 text-right text-xs font-bold">
-                        <span className={bu.roic >= 50 ? "text-emerald-400" : bu.roic >= 20 ? "text-amber-400" : "text-red-400"}>
+                        <span className={bu.roic >= 50 ? "text-emerald-600" : bu.roic >= 20 ? "text-amber-700" : "text-red-600"}>
                           {bu.roic.toFixed(1)}%
                         </span>
                       </td>
                       <td className="py-2.5 px-3 text-right text-xs font-semibold">
                         {pb ? (
-                          <span className={pb <= 12 ? "text-emerald-400" : pb <= 24 ? "text-amber-400" : "text-red-400"}>
+                          <span className={pb <= 12 ? "text-emerald-600" : pb <= 24 ? "text-amber-700" : "text-red-600"}>
                             {pb}m
                           </span>
-                        ) : <span className="text-gray-600">—</span>}
+                        ) : <span className="text-gray-400">—</span>}
                       </td>
-                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-emerald-400">{fmtR(bu.cashGenerated)}</td>
+                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-emerald-600">{fmtR(bu.cashGenerated)}</td>
                       <td className="py-2.5 px-3">
                         <span className={`text-xs font-bold px-2 py-1 rounded-full ${flagCfg.bg} ${flagCfg.color}`}>
                           {flagCfg.label}
                         </span>
                       </td>
                       <td className="py-2.5 px-3">
-                        <Link href={bu.hrefFinancial} className="text-[10px] text-brand-400 hover:text-brand-300 flex items-center gap-0.5 transition-colors">
+                        <Link href={bu.hrefFinancial} className="text-[10px] text-brand-600 hover:text-brand-500 flex items-center gap-0.5 transition-colors">
                           Detalhe <ChevronRight size={10} />
                         </Link>
                       </td>
@@ -188,16 +188,16 @@ export default function AwqAllocationsPage() {
             { title: "Ranking por ROIC", items: byRoic, getValue: (b: typeof buData[0]) => `${b.roic.toFixed(0)}%` },
           ].map((ranking) => (
             <div key={ranking.title} className="card p-5">
-              <h2 className="text-sm font-semibold text-white mb-4">{ranking.title}</h2>
+              <h2 className="text-sm font-semibold text-gray-900 mb-4">{ranking.title}</h2>
               <div className="space-y-2.5">
                 {ranking.items.map((bu, i) => {
                   const flag    = allocFlags[bu.id];
                   const flagCfg = flagConfig[flag];
                   return (
-                    <div key={bu.id} className="flex items-center gap-3 py-1.5 border-b border-gray-800/40 last:border-0">
-                      <span className="text-sm font-bold text-gray-700 w-5 shrink-0">#{i + 1}</span>
+                    <div key={bu.id} className="flex items-center gap-3 py-1.5 border-b border-gray-100 last:border-0">
+                      <span className="text-sm font-bold text-gray-400 w-5 shrink-0">#{i + 1}</span>
                       <div className={`w-2 h-2 rounded-full ${bu.color} shrink-0`} />
-                      <span className="text-xs text-gray-300 flex-1">{bu.name}</span>
+                      <span className="text-xs text-gray-400 flex-1">{bu.name}</span>
                       <span className={`text-[10px] font-bold ${flagCfg.color}`}>{flagCfg.label}</span>
                       <span className={`text-xs font-bold ${bu.accentColor}`}>{ranking.getValue(bu)}</span>
                     </div>
@@ -210,7 +210,7 @@ export default function AwqAllocationsPage() {
 
         {/* ── Capital allocation visual ──────────────────────────────────────── */}
         <div className="card p-5">
-          <h2 className="text-sm font-semibold text-white mb-4">Distribuição de Capital</h2>
+          <h2 className="text-sm font-semibold text-gray-900 mb-4">Distribuição de Capital</h2>
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             <div className="space-y-3">
               {buData.map((bu) => {
@@ -222,18 +222,18 @@ export default function AwqAllocationsPage() {
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2">
                         <div className={`w-2 h-2 rounded-full ${bu.color}`} />
-                        <span className="text-xs text-gray-300">{bu.name}</span>
+                        <span className="text-xs text-gray-400">{bu.name}</span>
                         <span className={`text-[10px] font-bold ${flagCfg.color}`}>{flagCfg.label}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className={`text-xs font-bold ${bu.roic >= 30 ? "text-emerald-400" : "text-amber-400"}`}>
+                        <span className={`text-xs font-bold ${bu.roic >= 30 ? "text-emerald-600" : "text-amber-700"}`}>
                           ROIC {bu.roic.toFixed(0)}%
                         </span>
-                        <span className="text-xs text-white font-semibold">{fmtR(bu.capitalAllocated)}</span>
-                        <span className="text-[10px] text-gray-600">{share.toFixed(0)}%</span>
+                        <span className="text-xs text-gray-900 font-semibold">{fmtR(bu.capitalAllocated)}</span>
+                        <span className="text-[10px] text-gray-400">{share.toFixed(0)}%</span>
                       </div>
                     </div>
-                    <div className="h-3 bg-gray-800 rounded-full overflow-hidden">
+                    <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
                       <div className={`h-full ${bu.color} rounded-full`} style={{ width: `${share}%` }} />
                     </div>
                   </div>

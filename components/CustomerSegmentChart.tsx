@@ -18,14 +18,14 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
   if (!active || !payload?.length) return null;
   const item = payload[0];
   return (
-    <div className="bg-gray-900 border border-gray-700 rounded-xl p-3 shadow-xl shadow-black/40">
+    <div className="bg-white border border-gray-300 rounded-xl p-3 shadow-xl shadow-black/40">
       <div className="flex items-center gap-2 text-xs">
         <span
           className="w-2 h-2 rounded-full"
           style={{ backgroundColor: item.payload.color }}
         />
         <span className="text-gray-400">{item.name}</span>
-        <span className="font-semibold text-white ml-1">{item.value}%</span>
+        <span className="font-semibold text-gray-900 ml-1">{item.value}%</span>
       </div>
     </div>
   );
@@ -35,7 +35,7 @@ export default function CustomerSegmentChart() {
   return (
     <div className="card p-6">
       <div className="mb-4">
-        <h2 className="text-sm font-semibold text-white">Customer Segments</h2>
+        <h2 className="text-sm font-semibold text-gray-900">Customer Segments</h2>
         <p className="text-xs text-gray-500 mt-0.5">Revenue distribution by tier</p>
       </div>
 
@@ -67,13 +67,13 @@ export default function CustomerSegmentChart() {
             />
             <span className="text-xs text-gray-400 flex-1">{seg.name}</span>
             <div className="flex items-center gap-2">
-              <div className="w-20 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+              <div className="w-20 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                 <div
                   className="h-full rounded-full"
                   style={{ width: `${seg.value}%`, backgroundColor: seg.color }}
                 />
               </div>
-              <span className="text-xs font-semibold text-gray-300 w-8 text-right">
+              <span className="text-xs font-semibold text-gray-400 w-8 text-right">
                 {seg.value}%
               </span>
             </div>

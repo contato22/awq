@@ -38,17 +38,17 @@ const typeIcon: Record<string, React.ElementType> = {
 };
 
 const typeColor: Record<string, string> = {
-  Marca:   "text-brand-400",
-  Agência: "text-emerald-400",
-  Empresa: "text-amber-400",
-  Startup: "text-violet-400",
+  Marca:   "text-brand-600",
+  Agência: "text-emerald-600",
+  Empresa: "text-amber-700",
+  Startup: "text-violet-700",
 };
 
 const statusConfig: Record<string, string> = {
   "Ativo":        "badge badge-green",
   "Em Proposta":  "badge badge-yellow",
   "Convertido":   "badge badge-blue",
-  "Perdido":      "bg-red-500/10 text-red-400 border border-red-500/20 text-[10px] font-semibold px-2 py-0.5 rounded-full",
+  "Perdido":      "bg-red-50 text-red-600 border border-red-200 text-[10px] font-semibold px-2 py-0.5 rounded-full",
 };
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -89,18 +89,18 @@ export default function ClientesPage() {
         {/* ── Source badge ────────────────────────────────────────────────── */}
         <div className="flex items-center gap-2">
           {source === "loading" && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-800 border border-gray-700 text-xs text-gray-400">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 border border-gray-300 text-xs text-gray-400">
               <Database size={11} /> Conectando ao Notion…
             </span>
           )}
           {source === "notion" && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-400">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-xs text-emerald-600">
               <Database size={11} /> Dados ao vivo — Notion
             </span>
           )}
           {source === "mock" && (
             <span
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-xs text-amber-400"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-xs text-amber-700"
               title={notionError ?? ""}
             >
               <CloudOff size={11} /> Dados de demonstração
@@ -112,15 +112,15 @@ export default function ClientesPage() {
         {/* ── Summary strip ───────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
           {[
-            { label: "Total de Clientes",    value: String(total),       color: "text-white",       icon: Users       },
-            { label: "Ativos / Em Proposta", value: String(ativos),      color: "text-emerald-400", icon: BarChart3   },
-            { label: "Wallet Total (Ativos)", value: fmtR(ativosWallet), color: "text-brand-400",   icon: DollarSign  },
-            { label: "Budget Médio / Cliente", value: fmtR(avgBudget),   color: "text-amber-400",   icon: TrendingUp  },
+            { label: "Total de Clientes",    value: String(total),       color: "text-gray-900",       icon: Users       },
+            { label: "Ativos / Em Proposta", value: String(ativos),      color: "text-emerald-600", icon: BarChart3   },
+            { label: "Wallet Total (Ativos)", value: fmtR(ativosWallet), color: "text-brand-600",   icon: DollarSign  },
+            { label: "Budget Médio / Cliente", value: fmtR(avgBudget),   color: "text-amber-700",   icon: TrendingUp  },
           ].map((s) => {
             const Icon = s.icon;
             return (
               <div key={s.label} className="card p-4 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-gray-800 flex items-center justify-center shrink-0">
+                <div className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
                   <Icon size={15} className={s.color} />
                 </div>
                 <div>
@@ -134,7 +134,7 @@ export default function ClientesPage() {
 
         {/* ── Financial Summary ────────────────────────────────────────────── */}
         <div className="card p-5">
-          <h2 className="text-sm font-semibold text-white mb-4">Concentração de Budget por Cliente</h2>
+          <h2 className="text-sm font-semibold text-gray-900 mb-4">Concentração de Budget por Cliente</h2>
           <div className="space-y-2">
             {[...clients]
               .filter((c) => c.budget_anual > 0)
@@ -144,14 +144,14 @@ export default function ClientesPage() {
                 return (
                   <div key={c.id} className="flex items-center gap-3">
                     <span className="text-xs text-gray-400 w-32 shrink-0 truncate">{c.name}</span>
-                    <div className="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden">
+                    <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-emerald-500 rounded-full"
                         style={{ width: `${share}%` }}
                       />
                     </div>
-                    <span className="text-xs font-semibold text-white w-18 text-right shrink-0">{fmtR(c.budget_anual)}</span>
-                    <span className="text-[10px] text-gray-600 w-10 text-right shrink-0">{share.toFixed(0)}%</span>
+                    <span className="text-xs font-semibold text-gray-900 w-18 text-right shrink-0">{fmtR(c.budget_anual)}</span>
+                    <span className="text-[10px] text-gray-400 w-10 text-right shrink-0">{share.toFixed(0)}%</span>
                     <span className={`${statusConfig[c.status] ?? "badge"} shrink-0`}>{c.status}</span>
                   </div>
                 );
@@ -161,16 +161,16 @@ export default function ClientesPage() {
 
         {/* ── Clients table ───────────────────────────────────────────────── */}
         <div className="card p-5">
-          <h2 className="text-sm font-semibold text-white mb-4">Todos os Clientes</h2>
+          <h2 className="text-sm font-semibold text-gray-900 mb-4">Todos os Clientes</h2>
           {source === "loading" ? (
-            <div className="flex items-center justify-center py-12 text-gray-600 text-sm gap-2">
+            <div className="flex items-center justify-center py-12 text-gray-400 text-sm gap-2">
               <AlertCircle size={16} /> Carregando…
             </div>
           ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-800">
+                <tr className="border-b border-gray-200">
                   <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Cliente</th>
                   <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Perfil</th>
                   <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Budget Anual</th>
@@ -184,11 +184,11 @@ export default function ClientesPage() {
                 {clients.map((c) => {
                   const TypeIcon = typeIcon[c.type] ?? Users;
                   return (
-                    <tr key={c.id} className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
+                    <tr key={c.id} className="border-b border-gray-100 hover:bg-gray-100 transition-colors">
                       <td className="py-2.5 px-3">
-                        <div className="text-gray-300 font-medium text-xs">{c.name}</div>
-                        <div className="text-[10px] text-gray-600 mt-0.5">{c.email}</div>
-                        <div className="text-[10px] text-gray-600">{c.phone}</div>
+                        <div className="text-gray-400 font-medium text-xs">{c.name}</div>
+                        <div className="text-[10px] text-gray-400 mt-0.5">{c.email}</div>
+                        <div className="text-[10px] text-gray-400">{c.phone}</div>
                       </td>
                       <td className="py-2.5 px-3">
                         <div className={`flex items-center gap-1.5 text-xs ${typeColor[c.type] ?? "text-gray-400"}`}>
@@ -196,18 +196,18 @@ export default function ClientesPage() {
                           {c.type}
                         </div>
                       </td>
-                      <td className="py-2.5 px-3 text-right text-white font-semibold text-xs">
-                        {c.budget_anual > 0 ? fmtR(c.budget_anual) : <span className="text-gray-600">—</span>}
+                      <td className="py-2.5 px-3 text-right text-gray-900 font-semibold text-xs">
+                        {c.budget_anual > 0 ? fmtR(c.budget_anual) : <span className="text-gray-400">—</span>}
                       </td>
                       <td className="py-2.5 px-3 text-right text-xs">
                         {c.budget_anual > 0 && totalWallet > 0 ? (
-                          <span className="text-brand-400 font-semibold">
+                          <span className="text-brand-600 font-semibold">
                             {((c.budget_anual / totalWallet) * 100).toFixed(0)}%
                           </span>
-                        ) : <span className="text-gray-600">—</span>}
+                        ) : <span className="text-gray-400">—</span>}
                       </td>
                       <td className="py-2.5 px-3 text-xs text-gray-400">{c.segmento || "—"}</td>
-                      <td className="py-2.5 px-3 text-[11px] text-gray-600">{c.since || "—"}</td>
+                      <td className="py-2.5 px-3 text-[11px] text-gray-400">{c.since || "—"}</td>
                       <td className="py-2.5 px-3">
                         <span className={statusConfig[c.status] ?? "badge"}>{c.status}</span>
                       </td>

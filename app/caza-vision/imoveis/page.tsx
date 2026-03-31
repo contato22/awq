@@ -41,9 +41,9 @@ function fmtDate(d: string) {
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 const prioridadeColor: Record<string, string> = {
-  Alta:   "text-red-400",
-  Média:  "text-amber-400",
-  Baixa:  "text-emerald-400",
+  Alta:   "text-red-600",
+  Média:  "text-amber-700",
+  Baixa:  "text-emerald-600",
 };
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -88,17 +88,17 @@ export default function ProjetosPage() {
         {/* ── Source badge ────────────────────────────────────────────────── */}
         <div className="flex items-center gap-2">
           {source === "loading" && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-800 border border-gray-700 text-xs text-gray-400">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 border border-gray-300 text-xs text-gray-400">
               <Database size={11} /> Conectando ao Notion…
             </span>
           )}
           {source === "notion" && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-400">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-xs text-emerald-600">
               <Database size={11} /> Dados ao vivo — Notion
             </span>
           )}
           {source === "mock" && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-xs text-amber-400"
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-xs text-amber-700"
               title={notionError ?? ""}>
               <CloudOff size={11} /> Dados de demonstração
               {notionError && <span className="text-[10px] text-gray-500 ml-1">({notionError})</span>}
@@ -109,12 +109,12 @@ export default function ProjetosPage() {
         {/* ── Summary strip ───────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 xl:grid-cols-6 gap-4">
           {[
-            { label: "Total Projetos",    value: total,         color: "text-white",       fmt: String },
-            { label: "Em Aberto",         value: emProducao,    color: "text-brand-400",   fmt: String },
-            { label: "Recebidos",         value: entregues,     color: "text-emerald-400", fmt: String },
-            { label: "Orçamento Total",   value: totalValor,    color: "text-white",       fmt: fmtR   },
-            { label: "Despesas",          value: totalDespesas, color: "text-red-400",     fmt: fmtR   },
-            { label: "Lucro Líquido",     value: totalLucro,    color: "text-emerald-400", fmt: fmtR   },
+            { label: "Total Projetos",    value: total,         color: "text-gray-900",       fmt: String },
+            { label: "Em Aberto",         value: emProducao,    color: "text-brand-600",   fmt: String },
+            { label: "Recebidos",         value: entregues,     color: "text-emerald-600", fmt: String },
+            { label: "Orçamento Total",   value: totalValor,    color: "text-gray-900",       fmt: fmtR   },
+            { label: "Despesas",          value: totalDespesas, color: "text-red-600",     fmt: fmtR   },
+            { label: "Lucro Líquido",     value: totalLucro,    color: "text-emerald-600", fmt: fmtR   },
           ].map((s) => (
             <div key={s.label} className="card p-4 text-center">
               <div className={`text-3xl font-bold ${s.color}`}>{s.fmt(s.value)}</div>
@@ -127,8 +127,8 @@ export default function ProjetosPage() {
         {rows.length > 0 && (
           <div className="card p-5">
             <div className="flex items-center gap-2 mb-4">
-              <TrendingUp size={14} className="text-emerald-400" />
-              <h2 className="text-sm font-semibold text-white">Análise de Margem por Projeto</h2>
+              <TrendingUp size={14} className="text-emerald-600" />
+              <h2 className="text-sm font-semibold text-gray-900">Análise de Margem por Projeto</h2>
             </div>
             <div className="space-y-2">
               {rows
@@ -144,16 +144,16 @@ export default function ProjetosPage() {
                   return (
                     <div key={p.id} className="flex items-center gap-3">
                       <span className="text-[11px] text-gray-400 w-44 shrink-0 truncate">{p.titulo || "—"}</span>
-                      <div className="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden">
+                      <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
                         <div
                           className={`h-full rounded-full ${margin >= 60 ? "bg-emerald-500" : margin >= 40 ? "bg-amber-500" : "bg-red-500"}`}
                           style={{ width: `${Math.min(margin, 100)}%` }}
                         />
                       </div>
-                      <span className={`text-[11px] font-bold w-10 text-right shrink-0 ${margin >= 60 ? "text-emerald-400" : margin >= 40 ? "text-amber-400" : "text-red-400"}`}>
+                      <span className={`text-[11px] font-bold w-10 text-right shrink-0 ${margin >= 60 ? "text-emerald-600" : margin >= 40 ? "text-amber-700" : "text-red-600"}`}>
                         {margin.toFixed(0)}%
                       </span>
-                      <span className="text-[10px] text-gray-600 w-16 text-right shrink-0">{fmtR(lucro)}</span>
+                      <span className="text-[10px] text-gray-400 w-16 text-right shrink-0">{fmtR(lucro)}</span>
                     </div>
                   );
                 })}
@@ -163,16 +163,16 @@ export default function ProjetosPage() {
 
         {/* ── Projects table ──────────────────────────────────────────────── */}
         <div className="card p-5">
-          <h2 className="text-sm font-semibold text-white mb-4">Todos os Projetos</h2>
+          <h2 className="text-sm font-semibold text-gray-900 mb-4">Todos os Projetos</h2>
           {source === "loading" ? (
-            <div className="flex items-center justify-center py-12 text-gray-600 text-sm gap-2">
+            <div className="flex items-center justify-center py-12 text-gray-400 text-sm gap-2">
               <AlertCircle size={16} /> Carregando…
             </div>
           ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-800">
+                <tr className="border-b border-gray-200">
                   <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Projeto</th>
                   <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Prioridade</th>
                   <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Orçamento</th>
@@ -186,10 +186,10 @@ export default function ProjetosPage() {
               </thead>
               <tbody>
                 {rows.map((p) => (
-                  <tr key={p.id} className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
+                  <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-100 transition-colors">
                     <td className="py-2.5 px-3">
-                      <div className="flex items-center gap-1.5 text-gray-300 font-medium text-xs">
-                        <Clapperboard size={11} className="text-gray-600 shrink-0" />
+                      <div className="flex items-center gap-1.5 text-gray-400 font-medium text-xs">
+                        <Clapperboard size={11} className="text-gray-400 shrink-0" />
                         {p.titulo || "—"}
                       </div>
                     </td>
@@ -198,31 +198,31 @@ export default function ProjetosPage() {
                         <span className={`font-semibold ${prioridadeColor[p.prioridade] ?? "text-gray-400"}`}>
                           {p.prioridade}
                         </span>
-                      ) : <span className="text-gray-600">—</span>}
+                      ) : <span className="text-gray-400">—</span>}
                     </td>
-                    <td className="py-2.5 px-3 text-right text-white font-semibold text-xs">
-                      {p.valor > 0 ? fmtR(p.valor) : <span className="text-gray-600">—</span>}
+                    <td className="py-2.5 px-3 text-right text-gray-900 font-semibold text-xs">
+                      {p.valor > 0 ? fmtR(p.valor) : <span className="text-gray-400">—</span>}
                     </td>
-                    <td className="py-2.5 px-3 text-right text-xs text-red-400">
-                      {p.alimentacao > 0 ? fmtR(p.alimentacao) : <span className="text-gray-600">—</span>}
+                    <td className="py-2.5 px-3 text-right text-xs text-red-600">
+                      {p.alimentacao > 0 ? fmtR(p.alimentacao) : <span className="text-gray-400">—</span>}
                     </td>
-                    <td className="py-2.5 px-3 text-right text-xs text-red-400">
-                      {p.gasolina > 0 ? fmtR(p.gasolina) : <span className="text-gray-600">—</span>}
+                    <td className="py-2.5 px-3 text-right text-xs text-red-600">
+                      {p.gasolina > 0 ? fmtR(p.gasolina) : <span className="text-gray-400">—</span>}
                     </td>
-                    <td className="py-2.5 px-3 text-right text-xs font-semibold text-emerald-400">
-                      {p.lucro > 0 ? fmtR(p.lucro) : <span className="text-gray-600">—</span>}
+                    <td className="py-2.5 px-3 text-right text-xs font-semibold text-emerald-600">
+                      {p.lucro > 0 ? fmtR(p.lucro) : <span className="text-gray-400">—</span>}
                     </td>
                     <td className="py-2.5 px-3 text-xs text-gray-400">
-                      {p.diretor || <span className="text-gray-600">—</span>}
+                      {p.diretor || <span className="text-gray-400">—</span>}
                     </td>
                     <td className="py-2.5 px-3 text-xs text-gray-400">{fmtDate(p.prazo)}</td>
                     <td className="py-2.5 px-3">
                       {p.recebido ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-600 border border-emerald-200">
                           <CheckCircle2 size={9} /> Recebido
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-500/10 text-brand-400 border border-brand-500/20">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-50 text-brand-600 border border-brand-200">
                           <Clock size={9} /> Em Aberto
                         </span>
                       )}
@@ -231,13 +231,13 @@ export default function ProjetosPage() {
                 ))}
               </tbody>
               <tfoot>
-                <tr className="border-t border-gray-700">
+                <tr className="border-t border-gray-300">
                   <td className="py-2.5 px-3 text-xs font-bold text-gray-400">TOTAL</td>
                   <td colSpan={2} />
-                  <td className="py-2.5 px-3 text-right text-white font-bold text-xs">{fmtR(totalValor)}</td>
-                  <td className="py-2.5 px-3 text-right text-red-400 font-bold text-xs">{totalDespesas > 0 ? fmtR(totalDespesas) : "—"}</td>
-                  <td className="py-2.5 px-3 text-right text-red-400 font-bold text-xs">—</td>
-                  <td className="py-2.5 px-3 text-right text-emerald-400 font-bold text-xs">{fmtR(totalLucro)}</td>
+                  <td className="py-2.5 px-3 text-right text-gray-900 font-bold text-xs">{fmtR(totalValor)}</td>
+                  <td className="py-2.5 px-3 text-right text-red-600 font-bold text-xs">{totalDespesas > 0 ? fmtR(totalDespesas) : "—"}</td>
+                  <td className="py-2.5 px-3 text-right text-red-600 font-bold text-xs">—</td>
+                  <td className="py-2.5 px-3 text-right text-emerald-600 font-bold text-xs">{fmtR(totalLucro)}</td>
                   <td colSpan={3} />
                 </tr>
               </tfoot>

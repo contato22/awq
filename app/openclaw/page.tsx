@@ -9,7 +9,7 @@ export default function OpenClawPage() {
         subtitle="AI-powered business intelligence assistant — ask anything about your data"
       />
       <div className="flex-1 px-8 py-4" style={{ minHeight: 0 }}>
-        <div className="h-full max-w-3xl mx-auto bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden flex flex-col">
+        <div className="h-full max-w-3xl mx-auto bg-white border border-gray-200 rounded-2xl overflow-hidden flex flex-col">
           <OpenClaw />
         </div>
       </div>

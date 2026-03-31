@@ -33,8 +33,8 @@ const summaryCards = [
     delta: "+18.3%",
     up: true,
     icon: Briefcase,
-    color: "text-violet-400",
-    bg: "bg-violet-500/10",
+    color: "text-violet-700",
+    bg: "bg-violet-50",
   },
   {
     label: "Receita de Taxas YTD",
@@ -43,8 +43,8 @@ const summaryCards = [
     delta: "+22.1%",
     up: true,
     icon: DollarSign,
-    color: "text-emerald-400",
-    bg: "bg-emerald-500/10",
+    color: "text-emerald-600",
+    bg: "bg-emerald-50",
   },
   {
     label: "Lucro Operacional YTD",
@@ -53,8 +53,8 @@ const summaryCards = [
     delta: "+9.4%",
     up: true,
     icon: TrendingUp,
-    color: "text-brand-400",
-    bg: "bg-brand-500/10",
+    color: "text-brand-600",
+    bg: "bg-brand-50",
   },
   {
     label: "Retorno Médio Carteiras",
@@ -63,8 +63,8 @@ const summaryCards = [
     delta: "+5.6pp vs benchmark",
     up: true,
     icon: BarChart3,
-    color: "text-amber-400",
-    bg: "bg-amber-500/10",
+    color: "text-amber-700",
+    bg: "bg-amber-50",
   },
 ];
 
@@ -119,14 +119,14 @@ export default function AdvisorFinancialPage() {
                   <Icon size={18} className={card.color} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-2xl font-bold text-white">{card.value}</div>
+                  <div className="text-2xl font-bold text-gray-900">{card.value}</div>
                   <div className="text-xs font-medium text-gray-400 mt-0.5">{card.label}</div>
                   <div className="flex items-center gap-1 mt-1">
                     {card.up
-                      ? <ArrowUpRight size={11} className="text-emerald-400" />
-                      : <ArrowDownRight size={11} className="text-red-400" />}
-                    <span className={`text-[10px] font-semibold ${card.up ? "text-emerald-400" : "text-red-400"}`}>{card.delta}</span>
-                    <span className="text-[10px] text-gray-600">{card.sub}</span>
+                      ? <ArrowUpRight size={11} className="text-emerald-600" />
+                      : <ArrowDownRight size={11} className="text-red-600" />}
+                    <span className={`text-[10px] font-semibold ${card.up ? "text-emerald-600" : "text-red-600"}`}>{card.delta}</span>
+                    <span className="text-[10px] text-gray-400">{card.sub}</span>
                   </div>
                 </div>
               </div>
@@ -138,23 +138,23 @@ export default function AdvisorFinancialPage() {
 
           {/* ── DRE ──────────────────────────────────────────────────────────── */}
           <div className="card p-5">
-            <h2 className="text-sm font-semibold text-white mb-4">DRE Simplificado · YTD 2026</h2>
+            <h2 className="text-sm font-semibold text-gray-900 mb-4">DRE Simplificado · YTD 2026</h2>
             <div className="space-y-0.5">
               {dreAdvisor.map((row, i) => (
                 <div
                   key={i}
-                  className={`flex items-center justify-between py-2 px-2 rounded-lg ${row.bold ? "bg-gray-800/30" : ""}`}
+                  className={`flex items-center justify-between py-2 px-2 rounded-lg ${row.bold ? "bg-gray-100" : ""}`}
                   style={{ paddingLeft: `${(row.indent * 12) + 8}px` }}
                 >
-                  <span className={`text-xs ${row.bold ? "font-bold text-gray-100" : "text-gray-400"}`}>
+                  <span className={`text-xs ${row.bold ? "font-bold text-gray-800" : "text-gray-400"}`}>
                     {row.label}
                   </span>
                   <span className={`text-xs font-semibold ${
                     row.bold
-                      ? "text-white"
+                      ? "text-gray-900"
                       : row.value < 0
-                        ? "text-red-400"
-                        : "text-emerald-400"
+                        ? "text-red-600"
+                        : "text-emerald-600"
                   }`}>
                     {fmtR(row.value)}
                   </span>
@@ -165,11 +165,11 @@ export default function AdvisorFinancialPage() {
 
           {/* ── Fee Income Table ──────────────────────────────────────────────── */}
           <div className="card p-5">
-            <h2 className="text-sm font-semibold text-white mb-4">Receita de Taxas por Mês</h2>
+            <h2 className="text-sm font-semibold text-gray-900 mb-4">Receita de Taxas por Mês</h2>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-800">
+                  <tr className="border-b border-gray-200">
                     <th className="text-left  py-1.5 px-2 text-xs font-semibold text-gray-500">Mês</th>
                     <th className="text-right py-1.5 px-2 text-xs font-semibold text-gray-500">Gestão</th>
                     <th className="text-right py-1.5 px-2 text-xs font-semibold text-gray-500">Perf.</th>
@@ -179,28 +179,28 @@ export default function AdvisorFinancialPage() {
                 </thead>
                 <tbody>
                   {feeIncome.map((row) => (
-                    <tr key={row.month} className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
-                      <td className="py-2 px-2 text-xs text-gray-300 font-medium">{row.month}</td>
+                    <tr key={row.month} className="border-b border-gray-100 hover:bg-gray-100 transition-colors">
+                      <td className="py-2 px-2 text-xs text-gray-400 font-medium">{row.month}</td>
                       <td className="py-2 px-2 text-right text-xs text-gray-400">{fmtR(row.taxaGestao)}</td>
-                      <td className="py-2 px-2 text-right text-xs text-violet-400">{fmtR(row.taxaPerformance)}</td>
+                      <td className="py-2 px-2 text-right text-xs text-violet-700">{fmtR(row.taxaPerformance)}</td>
                       <td className="py-2 px-2 text-right text-xs text-gray-400">{fmtR(row.taxaConsultoria)}</td>
-                      <td className="py-2 px-2 text-right text-xs font-bold text-white">{fmtR(row.total)}</td>
+                      <td className="py-2 px-2 text-right text-xs font-bold text-gray-900">{fmtR(row.total)}</td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot>
-                  <tr className="border-t border-gray-700">
+                  <tr className="border-t border-gray-300">
                     <td className="py-2 px-2 text-xs font-bold text-gray-400">YTD</td>
                     <td className="py-2 px-2 text-right text-xs font-bold text-gray-400">
                       {fmtR(feeIncome.reduce((s, r) => s + r.taxaGestao, 0))}
                     </td>
-                    <td className="py-2 px-2 text-right text-xs font-bold text-violet-400">
+                    <td className="py-2 px-2 text-right text-xs font-bold text-violet-700">
                       {fmtR(feeIncome.reduce((s, r) => s + r.taxaPerformance, 0))}
                     </td>
                     <td className="py-2 px-2 text-right text-xs font-bold text-gray-400">
                       {fmtR(feeIncome.reduce((s, r) => s + r.taxaConsultoria, 0))}
                     </td>
-                    <td className="py-2 px-2 text-right text-xs font-bold text-white">{fmtR(totalFee)}</td>
+                    <td className="py-2 px-2 text-right text-xs font-bold text-gray-900">{fmtR(totalFee)}</td>
                   </tr>
                 </tfoot>
               </table>
@@ -209,7 +209,7 @@ export default function AdvisorFinancialPage() {
 
           {/* ── AUM by Strategy ───────────────────────────────────────────────── */}
           <div className="card p-5">
-            <h2 className="text-sm font-semibold text-white mb-4">AUM por Estratégia</h2>
+            <h2 className="text-sm font-semibold text-gray-900 mb-4">AUM por Estratégia</h2>
             <div className="space-y-4">
               {aumByStrategy.map((s) => {
                 const totalAum = aumByStrategy.reduce((t, a) => t + a.aum, 0);
@@ -217,35 +217,35 @@ export default function AdvisorFinancialPage() {
                 return (
                   <div key={s.strategy}>
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs text-gray-300">{s.strategy}</span>
+                      <span className="text-xs text-gray-400">{s.strategy}</span>
                       <div className="flex items-center gap-2 text-[11px]">
                         <span className="text-gray-500">{s.clientes} clientes</span>
-                        <span className="text-emerald-400 font-semibold">+{s.retorno}%</span>
-                        <span className="text-white font-bold">{fmtR(s.aum)}</span>
+                        <span className="text-emerald-600 font-semibold">+{s.retorno}%</span>
+                        <span className="text-gray-900 font-bold">{fmtR(s.aum)}</span>
                       </div>
                     </div>
-                    <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                       <div className="h-full bg-violet-500 rounded-full" style={{ width: `${barPct}%` }} />
                     </div>
                     <div className="flex items-center justify-between mt-0.5">
-                      <span className="text-[10px] text-gray-700">Taxa: {s.fee}% a.a.</span>
-                      <span className="text-[10px] text-gray-600">{barPct.toFixed(0)}% do AUM</span>
+                      <span className="text-[10px] text-gray-400">Taxa: {s.fee}% a.a.</span>
+                      <span className="text-[10px] text-gray-400">{barPct.toFixed(0)}% do AUM</span>
                     </div>
                   </div>
                 );
               })}
             </div>
 
-            <div className="mt-4 pt-3 border-t border-gray-800">
+            <div className="mt-4 pt-3 border-t border-gray-200">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-gray-500">AUM Total</span>
-                <span className="text-base font-bold text-violet-400">
+                <span className="text-base font-bold text-violet-700">
                   {fmtR(aumByStrategy.reduce((s, a) => s + a.aum, 0))}
                 </span>
               </div>
               <div className="flex items-center justify-between mt-1">
                 <span className="text-xs text-gray-500">Retorno Médio Ponderado</span>
-                <span className="text-xs font-bold text-emerald-400">+14.8% a.a.</span>
+                <span className="text-xs font-bold text-emerald-600">+14.8% a.a.</span>
               </div>
             </div>
           </div>

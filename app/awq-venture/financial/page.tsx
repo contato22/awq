@@ -155,8 +155,8 @@ export default function AwqVentureFinancialPage() {
               delta: "+R$15M em 2026",
               up: true,
               icon: DollarSign,
-              color: "text-amber-400",
-              bg: "bg-amber-500/10",
+              color: "text-amber-700",
+              bg: "bg-amber-50",
             },
             {
               label: "Valor do Portfólio",
@@ -165,8 +165,8 @@ export default function AwqVentureFinancialPage() {
               delta: `MOIC ${fmtMult(moic)}`,
               up: true,
               icon: BarChart3,
-              color: "text-emerald-400",
-              bg: "bg-emerald-500/10",
+              color: "text-emerald-600",
+              bg: "bg-emerald-50",
             },
             {
               label: "ROIC Total",
@@ -175,8 +175,8 @@ export default function AwqVentureFinancialPage() {
               delta: `${fmtMult(moic)} MOIC`,
               up: true,
               icon: TrendingUp,
-              color: "text-brand-400",
-              bg: "bg-brand-500/10",
+              color: "text-brand-600",
+              bg: "bg-brand-50",
             },
             {
               label: "Capital Retornado",
@@ -185,8 +185,8 @@ export default function AwqVentureFinancialPage() {
               delta: "Saúde Digital exit",
               up: true,
               icon: Zap,
-              color: "text-violet-400",
-              bg: "bg-violet-500/10",
+              color: "text-violet-700",
+              bg: "bg-violet-50",
             },
           ].map((card) => {
             const Icon = card.icon;
@@ -196,14 +196,14 @@ export default function AwqVentureFinancialPage() {
                   <Icon size={18} className={card.color} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-2xl font-bold text-white">{card.value}</div>
+                  <div className="text-2xl font-bold text-gray-900">{card.value}</div>
                   <div className="text-xs font-medium text-gray-400 mt-0.5">{card.label}</div>
                   <div className="flex items-center gap-1 mt-1">
                     {card.up
-                      ? <ArrowUpRight size={11} className="text-emerald-400" />
-                      : <ArrowDownRight size={11} className="text-red-400" />}
-                    <span className={`text-[10px] font-semibold ${card.up ? "text-emerald-400" : "text-red-400"}`}>{card.delta}</span>
-                    <span className="text-[10px] text-gray-600">{card.sub}</span>
+                      ? <ArrowUpRight size={11} className="text-emerald-600" />
+                      : <ArrowDownRight size={11} className="text-red-600" />}
+                    <span className={`text-[10px] font-semibold ${card.up ? "text-emerald-600" : "text-red-600"}`}>{card.delta}</span>
+                    <span className="text-[10px] text-gray-400">{card.sub}</span>
                   </div>
                 </div>
               </div>
@@ -213,13 +213,13 @@ export default function AwqVentureFinancialPage() {
 
         {/* ── Portfolio Table ───────────────────────────────────────────────── */}
         <div className="card p-5">
-          <h2 className="text-sm font-semibold text-white mb-4">
+          <h2 className="text-sm font-semibold text-gray-900 mb-4">
             Portfólio de Investimentos — ROIC por Empresa
           </h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-800">
+                <tr className="border-b border-gray-200">
                   <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Empresa</th>
                   <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Setor</th>
                   <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Stage</th>
@@ -241,38 +241,38 @@ export default function AwqVentureFinancialPage() {
                   const Icon = statusIcon[p.status] ?? Clock;
 
                   return (
-                    <tr key={p.id} className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
+                    <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-100 transition-colors">
                       <td className="py-2.5 px-3">
-                        <div className="text-xs font-medium text-gray-200">{p.company}</div>
-                        <div className="text-[10px] text-gray-600 mt-0.5">desde {p.entryDate}</div>
+                        <div className="text-xs font-medium text-gray-400">{p.company}</div>
+                        <div className="text-[10px] text-gray-400 mt-0.5">desde {p.entryDate}</div>
                       </td>
                       <td className="py-2.5 px-3 text-xs text-gray-400">{p.sector}</td>
                       <td className="py-2.5 px-3">
-                        <span className="text-[10px] px-2 py-0.5 rounded bg-gray-800 text-gray-400 font-medium">{p.stage}</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-gray-100 text-gray-400 font-medium">{p.stage}</span>
                       </td>
-                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-white">{fmtR(p.invested)}</td>
+                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-gray-900">{fmtR(p.invested)}</td>
                       <td className="py-2.5 px-3 text-right text-xs font-semibold">
                         {p.status === "Exitado"
-                          ? <span className="text-violet-400">{fmtR(p.returned)} <span className="text-[10px] text-gray-600">(exit)</span></span>
-                          : <span className="text-white">{fmtR(p.currentVal)}</span>}
+                          ? <span className="text-violet-700">{fmtR(p.returned)} <span className="text-[10px] text-gray-400">(exit)</span></span>
+                          : <span className="text-gray-900">{fmtR(p.currentVal)}</span>}
                       </td>
                       <td className="py-2.5 px-3 text-right text-xs font-bold">
-                        <span className={moicP >= 2 ? "text-emerald-400" : moicP >= 1 ? "text-amber-400" : "text-red-400"}>
+                        <span className={moicP >= 2 ? "text-emerald-600" : moicP >= 1 ? "text-amber-700" : "text-red-600"}>
                           {fmtMult(moicP)}
                         </span>
                       </td>
                       <td className="py-2.5 px-3 text-right text-xs font-semibold">
-                        <span className={roicP >= 50 ? "text-emerald-400" : roicP >= 0 ? "text-amber-400" : "text-red-400"}>
+                        <span className={roicP >= 50 ? "text-emerald-600" : roicP >= 0 ? "text-amber-700" : "text-red-600"}>
                           {roicP >= 0 ? "+" : ""}{roicP.toFixed(1)}%
                         </span>
                       </td>
                       <td className="py-2.5 px-3 text-right text-xs font-bold">
-                        <span className={irrPositive ? "text-emerald-400" : "text-red-400"}>
+                        <span className={irrPositive ? "text-emerald-600" : "text-red-600"}>
                           {irrPositive ? "+" : ""}{p.irr.toFixed(1)}%
                         </span>
                       </td>
                       <td className="py-2.5 px-3 text-right text-xs text-gray-400">
-                        {p.ownership > 0 ? `${p.ownership}%` : <span className="text-gray-600">—</span>}
+                        {p.ownership > 0 ? `${p.ownership}%` : <span className="text-gray-400">—</span>}
                       </td>
                       <td className="py-2.5 px-3">
                         <span className={`inline-flex items-center gap-1 ${statusConfig[p.status] ?? "badge"}`}>
@@ -285,16 +285,16 @@ export default function AwqVentureFinancialPage() {
                 })}
               </tbody>
               <tfoot>
-                <tr className="border-t border-gray-700">
+                <tr className="border-t border-gray-300">
                   <td className="py-2.5 px-3 text-xs font-bold text-gray-400">TOTAL</td>
                   <td colSpan={2} />
-                  <td className="py-2.5 px-3 text-right text-xs font-bold text-white">{fmtR(totalInvested)}</td>
-                  <td className="py-2.5 px-3 text-right text-xs font-bold text-white">{fmtR(totalValue)}</td>
-                  <td className="py-2.5 px-3 text-right text-xs font-bold text-emerald-400">{fmtMult(moic)}</td>
-                  <td className="py-2.5 px-3 text-right text-xs font-bold text-emerald-400">
+                  <td className="py-2.5 px-3 text-right text-xs font-bold text-gray-900">{fmtR(totalInvested)}</td>
+                  <td className="py-2.5 px-3 text-right text-xs font-bold text-gray-900">{fmtR(totalValue)}</td>
+                  <td className="py-2.5 px-3 text-right text-xs font-bold text-emerald-600">{fmtMult(moic)}</td>
+                  <td className="py-2.5 px-3 text-right text-xs font-bold text-emerald-600">
                     +{roic(totalValue, totalInvested).toFixed(1)}%
                   </td>
-                  <td className="py-2.5 px-3 text-right text-xs font-bold text-emerald-400">+{avgIrr}%</td>
+                  <td className="py-2.5 px-3 text-right text-xs font-bold text-emerald-600">+{avgIrr}%</td>
                   <td colSpan={2} />
                 </tr>
               </tfoot>
@@ -304,7 +304,7 @@ export default function AwqVentureFinancialPage() {
 
         {/* ── ROIC Visual ───────────────────────────────────────────────────── */}
         <div className="card p-5">
-          <h2 className="text-sm font-semibold text-white mb-4">ROIC por Empresa — Retorno sobre Capital Investido</h2>
+          <h2 className="text-sm font-semibold text-gray-900 mb-4">ROIC por Empresa — Retorno sobre Capital Investido</h2>
           <div className="space-y-3">
             {portfolio.map((p) => {
               const currentOrReturned = p.status === "Exitado" ? p.returned : p.currentVal;
@@ -314,16 +314,16 @@ export default function AwqVentureFinancialPage() {
               return (
                 <div key={p.id} className="flex items-center gap-3">
                   <span className="text-xs text-gray-400 w-32 shrink-0 truncate">{p.company}</span>
-                  <div className="flex-1 h-4 bg-gray-800 rounded-full overflow-hidden relative">
+                  <div className="flex-1 h-4 bg-gray-100 rounded-full overflow-hidden relative">
                     <div
                       className={`h-full rounded-full ${r >= 0 ? "bg-emerald-500" : "bg-red-500"}`}
                       style={{ width: `${barPct}%` }}
                     />
                   </div>
-                  <span className={`text-xs font-bold w-16 text-right shrink-0 ${r >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                  <span className={`text-xs font-bold w-16 text-right shrink-0 ${r >= 0 ? "text-emerald-600" : "text-red-600"}`}>
                     {r >= 0 ? "+" : ""}{r.toFixed(0)}%
                   </span>
-                  <span className="text-[10px] text-gray-600 w-12 text-right shrink-0">{fmtMult(currentOrReturned / p.invested)}</span>
+                  <span className="text-[10px] text-gray-400 w-12 text-right shrink-0">{fmtMult(currentOrReturned / p.invested)}</span>
                 </div>
               );
             })}

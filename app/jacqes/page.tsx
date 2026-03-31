@@ -40,7 +40,7 @@ export default function DashboardPage() {
           <div className="space-y-4">
             <div className="card p-5">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-sm font-semibold text-white">Alerts</h2>
+                <h2 className="text-sm font-semibold text-gray-900">Alerts</h2>
                 <span className="badge badge-red">{alerts.length} active</span>
               </div>
               <div className="space-y-3">

@@ -13,16 +13,16 @@ export default function TopProductsTable() {
     <div className="card p-6">
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h2 className="text-sm font-semibold text-white">Top Products</h2>
+          <h2 className="text-sm font-semibold text-gray-900">Top Products</h2>
           <p className="text-xs text-gray-500 mt-0.5">Revenue by product line</p>
         </div>
-        <button className="text-xs text-brand-400 hover:text-brand-300 transition-colors font-medium">
+        <button className="text-xs text-brand-600 hover:text-brand-500 transition-colors font-medium">
           View all →
         </button>
       </div>
 
       <div className="space-y-0">
-        <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-x-4 px-3 py-2 text-[10px] font-semibold text-gray-600 uppercase tracking-wider border-b border-gray-800">
+        <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-x-4 px-3 py-2 text-[10px] font-semibold text-gray-400 uppercase tracking-wider border-b border-gray-200">
           <span>Product</span>
           <span className="text-right">Revenue</span>
           <span className="text-right">Units</span>
@@ -42,21 +42,21 @@ export default function TopProductsTable() {
           return (
             <div
               key={product.id}
-              className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-x-4 px-3 py-3 items-center hover:bg-gray-800/50 rounded-lg transition-colors cursor-default"
+              className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-x-4 px-3 py-3 items-center hover:bg-gray-100 rounded-lg transition-colors cursor-default"
             >
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-6 h-6 rounded-md bg-gray-800 border border-gray-700 flex items-center justify-center text-[10px] font-bold text-gray-500 shrink-0">
+                <div className="w-6 h-6 rounded-md bg-gray-100 border border-gray-300 flex items-center justify-center text-[10px] font-bold text-gray-500 shrink-0">
                   {idx + 1}
                 </div>
                 <div className="min-w-0">
-                  <div className="text-sm font-medium text-gray-200 truncate">
+                  <div className="text-sm font-medium text-gray-400 truncate">
                     {product.name}
                   </div>
-                  <div className="text-xs text-gray-600">{product.category}</div>
+                  <div className="text-xs text-gray-400">{product.category}</div>
                 </div>
               </div>
 
-              <div className="text-sm font-semibold text-white text-right tabular-nums">
+              <div className="text-sm font-semibold text-gray-900 text-right tabular-nums">
                 {formatCurrency(product.revenue, "USD", true)}
               </div>
 
@@ -67,9 +67,9 @@ export default function TopProductsTable() {
               <div
                 className={`flex items-center justify-end gap-1 text-xs font-semibold tabular-nums ${
                   product.growth > 0
-                    ? "text-emerald-400"
+                    ? "text-emerald-600"
                     : product.growth < 0
-                    ? "text-red-400"
+                    ? "text-red-600"
                     : "text-gray-500"
                 }`}
               >

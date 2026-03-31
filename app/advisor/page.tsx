@@ -17,11 +17,11 @@ export default function AdvisorPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {kpis.map((kpi) => (
             <div key={kpi.label} className="card p-5 flex items-center gap-4">
-              <div className="w-9 h-9 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
-                <kpi.icon size={16} className="text-violet-400" />
+              <div className="w-9 h-9 rounded-xl bg-violet-50 border border-violet-200 flex items-center justify-center shrink-0">
+                <kpi.icon size={16} className="text-violet-700" />
               </div>
               <div>
-                <div className="text-xl font-bold text-white">{kpi.value}</div>
+                <div className="text-xl font-bold text-gray-900">{kpi.value}</div>
                 <div className="text-xs text-gray-500 mt-0.5">{kpi.label}</div>
               </div>
             </div>
@@ -30,14 +30,14 @@ export default function AdvisorPage() {
 
         {/* Overview */}
         <div className="card p-6 flex flex-col items-center justify-center min-h-[280px] text-center">
-          <div className="w-14 h-14 rounded-2xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center mb-4">
-            <Briefcase size={26} className="text-violet-400" />
+          <div className="w-14 h-14 rounded-2xl bg-violet-50 border border-violet-200 flex items-center justify-center mb-4">
+            <Briefcase size={26} className="text-violet-700" />
           </div>
-          <div className="text-base font-semibold text-gray-300">Advisor</div>
-          <div className="text-sm text-gray-600 mt-1">
+          <div className="text-base font-semibold text-gray-400">Advisor</div>
+          <div className="text-sm text-gray-400 mt-1">
             Consultoria estratégica · AWQ Group
           </div>
-          <div className="text-xs text-gray-700 mt-4 max-w-xs">
+          <div className="text-xs text-gray-400 mt-4 max-w-xs">
             Dashboard em configuração. Os dados serão exibidos assim que os módulos forem ativados.
           </div>
         </div>

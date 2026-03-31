@@ -30,7 +30,7 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
     }).format(v);
 
   return (
-    <div className="bg-gray-900 border border-gray-700 rounded-xl p-3.5 shadow-xl shadow-black/40 min-w-[160px]">
+    <div className="bg-white border border-gray-300 rounded-xl p-3.5 shadow-xl shadow-black/40 min-w-[160px]">
       <div className="text-xs font-semibold text-gray-400 mb-2">{label} 2025</div>
       {payload.map((entry) => (
         <div key={entry.name} className="flex items-center justify-between gap-4 text-xs py-0.5">
@@ -41,7 +41,7 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
             />
             <span className="text-gray-400 capitalize">{entry.name}</span>
           </div>
-          <span className="font-semibold text-white">{fmt(entry.value)}</span>
+          <span className="font-semibold text-gray-900">{fmt(entry.value)}</span>
         </div>
       ))}
     </div>
@@ -53,7 +53,7 @@ export default function RevenueChart() {
     <div className="card p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-sm font-semibold text-white">Revenue Overview</h2>
+          <h2 className="text-sm font-semibold text-gray-900">Revenue Overview</h2>
           <p className="text-xs text-gray-500 mt-0.5">Monthly P&amp;L — FY 2025</p>
         </div>
         <div className="flex gap-1">
@@ -62,8 +62,8 @@ export default function RevenueChart() {
               key={range}
               className={`px-3 py-1 text-xs rounded-md font-medium transition-colors ${
                 i === 2
-                  ? "bg-brand-600/20 text-brand-400 border border-brand-500/20"
-                  : "text-gray-500 hover:text-gray-300"
+                  ? "bg-brand-600/20 text-brand-600 border border-brand-500/20"
+                  : "text-gray-500 hover:text-gray-400"
               }`}
             >
               {range}

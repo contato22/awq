@@ -105,8 +105,8 @@ export default function AwqBudgetPage() {
               delta: `Real: ${fmtR(totalActual)}`,
               up:    true,
               icon:  Scale,
-              color: "text-brand-400",
-              bg:    "bg-brand-500/10",
+              color: "text-brand-600",
+              bg:    "bg-brand-50",
             },
             {
               label: "Var. Receita vs Budget",
@@ -115,8 +115,8 @@ export default function AwqBudgetPage() {
               delta: "Acima do plano",
               up:    true,
               icon:  TrendingUp,
-              color: "text-emerald-400",
-              bg:    "bg-emerald-500/10",
+              color: "text-emerald-600",
+              bg:    "bg-emerald-50",
             },
             {
               label: "BUs acima do Budget",
@@ -125,8 +125,8 @@ export default function AwqBudgetPage() {
               delta: "JACQES +8.6%  Caza +12.6%",
               up:    true,
               icon:  CheckCircle2,
-              color: "text-violet-400",
-              bg:    "bg-violet-500/10",
+              color: "text-violet-700",
+              bg:    "bg-violet-50",
             },
             {
               label: "% Budget Executado",
@@ -135,8 +135,8 @@ export default function AwqBudgetPage() {
               delta: "Ritmo adequado",
               up:    true,
               icon:  BarChart3,
-              color: "text-amber-400",
-              bg:    "bg-amber-500/10",
+              color: "text-amber-700",
+              bg:    "bg-amber-50",
             },
           ].map((card) => {
             const Icon = card.icon;
@@ -146,13 +146,13 @@ export default function AwqBudgetPage() {
                   <Icon size={18} className={card.color} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-2xl font-bold text-white">{card.value}</div>
+                  <div className="text-2xl font-bold text-gray-900">{card.value}</div>
                   <div className="text-xs font-medium text-gray-400 mt-0.5">{card.label}</div>
                   <div className="flex items-center gap-1 mt-1">
-                    {card.up ? <ArrowUpRight size={11} className="text-emerald-400" /> : <ArrowDownRight size={11} className="text-red-400" />}
-                    <span className={`text-[10px] font-semibold ${card.up ? "text-emerald-400" : "text-red-400"}`}>{card.delta}</span>
+                    {card.up ? <ArrowUpRight size={11} className="text-emerald-600" /> : <ArrowDownRight size={11} className="text-red-600" />}
+                    <span className={`text-[10px] font-semibold ${card.up ? "text-emerald-600" : "text-red-600"}`}>{card.delta}</span>
                   </div>
-                  <div className="text-[10px] text-gray-600 mt-0.5">{card.sub}</div>
+                  <div className="text-[10px] text-gray-400 mt-0.5">{card.sub}</div>
                 </div>
               </div>
             );
@@ -161,20 +161,20 @@ export default function AwqBudgetPage() {
 
         {/* ── Budget vs Actual by BU + Line ────────────────────────────────── */}
         <div className="card p-5">
-          <h2 className="text-sm font-semibold text-white mb-4">Budget vs Actual por BU e Linha</h2>
+          <h2 className="text-sm font-semibold text-gray-900 mb-4">Budget vs Actual por BU e Linha</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-800">
+                <tr className="border-b border-gray-200">
                   <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Linha</th>
                   <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">JACQES Budget</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-brand-400">JACQES Real</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-brand-600">JACQES Real</th>
                   <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Var.%</th>
                   <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Caza Budget</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-emerald-400">Caza Real</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-emerald-600">Caza Real</th>
                   <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Var.%</th>
                   <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Advisor Budget</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-violet-400">Advisor Real</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-violet-700">Advisor Real</th>
                   <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Var.%</th>
                 </tr>
               </thead>
@@ -186,23 +186,23 @@ export default function AwqBudgetPage() {
                   const varCell = (v: number, isExp: boolean) => {
                     const positive = isExp ? v < 0 : v > 0;
                     return (
-                      <span className={`text-xs font-semibold flex items-center justify-end gap-0.5 ${positive ? "text-emerald-400" : "text-red-400"}`}>
+                      <span className={`text-xs font-semibold flex items-center justify-end gap-0.5 ${positive ? "text-emerald-600" : "text-red-600"}`}>
                         {v >= 0 ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
                         {v >= 0 ? "+" : ""}{v.toFixed(1)}%
                       </span>
                     );
                   };
                   return (
-                    <tr key={row.line} className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
-                      <td className="py-2.5 px-3 text-xs font-semibold text-gray-200">{row.line}</td>
+                    <tr key={row.line} className="border-b border-gray-100 hover:bg-gray-100 transition-colors">
+                      <td className="py-2.5 px-3 text-xs font-semibold text-gray-400">{row.line}</td>
                       <td className="py-2.5 px-3 text-right text-xs text-gray-500">{fmtR(row.jacquesBudg)}</td>
-                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-white">{fmtR(row.jacquesActual)}</td>
+                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-gray-900">{fmtR(row.jacquesActual)}</td>
                       <td className="py-2.5 px-3 text-right">{varCell(vJ, row.isExpense)}</td>
                       <td className="py-2.5 px-3 text-right text-xs text-gray-500">{fmtR(row.cazaBudg)}</td>
-                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-white">{fmtR(row.cazaActual)}</td>
+                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-gray-900">{fmtR(row.cazaActual)}</td>
                       <td className="py-2.5 px-3 text-right">{varCell(vC, row.isExpense)}</td>
                       <td className="py-2.5 px-3 text-right text-xs text-gray-500">{fmtR(row.advisorBudg)}</td>
-                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-white">{fmtR(row.advisorActual)}</td>
+                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-gray-900">{fmtR(row.advisorActual)}</td>
                       <td className="py-2.5 px-3 text-right">{varCell(vA, row.isExpense)}</td>
                     </tr>
                   );
@@ -214,7 +214,7 @@ export default function AwqBudgetPage() {
 
         {/* ── Category Budget ───────────────────────────────────────────────── */}
         <div className="card p-5">
-          <h2 className="text-sm font-semibold text-white mb-4">Budget por Categoria — Consolidado YTD</h2>
+          <h2 className="text-sm font-semibold text-gray-900 mb-4">Budget por Categoria — Consolidado YTD</h2>
           <div className="space-y-3">
             {categoryBudget.map((cat) => {
               const v          = varPct(cat.actual, cat.budget);
@@ -225,21 +225,21 @@ export default function AwqBudgetPage() {
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">
                       {overBudget
-                        ? <AlertTriangle size={11} className="text-red-400" />
-                        : <CheckCircle2 size={11} className="text-emerald-400" />}
-                      <span className="text-xs text-gray-300">{cat.category}</span>
+                        ? <AlertTriangle size={11} className="text-red-600" />
+                        : <CheckCircle2 size={11} className="text-emerald-600" />}
+                      <span className="text-xs text-gray-400">{cat.category}</span>
                     </div>
                     <div className="flex items-center gap-3 text-[11px]">
                       <span className="text-gray-500">Budget: {fmtR(cat.budget)}</span>
-                      <span className={`font-semibold ${overBudget ? "text-red-400" : "text-emerald-400"}`}>
+                      <span className={`font-semibold ${overBudget ? "text-red-600" : "text-emerald-600"}`}>
                         Real: {fmtR(cat.actual)}
                       </span>
-                      <span className={`font-bold ${overBudget ? "text-red-400" : "text-emerald-400"}`}>
+                      <span className={`font-bold ${overBudget ? "text-red-600" : "text-emerald-600"}`}>
                         {v >= 0 ? "+" : ""}{v.toFixed(1)}%
                       </span>
                     </div>
                   </div>
-                  <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full ${overBudget ? "bg-red-500" : "bg-emerald-500"}`}
                       style={{ width: `${usedPct}%` }}
@@ -253,18 +253,18 @@ export default function AwqBudgetPage() {
 
         {/* ── BU Budget Summary ─────────────────────────────────────────────── */}
         <div className="card p-5">
-          <h2 className="text-sm font-semibold text-white mb-4">Resumo de Budget por BU</h2>
+          <h2 className="text-sm font-semibold text-gray-900 mb-4">Resumo de Budget por BU</h2>
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
             {operatingBus.map((bu) => {
               const v        = varPct(bu.revenue, bu.budgetRevenue);
               const isAbove  = v > 0;
               const execPct  = ((bu.revenue / (bu.budgetRevenue * 4)) * 100).toFixed(0);
               return (
-                <div key={bu.id} className="rounded-xl border border-gray-800 p-4">
+                <div key={bu.id} className="rounded-xl border border-gray-200 p-4">
                   <div className="flex items-center gap-2 mb-3">
                     <div className={`w-3 h-3 rounded-full ${bu.color}`} />
                     <span className={`text-sm font-bold ${bu.accentColor}`}>{bu.name}</span>
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isAbove ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"}`}>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isAbove ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"}`}>
                       {v >= 0 ? "+" : ""}{v.toFixed(1)}%
                     </span>
                   </div>
@@ -275,14 +275,14 @@ export default function AwqBudgetPage() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Realizado YTD</span>
-                      <span className="text-white font-semibold">{fmtR(bu.revenue)}</span>
+                      <span className="text-gray-900 font-semibold">{fmtR(bu.revenue)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Exec. do Budget Anual</span>
-                      <span className="text-brand-400 font-semibold">{execPct}%</span>
+                      <span className="text-brand-600 font-semibold">{execPct}%</span>
                     </div>
                   </div>
-                  <div className="mt-3 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                  <div className="mt-3 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                     <div
                       className={`h-full ${bu.color} rounded-full`}
                       style={{ width: `${Math.min(parseFloat(execPct), 100)}%` }}

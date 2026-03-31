@@ -48,14 +48,14 @@ function variance(actual: number, budget: number) {
 }
 
 function varIcon(v: number) {
-  if (v > 0.5) return <ArrowUpRight size={10} className="text-emerald-400" />;
-  if (v < -0.5) return <ArrowDownRight size={10} className="text-red-400" />;
+  if (v > 0.5) return <ArrowUpRight size={10} className="text-emerald-600" />;
+  if (v < -0.5) return <ArrowDownRight size={10} className="text-red-600" />;
   return <Minus size={10} className="text-gray-500" />;
 }
 
 function varColor(v: number) {
-  if (v > 0.5) return "text-emerald-400";
-  if (v < -0.5) return "text-red-400";
+  if (v > 0.5) return "text-emerald-600";
+  if (v < -0.5) return "text-red-600";
   return "text-gray-500";
 }
 
@@ -126,8 +126,8 @@ export default function CazaFinancialPage() {
       value: fmtR(totalReceita),
       sub:   `${summary.length} meses`,
       icon:  DollarSign,
-      color: "text-emerald-400",
-      bg:    "bg-emerald-500/10",
+      color: "text-emerald-600",
+      bg:    "bg-emerald-50",
       delta: receitaDelta ? `${parseFloat(receitaDelta) >= 0 ? "+" : ""}${receitaDelta}%` : "",
       up:    receitaDelta ? parseFloat(receitaDelta) >= 0 : true,
     },
@@ -136,8 +136,8 @@ export default function CazaFinancialPage() {
       value: fmtR(totalDespesas),
       sub:   "Alim. + Gasolina",
       icon:  BarChart3,
-      color: "text-red-400",
-      bg:    "bg-red-500/10",
+      color: "text-red-600",
+      bg:    "bg-red-50",
       delta: "",
       up:    false,
     },
@@ -146,8 +146,8 @@ export default function CazaFinancialPage() {
       value: fmtR(totalLucro),
       sub:   `Margem ${margem}%`,
       icon:  TrendingUp,
-      color: "text-brand-400",
-      bg:    "bg-brand-500/10",
+      color: "text-brand-600",
+      bg:    "bg-brand-50",
       delta: lucroDelta ? `${parseFloat(lucroDelta) >= 0 ? "+" : ""}${lucroDelta}%` : "",
       up:    lucroDelta ? parseFloat(lucroDelta) >= 0 : true,
     },
@@ -156,8 +156,8 @@ export default function CazaFinancialPage() {
       value: lastRow ? fmtR(lastRow.receita) : "—",
       sub:   lastRow ? `Lucro: ${fmtR(lastRow.profit)}` : "",
       icon:  DollarSign,
-      color: "text-violet-400",
-      bg:    "bg-violet-500/10",
+      color: "text-violet-700",
+      bg:    "bg-violet-50",
       delta: `${parseFloat(lastDelta) >= 0 ? "+" : ""}${lastDelta}%`,
       up:    parseFloat(lastDelta) >= 0,
     },
@@ -174,18 +174,18 @@ export default function CazaFinancialPage() {
         {/* ── Source badge ─────────────────────────────────────────────────── */}
         <div className="flex items-center gap-2">
           {source === "loading" && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-800 border border-gray-700 text-xs text-gray-400">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 border border-gray-300 text-xs text-gray-400">
               <Database size={11} /> Conectando ao Notion…
             </span>
           )}
           {source === "notion" && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-400">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-xs text-emerald-600">
               <Database size={11} /> Dados ao vivo — Notion
             </span>
           )}
           {source === "mock" && (
             <span
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-xs text-amber-400"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-xs text-amber-700"
               title={notionError ?? ""}
             >
               <CloudOff size={11} /> Dados de demonstração
@@ -206,20 +206,20 @@ export default function CazaFinancialPage() {
                   <Icon size={18} className={card.color} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-2xl font-bold text-white">{card.value}</div>
+                  <div className="text-2xl font-bold text-gray-900">{card.value}</div>
                   <div className="text-xs font-medium text-gray-400 mt-0.5">{card.label}</div>
                   <div className="flex items-center gap-1 mt-1">
                     {card.delta && (
                       card.up
-                        ? <ArrowUpRight size={11} className="text-emerald-400" />
-                        : <ArrowDownRight size={11} className="text-red-400" />
+                        ? <ArrowUpRight size={11} className="text-emerald-600" />
+                        : <ArrowDownRight size={11} className="text-red-600" />
                     )}
                     {card.delta && (
-                      <span className={`text-[10px] font-semibold ${card.up ? "text-emerald-400" : "text-red-400"}`}>
+                      <span className={`text-[10px] font-semibold ${card.up ? "text-emerald-600" : "text-red-600"}`}>
                         {card.delta}
                       </span>
                     )}
-                    <span className="text-[10px] text-gray-600">{card.sub}</span>
+                    <span className="text-[10px] text-gray-400">{card.sub}</span>
                   </div>
                 </div>
               </div>
@@ -229,13 +229,13 @@ export default function CazaFinancialPage() {
 
         {/* ── Monthly Table ─────────────────────────────────────────────────── */}
         <div className="card p-5">
-          <h2 className="text-sm font-semibold text-white mb-4">
+          <h2 className="text-sm font-semibold text-gray-900 mb-4">
             Receita por Mês — agrupado por COMPETÊNCIA
           </h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-800">
+                <tr className="border-b border-gray-200">
                   <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Mês</th>
                   <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Receita (Orç.)</th>
                   <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Alimentação</th>
@@ -251,17 +251,17 @@ export default function CazaFinancialPage() {
                     ? ((row.profit / row.receita) * 100).toFixed(1)
                     : "0.0";
                   return (
-                    <tr key={row.month} className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
-                      <td className="py-2.5 px-3 text-gray-300 font-medium">{row.month}</td>
-                      <td className="py-2.5 px-3 text-right text-white font-semibold">{fmtR(row.receita)}</td>
-                      <td className="py-2.5 px-3 text-right text-red-400 text-xs">
-                        {row.alimentacao > 0 ? fmtR(row.alimentacao) : <span className="text-gray-600">—</span>}
+                    <tr key={row.month} className="border-b border-gray-100 hover:bg-gray-100 transition-colors">
+                      <td className="py-2.5 px-3 text-gray-400 font-medium">{row.month}</td>
+                      <td className="py-2.5 px-3 text-right text-gray-900 font-semibold">{fmtR(row.receita)}</td>
+                      <td className="py-2.5 px-3 text-right text-red-600 text-xs">
+                        {row.alimentacao > 0 ? fmtR(row.alimentacao) : <span className="text-gray-400">—</span>}
                       </td>
-                      <td className="py-2.5 px-3 text-right text-red-400 text-xs">
-                        {row.gasolina > 0 ? fmtR(row.gasolina) : <span className="text-gray-600">—</span>}
+                      <td className="py-2.5 px-3 text-right text-red-600 text-xs">
+                        {row.gasolina > 0 ? fmtR(row.gasolina) : <span className="text-gray-400">—</span>}
                       </td>
-                      <td className="py-2.5 px-3 text-right text-red-400 font-semibold">{fmtR(row.expenses)}</td>
-                      <td className="py-2.5 px-3 text-right text-emerald-400 font-semibold">{fmtR(row.profit)}</td>
+                      <td className="py-2.5 px-3 text-right text-red-600 font-semibold">{fmtR(row.expenses)}</td>
+                      <td className="py-2.5 px-3 text-right text-emerald-600 font-semibold">{fmtR(row.profit)}</td>
                       <td className="py-2.5 px-3 text-right">
                         <span className="badge badge-green">{margin}%</span>
                       </td>
@@ -270,13 +270,13 @@ export default function CazaFinancialPage() {
                 })}
               </tbody>
               <tfoot>
-                <tr className="border-t border-gray-700">
+                <tr className="border-t border-gray-300">
                   <td className="py-2.5 px-3 text-xs font-bold text-gray-400">TOTAL</td>
-                  <td className="py-2.5 px-3 text-right text-white font-bold">{fmtR(rows.reduce((s, r) => s + r.receita, 0))}</td>
-                  <td className="py-2.5 px-3 text-right text-red-400 font-bold text-xs">{fmtR(rows.reduce((s, r) => s + r.alimentacao, 0))}</td>
-                  <td className="py-2.5 px-3 text-right text-red-400 font-bold text-xs">{fmtR(rows.reduce((s, r) => s + r.gasolina, 0))}</td>
-                  <td className="py-2.5 px-3 text-right text-red-400 font-bold">{fmtR(rows.reduce((s, r) => s + r.expenses, 0))}</td>
-                  <td className="py-2.5 px-3 text-right text-emerald-400 font-bold">{fmtR(rows.reduce((s, r) => s + r.profit, 0))}</td>
+                  <td className="py-2.5 px-3 text-right text-gray-900 font-bold">{fmtR(rows.reduce((s, r) => s + r.receita, 0))}</td>
+                  <td className="py-2.5 px-3 text-right text-red-600 font-bold text-xs">{fmtR(rows.reduce((s, r) => s + r.alimentacao, 0))}</td>
+                  <td className="py-2.5 px-3 text-right text-red-600 font-bold text-xs">{fmtR(rows.reduce((s, r) => s + r.gasolina, 0))}</td>
+                  <td className="py-2.5 px-3 text-right text-red-600 font-bold">{fmtR(rows.reduce((s, r) => s + r.expenses, 0))}</td>
+                  <td className="py-2.5 px-3 text-right text-emerald-600 font-bold">{fmtR(rows.reduce((s, r) => s + r.profit, 0))}</td>
                   <td />
                 </tr>
               </tfoot>
@@ -287,16 +287,16 @@ export default function CazaFinancialPage() {
         {/* ── Budget vs Actual ──────────────────────────────────────────────── */}
         <div className="card p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-white">Budget vs Actual — 2026</h2>
+            <h2 className="text-sm font-semibold text-gray-900">Budget vs Actual — 2026</h2>
             <div className="flex items-center gap-4 text-[11px]">
               <span className="flex items-center gap-1.5 text-gray-500"><span className="w-3 h-0.5 bg-gray-600 inline-block rounded" /> Budget</span>
-              <span className="flex items-center gap-1.5 text-emerald-400"><span className="w-3 h-0.5 bg-emerald-400 inline-block rounded" /> Realizado</span>
+              <span className="flex items-center gap-1.5 text-emerald-600"><span className="w-3 h-0.5 bg-emerald-400 inline-block rounded" /> Realizado</span>
             </div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-800">
+                <tr className="border-b border-gray-200">
                   <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Mês</th>
                   <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Budget Receita</th>
                   <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Realizado</th>
@@ -313,17 +313,17 @@ export default function CazaFinancialPage() {
                   const varR = variance(actual.receita, b.budgetReceita);
                   const varL = variance(actual.profit,  b.budgetLucro);
                   return (
-                    <tr key={b.month} className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
-                      <td className="py-2.5 px-3 text-xs font-medium text-gray-300">{b.month}</td>
+                    <tr key={b.month} className="border-b border-gray-100 hover:bg-gray-100 transition-colors">
+                      <td className="py-2.5 px-3 text-xs font-medium text-gray-400">{b.month}</td>
                       <td className="py-2.5 px-3 text-right text-xs text-gray-500">{fmtR(b.budgetReceita)}</td>
-                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-white">{fmtR(actual.receita)}</td>
+                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-gray-900">{fmtR(actual.receita)}</td>
                       <td className="py-2.5 px-3 text-right text-xs">
                         <span className={`flex items-center justify-end gap-0.5 font-semibold ${varColor(varR)}`}>
                           {varIcon(varR)}{varR >= 0 ? "+" : ""}{varR.toFixed(1)}%
                         </span>
                       </td>
                       <td className="py-2.5 px-3 text-right text-xs text-gray-500">{fmtR(b.budgetLucro)}</td>
-                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-emerald-400">{fmtR(actual.profit)}</td>
+                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-emerald-600">{fmtR(actual.profit)}</td>
                       <td className="py-2.5 px-3 text-right text-xs">
                         <span className={`flex items-center justify-end gap-0.5 font-semibold ${varColor(varL)}`}>
                           {varIcon(varL)}{varL >= 0 ? "+" : ""}{varL.toFixed(1)}%

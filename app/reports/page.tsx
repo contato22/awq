@@ -20,12 +20,12 @@ function ReportCard({ icon: Icon, title, description, lastGenerated, type, color
         <span className="badge badge-blue">{type}</span>
       </div>
       <div>
-        <div className="font-semibold text-gray-200">{title}</div>
+        <div className="font-semibold text-gray-400">{title}</div>
         <div className="text-xs text-gray-500 mt-1 leading-relaxed">{description}</div>
       </div>
-      <div className="flex items-center justify-between pt-2 border-t border-gray-800">
-        <span className="text-xs text-gray-600">Generated: {lastGenerated}</span>
-        <button className="flex items-center gap-1.5 text-xs text-brand-400 hover:text-brand-300 font-medium transition-colors">
+      <div className="flex items-center justify-between pt-2 border-t border-gray-200">
+        <span className="text-xs text-gray-400">Generated: {lastGenerated}</span>
+        <button className="flex items-center gap-1.5 text-xs text-brand-600 hover:text-brand-500 font-medium transition-colors">
           <Download size={12} />
           Export
         </button>
@@ -42,7 +42,7 @@ const reports: ReportCardProps[] = [
       "Comprehensive breakdown of revenue, expenses, and profit margins with YoY comparisons and segment analysis.",
     lastGenerated: "Mar 18, 2026",
     type: "Financial",
-    color: "bg-brand-500/10 border border-brand-500/20 text-brand-400",
+    color: "bg-brand-50 border border-brand-200 text-brand-600",
   },
   {
     icon: Users,
@@ -51,7 +51,7 @@ const reports: ReportCardProps[] = [
       "NPS scores, churn risk scoring, LTV cohort analysis, and at-risk account action plans.",
     lastGenerated: "Mar 15, 2026",
     type: "Customer",
-    color: "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400",
+    color: "bg-emerald-50 border border-emerald-200 text-emerald-600",
   },
   {
     icon: Globe,
@@ -60,7 +60,7 @@ const reports: ReportCardProps[] = [
       "Geographic revenue distribution, market penetration rates, and expansion opportunity scoring by territory.",
     lastGenerated: "Mar 12, 2026",
     type: "Strategy",
-    color: "bg-cyan-500/10 border border-cyan-500/20 text-cyan-400",
+    color: "bg-cyan-50 border border-cyan-200 text-cyan-700",
   },
   {
     icon: FileBarChart,
@@ -78,7 +78,7 @@ const reports: ReportCardProps[] = [
       "Executive summary for AWQ Group board — KPI dashboard, strategic milestones, and forward guidance.",
     lastGenerated: "Mar 5, 2026",
     type: "Executive",
-    color: "bg-amber-500/10 border border-amber-500/20 text-amber-400",
+    color: "bg-amber-50 border border-amber-200 text-amber-700",
   },
   {
     icon: TrendingUp,
@@ -127,7 +127,7 @@ export default function ReportsPage() {
         {/* Scheduled reports */}
         <div className="card p-6">
           <div className="mb-4">
-            <h2 className="text-sm font-semibold text-white">Scheduled Reports</h2>
+            <h2 className="text-sm font-semibold text-gray-900">Scheduled Reports</h2>
             <p className="text-xs text-gray-500 mt-0.5">
               Automatic delivery to AWQ Group stakeholders
             </p>
@@ -162,16 +162,16 @@ export default function ReportsPage() {
             ].map((sched) => (
               <div
                 key={sched.name}
-                className="flex items-center gap-4 py-3 border-b border-gray-800/50 last:border-0"
+                className="flex items-center gap-4 py-3 border-b border-gray-100 last:border-0"
               >
                 <div
                   className={`w-2 h-2 rounded-full shrink-0 ${
-                    sched.active ? "bg-emerald-400 animate-pulse" : "bg-gray-700"
+                    sched.active ? "bg-emerald-400 animate-pulse" : "bg-gray-200"
                   }`}
                 />
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-gray-200">{sched.name}</div>
-                  <div className="text-xs text-gray-600 mt-0.5">
+                  <div className="text-sm font-medium text-gray-400">{sched.name}</div>
+                  <div className="text-xs text-gray-400 mt-0.5">
                     {sched.freq} · {sched.recipients}
                   </div>
                 </div>

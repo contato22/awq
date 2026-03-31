@@ -28,9 +28,9 @@ const riskCategories = [
     id: "concentration",
     title: "Concentração de Cliente",
     icon: Users,
-    color: "text-red-400",
-    bg: "bg-red-500/10",
-    borderColor: "border-red-500/20",
+    color: "text-red-600",
+    bg: "bg-red-50",
+    borderColor: "border-red-200",
     severity: "high",
     details: [
       { label: "Ambev (JACQES)",      share: 20, mrr: 420_000, risk: "Alto"   },
@@ -46,9 +46,9 @@ const riskCategories = [
     id: "receivables",
     title: "Recebíveis em Aberto",
     icon: DollarSign,
-    color: "text-red-400",
-    bg: "bg-red-500/10",
-    borderColor: "border-red-500/20",
+    color: "text-red-600",
+    bg: "bg-red-50",
+    borderColor: "border-red-200",
     severity: "high",
     details: [
       { label: "CV002 — Banco XP (Caza)",    share: 0, mrr: 320_000, risk: "Alto",   days: 8  },
@@ -63,9 +63,9 @@ const riskCategories = [
     id: "buDependency",
     title: "Dependência de BU Única",
     icon: Building2,
-    color: "text-amber-400",
-    bg: "bg-amber-500/10",
-    borderColor: "border-amber-500/20",
+    color: "text-amber-700",
+    bg: "bg-amber-50",
+    borderColor: "border-amber-200",
     severity: "medium",
     details: [
       { label: "JACQES",      share: 55, mrr: 4_820_000, risk: "Atenção" },
@@ -80,9 +80,9 @@ const riskCategories = [
     id: "marginCompression",
     title: "Compressão de Margem — JACQES",
     icon: TrendingDown,
-    color: "text-amber-400",
-    bg: "bg-amber-500/10",
-    borderColor: "border-amber-500/20",
+    color: "text-amber-700",
+    bg: "bg-amber-50",
+    borderColor: "border-amber-200",
     severity: "medium",
     details: [
       { label: "Meta EBITDA 2026",  share: 22, mrr: 0, risk: "Meta"    },
@@ -97,9 +97,9 @@ const riskCategories = [
     id: "cashPressure",
     title: "Cash Pressure — AWQ Venture",
     icon: Zap,
-    color: "text-amber-400",
-    bg: "bg-amber-500/10",
-    borderColor: "border-amber-500/20",
+    color: "text-amber-700",
+    bg: "bg-amber-50",
+    borderColor: "border-amber-200",
     severity: "medium",
     details: [
       { label: "Dry Powder atual",    share: 0, mrr: 6_200_000, risk: "Disponível" },
@@ -114,9 +114,9 @@ const riskCategories = [
     id: "forecastDet",
     title: "Deterioração de Forecast",
     icon: ShieldAlert,
-    color: "text-brand-400",
-    bg: "bg-brand-500/8",
-    borderColor: "border-brand-500/20",
+    color: "text-brand-600",
+    bg: "bg-brand-50",
+    borderColor: "border-brand-200",
     severity: "low",
     details: [
       { label: "Cenário base Q2",  share: 0, mrr: 11_550_000, risk: "Base"  },
@@ -135,9 +135,9 @@ const sortedRisks = [...riskCategories].sort((a, b) =>
 );
 
 const severityConfig = {
-  high:   { color: "text-red-400",   bg: "bg-red-500/10",   border: "border-red-500/30",   dot: "bg-red-500",   badge: "bg-red-500/10 text-red-400 border-red-500/20"     },
-  medium: { color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/30", dot: "bg-amber-500", badge: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
-  low:    { color: "text-brand-400", bg: "bg-brand-500/10", border: "border-brand-500/30", dot: "bg-brand-500", badge: "bg-brand-500/10 text-brand-400 border-brand-500/20"  },
+  high:   { color: "text-red-600",   bg: "bg-red-50",   border: "border-red-500/30",   dot: "bg-red-500",   badge: "bg-red-50 text-red-600 border-red-200"     },
+  medium: { color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-500/30", dot: "bg-amber-500", badge: "bg-amber-50 text-amber-700 border-amber-200" },
+  low:    { color: "text-brand-600", bg: "bg-brand-50", border: "border-brand-500/30", dot: "bg-brand-500", badge: "bg-brand-50 text-brand-600 border-brand-200"  },
 };
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -158,12 +158,12 @@ export default function AwqRiskPage() {
         {/* ── Risk Summary ──────────────────────────────────────────────────── */}
         <div className="grid grid-cols-3 xl:grid-cols-6 gap-4">
           {[
-            { label: "Riscos Altos",   value: highCount,   color: "text-red-400",   bg: "bg-red-500/10"   },
-            { label: "Riscos Médios",  value: mediumCount, color: "text-amber-400", bg: "bg-amber-500/10" },
-            { label: "Riscos Baixos",  value: lowCount,    color: "text-brand-400", bg: "bg-brand-500/10" },
-            { label: "Recebíveis",     value: fmtR(507_000), color: "text-red-400", bg: "bg-red-500/10"  },
-            { label: "MRR em Risco",   value: fmtR(1_080_000), color: "text-amber-400", bg: "bg-amber-500/10" },
-            { label: "Score de Risco", value: "6.8/10",    color: "text-amber-400", bg: "bg-amber-500/10" },
+            { label: "Riscos Altos",   value: highCount,   color: "text-red-600",   bg: "bg-red-50"   },
+            { label: "Riscos Médios",  value: mediumCount, color: "text-amber-700", bg: "bg-amber-50" },
+            { label: "Riscos Baixos",  value: lowCount,    color: "text-brand-600", bg: "bg-brand-50" },
+            { label: "Recebíveis",     value: fmtR(507_000), color: "text-red-600", bg: "bg-red-50"  },
+            { label: "MRR em Risco",   value: fmtR(1_080_000), color: "text-amber-700", bg: "bg-amber-50" },
+            { label: "Score de Risco", value: "6.8/10",    color: "text-amber-700", bg: "bg-amber-50" },
           ].map((s) => (
             <div key={s.label} className="card p-4 text-center">
               <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
@@ -185,7 +185,7 @@ export default function AwqRiskPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-bold text-white">{risk.title}</span>
+                      <span className="text-xs font-bold text-gray-900">{risk.title}</span>
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${sev.badge}`}>
                         {risk.severity === "high" ? "Alto" : risk.severity === "medium" ? "Médio" : "Baixo"}
                       </span>
@@ -197,25 +197,25 @@ export default function AwqRiskPage() {
                 {/* Details */}
                 <div className="space-y-1 mb-3">
                   {risk.details.map((d, i) => (
-                    <div key={i} className={`flex items-center justify-between py-1 px-2 rounded ${(d as { isTotal?: boolean }).isTotal ? "bg-gray-800/50" : ""}`}>
-                      <span className={`text-[11px] ${(d as { isTotal?: boolean }).isTotal ? "font-bold text-gray-200" : "text-gray-500"}`}>
+                    <div key={i} className={`flex items-center justify-between py-1 px-2 rounded ${(d as { isTotal?: boolean }).isTotal ? "bg-gray-100" : ""}`}>
+                      <span className={`text-[11px] ${(d as { isTotal?: boolean }).isTotal ? "font-bold text-gray-400" : "text-gray-500"}`}>
                         {d.label}
                       </span>
                       <div className="flex items-center gap-2">
                         {d.mrr !== 0 && (
-                          <span className={`text-[11px] font-semibold ${d.mrr < 0 ? "text-red-400" : "text-white"}`}>
+                          <span className={`text-[11px] font-semibold ${d.mrr < 0 ? "text-red-600" : "text-gray-900"}`}>
                             {d.mrr < 0 ? "" : ""}{fmtR(d.mrr)}
                           </span>
                         )}
                         {d.share !== 0 && (
-                          <span className={`text-[11px] font-semibold ${d.share < 0 ? "text-red-400" : "text-gray-400"}`}>
+                          <span className={`text-[11px] font-semibold ${d.share < 0 ? "text-red-600" : "text-gray-400"}`}>
                             {d.share > 0 ? d.share + "%" : d.share + "pp"}
                           </span>
                         )}
                         <span className={`text-[10px] font-bold ${
-                          d.risk === "Crítico" || d.risk === "Alto" ? "text-red-400"
-                            : d.risk === "Médio" || d.risk === "Atenção" ? "text-amber-400"
-                            : "text-emerald-400"
+                          d.risk === "Crítico" || d.risk === "Alto" ? "text-red-600"
+                            : d.risk === "Médio" || d.risk === "Atenção" ? "text-amber-700"
+                            : "text-emerald-600"
                         }`}>
                           {d.risk}
                         </span>
@@ -225,9 +225,9 @@ export default function AwqRiskPage() {
                 </div>
 
                 {/* Threshold + Action */}
-                <div className="pt-2 border-t border-gray-800 space-y-1">
+                <div className="pt-2 border-t border-gray-200 space-y-1">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] text-gray-600">Limite:</span>
+                    <span className="text-[10px] text-gray-400">Limite:</span>
                     <span className="text-[10px] text-gray-400">{risk.threshold}</span>
                   </div>
                   <div className="flex items-start gap-1.5">
@@ -242,11 +242,11 @@ export default function AwqRiskPage() {
 
         {/* ── Risk Heatmap by BU ────────────────────────────────────────────── */}
         <div className="card p-5">
-          <h2 className="text-sm font-semibold text-white mb-4">Risk Exposure por BU</h2>
+          <h2 className="text-sm font-semibold text-gray-900 mb-4">Risk Exposure por BU</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-800">
+                <tr className="border-b border-gray-200">
                   <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">BU</th>
                   <th className="text-center py-2 px-3 text-xs font-semibold text-gray-500">Concentração</th>
                   <th className="text-center py-2 px-3 text-xs font-semibold text-gray-500">Recebíveis</th>
@@ -264,10 +264,10 @@ export default function AwqRiskPage() {
                   { name: "AWQ Venture",  concentration: "Baixo", receivables: "Baixo", margin: "N/A",   cash: "Médio", forecast: "Médio", score: "Médio" },
                 ].map((row) => {
                   const riskCell = (v: string) => {
-                    const color = v === "Alto" ? "bg-red-500/10 text-red-400"
-                      : v === "Médio" ? "bg-amber-500/10 text-amber-400"
-                      : v === "N/A"  ? "text-gray-600"
-                      : "bg-emerald-500/10 text-emerald-400";
+                    const color = v === "Alto" ? "bg-red-50 text-red-600"
+                      : v === "Médio" ? "bg-amber-50 text-amber-700"
+                      : v === "N/A"  ? "text-gray-400"
+                      : "bg-emerald-50 text-emerald-600";
                     return (
                       <td className="py-2.5 px-3 text-center">
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${color}`}>{v}</span>
@@ -276,7 +276,7 @@ export default function AwqRiskPage() {
                   };
                   const bu = buData.find((b) => b.name === row.name);
                   return (
-                    <tr key={row.name} className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
+                    <tr key={row.name} className="border-b border-gray-100 hover:bg-gray-100 transition-colors">
                       <td className="py-2.5 px-3">
                         <div className="flex items-center gap-2">
                           <div className={`w-2 h-2 rounded-full ${bu?.color ?? "bg-gray-500"}`} />

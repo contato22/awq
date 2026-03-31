@@ -41,8 +41,8 @@ const summaryCards = [
     delta: "+21.4% vs 2025",
     up:    true,
     icon:  Zap,
-    color: "text-emerald-400",
-    bg:    "bg-emerald-500/10",
+    color: "text-emerald-600",
+    bg:    "bg-emerald-50",
   },
   {
     label: "FCF (Livre)",
@@ -51,8 +51,8 @@ const summaryCards = [
     delta: "+19.8% vs 2025",
     up:    true,
     icon:  TrendingUp,
-    color: "text-brand-400",
-    bg:    "bg-brand-500/10",
+    color: "text-brand-600",
+    bg:    "bg-brand-50",
   },
   {
     label: "Caixa Consolidado",
@@ -61,8 +61,8 @@ const summaryCards = [
     delta: `+${fmtR(consolidated.cashGenerated)} gerado`,
     up:    true,
     icon:  DollarSign,
-    color: "text-violet-400",
-    bg:    "bg-violet-500/10",
+    color: "text-violet-700",
+    bg:    "bg-violet-50",
   },
   {
     label: "Cash Conversion",
@@ -71,8 +71,8 @@ const summaryCards = [
     delta: "Alta qualidade de lucro",
     up:    true,
     icon:  BarChart3,
-    color: "text-amber-400",
-    bg:    "bg-amber-500/10",
+    color: "text-amber-700",
+    bg:    "bg-amber-50",
   },
 ];
 
@@ -102,14 +102,14 @@ export default function AwqCashflowPage() {
                   <Icon size={18} className={card.color} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-2xl font-bold text-white">{card.value}</div>
+                  <div className="text-2xl font-bold text-gray-900">{card.value}</div>
                   <div className="text-xs font-medium text-gray-400 mt-0.5">{card.label}</div>
                   <div className="flex items-center gap-1 mt-1">
                     {card.up
-                      ? <ArrowUpRight size={11} className="text-emerald-400" />
-                      : <ArrowDownRight size={11} className="text-red-400" />}
-                    <span className={`text-[10px] font-semibold ${card.up ? "text-emerald-400" : "text-red-400"}`}>{card.delta}</span>
-                    <span className="text-[10px] text-gray-600">{card.sub}</span>
+                      ? <ArrowUpRight size={11} className="text-emerald-600" />
+                      : <ArrowDownRight size={11} className="text-red-600" />}
+                    <span className={`text-[10px] font-semibold ${card.up ? "text-emerald-600" : "text-red-600"}`}>{card.delta}</span>
+                    <span className="text-[10px] text-gray-400">{card.sub}</span>
                   </div>
                 </div>
               </div>
@@ -119,19 +119,19 @@ export default function AwqCashflowPage() {
 
         {/* ── Cash Flow Statement ───────────────────────────────────────────── */}
         <div className="card p-5">
-          <h2 className="text-sm font-semibold text-white mb-4">
+          <h2 className="text-sm font-semibold text-gray-900 mb-4">
             Demonstração de Fluxo de Caixa — YTD Jan–Mar 2026
           </h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-800">
+                <tr className="border-b border-gray-200">
                   <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500 w-52">Linha</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-brand-400">JACQES</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-emerald-400">Caza Vision</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-violet-400">Advisor</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-amber-400">Venture</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-white">TOTAL</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-brand-600">JACQES</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-emerald-600">Caza Vision</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-violet-700">Advisor</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-amber-700">Venture</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-900">TOTAL</th>
                 </tr>
               </thead>
               <tbody>
@@ -141,10 +141,10 @@ export default function AwqCashflowPage() {
                   return (
                     <tr
                       key={i}
-                      className={`border-b border-gray-800/50 ${isSubtotal ? "bg-gray-800/20" : "hover:bg-gray-800/30"} transition-colors`}
+                      className={`border-b border-gray-100 ${isSubtotal ? "bg-gray-50" : "hover:bg-gray-100"} transition-colors`}
                     >
                       <td
-                        className={`py-2 px-3 text-xs ${isSubtotal ? "font-bold text-gray-100" : "text-gray-400"}`}
+                        className={`py-2 px-3 text-xs ${isSubtotal ? "font-bold text-gray-800" : "text-gray-400"}`}
                         style={{ paddingLeft: `${(row.indent * 14) + 12}px` }}
                       >
                         {row.label}
@@ -153,13 +153,13 @@ export default function AwqCashflowPage() {
                         <td
                           key={j}
                           className={`py-2 px-3 text-right text-xs ${
-                            isSubtotal ? "font-bold text-white" : v < 0 ? "text-red-400" : "text-gray-300"
+                            isSubtotal ? "font-bold text-gray-900" : v < 0 ? "text-red-600" : "text-gray-400"
                           }`}
                         >
                           {fmtR(v)}
                         </td>
                       ))}
-                      <td className={`py-2 px-3 text-right text-xs font-bold ${isSubtotal ? "text-white" : total < 0 ? "text-red-400" : "text-emerald-400"}`}>
+                      <td className={`py-2 px-3 text-right text-xs font-bold ${isSubtotal ? "text-gray-900" : total < 0 ? "text-red-600" : "text-emerald-600"}`}>
                         {fmtR(total)}
                       </td>
                     </tr>
@@ -174,7 +174,7 @@ export default function AwqCashflowPage() {
 
           {/* ── Cash Position by BU ──────────────────────────────────────────── */}
           <div className="card p-5">
-            <h2 className="text-sm font-semibold text-white mb-4">Posição de Caixa por BU</h2>
+            <h2 className="text-sm font-semibold text-gray-900 mb-4">Posição de Caixa por BU</h2>
             <div className="space-y-4">
               {cashPosition.map((bu) => {
                 const totalBalance = buData.reduce((s, b) => s + b.cashBalance, 0);
@@ -187,14 +187,14 @@ export default function AwqCashflowPage() {
                         <span className={`text-xs font-medium ${bu.accentColor}`}>{bu.name}</span>
                       </div>
                       <div className="flex items-center gap-3 text-[11px]">
-                        <span className="text-gray-500">Gerado: <span className="text-emerald-400 font-semibold">{fmtR(bu.cashGenerated)}</span></span>
-                        <span className="text-white font-bold">{fmtR(bu.cashBalance)}</span>
+                        <span className="text-gray-500">Gerado: <span className="text-emerald-600 font-semibold">{fmtR(bu.cashGenerated)}</span></span>
+                        <span className="text-gray-900 font-bold">{fmtR(bu.cashBalance)}</span>
                       </div>
                     </div>
-                    <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                       <div className={`h-full ${bu.color} rounded-full`} style={{ width: `${share}%` }} />
                     </div>
-                    <div className="flex justify-between mt-0.5 text-[10px] text-gray-600">
+                    <div className="flex justify-between mt-0.5 text-[10px] text-gray-400">
                       <span>Abertura: {fmtR(bu.openingBalance)}</span>
                       <span>Fechamento: {fmtR(bu.closingBalance)}</span>
                     </div>
@@ -203,15 +203,15 @@ export default function AwqCashflowPage() {
               })}
             </div>
 
-            <div className="mt-4 pt-3 border-t border-gray-800 flex items-center justify-between">
+            <div className="mt-4 pt-3 border-t border-gray-200 flex items-center justify-between">
               <span className="text-xs text-gray-500">Caixa Total Consolidado</span>
-              <span className="text-base font-bold text-white">{fmtR(consolidated.cashBalance)}</span>
+              <span className="text-base font-bold text-gray-900">{fmtR(consolidated.cashBalance)}</span>
             </div>
           </div>
 
           {/* ── FCF Waterfall ─────────────────────────────────────────────────── */}
           <div className="card p-5">
-            <h2 className="text-sm font-semibold text-white mb-4">FCF Waterfall — Consolidado YTD</h2>
+            <h2 className="text-sm font-semibold text-gray-900 mb-4">FCF Waterfall — Consolidado YTD</h2>
             <div className="space-y-2.5">
               {[
                 { label: "Lucro Líquido Ops.",     value:  consolidated.netIncome,     color: "bg-emerald-500" },
@@ -227,17 +227,17 @@ export default function AwqCashflowPage() {
                 const barW = Math.abs(item.value) / maxVal * 100;
                 const isNeg = item.value < 0;
                 return (
-                  <div key={item.label} className={`flex items-center gap-3 ${(item as { bold?: boolean }).bold ? "py-1 bg-gray-800/20 px-2 rounded-lg" : ""}`}>
-                    <span className={`text-xs w-40 shrink-0 ${(item as { bold?: boolean }).bold ? "font-bold text-white" : "text-gray-400"}`}>
+                  <div key={item.label} className={`flex items-center gap-3 ${(item as { bold?: boolean }).bold ? "py-1 bg-gray-50 px-2 rounded-lg" : ""}`}>
+                    <span className={`text-xs w-40 shrink-0 ${(item as { bold?: boolean }).bold ? "font-bold text-gray-900" : "text-gray-400"}`}>
                       {item.label}
                     </span>
-                    <div className="flex-1 h-3 bg-gray-800 rounded-full overflow-hidden">
+                    <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
                       <div
                         className={`h-full ${item.color} rounded-full`}
                         style={{ width: `${Math.min(barW, 100)}%` }}
                       />
                     </div>
-                    <span className={`text-xs font-bold w-20 text-right shrink-0 ${isNeg ? "text-red-400" : "text-emerald-400"}`}>
+                    <span className={`text-xs font-bold w-20 text-right shrink-0 ${isNeg ? "text-red-600" : "text-emerald-600"}`}>
                       {isNeg ? "" : "+"}{fmtR(item.value)}
                     </span>
                   </div>

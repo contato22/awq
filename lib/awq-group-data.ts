@@ -253,10 +253,10 @@ export const allocFlags: Record<string, AllocFlag> = {
 };
 
 export const flagConfig: Record<AllocFlag, { label: string; color: string; bg: string }> = {
-  expand:   { label: "Expandir",  color: "text-emerald-400", bg: "bg-emerald-500/10 border border-emerald-500/20" },
-  maintain: { label: "Manter",    color: "text-brand-400",   bg: "bg-brand-500/10 border border-brand-500/20"     },
-  review:   { label: "Revisar",   color: "text-amber-400",   bg: "bg-amber-500/10 border border-amber-500/20"     },
-  cut:      { label: "Cortar",    color: "text-red-400",     bg: "bg-red-500/10 border border-red-500/20"         },
+  expand:   { label: "Expandir",  color: "text-emerald-700", bg: "bg-emerald-100 border border-emerald-200" },
+  maintain: { label: "Manter",    color: "text-brand-700",   bg: "bg-brand-100 border border-brand-200"     },
+  review:   { label: "Revisar",   color: "text-amber-700",   bg: "bg-amber-100 border border-amber-200"     },
+  cut:      { label: "Cortar",    color: "text-red-700",     bg: "bg-red-100 border border-red-200"         },
 };
 
 // ─── Forecast ─────────────────────────────────────────────────────────────────

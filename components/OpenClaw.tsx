@@ -35,10 +35,10 @@ function SetupScreen({ onSave }: { onSave: (key: string) => void }) {
   return (
     <div className="flex flex-col items-center justify-center flex-1 px-8 py-10 text-center gap-5">
       <div className="w-16 h-16 rounded-2xl bg-brand-600/10 border border-brand-500/20 flex items-center justify-center">
-        <Key size={26} className="text-brand-400" />
+        <Key size={26} className="text-brand-600" />
       </div>
       <div>
-        <h3 className="text-base font-semibold text-gray-200">Configurar OpenClaw</h3>
+        <h3 className="text-base font-semibold text-gray-400">Configurar OpenClaw</h3>
         <p className="text-sm text-gray-500 mt-1 max-w-xs leading-relaxed">
           Insira sua chave da API Anthropic para ativar o assistente. A chave é salva localmente no seu navegador.
         </p>
@@ -51,11 +51,11 @@ function SetupScreen({ onSave }: { onSave: (key: string) => void }) {
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && save()}
           placeholder="sk-ant-..."
-          className="w-full px-4 py-3 pr-10 bg-gray-800 border border-gray-700 rounded-xl text-sm text-gray-200 placeholder:text-gray-600 focus:outline-none focus:border-brand-500 transition-colors"
+          className="w-full px-4 py-3 pr-10 bg-gray-100 border border-gray-300 rounded-xl text-sm text-gray-400 placeholder:text-gray-400 focus:outline-none focus:border-brand-500 transition-colors"
         />
         <button
           onClick={() => setShow((v) => !v)}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-400"
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-400"
         >
           {show ? <EyeOff size={16} /> : <Eye size={16} />}
         </button>
@@ -63,7 +63,7 @@ function SetupScreen({ onSave }: { onSave: (key: string) => void }) {
       <button
         onClick={save}
         disabled={!value.trim()}
-        className="w-full max-w-sm py-3 bg-brand-600 hover:bg-brand-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl transition-colors"
+        className="w-full max-w-sm py-3 bg-brand-600 hover:bg-brand-500 disabled:opacity-40 disabled:cursor-not-allowed text-gray-900 text-sm font-semibold rounded-xl transition-colors"
       >
         Salvar e ativar
       </button>
@@ -71,7 +71,7 @@ function SetupScreen({ onSave }: { onSave: (key: string) => void }) {
         href="https://console.anthropic.com"
         target="_blank"
         rel="noopener noreferrer"
-        className="flex items-center gap-1 text-xs text-brand-400 hover:text-brand-300 transition-colors"
+        className="flex items-center gap-1 text-xs text-brand-600 hover:text-brand-500 transition-colors"
       >
         Obter chave no console.anthropic.com
         <ExternalLink size={12} />
@@ -201,9 +201,9 @@ export default function OpenClaw() {
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center pb-8">
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-600 to-brand-400 flex items-center justify-center mb-4 shadow-lg">
-              <Sparkles size={24} className="text-white" />
+              <Sparkles size={24} className="text-gray-900" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-200 mb-1">OpenClaw · JACQES</h3>
+            <h3 className="text-lg font-semibold text-gray-400 mb-1">OpenClaw · JACQES</h3>
             <p className="text-sm text-gray-500 mb-6 max-w-xs">
               Assistente de inteligência de negócios da JACQES. Pergunte qualquer coisa sobre clientes, receita, CS e operações.
             </p>
@@ -212,7 +212,7 @@ export default function OpenClaw() {
                 <button
                   key={prompt}
                   onClick={() => sendMessage(prompt)}
-                  className="w-full text-left px-3 py-2.5 text-xs text-gray-400 bg-gray-800/60 hover:bg-gray-800 border border-gray-700/50 hover:border-gray-600 rounded-lg transition-colors"
+                  className="w-full text-left px-3 py-2.5 text-xs text-gray-400 bg-gray-100/60 hover:bg-gray-100 border border-gray-300/50 hover:border-gray-600 rounded-lg transition-colors"
                 >
                   {prompt}
                 </button>
@@ -225,14 +225,14 @@ export default function OpenClaw() {
           <div key={i} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
             {msg.role === "assistant" && (
               <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-brand-600 to-brand-400 flex items-center justify-center shrink-0 mt-0.5">
-                <Bot size={14} className="text-white" />
+                <Bot size={14} className="text-gray-900" />
               </div>
             )}
             <div
               className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
                 msg.role === "user"
-                  ? "bg-brand-600 text-white rounded-br-sm"
-                  : "bg-gray-800 text-gray-200 rounded-bl-sm border border-gray-700/50"
+                  ? "bg-brand-600 text-gray-900 rounded-br-sm"
+                  : "bg-gray-100 text-gray-400 rounded-bl-sm border border-gray-300/50"
               }`}
             >
               {msg.content || (
@@ -243,15 +243,15 @@ export default function OpenClaw() {
               )}
             </div>
             {msg.role === "user" && (
-              <div className="w-7 h-7 rounded-lg bg-gray-700 flex items-center justify-center shrink-0 mt-0.5">
-                <User size={14} className="text-gray-300" />
+              <div className="w-7 h-7 rounded-lg bg-gray-200 flex items-center justify-center shrink-0 mt-0.5">
+                <User size={14} className="text-gray-400" />
               </div>
             )}
           </div>
         ))}
 
         {error && (
-          <div className="flex items-start gap-2 px-3 py-2.5 bg-red-950/40 border border-red-800/50 rounded-xl text-xs text-red-400">
+          <div className="flex items-start gap-2 px-3 py-2.5 bg-red-950/40 border border-red-800/50 rounded-xl text-xs text-red-600">
             <AlertCircle size={14} className="shrink-0 mt-0.5" />
             <span>{error}</span>
           </div>
@@ -261,8 +261,8 @@ export default function OpenClaw() {
       </div>
 
       {/* Input area */}
-      <div className="border-t border-gray-800 px-4 py-3">
-        <div className="flex items-end gap-2 bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 focus-within:border-brand-500 transition-colors">
+      <div className="border-t border-gray-200 px-4 py-3">
+        <div className="flex items-end gap-2 bg-gray-100 border border-gray-300 rounded-xl px-3 py-2 focus-within:border-brand-500 transition-colors">
           <textarea
             ref={textareaRef}
             value={input}
@@ -270,7 +270,7 @@ export default function OpenClaw() {
             onKeyDown={handleKeyDown}
             placeholder="Pergunte sobre clientes, receita, CS ou operações JACQES..."
             rows={1}
-            className="flex-1 bg-transparent text-sm text-gray-200 placeholder:text-gray-600 resize-none focus:outline-none min-h-[24px] max-h-40"
+            className="flex-1 bg-transparent text-sm text-gray-400 placeholder:text-gray-400 resize-none focus:outline-none min-h-[24px] max-h-40"
             disabled={loading}
           />
           <button
@@ -279,21 +279,21 @@ export default function OpenClaw() {
             className="w-8 h-8 rounded-lg bg-brand-600 hover:bg-brand-500 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-colors shrink-0"
           >
             {loading ? (
-              <Loader2 size={14} className="text-white animate-spin" />
+              <Loader2 size={14} className="text-gray-900 animate-spin" />
             ) : (
-              <Send size={14} className="text-white" />
+              <Send size={14} className="text-gray-900" />
             )}
           </button>
         </div>
         <div className="flex items-center justify-between mt-1.5">
-          <p className="text-[10px] text-gray-700">
+          <p className="text-[10px] text-gray-400">
             Powered by Claude · JACQES · Mar 2026
           </p>
           <div className="flex items-center gap-3">
             {messages.length > 0 && (
               <button
                 onClick={() => { setMessages([]); setError(null); }}
-                className="flex items-center gap-1 text-[10px] text-gray-700 hover:text-gray-400 transition-colors"
+                className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-gray-400 transition-colors"
                 title="Nova conversa"
               >
                 <RotateCcw size={10} />Nova conversa
@@ -301,7 +301,7 @@ export default function OpenClaw() {
             )}
             <button
               onClick={() => { setApiKey(null); localStorage.removeItem(LS_KEY); setMessages([]); setError(null); }}
-              className="flex items-center gap-1 text-[10px] text-gray-700 hover:text-gray-500 transition-colors"
+              className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-gray-500 transition-colors"
               title="Trocar chave de API"
             >
               <Key size={10} />Trocar chave
