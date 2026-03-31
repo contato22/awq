@@ -20,7 +20,7 @@ const BUS = [
       { label: "Margem", value: "67.4%" },
     ],
     status: "Ativa",
-    statusColor: "badge-green",
+    statusColor: "bg-emerald-500/15 text-emerald-400",
   },
   {
     id: "caza",
@@ -39,7 +39,7 @@ const BUS = [
       { label: "Receita YTD", value: "R$2.42M" },
     ],
     status: "Ativa",
-    statusColor: "badge-green",
+    statusColor: "bg-emerald-500/15 text-emerald-400",
   },
   {
     id: "venture",
@@ -58,7 +58,7 @@ const BUS = [
       { label: "IRR", value: "—" },
     ],
     status: "Em breve",
-    statusColor: "badge-yellow",
+    statusColor: "bg-yellow-500/15 text-yellow-400",
   },
   {
     id: "advisor",
@@ -77,7 +77,7 @@ const BUS = [
       { label: "Retorno", value: "—" },
     ],
     status: "Ativa",
-    statusColor: "badge-green",
+    statusColor: "bg-emerald-500/15 text-emerald-400",
   },
 ];
 
@@ -114,30 +114,30 @@ export default function BusinessUnitsPage() {
               <Link
                 key={bu.id}
                 href={bu.href}
-                className={`card p-6 flex flex-col gap-5 border-2 transition-all hover:scale-[1.01] hover:shadow-lg ${
+                className={`bg-gray-900 border border-gray-800 rounded-xl p-6 flex flex-col gap-5 transition-all hover:scale-[1.01] hover:shadow-lg hover:shadow-black/30 hover:border-gray-700 ${
                   isActive ? "cursor-pointer" : "cursor-default opacity-75"
                 }`}
               >
                 {/* Header */}
                 <div className="flex items-start justify-between">
                   <div className={`w-11 h-11 rounded-xl ${bu.color} flex items-center justify-center shadow-md`}>
-                    <Icon size={20} className="text-gray-900" />
+                    <Icon size={20} className="text-white" />
                   </div>
-                  <span className={`badge ${bu.statusColor}`}>{bu.status}</span>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${bu.statusColor}`}>{bu.status}</span>
                 </div>
 
                 {/* Name */}
                 <div>
-                  <div className="text-lg font-bold text-gray-900">{bu.label}</div>
-                  <div className="text-xs text-gray-500 mt-0.5">{bu.sub} · AWQ Group</div>
+                  <div className="text-lg font-bold text-white">{bu.label}</div>
+                  <div className="text-xs text-gray-400 mt-0.5">{bu.sub} · AWQ Group</div>
                 </div>
 
                 {/* KPIs */}
-                <div className="grid grid-cols-3 gap-2 pt-3 border-t border-gray-200">
+                <div className="grid grid-cols-3 gap-2 pt-3 border-t border-gray-800">
                   {bu.kpis.map((kpi) => (
                     <div key={kpi.label} className="text-center">
-                      <div className="text-sm font-bold text-gray-900">{kpi.value}</div>
-                      <div className="text-[10px] text-gray-400 mt-0.5">{kpi.label}</div>
+                      <div className="text-sm font-bold text-white">{kpi.value}</div>
+                      <div className="text-[10px] text-gray-500 mt-0.5">{kpi.label}</div>
                     </div>
                   ))}
                 </div>
@@ -147,7 +147,7 @@ export default function BusinessUnitsPage() {
                   <span className="text-xs text-gray-500">
                     {isActive ? "Clique para acessar" : "Em desenvolvimento"}
                   </span>
-                  {isActive && <ChevronRight size={14} className="text-brand-600" />}
+                  {isActive && <ChevronRight size={14} className="text-brand-400" />}
                 </div>
               </Link>
             );
