@@ -1,15 +1,4 @@
 import type { Metadata } from "next";
-import Header from "@/components/Header";
-import { revenueData, channelData } from "@/lib/data";
-import { DollarSign, TrendingUp, BarChart3, ArrowUpRight, ArrowDownRight } from "lucide-react";
-
-export const metadata: Metadata = {
-  title: "Financial — AWQ Group",
-  description: "Receita, margem e canais de aquisição do AWQ Group.",
-};
-
-function fmt(n: number) {
-import type { Metadata } from "next";
   import Header from "@/components/Header";
   import { revenueData, channelData } from "@/lib/data";
   import { DollarSign, TrendingUp, BarChart3, ArrowUpRight, ArrowDownRight, Target, Zap, AlertTriangle } from "lucide-react";
