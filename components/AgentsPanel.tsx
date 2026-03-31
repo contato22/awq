@@ -8,9 +8,15 @@ import {
 } from "lucide-react";
 import { AGENTS } from "@/lib/agents-config";
 
-// GitHub Pages static export: call Anthropic API directly from browser.
-// Server/Vercel mode: call the Next.js API route proxy.
-const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
+// Static mode = GitHub Pages (no server). Detected via:
+// 1. Build-time env var NEXT_PUBLIC_STATIC_DATA=1 (inlined by Next.js)
+// 2. Runtime fallback: hostname contains "github.io"
+// Both ensure agents call Anthropic API directly from the browser.
+function detectStaticMode(): boolean {
+  if (process.env.NEXT_PUBLIC_STATIC_DATA === "1") return true;
+  if (typeof window !== "undefined" && window.location.hostname.includes("github.io")) return true;
+  return false;
+}
 
 const LS_KEY = "openclaw_api_key";
 
@@ -21,6 +27,7 @@ interface AgentResult {
   content: string;
   status: "idle" | "running" | "done" | "error";
   timestamp?: string;
+  errorMsg?: string;
 }
 
 const AGENT_META: Record<string, { icon: React.ElementType; color: string; buColor: string }> = {
@@ -58,15 +65,9 @@ function AgentCard({
         </div>
 
         <div className="flex items-center gap-2">
-          {agent.status === "done" && (
-            <CheckCircle2 size={14} className="text-emerald-400" />
-          )}
-          {agent.status === "error" && (
-            <AlertCircle size={14} className="text-red-400" />
-          )}
-          {agent.status === "running" && (
-            <Loader2 size={14} className="text-brand-400 animate-spin" />
-          )}
+          {agent.status === "done" && <CheckCircle2 size={14} className="text-emerald-400" />}
+          {agent.status === "error" && <AlertCircle size={14} className="text-red-400" />}
+          {agent.status === "running" && <Loader2 size={14} className="text-brand-400 animate-spin" />}
           <button
             onClick={() => onRun(agent.id)}
             disabled={agent.status === "running"}
@@ -105,8 +106,10 @@ function AgentCard({
             {agent.content}
           </div>
         )}
-        {agent.status === "error" && !agent.content && (
-          <p className="text-[11px] text-red-400">Falha ao executar agente</p>
+        {agent.status === "error" && (
+          <p className="text-[11px] text-red-400">
+            {agent.errorMsg ?? "Falha ao executar agente"}
+          </p>
         )}
       </div>
 
@@ -179,11 +182,9 @@ export default function AgentsPanel() {
     const key = localStorage.getItem(LS_KEY);
     setApiKey(key);
 
-    if (IS_STATIC) {
-      // Static mode: use shared config directly — no server manifest needed
+    if (detectStaticMode()) {
       setAgents(AGENTS.map((a) => ({ ...a, content: "", status: "idle" as const })));
     } else {
-      // Server mode: fetch manifest from API route
       fetch("/api/agents")
         .then((r) => r.json())
         .then((list: { id: string; name: string; role: string }[]) => {
@@ -200,13 +201,15 @@ export default function AgentsPanel() {
     if (!activeKey) return;
 
     setAgents((prev) =>
-      prev.map((a) => (a.id === agentId ? { ...a, status: "running", content: "" } : a))
+      prev.map((a) =>
+        a.id === agentId ? { ...a, status: "running", content: "", errorMsg: undefined } : a
+      )
     );
 
     try {
       let text = "";
 
-      if (IS_STATIC) {
+      if (detectStaticMode()) {
         // ── Static / GitHub Pages mode ────────────────────────────────────────
         // Call Anthropic API directly from the browser (no server required).
         const agent = AGENTS.find((a) => a.id === agentId)!;
@@ -229,7 +232,9 @@ export default function AgentsPanel() {
 
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
-          throw new Error((err as { error?: { message?: string } }).error?.message ?? `HTTP ${res.status}`);
+          throw new Error(
+            (err as { error?: { message?: string } }).error?.message ?? `HTTP ${res.status}`
+          );
         }
 
         const reader = res.body!.getReader();
@@ -253,7 +258,7 @@ export default function AgentsPanel() {
                   prev.map((a) => (a.id === agentId ? { ...a, content: text } : a))
                 );
               }
-            } catch { /* ignore malformed lines */ }
+            } catch { /* ignore malformed SSE lines */ }
           }
         }
       } else {
@@ -306,9 +311,10 @@ export default function AgentsPanel() {
             : a
         )
       );
-    } catch {
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erro desconhecido";
       setAgents((prev) =>
-        prev.map((a) => (a.id === agentId ? { ...a, status: "error" } : a))
+        prev.map((a) => (a.id === agentId ? { ...a, status: "error", errorMsg: msg } : a))
       );
     }
   }, [apiKey]);
@@ -316,7 +322,6 @@ export default function AgentsPanel() {
   const runAllAgents = async () => {
     if (!apiKey || runningAll) return;
     setRunningAll(true);
-    // Run BU agents in parallel, then AWQ master
     await Promise.all(BU_AGENTS.map((id) => runAgent(id)));
     await runAgent("awq-master");
     setRunningAll(false);
