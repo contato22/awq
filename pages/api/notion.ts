@@ -178,18 +178,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({ source: "mock", data: null, error: "NOTION_API_KEY não configurada" });
   }
 
+  // "financial" reuses the same projects DB — aggregated view of the same data
+  const projectsDb = process.env.NOTION_DATABASE_ID_CAZA_PROPERTIES;
   const envMap: Record<string, string | undefined> = {
-    financial:  process.env.NOTION_DATABASE_ID_CAZA_FINANCIAL,
-    properties: process.env.NOTION_DATABASE_ID_CAZA_PROPERTIES,
+    financial:  projectsDb,
+    properties: projectsDb,
     clients:    process.env.NOTION_DATABASE_ID_CAZA_CLIENTS,
   };
 
   const dbId = envMap[database];
   if (!dbId) {
+    const envVar = database === "financial"
+      ? "NOTION_DATABASE_ID_CAZA_PROPERTIES"
+      : `NOTION_DATABASE_ID_CAZA_${database.toUpperCase()}`;
     return res.status(200).json({
       source: "mock",
       data: null,
-      error: `NOTION_DATABASE_ID_CAZA_${database.toUpperCase()} não configurada`,
+      error: `${envVar} não configurada`,
     });
   }
 
