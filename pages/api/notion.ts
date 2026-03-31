@@ -23,14 +23,16 @@ async function queryDatabase(databaseId: string, apiKey: string) {
 }
 
 type NotionPropertyValue =
-  | { type: "number";    number: number | null }
-  | { type: "title";     title: Array<{ plain_text: string }> }
-  | { type: "rich_text"; rich_text: Array<{ plain_text: string }> }
-  | { type: "select";    select: { name: string } | null }
-  | { type: "date";      date: { start: string } | null }
-  | { type: "checkbox";  checkbox: boolean }
-  | { type: "people";    people: Array<{ id: string; name?: string; person?: { email?: string } }> }
-  | { type: "formula";   formula: { type: string; number?: number; string?: string; boolean?: boolean } };
+  | { type: "number";       number: number | null }
+  | { type: "title";        title: Array<{ plain_text: string }> }
+  | { type: "rich_text";    rich_text: Array<{ plain_text: string }> }
+  | { type: "select";       select: { name: string } | null }
+  | { type: "date";         date: { start: string } | null }
+  | { type: "checkbox";     checkbox: boolean }
+  | { type: "people";       people: Array<{ id: string; name?: string; person?: { email?: string } }> }
+  | { type: "formula";      formula: { type: string; number?: number; string?: string; boolean?: boolean } }
+  | { type: "email";        email: string | null }
+  | { type: "phone_number"; phone_number: string | null };
 
 function getProp(
   props: Record<string, NotionPropertyValue>,
@@ -45,7 +47,9 @@ function getProp(
     if (type === "title" && p.type === "title") return p.title[0]?.plain_text ?? "";
     if (type === "rich_text" && p.type === "rich_text") return p.rich_text[0]?.plain_text ?? "";
     if (type === "select" && p.type === "select") return p.select?.name ?? "";
-    if (type === "date" && p.type === "date") return p.date?.start ?? "";
+    if (type === "date"      && p.type === "date")         return p.date?.start ?? "";
+    if (type === "rich_text" && p.type === "email")        return p.email ?? "";
+    if (type === "rich_text" && p.type === "phone_number") return p.phone_number ?? "";
   }
   return null;
 }

@@ -45,7 +45,9 @@ function getProp(props, keys, type) {
           if (type === "title"     && p.type === "title")     return p.title[0]?.plain_text ?? "";
           if (type === "rich_text" && p.type === "rich_text") return p.rich_text[0]?.plain_text ?? "";
           if (type === "select"    && p.type === "select")    return p.select?.name ?? "";
-          if (type === "date"      && p.type === "date")      return p.date?.start ?? "";
+          if (type === "date"      && p.type === "date")         return p.date?.start ?? "";
+          if (type === "rich_text" && p.type === "email")        return p.email ?? "";
+          if (type === "rich_text" && p.type === "phone_number") return p.phone_number ?? "";
     }
     return null;
 }
