@@ -1,13 +1,32 @@
 import Header from "@/components/Header";
 import Link from "next/link";
 import { BarChart3, Building2, TrendingUp, ChevronRight, Users, DollarSign, Briefcase } from "lucide-react";
+import { kpis as jacqesKpis } from "@/lib/data";
+
+// ── Formatters ──────────────────────────────────────────────────────────────
+function fmtRevenue(n: number): string {
+  if (n >= 1_000_000) return "$" + (n / 1_000_000).toFixed(2) + "M";
+  if (n >= 1_000) return "$" + (n / 1_000).toFixed(0) + "K";
+  return "$" + n.toLocaleString("pt-BR");
+}
+function fmtNumber(n: number): string {
+  return n.toLocaleString("pt-BR");
+}
+function fmtPct(n: number): string {
+  return n.toFixed(1) + "%";
+}
+
+// ── JACQES KPIs from shared data source (lib/data.ts) ──────────────────────
+const _revenue   = jacqesKpis.find((k) => k.id === "revenue")?.value   ?? 0;
+const _customers = jacqesKpis.find((k) => k.id === "customers")?.value ?? 0;
+const _margin    = jacqesKpis.find((k) => k.id === "margin")?.value    ?? 0;
 
 const BUS = [
   {
     id: "jacqes",
     label: "JACQES",
     sub: "Agência",
-    href: "https://contato22.github.io/jacqes-bi/",
+    href: "https://contato22.github.io/jacqes-bi/financial/",
     color: "bg-brand-600",
     borderColor: "border-brand-200",
     bgColor: "bg-brand-50",
@@ -15,9 +34,9 @@ const BUS = [
     badgeColor: "bg-brand-100 text-brand-600 border-brand-200",
     icon: BarChart3,
     kpis: [
-      { label: "Receita", value: "$4.82M" },
-      { label: "Clientes", value: "3.847" },
-      { label: "Margem", value: "67.4%" },
+      { label: "Receita",  value: fmtRevenue(_revenue)   },
+      { label: "Clientes", value: fmtNumber(_customers)  },
+      { label: "Margem",   value: fmtPct(_margin)        },
     ],
     status: "Ativa",
     statusColor: "bg-emerald-500/15 text-emerald-400",

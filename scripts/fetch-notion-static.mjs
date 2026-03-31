@@ -330,6 +330,17 @@ function write(filename, data, { skipIfExists = false } = {}) {
     console.log(` OK ${filename} (${Array.isArray(data) ? data.length : Object.keys(data).length} records)`);
 }
 
+// ── JACQES KPIs ── mirrors lib/data.ts; update here when source data changes ──
+const JACQES_KPIS = {
+    revenue:      4_821_500,
+    customers:    3_847,
+    margin:       67.4,
+    receita_fmt:  "$4.82M",
+    clientes_fmt: "3.847",
+    margem_fmt:   "67.4%",
+    lastUpdated:  new Date().toISOString(),
+};
+
 async function main() {
     if (!API_KEY) {
           console.warn("NOTION_API_KEY not set -- skipping Notion fetch, pages will use mock data.");
@@ -338,6 +349,7 @@ async function main() {
           write("caza-financial.json", []);
           write("caza-clients.json", []);
           write("venture-sales.json", { rows: [], totalFechado: 0, totalLeads: 0, byCategoria: {}, byCanal: [], byQuarter: {}, byQCat: {} }, { skipIfExists: true });
+          write("jacqes-kpis.json", JACQES_KPIS);
           return;
     }
 
@@ -386,6 +398,9 @@ async function main() {
         console.warn(" NOTION_DATABASE_ID_VENTURE_SALES not set");
         write("venture-sales.json", { rows: [], totalFechado: 0, totalLeads: 0, byCategoria: {}, byCanal: [], byQuarter: {}, byQCat: {} }, { skipIfExists: true });
   }
+
+  // JACQES KPIs — always written so business-units card has a fetchable source
+  write("jacqes-kpis.json", JACQES_KPIS);
 
   console.log("Done.");
 }
