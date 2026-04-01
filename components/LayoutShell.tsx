@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import Sidebar from "./Sidebar";
-import OpenClawWidget from "./OpenClawWidget";
+import SupervisorWidget from "./SupervisorWidget";
 
 export default function LayoutShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -18,7 +18,7 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
         <main className="flex-1 overflow-y-auto">
           {children}
         </main>
-        <OpenClawWidget />
+        <SupervisorWidget />
       </div>
     </div>
   );
