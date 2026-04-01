@@ -31,104 +31,12 @@ function roic(returned: number, invested: number) {
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
-const portfolio = [
-  {
-    id: "AV001",
-    company:     "TechFlow Soluções",
-    sector:      "B2B SaaS",
-    stage:       "Series A",
-    invested:    8_000_000,
-    currentVal:  22_400_000,
-    returned:    0,
-    entryDate:   "Mar 2022",
-    status:      "Ativo",
-    ownership:   18.5,
-    irr:         38.4,
-    description: "Plataforma de automação de processos para PMEs. Crescimento de ARR acelerado pós Series A.",
-    founders:    "João Silva & Maria Souza",
-    location:    "São Paulo, SP",
-  },
-  {
-    id: "AV002",
-    company:     "Verde Energia",
-    sector:      "CleanTech",
-    stage:       "Series B",
-    invested:    12_000_000,
-    currentVal:  31_200_000,
-    returned:    0,
-    entryDate:   "Jul 2021",
-    status:      "Ativo",
-    ownership:   12.0,
-    irr:         28.6,
-    description: "Soluções de energia solar e armazenamento para indústria. Líder no segmento industrial renovável.",
-    founders:    "Carlos Mendes & Ana Lima",
-    location:    "Belo Horizonte, MG",
-  },
-  {
-    id: "AV003",
-    company:     "Saúde Digital",
-    sector:      "HealthTech",
-    stage:       "Exit",
-    invested:    5_000_000,
-    currentVal:  0,
-    returned:    18_500_000,
-    entryDate:   "Mai 2020",
-    status:      "Exitado",
-    ownership:   0,
-    irr:         52.1,
-    description: "Plataforma de telemedicina adquirida por grupo hospitalar nacional em 2025. Exit 3.7×.",
-    founders:    "Dr. Lucas Faria",
-    location:    "Rio de Janeiro, RJ",
-  },
-  {
-    id: "AV004",
-    company:     "AgriSmart",
-    sector:      "AgTech",
-    stage:       "Seed",
-    invested:    2_000_000,
-    currentVal:  4_600_000,
-    returned:    0,
-    entryDate:   "Set 2023",
-    status:      "Ativo",
-    ownership:   22.0,
-    irr:         31.2,
-    description: "IoT e analytics para agricultura de precisão. Operando em 4 estados com 120+ clientes.",
-    founders:    "Roberto Costa & Fernanda Alves",
-    location:    "Ribeirão Preto, SP",
-  },
-  {
-    id: "AV005",
-    company:     "FinBridge",
-    sector:      "Fintech",
-    stage:       "Series A",
-    invested:    6_500_000,
-    currentVal:  5_200_000,
-    returned:    0,
-    entryDate:   "Jan 2023",
-    status:      "Em monitoramento",
-    ownership:   15.0,
-    irr:         -6.2,
-    description: "Infraestrutura de pagamentos B2B. Crescimento desacelerado — plano de reestruturação em curso.",
-    founders:    "Thiago Ramos",
-    location:    "São Paulo, SP",
-  },
-  {
-    id: "AV006",
-    company:     "Logística Plus",
-    sector:      "LogTech",
-    stage:       "Series A",
-    invested:    7_000_000,
-    currentVal:  14_700_000,
-    returned:    0,
-    entryDate:   "Nov 2022",
-    status:      "Ativo",
-    ownership:   20.0,
-    irr:         24.8,
-    description: "Gestão de última milha e roteirização inteligente. Expansão para 12 cidades em 2026.",
-    founders:    "Patricia Gomes & André Nunes",
-    location:    "Curitiba, PR",
-  },
-];
+const portfolio: {
+  id: string; company: string; sector: string; stage: string;
+  invested: number; currentVal: number; returned: number; entryDate: string;
+  status: string; ownership: number; irr: number; description: string;
+  founders: string; location: string;
+}[] = [];
 
 const statusIcon: Record<string, React.ElementType> = {
   "Ativo":            CheckCircle2,
@@ -188,6 +96,11 @@ export default function AwqVenturePortfolioPage() {
 
         {/* ── Company cards ─────────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+          {portfolio.length === 0 && (
+            <div className="xl:col-span-2">
+              <p className="text-sm text-gray-400 text-center py-8">Sem dados disponíveis</p>
+            </div>
+          )}
           {portfolio.map((p) => {
             const val   = p.status === "Exitado" ? p.returned : p.currentVal;
             const moic  = val / p.invested;

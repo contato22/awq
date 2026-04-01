@@ -23,9 +23,9 @@ function fmtR(n: number) {
 const unitCards = [
   {
     label: "CAC",
-    value: fmtR(12_400),
+    value: "—",
     sub: "Custo médio por cliente novo",
-    delta: "-8.2%",
+    delta: "—",
     up: true,
     icon: Users,
     color: "text-brand-600",
@@ -33,9 +33,9 @@ const unitCards = [
   },
   {
     label: "LTV Médio por Cliente",
-    value: fmtR(1_890_000),
+    value: "—",
     sub: "Baseado em clientes ativos",
-    delta: "+22.4%",
+    delta: "—",
     up: true,
     icon: TrendingUp,
     color: "text-emerald-600",
@@ -43,9 +43,9 @@ const unitCards = [
   },
   {
     label: "Receita por Projeto",
-    value: fmtR(71_118),
+    value: "—",
     sub: "Ticket médio",
-    delta: "+2.1%",
+    delta: "—",
     up: true,
     icon: Clapperboard,
     color: "text-violet-700",
@@ -53,9 +53,9 @@ const unitCards = [
   },
   {
     label: "Margem Bruta por Projeto",
-    value: "56.8%",
+    value: "—",
     sub: "Descontando alim. + gasolina",
-    delta: "+1.4pp",
+    delta: "—",
     up: true,
     icon: DollarSign,
     color: "text-amber-700",
@@ -63,30 +63,16 @@ const unitCards = [
   },
 ];
 
-const directorEconomics = [
-  { name: "Ana Ferreira",  projetos: 12, receita: 980_000,   despesas: 185_000, lucro: 795_000,  ticketMedio: 81_667  },
-  { name: "Rafael Souza",  projetos: 10, receita: 800_000,   despesas: 162_000, lucro: 638_000,  ticketMedio: 80_000  },
-  { name: "Carlos Lima",   projetos:  7, receita: 485_000,   despesas: 108_000, lucro: 377_000,  ticketMedio: 69_286  },
-  { name: "Mariana Costa", projetos:  5, receita: 209_000,   despesas:  53_000, lucro: 156_000,  ticketMedio: 41_800  },
-];
+const directorEconomics: { name: string; projetos: number; receita: number; despesas: number; lucro: number; ticketMedio: number }[] = [];
 
-const clientEconomics = [
-  { name: "Ambev",          projetos: 3, receitaTotal: 480_000,  ltvEstimado: 2_880_000, ticketMedio: 160_000, margin: 58 },
-  { name: "Samsung Brasil", projetos: 4, receitaTotal: 630_000,  ltvEstimado: 3_150_000, ticketMedio: 157_500, margin: 62 },
-  { name: "Natura",         projetos: 3, receitaTotal: 530_000,  ltvEstimado: 3_500_000, ticketMedio: 176_667, margin: 60 },
-  { name: "Nike Brasil",    projetos: 2, receitaTotal: 180_000,  ltvEstimado: 2_340_000, ticketMedio:  90_000, margin: 67 },
-  { name: "iFood",          projetos: 2, receitaTotal:  95_000,  ltvEstimado:   800_000, ticketMedio:  47_500, margin: 49 },
-  { name: "Banco XP",       projetos: 1, receitaTotal: 320_000,  ltvEstimado: 1_380_000, ticketMedio: 320_000, margin: 54 },
-  { name: "Arezzo",         projetos: 1, receitaTotal:  64_000,  ltvEstimado:   392_000, ticketMedio:  64_000, margin: 52 },
-  { name: "Nubank",         projetos: 1, receitaTotal: 145_000,  ltvEstimado:   700_000, ticketMedio: 145_000, margin: 55 },
-];
+const clientEconomics: { name: string; projetos: number; receitaTotal: number; ltvEstimado: number; ticketMedio: number; margin: number }[] = [];
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function CazaUnitEconomicsPage() {
   const totalProjetos = projectTypeRevenue.reduce((s, t) => s + t.projetos, 0);
   const totalReceita  = projectTypeRevenue.reduce((s, t) => s + t.receita, 0);
-  const avgTicket     = Math.round(totalReceita / totalProjetos);
+  const avgTicket     = totalProjetos > 0 ? Math.round(totalReceita / totalProjetos) : 0;
 
   return (
     <>
@@ -174,6 +160,9 @@ export default function CazaUnitEconomicsPage() {
                   </tr>
                 </thead>
                 <tbody>
+                  {directorEconomics.length === 0 && (
+                    <tr><td colSpan={5} className="py-10 text-center text-sm text-gray-400">Sem dados disponíveis</td></tr>
+                  )}
                   {directorEconomics.map((d) => {
                     const margin = ((d.lucro / d.receita) * 100).toFixed(0);
                     return (
@@ -228,6 +217,9 @@ export default function CazaUnitEconomicsPage() {
                 </tr>
               </thead>
               <tbody>
+                {clientEconomics.length === 0 && (
+                  <tr><td colSpan={6} className="py-10 text-center text-sm text-gray-400">Sem dados disponíveis</td></tr>
+                )}
                 {clientEconomics.map((c) => (
                   <tr key={c.name} className="border-b border-gray-100 hover:bg-gray-100 transition-colors">
                     <td className="py-2.5 px-3 text-xs font-medium text-gray-400">{c.name}</td>

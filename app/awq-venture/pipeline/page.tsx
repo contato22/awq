@@ -22,80 +22,11 @@ function fmtR(n: number) {
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
-const deals = [
-  {
-    id: "P001",
-    company:     "MedIA Health",
-    sector:      "HealthTech",
-    stage:       "Due Diligence",
-    ticket:      4_000_000,
-    eta:         "Q2 2026",
-    score:       8.4,
-    source:      "Network",
-    description: "IA para diagnóstico por imagem em hospitais privados. Receita recorrente B2B.",
-    priority:    "Alta",
-  },
-  {
-    id: "P002",
-    company:     "EduFlow",
-    sector:      "EdTech",
-    stage:       "Term Sheet",
-    ticket:      3_000_000,
-    eta:         "Q2 2026",
-    score:       7.9,
-    source:      "Indicação",
-    description: "LMS corporativo para treinamento de equipes remotas. 200+ clientes ativos.",
-    priority:    "Alta",
-  },
-  {
-    id: "P003",
-    company:     "CarbonX",
-    sector:      "CleanTech",
-    stage:       "Prospecção",
-    ticket:      8_000_000,
-    eta:         "Q3 2026",
-    score:       7.2,
-    source:      "Evento",
-    description: "Créditos de carbono tokenizados para mercado voluntário. Pré-receita.",
-    priority:    "Média",
-  },
-  {
-    id: "P004",
-    company:     "RetailAI",
-    sector:      "RetailTech",
-    stage:       "Prospecção",
-    ticket:      2_500_000,
-    eta:         "Q3 2026",
-    score:       6.8,
-    source:      "Cold Inbound",
-    description: "Precificação dinâmica e gestão de estoque por IA para varejo físico.",
-    priority:    "Média",
-  },
-  {
-    id: "P005",
-    company:     "CyberShield",
-    sector:      "Cybersecurity",
-    stage:       "Triagem",
-    ticket:      5_000_000,
-    eta:         "Q4 2026",
-    score:       7.5,
-    source:      "Network",
-    description: "Proteção de endpoints para PMEs com modelo managed service.",
-    priority:    "Alta",
-  },
-  {
-    id: "P006",
-    company:     "FarmAI",
-    sector:      "AgTech",
-    stage:       "Triagem",
-    ticket:      1_800_000,
-    eta:         "Q4 2026",
-    score:       6.1,
-    source:      "Cold Inbound",
-    description: "Previsão de colheita e risco climático via sensoriamento remoto.",
-    priority:    "Baixa",
-  },
-];
+const deals: {
+  id: string; company: string; sector: string; stage: string;
+  ticket: number; eta: string; score: number; source: string;
+  description: string; priority: string;
+}[] = [];
 
 const stages = ["Triagem", "Prospecção", "Due Diligence", "Term Sheet"] as const;
 
@@ -219,6 +150,9 @@ export default function AwqVenturePipelinePage() {
                 </tr>
               </thead>
               <tbody>
+                {deals.length === 0 && (
+                  <tr><td colSpan={8} className="py-10 text-center text-sm text-gray-400">Sem dados disponíveis</td></tr>
+                )}
                 {deals.map((d) => {
                   const { icon: StageIcon, color } = stageConfig[d.stage] ?? { icon: Clock, color: "text-gray-400" };
                   return (

@@ -32,6 +32,22 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
 }
 
 export default function CustomerSegmentChart() {
+  if (customerSegments.length === 0) {
+    return (
+      <div className="card p-6">
+        <div className="mb-4">
+          <h2 className="text-sm font-semibold text-gray-900">Customer Segments</h2>
+          <p className="text-xs text-gray-500 mt-0.5">Revenue distribution by tier</p>
+        </div>
+        <div className="flex flex-col items-center justify-center py-12 text-gray-400">
+          <svg width="36" height="36" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="mb-3 opacity-30"><circle cx="12" cy="12" r="9" strokeWidth={1.5} /><path strokeLinecap="round" strokeWidth={1.5} d="M12 3v9l5 3" /></svg>
+          <p className="text-sm font-medium">Sem dados disponíveis</p>
+          <p className="text-xs mt-1 opacity-70">Nenhum segmento registrado</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="card p-6">
       <div className="mb-4">

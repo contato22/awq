@@ -46,42 +46,16 @@ function CircleProgress({ pct, size = 48, stroke = 4, color = "#2563eb" }: {
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
-const quarters = [
-  {
-    q: "Q1", year: 2026, valor: 42506.99, meta: 30000, pct: 142, registros: 481,
-    prev: { q: "Q1", year: 2025, valor: 9440.56, pct: 350 },
-    meses: [{ m: "Jan", v: 0 }, { m: "Fev", v: 3096 }, { m: "Mar", v: 6344.56 }],
-  },
-  {
-    q: "Q2", year: 2026, valor: 0, meta: 30000, pct: 0, registros: 0,
-    prev: { q: "Q2", year: 2025, valor: 3152.00, pct: -100 },
-    meses: [{ m: "Abr", v: 560 }, { m: "Mai", v: 2405 }, { m: "Jun", v: 187 }],
-  },
-  {
-    q: "Q3", year: 2026, valor: 0, meta: 30000, pct: 0, registros: 0,
-    prev: { q: "Q3", year: 2025, valor: 14963.23, pct: -100 },
-    meses: [{ m: "Jul", v: 8150 }, { m: "Ago", v: 4370 }, { m: "Set", v: 2443.23 }],
-  },
-  {
-    q: "Q4", year: 2026, valor: 0, meta: 30000, pct: 0, registros: 0,
-    prev: { q: "Q4", year: 2025, valor: 16851.74, pct: -100 },
-    meses: [{ m: "Out", v: 1210 }, { m: "Nov", v: 2272 }, { m: "Dez", v: 13369.74 }],
-    note: "* Dez/25: AWQ já operava informalmente",
-  },
-];
+const quarters: {
+  q: string; year: number; valor: number; meta: number; pct: number; registros: number;
+  prev: { q: string; year: number; valor: number; pct: number };
+  meses: { m: string; v: number }[];
+  note?: string;
+}[] = [];
 
-const receitaBarData = [
-  { trimestre: "Q1", om: 40412, seguro: 2095, integracao: 201189 },
-  { trimestre: "Q2", om: 0,     seguro: 0,    integracao: 0       },
-  { trimestre: "Q3", om: 0,     seguro: 0,    integracao: 0       },
-  { trimestre: "Q4", om: 0,     seguro: 0,    integracao: 0       },
-];
+const receitaBarData: { trimestre: string; om: number; seguro: number; integracao: number }[] = [];
 
-const catBarData = [
-  { cat: "O&M",        Q1: 40412, Q2: 0, Q3: 0, Q4: 0 },
-  { cat: "Seguro",     Q1: 2095,  Q2: 0, Q3: 0, Q4: 0 },
-  { cat: "Integração", Q1: 201189,Q2: 0, Q3: 0, Q4: 0 },
-];
+const catBarData: { cat: string; Q1: number; Q2: number; Q3: number; Q4: number }[] = [];
 
 const evolucao = [
   {
@@ -110,11 +84,7 @@ const evolucao = [
   },
 ];
 
-const detalhamento = [
-  { cat: "O&M",        q1: 40411.97, q2: 0, q3: 0, q4: 0, total: 40411.97  },
-  { cat: "Seguro",     q1: 2095.02,  q2: 0, q3: 0, q4: 0, total: 2095.02   },
-  { cat: "Integração", q1: 201189,   q2: 0, q3: 0, q4: 0, total: 201189    },
-];
+const detalhamento: { cat: string; q1: number; q2: number; q3: number; q4: number; total: number }[] = [];
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -170,6 +140,11 @@ export default function YoY2025Page() {
 
       {/* Quarterly Cards */}
       <div className="grid grid-cols-4 gap-4">
+        {quarters.length === 0 && (
+          <div className="col-span-4">
+            <p className="text-sm text-gray-400 text-center py-8">Sem dados disponíveis</p>
+          </div>
+        )}
         {quarters.map((q) => (
           <div key={q.q} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
             <div className="flex items-start justify-between mb-2">
@@ -294,6 +269,9 @@ export default function YoY2025Page() {
             </tr>
           </thead>
           <tbody>
+            {liveDetalhamento.length === 0 && (
+              <tr><td colSpan={6} className="py-10 text-center text-sm text-gray-400">Sem dados disponíveis</td></tr>
+            )}
             {liveDetalhamento.map((row) => (
               <tr key={row.cat} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                 <td className="py-3 px-3 text-sm text-gray-700 font-medium">{row.cat}</td>

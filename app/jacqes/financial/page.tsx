@@ -28,39 +28,16 @@ function variance(actual: number, budget: number) {
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 
-const dreData = [
-  { label: "Receita Bruta de Serviços",  value: 4_820_000, indent: 0, bold: false, type: "revenue"  },
-  { label: "(-) Deduções e Impostos",    value: -481_000,  indent: 1, bold: false, type: "deduction" },
-  { label: "= Receita Líquida",          value: 4_339_000, indent: 0, bold: true,  type: "subtotal"  },
-  { label: "(-) Custo dos Serviços",     value: -1_735_600,indent: 1, bold: false, type: "cost"      },
-  { label: "= Lucro Bruto",             value: 2_603_400, indent: 0, bold: true,  type: "subtotal"  },
-  { label: "(-) Desp. Comerciais",       value: -347_120,  indent: 1, bold: false, type: "expense"   },
-  { label: "(-) Desp. Administrativas", value: -520_680,  indent: 1, bold: false, type: "expense"   },
-  { label: "(-) Desp. com Pessoal",      value: -868_800,  indent: 1, bold: false, type: "expense"   },
-  { label: "= EBITDA",                   value: 866_800,   indent: 0, bold: true,  type: "ebitda"    },
-  { label: "(-) Depreciação e Amort.",   value: -43_390,   indent: 1, bold: false, type: "expense"   },
-  { label: "= EBIT",                     value: 823_410,   indent: 0, bold: true,  type: "subtotal"  },
-  { label: "(+/-) Resultado Financeiro", value: -38_000,   indent: 1, bold: false, type: "expense"   },
-  { label: "= Resultado Antes do IR",    value: 785_410,   indent: 0, bold: true,  type: "subtotal"  },
-  { label: "(-) IR e CSLL",             value: -267_040,  indent: 1, bold: false, type: "expense"   },
-  { label: "= Lucro Líquido",           value: 518_370,   indent: 0, bold: true,  type: "net"       },
-];
+const dreData: { label: string; value: number; indent: number; bold: boolean; type: string }[] = [];
 
-const budgetVsActual = [
-  { month: "Jan/26", receitaBudget: 320_000, receitaActual: 298_000, ebitdaBudget: 57_600, ebitdaActual: 51_500 },
-  { month: "Fev/26", receitaBudget: 340_000, receitaActual: 375_000, ebitdaBudget: 61_200, ebitdaActual: 71_250 },
-  { month: "Mar/26", receitaBudget: 380_000, receitaActual: 421_000, ebitdaBudget: 68_400, ebitdaActual: 80_000 },
-  { month: "Abr/26", receitaBudget: 400_000, receitaActual: 0,       ebitdaBudget: 72_000, ebitdaActual: 0      },
-  { month: "Mai/26", receitaBudget: 420_000, receitaActual: 0,       ebitdaBudget: 75_600, ebitdaActual: 0      },
-  { month: "Jun/26", receitaBudget: 440_000, receitaActual: 0,       ebitdaBudget: 79_200, ebitdaActual: 0      },
-];
+const budgetVsActual: { month: string; receitaBudget: number; receitaActual: number; ebitdaBudget: number; ebitdaActual: number }[] = [];
 
 const summaryCards = [
   {
     label: "Receita Líquida YTD",
-    value: fmtR(4_339_000),
+    value: "—",
     sub: "Jan–Mar/26",
-    delta: "+18.4%",
+    delta: "—",
     up: true,
     icon: DollarSign,
     color: "text-emerald-600",
@@ -68,9 +45,9 @@ const summaryCards = [
   },
   {
     label: "Lucro Bruto YTD",
-    value: fmtR(2_603_400),
-    sub: `Margem ${pct(2_603_400 / 4_339_000)}`,
-    delta: "+12.1%",
+    value: "—",
+    sub: "Margem —",
+    delta: "—",
     up: true,
     icon: TrendingUp,
     color: "text-brand-600",
@@ -78,9 +55,9 @@ const summaryCards = [
   },
   {
     label: "EBITDA YTD",
-    value: fmtR(866_800),
-    sub: `Margem ${pct(866_800 / 4_339_000)}`,
-    delta: "+9.3%",
+    value: "—",
+    sub: "Margem —",
+    delta: "—",
     up: true,
     icon: BarChart3,
     color: "text-violet-700",
@@ -88,9 +65,9 @@ const summaryCards = [
   },
   {
     label: "Lucro Líquido YTD",
-    value: fmtR(518_370),
-    sub: `Margem ${pct(518_370 / 4_339_000)}`,
-    delta: "+7.8%",
+    value: "—",
+    sub: "Margem —",
+    delta: "—",
     up: true,
     icon: TrendingDown,
     color: "text-amber-700",
@@ -182,6 +159,9 @@ export default function JacqesFinancialPage() {
                   </tr>
                 </thead>
                 <tbody>
+                  {dreData.length === 0 && (
+                    <tr><td colSpan={3} className="py-10 text-center text-sm text-gray-400">Sem dados disponíveis</td></tr>
+                  )}
                   {dreData.map((row, i) => {
                     const receitaLiq = 4_339_000;
                     const isSubtotal = row.bold;
@@ -279,6 +259,9 @@ export default function JacqesFinancialPage() {
                 </tr>
               </thead>
               <tbody>
+                {budgetVsActual.length === 0 && (
+                  <tr><td colSpan={7} className="py-10 text-center text-sm text-gray-400">Sem dados disponíveis</td></tr>
+                )}
                 {budgetVsActual.map((row) => {
                   const isFuture = row.receitaActual === 0;
                   const varR = isFuture ? null : variance(row.receitaActual, row.receitaBudget);

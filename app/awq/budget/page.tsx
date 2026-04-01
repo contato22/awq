@@ -31,54 +31,11 @@ function varPct(actual: number, budget: number) {
 
 // ─── Budget Lines ─────────────────────────────────────────────────────────────
 
-const budgetLines = [
-  {
-    line:         "Receita",
-    jacquesBudg:  4_440_000, jacquesActual: 4_820_000,
-    cazaBudg:     2_148_000, cazaActual:    2_418_000,
-    advisorBudg:  1_400_000, advisorActual: 1_572_000,
-    isExpense:    false,
-  },
-  {
-    line:         "Gross Profit",
-    jacquesBudg:  2_664_000, jacquesActual: 2_892_000,
-    cazaBudg:     1_546_000, cazaActual:    1_730_000,
-    advisorBudg:  770_000,   advisorActual: 865_000,
-    isExpense:    false,
-  },
-  {
-    line:         "EBITDA",
-    jacquesBudg:  976_800,  jacquesActual: 867_000,
-    cazaBudg:     515_520,  cazaActual:    653_000,
-    advisorBudg:  644_000,  advisorActual: 723_000,
-    isExpense:    false,
-  },
-  {
-    line:         "Lucro Líquido",
-    jacquesBudg:  489_000,  jacquesActual: 518_000,
-    cazaBudg:     386_640,  cazaActual:    420_000,
-    advisorBudg:  427_000,  advisorActual: 479_000,
-    isExpense:    false,
-  },
-  {
-    line:         "Cash Gerado",
-    jacquesBudg:  630_000,  jacquesActual: 720_000,
-    cazaBudg:     450_000,  cazaActual:    580_000,
-    advisorBudg:  460_000,  advisorActual: 510_000,
-    isExpense:    false,
-  },
-];
+const budgetLines: { line: string; jacquesBudg: number; jacquesActual: number; cazaBudg: number; cazaActual: number; advisorBudg: number; advisorActual: number; isExpense: boolean }[] = [];
 
 // ─── Consolidated budget by category ─────────────────────────────────────────
 
-const categoryBudget = [
-  { category: "Marketing & Growth",    budget: 1_440_000, actual: 1_238_000, bu: "Grupo" },
-  { category: "Salários & Benefícios", budget: 3_720_000, actual: 3_540_000, bu: "Grupo" },
-  { category: "Tecnologia & Infra",    budget:   540_000, actual:   462_000, bu: "Grupo" },
-  { category: "Vendas & Comissões",    budget:   960_000, actual: 1_044_000, bu: "Grupo" },
-  { category: "G&A Consolidado",       budget:   720_000, actual:   684_000, bu: "Grupo" },
-  { category: "Desp. Operacionais",    budget:   360_000, actual:   396_000, bu: "Grupo" },
-];
+const categoryBudget: { category: string; budget: number; actual: number; bu: string }[] = [];
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -130,7 +87,7 @@ export default function AwqBudgetPage() {
             },
             {
               label: "% Budget Executado",
-              value: ((totalActual / (totalBudget * 4)) * 100).toFixed(0) + "%",
+              value: totalBudget > 0 ? ((totalActual / (totalBudget * 4)) * 100).toFixed(0) + "%" : "—",
               sub:   "3 de 12 meses",
               delta: "Ritmo adequado",
               up:    true,
@@ -179,6 +136,9 @@ export default function AwqBudgetPage() {
                 </tr>
               </thead>
               <tbody>
+                {budgetLines.length === 0 && (
+                  <tr><td colSpan={10} className="py-12 text-center text-sm text-gray-400">Sem dados disponíveis</td></tr>
+                )}
                 {budgetLines.map((row) => {
                   const vJ = varPct(row.jacquesActual, row.jacquesBudg);
                   const vC = varPct(row.cazaActual, row.cazaBudg);
@@ -216,6 +176,9 @@ export default function AwqBudgetPage() {
         <div className="card p-5">
           <h2 className="text-sm font-semibold text-gray-900 mb-4">Budget por Categoria — Consolidado YTD</h2>
           <div className="space-y-3">
+            {categoryBudget.length === 0 && (
+              <p className="text-sm text-gray-400 text-center py-8">Sem dados disponíveis</p>
+            )}
             {categoryBudget.map((cat) => {
               const v          = varPct(cat.actual, cat.budget);
               const overBudget = cat.actual > cat.budget;
@@ -255,10 +218,13 @@ export default function AwqBudgetPage() {
         <div className="card p-5">
           <h2 className="text-sm font-semibold text-gray-900 mb-4">Resumo de Budget por BU</h2>
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+            {operatingBus.length === 0 && (
+              <p className="text-sm text-gray-400 text-center py-8 col-span-3">Sem dados disponíveis</p>
+            )}
             {operatingBus.map((bu) => {
               const v        = varPct(bu.revenue, bu.budgetRevenue);
               const isAbove  = v > 0;
-              const execPct  = ((bu.revenue / (bu.budgetRevenue * 4)) * 100).toFixed(0);
+              const execPct  = bu.budgetRevenue > 0 ? ((bu.revenue / (bu.budgetRevenue * 4)) * 100).toFixed(0) : "0";
               return (
                 <div key={bu.id} className="rounded-xl border border-gray-200 p-4">
                   <div className="flex items-center gap-2 mb-3">

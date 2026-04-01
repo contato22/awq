@@ -36,11 +36,7 @@ function fmtR(n: number) {
 
 // ─── Budget vs Actual Data ────────────────────────────────────────────────────
 
-const budgetVsActual = [
-  { month: "Jan/26", budgetReceita: 620_000, budgetLucro: 186_000 },
-  { month: "Fev/26", budgetReceita: 720_000, budgetLucro: 216_000 },
-  { month: "Mar/26", budgetReceita: 808_000, budgetLucro: 242_400 },
-];
+const budgetVsActual: { month: string; budgetReceita: number; budgetLucro: number }[] = [];
 
 function variance(actual: number, budget: number) {
   if (budget === 0) return 0;
@@ -307,6 +303,9 @@ export default function CazaFinancialPage() {
                 </tr>
               </thead>
               <tbody>
+                {budgetVsActual.length === 0 && (
+                  <tr><td colSpan={7} className="py-10 text-center text-sm text-gray-400">Sem dados disponíveis</td></tr>
+                )}
                 {budgetVsActual.map((b) => {
                   const actual = rows.find((r) => r.month === b.month);
                   if (!actual) return null;

@@ -23,111 +23,11 @@ function fmtR(n: number) {
 
 // ─── Extended risk data ───────────────────────────────────────────────────────
 
-const riskCategories = [
-  {
-    id: "concentration",
-    title: "Concentração de Cliente",
-    icon: Users,
-    color: "text-red-600",
-    bg: "bg-red-50",
-    borderColor: "border-red-200",
-    severity: "high",
-    details: [
-      { label: "Ambev (JACQES)",      share: 20, mrr: 420_000, risk: "Alto"   },
-      { label: "Samsung (JACQES)",    share: 16, mrr: 350_000, risk: "Alto"   },
-      { label: "Natura (JACQES)",     share: 14, mrr: 310_000, risk: "Médio"  },
-      { label: "Ambev + Samsung + Natura", share: 50, mrr: 1_080_000, risk: "Crítico", isTotal: true },
-    ],
-    threshold: "Limite: top-3 ≤ 40%",
-    current:   "Top-3 = 50% do MRR JACQES",
-    action:    "Diversificar carteira — 3+ novos clientes em Q2",
-  },
-  {
-    id: "receivables",
-    title: "Recebíveis em Aberto",
-    icon: DollarSign,
-    color: "text-red-600",
-    bg: "bg-red-50",
-    borderColor: "border-red-200",
-    severity: "high",
-    details: [
-      { label: "CV002 — Banco XP (Caza)",    share: 0, mrr: 320_000, risk: "Alto",   days: 8  },
-      { label: "CV008 — Nubank (Caza)",      share: 0, mrr: 145_000, risk: "Médio",  days: 5  },
-      { label: "Banco XP Advisory",          share: 0, mrr: 42_000,  risk: "Baixo",  days: 3  },
-    ],
-    threshold: "Limite: total ≤ R$200K",
-    current:   "Total em aberto: R$507K",
-    action:    "Cobrança ativa Banco XP (CV002) — prazo expirado",
-  },
-  {
-    id: "buDependency",
-    title: "Dependência de BU Única",
-    icon: Building2,
-    color: "text-amber-700",
-    bg: "bg-amber-50",
-    borderColor: "border-amber-200",
-    severity: "medium",
-    details: [
-      { label: "JACQES",      share: 55, mrr: 4_820_000, risk: "Atenção" },
-      { label: "Caza Vision", share: 28, mrr: 2_418_000, risk: "OK"      },
-      { label: "Advisor",     share: 18, mrr: 1_572_000, risk: "OK"      },
-    ],
-    threshold: "Limite: nenhuma BU > 50%",
-    current:   "JACQES = 55% da receita",
-    action:    "Acelerar Caza Vision e Advisor para reequilibrar",
-  },
-  {
-    id: "marginCompression",
-    title: "Compressão de Margem — JACQES",
-    icon: TrendingDown,
-    color: "text-amber-700",
-    bg: "bg-amber-50",
-    borderColor: "border-amber-200",
-    severity: "medium",
-    details: [
-      { label: "Meta EBITDA 2026",  share: 22, mrr: 0, risk: "Meta"    },
-      { label: "EBITDA Realizado",  share: 18, mrr: 0, risk: "Atual"   },
-      { label: "Gap",               share: -4, mrr: 0, risk: "4pp gap" },
-    ],
-    threshold: "Meta: EBITDA ≥ 22%",
-    current:   "Realizado: 18% EBITDA",
-    action:    "Revisar mix de clientes e custos operacionais",
-  },
-  {
-    id: "cashPressure",
-    title: "Cash Pressure — AWQ Venture",
-    icon: Zap,
-    color: "text-amber-700",
-    bg: "bg-amber-50",
-    borderColor: "border-amber-200",
-    severity: "medium",
-    details: [
-      { label: "Dry Powder atual",    share: 0, mrr: 6_200_000, risk: "Disponível" },
-      { label: "Próximo investimento",share: 0, mrr: 8_000_000, risk: "Necessário" },
-      { label: "Gap de funding",      share: 0, mrr: 1_800_000, risk: "A captar"   },
-    ],
-    threshold: "Dry powder ≥ próximo deploy",
-    current:   "Gap: R$1.8M a captar",
-    action:    "Avaliar distribuição de dividendos ou captação",
-  },
-  {
-    id: "forecastDet",
-    title: "Deterioração de Forecast",
-    icon: ShieldAlert,
-    color: "text-brand-600",
-    bg: "bg-brand-50",
-    borderColor: "border-brand-200",
-    severity: "low",
-    details: [
-      { label: "Cenário base Q2",  share: 0, mrr: 11_550_000, risk: "Base"  },
-      { label: "Cenário bear Q2",  share: 0, mrr: 10_020_000, risk: "Bear"  },
-      { label: "Downside máximo",  share: 0, mrr: -1_530_000, risk: "-13.2%"},
-    ],
-    threshold: "Bear < -20% do base",
-    current:   "Bear = -13.2%: dentro do tolerável",
-    action:    "Monitorar — sem ação imediata necessária",
-  },
-];
+const riskCategories: {
+  id: string; title: string; icon: React.ElementType; color: string; bg: string; borderColor: string;
+  severity: string; details: { label: string; share: number; mrr: number; risk: string; isTotal?: boolean; days?: number }[];
+  threshold: string; current: string; action: string;
+}[] = [];
 
 const severityOrder = { high: 0, medium: 1, low: 2 };
 const sortedRisks = [...riskCategories].sort((a, b) =>
@@ -139,6 +39,8 @@ const severityConfig = {
   medium: { color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-500/30", dot: "bg-amber-500", badge: "bg-amber-50 text-amber-700 border-amber-200" },
   low:    { color: "text-brand-600", bg: "bg-brand-50", border: "border-brand-500/30", dot: "bg-brand-500", badge: "bg-brand-50 text-brand-600 border-brand-200"  },
 };
+
+const riskHeatmapRows: { name: string; concentration: string; receivables: string; margin: string; cash: string; forecast: string; score: string }[] = [];
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -174,6 +76,12 @@ export default function AwqRiskPage() {
 
         {/* ── Risk Cards ────────────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+          {sortedRisks.length === 0 && (
+            <div className="xl:col-span-2 py-12 text-center text-gray-400">
+              <p className="text-sm font-medium">Sem dados disponíveis</p>
+              <p className="text-xs mt-1 opacity-70">Nenhum sinal de risco registrado</p>
+            </div>
+          )}
           {sortedRisks.map((risk) => {
             const Icon   = risk.icon;
             const sev    = severityConfig[risk.severity as keyof typeof severityConfig];
@@ -257,12 +165,10 @@ export default function AwqRiskPage() {
                 </tr>
               </thead>
               <tbody>
-                {[
-                  { name: "JACQES",       concentration: "Alto",  receivables: "Baixo", margin: "Médio", cash: "Baixo", forecast: "Baixo", score: "Médio" },
-                  { name: "Caza Vision",  concentration: "Baixo", receivables: "Alto",  margin: "Baixo", cash: "Baixo", forecast: "Baixo", score: "Médio" },
-                  { name: "Advisor",      concentration: "Médio", receivables: "Baixo", margin: "Baixo", cash: "Baixo", forecast: "Baixo", score: "Baixo" },
-                  { name: "AWQ Venture",  concentration: "Baixo", receivables: "Baixo", margin: "N/A",   cash: "Médio", forecast: "Médio", score: "Médio" },
-                ].map((row) => {
+                {riskHeatmapRows.length === 0 && (
+                  <tr><td colSpan={7} className="py-12 text-center text-sm text-gray-400">Sem dados disponíveis</td></tr>
+                )}
+                {riskHeatmapRows.map((row) => {
                   const riskCell = (v: string) => {
                     const color = v === "Alto" ? "bg-red-50 text-red-600"
                       : v === "Médio" ? "bg-amber-50 text-amber-700"

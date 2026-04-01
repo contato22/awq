@@ -31,44 +31,7 @@ function pct(n: number) { return (n * 100).toFixed(1) + "%"; }
 
 // ─── KPI scorecard definitions ────────────────────────────────────────────────
 
-const groupKpis = [
-  {
-    category: "Receita",
-    items: [
-      { label: "Receita Consolidada",   value: fmtR(consolidated.revenue),          delta: "+8.4% vs budget",    up: true  },
-      { label: "Receita / FTE",          value: fmtR(Math.round(consolidated.revenue / consolidated.ftes)), delta: "+12% vs 2025", up: true },
-      { label: "Receita / Cliente",      value: fmtR(Math.round(consolidated.revenue / consolidated.customers)), delta: "+5.1% vs 2025", up: true },
-      { label: "Budget vs Actual",       value: `+${budgetVsActual.toFixed(1)}%`,    delta: "Acima do plano",     up: true  },
-    ],
-  },
-  {
-    category: "Margem & Rentabilidade",
-    items: [
-      { label: "Margem Bruta",       value: pct(consolidatedMargins.grossMargin),  delta: "+2.3pp vs 2025",   up: true  },
-      { label: "Margem EBITDA",      value: pct(consolidatedMargins.ebitdaMargin), delta: "+1.1pp vs 2025",   up: true  },
-      { label: "Margem Líquida",     value: pct(consolidatedMargins.netMargin),    delta: "+0.8pp vs 2025",   up: true  },
-      { label: "ROIC Consolidado",   value: `${consolidatedRoic.toFixed(1)}%`,     delta: "+3.2pp vs 2025",   up: true  },
-    ],
-  },
-  {
-    category: "Caixa & Capital",
-    items: [
-      { label: "Caixa Consolidado",  value: fmtR(consolidated.cashBalance),        delta: "Todas as BUs",     up: true  },
-      { label: "Cash Gerado (Ops)",  value: fmtR(consolidated.cashGenerated),       delta: "+21.4% vs 2025",   up: true  },
-      { label: "Capital Alocado",    value: fmtR(consolidated.capitalAllocated),    delta: "Portfólio total",  up: true  },
-      { label: "Free Cash Flow",     value: fmtR(consolidated.cashGenerated - 92_000), delta: "+18.9% vs 2025", up: true },
-    ],
-  },
-  {
-    category: "Operações",
-    items: [
-      { label: "Clientes Ativos",    value: consolidated.customers.toString(),      delta: "+8 vs 2025",       up: true  },
-      { label: "FTEs Totais",        value: consolidated.ftes.toString(),           delta: "Ops. consolidado", up: true  },
-      { label: "BUs Operacionais",   value: operatingBus.length.toString(),         delta: "3 ativas",         up: true  },
-      { label: "Forecast Accuracy",  value: "94.2%",                               delta: "+1.8pp vs média",  up: true  },
-    ],
-  },
-];
+const groupKpis: { category: string; items: { label: string; value: string; delta: string; up: boolean }[] }[] = [];
 
 // ─── Per-BU scorecard ─────────────────────────────────────────────────────────
 
@@ -105,6 +68,11 @@ export default function AwqKpisPage() {
         </div>
 
         {/* ── KPI Scorecard by Category ──────────────────────────────────────── */}
+        {groupKpis.length === 0 && (
+          <div className="card p-5">
+            <p className="text-sm text-gray-400 text-center py-8">Sem dados disponíveis</p>
+          </div>
+        )}
         {groupKpis.map((section) => (
           <div key={section.category} className="card p-5">
             <div className="flex items-center gap-2 mb-4">
@@ -147,6 +115,9 @@ export default function AwqKpisPage() {
                 </tr>
               </thead>
               <tbody>
+                {buData.length === 0 && (
+                  <tr><td colSpan={9} className="py-12 text-center text-sm text-gray-400">Sem dados disponíveis</td></tr>
+                )}
                 {buData.map((bu) => {
                   const gm = bu.revenue > 0 ? ((bu.grossProfit / bu.revenue) * 100).toFixed(0) + "%" : "—";
                   const em = bu.revenue > 0 ? ((bu.ebitda      / bu.revenue) * 100).toFixed(0) + "%" : "—";

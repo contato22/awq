@@ -28,9 +28,9 @@ function pct(n: number, d: number) {
 const summaryCards = [
   {
     label: "AUM Total",
-    value: fmtR(142_800_000),
+    value: "—",
     sub: "Assets Under Management",
-    delta: "+18.3%",
+    delta: "—",
     up: true,
     icon: Briefcase,
     color: "text-violet-700",
@@ -38,9 +38,9 @@ const summaryCards = [
   },
   {
     label: "Receita de Taxas YTD",
-    value: fmtR(1_284_000),
+    value: "—",
     sub: "Jan–Mar 2026",
-    delta: "+22.1%",
+    delta: "—",
     up: true,
     icon: DollarSign,
     color: "text-emerald-600",
@@ -48,9 +48,9 @@ const summaryCards = [
   },
   {
     label: "Lucro Operacional YTD",
-    value: fmtR(642_000),
-    sub: `Margem ${pct(642_000, 1_284_000)}`,
-    delta: "+9.4%",
+    value: "—",
+    sub: "Margem —",
+    delta: "—",
     up: true,
     icon: TrendingUp,
     color: "text-brand-600",
@@ -58,9 +58,9 @@ const summaryCards = [
   },
   {
     label: "Retorno Médio Carteiras",
-    value: "+14.8%",
-    sub: "vs Ibovespa +9.2%",
-    delta: "+5.6pp vs benchmark",
+    value: "—",
+    sub: "vs Ibovespa",
+    delta: "—",
     up: true,
     icon: BarChart3,
     color: "text-amber-700",
@@ -68,33 +68,11 @@ const summaryCards = [
   },
 ];
 
-const feeIncome = [
-  { month: "Jan/26", taxaGestao: 312_000, taxaPerformance: 128_000, taxaConsultoria: 88_000, total: 528_000 },
-  { month: "Fev/26", taxaGestao: 318_000, taxaPerformance:  98_000, taxaConsultoria: 92_000, total: 508_000 },
-  { month: "Mar/26", taxaGestao: 326_000, taxaPerformance: 112_000, taxaConsultoria: 98_000, total: 536_000 },
-];
+const feeIncome: { month: string; taxaGestao: number; taxaPerformance: number; taxaConsultoria: number; total: number }[] = [];
 
-const dreAdvisor = [
-  { label: "Receita de Taxas de Gestão",     value: 956_000,  indent: 1, bold: false },
-  { label: "Receita de Performance Fee",      value: 338_000,  indent: 1, bold: false },
-  { label: "Receita de Consultoria",          value: 278_000,  indent: 1, bold: false },
-  { label: "= Receita Total",                 value: 1_572_000, indent: 0, bold: true  },
-  { label: "(-) Custos Operacionais",         value: -471_600, indent: 1, bold: false },
-  { label: "(-) Desp. Compliance & Jurídico", value: -94_320,  indent: 1, bold: false },
-  { label: "(-) Desp. Tecnologia",            value: -62_880,  indent: 1, bold: false },
-  { label: "(-) Desp. Pessoal",               value: -220_080, indent: 1, bold: false },
-  { label: "= EBITDA",                        value: 723_120,  indent: 0, bold: true  },
-  { label: "(-) Depreciação",                 value: -15_720,  indent: 1, bold: false },
-  { label: "(-) IR e CSLL",                   value: -228_480, indent: 1, bold: false },
-  { label: "= Lucro Líquido",                 value: 478_920,  indent: 0, bold: true  },
-];
+const dreAdvisor: { label: string; value: number; indent: number; bold: boolean }[] = [];
 
-const aumByStrategy = [
-  { strategy: "Renda Variável",     aum: 57_120_000, clientes: 8,  retorno: 18.4, fee: 1.8 },
-  { strategy: "Renda Fixa",         aum: 42_840_000, clientes: 12, retorno:  9.6, fee: 0.9 },
-  { strategy: "Multi-Market",       aum: 28_560_000, clientes: 6,  retorno: 14.2, fee: 1.5 },
-  { strategy: "Real Estate (FII)",  aum: 14_280_000, clientes: 4,  retorno: 11.8, fee: 1.2 },
-];
+const aumByStrategy: { strategy: string; aum: number; clientes: number; retorno: number; fee: number }[] = [];
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -140,6 +118,9 @@ export default function AdvisorFinancialPage() {
           <div className="card p-5">
             <h2 className="text-sm font-semibold text-gray-900 mb-4">DRE Simplificado · YTD 2026</h2>
             <div className="space-y-0.5">
+              {dreAdvisor.length === 0 && (
+                <p className="text-sm text-gray-400 text-center py-8">Sem dados disponíveis</p>
+              )}
               {dreAdvisor.map((row, i) => (
                 <div
                   key={i}

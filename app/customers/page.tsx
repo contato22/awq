@@ -94,7 +94,7 @@ export default function CustomersPage() {
           <div className="text-xs text-gray-400 text-right">
             <div>Avg LTV per account</div>
             <div className="text-lg font-bold text-gray-400 mt-1">
-              {formatCurrency(Math.round(totalLTV / customers.length))}
+              {customers.length > 0 ? formatCurrency(Math.round(totalLTV / customers.length)) : "—"}
             </div>
           </div>
         </div>
@@ -125,6 +125,14 @@ export default function CustomersPage() {
                 </tr>
               </thead>
               <tbody>
+                {customers.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="py-16 text-center text-gray-400">
+                      <p className="text-sm font-medium">Sem dados disponíveis</p>
+                      <p className="text-xs mt-1 opacity-70">Nenhum cliente registrado</p>
+                    </td>
+                  </tr>
+                )}
                 {customers.map((c) => {
                   const status = statusConfig[c.status];
                   const segClass = segmentConfig[c.segment];

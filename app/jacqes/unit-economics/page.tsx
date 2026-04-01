@@ -22,9 +22,9 @@ function fmtR(n: number) {
 const unitMetrics = [
   {
     label: "CAC",
-    value: fmtR(48_000),
+    value: "—",
     sub: "Custo de Aquisição",
-    delta: "-12.3%",
+    delta: "—",
     up: true,
     icon: Users,
     color: "text-brand-600",
@@ -33,9 +33,9 @@ const unitMetrics = [
   },
   {
     label: "LTV Médio",
-    value: fmtR(1_742_000),
+    value: "—",
     sub: "Lifetime Value",
-    delta: "+18.1%",
+    delta: "—",
     up: true,
     icon: DollarSign,
     color: "text-emerald-600",
@@ -44,9 +44,9 @@ const unitMetrics = [
   },
   {
     label: "LTV / CAC",
-    value: "36.3×",
+    value: "—",
     sub: "Referência: >3×",
-    delta: "+4.2×",
+    delta: "—",
     up: true,
     icon: TrendingUp,
     color: "text-violet-700",
@@ -55,9 +55,9 @@ const unitMetrics = [
   },
   {
     label: "Payback",
-    value: "3.8 meses",
+    value: "—",
     sub: "Referência: <12 meses",
-    delta: "-0.6m",
+    delta: "—",
     up: true,
     icon: Target,
     color: "text-amber-700",
@@ -66,25 +66,9 @@ const unitMetrics = [
   },
 ];
 
-const mrrHistory = [
-  { month: "Out/25", mrr: 1_480_000, newMrr: 195_000, churnMrr: 48_000,  expansionMrr: 62_000  },
-  { month: "Nov/25", mrr: 1_689_000, newMrr: 230_000, churnMrr: 21_000,  expansionMrr: 0       },
-  { month: "Dez/25", mrr: 1_710_000, newMrr: 0,       churnMrr: 0,       expansionMrr: 21_000  },
-  { month: "Jan/26", mrr: 1_820_000, newMrr: 175_000, churnMrr: 65_000,  expansionMrr: 0       },
-  { month: "Fev/26", mrr: 1_930_000, newMrr: 175_000, churnMrr: 65_000,  expansionMrr: 0       },
-  { month: "Mar/26", mrr: 2_143_000, newMrr: 260_000, churnMrr: 47_000,  expansionMrr: 0       },
-];
+const mrrHistory: { month: string; mrr: number; newMrr: number; churnMrr: number; expansionMrr: number }[] = [];
 
-const cohortData = [
-  { cohort: "Q1/2023", clientes: 3, retencao12m: 100, retencao24m: 100, ltvMedio: 5_040_000 },
-  { cohort: "Q2/2023", clientes: 2, retencao12m: 100, retencao24m: 100, ltvMedio: 3_910_000 },
-  { cohort: "Q3/2023", clientes: 1, retencao12m: 100, retencao24m: 100, ltvMedio: 4_200_000 },
-  { cohort: "Q4/2023", clientes: 1, retencao12m: 100, retencao24m:  75, ltvMedio: 2_100_000 },
-  { cohort: "Q1/2024", clientes: 2, retencao12m: 100, retencao24m:   0, ltvMedio: 1_060_000 },
-  { cohort: "Q2/2024", clientes: 1, retencao12m: 100, retencao24m:   0, ltvMedio:   800_000 },
-  { cohort: "Q3/2024", clientes: 1, retencao12m:  50, retencao24m:   0, ltvMedio:   145_000 },
-  { cohort: "Q1/2025", clientes: 2, retencao12m: 100, retencao24m:   0, ltvMedio:   696_000 },
-];
+const cohortData: { cohort: string; clientes: number; retencao12m: number; retencao24m: number; ltvMedio: number }[] = [];
 
 function retencaoColor(v: number) {
   if (v >= 90) return "text-emerald-600";
@@ -96,10 +80,12 @@ function retencaoColor(v: number) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function JacqesUnitEconomicsPage() {
-  const latestMrr = mrrHistory[mrrHistory.length - 1];
-  const prevMrr   = mrrHistory[mrrHistory.length - 2];
-  const mrrGrowth = prevMrr ? (((latestMrr.mrr - prevMrr.mrr) / prevMrr.mrr) * 100).toFixed(1) : "0.0";
-  const arr       = latestMrr.mrr * 12;
+  const latestMrr = mrrHistory.length > 0 ? mrrHistory[mrrHistory.length - 1] : null;
+  const prevMrr   = mrrHistory.length > 1 ? mrrHistory[mrrHistory.length - 2] : null;
+  const mrrGrowth = latestMrr && prevMrr && prevMrr.mrr > 0
+    ? (((latestMrr.mrr - prevMrr.mrr) / prevMrr.mrr) * 100).toFixed(1)
+    : "0.0";
+  const arr = latestMrr ? latestMrr.mrr * 12 : 0;
 
   return (
     <>
@@ -144,7 +130,7 @@ export default function JacqesUnitEconomicsPage() {
               <div className="flex items-center gap-3 text-[11px]">
                 <div>
                   <span className="text-gray-500">MRR Atual </span>
-                  <span className="text-gray-900 font-bold">{fmtR(latestMrr.mrr)}</span>
+                  <span className="text-gray-900 font-bold">{latestMrr ? fmtR(latestMrr.mrr) : "—"}</span>
                 </div>
                 <div>
                   <span className="text-gray-500">ARR </span>
@@ -159,6 +145,9 @@ export default function JacqesUnitEconomicsPage() {
 
             {/* Visual MRR bars */}
             <div className="space-y-3">
+              {mrrHistory.length === 0 && (
+                <p className="text-sm text-gray-400 text-center py-8">Sem dados disponíveis</p>
+              )}
               {mrrHistory.map((row) => {
                 const maxMrr = Math.max(...mrrHistory.map((r) => r.mrr));
                 const barWidth = (row.mrr / maxMrr) * 100;
@@ -184,21 +173,23 @@ export default function JacqesUnitEconomicsPage() {
             </div>
 
             {/* MRR Decomposition */}
-            <div className="mt-5 pt-4 border-t border-gray-200">
-              <div className="text-xs font-semibold text-gray-400 mb-3">Decomposição MRR — Mar/26</div>
-              <div className="grid grid-cols-3 gap-3">
-                {[
-                  { label: "New MRR",       value: latestMrr.newMrr,      color: "text-emerald-600", bg: "bg-emerald-50" },
-                  { label: "Churned MRR",   value: -latestMrr.churnMrr,   color: "text-red-600",     bg: "bg-red-50"     },
-                  { label: "Net New MRR",   value: latestMrr.newMrr - latestMrr.churnMrr, color: "text-brand-600", bg: "bg-brand-50" },
-                ].map((d) => (
-                  <div key={d.label} className={`rounded-lg ${d.bg} p-3 text-center`}>
-                    <div className={`text-base font-bold ${d.color}`}>{d.value >= 0 ? "+" : ""}{fmtR(Math.abs(d.value))}</div>
-                    <div className="text-[10px] text-gray-500 mt-0.5">{d.label}</div>
-                  </div>
-                ))}
+            {latestMrr && (
+              <div className="mt-5 pt-4 border-t border-gray-200">
+                <div className="text-xs font-semibold text-gray-400 mb-3">Decomposição MRR — Último mês</div>
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { label: "New MRR",       value: latestMrr.newMrr,      color: "text-emerald-600", bg: "bg-emerald-50" },
+                    { label: "Churned MRR",   value: -latestMrr.churnMrr,   color: "text-red-600",     bg: "bg-red-50"     },
+                    { label: "Net New MRR",   value: latestMrr.newMrr - latestMrr.churnMrr, color: "text-brand-600", bg: "bg-brand-50" },
+                  ].map((d) => (
+                    <div key={d.label} className={`rounded-lg ${d.bg} p-3 text-center`}>
+                      <div className={`text-base font-bold ${d.color}`}>{d.value >= 0 ? "+" : ""}{fmtR(Math.abs(d.value))}</div>
+                      <div className="text-[10px] text-gray-500 mt-0.5">{d.label}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* ── Key Ratios ───────────────────────────────────────────────────── */}
@@ -264,6 +255,9 @@ export default function JacqesUnitEconomicsPage() {
                 </tr>
               </thead>
               <tbody>
+                {cohortData.length === 0 && (
+                  <tr><td colSpan={5} className="py-10 text-center text-sm text-gray-400">Sem dados disponíveis</td></tr>
+                )}
                 {cohortData.map((row) => (
                   <tr key={row.cohort} className="border-b border-gray-100 hover:bg-gray-100 transition-colors">
                     <td className="py-2.5 px-3 text-xs font-medium text-gray-400">{row.cohort}</td>

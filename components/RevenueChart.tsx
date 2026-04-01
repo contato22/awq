@@ -49,6 +49,22 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
 }
 
 export default function RevenueChart() {
+  if (revenueData.length === 0) {
+    return (
+      <div className="card p-6 flex flex-col justify-between" style={{ minHeight: 360 }}>
+        <div>
+          <h2 className="text-sm font-semibold text-gray-900">Revenue Overview</h2>
+          <p className="text-xs text-gray-500 mt-0.5">Monthly P&amp;L — FY 2025</p>
+        </div>
+        <div className="flex flex-col items-center justify-center flex-1 py-16 text-gray-400">
+          <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="mb-3 opacity-30"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 17l4-8 4 4 4-6 4 8" /></svg>
+          <p className="text-sm font-medium">Sem dados disponíveis</p>
+          <p className="text-xs mt-1 opacity-70">Nenhum dado de receita registrado</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="card p-6">
       <div className="flex items-center justify-between mb-6">

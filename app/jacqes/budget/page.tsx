@@ -1,3 +1,4 @@
+import React from "react";
 import Header from "@/components/Header";
 import {
   DollarSign,
@@ -31,82 +32,26 @@ function varLabel(v: number) {
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 
 const yearBudget = {
-  receita:    15_600_000,
-  cogs:        5_616_000,
-  lucrobruto:  9_984_000,
-  opex:        5_990_000,
-  ebitda:      3_994_000,
-  lucroliq:    2_396_000,
+  receita:    0,
+  cogs:       0,
+  lucrobruto: 0,
+  opex:       0,
+  ebitda:     0,
+  lucroliq:   0,
 };
 
 const yearActual = {
-  receita:    4_820_000,   // Jan–Mar only (YTD)
-  cogs:       1_927_800,
-  lucrobruto: 2_892_200,
-  opex:       1_712_600,
-  ebitda:       866_800,  // YTD
-  lucroliq:     518_370,
+  receita:    0,
+  cogs:       0,
+  lucrobruto: 0,
+  opex:       0,
+  ebitda:     0,
+  lucroliq:   0,
 };
 
-const budgetLines = [
-  {
-    category: "Receita de Serviços",
-    budgetAno:  yearBudget.receita,
-    actualYtd:  yearActual.receita,
-    budgetYtd:  yearBudget.receita * (3 / 12),
-    forecast:   yearBudget.receita * 1.04,
-    type: "revenue",
-  },
-  {
-    category: "Custo dos Serviços (COGS)",
-    budgetAno:  yearBudget.cogs,
-    actualYtd:  yearActual.cogs,
-    budgetYtd:  yearBudget.cogs * (3 / 12),
-    forecast:   yearBudget.cogs * 1.02,
-    type: "cost",
-  },
-  {
-    category: "Lucro Bruto",
-    budgetAno:  yearBudget.lucrobruto,
-    actualYtd:  yearActual.lucrobruto,
-    budgetYtd:  yearBudget.lucrobruto * (3 / 12),
-    forecast:   yearBudget.lucrobruto * 1.05,
-    type: "subtotal",
-  },
-  {
-    category: "OpEx Total",
-    budgetAno:  yearBudget.opex,
-    actualYtd:  yearActual.opex,
-    budgetYtd:  yearBudget.opex * (3 / 12),
-    forecast:   yearBudget.opex * 1.01,
-    type: "cost",
-  },
-  {
-    category: "EBITDA",
-    budgetAno:  yearBudget.ebitda,
-    actualYtd:  yearActual.ebitda,
-    budgetYtd:  yearBudget.ebitda * (3 / 12),
-    forecast:   yearBudget.ebitda * 1.08,
-    type: "ebitda",
-  },
-  {
-    category: "Lucro Líquido",
-    budgetAno:  yearBudget.lucroliq,
-    actualYtd:  yearActual.lucroliq,
-    budgetYtd:  yearBudget.lucroliq * (3 / 12),
-    forecast:   yearBudget.lucroliq * 1.06,
-    type: "net",
-  },
-];
+const budgetLines: { category: string; budgetAno: number; actualYtd: number; budgetYtd: number; forecast: number; type: string }[] = [];
 
-const categoryBudget = [
-  { category: "Marketing & Growth",   budget: 480_000, actual: 412_000, icon: TrendingUp,    color: "text-brand-600"   },
-  { category: "Salários & Benefícios",budget: 1_240_000, actual: 1_180_000, icon: DollarSign, color: "text-violet-700" },
-  { category: "Tecnologia & Infra",   budget: 180_000, actual: 154_000, icon: BarChart3,     color: "text-emerald-600" },
-  { category: "Vendas & Comissões",   budget: 320_000, actual: 348_000, icon: TrendingUp,    color: "text-amber-700"   },
-  { category: "G&A",                  budget: 240_000, actual: 228_000, icon: BarChart3,     color: "text-gray-400"    },
-  { category: "Desp. Operacionais",   budget: 120_000, actual: 132_000, icon: AlertTriangle, color: "text-red-600"     },
-];
+const categoryBudget: { category: string; budget: number; actual: number; icon: React.ElementType; color: string }[] = [];
 
 // ─── Color helpers ────────────────────────────────────────────────────────────
 
@@ -178,7 +123,7 @@ export default function JacqesBudgetPage() {
             },
             {
               label: "% Budget Executado",
-              value: ((yearActual.receita / yearBudget.receita) * 100).toFixed(0) + "%",
+              value: yearBudget.receita > 0 ? ((yearActual.receita / yearBudget.receita) * 100).toFixed(0) + "%" : "—",
               sub: "3 de 12 meses",
               delta: "Ritmo adequado",
               up: true,
@@ -228,6 +173,9 @@ export default function JacqesBudgetPage() {
                 </tr>
               </thead>
               <tbody>
+                {budgetLines.length === 0 && (
+                  <tr><td colSpan={7} className="py-10 text-center text-sm text-gray-400">Sem dados disponíveis</td></tr>
+                )}
                 {budgetLines.map((row) => {
                   const isExpense = row.type === "cost";
                   const v         = variance(row.actualYtd, row.budgetYtd);
@@ -265,6 +213,9 @@ export default function JacqesBudgetPage() {
         <div className="card p-5">
           <h2 className="text-sm font-semibold text-gray-900 mb-4">Budget por Categoria — YTD Jan–Mar 2026</h2>
           <div className="space-y-4">
+            {categoryBudget.length === 0 && (
+              <p className="text-sm text-gray-400 text-center py-8">Sem dados disponíveis</p>
+            )}
             {categoryBudget.map((cat) => {
               const Icon = cat.icon;
               const usedPct = Math.min((cat.actual / cat.budget) * 100, 100);

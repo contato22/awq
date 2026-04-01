@@ -41,68 +41,7 @@ interface PlLine {
   isNeg?:  boolean;
 }
 
-const plLines: PlLine[] = [
-  {
-    label: "Receita Bruta de Serviços", bold: false, indent: 1,
-    jacqes: 4_820_000, caza: 2_418_000, advisor: 1_572_000,
-    total: 4_820_000 + 2_418_000 + 1_572_000,
-  },
-  {
-    label: "(-) Deduções / Impostos", bold: false, indent: 1, isNeg: true,
-    jacqes: -481_000, caza: -242_000, advisor: -157_000,
-    total: -(481_000 + 242_000 + 157_000),
-  },
-  {
-    label: "= Receita Líquida", bold: true, indent: 0,
-    jacqes: 4_339_000, caza: 2_176_000, advisor: 1_415_000,
-    total: 4_339_000 + 2_176_000 + 1_415_000,
-  },
-  {
-    label: "(-) Custo dos Serviços", bold: false, indent: 1, isNeg: true,
-    jacqes: -1_447_000, caza: -446_000, advisor: -550_000,
-    total: -(1_447_000 + 446_000 + 550_000),
-  },
-  {
-    label: "= Lucro Bruto", bold: true, indent: 0,
-    jacqes: consolidated.grossProfit, caza: 1_730_000, advisor: 865_000,
-    total: consolidated.grossProfit + 1_730_000 + 865_000,
-  },
-  {
-    label: "(-) Despesas Comerciais", bold: false, indent: 1, isNeg: true,
-    jacqes: -347_000, caza: -152_000, advisor: -62_000,
-    total: -(347_000 + 152_000 + 62_000),
-  },
-  {
-    label: "(-) Despesas Administrativas", bold: false, indent: 1, isNeg: true,
-    jacqes: -521_000, caza: -280_000, advisor: -48_000,
-    total: -(521_000 + 280_000 + 48_000),
-  },
-  {
-    label: "(-) Despesas com Pessoal", bold: false, indent: 1, isNeg: true,
-    jacqes: -869_000, caza: -645_000, advisor: -32_000,
-    total: -(869_000 + 645_000 + 32_000),
-  },
-  {
-    label: "= EBITDA", bold: true, indent: 0,
-    jacqes: 867_000, caza: 653_000, advisor: 723_000,
-    total: 867_000 + 653_000 + 723_000,
-  },
-  {
-    label: "(-) D&A", bold: false, indent: 1, isNeg: true,
-    jacqes: -43_000, caza: -18_000, advisor: -8_000,
-    total: -(43_000 + 18_000 + 8_000),
-  },
-  {
-    label: "(-) IR e CSLL", bold: false, indent: 1, isNeg: true,
-    jacqes: -267_000, caza: -215_000, advisor: -236_000,
-    total: -(267_000 + 215_000 + 236_000),
-  },
-  {
-    label: "= Lucro Líquido", bold: true, indent: 0,
-    jacqes: consolidated.netIncome, caza: 420_000, advisor: 479_000,
-    total: consolidated.netIncome + 420_000 + 479_000,
-  },
-];
+const plLines: PlLine[] = [];
 
 // ─── Summary Cards ────────────────────────────────────────────────────────────
 
@@ -197,6 +136,9 @@ export default function AwqFinancialPage() {
                 </tr>
               </thead>
               <tbody>
+                {plLines.length === 0 && (
+                  <tr><td colSpan={6} className="py-12 text-center text-sm text-gray-400">Sem dados disponíveis</td></tr>
+                )}
                 {plLines.map((row, i) => {
                   const totalRevenue = 4_820_000 + 2_418_000 + 1_572_000;
                   const pctRev = totalRevenue > 0
@@ -242,8 +184,11 @@ export default function AwqFinancialPage() {
           <div className="card p-5">
             <h2 className="text-sm font-semibold text-gray-900 mb-4">Mix de Receita por BU</h2>
             <div className="space-y-3">
+              {operatingBus.length === 0 && (
+                <p className="text-sm text-gray-400 text-center py-8">Sem dados disponíveis</p>
+              )}
               {operatingBus.map((bu) => {
-                const share = (bu.revenue / consolidated.revenue) * 100;
+                const share = consolidated.revenue > 0 ? (bu.revenue / consolidated.revenue) * 100 : 0;
                 return (
                   <div key={bu.id}>
                     <div className="flex items-center justify-between mb-1">
@@ -292,6 +237,9 @@ export default function AwqFinancialPage() {
                   </tr>
                 </thead>
                 <tbody>
+                  {monthlyRevenue.length === 0 && (
+                    <tr><td colSpan={5} className="py-10 text-center text-sm text-gray-400">Sem dados disponíveis</td></tr>
+                  )}
                   {monthlyRevenue.map((row) => {
                     const prevTotal = monthlyRevenue[monthlyRevenue.indexOf(row) - 1]?.total;
                     const growth = prevTotal ? (((row.total - prevTotal) / prevTotal) * 100).toFixed(1) : null;

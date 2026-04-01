@@ -251,6 +251,11 @@ export default function AwqGroupPage() {
                 </tr>
               </thead>
               <tbody>
+                {buData.length === 0 && (
+                  <tr>
+                    <td colSpan={13} className="py-12 text-center text-sm text-gray-400">Sem dados disponíveis</td>
+                  </tr>
+                )}
                 {buData.map((bu) => {
                   const flag       = allocFlags[bu.id];
                   const flagCfg    = flagConfig[flag];
@@ -331,10 +336,10 @@ export default function AwqGroupPage() {
                   <td className="py-2.5 px-3 text-right text-xs font-bold text-emerald-600">{fmtR(consolidated.cashGenerated)}</td>
                   <td className="py-2.5 px-3 text-right text-xs font-bold text-gray-400">{consolidated.customers}</td>
                   <td className="py-2.5 px-3 text-right text-xs font-bold text-gray-400">
-                    {fmtR(Math.round(consolidated.revenue / consolidated.customers))}
+                    {consolidated.customers > 0 ? fmtR(Math.round(consolidated.revenue / consolidated.customers)) : <span className="text-gray-400">—</span>}
                   </td>
                   <td className="py-2.5 px-3 text-right text-xs font-bold text-gray-400">
-                    {fmtR(Math.round(consolidated.revenue / consolidated.ftes))}
+                    {consolidated.ftes > 0 ? fmtR(Math.round(consolidated.revenue / consolidated.ftes)) : <span className="text-gray-400">—</span>}
                   </td>
                   <td className="py-2.5 px-3 text-right text-xs font-bold text-gray-900">{fmtR(consolidated.capitalAllocated)}</td>
                   <td className="py-2.5 px-3 text-right text-xs font-bold text-emerald-600">{consolidatedRoic.toFixed(1)}%</td>
@@ -361,6 +366,9 @@ export default function AwqGroupPage() {
               </Link>
             </div>
             <div className="space-y-2.5">
+              {riskSignals.length === 0 && (
+                <p className="text-sm text-gray-400 text-center py-8">Nenhum sinal de risco registrado</p>
+              )}
               {riskSignals.map((risk) => {
                 const cfg = severityConfig[risk.severity];
                 return (
@@ -395,13 +403,16 @@ export default function AwqGroupPage() {
               </Link>
             </div>
             <div className="space-y-3">
+              {buData.length === 0 && (
+                <p className="text-sm text-gray-400 text-center py-8">Sem dados disponíveis</p>
+              )}
               {[...buData]
                 .sort((a, b) => b.roic - a.roic)
                 .map((bu) => {
                   const flag    = allocFlags[bu.id];
                   const flagCfg = flagConfig[flag];
                   const totalCap = buData.reduce((s, b) => s + b.capitalAllocated, 0);
-                  const share    = (bu.capitalAllocated / totalCap) * 100;
+                  const share    = totalCap > 0 ? (bu.capitalAllocated / totalCap) * 100 : 0;
                   return (
                     <div key={bu.id}>
                       <div className="flex items-center justify-between mb-1">
@@ -500,6 +511,9 @@ export default function AwqGroupPage() {
             </Link>
           </div>
           <div className="space-y-2">
+            {monthlyRevenue.length === 0 && (
+              <p className="text-sm text-gray-400 text-center py-8">Sem dados disponíveis</p>
+            )}
             {monthlyRevenue.map((m) => {
               const maxTotal = Math.max(...monthlyRevenue.map((r) => r.total));
               return (

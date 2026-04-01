@@ -10,9 +10,25 @@ const flagEmoji: Record<string, string> = {
   "Latin America": "🌎",
 };
 
-const maxRevenue = Math.max(...regionData.map((r) => r.revenue));
-
 export default function RegionTable() {
+  if (regionData.length === 0) {
+    return (
+      <div className="card p-6">
+        <div className="mb-5">
+          <h2 className="text-sm font-semibold text-gray-900">Regional Performance</h2>
+          <p className="text-xs text-gray-500 mt-0.5">Revenue by geography</p>
+        </div>
+        <div className="flex flex-col items-center justify-center py-12 text-gray-400">
+          <svg width="36" height="36" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="mb-3 opacity-30"><circle cx="12" cy="12" r="9" strokeWidth={1.5} /><path strokeLinecap="round" strokeWidth={1.5} d="M12 3a9 9 0 010 18M12 3a9 9 0 000 18M3 12h18" /></svg>
+          <p className="text-sm font-medium">Sem dados disponíveis</p>
+          <p className="text-xs mt-1 opacity-70">Nenhum dado regional registrado</p>
+        </div>
+      </div>
+    );
+  }
+
+  const maxRevenue = Math.max(...regionData.map((r) => r.revenue));
+
   return (
     <div className="card p-6">
       <div className="mb-5">

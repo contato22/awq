@@ -67,7 +67,7 @@ export default function AwqAllocationsPage() {
             },
             {
               label: "ROIC Médio (Ops)",
-              value: `${((operatingBus.reduce((s, b) => s + b.roic, 0) / operatingBus.length)).toFixed(1)}%`,
+              value: operatingBus.length > 0 ? `${((operatingBus.reduce((s, b) => s + b.roic, 0) / operatingBus.length)).toFixed(1)}%` : "—",
               sub:   "excl. Venture",
               delta: "+5.2pp vs 2025",
               icon:  TrendingUp,
@@ -76,8 +76,8 @@ export default function AwqAllocationsPage() {
             },
             {
               label: "Melhor ROIC",
-              value: `${buData.reduce((a, b) => a.roic > b.roic ? a : b).name}`,
-              sub:   `${buData.reduce((a, b) => a.roic > b.roic ? a : b).roic.toFixed(0)}% ROIC`,
+              value: buData.length > 0 ? `${buData.reduce((a, b) => a.roic > b.roic ? a : b).name}` : "—",
+              sub:   buData.length > 0 ? `${buData.reduce((a, b) => a.roic > b.roic ? a : b).roic.toFixed(0)}% ROIC` : "Sem dados",
               delta: "Advisor lidera",
               icon:  BarChart3,
               color: "text-violet-700",
@@ -132,6 +132,9 @@ export default function AwqAllocationsPage() {
                 </tr>
               </thead>
               <tbody>
+                {buData.length === 0 && (
+                  <tr><td colSpan={9} className="py-12 text-center text-sm text-gray-400">Sem dados disponíveis</td></tr>
+                )}
                 {[...buData].sort((a, b) => b.roic - a.roic).map((bu) => {
                   const flag    = allocFlags[bu.id];
                   const flagCfg = flagConfig[flag];
@@ -190,6 +193,9 @@ export default function AwqAllocationsPage() {
             <div key={ranking.title} className="card p-5">
               <h2 className="text-sm font-semibold text-gray-900 mb-4">{ranking.title}</h2>
               <div className="space-y-2.5">
+                {ranking.items.length === 0 && (
+                  <p className="text-sm text-gray-400 text-center py-6">Sem dados disponíveis</p>
+                )}
                 {ranking.items.map((bu, i) => {
                   const flag    = allocFlags[bu.id];
                   const flagCfg = flagConfig[flag];
@@ -213,8 +219,11 @@ export default function AwqAllocationsPage() {
           <h2 className="text-sm font-semibold text-gray-900 mb-4">Distribuição de Capital</h2>
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             <div className="space-y-3">
+              {buData.length === 0 && (
+                <p className="text-sm text-gray-400 text-center py-8">Sem dados disponíveis</p>
+              )}
               {buData.map((bu) => {
-                const share = (bu.capitalAllocated / totalCap) * 100;
+                const share = totalCap > 0 ? (bu.capitalAllocated / totalCap) * 100 : 0;
                 const flag  = allocFlags[bu.id];
                 const flagCfg = flagConfig[flag];
                 return (

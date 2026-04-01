@@ -31,86 +31,11 @@ function roic(returned: number, invested: number) {
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 
-const portfolio = [
-  {
-    id: "AV001",
-    company:     "TechFlow Soluções",
-    sector:      "B2B SaaS",
-    stage:       "Series A",
-    invested:    8_000_000,
-    currentVal:  22_400_000,
-    returned:    0,
-    entryDate:   "2022-03",
-    status:      "Ativo",
-    ownership:   18.5,
-    irr:         38.4,
-  },
-  {
-    id: "AV002",
-    company:     "Verde Energia",
-    sector:      "CleanTech",
-    stage:       "Series B",
-    invested:    12_000_000,
-    currentVal:  31_200_000,
-    returned:    0,
-    entryDate:   "2021-07",
-    status:      "Ativo",
-    ownership:   12.0,
-    irr:         28.6,
-  },
-  {
-    id: "AV003",
-    company:     "Saúde Digital",
-    sector:      "HealthTech",
-    stage:       "Exit",
-    invested:    5_000_000,
-    currentVal:  0,
-    returned:    18_500_000,
-    entryDate:   "2020-05",
-    status:      "Exitado",
-    ownership:   0,
-    irr:         52.1,
-  },
-  {
-    id: "AV004",
-    company:     "AgriSmart",
-    sector:      "AgTech",
-    stage:       "Seed",
-    invested:    2_000_000,
-    currentVal:  4_600_000,
-    returned:    0,
-    entryDate:   "2023-09",
-    status:      "Ativo",
-    ownership:   22.0,
-    irr:         31.2,
-  },
-  {
-    id: "AV005",
-    company:     "FinBridge",
-    sector:      "Fintech",
-    stage:       "Series A",
-    invested:    6_500_000,
-    currentVal:  5_200_000,
-    returned:    0,
-    entryDate:   "2023-01",
-    status:      "Em monitoramento",
-    ownership:   15.0,
-    irr:         -6.2,
-  },
-  {
-    id: "AV006",
-    company:     "Logística Plus",
-    sector:      "LogTech",
-    stage:       "Series A",
-    invested:    7_000_000,
-    currentVal:  14_700_000,
-    returned:    0,
-    entryDate:   "2022-11",
-    status:      "Ativo",
-    ownership:   20.0,
-    irr:         24.8,
-  },
-];
+const portfolio: {
+  id: string; company: string; sector: string; stage: string;
+  invested: number; currentVal: number; returned: number; entryDate: string;
+  status: string; ownership: number; irr: number;
+}[] = [];
 
 const statusConfig: Record<string, string> = {
   "Ativo":            "badge badge-green",
@@ -131,8 +56,10 @@ export default function AwqVentureFinancialPage() {
   const totalCurrentVal = portfolio.reduce((s, p) => s + p.currentVal, 0);
   const totalReturned   = portfolio.reduce((s, p) => s + p.returned, 0);
   const totalValue      = totalCurrentVal + totalReturned;
-  const moic            = totalValue / totalInvested;
-  const avgIrr          = (portfolio.reduce((s, p) => s + p.irr, 0) / portfolio.length).toFixed(1);
+  const moic            = totalInvested > 0 ? totalValue / totalInvested : 0;
+  const avgIrr          = portfolio.length > 0
+    ? (portfolio.reduce((s, p) => s + p.irr, 0) / portfolio.length).toFixed(1)
+    : "0.0";
 
   const ativos          = portfolio.filter((p) => p.status === "Ativo").length;
   const exitados        = portfolio.filter((p) => p.status === "Exitado").length;
@@ -233,9 +160,12 @@ export default function AwqVentureFinancialPage() {
                 </tr>
               </thead>
               <tbody>
+                {portfolio.length === 0 && (
+                  <tr><td colSpan={10} className="py-10 text-center text-sm text-gray-400">Sem dados disponíveis</td></tr>
+                )}
                 {portfolio.map((p) => {
                   const currentOrReturned = p.status === "Exitado" ? p.returned : p.currentVal;
-                  const moicP    = currentOrReturned / p.invested;
+                  const moicP    = p.invested > 0 ? currentOrReturned / p.invested : 0;
                   const roicP    = roic(currentOrReturned, p.invested);
                   const irrPositive = p.irr > 0;
                   const Icon = statusIcon[p.status] ?? Clock;
@@ -306,6 +236,9 @@ export default function AwqVentureFinancialPage() {
         <div className="card p-5">
           <h2 className="text-sm font-semibold text-gray-900 mb-4">ROIC por Empresa — Retorno sobre Capital Investido</h2>
           <div className="space-y-3">
+            {portfolio.length === 0 && (
+              <p className="text-sm text-gray-400 text-center py-8">Sem dados disponíveis</p>
+            )}
             {portfolio.map((p) => {
               const currentOrReturned = p.status === "Exitado" ? p.returned : p.currentVal;
               const r = roic(currentOrReturned, p.invested);

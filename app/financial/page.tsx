@@ -21,46 +21,24 @@ function fmtBRL(n: number) {
 }
 
 // ─── Budget vs Actual data (AWQ Group consolidado) ───────────────────────────
-const budgetData = [
-  { mes: "Jan", realizado: 3_210_000, budget: 2_950_000, forecast: 3_100_000 },
-  { mes: "Fev", realizado: 3_480_000, budget: 3_200_000, forecast: 3_300_000 },
-  { mes: "Mar", realizado: 3_650_000, budget: 3_400_000, forecast: 3_500_000 },
-  { mes: "Abr", realizado: 3_520_000, budget: 3_600_000, forecast: 3_580_000 },
-  { mes: "Mai", realizado: 3_900_000, budget: 3_700_000, forecast: 3_850_000 },
-  { mes: "Jun", realizado: 4_120_000, budget: 3_900_000, forecast: 4_000_000 },
-  { mes: "Jul", realizado: 4_250_000, budget: 4_100_000, forecast: 4_200_000 },
-  { mes: "Ago", realizado: 4_380_000, budget: 4_200_000, forecast: 4_350_000 },
-  { mes: "Set", realizado: 4_510_000, budget: 4_300_000, forecast: 4_480_000 },
-  { mes: "Out", realizado: 4_620_000, budget: 4_500_000, forecast: 4_600_000 },
-  { mes: "Nov", realizado: 4_730_000, budget: 4_600_000, forecast: 4_700_000 },
-  { mes: "Dez", realizado: 4_821_500, budget: 4_800_000, forecast: 4_810_000 },
-];
+const budgetData: { mes: string; realizado: number; budget: number; forecast: number }[] = [];
 
 // ─── EBITDA por BU ────────────────────────────────────────────────────────────
-const ebitdaPorBU = [
-  { bu: "JACQES", receita: 4_821_500, ebitda: 3_241_500, margem: 67.2, caixa: 890_000, roic: 42.1, status: "ativa" },
-  { bu: "Caza Vision", receita: 2_420_000, ebitda: 980_000, margem: 40.5, caixa: 340_000, roic: 28.3, status: "ativa" },
-  { bu: "AWQ Venture", receita: 0, ebitda: 0, margem: 0, caixa: 1_200_000, roic: 0, status: "desenvolvimento" },
-  { bu: "Advisor", receita: 0, ebitda: 0, margem: 0, caixa: 0, roic: 0, status: "desenvolvimento" },
-];
+const ebitdaPorBU: { bu: string; receita: number; ebitda: number; margem: number; caixa: number; roic: number; status: string }[] = [];
 
 // ─── Alertas financeiros ──────────────────────────────────────────────────────
-const alertasFinanceiros = [
-  { tipo: "warning", titulo: "Concentração de Receita", detalhe: "JACQES representa 66% da receita total do grupo", bu: "Grupo" },
-  { tipo: "success", titulo: "Budget Superado", detalhe: "Receita YTD 14.7% acima do budget consolidado", bu: "Grupo" },
-  { tipo: "info", titulo: "Caza Vision — Dados Pendentes", detalhe: "Campos financeiros de Abr/2026 em breve", bu: "Caza Vision" },
-];
+const alertasFinanceiros: { tipo: string; titulo: string; detalhe: string; bu: string }[] = [];
 
 export default function FinancialPage() {
   const ytdReceita = revenueData.reduce((s, d) => s + d.revenue, 0);
   const ytdLucro = revenueData.reduce((s, d) => s + d.profit, 0);
-  const margemMedia = ((ytdLucro / ytdReceita) * 100).toFixed(1);
+  const margemMedia = ytdReceita > 0 ? ((ytdLucro / ytdReceita) * 100).toFixed(1) : "0.0";
   const ebitdaTotal = ebitdaPorBU.reduce((s, b) => s + b.ebitda, 0);
   const caixaTotal = ebitdaPorBU.reduce((s, b) => s + b.caixa, 0);
   const receitaTotal = ebitdaPorBU.reduce((s, b) => s + b.receita, 0);
 
   const ytdBudget = budgetData.reduce((s, d) => s + d.budget, 0);
-  const variacaoBudget = (((ytdReceita - ytdBudget) / ytdBudget) * 100).toFixed(1);
+  const variacaoBudget = ytdBudget > 0 ? (((ytdReceita - ytdBudget) / ytdBudget) * 100).toFixed(1) : "0.0";
   const variacaoAbsoluta = ytdReceita - ytdBudget;
 
   const summaryCards = [
@@ -134,6 +112,9 @@ export default function FinancialPage() {
           </span>
         </div>
         <div className="flex flex-col gap-2">
+          {alertasFinanceiros.length === 0 && (
+            <p className="text-sm text-gray-400 text-center py-6">Sem alertas registrados</p>
+          )}
           {alertasFinanceiros.map((a, i) => (
             <div
               key={i}
@@ -168,6 +149,9 @@ export default function FinancialPage() {
       <div className="rounded-2xl border border-gray-100 bg-gray-50 p-5">
         <h3 className="mb-4 text-sm font-semibold text-gray-900">Ranking de BUs — Receita & EBITDA</h3>
         <div className="flex flex-col gap-3">
+          {ebitdaPorBU.filter((b) => b.receita > 0).length === 0 && (
+            <p className="text-sm text-gray-400 text-center py-6">Sem dados disponíveis</p>
+          )}
           {ebitdaPorBU
             .filter((b) => b.receita > 0)
             .map((bu, i) => {
@@ -242,6 +226,9 @@ export default function FinancialPage() {
               </tr>
             </thead>
             <tbody>
+              {budgetData.length === 0 && (
+                <tr><td colSpan={6} className="py-10 text-center text-sm text-gray-400">Sem dados disponíveis</td></tr>
+              )}
               {budgetData.map((row) => {
                 const delta = row.realizado - row.budget;
                 const deltaPct = ((delta / row.budget) * 100).toFixed(1);
@@ -295,6 +282,9 @@ export default function FinancialPage() {
               </tr>
             </thead>
             <tbody>
+              {revenueData.length === 0 && (
+                <tr><td colSpan={6} className="py-10 text-center text-sm text-gray-400">Sem dados disponíveis</td></tr>
+              )}
               {revenueData.map((row, idx) => {
                 const margem = ((row.profit / row.revenue) * 100).toFixed(1);
                 const margemNum = parseFloat(margem);
@@ -352,6 +342,9 @@ export default function FinancialPage() {
               </tr>
             </thead>
             <tbody>
+              {channelData.length === 0 && (
+                <tr><td colSpan={6} className="py-10 text-center text-sm text-gray-400">Sem dados disponíveis</td></tr>
+              )}
               {channelData.map((row) => {
                 const convRate = ((row.conversions / row.sessions) * 100).toFixed(2);
                 return (

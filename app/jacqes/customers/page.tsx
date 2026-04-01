@@ -21,27 +21,9 @@ function fmtR(n: number) {
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 
-const customers = [
-  { id: "JC001", name: "Ambev",          segment: "Bebidas & FMCG",        mrr: 420_000, ltv: 5_040_000, since: "2023-04-01", status: "Ativo",        churnRisk: "Baixo",  nps: 82 },
-  { id: "JC002", name: "Natura",         segment: "Beleza & Sustentab.",   mrr: 310_000, ltv: 2_480_000, since: "2024-01-15", status: "Ativo",        churnRisk: "Baixo",  nps: 78 },
-  { id: "JC003", name: "iFood",          segment: "Food & Tech",           mrr: 285_000, ltv: 1_710_000, since: "2024-06-01", status: "Ativo",        churnRisk: "Médio",  nps: 65 },
-  { id: "JC004", name: "Samsung Brasil", segment: "Tecnologia",            mrr: 350_000, ltv: 4_200_000, since: "2023-03-10", status: "Ativo",        churnRisk: "Baixo",  nps: 91 },
-  { id: "JC005", name: "Nike Brasil",    segment: "Esporte & Lifestyle",   mrr: 195_000, ltv: 2_340_000, since: "2024-01-20", status: "Ativo",        churnRisk: "Baixo",  nps: 88 },
-  { id: "JC006", name: "Banco XP",       segment: "Finanças",              mrr: 230_000, ltv: 1_380_000, since: "2024-07-01", status: "Em Risco",     churnRisk: "Alto",   nps: 42 },
-  { id: "JC007", name: "Nubank",         segment: "Fintech",               mrr: 175_000, ltv: 700_000,   since: "2025-01-10", status: "Ativo",        churnRisk: "Médio",  nps: 74 },
-  { id: "JC008", name: "Arezzo",         segment: "Moda & Varejo",         mrr: 98_000,  ltv: 392_000,   since: "2025-02-15", status: "Ativo",        churnRisk: "Baixo",  nps: 79 },
-  { id: "JC009", name: "Startup XYZ",    segment: "Tecnologia",            mrr: 0,       ltv: 145_000,   since: "2024-12-01", status: "Churned",      churnRisk: "—",      nps: 31 },
-  { id: "JC010", name: "Magazine Luiza", segment: "Varejo",                mrr: 260_000, ltv: 1_040_000, since: "2025-03-01", status: "Ativo",        churnRisk: "Médio",  nps: 61 },
-];
+const customers: { id: string; name: string; segment: string; mrr: number; ltv: number; since: string; status: string; churnRisk: string; nps: number }[] = [];
 
-const churnHistory = [
-  { month: "Out/25", novos: 2, churned: 1, net: 1 },
-  { month: "Nov/25", novos: 1, churned: 0, net: 1 },
-  { month: "Dez/25", novos: 3, churned: 1, net: 2 },
-  { month: "Jan/26", novos: 2, churned: 1, net: 1 },
-  { month: "Fev/26", novos: 1, churned: 0, net: 1 },
-  { month: "Mar/26", novos: 2, churned: 0, net: 2 },
-];
+const churnHistory: { month: string; novos: number; churned: number; net: number }[] = [];
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -67,12 +49,12 @@ export default function JacqesCustomersPage() {
   const totalMrr = customers.filter((c) => c.status === "Ativo" || c.status === "Em Risco")
     .reduce((s, c) => s + c.mrr, 0);
   const totalLtv = customers.reduce((s, c) => s + c.ltv, 0);
-  const avgLtv   = Math.round(totalLtv / customers.length);
-  const churnRate = ((churned / customers.length) * 100).toFixed(1);
-  const avgNps    = Math.round(
-    customers.filter((c) => c.nps > 0).reduce((s, c) => s + c.nps, 0) /
-    customers.filter((c) => c.nps > 0).length
-  );
+  const avgLtv   = customers.length > 0 ? Math.round(totalLtv / customers.length) : 0;
+  const churnRate = customers.length > 0 ? ((churned / customers.length) * 100).toFixed(1) : "0.0";
+  const npsCustomers = customers.filter((c) => c.nps > 0);
+  const avgNps    = npsCustomers.length > 0
+    ? Math.round(npsCustomers.reduce((s, c) => s + c.nps, 0) / npsCustomers.length)
+    : 0;
 
   return (
     <>
@@ -131,6 +113,9 @@ export default function JacqesCustomersPage() {
                   </tr>
                 </thead>
                 <tbody>
+                  {customers.length === 0 && (
+                    <tr><td colSpan={7} className="py-10 text-center text-sm text-gray-400">Sem dados disponíveis</td></tr>
+                  )}
                   {customers.map((c) => (
                     <tr key={c.id} className="border-b border-gray-100 hover:bg-gray-100 transition-colors">
                       <td className="py-2.5 px-3">
@@ -184,6 +169,9 @@ export default function JacqesCustomersPage() {
                   <span className="text-[10px] text-gray-400 text-center">Churn</span>
                   <span className="text-[10px] text-gray-400 text-center">Net</span>
                 </div>
+                {churnHistory.length === 0 && (
+                  <p className="text-sm text-gray-400 text-center py-8">Sem dados disponíveis</p>
+                )}
                 {churnHistory.map((row) => (
                   <div key={row.month} className="grid grid-cols-4 py-1.5 border-b border-gray-200/30 last:border-0">
                     <span className="text-xs text-gray-400">{row.month}</span>

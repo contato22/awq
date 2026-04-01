@@ -66,7 +66,7 @@ const summaryCards = [
   },
   {
     label: "Cash Conversion",
-    value: `${((consolidated.cashGenerated / consolidated.netIncome) * 100).toFixed(0)}%`,
+    value: consolidated.netIncome > 0 ? `${((consolidated.cashGenerated / consolidated.netIncome) * 100).toFixed(0)}%` : "—",
     sub:   "FCO / Lucro Líq.",
     delta: "Alta qualidade de lucro",
     up:    true,
@@ -135,6 +135,9 @@ export default function AwqCashflowPage() {
                 </tr>
               </thead>
               <tbody>
+                {cashFlowRows.length === 0 && (
+                  <tr><td colSpan={6} className="py-12 text-center text-sm text-gray-400">Sem dados disponíveis</td></tr>
+                )}
                 {cashFlowRows.map((row, i) => {
                   const total = row.jacqes + row.caza + row.advisor + row.venture;
                   const isSubtotal = row.bold;
@@ -176,9 +179,12 @@ export default function AwqCashflowPage() {
           <div className="card p-5">
             <h2 className="text-sm font-semibold text-gray-900 mb-4">Posição de Caixa por BU</h2>
             <div className="space-y-4">
+              {cashPosition.length === 0 && (
+                <p className="text-sm text-gray-400 text-center py-8">Sem dados disponíveis</p>
+              )}
               {cashPosition.map((bu) => {
                 const totalBalance = buData.reduce((s, b) => s + b.cashBalance, 0);
-                const share = (bu.cashBalance / totalBalance) * 100;
+                const share = totalBalance > 0 ? (bu.cashBalance / totalBalance) * 100 : 0;
                 return (
                   <div key={bu.id}>
                     <div className="flex items-center justify-between mb-1">
@@ -223,7 +229,7 @@ export default function AwqCashflowPage() {
                 { label: "(-) Distribuições",      value: -totalDistrib,               color: "bg-red-400"     },
                 { label: "= Var. de Caixa",        value:  totalVarCaixa,              color: "bg-emerald-600", bold: true },
               ].map((item) => {
-                const maxVal = consolidated.cashGenerated;
+                const maxVal = consolidated.cashGenerated || 1;
                 const barW = Math.abs(item.value) / maxVal * 100;
                 const isNeg = item.value < 0;
                 return (
