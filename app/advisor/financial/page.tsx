@@ -159,6 +159,9 @@ export default function AdvisorFinancialPage() {
                   </tr>
                 </thead>
                 <tbody>
+                  {feeIncome.length === 0 && (
+                    <tr><td colSpan={5} className="py-12 text-center text-sm text-gray-400">Sem dados disponíveis</td></tr>
+                  )}
                   {feeIncome.map((row) => (
                     <tr key={row.month} className="border-b border-gray-100 hover:bg-gray-100 transition-colors">
                       <td className="py-2 px-2 text-xs text-gray-400 font-medium">{row.month}</td>
@@ -192,9 +195,12 @@ export default function AdvisorFinancialPage() {
           <div className="card p-5">
             <h2 className="text-sm font-semibold text-gray-900 mb-4">AUM por Estratégia</h2>
             <div className="space-y-4">
+              {aumByStrategy.length === 0 && (
+                <p className="text-sm text-gray-400 text-center py-8">Sem dados disponíveis</p>
+              )}
               {aumByStrategy.map((s) => {
                 const totalAum = aumByStrategy.reduce((t, a) => t + a.aum, 0);
-                const barPct   = (s.aum / totalAum) * 100;
+                const barPct   = totalAum > 0 ? (s.aum / totalAum) * 100 : 0;
                 return (
                   <div key={s.strategy}>
                     <div className="flex items-center justify-between mb-1">

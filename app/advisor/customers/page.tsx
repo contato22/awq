@@ -21,16 +21,10 @@ function fmtR(n: number) {
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 
-const clients = [
-  { id: "AC001", name: "Família Rodrigues",  type: "Family Office",     aum: 32_400_000, retorno: 18.4, risco: "Moderado",    status: "Ativo",        since: "2021-03", nps: 94, fee: 1.8 },
-  { id: "AC002", name: "Dr. Maurício Lima",  type: "PF High Net Worth", aum: 18_600_000, retorno: 14.8, risco: "Moderado",    status: "Ativo",        since: "2022-07", nps: 88, fee: 1.5 },
-  { id: "AC003", name: "Fundo ABC Capital",  type: "Institucional",     aum: 28_000_000, retorno: 12.1, risco: "Conservador", status: "Ativo",        since: "2020-11", nps: 79, fee: 0.9 },
-  { id: "AC004", name: "Oliveira & Filhos",  type: "Family Office",     aum: 15_200_000, retorno: 16.3, risco: "Arrojado",    status: "Ativo",        since: "2023-01", nps: 91, fee: 2.0 },
-  { id: "AC005", name: "Maria Clara Sousa",  type: "PF High Net Worth", aum:  8_900_000, retorno: 11.6, risco: "Conservador", status: "Ativo",        since: "2022-04", nps: 82, fee: 1.2 },
-  { id: "AC006", name: "Corporação Delta",   type: "Empresarial",       aum: 22_400_000, retorno: 10.2, risco: "Conservador", status: "Ativo",        since: "2021-09", nps: 76, fee: 0.8 },
-  { id: "AC007", name: "André Teixeira",     type: "PF High Net Worth", aum:  6_200_000, retorno: 19.8, risco: "Arrojado",    status: "Em revisão",   since: "2024-02", nps: 68, fee: 1.8 },
-  { id: "AC008", name: "Holding Ferreira",   type: "Family Office",     aum: 11_100_000, retorno: 15.4, risco: "Moderado",    status: "Ativo",        since: "2023-06", nps: 87, fee: 1.6 },
-];
+const clients: {
+  id: string; name: string; type: string; aum: number; retorno: number;
+  risco: string; status: string; since: string; nps: number; fee: number;
+}[] = [];
 
 const typeConfig: Record<string, { color: string; bg: string }> = {
   "Family Office":     { color: "text-violet-700", bg: "bg-violet-50"  },
@@ -55,8 +49,8 @@ const statusConfig: Record<string, string> = {
 export default function AdvisorCustomersPage() {
   const ativos    = clients.filter((c) => c.status === "Ativo").length;
   const totalAum  = clients.reduce((s, c) => s + c.aum, 0);
-  const avgReturn = (clients.reduce((s, c) => s + c.retorno, 0) / clients.length).toFixed(1);
-  const avgNps    = Math.round(clients.reduce((s, c) => s + c.nps, 0) / clients.length);
+  const avgReturn = clients.length > 0 ? (clients.reduce((s, c) => s + c.retorno, 0) / clients.length).toFixed(1) : "0.0";
+  const avgNps    = clients.length > 0 ? Math.round(clients.reduce((s, c) => s + c.nps, 0) / clients.length) : 0;
 
   return (
     <>
@@ -70,7 +64,7 @@ export default function AdvisorCustomersPage() {
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
           {[
             { label: "AUM Total",       value: fmtR(totalAum),  sub: `${ativos} clientes ativos`,  icon: Briefcase, color: "text-violet-700", bg: "bg-violet-50", delta: "+18.3%", up: true  },
-            { label: "AUM Médio",        value: fmtR(Math.round(totalAum / clients.length)), sub: "por cliente",    icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50", delta: "+14.1%", up: true  },
+            { label: "AUM Médio",        value: clients.length > 0 ? fmtR(Math.round(totalAum / clients.length)) : "—", sub: "por cliente",    icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50", delta: "+14.1%", up: true  },
             { label: "Retorno Médio",    value: `+${avgReturn}%`, sub: "vs Ibov +9.2%",           icon: TrendingUp, color: "text-brand-600", bg: "bg-brand-50", delta: "+5.6pp vs bench", up: true  },
             { label: "NPS Médio",        value: String(avgNps),  sub: `${clients.length} clientes`, icon: Users, color: "text-amber-700", bg: "bg-amber-50", delta: "+6pts vs 2025", up: true  },
           ].map((card) => {
@@ -116,6 +110,9 @@ export default function AdvisorCustomersPage() {
                   </tr>
                 </thead>
                 <tbody>
+                  {clients.length === 0 && (
+                    <tr><td colSpan={8} className="py-12 text-center text-sm text-gray-400">Sem dados disponíveis</td></tr>
+                  )}
                   {clients.map((c) => {
                     const tc = typeConfig[c.type] ?? { color: "text-gray-400", bg: "bg-gray-100" };
                     return (
@@ -166,7 +163,7 @@ export default function AdvisorCustomersPage() {
               {Object.entries(typeConfig).map(([type, cfg]) => {
                 const aumType = clients.filter((c) => c.type === type).reduce((s, c) => s + c.aum, 0);
                 if (aumType === 0) return null;
-                const barPct = (aumType / totalAum) * 100;
+                const barPct = totalAum > 0 ? (aumType / totalAum) * 100 : 0;
                 return (
                   <div key={type} className="mb-3">
                     <div className="flex items-center justify-between mb-1">

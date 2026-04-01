@@ -97,10 +97,10 @@ export default function YoY2025Page() {
       {/* KPI Row */}
       <div className="grid grid-cols-4 gap-4">
         {[
-          { label: "CAC", value: "R$ 506,33", icon: "📉", sub: "Gasto: R$ 40.000,00 · 79 clientes" },
-          { label: "LTV", value: "R$ 5.489,71", icon: "📈", sub: "Ticket médio de clientes fechados" },
-          { label: "LTV : CAC", value: "10.8x", icon: "💲", sub: "Saudável (≥ 3x)" },
-          { label: "Clientes Fechados", value: "79", icon: "👥", sub: "Receita total: R$ 433.687,08" },
+          { label: "CAC", value: "—", icon: "📉", sub: "—" },
+          { label: "LTV", value: "—", icon: "📈", sub: "—" },
+          { label: "LTV : CAC", value: "—", icon: "💲", sub: "—" },
+          { label: "Clientes Fechados", value: "—", icon: "👥", sub: "—" },
         ].map((k) => (
           <div key={k.label} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
             <div className="flex items-start justify-between mb-2">

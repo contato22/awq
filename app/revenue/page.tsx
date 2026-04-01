@@ -40,12 +40,7 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   );
 }
 
-const summaryStats = [
-  { label: "Total Revenue", value: "$4.82M", sub: "+14.6% YoY", positive: true },
-  { label: "Total Profit", value: "$3.24M", sub: "+21.3% YoY", positive: true },
-  { label: "Total Expenses", value: "$1.58M", sub: "+8.2% YoY", positive: false },
-  { label: "Avg Monthly Rev.", value: "$401.8K", sub: "per month", positive: true },
-];
+const summaryStats: { label: string; value: string; sub: string; positive: boolean }[] = [];
 
 export default function RevenuePage() {
   return (
@@ -58,6 +53,11 @@ export default function RevenuePage() {
       <div className="px-8 py-6 space-y-6">
         {/* Summary stats */}
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+          {summaryStats.length === 0 && (
+            <div className="col-span-4">
+              <p className="text-sm text-gray-400 text-center py-8">Sem dados disponíveis</p>
+            </div>
+          )}
           {summaryStats.map((stat) => (
             <div key={stat.label} className="card p-5">
               <div className="text-2xl font-bold text-gray-900 tabular-nums">{stat.value}</div>
@@ -79,6 +79,10 @@ export default function RevenuePage() {
             <h2 className="text-sm font-semibold text-gray-900">Monthly Revenue vs Profit</h2>
             <p className="text-xs text-gray-500 mt-0.5">FY 2025 — grouped bar comparison</p>
           </div>
+          {revenueData.length === 0 && (
+            <p className="text-sm text-gray-400 text-center py-8">Sem dados disponíveis</p>
+          )}
+          {revenueData.length > 0 && (
           <ResponsiveContainer width="100%" height={300}>
             <BarChart
               data={revenueData}
@@ -112,6 +116,7 @@ export default function RevenuePage() {
               <Bar dataKey="expenses" name="expenses" fill="#f59e0b" radius={[3, 3, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
+          )}
         </div>
 
         {/* Margin progression */}
@@ -120,6 +125,9 @@ export default function RevenuePage() {
             <h2 className="text-sm font-semibold text-gray-900">Gross Margin Progression</h2>
             <p className="text-xs text-gray-500 mt-0.5">Month-by-month profit margin trend</p>
           </div>
+          {revenueData.length === 0 && (
+            <p className="text-sm text-gray-400 text-center py-8">Sem dados disponíveis</p>
+          )}
           <div className="grid grid-cols-6 md:grid-cols-12 gap-2">
             {revenueData.map((d) => {
               const margin = ((d.profit / d.revenue) * 100).toFixed(1);
