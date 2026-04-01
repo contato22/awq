@@ -5,9 +5,9 @@ import { kpis as jacqesKpis } from "@/lib/data";
 
 // ── Formatters ──────────────────────────────────────────────────────────────
 function fmtRevenue(n: number): string {
-  if (n >= 1_000_000) return "$" + (n / 1_000_000).toFixed(2) + "M";
-  if (n >= 1_000) return "$" + (n / 1_000).toFixed(0) + "K";
-  return "$" + n.toLocaleString("pt-BR");
+  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
+  if (n >= 1_000)     return "R$ " + n.toLocaleString("pt-BR");
+  return "R$ " + n.toLocaleString("pt-BR");
 }
 function fmtNumber(n: number): string {
   return n.toLocaleString("pt-BR");
