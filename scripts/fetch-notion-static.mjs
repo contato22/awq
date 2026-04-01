@@ -331,13 +331,15 @@ function write(filename, data, { skipIfExists = false } = {}) {
 }
 
 // ── JACQES KPIs ── mirrors lib/data.ts; update here when source data changes ──
+// Source: /jacqes/financial — DRE Gerencial (Mar/2026)
 const JACQES_KPIS = {
-    revenue:      4_821_500,
-    customers:    3_847,
-    margin:       67.4,
-    receita_fmt:  "$4.82M",
-    clientes_fmt: "3.847",
-    margem_fmt:   "67.4%",
+    revenue:      9_780,
+    customers:    5,
+    margin:       72.4,
+    receita_fmt:  "R$ 9.780",
+    clientes_fmt: "5",
+    margem_fmt:   "72.4%",
+    periodo:      "Mar/2026",
     lastUpdated:  new Date().toISOString(),
 };
 
