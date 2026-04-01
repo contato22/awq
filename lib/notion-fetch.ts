@@ -6,7 +6,7 @@
  */
 
 const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
-const BASE_PATH = IS_STATIC ? "/awq" : "";
+const BASE_PATH = IS_STATIC ? (process.env.NEXT_PUBLIC_BASE_PATH ?? "/awq") : "";
 
 const STATIC_PATHS: Record<string, string> = {
   properties:    `${BASE_PATH}/data/caza-properties.json`,
