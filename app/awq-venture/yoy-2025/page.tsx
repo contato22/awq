@@ -57,32 +57,7 @@ const receitaBarData: { trimestre: string; om: number; seguro: number; integraca
 
 const catBarData: { cat: string; Q1: number; Q2: number; Q3: number; Q4: number }[] = [];
 
-const evolucao = [
-  {
-    id: 1, dim: "Receita O&M Recorrente",
-    antes: "R$ 3.701/mês (errático, sem contrato)",
-    depois: "R$ 12.092/mês (+227%) — com estrutura de vesting",
-    positive: true,
-  },
-  {
-    id: 2, dim: "Seguro como produto",
-    antes: "R$ 0,00 — não existia",
-    depois: "R$ 2.095,02 — linha iniciada (potencial enorme)",
-    positive: true,
-  },
-  {
-    id: 3, dim: "O&M como % da Receita Bruta",
-    antes: "2,4% da RB no Q1 2025",
-    depois: "14,2% da RB no Q1 2026 — estrutura de receita mudando",
-    positive: true,
-  },
-  {
-    id: 4, dim: "Receita Bruta Total Q1",
-    antes: "R$ 389.611 (Q1 2025)",
-    depois: "R$ 254.736 (-34,6%) — Integração em ritmo menor no Q1",
-    positive: false,
-  },
-];
+const evolucao: { id: number; dim: string; antes: string; depois: string; positive: boolean }[] = [];
 
 const detalhamento: { cat: string; q1: number; q2: number; q3: number; q4: number; total: number }[] = [];
 
@@ -240,6 +215,9 @@ export default function YoY2025Page() {
             </tr>
           </thead>
           <tbody>
+            {evolucao.length === 0 && (
+              <tr><td colSpan={4} className="py-12 text-center text-sm text-gray-400">Sem dados disponíveis</td></tr>
+            )}
             {evolucao.map((row) => (
               <tr key={row.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                 <td className="py-3.5 px-3 text-sm text-gray-400">{row.id}</td>
