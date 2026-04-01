@@ -122,6 +122,7 @@ export const cazaClients: CazaClient[] = [
   { id: "CL006", name: "Camila Nogueira",  email: "camila.n@arezzo.com.br",    phone: "+55 11 99820-5571", type: "Marca",   budget_anual:   600_000, status: "Ativo",      segmento: "Moda & Varejo",             since: "2026-02-28" },
   { id: "CL007", name: "Thiago Barbosa",   email: "thiago.b@startupxyz.com",   phone: "+55 11 98110-7734", type: "Startup", budget_anual:   150_000, status: "Perdido",    segmento: "Tecnologia",                since: "2025-12-01" },
   { id: "CL008", name: "Larissa Nunes",    email: "lnunes@natura.net",         phone: "+55 11 97223-4499", type: "Marca",   budget_anual: 3_500_000, status: "Ativo",      segmento: "Beleza & Sustentabilidade", since: "2026-03-12" },
+  { id: "CL009", name: "AVVA", email: "contato@avva.com.br", phone: "+55 11 99000-4488", type: "Marca", budget_anual: 1_500_000, status: "Ativo", segmento: "Marketing Digital", since: "2026-03-31" },
 ];
 
 // ─── Alerts ───────────────────────────────────────────────────────────────────
