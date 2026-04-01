@@ -130,6 +130,9 @@ export const buData: BuData[] = [
   },
 ];
 
+// ─── AWQ Holding own cash (not allocated to any BU) ─────────────────────────
+export const holdingCash = 25_000;
+
 // ─── Operating BUs only (exclude Venture for P&L aggregation) ─────────────────
 export const operatingBus = buData.filter((b) => b.id !== "venture");
 
@@ -140,7 +143,7 @@ export const consolidated = {
   ebitda:           operatingBus.reduce((s, b) => s + b.ebitda,           0),
   netIncome:        operatingBus.reduce((s, b) => s + b.netIncome,        0),
   cashGenerated:    operatingBus.reduce((s, b) => s + b.cashGenerated,    0),
-  cashBalance:      buData.reduce      ((s, b) => s + b.cashBalance,      0), // all BUs
+  cashBalance:      buData.reduce      ((s, b) => s + b.cashBalance,      0) + holdingCash, // all BUs + holding
   customers:        operatingBus.reduce((s, b) => s + b.customers,        0),
   ftes:             operatingBus.reduce((s, b) => s + b.ftes,             0),
   capitalAllocated: buData.reduce      ((s, b) => s + b.capitalAllocated, 0),
