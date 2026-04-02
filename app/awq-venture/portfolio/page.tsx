@@ -143,10 +143,10 @@ const statusBadge: Record<string, string> = {
 };
 
 const stageColors: Record<string, string> = {
-  "Seed":     "bg-amber-500/10 text-amber-400",
-  "Series A": "bg-brand-500/10 text-brand-400",
-  "Series B": "bg-emerald-500/10 text-emerald-400",
-  "Exit":     "bg-violet-500/10 text-violet-400",
+  "Seed":     "bg-amber-50 text-amber-700",
+  "Series A": "bg-brand-50 text-brand-600",
+  "Series B": "bg-emerald-50 text-emerald-600",
+  "Exit":     "bg-violet-50 text-violet-700",
 };
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -167,9 +167,9 @@ export default function AwqVenturePortfolioPage() {
         {/* ── Summary strip ─────────────────────────────────────────────────── */}
         <div className="grid grid-cols-3 gap-4">
           {[
-            { label: "Investimentos Ativos",  value: ativos.length,   icon: CheckCircle2, color: "text-emerald-400", bg: "bg-emerald-500/10" },
+            { label: "Investimentos Ativos",  value: ativos.length,   icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-500/10" },
             { label: "Exits Concluídos",       value: exitados.length, icon: Zap,          color: "text-violet-400",  bg: "bg-violet-500/10"  },
-            { label: "Em Monitoramento",       value: monitor.length,  icon: AlertTriangle, color: "text-yellow-400", bg: "bg-yellow-500/10"  },
+            { label: "Em Monitoramento",       value: monitor.length,  icon: AlertTriangle, color: "text-amber-700", bg: "bg-amber-50"  },
           ].map((s) => {
             const Icon = s.icon;
             return (
@@ -178,7 +178,7 @@ export default function AwqVenturePortfolioPage() {
                   <Icon size={16} className={s.color} />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-white">{s.value}</div>
+                  <div className="text-2xl font-bold text-gray-900">{s.value}</div>
                   <div className="text-xs text-gray-500">{s.label}</div>
                 </div>
               </div>
@@ -200,15 +200,15 @@ export default function AwqVenturePortfolioPage() {
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
-                      <TrendingUp size={16} className="text-amber-400" />
+                      <TrendingUp size={16} className="text-amber-700" />
                     </div>
                     <div>
-                      <div className="text-sm font-bold text-white">{p.company}</div>
+                      <div className="text-sm font-bold text-gray-900">{p.company}</div>
                       <div className="text-[10px] text-gray-500">{p.founders} · {p.location}</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${stageColors[p.stage] ?? "bg-gray-800 text-gray-400"}`}>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${stageColors[p.stage] ?? "bg-gray-100 text-gray-500"}`}>
                       {p.stage}
                     </span>
                     <span className={`inline-flex items-center gap-1 ${statusBadge[p.status] ?? "badge"}`}>
@@ -222,24 +222,24 @@ export default function AwqVenturePortfolioPage() {
                 <p className="text-xs text-gray-400 leading-relaxed">{p.description}</p>
 
                 {/* Metrics */}
-                <div className="grid grid-cols-4 gap-2 pt-1 border-t border-gray-800">
+                <div className="grid grid-cols-4 gap-2 pt-1 border-t border-gray-200">
                   <div>
-                    <div className="text-[10px] text-gray-600 mb-0.5">Investido</div>
-                    <div className="text-xs font-bold text-white">{fmtR(p.invested)}</div>
+                    <div className="text-[10px] text-gray-500 mb-0.5">Investido</div>
+                    <div className="text-xs font-bold text-gray-900">{fmtR(p.invested)}</div>
                   </div>
                   <div>
-                    <div className="text-[10px] text-gray-600 mb-0.5">{p.status === "Exitado" ? "Retornado" : "Valor Atual"}</div>
-                    <div className={`text-xs font-bold ${p.status === "Exitado" ? "text-violet-400" : "text-white"}`}>{fmtR(val)}</div>
+                    <div className="text-[10px] text-gray-500 mb-0.5">{p.status === "Exitado" ? "Retornado" : "Valor Atual"}</div>
+                    <div className={`text-xs font-bold ${p.status === "Exitado" ? "text-violet-700" : "text-gray-900"}`}>{fmtR(val)}</div>
                   </div>
                   <div>
-                    <div className="text-[10px] text-gray-600 mb-0.5">MOIC</div>
-                    <div className={`text-xs font-bold ${moic >= 2 ? "text-emerald-400" : moic >= 1 ? "text-amber-400" : "text-red-400"}`}>
+                    <div className="text-[10px] text-gray-500 mb-0.5">MOIC</div>
+                    <div className={`text-xs font-bold ${moic >= 2 ? "text-emerald-600" : moic >= 1 ? "text-amber-700" : "text-red-600"}`}>
                       {fmtMult(moic)}
                     </div>
                   </div>
                   <div>
-                    <div className="text-[10px] text-gray-600 mb-0.5">IRR</div>
-                    <div className={`text-xs font-bold ${p.irr >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                    <div className="text-[10px] text-gray-500 mb-0.5">IRR</div>
+                    <div className={`text-xs font-bold ${p.irr >= 0 ? "text-emerald-600" : "text-red-600"}`}>
                       {p.irr >= 0 ? "+" : ""}{p.irr.toFixed(1)}%
                     </div>
                   </div>
@@ -249,9 +249,9 @@ export default function AwqVenturePortfolioPage() {
                 <div className="flex items-center justify-between pt-1">
                   <div className="flex items-center gap-1">
                     {r >= 0
-                      ? <ArrowUpRight size={12} className="text-emerald-400" />
-                      : <ArrowDownRight size={12} className="text-red-400" />}
-                    <span className={`text-[10px] font-semibold ${r >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                      ? <ArrowUpRight size={12} className="text-emerald-600" />
+                      : <ArrowDownRight size={12} className="text-red-600" />}
+                    <span className={`text-[10px] font-semibold ${r >= 0 ? "text-emerald-600" : "text-red-600"}`}>
                       ROIC {r >= 0 ? "+" : ""}{r.toFixed(0)}%
                     </span>
                     {p.ownership > 0 && (

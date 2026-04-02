@@ -177,7 +177,7 @@ export default function YoY2025Page() {
               <CircleProgress pct={q.pct} size={44} stroke={4} color={q.pct >= 100 ? "#2563eb" : "#e5e7eb"} />
             </div>
             <div className="text-2xl font-bold text-gray-900 mb-0.5">
-              {q.valor > 0 ? `R$ ${fmtBRL(q.valor)}` : <span className="text-gray-300">—</span>}
+              {q.valor > 0 ? `R$ ${fmtBRL(q.valor)}` : <span className="text-gray-400">—</span>}
             </div>
             <div className="text-xs text-gray-400 mb-3">
               Meta: R$ {fmtBRL(q.meta)} · {q.registros} registros
