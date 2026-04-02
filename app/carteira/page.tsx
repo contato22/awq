@@ -49,17 +49,17 @@ export default function CarteiraPage() {
 
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
           {[
-            { label: "Total Clientes", value: String(customers.length), icon: Users, color: "text-brand-600", bg: "bg-brand-50" },
-            { label: "LTV Total", value: fmtCurrency(totalLtv), icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
-            { label: "LTV Médio", value: fmtCurrency(avgLtv), icon: TrendingUp, color: "text-violet-700", bg: "bg-violet-50" },
-            { label: "Em Risco", value: String(atRisk.length), icon: AlertTriangle, color: "text-amber-700", bg: "bg-amber-50" },
+            { label: "Total Clientes", value: String(customers.length), icon: Users, color: "text-brand-600" },
+            { label: "LTV Total", value: fmtCurrency(totalLtv), icon: DollarSign, color: "text-emerald-600" },
+            { label: "LTV Médio", value: fmtCurrency(avgLtv), icon: TrendingUp, color: "text-violet-700" },
+            { label: "Em Risco", value: String(atRisk.length), icon: AlertTriangle, color: "text-amber-700" },
           ].map((kpi) => {
             const Icon = kpi.icon;
             return (
               <div key={kpi.label} className="card p-5 flex items-center gap-4">
-                <div className={`w-10 h-10 rounded-xl ${kpi.bg} flex items-center justify-center shrink-0`}><Icon size={18} className={kpi.color} /></div>
+                <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center shrink-0"><Icon size={18} className={kpi.color} /></div>
                 <div>
-                  <div className="text-xl font-bold text-gray-900">{kpi.value}</div>
+                  <div className="text-xl font-bold text-slate-800">{kpi.value}</div>
                   <div className="text-xs text-gray-500 mt-0.5">{kpi.label}</div>
                 </div>
               </div>
@@ -68,32 +68,32 @@ export default function CarteiraPage() {
         </div>
 
         {/* Client table */}
-        <div className="card p-5">
-          <h2 className="text-sm font-semibold text-gray-900 mb-4">Base de Clientes</h2>
+        <div className="card-elevated p-5">
+          <h2 className="text-sm font-bold text-slate-800 mb-4">Base de Clientes</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Cliente</th>
-                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Segmento</th>
-                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">País</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">LTV</th>
-                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Último Pedido</th>
-                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Status</th>
+                <tr className="bg-slate-800">
+                  <th className="text-left py-2 px-3 text-xs font-semibold text-white">Cliente</th>
+                  <th className="text-left py-2 px-3 text-xs font-semibold text-white">Segmento</th>
+                  <th className="text-left py-2 px-3 text-xs font-semibold text-white">País</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-white">LTV</th>
+                  <th className="text-left py-2 px-3 text-xs font-semibold text-white">Último Pedido</th>
+                  <th className="text-left py-2 px-3 text-xs font-semibold text-white">Status</th>
                 </tr>
               </thead>
               <tbody>
-                {customers.sort((a, b) => b.ltv - a.ltv).map((c) => (
-                  <tr key={c.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                {customers.sort((a, b) => b.ltv - a.ltv).map((c, idx) => (
+                  <tr key={c.id} className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${idx % 2 === 1 ? "bg-gray-50/60" : ""}`}>
                     <td className="py-2.5 px-3">
                       <div className="text-xs font-medium text-gray-800">{c.name}</div>
-                      <div className="text-[10px] text-gray-400">{c.company}</div>
+                      <div className="text-[10px] text-gray-500">{c.company}</div>
                     </td>
                     <td className="py-2.5 px-3">
                       <span className={`text-xs font-semibold ${segmentColor[c.segment] ?? "text-gray-500"}`}>{c.segment}</span>
                     </td>
                     <td className="py-2.5 px-3 text-xs text-gray-500">{c.country}</td>
-                    <td className="py-2.5 px-3 text-right text-xs font-bold text-gray-900">{fmtCurrency(c.ltv)}</td>
+                    <td className="py-2.5 px-3 text-right text-xs font-bold text-emerald-600">{fmtCurrency(c.ltv)}</td>
                     <td className="py-2.5 px-3 text-xs text-gray-500">{c.lastOrder}</td>
                     <td className="py-2.5 px-3">
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusColor[c.status]}`}>{statusLabel[c.status]}</span>
@@ -107,8 +107,8 @@ export default function CarteiraPage() {
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           {/* Segment breakdown */}
-          <div className="card p-5">
-            <h2 className="text-sm font-semibold text-gray-900 mb-4">Distribuição por Segmento</h2>
+          <div className="card-elevated p-5">
+            <h2 className="text-sm font-bold text-slate-800 mb-4">Distribuição por Segmento</h2>
             <div className="space-y-4">
               {bySegment.map((seg) => (
                 <div key={seg.segment}>
@@ -116,12 +116,12 @@ export default function CarteiraPage() {
                     <span className={`text-xs font-medium ${segmentColor[seg.segment] ?? "text-gray-800"}`}>{seg.segment}</span>
                     <div className="flex items-center gap-3 text-[11px]">
                       <span className="text-gray-500">{seg.count} contas</span>
-                      <span className="font-bold text-gray-900">{fmtCurrency(seg.ltv)}</span>
-                      <span className="text-gray-400">{seg.pct}%</span>
+                      <span className="font-bold text-emerald-600">{fmtCurrency(seg.ltv)}</span>
+                      <span className="text-gray-500">{seg.pct}%</span>
                     </div>
                   </div>
                   <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-brand-500 rounded-full" style={{ width: `${seg.pct}%` }} />
+                    <div className="h-full bg-gradient-to-r from-slate-600 to-slate-400 rounded-full" style={{ width: `${seg.pct}%` }} />
                   </div>
                 </div>
               ))}
@@ -129,8 +129,8 @@ export default function CarteiraPage() {
           </div>
 
           {/* At-risk alert */}
-          <div className="card p-5">
-            <h2 className="text-sm font-semibold text-gray-900 mb-4">Alertas de Risco</h2>
+          <div className="card-elevated p-5">
+            <h2 className="text-sm font-bold text-slate-800 mb-4">Alertas de Risco</h2>
             <div className="space-y-3">
               {atRisk.map((c) => (
                 <div key={c.id} className="p-3 rounded-xl bg-amber-50 border border-amber-200">

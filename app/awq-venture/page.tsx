@@ -82,8 +82,8 @@ function Gauge({ value }: { value: number }) {
         <line x1={cx} y1={cy} x2={needleX} y2={needleY} stroke="#1f2937" strokeWidth={2.5} strokeLinecap="round" />
         <circle cx={cx} cy={cy} r={5} fill="#1f2937" />
       </svg>
-      <div className="text-lg font-bold text-amber-500 -mt-2">{value}x</div>
-      <div className="text-[10px] text-gray-400 uppercase tracking-wide">Regular</div>
+      <div className="text-lg font-bold text-awq-gold -mt-2">{value}x</div>
+      <div className="text-[10px] text-gray-500 uppercase tracking-wide">Regular</div>
     </div>
   );
 }
@@ -146,9 +146,9 @@ export default function PoCPage() {
       {/* Row 1 — KPI cards */}
       <div className="grid grid-cols-5 gap-4">
         {/* LTV:CAC Gauge */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex flex-col items-start">
-          <div className="text-sm font-semibold text-gray-700 mb-1">LTV : CAC</div>
-          <div className="text-xs text-gray-400 mb-2">Tempo real · Atualiza a cada 60s</div>
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-5 flex flex-col items-start">
+          <div className="text-sm font-bold text-slate-800 mb-1">LTV : CAC</div>
+          <div className="text-xs text-gray-500 mb-2">Tempo real · Atualiza a cada 60s</div>
           <div className="flex-1 flex items-center justify-center w-full">
             <Gauge value={38.3} />
           </div>
@@ -156,13 +156,13 @@ export default function PoCPage() {
 
         {/* Other KPI cards */}
         {kpis.map((k) => (
-          <div key={k.label} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex flex-col gap-2">
+          <div key={k.label} className="bg-white rounded-2xl shadow-xl border border-gray-100 p-5 flex flex-col gap-2">
             <div className="flex items-start justify-between">
               <div className="text-xs font-medium text-gray-500">{k.label}</div>
               <CircleProgress pct={k.pct} size={44} color="#2563eb" />
             </div>
-            <div className="text-2xl font-bold text-gray-900">{k.value}</div>
-            <div className="text-xs text-gray-400">{k.sub}</div>
+            <div className="text-2xl font-bold text-emerald-600">{k.value}</div>
+            <div className="text-xs text-gray-500">{k.sub}</div>
           </div>
         ))}
       </div>
@@ -170,11 +170,11 @@ export default function PoCPage() {
       {/* Row 2 — Chart + Vesting */}
       <div className="grid grid-cols-3 gap-4">
         {/* Receita Acumulada */}
-        <div className="col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+        <div className="col-span-2 bg-white rounded-2xl shadow-xl border border-gray-100 p-5">
           <div className="flex items-start justify-between mb-1">
             <div>
-              <div className="text-base font-bold text-gray-900">Receita Acumulada</div>
-              <div className="text-xs text-gray-400 mt-0.5">
+              <div className="text-base font-bold text-slate-800">Receita Acumulada</div>
+              <div className="text-xs text-gray-500 mt-0.5">
                 Acompanhamento diário · Meta: R$ 120.000 · Atual: R$ {fmtBRL(totalFechados)}
               </div>
             </div>
@@ -216,12 +216,12 @@ export default function PoCPage() {
         </div>
 
         {/* Processo de Vesting */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-5">
           <div className="flex items-start justify-between mb-1">
-            <div className="text-base font-bold text-gray-900">Processo de Vesting</div>
+            <div className="text-base font-bold text-slate-800">Processo de Vesting</div>
             <span className="text-sm font-bold text-blue-600">2.4% / 20%</span>
           </div>
-          <div className="text-xs text-gray-400 mb-4">Duração: 3 anos · Meta total: R$ 360.000,00</div>
+          <div className="text-xs text-gray-500 mb-4">Duração: 3 anos · Meta total: R$ 360.000,00</div>
 
           <div className="grid grid-cols-3 gap-2 mb-4">
             {[
@@ -234,8 +234,8 @@ export default function PoCPage() {
                   <CircleProgress pct={a.pct} size={38} stroke={3} color="#2563eb" />
                 </div>
                 <div className="text-xs text-gray-500 mb-1">{a.label}</div>
-                <div className="text-base font-bold text-gray-900">{a.pct.toFixed(1)}%</div>
-                <div className="text-[10px] text-gray-400">Meta: 6.7%</div>
+                <div className="text-base font-bold text-blue-600">{a.pct.toFixed(1)}%</div>
+                <div className="text-[10px] text-gray-500">Meta: 6.7%</div>
                 <div className="text-[10px] text-gray-700 font-medium mt-1">
                   R$ {fmtBRL(a.valor)} /
                 </div>
@@ -250,28 +250,28 @@ export default function PoCPage() {
 
       {/* Row 3 — Canais de Aquisição */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="col-span-1 col-start-3 bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+        <div className="col-span-1 col-start-3 bg-white rounded-2xl shadow-xl border border-gray-100 p-5">
           <div className="flex items-start justify-between mb-0.5">
-            <div className="text-base font-bold text-gray-900">Canais de Aquisição</div>
-            <div className="flex items-center gap-1 text-[10px] text-gray-400">
+            <div className="text-base font-bold text-slate-800">Canais de Aquisição</div>
+            <div className="flex items-center gap-1 text-[10px] text-gray-500">
               <RefreshCw size={10} />
               Atualização a cada 1 min
             </div>
           </div>
-          <div className="text-xs text-gray-400 mb-4">Origem dos leads por fonte · Pipeline</div>
+          <div className="text-xs text-gray-500 mb-4">Origem dos leads por fonte · Pipeline</div>
 
           <div className="grid grid-cols-3 gap-2 mb-4 text-center">
             <div className="bg-gray-50 rounded-xl p-3">
               <div className="text-xs text-gray-500 flex items-center justify-center gap-1 mb-1"><BarChart2 size={11} />Canais</div>
-              <div className="text-xl font-bold text-gray-900">12</div>
+              <div className="text-xl font-bold text-slate-800">12</div>
             </div>
             <div className="bg-gray-50 rounded-xl p-3">
               <div className="text-xs text-gray-500 mb-1">Leads</div>
-              <div className="text-xl font-bold text-gray-900">481</div>
+              <div className="text-xl font-bold text-slate-800">481</div>
             </div>
             <div className="bg-gray-50 rounded-xl p-3">
               <div className="text-xs text-gray-500 mb-1">Valor Total</div>
-              <div className="text-sm font-bold text-gray-900">R$ 3.546.375,56</div>
+              <div className="text-sm font-bold text-emerald-600">R$ 3.546.375,56</div>
             </div>
           </div>
 
@@ -292,7 +292,7 @@ export default function PoCPage() {
                   </div>
                   <span className="text-xs font-bold text-gray-700">{c.pct}%</span>
                 </div>
-                <div className="flex items-center justify-between text-[10px] text-gray-400 pl-4">
+                <div className="flex items-center justify-between text-[10px] text-gray-500 pl-4">
                   <span>{c.leads} leads</span>
                   <span>R$ {fmtBRL(c.valor)}</span>
                 </div>

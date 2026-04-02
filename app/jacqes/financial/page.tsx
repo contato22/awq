@@ -101,8 +101,8 @@ const summaryCards = [
 // ─── Color helpers ────────────────────────────────────────────────────────────
 
 function dreRowColor(type: string, value: number): string {
-  if (type === "revenue") return "text-gray-900";
-  if (type === "subtotal" || type === "ebitda" || type === "net") return "text-gray-900";
+  if (type === "revenue") return "text-slate-800";
+  if (type === "subtotal" || type === "ebitda" || type === "net") return "text-slate-800";
   if (value < 0) return "text-red-600";
   return "text-emerald-600";
 }
@@ -144,12 +144,12 @@ export default function JacqesFinancialPage() {
             const Icon = card.icon;
             return (
               <div key={card.label} className="card p-5 flex items-start gap-4">
-                <div className={`w-10 h-10 rounded-xl ${card.bg} flex items-center justify-center shrink-0`}>
+                <div className={`w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center shrink-0`}>
                   <Icon size={18} className={card.color} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-2xl font-bold text-gray-900">{card.value}</div>
-                  <div className="text-xs font-medium text-gray-400 mt-0.5">{card.label}</div>
+                  <div className="text-2xl font-bold text-slate-800">{card.value}</div>
+                  <div className="text-xs font-medium text-gray-500 mt-0.5">{card.label}</div>
                   <div className="flex items-center gap-1 mt-1">
                     {card.up
                       ? <ArrowUpRight size={11} className="text-emerald-600" />
@@ -157,7 +157,7 @@ export default function JacqesFinancialPage() {
                     <span className={`text-[10px] font-semibold ${card.up ? "text-emerald-600" : "text-red-600"}`}>
                       {card.delta}
                     </span>
-                    <span className="text-[10px] text-gray-400">{card.sub}</span>
+                    <span className="text-[10px] text-gray-500">{card.sub}</span>
                   </div>
                 </div>
               </div>
@@ -168,17 +168,17 @@ export default function JacqesFinancialPage() {
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
 
           {/* ── DRE ──────────────────────────────────────────────────────────── */}
-          <div className="xl:col-span-2 card p-5">
-            <h2 className="text-sm font-semibold text-gray-900 mb-4">
+          <div className="xl:col-span-2 card-elevated p-5">
+            <h2 className="text-sm font-bold text-slate-800 tracking-tight mb-4">
               DRE — Demonstração do Resultado · Jan–Mar 2026 (YTD)
             </h2>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Linha</th>
-                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Valor YTD</th>
-                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">% Receita</th>
+                  <tr className="bg-slate-800 text-white">
+                    <th className="text-left py-2 px-3 text-xs font-bold text-white">Linha</th>
+                    <th className="text-right py-2 px-3 text-xs font-bold text-white">Valor YTD</th>
+                    <th className="text-right py-2 px-3 text-xs font-bold text-white">% Receita</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -191,18 +191,18 @@ export default function JacqesFinancialPage() {
                     return (
                       <tr
                         key={i}
-                        className={`border-b border-gray-100 transition-colors ${isSubtotal ? "bg-gray-50" : "hover:bg-gray-100"}`}
+                        className={`border-b border-gray-100 transition-colors ${isSubtotal ? "bg-gray-50" : "odd:bg-white even:bg-gray-50 hover:bg-gray-100/60"}`}
                       >
-                        <td className={`py-2 px-3 text-xs ${isSubtotal ? "font-bold text-gray-800" : "text-gray-400"}`}
+                        <td className={`py-2 px-3 text-xs ${isSubtotal ? "font-bold text-slate-800" : "text-gray-500"}`}
                           style={{ paddingLeft: `${(row.indent * 16) + 12}px` }}>
                           {row.label}
                         </td>
                         <td className={`py-2 px-3 text-right text-xs ${isSubtotal ? "font-bold" : ""} ${dreRowColor(row.type, row.value)}`}>
                           {fmtR(row.value)}
                         </td>
-                        <td className="py-2 px-3 text-right text-[11px] text-gray-400">
+                        <td className="py-2 px-3 text-right text-[11px] text-gray-500">
                           {row.type === "subtotal" || row.type === "ebitda" || row.type === "net"
-                            ? <span className="badge badge-green">{pctReceita}</span>
+                            ? <span className="badge badge-green border border-emerald-200">{pctReceita}</span>
                             : pctReceita}
                         </td>
                       </tr>
@@ -214,8 +214,8 @@ export default function JacqesFinancialPage() {
           </div>
 
           {/* ── Margem Visual ────────────────────────────────────────────────── */}
-          <div className="card p-5 flex flex-col gap-4">
-            <h2 className="text-sm font-semibold text-gray-900">Margens — YTD 2026</h2>
+          <div className="card-elevated p-5 flex flex-col gap-4">
+            <h2 className="text-sm font-bold text-slate-800 tracking-tight">Margens — YTD 2026</h2>
             {[
               { label: "Margem Bruta",    value: 2_603_400, base: 4_339_000, color: "bg-emerald-500" },
               { label: "Margem EBITDA",   value: 866_800,   base: 4_339_000, color: "bg-brand-500"   },
@@ -226,8 +226,8 @@ export default function JacqesFinancialPage() {
               return (
                 <div key={m.label}>
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs text-gray-400">{m.label}</span>
-                    <span className="text-xs font-bold text-gray-900">{p.toFixed(1)}%</span>
+                    <span className="text-xs text-gray-500">{m.label}</span>
+                    <span className="text-xs font-bold text-slate-800">{p.toFixed(1)}%</span>
                   </div>
                   <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                     <div
@@ -240,7 +240,7 @@ export default function JacqesFinancialPage() {
             })}
 
             <div className="border-t border-gray-200 pt-4 mt-2">
-              <div className="text-xs font-semibold text-gray-400 mb-3">Composição de Despesas</div>
+              <div className="text-xs font-semibold text-gray-500 mb-3">Composição de Despesas</div>
               {[
                 { label: "Custo dos Serviços",  value: 1_735_600, color: "text-red-600"    },
                 { label: "Desp. Comerciais",    value: 347_120,   color: "text-orange-400" },
@@ -257,9 +257,9 @@ export default function JacqesFinancialPage() {
         </div>
 
         {/* ── Budget vs Actual ──────────────────────────────────────────────── */}
-        <div className="card p-5">
+        <div className="card-elevated p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-gray-900">Budget vs Actual — Receita Mensal 2026</h2>
+            <h2 className="text-sm font-bold text-slate-800 tracking-tight">Budget vs Actual — Receita Mensal 2026</h2>
             <div className="flex items-center gap-4 text-[11px]">
               <span className="flex items-center gap-1.5 text-gray-500"><span className="w-3 h-0.5 bg-gray-600 inline-block rounded" /> Budget</span>
               <span className="flex items-center gap-1.5 text-emerald-600"><span className="w-3 h-0.5 bg-emerald-400 inline-block rounded" /> Realizado</span>
@@ -268,14 +268,14 @@ export default function JacqesFinancialPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Mês</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Budget Receita</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Realizado</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Var. %</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Budget EBITDA</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">EBITDA Real</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Var. %</th>
+                <tr className="bg-slate-800 text-white">
+                  <th className="text-left py-2 px-3 text-xs font-bold text-white">Mês</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold text-white">Budget Receita</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold text-white">Realizado</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold text-white">Var. %</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold text-white">Budget EBITDA</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold text-white">EBITDA Real</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold text-white">Var. %</th>
                 </tr>
               </thead>
               <tbody>
@@ -284,25 +284,25 @@ export default function JacqesFinancialPage() {
                   const varR = isFuture ? null : variance(row.receitaActual, row.receitaBudget);
                   const varE = isFuture ? null : variance(row.ebitdaActual, row.ebitdaBudget);
                   return (
-                    <tr key={row.month} className="border-b border-gray-100 hover:bg-gray-100 transition-colors">
-                      <td className="py-2.5 px-3 text-gray-400 font-medium text-xs">{row.month}</td>
+                    <tr key={row.month} className="border-b border-gray-100 odd:bg-white even:bg-gray-50 hover:bg-gray-100/60 transition-colors">
+                      <td className="py-2.5 px-3 text-gray-500 font-medium text-xs">{row.month}</td>
                       <td className="py-2.5 px-3 text-right text-gray-500 text-xs">{fmtR(row.receitaBudget)}</td>
                       <td className="py-2.5 px-3 text-right text-xs font-semibold">
                         {isFuture
-                          ? <span className="text-gray-400">—</span>
-                          : <span className="text-gray-900">{fmtR(row.receitaActual)}</span>}
+                          ? <span className="text-gray-500">—</span>
+                          : <span className="text-slate-800">{fmtR(row.receitaActual)}</span>}
                       </td>
                       <td className="py-2.5 px-3 text-right text-xs">
                         {varR !== null ? (
                           <span className={`flex items-center justify-end gap-0.5 font-semibold ${varColor(varR)}`}>
                             {varIcon(varR)}{varR >= 0 ? "+" : ""}{varR.toFixed(1)}%
                           </span>
-                        ) : <span className="text-gray-400">—</span>}
+                        ) : <span className="text-gray-500">—</span>}
                       </td>
                       <td className="py-2.5 px-3 text-right text-gray-500 text-xs">{fmtR(row.ebitdaBudget)}</td>
                       <td className="py-2.5 px-3 text-right text-xs font-semibold">
                         {isFuture
-                          ? <span className="text-gray-400">—</span>
+                          ? <span className="text-gray-500">—</span>
                           : <span className="text-brand-600">{fmtR(row.ebitdaActual)}</span>}
                       </td>
                       <td className="py-2.5 px-3 text-right text-xs">
@@ -310,7 +310,7 @@ export default function JacqesFinancialPage() {
                           <span className={`flex items-center justify-end gap-0.5 font-semibold ${varColor(varE)}`}>
                             {varIcon(varE)}{varE >= 0 ? "+" : ""}{varE.toFixed(1)}%
                           </span>
-                        ) : <span className="text-gray-400">—</span>}
+                        ) : <span className="text-gray-500">—</span>}
                       </td>
                     </tr>
                   );
@@ -318,9 +318,9 @@ export default function JacqesFinancialPage() {
               </tbody>
               <tfoot>
                 <tr className="border-t border-gray-300">
-                  <td className="py-2.5 px-3 text-xs font-bold text-gray-400">YTD REAL</td>
+                  <td className="py-2.5 px-3 text-xs font-bold text-gray-500">YTD REAL</td>
                   <td className="py-2.5 px-3 text-right text-gray-500 text-xs font-bold">{fmtR(ytdBudgetReceita)}</td>
-                  <td className="py-2.5 px-3 text-right text-gray-900 font-bold text-xs">{fmtR(ytdActualReceita)}</td>
+                  <td className="py-2.5 px-3 text-right text-slate-800 font-bold text-xs">{fmtR(ytdActualReceita)}</td>
                   <td className="py-2.5 px-3 text-right text-xs">
                     <span className={`flex items-center justify-end gap-0.5 font-bold ${varColor(ytdVarReceita)}`}>
                       {varIcon(ytdVarReceita)}{ytdVarReceita >= 0 ? "+" : ""}{ytdVarReceita.toFixed(1)}%

@@ -147,7 +147,7 @@ export default function YoY2025Page() {
   return (
     <>
       {/* Header */}
-      <div className="text-xl font-bold text-gray-900">CAC &amp; LTV — 2025</div>
+      <div className="text-xl font-bold text-slate-800">CAC &amp; LTV — 2025</div>
 
       {/* KPI Row */}
       <div className="grid grid-cols-4 gap-4">
@@ -157,13 +157,13 @@ export default function YoY2025Page() {
           { label: "LTV : CAC", value: "10.8x", icon: "💲", sub: "Saudável (≥ 3x)" },
           { label: "Clientes Fechados", value: "79", icon: "👥", sub: "Receita total: R$ 433.687,08" },
         ].map((k) => (
-          <div key={k.label} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+          <div key={k.label} className="bg-white rounded-2xl shadow-xl border border-gray-100 p-5">
             <div className="flex items-start justify-between mb-2">
               <span className="text-sm font-medium text-gray-500">{k.label}</span>
               <span className="text-lg">{k.icon}</span>
             </div>
-            <div className="text-2xl font-bold text-gray-900 mb-1">{k.value}</div>
-            <div className="text-xs text-gray-400">{k.sub}</div>
+            <div className="text-2xl font-bold text-emerald-600 mb-1">{k.value}</div>
+            <div className="text-xs text-gray-500">{k.sub}</div>
           </div>
         ))}
       </div>
@@ -171,15 +171,15 @@ export default function YoY2025Page() {
       {/* Quarterly Cards */}
       <div className="grid grid-cols-4 gap-4">
         {quarters.map((q) => (
-          <div key={q.q} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+          <div key={q.q} className="bg-white rounded-2xl shadow-xl border border-gray-100 p-5">
             <div className="flex items-start justify-between mb-2">
               <div className="text-sm font-semibold text-gray-600">{q.q} · {q.year}</div>
               <CircleProgress pct={q.pct} size={44} stroke={4} color={q.pct >= 100 ? "#2563eb" : "#e5e7eb"} />
             </div>
-            <div className="text-2xl font-bold text-gray-900 mb-0.5">
-              {q.valor > 0 ? `R$ ${fmtBRL(q.valor)}` : <span className="text-gray-400">—</span>}
+            <div className="text-2xl font-bold text-slate-800 mb-0.5">
+              {q.valor > 0 ? `R$ ${fmtBRL(q.valor)}` : <span className="text-gray-500">—</span>}
             </div>
-            <div className="text-xs text-gray-400 mb-3">
+            <div className="text-xs text-gray-500 mb-3">
               Meta: R$ {fmtBRL(q.meta)} · {q.registros} registros
             </div>
             <div className="border-t border-gray-100 pt-3">
@@ -200,7 +200,7 @@ export default function YoY2025Page() {
                   </div>
                 ))}
               </div>
-              {q.note && <div className="text-[9px] text-gray-400 mt-2 italic">{q.note}</div>}
+              {q.note && <div className="text-[9px] text-gray-500 mt-2 italic">{q.note}</div>}
             </div>
           </div>
         ))}
@@ -209,9 +209,9 @@ export default function YoY2025Page() {
       {/* Charts Row */}
       <div className="grid grid-cols-2 gap-4">
         {/* Receita por Trimestre */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-          <div className="text-base font-bold text-gray-900 mb-0.5">Receita por Trimestre</div>
-          <div className="text-xs text-gray-400 mb-4">Comparação de categorias por trimestre</div>
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-5">
+          <div className="text-sm font-bold text-slate-800 mb-0.5">Receita por Trimestre</div>
+          <div className="text-xs text-gray-500 mb-4">Comparação de categorias por trimestre</div>
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={liveBarData} margin={{ top: 4, right: 8, bottom: 4, left: 8 }}>
               <CartesianGrid strokeDasharray="4 4" stroke="#f0f0f0" />
@@ -227,9 +227,9 @@ export default function YoY2025Page() {
         </div>
 
         {/* Categorias por Trimestre — horizontal */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-          <div className="text-base font-bold text-gray-900 mb-0.5">Categorias por Trimestre</div>
-          <div className="text-xs text-gray-400 mb-4">Distribuição das categorias em cada trimestre</div>
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-5">
+          <div className="text-sm font-bold text-slate-800 mb-0.5">Categorias por Trimestre</div>
+          <div className="text-xs text-gray-500 mb-4">Distribuição das categorias em cada trimestre</div>
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={catBarData} layout="vertical" margin={{ top: 4, right: 8, bottom: 4, left: 60 }}>
               <CartesianGrid strokeDasharray="4 4" stroke="#f0f0f0" horizontal={false} />
@@ -247,29 +247,29 @@ export default function YoY2025Page() {
       </div>
 
       {/* Evolução Estratégica */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+      <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-5">
         <div className="flex items-center justify-between mb-0.5">
-          <div className="text-base font-bold text-gray-900">Evolução Estratégica</div>
+          <div className="text-sm font-bold text-slate-800">Evolução Estratégica</div>
           <button className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 transition-colors">
             <Plus size={12} /> Nova linha
           </button>
         </div>
-        <div className="text-xs text-gray-400 mb-4">Antes (2025) vs Depois (Q1 2026)</div>
+        <div className="text-xs text-gray-500 mb-4">Antes (2025) vs Depois (Q1 2026)</div>
         <table className="w-full">
           <thead>
-            <tr className="text-xs font-semibold text-gray-400 border-b border-gray-100">
-              <th className="text-left py-2 px-3 w-8">#</th>
-              <th className="text-left py-2 px-3">Dimensão</th>
-              <th className="text-left py-2 px-3">Antes (2025)</th>
-              <th className="text-left py-2 px-3">Depois (Q1 2026)</th>
+            <tr className="bg-slate-800 text-white">
+              <th className="text-left py-2 px-3 w-8 text-xs font-bold">#</th>
+              <th className="text-left py-2 px-3 text-xs font-bold">Dimensão</th>
+              <th className="text-left py-2 px-3 text-xs font-bold">Antes (2025)</th>
+              <th className="text-left py-2 px-3 text-xs font-bold">Depois (Q1 2026)</th>
             </tr>
           </thead>
           <tbody>
             {evolucao.map((row) => (
-              <tr key={row.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                <td className="py-3.5 px-3 text-sm text-gray-400">{row.id}</td>
+              <tr key={row.id} className="border-b border-gray-50 even:bg-gray-50/60 hover:bg-gray-100 transition-colors">
+                <td className="py-3.5 px-3 text-sm text-gray-500">{row.id}</td>
                 <td className="py-3.5 px-3 text-sm text-gray-700 font-medium">{row.dim}</td>
-                <td className="py-3.5 px-3 text-sm text-gray-400">{row.antes}</td>
+                <td className="py-3.5 px-3 text-sm text-gray-500">{row.antes}</td>
                 <td className={`py-3.5 px-3 text-sm font-semibold ${row.positive ? "text-blue-700" : "text-red-500"}`}>
                   {row.depois}
                 </td>
@@ -280,28 +280,28 @@ export default function YoY2025Page() {
       </div>
 
       {/* Detalhamento por Trimestre */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-        <div className="text-base font-bold text-gray-900 mb-4">Detalhamento por Trimestre</div>
+      <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-5">
+        <div className="text-sm font-bold text-slate-800 mb-4">Detalhamento por Trimestre</div>
         <table className="w-full">
           <thead>
-            <tr className="text-xs font-semibold text-gray-400 border-b border-gray-100">
-              <th className="text-left py-2 px-3">Categoria</th>
-              <th className="text-right py-2 px-3">Q1</th>
-              <th className="text-right py-2 px-3">Q2</th>
-              <th className="text-right py-2 px-3">Q3</th>
-              <th className="text-right py-2 px-3">Q4</th>
-              <th className="text-right py-2 px-3 font-bold text-gray-700">Total</th>
+            <tr className="bg-slate-800 text-white">
+              <th className="text-left py-2 px-3 text-xs font-bold">Categoria</th>
+              <th className="text-right py-2 px-3 text-xs font-bold">Q1</th>
+              <th className="text-right py-2 px-3 text-xs font-bold">Q2</th>
+              <th className="text-right py-2 px-3 text-xs font-bold">Q3</th>
+              <th className="text-right py-2 px-3 text-xs font-bold">Q4</th>
+              <th className="text-right py-2 px-3 text-xs font-bold">Total</th>
             </tr>
           </thead>
           <tbody>
             {liveDetalhamento.map((row) => (
-              <tr key={row.cat} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+              <tr key={row.cat} className="border-b border-gray-50 even:bg-gray-50/60 hover:bg-gray-100 transition-colors">
                 <td className="py-3 px-3 text-sm text-gray-700 font-medium">{row.cat}</td>
                 <td className="py-3 px-3 text-right text-sm text-gray-600">R$ {fmtBRL(row.q1)}</td>
-                <td className="py-3 px-3 text-right text-sm text-gray-400">R$ {fmtBRL(row.q2)}</td>
-                <td className="py-3 px-3 text-right text-sm text-gray-400">R$ {fmtBRL(row.q3)}</td>
-                <td className="py-3 px-3 text-right text-sm text-gray-400">R$ {fmtBRL(row.q4)}</td>
-                <td className="py-3 px-3 text-right text-sm font-bold text-gray-900">R$ {fmtBRL(row.total)}</td>
+                <td className="py-3 px-3 text-right text-sm text-gray-500">R$ {fmtBRL(row.q2)}</td>
+                <td className="py-3 px-3 text-right text-sm text-gray-500">R$ {fmtBRL(row.q3)}</td>
+                <td className="py-3 px-3 text-right text-sm text-gray-500">R$ {fmtBRL(row.q4)}</td>
+                <td className="py-3 px-3 text-right text-sm font-bold text-emerald-600">R$ {fmtBRL(row.total)}</td>
               </tr>
             ))}
           </tbody>

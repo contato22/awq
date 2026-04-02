@@ -5,32 +5,32 @@ export default function ChannelTable() {
   const maxRevenue = Math.max(...channelData.map((c) => c.revenue));
 
   return (
-    <div className="card p-6">
+    <div className="card-elevated p-6">
       <div className="mb-5">
-        <h2 className="text-sm font-semibold text-gray-900">Acquisition Channels</h2>
+        <h2 className="text-sm font-bold text-slate-800">Acquisition Channels</h2>
         <p className="text-xs text-gray-500 mt-0.5">Traffic, conversions & revenue by source</p>
       </div>
 
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-200">
-              <th className="text-left pb-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+            <tr className="bg-slate-800">
+              <th className="text-left py-2 px-3 text-[10px] font-bold text-white uppercase tracking-wider">
                 Channel
               </th>
-              <th className="text-right pb-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+              <th className="text-right py-2 px-3 text-[10px] font-bold text-white uppercase tracking-wider">
                 Sessions
               </th>
-              <th className="text-right pb-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+              <th className="text-right py-2 px-3 text-[10px] font-bold text-white uppercase tracking-wider">
                 Conv.
               </th>
-              <th className="text-right pb-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+              <th className="text-right py-2 px-3 text-[10px] font-bold text-white uppercase tracking-wider">
                 CVR
               </th>
-              <th className="text-right pb-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+              <th className="text-right py-2 px-3 text-[10px] font-bold text-white uppercase tracking-wider">
                 Revenue
               </th>
-              <th className="text-right pb-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+              <th className="text-right py-2 px-3 text-[10px] font-bold text-white uppercase tracking-wider">
                 CAC
               </th>
             </tr>
@@ -43,34 +43,34 @@ export default function ChannelTable() {
               return (
                 <tr
                   key={ch.channel}
-                  className="border-b border-gray-100 hover:bg-gray-100 transition-colors"
+                  className="even:bg-gray-50/60 hover:bg-gray-100/60 transition-colors"
                 >
-                  <td className="py-3 pr-4">
-                    <div className="font-medium text-gray-400">{ch.channel}</div>
+                  <td className="py-3 px-3">
+                    <div className="font-medium text-slate-700">{ch.channel}</div>
                     <div className="mt-1 h-1 w-24 bg-gray-100 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-brand-500 rounded-full"
+                        className="h-full bg-gradient-to-r from-slate-700 to-slate-500 rounded-full"
                         style={{ width: `${barWidth}%` }}
                       />
                     </div>
                   </td>
-                  <td className="py-3 text-right text-gray-400 tabular-nums">
+                  <td className="py-3 px-3 text-right text-slate-600 tabular-nums">
                     {formatNumber(ch.sessions, true)}
                   </td>
-                  <td className="py-3 text-right text-gray-400 tabular-nums">
+                  <td className="py-3 px-3 text-right text-slate-600 tabular-nums">
                     {formatNumber(ch.conversions, true)}
                   </td>
-                  <td className="py-3 text-right tabular-nums">
+                  <td className="py-3 px-3 text-right tabular-nums">
                     <span className="text-cyan-700 font-medium">{cvr}%</span>
                   </td>
-                  <td className="py-3 text-right font-semibold text-gray-900 tabular-nums">
+                  <td className="py-3 px-3 text-right font-bold text-emerald-600 tabular-nums">
                     {formatCurrency(ch.revenue, "USD", true)}
                   </td>
-                  <td className="py-3 text-right tabular-nums">
+                  <td className="py-3 px-3 text-right tabular-nums">
                     {ch.cac === 0 ? (
                       <span className="badge-green badge">Organic</span>
                     ) : (
-                      <span className="text-gray-400">${ch.cac}</span>
+                      <span className="text-gray-500">${ch.cac}</span>
                     )}
                   </td>
                 </tr>

@@ -90,7 +90,7 @@ function retencaoColor(v: number) {
   if (v >= 90) return "text-emerald-600";
   if (v >= 70) return "text-amber-700";
   if (v > 0)   return "text-red-600";
-  return "text-gray-400";
+  return "text-gray-500";
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -115,20 +115,20 @@ export default function JacqesUnitEconomicsPage() {
             const Icon = m.icon;
             return (
               <div key={m.label} className="card p-5 flex items-start gap-4">
-                <div className={`w-10 h-10 rounded-xl ${m.bg} flex items-center justify-center shrink-0`}>
+                <div className={`w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center shrink-0`}>
                   <Icon size={18} className={m.color} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-2xl font-bold text-gray-900">{m.value}</div>
-                  <div className="text-xs font-medium text-gray-400 mt-0.5">{m.label}</div>
+                  <div className="text-2xl font-bold text-slate-800">{m.value}</div>
+                  <div className="text-xs font-medium text-gray-500 mt-0.5">{m.label}</div>
                   <div className="flex items-center gap-1 mt-1">
                     {m.up
                       ? <ArrowUpRight size={11} className="text-emerald-600" />
                       : <ArrowDownRight size={11} className="text-red-600" />}
                     <span className={`text-[10px] font-semibold ${m.up ? "text-emerald-600" : "text-red-600"}`}>{m.delta}</span>
-                    <span className="text-[10px] text-gray-400">{m.sub}</span>
+                    <span className="text-[10px] text-gray-500">{m.sub}</span>
                   </div>
-                  <div className="text-[10px] text-gray-400 mt-1">{m.description}</div>
+                  <div className="text-[10px] text-gray-500 mt-1">{m.description}</div>
                 </div>
               </div>
             );
@@ -138,13 +138,13 @@ export default function JacqesUnitEconomicsPage() {
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
 
           {/* ── MRR History ──────────────────────────────────────────────────── */}
-          <div className="xl:col-span-2 card p-5">
+          <div className="xl:col-span-2 card-elevated p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-gray-900">Evolução do MRR</h2>
+              <h2 className="text-sm font-bold text-slate-800 tracking-tight">Evolução do MRR</h2>
               <div className="flex items-center gap-3 text-[11px]">
                 <div>
                   <span className="text-gray-500">MRR Atual </span>
-                  <span className="text-gray-900 font-bold">{fmtR(latestMrr.mrr)}</span>
+                  <span className="text-slate-800 font-bold">{fmtR(latestMrr.mrr)}</span>
                 </div>
                 <div>
                   <span className="text-gray-500">ARR </span>
@@ -167,11 +167,11 @@ export default function JacqesUnitEconomicsPage() {
                     <span className="text-xs text-gray-500 w-12 shrink-0">{row.month}</span>
                     <div className="flex-1 h-5 bg-gray-100 rounded-full overflow-hidden relative">
                       <div
-                        className="h-full bg-gradient-to-r from-brand-600 to-brand-400 rounded-full"
+                        className="h-full bg-gradient-to-r from-slate-700 to-slate-400 rounded-full"
                         style={{ width: `${barWidth}%` }}
                       />
                     </div>
-                    <span className="text-xs font-semibold text-gray-900 w-20 text-right shrink-0">{fmtR(row.mrr)}</span>
+                    <span className="text-xs font-semibold text-slate-800 w-20 text-right shrink-0">{fmtR(row.mrr)}</span>
                     {row.newMrr > 0 && (
                       <span className="text-[10px] text-emerald-600 w-16 text-right shrink-0">+{fmtR(row.newMrr)}</span>
                     )}
@@ -185,7 +185,7 @@ export default function JacqesUnitEconomicsPage() {
 
             {/* MRR Decomposition */}
             <div className="mt-5 pt-4 border-t border-gray-200">
-              <div className="text-xs font-semibold text-gray-400 mb-3">Decomposição MRR — Mar/26</div>
+              <div className="text-xs font-semibold text-gray-500 mb-3">Decomposição MRR — Mar/26</div>
               <div className="grid grid-cols-3 gap-3">
                 {[
                   { label: "New MRR",       value: latestMrr.newMrr,      color: "text-emerald-600", bg: "bg-emerald-50" },
@@ -202,8 +202,8 @@ export default function JacqesUnitEconomicsPage() {
           </div>
 
           {/* ── Key Ratios ───────────────────────────────────────────────────── */}
-          <div className="card p-5 flex flex-col gap-4">
-            <h2 className="text-sm font-semibold text-gray-900">Benchmarks</h2>
+          <div className="card-elevated p-5 flex flex-col gap-4">
+            <h2 className="text-sm font-bold text-slate-800 tracking-tight">Benchmarks</h2>
             {[
               { label: "LTV / CAC",         value: "36.3×", benchmark: ">3×",   status: "great", pct: 100 },
               { label: "Gross Margin",      value: "60.0%", benchmark: ">50%",  status: "great", pct: 100 },
@@ -214,14 +214,14 @@ export default function JacqesUnitEconomicsPage() {
             ].map((r) => (
               <div key={r.label}>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-gray-400">{r.label}</span>
+                  <span className="text-xs text-gray-500">{r.label}</span>
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-gray-400">ref: {r.benchmark}</span>
+                    <span className="text-[10px] text-gray-500">ref: {r.benchmark}</span>
                     <span className="text-xs font-bold text-emerald-600">{r.value}</span>
                   </div>
                 </div>
                 <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${r.pct}%` }} />
+                  <div className="h-full bg-gradient-to-r from-slate-600 to-slate-400 rounded-full" style={{ width: `${r.pct}%` }} />
                 </div>
               </div>
             ))}
@@ -229,7 +229,7 @@ export default function JacqesUnitEconomicsPage() {
             <div className="border-t border-gray-200 pt-4 mt-auto">
               <div className="flex items-center gap-2 mb-2">
                 <BarChart3 size={13} className="text-brand-600" />
-                <span className="text-xs font-semibold text-gray-400">Margens por Tipo de Serviço</span>
+                <span className="text-xs font-semibold text-gray-500">Margens por Tipo de Serviço</span>
               </div>
               {[
                 { label: "Retainer Mensal",  margin: 72 },
@@ -240,7 +240,7 @@ export default function JacqesUnitEconomicsPage() {
                 <div key={s.label} className="flex items-center gap-2 mb-1.5">
                   <span className="text-[10px] text-gray-500 w-28 shrink-0">{s.label}</span>
                   <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-brand-500 rounded-full" style={{ width: `${s.margin}%` }} />
+                    <div className="h-full bg-gradient-to-r from-slate-600 to-slate-400 rounded-full" style={{ width: `${s.margin}%` }} />
                   </div>
                   <span className="text-[10px] font-semibold text-brand-600 w-8 text-right">{s.margin}%</span>
                 </div>
@@ -250,31 +250,31 @@ export default function JacqesUnitEconomicsPage() {
         </div>
 
         {/* ── Cohort Analysis ──────────────────────────────────────────────── */}
-        <div className="card p-5">
-          <h2 className="text-sm font-semibold text-gray-900 mb-4">Análise de Cohort — Retenção por Trimestre de Entrada</h2>
+        <div className="card-elevated p-5">
+          <h2 className="text-sm font-bold text-slate-800 tracking-tight mb-4">Análise de Cohort — Retenção por Trimestre de Entrada</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Cohort</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Clientes</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Retenção 12m</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Retenção 24m</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">LTV Médio</th>
+                <tr className="bg-slate-800 text-white">
+                  <th className="text-left  py-2 px-3 text-xs font-bold text-white">Cohort</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold text-white">Clientes</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold text-white">Retenção 12m</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold text-white">Retenção 24m</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold text-white">LTV Médio</th>
                 </tr>
               </thead>
               <tbody>
                 {cohortData.map((row) => (
-                  <tr key={row.cohort} className="border-b border-gray-100 hover:bg-gray-100 transition-colors">
-                    <td className="py-2.5 px-3 text-xs font-medium text-gray-400">{row.cohort}</td>
-                    <td className="py-2.5 px-3 text-right text-xs text-gray-400">{row.clientes}</td>
+                  <tr key={row.cohort} className="border-b border-gray-100 odd:bg-white even:bg-gray-50 hover:bg-gray-100/60 transition-colors">
+                    <td className="py-2.5 px-3 text-xs font-medium text-gray-500">{row.cohort}</td>
+                    <td className="py-2.5 px-3 text-right text-xs text-gray-500">{row.clientes}</td>
                     <td className="py-2.5 px-3 text-right text-xs font-semibold">
                       <span className={retencaoColor(row.retencao12m)}>{row.retencao12m}%</span>
                     </td>
                     <td className="py-2.5 px-3 text-right text-xs font-semibold">
                       {row.retencao24m > 0
                         ? <span className={retencaoColor(row.retencao24m)}>{row.retencao24m}%</span>
-                        : <span className="text-gray-400">—</span>}
+                        : <span className="text-gray-500">—</span>}
                     </td>
                     <td className="py-2.5 px-3 text-right text-xs font-semibold text-emerald-600">
                       {fmtR(row.ltvMedio)}

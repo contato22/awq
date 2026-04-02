@@ -167,18 +167,18 @@ export default function AwqVenturePortfolioPage() {
         {/* ── Summary strip ─────────────────────────────────────────────────── */}
         <div className="grid grid-cols-3 gap-4">
           {[
-            { label: "Investimentos Ativos",  value: ativos.length,   icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-500/10" },
-            { label: "Exits Concluídos",       value: exitados.length, icon: Zap,          color: "text-violet-400",  bg: "bg-violet-500/10"  },
-            { label: "Em Monitoramento",       value: monitor.length,  icon: AlertTriangle, color: "text-amber-700", bg: "bg-amber-50"  },
+            { label: "Investimentos Ativos",  value: ativos.length,   icon: CheckCircle2, color: "text-emerald-600", bg: "bg-slate-100" },
+            { label: "Exits Concluídos",       value: exitados.length, icon: Zap,          color: "text-violet-400",  bg: "bg-slate-100"  },
+            { label: "Em Monitoramento",       value: monitor.length,  icon: AlertTriangle, color: "text-amber-700", bg: "bg-slate-100"  },
           ].map((s) => {
             const Icon = s.icon;
             return (
-              <div key={s.label} className="card p-4 flex items-center gap-4">
+              <div key={s.label} className="card-elevated p-4 flex items-center gap-4">
                 <div className={`w-9 h-9 rounded-xl ${s.bg} flex items-center justify-center shrink-0`}>
                   <Icon size={16} className={s.color} />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-gray-900">{s.value}</div>
+                  <div className="text-2xl font-bold text-slate-800">{s.value}</div>
                   <div className="text-xs text-gray-500">{s.label}</div>
                 </div>
               </div>
@@ -195,7 +195,7 @@ export default function AwqVenturePortfolioPage() {
             const Icon  = statusIcon[p.status] ?? Clock;
 
             return (
-              <div key={p.id} className="card p-5 space-y-4">
+              <div key={p.id} className="card-elevated p-5 space-y-4">
                 {/* Header */}
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
@@ -203,7 +203,7 @@ export default function AwqVenturePortfolioPage() {
                       <TrendingUp size={16} className="text-amber-700" />
                     </div>
                     <div>
-                      <div className="text-sm font-bold text-gray-900">{p.company}</div>
+                      <div className="text-sm font-bold text-slate-800">{p.company}</div>
                       <div className="text-[10px] text-gray-500">{p.founders} · {p.location}</div>
                     </div>
                   </div>
@@ -219,17 +219,17 @@ export default function AwqVenturePortfolioPage() {
                 </div>
 
                 {/* Description */}
-                <p className="text-xs text-gray-400 leading-relaxed">{p.description}</p>
+                <p className="text-xs text-gray-500 leading-relaxed">{p.description}</p>
 
                 {/* Metrics */}
                 <div className="grid grid-cols-4 gap-2 pt-1 border-t border-gray-200">
                   <div>
                     <div className="text-[10px] text-gray-500 mb-0.5">Investido</div>
-                    <div className="text-xs font-bold text-gray-900">{fmtR(p.invested)}</div>
+                    <div className="text-xs font-bold text-emerald-600">{fmtR(p.invested)}</div>
                   </div>
                   <div>
                     <div className="text-[10px] text-gray-500 mb-0.5">{p.status === "Exitado" ? "Retornado" : "Valor Atual"}</div>
-                    <div className={`text-xs font-bold ${p.status === "Exitado" ? "text-violet-700" : "text-gray-900"}`}>{fmtR(val)}</div>
+                    <div className={`text-xs font-bold ${p.status === "Exitado" ? "text-violet-700" : "text-slate-800"}`}>{fmtR(val)}</div>
                   </div>
                   <div>
                     <div className="text-[10px] text-gray-500 mb-0.5">MOIC</div>

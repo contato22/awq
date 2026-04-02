@@ -123,19 +123,19 @@ export default function AdvisorPortfolioPage() {
         {/* ── Summary ──────────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
           {[
-            { label: "AUM Total",            value: fmtR(totalAum),                 icon: Briefcase,  color: "text-violet-700",  bg: "bg-violet-50" },
-            { label: "Carteiras Ativas",     value: String(portfolios.length),       icon: Users,      color: "text-brand-600",   bg: "bg-brand-50" },
-            { label: "Retorno Médio Pond.",  value: `+${avgRetorno.toFixed(1)}%`,   icon: TrendingUp, color: "text-emerald-600", bg: "bg-emerald-50" },
-            { label: "Maior Concentração",   value: `${topConcentration.toFixed(0)}%`, icon: AlertTriangle, color: "text-amber-700", bg: "bg-amber-50" },
+            { label: "AUM Total",            value: fmtR(totalAum),                 icon: Briefcase,  color: "text-violet-700" },
+            { label: "Carteiras Ativas",     value: String(portfolios.length),       icon: Users,      color: "text-brand-600" },
+            { label: "Retorno Médio Pond.",  value: `+${avgRetorno.toFixed(1)}%`,   icon: TrendingUp, color: "text-emerald-600" },
+            { label: "Maior Concentração",   value: `${topConcentration.toFixed(0)}%`, icon: AlertTriangle, color: "text-amber-700" },
           ].map((kpi) => {
             const Icon = kpi.icon;
             return (
               <div key={kpi.label} className="card p-5 flex items-center gap-4">
-                <div className={`w-10 h-10 rounded-xl ${kpi.bg} flex items-center justify-center shrink-0`}>
+                <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
                   <Icon size={18} className={kpi.color} />
                 </div>
                 <div>
-                  <div className="text-xl font-bold text-gray-900">{kpi.value}</div>
+                  <div className="text-xl font-bold text-slate-800">{kpi.value}</div>
                   <div className="text-xs text-gray-500 mt-0.5">{kpi.label}</div>
                 </div>
               </div>
@@ -144,36 +144,36 @@ export default function AdvisorPortfolioPage() {
         </div>
 
         {/* ── Portfolio Table ───────────────────────────────────────────────── */}
-        <div className="card p-5">
-          <h2 className="text-sm font-semibold text-gray-900 mb-4">Carteiras sob Gestão</h2>
+        <div className="card-elevated p-5">
+          <h2 className="text-sm font-bold text-slate-800 mb-4">Carteiras sob Gestão</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Cliente</th>
-                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Tipo</th>
-                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Estratégia</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">AUM</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">% Total</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Retorno</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Benchmark</th>
-                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Risco</th>
+                <tr className="bg-slate-800">
+                  <th className="text-left py-2 px-3 text-xs font-semibold text-white">Cliente</th>
+                  <th className="text-left py-2 px-3 text-xs font-semibold text-white">Tipo</th>
+                  <th className="text-left py-2 px-3 text-xs font-semibold text-white">Estratégia</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-white">AUM</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-white">% Total</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-white">Retorno</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-white">Benchmark</th>
+                  <th className="text-left py-2 px-3 text-xs font-semibold text-white">Risco</th>
                 </tr>
               </thead>
               <tbody>
-                {portfolios.map((p) => {
+                {portfolios.map((p, idx) => {
                   const share = ((p.aum / totalAum) * 100).toFixed(1);
                   const alpha = p.retorno - p.benchmark;
                   return (
-                    <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                    <tr key={p.id} className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${idx % 2 === 1 ? "bg-gray-50/60" : ""}`}>
                       <td className="py-2.5 px-3">
                         <div className="text-xs font-medium text-gray-800">{p.client}</div>
-                        <div className="text-[10px] text-gray-400 mt-0.5">Desde {new Date(p.since).toLocaleDateString("pt-BR", { month: "short", year: "numeric" })}</div>
+                        <div className="text-[10px] text-gray-500 mt-0.5">Desde {new Date(p.since).toLocaleDateString("pt-BR", { month: "short", year: "numeric" })}</div>
                       </td>
                       <td className="py-2.5 px-3 text-xs text-gray-500">{p.type}</td>
                       <td className="py-2.5 px-3 text-xs text-gray-500">{p.strategy}</td>
-                      <td className="py-2.5 px-3 text-right text-xs font-bold text-gray-900">{fmtR(p.aum)}</td>
-                      <td className="py-2.5 px-3 text-right text-xs text-gray-400">{share}%</td>
+                      <td className="py-2.5 px-3 text-right text-xs font-bold text-emerald-600">{fmtR(p.aum)}</td>
+                      <td className="py-2.5 px-3 text-right text-xs text-gray-500">{share}%</td>
                       <td className="py-2.5 px-3 text-right">
                         <div className="flex items-center justify-end gap-1">
                           {p.retorno > p.benchmark
@@ -184,7 +184,7 @@ export default function AdvisorPortfolioPage() {
                           </span>
                         </div>
                       </td>
-                      <td className="py-2.5 px-3 text-right text-xs text-gray-400">
+                      <td className="py-2.5 px-3 text-right text-xs text-gray-500">
                         {p.benchmark}%
                         <span className={`ml-1 text-[10px] font-semibold ${alpha > 0 ? "text-emerald-600" : "text-red-500"}`}>
                           ({alpha > 0 ? "+" : ""}{alpha.toFixed(1)}pp)
@@ -205,9 +205,9 @@ export default function AdvisorPortfolioPage() {
         </div>
 
         {/* ── Concentration bars ───────────────────────────────────────────── */}
-        <div className="card p-5">
+        <div className="card-elevated p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-gray-900">Concentração por Cliente</h2>
+            <h2 className="text-sm font-bold text-slate-800">Concentração por Cliente</h2>
             {topConcentration > 25 && (
               <div className="flex items-center gap-1">
                 <AlertTriangle size={12} className="text-amber-700" />
@@ -224,12 +224,12 @@ export default function AdvisorPortfolioPage() {
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs text-gray-800 font-medium">{p.client}</span>
                     <div className="flex items-center gap-2">
-                      <span className={`text-xs font-bold ${isRisky ? "text-red-600" : "text-gray-900"}`}>{pct.toFixed(1)}%</span>
-                      <span className="text-[11px] text-gray-400">{fmtR(p.aum)}</span>
+                      <span className={`text-xs font-bold ${isRisky ? "text-red-600" : "text-slate-800"}`}>{pct.toFixed(1)}%</span>
+                      <span className="text-[11px] text-gray-500">{fmtR(p.aum)}</span>
                     </div>
                   </div>
                   <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div className={`h-full rounded-full ${isRisky ? "bg-red-400" : "bg-violet-500"}`} style={{ width: `${pct}%` }} />
+                    <div className={`h-full rounded-full ${isRisky ? "bg-red-400" : "bg-gradient-to-r from-slate-600 to-slate-400"}`} style={{ width: `${pct}%` }} />
                   </div>
                 </div>
               );

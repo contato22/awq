@@ -34,11 +34,11 @@ function SetupScreen({ onSave }: { onSave: (key: string) => void }) {
 
   return (
     <div className="flex flex-col items-center justify-center flex-1 px-8 py-10 text-center gap-5">
-      <div className="w-16 h-16 rounded-2xl bg-brand-600/10 border border-brand-500/20 flex items-center justify-center">
-        <Key size={26} className="text-brand-600" />
+      <div className="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center">
+        <Key size={26} className="text-awq-gold" />
       </div>
       <div>
-        <h3 className="text-base font-semibold text-gray-400">Configurar OpenClaw</h3>
+        <h3 className="text-base font-semibold text-slate-800">Configurar OpenClaw</h3>
         <p className="text-sm text-gray-500 mt-1 max-w-xs leading-relaxed">
           Insira sua chave da API Anthropic para ativar o assistente. A chave é salva localmente no seu navegador.
         </p>
@@ -51,7 +51,7 @@ function SetupScreen({ onSave }: { onSave: (key: string) => void }) {
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && save()}
           placeholder="sk-ant-..."
-          className="w-full px-4 py-3 pr-10 bg-gray-100 border border-gray-300 rounded-xl text-sm text-gray-400 placeholder:text-gray-400 focus:outline-none focus:border-brand-500 transition-colors"
+          className="w-full px-4 py-3 pr-10 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-400 placeholder:text-gray-400 focus:outline-none focus:border-slate-400 transition-colors"
         />
         <button
           onClick={() => setShow((v) => !v)}
@@ -63,7 +63,7 @@ function SetupScreen({ onSave }: { onSave: (key: string) => void }) {
       <button
         onClick={save}
         disabled={!value.trim()}
-        className="w-full max-w-sm py-3 bg-brand-600 hover:bg-brand-500 disabled:opacity-40 disabled:cursor-not-allowed text-gray-900 text-sm font-semibold rounded-xl transition-colors"
+        className="w-full max-w-sm py-3 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl transition-colors"
       >
         Salvar e ativar
       </button>
@@ -200,10 +200,10 @@ export default function OpenClaw() {
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 min-h-0">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center pb-8">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-600 to-brand-400 flex items-center justify-center mb-4 shadow-lg">
-              <Sparkles size={24} className="text-gray-900" />
+            <div className="w-14 h-14 rounded-2xl bg-slate-800 flex items-center justify-center mb-4 shadow-lg">
+              <Sparkles size={24} className="text-awq-gold" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-400 mb-1">OpenClaw · JACQES</h3>
+            <h3 className="text-lg font-semibold text-slate-800 mb-1">OpenClaw · JACQES</h3>
             <p className="text-sm text-gray-500 mb-6 max-w-xs">
               Assistente de inteligência de negócios da JACQES. Pergunte qualquer coisa sobre clientes, receita, CS e operações.
             </p>
@@ -212,7 +212,7 @@ export default function OpenClaw() {
                 <button
                   key={prompt}
                   onClick={() => sendMessage(prompt)}
-                  className="w-full text-left px-3 py-2.5 text-xs text-gray-400 bg-gray-100/60 hover:bg-gray-100 border border-gray-300/50 hover:border-gray-600 rounded-lg transition-colors"
+                  className="w-full text-left px-3 py-2.5 text-xs text-slate-600 bg-gray-50 hover:bg-gray-100 border border-gray-200 hover:border-slate-300 rounded-xl transition-colors"
                 >
                   {prompt}
                 </button>
@@ -224,15 +224,15 @@ export default function OpenClaw() {
         {messages.map((msg, i) => (
           <div key={i} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
             {msg.role === "assistant" && (
-              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-brand-600 to-brand-400 flex items-center justify-center shrink-0 mt-0.5">
-                <Bot size={14} className="text-gray-900" />
+              <div className="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center shrink-0 mt-0.5">
+                <Bot size={14} className="text-awq-gold" />
               </div>
             )}
             <div
               className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
                 msg.role === "user"
-                  ? "bg-brand-600 text-gray-900 rounded-br-sm"
-                  : "bg-gray-100 text-gray-400 rounded-bl-sm border border-gray-300/50"
+                  ? "bg-slate-800 text-white rounded-br-sm"
+                  : "bg-gray-50 text-slate-700 rounded-bl-sm border border-gray-200"
               }`}
             >
               {msg.content || (
@@ -262,7 +262,7 @@ export default function OpenClaw() {
 
       {/* Input area */}
       <div className="border-t border-gray-200 px-4 py-3">
-        <div className="flex items-end gap-2 bg-gray-100 border border-gray-300 rounded-xl px-3 py-2 focus-within:border-brand-500 transition-colors">
+        <div className="flex items-end gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 focus-within:border-brand-500 transition-colors">
           <textarea
             ref={textareaRef}
             value={input}
@@ -270,18 +270,18 @@ export default function OpenClaw() {
             onKeyDown={handleKeyDown}
             placeholder="Pergunte sobre clientes, receita, CS ou operações JACQES..."
             rows={1}
-            className="flex-1 bg-transparent text-sm text-gray-400 placeholder:text-gray-400 resize-none focus:outline-none min-h-[24px] max-h-40"
+            className="flex-1 bg-transparent text-sm text-slate-700 placeholder:text-gray-400 resize-none focus:outline-none min-h-[24px] max-h-40"
             disabled={loading}
           />
           <button
             onClick={() => sendMessage(input)}
             disabled={!input.trim() || loading}
-            className="w-8 h-8 rounded-lg bg-brand-600 hover:bg-brand-500 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-colors shrink-0"
+            className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-colors shrink-0"
           >
             {loading ? (
-              <Loader2 size={14} className="text-gray-900 animate-spin" />
+              <Loader2 size={14} className="text-white animate-spin" />
             ) : (
-              <Send size={14} className="text-gray-900" />
+              <Send size={14} className="text-white" />
             )}
           </button>
         </div>

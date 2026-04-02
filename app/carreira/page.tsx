@@ -66,17 +66,17 @@ export default function CarreiraPage() {
 
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
           {[
-            { label: "OKRs Ativos", value: String(okrs.length), icon: Target, color: "text-brand-600", bg: "bg-brand-50" },
-            { label: "Key Results", value: `${doneKRs}/${totalKRs}`, icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-50" },
-            { label: "Progresso Médio", value: `${avgProgress}%`, icon: TrendingUp, color: "text-violet-700", bg: "bg-violet-50" },
-            { label: "Skills em Dev", value: String(skills.length), icon: Award, color: "text-amber-700", bg: "bg-amber-50" },
+            { label: "OKRs Ativos", value: String(okrs.length), icon: Target, color: "text-brand-600" },
+            { label: "Key Results", value: `${doneKRs}/${totalKRs}`, icon: CheckCircle2, color: "text-emerald-600" },
+            { label: "Progresso Médio", value: `${avgProgress}%`, icon: TrendingUp, color: "text-violet-700" },
+            { label: "Skills em Dev", value: String(skills.length), icon: Award, color: "text-amber-700" },
           ].map((kpi) => {
             const Icon = kpi.icon;
             return (
               <div key={kpi.label} className="card p-5 flex items-center gap-4">
-                <div className={`w-10 h-10 rounded-xl ${kpi.bg} flex items-center justify-center shrink-0`}><Icon size={18} className={kpi.color} /></div>
+                <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center shrink-0"><Icon size={18} className={kpi.color} /></div>
                 <div>
-                  <div className="text-xl font-bold text-gray-900">{kpi.value}</div>
+                  <div className="text-xl font-bold text-slate-800">{kpi.value}</div>
                   <div className="text-xs text-gray-500 mt-0.5">{kpi.label}</div>
                 </div>
               </div>
@@ -85,8 +85,8 @@ export default function CarreiraPage() {
         </div>
 
         {/* OKRs */}
-        <div className="card p-5">
-          <h2 className="text-sm font-semibold text-gray-900 mb-4">OKRs — Q2 2026</h2>
+        <div className="card-elevated p-5">
+          <h2 className="text-sm font-bold text-slate-800 mb-4">OKRs — Q2 2026</h2>
           <div className="space-y-5">
             {okrs.map((o) => (
               <div key={o.objective}>
@@ -101,11 +101,11 @@ export default function CarreiraPage() {
                       <div key={kr.kr}>
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-[11px] text-gray-600">{kr.kr}</span>
-                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${st.bg} ${st.color}`}>{st.label}</span>
+                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${st.bg} ${st.color}`}>{st.label}</span>
                         </div>
                         <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                           <div
-                            className={`h-full rounded-full ${kr.status === "done" ? "bg-emerald-500" : kr.status === "at-risk" ? "bg-amber-500" : kr.status === "behind" ? "bg-red-500" : "bg-brand-500"}`}
+                            className={`h-full rounded-full ${kr.status === "done" ? "bg-emerald-500" : kr.status === "at-risk" ? "bg-amber-500" : kr.status === "behind" ? "bg-red-500" : "bg-gradient-to-r from-slate-600 to-slate-400"}`}
                             style={{ width: `${kr.progress}%` }}
                           />
                         </div>
@@ -120,8 +120,8 @@ export default function CarreiraPage() {
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           {/* Skills */}
-          <div className="card p-5">
-            <h2 className="text-sm font-semibold text-gray-900 mb-4">Mapa de Competências</h2>
+          <div className="card-elevated p-5">
+            <h2 className="text-sm font-bold text-slate-800 mb-4">Mapa de Competências</h2>
             <div className="space-y-3">
               {skills.map((s) => (
                 <div key={s.area}>
@@ -133,8 +133,8 @@ export default function CarreiraPage() {
                     </div>
                   </div>
                   <div className="h-2 bg-gray-100 rounded-full overflow-hidden relative">
-                    <div className="h-full bg-brand-500 rounded-full" style={{ width: `${s.level}%` }} />
-                    <div className="absolute top-0 h-full w-0.5 bg-brand-800" style={{ left: `${s.target}%` }} />
+                    <div className="h-full bg-gradient-to-r from-slate-600 to-slate-400 rounded-full" style={{ width: `${s.level}%` }} />
+                    <div className="absolute top-0 h-full w-0.5 bg-slate-800" style={{ left: `${s.target}%` }} />
                   </div>
                 </div>
               ))}
@@ -142,17 +142,17 @@ export default function CarreiraPage() {
           </div>
 
           {/* Career milestones */}
-          <div className="card p-5">
-            <h2 className="text-sm font-semibold text-gray-900 mb-4">Marcos de Trajetória</h2>
+          <div className="card-elevated p-5">
+            <h2 className="text-sm font-bold text-slate-800 mb-4">Marcos de Trajetória</h2>
             <div className="space-y-3">
               {milestones.map((m, i) => (
                 <div key={i} className="flex items-start gap-3">
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${m.done ? "bg-emerald-100" : "bg-gray-100"}`}>
-                    {m.done ? <CheckCircle2 size={12} className="text-emerald-600" /> : <Clock size={12} className="text-gray-400" />}
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${m.done ? "bg-emerald-100" : "bg-slate-100"}`}>
+                    {m.done ? <CheckCircle2 size={12} className="text-emerald-600" /> : <Clock size={12} className="text-gray-500" />}
                   </div>
                   <div className="flex-1">
-                    <div className={`text-xs font-medium ${m.done ? "text-gray-800" : "text-gray-400"}`}>{m.label}</div>
-                    <div className="text-[10px] text-gray-400">{m.date}</div>
+                    <div className={`text-xs font-medium ${m.done ? "text-gray-800" : "text-gray-500"}`}>{m.label}</div>
+                    <div className="text-[10px] text-gray-500">{m.date}</div>
                   </div>
                 </div>
               ))}

@@ -70,7 +70,7 @@ const reports = [
     description: "Visão consolidada do sleeve Advisor para a camada de governança da holding.",
     icon: Briefcase,
     color: "text-gray-600",
-    bg: "bg-gray-100",
+    bg: "bg-slate-100",
     frequency: "Trimestral",
     lastGenerated: "Q1/26",
   },
@@ -79,10 +79,10 @@ const reports = [
 // ─── Summary data ─────────────────────────────────────────────────────────────
 
 const summaryMetrics = [
-  { label: "AUM Total",         value: "R$142.80M", icon: Briefcase,  color: "text-violet-700",  bg: "bg-violet-50" },
-  { label: "Carteiras",         value: "6",          icon: Users,      color: "text-brand-600",   bg: "bg-brand-50" },
-  { label: "Retorno Médio",     value: "+14.8%",     icon: TrendingUp, color: "text-emerald-600", bg: "bg-emerald-50" },
-  { label: "Receita YTD",       value: "R$1.57M",    icon: DollarSign, color: "text-amber-700",   bg: "bg-amber-50" },
+  { label: "AUM Total",         value: "R$142.80M", icon: Briefcase,  color: "text-violet-700" },
+  { label: "Carteiras",         value: "6",          icon: Users,      color: "text-brand-600" },
+  { label: "Retorno Médio",     value: "+14.8%",     icon: TrendingUp, color: "text-emerald-600" },
+  { label: "Receita YTD",       value: "R$1.57M",    icon: DollarSign, color: "text-amber-700" },
 ];
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -99,11 +99,11 @@ export default function AdvisorRelatoriosPage() {
             const Icon = kpi.icon;
             return (
               <div key={kpi.label} className="card p-4 flex items-center gap-3">
-                <div className={`w-9 h-9 rounded-xl ${kpi.bg} flex items-center justify-center shrink-0`}>
+                <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
                   <Icon size={16} className={kpi.color} />
                 </div>
                 <div>
-                  <div className="text-lg font-bold text-gray-900">{kpi.value}</div>
+                  <div className="text-lg font-bold text-slate-800">{kpi.value}</div>
                   <div className="text-[10px] text-gray-500">{kpi.label}</div>
                 </div>
               </div>
@@ -116,25 +116,25 @@ export default function AdvisorRelatoriosPage() {
           {reports.map((report) => {
             const Icon = report.icon;
             return (
-              <div key={report.id} className="card p-5 flex items-start gap-4 group hover:border-violet-200 transition-colors">
+              <div key={report.id} className="card-elevated p-5 flex items-start gap-4 group hover:border-violet-200 transition-colors">
                 <div className={`w-11 h-11 rounded-xl ${report.bg} flex items-center justify-center shrink-0`}>
                   <Icon size={20} className={report.color} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold text-gray-900">{report.title}</div>
-                  <div className="text-xs text-gray-400 mt-1 leading-relaxed">{report.description}</div>
+                  <div className="text-sm font-semibold text-slate-800">{report.title}</div>
+                  <div className="text-xs text-gray-500 mt-1 leading-relaxed">{report.description}</div>
                   <div className="flex items-center gap-4 mt-3">
-                    <div className="flex items-center gap-1 text-[10px] text-gray-400">
+                    <div className="flex items-center gap-1 text-[10px] text-gray-500">
                       <Calendar size={10} />
                       {report.frequency}
                     </div>
-                    <div className="flex items-center gap-1 text-[10px] text-gray-400">
+                    <div className="flex items-center gap-1 text-[10px] text-gray-500">
                       <FileText size={10} />
                       Último: {report.lastGenerated}
                     </div>
                   </div>
                 </div>
-                <button className="shrink-0 p-2 rounded-lg bg-gray-100 hover:bg-violet-50 text-gray-400 hover:text-violet-700 transition-colors" title="Baixar relatório">
+                <button className="shrink-0 p-2 rounded-lg bg-slate-100 hover:bg-violet-50 text-gray-500 hover:text-violet-700 transition-colors" title="Baixar relatório">
                   <Download size={14} />
                 </button>
               </div>

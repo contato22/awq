@@ -29,7 +29,7 @@ const reports = [
     description: "Visão consolidada de projetos, entregas, receita e indicadores operacionais do mês.",
     icon: Film,
     color: "text-emerald-600",
-    bg: "bg-emerald-50",
+    bg: "bg-slate-100",
     frequency: "Mensal",
     lastGenerated: "Mar/26",
   },
@@ -39,7 +39,7 @@ const reports = [
     description: "Receita, despesas, margem e comparativo com orçamento — acumulado do ano.",
     icon: DollarSign,
     color: "text-brand-600",
-    bg: "bg-brand-50",
+    bg: "bg-slate-100",
     frequency: "Mensal",
     lastGenerated: "Mar/26",
   },
@@ -49,7 +49,7 @@ const reports = [
     description: "Base de clientes ativa, concentração de receita, status de propostas e budget gerenciado.",
     icon: Users,
     color: "text-violet-700",
-    bg: "bg-violet-50",
+    bg: "bg-slate-100",
     frequency: "Mensal",
     lastGenerated: "Mar/26",
   },
@@ -59,7 +59,7 @@ const reports = [
     description: "Pipeline de projetos, propostas em negociação, taxas de conversão e forecast.",
     icon: TrendingUp,
     color: "text-amber-700",
-    bg: "bg-amber-50",
+    bg: "bg-slate-100",
     frequency: "Semanal",
     lastGenerated: "Sem 13/26",
   },
@@ -81,19 +81,19 @@ export default function CazaRelatoriosPage() {
         {/* ── Quick Stats ──────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
           {[
-            { label: "Receita Mar/26",     value: fmtCurrency(lastMonth.receita),  icon: DollarSign,  color: "text-emerald-600", bg: "bg-emerald-50" },
-            { label: "Projetos Ativos",    value: String(activeProjects.length),    icon: Clock,       color: "text-brand-600",   bg: "bg-brand-50" },
-            { label: "Entregues YTD",      value: String(delivered.length),         icon: CheckCircle2,color: "text-violet-700",  bg: "bg-violet-50" },
-            { label: "Clientes Ativos",    value: String(activeClients),            icon: Users,       color: "text-amber-700",   bg: "bg-amber-50" },
+            { label: "Receita Mar/26",     value: fmtCurrency(lastMonth.receita),  icon: DollarSign,  color: "text-emerald-600", bg: "bg-slate-100" },
+            { label: "Projetos Ativos",    value: String(activeProjects.length),    icon: Clock,       color: "text-brand-600",   bg: "bg-slate-100" },
+            { label: "Entregues YTD",      value: String(delivered.length),         icon: CheckCircle2,color: "text-violet-700",  bg: "bg-slate-100" },
+            { label: "Clientes Ativos",    value: String(activeClients),            icon: Users,       color: "text-amber-700",   bg: "bg-slate-100" },
           ].map((kpi) => {
             const Icon = kpi.icon;
             return (
-              <div key={kpi.label} className="card p-4 flex items-center gap-3">
+              <div key={kpi.label} className="card-elevated p-4 flex items-center gap-3">
                 <div className={`w-9 h-9 rounded-xl ${kpi.bg} flex items-center justify-center shrink-0`}>
                   <Icon size={16} className={kpi.color} />
                 </div>
                 <div>
-                  <div className="text-lg font-bold text-gray-900">{kpi.value}</div>
+                  <div className="text-lg font-bold text-slate-800">{kpi.value}</div>
                   <div className="text-[10px] text-gray-500">{kpi.label}</div>
                 </div>
               </div>
@@ -106,25 +106,25 @@ export default function CazaRelatoriosPage() {
           {reports.map((report) => {
             const Icon = report.icon;
             return (
-              <div key={report.id} className="card p-5 flex items-start gap-4 group hover:border-emerald-200 transition-colors">
+              <div key={report.id} className="card-elevated p-5 flex items-start gap-4 group hover:border-emerald-200 transition-colors">
                 <div className={`w-11 h-11 rounded-xl ${report.bg} flex items-center justify-center shrink-0`}>
                   <Icon size={20} className={report.color} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold text-gray-900">{report.title}</div>
-                  <div className="text-xs text-gray-400 mt-1 leading-relaxed">{report.description}</div>
+                  <div className="text-sm font-semibold text-slate-800">{report.title}</div>
+                  <div className="text-xs text-gray-500 mt-1 leading-relaxed">{report.description}</div>
                   <div className="flex items-center gap-4 mt-3">
-                    <div className="flex items-center gap-1 text-[10px] text-gray-400">
+                    <div className="flex items-center gap-1 text-[10px] text-gray-500">
                       <Calendar size={10} />
                       {report.frequency}
                     </div>
-                    <div className="flex items-center gap-1 text-[10px] text-gray-400">
+                    <div className="flex items-center gap-1 text-[10px] text-gray-500">
                       <FileText size={10} />
                       Último: {report.lastGenerated}
                     </div>
                   </div>
                 </div>
-                <button className="shrink-0 p-2 rounded-lg bg-gray-100 hover:bg-emerald-50 text-gray-400 hover:text-emerald-600 transition-colors" title="Baixar relatório">
+                <button className="shrink-0 p-2 rounded-lg bg-slate-100 hover:bg-emerald-50 text-gray-500 hover:text-emerald-600 transition-colors" title="Baixar relatório">
                   <Download size={14} />
                 </button>
               </div>
@@ -133,31 +133,31 @@ export default function CazaRelatoriosPage() {
         </div>
 
         {/* ── Monthly Summary Table ────────────────────────────────────────── */}
-        <div className="card p-5">
-          <h2 className="text-sm font-semibold text-gray-900 mb-4">Resumo Mensal — Últimos 6 Meses</h2>
+        <div className="card-elevated p-5">
+          <h2 className="section-title mb-4">Resumo Mensal — Últimos 6 Meses</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Mês</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Receita</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Despesas</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Lucro</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Margem</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Orçamento</th>
+                <tr className="bg-slate-800">
+                  <th className="text-left py-2 px-3 text-xs font-bold text-white">Mês</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold text-white">Receita</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold text-white">Despesas</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold text-white">Lucro</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold text-white">Margem</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold text-white">Orçamento</th>
                 </tr>
               </thead>
               <tbody>
                 {cazaRevenueData.slice(-6).map((row) => {
                   const margin = ((row.profit / row.receita) * 100).toFixed(1);
                   return (
-                    <tr key={row.month} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                      <td className="py-2.5 px-3 text-xs font-medium text-gray-800">{row.month}</td>
-                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-gray-900">{fmtCurrency(row.receita)}</td>
+                    <tr key={row.month} className="border-b border-gray-100 even:bg-gray-50 hover:bg-gray-100 transition-colors">
+                      <td className="py-2.5 px-3 text-xs font-medium text-slate-800">{row.month}</td>
+                      <td className="py-2.5 px-3 text-right text-xs font-bold text-emerald-600">{fmtCurrency(row.receita)}</td>
                       <td className="py-2.5 px-3 text-right text-xs text-red-600">{fmtCurrency(row.expenses)}</td>
-                      <td className="py-2.5 px-3 text-right text-xs text-emerald-600 font-semibold">{fmtCurrency(row.profit)}</td>
-                      <td className="py-2.5 px-3 text-right text-xs text-gray-500">{margin}%</td>
-                      <td className="py-2.5 px-3 text-right text-xs text-gray-400">{fmtCurrency(row.orcamento)}</td>
+                      <td className="py-2.5 px-3 text-right text-xs text-emerald-600 font-bold">{fmtCurrency(row.profit)}</td>
+                      <td className="py-2.5 px-3 text-right text-xs text-blue-600 font-bold">{margin}%</td>
+                      <td className="py-2.5 px-3 text-right text-xs text-gray-500">{fmtCurrency(row.orcamento)}</td>
                     </tr>
                   );
                 })}
@@ -167,14 +167,14 @@ export default function CazaRelatoriosPage() {
         </div>
 
         {/* ── Type Breakdown ───────────────────────────────────────────────── */}
-        <div className="card p-5">
-          <h2 className="text-sm font-semibold text-gray-900 mb-4">Receita por Tipo de Projeto</h2>
+        <div className="card-elevated p-5">
+          <h2 className="section-title mb-4">Receita por Tipo de Projeto</h2>
           <div className="grid grid-cols-2 xl:grid-cols-5 gap-4">
             {projectTypeRevenue.map((pt) => (
               <div key={pt.type} className="p-4 rounded-xl bg-gray-50 border border-gray-200 text-center">
-                <div className="text-lg font-bold text-gray-900">{fmtCurrency(pt.receita)}</div>
+                <div className="text-lg font-bold text-emerald-600">{fmtCurrency(pt.receita)}</div>
                 <div className="text-xs text-gray-500 mt-1">{pt.type}</div>
-                <div className="text-[10px] text-gray-400 mt-1">{pt.projetos} projetos · {fmtCurrency(pt.avgValue)} ticket</div>
+                <div className="text-[10px] text-gray-500 mt-1">{pt.projetos} projetos · {fmtCurrency(pt.avgValue)} ticket</div>
               </div>
             ))}
           </div>

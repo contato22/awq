@@ -89,7 +89,7 @@ export default function ClientesPage() {
         {/* ── Source badge ────────────────────────────────────────────────── */}
         <div className="flex items-center gap-2">
           {source === "loading" && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 border border-gray-300 text-xs text-gray-400">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 border border-gray-300 text-xs text-gray-500">
               <Database size={11} /> Conectando ao Notion…
             </span>
           )}
@@ -112,15 +112,15 @@ export default function ClientesPage() {
         {/* ── Summary strip ───────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
           {[
-            { label: "Total de Clientes",    value: String(total),       color: "text-gray-900",       icon: Users       },
+            { label: "Total de Clientes",    value: String(total),       color: "text-slate-800",       icon: Users       },
             { label: "Ativos / Em Proposta", value: String(ativos),      color: "text-emerald-600", icon: BarChart3   },
-            { label: "Wallet Total (Ativos)", value: fmtR(ativosWallet), color: "text-brand-600",   icon: DollarSign  },
-            { label: "Budget Médio / Cliente", value: fmtR(avgBudget),   color: "text-amber-700",   icon: TrendingUp  },
+            { label: "Wallet Total (Ativos)", value: fmtR(ativosWallet), color: "text-emerald-600",   icon: DollarSign  },
+            { label: "Budget Médio / Cliente", value: fmtR(avgBudget),   color: "text-emerald-600",   icon: TrendingUp  },
           ].map((s) => {
             const Icon = s.icon;
             return (
-              <div key={s.label} className="card p-4 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
+              <div key={s.label} className="card-elevated p-4 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
                   <Icon size={15} className={s.color} />
                 </div>
                 <div>
@@ -133,8 +133,8 @@ export default function ClientesPage() {
         </div>
 
         {/* ── Financial Summary ────────────────────────────────────────────── */}
-        <div className="card p-5">
-          <h2 className="text-sm font-semibold text-gray-900 mb-4">Concentração de Budget por Cliente</h2>
+        <div className="card-elevated p-5">
+          <h2 className="section-title mb-4">Concentração de Budget por Cliente</h2>
           <div className="space-y-2">
             {[...clients]
               .filter((c) => c.budget_anual > 0)
@@ -143,15 +143,15 @@ export default function ClientesPage() {
                 const share = totalWallet > 0 ? (c.budget_anual / totalWallet) * 100 : 0;
                 return (
                   <div key={c.id} className="flex items-center gap-3">
-                    <span className="text-xs text-gray-400 w-32 shrink-0 truncate">{c.name}</span>
+                    <span className="text-xs text-gray-500 w-32 shrink-0 truncate">{c.name}</span>
                     <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-emerald-500 rounded-full"
+                        className="h-full bg-gradient-to-r from-slate-700 to-slate-500 rounded-full"
                         style={{ width: `${share}%` }}
                       />
                     </div>
-                    <span className="text-xs font-semibold text-gray-900 w-18 text-right shrink-0">{fmtR(c.budget_anual)}</span>
-                    <span className="text-[10px] text-gray-400 w-10 text-right shrink-0">{share.toFixed(0)}%</span>
+                    <span className="text-xs font-bold text-emerald-600 w-18 text-right shrink-0">{fmtR(c.budget_anual)}</span>
+                    <span className="text-[10px] text-blue-600 font-bold w-10 text-right shrink-0">{share.toFixed(0)}%</span>
                     <span className={`${statusConfig[c.status] ?? "badge"} shrink-0`}>{c.status}</span>
                   </div>
                 );
@@ -160,54 +160,54 @@ export default function ClientesPage() {
         </div>
 
         {/* ── Clients table ───────────────────────────────────────────────── */}
-        <div className="card p-5">
-          <h2 className="text-sm font-semibold text-gray-900 mb-4">Todos os Clientes</h2>
+        <div className="card-elevated p-5">
+          <h2 className="section-title mb-4">Todos os Clientes</h2>
           {source === "loading" ? (
-            <div className="flex items-center justify-center py-12 text-gray-400 text-sm gap-2">
+            <div className="flex items-center justify-center py-12 text-gray-500 text-sm gap-2">
               <AlertCircle size={16} /> Carregando…
             </div>
           ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Cliente</th>
-                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Perfil</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Budget Anual</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Wallet %</th>
-                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Segmento</th>
-                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Desde</th>
-                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Status</th>
+                <tr className="bg-slate-800">
+                  <th className="text-left py-2 px-3 text-xs font-bold text-white">Cliente</th>
+                  <th className="text-left py-2 px-3 text-xs font-bold text-white">Perfil</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold text-white">Budget Anual</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold text-white">Wallet %</th>
+                  <th className="text-left py-2 px-3 text-xs font-bold text-white">Segmento</th>
+                  <th className="text-left py-2 px-3 text-xs font-bold text-white">Desde</th>
+                  <th className="text-left py-2 px-3 text-xs font-bold text-white">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {clients.map((c) => {
                   const TypeIcon = typeIcon[c.type] ?? Users;
                   return (
-                    <tr key={c.id} className="border-b border-gray-100 hover:bg-gray-100 transition-colors">
+                    <tr key={c.id} className="border-b border-gray-100 even:bg-gray-50/60 hover:bg-gray-100 transition-colors">
                       <td className="py-2.5 px-3">
-                        <div className="text-gray-400 font-medium text-xs">{c.name}</div>
-                        <div className="text-[10px] text-gray-400 mt-0.5">{c.email}</div>
-                        <div className="text-[10px] text-gray-400">{c.phone}</div>
+                        <div className="text-slate-800 font-medium text-xs">{c.name}</div>
+                        <div className="text-[10px] text-gray-500 mt-0.5">{c.email}</div>
+                        <div className="text-[10px] text-gray-500">{c.phone}</div>
                       </td>
                       <td className="py-2.5 px-3">
-                        <div className={`flex items-center gap-1.5 text-xs ${typeColor[c.type] ?? "text-gray-400"}`}>
+                        <div className={`flex items-center gap-1.5 text-xs ${typeColor[c.type] ?? "text-gray-500"}`}>
                           <TypeIcon size={12} />
                           {c.type}
                         </div>
                       </td>
-                      <td className="py-2.5 px-3 text-right text-gray-900 font-semibold text-xs">
-                        {c.budget_anual > 0 ? fmtR(c.budget_anual) : <span className="text-gray-400">—</span>}
+                      <td className="py-2.5 px-3 text-right text-emerald-600 font-bold text-xs">
+                        {c.budget_anual > 0 ? fmtR(c.budget_anual) : <span className="text-gray-500">—</span>}
                       </td>
                       <td className="py-2.5 px-3 text-right text-xs">
                         {c.budget_anual > 0 && totalWallet > 0 ? (
-                          <span className="text-brand-600 font-semibold">
+                          <span className="text-blue-600 font-bold">
                             {((c.budget_anual / totalWallet) * 100).toFixed(0)}%
                           </span>
-                        ) : <span className="text-gray-400">—</span>}
+                        ) : <span className="text-gray-500">—</span>}
                       </td>
-                      <td className="py-2.5 px-3 text-xs text-gray-400">{c.segmento || "—"}</td>
-                      <td className="py-2.5 px-3 text-[11px] text-gray-400">{c.since || "—"}</td>
+                      <td className="py-2.5 px-3 text-xs text-gray-500">{c.segmento || "—"}</td>
+                      <td className="py-2.5 px-3 text-[11px] text-gray-500">{c.since || "—"}</td>
                       <td className="py-2.5 px-3">
                         <span className={statusConfig[c.status] ?? "badge"}>{c.status}</span>
                       </td>

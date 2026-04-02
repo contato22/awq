@@ -92,12 +92,12 @@ export default function AwqKpisPage() {
             const Icon = c.icon;
             return (
               <div key={c.label} className="card p-5 flex items-start gap-4">
-                <div className={`w-10 h-10 rounded-xl ${c.bg} flex items-center justify-center shrink-0`}>
+                <div className={`w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center shrink-0`}>
                   <Icon size={18} className={c.color} />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-gray-900">{c.value}</div>
-                  <div className="text-xs font-medium text-gray-400 mt-0.5">{c.label}</div>
+                  <div className="text-2xl font-bold text-slate-800">{c.value}</div>
+                  <div className="text-xs font-medium text-gray-500 mt-0.5">{c.label}</div>
                 </div>
               </div>
             );
@@ -106,16 +106,16 @@ export default function AwqKpisPage() {
 
         {/* ── KPI Scorecard by Category ──────────────────────────────────────── */}
         {groupKpis.map((section) => (
-          <div key={section.category} className="card p-5">
+          <div key={section.category} className="card-elevated p-5">
             <div className="flex items-center gap-2 mb-4">
-              <Activity size={14} className="text-gray-400" />
-              <h2 className="text-sm font-semibold text-gray-900">{section.category}</h2>
+              <Activity size={14} className="text-gray-500" />
+              <h2 className="text-sm font-bold text-slate-800 tracking-tight">{section.category}</h2>
             </div>
             <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
               {section.items.map((kpi) => (
                 <div key={kpi.label} className="p-3 rounded-xl bg-gray-100 border border-gray-200">
-                  <div className="text-lg font-bold text-gray-900">{kpi.value}</div>
-                  <div className="text-[11px] text-gray-400 mt-0.5">{kpi.label}</div>
+                  <div className="text-lg font-bold text-slate-800">{kpi.value}</div>
+                  <div className="text-[11px] text-gray-500 mt-0.5">{kpi.label}</div>
                   <div className="flex items-center gap-1 mt-1.5">
                     <ArrowUpRight size={10} className={kpi.up ? "text-emerald-600" : "text-red-600"} />
                     <span className={`text-[10px] font-semibold ${kpi.up ? "text-emerald-600" : "text-red-600"}`}>
@@ -129,21 +129,21 @@ export default function AwqKpisPage() {
         ))}
 
         {/* ── BU KPI Comparison ──────────────────────────────────────────────── */}
-        <div className="card p-5">
-          <h2 className="text-sm font-semibold text-gray-900 mb-4">Comparativo KPIs por BU</h2>
+        <div className="card-elevated p-5">
+          <h2 className="text-sm font-bold text-slate-800 tracking-tight mb-4">Comparativo KPIs por BU</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="border-b border-gray-200 text-gray-500">
-                  <th className="text-left  py-2 px-3 font-semibold">BU</th>
-                  <th className="text-right py-2 px-3 font-semibold">Receita</th>
-                  <th className="text-right py-2 px-3 font-semibold">M. Bruta</th>
-                  <th className="text-right py-2 px-3 font-semibold">EBITDA</th>
-                  <th className="text-right py-2 px-3 font-semibold">M. Líq.</th>
-                  <th className="text-right py-2 px-3 font-semibold">ROIC</th>
-                  <th className="text-right py-2 px-3 font-semibold">Clientes</th>
-                  <th className="text-right py-2 px-3 font-semibold">FTEs</th>
-                  <th className="text-left  py-2 px-3 font-semibold">Drill</th>
+                <tr className="bg-slate-800 text-white">
+                  <th className="text-left  py-2 px-3 font-bold text-white">BU</th>
+                  <th className="text-right py-2 px-3 font-bold text-white">Receita</th>
+                  <th className="text-right py-2 px-3 font-bold text-white">M. Bruta</th>
+                  <th className="text-right py-2 px-3 font-bold text-white">EBITDA</th>
+                  <th className="text-right py-2 px-3 font-bold text-white">M. Líq.</th>
+                  <th className="text-right py-2 px-3 font-bold text-white">ROIC</th>
+                  <th className="text-right py-2 px-3 font-bold text-white">Clientes</th>
+                  <th className="text-right py-2 px-3 font-bold text-white">FTEs</th>
+                  <th className="text-left  py-2 px-3 font-bold text-white">Drill</th>
                 </tr>
               </thead>
               <tbody>
@@ -152,24 +152,24 @@ export default function AwqKpisPage() {
                   const em = bu.revenue > 0 ? ((bu.ebitda      / bu.revenue) * 100).toFixed(0) + "%" : "—";
                   const nm = bu.revenue > 0 ? ((bu.netIncome   / bu.revenue) * 100).toFixed(0) + "%" : "—";
                   return (
-                    <tr key={bu.id} className="border-b border-gray-100 hover:bg-gray-100 transition-colors group">
+                    <tr key={bu.id} className="border-b border-gray-100 odd:bg-white even:bg-gray-50 hover:bg-gray-100/60 transition-colors group">
                       <td className="py-2.5 px-3">
                         <div className="flex items-center gap-2">
                           <div className={`w-2 h-2 rounded-full ${bu.color}`} />
-                          <span className="text-xs font-bold text-gray-900">{bu.name}</span>
+                          <span className="text-xs font-bold text-slate-800">{bu.name}</span>
                         </div>
                       </td>
-                      <td className="py-2.5 px-3 text-right font-semibold text-gray-900">
-                        {bu.revenue > 0 ? fmtR(bu.revenue) : <span className="text-gray-400">—</span>}
+                      <td className="py-2.5 px-3 text-right font-semibold text-slate-800">
+                        {bu.revenue > 0 ? fmtR(bu.revenue) : <span className="text-gray-500">—</span>}
                       </td>
                       <td className={`py-2.5 px-3 text-right font-semibold ${bu.revenue > 0 && bu.grossProfit / bu.revenue >= 0.55 ? "text-emerald-600" : "text-amber-700"}`}>{gm}</td>
                       <td className={`py-2.5 px-3 text-right font-semibold ${bu.revenue > 0 && bu.ebitda / bu.revenue >= 0.20 ? "text-emerald-600" : "text-amber-700"}`}>{em}</td>
-                      <td className="py-2.5 px-3 text-right text-gray-400">{nm}</td>
+                      <td className="py-2.5 px-3 text-right text-gray-500">{nm}</td>
                       <td className={`py-2.5 px-3 text-right font-bold ${bu.roic >= 30 ? "text-emerald-600" : bu.roic >= 15 ? "text-amber-700" : "text-gray-500"}`}>
                         {bu.roic > 0 ? bu.roic.toFixed(0) + "%" : "—"}
                       </td>
-                      <td className="py-2.5 px-3 text-right text-gray-400">{bu.customers}</td>
-                      <td className="py-2.5 px-3 text-right text-gray-400">{bu.ftes}</td>
+                      <td className="py-2.5 px-3 text-right text-gray-500">{bu.customers}</td>
+                      <td className="py-2.5 px-3 text-right text-gray-500">{bu.ftes}</td>
                       <td className="py-2.5 px-3">
                         <Link href={bu.hrefOverview} className="text-[10px] text-brand-600 hover:text-brand-500 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                           Ver <ChevronRight size={10} />
@@ -196,8 +196,8 @@ export default function AwqKpisPage() {
                 <div className={`w-8 h-8 rounded-lg ${item.bg} flex items-center justify-center shrink-0`}>
                   <Icon size={14} className={item.color} />
                 </div>
-                <span className="text-xs font-semibold text-gray-900 group-hover:text-brand-500 transition-colors">{item.label}</span>
-                <ChevronRight size={12} className="text-gray-400 group-hover:text-brand-600 ml-auto transition-colors" />
+                <span className="text-xs font-semibold text-slate-800 group-hover:text-brand-500 transition-colors">{item.label}</span>
+                <ChevronRight size={12} className="text-gray-500 group-hover:text-brand-600 ml-auto transition-colors" />
               </Link>
             );
           })}

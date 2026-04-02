@@ -14,17 +14,17 @@ function ReportCard({ icon: Icon, title, description, lastGenerated, type, color
   return (
     <div className="card card-hover p-5 flex flex-col gap-4">
       <div className="flex items-start justify-between">
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${color}`}>
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-slate-100">
           <Icon size={18} />
         </div>
         <span className="badge badge-blue">{type}</span>
       </div>
       <div>
-        <div className="font-semibold text-gray-400">{title}</div>
+        <div className="font-bold text-slate-800">{title}</div>
         <div className="text-xs text-gray-500 mt-1 leading-relaxed">{description}</div>
       </div>
       <div className="flex items-center justify-between pt-2 border-t border-gray-200">
-        <span className="text-xs text-gray-400">Generated: {lastGenerated}</span>
+        <span className="text-xs text-gray-500">Generated: {lastGenerated}</span>
         <button className="flex items-center gap-1.5 text-xs text-brand-600 hover:text-brand-500 font-medium transition-colors">
           <Download size={12} />
           Export
@@ -101,7 +101,7 @@ export default function ReportsPage() {
 
       <div className="px-8 py-6 space-y-6">
         {/* Quick action bar */}
-        <div className="card p-4 flex items-center gap-3 flex-wrap">
+        <div className="card-elevated p-4 flex items-center gap-3 flex-wrap">
           <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mr-2">
             Generate:
           </span>
@@ -125,9 +125,9 @@ export default function ReportsPage() {
         </div>
 
         {/* Scheduled reports */}
-        <div className="card p-6">
+        <div className="card-elevated p-6">
           <div className="mb-4">
-            <h2 className="text-sm font-semibold text-gray-900">Scheduled Reports</h2>
+            <h2 className="text-sm font-bold text-slate-800">Scheduled Reports</h2>
             <p className="text-xs text-gray-500 mt-0.5">
               Automatic delivery to AWQ Group stakeholders
             </p>
@@ -170,8 +170,8 @@ export default function ReportsPage() {
                   }`}
                 />
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-gray-400">{sched.name}</div>
-                  <div className="text-xs text-gray-400 mt-0.5">
+                  <div className="text-sm font-medium text-gray-500">{sched.name}</div>
+                  <div className="text-xs text-gray-500 mt-0.5">
                     {sched.freq} · {sched.recipients}
                   </div>
                 </div>

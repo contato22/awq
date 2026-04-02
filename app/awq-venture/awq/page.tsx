@@ -8,10 +8,10 @@ function fmtR(n: number) {
 }
 
 const metrics = [
-  { label: "AUM Target",       value: "R$50-100M",  icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
-  { label: "IRR Target",       value: "25-35%",     icon: TrendingUp, color: "text-brand-600",   bg: "bg-brand-50" },
-  { label: "MOIC Target",      value: "3-5x",       icon: Zap,        color: "text-amber-700",   bg: "bg-amber-50" },
-  { label: "Check Size",       value: "R$1-5M",     icon: DollarSign, color: "text-violet-700",  bg: "bg-violet-50" },
+  { label: "AUM Target",       value: "R$50-100M",  icon: DollarSign, color: "text-emerald-600", bg: "bg-slate-100" },
+  { label: "IRR Target",       value: "25-35%",     icon: TrendingUp, color: "text-brand-600",   bg: "bg-slate-100" },
+  { label: "MOIC Target",      value: "3-5x",       icon: Zap,        color: "text-amber-700",   bg: "bg-slate-100" },
+  { label: "Check Size",       value: "R$1-5M",     icon: DollarSign, color: "text-violet-700",  bg: "bg-slate-100" },
 ];
 
 const milestones = [
@@ -40,10 +40,10 @@ export default function VentureAwqPage() {
           {metrics.map((kpi) => {
             const Icon = kpi.icon;
             return (
-              <div key={kpi.label} className="card p-5 flex items-center gap-4">
+              <div key={kpi.label} className="card-elevated p-5 flex items-center gap-4">
                 <div className={`w-10 h-10 rounded-xl ${kpi.bg} flex items-center justify-center shrink-0`}><Icon size={18} className={kpi.color} /></div>
                 <div>
-                  <div className="text-xl font-bold text-gray-900">{kpi.value}</div>
+                  <div className="text-xl font-bold text-slate-800">{kpi.value}</div>
                   <div className="text-xs text-gray-500 mt-0.5">{kpi.label}</div>
                 </div>
               </div>
@@ -52,8 +52,8 @@ export default function VentureAwqPage() {
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          <div className="card p-5">
-            <h2 className="text-sm font-semibold text-gray-900 mb-4">Milestones — Roadmap Q1-Q3 2026</h2>
+          <div className="card-elevated p-5">
+            <h2 className="text-sm font-bold text-slate-800 mb-4">Milestones — Roadmap Q1-Q3 2026</h2>
             <div className="space-y-3">
               {milestones.map((m) => (
                 <div key={m.label} className="flex items-start gap-3">
@@ -62,16 +62,16 @@ export default function VentureAwqPage() {
                   }`}>
                     {m.status === "done" ? <CheckCircle2 size={12} className="text-emerald-600" /> :
                      m.status === "progress" ? <Clock size={12} className="text-amber-700" /> :
-                     <Clock size={12} className="text-gray-400" />}
+                     <Clock size={12} className="text-gray-500" />}
                   </div>
                   <div className="flex-1">
-                    <div className={`text-xs font-medium ${m.status === "pending" ? "text-gray-400" : "text-gray-800"}`}>{m.label}</div>
-                    <div className="text-[10px] text-gray-400">{m.date}</div>
+                    <div className={`text-xs font-medium ${m.status === "pending" ? "text-gray-500" : "text-gray-800"}`}>{m.label}</div>
+                    <div className="text-[10px] text-gray-500">{m.date}</div>
                   </div>
                   <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
                     m.status === "done" ? "bg-emerald-50 text-emerald-600 border border-emerald-200" :
                     m.status === "progress" ? "bg-amber-50 text-amber-700 border border-amber-200" :
-                    "bg-gray-100 text-gray-400"
+                    "bg-gray-100 text-gray-500"
                   }`}>
                     {m.status === "done" ? "Concluído" : m.status === "progress" ? "Em andamento" : "Pendente"}
                   </span>
@@ -80,8 +80,8 @@ export default function VentureAwqPage() {
             </div>
           </div>
 
-          <div className="card p-5">
-            <h2 className="text-sm font-semibold text-gray-900 mb-4">Tese de Investimento</h2>
+          <div className="card-elevated p-5">
+            <h2 className="text-sm font-bold text-slate-800 mb-4">Tese de Investimento</h2>
             <div className="space-y-4">
               {thesis.map((t) => (
                 <div key={t.area} className="p-4 rounded-xl bg-gray-50 border border-gray-200">
@@ -100,8 +100,8 @@ export default function VentureAwqPage() {
           </div>
         </div>
 
-        <div className="card p-5">
-          <h2 className="text-sm font-semibold text-gray-900 mb-3">Arquitetura do Fundo</h2>
+        <div className="card-elevated p-5">
+          <h2 className="text-sm font-bold text-slate-800 mb-3">Arquitetura do Fundo</h2>
           <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
             {[
               { label: "Veículo", value: "Micro-VC" },
@@ -114,7 +114,7 @@ export default function VentureAwqPage() {
               { label: "Status", value: "Estruturação" },
             ].map((item) => (
               <div key={item.label} className="p-3 rounded-lg bg-gray-50 border border-gray-200">
-                <div className="text-[10px] text-gray-400">{item.label}</div>
+                <div className="text-[10px] text-gray-500">{item.label}</div>
                 <div className="text-xs font-semibold text-gray-800 mt-0.5">{item.value}</div>
               </div>
             ))}

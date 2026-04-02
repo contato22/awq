@@ -174,12 +174,12 @@ export default function AwqGroupPage() {
             const Icon = card.icon;
             return (
               <div key={card.label} className="card p-4 flex items-start gap-3">
-                <div className={`w-9 h-9 rounded-xl ${card.bg} flex items-center justify-center shrink-0`}>
+                <div className={`w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center shrink-0`}>
                   <Icon size={16} className={card.color} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-xl font-bold text-gray-900">{card.value}</div>
-                  <div className="text-[11px] font-medium text-gray-400 mt-0.5 leading-tight">{card.label}</div>
+                  <div className="text-xl font-bold text-slate-800">{card.value}</div>
+                  <div className="text-[11px] font-medium text-gray-500 mt-0.5 leading-tight">{card.label}</div>
                   <div className="flex items-center gap-1 mt-1">
                     {card.up
                       ? <ArrowUpRight size={10} className="text-emerald-600 shrink-0" />
@@ -200,12 +200,12 @@ export default function AwqGroupPage() {
             const Icon = card.icon;
             return (
               <div key={card.label} className="card p-4 flex items-start gap-3">
-                <div className={`w-9 h-9 rounded-xl ${card.bg} flex items-center justify-center shrink-0`}>
+                <div className={`w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center shrink-0`}>
                   <Icon size={16} className={card.color} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-xl font-bold text-gray-900">{card.value}</div>
-                  <div className="text-[11px] font-medium text-gray-400 mt-0.5 leading-tight">{card.label}</div>
+                  <div className="text-xl font-bold text-slate-800">{card.value}</div>
+                  <div className="text-[11px] font-medium text-gray-500 mt-0.5 leading-tight">{card.label}</div>
                   <div className="flex items-center gap-1 mt-1">
                     {card.up
                       ? <ArrowUpRight size={10} className="text-emerald-600 shrink-0" />
@@ -221,11 +221,11 @@ export default function AwqGroupPage() {
         </div>
 
         {/* ── BU Scoreboard ─────────────────────────────────────────────────── */}
-        <div className="card p-5">
+        <div className="card-elevated p-5">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <Building2 size={15} className="text-gray-400" />
-              <h2 className="text-sm font-semibold text-gray-900">BU Scoreboard</h2>
+              <Building2 size={15} className="text-gray-500" />
+              <h2 className="text-sm font-bold text-slate-800 tracking-tight">BU Scoreboard</h2>
             </div>
             <Link href="/business-units" className="text-[11px] text-brand-600 hover:text-brand-500 flex items-center gap-1 transition-colors">
               Detalhes <ChevronRight size={12} />
@@ -234,20 +234,20 @@ export default function AwqGroupPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">BU</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Receita</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">M. Bruta</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">EBITDA</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Lucro Líq.</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Cash Gen.</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Clientes</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Rec/Cliente</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Rec/FTE</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Capital</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">ROIC</th>
-                  <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Flag</th>
-                  <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Drill</th>
+                <tr className="bg-slate-800 text-white">
+                  <th className="text-left  py-2 px-3 text-xs font-bold text-white">BU</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold text-white">Receita</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold text-white">M. Bruta</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold text-white">EBITDA</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold text-white">Lucro Líq.</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold text-white">Cash Gen.</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold text-white">Clientes</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold text-white">Rec/Cliente</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold text-white">Rec/FTE</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold text-white">Capital</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold text-white">ROIC</th>
+                  <th className="text-left  py-2 px-3 text-xs font-bold text-white">Flag</th>
+                  <th className="text-left  py-2 px-3 text-xs font-bold text-white">Drill</th>
                 </tr>
               </thead>
               <tbody>
@@ -262,47 +262,47 @@ export default function AwqGroupPage() {
                   const revPerFte  = bu.ftes > 0 && bu.revenue > 0
                     ? Math.round(bu.revenue / bu.ftes) : 0;
                   return (
-                    <tr key={bu.id} className="border-b border-gray-100 hover:bg-gray-100 transition-colors group">
+                    <tr key={bu.id} className="border-b border-gray-100 odd:bg-white even:bg-gray-50 hover:bg-gray-100/60 transition-colors group">
                       <td className="py-2.5 px-3">
                         <div className="flex items-center gap-2">
                           <div className={`w-2 h-2 rounded-full ${bu.color}`} />
                           <div>
-                            <div className="text-xs font-bold text-gray-900">{bu.name}</div>
-                            <div className="text-[10px] text-gray-400">{bu.sub.split(" · ")[0]}</div>
+                            <div className="text-xs font-bold text-slate-800">{bu.name}</div>
+                            <div className="text-[10px] text-gray-500">{bu.sub.split(" · ")[0]}</div>
                           </div>
                         </div>
                       </td>
-                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-gray-900">
-                        {isVenture ? <span className="text-gray-400">—</span> : fmtR(bu.revenue)}
+                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-slate-800">
+                        {isVenture ? <span className="text-gray-500">—</span> : fmtR(bu.revenue)}
                       </td>
                       <td className="py-2.5 px-3 text-right text-xs">
                         {isVenture
-                          ? <span className="text-gray-400">—</span>
+                          ? <span className="text-gray-500">—</span>
                           : <span className={`font-semibold ${grossMargin >= 55 ? "text-emerald-600" : "text-amber-700"}`}>
                               {grossMargin.toFixed(0)}%
                             </span>}
                       </td>
                       <td className="py-2.5 px-3 text-right text-xs">
                         {isVenture
-                          ? <span className="text-gray-400">—</span>
+                          ? <span className="text-gray-500">—</span>
                           : <span className={`font-semibold ${ebitdaMargin >= 20 ? "text-emerald-600" : "text-amber-700"}`}>
                               {ebitdaMargin.toFixed(0)}%
                             </span>}
                       </td>
-                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-gray-900">
+                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-slate-800">
                         {fmtR(bu.netIncome)}
                       </td>
                       <td className="py-2.5 px-3 text-right text-xs font-semibold text-emerald-600">
                         {fmtR(bu.cashGenerated)}
                       </td>
-                      <td className="py-2.5 px-3 text-right text-xs text-gray-400">{bu.customers}</td>
-                      <td className="py-2.5 px-3 text-right text-xs text-gray-400">
-                        {revPerCust > 0 ? fmtR(revPerCust) : <span className="text-gray-400">—</span>}
+                      <td className="py-2.5 px-3 text-right text-xs text-gray-500">{bu.customers}</td>
+                      <td className="py-2.5 px-3 text-right text-xs text-gray-500">
+                        {revPerCust > 0 ? fmtR(revPerCust) : <span className="text-gray-500">—</span>}
                       </td>
-                      <td className="py-2.5 px-3 text-right text-xs text-gray-400">
-                        {revPerFte > 0 ? fmtR(revPerFte) : <span className="text-gray-400">—</span>}
+                      <td className="py-2.5 px-3 text-right text-xs text-gray-500">
+                        {revPerFte > 0 ? fmtR(revPerFte) : <span className="text-gray-500">—</span>}
                       </td>
-                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-gray-900">{fmtR(bu.capitalAllocated)}</td>
+                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-slate-800">{fmtR(bu.capitalAllocated)}</td>
                       <td className="py-2.5 px-3 text-right text-xs font-bold">
                         <span className={bu.roic >= 30 ? "text-emerald-600" : bu.roic >= 15 ? "text-amber-700" : "text-red-600"}>
                           {bu.roic.toFixed(0)}%
@@ -323,20 +323,20 @@ export default function AwqGroupPage() {
                 })}
                 {/* Consolidated total */}
                 <tr className="border-t border-gray-300 bg-gray-50">
-                  <td className="py-2.5 px-3 text-xs font-bold text-gray-400">CONSOLIDADO (Ops)</td>
-                  <td className="py-2.5 px-3 text-right text-xs font-bold text-gray-900">{fmtR(consolidated.revenue)}</td>
+                  <td className="py-2.5 px-3 text-xs font-bold text-gray-500">CONSOLIDADO (Ops)</td>
+                  <td className="py-2.5 px-3 text-right text-xs font-bold text-slate-800">{fmtR(consolidated.revenue)}</td>
                   <td className="py-2.5 px-3 text-right text-xs font-bold text-emerald-600">{pct(consolidatedMargins.grossMargin)}</td>
                   <td className="py-2.5 px-3 text-right text-xs font-bold text-emerald-600">{pct(consolidatedMargins.ebitdaMargin)}</td>
-                  <td className="py-2.5 px-3 text-right text-xs font-bold text-gray-900">{fmtR(consolidated.netIncome)}</td>
+                  <td className="py-2.5 px-3 text-right text-xs font-bold text-slate-800">{fmtR(consolidated.netIncome)}</td>
                   <td className="py-2.5 px-3 text-right text-xs font-bold text-emerald-600">{fmtR(consolidated.cashGenerated)}</td>
-                  <td className="py-2.5 px-3 text-right text-xs font-bold text-gray-400">{consolidated.customers}</td>
-                  <td className="py-2.5 px-3 text-right text-xs font-bold text-gray-400">
+                  <td className="py-2.5 px-3 text-right text-xs font-bold text-gray-500">{consolidated.customers}</td>
+                  <td className="py-2.5 px-3 text-right text-xs font-bold text-gray-500">
                     {fmtR(Math.round(consolidated.revenue / consolidated.customers))}
                   </td>
-                  <td className="py-2.5 px-3 text-right text-xs font-bold text-gray-400">
+                  <td className="py-2.5 px-3 text-right text-xs font-bold text-gray-500">
                     {fmtR(Math.round(consolidated.revenue / consolidated.ftes))}
                   </td>
-                  <td className="py-2.5 px-3 text-right text-xs font-bold text-gray-900">{fmtR(consolidated.capitalAllocated)}</td>
+                  <td className="py-2.5 px-3 text-right text-xs font-bold text-slate-800">{fmtR(consolidated.capitalAllocated)}</td>
                   <td className="py-2.5 px-3 text-right text-xs font-bold text-emerald-600">{consolidatedRoic.toFixed(1)}%</td>
                   <td colSpan={2} />
                 </tr>
@@ -348,13 +348,13 @@ export default function AwqGroupPage() {
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
 
           {/* ── Risk Panel ───────────────────────────────────────────────────── */}
-          <div className="xl:col-span-2 card p-5">
+          <div className="xl:col-span-2 card-elevated p-5">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <ShieldAlert size={14} className="text-red-600" />
-                <h2 className="text-sm font-semibold text-gray-900">Risk Signals</h2>
-                <span className="badge badge-red">{highRisks} alto</span>
-                <span className="badge badge-yellow">{mediumRisks} médio</span>
+                <h2 className="text-sm font-bold text-slate-800 tracking-tight">Risk Signals</h2>
+                <span className="badge badge-red border border-red-200">{highRisks} alto</span>
+                <span className="badge badge-yellow border border-amber-200">{mediumRisks} médio</span>
               </div>
               <Link href="/awq/risk" className="text-[11px] text-brand-600 hover:text-brand-500 flex items-center gap-1 transition-colors">
                 Ver todos <ChevronRight size={12} />
@@ -369,13 +369,13 @@ export default function AwqGroupPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
                         <span className={`text-xs font-semibold ${cfg.color}`}>{risk.title}</span>
-                        <span className="text-[10px] text-gray-400 shrink-0">{risk.bu}</span>
+                        <span className="text-[10px] text-gray-500 shrink-0">{risk.bu}</span>
                       </div>
                       <div className="text-[11px] text-gray-500 mt-0.5">{risk.description}</div>
                     </div>
                     <div className="text-right shrink-0">
                       <div className={`text-[10px] font-bold ${cfg.color}`}>{risk.metric}</div>
-                      <div className="text-[10px] text-gray-400">{risk.threshold}</div>
+                      <div className="text-[10px] text-gray-500">{risk.threshold}</div>
                     </div>
                   </div>
                 );
@@ -384,11 +384,11 @@ export default function AwqGroupPage() {
           </div>
 
           {/* ── Capital Allocation ───────────────────────────────────────────── */}
-          <div className="card p-5">
+          <div className="card-elevated p-5">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Wallet size={14} className="text-amber-700" />
-                <h2 className="text-sm font-semibold text-gray-900">Capital Allocation</h2>
+                <h2 className="text-sm font-bold text-slate-800 tracking-tight">Capital Allocation</h2>
               </div>
               <Link href="/awq/allocations" className="text-[11px] text-brand-600 hover:text-brand-500 flex items-center gap-1 transition-colors">
                 Detalhes <ChevronRight size={12} />
@@ -407,7 +407,7 @@ export default function AwqGroupPage() {
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-2">
                           <div className={`w-2 h-2 rounded-full ${bu.color}`} />
-                          <span className="text-xs text-gray-400">{bu.name}</span>
+                          <span className="text-xs text-gray-500">{bu.name}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className={`text-[10px] font-bold ${flagCfg.color} ${flagCfg.bg} px-1.5 py-0.5 rounded`}>
@@ -438,8 +438,8 @@ export default function AwqGroupPage() {
                 .map((bu, i) => (
                   <div key={bu.id} className="flex items-center justify-between py-1 border-b border-gray-100 last:border-0">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] font-bold text-gray-400">#{i + 1}</span>
-                      <span className="text-[11px] text-gray-400">{bu.name}</span>
+                      <span className="text-[10px] font-bold text-gray-500">#{i + 1}</span>
+                      <span className="text-[11px] text-gray-500">{bu.name}</span>
                     </div>
                     <span className={`text-[11px] font-bold ${bu.accentColor}`}>
                       {((bu.grossProfit / bu.revenue) * 100).toFixed(0)}%
@@ -451,21 +451,21 @@ export default function AwqGroupPage() {
         </div>
 
         {/* ── Drill-Down Navigation ─────────────────────────────────────────── */}
-        <div className="card p-5">
+        <div className="card-elevated p-5">
           <div className="flex items-center gap-2 mb-4">
             <Target size={14} className="text-brand-600" />
-            <h2 className="text-sm font-semibold text-gray-900">Drill-Down por BU</h2>
+            <h2 className="text-sm font-bold text-slate-800 tracking-tight">Drill-Down por BU</h2>
           </div>
           <div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
             {buData.map((bu) => (
               <div key={bu.id} className="rounded-xl border border-gray-200 p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <div className={`w-6 h-6 rounded-lg ${bu.color} flex items-center justify-center shrink-0`}>
-                    <Building2 size={11} className="text-gray-900" />
+                    <Building2 size={11} className="text-slate-800" />
                   </div>
                   <div>
-                    <div className="text-xs font-bold text-gray-900">{bu.name}</div>
-                    <div className="text-[10px] text-gray-400">{bu.sub.split(" · ")[0]}</div>
+                    <div className="text-xs font-bold text-slate-800">{bu.name}</div>
+                    <div className="text-[10px] text-gray-500">{bu.sub.split(" · ")[0]}</div>
                   </div>
                 </div>
                 <div className="space-y-1">
@@ -481,8 +481,8 @@ export default function AwqGroupPage() {
                       href={link.href}
                       className="flex items-center justify-between py-1 px-2 rounded-lg hover:bg-gray-100 transition-colors group"
                     >
-                      <span className="text-[11px] text-gray-500 group-hover:text-gray-400 transition-colors">{link.label}</span>
-                      <ChevronRight size={10} className="text-gray-400 group-hover:text-brand-600 transition-colors" />
+                      <span className="text-[11px] text-gray-500 group-hover:text-gray-500 transition-colors">{link.label}</span>
+                      <ChevronRight size={10} className="text-gray-500 group-hover:text-brand-600 transition-colors" />
                     </Link>
                   ))}
                 </div>
@@ -492,9 +492,9 @@ export default function AwqGroupPage() {
         </div>
 
         {/* ── Revenue Trend ─────────────────────────────────────────────────── */}
-        <div className="card p-5">
+        <div className="card-elevated p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-gray-900">Receita Consolidada por BU — Jan–Mar 2026</h2>
+            <h2 className="text-sm font-bold text-slate-800 tracking-tight">Receita Consolidada por BU — Jan–Mar 2026</h2>
             <Link href="/awq/financial" className="text-[11px] text-brand-600 hover:text-brand-500 flex items-center gap-1 transition-colors">
               Ver P&L completo <ChevronRight size={12} />
             </Link>
@@ -519,7 +519,7 @@ export default function AwqGroupPage() {
                       />
                     ))}
                   </div>
-                  <span className="text-xs font-bold text-gray-900 w-20 text-right shrink-0">{fmtR(m.total)}</span>
+                  <span className="text-xs font-bold text-slate-800 w-20 text-right shrink-0">{fmtR(m.total)}</span>
                 </div>
               );
             })}
@@ -540,7 +540,7 @@ export default function AwqGroupPage() {
             { label: "Forecast",     sub: "Cenários 2026",            href: "/awq/forecast",    icon: TrendingUp, color: "text-violet-700",  bg: "bg-violet-50"  },
             { label: "Allocations",  sub: "Capital por BU",           href: "/awq/allocations", icon: Wallet,     color: "text-amber-700",   bg: "bg-amber-50"   },
             { label: "Risk",         sub: "Risk signals",             href: "/awq/risk",        icon: AlertTriangle, color: "text-red-600",  bg: "bg-red-50"     },
-            { label: "BUs",          sub: "Todas as unidades",         href: "/business-units",  icon: Activity,   color: "text-gray-400",    bg: "bg-gray-500/10"    },
+            { label: "BUs",          sub: "Todas as unidades",         href: "/business-units",  icon: Activity,   color: "text-gray-500",    bg: "bg-gray-500/10"    },
             { label: "AWQ Venture",  sub: "Portfólio de investimentos",href: "/awq-venture",     icon: BarChart3,  color: "text-amber-700",   bg: "bg-amber-50"   },
           ].map((item) => {
             const Icon = item.icon;
@@ -554,10 +554,10 @@ export default function AwqGroupPage() {
                   <Icon size={14} className={item.color} />
                 </div>
                 <div>
-                  <div className="text-xs font-semibold text-gray-900 group-hover:text-brand-500 transition-colors">{item.label}</div>
-                  <div className="text-[10px] text-gray-400 mt-0.5">{item.sub}</div>
+                  <div className="text-xs font-semibold text-slate-800 group-hover:text-brand-500 transition-colors">{item.label}</div>
+                  <div className="text-[10px] text-gray-500 mt-0.5">{item.sub}</div>
                 </div>
-                <ChevronRight size={12} className="text-gray-400 group-hover:text-brand-600 ml-auto transition-colors" />
+                <ChevronRight size={12} className="text-gray-500 group-hover:text-brand-600 ml-auto transition-colors" />
               </Link>
             );
           })}

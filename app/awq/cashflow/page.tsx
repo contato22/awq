@@ -98,18 +98,18 @@ export default function AwqCashflowPage() {
             const Icon = card.icon;
             return (
               <div key={card.label} className="card p-5 flex items-start gap-4">
-                <div className={`w-10 h-10 rounded-xl ${card.bg} flex items-center justify-center shrink-0`}>
+                <div className={`w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center shrink-0`}>
                   <Icon size={18} className={card.color} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-2xl font-bold text-gray-900">{card.value}</div>
-                  <div className="text-xs font-medium text-gray-400 mt-0.5">{card.label}</div>
+                  <div className="text-2xl font-bold text-slate-800">{card.value}</div>
+                  <div className="text-xs font-medium text-gray-500 mt-0.5">{card.label}</div>
                   <div className="flex items-center gap-1 mt-1">
                     {card.up
                       ? <ArrowUpRight size={11} className="text-emerald-600" />
                       : <ArrowDownRight size={11} className="text-red-600" />}
                     <span className={`text-[10px] font-semibold ${card.up ? "text-emerald-600" : "text-red-600"}`}>{card.delta}</span>
-                    <span className="text-[10px] text-gray-400">{card.sub}</span>
+                    <span className="text-[10px] text-gray-500">{card.sub}</span>
                   </div>
                 </div>
               </div>
@@ -118,20 +118,20 @@ export default function AwqCashflowPage() {
         </div>
 
         {/* ── Cash Flow Statement ───────────────────────────────────────────── */}
-        <div className="card p-5">
-          <h2 className="text-sm font-semibold text-gray-900 mb-4">
+        <div className="card-elevated p-5">
+          <h2 className="text-sm font-bold text-slate-800 tracking-tight mb-4">
             Demonstração de Fluxo de Caixa — YTD Jan–Mar 2026
           </h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200">
+                <tr className="bg-slate-800 text-white">
                   <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500 w-52">Linha</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-brand-600">JACQES</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-emerald-600">Caza Vision</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-violet-700">Advisor</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-amber-700">Venture</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-900">TOTAL</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold text-white">JACQES</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold text-white">Caza Vision</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold text-white">Advisor</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold text-white">Venture</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold text-white">TOTAL</th>
                 </tr>
               </thead>
               <tbody>
@@ -144,7 +144,7 @@ export default function AwqCashflowPage() {
                       className={`border-b border-gray-100 ${isSubtotal ? "bg-gray-50" : "hover:bg-gray-100"} transition-colors`}
                     >
                       <td
-                        className={`py-2 px-3 text-xs ${isSubtotal ? "font-bold text-gray-800" : "text-gray-400"}`}
+                        className={`py-2 px-3 text-xs ${isSubtotal ? "font-bold text-slate-800" : "text-gray-500"}`}
                         style={{ paddingLeft: `${(row.indent * 14) + 12}px` }}
                       >
                         {row.label}
@@ -153,13 +153,13 @@ export default function AwqCashflowPage() {
                         <td
                           key={j}
                           className={`py-2 px-3 text-right text-xs ${
-                            isSubtotal ? "font-bold text-gray-900" : v < 0 ? "text-red-600" : "text-gray-400"
+                            isSubtotal ? "font-bold text-slate-800" : v < 0 ? "text-red-600" : "text-gray-500"
                           }`}
                         >
                           {fmtR(v)}
                         </td>
                       ))}
-                      <td className={`py-2 px-3 text-right text-xs font-bold ${isSubtotal ? "text-gray-900" : total < 0 ? "text-red-600" : "text-emerald-600"}`}>
+                      <td className={`py-2 px-3 text-right text-xs font-bold ${isSubtotal ? "text-slate-800" : total < 0 ? "text-red-600" : "text-emerald-600"}`}>
                         {fmtR(total)}
                       </td>
                     </tr>
@@ -173,8 +173,8 @@ export default function AwqCashflowPage() {
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
           {/* ── Cash Position by BU ──────────────────────────────────────────── */}
-          <div className="card p-5">
-            <h2 className="text-sm font-semibold text-gray-900 mb-4">Posição de Caixa por BU</h2>
+          <div className="card-elevated p-5">
+            <h2 className="text-sm font-bold text-slate-800 tracking-tight mb-4">Posição de Caixa por BU</h2>
             <div className="space-y-4">
               {cashPosition.map((bu) => {
                 const totalBalance = buData.reduce((s, b) => s + b.cashBalance, 0);
@@ -188,13 +188,13 @@ export default function AwqCashflowPage() {
                       </div>
                       <div className="flex items-center gap-3 text-[11px]">
                         <span className="text-gray-500">Gerado: <span className="text-emerald-600 font-semibold">{fmtR(bu.cashGenerated)}</span></span>
-                        <span className="text-gray-900 font-bold">{fmtR(bu.cashBalance)}</span>
+                        <span className="text-slate-800 font-bold">{fmtR(bu.cashBalance)}</span>
                       </div>
                     </div>
                     <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                       <div className={`h-full ${bu.color} rounded-full`} style={{ width: `${share}%` }} />
                     </div>
-                    <div className="flex justify-between mt-0.5 text-[10px] text-gray-400">
+                    <div className="flex justify-between mt-0.5 text-[10px] text-gray-500">
                       <span>Abertura: {fmtR(bu.openingBalance)}</span>
                       <span>Fechamento: {fmtR(bu.closingBalance)}</span>
                     </div>
@@ -205,13 +205,13 @@ export default function AwqCashflowPage() {
 
             <div className="mt-4 pt-3 border-t border-gray-200 flex items-center justify-between">
               <span className="text-xs text-gray-500">Caixa Total Consolidado</span>
-              <span className="text-base font-bold text-gray-900">{fmtR(consolidated.cashBalance)}</span>
+              <span className="text-base font-bold text-slate-800">{fmtR(consolidated.cashBalance)}</span>
             </div>
           </div>
 
           {/* ── FCF Waterfall ─────────────────────────────────────────────────── */}
-          <div className="card p-5">
-            <h2 className="text-sm font-semibold text-gray-900 mb-4">FCF Waterfall — Consolidado YTD</h2>
+          <div className="card-elevated p-5">
+            <h2 className="text-sm font-bold text-slate-800 tracking-tight mb-4">FCF Waterfall — Consolidado YTD</h2>
             <div className="space-y-2.5">
               {[
                 { label: "Lucro Líquido Ops.",     value:  consolidated.netIncome,     color: "bg-emerald-500" },
@@ -228,7 +228,7 @@ export default function AwqCashflowPage() {
                 const isNeg = item.value < 0;
                 return (
                   <div key={item.label} className={`flex items-center gap-3 ${(item as { bold?: boolean }).bold ? "py-1 bg-gray-50 px-2 rounded-lg" : ""}`}>
-                    <span className={`text-xs w-40 shrink-0 ${(item as { bold?: boolean }).bold ? "font-bold text-gray-900" : "text-gray-400"}`}>
+                    <span className={`text-xs w-40 shrink-0 ${(item as { bold?: boolean }).bold ? "font-bold text-slate-800" : "text-gray-500"}`}>
                       {item.label}
                     </span>
                     <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">

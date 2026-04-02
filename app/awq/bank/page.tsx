@@ -347,14 +347,14 @@ export default function BankAccountsPage() {
             const Icon = c.icon;
             return (
               <div key={c.label} className="card p-5 flex items-start gap-4">
-                <div className={`w-10 h-10 rounded-xl ${c.bg} flex items-center justify-center shrink-0`}>
+                <div className={`w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center shrink-0`}>
                   <Icon size={18} className={c.color} />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-gray-900">{c.value}</div>
+                  <div className="text-2xl font-bold text-slate-800">{c.value}</div>
                   <div className="text-xs text-gray-500 mt-0.5">{c.label}</div>
                   <div className="flex items-center gap-1 mt-1">
-                    <span className="text-[10px] text-gray-400">{c.delta}</span>
+                    <span className="text-[10px] text-gray-500">{c.delta}</span>
                   </div>
                 </div>
               </div>
@@ -376,11 +376,11 @@ export default function BankAccountsPage() {
             {/* Add account form */}
             {showAddForm && (
               <div className="card p-4 space-y-3">
-                <div className="text-xs font-semibold text-gray-700 mb-1">Nova Conta</div>
+                <div className="text-xs font-semibold text-slate-700 mb-1">Nova Conta</div>
                 <select
                   value={newBank}
                   onChange={(e) => setNewBank(e.target.value)}
-                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none focus:border-brand-500"
+                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-slate-800 focus:outline-none focus:border-brand-500"
                 >
                   {BANK_OPTIONS.map((b) => <option key={b} value={b}>{b}</option>)}
                 </select>
@@ -389,7 +389,7 @@ export default function BankAccountsPage() {
                   placeholder="Nome da conta (ex: Conta PJ)"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-500"
+                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-slate-800 placeholder:text-gray-500 focus:outline-none focus:border-brand-500"
                   onKeyDown={(e) => e.key === "Enter" && handleAddAccount()}
                 />
                 <input
@@ -397,7 +397,7 @@ export default function BankAccountsPage() {
                   placeholder="Saldo inicial (opcional)"
                   value={newBalance}
                   onChange={(e) => setNewBalance(e.target.value)}
-                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-500"
+                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-slate-800 placeholder:text-gray-500 focus:outline-none focus:border-brand-500"
                 />
                 <div className="flex gap-2">
                   <button onClick={handleAddAccount} className="flex-1 px-3 py-2 bg-brand-600 text-white rounded-lg text-xs font-semibold hover:bg-brand-700 transition-colors">
@@ -415,7 +415,7 @@ export default function BankAccountsPage() {
               <div className="card p-6 text-center">
                 <CreditCard size={28} className="text-gray-300 mx-auto mb-2" />
                 <div className="text-sm font-semibold text-gray-500">Nenhuma conta</div>
-                <div className="text-xs text-gray-400 mt-1">Clique em &quot;Nova Conta&quot; para começar</div>
+                <div className="text-xs text-gray-500 mt-1">Clique em &quot;Nova Conta&quot; para começar</div>
               </div>
             )}
 
@@ -434,21 +434,21 @@ export default function BankAccountsPage() {
                       <Building2 size={15} className="text-white" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs font-bold text-gray-900 truncate">{acct.name}</div>
+                      <div className="text-xs font-bold text-slate-800 truncate">{acct.name}</div>
                       <div className="text-[10px] text-gray-500">{acct.bank}</div>
                     </div>
                     <button
                       onClick={(e) => { e.stopPropagation(); handleDelete(acct.id); }}
-                      className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                      className="p-1 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
                     >
                       <Trash2 size={12} />
                     </button>
                   </div>
-                  <div className="text-base font-bold text-gray-900">{fmtR(acct.currentBalance)}</div>
+                  <div className="text-base font-bold text-slate-800">{fmtR(acct.currentBalance)}</div>
                   <div className="flex gap-3 mt-1 text-[10px]">
                     <span className="text-emerald-600">↑ {fmtR(credits)}</span>
                     <span className="text-red-500">↓ {fmtR(debits)}</span>
-                    <span className="text-gray-400 ml-auto">{acct.transactions.length} tx</span>
+                    <span className="text-gray-500 ml-auto">{acct.transactions.length} tx</span>
                   </div>
                 </div>
               );
@@ -461,7 +461,7 @@ export default function BankAccountsPage() {
               <div className="card p-16 text-center">
                 <Wallet size={40} className="text-gray-300 mx-auto mb-3" />
                 <div className="text-base font-semibold text-gray-500">Selecione uma conta</div>
-                <div className="text-sm text-gray-400 mt-1">ou adicione uma nova conta no painel esquerdo</div>
+                <div className="text-sm text-gray-500 mt-1">ou adicione uma nova conta no painel esquerdo</div>
               </div>
             ) : (
               <>
@@ -471,25 +471,25 @@ export default function BankAccountsPage() {
                     <Building2 size={20} className="text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-lg font-bold text-gray-900">{selected.name}</div>
+                    <div className="text-lg font-bold text-slate-800">{selected.name}</div>
                     <div className="text-sm text-gray-500">{selected.bank} · Atualizado {fmtDate(selected.lastUpdated)}</div>
                   </div>
                   <div className="text-right mr-4">
-                    <div className="text-2xl font-bold text-gray-900">{fmtR(selected.currentBalance)}</div>
-                    <div className="text-xs text-gray-400">saldo atual</div>
+                    <div className="text-2xl font-bold text-slate-800">{fmtR(selected.currentBalance)}</div>
+                    <div className="text-xs text-gray-500">saldo atual</div>
                   </div>
                   <div className="flex gap-3 text-xs">
                     <div className="text-center">
                       <div className="font-bold text-emerald-600">{fmtR(acctCredits)}</div>
-                      <div className="text-gray-400">entradas</div>
+                      <div className="text-gray-500">entradas</div>
                     </div>
                     <div className="text-center">
                       <div className="font-bold text-red-600">{fmtR(acctDebits)}</div>
-                      <div className="text-gray-400">saídas</div>
+                      <div className="text-gray-500">saídas</div>
                     </div>
                     <div className="text-center">
-                      <div className="font-bold text-gray-700">{selected.transactions.length}</div>
-                      <div className="text-gray-400">transações</div>
+                      <div className="font-bold text-slate-700">{selected.transactions.length}</div>
+                      <div className="text-gray-500">transações</div>
                     </div>
                   </div>
                   <button
@@ -506,8 +506,8 @@ export default function BankAccountsPage() {
                   <div className="card p-5 space-y-4">
                     <div className="flex items-center gap-2">
                       <Sparkles size={15} className="text-brand-600" />
-                      <h3 className="text-sm font-semibold text-gray-900">Processar Extrato com Claude IA</h3>
-                      <span className="text-[10px] text-gray-400 ml-1">Aceita qualquer formato: CSV, OFX, CNAB, texto</span>
+                      <h3 className="text-sm font-bold text-slate-800 tracking-tight">Processar Extrato com Claude IA</h3>
+                      <span className="text-[10px] text-gray-500 ml-1">Aceita qualquer formato: CSV, OFX, CNAB, texto</span>
                     </div>
 
                     <textarea
@@ -527,7 +527,7 @@ Ex:
 02/03/2026;PAGAMENTO FORNECEDOR XYZ;-3.200,00;R$39.150,00
 ...`}
                       rows={10}
-                      className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 bg-gray-50 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-400 focus:bg-white transition-colors resize-y font-mono"
+                      className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 bg-gray-50 text-slate-800 placeholder:text-gray-500 focus:outline-none focus:border-brand-400 focus:bg-white transition-colors resize-y font-mono"
                     />
 
                     {parseError && (
@@ -561,14 +561,14 @@ Ex:
                       <div className="space-y-3">
                         <div className="flex items-center gap-3">
                           <CheckCircle2 size={15} className="text-emerald-600" />
-                          <span className="text-sm font-semibold text-gray-900">
+                          <span className="text-sm font-bold text-slate-800 tracking-tight">
                             {preview.length} transações extraídas
                             {previewMeta?.bank && <span className="text-gray-500 font-normal"> · {previewMeta.bank}</span>}
                             {previewMeta?.balance != null && (
                               <span className="text-gray-500 font-normal"> · Saldo final: {fmtR(previewMeta.balance)}</span>
                             )}
                           </span>
-                          <button onClick={() => { setPreview(null); setPreviewMeta(null); }} className="ml-auto text-gray-400 hover:text-gray-600">
+                          <button onClick={() => { setPreview(null); setPreviewMeta(null); }} className="ml-auto text-gray-500 hover:text-gray-600">
                             <X size={14} />
                           </button>
                         </div>
@@ -576,7 +576,7 @@ Ex:
                           <div className="max-h-72 overflow-y-auto">
                             <table className="w-full text-xs">
                               <thead className="bg-gray-50 sticky top-0">
-                                <tr className="border-b border-gray-200">
+                                <tr className="bg-slate-800 text-white">
                                   <th className="text-left py-2 px-3 font-semibold text-gray-500">Data</th>
                                   <th className="text-left py-2 px-3 font-semibold text-gray-500">Descrição</th>
                                   <th className="text-left py-2 px-3 font-semibold text-gray-500">Categoria</th>
@@ -585,9 +585,9 @@ Ex:
                               </thead>
                               <tbody>
                                 {preview.map((tx) => (
-                                  <tr key={tx.id} className="border-b border-gray-100 hover:bg-gray-50">
+                                  <tr key={tx.id} className="border-b border-gray-100 odd:bg-white even:bg-gray-50 hover:bg-gray-100/60">
                                     <td className="py-2 px-3 text-gray-500 whitespace-nowrap">{fmtDate(tx.date)}</td>
-                                    <td className="py-2 px-3 text-gray-900 max-w-xs truncate">{tx.description}</td>
+                                    <td className="py-2 px-3 text-slate-800 max-w-xs truncate">{tx.description}</td>
                                     <td className="py-2 px-3">
                                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${CATEGORY_COLOR[tx.category] ?? "bg-gray-100 text-gray-600"}`}>
                                         {CATEGORY_LABEL[tx.category] ?? tx.category}
@@ -631,8 +631,8 @@ Ex:
                 {/* Reconciliation strip */}
                 <div className="card p-4">
                   <div className="flex items-center gap-2 mb-3">
-                    <BarChart3 size={13} className="text-gray-400" />
-                    <span className="text-xs font-semibold text-gray-700">Reconciliação</span>
+                    <BarChart3 size={13} className="text-gray-500" />
+                    <span className="text-xs font-semibold text-slate-700">Reconciliação</span>
                   </div>
                   <div className="grid grid-cols-3 gap-3">
                     {[
@@ -673,24 +673,24 @@ Ex:
                 </div>
 
                 {/* Transactions table */}
-                <div className="card p-5">
+                <div className="card-elevated p-5">
                   <div className="flex items-center justify-between mb-4 gap-3">
-                    <h3 className="text-sm font-semibold text-gray-900">
+                    <h3 className="text-sm font-bold text-slate-800 tracking-tight">
                       Transações
-                      <span className="ml-2 text-xs font-normal text-gray-400">({filteredTx.length})</span>
+                      <span className="ml-2 text-xs font-normal text-gray-500">({filteredTx.length})</span>
                     </h3>
                     <div className="flex items-center gap-2 flex-1 max-w-xs">
                       <div className="relative flex-1">
-                        <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                        <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
                         <input
                           type="text"
                           value={search}
                           onChange={(e) => setSearch(e.target.value)}
                           placeholder="Buscar transações…"
-                          className="w-full pl-8 pr-3 py-2 text-xs border border-gray-200 rounded-lg bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-400"
+                          className="w-full pl-8 pr-3 py-2 text-xs border border-gray-200 rounded-lg bg-white text-slate-800 placeholder:text-gray-500 focus:outline-none focus:border-brand-400"
                         />
                         {search && (
-                          <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                          <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-600">
                             <X size={11} />
                           </button>
                         )}
@@ -708,26 +708,26 @@ Ex:
                   {filteredTx.length === 0 ? (
                     <div className="text-center py-12">
                       <Upload size={28} className="text-gray-300 mx-auto mb-2" />
-                      <div className="text-sm font-semibold text-gray-400">Nenhum extrato carregado</div>
-                      <div className="text-xs text-gray-400 mt-1">Clique em &quot;Carregar Extrato&quot; para importar</div>
+                      <div className="text-sm font-semibold text-gray-500">Nenhum extrato carregado</div>
+                      <div className="text-xs text-gray-500 mt-1">Clique em &quot;Carregar Extrato&quot; para importar</div>
                     </div>
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
                         <thead>
-                          <tr className="border-b border-gray-200 text-gray-500">
-                            <th className="text-left py-2 px-3 text-xs font-semibold">Data</th>
-                            <th className="text-left py-2 px-3 text-xs font-semibold">Descrição</th>
-                            <th className="text-left py-2 px-3 text-xs font-semibold">Categoria</th>
-                            <th className="text-right py-2 px-3 text-xs font-semibold">Valor</th>
-                            <th className="text-right py-2 px-3 text-xs font-semibold">Saldo</th>
+                          <tr className="bg-slate-800 text-white">
+                            <th className="text-left py-2 px-3 text-xs font-bold text-white">Data</th>
+                            <th className="text-left py-2 px-3 text-xs font-bold text-white">Descrição</th>
+                            <th className="text-left py-2 px-3 text-xs font-bold text-white">Categoria</th>
+                            <th className="text-right py-2 px-3 text-xs font-bold text-white">Valor</th>
+                            <th className="text-right py-2 px-3 text-xs font-bold text-white">Saldo</th>
                           </tr>
                         </thead>
                         <tbody>
                           {filteredTx.map((tx) => (
-                            <tr key={tx.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                            <tr key={tx.id} className="border-b border-gray-100 odd:bg-white even:bg-gray-50 hover:bg-gray-100/60 transition-colors">
                               <td className="py-2.5 px-3 text-xs text-gray-500 whitespace-nowrap">{fmtDate(tx.date)}</td>
-                              <td className="py-2.5 px-3 text-xs text-gray-900 max-w-xs">
+                              <td className="py-2.5 px-3 text-xs text-slate-800 max-w-xs">
                                 <div className="truncate">{tx.description}</div>
                               </td>
                               <td className="py-2.5 px-3">
@@ -738,7 +738,7 @@ Ex:
                               <td className={`py-2.5 px-3 text-right text-xs font-bold ${tx.amount >= 0 ? "text-emerald-600" : "text-red-600"}`}>
                                 {tx.amount >= 0 ? "+" : ""}{fmtR(tx.amount)}
                               </td>
-                              <td className="py-2.5 px-3 text-right text-xs text-gray-400">
+                              <td className="py-2.5 px-3 text-right text-xs text-gray-500">
                                 {tx.balance != null ? fmtR(tx.balance) : "—"}
                               </td>
                             </tr>

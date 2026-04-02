@@ -3,20 +3,14 @@ import Link from "next/link";
 import { BarChart3, Building2, TrendingUp, ChevronRight, Users, DollarSign, Briefcase } from "lucide-react";
 import { kpis as jacqesKpis } from "@/lib/data";
 
-// ── Formatters ──────────────────────────────────────────────────────────────
 function fmtRevenue(n: number): string {
   if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  if (n >= 1_000)     return "R$ " + n.toLocaleString("pt-BR");
+  if (n >= 1_000) return "R$ " + n.toLocaleString("pt-BR");
   return "R$ " + n.toLocaleString("pt-BR");
 }
-function fmtNumber(n: number): string {
-  return n.toLocaleString("pt-BR");
-}
-function fmtPct(n: number): string {
-  return n.toFixed(1) + "%";
-}
+function fmtNumber(n: number): string { return n.toLocaleString("pt-BR"); }
+function fmtPct(n: number): string { return n.toFixed(1) + "%"; }
 
-// ── JACQES KPIs from shared data source (lib/data.ts) ──────────────────────
 const _revenue   = jacqesKpis.find((k) => k.id === "revenue")?.value   ?? 0;
 const _customers = jacqesKpis.find((k) => k.id === "customers")?.value ?? 0;
 const _margin    = jacqesKpis.find((k) => k.id === "margin")?.value    ?? 0;
@@ -26,20 +20,16 @@ const BUS = [
     id: "jacqes",
     label: "JACQES",
     sub: "Agência",
-    href: "https://contato22.github.io/jacqes-bi/financial/",
+    href: "/jacqes",
     color: "bg-brand-600",
-    borderColor: "border-brand-200",
-    bgColor: "bg-brand-50",
-    textColor: "text-brand-700",
-    badgeColor: "bg-brand-100 text-brand-600 border-brand-200",
     icon: BarChart3,
     kpis: [
-      { label: "Receita",  value: fmtRevenue(_revenue)   },
-      { label: "Clientes", value: fmtNumber(_customers)  },
-      { label: "Margem",   value: fmtPct(_margin)        },
+      { label: "Receita", value: fmtRevenue(_revenue) },
+      { label: "Clientes", value: fmtNumber(_customers) },
+      { label: "Margem", value: fmtPct(_margin) },
     ],
     status: "Ativa",
-    statusColor: "bg-emerald-500/15 text-emerald-400",
+    active: true,
   },
   {
     id: "caza",
@@ -47,10 +37,6 @@ const BUS = [
     sub: "Produtora",
     href: "/caza-vision",
     color: "bg-emerald-600",
-    borderColor: "border-emerald-200",
-    bgColor: "bg-emerald-50",
-    textColor: "text-emerald-700",
-    badgeColor: "bg-emerald-100 text-emerald-600 border-emerald-200",
     icon: Building2,
     kpis: [
       { label: "Projetos Ativos", value: "23" },
@@ -58,18 +44,14 @@ const BUS = [
       { label: "Receita YTD", value: "R$2.42M" },
     ],
     status: "Ativa",
-    statusColor: "bg-emerald-500/15 text-emerald-400",
+    active: true,
   },
   {
     id: "venture",
     label: "AWQ Venture",
     sub: "Investimentos",
     href: "/awq-venture",
-    color: "bg-amber-600",
-    borderColor: "border-amber-200",
-    bgColor: "bg-amber-50",
-    textColor: "text-amber-700",
-    badgeColor: "bg-amber-100 text-amber-600 border-amber-200",
+    color: "bg-awq-gold",
     icon: TrendingUp,
     kpis: [
       { label: "Portfolio", value: "—" },
@@ -77,18 +59,14 @@ const BUS = [
       { label: "IRR", value: "—" },
     ],
     status: "Em breve",
-    statusColor: "bg-yellow-500/15 text-yellow-400",
+    active: false,
   },
   {
     id: "advisor",
     label: "Advisor",
     sub: "Consultoria",
-    href: "https://contato22.github.io/advisor-bi/",
+    href: "/advisor",
     color: "bg-violet-600",
-    borderColor: "border-violet-200",
-    bgColor: "bg-violet-50",
-    textColor: "text-violet-700",
-    badgeColor: "bg-violet-100 text-violet-600 border-violet-200",
     icon: Briefcase,
     kpis: [
       { label: "Clientes", value: "—" },
@@ -96,7 +74,7 @@ const BUS = [
       { label: "Retorno", value: "—" },
     ],
     status: "Ativa",
-    statusColor: "bg-emerald-500/15 text-emerald-400",
+    active: true,
   },
 ];
 
@@ -104,7 +82,7 @@ export default function BusinessUnitsPage() {
   return (
     <>
       <Header title="Business Units" subtitle="Portfolio de empresas do AWQ Group" />
-      <div className="px-8 py-6 space-y-4">
+      <div className="px-8 py-6 space-y-6">
         {/* Summary */}
         <div className="grid grid-cols-3 gap-4">
           {[
@@ -113,60 +91,63 @@ export default function BusinessUnitsPage() {
             { icon: DollarSign, label: "Receita Consolidada", value: "$4.82M" },
           ].map((s) => (
             <div key={s.label} className="card p-5 flex items-center gap-4">
-              <div className="w-9 h-9 rounded-xl bg-gray-100 border border-gray-300 flex items-center justify-center">
-                <s.icon size={16} className="text-gray-400" />
+              <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center">
+                <s.icon size={18} className="text-slate-600" />
               </div>
               <div>
-                <div className="text-xl font-bold text-gray-900">{s.value}</div>
-                <div className="text-xs text-gray-500 mt-0.5">{s.label}</div>
+                <div className="text-2xl font-bold text-slate-800">{s.value}</div>
+                <div className="text-xs text-gray-500 font-medium mt-0.5">{s.label}</div>
               </div>
             </div>
           ))}
         </div>
 
-        {/* BU Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* BU Cards — G4 navy style */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
           {BUS.map((bu) => {
             const Icon = bu.icon;
-            const isActive = bu.status === "Ativa";
             return (
               <Link
                 key={bu.id}
                 href={bu.href}
-                className={`bg-gray-900 border border-gray-800 rounded-xl p-6 flex flex-col gap-5 transition-all hover:scale-[1.01] hover:shadow-lg hover:shadow-black/30 hover:border-gray-700 ${
-                  isActive ? "cursor-pointer" : "cursor-default opacity-75"
+                className={`card-elevated flex flex-col transition-all hover:scale-[1.01] hover:shadow-xl ${
+                  bu.active ? "cursor-pointer" : "cursor-default opacity-70"
                 }`}
               >
-                {/* Header */}
-                <div className="flex items-start justify-between">
-                  <div className={`w-11 h-11 rounded-xl ${bu.color} flex items-center justify-center shadow-md`}>
-                    <Icon size={20} className="text-white" />
+                {/* Navy header band */}
+                <div className="bg-slate-800 px-5 py-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-9 h-9 rounded-xl ${bu.color} flex items-center justify-center`}>
+                      <Icon size={16} className="text-white" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-bold text-white">{bu.label}</div>
+                      <div className="text-[10px] text-slate-400">{bu.sub} · AWQ Group</div>
+                    </div>
                   </div>
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${bu.statusColor}`}>{bu.status}</span>
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                    bu.active ? "bg-emerald-500/20 text-emerald-300" : "bg-amber-500/20 text-amber-300"
+                  }`}>
+                    {bu.status}
+                  </span>
                 </div>
 
-                {/* Name */}
-                <div>
-                  <div className="text-lg font-bold text-white">{bu.label}</div>
-                  <div className="text-xs text-gray-400 mt-0.5">{bu.sub} · AWQ Group</div>
-                </div>
-
-                {/* KPIs */}
-                <div className="grid grid-cols-3 gap-2 pt-3 border-t border-gray-800">
+                {/* KPIs on white */}
+                <div className="px-5 py-4 grid grid-cols-3 gap-2">
                   {bu.kpis.map((kpi) => (
                     <div key={kpi.label} className="text-center">
-                      <div className="text-sm font-bold text-white">{kpi.value}</div>
+                      <div className="text-sm font-bold text-slate-800">{kpi.value}</div>
                       <div className="text-[10px] text-gray-500 mt-0.5">{kpi.label}</div>
                     </div>
                   ))}
                 </div>
 
-                {/* CTA */}
-                <div className="flex items-center justify-between pt-1">
-                  <span className="text-xs text-gray-500">
-                    {isActive ? "Clique para acessar" : "Em desenvolvimento"}
+                {/* Footer */}
+                <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between">
+                  <span className="text-[11px] text-gray-500">
+                    {bu.active ? "Acessar dashboard" : "Em desenvolvimento"}
                   </span>
-                  {isActive && <ChevronRight size={14} className="text-brand-400" />}
+                  {bu.active && <ChevronRight size={14} className="text-awq-gold" />}
                 </div>
               </Link>
             );

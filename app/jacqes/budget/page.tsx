@@ -104,7 +104,7 @@ const categoryBudget = [
   { category: "Salários & Benefícios",budget: 1_240_000, actual: 1_180_000, icon: DollarSign, color: "text-violet-700" },
   { category: "Tecnologia & Infra",   budget: 180_000, actual: 154_000, icon: BarChart3,     color: "text-emerald-600" },
   { category: "Vendas & Comissões",   budget: 320_000, actual: 348_000, icon: TrendingUp,    color: "text-amber-700"   },
-  { category: "G&A",                  budget: 240_000, actual: 228_000, icon: BarChart3,     color: "text-gray-400"    },
+  { category: "G&A",                  budget: 240_000, actual: 228_000, icon: BarChart3,     color: "text-gray-500"    },
   { category: "Desp. Operacionais",   budget: 120_000, actual: 132_000, icon: AlertTriangle, color: "text-red-600"     },
 ];
 
@@ -120,13 +120,13 @@ function varColor(v: number, isExpense: boolean) {
 function varBadge(v: number, isExpense: boolean) {
   if (Math.abs(v) < 0.1) return null;
   const positive = isExpense ? v < 0 : v > 0;
-  if (positive) return <span className="badge badge-green">{varLabel(v)}</span>;
-  return <span className="badge badge-red">{varLabel(v)}</span>;
+  if (positive) return <span className="badge badge-green border border-emerald-200">{varLabel(v)}</span>;
+  return <span className="badge badge-red border border-red-200">{varLabel(v)}</span>;
 }
 
 function rowTextColor(type: string) {
-  if (type === "subtotal" || type === "ebitda" || type === "net") return "text-gray-900 font-bold";
-  return "text-gray-400";
+  if (type === "subtotal" || type === "ebitda" || type === "net") return "text-slate-800 font-bold";
+  return "text-gray-500";
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -190,19 +190,19 @@ export default function JacqesBudgetPage() {
             const Icon = card.icon;
             return (
               <div key={card.label} className="card p-5 flex items-start gap-4">
-                <div className={`w-10 h-10 rounded-xl ${card.bg} flex items-center justify-center shrink-0`}>
+                <div className={`w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center shrink-0`}>
                   <Icon size={18} className={card.color} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-2xl font-bold text-gray-900">{card.value}</div>
-                  <div className="text-xs font-medium text-gray-400 mt-0.5">{card.label}</div>
+                  <div className="text-2xl font-bold text-slate-800">{card.value}</div>
+                  <div className="text-xs font-medium text-gray-500 mt-0.5">{card.label}</div>
                   <div className="flex items-center gap-1 mt-1">
                     {card.up
                       ? <ArrowUpRight size={11} className="text-emerald-600" />
                       : <ArrowDownRight size={11} className="text-red-600" />}
                     <span className={`text-[10px] font-semibold ${card.up ? "text-emerald-600" : "text-red-600"}`}>{card.delta}</span>
                   </div>
-                  <div className="text-[10px] text-gray-400 mt-0.5">{card.sub}</div>
+                  <div className="text-[10px] text-gray-500 mt-0.5">{card.sub}</div>
                 </div>
               </div>
             );
@@ -210,21 +210,21 @@ export default function JacqesBudgetPage() {
         </div>
 
         {/* ── Budget vs Actual vs Forecast ─────────────────────────────────── */}
-        <div className="card p-5">
-          <h2 className="text-sm font-semibold text-gray-900 mb-4">
+        <div className="card-elevated p-5">
+          <h2 className="text-sm font-bold text-slate-800 tracking-tight mb-4">
             Budget vs Realizado vs Forecast — Linhas Principais · 2026
           </h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Linha</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Budget Ano</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Budget YTD</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Realizado YTD</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Var. YTD</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Forecast Ano</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Exec. %</th>
+                <tr className="bg-slate-800 text-white">
+                  <th className="text-left  py-2 px-3 text-xs font-bold text-white">Linha</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold text-white">Budget Ano</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold text-white">Budget YTD</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold text-white">Realizado YTD</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold text-white">Var. YTD</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold text-white">Forecast Ano</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold text-white">Exec. %</th>
                 </tr>
               </thead>
               <tbody>
@@ -236,17 +236,17 @@ export default function JacqesBudgetPage() {
                   return (
                     <tr
                       key={row.category}
-                      className={`border-b border-gray-100 transition-colors ${isSubtotal ? "bg-gray-50" : "hover:bg-gray-100"}`}
+                      className={`border-b border-gray-100 transition-colors ${isSubtotal ? "bg-gray-50" : "odd:bg-white even:bg-gray-50 hover:bg-gray-100/60"}`}
                     >
                       <td className={`py-2.5 px-3 text-xs ${rowTextColor(row.type)}`}>{row.category}</td>
                       <td className="py-2.5 px-3 text-right text-xs text-gray-500">{fmtR(row.budgetAno)}</td>
                       <td className="py-2.5 px-3 text-right text-xs text-gray-500">{fmtR(row.budgetYtd)}</td>
-                      <td className={`py-2.5 px-3 text-right text-xs font-semibold ${isExpense ? "text-red-600" : "text-gray-900"}`}>
+                      <td className={`py-2.5 px-3 text-right text-xs font-semibold ${isExpense ? "text-red-600" : "text-slate-800"}`}>
                         {fmtR(row.actualYtd)}
                       </td>
                       <td className="py-2.5 px-3 text-right text-xs">
                         {varBadge(v, isExpense) ?? (
-                          <span className="text-gray-400 flex items-center justify-end gap-0.5">
+                          <span className="text-gray-500 flex items-center justify-end gap-0.5">
                             <Minus size={10} /> —
                           </span>
                         )}
@@ -262,8 +262,8 @@ export default function JacqesBudgetPage() {
         </div>
 
         {/* ── Category Budget ───────────────────────────────────────────────── */}
-        <div className="card p-5">
-          <h2 className="text-sm font-semibold text-gray-900 mb-4">Budget por Categoria — YTD Jan–Mar 2026</h2>
+        <div className="card-elevated p-5">
+          <h2 className="text-sm font-bold text-slate-800 tracking-tight mb-4">Budget por Categoria — YTD Jan–Mar 2026</h2>
           <div className="space-y-4">
             {categoryBudget.map((cat) => {
               const Icon = cat.icon;
@@ -276,7 +276,7 @@ export default function JacqesBudgetPage() {
                   <div className="flex items-center justify-between mb-1.5">
                     <div className="flex items-center gap-2">
                       <Icon size={12} className={cat.color} />
-                      <span className="text-xs text-gray-400">{cat.category}</span>
+                      <span className="text-xs text-gray-500">{cat.category}</span>
                     </div>
                     <div className="flex items-center gap-3 text-[11px]">
                       <span className="text-gray-500">Budget: {fmtR(cat.budget)}</span>

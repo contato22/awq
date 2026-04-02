@@ -185,16 +185,16 @@ function NavItem({
             className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group",
                 active
-                    ? "bg-brand-50 text-brand-700 border border-brand-200"
-                    : "text-gray-500 hover:text-gray-800 hover:bg-gray-100"
+                    ? "bg-slate-800 text-white shadow-sm"
+                    : "text-gray-500 hover:text-slate-800 hover:bg-gray-100"
             )}
         >
             <Icon
                 size={16}
-                className={cn(active ? "text-brand-600" : "text-gray-400 group-hover:text-gray-400")}
+                className={cn(active ? "text-awq-gold" : "text-gray-400 group-hover:text-slate-600")}
             />
             <span className="flex-1">{label}</span>
-            {active && <ChevronRight size={14} className="text-brand-500" />}
+            {active && <ChevronRight size={14} className="text-awq-gold" />}
         </Link>
     );
 }
@@ -202,7 +202,7 @@ function NavItem({
 function SectionLabel({ children }: { children: React.ReactNode }) {
     return (
         <div className="px-3 mb-1 mt-5">
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                 {children}
             </span>
         </div>
@@ -214,12 +214,12 @@ function AwqHeader() {
     return (
         <div className="px-5 py-5 border-b border-gray-100">
             <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-awq-gold to-amber-600 flex items-center justify-center shadow-md">
-                    <Zap size={17} className="text-gray-900" />
+                <div className="w-9 h-9 rounded-xl bg-slate-800 flex items-center justify-center shadow-md">
+                    <Zap size={17} className="text-awq-gold" />
                 </div>
                 <div>
-                    <div className="text-sm font-bold text-gray-900">AWQ Group</div>
-                    <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+                    <div className="text-sm font-bold text-slate-800">AWQ Group</div>
+                    <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">
                         Plataforma Central
                     </div>
                 </div>
@@ -251,13 +251,13 @@ function SidebarFooter() {
     return (
         <div className="px-4 py-4 border-t border-gray-100">
             <div className="flex items-center gap-3 px-1">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-awq-gold to-amber-600 flex items-center justify-center text-xs font-bold text-gray-900 shrink-0">
+                <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-xs font-bold text-awq-gold shrink-0">
                     {initials}
                 </div>
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-gray-800 truncate">{userName}</span>
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-200">
+                        <span className="text-sm font-semibold text-slate-800 truncate">{userName}</span>
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">
                             {roleLabel.toUpperCase()}
                         </span>
                     </div>
@@ -265,7 +265,7 @@ function SidebarFooter() {
                 </div>
                 <button
                     onClick={() => signOut({ callbackUrl: "/login" })}
-                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-gray-100 rounded-lg transition-colors"
+                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-gray-100 rounded-xl transition-colors"
                     title="Sair"
                 >
                     <LogOut size={14} />
@@ -295,18 +295,18 @@ function AwqSidebar({ pathname }: { pathname: string }) {
                         <Link
                             key={bu.id}
                             href={bu.href}
-                            className="flex items-center gap-3 px-3 py-3 rounded-xl border border-gray-200 hover:border-brand-200 hover:bg-brand-50 transition-all group"
+                            className="flex items-center gap-3 px-3 py-3 rounded-xl border border-gray-200 hover:border-slate-300 hover:bg-slate-50 transition-all group"
                         >
                             <div className={`w-8 h-8 rounded-lg ${bu.color} flex items-center justify-center shrink-0`}>
-                                <bu.icon size={14} className="text-gray-900" />
+                                <bu.icon size={14} className="text-white" />
                             </div>
                             <div className="flex-1 min-w-0">
-                                <div className="text-sm font-semibold text-gray-800 group-hover:text-brand-700">
+                                <div className="text-sm font-semibold text-slate-800 group-hover:text-slate-900">
                                     {bu.label}
                                 </div>
                                 <div className="text-[10px] text-gray-400">{bu.sub}</div>
                             </div>
-                            <ChevronRight size={14} className="text-gray-400 group-hover:text-brand-600" />
+                            <ChevronRight size={14} className="text-gray-300 group-hover:text-awq-gold" />
                         </Link>
                     ))}
                 </div>

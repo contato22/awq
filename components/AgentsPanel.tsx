@@ -60,8 +60,8 @@ function AgentCard({ agent, onRun }: { agent: AgentResult; onRun: (id: string) =
             <Icon size={16} className={meta.color} />
           </div>
           <div>
-            <div className="text-sm font-semibold text-gray-400">{agent.name}</div>
-            <div className="text-[10px] text-gray-400 mt-0.5">{agent.role}</div>
+            <div className="text-sm font-semibold text-slate-800">{agent.name}</div>
+            <div className="text-[10px] text-gray-500 mt-0.5">{agent.role}</div>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -73,7 +73,7 @@ function AgentCard({ agent, onRun }: { agent: AgentResult; onRun: (id: string) =
             disabled={agent.status === "running"}
             className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
               agent.status === "done"
-                ? "bg-gray-100 hover:bg-gray-200 text-gray-400"
+                ? "bg-gray-100 hover:bg-gray-200 text-gray-500"
                 : "bg-brand-600/20 hover:bg-brand-600/40 text-brand-600"
             }`}
             title="Executar agente"
@@ -91,7 +91,7 @@ function AgentCard({ agent, onRun }: { agent: AgentResult; onRun: (id: string) =
 
       <div className="min-h-[60px]">
         {agent.status === "idle" && (
-          <p className="text-[11px] text-gray-400 italic">Clique em ▶ para executar análise automática</p>
+          <p className="text-[11px] text-gray-500 italic">Clique em ▶ para executar análise automática</p>
         )}
         {agent.status === "running" && !agent.content && (
           <div className="flex items-center gap-2 text-[11px] text-gray-500">
@@ -100,7 +100,7 @@ function AgentCard({ agent, onRun }: { agent: AgentResult; onRun: (id: string) =
           </div>
         )}
         {agent.content && (
-          <div className="text-[11px] text-gray-400 leading-relaxed whitespace-pre-wrap">{agent.content}</div>
+          <div className="text-[11px] text-gray-500 leading-relaxed whitespace-pre-wrap">{agent.content}</div>
         )}
         {agent.status === "error" && (
           <p className="text-[11px] text-red-600">{agent.errorMsg ?? "Falha ao executar agente"}</p>
@@ -108,7 +108,7 @@ function AgentCard({ agent, onRun }: { agent: AgentResult; onRun: (id: string) =
       </div>
 
       {agent.timestamp && (
-        <div className="mt-3 pt-2 border-t border-gray-200 text-[10px] text-gray-400">
+        <div className="mt-3 pt-2 border-t border-gray-200 text-[10px] text-gray-500">
           Última análise: {agent.timestamp}
         </div>
       )}
@@ -134,7 +134,7 @@ function NoKeyScreen({ onSave }: { onSave: (k: string) => void }) {
         <Key size={22} className="text-brand-600" />
       </div>
       <div>
-        <div className="text-base font-semibold text-gray-400">Configurar Open Claw</div>
+        <div className="text-base font-semibold text-slate-800">Configurar Open Claw</div>
         <div className="text-xs text-gray-500 mt-1 leading-relaxed max-w-xs">
           Insira sua chave da API Anthropic para ativar os agentes autônomos de cada BU.
         </div>
@@ -146,11 +146,11 @@ function NoKeyScreen({ onSave }: { onSave: (k: string) => void }) {
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && save()}
           placeholder="sk-ant-..."
-          className="w-full px-4 py-3 pr-10 bg-gray-100 border border-gray-300 rounded-xl text-sm text-gray-400 placeholder:text-gray-400 focus:outline-none focus:border-brand-500 transition-colors"
+          className="w-full px-4 py-3 pr-10 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-500 placeholder:text-gray-500 focus:outline-none focus:border-brand-500 transition-colors"
         />
         <button
           onClick={() => setShow((v) => !v)}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-400"
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-500"
         >
           {show ? "🙈" : "👁"}
         </button>
@@ -158,7 +158,7 @@ function NoKeyScreen({ onSave }: { onSave: (k: string) => void }) {
       <button
         onClick={save}
         disabled={!value.trim()}
-        className="w-full py-3 bg-brand-600 hover:bg-brand-500 disabled:opacity-40 disabled:cursor-not-allowed text-gray-900 text-sm font-semibold rounded-xl transition-colors"
+        className="w-full py-3 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl transition-colors"
       >
         Salvar e ativar agentes
       </button>
@@ -324,7 +324,7 @@ export default function AgentsPanel() {
       <div className="card p-4 flex items-center gap-4 flex-wrap">
         <div className="flex items-center gap-2 flex-1">
           <Sparkles size={14} className="text-brand-600" />
-          <span className="text-xs font-semibold text-gray-400">Multi-Agent Sistema</span>
+          <span className="text-xs font-semibold text-gray-500">Multi-Agent Sistema</span>
           <span className="badge badge-blue">{doneCount}/{agents.length} concluídos</span>
         </div>
         <button
@@ -356,7 +356,7 @@ export default function AgentsPanel() {
       <div>
         <div className="flex items-center gap-2 mb-3">
           <Bot size={14} className="text-gray-500" />
-          <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+          <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest">
             Agentes por BU — Auto-gerenciamento
           </span>
         </div>
@@ -371,7 +371,7 @@ export default function AgentsPanel() {
         <div>
           <div className="flex items-center gap-2 mb-3">
             <Building2 size={14} className="text-gray-500" />
-            <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+            <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest">
               AWQ Master Agent — Gestão de Portfolio
             </span>
           </div>

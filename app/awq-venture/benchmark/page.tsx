@@ -41,8 +41,8 @@ export default function BenchmarkPage() {
       <div className="px-8 py-6 space-y-6">
 
         {/* AWQ vs Benchmark */}
-        <div className="card p-5">
-          <h2 className="text-sm font-semibold text-gray-900 mb-4">AWQ Venture vs Mercado (Micro-VC LatAm)</h2>
+        <div className="card-elevated p-5">
+          <h2 className="text-sm font-bold text-slate-800 mb-4">AWQ Venture vs Mercado (Micro-VC LatAm)</h2>
           <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
             {fundMetrics.map((m) => {
               const better = m.lowerBetter ? m.awq < m.benchmark : m.awq > m.benchmark;
@@ -52,16 +52,16 @@ export default function BenchmarkPage() {
                   <div className="text-xs text-gray-500 mb-2">{m.metric}</div>
                   <div className="flex items-end justify-between">
                     <div>
-                      <div className="text-xl font-bold text-gray-900">
+                      <div className="text-xl font-bold text-slate-800">
                         {m.unit === "x" ? m.awq.toFixed(2) + "x" : m.awq.toFixed(1) + m.unit}
                       </div>
-                      <div className="text-[10px] text-gray-400 mt-0.5">AWQ Venture</div>
+                      <div className="text-[10px] text-gray-500 mt-0.5">AWQ Venture</div>
                     </div>
                     <div className="text-right">
                       <div className="text-sm text-gray-500">
                         {m.unit === "x" ? m.benchmark.toFixed(2) + "x" : m.benchmark.toFixed(1) + m.unit}
                       </div>
-                      <div className="text-[10px] text-gray-400">Benchmark</div>
+                      <div className="text-[10px] text-gray-500">Benchmark</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-1 mt-2">
@@ -69,7 +69,7 @@ export default function BenchmarkPage() {
                     <span className={`text-[10px] font-semibold ${better ? "text-emerald-600" : "text-red-600"}`}>
                       {delta > 0 ? "+" : ""}{m.unit === "x" ? delta.toFixed(2) + "x" : delta.toFixed(1) + (m.unit === "%" ? "pp" : m.unit)}
                     </span>
-                    <span className="text-[10px] text-gray-400">vs mercado</span>
+                    <span className="text-[10px] text-gray-500">vs mercado</span>
                   </div>
                 </div>
               );
@@ -79,30 +79,30 @@ export default function BenchmarkPage() {
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           {/* Peer Comparison */}
-          <div className="card p-5">
-            <h2 className="text-sm font-semibold text-gray-900 mb-4">Comparação entre Fundos</h2>
+          <div className="card-elevated p-5">
+            <h2 className="text-sm font-bold text-slate-800 mb-4">Comparação entre Fundos</h2>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Fundo</th>
-                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">IRR</th>
-                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">MOIC</th>
-                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">DPI</th>
-                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Deployed</th>
+                  <tr className="bg-slate-800 text-white">
+                    <th className="text-left py-2 px-3 text-xs font-bold">Fundo</th>
+                    <th className="text-right py-2 px-3 text-xs font-bold">IRR</th>
+                    <th className="text-right py-2 px-3 text-xs font-bold">MOIC</th>
+                    <th className="text-right py-2 px-3 text-xs font-bold">DPI</th>
+                    <th className="text-right py-2 px-3 text-xs font-bold">Deployed</th>
                   </tr>
                 </thead>
                 <tbody>
                   {peerFunds.map((f, i) => (
-                    <tr key={f.name} className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${i === 0 ? "bg-amber-50/50" : ""}`}>
+                    <tr key={f.name} className={`border-b border-gray-100 even:bg-gray-50/60 hover:bg-gray-100 transition-colors ${i === 0 ? "bg-amber-50/50" : ""}`}>
                       <td className="py-2.5 px-3">
                         <div className={`text-xs font-medium ${i === 0 ? "text-amber-800" : "text-gray-800"}`}>{f.name}</div>
-                        <div className="text-[10px] text-gray-400">Vintage {f.vintage}</div>
+                        <div className="text-[10px] text-gray-500">Vintage {f.vintage}</div>
                       </td>
                       <td className="py-2.5 px-3 text-right">
                         <span className={`text-xs font-bold ${f.irr >= 25 ? "text-emerald-600" : f.irr >= 15 ? "text-amber-700" : "text-gray-500"}`}>{f.irr.toFixed(1)}%</span>
                       </td>
-                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-gray-900">{f.moic.toFixed(2)}x</td>
+                      <td className="py-2.5 px-3 text-right text-xs font-bold text-emerald-600">{f.moic.toFixed(2)}x</td>
                       <td className="py-2.5 px-3 text-right text-xs text-gray-500">{f.dpi.toFixed(2)}x</td>
                       <td className="py-2.5 px-3 text-right text-xs text-gray-500">{fmtR(f.deployed)}</td>
                     </tr>
@@ -113,8 +113,8 @@ export default function BenchmarkPage() {
           </div>
 
           {/* Quartile Reference */}
-          <div className="card p-5">
-            <h2 className="text-sm font-semibold text-gray-900 mb-4">Referência de Quartis — VC LatAm</h2>
+          <div className="card-elevated p-5">
+            <h2 className="text-sm font-bold text-slate-800 mb-4">Referência de Quartis — VC LatAm</h2>
             <div className="space-y-3">
               {quartiles.map((q, i) => (
                 <div key={q.label} className={`p-4 rounded-xl border ${i === 0 ? "bg-emerald-50 border-emerald-200" : "bg-gray-50 border-gray-200"}`}>
@@ -123,9 +123,9 @@ export default function BenchmarkPage() {
                     {i === 0 && <span className="ml-2 text-[10px] bg-emerald-100 text-emerald-600 px-1.5 py-0.5 rounded">AWQ Venture</span>}
                   </div>
                   <div className="grid grid-cols-3 gap-4 text-[11px]">
-                    <div><span className="text-gray-400">IRR: </span><span className="font-semibold text-gray-700">{q.irr}</span></div>
-                    <div><span className="text-gray-400">MOIC: </span><span className="font-semibold text-gray-700">{q.moic}</span></div>
-                    <div><span className="text-gray-400">DPI: </span><span className="font-semibold text-gray-700">{q.dpi}</span></div>
+                    <div><span className="text-gray-500">IRR: </span><span className="font-semibold text-gray-700">{q.irr}</span></div>
+                    <div><span className="text-gray-500">MOIC: </span><span className="font-semibold text-gray-700">{q.moic}</span></div>
+                    <div><span className="text-gray-500">DPI: </span><span className="font-semibold text-gray-700">{q.dpi}</span></div>
                   </div>
                 </div>
               ))}

@@ -100,7 +100,7 @@ const deals = [
 const stages = ["Triagem", "Prospecção", "Due Diligence", "Term Sheet"] as const;
 
 const stageConfig: Record<string, { icon: React.ElementType; color: string; bg: string }> = {
-  "Triagem":        { icon: Search,      color: "text-gray-400",    bg: "bg-gray-100"    },
+  "Triagem":        { icon: Search,      color: "text-gray-500",    bg: "bg-gray-100"    },
   "Prospecção":     { icon: TrendingUp,  color: "text-amber-700",   bg: "bg-amber-50"   },
   "Due Diligence":  { icon: FileText,    color: "text-brand-600",   bg: "bg-brand-50"   },
   "Term Sheet":     { icon: CheckCircle2,color: "text-emerald-600", bg: "bg-emerald-50" },
@@ -109,7 +109,7 @@ const stageConfig: Record<string, { icon: React.ElementType; color: string; bg: 
 const priorityBadge: Record<string, string> = {
   "Alta":  "badge badge-red",
   "Média": "badge badge-yellow",
-  "Baixa": "badge",
+  "Baixa": "badge bg-gray-50 text-gray-600 border border-gray-200",
 };
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -130,19 +130,19 @@ export default function AwqVenturePipelinePage() {
         {/* ── Summary ──────────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
           {[
-            { label: "Deals Ativos",       value: deals.length,    icon: TrendingUp,  color: "text-amber-700",  bg: "bg-amber-50"  },
-            { label: "Ticket Potencial",   value: fmtR(totalTicket), icon: DollarSign, color: "text-emerald-600",bg: "bg-emerald-50" },
-            { label: "Due Diligence",      value: ddDeals,         icon: FileText,    color: "text-brand-600",  bg: "bg-brand-50"  },
-            { label: "Term Sheet Enviados",value: termSheetDeals,  icon: CheckCircle2,color: "text-violet-700", bg: "bg-violet-50" },
+            { label: "Deals Ativos",       value: deals.length,    icon: TrendingUp,  color: "text-amber-700",  bg: "bg-slate-100"  },
+            { label: "Ticket Potencial",   value: fmtR(totalTicket), icon: DollarSign, color: "text-emerald-600",bg: "bg-slate-100" },
+            { label: "Due Diligence",      value: ddDeals,         icon: FileText,    color: "text-brand-600",  bg: "bg-slate-100"  },
+            { label: "Term Sheet Enviados",value: termSheetDeals,  icon: CheckCircle2,color: "text-violet-700", bg: "bg-slate-100" },
           ].map((s) => {
             const Icon = s.icon;
             return (
-              <div key={s.label} className="card p-4 flex items-center gap-4">
+              <div key={s.label} className="card-elevated p-4 flex items-center gap-4">
                 <div className={`w-9 h-9 rounded-xl ${s.bg} flex items-center justify-center shrink-0`}>
                   <Icon size={16} className={s.color} />
                 </div>
                 <div>
-                  <div className="text-xl font-bold text-gray-900">{s.value}</div>
+                  <div className="text-xl font-bold text-slate-800">{s.value}</div>
                   <div className="text-xs text-gray-500">{s.label}</div>
                 </div>
               </div>
@@ -156,7 +156,7 @@ export default function AwqVenturePipelinePage() {
             const { icon: StageIcon, color, bg } = stageConfig[stage];
             const stageDeals = deals.filter((d) => d.stage === stage);
             return (
-              <div key={stage} className="card p-4 space-y-3">
+              <div key={stage} className="card-elevated p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className={`w-6 h-6 rounded-lg ${bg} flex items-center justify-center`}>
@@ -171,7 +171,7 @@ export default function AwqVenturePipelinePage() {
 
                 <div className="space-y-2">
                   {stageDeals.length === 0 && (
-                    <div className="text-[10px] text-gray-400 text-center py-4">Nenhum deal</div>
+                    <div className="text-[10px] text-gray-500 text-center py-4">Nenhum deal</div>
                   )}
                   {stageDeals.map((deal) => (
                     <div key={deal.id} className="p-3 rounded-xl bg-gray-50 border border-gray-200 space-y-2">
@@ -184,9 +184,9 @@ export default function AwqVenturePipelinePage() {
                           {deal.priority}
                         </span>
                       </div>
-                      <p className="text-[10px] text-gray-400 leading-relaxed">{deal.description}</p>
+                      <p className="text-[10px] text-gray-500 leading-relaxed">{deal.description}</p>
                       <div className="flex items-center justify-between pt-1 border-t border-gray-200">
-                        <span className="text-[10px] font-bold text-amber-700">{fmtR(deal.ticket)}</span>
+                        <span className="text-[10px] font-bold text-emerald-600">{fmtR(deal.ticket)}</span>
                         <span className="text-[10px] text-gray-500">{deal.eta}</span>
                       </div>
                       <div className="flex items-center justify-between">
@@ -202,39 +202,39 @@ export default function AwqVenturePipelinePage() {
         </div>
 
         {/* ── Deal List ────────────────────────────────────────────────────── */}
-        <div className="card p-5">
-          <h2 className="text-sm font-semibold text-gray-900 mb-4">Todos os Deals</h2>
+        <div className="card-elevated p-5">
+          <h2 className="text-sm font-bold text-slate-800 mb-4">Todos os Deals</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Empresa</th>
-                  <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Setor</th>
-                  <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Stage</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Ticket</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Score</th>
-                  <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Prioridade</th>
-                  <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Origem</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">ETA</th>
+                <tr className="bg-slate-800 text-white">
+                  <th className="text-left  py-2 px-3 text-xs font-bold text-white">Empresa</th>
+                  <th className="text-left  py-2 px-3 text-xs font-bold text-white">Setor</th>
+                  <th className="text-left  py-2 px-3 text-xs font-bold text-white">Stage</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold text-white">Ticket</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold text-white">Score</th>
+                  <th className="text-left  py-2 px-3 text-xs font-bold text-white">Prioridade</th>
+                  <th className="text-left  py-2 px-3 text-xs font-bold text-white">Origem</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold text-white">ETA</th>
                 </tr>
               </thead>
               <tbody>
                 {deals.map((d) => {
-                  const { icon: StageIcon, color } = stageConfig[d.stage] ?? { icon: Clock, color: "text-gray-400" };
+                  const { icon: StageIcon, color } = stageConfig[d.stage] ?? { icon: Clock, color: "text-gray-500" };
                   return (
-                    <tr key={d.id} className="border-b border-gray-200/50 hover:bg-gray-800/30 transition-colors">
+                    <tr key={d.id} className="border-b border-gray-200/50 even:bg-gray-50/60 hover:bg-gray-100 transition-colors">
                       <td className="py-2.5 px-3">
                         <div className="text-xs font-medium text-gray-800">{d.company}</div>
                         <div className="text-[10px] text-gray-500 mt-0.5 truncate max-w-[180px]">{d.description.slice(0, 50)}…</div>
                       </td>
-                      <td className="py-2.5 px-3 text-xs text-gray-400">{d.sector}</td>
+                      <td className="py-2.5 px-3 text-xs text-gray-500">{d.sector}</td>
                       <td className="py-2.5 px-3">
                         <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold">
                           <StageIcon size={10} className={color} />
                           <span className="text-gray-700">{d.stage}</span>
                         </span>
                       </td>
-                      <td className="py-2.5 px-3 text-right text-xs font-bold text-amber-700">{fmtR(d.ticket)}</td>
+                      <td className="py-2.5 px-3 text-right text-xs font-bold text-emerald-600">{fmtR(d.ticket)}</td>
                       <td className="py-2.5 px-3 text-right">
                         <span className={`text-xs font-bold ${d.score >= 8 ? "text-emerald-600" : d.score >= 7 ? "text-amber-700" : "text-gray-500"}`}>
                           {d.score.toFixed(1)}
@@ -243,8 +243,8 @@ export default function AwqVenturePipelinePage() {
                       <td className="py-2.5 px-3">
                         <span className={priorityBadge[d.priority] ?? "badge"}>{d.priority}</span>
                       </td>
-                      <td className="py-2.5 px-3 text-xs text-gray-400">{d.source}</td>
-                      <td className="py-2.5 px-3 text-right text-xs text-gray-400">{d.eta}</td>
+                      <td className="py-2.5 px-3 text-xs text-gray-500">{d.source}</td>
+                      <td className="py-2.5 px-3 text-right text-xs text-gray-500">{d.eta}</td>
                     </tr>
                   );
                 })}

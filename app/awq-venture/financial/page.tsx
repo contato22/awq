@@ -156,7 +156,7 @@ export default function AwqVentureFinancialPage() {
               up: true,
               icon: DollarSign,
               color: "text-amber-700",
-              bg: "bg-amber-50",
+              bg: "bg-slate-100",
             },
             {
               label: "Valor do Portfólio",
@@ -166,7 +166,7 @@ export default function AwqVentureFinancialPage() {
               up: true,
               icon: BarChart3,
               color: "text-emerald-600",
-              bg: "bg-emerald-50",
+              bg: "bg-slate-100",
             },
             {
               label: "ROIC Total",
@@ -176,7 +176,7 @@ export default function AwqVentureFinancialPage() {
               up: true,
               icon: TrendingUp,
               color: "text-brand-600",
-              bg: "bg-brand-50",
+              bg: "bg-slate-100",
             },
             {
               label: "Capital Retornado",
@@ -186,24 +186,24 @@ export default function AwqVentureFinancialPage() {
               up: true,
               icon: Zap,
               color: "text-violet-700",
-              bg: "bg-violet-50",
+              bg: "bg-slate-100",
             },
           ].map((card) => {
             const Icon = card.icon;
             return (
-              <div key={card.label} className="card p-5 flex items-start gap-4">
+              <div key={card.label} className="card-elevated p-5 flex items-start gap-4">
                 <div className={`w-10 h-10 rounded-xl ${card.bg} flex items-center justify-center shrink-0`}>
                   <Icon size={18} className={card.color} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-2xl font-bold text-gray-900">{card.value}</div>
-                  <div className="text-xs font-medium text-gray-400 mt-0.5">{card.label}</div>
+                  <div className="text-2xl font-bold text-slate-800">{card.value}</div>
+                  <div className="text-xs font-medium text-gray-500 mt-0.5">{card.label}</div>
                   <div className="flex items-center gap-1 mt-1">
                     {card.up
                       ? <ArrowUpRight size={11} className="text-emerald-600" />
                       : <ArrowDownRight size={11} className="text-red-600" />}
                     <span className={`text-[10px] font-semibold ${card.up ? "text-emerald-600" : "text-red-600"}`}>{card.delta}</span>
-                    <span className="text-[10px] text-gray-400">{card.sub}</span>
+                    <span className="text-[10px] text-gray-500">{card.sub}</span>
                   </div>
                 </div>
               </div>
@@ -212,24 +212,24 @@ export default function AwqVentureFinancialPage() {
         </div>
 
         {/* ── Portfolio Table ───────────────────────────────────────────────── */}
-        <div className="card p-5">
-          <h2 className="text-sm font-semibold text-gray-900 mb-4">
+        <div className="card-elevated p-5">
+          <h2 className="text-sm font-bold text-slate-800 mb-4">
             Portfólio de Investimentos — ROIC por Empresa
           </h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Empresa</th>
-                  <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Setor</th>
-                  <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Stage</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Investido</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Valor Atual</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">MOIC</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">ROIC</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">IRR</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Participação</th>
-                  <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Status</th>
+                <tr className="bg-slate-800 text-white">
+                  <th className="text-left  py-2 px-3 text-xs font-bold">Empresa</th>
+                  <th className="text-left  py-2 px-3 text-xs font-bold">Setor</th>
+                  <th className="text-left  py-2 px-3 text-xs font-bold">Stage</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold">Investido</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold">Valor Atual</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold">MOIC</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold">ROIC</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold">IRR</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold">Participação</th>
+                  <th className="text-left  py-2 px-3 text-xs font-bold">Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -241,20 +241,20 @@ export default function AwqVentureFinancialPage() {
                   const Icon = statusIcon[p.status] ?? Clock;
 
                   return (
-                    <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-100 transition-colors">
+                    <tr key={p.id} className="border-b border-gray-100 even:bg-gray-50/60 hover:bg-gray-100 transition-colors">
                       <td className="py-2.5 px-3">
-                        <div className="text-xs font-medium text-gray-400">{p.company}</div>
-                        <div className="text-[10px] text-gray-400 mt-0.5">desde {p.entryDate}</div>
+                        <div className="text-xs font-medium text-gray-500">{p.company}</div>
+                        <div className="text-[10px] text-gray-500 mt-0.5">desde {p.entryDate}</div>
                       </td>
-                      <td className="py-2.5 px-3 text-xs text-gray-400">{p.sector}</td>
+                      <td className="py-2.5 px-3 text-xs text-gray-500">{p.sector}</td>
                       <td className="py-2.5 px-3">
-                        <span className="text-[10px] px-2 py-0.5 rounded bg-gray-100 text-gray-400 font-medium">{p.stage}</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-gray-100 text-gray-500 font-medium">{p.stage}</span>
                       </td>
-                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-gray-900">{fmtR(p.invested)}</td>
+                      <td className="py-2.5 px-3 text-right text-xs font-bold text-emerald-600">{fmtR(p.invested)}</td>
                       <td className="py-2.5 px-3 text-right text-xs font-semibold">
                         {p.status === "Exitado"
-                          ? <span className="text-violet-700">{fmtR(p.returned)} <span className="text-[10px] text-gray-400">(exit)</span></span>
-                          : <span className="text-gray-900">{fmtR(p.currentVal)}</span>}
+                          ? <span className="text-violet-700">{fmtR(p.returned)} <span className="text-[10px] text-gray-500">(exit)</span></span>
+                          : <span className="text-slate-800">{fmtR(p.currentVal)}</span>}
                       </td>
                       <td className="py-2.5 px-3 text-right text-xs font-bold">
                         <span className={moicP >= 2 ? "text-emerald-600" : moicP >= 1 ? "text-amber-700" : "text-red-600"}>
@@ -271,8 +271,8 @@ export default function AwqVentureFinancialPage() {
                           {irrPositive ? "+" : ""}{p.irr.toFixed(1)}%
                         </span>
                       </td>
-                      <td className="py-2.5 px-3 text-right text-xs text-gray-400">
-                        {p.ownership > 0 ? `${p.ownership}%` : <span className="text-gray-400">—</span>}
+                      <td className="py-2.5 px-3 text-right text-xs text-blue-600 font-bold">
+                        {p.ownership > 0 ? `${p.ownership}%` : <span className="text-gray-500">—</span>}
                       </td>
                       <td className="py-2.5 px-3">
                         <span className={`inline-flex items-center gap-1 ${statusConfig[p.status] ?? "badge"}`}>
@@ -286,10 +286,10 @@ export default function AwqVentureFinancialPage() {
               </tbody>
               <tfoot>
                 <tr className="border-t border-gray-300">
-                  <td className="py-2.5 px-3 text-xs font-bold text-gray-400">TOTAL</td>
+                  <td className="py-2.5 px-3 text-xs font-bold text-gray-500">TOTAL</td>
                   <td colSpan={2} />
-                  <td className="py-2.5 px-3 text-right text-xs font-bold text-gray-900">{fmtR(totalInvested)}</td>
-                  <td className="py-2.5 px-3 text-right text-xs font-bold text-gray-900">{fmtR(totalValue)}</td>
+                  <td className="py-2.5 px-3 text-right text-xs font-bold text-slate-800">{fmtR(totalInvested)}</td>
+                  <td className="py-2.5 px-3 text-right text-xs font-bold text-slate-800">{fmtR(totalValue)}</td>
                   <td className="py-2.5 px-3 text-right text-xs font-bold text-emerald-600">{fmtMult(moic)}</td>
                   <td className="py-2.5 px-3 text-right text-xs font-bold text-emerald-600">
                     +{roic(totalValue, totalInvested).toFixed(1)}%
@@ -303,8 +303,8 @@ export default function AwqVentureFinancialPage() {
         </div>
 
         {/* ── ROIC Visual ───────────────────────────────────────────────────── */}
-        <div className="card p-5">
-          <h2 className="text-sm font-semibold text-gray-900 mb-4">ROIC por Empresa — Retorno sobre Capital Investido</h2>
+        <div className="card-elevated p-5">
+          <h2 className="text-sm font-bold text-slate-800 mb-4">ROIC por Empresa — Retorno sobre Capital Investido</h2>
           <div className="space-y-3">
             {portfolio.map((p) => {
               const currentOrReturned = p.status === "Exitado" ? p.returned : p.currentVal;
@@ -313,7 +313,7 @@ export default function AwqVentureFinancialPage() {
               const barPct  = Math.max(0, Math.min((Math.abs(r) / maxRoic) * 100, 100));
               return (
                 <div key={p.id} className="flex items-center gap-3">
-                  <span className="text-xs text-gray-400 w-32 shrink-0 truncate">{p.company}</span>
+                  <span className="text-xs text-gray-500 w-32 shrink-0 truncate">{p.company}</span>
                   <div className="flex-1 h-4 bg-gray-100 rounded-full overflow-hidden relative">
                     <div
                       className={`h-full rounded-full ${r >= 0 ? "bg-emerald-500" : "bg-red-500"}`}
@@ -323,7 +323,7 @@ export default function AwqVentureFinancialPage() {
                   <span className={`text-xs font-bold w-16 text-right shrink-0 ${r >= 0 ? "text-emerald-600" : "text-red-600"}`}>
                     {r >= 0 ? "+" : ""}{r.toFixed(0)}%
                   </span>
-                  <span className="text-[10px] text-gray-400 w-12 text-right shrink-0">{fmtMult(currentOrReturned / p.invested)}</span>
+                  <span className="text-[10px] text-gray-500 w-12 text-right shrink-0">{fmtMult(currentOrReturned / p.invested)}</span>
                 </div>
               );
             })}

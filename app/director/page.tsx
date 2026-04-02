@@ -202,20 +202,20 @@ export default function DirectorPage() {
         {/* KPI cards */}
         <div className="grid grid-cols-2 xl:grid-cols-5 gap-4">
           {[
-            { label: "Ciclos Totais",  value: stats?.totalCycles ?? 0,     icon: Activity, color: "text-brand-600",   bg: "bg-brand-50" },
-            { label: "Últimas 24h",    value: stats?.cyclesLast24h ?? 0,   icon: Clock,    color: "text-emerald-600", bg: "bg-emerald-50" },
-            { label: "Tempo Médio",    value: stats ? fmtDuration(stats.avgDurationMs) : "—", icon: Zap, color: "text-violet-700", bg: "bg-violet-50" },
-            { label: "Escalações",     value: stats?.totalEscalations ?? 0, icon: AlertTriangle, color: "text-amber-700", bg: "bg-amber-50" },
-            { label: "Último Ciclo",   value: stats?.lastCycleAt ? timeAgo(stats.lastCycleAt) : "Nunca", icon: Radio, color: "text-gray-600", bg: "bg-gray-100" },
+            { label: "Ciclos Totais",  value: stats?.totalCycles ?? 0,     icon: Activity, color: "text-brand-600" },
+            { label: "Últimas 24h",    value: stats?.cyclesLast24h ?? 0,   icon: Clock,    color: "text-emerald-600" },
+            { label: "Tempo Médio",    value: stats ? fmtDuration(stats.avgDurationMs) : "—", icon: Zap, color: "text-violet-700" },
+            { label: "Escalações",     value: stats?.totalEscalations ?? 0, icon: AlertTriangle, color: "text-amber-700" },
+            { label: "Último Ciclo",   value: stats?.lastCycleAt ? timeAgo(stats.lastCycleAt) : "Nunca", icon: Radio, color: "text-gray-600" },
           ].map((kpi) => {
             const Icon = kpi.icon;
             return (
               <div key={kpi.label} className="card p-5 flex items-center gap-4">
-                <div className={`w-10 h-10 rounded-xl ${kpi.bg} flex items-center justify-center shrink-0`}>
+                <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
                   <Icon size={18} className={kpi.color} />
                 </div>
                 <div>
-                  <div className="text-xl font-bold text-gray-900">{kpi.value}</div>
+                  <div className="text-xl font-bold text-slate-800">{kpi.value}</div>
                   <div className="text-xs text-gray-500 mt-0.5">{kpi.label}</div>
                 </div>
               </div>
@@ -224,10 +224,10 @@ export default function DirectorPage() {
         </div>
 
         {/* Controls */}
-        <div className="card p-5">
+        <div className="card-elevated p-5">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-sm font-semibold text-gray-900">Ciclo Autônomo</h2>
+              <h2 className="text-sm font-bold text-slate-800">Ciclo Autônomo</h2>
               <p className="text-[11px] text-gray-500 mt-0.5">
                 Executa JACQES → Caza → Venture → Master em sequência. Cada agente lê dados, toma ações e reporta.
               </p>
@@ -241,7 +241,7 @@ export default function DirectorPage() {
               <button
                 onClick={runCycle}
                 disabled={running || !apiKey}
-                className="flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-500 disabled:opacity-40 disabled:cursor-not-allowed text-gray-900 text-xs font-semibold rounded-xl transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-500 disabled:opacity-40 disabled:cursor-not-allowed text-slate-800 text-xs font-semibold rounded-xl transition-colors"
               >
                 {running ? (
                   <><Loader2 size={14} className="animate-spin" /> Executando...</>
@@ -251,7 +251,7 @@ export default function DirectorPage() {
               </button>
               <button
                 onClick={loadHistory}
-                className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                className="p-2 text-gray-500 hover:text-gray-600 transition-colors"
                 title="Atualizar histórico"
               >
                 <RefreshCw size={14} />
@@ -304,9 +304,9 @@ export default function DirectorPage() {
 
         {/* Active cycle results */}
         {activeCycle && (
-          <div className="card p-5">
+          <div className="card-elevated p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-gray-900">Resultado do Ciclo</h2>
+              <h2 className="text-sm font-bold text-slate-800">Resultado do Ciclo</h2>
               <div className="flex items-center gap-2">
                 {(() => {
                   const s = STATUS_BADGE[activeCycle.status];
@@ -318,7 +318,7 @@ export default function DirectorPage() {
                     </span>
                   );
                 })()}
-                <span className="text-[10px] text-gray-400">{fmtDuration(activeCycle.durationMs)}</span>
+                <span className="text-[10px] text-gray-500">{fmtDuration(activeCycle.durationMs)}</span>
               </div>
             </div>
 
@@ -346,8 +346,8 @@ export default function DirectorPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <StatusIcon size={12} className={s?.color ?? "text-gray-400"} />
-                        {isExpanded ? <ChevronDown size={12} className="text-gray-400" /> : <ChevronRight size={12} className="text-gray-400" />}
+                        <StatusIcon size={12} className={s?.color ?? "text-gray-500"} />
+                        {isExpanded ? <ChevronDown size={12} className="text-gray-500" /> : <ChevronRight size={12} className="text-gray-500" />}
                       </div>
                     </button>
                     {isExpanded && (
@@ -396,35 +396,35 @@ export default function DirectorPage() {
         )}
 
         {/* History */}
-        <div className="card p-5">
-          <h2 className="text-sm font-semibold text-gray-900 mb-4">Histórico de Ciclos</h2>
+        <div className="card-elevated p-5">
+          <h2 className="text-sm font-bold text-slate-800 mb-4">Histórico de Ciclos</h2>
           {history.length === 0 ? (
             <div className="text-center py-8">
               <Bot size={24} className="mx-auto text-gray-300 mb-2" />
-              <div className="text-xs text-gray-400">Nenhum ciclo executado ainda</div>
-              <div className="text-[10px] text-gray-400 mt-0.5">Execute o primeiro ciclo para iniciar o monitoramento autônomo</div>
+              <div className="text-xs text-gray-500">Nenhum ciclo executado ainda</div>
+              <div className="text-[10px] text-gray-500 mt-0.5">Execute o primeiro ciclo para iniciar o monitoramento autônomo</div>
             </div>
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Ciclo</th>
-                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Trigger</th>
-                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Status</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Agentes</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Escalações</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Duração</th>
+                <tr className="bg-slate-800">
+                  <th className="text-left py-2 px-3 text-xs font-semibold text-white">Ciclo</th>
+                  <th className="text-left py-2 px-3 text-xs font-semibold text-white">Trigger</th>
+                  <th className="text-left py-2 px-3 text-xs font-semibold text-white">Status</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-white">Agentes</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-white">Escalações</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-white">Duração</th>
                 </tr>
               </thead>
               <tbody>
-                {history.map((c) => {
+                {history.map((c, idx) => {
                   const s = STATUS_BADGE[c.status];
                   const StatusIcon = s?.icon ?? Clock;
                   return (
-                    <tr key={c.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                    <tr key={c.id} className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${idx % 2 === 1 ? "bg-gray-50/60" : ""}`}>
                       <td className="py-2.5 px-3">
                         <div className="text-xs font-medium text-gray-800">{fmtTime(c.startedAt)}</div>
-                        <div className="text-[10px] text-gray-400">{c.id.slice(0, 16)}</div>
+                        <div className="text-[10px] text-gray-500">{c.id.slice(0, 16)}</div>
                       </td>
                       <td className="py-2.5 px-3">
                         <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
@@ -444,7 +444,6 @@ export default function DirectorPage() {
                       <td className="py-2.5 px-3 text-right">
                         <div className="flex items-center justify-end gap-1">
                           {c.agents.map((a) => {
-                            const ac = AGENT_COLORS[a.agentId];
                             const as_ = STATUS_BADGE[a.status];
                             return (
                               <div
@@ -460,7 +459,7 @@ export default function DirectorPage() {
                         {c.escalationCount > 0 ? (
                           <span className="text-red-600 font-semibold">{c.escalationCount}</span>
                         ) : (
-                          <span className="text-gray-400">0</span>
+                          <span className="text-gray-500">0</span>
                         )}
                       </td>
                       <td className="py-2.5 px-3 text-right text-xs text-gray-500">{fmtDuration(c.durationMs)}</td>
@@ -473,8 +472,8 @@ export default function DirectorPage() {
         </div>
 
         {/* Architecture info */}
-        <div className="card p-5">
-          <h2 className="text-sm font-semibold text-gray-900 mb-3">Arquitetura do Director</h2>
+        <div className="card-elevated p-5">
+          <h2 className="text-sm font-bold text-slate-800 mb-3">Arquitetura do Director</h2>
           <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
             {[
               { label: "Frequência", value: "A cada 6h (cron)" },
@@ -487,7 +486,7 @@ export default function DirectorPage() {
               { label: "Persistência", value: "50 ciclos (JSON)" },
             ].map((item) => (
               <div key={item.label} className="p-3 rounded-lg bg-gray-50 border border-gray-200">
-                <div className="text-[10px] text-gray-400">{item.label}</div>
+                <div className="text-[10px] text-gray-500">{item.label}</div>
                 <div className="text-xs font-semibold text-gray-800 mt-0.5">{item.value}</div>
               </div>
             ))}

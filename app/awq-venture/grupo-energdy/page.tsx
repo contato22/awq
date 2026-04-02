@@ -8,10 +8,10 @@ function fmtR(n: number) {
 }
 
 const metrics = [
-  { label: "Capacidade Instalada", value: "12 MW",    icon: Zap,        color: "text-amber-700",   bg: "bg-amber-50" },
-  { label: "Receita YTD",         value: fmtR(3_200_000), icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
-  { label: "Clientes Ativos",     value: "4",         icon: Users,      color: "text-violet-700",  bg: "bg-violet-50" },
-  { label: "ROIC Projetado",      value: "18.5%",     icon: TrendingUp, color: "text-brand-600",   bg: "bg-brand-50" },
+  { label: "Capacidade Instalada", value: "12 MW",    icon: Zap,        color: "text-amber-700",   bg: "bg-slate-100" },
+  { label: "Receita YTD",         value: fmtR(3_200_000), icon: DollarSign, color: "text-emerald-600", bg: "bg-slate-100" },
+  { label: "Clientes Ativos",     value: "4",         icon: Users,      color: "text-violet-700",  bg: "bg-slate-100" },
+  { label: "ROIC Projetado",      value: "18.5%",     icon: TrendingUp, color: "text-brand-600",   bg: "bg-slate-100" },
 ];
 
 const assets = [
@@ -48,10 +48,10 @@ export default function GrupoEnergdyPage() {
           {metrics.map((kpi) => {
             const Icon = kpi.icon;
             return (
-              <div key={kpi.label} className="card p-5 flex items-center gap-4">
+              <div key={kpi.label} className="card-elevated p-5 flex items-center gap-4">
                 <div className={`w-10 h-10 rounded-xl ${kpi.bg} flex items-center justify-center shrink-0`}><Icon size={18} className={kpi.color} /></div>
                 <div>
-                  <div className="text-xl font-bold text-gray-900">{kpi.value}</div>
+                  <div className="text-xl font-bold text-slate-800">{kpi.value}</div>
                   <div className="text-xs text-gray-500 mt-0.5">{kpi.label}</div>
                 </div>
               </div>
@@ -61,26 +61,26 @@ export default function GrupoEnergdyPage() {
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           <div className="xl:col-span-2 card p-5">
-            <h2 className="text-sm font-semibold text-gray-900 mb-4">Ativos de Geração</h2>
+            <h2 className="text-sm font-bold text-slate-800 mb-4">Ativos de Geração</h2>
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Ativo</th>
-                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Tipo</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Capacidade</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Receita YTD</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">IRR</th>
-                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Status</th>
+                <tr className="bg-slate-800 text-white">
+                  <th className="text-left py-2 px-3 text-xs font-bold">Ativo</th>
+                  <th className="text-left py-2 px-3 text-xs font-bold">Tipo</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold">Capacidade</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold">Receita YTD</th>
+                  <th className="text-right py-2 px-3 text-xs font-bold">IRR</th>
+                  <th className="text-left py-2 px-3 text-xs font-bold">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {assets.map((a) => (
-                  <tr key={a.name} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                  <tr key={a.name} className="border-b border-gray-100 even:bg-gray-50/60 hover:bg-gray-100 transition-colors">
                     <td className="py-2.5 px-3 text-xs font-medium text-gray-800">{a.name}</td>
                     <td className="py-2.5 px-3 text-xs text-gray-500">{a.type}</td>
-                    <td className="py-2.5 px-3 text-right text-xs font-semibold text-gray-900">{a.capacity}</td>
+                    <td className="py-2.5 px-3 text-right text-xs font-semibold text-slate-800">{a.capacity}</td>
                     <td className="py-2.5 px-3 text-right text-xs font-bold text-emerald-600">{a.revenue > 0 ? fmtR(a.revenue) : "—"}</td>
-                    <td className="py-2.5 px-3 text-right text-xs text-gray-500">{a.irr.toFixed(1)}%</td>
+                    <td className="py-2.5 px-3 text-right text-xs font-bold text-blue-600">{a.irr.toFixed(1)}%</td>
                     <td className="py-2.5 px-3">
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusBadge[a.status] ?? "bg-gray-100 text-gray-500"}`}>{a.status}</span>
                     </td>
@@ -90,17 +90,17 @@ export default function GrupoEnergdyPage() {
             </table>
           </div>
 
-          <div className="card p-5">
-            <h2 className="text-sm font-semibold text-gray-900 mb-4">Roadmap de Expansão</h2>
+          <div className="card-elevated p-5">
+            <h2 className="text-sm font-bold text-slate-800 mb-4">Roadmap de Expansão</h2>
             <div className="space-y-3">
               {milestones.map((m, i) => (
                 <div key={i} className="flex items-start gap-3">
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${m.done ? "bg-emerald-100" : "bg-gray-100"}`}>
-                    {m.done ? <CheckCircle2 size={12} className="text-emerald-600" /> : <Clock size={12} className="text-gray-400" />}
+                    {m.done ? <CheckCircle2 size={12} className="text-emerald-600" /> : <Clock size={12} className="text-gray-500" />}
                   </div>
                   <div>
-                    <div className={`text-xs font-medium ${m.done ? "text-gray-800" : "text-gray-400"}`}>{m.label}</div>
-                    <div className="text-[10px] text-gray-400">{m.date}</div>
+                    <div className={`text-xs font-medium ${m.done ? "text-gray-800" : "text-gray-500"}`}>{m.label}</div>
+                    <div className="text-[10px] text-gray-500">{m.date}</div>
                   </div>
                 </div>
               ))}
@@ -108,7 +108,7 @@ export default function GrupoEnergdyPage() {
           </div>
         </div>
 
-        <div className="card p-5">
+        <div className="card-elevated p-5">
           <div className="flex items-center gap-2 text-xs text-amber-800 mb-2">
             <AlertTriangle size={13} />
             <span className="font-semibold">Risco de concentração</span>

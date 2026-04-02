@@ -185,7 +185,7 @@ export default function AwqRiskPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-bold text-gray-900">{risk.title}</span>
+                      <span className="text-xs font-bold text-slate-800">{risk.title}</span>
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${sev.badge}`}>
                         {risk.severity === "high" ? "Alto" : risk.severity === "medium" ? "Médio" : "Baixo"}
                       </span>
@@ -198,17 +198,17 @@ export default function AwqRiskPage() {
                 <div className="space-y-1 mb-3">
                   {risk.details.map((d, i) => (
                     <div key={i} className={`flex items-center justify-between py-1 px-2 rounded ${(d as { isTotal?: boolean }).isTotal ? "bg-gray-100" : ""}`}>
-                      <span className={`text-[11px] ${(d as { isTotal?: boolean }).isTotal ? "font-bold text-gray-400" : "text-gray-500"}`}>
+                      <span className={`text-[11px] ${(d as { isTotal?: boolean }).isTotal ? "font-bold text-gray-500" : "text-gray-500"}`}>
                         {d.label}
                       </span>
                       <div className="flex items-center gap-2">
                         {d.mrr !== 0 && (
-                          <span className={`text-[11px] font-semibold ${d.mrr < 0 ? "text-red-600" : "text-gray-900"}`}>
+                          <span className={`text-[11px] font-semibold ${d.mrr < 0 ? "text-red-600" : "text-slate-800"}`}>
                             {d.mrr < 0 ? "" : ""}{fmtR(d.mrr)}
                           </span>
                         )}
                         {d.share !== 0 && (
-                          <span className={`text-[11px] font-semibold ${d.share < 0 ? "text-red-600" : "text-gray-400"}`}>
+                          <span className={`text-[11px] font-semibold ${d.share < 0 ? "text-red-600" : "text-gray-500"}`}>
                             {d.share > 0 ? d.share + "%" : d.share + "pp"}
                           </span>
                         )}
@@ -227,8 +227,8 @@ export default function AwqRiskPage() {
                 {/* Threshold + Action */}
                 <div className="pt-2 border-t border-gray-200 space-y-1">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] text-gray-400">Limite:</span>
-                    <span className="text-[10px] text-gray-400">{risk.threshold}</span>
+                    <span className="text-[10px] text-gray-500">Limite:</span>
+                    <span className="text-[10px] text-gray-500">{risk.threshold}</span>
                   </div>
                   <div className="flex items-start gap-1.5">
                     <AlertTriangle size={9} className={`${risk.color} shrink-0 mt-0.5`} />
@@ -241,19 +241,19 @@ export default function AwqRiskPage() {
         </div>
 
         {/* ── Risk Heatmap by BU ────────────────────────────────────────────── */}
-        <div className="card p-5">
-          <h2 className="text-sm font-semibold text-gray-900 mb-4">Risk Exposure por BU</h2>
+        <div className="card-elevated p-5">
+          <h2 className="text-sm font-bold text-slate-800 tracking-tight mb-4">Risk Exposure por BU</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">BU</th>
-                  <th className="text-center py-2 px-3 text-xs font-semibold text-gray-500">Concentração</th>
-                  <th className="text-center py-2 px-3 text-xs font-semibold text-gray-500">Recebíveis</th>
-                  <th className="text-center py-2 px-3 text-xs font-semibold text-gray-500">Margem</th>
-                  <th className="text-center py-2 px-3 text-xs font-semibold text-gray-500">Cash</th>
-                  <th className="text-center py-2 px-3 text-xs font-semibold text-gray-500">Forecast</th>
-                  <th className="text-center py-2 px-3 text-xs font-semibold text-gray-500">Score Geral</th>
+                <tr className="bg-slate-800 text-white">
+                  <th className="text-left py-2 px-3 text-xs font-bold text-white">BU</th>
+                  <th className="text-center py-2 px-3 text-xs font-bold text-white">Concentração</th>
+                  <th className="text-center py-2 px-3 text-xs font-bold text-white">Recebíveis</th>
+                  <th className="text-center py-2 px-3 text-xs font-bold text-white">Margem</th>
+                  <th className="text-center py-2 px-3 text-xs font-bold text-white">Cash</th>
+                  <th className="text-center py-2 px-3 text-xs font-bold text-white">Forecast</th>
+                  <th className="text-center py-2 px-3 text-xs font-bold text-white">Score Geral</th>
                 </tr>
               </thead>
               <tbody>
@@ -266,7 +266,7 @@ export default function AwqRiskPage() {
                   const riskCell = (v: string) => {
                     const color = v === "Alto" ? "bg-red-50 text-red-600"
                       : v === "Médio" ? "bg-amber-50 text-amber-700"
-                      : v === "N/A"  ? "text-gray-400"
+                      : v === "N/A"  ? "text-gray-500"
                       : "bg-emerald-50 text-emerald-600";
                     return (
                       <td className="py-2.5 px-3 text-center">
@@ -276,11 +276,11 @@ export default function AwqRiskPage() {
                   };
                   const bu = buData.find((b) => b.name === row.name);
                   return (
-                    <tr key={row.name} className="border-b border-gray-100 hover:bg-gray-100 transition-colors">
+                    <tr key={row.name} className="border-b border-gray-100 odd:bg-white even:bg-gray-50 hover:bg-gray-100/60 transition-colors">
                       <td className="py-2.5 px-3">
                         <div className="flex items-center gap-2">
                           <div className={`w-2 h-2 rounded-full ${bu?.color ?? "bg-gray-500"}`} />
-                          <span className={`text-xs font-medium ${bu?.accentColor ?? "text-gray-400"}`}>{row.name}</span>
+                          <span className={`text-xs font-medium ${bu?.accentColor ?? "text-gray-500"}`}>{row.name}</span>
                         </div>
                       </td>
                       {riskCell(row.concentration)}

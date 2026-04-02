@@ -14,38 +14,38 @@ const maxRevenue = Math.max(...regionData.map((r) => r.revenue));
 
 export default function RegionTable() {
   return (
-    <div className="card p-6">
-      <div className="mb-5">
-        <h2 className="text-sm font-semibold text-gray-900">Regional Performance</h2>
-        <p className="text-xs text-gray-500 mt-0.5">Revenue by geography</p>
+    <div className="card-elevated">
+      <div className="px-6 pt-5 pb-4">
+        <h2 className="section-title">Regional Performance</h2>
+        <p className="section-subtitle">Revenue by geography</p>
       </div>
 
-      <div className="space-y-3">
+      <div className="px-6 pb-5 space-y-4">
         {regionData.map((region) => {
           const pct = (region.revenue / maxRevenue) * 100;
           return (
-            <div key={region.region} className="space-y-1.5">
+            <div key={region.region} className="space-y-2">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm text-gray-400">
-                  <span>{flagEmoji[region.region]}</span>
-                  <span className="font-medium">{region.region}</span>
+                <div className="flex items-center gap-2.5 text-sm text-slate-700">
+                  <span className="text-base">{flagEmoji[region.region]}</span>
+                  <span className="font-semibold">{region.region}</span>
                 </div>
-                <div className="flex items-center gap-3 text-xs text-right">
-                  <span className="text-gray-400 tabular-nums">
+                <div className="flex items-center gap-4 text-xs text-right">
+                  <span className="text-gray-500 tabular-nums">
                     {formatNumber(region.customers)} customers
                   </span>
-                  <span className="font-semibold text-gray-900 tabular-nums w-16">
+                  <span className="font-bold text-slate-800 tabular-nums w-16">
                     {formatCurrency(region.revenue, "USD", true)}
                   </span>
-                  <div className="flex items-center gap-1 text-emerald-600 w-12 justify-end">
+                  <div className="flex items-center gap-1 text-emerald-600 w-14 justify-end">
                     <TrendingUp size={11} />
-                    <span className="font-semibold">{region.growth}%</span>
+                    <span className="font-bold">{region.growth}%</span>
                   </div>
                 </div>
               </div>
-              <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-brand-600 to-brand-400 rounded-full transition-all"
+                  className="h-full bg-gradient-to-r from-slate-700 to-slate-500 rounded-full transition-all"
                   style={{ width: `${pct}%` }}
                 />
               </div>

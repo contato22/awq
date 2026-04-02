@@ -12,11 +12,11 @@ function SettingsSection({ icon: Icon, title, description, children }: SettingsS
   return (
     <div className="card p-6">
       <div className="flex items-start gap-4 mb-5">
-        <div className="w-9 h-9 rounded-xl bg-gray-100 border border-gray-300 flex items-center justify-center text-gray-400 shrink-0">
+        <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 shrink-0">
           <Icon size={16} />
         </div>
         <div>
-          <div className="font-semibold text-gray-400">{title}</div>
+          <div className="font-semibold text-slate-800">{title}</div>
           <div className="text-xs text-gray-500 mt-0.5">{description}</div>
         </div>
       </div>
@@ -35,8 +35,8 @@ function ToggleRow({ label, description, defaultChecked = false }: ToggleRowProp
   return (
     <div className="flex items-center justify-between py-2">
       <div>
-        <div className="text-sm text-gray-400">{label}</div>
-        {description && <div className="text-xs text-gray-400 mt-0.5">{description}</div>}
+        <div className="text-sm text-gray-700">{label}</div>
+        {description && <div className="text-xs text-gray-700 mt-0.5">{description}</div>}
       </div>
       <div
         className={`relative w-10 h-5 rounded-full transition-colors cursor-pointer ${
@@ -66,30 +66,30 @@ export default function SettingsPage() {
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">
                 Workspace Name
               </label>
               <input
                 type="text"
                 defaultValue="JACQES BI"
-                className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg text-sm text-gray-400 focus:outline-none focus:border-brand-500"
+                className="w-full px-3 py-2 bg-gray-100 border border-gray-200 rounded-xl text-sm text-gray-700 focus:outline-none focus:border-brand-500"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">
                 Default Currency
               </label>
-              <select className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg text-sm text-gray-400 focus:outline-none focus:border-brand-500">
+              <select className="w-full px-3 py-2 bg-gray-100 border border-gray-200 rounded-xl text-sm text-gray-700 focus:outline-none focus:border-brand-500">
                 <option>USD — US Dollar</option>
                 <option>EUR — Euro</option>
                 <option>GBP — British Pound</option>
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">
                 Fiscal Year Start
               </label>
-              <select className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg text-sm text-gray-400 focus:outline-none focus:border-brand-500">
+              <select className="w-full px-3 py-2 bg-gray-100 border border-gray-200 rounded-xl text-sm text-gray-700 focus:outline-none focus:border-brand-500">
                 <option>January</option>
                 <option>April</option>
                 <option>July</option>
@@ -97,8 +97,8 @@ export default function SettingsPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">Time Zone</label>
-              <select className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg text-sm text-gray-400 focus:outline-none focus:border-brand-500">
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">Time Zone</label>
+              <select className="w-full px-3 py-2 bg-gray-100 border border-gray-200 rounded-xl text-sm text-gray-700 focus:outline-none focus:border-brand-500">
                 <option>UTC+0 — London</option>
                 <option>UTC-5 — New York</option>
                 <option>UTC+8 — Singapore</option>
@@ -131,13 +131,13 @@ export default function SettingsPage() {
               { name: "Priya Nair", email: "p.nair@jacqes.com", role: "Analyst" },
               { name: "Danilo", email: "danilo@jacqes.com", role: "CS Ops" },
             ].map((member) => (
-              <div key={member.email} className="flex items-center gap-3 py-2 border-b border-gray-200 last:border-0">
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-brand-600 to-brand-400 flex items-center justify-center text-[10px] font-bold text-gray-900">
+              <div key={member.email} className="flex items-center gap-3 py-2 border-b border-gray-100 last:border-0">
+                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-brand-600 to-brand-400 flex items-center justify-center text-[10px] font-bold text-white">
                   {member.name.split(" ").map((n) => n[0]).join("")}
                 </div>
                 <div className="flex-1">
-                  <div className="text-sm font-medium text-gray-400">{member.name}</div>
-                  <div className="text-xs text-gray-400">{member.email}</div>
+                  <div className="text-sm font-medium text-gray-700">{member.name}</div>
+                  <div className="text-xs text-gray-700">{member.email}</div>
                 </div>
                 <span className="badge badge-blue">{member.role}</span>
               </div>
@@ -157,10 +157,10 @@ export default function SettingsPage() {
             { name: "Google Analytics", status: "Connected", lastSync: "1 hr ago" },
             { name: "HubSpot", status: "Disconnected", lastSync: "—" },
           ].map((source) => (
-            <div key={source.name} className="flex items-center justify-between py-2 border-b border-gray-200 last:border-0">
+            <div key={source.name} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
               <div>
-                <div className="text-sm font-medium text-gray-400">{source.name}</div>
-                <div className="text-xs text-gray-400">Last sync: {source.lastSync}</div>
+                <div className="text-sm font-medium text-gray-700">{source.name}</div>
+                <div className="text-xs text-gray-700">Last sync: {source.lastSync}</div>
               </div>
               <span
                 className={`badge ${source.status === "Connected" ? "badge-green" : "badge-red"}`}

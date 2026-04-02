@@ -7,6 +7,9 @@
 @layer base {
   :root {
     --sidebar-width: 260px;
+    --navy: #1e293b;
+    --navy-light: #334155;
+    --navy-dark: #0f172a;
   }
 
   * {
@@ -36,39 +39,84 @@
 }
 
 @layer components {
+  /* ── Cards ──────────────────────────────────────────────────────────────── */
   .card {
-    @apply bg-white border border-gray-200 rounded-xl;
+    @apply bg-white border border-gray-200 rounded-2xl shadow-sm;
   }
 
   .card-hover {
     @apply transition-all duration-200 hover:border-gray-300 hover:shadow-lg hover:shadow-gray-200/60;
   }
 
+  .card-elevated {
+    @apply bg-white rounded-2xl shadow-xl shadow-gray-300/40 border border-gray-100 overflow-hidden;
+  }
+
+  /* ── Navy table headers (G4 style) ──────────────────────────────────── */
+  .table-navy thead tr {
+    background: var(--navy);
+  }
+  .table-navy thead th {
+    @apply text-white text-xs font-semibold py-3 px-4 first:rounded-tl-xl last:rounded-tr-xl;
+  }
+  .table-navy tbody tr {
+    @apply border-b border-gray-100 transition-colors;
+  }
+  .table-navy tbody tr:nth-child(even) {
+    @apply bg-gray-50/60;
+  }
+  .table-navy tbody tr:hover {
+    @apply bg-gray-100/80;
+  }
+  .table-navy tbody td {
+    @apply py-3 px-4 text-sm;
+  }
+
+  /* ── Badges ─────────────────────────────────────────────────────────── */
   .badge {
-    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium;
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold;
   }
 
   .badge-green {
-    @apply badge bg-emerald-100 text-emerald-700;
+    @apply badge bg-emerald-50 text-emerald-700 border border-emerald-200;
   }
 
   .badge-red {
-    @apply badge bg-red-100 text-red-700;
+    @apply badge bg-red-50 text-red-700 border border-red-200;
   }
 
   .badge-yellow {
-    @apply badge bg-yellow-100 text-yellow-700;
+    @apply badge bg-amber-50 text-amber-700 border border-amber-200;
   }
 
   .badge-blue {
-    @apply badge bg-blue-100 text-blue-700;
+    @apply badge bg-blue-50 text-blue-700 border border-blue-200;
   }
 
+  /* ── Buttons ────────────────────────────────────────────────────────── */
   .btn-primary {
-    @apply px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-sm font-medium transition-colors;
+    @apply px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm;
   }
 
   .btn-secondary {
-    @apply px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors border border-gray-300;
+    @apply px-5 py-2.5 bg-white hover:bg-gray-50 text-gray-700 rounded-xl text-sm font-semibold transition-colors border border-gray-200 shadow-sm;
+  }
+
+  .btn-gold {
+    @apply px-5 py-2.5 bg-awq-gold hover:bg-awq-gold/90 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm;
+  }
+
+  /* ── KPI card ───────────────────────────────────────────────────────── */
+  .kpi-card {
+    @apply card p-5 flex items-start justify-between;
+  }
+
+  /* ── Section headers ────────────────────────────────────────────────── */
+  .section-title {
+    @apply text-sm font-bold text-slate-800 tracking-tight;
+  }
+
+  .section-subtitle {
+    @apply text-xs text-gray-500 mt-0.5;
   }
 }

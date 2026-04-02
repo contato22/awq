@@ -22,12 +22,24 @@ const config: Config = {
           900: "#312e81",
         },
         awq: {
-          gold: "#C9A84C",
-          dark: "#1A1A2E",
+          gold:      "#C9A84C",
+          "gold-light": "#E0C97A",
+          dark:      "#1A1A2E",
+          navy:      "#1e293b",
+          "navy-light": "#334155",
         },
       },
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],
+      },
+      borderRadius: {
+        "2xl": "1rem",
+        "3xl": "1.25rem",
+      },
+      boxShadow: {
+        "card": "0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04)",
+        "card-hover": "0 10px 25px -5px rgb(0 0 0 / 0.08), 0 4px 10px -6px rgb(0 0 0 / 0.04)",
+        "elevated": "0 20px 40px -12px rgb(0 0 0 / 0.15)",
       },
     },
   },
