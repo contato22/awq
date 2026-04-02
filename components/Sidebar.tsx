@@ -32,15 +32,8 @@ import {
 import { cn } from "@/lib/utils";
 
 // ── Route membership ──────────────────────────────────────────────────────────
-const JACQES_PREFIXES = [
-    "/jacqes",
-    "/desempenho",
-    "/carteira",
-    "/analise",
-    "/csops",
-    "/revenue",
-    "/reports",
-];
+// All JACQES routes are now under /jacqes/*. Root-level legacy routes redirect here.
+const JACQES_PREFIXES = ["/jacqes"];
 
 const CAZA_PREFIXES = ["/caza-vision"];
 
@@ -66,17 +59,18 @@ function isVentureRoute(pathname: string) {
 
 // ── Nav items ────────────────────────────────────────────────────────────────
 const jacqesNav = [
-    { label: "Visão Geral",    href: "/jacqes",                 icon: LayoutDashboard },
-    { label: "Desempenho",     href: "/desempenho",             icon: TrendingUp       },
-    { label: "Carteira",       href: "/carteira",               icon: Users            },
-    { label: "Análise",        href: "/analise",                icon: Activity         },
-    { label: "CS Ops",         href: "/csops",                  icon: HeartPulse       },
-    { label: "Financial",      href: "/jacqes/financial",       icon: DollarSign       },
-    { label: "Customers",      href: "/jacqes/customers",       icon: Users            },
-    { label: "Unit Economics", href: "/jacqes/unit-economics",  icon: Calculator       },
-    { label: "Budget",         href: "/jacqes/budget",          icon: Wallet           },
-    { label: "Relatórios",     href: "/reports",                icon: BarChart3        },
-    { label: "Categorias",     href: "/categorias",             icon: Tag              },
+    { label: "Visão Geral",    href: "/jacqes",                   icon: LayoutDashboard },
+    { label: "Financial",      href: "/jacqes/financial",         icon: DollarSign      },
+    { label: "Revenue",        href: "/jacqes/revenue",           icon: TrendingUp      },
+    { label: "Customers",      href: "/jacqes/customers",         icon: Users           },
+    { label: "Unit Economics", href: "/jacqes/unit-economics",    icon: Calculator      },
+    { label: "Budget",         href: "/jacqes/budget",            icon: Wallet          },
+    { label: "Desempenho",     href: "/jacqes/desempenho",        icon: TrendingUp      },
+    { label: "Carteira",       href: "/jacqes/carteira",          icon: Users           },
+    { label: "Análise",        href: "/jacqes/analise",           icon: Activity        },
+    { label: "CS Ops",         href: "/jacqes/csops",             icon: HeartPulse      },
+    { label: "Relatórios",     href: "/jacqes/reports",           icon: BarChart3       },
+    { label: "Categorias",     href: "/jacqes/categorias",        icon: Tag             },
 ];
 
 const cazaNav = [
@@ -102,7 +96,7 @@ const ventureNav = [
 ];
 
 const gestaoNav = [
-    { label: "Modo Carreira", href: "/carreira", icon: Briefcase },
+    { label: "Modo Carreira", href: "/jacqes/carreira", icon: Briefcase },
 ];
 
 const aiNav = [

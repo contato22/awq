@@ -20,17 +20,17 @@ const NOTION_VERSION = "2022-06-28";
 // Repo root in server context
 const REPO_ROOT = process.env.VERCEL_ROOT ?? process.cwd();
 
-// Files the agent is allowed to write (whitelist)
+// Files the agent is allowed to write (whitelist).
+// Only paths that exist in the repo and contain real data/content.
+// app/products/page.tsx and app/overview/page.tsx were removed — those routes do not exist.
 const WRITABLE_PATHS = [
   "lib/data.ts",
   "lib/caza-data.ts",
   "public/data/",
-  "app/financial/page.tsx",
+  "app/jacqes/financial/page.tsx",
+  "app/jacqes/customers/page.tsx",
   "app/caza-vision/page.tsx",
   "app/awq/page.tsx",
-  "app/customers/page.tsx",
-  "app/products/page.tsx",
-  "app/overview/page.tsx",
 ];
 
 function isWritable(filePath: string): boolean {
