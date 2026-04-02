@@ -32,24 +32,24 @@ const BU_LABELS: Record<BuContext, string> = {
 
 const BU_PROMPTS: Record<BuContext, string[]> = {
   awq: [
-    "Compare o desempenho entre as BUs",
-    "Qual BU tem maior potencial de crescimento?",
-    "Resuma o estado consolidado do grupo",
+    "Qual o estado do caixa e concentração da holding?",
+    "Qual sleeve gera mais valor por hora-chave do founder?",
+    "Onde a AWQ está criando valor sem capturar?",
   ],
   jacqes: [
-    "Quais clientes estão em maior risco de churn?",
-    "Por que a margem subiu para 67.4%?",
-    "Como melhorar o score médio dos clientes?",
+    "Quanto de caixa está em risco com os 12 enterprise silenciosos?",
+    "Custom Dashboards vale o founder bandwidth que consome?",
+    "Qual a previsibilidade real de recebimento este trimestre?",
   ],
   caza: [
-    "Quais são as prioridades para o lançamento Q2?",
-    "Como posicionar a Caza Vision no mercado proptech?",
-    "Que métricas devo acompanhar no pipeline?",
+    "O sleeve audiovisual se auto-sustenta ou drena o motor?",
+    "Quanto de caixa está travado por governança externa?",
+    "Qual o plano se Ambev sair?",
   ],
   venture: [
-    "Como estruturar o portfólio inicial do fundo?",
-    "Quais setores priorizar nos primeiros investimentos?",
-    "Como calcular o IRR target para o fundo?",
+    "O motor JACQES suporta o bandwidth do fund launch?",
+    "Cada R$1M investido tira quanto do runway?",
+    "Readiness Q2: o first close acontece no prazo?",
   ],
 };
 
