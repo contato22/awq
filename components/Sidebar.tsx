@@ -180,27 +180,32 @@ function NavItem({
     return (
         <Link
             href={href}
+            aria-current={active ? "page" : undefined}
             className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group",
+                "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 group",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 focus-visible:ring-offset-1",
                 active
-                    ? "bg-brand-50 text-brand-700 border border-brand-200"
-                    : "text-gray-500 hover:text-gray-800 hover:bg-gray-100"
+                    ? "bg-brand-50 text-brand-700 shadow-sm"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
             )}
         >
             <Icon
                 size={16}
-                className={cn(active ? "text-brand-600" : "text-gray-400 group-hover:text-gray-400")}
+                className={cn(
+                    "shrink-0 transition-colors",
+                    active ? "text-brand-600" : "text-gray-400 group-hover:text-gray-600"
+                )}
             />
-            <span className="flex-1">{label}</span>
-            {active && <ChevronRight size={14} className="text-brand-500" />}
+            <span className="flex-1 truncate">{label}</span>
+            {active && <ChevronRight size={13} className="text-brand-400 shrink-0" />}
         </Link>
     );
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
     return (
-        <div className="px-3 mb-1 mt-5">
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+        <div className="px-3 mb-1.5 mt-6 first:mt-2">
+            <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.08em]">
                 {children}
             </span>
         </div>
@@ -570,7 +575,7 @@ export default function Sidebar() {
     const advisorMode = isAdvisorRoute(pathname);
     const ventureMode = isVentureRoute(pathname);
     return (
-        <aside className="w-[260px] flex-shrink-0 bg-white border-r border-gray-200 flex flex-col h-full">
+        <div className="flex flex-col h-full">
             {jacqesMode ? (
                 <JacqesSidebar pathname={pathname} />
             ) : cazaMode ? (
@@ -582,6 +587,6 @@ export default function Sidebar() {
             ) : (
                 <AwqSidebar pathname={pathname} />
             )}
-        </aside>
+        </div>
     );
 }

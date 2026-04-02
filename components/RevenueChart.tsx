@@ -8,7 +8,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
 } from "recharts";
 import { revenueData } from "@/lib/data";
 
@@ -30,18 +29,18 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
     }).format(v);
 
   return (
-    <div className="bg-white border border-gray-300 rounded-xl p-3.5 shadow-xl shadow-black/40 min-w-[160px]">
-      <div className="text-xs font-semibold text-gray-400 mb-2">{label} 2025</div>
+    <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-lg min-w-[150px]">
+      <div className="text-[11px] font-semibold text-gray-400 mb-1.5">{label} 2025</div>
       {payload.map((entry) => (
         <div key={entry.name} className="flex items-center justify-between gap-4 text-xs py-0.5">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <span
               className="w-2 h-2 rounded-full"
               style={{ backgroundColor: entry.color }}
             />
-            <span className="text-gray-400 capitalize">{entry.name}</span>
+            <span className="text-gray-500 capitalize">{entry.name}</span>
           </div>
-          <span className="font-semibold text-gray-900">{fmt(entry.value)}</span>
+          <span className="font-semibold text-gray-900 tabular-nums">{fmt(entry.value)}</span>
         </div>
       ))}
     </div>
@@ -50,20 +49,20 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
 
 export default function RevenueChart() {
   return (
-    <div className="card p-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className="card p-5 lg:p-6">
+      <div className="flex items-center justify-between mb-5">
         <div>
           <h2 className="text-sm font-semibold text-gray-900">Revenue Overview</h2>
-          <p className="text-xs text-gray-500 mt-0.5">Monthly P&amp;L — FY 2025</p>
+          <p className="text-[11px] text-gray-500 mt-0.5 font-medium">Monthly P&amp;L — FY 2025</p>
         </div>
         <div className="flex gap-1">
           {["6M", "9M", "1Y"].map((range, i) => (
             <button
               key={range}
-              className={`px-3 py-1 text-xs rounded-md font-medium transition-colors ${
+              className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors ${
                 i === 2
-                  ? "bg-brand-600/20 text-brand-600 border border-brand-500/20"
-                  : "text-gray-500 hover:text-gray-400"
+                  ? "bg-brand-50 text-brand-600 ring-1 ring-brand-200/60"
+                  : "text-gray-400 hover:text-gray-600 hover:bg-gray-50"
               }`}
             >
               {range}
@@ -72,39 +71,39 @@ export default function RevenueChart() {
         </div>
       </div>
 
-      <ResponsiveContainer width="100%" height={280}>
+      <ResponsiveContainer width="100%" height={260}>
         <AreaChart
           data={revenueData}
           margin={{ top: 4, right: 4, left: -10, bottom: 0 }}
         >
           <defs>
             <linearGradient id="gradRevenue" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#6366f1" stopOpacity={0.25} />
+              <stop offset="5%" stopColor="#6366f1" stopOpacity={0.15} />
               <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
             </linearGradient>
             <linearGradient id="gradProfit" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#22d3ee" stopOpacity={0.2} />
-              <stop offset="95%" stopColor="#22d3ee" stopOpacity={0} />
+              <stop offset="5%" stopColor="#10b981" stopOpacity={0.12} />
+              <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
             </linearGradient>
             <linearGradient id="gradExpenses" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.15} />
+              <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.1} />
               <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
             </linearGradient>
           </defs>
 
           <CartesianGrid
             strokeDasharray="3 3"
-            stroke="#1f2937"
+            stroke="#e5e7eb"
             vertical={false}
           />
           <XAxis
             dataKey="month"
-            tick={{ fill: "#6b7280", fontSize: 11 }}
+            tick={{ fill: "#9ca3af", fontSize: 11 }}
             axisLine={false}
             tickLine={false}
           />
           <YAxis
-            tick={{ fill: "#6b7280", fontSize: 11 }}
+            tick={{ fill: "#9ca3af", fontSize: 11 }}
             axisLine={false}
             tickLine={false}
             tickFormatter={(v) =>
@@ -116,7 +115,7 @@ export default function RevenueChart() {
               }).format(v)
             }
           />
-          <Tooltip content={<CustomTooltip />} cursor={{ stroke: "#374151", strokeWidth: 1 }} />
+          <Tooltip content={<CustomTooltip />} cursor={{ stroke: "#d1d5db", strokeWidth: 1 }} />
 
           <Area
             type="monotone"
@@ -131,7 +130,7 @@ export default function RevenueChart() {
             type="monotone"
             dataKey="profit"
             name="profit"
-            stroke="#22d3ee"
+            stroke="#10b981"
             strokeWidth={1.5}
             fill="url(#gradProfit)"
             dot={false}
@@ -147,6 +146,20 @@ export default function RevenueChart() {
           />
         </AreaChart>
       </ResponsiveContainer>
+
+      {/* Legend */}
+      <div className="flex items-center justify-center gap-5 mt-3 pt-3 border-t border-gray-100">
+        {[
+          { label: "Revenue", color: "#6366f1" },
+          { label: "Profit", color: "#10b981" },
+          { label: "Expenses", color: "#f59e0b" },
+        ].map((item) => (
+          <span key={item.label} className="flex items-center gap-1.5 text-[11px] text-gray-500 font-medium">
+            <span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ backgroundColor: item.color }} />
+            {item.label}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }

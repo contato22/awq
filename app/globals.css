@@ -7,6 +7,24 @@
 @layer base {
   :root {
     --sidebar-width: 260px;
+
+    /* ── Spacing Scale (4px rhythm) ───────────────────────────── */
+    --space-1: 0.25rem;   /* 4px  */
+    --space-2: 0.5rem;    /* 8px  */
+    --space-3: 0.75rem;   /* 12px */
+    --space-4: 1rem;      /* 16px */
+    --space-5: 1.25rem;   /* 20px */
+    --space-6: 1.5rem;    /* 24px */
+    --space-8: 2rem;      /* 32px */
+    --space-10: 2.5rem;   /* 40px */
+
+    /* ── Elevation System ─────────────────────────────────────── */
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.06), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.02);
+    --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04);
   }
 
   * {
@@ -15,15 +33,17 @@
 
   body {
     @apply bg-gray-50 text-gray-900 font-sans antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 
+  /* ── Scrollbar ─────────────────────────────────────────────── */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
 
   ::-webkit-scrollbar-track {
-    @apply bg-gray-100;
+    @apply bg-transparent;
   }
 
   ::-webkit-scrollbar-thumb {
@@ -33,42 +53,250 @@
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-gray-400;
   }
+
+  /* ── Focus Ring System ─────────────────────────────────────── */
+  :focus-visible {
+    @apply outline-none ring-2 ring-brand-500/40 ring-offset-2 ring-offset-white;
+  }
 }
 
 @layer components {
+
+  /* ── Typography Scale ──────────────────────────────────────── */
+  .text-caption {
+    @apply text-[11px] leading-4 tracking-wide;
+  }
+
+  .text-label {
+    @apply text-xs leading-4 font-medium;
+  }
+
+  .text-body {
+    @apply text-sm leading-5;
+  }
+
+  .text-title {
+    @apply text-base leading-6 font-semibold;
+  }
+
+  .text-heading {
+    @apply text-lg leading-7 font-bold tracking-tight;
+  }
+
+  .text-display {
+    @apply text-xl leading-7 font-bold tracking-tight;
+  }
+
+  .text-overline {
+    @apply text-[10px] font-bold uppercase tracking-[0.08em] text-gray-400;
+  }
+
+  /* ── Card System ───────────────────────────────────────────── */
   .card {
-    @apply bg-white border border-gray-200 rounded-xl;
+    @apply bg-white border border-gray-200/80 rounded-xl;
+    box-shadow: var(--shadow-card);
   }
 
   .card-hover {
-    @apply transition-all duration-200 hover:border-gray-300 hover:shadow-lg hover:shadow-gray-200/60;
+    @apply transition-all duration-200;
   }
 
+  .card-hover:hover {
+    @apply border-gray-300;
+    box-shadow: var(--shadow-card-hover);
+  }
+
+  .card-elevated {
+    @apply bg-white rounded-xl border border-gray-200/60;
+    box-shadow: var(--shadow-md);
+  }
+
+  .card-interactive {
+    @apply card card-hover cursor-pointer;
+  }
+
+  .card-interactive:active {
+    @apply scale-[0.995];
+    transition: transform 100ms ease;
+  }
+
+  /* ── Surface System ────────────────────────────────────────── */
+  .surface-subtle {
+    @apply bg-gray-50/80 rounded-lg border border-gray-100;
+  }
+
+  .surface-sunken {
+    @apply bg-gray-50 rounded-lg;
+  }
+
+  /* ── Badge System ──────────────────────────────────────────── */
   .badge {
-    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium;
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold;
   }
 
   .badge-green {
-    @apply badge bg-emerald-100 text-emerald-700;
+    @apply badge bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/60;
   }
 
   .badge-red {
-    @apply badge bg-red-100 text-red-700;
+    @apply badge bg-red-50 text-red-700 ring-1 ring-red-200/60;
   }
 
   .badge-yellow {
-    @apply badge bg-yellow-100 text-yellow-700;
+    @apply badge bg-amber-50 text-amber-700 ring-1 ring-amber-200/60;
   }
 
   .badge-blue {
-    @apply badge bg-blue-100 text-blue-700;
+    @apply badge bg-blue-50 text-blue-700 ring-1 ring-blue-200/60;
   }
 
+  .badge-gray {
+    @apply badge bg-gray-100 text-gray-600 ring-1 ring-gray-200/60;
+  }
+
+  /* ── Button System ─────────────────────────────────────────── */
   .btn-primary {
-    @apply px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-sm font-medium transition-colors;
+    @apply px-4 py-2 bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white rounded-lg text-sm font-medium transition-all duration-150;
+    box-shadow: 0 1px 2px rgba(79, 70, 229, 0.2);
   }
 
   .btn-secondary {
-    @apply px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors border border-gray-300;
+    @apply px-4 py-2 bg-white hover:bg-gray-50 active:bg-gray-100 text-gray-700 rounded-lg text-sm font-medium transition-all duration-150 border border-gray-300;
+    box-shadow: var(--shadow-xs);
+  }
+
+  .btn-ghost {
+    @apply px-3 py-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 active:bg-gray-200 rounded-lg text-sm font-medium transition-all duration-150;
+  }
+
+  /* ── Section Header Pattern ────────────────────────────────── */
+  .section-header {
+    @apply flex items-center justify-between mb-5;
+  }
+
+  .section-title {
+    @apply flex items-center gap-2.5;
+  }
+
+  .section-title h2 {
+    @apply text-sm font-semibold text-gray-900;
+  }
+
+  .section-link {
+    @apply text-caption text-brand-600 hover:text-brand-700 flex items-center gap-1 transition-colors font-medium;
+  }
+
+  /* ── Table System ──────────────────────────────────────────── */
+  .table-header {
+    @apply text-left py-2.5 px-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider;
+  }
+
+  .table-header-right {
+    @apply table-header text-right;
+  }
+
+  .table-cell {
+    @apply py-3 px-3 text-sm;
+  }
+
+  .table-cell-right {
+    @apply table-cell text-right;
+  }
+
+  .table-row {
+    @apply border-b border-gray-100 hover:bg-gray-50/80 transition-colors;
+  }
+
+  .table-row-total {
+    @apply border-t-2 border-gray-200 bg-gray-50/60 font-semibold;
+  }
+
+  /* ── Metric Value ──────────────────────────────────────────── */
+  .metric-value {
+    @apply text-2xl font-bold text-gray-900 tabular-nums tracking-tight;
+  }
+
+  .metric-value-sm {
+    @apply text-xl font-bold text-gray-900 tabular-nums tracking-tight;
+  }
+
+  .metric-label {
+    @apply text-caption text-gray-500 font-medium;
+  }
+
+  .metric-delta-up {
+    @apply inline-flex items-center gap-0.5 text-[11px] font-semibold text-emerald-600;
+  }
+
+  .metric-delta-down {
+    @apply inline-flex items-center gap-0.5 text-[11px] font-semibold text-red-600;
+  }
+
+  /* ── Page Layout ───────────────────────────────────────────── */
+  .page-container {
+    @apply px-6 py-6 space-y-6;
+  }
+
+  @screen lg {
+    .page-container {
+      @apply px-8;
+    }
+  }
+
+  /* ── Loading Skeleton ──────────────────────────────────────── */
+  .skeleton {
+    @apply bg-gray-200/60 rounded animate-pulse;
+  }
+
+  .skeleton-text {
+    @apply skeleton h-4 w-full;
+  }
+
+  .skeleton-title {
+    @apply skeleton h-6 w-48;
+  }
+
+  .skeleton-card {
+    @apply card p-5 space-y-3;
+  }
+
+  /* ── Sidebar Mobile Overlay ────────────────────────────────── */
+  .sidebar-overlay {
+    @apply fixed inset-0 bg-black/30 backdrop-blur-[2px] z-40 transition-opacity duration-300;
+  }
+
+  .sidebar-overlay[data-state="closed"] {
+    @apply opacity-0 pointer-events-none;
+  }
+
+  .sidebar-overlay[data-state="open"] {
+    @apply opacity-100;
+  }
+
+  /* ── Scrollbar for Tables ──────────────────────────────────── */
+  .table-scroll {
+    @apply overflow-x-auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table-scroll::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  .table-scroll::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  .table-scroll::-webkit-scrollbar-thumb {
+    @apply bg-gray-200 rounded-full;
+  }
+
+  /* ── Transition Utilities ──────────────────────────────────── */
+  .transition-micro {
+    @apply transition-all duration-150 ease-out;
+  }
+
+  .transition-smooth {
+    @apply transition-all duration-300 ease-out;
   }
 }
