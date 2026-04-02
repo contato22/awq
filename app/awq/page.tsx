@@ -11,6 +11,7 @@ import {
   AlertTriangle,
   ChevronRight,
   ShieldAlert,
+  Shield,
   Activity,
   Wallet,
   Target,
@@ -540,6 +541,7 @@ export default function AwqGroupPage() {
             { label: "Forecast",     sub: "Cenários 2026",            href: "/awq/forecast",    icon: TrendingUp, color: "text-violet-700",  bg: "bg-violet-50"  },
             { label: "Allocations",  sub: "Capital por BU",           href: "/awq/allocations", icon: Wallet,     color: "text-amber-700",   bg: "bg-amber-50"   },
             { label: "Risk",         sub: "Risk signals",             href: "/awq/risk",        icon: AlertTriangle, color: "text-red-600",  bg: "bg-red-50"     },
+            { label: "Cyber Security", sub: "Seguranca & Governanca",  href: "/awq/cyber-security", icon: Shield, color: "text-red-600", bg: "bg-red-50" },
             { label: "BUs",          sub: "Todas as unidades",         href: "/business-units",  icon: Activity,   color: "text-gray-400",    bg: "bg-gray-500/10"    },
             { label: "AWQ Venture",  sub: "Portfólio de investimentos",href: "/awq-venture",     icon: BarChart3,  color: "text-amber-700",   bg: "bg-amber-50"   },
           ].map((item) => {

@@ -28,6 +28,7 @@ import {
     Calculator,
     Wallet,
     CreditCard,
+    Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -163,6 +164,7 @@ const awqNav = [
     { label: "Allocations",    href: "/awq/allocations", icon: Wallet          },
     { label: "Risk",           href: "/awq/risk",        icon: Activity        },
     { label: "Contas Banco",   href: "/awq/bank",        icon: CreditCard      },
+    { label: "Cyber Security", href: "/awq/cyber-security", icon: Shield        },
 ];
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
