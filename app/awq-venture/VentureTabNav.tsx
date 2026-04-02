@@ -12,7 +12,7 @@ const tabs = [
   { label: "Financial",    href: "/awq-venture/financial",    stub: false },
   { label: "YoY 2025",     href: "/awq-venture/yoy-2025",     stub: false },
   { label: "AWQ",          href: "/awq-venture/awq",          stub: true  },
-  { label: "Sales",        href: "/awq-venture/sales",        stub: true  },
+  { label: "Sales",        href: "/awq-venture/sales",        stub: false },
   { label: "Grupo Energdy",href: "/awq-venture/grupo-energdy",stub: true  },
   { label: "RI",           href: "/awq-venture/ri",           stub: true  },
   { label: "Benchmark",    href: "/awq-venture/benchmark",    stub: true  },

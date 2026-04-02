@@ -93,6 +93,7 @@ const ventureNav = [
     { label: "Pipeline",    href: "/awq-venture/pipeline",     icon: Activity        },
     { label: "Financial",   href: "/awq-venture/financial",    icon: DollarSign      },
     { label: "YoY 2025",    href: "/awq-venture/yoy-2025",     icon: LineChart       },
+    { label: "Sales",       href: "/awq-venture/sales",        icon: DollarSign      },
 ];
 
 const gestaoNav = [
@@ -114,7 +115,7 @@ const businessUnits = [
         id: "jacqes",
         label: "JACQES",
         sub: "Agência · AWQ Group",
-        href: "https://contato22.github.io/jacqes-bi/",
+        href: "/jacqes",
         icon: BarChart3,
         color: "bg-brand-600",
     },
@@ -138,7 +139,7 @@ const businessUnits = [
         id: "advisor",
         label: "Advisor",
         sub: "Consultoria · AWQ Group",
-        href: "https://contato22.github.io/advisor-bi/",
+        href: "/advisor",
         icon: Briefcase,
         color: "bg-violet-600",
     },
@@ -319,7 +320,10 @@ function AwqSidebar({ pathname }: { pathname: string }) {
 
 // ── JACQES sidebar ───────────────────────────────────────────────────────────
 function JacqesSidebar({ pathname }: { pathname: string }) {
-    const isActive = (href: string) => pathname.startsWith(href);
+    const isActive = (href: string) =>
+        href === "/jacqes"
+            ? pathname === "/jacqes"
+            : pathname === href || pathname.startsWith(href + "/");
     return (
         <>
             <AwqHeader />

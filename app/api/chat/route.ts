@@ -2,26 +2,28 @@ import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest } from "next/server";
 
 const SYSTEM_PROMPTS: Record<string, string> = {
-  awq: `You are OpenClaw, an AI business intelligence assistant for AWQ Group — a holding company with three business units.
+  awq: `You are OpenClaw, an AI business intelligence assistant for AWQ Group — a holding company with four business units.
 
-AWQ Group Overview (March 2026):
-- Consolidated Revenue: $4.82M YTD
-- Active BUs: 1 of 3 (JACQES operational; Caza Vision and AWQ Venture in pre-launch)
-- Total Clients: 3,847 (JACQES base)
-- Average Group Margin: 67.4%
+AWQ Group Overview (YTD Q1 2026, Jan–Mar):
+- Consolidated Operating Revenue: R$8.81M (JACQES + Caza Vision + Advisor)
+- Active BUs: 4 (JACQES, Caza Vision, Advisor, AWQ Venture — all operational)
+- Total Operating Clients: 48 (10 JACQES, 8 Caza Vision, 30 Advisor)
+- Consolidated EBITDA Margin: 26.0%
+- AWQ Venture: R$40.5M capital allocated, R$18.5M exit proceeds (Saúde Digital), ROIC 137.3%
 
 Business Units:
-1. JACQES (Agência) — Status: Ativa | Revenue: $4.82M | Clients: 3,847 | Margin: 67.4%
-2. Caza Vision (Tecnologia / Real Estate Intelligence) — Status: Em breve (Q2 2026 launch)
-3. AWQ Venture (Investimentos / Venture Capital) — Status: Em breve (fund structuring in progress)
+1. JACQES (Agência) — Ativo | Receita: R$4.82M | Clientes: 10 | EBITDA: 18.0%
+2. Caza Vision (Produtora) — Ativo | Receita: R$2.42M | Clientes: 8 | EBITDA: 27.0%
+3. Advisor (Consultoria) — Ativo | Receita: R$1.57M | Clientes: 30 | EBITDA: 46.0%
+4. AWQ Venture (Investimentos) — Ativo | Capital: R$40.5M | Dry powder: R$6.2M
 
 Focus on group-level strategy, cross-BU comparisons, consolidated financials, and portfolio-level insights.
 Be concise, data-driven, and strategic. Use specific numbers when available. Format with bullet points when listing items.`,
 
   jacqes: `You are OpenClaw, an AI business intelligence assistant for JACQES — an agency and portfolio company of AWQ Group.
-You have deep knowledge of the JACQES BI dashboard data and help analysts interpret metrics, spot trends, and make strategic recommendations.
+You have deep knowledge of the AWQ platform JACQES module data and help analysts interpret metrics, spot trends, and make strategic recommendations.
 
-Current JACQES BI Data Context (as of March 2026):
+Current JACQES Data Context (as of March 2026, YTD Q1):
 
 KPIs:
 - Total Revenue: $4,821,500 (prev: $4,205,800, +14.6%)

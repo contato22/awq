@@ -1,6 +1,6 @@
-# JACQES BI — Business Intelligence Dashboard
+# AWQ Group — Plataforma Central
 
-A Next.js 14 Business Intelligence dashboard for **JACQES**, a portfolio company of **AWQ Group**.
+A Next.js 14 control-tower platform for **AWQ Group** — a holding company with four business units: JACQES (Agência), Caza Vision (Produtora), AWQ Venture (Investimentos), and Advisor (Consultoria).
 
 ## Tech Stack
 
@@ -9,16 +9,37 @@ A Next.js 14 Business Intelligence dashboard for **JACQES**, a portfolio company
 - **Styling**: Tailwind CSS
 - **Charts**: Recharts
 - **Icons**: Lucide React
+- **Auth**: NextAuth.js (JWT + RBAC)
+- **AI**: Anthropic SDK (OpenClaw assistant + BU agents)
 
-## Features
+## Architecture
 
-| Page | Description |
-|------|-------------|
-| **Overview** | KPI cards, revenue trend, customer segments, top products, regional performance & alerts |
-| **Revenue** | Monthly P&L bar chart, margin progression, acquisition channel breakdown |
-| **Customers** | Customer directory with LTV, health status (active / at-risk / churned) |
-| **Reports** | Report cards with export actions, scheduled report management |
-| **Settings** | Workspace config, notifications, team access, data source connections |
+| Mode | Deploy | Notes |
+|------|--------|-------|
+| `STATIC_EXPORT=1` | GitHub Pages (`/awq`) | Static JSON from `public/data/` |
+| SSR | Vercel | Live Notion API queries |
+
+## Project Structure
+
+```
+awq/
+├── app/
+│   ├── awq/                 # Control tower — AWQ Group holding layer
+│   ├── jacqes/              # JACQES BU — all routes canonical here
+│   ├── caza-vision/         # Caza Vision BU
+│   ├── awq-venture/         # AWQ Venture BU
+│   ├── advisor/             # Advisor BU
+│   ├── business-units/      # Hub — all BUs overview
+│   └── api/                 # Server routes (auth, agents, chat, notion)
+├── components/
+│   ├── Sidebar.tsx          # Contextual sidebar (switches by BU)
+│   └── ...
+└── lib/
+    ├── platform-registry.ts # Source of truth for all routes
+    ├── awq-group-data.ts    # Consolidated holding data
+    ├── data.ts              # JACQES BU data (snapshot Q1 2026)
+    └── caza-data.ts         # Caza Vision BU data
+```
 
 ## Getting Started
 
@@ -27,34 +48,8 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to view the dashboard.
-
-## Project Structure
-
-```
-jacqes-bi/
-├── app/
-│   ├── layout.tsx           # Root layout with sidebar
-│   ├── page.tsx             # Overview dashboard
-│   ├── revenue/page.tsx     # Revenue analytics
-│   ├── customers/page.tsx   # Customer management
-│   ├── reports/page.tsx     # Reports & exports
-│   └── settings/page.tsx   # Workspace settings
-├── components/
-│   ├── Sidebar.tsx
-│   ├── Header.tsx
-│   ├── KPICard.tsx
-│   ├── RevenueChart.tsx
-│   ├── CustomerSegmentChart.tsx
-│   ├── TopProductsTable.tsx
-│   ├── RegionTable.tsx
-│   ├── ChannelTable.tsx
-│   └── AlertBanner.tsx
-└── lib/
-    ├── data.ts              # Mock data & TypeScript types
-    └── utils.ts             # Formatting helpers
-```
+Open [http://localhost:3000](http://localhost:3000) to view the platform.
 
 ---
 
-*JACQES BI · Powered by AWQ Group · Built with Next.js 14*
+*AWQ Group — Plataforma Central · Built with Next.js 14*
