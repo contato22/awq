@@ -31,6 +31,7 @@ const WRITABLE_PATHS = [
   "app/customers/page.tsx",
   "app/products/page.tsx",
   "app/overview/page.tsx",
+  "public/data/director/",
 ];
 
 function isWritable(filePath: string): boolean {

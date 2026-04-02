@@ -28,6 +28,7 @@ import {
     Calculator,
     Wallet,
     CreditCard,
+    Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -109,6 +110,7 @@ const gestaoNav = [
 ];
 
 const aiNav = [
+    { label: "Director", href: "/director", icon: Shield    },
     { label: "Agents",   href: "/agents",   icon: Bot      },
     { label: "OpenClaw", href: "/openclaw", icon: Sparkles },
 ];

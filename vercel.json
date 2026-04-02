@@ -1,4 +1,12 @@
 {
   "buildCommand": "next build",
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "functions": {
+    "app/api/cron/director/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/director/run/route.ts": {
+      "maxDuration": 300
+    }
+  }
 }
