@@ -94,6 +94,50 @@ export const MOCK_REGISTRY: MockEntry[] = [
     replacementPriority: "medium",
   },
 
+  // ─── Advisor mocks ───────────────────────────────────────────────────────────
+  {
+    sourceId: "advisor:kpis",
+    buId: "advisor",
+    status: "active",
+    replacementTarget: "CRM or portfolio management system",
+    replacementPriority: "medium",
+  },
+  {
+    sourceId: "advisor:clients",
+    buId: "advisor",
+    status: "active",
+    replacementTarget: "CRM database or Notion",
+    replacementPriority: "high",
+  },
+  {
+    sourceId: "advisor:fee-income",
+    buId: "advisor",
+    status: "active",
+    replacementTarget: "Financial API or ERP",
+    replacementPriority: "high",
+  },
+  {
+    sourceId: "advisor:dre",
+    buId: "advisor",
+    status: "active",
+    replacementTarget: "Accounting system or ERP",
+    replacementPriority: "medium",
+  },
+  {
+    sourceId: "advisor:strategies",
+    buId: "advisor",
+    status: "active",
+    replacementTarget: "Portfolio management system",
+    replacementPriority: "medium",
+  },
+  {
+    sourceId: "advisor:alerts",
+    buId: "advisor",
+    status: "active",
+    replacementTarget: "Alert engine or Notion",
+    replacementPriority: "medium",
+  },
+
   // ─── Caza Vision mocks ──────────────────────────────────────────────────────
   {
     sourceId: "caza:kpis",

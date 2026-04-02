@@ -11,6 +11,7 @@ import type { BuData, RiskSignal } from "@/lib/awq-group-data";
 import { buData, riskSignals } from "@/lib/awq-group-data";
 import { kpis as jacqesKpis, alerts as jacqesAlerts } from "@/lib/data";
 import { cazaKpis, cazaAlerts } from "@/lib/caza-data";
+import { advisorKpis, advisorAlerts } from "@/lib/advisor-data";
 import { isMock } from "../mocks";
 
 // ─── KPI Selectors ────────────────────────────────────────────────────────────
@@ -22,6 +23,8 @@ export function selectKpisByBu(buId: BuId): GenericKPI[] {
       return jacqesKpis;
     case "caza-vision":
       return cazaKpis;
+    case "advisor":
+      return advisorKpis;
     default:
       return [];
   }
@@ -36,6 +39,8 @@ export function selectAlertsByBu(buId: BuId): GenericAlert[] {
       return jacqesAlerts;
     case "caza-vision":
       return cazaAlerts;
+    case "advisor":
+      return advisorAlerts;
     default:
       return [];
   }
@@ -43,7 +48,7 @@ export function selectAlertsByBu(buId: BuId): GenericAlert[] {
 
 /** Get all alerts across all BUs (AWQ holding view) */
 export function selectAllAlerts(): GenericAlert[] {
-  return [...jacqesAlerts, ...cazaAlerts];
+  return [...jacqesAlerts, ...cazaAlerts, ...advisorAlerts];
 }
 
 // ─── BU Data Selectors ────────────────────────────────────────────────────────
@@ -87,8 +92,8 @@ export function selectIsBuDataMock(buId: BuId): boolean {
   const sourcePrefix = buId === "caza-vision" ? "caza" : buId;
   const relevantSources = [
     `${sourcePrefix}:kpis`,
-    `${sourcePrefix}:revenue-trend`,
-    `${sourcePrefix}:customers`,
+    `${sourcePrefix}:clients`,
+    `${sourcePrefix}:alerts`,
   ];
   return relevantSources.every((s) => isMock(s));
 }

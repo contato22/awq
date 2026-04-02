@@ -19,36 +19,12 @@ function fmtR(n: number) {
   return "R$" + n.toLocaleString("pt-BR");
 }
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-
-const clients = [
-  { id: "AC001", name: "Família Rodrigues",  type: "Family Office",     aum: 32_400_000, retorno: 18.4, risco: "Moderado",    status: "Ativo",        since: "2021-03", nps: 94, fee: 1.8 },
-  { id: "AC002", name: "Dr. Maurício Lima",  type: "PF High Net Worth", aum: 18_600_000, retorno: 14.8, risco: "Moderado",    status: "Ativo",        since: "2022-07", nps: 88, fee: 1.5 },
-  { id: "AC003", name: "Fundo ABC Capital",  type: "Institucional",     aum: 28_000_000, retorno: 12.1, risco: "Conservador", status: "Ativo",        since: "2020-11", nps: 79, fee: 0.9 },
-  { id: "AC004", name: "Oliveira & Filhos",  type: "Family Office",     aum: 15_200_000, retorno: 16.3, risco: "Arrojado",    status: "Ativo",        since: "2023-01", nps: 91, fee: 2.0 },
-  { id: "AC005", name: "Maria Clara Sousa",  type: "PF High Net Worth", aum:  8_900_000, retorno: 11.6, risco: "Conservador", status: "Ativo",        since: "2022-04", nps: 82, fee: 1.2 },
-  { id: "AC006", name: "Corporação Delta",   type: "Empresarial",       aum: 22_400_000, retorno: 10.2, risco: "Conservador", status: "Ativo",        since: "2021-09", nps: 76, fee: 0.8 },
-  { id: "AC007", name: "André Teixeira",     type: "PF High Net Worth", aum:  6_200_000, retorno: 19.8, risco: "Arrojado",    status: "Em revisão",   since: "2024-02", nps: 68, fee: 1.8 },
-  { id: "AC008", name: "Holding Ferreira",   type: "Family Office",     aum: 11_100_000, retorno: 15.4, risco: "Moderado",    status: "Ativo",        since: "2023-06", nps: 87, fee: 1.6 },
-];
-
-const typeConfig: Record<string, { color: string; bg: string }> = {
-  "Family Office":     { color: "text-violet-700", bg: "bg-violet-50"  },
-  "PF High Net Worth": { color: "text-brand-600",  bg: "bg-brand-50"   },
-  "Institucional":     { color: "text-emerald-600", bg: "bg-emerald-50" },
-  "Empresarial":       { color: "text-amber-700",  bg: "bg-amber-50"   },
-};
-
-const riscoConfig: Record<string, string> = {
-  "Conservador": "text-emerald-600",
-  "Moderado":    "text-amber-700",
-  "Arrojado":    "text-red-600",
-};
-
-const statusConfig: Record<string, string> = {
-  "Ativo":      "badge badge-green",
-  "Em revisão": "badge badge-yellow",
-};
+import {
+  advisorClients as clients,
+  advisorTypeConfig as typeConfig,
+  advisorRiscoConfig as riscoConfig,
+  advisorStatusConfig as statusConfig,
+} from "@/lib/advisor-data";
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 

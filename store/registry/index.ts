@@ -94,10 +94,11 @@ export const BU_REGISTRY: Record<BuId, BuRegistryEntry> = {
     routePrefix: "/advisor",
     color: "bg-violet-600",
     accentColor: "text-violet-400",
-    dataModules: ["bu-summary"],
-    hasOwnDataFile: false,
+    dataModules: [
+      "kpis", "clients", "fee-income", "dre", "strategies", "alerts",
+    ],
+    hasOwnDataFile: true,
     isOperating: true,
-    notes: "Data currently embedded in awq-group-data.ts BuData entry. Needs own data file.",
   },
   "awq-venture": {
     id: "awq-venture",
