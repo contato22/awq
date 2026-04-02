@@ -8,9 +8,9 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
 } from "recharts";
 import { revenueData } from "@/lib/data";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 interface CustomTooltipProps {
   active?: boolean;
@@ -30,15 +30,12 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
     }).format(v);
 
   return (
-    <div className="bg-white border border-gray-300 rounded-xl p-3.5 shadow-xl shadow-black/40 min-w-[160px]">
+    <div className="bg-white border border-gray-300 rounded-xl p-3 shadow-xl shadow-black/40 min-w-[140px]">
       <div className="text-xs font-semibold text-gray-400 mb-2">{label} 2025</div>
       {payload.map((entry) => (
-        <div key={entry.name} className="flex items-center justify-between gap-4 text-xs py-0.5">
+        <div key={entry.name} className="flex items-center justify-between gap-3 text-xs py-0.5">
           <div className="flex items-center gap-2">
-            <span
-              className="w-2 h-2 rounded-full"
-              style={{ backgroundColor: entry.color }}
-            />
+            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
             <span className="text-gray-400 capitalize">{entry.name}</span>
           </div>
           <span className="font-semibold text-gray-900">{fmt(entry.value)}</span>
@@ -49,9 +46,11 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
 }
 
 export default function RevenueChart() {
+  const isMobile = useIsMobile();
+
   return (
-    <div className="card p-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className="card p-4 lg:p-6">
+      <div className="flex items-center justify-between mb-4 lg:mb-6">
         <div>
           <h2 className="text-sm font-semibold text-gray-900">Revenue Overview</h2>
           <p className="text-xs text-gray-500 mt-0.5">Monthly P&amp;L — FY 2025</p>
@@ -60,7 +59,7 @@ export default function RevenueChart() {
           {["6M", "9M", "1Y"].map((range, i) => (
             <button
               key={range}
-              className={`px-3 py-1 text-xs rounded-md font-medium transition-colors ${
+              className={`px-2.5 lg:px-3 py-1 text-xs rounded-md font-medium transition-colors ${
                 i === 2
                   ? "bg-brand-600/20 text-brand-600 border border-brand-500/20"
                   : "text-gray-500 hover:text-gray-400"
@@ -72,10 +71,13 @@ export default function RevenueChart() {
         </div>
       </div>
 
-      <ResponsiveContainer width="100%" height={280}>
+      <ResponsiveContainer width="100%" height={isMobile ? 200 : 280}>
         <AreaChart
           data={revenueData}
-          margin={{ top: 4, right: 4, left: -10, bottom: 0 }}
+          margin={isMobile
+            ? { top: 4, right: 0, left: -20, bottom: 0 }
+            : { top: 4, right: 4, left: -10, bottom: 0 }
+          }
         >
           <defs>
             <linearGradient id="gradRevenue" x1="0" y1="0" x2="0" y2="1">
@@ -92,19 +94,16 @@ export default function RevenueChart() {
             </linearGradient>
           </defs>
 
-          <CartesianGrid
-            strokeDasharray="3 3"
-            stroke="#1f2937"
-            vertical={false}
-          />
+          <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" vertical={false} />
           <XAxis
             dataKey="month"
-            tick={{ fill: "#6b7280", fontSize: 11 }}
+            tick={{ fill: "#6b7280", fontSize: isMobile ? 10 : 11 }}
             axisLine={false}
             tickLine={false}
+            interval={isMobile ? 1 : 0}
           />
           <YAxis
-            tick={{ fill: "#6b7280", fontSize: 11 }}
+            tick={{ fill: "#6b7280", fontSize: isMobile ? 10 : 11 }}
             axisLine={false}
             tickLine={false}
             tickFormatter={(v) =>
@@ -112,41 +111,31 @@ export default function RevenueChart() {
                 notation: "compact",
                 style: "currency",
                 currency: "USD",
-                maximumFractionDigits: 1,
+                maximumFractionDigits: 0,
               }).format(v)
             }
+            width={isMobile ? 40 : 50}
           />
           <Tooltip content={<CustomTooltip />} cursor={{ stroke: "#374151", strokeWidth: 1 }} />
 
-          <Area
-            type="monotone"
-            dataKey="expenses"
-            name="expenses"
-            stroke="#f59e0b"
-            strokeWidth={1.5}
-            fill="url(#gradExpenses)"
-            dot={false}
-          />
-          <Area
-            type="monotone"
-            dataKey="profit"
-            name="profit"
-            stroke="#22d3ee"
-            strokeWidth={1.5}
-            fill="url(#gradProfit)"
-            dot={false}
-          />
-          <Area
-            type="monotone"
-            dataKey="revenue"
-            name="revenue"
-            stroke="#6366f1"
-            strokeWidth={2}
-            fill="url(#gradRevenue)"
-            dot={false}
-          />
+          {/* On mobile, only show revenue line for clarity */}
+          {!isMobile && (
+            <>
+              <Area type="monotone" dataKey="expenses" name="expenses" stroke="#f59e0b" strokeWidth={1.5} fill="url(#gradExpenses)" dot={false} />
+              <Area type="monotone" dataKey="profit" name="profit" stroke="#22d3ee" strokeWidth={1.5} fill="url(#gradProfit)" dot={false} />
+            </>
+          )}
+          <Area type="monotone" dataKey="revenue" name="revenue" stroke="#6366f1" strokeWidth={2} fill="url(#gradRevenue)" dot={false} />
         </AreaChart>
       </ResponsiveContainer>
+
+      {/* Legend — responsive */}
+      <div className="flex items-center gap-3 lg:gap-4 mt-3 text-[10px] text-gray-500 justify-center lg:justify-start">
+        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-brand-500 inline-block" /> Revenue</span>
+        <span className="hidden lg:flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-cyan-400 inline-block" /> Profit</span>
+        <span className="hidden lg:flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500 inline-block" /> Expenses</span>
+        {isMobile && <span className="text-gray-400 italic">Expand on desktop for full P&L</span>}
+      </div>
     </div>
   );
 }
