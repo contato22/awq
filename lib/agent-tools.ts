@@ -24,7 +24,9 @@ const REPO_ROOT = process.env.VERCEL_ROOT ?? process.cwd();
 const WRITABLE_PATHS = [
   "lib/data.ts",
   "lib/caza-data.ts",
+  "lib/awq-group-data.ts",
   "public/data/",
+  "store/",
   "app/financial/page.tsx",
   "app/caza-vision/page.tsx",
   "app/awq/page.tsx",
