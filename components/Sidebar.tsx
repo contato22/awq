@@ -162,6 +162,7 @@ const awqNav = [
     { label: "Forecast",       href: "/awq/forecast",    icon: TrendingUp      },
     { label: "Allocations",    href: "/awq/allocations", icon: Wallet          },
     { label: "Risk",           href: "/awq/risk",        icon: Activity        },
+    { label: "FEM",            href: "/awq/fem",         icon: TrendingUp      },
     { label: "Contas Banco",   href: "/awq/bank",        icon: CreditCard      },
 ];
 
