@@ -316,7 +316,7 @@ export const alerts: Alert[] = [
     id: "A2",
     type: "success",
     title: "Revenue Milestone",
-    message: "Q1 2026 revenue exceeded target by 8.3% — $4.82M vs $4.45M goal.",
+    message: "Q1 2026 revenue exceeded target by 8.3% — R$4.82M vs R$4.45M goal.",
     timestamp: "2026-03-18T08:00:00Z",
   },
   {

@@ -34,7 +34,7 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
             <span className="text-gray-500 capitalize">{entry.name}</span>
           </div>
           <span className="font-semibold text-gray-900 tabular-nums">
-            {formatCurrency(entry.value, "USD", true)}
+            {formatCurrency(entry.value, "BRL", true)}
           </span>
         </div>
       ))}
@@ -43,10 +43,10 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
 }
 
 const summaryStats = [
-  { label: "Total Revenue", value: "$4.82M", sub: "+14.6% YoY", positive: true, icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
-  { label: "Total Profit",  value: "$3.24M", sub: "+21.3% YoY", positive: true, icon: TrendingUp, color: "text-brand-600",   bg: "bg-brand-50" },
-  { label: "Total Expenses", value: "$1.58M", sub: "+8.2% YoY", positive: false, icon: BarChart3, color: "text-amber-700",   bg: "bg-amber-50" },
-  { label: "Avg Monthly Rev.", value: "$401.8K", sub: "per month", positive: true, icon: DollarSign, color: "text-cyan-700",  bg: "bg-cyan-50" },
+  { label: "Total Revenue", value: "R$4.82M", sub: "+14.6% YoY", positive: true, icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
+  { label: "Total Profit",  value: "R$3.24M", sub: "+21.3% YoY", positive: true, icon: TrendingUp, color: "text-brand-600",   bg: "bg-brand-50" },
+  { label: "Total Expenses", value: "R$1.58M", sub: "+8.2% YoY", positive: false, icon: BarChart3, color: "text-amber-700",   bg: "bg-amber-50" },
+  { label: "Avg Monthly Rev.", value: "R$401.8K", sub: "per month", positive: true, icon: DollarSign, color: "text-cyan-700",  bg: "bg-cyan-50" },
 ];
 
 export default function RevenuePage() {
@@ -110,7 +110,7 @@ export default function RevenuePage() {
                   new Intl.NumberFormat("en-US", {
                     notation: "compact",
                     style: "currency",
-                    currency: "USD",
+                    currency: "BRL",
                     maximumFractionDigits: 1,
                   }).format(v)
                 }

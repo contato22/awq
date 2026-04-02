@@ -25,7 +25,7 @@ const colorMap: Record<string, string> = {
 };
 
 function formatValue(kpi: KPI): string {
-  if (kpi.unit === "currency") return formatCurrency(kpi.value, "USD", true);
+  if (kpi.unit === "currency") return formatCurrency(kpi.value, "BRL", true);
   if (kpi.unit === "percent") return `${kpi.value.toFixed(1)}%`;
   return formatNumber(kpi.value, true);
 }
@@ -76,7 +76,7 @@ export default function KPICard({ kpi }: KPICardProps) {
           <span className={cn("font-semibold", isPositive ? "text-emerald-600" : "text-red-600")}>
             {isPositive ? "+" : ""}
             {kpi.unit === "currency"
-              ? formatCurrency(kpi.value - kpi.previousValue, "USD", true)
+              ? formatCurrency(kpi.value - kpi.previousValue, "BRL", true)
               : kpi.unit === "percent"
               ? `${(kpi.value - kpi.previousValue).toFixed(1)}pp`
               : formatNumber(kpi.value - kpi.previousValue, true)}

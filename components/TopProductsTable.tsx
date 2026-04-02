@@ -58,7 +58,7 @@ export default function TopProductsTable() {
                 </div>
 
                 <div className="text-sm font-semibold text-gray-900 text-right tabular-nums">
-                  {formatCurrency(product.revenue, "USD", true)}
+                  {formatCurrency(product.revenue, "BRL", true)}
                 </div>
 
                 <div className="text-xs text-gray-500 text-right tabular-nums">
