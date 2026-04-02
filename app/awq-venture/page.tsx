@@ -191,7 +191,7 @@ export default function PoCPage() {
             {periods.map((p) => (
               <button key={p} onClick={() => setPeriod(p)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${
-                  period === p ? "bg-gray-900 text-white" : "bg-gray-50 text-gray-500 hover:bg-gray-50/80"
+                  period === p ? "bg-gray-900 text-white" : "bg-gray-50 text-gray-500 hover:bg-gray-100"
                 }`}
               >{p}</button>
             ))}
