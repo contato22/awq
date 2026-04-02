@@ -4,14 +4,18 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogIn } from "lucide-react";
 
+// Tabs ordered: real-content pages first, then stubs (marked visually as Em breve)
 const tabs = [
-  { label: "AWQ",           href: "/awq-venture/awq"           },
-  { label: "Grupo Energdy", href: "/awq-venture/grupo-energdy" },
-  { label: "Sales",         href: "/awq-venture/sales"         },
-  { label: "PoC",           href: "/awq-venture"               },
-  { label: "YoY 2025",      href: "/awq-venture/yoy-2025"      },
-  { label: "RI",            href: "/awq-venture/ri"            },
-  { label: "Benchmark",     href: "/awq-venture/benchmark"     },
+  { label: "Visão Geral",  href: "/awq-venture",              stub: false },
+  { label: "Portfólio",    href: "/awq-venture/portfolio",    stub: false },
+  { label: "Pipeline",     href: "/awq-venture/pipeline",     stub: false },
+  { label: "Financial",    href: "/awq-venture/financial",    stub: false },
+  { label: "YoY 2025",     href: "/awq-venture/yoy-2025",     stub: false },
+  { label: "AWQ",          href: "/awq-venture/awq",          stub: true  },
+  { label: "Sales",        href: "/awq-venture/sales",        stub: true  },
+  { label: "Grupo Energdy",href: "/awq-venture/grupo-energdy",stub: true  },
+  { label: "RI",           href: "/awq-venture/ri",           stub: true  },
+  { label: "Benchmark",    href: "/awq-venture/benchmark",    stub: true  },
 ];
 
 export default function VentureTabNav() {
@@ -34,10 +38,17 @@ export default function VentureTabNav() {
               className={`px-3.5 py-3.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 isActive(tab.href)
                   ? "border-gray-900 text-gray-900"
+                  : tab.stub
+                  ? "border-transparent text-gray-300 hover:text-gray-500 hover:border-gray-200"
                   : "border-transparent text-gray-400 hover:text-gray-700 hover:border-gray-300"
               }`}
             >
               {tab.label}
+              {tab.stub && (
+                <span className="ml-1.5 text-[9px] font-semibold text-gray-300 uppercase tracking-wide">
+                  EM BREVE
+                </span>
+              )}
             </Link>
           ))}
         </nav>

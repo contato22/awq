@@ -1,44 +1,40 @@
 import Header from "@/components/Header";
 import Link from "next/link";
 import { BarChart3, Building2, TrendingUp, ChevronRight, Users, DollarSign, Briefcase } from "lucide-react";
-import { kpis as jacqesKpis } from "@/lib/data";
+import { buData, consolidated } from "@/lib/awq-group-data";
 
 // ── Formatters ──────────────────────────────────────────────────────────────
-function fmtRevenue(n: number): string {
+function fmtR(n: number): string {
   if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  if (n >= 1_000)     return "R$ " + n.toLocaleString("pt-BR");
-  return "R$ " + n.toLocaleString("pt-BR");
-}
-function fmtNumber(n: number): string {
-  return n.toLocaleString("pt-BR");
+  if (n >= 1_000)     return "R$" + (n / 1_000).toFixed(0) + "K";
+  return "R$" + n.toLocaleString("pt-BR");
 }
 function fmtPct(n: number): string {
   return n.toFixed(1) + "%";
 }
 
-// ── JACQES KPIs from shared data source (lib/data.ts) ──────────────────────
-const _revenue   = jacqesKpis.find((k) => k.id === "revenue")?.value   ?? 0;
-const _customers = jacqesKpis.find((k) => k.id === "customers")?.value ?? 0;
-const _margin    = jacqesKpis.find((k) => k.id === "margin")?.value    ?? 0;
+// ── BU display config — links internal; KPIs sourced from awq-group-data ────
+const jacqes = buData.find((b) => b.id === "jacqes")!;
+const caza   = buData.find((b) => b.id === "caza")!;
+const venture = buData.find((b) => b.id === "venture");
+const advisor = buData.find((b) => b.id === "advisor");
 
 const BUS = [
   {
     id: "jacqes",
     label: "JACQES",
     sub: "Agência",
-    href: "https://contato22.github.io/jacqes-bi/financial/",
-    color: "bg-brand-600",
-    borderColor: "border-brand-200",
+    href: "/jacqes",
     bgColor: "bg-brand-50",
     textColor: "text-brand-700",
     badgeColor: "bg-brand-100 text-brand-600 border-brand-200",
     icon: BarChart3,
     kpis: [
-      { label: "Receita",  value: fmtRevenue(_revenue)   },
-      { label: "Clientes", value: fmtNumber(_customers)  },
-      { label: "Margem",   value: fmtPct(_margin)        },
+      { label: "Receita",  value: fmtR(jacqes.revenue)                },
+      { label: "Clientes", value: String(jacqes.customers)            },
+      { label: "EBITDA %", value: fmtPct((jacqes.ebitda / jacqes.revenue) * 100) },
     ],
-    status: "Ativa",
+    status: jacqes.status,
     statusColor: "bg-emerald-100 text-emerald-600 border-emerald-200",
   },
   {
@@ -46,18 +42,16 @@ const BUS = [
     label: "Caza Vision",
     sub: "Produtora",
     href: "/caza-vision",
-    color: "bg-emerald-600",
-    borderColor: "border-emerald-200",
     bgColor: "bg-emerald-50",
     textColor: "text-emerald-700",
     badgeColor: "bg-emerald-100 text-emerald-600 border-emerald-200",
     icon: Building2,
     kpis: [
-      { label: "Projetos Ativos", value: "23" },
-      { label: "Proj. Entregues", value: "34" },
-      { label: "Receita YTD", value: "R$2.42M" },
+      { label: "Receita",  value: fmtR(caza.revenue)                },
+      { label: "Clientes", value: String(caza.customers)            },
+      { label: "EBITDA %", value: fmtPct((caza.ebitda / caza.revenue) * 100) },
     ],
-    status: "Ativa",
+    status: caza.status,
     statusColor: "bg-emerald-100 text-emerald-600 border-emerald-200",
   },
   {
@@ -65,37 +59,45 @@ const BUS = [
     label: "AWQ Venture",
     sub: "Investimentos",
     href: "/awq-venture",
-    color: "bg-amber-600",
-    borderColor: "border-amber-200",
     bgColor: "bg-amber-50",
     textColor: "text-amber-700",
     badgeColor: "bg-amber-100 text-amber-600 border-amber-200",
     icon: TrendingUp,
-    kpis: [
-      { label: "Portfolio", value: "—" },
-      { label: "AUM", value: "—" },
-      { label: "IRR", value: "—" },
-    ],
-    status: "Em breve",
+    kpis: venture
+      ? [
+          { label: "Receita",  value: fmtR(venture.revenue)   },
+          { label: "Capital",  value: fmtR(venture.capitalAllocated) },
+          { label: "ROIC",     value: fmtPct(venture.roic)    },
+        ]
+      : [
+          { label: "Portfolio", value: "—" },
+          { label: "AUM",       value: "—" },
+          { label: "IRR",       value: "—" },
+        ],
+    status: venture?.status ?? "Em construção",
     statusColor: "bg-amber-100 text-amber-600 border-amber-200",
   },
   {
     id: "advisor",
     label: "Advisor",
     sub: "Consultoria",
-    href: "https://contato22.github.io/advisor-bi/",
-    color: "bg-violet-600",
-    borderColor: "border-violet-200",
+    href: "/advisor",
     bgColor: "bg-violet-50",
     textColor: "text-violet-700",
     badgeColor: "bg-violet-100 text-violet-600 border-violet-200",
     icon: Briefcase,
-    kpis: [
-      { label: "Clientes", value: "—" },
-      { label: "AUM", value: "—" },
-      { label: "Retorno", value: "—" },
-    ],
-    status: "Ativa",
+    kpis: advisor
+      ? [
+          { label: "Receita",  value: fmtR(advisor.revenue)   },
+          { label: "Clientes", value: String(advisor.customers) },
+          { label: "EBITDA %", value: fmtPct((advisor.ebitda / advisor.revenue) * 100) },
+        ]
+      : [
+          { label: "Clientes", value: "—" },
+          { label: "AUM",      value: "—" },
+          { label: "Retorno",  value: "—" },
+        ],
+    status: advisor?.status ?? "Em construção",
     statusColor: "bg-emerald-100 text-emerald-600 border-emerald-200",
   },
 ];
@@ -108,9 +110,9 @@ export default function BusinessUnitsPage() {
         {/* Summary */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
-            { icon: Building2, label: "Total de BUs", value: "4" },
-            { icon: Users, label: "BUs Ativas", value: "3" },
-            { icon: DollarSign, label: "Receita Consolidada", value: "$4.82M" },
+            { icon: Building2, label: "Total de BUs",        value: String(buData.length) },
+            { icon: Users,     label: "BUs Ativas",          value: String(buData.filter((b) => b.status === "Ativo").length) },
+            { icon: DollarSign,label: "Receita Consolidada", value: fmtR(consolidated.revenue) },
           ].map((s) => (
             <div key={s.label} className="card p-5 flex items-center gap-4">
               <div className="w-9 h-9 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-center">
@@ -128,7 +130,7 @@ export default function BusinessUnitsPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {BUS.map((bu) => {
             const Icon = bu.icon;
-            const isActive = bu.status === "Ativa";
+            const isActive = bu.status === "Ativo";
             return (
               <Link
                 key={bu.id}

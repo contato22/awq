@@ -85,23 +85,20 @@ const cazaNav = [
     { label: "Clientes",       href: "/caza-vision/clientes",          icon: Users           },
     { label: "Financial",      href: "/caza-vision/financial",         icon: DollarSign      },
     { label: "Unit Economics", href: "/caza-vision/unit-economics",    icon: Calculator      },
-    { label: "Pipeline",       href: "/caza-vision/pipeline",          icon: Activity        },
-    { label: "Relatórios",     href: "/caza-vision/relatorios",        icon: BarChart3       },
 ];
 
 const advisorNav = [
     { label: "Visão Geral", href: "/advisor",              icon: LayoutDashboard },
     { label: "Financial",   href: "/advisor/financial",    icon: DollarSign      },
     { label: "Customers",   href: "/advisor/customers",    icon: Users           },
-    { label: "Portfólio",   href: "/advisor/portfolio",    icon: LineChart       },
-    { label: "Relatórios",  href: "/advisor/relatorios",   icon: FileText        },
 ];
 
 const ventureNav = [
-    { label: "Visão Geral", href: "/awq-venture",           icon: LayoutDashboard },
-    { label: "Portfólio",   href: "/awq-venture/portfolio", icon: Briefcase       },
-    { label: "Pipeline",    href: "/awq-venture/pipeline",  icon: Activity        },
-    { label: "Financial",   href: "/awq-venture/financial", icon: DollarSign      },
+    { label: "Visão Geral", href: "/awq-venture",              icon: LayoutDashboard },
+    { label: "Portfólio",   href: "/awq-venture/portfolio",    icon: Briefcase       },
+    { label: "Pipeline",    href: "/awq-venture/pipeline",     icon: Activity        },
+    { label: "Financial",   href: "/awq-venture/financial",    icon: DollarSign      },
+    { label: "YoY 2025",    href: "/awq-venture/yoy-2025",     icon: LineChart       },
 ];
 
 const gestaoNav = [
@@ -154,15 +151,17 @@ const businessUnits = [
 ];
 
 const awqNav = [
-    { label: "Visão Geral",    href: "/awq",            icon: LayoutDashboard },
-    { label: "Business Units", href: "/business-units",  icon: Building2       },
-    { label: "Financial",      href: "/awq/financial",   icon: LineChart       },
-    { label: "Cash Flow",      href: "/awq/cashflow",    icon: Zap             },
-    { label: "Budget",         href: "/awq/budget",      icon: Wallet          },
-    { label: "Forecast",       href: "/awq/forecast",    icon: TrendingUp      },
-    { label: "Allocations",    href: "/awq/allocations", icon: Wallet          },
-    { label: "Risk",           href: "/awq/risk",        icon: Activity        },
-    { label: "Contas Banco",   href: "/awq/bank",        icon: CreditCard      },
+    { label: "Visão Geral",    href: "/awq",             icon: LayoutDashboard },
+    { label: "Business Units", href: "/business-units",   icon: Building2       },
+    { label: "KPIs",           href: "/awq/kpis",         icon: BarChart3       },
+    { label: "Financial",      href: "/awq/financial",    icon: LineChart       },
+    { label: "Portfolio",      href: "/awq/portfolio",    icon: Briefcase       },
+    { label: "Cash Flow",      href: "/awq/cashflow",     icon: Zap             },
+    { label: "Budget",         href: "/awq/budget",       icon: Wallet          },
+    { label: "Forecast",       href: "/awq/forecast",     icon: TrendingUp      },
+    { label: "Allocations",    href: "/awq/allocations",  icon: Wallet          },
+    { label: "Risk",           href: "/awq/risk",         icon: Activity        },
+    { label: "Contas Banco",   href: "/awq/bank",         icon: CreditCard      },
 ];
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
@@ -268,7 +267,10 @@ function SidebarFooter() {
 
 // ── AWQ Group sidebar ────────────────────────────────────────────────────────
 function AwqSidebar({ pathname }: { pathname: string }) {
-    const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
+    const isActive = (href: string) =>
+        href === "/awq"
+            ? pathname === "/awq" || pathname.startsWith("/awq/")
+            : pathname === href || pathname.startsWith(href + "/");
     return (
         <>
             <AwqHeader />

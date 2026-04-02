@@ -4,9 +4,9 @@ import AuthProvider from "@/components/AuthProvider";
 import LayoutShell from "@/components/LayoutShell";
 
 export const metadata: Metadata = {
-  title: "JACQES BI — Business Intelligence Dashboard",
+  title: "AWQ Group — Plataforma Central",
   description:
-    "Business Intelligence dashboard for JACQES, a portfolio company of AWQ Group.",
+    "Plataforma de governança, controle e inteligência executiva do AWQ Group.",
   icons: {
     icon: "/favicon.ico",
   },
