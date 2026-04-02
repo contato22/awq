@@ -103,16 +103,6 @@ export const SOURCE_CATALOG: Record<string, SourceMeta> = {
   },
 
   // ─── ADVISOR ─────────────────────────────────────────────────────────────────
-  "advisor:kpis": {
-    sourceId: "advisor:kpis",
-    description: "Advisor KPIs — Clientes, AUM, Retorno, NPS",
-    origin: "mock",
-    reliability: "mock",
-    lifecycle: "active",
-    buOwner: "advisor",
-    filePath: "lib/advisor-data.ts",
-    lastUpdated: "2026-04-02",
-  },
   "advisor:clients": {
     sourceId: "advisor:clients",
     description: "Advisor client portfolio (8 clients with AUM, returns, NPS)",
@@ -146,16 +136,6 @@ export const SOURCE_CATALOG: Record<string, SourceMeta> = {
   "advisor:strategies": {
     sourceId: "advisor:strategies",
     description: "Advisor AUM by investment strategy",
-    origin: "mock",
-    reliability: "mock",
-    lifecycle: "active",
-    buOwner: "advisor",
-    filePath: "lib/advisor-data.ts",
-    lastUpdated: "2026-04-02",
-  },
-  "advisor:alerts": {
-    sourceId: "advisor:alerts",
-    description: "Advisor alerts and notifications",
     origin: "mock",
     reliability: "mock",
     lifecycle: "active",

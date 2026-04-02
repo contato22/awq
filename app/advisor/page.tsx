@@ -1,10 +1,12 @@
 import Header from "@/components/Header";
 import { Briefcase, Users, DollarSign, TrendingUp, Activity } from "lucide-react";
-import { advisorKpis } from "@/lib/advisor-data";
 
-const iconMap: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
-  Users, Briefcase, TrendingUp, Activity, DollarSign,
-};
+const kpis = [
+  { label: "Clientes Ativos", value: "—", icon: Users },
+  { label: "AUM", value: "—", icon: DollarSign },
+  { label: "Retorno Médio", value: "—", icon: TrendingUp },
+  { label: "NPS", value: "—", icon: Activity },
+];
 
 export default function AdvisorPage() {
   return (
@@ -13,28 +15,17 @@ export default function AdvisorPage() {
       <div className="px-8 py-6 space-y-6">
         {/* KPI Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {advisorKpis.map((kpi) => {
-            const Icon = iconMap[kpi.icon] ?? Activity;
-            const displayValue =
-              kpi.unit === "currency"
-                ? kpi.value >= 1_000_000
-                  ? `R$${(kpi.value / 1_000_000).toFixed(1)}M`
-                  : `R$${(kpi.value / 1_000).toFixed(0)}K`
-                : kpi.unit === "percent"
-                  ? `${kpi.value}%`
-                  : String(kpi.value);
-            return (
-              <div key={kpi.id} className="card p-5 flex items-center gap-4">
-                <div className="w-9 h-9 rounded-xl bg-violet-50 border border-violet-200 flex items-center justify-center shrink-0">
-                  <Icon size={16} className="text-violet-700" />
-                </div>
-                <div>
-                  <div className="text-xl font-bold text-gray-900">{displayValue}</div>
-                  <div className="text-xs text-gray-500 mt-0.5">{kpi.label}</div>
-                </div>
+          {kpis.map((kpi) => (
+            <div key={kpi.label} className="card p-5 flex items-center gap-4">
+              <div className="w-9 h-9 rounded-xl bg-violet-50 border border-violet-200 flex items-center justify-center shrink-0">
+                <kpi.icon size={16} className="text-violet-700" />
               </div>
-            );
-          })}
+              <div>
+                <div className="text-xl font-bold text-gray-900">{kpi.value}</div>
+                <div className="text-xs text-gray-500 mt-0.5">{kpi.label}</div>
+              </div>
+            </div>
+          ))}
         </div>
 
         {/* Overview */}

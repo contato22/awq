@@ -1,12 +1,12 @@
 // ─── Advisor — BU Data Module ──────────────────────────────────────────────────
 // Wraps lib/advisor-data.ts + lib/awq-group-data.ts (BuData entry) with metadata.
-// Now has its own dedicated data file with KPIs, clients, financials, and alerts.
+// Contains clients, financials, and strategies extracted from existing pages.
+// KPIs and alerts are NOT yet available — will be added when real data exists.
 
 import { buData } from "@/lib/awq-group-data";
 import type { BuData } from "@/lib/awq-group-data";
 
 import {
-  advisorKpis,
   advisorClients,
   advisorFeeIncome,
   advisorDRE,
@@ -18,7 +18,6 @@ import {
 } from "@/lib/advisor-data";
 
 import type {
-  AdvisorKPI,
   AdvisorClient,
   AdvisorFeeIncome,
   AdvisorDRERow,
@@ -31,7 +30,6 @@ import { SOURCE_CATALOG } from "../meta";
 
 // ─── Raw re-exports ───────────────────────────────────────────────────────────
 export {
-  advisorKpis,
   advisorClients,
   advisorFeeIncome,
   advisorDRE,
@@ -44,7 +42,6 @@ export {
 
 // ─── Type re-exports ──────────────────────────────────────────────────────────
 export type {
-  AdvisorKPI,
   AdvisorClient,
   AdvisorFeeIncome,
   AdvisorDRERow,
@@ -68,10 +65,6 @@ export function getAdvisorData() {
   return createEnvelope<BuData>(advisorData, SOURCE_CATALOG["awq:bu-data"]);
 }
 
-export function getAdvisorKpis() {
-  return createEnvelope<AdvisorKPI[]>(advisorKpis, SOURCE_CATALOG["advisor:kpis"]);
-}
-
 export function getAdvisorClients() {
   return createEnvelope<AdvisorClient[]>(advisorClients, SOURCE_CATALOG["advisor:clients"]);
 }
@@ -88,10 +81,6 @@ export function getAdvisorStrategies() {
   return createEnvelope<AdvisorStrategy[]>(advisorStrategies, SOURCE_CATALOG["advisor:strategies"]);
 }
 
-export function getAdvisorAlerts() {
-  return createEnvelope<AdvisorAlert[]>(advisorAlerts, SOURCE_CATALOG["advisor:alerts"]);
-}
-
 // ─── BU-level summary ─────────────────────────────────────────────────────────
 
 export const ADVISOR_BU_ID = "advisor" as const;
@@ -99,8 +88,6 @@ export const ADVISOR_BU_ID = "advisor" as const;
 export function getAdvisorSummary() {
   const activeClients = advisorClients.filter((c) => c.status === "Ativo").length;
   const totalAum = advisorClients.reduce((s, c) => s + c.aum, 0);
-  const avgReturn = advisorClients.reduce((s, c) => s + c.retorno, 0) / advisorClients.length;
-  const avgNps = Math.round(advisorClients.reduce((s, c) => s + c.nps, 0) / advisorClients.length);
 
   return {
     buId: ADVISOR_BU_ID,
@@ -114,8 +101,5 @@ export function getAdvisorSummary() {
     cashBalance: advisorData.cashBalance,
     activeClients,
     totalAum,
-    avgReturn,
-    avgNps,
-    activeAlerts: advisorAlerts.length,
   };
 }

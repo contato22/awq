@@ -61,46 +61,8 @@ export interface AdvisorAlert {
 }
 
 // ─── KPIs ─────────────────────────────────────────────────────────────────────
-
-export const advisorKpis: AdvisorKPI[] = [
-  {
-    id: "clientes",
-    label: "Clientes Ativos",
-    value: 7,
-    previousValue: 6,
-    unit: "number",
-    icon: "Users",
-    color: "violet",
-  },
-  {
-    id: "aum",
-    label: "AUM Total",
-    value: 142_800_000,
-    previousValue: 120_700_000,
-    unit: "currency",
-    icon: "Briefcase",
-    color: "violet",
-  },
-  {
-    id: "retorno",
-    label: "Retorno Médio",
-    value: 14.8,
-    previousValue: 12.4,
-    unit: "percent",
-    suffix: "%",
-    icon: "TrendingUp",
-    color: "emerald",
-  },
-  {
-    id: "nps",
-    label: "NPS Médio",
-    value: 83,
-    previousValue: 77,
-    unit: "number",
-    icon: "Activity",
-    color: "amber",
-  },
-];
+// NOTE: No KPIs are defined yet. The Advisor overview page intentionally
+// shows "—" placeholders. KPIs should only be added when real data is available.
 
 // ─── Clients ──────────────────────────────────────────────────────────────────
 
@@ -150,30 +112,10 @@ export const advisorStrategies: AdvisorStrategy[] = [
 ];
 
 // ─── Alerts ───────────────────────────────────────────────────────────────────
+// NOTE: No alerts defined yet. Alerts should only be added from real
+// monitoring systems or manual operator input — never fabricated.
 
-export const advisorAlerts: AdvisorAlert[] = [
-  {
-    id: "ADV1",
-    type: "warning",
-    title: "Cliente em Revisão — André Teixeira",
-    message: "André Teixeira (AUM R$6.2M, NPS 68) em revisão contratual — risco de saída.",
-    timestamp: "2026-03-28T10:00:00Z",
-  },
-  {
-    id: "ADV2",
-    type: "success",
-    title: "Retorno Acima do Benchmark",
-    message: "Retorno médio da carteira +14.8% vs Ibovespa +9.2% — spread de +5.6pp.",
-    timestamp: "2026-03-30T14:00:00Z",
-  },
-  {
-    id: "ADV3",
-    type: "info",
-    title: "AUM Milestone",
-    message: "AUM total ultrapassou R$140M pela primeira vez. Crescimento de 18.3% YoY.",
-    timestamp: "2026-03-25T09:00:00Z",
-  },
-];
+export const advisorAlerts: AdvisorAlert[] = [];
 
 // ─── UI Config (display helpers — used by pages for styling) ──────────────────
 

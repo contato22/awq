@@ -96,13 +96,6 @@ export const MOCK_REGISTRY: MockEntry[] = [
 
   // ─── Advisor mocks ───────────────────────────────────────────────────────────
   {
-    sourceId: "advisor:kpis",
-    buId: "advisor",
-    status: "active",
-    replacementTarget: "CRM or portfolio management system",
-    replacementPriority: "medium",
-  },
-  {
     sourceId: "advisor:clients",
     buId: "advisor",
     status: "active",
@@ -130,14 +123,6 @@ export const MOCK_REGISTRY: MockEntry[] = [
     replacementTarget: "Portfolio management system",
     replacementPriority: "medium",
   },
-  {
-    sourceId: "advisor:alerts",
-    buId: "advisor",
-    status: "active",
-    replacementTarget: "Alert engine or Notion",
-    replacementPriority: "medium",
-  },
-
   // ─── Caza Vision mocks ──────────────────────────────────────────────────────
   {
     sourceId: "caza:kpis",
