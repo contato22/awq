@@ -168,7 +168,7 @@ export default function PoCPage() {
       </div>
 
       {/* Row 2 — Chart + Vesting */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4">
         {/* Receita Acumulada */}
         <div className="col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
           <div className="flex items-start justify-between mb-1">
@@ -249,7 +249,7 @@ export default function PoCPage() {
       </div>
 
       {/* Row 3 — Canais de Aquisição */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4">
         <div className="col-span-1 col-start-3 bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
           <div className="flex items-start justify-between mb-0.5">
             <div className="text-base font-bold text-gray-900">Canais de Aquisição</div>

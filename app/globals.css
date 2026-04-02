@@ -7,6 +7,7 @@
 @layer base {
   :root {
     --sidebar-width: 260px;
+    --bottom-nav-height: 56px;
   }
 
   * {
@@ -15,6 +16,7 @@
 
   body {
     @apply bg-gray-50 text-gray-900 font-sans antialiased;
+    -webkit-tap-highlight-color: transparent;
   }
 
   ::-webkit-scrollbar {
@@ -70,5 +72,26 @@
 
   .btn-secondary {
     @apply px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors border border-gray-300;
+  }
+
+  /* Safe area for bottom navigation on iOS */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Page content wrapper — responsive padding */
+  .page-content {
+    @apply px-4 py-4 space-y-4 lg:px-8 lg:py-6 lg:space-y-6;
+  }
+}
+
+@layer utilities {
+  /* Mobile-first: hide scrollbar on touch devices for horizontal scroll */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 }

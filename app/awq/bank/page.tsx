@@ -334,10 +334,10 @@ export default function BankAccountsPage() {
   return (
     <>
       <Header title="Contas de Banco" subtitle="Extratos, reconciliação e histórico de transações" />
-      <div className="px-8 py-6 space-y-5">
+      <div className="page-content">
 
         {/* ── Summary cards ────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           {[
             { label: "Saldo Total",    value: fmtR(totalBalance),  icon: Wallet,      color: "text-brand-600",   bg: "bg-brand-50",   delta: `${accounts.length} conta${accounts.length !== 1 ? "s" : ""}` },
             { label: "Entradas (YTD)", value: fmtR(totalCredits),  icon: TrendingUp,  color: "text-emerald-600", bg: "bg-emerald-50", delta: `${allTx.filter(t=>t.amount>0).length} créditos` },

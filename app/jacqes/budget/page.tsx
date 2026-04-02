@@ -141,10 +141,10 @@ export default function JacqesBudgetPage() {
         title="Budget — JACQES"
         subtitle="Orçamento anual · Realizado YTD · Forecast 2026"
       />
-      <div className="px-8 py-6 space-y-6">
+      <div className="page-content">
 
         {/* ── Summary Cards ─────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           {[
             {
               label: "Budget Receita 2026",

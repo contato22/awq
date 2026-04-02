@@ -40,9 +40,9 @@ export default function CustomersPage() {
         subtitle="Customer directory, health scores, and lifetime value"
       />
 
-      <div className="px-8 py-6 space-y-6">
+      <div className="page-content">
         {/* Summary */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           <div className="card p-5 flex items-center gap-4">
             <div className="w-10 h-10 rounded-xl bg-brand-50 border border-brand-200 flex items-center justify-center text-brand-600">
               <Users size={18} />

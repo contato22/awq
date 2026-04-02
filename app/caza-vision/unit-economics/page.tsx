@@ -94,10 +94,10 @@ export default function CazaUnitEconomicsPage() {
         title="Unit Economics — Caza Vision"
         subtitle="CAC · LTV · Margem por projeto e cliente · Rendimento por diretor"
       />
-      <div className="px-8 py-6 space-y-6">
+      <div className="page-content">
 
         {/* ── Unit Metric Cards ─────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           {unitCards.map((m) => {
             const Icon = m.icon;
             return (

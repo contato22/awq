@@ -36,10 +36,10 @@ export default function AwqPortfolioPage() {
         title="Portfolio — AWQ Group"
         subtitle="Visão consolidada do grupo · Jan–Mar 2026"
       />
-      <div className="px-8 py-6 space-y-6">
+      <div className="page-content">
 
         {/* ── Group summary ──────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           {[
             { label: "BUs no Portfolio",   value: buData.length.toString(),         icon: Building2,  color: "text-brand-600",   bg: "bg-brand-50"   },
             { label: "Capital Total",       value: fmtR(totalCap),                   icon: Wallet,     color: "text-amber-700",   bg: "bg-amber-50"   },
@@ -211,7 +211,7 @@ export default function AwqPortfolioPage() {
         </div>
 
         {/* ── Quick nav ─────────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
           {[
             { label: "Financial",   href: "/awq/financial",   icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
             { label: "Allocations", href: "/awq/allocations", icon: Wallet,     color: "text-amber-700",   bg: "bg-amber-50"   },

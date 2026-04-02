@@ -107,10 +107,10 @@ export default function JacqesUnitEconomicsPage() {
         title="Unit Economics — JACQES"
         subtitle="CAC · LTV · Payback · MRR · Cohortes"
       />
-      <div className="px-8 py-6 space-y-6">
+      <div className="page-content">
 
         {/* ── Unit Metric Cards ─────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           {unitMetrics.map((m) => {
             const Icon = m.icon;
             return (

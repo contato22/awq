@@ -80,10 +80,10 @@ export default function JacqesCustomersPage() {
         title="Customers — JACQES"
         subtitle="Carteira de clientes · LTV · Churn · NPS"
       />
-      <div className="px-8 py-6 space-y-6">
+      <div className="page-content">
 
         {/* ── Summary Cards ─────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           {[
             { label: "MRR Total",       value: fmtR(totalMrr),    sub: `${ativos} clientes ativos`,    icon: DollarSign,    color: "text-emerald-600", bg: "bg-emerald-50", delta: "+14.2%", up: true  },
             { label: "LTV Médio",        value: fmtR(avgLtv),      sub: `Carteira: ${fmtR(totalLtv)}`, icon: TrendingUp,    color: "text-brand-600",   bg: "bg-brand-50",   delta: "+8.7%",  up: true  },

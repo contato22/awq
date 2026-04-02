@@ -1,4 +1,5 @@
 import Header from "@/components/Header";
+import MobileBUScoreboard from "@/components/MobileBUScoreboard";
 import Link from "next/link";
 import {
   DollarSign,
@@ -166,10 +167,10 @@ export default function AwqGroupPage() {
         title="AWQ Group — Control Tower"
         subtitle="Holding · Visão consolidada · Jan–Mar 2026"
       />
-      <div className="px-8 py-6 space-y-6">
+      <div className="page-content">
 
         {/* ── Executive Summary Row 1 ───────────────────────────────────────── */}
-        <div className="grid grid-cols-2 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3 lg:gap-4">
           {execCards.map((card) => {
             const Icon = card.icon;
             return (
@@ -195,7 +196,7 @@ export default function AwqGroupPage() {
         </div>
 
         {/* ── Executive Summary Row 2 ───────────────────────────────────────── */}
-        <div className="grid grid-cols-2 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3 lg:gap-4">
           {execCards2.map((card) => {
             const Icon = card.icon;
             return (
@@ -221,7 +222,22 @@ export default function AwqGroupPage() {
         </div>
 
         {/* ── BU Scoreboard ─────────────────────────────────────────────────── */}
-        <div className="card p-5">
+        {/* Mobile: card-based scoreboard */}
+        <div className="lg:hidden">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Building2 size={15} className="text-gray-400" />
+              <h2 className="text-sm font-semibold text-gray-900">BU Scoreboard</h2>
+            </div>
+            <Link href="/business-units" className="text-[11px] text-brand-600 hover:text-brand-500 flex items-center gap-1 transition-colors">
+              Detalhes <ChevronRight size={12} />
+            </Link>
+          </div>
+          <MobileBUScoreboard buData={buData} />
+        </div>
+
+        {/* Desktop: full table scoreboard */}
+        <div className="hidden lg:block card p-5">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Building2 size={15} className="text-gray-400" />
@@ -345,7 +361,7 @@ export default function AwqGroupPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 lg:gap-6">
 
           {/* ── Risk Panel ───────────────────────────────────────────────────── */}
           <div className="xl:col-span-2 card p-5">
@@ -456,7 +472,7 @@ export default function AwqGroupPage() {
             <Target size={14} className="text-brand-600" />
             <h2 className="text-sm font-semibold text-gray-900">Drill-Down por BU</h2>
           </div>
-          <div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 lg:gap-4">
             {buData.map((bu) => (
               <div key={bu.id} className="rounded-xl border border-gray-200 p-4">
                 <div className="flex items-center gap-2 mb-3">
@@ -532,7 +548,7 @@ export default function AwqGroupPage() {
         </div>
 
         {/* ── Quick Nav to AWQ Sub-pages ────────────────────────────────────── */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
           {[
             { label: "Financial",    sub: "P&L consolidado",         href: "/awq/financial",   icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
             { label: "Cash Flow",    sub: "Fluxo de caixa",           href: "/awq/cashflow",    icon: Zap,        color: "text-cyan-700",    bg: "bg-cyan-50"    },

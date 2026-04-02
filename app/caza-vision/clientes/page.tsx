@@ -84,7 +84,7 @@ export default function ClientesPage() {
   return (
     <>
       <Header title="Clientes" subtitle="Marcas, agências e empresas — Caza Vision" />
-      <div className="px-8 py-6 space-y-6">
+      <div className="page-content">
 
         {/* ── Source badge ────────────────────────────────────────────────── */}
         <div className="flex items-center gap-2">
@@ -110,7 +110,7 @@ export default function ClientesPage() {
         </div>
 
         {/* ── Summary strip ───────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           {[
             { label: "Total de Clientes",    value: String(total),       color: "text-gray-900",       icon: Users       },
             { label: "Ativos / Em Proposta", value: String(ativos),      color: "text-emerald-600", icon: BarChart3   },

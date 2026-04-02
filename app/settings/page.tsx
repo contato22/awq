@@ -58,7 +58,7 @@ export default function SettingsPage() {
     <>
       <Header title="Settings" subtitle="Manage your JACQES BI workspace preferences" />
 
-      <div className="px-8 py-6 space-y-4">
+      <div className="page-content">
         <SettingsSection
           icon={Settings}
           title="General"

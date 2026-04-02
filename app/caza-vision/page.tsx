@@ -95,10 +95,10 @@ export default function CazaVisionPage() {
   return (
     <>
       <Header title="Caza Vision" subtitle="Produtora de Conteúdo · AWQ Group" />
-      <div className="px-8 py-6 space-y-6">
+      <div className="page-content">
 
         {/* ── KPI Cards ─────────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           {cazaKpis.map((kpi) => {
             const Icon = kpiIconMap[kpi.icon] ?? Building2;
             const colors = kpiColorMap[kpi.color] ?? kpiColorMap.emerald;

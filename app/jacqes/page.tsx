@@ -15,7 +15,7 @@ export default function DashboardPage() {
         subtitle="JACQES · Business Intelligence Dashboard · March 2026"
       />
 
-      <div className="px-8 py-6 space-y-6">
+      <div className="page-content">
         {/* KPI Row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           {kpis.map((kpi) => (

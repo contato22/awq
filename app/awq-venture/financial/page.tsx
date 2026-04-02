@@ -143,10 +143,10 @@ export default function AwqVentureFinancialPage() {
         title="Financial — AWQ Venture"
         subtitle="Portfólio · ROIC por Investimento · Performance · 2020–2026"
       />
-      <div className="px-8 py-6 space-y-6">
+      <div className="page-content">
 
         {/* ── Summary Cards ─────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           {[
             {
               label: "Capital Investido",

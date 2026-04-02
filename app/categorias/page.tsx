@@ -9,7 +9,7 @@ export default function CategoriasPage() {
         subtitle="Gestão de categorias para AWQ Group"
       />
 
-      <div className="px-8 py-6">
+      <div className="page-content">
         {/* Action bar */}
         <div className="card p-4 flex items-center justify-between mb-6">
           <div className="flex items-center gap-2 text-sm text-gray-500">

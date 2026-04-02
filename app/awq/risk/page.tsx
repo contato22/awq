@@ -153,7 +153,7 @@ export default function AwqRiskPage() {
         title="Risk — AWQ Group"
         subtitle="Risk signals · Concentração · Recebíveis · Margem · Cash · Forecast"
       />
-      <div className="px-8 py-6 space-y-6">
+      <div className="page-content">
 
         {/* ── Risk Summary ──────────────────────────────────────────────────── */}
         <div className="grid grid-cols-3 xl:grid-cols-6 gap-4">

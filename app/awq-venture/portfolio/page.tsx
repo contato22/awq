@@ -162,10 +162,10 @@ export default function AwqVenturePortfolioPage() {
         title="Portfólio — AWQ Venture"
         subtitle={`${portfolio.length} empresas · ${ativos.length} ativas · ${exitados.length} exits · ${monitor.length} em monitoramento`}
       />
-      <div className="px-8 py-6 space-y-4">
+      <div className="page-content">
 
         {/* ── Summary strip ─────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4">
           {[
             { label: "Investimentos Ativos",  value: ativos.length,   icon: CheckCircle2, color: "text-emerald-400", bg: "bg-emerald-500/10" },
             { label: "Exits Concluídos",       value: exitados.length, icon: Zap,          color: "text-violet-400",  bg: "bg-violet-500/10"  },

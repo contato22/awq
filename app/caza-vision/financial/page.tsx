@@ -169,7 +169,7 @@ export default function CazaFinancialPage() {
         title="Financial — Caza Vision"
         subtitle="Receita, despesas e lucro por projeto · agrupado por mês"
       />
-      <div className="px-8 py-6 space-y-6">
+      <div className="page-content">
 
         {/* ── Source badge ─────────────────────────────────────────────────── */}
         <div className="flex items-center gap-2">
@@ -197,7 +197,7 @@ export default function CazaFinancialPage() {
         </div>
 
         {/* ── Summary Cards ─────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           {summaryCards.map((card) => {
             const Icon = card.icon;
             return (

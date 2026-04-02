@@ -99,7 +99,7 @@ export default function ReportsPage() {
         subtitle="Generated reports and data exports for JACQES stakeholders"
       />
 
-      <div className="px-8 py-6 space-y-6">
+      <div className="page-content">
         {/* Quick action bar */}
         <div className="card p-4 flex items-center gap-3 flex-wrap">
           <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mr-2">

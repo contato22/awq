@@ -55,9 +55,9 @@ export default function RevenuePage() {
         subtitle="Detailed financial performance and acquisition breakdown"
       />
 
-      <div className="px-8 py-6 space-y-6">
+      <div className="page-content">
         {/* Summary stats */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           {summaryStats.map((stat) => (
             <div key={stat.label} className="card p-5">
               <div className="text-2xl font-bold text-gray-900 tabular-nums">{stat.value}</div>

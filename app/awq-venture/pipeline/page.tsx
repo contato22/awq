@@ -125,10 +125,10 @@ export default function AwqVenturePipelinePage() {
         title="Pipeline — AWQ Venture"
         subtitle={`${deals.length} deals em avaliação · ${fmtR(totalTicket)} em ticket potencial`}
       />
-      <div className="px-8 py-6 space-y-6">
+      <div className="page-content">
 
         {/* ── Summary ──────────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           {[
             { label: "Deals Ativos",       value: deals.length,    icon: TrendingUp,  color: "text-amber-400",  bg: "bg-amber-500/10"  },
             { label: "Ticket Potencial",   value: fmtR(totalTicket), icon: DollarSign, color: "text-emerald-400",bg: "bg-emerald-500/10" },
@@ -151,7 +151,7 @@ export default function AwqVenturePipelinePage() {
         </div>
 
         {/* ── Kanban ───────────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           {stages.map((stage) => {
             const { icon: StageIcon, color, bg } = stageConfig[stage];
             const stageDeals = deals.filter((d) => d.stage === stage);

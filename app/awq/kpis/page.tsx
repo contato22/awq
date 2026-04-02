@@ -79,10 +79,10 @@ export default function AwqKpisPage() {
         title="KPIs — AWQ Group"
         subtitle="Scorecard consolidado · Jan–Mar 2026"
       />
-      <div className="px-8 py-6 space-y-6">
+      <div className="page-content">
 
         {/* ── Top-level metrics ──────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           {[
             { label: "Receita YTD",    value: fmtR(consolidated.revenue),              icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
             { label: "EBITDA Margem",  value: pct(consolidatedMargins.ebitdaMargin),   icon: BarChart3,  color: "text-violet-700",  bg: "bg-violet-50"  },
@@ -111,7 +111,7 @@ export default function AwqKpisPage() {
               <Activity size={14} className="text-gray-400" />
               <h2 className="text-sm font-semibold text-gray-900">{section.category}</h2>
             </div>
-            <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
               {section.items.map((kpi) => (
                 <div key={kpi.label} className="p-3 rounded-xl bg-gray-100 border border-gray-200">
                   <div className="text-lg font-bold text-gray-900">{kpi.value}</div>

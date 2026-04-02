@@ -104,9 +104,9 @@ export default function BusinessUnitsPage() {
   return (
     <>
       <Header title="Business Units" subtitle="Portfolio de empresas do AWQ Group" />
-      <div className="px-8 py-6 space-y-4">
+      <div className="page-content">
         {/* Summary */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4">
           {[
             { icon: Building2, label: "Total de BUs", value: "4" },
             { icon: Users, label: "BUs Ativas", value: "3" },
@@ -125,7 +125,7 @@ export default function BusinessUnitsPage() {
         </div>
 
         {/* BU Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
           {BUS.map((bu) => {
             const Icon = bu.icon;
             const isActive = bu.status === "Ativa";

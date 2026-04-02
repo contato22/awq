@@ -64,10 +64,10 @@ export default function AdvisorCustomersPage() {
         title="Customers — Advisor"
         subtitle="Carteira de clientes · AUM · Performance · Perfil"
       />
-      <div className="px-8 py-6 space-y-6">
+      <div className="page-content">
 
         {/* ── Summary Cards ─────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           {[
             { label: "AUM Total",       value: fmtR(totalAum),  sub: `${ativos} clientes ativos`,  icon: Briefcase, color: "text-violet-700", bg: "bg-violet-50", delta: "+18.3%", up: true  },
             { label: "AUM Médio",        value: fmtR(Math.round(totalAum / clients.length)), sub: "por cliente",    icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50", delta: "+14.1%", up: true  },

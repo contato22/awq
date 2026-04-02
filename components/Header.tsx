@@ -12,16 +12,16 @@ export default function Header({ title, subtitle }: HeaderProps) {
   const unreadCount = alerts.filter((a) => a.type === "warning" || a.type === "error").length;
 
   return (
-    <header className="px-8 py-5 border-b border-gray-200 bg-gray-50 flex items-center justify-between gap-4">
-      <div>
-        <h1 className="text-lg font-semibold text-gray-900">{title}</h1>
+    <header className="px-4 py-4 lg:px-8 lg:py-5 border-b border-gray-200 bg-gray-50 flex items-center justify-between gap-3">
+      <div className="min-w-0">
+        <h1 className="text-base lg:text-lg font-semibold text-gray-900 truncate">{title}</h1>
         {subtitle && (
-          <p className="text-sm text-gray-500 mt-0.5">{subtitle}</p>
+          <p className="text-xs lg:text-sm text-gray-500 mt-0.5 truncate">{subtitle}</p>
         )}
       </div>
 
-      <div className="flex items-center gap-2">
-        {/* Search */}
+      <div className="flex items-center gap-2 shrink-0">
+        {/* Search — hidden on mobile (accessible via drawer) */}
         <div className="relative hidden md:block">
           <Search
             size={14}
@@ -39,8 +39,8 @@ export default function Header({ title, subtitle }: HeaderProps) {
           <RefreshCw size={15} />
         </button>
 
-        {/* Notifications */}
-        <button className="relative p-2 text-gray-500 hover:text-gray-400 hover:bg-gray-100 rounded-lg transition-colors" title="Alerts">
+        {/* Notifications — hidden on mobile (in MobileHeader) */}
+        <button className="relative p-2 text-gray-500 hover:text-gray-400 hover:bg-gray-100 rounded-lg transition-colors hidden lg:flex" title="Alerts">
           <Bell size={15} />
           {unreadCount > 0 && (
             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-1 ring-white" />

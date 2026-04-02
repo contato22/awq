@@ -8,7 +8,7 @@ export default function AgentsPage() {
         title="Agents"
         subtitle="Agentes autônomos por BU + AWQ Master Agent para gestão de portfolio"
       />
-      <div className="px-8 py-6">
+      <div className="page-content">
         <AgentsPanel />
       </div>
     </>
