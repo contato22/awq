@@ -123,7 +123,7 @@ const businessUnits = [
         id: "jacqes",
         label: "JACQES",
         sub: "Agência · AWQ Group",
-        href: "https://contato22.github.io/jacqes-bi/",
+        href: "/jacqes",
         icon: BarChart3,
         color: "bg-brand-600",
     },
@@ -147,7 +147,7 @@ const businessUnits = [
         id: "advisor",
         label: "Advisor",
         sub: "Consultoria · AWQ Group",
-        href: "https://contato22.github.io/advisor-bi/",
+        href: "/advisor",
         icon: Briefcase,
         color: "bg-violet-600",
     },
@@ -235,23 +235,35 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 function SidebarFooter() {
+    const { data: session } = useSession();
+    const userName = session?.user?.name ?? "Usuário";
+    const userRole = (session?.user as { role?: string } | undefined)?.role ?? "admin";
+    const roleLabel = ROLE_LABELS[userRole] ?? userRole;
+    const initials = userName
+        .split(" ")
+        .map((w) => w[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase();
+
     return (
         <div className="px-4 py-4 border-t border-gray-100">
             <div className="flex items-center gap-3 px-1">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-awq-gold to-amber-600 flex items-center justify-center text-xs font-bold text-gray-900 shrink-0">
-                    AD
+                    {initials}
                 </div>
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-gray-800 truncate">Admin</span>
+                        <span className="text-sm font-semibold text-gray-800 truncate">{userName}</span>
                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-200">
-                            ADMIN
+                            {roleLabel.toUpperCase()}
                         </span>
                     </div>
-                    <div className="text-[10px] text-gray-400 truncate">Administrador</div>
+                    <div className="text-[10px] text-gray-400 truncate">{session?.user?.email ?? ""}</div>
                 </div>
                 <button
-                    className="p-1.5 text-gray-400 hover:text-gray-400 hover:bg-gray-100 rounded-lg transition-colors"
+                    onClick={() => signOut({ callbackUrl: "/login" })}
+                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-gray-100 rounded-lg transition-colors"
                     title="Sair"
                 >
                     <LogOut size={14} />
