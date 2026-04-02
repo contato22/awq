@@ -1,4 +1,18 @@
-// ─── AWQ Group — Consolidated holding data · YTD Jan–Mar 2026 ─────────────────
+// ─── AWQ Group — Consolidated holding data ──────────────────────────────────
+//
+// AUDITORIA 2026-04-02: Todos os valores financeiros anteriores eram
+// hardcoded/fictícios sem fonte verificável. Os dados foram zerados para
+// refletir o estado real: a base AWQ ainda não possui dados financeiros
+// internalizados de fonte confiável.
+//
+// Quando os dados reais estiverem disponíveis (via integração com ERP,
+// contabilidade ou base interna verificada), os valores devem ser preenchidos
+// aqui ou substituídos por fetch dinâmico de API interna.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Flag global: indica se os dados desta camada foram verificados por fonte confiável */
+export const DATA_VERIFIED = false;
+export const DATA_STATUS_LABEL = "Dados ainda não internalizados — aguardando integração com fonte confiável";
 
 export interface BuData {
   id:               string;
@@ -39,17 +53,17 @@ export const buData: BuData[] = [
     color:            "bg-brand-600",
     accentColor:      "text-brand-400",
     status:           "Ativo",
-    revenue:          4_820_000,
-    grossProfit:      2_892_000,
-    ebitda:           867_000,
-    netIncome:        518_000,
-    cashGenerated:    720_000,
-    cashBalance:      1_840_000,
-    customers:        10,
-    ftes:             28,
-    capitalAllocated: 2_400_000,
-    roic:             21.6,
-    budgetRevenue:    4_440_000,
+    revenue:          0,
+    grossProfit:      0,
+    ebitda:           0,
+    netIncome:        0,
+    cashGenerated:    0,
+    cashBalance:      0,
+    customers:        0,
+    ftes:             0,
+    capitalAllocated: 0,
+    roic:             0,
+    budgetRevenue:    0,
     hrefOverview:     "/jacqes",
     hrefFinancial:    "/jacqes/financial",
     hrefCustomers:    "/jacqes/customers",
@@ -63,17 +77,17 @@ export const buData: BuData[] = [
     color:            "bg-emerald-600",
     accentColor:      "text-emerald-400",
     status:           "Ativo",
-    revenue:          2_418_000,
-    grossProfit:      1_730_000,
-    ebitda:           653_000,
-    netIncome:        420_000,
-    cashGenerated:    580_000,
-    cashBalance:      920_000,
-    customers:        8,
-    ftes:             15,
-    capitalAllocated: 1_200_000,
-    roic:             35.0,
-    budgetRevenue:    2_148_000,
+    revenue:          0,
+    grossProfit:      0,
+    ebitda:           0,
+    netIncome:        0,
+    cashGenerated:    0,
+    cashBalance:      0,
+    customers:        0,
+    ftes:             0,
+    capitalAllocated: 0,
+    roic:             0,
+    budgetRevenue:    0,
     hrefOverview:     "/caza-vision",
     hrefFinancial:    "/caza-vision/financial",
     hrefCustomers:    "/caza-vision/clientes",
@@ -87,17 +101,17 @@ export const buData: BuData[] = [
     color:            "bg-violet-600",
     accentColor:      "text-violet-400",
     status:           "Ativo",
-    revenue:          1_572_000,
-    grossProfit:      865_000,
-    ebitda:           723_000,
-    netIncome:        479_000,
-    cashGenerated:    510_000,
-    cashBalance:      680_000,
-    customers:        30,
-    ftes:             8,
-    capitalAllocated: 800_000,
-    roic:             59.9,
-    budgetRevenue:    1_400_000,
+    revenue:          0,
+    grossProfit:      0,
+    ebitda:           0,
+    netIncome:        0,
+    cashGenerated:    0,
+    cashBalance:      0,
+    customers:        0,
+    ftes:             0,
+    capitalAllocated: 0,
+    roic:             0,
+    budgetRevenue:    0,
     hrefOverview:     "/advisor",
     hrefFinancial:    "/advisor/financial",
     hrefCustomers:    "/advisor/customers",
@@ -111,16 +125,16 @@ export const buData: BuData[] = [
     color:            "bg-amber-600",
     accentColor:      "text-amber-400",
     status:           "Ativo",
-    revenue:          0,            // investment vehicle — no operating revenue
+    revenue:          0,
     grossProfit:      0,
     ebitda:           0,
-    netIncome:        18_500_000,   // exit proceeds (Saúde Digital)
-    cashGenerated:    18_500_000,
-    cashBalance:      6_200_000,    // dry powder
-    customers:        6,            // portfolio companies
-    ftes:             3,
-    capitalAllocated: 40_500_000,
-    roic:             137.3,        // portfolio total return %
+    netIncome:        0,
+    cashGenerated:    0,
+    cashBalance:      0,
+    customers:        0,
+    ftes:             0,
+    capitalAllocated: 0,
+    roic:             0,
     budgetRevenue:    0,
     hrefOverview:     "/awq-venture",
     hrefFinancial:    "/awq-venture/financial",
@@ -140,7 +154,7 @@ export const consolidated = {
   ebitda:           operatingBus.reduce((s, b) => s + b.ebitda,           0),
   netIncome:        operatingBus.reduce((s, b) => s + b.netIncome,        0),
   cashGenerated:    operatingBus.reduce((s, b) => s + b.cashGenerated,    0),
-  cashBalance:      buData.reduce      ((s, b) => s + b.cashBalance,      0), // all BUs
+  cashBalance:      buData.reduce      ((s, b) => s + b.cashBalance,      0),
   customers:        operatingBus.reduce((s, b) => s + b.customers,        0),
   ftes:             operatingBus.reduce((s, b) => s + b.ftes,             0),
   capitalAllocated: buData.reduce      ((s, b) => s + b.capitalAllocated, 0),
@@ -148,18 +162,23 @@ export const consolidated = {
 };
 
 export const consolidatedMargins = {
-  grossMargin:  consolidated.grossProfit / consolidated.revenue,
-  ebitdaMargin: consolidated.ebitda      / consolidated.revenue,
-  netMargin:    consolidated.netIncome   / consolidated.revenue,
+  grossMargin:  consolidated.revenue > 0 ? consolidated.grossProfit / consolidated.revenue : 0,
+  ebitdaMargin: consolidated.revenue > 0 ? consolidated.ebitda      / consolidated.revenue : 0,
+  netMargin:    consolidated.revenue > 0 ? consolidated.netIncome   / consolidated.revenue : 0,
 };
 
 export const consolidatedRoic =
-  (consolidated.netIncome / consolidated.capitalAllocated) * 100;
+  consolidated.capitalAllocated > 0
+    ? (consolidated.netIncome / consolidated.capitalAllocated) * 100
+    : 0;
 
 export const budgetVsActual =
-  ((consolidated.revenue - consolidated.budgetRevenue) / consolidated.budgetRevenue) * 100;
+  consolidated.budgetRevenue > 0
+    ? ((consolidated.revenue - consolidated.budgetRevenue) / consolidated.budgetRevenue) * 100
+    : 0;
 
-// ─── Monthly consolidated revenue (Jan–Mar 2026 per BU) ──────────────────────
+// ─── Monthly consolidated revenue ──────────────────────────────────────────────
+// Dados ainda não disponíveis — sem registros mensais verificados.
 export interface MonthlyPoint {
   month:    string;
   jacqes:   number;
@@ -168,13 +187,10 @@ export interface MonthlyPoint {
   total:    number;
 }
 
-export const monthlyRevenue: MonthlyPoint[] = [
-  { month: "Jan/26", jacqes: 1_420_000, caza:   712_000, advisor:   508_000, total: 2_640_000 },
-  { month: "Fev/26", jacqes: 1_512_000, caza:   798_000, advisor:   528_000, total: 2_838_000 },
-  { month: "Mar/26", jacqes: 1_888_000, caza:   908_000, advisor:   536_000, total: 3_332_000 },
-];
+export const monthlyRevenue: MonthlyPoint[] = [];
 
 // ─── Risk signals ─────────────────────────────────────────────────────────────
+// Sem dados de risco verificados no momento.
 export interface RiskSignal {
   id:          string;
   title:       string;
@@ -185,71 +201,16 @@ export interface RiskSignal {
   threshold:   string;
 }
 
-export const riskSignals: RiskSignal[] = [
-  {
-    id: "R1",
-    title:       "Concentração de Cliente — JACQES",
-    description: "Top 3 clientes representam 58% do MRR. Ambev sozinho = 20%.",
-    severity:    "high",
-    bu:          "JACQES",
-    metric:      "Top-3 share: 58%",
-    threshold:   "Limite: 40%",
-  },
-  {
-    id: "R2",
-    title:       "Concentração de BU — Receita",
-    description: "JACQES representa 55% da receita operacional do grupo.",
-    severity:    "medium",
-    bu:          "AWQ Group",
-    metric:      "JACQES share: 55%",
-    threshold:   "Limite: 50%",
-  },
-  {
-    id: "R3",
-    title:       "Receivables em Aberto — Caza Vision",
-    description: "CV002 Banco XP (R$320K) sem recebimento há 8 dias. CV008 Nubank (R$145K) em aberto.",
-    severity:    "high",
-    bu:          "Caza Vision",
-    metric:      "Em aberto: R$465K",
-    threshold:   "Limite: R$200K",
-  },
-  {
-    id: "R4",
-    title:       "Margem EBITDA JACQES abaixo de meta",
-    description: "Meta anual de 22% vs realizado 18%. Gap de 4pp pressionando EBITDA consolidado.",
-    severity:    "medium",
-    bu:          "JACQES",
-    metric:      "EBITDA: 18.0%",
-    threshold:   "Meta: 22.0%",
-  },
-  {
-    id: "R5",
-    title:       "Cash Runway — AWQ Venture",
-    description: "Dry powder de R$6.2M. Próximo investimento previsto R$8M: necessidade de captação.",
-    severity:    "medium",
-    bu:          "AWQ Venture",
-    metric:      "Dry powder: R$6.2M",
-    threshold:   "Próximo deploy: R$8M",
-  },
-  {
-    id: "R6",
-    title:       "Cliente em Risco — Advisor",
-    description: "André Teixeira (R$6.2M AUM, NPS 68) em revisão contratual — risco de saída.",
-    severity:    "low",
-    bu:          "Advisor",
-    metric:      "AUM em risco: R$6.2M",
-    threshold:   "NPS: 68 (alerta <70)",
-  },
-];
+export const riskSignals: RiskSignal[] = [];
 
 // ─── Capital allocation flags ─────────────────────────────────────────────────
 export type AllocFlag = "expand" | "maintain" | "review" | "cut";
 
 export const allocFlags: Record<string, AllocFlag> = {
-  jacqes:  "maintain",
-  caza:    "expand",
-  advisor: "expand",
-  venture: "maintain",
+  jacqes:  "review",
+  caza:    "review",
+  advisor: "review",
+  venture: "review",
 };
 
 export const flagConfig: Record<AllocFlag, { label: string; color: string; bg: string }> = {
@@ -260,6 +221,7 @@ export const flagConfig: Record<AllocFlag, { label: string; color: string; bg: s
 };
 
 // ─── Forecast ─────────────────────────────────────────────────────────────────
+// Sem dados de forecast verificados.
 export interface ForecastPoint {
   month:   string;
   base:    number;
@@ -268,22 +230,10 @@ export interface ForecastPoint {
   actual?: number;
 }
 
-export const revenueForecasts: ForecastPoint[] = [
-  { month: "Jan/26", base: 2_640_000, bull: 2_640_000, bear: 2_640_000, actual: 2_640_000 },
-  { month: "Fev/26", base: 2_838_000, bull: 2_838_000, bear: 2_838_000, actual: 2_838_000 },
-  { month: "Mar/26", base: 3_332_000, bull: 3_332_000, bear: 3_332_000, actual: 3_332_000 },
-  { month: "Abr/26", base: 3_600_000, bull: 3_960_000, bear: 3_060_000  },
-  { month: "Mai/26", base: 3_850_000, bull: 4_235_000, bear: 3_080_000  },
-  { month: "Jun/26", base: 4_100_000, bull: 4_510_000, bear: 3_280_000  },
-  { month: "Jul/26", base: 4_300_000, bull: 4_730_000, bear: 3_440_000  },
-  { month: "Ago/26", base: 4_450_000, bull: 4_895_000, bear: 3_560_000  },
-  { month: "Set/26", base: 4_600_000, bull: 5_060_000, bear: 3_680_000  },
-  { month: "Out/26", base: 4_750_000, bull: 5_225_000, bear: 3_800_000  },
-  { month: "Nov/26", base: 4_900_000, bull: 5_390_000, bear: 3_920_000  },
-  { month: "Dez/26", base: 5_100_000, bull: 5_610_000, bear: 4_080_000  },
-];
+export const revenueForecasts: ForecastPoint[] = [];
 
 // ─── Cash Flow ────────────────────────────────────────────────────────────────
+// Sem dados de fluxo de caixa verificados.
 export interface CashFlowRow {
   label:    string;
   jacqes:   number;
@@ -294,14 +244,4 @@ export interface CashFlowRow {
   bold:     boolean;
 }
 
-export const cashFlowRows: CashFlowRow[] = [
-  { label: "Lucro Líquido",              jacqes:   518_000, caza:  420_000, advisor:  479_000, venture:  18_500_000, indent: 1, bold: false },
-  { label: "(+) D&A",                    jacqes:    43_000, caza:   18_000, advisor:    8_000, venture:           0, indent: 1, bold: false },
-  { label: "(+/-) Cap. de Giro",         jacqes:   159_000, caza:  142_000, advisor:   23_000, venture:           0, indent: 1, bold: false },
-  { label: "= FCO (Caixa Operacional)",  jacqes:   720_000, caza:  580_000, advisor:  510_000, venture:  18_500_000, indent: 0, bold: true  },
-  { label: "(-) Capex",                  jacqes:   -48_000, caza:  -32_000, advisor:  -12_000, venture:  -7_000_000, indent: 1, bold: false },
-  { label: "(-) Novos Investimentos",    jacqes:         0, caza:        0, advisor:        0, venture:           0, indent: 1, bold: false },
-  { label: "= FCO Livre (FCF)",          jacqes:   672_000, caza:  548_000, advisor:  498_000, venture:  11_500_000, indent: 0, bold: true  },
-  { label: "(-) Distribuições/Divid.",   jacqes:  -200_000, caza:  -80_000, advisor: -100_000, venture:           0, indent: 1, bold: false },
-  { label: "= Var. de Caixa",            jacqes:   472_000, caza:  468_000, advisor:  398_000, venture:  11_500_000, indent: 0, bold: true  },
-];
+export const cashFlowRows: CashFlowRow[] = [];
