@@ -12,7 +12,7 @@ export default function AdvisorPage() {
   return (
     <>
       <Header title="Advisor" subtitle="Consultoria · AWQ Group" />
-      <div className="px-8 py-6 space-y-6">
+      <div className="page-container">
         {/* KPI Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {kpis.map((kpi) => (
@@ -33,7 +33,7 @@ export default function AdvisorPage() {
           <div className="w-14 h-14 rounded-2xl bg-violet-50 border border-violet-200 flex items-center justify-center mb-4">
             <Briefcase size={26} className="text-violet-700" />
           </div>
-          <div className="text-base font-semibold text-gray-400">Advisor</div>
+          <div className="text-base font-semibold text-gray-900">Advisor</div>
           <div className="text-sm text-gray-400 mt-1">
             Consultoria estratégica · AWQ Group
           </div>

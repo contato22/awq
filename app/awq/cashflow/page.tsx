@@ -90,10 +90,10 @@ export default function AwqCashflowPage() {
         title="Cash Flow — AWQ Group"
         subtitle="Fluxo de caixa consolidado por BU · Jan–Mar 2026"
       />
-      <div className="px-8 py-6 space-y-6">
+      <div className="page-container">
 
         {/* ── Summary Cards ─────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {summaryCards.map((card) => {
             const Icon = card.icon;
             return (
@@ -122,7 +122,7 @@ export default function AwqCashflowPage() {
           <h2 className="text-sm font-semibold text-gray-900 mb-4">
             Demonstração de Fluxo de Caixa — YTD Jan–Mar 2026
           </h2>
-          <div className="overflow-x-auto">
+          <div className="table-scroll">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200">
@@ -141,7 +141,7 @@ export default function AwqCashflowPage() {
                   return (
                     <tr
                       key={i}
-                      className={`border-b border-gray-100 ${isSubtotal ? "bg-gray-50" : "hover:bg-gray-100"} transition-colors`}
+                      className={`border-b border-gray-100 ${isSubtotal ? "bg-gray-50" : "hover:bg-gray-50/80"} transition-colors`}
                     >
                       <td
                         className={`py-2 px-3 text-xs ${isSubtotal ? "font-bold text-gray-800" : "text-gray-400"}`}

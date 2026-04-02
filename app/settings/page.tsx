@@ -1,5 +1,9 @@
+"use client";
+
+import { useState } from "react";
 import Header from "@/components/Header";
-import { Settings, Bell, Shield, Palette, Database, Users } from "lucide-react";
+import { Settings, Bell, Shield, Database, Check } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface SettingsSectionProps {
   icon: React.ElementType;
@@ -10,14 +14,14 @@ interface SettingsSectionProps {
 
 function SettingsSection({ icon: Icon, title, description, children }: SettingsSectionProps) {
   return (
-    <div className="card p-6">
-      <div className="flex items-start gap-4 mb-5">
-        <div className="w-9 h-9 rounded-xl bg-gray-100 border border-gray-300 flex items-center justify-center text-gray-400 shrink-0">
+    <div className="card p-5 lg:p-6">
+      <div className="flex items-start gap-3.5 mb-5">
+        <div className="w-9 h-9 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center text-gray-400 shrink-0">
           <Icon size={16} />
         </div>
         <div>
-          <div className="font-semibold text-gray-400">{title}</div>
-          <div className="text-xs text-gray-500 mt-0.5">{description}</div>
+          <div className="text-sm font-semibold text-gray-900">{title}</div>
+          <div className="text-[11px] text-gray-500 mt-0.5 font-medium">{description}</div>
         </div>
       </div>
       <div className="space-y-4">{children}</div>
@@ -25,155 +29,186 @@ function SettingsSection({ icon: Icon, title, description, children }: SettingsS
   );
 }
 
-interface ToggleRowProps {
+function Toggle({ label, description, defaultChecked = false }: {
   label: string;
   description?: string;
   defaultChecked?: boolean;
-}
+}) {
+  const [checked, setChecked] = useState(defaultChecked);
 
-function ToggleRow({ label, description, defaultChecked = false }: ToggleRowProps) {
   return (
-    <div className="flex items-center justify-between py-2">
-      <div>
-        <div className="text-sm text-gray-400">{label}</div>
-        {description && <div className="text-xs text-gray-400 mt-0.5">{description}</div>}
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => setChecked(!checked)}
+      className="flex items-center justify-between py-2.5 w-full text-left group"
+    >
+      <div className="pr-4">
+        <div className="text-sm text-gray-700 font-medium group-hover:text-gray-900 transition-colors">{label}</div>
+        {description && <div className="text-[11px] text-gray-400 mt-0.5">{description}</div>}
       </div>
       <div
-        className={`relative w-10 h-5 rounded-full transition-colors cursor-pointer ${
-          defaultChecked ? "bg-brand-600" : "bg-gray-200"
-        }`}
+        className={cn(
+          "relative w-10 h-[22px] rounded-full transition-colors shrink-0",
+          checked ? "bg-brand-600" : "bg-gray-200"
+        )}
       >
         <div
-          className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
-            defaultChecked ? "translate-x-5" : "translate-x-0.5"
-          }`}
+          className={cn(
+            "absolute top-[3px] w-4 h-4 rounded-full bg-white shadow-sm transition-transform",
+            checked ? "translate-x-[22px]" : "translate-x-[3px]"
+          )}
         />
       </div>
+    </button>
+  );
+}
+
+function FormField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="block text-xs font-medium text-gray-600 mb-1.5">{label}</label>
+      {children}
     </div>
   );
 }
 
+const inputClass = "w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20 focus:bg-white transition-all placeholder:text-gray-400";
+
 export default function SettingsPage() {
+  const [saved, setSaved] = useState(false);
+
+  const handleSave = () => {
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
   return (
     <>
-      <Header title="Settings" subtitle="Manage your JACQES BI workspace preferences" />
+      <Header title="Settings" subtitle="AWQ Group · Preferências do workspace" />
 
-      <div className="px-8 py-6 space-y-4">
+      <div className="page-container max-w-4xl">
         <SettingsSection
           icon={Settings}
-          title="General"
-          description="Workspace and display preferences"
+          title="Geral"
+          description="Workspace e preferências de exibição"
         >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">
-                Workspace Name
-              </label>
-              <input
-                type="text"
-                defaultValue="JACQES BI"
-                className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg text-sm text-gray-400 focus:outline-none focus:border-brand-500"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">
-                Default Currency
-              </label>
-              <select className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg text-sm text-gray-400 focus:outline-none focus:border-brand-500">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <FormField label="Workspace Name">
+              <input type="text" defaultValue="AWQ Group" className={inputClass} />
+            </FormField>
+            <FormField label="Moeda Padrão">
+              <select className={inputClass}>
+                <option>BRL — Real Brasileiro</option>
                 <option>USD — US Dollar</option>
                 <option>EUR — Euro</option>
-                <option>GBP — British Pound</option>
               </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">
-                Fiscal Year Start
-              </label>
-              <select className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg text-sm text-gray-400 focus:outline-none focus:border-brand-500">
-                <option>January</option>
-                <option>April</option>
-                <option>July</option>
-                <option>October</option>
+            </FormField>
+            <FormField label="Início do Ano Fiscal">
+              <select className={inputClass}>
+                <option>Janeiro</option>
+                <option>Abril</option>
+                <option>Julho</option>
+                <option>Outubro</option>
               </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">Time Zone</label>
-              <select className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg text-sm text-gray-400 focus:outline-none focus:border-brand-500">
+            </FormField>
+            <FormField label="Fuso Horário">
+              <select className={inputClass}>
+                <option>UTC-3 — Brasília</option>
                 <option>UTC+0 — London</option>
                 <option>UTC-5 — New York</option>
-                <option>UTC+8 — Singapore</option>
               </select>
-            </div>
+            </FormField>
           </div>
         </SettingsSection>
 
         <SettingsSection
           icon={Bell}
-          title="Notifications"
-          description="Configure alerts and notification delivery"
+          title="Notificações"
+          description="Configure alertas e preferências de entrega"
         >
-          <ToggleRow label="Revenue milestone alerts" defaultChecked={true} />
-          <ToggleRow label="At-risk customer warnings" description="Alert when churn probability > 70%" defaultChecked={true} />
-          <ToggleRow label="Weekly digest email" defaultChecked={true} />
-          <ToggleRow label="Slack integration alerts" description="Post to #analytics channel" defaultChecked={false} />
-          <ToggleRow label="Data refresh notifications" defaultChecked={false} />
+          <div className="divide-y divide-gray-100">
+            <Toggle label="Alertas de milestone de receita" defaultChecked={true} />
+            <Toggle label="Avisos de cliente em risco" description="Alerta quando probabilidade de churn > 70%" defaultChecked={true} />
+            <Toggle label="Digest semanal por e-mail" defaultChecked={true} />
+            <Toggle label="Alertas via Slack" description="Postar no canal #analytics" defaultChecked={false} />
+            <Toggle label="Notificações de atualização de dados" defaultChecked={false} />
+          </div>
         </SettingsSection>
 
         <SettingsSection
           icon={Shield}
-          title="Security & Access"
-          description="Manage team permissions and data access"
+          title="Segurança & Acesso"
+          description="Gerencie permissões e acesso ao time"
         >
-          <div className="space-y-2">
+          <div className="divide-y divide-gray-100">
             {[
               { name: "Alex Whitmore", email: "alex@awqgroup.com", role: "Owner" },
               { name: "Sam Chen", email: "s.chen@jacqes.com", role: "Admin" },
               { name: "Priya Nair", email: "p.nair@jacqes.com", role: "Analyst" },
               { name: "Danilo", email: "danilo@jacqes.com", role: "CS Ops" },
             ].map((member) => (
-              <div key={member.email} className="flex items-center gap-3 py-2 border-b border-gray-200 last:border-0">
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-brand-600 to-brand-400 flex items-center justify-center text-[10px] font-bold text-gray-900">
+              <div key={member.email} className="flex items-center gap-3 py-3">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-500 to-brand-400 flex items-center justify-center text-[10px] font-bold text-white shrink-0">
                   {member.name.split(" ").map((n) => n[0]).join("")}
                 </div>
-                <div className="flex-1">
-                  <div className="text-sm font-medium text-gray-400">{member.name}</div>
-                  <div className="text-xs text-gray-400">{member.email}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-gray-900 truncate">{member.name}</div>
+                  <div className="text-[11px] text-gray-400 truncate">{member.email}</div>
                 </div>
-                <span className="badge badge-blue">{member.role}</span>
+                <span className="badge-blue shrink-0">{member.role}</span>
               </div>
             ))}
           </div>
-          <button className="btn-secondary text-xs mt-2">+ Invite Member</button>
+          <button className="btn-secondary text-xs mt-2">+ Convidar Membro</button>
         </SettingsSection>
 
         <SettingsSection
           icon={Database}
-          title="Data Sources"
-          description="Connected integrations and data pipelines"
+          title="Fontes de Dados"
+          description="Integrações e pipelines de dados conectados"
         >
-          {[
-            { name: "Stripe", status: "Connected", lastSync: "2 min ago" },
-            { name: "Salesforce CRM", status: "Connected", lastSync: "15 min ago" },
-            { name: "Google Analytics", status: "Connected", lastSync: "1 hr ago" },
-            { name: "HubSpot", status: "Disconnected", lastSync: "—" },
-          ].map((source) => (
-            <div key={source.name} className="flex items-center justify-between py-2 border-b border-gray-200 last:border-0">
-              <div>
-                <div className="text-sm font-medium text-gray-400">{source.name}</div>
-                <div className="text-xs text-gray-400">Last sync: {source.lastSync}</div>
+          <div className="divide-y divide-gray-100">
+            {[
+              { name: "Notion",            status: "Conectado",    lastSync: "2 min atrás"  },
+              { name: "Google Analytics",   status: "Conectado",    lastSync: "1 hr atrás"   },
+              { name: "Stripe",            status: "Conectado",    lastSync: "15 min atrás"  },
+              { name: "HubSpot",           status: "Desconectado", lastSync: "—" },
+            ].map((source) => (
+              <div key={source.name} className="flex items-center justify-between py-3">
+                <div>
+                  <div className="text-sm font-medium text-gray-900">{source.name}</div>
+                  <div className="text-[11px] text-gray-400 font-medium">Último sync: {source.lastSync}</div>
+                </div>
+                <span
+                  className={source.status === "Conectado" ? "badge-green" : "badge-red"}
+                >
+                  {source.status}
+                </span>
               </div>
-              <span
-                className={`badge ${source.status === "Connected" ? "badge-green" : "badge-red"}`}
-              >
-                {source.status}
-              </span>
-            </div>
-          ))}
+            ))}
+          </div>
         </SettingsSection>
 
         {/* Save button */}
         <div className="flex justify-end">
-          <button className="btn-primary">Save Changes</button>
+          <button
+            onClick={handleSave}
+            className={cn(
+              "btn-primary flex items-center gap-2",
+              saved && "bg-emerald-600 hover:bg-emerald-700"
+            )}
+          >
+            {saved ? (
+              <>
+                <Check size={14} />
+                Salvo
+              </>
+            ) : (
+              "Salvar Alterações"
+            )}
+          </button>
         </div>
       </div>
     </>

@@ -169,12 +169,12 @@ export default function CazaFinancialPage() {
         title="Financial — Caza Vision"
         subtitle="Receita, despesas e lucro por projeto · agrupado por mês"
       />
-      <div className="px-8 py-6 space-y-6">
+      <div className="page-container">
 
         {/* ── Source badge ─────────────────────────────────────────────────── */}
         <div className="flex items-center gap-2">
           {source === "loading" && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 border border-gray-300 text-xs text-gray-400">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-50 border border-gray-200 text-xs text-gray-500">
               <Database size={11} /> Conectando ao Notion…
             </span>
           )}
@@ -197,7 +197,7 @@ export default function CazaFinancialPage() {
         </div>
 
         {/* ── Summary Cards ─────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {summaryCards.map((card) => {
             const Icon = card.icon;
             return (
@@ -232,7 +232,7 @@ export default function CazaFinancialPage() {
           <h2 className="text-sm font-semibold text-gray-900 mb-4">
             Receita por Mês — agrupado por COMPETÊNCIA
           </h2>
-          <div className="overflow-x-auto">
+          <div className="table-scroll">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200">
@@ -251,7 +251,7 @@ export default function CazaFinancialPage() {
                     ? ((row.profit / row.receita) * 100).toFixed(1)
                     : "0.0";
                   return (
-                    <tr key={row.month} className="border-b border-gray-100 hover:bg-gray-100 transition-colors">
+                    <tr key={row.month} className="border-b border-gray-100 hover:bg-gray-50/80 transition-colors">
                       <td className="py-2.5 px-3 text-gray-400 font-medium">{row.month}</td>
                       <td className="py-2.5 px-3 text-right text-gray-900 font-semibold">{fmtR(row.receita)}</td>
                       <td className="py-2.5 px-3 text-right text-red-600 text-xs">
@@ -293,7 +293,7 @@ export default function CazaFinancialPage() {
               <span className="flex items-center gap-1.5 text-emerald-600"><span className="w-3 h-0.5 bg-emerald-400 inline-block rounded" /> Realizado</span>
             </div>
           </div>
-          <div className="overflow-x-auto">
+          <div className="table-scroll">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200">
@@ -313,7 +313,7 @@ export default function CazaFinancialPage() {
                   const varR = variance(actual.receita, b.budgetReceita);
                   const varL = variance(actual.profit,  b.budgetLucro);
                   return (
-                    <tr key={b.month} className="border-b border-gray-100 hover:bg-gray-100 transition-colors">
+                    <tr key={b.month} className="border-b border-gray-100 hover:bg-gray-50/80 transition-colors">
                       <td className="py-2.5 px-3 text-xs font-medium text-gray-400">{b.month}</td>
                       <td className="py-2.5 px-3 text-right text-xs text-gray-500">{fmtR(b.budgetReceita)}</td>
                       <td className="py-2.5 px-3 text-right text-xs font-semibold text-gray-900">{fmtR(actual.receita)}</td>

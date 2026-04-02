@@ -40,9 +40,9 @@ export default function CustomersPage() {
         subtitle="Customer directory, health scores, and lifetime value"
       />
 
-      <div className="px-8 py-6 space-y-6">
+      <div className="page-container">
         {/* Summary */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="card p-5 flex items-center gap-4">
             <div className="w-10 h-10 rounded-xl bg-brand-50 border border-brand-200 flex items-center justify-center text-brand-600">
               <Users size={18} />
@@ -100,7 +100,7 @@ export default function CustomersPage() {
         </div>
 
         {/* Customer table */}
-        <div className="card p-6">
+        <div className="card p-5 lg:p-6">
           <div className="flex items-center justify-between mb-5">
             <div>
               <h2 className="text-sm font-semibold text-gray-900">Customer Directory</h2>
@@ -108,7 +108,7 @@ export default function CustomersPage() {
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="table-scroll">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200">
@@ -116,7 +116,7 @@ export default function CustomersPage() {
                     (h) => (
                       <th
                         key={h}
-                        className="text-left pb-3 pr-4 text-[10px] font-semibold text-gray-400 uppercase tracking-wider"
+                        className="text-left pb-3 pr-4 text-[10px] font-semibold text-gray-900 uppercase tracking-wider"
                       >
                         {h}
                       </th>
@@ -132,7 +132,7 @@ export default function CustomersPage() {
                   return (
                     <tr
                       key={c.id}
-                      className="border-b border-gray-100 hover:bg-gray-100 transition-colors"
+                      className="border-b border-gray-100 hover:bg-gray-50/80 transition-colors"
                     >
                       <td className="py-3 pr-4">
                         <div className="flex items-center gap-3">
@@ -144,7 +144,7 @@ export default function CustomersPage() {
                           </div>
                           <div>
                             <div className="font-medium text-gray-400">{c.name}</div>
-                            <div className="text-xs text-gray-400">{c.email}</div>
+                            <div className="text-xs text-gray-500">{c.email}</div>
                           </div>
                         </div>
                       </td>

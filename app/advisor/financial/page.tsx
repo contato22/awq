@@ -107,10 +107,10 @@ export default function AdvisorFinancialPage() {
         title="Financial — Advisor"
         subtitle="AUM · Receita de Taxas · DRE · Jan–Mar 2026"
       />
-      <div className="px-8 py-6 space-y-6">
+      <div className="page-container">
 
         {/* ── Summary Cards ─────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {summaryCards.map((card) => {
             const Icon = card.icon;
             return (
@@ -166,7 +166,7 @@ export default function AdvisorFinancialPage() {
           {/* ── Fee Income Table ──────────────────────────────────────────────── */}
           <div className="card p-5">
             <h2 className="text-sm font-semibold text-gray-900 mb-4">Receita de Taxas por Mês</h2>
-            <div className="overflow-x-auto">
+            <div className="table-scroll">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-200">
@@ -179,11 +179,11 @@ export default function AdvisorFinancialPage() {
                 </thead>
                 <tbody>
                   {feeIncome.map((row) => (
-                    <tr key={row.month} className="border-b border-gray-100 hover:bg-gray-100 transition-colors">
+                    <tr key={row.month} className="border-b border-gray-100 hover:bg-gray-50/80 transition-colors">
                       <td className="py-2 px-2 text-xs text-gray-400 font-medium">{row.month}</td>
-                      <td className="py-2 px-2 text-right text-xs text-gray-400">{fmtR(row.taxaGestao)}</td>
+                      <td className="py-2 px-2 text-right text-xs text-gray-500">{fmtR(row.taxaGestao)}</td>
                       <td className="py-2 px-2 text-right text-xs text-violet-700">{fmtR(row.taxaPerformance)}</td>
-                      <td className="py-2 px-2 text-right text-xs text-gray-400">{fmtR(row.taxaConsultoria)}</td>
+                      <td className="py-2 px-2 text-right text-xs text-gray-500">{fmtR(row.taxaConsultoria)}</td>
                       <td className="py-2 px-2 text-right text-xs font-bold text-gray-900">{fmtR(row.total)}</td>
                     </tr>
                   ))}
@@ -217,7 +217,7 @@ export default function AdvisorFinancialPage() {
                 return (
                   <div key={s.strategy}>
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs text-gray-400">{s.strategy}</span>
+                      <span className="text-xs text-gray-500">{s.strategy}</span>
                       <div className="flex items-center gap-2 text-[11px]">
                         <span className="text-gray-500">{s.clientes} clientes</span>
                         <span className="text-emerald-600 font-semibold">+{s.retorno}%</span>

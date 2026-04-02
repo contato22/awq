@@ -433,7 +433,7 @@ export default function AwqGroupPage() {
 
             {/* BU Ranking */}
             <div className="mt-5 pt-4 border-t border-gray-100">
-              <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.08em] mb-2.5">
+              <div className="text-[10px] font-semibold text-gray-900 uppercase tracking-[0.08em] mb-2.5">
                 Ranking por Margem
               </div>
               {[...buData]
@@ -460,7 +460,7 @@ export default function AwqGroupPage() {
             icon={<Target size={15} className="text-brand-500" />}
             title="Drill-Down por BU"
           />
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {buData.map((bu) => (
               <div key={bu.id} className="rounded-xl border border-gray-200/80 p-4 hover:border-gray-300 transition-colors">
                 <div className="flex items-center gap-2.5 mb-3">
@@ -543,7 +543,7 @@ export default function AwqGroupPage() {
 
         {/* ── Quick Nav to AWQ Sub-pages ──────────────────────────── */}
         <section>
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {[
               { label: "Financial",    sub: "P&L consolidado",         href: "/awq/financial",   icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
               { label: "Cash Flow",    sub: "Fluxo de caixa",           href: "/awq/cashflow",    icon: Zap,        color: "text-cyan-700",    bg: "bg-cyan-50"    },

@@ -163,7 +163,7 @@ export default function YoY2025Page() {
               <span className="text-lg">{k.icon}</span>
             </div>
             <div className="text-2xl font-bold text-gray-900 mb-1">{k.value}</div>
-            <div className="text-xs text-gray-400">{k.sub}</div>
+            <div className="text-xs text-gray-500">{k.sub}</div>
           </div>
         ))}
       </div>
@@ -257,7 +257,7 @@ export default function YoY2025Page() {
         <div className="text-xs text-gray-400 mb-4">Antes (2025) vs Depois (Q1 2026)</div>
         <table className="w-full">
           <thead>
-            <tr className="text-xs font-semibold text-gray-400 border-b border-gray-100">
+            <tr className="text-xs font-semibold text-gray-900 border-b border-gray-100">
               <th className="text-left py-2 px-3 w-8">#</th>
               <th className="text-left py-2 px-3">Dimensão</th>
               <th className="text-left py-2 px-3">Antes (2025)</th>
@@ -284,7 +284,7 @@ export default function YoY2025Page() {
         <div className="text-base font-bold text-gray-900 mb-4">Detalhamento por Trimestre</div>
         <table className="w-full">
           <thead>
-            <tr className="text-xs font-semibold text-gray-400 border-b border-gray-100">
+            <tr className="text-xs font-semibold text-gray-900 border-b border-gray-100">
               <th className="text-left py-2 px-3">Categoria</th>
               <th className="text-right py-2 px-3">Q1</th>
               <th className="text-right py-2 px-3">Q2</th>

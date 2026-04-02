@@ -20,11 +20,11 @@ function ReportCard({ icon: Icon, title, description, lastGenerated, type, color
         <span className="badge badge-blue">{type}</span>
       </div>
       <div>
-        <div className="font-semibold text-gray-400">{title}</div>
+        <div className="font-semibold text-gray-900">{title}</div>
         <div className="text-xs text-gray-500 mt-1 leading-relaxed">{description}</div>
       </div>
       <div className="flex items-center justify-between pt-2 border-t border-gray-200">
-        <span className="text-xs text-gray-400">Generated: {lastGenerated}</span>
+        <span className="text-xs text-gray-500">Generated: {lastGenerated}</span>
         <button className="flex items-center gap-1.5 text-xs text-brand-600 hover:text-brand-500 font-medium transition-colors">
           <Download size={12} />
           Export
@@ -99,7 +99,7 @@ export default function ReportsPage() {
         subtitle="Generated reports and data exports for JACQES stakeholders"
       />
 
-      <div className="px-8 py-6 space-y-6">
+      <div className="page-container">
         {/* Quick action bar */}
         <div className="card p-4 flex items-center gap-3 flex-wrap">
           <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mr-2">
@@ -118,14 +118,14 @@ export default function ReportsPage() {
         </div>
 
         {/* Report cards grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
           {reports.map((report) => (
             <ReportCard key={report.title} {...report} />
           ))}
         </div>
 
         {/* Scheduled reports */}
-        <div className="card p-6">
+        <div className="card p-5 lg:p-6">
           <div className="mb-4">
             <h2 className="text-sm font-semibold text-gray-900">Scheduled Reports</h2>
             <p className="text-xs text-gray-500 mt-0.5">

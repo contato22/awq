@@ -10,9 +10,11 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import Header from "@/components/Header";
+import SectionHeader from "@/components/SectionHeader";
 import ChannelTable from "@/components/ChannelTable";
 import { revenueData } from "@/lib/data";
 import { formatCurrency } from "@/lib/utils";
+import { DollarSign, TrendingUp, ArrowUpRight, ArrowDownRight, BarChart3 } from "lucide-react";
 
 interface CustomTooltipProps {
   active?: boolean;
@@ -23,15 +25,15 @@ interface CustomTooltipProps {
 function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-white border border-gray-300 rounded-xl p-3.5 shadow-xl shadow-black/40 min-w-[140px]">
-      <div className="text-xs font-semibold text-gray-400 mb-2">{label}</div>
+    <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-lg min-w-[140px]">
+      <div className="text-[11px] font-semibold text-gray-900 mb-1.5">{label}</div>
       {payload.map((entry) => (
         <div key={entry.name} className="flex items-center justify-between gap-4 text-xs py-0.5">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-sm" style={{ backgroundColor: entry.fill }} />
-            <span className="text-gray-400 capitalize">{entry.name}</span>
+            <span className="text-gray-500 capitalize">{entry.name}</span>
           </div>
-          <span className="font-semibold text-gray-900">
+          <span className="font-semibold text-gray-900 tabular-nums">
             {formatCurrency(entry.value, "USD", true)}
           </span>
         </div>
@@ -41,10 +43,10 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
 }
 
 const summaryStats = [
-  { label: "Total Revenue", value: "$4.82M", sub: "+14.6% YoY", positive: true },
-  { label: "Total Profit", value: "$3.24M", sub: "+21.3% YoY", positive: true },
-  { label: "Total Expenses", value: "$1.58M", sub: "+8.2% YoY", positive: false },
-  { label: "Avg Monthly Rev.", value: "$401.8K", sub: "per month", positive: true },
+  { label: "Total Revenue", value: "$4.82M", sub: "+14.6% YoY", positive: true, icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
+  { label: "Total Profit",  value: "$3.24M", sub: "+21.3% YoY", positive: true, icon: TrendingUp, color: "text-brand-600",   bg: "bg-brand-50" },
+  { label: "Total Expenses", value: "$1.58M", sub: "+8.2% YoY", positive: false, icon: BarChart3, color: "text-amber-700",   bg: "bg-amber-50" },
+  { label: "Avg Monthly Rev.", value: "$401.8K", sub: "per month", positive: true, icon: DollarSign, color: "text-cyan-700",  bg: "bg-cyan-50" },
 ];
 
 export default function RevenuePage() {
@@ -52,49 +54,56 @@ export default function RevenuePage() {
     <>
       <Header
         title="Revenue"
-        subtitle="Detailed financial performance and acquisition breakdown"
+        subtitle="JACQES · Detailed financial performance and acquisition breakdown"
       />
 
-      <div className="px-8 py-6 space-y-6">
+      <div className="page-container">
         {/* Summary stats */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-          {summaryStats.map((stat) => (
-            <div key={stat.label} className="card p-5">
-              <div className="text-2xl font-bold text-gray-900 tabular-nums">{stat.value}</div>
-              <div className="text-sm text-gray-500 mt-1">{stat.label}</div>
-              <div
-                className={`text-xs font-medium mt-3 ${
-                  stat.positive ? "text-emerald-600" : "text-red-600"
-                }`}
-              >
-                {stat.sub}
-              </div>
-            </div>
-          ))}
-        </div>
+        <section>
+          <div className="grid grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {summaryStats.map((stat) => {
+              const Icon = stat.icon;
+              return (
+                <div key={stat.label} className="card card-hover p-5">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className={`w-9 h-9 rounded-lg ${stat.bg} flex items-center justify-center`}>
+                      <Icon size={17} className={stat.color} />
+                    </div>
+                    <div className={`flex items-center gap-0.5 text-[11px] font-semibold ${stat.positive ? "text-emerald-600" : "text-red-600"}`}>
+                      {stat.positive ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />}
+                      {stat.sub}
+                    </div>
+                  </div>
+                  <div className="text-2xl font-bold text-gray-900 tabular-nums tracking-tight">{stat.value}</div>
+                  <div className="text-xs text-gray-500 font-medium mt-1">{stat.label}</div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
 
         {/* Bar chart */}
-        <div className="card p-6">
-          <div className="mb-6">
-            <h2 className="text-sm font-semibold text-gray-900">Monthly Revenue vs Profit</h2>
-            <p className="text-xs text-gray-500 mt-0.5">FY 2025 — grouped bar comparison</p>
-          </div>
-          <ResponsiveContainer width="100%" height={300}>
+        <section className="card p-5 lg:p-6">
+          <SectionHeader
+            title="Monthly Revenue vs Profit"
+            badge={<span className="text-[11px] text-gray-400 font-medium ml-1">FY 2025 — grouped bar comparison</span>}
+          />
+          <ResponsiveContainer width="100%" height={280}>
             <BarChart
               data={revenueData}
               margin={{ top: 4, right: 4, left: -10, bottom: 0 }}
               barGap={4}
               barCategoryGap="30%"
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
               <XAxis
                 dataKey="month"
-                tick={{ fill: "#6b7280", fontSize: 11 }}
+                tick={{ fill: "#9ca3af", fontSize: 11 }}
                 axisLine={false}
                 tickLine={false}
               />
               <YAxis
-                tick={{ fill: "#6b7280", fontSize: 11 }}
+                tick={{ fill: "#9ca3af", fontSize: 11 }}
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={(v) =>
@@ -106,42 +115,56 @@ export default function RevenuePage() {
                   }).format(v)
                 }
               />
-              <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(255,255,255,0.03)" }} />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(0,0,0,0.02)" }} />
               <Bar dataKey="revenue" name="revenue" fill="#6366f1" radius={[3, 3, 0, 0]} />
-              <Bar dataKey="profit" name="profit" fill="#22d3ee" radius={[3, 3, 0, 0]} />
+              <Bar dataKey="profit" name="profit" fill="#10b981" radius={[3, 3, 0, 0]} />
               <Bar dataKey="expenses" name="expenses" fill="#f59e0b" radius={[3, 3, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
-        </div>
+          <div className="flex items-center justify-center gap-5 mt-3 pt-3 border-t border-gray-100">
+            {[
+              { label: "Revenue", color: "#6366f1" },
+              { label: "Profit", color: "#10b981" },
+              { label: "Expenses", color: "#f59e0b" },
+            ].map((item) => (
+              <span key={item.label} className="flex items-center gap-1.5 text-[11px] text-gray-500 font-medium">
+                <span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ backgroundColor: item.color }} />
+                {item.label}
+              </span>
+            ))}
+          </div>
+        </section>
 
         {/* Margin progression */}
-        <div className="card p-6">
-          <div className="mb-5">
-            <h2 className="text-sm font-semibold text-gray-900">Gross Margin Progression</h2>
-            <p className="text-xs text-gray-500 mt-0.5">Month-by-month profit margin trend</p>
-          </div>
-          <div className="grid grid-cols-6 md:grid-cols-12 gap-2">
+        <section className="card p-5 lg:p-6">
+          <SectionHeader
+            title="Gross Margin Progression"
+            badge={<span className="text-[11px] text-gray-400 font-medium ml-1">Month-by-month profit margin trend</span>}
+          />
+          <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-12 gap-2">
             {revenueData.map((d) => {
               const margin = ((d.profit / d.revenue) * 100).toFixed(1);
               const pct = parseFloat(margin);
               return (
-                <div key={d.month} className="flex flex-col items-center gap-2">
-                  <div className="text-xs font-semibold text-gray-900">{margin}%</div>
+                <div key={d.month} className="flex flex-col items-center gap-1.5">
+                  <div className="text-[11px] font-bold text-gray-900 tabular-nums">{margin}%</div>
                   <div className="w-full h-16 bg-gray-100 rounded-md overflow-hidden flex items-end">
                     <div
-                      className="w-full bg-gradient-to-t from-brand-700 to-brand-500 rounded-md transition-all"
+                      className="w-full bg-gradient-to-t from-brand-600 to-brand-400 rounded-md transition-all duration-500"
                       style={{ height: `${pct}%` }}
                     />
                   </div>
-                  <div className="text-[10px] text-gray-400">{d.month}</div>
+                  <div className="text-[10px] text-gray-400 font-medium">{d.month}</div>
                 </div>
               );
             })}
           </div>
-        </div>
+        </section>
 
         {/* Channel table */}
-        <ChannelTable />
+        <section>
+          <ChannelTable />
+        </section>
       </div>
     </>
   );

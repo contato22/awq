@@ -51,10 +51,10 @@ export default function AwqAllocationsPage() {
         title="Allocations — AWQ Group"
         subtitle="Capital por BU · ROIC · Payback · Expand / Maintain / Review / Cut"
       />
-      <div className="px-8 py-6 space-y-6">
+      <div className="page-container">
 
         {/* ── Summary Cards ─────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             {
               label: "Capital Total Alocado",
@@ -116,7 +116,7 @@ export default function AwqAllocationsPage() {
         {/* ── Capital Allocation Table ──────────────────────────────────────── */}
         <div className="card p-5">
           <h2 className="text-sm font-semibold text-gray-900 mb-4">Capital por BU — ROIC, Payback e Decisão</h2>
-          <div className="overflow-x-auto">
+          <div className="table-scroll">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200">
@@ -138,7 +138,7 @@ export default function AwqAllocationsPage() {
                   const share   = (bu.capitalAllocated / totalCap) * 100;
                   const pb      = paybackMonths[bu.id];
                   return (
-                    <tr key={bu.id} className="border-b border-gray-100 hover:bg-gray-100 transition-colors">
+                    <tr key={bu.id} className="border-b border-gray-100 hover:bg-gray-50/80 transition-colors">
                       <td className="py-2.5 px-3">
                         <div className="flex items-center gap-2">
                           <div className={`w-2 h-2 rounded-full ${bu.color}`} />
@@ -147,7 +147,7 @@ export default function AwqAllocationsPage() {
                         <div className="text-[10px] text-gray-400 ml-4">{bu.sub.split(" · ")[0]}</div>
                       </td>
                       <td className="py-2.5 px-3 text-right text-xs font-semibold text-gray-900">{fmtR(bu.capitalAllocated)}</td>
-                      <td className="py-2.5 px-3 text-right text-xs text-gray-400">{share.toFixed(0)}%</td>
+                      <td className="py-2.5 px-3 text-right text-xs text-gray-500">{share.toFixed(0)}%</td>
                       <td className="py-2.5 px-3 text-right text-xs font-semibold text-gray-900">{fmtR(bu.netIncome)}</td>
                       <td className="py-2.5 px-3 text-right text-xs font-bold">
                         <span className={bu.roic >= 50 ? "text-emerald-600" : bu.roic >= 20 ? "text-amber-700" : "text-red-600"}>
@@ -222,7 +222,7 @@ export default function AwqAllocationsPage() {
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2">
                         <div className={`w-2 h-2 rounded-full ${bu.color}`} />
-                        <span className="text-xs text-gray-400">{bu.name}</span>
+                        <span className="text-xs text-gray-500">{bu.name}</span>
                         <span className={`text-[10px] font-bold ${flagCfg.color}`}>{flagCfg.label}</span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -242,7 +242,7 @@ export default function AwqAllocationsPage() {
             </div>
 
             <div className="space-y-2">
-              <div className="text-xs font-semibold text-gray-400 mb-3">Decisões de Alocação</div>
+              <div className="text-xs font-semibold text-gray-900 mb-3">Decisões de Alocação</div>
               {Object.entries(flagConfig).map(([key, cfg]) => {
                 const busWithFlag = buData.filter((b) => allocFlags[b.id] === key);
                 if (busWithFlag.length === 0) return null;

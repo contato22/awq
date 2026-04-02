@@ -143,10 +143,10 @@ export default function AwqVentureFinancialPage() {
         title="Financial — AWQ Venture"
         subtitle="Portfólio · ROIC por Investimento · Performance · 2020–2026"
       />
-      <div className="px-8 py-6 space-y-6">
+      <div className="page-container">
 
         {/* ── Summary Cards ─────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             {
               label: "Capital Investido",
@@ -216,7 +216,7 @@ export default function AwqVentureFinancialPage() {
           <h2 className="text-sm font-semibold text-gray-900 mb-4">
             Portfólio de Investimentos — ROIC por Empresa
           </h2>
-          <div className="overflow-x-auto">
+          <div className="table-scroll">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200">
@@ -241,12 +241,12 @@ export default function AwqVentureFinancialPage() {
                   const Icon = statusIcon[p.status] ?? Clock;
 
                   return (
-                    <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-100 transition-colors">
+                    <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-50/80 transition-colors">
                       <td className="py-2.5 px-3">
                         <div className="text-xs font-medium text-gray-400">{p.company}</div>
                         <div className="text-[10px] text-gray-400 mt-0.5">desde {p.entryDate}</div>
                       </td>
-                      <td className="py-2.5 px-3 text-xs text-gray-400">{p.sector}</td>
+                      <td className="py-2.5 px-3 text-xs text-gray-500">{p.sector}</td>
                       <td className="py-2.5 px-3">
                         <span className="text-[10px] px-2 py-0.5 rounded bg-gray-100 text-gray-400 font-medium">{p.stage}</span>
                       </td>
@@ -271,7 +271,7 @@ export default function AwqVentureFinancialPage() {
                           {irrPositive ? "+" : ""}{p.irr.toFixed(1)}%
                         </span>
                       </td>
-                      <td className="py-2.5 px-3 text-right text-xs text-gray-400">
+                      <td className="py-2.5 px-3 text-right text-xs text-gray-500">
                         {p.ownership > 0 ? `${p.ownership}%` : <span className="text-gray-400">—</span>}
                       </td>
                       <td className="py-2.5 px-3">

@@ -113,7 +113,7 @@ export default function BusinessUnitsPage() {
             { icon: DollarSign, label: "Receita Consolidada", value: "$4.82M" },
           ].map((s) => (
             <div key={s.label} className="card p-5 flex items-center gap-4">
-              <div className="w-9 h-9 rounded-xl bg-gray-100 border border-gray-300 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-center">
                 <s.icon size={16} className="text-gray-400" />
               </div>
               <div>

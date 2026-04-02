@@ -24,10 +24,10 @@ export default function CategoriasPage() {
 
         {/* Empty state */}
         <div className="card p-16 flex flex-col items-center justify-center text-center">
-          <div className="w-16 h-16 rounded-2xl bg-gray-100 border border-gray-300 flex items-center justify-center mb-5">
+          <div className="w-16 h-16 rounded-2xl bg-gray-50 border border-gray-200 flex items-center justify-center mb-5">
             <FolderOpen size={28} className="text-gray-400" />
           </div>
-          <div className="text-base font-semibold text-gray-400 mb-1">
+          <div className="text-base font-semibold text-gray-900 mb-1">
             Nenhuma categoria ainda
           </div>
           <div className="text-sm text-gray-400 mb-6 max-w-xs">

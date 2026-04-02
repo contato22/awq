@@ -337,7 +337,7 @@ export default function BankAccountsPage() {
       <div className="px-8 py-6 space-y-5">
 
         {/* ── Summary cards ────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             { label: "Saldo Total",    value: fmtR(totalBalance),  icon: Wallet,      color: "text-brand-600",   bg: "bg-brand-50",   delta: `${accounts.length} conta${accounts.length !== 1 ? "s" : ""}` },
             { label: "Entradas (YTD)", value: fmtR(totalCredits),  icon: TrendingUp,  color: "text-emerald-600", bg: "bg-emerald-50", delta: `${allTx.filter(t=>t.amount>0).length} créditos` },
@@ -476,7 +476,7 @@ export default function BankAccountsPage() {
                   </div>
                   <div className="text-right mr-4">
                     <div className="text-2xl font-bold text-gray-900">{fmtR(selected.currentBalance)}</div>
-                    <div className="text-xs text-gray-400">saldo atual</div>
+                    <div className="text-xs text-gray-500">saldo atual</div>
                   </div>
                   <div className="flex gap-3 text-xs">
                     <div className="text-center">
@@ -708,11 +708,11 @@ Ex:
                   {filteredTx.length === 0 ? (
                     <div className="text-center py-12">
                       <Upload size={28} className="text-gray-300 mx-auto mb-2" />
-                      <div className="text-sm font-semibold text-gray-400">Nenhum extrato carregado</div>
+                      <div className="text-sm font-semibold text-gray-900">Nenhum extrato carregado</div>
                       <div className="text-xs text-gray-400 mt-1">Clique em &quot;Carregar Extrato&quot; para importar</div>
                     </div>
                   ) : (
-                    <div className="overflow-x-auto">
+                    <div className="table-scroll">
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="border-b border-gray-200 text-gray-500">
@@ -738,7 +738,7 @@ Ex:
                               <td className={`py-2.5 px-3 text-right text-xs font-bold ${tx.amount >= 0 ? "text-emerald-600" : "text-red-600"}`}>
                                 {tx.amount >= 0 ? "+" : ""}{fmtR(tx.amount)}
                               </td>
-                              <td className="py-2.5 px-3 text-right text-xs text-gray-400">
+                              <td className="py-2.5 px-3 text-right text-xs text-gray-500">
                                 {tx.balance != null ? fmtR(tx.balance) : "—"}
                               </td>
                             </tr>

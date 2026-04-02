@@ -125,10 +125,10 @@ export default function AwqVenturePipelinePage() {
         title="Pipeline — AWQ Venture"
         subtitle={`${deals.length} deals em avaliação · ${fmtR(totalTicket)} em ticket potencial`}
       />
-      <div className="px-8 py-6 space-y-6">
+      <div className="page-container">
 
         {/* ── Summary ──────────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             { label: "Deals Ativos",       value: deals.length,    icon: TrendingUp,  color: "text-amber-400",  bg: "bg-amber-500/10"  },
             { label: "Ticket Potencial",   value: fmtR(totalTicket), icon: DollarSign, color: "text-emerald-400",bg: "bg-emerald-500/10" },
@@ -151,7 +151,7 @@ export default function AwqVenturePipelinePage() {
         </div>
 
         {/* ── Kanban ───────────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {stages.map((stage) => {
             const { icon: StageIcon, color, bg } = stageConfig[stage];
             const stageDeals = deals.filter((d) => d.stage === stage);
@@ -204,7 +204,7 @@ export default function AwqVenturePipelinePage() {
         {/* ── Deal List ────────────────────────────────────────────────────── */}
         <div className="card p-5">
           <h2 className="text-sm font-semibold text-white mb-4">Todos os Deals</h2>
-          <div className="overflow-x-auto">
+          <div className="table-scroll">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-800">
@@ -227,7 +227,7 @@ export default function AwqVenturePipelinePage() {
                         <div className="text-xs font-medium text-gray-200">{d.company}</div>
                         <div className="text-[10px] text-gray-600 mt-0.5 truncate max-w-[180px]">{d.description.slice(0, 50)}…</div>
                       </td>
-                      <td className="py-2.5 px-3 text-xs text-gray-400">{d.sector}</td>
+                      <td className="py-2.5 px-3 text-xs text-gray-500">{d.sector}</td>
                       <td className="py-2.5 px-3">
                         <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold">
                           <StageIcon size={10} className={color} />
@@ -243,8 +243,8 @@ export default function AwqVenturePipelinePage() {
                       <td className="py-2.5 px-3">
                         <span className={priorityBadge[d.priority] ?? "badge"}>{d.priority}</span>
                       </td>
-                      <td className="py-2.5 px-3 text-xs text-gray-400">{d.source}</td>
-                      <td className="py-2.5 px-3 text-right text-xs text-gray-400">{d.eta}</td>
+                      <td className="py-2.5 px-3 text-xs text-gray-500">{d.source}</td>
+                      <td className="py-2.5 px-3 text-right text-xs text-gray-500">{d.eta}</td>
                     </tr>
                   );
                 })}

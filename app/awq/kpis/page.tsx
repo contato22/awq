@@ -79,10 +79,10 @@ export default function AwqKpisPage() {
         title="KPIs — AWQ Group"
         subtitle="Scorecard consolidado · Jan–Mar 2026"
       />
-      <div className="px-8 py-6 space-y-6">
+      <div className="page-container">
 
         {/* ── Top-level metrics ──────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             { label: "Receita YTD",    value: fmtR(consolidated.revenue),              icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
             { label: "EBITDA Margem",  value: pct(consolidatedMargins.ebitdaMargin),   icon: BarChart3,  color: "text-violet-700",  bg: "bg-violet-50"  },
@@ -111,7 +111,7 @@ export default function AwqKpisPage() {
               <Activity size={14} className="text-gray-400" />
               <h2 className="text-sm font-semibold text-gray-900">{section.category}</h2>
             </div>
-            <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {section.items.map((kpi) => (
                 <div key={kpi.label} className="p-3 rounded-xl bg-gray-100 border border-gray-200">
                   <div className="text-lg font-bold text-gray-900">{kpi.value}</div>
@@ -131,7 +131,7 @@ export default function AwqKpisPage() {
         {/* ── BU KPI Comparison ──────────────────────────────────────────────── */}
         <div className="card p-5">
           <h2 className="text-sm font-semibold text-gray-900 mb-4">Comparativo KPIs por BU</h2>
-          <div className="overflow-x-auto">
+          <div className="table-scroll">
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-gray-200 text-gray-500">
@@ -152,7 +152,7 @@ export default function AwqKpisPage() {
                   const em = bu.revenue > 0 ? ((bu.ebitda      / bu.revenue) * 100).toFixed(0) + "%" : "—";
                   const nm = bu.revenue > 0 ? ((bu.netIncome   / bu.revenue) * 100).toFixed(0) + "%" : "—";
                   return (
-                    <tr key={bu.id} className="border-b border-gray-100 hover:bg-gray-100 transition-colors group">
+                    <tr key={bu.id} className="border-b border-gray-100 hover:bg-gray-50/80 transition-colors group">
                       <td className="py-2.5 px-3">
                         <div className="flex items-center gap-2">
                           <div className={`w-2 h-2 rounded-full ${bu.color}`} />
@@ -184,7 +184,7 @@ export default function AwqKpisPage() {
         </div>
 
         {/* ── Quick links ───────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
           {[
             { label: "Financial",   href: "/awq/financial",   icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
             { label: "Allocations", href: "/awq/allocations", icon: Target,     color: "text-amber-700",   bg: "bg-amber-50"   },

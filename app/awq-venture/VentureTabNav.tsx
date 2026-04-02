@@ -25,22 +25,23 @@ export default function VentureTabNav() {
   return (
     <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
       <div className="flex items-center justify-between px-6">
-        <nav className="flex items-center gap-1">
+        <nav className="flex items-center gap-0.5 overflow-x-auto" aria-label="AWQ Venture navigation">
           {tabs.map((tab) => (
             <Link
               key={tab.href}
               href={tab.href}
-              className={`px-4 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+              aria-current={isActive(tab.href) ? "page" : undefined}
+              className={`px-3.5 py-3.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 isActive(tab.href)
                   ? "border-gray-900 text-gray-900"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  : "border-transparent text-gray-400 hover:text-gray-700 hover:border-gray-300"
               }`}
             >
               {tab.label}
             </Link>
           ))}
         </nav>
-        <button className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors py-2">
+        <button className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-700 transition-colors py-2 shrink-0 ml-4">
           <LogIn size={14} />
           Login
         </button>

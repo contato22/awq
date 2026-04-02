@@ -83,12 +83,12 @@ export default function ProjetosPage() {
   return (
     <>
       <Header title="Projetos" subtitle="Carteira de projetos — Caza Vision" />
-      <div className="px-8 py-6 space-y-6">
+      <div className="page-container">
 
         {/* ── Source badge ────────────────────────────────────────────────── */}
         <div className="flex items-center gap-2">
           {source === "loading" && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 border border-gray-300 text-xs text-gray-400">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-50 border border-gray-200 text-xs text-gray-500">
               <Database size={11} /> Conectando ao Notion…
             </span>
           )}
@@ -169,7 +169,7 @@ export default function ProjetosPage() {
               <AlertCircle size={16} /> Carregando…
             </div>
           ) : (
-          <div className="overflow-x-auto">
+          <div className="table-scroll">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200">
@@ -186,7 +186,7 @@ export default function ProjetosPage() {
               </thead>
               <tbody>
                 {rows.map((p) => (
-                  <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-100 transition-colors">
+                  <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-50/80 transition-colors">
                     <td className="py-2.5 px-3">
                       <div className="flex items-center gap-1.5 text-gray-400 font-medium text-xs">
                         <Clapperboard size={11} className="text-gray-400 shrink-0" />
@@ -212,10 +212,10 @@ export default function ProjetosPage() {
                     <td className="py-2.5 px-3 text-right text-xs font-semibold text-emerald-600">
                       {p.lucro > 0 ? fmtR(p.lucro) : <span className="text-gray-400">—</span>}
                     </td>
-                    <td className="py-2.5 px-3 text-xs text-gray-400">
+                    <td className="py-2.5 px-3 text-xs text-gray-500">
                       {p.diretor || <span className="text-gray-400">—</span>}
                     </td>
-                    <td className="py-2.5 px-3 text-xs text-gray-400">{fmtDate(p.prazo)}</td>
+                    <td className="py-2.5 px-3 text-xs text-gray-500">{fmtDate(p.prazo)}</td>
                     <td className="py-2.5 px-3">
                       {p.recebido ? (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-600 border border-emerald-200">

@@ -154,10 +154,10 @@ export default function AwqFinancialPage() {
         title="Financial — AWQ Group"
         subtitle="P&L consolidado por BU · Jan–Mar 2026"
       />
-      <div className="px-8 py-6 space-y-6">
+      <div className="page-container">
 
         {/* ── Summary Cards ─────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {summaryCards.map((card) => {
             const Icon = card.icon;
             return (
@@ -184,7 +184,7 @@ export default function AwqFinancialPage() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-semibold text-gray-900">DRE por BU — Jan–Mar 2026 (YTD)</h2>
           </div>
-          <div className="overflow-x-auto">
+          <div className="table-scroll">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200">
@@ -192,7 +192,7 @@ export default function AwqFinancialPage() {
                   <th className="text-right py-2 px-3 text-xs font-semibold text-brand-600">JACQES</th>
                   <th className="text-right py-2 px-3 text-xs font-semibold text-emerald-600">Caza Vision</th>
                   <th className="text-right py-2 px-3 text-xs font-semibold text-violet-700">Advisor</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400">TOTAL</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-900">TOTAL</th>
                   <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">% Rec.</th>
                 </tr>
               </thead>
@@ -207,7 +207,7 @@ export default function AwqFinancialPage() {
                   return (
                     <tr
                       key={i}
-                      className={`border-b border-gray-100 ${isSubtotal ? "bg-gray-50" : "hover:bg-gray-100"} transition-colors`}
+                      className={`border-b border-gray-100 ${isSubtotal ? "bg-gray-50" : "hover:bg-gray-50/80"} transition-colors`}
                     >
                       <td
                         className={`py-2 px-3 text-xs ${isSubtotal ? "font-bold text-gray-800" : "text-gray-400"}`}
@@ -263,7 +263,7 @@ export default function AwqFinancialPage() {
             </div>
 
             <div className="mt-5 pt-4 border-t border-gray-200">
-              <div className="text-xs font-semibold text-gray-400 mb-3">Margens por BU</div>
+              <div className="text-xs font-semibold text-gray-900 mb-3">Margens por BU</div>
               <div className="grid grid-cols-3 gap-2">
                 {operatingBus.map((bu) => (
                   <div key={bu.id} className="text-center p-3 rounded-lg bg-gray-100">
@@ -280,7 +280,7 @@ export default function AwqFinancialPage() {
           {/* ── Monthly Revenue ───────────────────────────────────────────────── */}
           <div className="card p-5">
             <h2 className="text-sm font-semibold text-gray-900 mb-4">Receita Mensal — Consolidado</h2>
-            <div className="overflow-x-auto">
+            <div className="table-scroll">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-200">
@@ -296,11 +296,11 @@ export default function AwqFinancialPage() {
                     const prevTotal = monthlyRevenue[monthlyRevenue.indexOf(row) - 1]?.total;
                     const growth = prevTotal ? (((row.total - prevTotal) / prevTotal) * 100).toFixed(1) : null;
                     return (
-                      <tr key={row.month} className="border-b border-gray-100 hover:bg-gray-100 transition-colors">
+                      <tr key={row.month} className="border-b border-gray-100 hover:bg-gray-50/80 transition-colors">
                         <td className="py-2.5 px-2 text-xs font-medium text-gray-400">{row.month}</td>
-                        <td className="py-2.5 px-2 text-right text-xs text-gray-400">{fmtR(row.jacqes)}</td>
-                        <td className="py-2.5 px-2 text-right text-xs text-gray-400">{fmtR(row.caza)}</td>
-                        <td className="py-2.5 px-2 text-right text-xs text-gray-400">{fmtR(row.advisor)}</td>
+                        <td className="py-2.5 px-2 text-right text-xs text-gray-500">{fmtR(row.jacqes)}</td>
+                        <td className="py-2.5 px-2 text-right text-xs text-gray-500">{fmtR(row.caza)}</td>
+                        <td className="py-2.5 px-2 text-right text-xs text-gray-500">{fmtR(row.advisor)}</td>
                         <td className="py-2.5 px-2 text-right text-xs font-bold text-gray-900">
                           {fmtR(row.total)}
                           {growth && (
@@ -338,7 +338,7 @@ export default function AwqFinancialPage() {
                 <Link
                   key={bu.id}
                   href={bu.hrefFinancial}
-                  className="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-gray-100 transition-colors group"
+                  className="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-gray-50/80 transition-colors group"
                 >
                   <div className="flex items-center gap-2">
                     <div className={`w-1.5 h-1.5 rounded-full ${bu.color}`} />

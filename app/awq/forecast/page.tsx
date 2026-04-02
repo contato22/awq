@@ -67,10 +67,10 @@ export default function AwqForecastPage() {
         title="Forecast — AWQ Group"
         subtitle="Receita · Cenários base / bull / bear · Forecast Accuracy · 2026"
       />
-      <div className="px-8 py-6 space-y-6">
+      <div className="page-container">
 
         {/* ── Summary Cards ─────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             {
               label: "Forecast Receita 2026 (Base)",
@@ -134,7 +134,7 @@ export default function AwqForecastPage() {
           {/* ── Monthly Forecast Table ────────────────────────────────────────── */}
           <div className="xl:col-span-2 card p-5">
             <h2 className="text-sm font-semibold text-gray-900 mb-4">Receita Mensal — Realizado + Forecast 2026</h2>
-            <div className="overflow-x-auto">
+            <div className="table-scroll">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-200">
@@ -152,9 +152,9 @@ export default function AwqForecastPage() {
                     const maxBarVal  = Math.max(...revenueForecasts.map((r) => r.bull));
                     const barWidth   = ((row.actual ?? row.base) / maxBarVal) * 100;
                     return (
-                      <tr key={row.month} className={`border-b border-gray-100 hover:bg-gray-100 transition-colors ${!isActual ? "opacity-75" : ""}`}>
+                      <tr key={row.month} className={`border-b border-gray-100 hover:bg-gray-50/80 transition-colors ${!isActual ? "opacity-75" : ""}`}>
                         <td className="py-2.5 px-3 text-xs font-medium text-gray-400">{row.month}</td>
-                        <td className="py-2.5 px-3 text-right text-xs text-gray-400">{fmtR(row.base)}</td>
+                        <td className="py-2.5 px-3 text-right text-xs text-gray-500">{fmtR(row.base)}</td>
                         <td className="py-2.5 px-3 text-right text-xs text-emerald-600">{fmtR(row.bull)}</td>
                         <td className="py-2.5 px-3 text-right text-xs text-red-600">{fmtR(row.bear)}</td>
                         <td className="py-2.5 px-3 text-right text-xs font-bold text-gray-900">
@@ -194,7 +194,7 @@ export default function AwqForecastPage() {
                   return (
                     <div key={row.month}>
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs text-gray-400">{row.month}</span>
+                        <span className="text-xs text-gray-500">{row.month}</span>
                         <div className="flex items-center gap-2 text-[11px]">
                           <span className="text-gray-500">Forecast: {fmtR(row.forecast)}</span>
                           <span className={`font-bold ${isPos ? "text-emerald-600" : "text-red-600"}`}>

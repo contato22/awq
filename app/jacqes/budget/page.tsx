@@ -141,10 +141,10 @@ export default function JacqesBudgetPage() {
         title="Budget — JACQES"
         subtitle="Orçamento anual · Realizado YTD · Forecast 2026"
       />
-      <div className="px-8 py-6 space-y-6">
+      <div className="page-container">
 
         {/* ── Summary Cards ─────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             {
               label: "Budget Receita 2026",
@@ -214,7 +214,7 @@ export default function JacqesBudgetPage() {
           <h2 className="text-sm font-semibold text-gray-900 mb-4">
             Budget vs Realizado vs Forecast — Linhas Principais · 2026
           </h2>
-          <div className="overflow-x-auto">
+          <div className="table-scroll">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200">
@@ -236,7 +236,7 @@ export default function JacqesBudgetPage() {
                   return (
                     <tr
                       key={row.category}
-                      className={`border-b border-gray-100 transition-colors ${isSubtotal ? "bg-gray-50" : "hover:bg-gray-100"}`}
+                      className={`border-b border-gray-100 transition-colors ${isSubtotal ? "bg-gray-50" : "hover:bg-gray-50/80"}`}
                     >
                       <td className={`py-2.5 px-3 text-xs ${rowTextColor(row.type)}`}>{row.category}</td>
                       <td className="py-2.5 px-3 text-right text-xs text-gray-500">{fmtR(row.budgetAno)}</td>
@@ -276,7 +276,7 @@ export default function JacqesBudgetPage() {
                   <div className="flex items-center justify-between mb-1.5">
                     <div className="flex items-center gap-2">
                       <Icon size={12} className={cat.color} />
-                      <span className="text-xs text-gray-400">{cat.category}</span>
+                      <span className="text-xs text-gray-500">{cat.category}</span>
                     </div>
                     <div className="flex items-center gap-3 text-[11px]">
                       <span className="text-gray-500">Budget: {fmtR(cat.budget)}</span>

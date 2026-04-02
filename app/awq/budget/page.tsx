@@ -93,10 +93,10 @@ export default function AwqBudgetPage() {
         title="Budget — AWQ Group"
         subtitle="Budget vs Actual consolidado por BU · YTD Jan–Mar 2026"
       />
-      <div className="px-8 py-6 space-y-6">
+      <div className="page-container">
 
         {/* ── Summary Cards ─────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             {
               label: "Budget Receita YTD",
@@ -162,7 +162,7 @@ export default function AwqBudgetPage() {
         {/* ── Budget vs Actual by BU + Line ────────────────────────────────── */}
         <div className="card p-5">
           <h2 className="text-sm font-semibold text-gray-900 mb-4">Budget vs Actual por BU e Linha</h2>
-          <div className="overflow-x-auto">
+          <div className="table-scroll">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200">
@@ -193,8 +193,8 @@ export default function AwqBudgetPage() {
                     );
                   };
                   return (
-                    <tr key={row.line} className="border-b border-gray-100 hover:bg-gray-100 transition-colors">
-                      <td className="py-2.5 px-3 text-xs font-semibold text-gray-400">{row.line}</td>
+                    <tr key={row.line} className="border-b border-gray-100 hover:bg-gray-50/80 transition-colors">
+                      <td className="py-2.5 px-3 text-xs font-semibold text-gray-900">{row.line}</td>
                       <td className="py-2.5 px-3 text-right text-xs text-gray-500">{fmtR(row.jacquesBudg)}</td>
                       <td className="py-2.5 px-3 text-right text-xs font-semibold text-gray-900">{fmtR(row.jacquesActual)}</td>
                       <td className="py-2.5 px-3 text-right">{varCell(vJ, row.isExpense)}</td>
@@ -227,7 +227,7 @@ export default function AwqBudgetPage() {
                       {overBudget
                         ? <AlertTriangle size={11} className="text-red-600" />
                         : <CheckCircle2 size={11} className="text-emerald-600" />}
-                      <span className="text-xs text-gray-400">{cat.category}</span>
+                      <span className="text-xs text-gray-500">{cat.category}</span>
                     </div>
                     <div className="flex items-center gap-3 text-[11px]">
                       <span className="text-gray-500">Budget: {fmtR(cat.budget)}</span>

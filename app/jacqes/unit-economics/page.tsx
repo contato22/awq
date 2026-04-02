@@ -107,10 +107,10 @@ export default function JacqesUnitEconomicsPage() {
         title="Unit Economics — JACQES"
         subtitle="CAC · LTV · Payback · MRR · Cohortes"
       />
-      <div className="px-8 py-6 space-y-6">
+      <div className="page-container">
 
         {/* ── Unit Metric Cards ─────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {unitMetrics.map((m) => {
             const Icon = m.icon;
             return (
@@ -185,7 +185,7 @@ export default function JacqesUnitEconomicsPage() {
 
             {/* MRR Decomposition */}
             <div className="mt-5 pt-4 border-t border-gray-200">
-              <div className="text-xs font-semibold text-gray-400 mb-3">Decomposição MRR — Mar/26</div>
+              <div className="text-xs font-semibold text-gray-900 mb-3">Decomposição MRR — Mar/26</div>
               <div className="grid grid-cols-3 gap-3">
                 {[
                   { label: "New MRR",       value: latestMrr.newMrr,      color: "text-emerald-600", bg: "bg-emerald-50" },
@@ -214,7 +214,7 @@ export default function JacqesUnitEconomicsPage() {
             ].map((r) => (
               <div key={r.label}>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-gray-400">{r.label}</span>
+                  <span className="text-xs text-gray-500">{r.label}</span>
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] text-gray-400">ref: {r.benchmark}</span>
                     <span className="text-xs font-bold text-emerald-600">{r.value}</span>
@@ -229,7 +229,7 @@ export default function JacqesUnitEconomicsPage() {
             <div className="border-t border-gray-200 pt-4 mt-auto">
               <div className="flex items-center gap-2 mb-2">
                 <BarChart3 size={13} className="text-brand-600" />
-                <span className="text-xs font-semibold text-gray-400">Margens por Tipo de Serviço</span>
+                <span className="text-xs font-semibold text-gray-900">Margens por Tipo de Serviço</span>
               </div>
               {[
                 { label: "Retainer Mensal",  margin: 72 },
@@ -252,7 +252,7 @@ export default function JacqesUnitEconomicsPage() {
         {/* ── Cohort Analysis ──────────────────────────────────────────────── */}
         <div className="card p-5">
           <h2 className="text-sm font-semibold text-gray-900 mb-4">Análise de Cohort — Retenção por Trimestre de Entrada</h2>
-          <div className="overflow-x-auto">
+          <div className="table-scroll">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200">
@@ -265,9 +265,9 @@ export default function JacqesUnitEconomicsPage() {
               </thead>
               <tbody>
                 {cohortData.map((row) => (
-                  <tr key={row.cohort} className="border-b border-gray-100 hover:bg-gray-100 transition-colors">
+                  <tr key={row.cohort} className="border-b border-gray-100 hover:bg-gray-50/80 transition-colors">
                     <td className="py-2.5 px-3 text-xs font-medium text-gray-400">{row.cohort}</td>
-                    <td className="py-2.5 px-3 text-right text-xs text-gray-400">{row.clientes}</td>
+                    <td className="py-2.5 px-3 text-right text-xs text-gray-500">{row.clientes}</td>
                     <td className="py-2.5 px-3 text-right text-xs font-semibold">
                       <span className={retencaoColor(row.retencao12m)}>{row.retencao12m}%</span>
                     </td>

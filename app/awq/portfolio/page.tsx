@@ -36,10 +36,10 @@ export default function AwqPortfolioPage() {
         title="Portfolio — AWQ Group"
         subtitle="Visão consolidada do grupo · Jan–Mar 2026"
       />
-      <div className="px-8 py-6 space-y-6">
+      <div className="page-container">
 
         {/* ── Group summary ──────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             { label: "BUs no Portfolio",   value: buData.length.toString(),         icon: Building2,  color: "text-brand-600",   bg: "bg-brand-50"   },
             { label: "Capital Total",       value: fmtR(totalCap),                   icon: Wallet,     color: "text-amber-700",   bg: "bg-amber-50"   },
@@ -153,7 +153,7 @@ export default function AwqPortfolioPage() {
               Análise completa <ChevronRight size={12} />
             </Link>
           </div>
-          <div className="overflow-x-auto">
+          <div className="table-scroll">
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-gray-200 text-gray-500">
@@ -174,7 +174,7 @@ export default function AwqPortfolioPage() {
                     const flagCfg = flagConfig[flag];
                     const share   = totalCap > 0 ? ((bu.capitalAllocated / totalCap) * 100).toFixed(1) : "0";
                     return (
-                      <tr key={bu.id} className="border-b border-gray-100 hover:bg-gray-100 transition-colors">
+                      <tr key={bu.id} className="border-b border-gray-100 hover:bg-gray-50/80 transition-colors">
                         <td className="py-2.5 px-3">
                           <div className="flex items-center gap-2">
                             <div className={`w-2 h-2 rounded-full ${bu.color}`} />
@@ -211,7 +211,7 @@ export default function AwqPortfolioPage() {
         </div>
 
         {/* ── Quick nav ─────────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {[
             { label: "Financial",   href: "/awq/financial",   icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
             { label: "Allocations", href: "/awq/allocations", icon: Wallet,     color: "text-amber-700",   bg: "bg-amber-50"   },

@@ -94,10 +94,10 @@ export default function CazaUnitEconomicsPage() {
         title="Unit Economics — Caza Vision"
         subtitle="CAC · LTV · Margem por projeto e cliente · Rendimento por diretor"
       />
-      <div className="px-8 py-6 space-y-6">
+      <div className="page-container">
 
         {/* ── Unit Metric Cards ─────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {unitCards.map((m) => {
             const Icon = m.icon;
             return (
@@ -134,7 +134,7 @@ export default function CazaUnitEconomicsPage() {
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2">
                         <Film size={11} className="text-gray-500" />
-                        <span className="text-xs text-gray-400">{t.type}</span>
+                        <span className="text-xs text-gray-500">{t.type}</span>
                         <span className="text-[10px] text-gray-400">{t.projetos}p</span>
                       </div>
                       <div className="flex items-center gap-3 text-[11px]">
@@ -162,7 +162,7 @@ export default function CazaUnitEconomicsPage() {
           {/* ── Director Economics ───────────────────────────────────────────── */}
           <div className="card p-5">
             <h2 className="text-sm font-semibold text-gray-900 mb-4">Produção por Diretor</h2>
-            <div className="overflow-x-auto">
+            <div className="table-scroll">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-200">
@@ -177,15 +177,15 @@ export default function CazaUnitEconomicsPage() {
                   {directorEconomics.map((d) => {
                     const margin = ((d.lucro / d.receita) * 100).toFixed(0);
                     return (
-                      <tr key={d.name} className="border-b border-gray-100 hover:bg-gray-100 transition-colors">
+                      <tr key={d.name} className="border-b border-gray-100 hover:bg-gray-50/80 transition-colors">
                         <td className="py-2.5 px-3 text-xs font-medium text-gray-400">{d.name}</td>
-                        <td className="py-2.5 px-3 text-right text-xs text-gray-400">{d.projetos}</td>
+                        <td className="py-2.5 px-3 text-right text-xs text-gray-500">{d.projetos}</td>
                         <td className="py-2.5 px-3 text-right text-xs font-semibold text-gray-900">{fmtR(d.receita)}</td>
                         <td className="py-2.5 px-3 text-right text-xs">
                           <span className="text-emerald-600 font-semibold">{fmtR(d.lucro)}</span>
                           <span className="text-[10px] text-gray-400 ml-1">{margin}%</span>
                         </td>
-                        <td className="py-2.5 px-3 text-right text-xs text-gray-400">{fmtR(d.ticketMedio)}</td>
+                        <td className="py-2.5 px-3 text-right text-xs text-gray-500">{fmtR(d.ticketMedio)}</td>
                       </tr>
                     );
                   })}
@@ -215,7 +215,7 @@ export default function CazaUnitEconomicsPage() {
           <h2 className="text-sm font-semibold text-gray-900 mb-4">
             Economia por Cliente — Receita · LTV Estimado · Margem
           </h2>
-          <div className="overflow-x-auto">
+          <div className="table-scroll">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200">
@@ -229,11 +229,11 @@ export default function CazaUnitEconomicsPage() {
               </thead>
               <tbody>
                 {clientEconomics.map((c) => (
-                  <tr key={c.name} className="border-b border-gray-100 hover:bg-gray-100 transition-colors">
+                  <tr key={c.name} className="border-b border-gray-100 hover:bg-gray-50/80 transition-colors">
                     <td className="py-2.5 px-3 text-xs font-medium text-gray-400">{c.name}</td>
-                    <td className="py-2.5 px-3 text-right text-xs text-gray-400">{c.projetos}</td>
+                    <td className="py-2.5 px-3 text-right text-xs text-gray-500">{c.projetos}</td>
                     <td className="py-2.5 px-3 text-right text-xs font-semibold text-gray-900">{fmtR(c.receitaTotal)}</td>
-                    <td className="py-2.5 px-3 text-right text-xs text-gray-400">{fmtR(c.ticketMedio)}</td>
+                    <td className="py-2.5 px-3 text-right text-xs text-gray-500">{fmtR(c.ticketMedio)}</td>
                     <td className="py-2.5 px-3 text-right text-xs font-semibold text-emerald-600">{fmtR(c.ltvEstimado)}</td>
                     <td className="py-2.5 px-3 text-right text-xs">
                       <span className={`font-semibold ${c.margin >= 55 ? "text-emerald-600" : c.margin >= 50 ? "text-amber-700" : "text-red-600"}`}>

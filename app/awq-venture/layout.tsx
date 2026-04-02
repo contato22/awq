@@ -2,9 +2,9 @@ import VentureTabNav from "./VentureTabNav";
 
 export default function AwqVentureLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-full bg-[#f0f2f5] font-sans">
+    <div className="min-h-full bg-gray-50 font-sans">
       <VentureTabNav />
-      <div className="p-6 space-y-5">
+      <div className="page-container">
         {children}
       </div>
     </div>

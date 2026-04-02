@@ -59,7 +59,7 @@ export default function LoginPage() {
 
         {/* Card */}
         <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-2xl">
-          <h2 className="text-base font-semibold text-gray-400 mb-6">Entrar na plataforma</h2>
+          <h2 className="text-base font-semibold text-gray-900 mb-6">Entrar na plataforma</h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -73,7 +73,7 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="seu@email.com"
                 required
-                className="w-full px-3 py-2.5 bg-gray-100 border border-gray-300 rounded-xl text-sm text-gray-400 placeholder:text-gray-400 focus:outline-none focus:border-brand-500 transition-colors"
+                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-400 placeholder:text-gray-400 focus:outline-none focus:border-brand-500 transition-colors"
               />
             </div>
 
@@ -88,7 +88,7 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
-                  className="w-full px-3 py-2.5 pr-10 bg-gray-100 border border-gray-300 rounded-xl text-sm text-gray-400 placeholder:text-gray-400 focus:outline-none focus:border-brand-500 transition-colors"
+                  className="w-full px-3 py-2.5 pr-10 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-400 placeholder:text-gray-400 focus:outline-none focus:border-brand-500 transition-colors"
                 />
                 <button
                   type="button"

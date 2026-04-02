@@ -158,7 +158,7 @@ export default function FinancialPage() {
                 <p className="text-sm font-medium text-gray-900">{a.titulo}</p>
                 <p className="text-xs text-gray-500">{a.detalhe}</p>
               </div>
-              <span className="ml-auto text-xs text-gray-400">{a.bu}</span>
+              <span className="ml-auto text-xs text-gray-500">{a.bu}</span>
             </div>
           ))}
         </div>
@@ -176,7 +176,7 @@ export default function FinancialPage() {
                 <div key={bu.bu} className="flex flex-col gap-1">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-400">#{i + 1}</span>
+                      <span className="text-xs text-gray-500">#{i + 1}</span>
                       <span className="text-sm font-medium text-gray-900">{bu.bu}</span>
                       <span
                         className={`rounded-full px-2 py-0.5 text-xs ${
@@ -206,7 +206,7 @@ export default function FinancialPage() {
                       style={{ width: `${pct}%` }}
                     />
                   </div>
-                  <p className="text-right text-xs text-gray-400">{pct.toFixed(1)}% da receita do grupo</p>
+                  <p className="text-right text-xs text-gray-500">{pct.toFixed(1)}% da receita do grupo</p>
                 </div>
               );
             })}
@@ -229,7 +229,7 @@ export default function FinancialPage() {
             </span>
           </div>
         </div>
-        <div className="overflow-x-auto">
+        <div className="table-scroll">
           <table className="w-full text-xs">
             <thead>
               <tr className="text-gray-400 border-b border-gray-100">
@@ -280,12 +280,12 @@ export default function FinancialPage() {
       <div className="rounded-2xl border border-gray-100 bg-gray-50 p-5">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold text-gray-900">Evolução de Receita Mensal</h3>
-          <span className="text-xs text-gray-400">Receita · Despesas · Lucro · Margem</span>
+          <span className="text-xs text-gray-500">Receita · Despesas · Lucro · Margem</span>
         </div>
-        <div className="overflow-x-auto">
+        <div className="table-scroll">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-100 text-left text-xs text-gray-400">
+              <tr className="border-b border-gray-100 text-left text-xs text-gray-500">
                 <th className="py-2 font-medium">Mês</th>
                 <th className="py-2 text-right font-medium">Receita</th>
                 <th className="py-2 text-right font-medium">Despesas</th>
@@ -339,10 +339,10 @@ export default function FinancialPage() {
       {/* Canais de Aquisição */}
       <div className="rounded-2xl border border-gray-100 bg-gray-50 p-5">
         <h3 className="mb-4 text-sm font-semibold text-gray-900">Canais de Aquisição</h3>
-        <div className="overflow-x-auto">
+        <div className="table-scroll">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-100 text-left text-xs text-gray-400">
+              <tr className="border-b border-gray-100 text-left text-xs text-gray-500">
                 <th className="py-2 font-medium">Canal</th>
                 <th className="py-2 text-right font-medium">Sessões</th>
                 <th className="py-2 text-right font-medium">Conversões</th>

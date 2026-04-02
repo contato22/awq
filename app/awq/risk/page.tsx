@@ -153,7 +153,7 @@ export default function AwqRiskPage() {
         title="Risk — AWQ Group"
         subtitle="Risk signals · Concentração · Recebíveis · Margem · Cash · Forecast"
       />
-      <div className="px-8 py-6 space-y-6">
+      <div className="page-container">
 
         {/* ── Risk Summary ──────────────────────────────────────────────────── */}
         <div className="grid grid-cols-3 xl:grid-cols-6 gap-4">
@@ -243,7 +243,7 @@ export default function AwqRiskPage() {
         {/* ── Risk Heatmap by BU ────────────────────────────────────────────── */}
         <div className="card p-5">
           <h2 className="text-sm font-semibold text-gray-900 mb-4">Risk Exposure por BU</h2>
-          <div className="overflow-x-auto">
+          <div className="table-scroll">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200">
@@ -276,7 +276,7 @@ export default function AwqRiskPage() {
                   };
                   const bu = buData.find((b) => b.name === row.name);
                   return (
-                    <tr key={row.name} className="border-b border-gray-100 hover:bg-gray-100 transition-colors">
+                    <tr key={row.name} className="border-b border-gray-100 hover:bg-gray-50/80 transition-colors">
                       <td className="py-2.5 px-3">
                         <div className="flex items-center gap-2">
                           <div className={`w-2 h-2 rounded-full ${bu?.color ?? "bg-gray-500"}`} />

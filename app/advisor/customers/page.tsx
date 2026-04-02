@@ -64,10 +64,10 @@ export default function AdvisorCustomersPage() {
         title="Customers — Advisor"
         subtitle="Carteira de clientes · AUM · Performance · Perfil"
       />
-      <div className="px-8 py-6 space-y-6">
+      <div className="page-container">
 
         {/* ── Summary Cards ─────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             { label: "AUM Total",       value: fmtR(totalAum),  sub: `${ativos} clientes ativos`,  icon: Briefcase, color: "text-violet-700", bg: "bg-violet-50", delta: "+18.3%", up: true  },
             { label: "AUM Médio",        value: fmtR(Math.round(totalAum / clients.length)), sub: "por cliente",    icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50", delta: "+14.1%", up: true  },
@@ -101,7 +101,7 @@ export default function AdvisorCustomersPage() {
           {/* ── Client Table ─────────────────────────────────────────────────── */}
           <div className="xl:col-span-2 card p-5">
             <h2 className="text-sm font-semibold text-gray-900 mb-4">Carteira de Clientes</h2>
-            <div className="overflow-x-auto">
+            <div className="table-scroll">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-200">
@@ -119,7 +119,7 @@ export default function AdvisorCustomersPage() {
                   {clients.map((c) => {
                     const tc = typeConfig[c.type] ?? { color: "text-gray-400", bg: "bg-gray-100" };
                     return (
-                      <tr key={c.id} className="border-b border-gray-100 hover:bg-gray-100 transition-colors">
+                      <tr key={c.id} className="border-b border-gray-100 hover:bg-gray-50/80 transition-colors">
                         <td className="py-2.5 px-3">
                           <div className="text-xs font-medium text-gray-400">{c.name}</div>
                           <div className="text-[10px] text-gray-400 mt-0.5">desde {c.since}</div>
@@ -134,7 +134,7 @@ export default function AdvisorCustomersPage() {
                           <span className={`text-xs font-semibold ${riscoConfig[c.risco]}`}>{c.risco}</span>
                         </td>
                         <td className="py-2.5 px-3 text-right text-xs font-bold text-emerald-600">+{c.retorno}%</td>
-                        <td className="py-2.5 px-3 text-right text-xs text-gray-400">{c.fee}% a.a.</td>
+                        <td className="py-2.5 px-3 text-right text-xs text-gray-500">{c.fee}% a.a.</td>
                         <td className="py-2.5 px-3 text-right text-xs">
                           <span className={`font-bold ${c.nps >= 80 ? "text-emerald-600" : c.nps >= 70 ? "text-amber-700" : "text-red-600"}`}>
                             {c.nps}

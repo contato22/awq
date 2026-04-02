@@ -84,12 +84,12 @@ export default function ClientesPage() {
   return (
     <>
       <Header title="Clientes" subtitle="Marcas, agências e empresas — Caza Vision" />
-      <div className="px-8 py-6 space-y-6">
+      <div className="page-container">
 
         {/* ── Source badge ────────────────────────────────────────────────── */}
         <div className="flex items-center gap-2">
           {source === "loading" && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 border border-gray-300 text-xs text-gray-400">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-50 border border-gray-200 text-xs text-gray-500">
               <Database size={11} /> Conectando ao Notion…
             </span>
           )}
@@ -110,7 +110,7 @@ export default function ClientesPage() {
         </div>
 
         {/* ── Summary strip ───────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             { label: "Total de Clientes",    value: String(total),       color: "text-gray-900",       icon: Users       },
             { label: "Ativos / Em Proposta", value: String(ativos),      color: "text-emerald-600", icon: BarChart3   },
@@ -167,7 +167,7 @@ export default function ClientesPage() {
               <AlertCircle size={16} /> Carregando…
             </div>
           ) : (
-          <div className="overflow-x-auto">
+          <div className="table-scroll">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200">
@@ -184,7 +184,7 @@ export default function ClientesPage() {
                 {clients.map((c) => {
                   const TypeIcon = typeIcon[c.type] ?? Users;
                   return (
-                    <tr key={c.id} className="border-b border-gray-100 hover:bg-gray-100 transition-colors">
+                    <tr key={c.id} className="border-b border-gray-100 hover:bg-gray-50/80 transition-colors">
                       <td className="py-2.5 px-3">
                         <div className="text-gray-400 font-medium text-xs">{c.name}</div>
                         <div className="text-[10px] text-gray-400 mt-0.5">{c.email}</div>
@@ -206,7 +206,7 @@ export default function ClientesPage() {
                           </span>
                         ) : <span className="text-gray-400">—</span>}
                       </td>
-                      <td className="py-2.5 px-3 text-xs text-gray-400">{c.segmento || "—"}</td>
+                      <td className="py-2.5 px-3 text-xs text-gray-500">{c.segmento || "—"}</td>
                       <td className="py-2.5 px-3 text-[11px] text-gray-400">{c.since || "—"}</td>
                       <td className="py-2.5 px-3">
                         <span className={statusConfig[c.status] ?? "badge"}>{c.status}</span>

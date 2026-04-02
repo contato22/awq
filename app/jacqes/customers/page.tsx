@@ -80,10 +80,10 @@ export default function JacqesCustomersPage() {
         title="Customers — JACQES"
         subtitle="Carteira de clientes · LTV · Churn · NPS"
       />
-      <div className="px-8 py-6 space-y-6">
+      <div className="page-container">
 
         {/* ── Summary Cards ─────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             { label: "MRR Total",       value: fmtR(totalMrr),    sub: `${ativos} clientes ativos`,    icon: DollarSign,    color: "text-emerald-600", bg: "bg-emerald-50", delta: "+14.2%", up: true  },
             { label: "LTV Médio",        value: fmtR(avgLtv),      sub: `Carteira: ${fmtR(totalLtv)}`, icon: TrendingUp,    color: "text-brand-600",   bg: "bg-brand-50",   delta: "+8.7%",  up: true  },
@@ -117,7 +117,7 @@ export default function JacqesCustomersPage() {
           {/* ── Customer Table ────────────────────────────────────────────────── */}
           <div className="xl:col-span-2 card p-5">
             <h2 className="text-sm font-semibold text-gray-900 mb-4">Carteira de Clientes</h2>
-            <div className="overflow-x-auto">
+            <div className="table-scroll">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-200">
@@ -132,12 +132,12 @@ export default function JacqesCustomersPage() {
                 </thead>
                 <tbody>
                   {customers.map((c) => (
-                    <tr key={c.id} className="border-b border-gray-100 hover:bg-gray-100 transition-colors">
+                    <tr key={c.id} className="border-b border-gray-100 hover:bg-gray-50/80 transition-colors">
                       <td className="py-2.5 px-3">
                         <div className="text-gray-400 font-medium text-xs">{c.name}</div>
                         <div className="text-[10px] text-gray-400 mt-0.5">desde {c.since.split("-")[0]}</div>
                       </td>
-                      <td className="py-2.5 px-3 text-xs text-gray-400">{c.segment}</td>
+                      <td className="py-2.5 px-3 text-xs text-gray-500">{c.segment}</td>
                       <td className="py-2.5 px-3 text-right text-xs font-semibold text-gray-900">
                         {c.mrr > 0 ? fmtR(c.mrr) : <span className="text-gray-400">—</span>}
                       </td>
@@ -186,7 +186,7 @@ export default function JacqesCustomersPage() {
                 </div>
                 {churnHistory.map((row) => (
                   <div key={row.month} className="grid grid-cols-4 py-1.5 border-b border-gray-200/30 last:border-0">
-                    <span className="text-xs text-gray-400">{row.month}</span>
+                    <span className="text-xs text-gray-500">{row.month}</span>
                     <span className="text-xs text-emerald-600 text-center font-semibold">+{row.novos}</span>
                     <span className="text-xs text-red-600 text-center font-semibold">{row.churned > 0 ? `-${row.churned}` : "—"}</span>
                     <span className={`text-xs text-center font-bold ${row.net > 0 ? "text-emerald-600" : "text-red-600"}`}>
@@ -207,7 +207,7 @@ export default function JacqesCustomersPage() {
                   <div key={c.id} className="flex items-start gap-2.5 p-3 rounded-lg bg-red-500/5 border border-red-500/15">
                     <AlertTriangle size={12} className="text-red-600 shrink-0 mt-0.5" />
                     <div>
-                      <div className="text-xs font-semibold text-gray-400">{c.name}</div>
+                      <div className="text-xs font-semibold text-gray-900">{c.name}</div>
                       <div className="text-[10px] text-gray-500 mt-0.5">
                         MRR em risco: {fmtR(c.mrr)} · NPS: {c.nps}
                       </div>
@@ -218,7 +218,7 @@ export default function JacqesCustomersPage() {
                   <div key={c.id} className="flex items-start gap-2.5 p-3 rounded-lg bg-amber-500/5 border border-amber-500/15">
                     <Clock size={12} className="text-amber-700 shrink-0 mt-0.5" />
                     <div>
-                      <div className="text-xs font-semibold text-gray-400">{c.name}</div>
+                      <div className="text-xs font-semibold text-gray-900">{c.name}</div>
                       <div className="text-[10px] text-gray-500 mt-0.5">
                         Risco médio · NPS: {c.nps}
                       </div>
@@ -228,7 +228,7 @@ export default function JacqesCustomersPage() {
                 <div className="flex items-start gap-2.5 p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/15">
                   <CheckCircle2 size={12} className="text-emerald-600 shrink-0 mt-0.5" />
                   <div>
-                    <div className="text-xs font-semibold text-gray-400">{ativos - emRisco} clientes saudáveis</div>
+                    <div className="text-xs font-semibold text-gray-900">{ativos - emRisco} clientes saudáveis</div>
                     <div className="text-[10px] text-gray-500 mt-0.5">Baixo risco de churn</div>
                   </div>
                 </div>

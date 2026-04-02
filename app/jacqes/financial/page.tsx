@@ -136,10 +136,10 @@ export default function JacqesFinancialPage() {
         title="Financial — JACQES"
         subtitle="DRE · Budget vs Actual · Jan–Mar 2026"
       />
-      <div className="px-8 py-6 space-y-6">
+      <div className="page-container">
 
         {/* ── Summary Cards ─────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {summaryCards.map((card) => {
             const Icon = card.icon;
             return (
@@ -172,7 +172,7 @@ export default function JacqesFinancialPage() {
             <h2 className="text-sm font-semibold text-gray-900 mb-4">
               DRE — Demonstração do Resultado · Jan–Mar 2026 (YTD)
             </h2>
-            <div className="overflow-x-auto">
+            <div className="table-scroll">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-200">
@@ -191,7 +191,7 @@ export default function JacqesFinancialPage() {
                     return (
                       <tr
                         key={i}
-                        className={`border-b border-gray-100 transition-colors ${isSubtotal ? "bg-gray-50" : "hover:bg-gray-100"}`}
+                        className={`border-b border-gray-100 transition-colors ${isSubtotal ? "bg-gray-50" : "hover:bg-gray-50/80"}`}
                       >
                         <td className={`py-2 px-3 text-xs ${isSubtotal ? "font-bold text-gray-800" : "text-gray-400"}`}
                           style={{ paddingLeft: `${(row.indent * 16) + 12}px` }}>
@@ -226,7 +226,7 @@ export default function JacqesFinancialPage() {
               return (
                 <div key={m.label}>
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs text-gray-400">{m.label}</span>
+                    <span className="text-xs text-gray-500">{m.label}</span>
                     <span className="text-xs font-bold text-gray-900">{p.toFixed(1)}%</span>
                   </div>
                   <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
@@ -240,7 +240,7 @@ export default function JacqesFinancialPage() {
             })}
 
             <div className="border-t border-gray-200 pt-4 mt-2">
-              <div className="text-xs font-semibold text-gray-400 mb-3">Composição de Despesas</div>
+              <div className="text-xs font-semibold text-gray-900 mb-3">Composição de Despesas</div>
               {[
                 { label: "Custo dos Serviços",  value: 1_735_600, color: "text-red-600"    },
                 { label: "Desp. Comerciais",    value: 347_120,   color: "text-orange-400" },
@@ -265,7 +265,7 @@ export default function JacqesFinancialPage() {
               <span className="flex items-center gap-1.5 text-emerald-600"><span className="w-3 h-0.5 bg-emerald-400 inline-block rounded" /> Realizado</span>
             </div>
           </div>
-          <div className="overflow-x-auto">
+          <div className="table-scroll">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200">
@@ -284,7 +284,7 @@ export default function JacqesFinancialPage() {
                   const varR = isFuture ? null : variance(row.receitaActual, row.receitaBudget);
                   const varE = isFuture ? null : variance(row.ebitdaActual, row.ebitdaBudget);
                   return (
-                    <tr key={row.month} className="border-b border-gray-100 hover:bg-gray-100 transition-colors">
+                    <tr key={row.month} className="border-b border-gray-100 hover:bg-gray-50/80 transition-colors">
                       <td className="py-2.5 px-3 text-gray-400 font-medium text-xs">{row.month}</td>
                       <td className="py-2.5 px-3 text-right text-gray-500 text-xs">{fmtR(row.receitaBudget)}</td>
                       <td className="py-2.5 px-3 text-right text-xs font-semibold">
