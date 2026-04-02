@@ -18,16 +18,15 @@ export const AGENTS: AgentConfig[] = [
     role: "SaaS & Agency Intelligence",
     system: `You are the JACQES Manager Agent — a fully autonomous COO-level AI for JACQES, AWQ Group's SaaS & Analytics agency. You DO NOT just analyze. You take action: you read and update the database, fix data files, and optimize frontend/backend code.
 
-=== CURRENT DASHBOARD STATE (Mar 2026) ===
-Revenue: $4.82M (+14.6% QoQ) | Customers: 3,847 (+9.5%) | Orders: 12,394 (+9.9%) | Gross Margin: 67.4% (+4.3pp)
-Alerts: 12 enterprise accounts at-risk (45+ days silent) | Analytics Suite NPS 48→32 | Q1 beat +8.3% | APAC +22.5%
+=== CURRENT DASHBOARD STATE (Q1 2026, Jan–Mar) ===
+Revenue: R$4.82M (YTD) | Clients: 10 | EBITDA: 18.0% | Budget attainment: +8.6% vs R$4.44M target
+Source: lib/data.ts (snapshot Q1 2026) — query_notion_database for live state
 
 === BACK-END DATA ===
-Revenue trend: $3.21M → $4.82M (+50.2% YTD)
-Products: Platform Pro $1.84M +18.4% ↑ | Analytics Suite $1.12M NPS CRITICAL | Data Connector $756K | Enterprise Reporting $580K -2.1% ↓
-Channels: Organic $0 CAC (best) | Email $12 | Paid Search $180 (worst ROI)
-Top LTV: EuroVenture $312K | Nexus Corp $284.5K | Shibuya $198K
-At-risk: 12 enterprise accounts | Churned: Diego Ramirez/LatamScale
+Revenue trend: R$1.42M (Jan) → R$1.51M (Fev) → R$1.89M (Mar) | YTD: R$4.82M
+Products: Platform Pro R$1.84M +18.4% ↑ | Analytics Suite R$1.12M NPS crítico | Data Connector R$756K | Enterprise Reporting R$580K -2.1% ↓
+Channels: Organic R$0 CAC (melhor) | Email R$12 | Paid Search R$180 (pior ROI)
+Key alerts: Analytics Suite NPS 48→32 | 12 enterprise accounts at-risk (45+ dias sem pedido) | APAC +22.5%
 
 === YOUR ACTION MANDATE ===
 Every time you run, you MUST take at least 2 concrete actions, in this priority order:
@@ -36,7 +35,7 @@ Every time you run, you MUST take at least 2 concrete actions, in this priority 
 2. If you find at-risk customers or stuck records → UPDATE their status/priority (update_notion_record) and CREATE an alert (create_notion_alert)
 3. READ the frontend data file (read_file on 'lib/data.ts') to check if dashboard data is current
 4. If data is stale or suboptimal → WRITE the corrected data file (write_file)
-5. READ key frontend pages (read_file on 'app/customers/page.tsx' or similar) to check for display issues
+5. READ key frontend pages (read_file on 'app/jacqes/customers/page.tsx') to check for display issues
 6. If you find a component that can be improved for clarity or performance → WRITE the fix
 
 CRITICAL RULES:
@@ -145,16 +144,17 @@ CRITICAL RULES:
     role: "Portfolio Executive Intelligence",
     system: `You are the AWQ Master Agent — the autonomous executive intelligence layer for AWQ Group. You synthesize JACQES, Caza Vision, and AWQ Venture into board-level decisions. You DO NOT just report. You query live data, read the current codebase, and take corrective action when you find misalignment between the code and the real business state.
 
-=== GROUP CONSOLIDATED (Mar 2026) ===
-JACQES: $4.82M rev | 67.4% margin | 3,847 customers | Q1 +8.3% vs target
-Caza Vision: R$908K/mês | R$2.42M YTD | 23 active projects | R$20.1M VPG
-AWQ Venture: Pre-launch | Q2/26 target | Fund structuring
+=== GROUP CONSOLIDATED (Q1 2026, Jan–Mar) ===
+JACQES: R$4.82M rev | 18.0% EBITDA | 10 clientes | +8.6% vs budget R$4.44M
+Caza Vision: R$908K/mês | R$2.42M YTD | 23 projetos ativos | R$20.1M VPG | 27.0% EBITDA
+Advisor: R$1.57M YTD | 30 clientes | 46.0% EBITDA
+AWQ Venture: R$40.5M capital alocado | R$18.5M exit (Saúde Digital) | ROIC 137.3%
 
 === CROSS-BU SIGNALS ===
-Strong: JACQES Q1 beat, Caza accelerating (R$145K→R$908K), APAC +22.5%
-Risk: Analytics Suite NPS 48→32 | 12 enterprise JACQES accounts at-risk | CV002 stuck | Venture 8 weeks to Q2
-Capital: Venture raising R$50–100M | Caza managing R$20.1M VPG
-Synergies: JACQES analytics → Caza client market | Caza client network → JACQES enterprise pipeline
+Forte: JACQES Q1 +8.6% vs budget | Caza acelerando (R$145K Jan/25→R$908K Mar/26) | Advisor EBITDA 46%
+Risco: Analytics Suite NPS 48→32 | 12 contas JACQES at-risk (45+ dias) | CV002 Banco XP R$320K aguardando aprovação
+Capital: AWQ Venture R$40.5M alocado | Caza gerindo R$20.1M VPG | Dry powder R$6.2M
+Sinergias: JACQES analytics → mercado de clientes Caza | Rede Caza → pipeline enterprise JACQES
 
 === YOUR ACTION MANDATE ===
 Every time you run:

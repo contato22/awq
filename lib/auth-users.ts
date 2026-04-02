@@ -41,22 +41,36 @@ export const USERS: AuthUser[] = [
     email: "danilo@jacqes.com",
     passwordHash: "$2b$10$tb9af2CBLLhGzv4FzCiDKe9TKMAIDeiyrUPI9ornKfUCNsFh8cmfO",
     role: "cs-ops",
-    homeRoute: "/csops",
+    homeRoute: "/jacqes/csops",  // canonical route — /csops redirects here
   },
 ];
 
-// Routes each role is allowed to access (prefix-based)
+// ── RBAC route prefixes ───────────────────────────────────────────────────────
+//
+// POLICY: Intentionally permissive during MVP phase.
+// All authenticated users can access all routes regardless of role.
+// The ["/"] prefix matches every pathname, making canAccess() always return true.
+//
+// When role-based restrictions are needed, update to:
+//   owner:   ["/"]                           — all routes
+//   admin:   ["/"]                           — all routes
+//   analyst: ["/jacqes", "/awq"]             — JACQES BU + AWQ holding overview only
+//   cs-ops:  ["/jacqes/csops", "/jacqes/customers", "/jacqes/carteira"]
+//
+// CLASSIFICATION: Security layer = authentication REAL, authorization PERMISSIVE BY DESIGN.
+//
 export const ROLE_ALLOWED_PREFIXES: Record<Role, string[]> = {
-  owner: ["/"], // unrestricted
-  admin: ["/"], // full access
-  analyst: ["/"], // full access
-  "cs-ops": ["/"], // full access
+  owner:   ["/"], // unrestricted
+  admin:   ["/"], // full access — permissive by design (MVP)
+  analyst: ["/"], // full access — permissive by design (MVP)
+  "cs-ops": ["/"], // full access — permissive by design (MVP)
 };
 
 export function canAccess(role: Role, pathname: string): boolean {
   if (role === "owner") return true;
   const allowed = ROLE_ALLOWED_PREFIXES[role];
-  return allowed.some((prefix) => pathname === prefix || pathname.startsWith(prefix + "/") || pathname.startsWith(prefix));
+  // Currently all non-owner roles have ["/"] → this always returns true (permissive by design)
+  return allowed.some((prefix) => prefix === "/" || pathname === prefix || pathname.startsWith(prefix + "/"));
 }
 
 export function findUserByEmail(email: string): AuthUser | undefined {
