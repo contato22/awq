@@ -397,7 +397,8 @@ function checkStructural(): GovernanceIssue[] {
   const buIdsInData = new Set(buData.map((b) => b.id));
   for (const buId of buIdsInData) {
     // Map awq-group-data ids to registry ids
-    const registryId = buId === "caza" ? "caza-vision" : buId;
+    const idMap: Record<string, string> = { caza: "caza-vision", venture: "awq-venture" };
+    const registryId = idMap[buId] ?? buId;
     if (!registeredBuIds.has(registryId)) {
       issues.push({
         id: `STRUCT-BU-${buId}`,
