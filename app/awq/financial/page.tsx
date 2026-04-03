@@ -14,6 +14,8 @@ import {
   consolidatedMargins,
   monthlyRevenue,
 } from "@/lib/awq-group-data";
+import { getFinancialDataSource } from "@/lib/financial-data-bridge";
+import DataSourceBanner from "@/components/DataSourceBanner";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -148,6 +150,8 @@ const summaryCards = [
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AwqFinancialPage() {
+  const dataSource = getFinancialDataSource();
+
   return (
     <>
       <Header
@@ -155,6 +159,7 @@ export default function AwqFinancialPage() {
         subtitle="P&L consolidado por BU · Jan–Mar 2026"
       />
       <div className="page-container">
+        <DataSourceBanner data={dataSource} />
 
         {/* ── Summary Cards ─────────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

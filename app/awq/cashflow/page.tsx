@@ -11,8 +11,9 @@ import {
   buData,
   consolidated,
   cashFlowRows,
-  monthlyRevenue,
 } from "@/lib/awq-group-data";
+import { getFinancialDataSource } from "@/lib/financial-data-bridge";
+import DataSourceBanner from "@/components/DataSourceBanner";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -79,6 +80,7 @@ const summaryCards = [
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AwqCashflowPage() {
+  const dataSource = getFinancialDataSource();
   const totalCapex       = 92_000;
   const totalFcf         = consolidated.cashGenerated - totalCapex;
   const totalDistrib     = 380_000;
@@ -91,6 +93,7 @@ export default function AwqCashflowPage() {
         subtitle="Fluxo de caixa consolidado por BU · Jan–Mar 2026"
       />
       <div className="page-container">
+        <DataSourceBanner data={dataSource} />
 
         {/* ── Summary Cards ─────────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -175,38 +178,93 @@ export default function AwqCashflowPage() {
           {/* ── Cash Position by BU ──────────────────────────────────────────── */}
           <div className="card p-5">
             <h2 className="text-sm font-semibold text-gray-900 mb-4">Posição de Caixa por BU</h2>
-            <div className="space-y-4">
-              {cashPosition.map((bu) => {
-                const totalBalance = buData.reduce((s, b) => s + b.cashBalance, 0);
-                const share = (bu.cashBalance / totalBalance) * 100;
-                return (
-                  <div key={bu.id}>
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full ${bu.color}`} />
-                        <span className={`text-xs font-medium ${bu.accentColor}`}>{bu.name}</span>
-                      </div>
-                      <div className="flex items-center gap-3 text-[11px]">
-                        <span className="text-gray-500">Gerado: <span className="text-emerald-600 font-semibold">{fmtR(bu.cashGenerated)}</span></span>
-                        <span className="text-gray-900 font-bold">{fmtR(bu.cashBalance)}</span>
-                      </div>
-                    </div>
-                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div className={`h-full ${bu.color} rounded-full`} style={{ width: `${share}%` }} />
-                    </div>
-                    <div className="flex justify-between mt-0.5 text-[10px] text-gray-400">
-                      <span>Abertura: {fmtR(bu.openingBalance)}</span>
-                      <span>Fechamento: {fmtR(bu.closingBalance)}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
 
-            <div className="mt-4 pt-3 border-t border-gray-200 flex items-center justify-between">
-              <span className="text-xs text-gray-500">Caixa Total Consolidado</span>
-              <span className="text-base font-bold text-gray-900">{fmtR(consolidated.cashBalance)}</span>
-            </div>
+            {dataSource.source === "pipeline" && dataSource.cashPositions.length > 0 ? (
+              /* ── Live data from pipeline ──────────────────────────────────── */
+              (() => {
+                const positions = dataSource.cashPositions;
+                const totalNet = positions.reduce((s, p) => s + p.netCash, 0);
+                return (
+                  <>
+                    <div className="space-y-4">
+                      {positions.map((pos) => {
+                        const share = totalNet !== 0 ? (Math.abs(pos.netCash) / Math.abs(totalNet)) * 100 : 0;
+                        return (
+                          <div key={`${pos.entity}__${pos.accountName}`}>
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-brand-500" />
+                                <span className="text-xs font-medium text-brand-700">{pos.accountName}</span>
+                                <span className="text-[10px] text-gray-400">{pos.entity}</span>
+                              </div>
+                              <div className="flex items-center gap-3 text-[11px]">
+                                <span className="text-gray-500">
+                                  Créditos: <span className="text-emerald-600 font-semibold">{fmtR(pos.totalCredits)}</span>
+                                </span>
+                                <span className={`font-bold ${pos.netCash >= 0 ? "text-gray-900" : "text-red-600"}`}>
+                                  {fmtR(pos.netCash)}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full rounded-full ${pos.netCash >= 0 ? "bg-brand-500" : "bg-red-400"}`}
+                                style={{ width: `${Math.min(share, 100)}%` }}
+                              />
+                            </div>
+                            <div className="flex justify-between mt-0.5 text-[10px] text-gray-400">
+                              <span>Abertura: {fmtR(pos.openingBalance)}</span>
+                              <span>Débitos: {fmtR(pos.totalDebits)}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="mt-4 pt-3 border-t border-gray-200 flex items-center justify-between">
+                      <span className="text-xs text-gray-500">Net Cash Total (pipeline)</span>
+                      <span className={`text-base font-bold ${totalNet >= 0 ? "text-gray-900" : "text-red-600"}`}>
+                        {fmtR(totalNet)}
+                      </span>
+                    </div>
+                  </>
+                );
+              })()
+            ) : (
+              /* ── Snapshot fallback ────────────────────────────────────────── */
+              <>
+                <div className="space-y-4">
+                  {cashPosition.map((bu) => {
+                    const totalBalance = buData.reduce((s, b) => s + b.cashBalance, 0);
+                    const share = (bu.cashBalance / totalBalance) * 100;
+                    return (
+                      <div key={bu.id}>
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-2 h-2 rounded-full ${bu.color}`} />
+                            <span className={`text-xs font-medium ${bu.accentColor}`}>{bu.name}</span>
+                          </div>
+                          <div className="flex items-center gap-3 text-[11px]">
+                            <span className="text-gray-500">Gerado: <span className="text-emerald-600 font-semibold">{fmtR(bu.cashGenerated)}</span></span>
+                            <span className="text-gray-900 font-bold">{fmtR(bu.cashBalance)}</span>
+                          </div>
+                        </div>
+                        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                          <div className={`h-full ${bu.color} rounded-full`} style={{ width: `${share}%` }} />
+                        </div>
+                        <div className="flex justify-between mt-0.5 text-[10px] text-gray-400">
+                          <span>Abertura: {fmtR(bu.openingBalance)}</span>
+                          <span>Fechamento: {fmtR(bu.closingBalance)}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="mt-4 pt-3 border-t border-gray-200 flex items-center justify-between">
+                  <span className="text-xs text-gray-500">Caixa Total Consolidado</span>
+                  <span className="text-base font-bold text-gray-900">{fmtR(consolidated.cashBalance)}</span>
+                </div>
+              </>
+            )}
           </div>
 
           {/* ── FCF Waterfall ─────────────────────────────────────────────────── */}
