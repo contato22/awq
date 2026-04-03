@@ -40,7 +40,16 @@ function sse(event: Record<string, unknown>): string {
 }
 
 export async function POST(req: NextRequest): Promise<Response> {
-  const { documentId } = await req.json() as { documentId?: string };
+  let documentId: string | undefined;
+  try {
+    const body = await req.json() as { documentId?: string };
+    documentId = body.documentId;
+  } catch {
+    return new Response(
+      sse({ error: "Corpo da requisição inválido. Envie JSON com { documentId }." }),
+      { status: 400, headers: { "Content-Type": "text/event-stream" } }
+    );
+  }
 
   if (!documentId) {
     return new Response(
@@ -49,7 +58,10 @@ export async function POST(req: NextRequest): Promise<Response> {
     );
   }
 
-  const doc = getDocument(documentId);
+  // Narrowed to string — safe to use in closures below
+  const docId: string = documentId;
+
+  const doc = getDocument(docId);
   if (!doc) {
     return new Response(
       sse({ error: `Documento ${documentId} não encontrado.` }),
@@ -77,12 +89,15 @@ export async function POST(req: NextRequest): Promise<Response> {
       try {
         // ── Stage 1: Extract ──────────────────────────────────────────────────
         send({ stage: "extracting", message: "Enviando PDF para Claude para extração..." });
-        updateDocumentStatus(documentId, "extracting");
+        updateDocumentStatus(docId, "extracting");
 
         // Find PDF file
-        const pdfFiles = fs.readdirSync(PDF_DIR).filter((f) => f.startsWith(documentId));
+        if (!fs.existsSync(PDF_DIR)) {
+          throw new Error(`Diretório de PDFs não encontrado (${PDF_DIR}). Nenhum arquivo foi enviado ainda ou o servidor foi reiniciado.`);
+        }
+        const pdfFiles = fs.readdirSync(PDF_DIR).filter((f) => f.startsWith(docId));
         if (pdfFiles.length === 0) {
-          throw new Error(`PDF não encontrado em disco para documentId ${documentId}. O arquivo pode ter sido perdido.`);
+          throw new Error(`PDF não encontrado em disco para documentId ${docId}. O arquivo pode ter sido perdido.`);
         }
         const pdfPath = path.join(PDF_DIR, pdfFiles[0]);
         const pdfBuffer = fs.readFileSync(pdfPath);
@@ -101,7 +116,7 @@ export async function POST(req: NextRequest): Promise<Response> {
         });
 
         if (parsed.transactions.length === 0) {
-          updateDocumentStatus(documentId, "error", {
+          updateDocumentStatus(docId, "error", {
             errorMessage: `Nenhum lançamento extraído. ${parsed.extractionNotes}`,
             parserConfidence: parsed.parserConfidence,
             extractionNotes: parsed.extractionNotes,
@@ -116,7 +131,7 @@ export async function POST(req: NextRequest): Promise<Response> {
         }
 
         // Update document with extraction metadata
-        updateDocumentStatus(documentId, "classifying", {
+        updateDocumentStatus(docId, "classifying", {
           periodStart: parsed.periodStart,
           periodEnd: parsed.periodEnd,
           openingBalance: parsed.openingBalance,
@@ -143,7 +158,7 @@ export async function POST(req: NextRequest): Promise<Response> {
 
           return {
             id: newId(),
-            documentId,
+            documentId: docId,
             bank: parsed.bank || doc.bank,
             accountName: doc.accountName,
             entity: classification.entity,
@@ -178,7 +193,7 @@ export async function POST(req: NextRequest): Promise<Response> {
           ambiguous: ambiguousCount,
         });
 
-        updateDocumentStatus(documentId, "reconciling");
+        updateDocumentStatus(docId, "reconciling");
 
         // ── Stage 3: Reconcile ────────────────────────────────────────────────
         send({ stage: "reconciling", message: "Verificando transferências intercompany..." });
@@ -197,7 +212,7 @@ export async function POST(req: NextRequest): Promise<Response> {
 
         // ── Stage 4: Persist ──────────────────────────────────────────────────
         saveTransactions(reconciledTransactions);
-        updateDocumentStatus(documentId, "done", {
+        updateDocumentStatus(docId, "done", {
           transactionCount: reconciledTransactions.length,
         });
 
@@ -207,7 +222,7 @@ export async function POST(req: NextRequest): Promise<Response> {
           done: true,
           success: true,
           summary: {
-            documentId,
+            documentId: docId,
             transactionCount: reconciledTransactions.length,
             parserConfidence: parsed.parserConfidence,
             intercompanyMatches: matches.length,
@@ -218,7 +233,7 @@ export async function POST(req: NextRequest): Promise<Response> {
         });
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        updateDocumentStatus(documentId, "error", { errorMessage: msg });
+        updateDocumentStatus(docId, "error", { errorMessage: msg });
         send({ stage: "error", error: msg, done: true, success: false });
       }
 
