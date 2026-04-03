@@ -66,44 +66,50 @@ export default function AwqAllocationsPage() {
 
         {/* ── Summary Cards ─────────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[
-            {
-              label: "Capital Total Alocado",
-              value: fmtR(totalCap),
-              sub:   "Todas as BUs",
-              delta: "+R$15M em 2026",
-              icon:  Wallet,
-              color: "text-amber-700",
-              bg:    "bg-amber-50",
-            },
-            {
-              label: "ROIC Médio (Ops)",
-              value: `${((operatingBus.reduce((s, b) => s + b.roic, 0) / operatingBus.length)).toFixed(1)}%`,
-              sub:   "excl. Venture",
-              delta: "+5.2pp vs 2025",
-              icon:  TrendingUp,
-              color: "text-emerald-600",
-              bg:    "bg-emerald-50",
-            },
-            {
-              label: "Melhor ROIC",
-              value: `${buData.reduce((a, b) => a.roic > b.roic ? a : b).name}`,
-              sub:   `${buData.reduce((a, b) => a.roic > b.roic ? a : b).roic.toFixed(0)}% ROIC`,
-              delta: "Advisor lidera",
-              icon:  BarChart3,
-              color: "text-violet-700",
-              bg:    "bg-violet-50",
-            },
-            {
-              label: "BUs p/ Expandir",
-              value: `${Object.values(allocFlags).filter(f => f === "expand").length}`,
-              sub:   "Caza Vision + Advisor",
-              delta: "Capital adicional aprovado",
-              icon:  Zap,
-              color: "text-brand-600",
-              bg:    "bg-brand-50",
-            },
-          ].map((card) => {
+          {(() => {
+            const roicMedio     = operatingBus.reduce((s, b) => s + b.roic, 0) / operatingBus.length;
+            const bestRoicBU    = buData.reduce((a, b) => a.roic > b.roic ? a : b);
+            const expandBUs     = buData.filter((b) => allocFlags[b.id] === "expand");
+            const expandNames   = expandBUs.map((b) => b.name).join(" + ");
+            return [
+              {
+                label: "Capital Total Alocado",
+                value: fmtR(totalCap),
+                sub:   `${buData.length} BUs`,
+                delta: `snapshot Q1 2026`,
+                icon:  Wallet,
+                color: "text-amber-700",
+                bg:    "bg-amber-50",
+              },
+              {
+                label: "ROIC Médio (Ops)",
+                value: `${roicMedio.toFixed(1)}%`,
+                sub:   "excl. Venture",
+                delta: "snapshot accrual",
+                icon:  TrendingUp,
+                color: "text-emerald-600",
+                bg:    "bg-emerald-50",
+              },
+              {
+                label: "Melhor ROIC",
+                value: bestRoicBU.name,
+                sub:   `${bestRoicBU.roic.toFixed(0)}% ROIC`,
+                delta: `lidera entre ${buData.length} BUs`,
+                icon:  BarChart3,
+                color: "text-violet-700",
+                bg:    "bg-violet-50",
+              },
+              {
+                label: "BUs p/ Expandir",
+                value: `${expandBUs.length}`,
+                sub:   expandNames || "nenhuma",
+                delta: "capital adicional sinalizado",
+                icon:  Zap,
+                color: "text-brand-600",
+                bg:    "bg-brand-50",
+              },
+            ];
+          })().map((card) => {
             const Icon = card.icon;
             return (
               <div key={card.label} className="card p-5 flex items-start gap-4">

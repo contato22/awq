@@ -364,23 +364,14 @@ const PATTERN_RULES: PatternRule[] = [
 ];
 
 // ─── Entity inference from account ───────────────────────────────────────────
+//
+// Delegates to lib/bank-account-registry.ts for full account topology.
+// The registry is the canonical source — add new accounts there, not here.
+
+import { inferEntityFromRegistry } from "./bank-account-registry";
 
 export function inferEntityFromAccount(bank: string, accountName: string): EntityLayer {
-  const b = bank.toLowerCase();
-  const a = accountName.toLowerCase();
-
-  // Cora → AWQ Holding (unless account name hints at JACQES)
-  if (b.includes("cora")) {
-    if (a.includes("jacqes")) return "JACQES";
-    return "AWQ_Holding";
-  }
-
-  // Itaú → Caza Vision
-  if (b.includes("itaú") || b.includes("itau")) {
-    return "Caza_Vision";
-  }
-
-  return "Unknown";
+  return inferEntityFromRegistry(bank, accountName);
 }
 
 // ─── Main classifier ──────────────────────────────────────────────────────────

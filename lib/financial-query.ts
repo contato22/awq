@@ -30,6 +30,11 @@ import {
   type ManagerialCategory,
 } from "./financial-db";
 
+import {
+  REQUIRED_COVERAGE_ENTITIES,
+  KNOWN_ACCOUNTS,
+} from "./bank-account-registry";
+
 export type { EntityLayer, ManagerialCategory };
 
 // ─── Category sets ────────────────────────────────────────────────────────────
@@ -595,10 +600,24 @@ export function buildFinancialQuery(): FinancialQueryResult {
 
   const coverageGaps: string[] = [];
   const entityCoverage = new Set(doneDocs.map((d) => d.entity));
-  if (!entityCoverage.has("AWQ_Holding")) coverageGaps.push("AWQ Holding: sem extrato Cora ingerido");
-  if (!entityCoverage.has("JACQES"))      coverageGaps.push("JACQES: sem extrato Cora (conta JACQES) ingerido");
-  if (!entityCoverage.has("Caza_Vision")) coverageGaps.push("Caza Vision: sem extrato Itaú ingerido");
-  if (ambiguousCount > 0)                 coverageGaps.push(`${ambiguousCount} transações ambíguas pendentes de revisão`);
+
+  // Coverage gaps derived from bank-account-registry — not hardcoded
+  for (const requiredEntity of REQUIRED_COVERAGE_ENTITIES) {
+    if (!entityCoverage.has(requiredEntity)) {
+      // Find the expected bank/account for this entity from the registry
+      const expectedAccounts = KNOWN_ACCOUNTS.filter(
+        (a) => a.entity === requiredEntity && a.usage === "operating_cash" && a.closedAt === null
+      );
+      const acctDesc = expectedAccounts
+        .map((a) => `${a.bank} (${a.accountName})`)
+        .join(" ou ");
+      const label = requiredEntity.replace("_", " ").replace("AWQ Holding", "AWQ Holding");
+      coverageGaps.push(
+        `${label}: sem extrato ingerido${acctDesc ? ` — esperado: ${acctDesc}` : ""}`
+      );
+    }
+  }
+  if (ambiguousCount > 0) coverageGaps.push(`${ambiguousCount} transações ambíguas pendentes de revisão`);
 
   return {
     hasData: true,

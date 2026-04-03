@@ -18,6 +18,14 @@ import {
   type SnapshotStatus,
 } from "@/lib/snapshot-registry";
 import { PLATFORM_ROUTES } from "@/lib/platform-registry";
+import {
+  KNOWN_ACCOUNTS,
+  activeAccounts,
+  operatingAccounts,
+  investmentAccounts,
+  buildAccountCoverageReport,
+} from "@/lib/bank-account-registry";
+import { getAllDocuments } from "@/lib/financial-db";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -77,6 +85,10 @@ export default async function ManagementPage() {
   const snap   = getSnapshotMigrationStatus();
   const awqRoutes = PLATFORM_ROUTES.filter((r) => r.bu === "awq" && r.status === "active");
 
+  // Bank registry coverage
+  const doneDocs = getAllDocuments().filter((d) => d.status === "done");
+  const accountCoverage = buildAccountCoverageReport(doneDocs);
+
   // Categorise pages by data regime
   const realPages     = awqRoutes.filter((r) => r.dataSource.startsWith("lib/financial-query"));
   const hybridPages   = awqRoutes.filter((r) =>
@@ -114,6 +126,76 @@ export default async function ManagementPage() {
             → KPIs
           </Link>
         </div>
+      </div>
+
+      {/* ── §0 Bank Account Registry ──────────────────────────────────────── */}
+      <SectionTitle>§0 · Topologia Bancária Canônica</SectionTitle>
+      <div className="mb-2 flex gap-4 text-xs text-gray-500">
+        <span>{KNOWN_ACCOUNTS.length} contas cadastradas</span>
+        <span>·</span>
+        <span>{activeAccounts.length} ativas</span>
+        <span>·</span>
+        <span>{operatingAccounts.length} operacionais</span>
+        <span>·</span>
+        <span>{investmentAccounts.length} investimento</span>
+      </div>
+      <div className="space-y-3 mb-6">
+        {accountCoverage.map((cov) => {
+          const usageLabel: Record<string, string> = {
+            operating_cash:    "Caixa Operacional",
+            investment_vehicle:"Veículo Investimento",
+            payroll:           "Folha",
+            tax:               "Tributos",
+            shared_multiuse:   "Multiuso",
+          };
+          const entityColor: Record<string, string> = {
+            AWQ_Holding: "text-brand-600 bg-brand-50 border-brand-200",
+            JACQES:      "text-violet-700 bg-violet-50 border-violet-200",
+            Caza_Vision: "text-emerald-700 bg-emerald-50 border-emerald-200",
+            Unknown:     "text-gray-500 bg-gray-100 border-gray-200",
+          };
+          const covered = cov.hasData;
+          return (
+            <div key={cov.account.id}
+              className={`card p-4 flex items-start gap-4 ${covered ? "" : "border-amber-200 bg-amber-50/30"}`}>
+              {/* Coverage indicator */}
+              <div className={`w-2.5 h-2.5 rounded-full shrink-0 mt-1.5 ${covered ? "bg-emerald-500" : "bg-amber-400"}`} />
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-2 mb-1">
+                  <span className="text-xs font-bold text-gray-900">{cov.account.bank}</span>
+                  <span className="text-xs text-gray-500">·</span>
+                  <span className="text-xs text-gray-700">{cov.account.accountName}</span>
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
+                    entityColor[cov.account.entity] ?? "text-gray-500 bg-gray-100 border-gray-200"
+                  }`}>
+                    {cov.account.entity.replace("_", " ")}
+                  </span>
+                  <span className="text-[10px] text-gray-400 border border-gray-200 rounded px-1.5 py-0.5">
+                    {usageLabel[cov.account.usage] ?? cov.account.usage}
+                  </span>
+                  {cov.account.closedAt && (
+                    <span className="text-[10px] text-red-600 bg-red-50 border border-red-200 rounded px-1.5 py-0.5">
+                      Encerrada {cov.account.closedAt}
+                    </span>
+                  )}
+                </div>
+                <div className="text-[10px] text-gray-500 mb-1">{cov.account.notes}</div>
+                {covered ? (
+                  <div className="text-[10px] text-emerald-600 font-medium">
+                    ✓ Extrato ingerido · período: {cov.periodStart ?? "?"} → {cov.periodEnd ?? "?"} ·
+                    saldo final: {cov.closingBalance != null ? `R$${cov.closingBalance.toLocaleString("pt-BR")}` : "—"}
+                  </div>
+                ) : (
+                  <div className="text-[10px] text-amber-700 font-medium">
+                    ⚠ Sem extrato ingerido —{" "}
+                    <Link href="/awq/ingest" className="underline">ingerir agora</Link>
+                    {" · "}parser esperado: <span className="font-mono">{cov.account.parserFormat}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* ── §1 Pipeline Status ─────────────────────────────────────────────── */}
