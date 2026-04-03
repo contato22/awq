@@ -34,8 +34,6 @@ interface BankAccount {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const LS_KEY = "awq_bank_accounts";
-const LS_API  = "openclaw_api_key";
-const BUILTIN = process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY ?? "";
 
 const BANK_OPTIONS = [
   "Bradesco", "Itaú", "Nubank", "Santander",
@@ -96,110 +94,24 @@ function uid() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
-function resolveKey(): string | null {
-  const stored = typeof window !== "undefined" ? localStorage.getItem(LS_API) : null;
-  return stored || BUILTIN || null;
-}
+// ─── Server-side parsing ──────────────────────────────────────────────────────
+// Parsing is delegated to /api/bank/parse — the API key lives exclusively on
+// the server. No key is ever read from localStorage or NEXT_PUBLIC env vars.
 
-// ─── Claude parsing ───────────────────────────────────────────────────────────
-
-async function parseStatementWithClaude(
-  statement: string,
-  apiKey: string,
-  retryFix?: string
-): Promise<{ transactions: BankTransaction[]; bankDetected: string | null; closingBalance: number | null }> {
-  const userMessage = retryFix
-    ? `The previous response was invalid JSON. Return ONLY valid JSON, fixing: ${retryFix}\n\nStatement:\n${statement}`
-    : `Extract all transactions from this bank statement and return JSON with this exact structure:
-{
-  "bank_detected": "bank name or null",
-  "period_from": "YYYY-MM-DD or null",
-  "period_to": "YYYY-MM-DD or null",
-  "closing_balance": number or null,
-  "transactions": [
-    {
-      "date": "YYYY-MM-DD",
-      "description": "cleaned description in Portuguese",
-      "amount": -150.00,
-      "category": "one of: salario|aluguel|servicos|transferencia|imposto|investimento|saque|deposito|cartao|tarifas|outros",
-      "balance": null
-    }
-  ]
-}
-
-Rules:
-- negative amount = debit/saída, positive = credit/entrada
-- Dates as YYYY-MM-DD (convert DD/MM/YYYY or any format)
-- Parse ALL transactions, none skipped
-- Clean and translate descriptions to Portuguese when needed
-- Return ONLY raw JSON, no markdown, no explanation
-
-Statement:
-${statement}`;
-
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-      "anthropic-dangerous-direct-browser-access": "true",
-    },
-    body: JSON.stringify({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 4096,
-      system: "You are a precise financial data extractor for Brazilian banks. Extract ALL transactions from any bank statement format (CSV, OFX, CNAB, plain text, PDF paste). Return ONLY valid raw JSON — no markdown, no code blocks, no explanation.",
-      messages: [{ role: "user", content: userMessage }],
-    }),
-  });
-
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`API error ${res.status}: ${err.slice(0, 200)}`);
-  }
-
-  const data = await res.json();
-  const text = data.content?.[0]?.text ?? "";
-
-  // Strip markdown fences if present
-  const clean = text.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
-
-  let parsed: {
-    bank_detected?: string | null;
-    closing_balance?: number | null;
-    transactions?: Array<{
-      date?: string;
-      description?: string;
-      amount?: number;
-      category?: string;
-      balance?: number | null;
-    }>;
-  };
-
-  try {
-    parsed = JSON.parse(clean);
-  } catch {
-    if (!retryFix) {
-      return parseStatementWithClaude(statement, apiKey, "invalid JSON returned");
-    }
-    throw new Error("Claude returned invalid JSON after retry");
-  }
-
-  const transactions: BankTransaction[] = (parsed.transactions ?? []).map((t) => ({
-    id: uid(),
-    date: t.date ?? "",
-    description: t.description ?? "",
-    amount: typeof t.amount === "number" ? t.amount : 0,
-    category: t.category ?? "outros",
-    balance: t.balance ?? undefined,
-    original: undefined,
-  }));
-
-  return {
-    transactions,
-    bankDetected: parsed.bank_detected ?? null,
-    closingBalance: parsed.closing_balance ?? null,
-  };
+interface ParseApiResponse {
+  bankDetected?: string | null;
+  periodFrom?: string | null;
+  periodTo?: string | null;
+  closingBalance?: number | null;
+  transactions?: Array<{
+    date: string;
+    description: string;
+    amount: number;
+    category: string;
+    balance: number | null;
+  }>;
+  error?: string;
+  message?: string;
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -270,19 +182,53 @@ export default function BankAccountsPage() {
   }
 
   // ── Parse statement ──────────────────────────────────────────────────────
+  // Calls server-side /api/bank/parse — no API key needed on the client.
+  // If the server has no ANTHROPIC_API_KEY, returns 503 with a clear message
+  // that does NOT block the user from using the rest of the page.
   async function handleParse() {
     if (!statement.trim()) return;
-    const apiKey = resolveKey();
-    if (!apiKey) { setParseError("Chave da API não configurada. Acesse Configurações."); return; }
     setParsing(true);
     setParseError(null);
     setPreview(null);
     try {
-      const result = await parseStatementWithClaude(statement, apiKey);
-      setPreview(result.transactions);
-      setPreviewMeta({ bank: result.bankDetected, balance: result.closingBalance });
+      const res = await fetch("/api/bank/parse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ statement }),
+      });
+      const data = await res.json() as ParseApiResponse;
+
+      if (res.status === 503) {
+        // Parsing is server-unavailable — not a user configuration error.
+        // Show the status clearly without redirecting to Settings.
+        setParseError(
+          data.message ??
+            "Parsing automático indisponível. O servidor não possui a chave de IA configurada. " +
+            "Insira as transações manualmente ou configure ANTHROPIC_API_KEY no ambiente do servidor."
+        );
+        return;
+      }
+      if (!res.ok || data.error) {
+        setParseError(data.error ?? "Erro ao processar o extrato. Tente novamente.");
+        return;
+      }
+
+      const txns: BankTransaction[] = (data.transactions ?? []).map((t) => ({
+        id: uid(),
+        date: t.date,
+        description: t.description,
+        amount: t.amount,
+        category: t.category,
+        balance: t.balance ?? undefined,
+        original: undefined,
+      }));
+      setPreview(txns);
+      setPreviewMeta({
+        bank: data.bankDetected ?? null,
+        balance: data.closingBalance ?? null,
+      });
     } catch (err) {
-      setParseError(err instanceof Error ? err.message : "Erro ao processar extrato");
+      setParseError(err instanceof Error ? err.message : "Erro de rede ao chamar o parser.");
     } finally {
       setParsing(false);
     }
