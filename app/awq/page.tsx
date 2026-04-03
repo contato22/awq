@@ -547,12 +547,12 @@ export default async function AwqGroupPage() {
             {[
               { label: "Financial",    sub: "Visão de caixa",            href: "/awq/financial",   icon: DollarSign,    color: "text-emerald-600", bg: "bg-emerald-50" },
               { label: "Cash Flow",    sub: "Fluxo de caixa",            href: "/awq/cashflow",    icon: Zap,           color: "text-cyan-700",    bg: "bg-cyan-50"    },
+              { label: "Investimentos",sub: "Aplicações / resgates",     href: "/awq/investments", icon: Target,        color: "text-violet-600",  bg: "bg-violet-50"  },
               { label: "Ingestão",     sub: "Importar extratos PDF",      href: "/awq/ingest",      icon: Database,      color: "text-brand-600",   bg: "bg-brand-50"   },
+              { label: "Base de Dados",sub: "Gestão da camada de dados",  href: "/awq/data",        icon: CheckCircle,   color: "text-emerald-600", bg: "bg-emerald-50" },
               { label: "Budget",       sub: "Budget vs Actual",          href: "/awq/budget",      icon: Scale,         color: "text-violet-600",  bg: "bg-violet-50"  },
               { label: "Forecast",     sub: "Cenários 2026",             href: "/awq/forecast",    icon: TrendingUp,    color: "text-amber-700",   bg: "bg-amber-50"   },
-              { label: "Allocations",  sub: "Capital por BU",            href: "/awq/allocations", icon: Wallet,        color: "text-amber-700",   bg: "bg-amber-50"   },
               { label: "Risk",         sub: "Risk signals",              href: "/awq/risk",        icon: AlertTriangle, color: "text-red-500",     bg: "bg-red-50"     },
-              { label: "AWQ Venture",  sub: "Portfólio",                 href: "/awq-venture",     icon: BarChart3,     color: "text-violet-700",  bg: "bg-violet-50"  },
             ].map((item) => {
               const Icon = item.icon;
               return (
