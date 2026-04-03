@@ -13,10 +13,22 @@
 //   accountName – human label e.g. "Conta PJ AWQ" (required)
 //   entity      – "AWQ_Holding" | "JACQES" | "Caza_Vision" (optional, inferred if absent)
 //
-// AUTHENTICATION: requires NextAuth session (same guard as all /api routes)
+// AUTHENTICATION:
+//   Middleware (middleware.ts) enforces JWT presence for all non-auth routes.
+//   This route uses getToken() to extract the user email from the JWT for audit trail.
+//   getServerSession() is intentionally NOT used here: in Next.js 14 App Router,
+//   getServerSession() called without authOptions returns null. getToken() is correct.
+//
+// STORAGE NOTE:
+//   PDFs are stored to public/data/financial/pdfs/ on the local filesystem.
+//   This works correctly in local development and single-instance deploys.
+//   On Vercel (serverless): filesystem is ephemeral — PDFs survive within a single
+//   function invocation but are lost after cold restarts. For production persistence,
+//   migrate PDF storage to Vercel Blob or S3. Document metadata (documents.json)
+//   has the same ephemeral limitation on Vercel.
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
+import { getToken } from "next-auth/jwt";
 import fs from "fs";
 import path from "path";
 import {
@@ -28,7 +40,6 @@ import {
 import { inferEntityFromAccount } from "@/lib/financial-classifier";
 import type { BankName, EntityLayer, FinancialDocument } from "@/lib/financial-db";
 
-// Re-export so Next.js doesn't try to parse the route as static
 export const runtime = "nodejs";
 
 const PDF_DIR = path.join(process.cwd(), "public", "data", "financial", "pdfs");
@@ -41,16 +52,19 @@ function ensurePDFDir() {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  // ── Auth guard ──
-  const session = await getServerSession();
-  const userEmail = (session?.user as { email?: string } | undefined)?.email ?? "anonymous";
+  // ── Auth: extract user email from JWT (correct for App Router) ──
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  const userEmail = (token?.email as string | undefined) ?? "anonymous";
 
   // ── Parse multipart form ──
   let formData: FormData;
   try {
     formData = await req.formData();
   } catch {
-    return NextResponse.json({ error: "Formato inválido. Envie multipart/form-data." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Formato inválido. Envie multipart/form-data." },
+      { status: 400 }
+    );
   }
 
   const file = formData.get("file");
@@ -59,16 +73,28 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const entityOverride = formData.get("entity") as string | null;
 
   if (!file || !(file instanceof File)) {
-    return NextResponse.json({ error: "Campo 'file' obrigatório (arquivo PDF)." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Campo 'file' obrigatório (arquivo PDF)." },
+      { status: 400 }
+    );
   }
   if (!accountName.trim()) {
-    return NextResponse.json({ error: "Campo 'accountName' obrigatório." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Campo 'accountName' obrigatório." },
+      { status: 400 }
+    );
   }
   if (file.type !== "application/pdf" && !file.name.endsWith(".pdf")) {
-    return NextResponse.json({ error: "Apenas arquivos PDF são aceitos." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Apenas arquivos PDF são aceitos." },
+      { status: 400 }
+    );
   }
   if (file.size > MAX_SIZE_BYTES) {
-    return NextResponse.json({ error: `Arquivo muito grande. Máximo: 20MB.` }, { status: 400 });
+    return NextResponse.json(
+      { error: `Arquivo muito grande. Máximo: 20MB.` },
+      { status: 400 }
+    );
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
