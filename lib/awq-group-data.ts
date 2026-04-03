@@ -1,4 +1,17 @@
 // ─── AWQ Group — Consolidated holding data · YTD Jan–Mar 2026 ─────────────────
+//
+// ⚠  SNAPSHOT / PLANNING DATA — registered in lib/snapshot-registry.ts
+//
+// CLASSIFICATION: accrual P&L snapshot (NOT cash-basis, NOT from bank statements).
+// SOURCE: manually curated Q1 2026 planning data.
+// STATUS: intentional — hybrid architecture until invoice/NF ingestion is built.
+//
+// FOR CASH-BASIS REAL DATA: use lib/financial-query.ts → buildFinancialQuery()
+// Pages that already use the real pipeline: /awq/financial, /awq/cashflow
+//
+// DO NOT add new hardcoded revenue/EBITDA/expense values here.
+// DO NOT import this file in new pages without a snapshot-registry.ts entry.
+// DO NOT use these values as source of truth for cash-position or bank reconciliation.
 
 export interface BuData {
   id:               string;
@@ -304,4 +317,208 @@ export const cashFlowRows: CashFlowRow[] = [
   { label: "= FCO Livre (FCF)",          jacqes:   672_000, caza:  548_000, advisor:  498_000, venture:  11_500_000, indent: 0, bold: true  },
   { label: "(-) Distribuições/Divid.",   jacqes:  -200_000, caza:  -80_000, advisor: -100_000, venture:           0, indent: 1, bold: false },
   { label: "= Var. de Caixa",            jacqes:   472_000, caza:  468_000, advisor:  398_000, venture:  11_500_000, indent: 0, bold: true  },
+];
+
+// ─── Budget targets by P&L line (complement to buData.budgetRevenue) ──────────
+//
+// These are the accrual budget targets for lines NOT already in buData.
+// buData already has budgetRevenue. This covers grossProfit, EBITDA, netIncome, cash.
+// Used by lib/awq-derived-metrics.ts to derive BUDGET_LINES without duplication.
+
+export interface BuBudgetTargets {
+  budgGrossProfit: number;
+  budgEbitda:      number;
+  budgNetIncome:   number;
+  budgCash:        number;
+}
+
+export const buBudgetTargets: Record<string, BuBudgetTargets> = {
+  jacqes:  { budgGrossProfit: 2_664_000, budgEbitda:  976_800, budgNetIncome: 489_000, budgCash: 630_000 },
+  caza:    { budgGrossProfit: 1_546_000, budgEbitda:  515_520, budgNetIncome: 386_640, budgCash: 450_000 },
+  advisor: { budgGrossProfit:   770_000, budgEbitda:  644_000, budgNetIncome: 427_000, budgCash: 460_000 },
+};
+
+// ─── Expense category budgets (consolidated AWQ Group) ────────────────────────
+
+export interface CategoryBudgetItem {
+  category: string;
+  budget:   number;
+  actual:   number;
+  bu:       string;
+}
+
+export const categoryBudget: CategoryBudgetItem[] = [
+  { category: "Marketing & Growth",    budget: 1_440_000, actual: 1_238_000, bu: "Grupo" },
+  { category: "Salários & Benefícios", budget: 3_720_000, actual: 3_540_000, bu: "Grupo" },
+  { category: "Tecnologia & Infra",    budget:   540_000, actual:   462_000, bu: "Grupo" },
+  { category: "Vendas & Comissões",    budget:   960_000, actual: 1_044_000, bu: "Grupo" },
+  { category: "G&A Consolidado",       budget:   720_000, actual:   684_000, bu: "Grupo" },
+  { category: "Desp. Operacionais",    budget:   360_000, actual:   396_000, bu: "Grupo" },
+];
+
+// ─── Forecast accuracy history ────────────────────────────────────────────────
+//
+// Stores the original forecast vs actual comparison.
+// Note: revenueForecasts[] tracks forward-looking scenarios; this tracks past accuracy.
+
+export interface ForecastAccuracyPoint {
+  month:    string;
+  forecast: number;   // original forecast issued for that month
+  actual:   number;   // confirmed actual revenue
+  error:    number;   // % error: positive = underestimated, negative = overestimated
+}
+
+export const forecastAccuracyHistory: ForecastAccuracyPoint[] = [
+  { month: "Jan/26", forecast: 2_580_000, actual: 2_640_000, error:  2.3 },
+  { month: "Fev/26", forecast: 2_900_000, actual: 2_838_000, error: -2.1 },
+  { month: "Mar/26", forecast: 3_280_000, actual: 3_332_000, error:  1.6 },
+];
+
+// ─── Per-BU full-year forecast scenarios ─────────────────────────────────────
+
+export interface BuForecastScenario {
+  bu:           string;
+  color:        string; // Tailwind class
+  accent:       string; // Tailwind class
+  ytd:          number;
+  fullYearBase: number;
+  fullYearBull: number;
+  fullYearBear: number;
+  growth:       number; // % YoY growth in base scenario
+}
+
+export const buForecastScenarios: BuForecastScenario[] = [
+  {
+    bu: "JACQES",      color: "bg-brand-500",   accent: "text-brand-600",
+    ytd: 4_820_000, fullYearBase: 19_800_000, fullYearBull: 21_780_000, fullYearBear: 16_830_000, growth: 12.4,
+  },
+  {
+    bu: "Caza Vision", color: "bg-emerald-500", accent: "text-emerald-600",
+    ytd: 2_418_000, fullYearBase: 12_100_000, fullYearBull: 13_310_000, fullYearBear:  9_680_000, growth: 28.3,
+  },
+  {
+    bu: "Advisor",     color: "bg-violet-500",  accent: "text-violet-700",
+    ytd: 1_572_000, fullYearBase:  7_200_000, fullYearBull:  7_920_000, fullYearBear:  5_760_000, growth: 18.6,
+  },
+];
+
+// ─── Risk Categories (qualitative risk signals with quantified exposure) ──────
+//
+// ⚠ SNAPSHOT — dados de planejamento / análise qualitativa.
+// NÃO derivados da base bancária.
+// DISCIPLINA: editar aqui; nunca hardcodar na page. A page importa via awq-derived-metrics.
+
+export interface RiskCategoryDetail {
+  label:    string;
+  share:    number;    // % or pp, 0 if not applicable
+  mrr:      number;    // BRL amount, 0 if not applicable
+  risk:     string;    // qualitative level label
+  days?:    number;    // days overdue (receivables)
+  isTotal?: boolean;   // marks aggregate row
+}
+
+export interface RiskCategory {
+  id:        string;
+  title:     string;
+  iconKey:   "users" | "dollar" | "building" | "trending-down" | "zap" | "shield-alert";
+  colorKey:  "red" | "amber" | "brand";
+  severity:  "high" | "medium" | "low";
+  details:   RiskCategoryDetail[];
+  threshold: string;
+  current:   string;
+  action:    string;
+}
+
+export const riskCategories: RiskCategory[] = [
+  {
+    id: "concentration",
+    title:     "Concentração de Cliente",
+    iconKey:   "users",
+    colorKey:  "red",
+    severity:  "high",
+    details: [
+      { label: "Ambev (JACQES)",           share: 20, mrr: 420_000,   risk: "Alto"    },
+      { label: "Samsung (JACQES)",         share: 16, mrr: 350_000,   risk: "Alto"    },
+      { label: "Natura (JACQES)",          share: 14, mrr: 310_000,   risk: "Médio"   },
+      { label: "Ambev + Samsung + Natura", share: 50, mrr: 1_080_000, risk: "Crítico", isTotal: true },
+    ],
+    threshold: "Limite: top-3 ≤ 40%",
+    current:   "Top-3 = 50% do MRR JACQES",
+    action:    "Diversificar carteira — 3+ novos clientes em Q2",
+  },
+  {
+    id: "receivables",
+    title:    "Recebíveis em Aberto",
+    iconKey:  "dollar",
+    colorKey: "red",
+    severity: "high",
+    details: [
+      { label: "CV002 — Banco XP (Caza)", share: 0, mrr: 320_000, risk: "Alto",  days: 8 },
+      { label: "CV008 — Nubank (Caza)",   share: 0, mrr: 145_000, risk: "Médio", days: 5 },
+      { label: "Banco XP Advisory",       share: 0, mrr:  42_000, risk: "Baixo", days: 3 },
+    ],
+    threshold: "Limite: total ≤ R$200K",
+    current:   "Total em aberto: R$507K",
+    action:    "Cobrança ativa Banco XP (CV002) — prazo expirado",
+  },
+  {
+    id: "buDependency",
+    title:    "Dependência de BU Única",
+    iconKey:  "building",
+    colorKey: "amber",
+    severity: "medium",
+    details: [
+      { label: "JACQES",      share: 55, mrr: 4_820_000, risk: "Atenção" },
+      { label: "Caza Vision", share: 28, mrr: 2_418_000, risk: "OK"      },
+      { label: "Advisor",     share: 18, mrr: 1_572_000, risk: "OK"      },
+    ],
+    threshold: "Limite: nenhuma BU > 50%",
+    current:   "JACQES = 55% da receita",
+    action:    "Acelerar Caza Vision e Advisor para reequilibrar",
+  },
+  {
+    id: "marginCompression",
+    title:    "Compressão de Margem — JACQES",
+    iconKey:  "trending-down",
+    colorKey: "amber",
+    severity: "medium",
+    details: [
+      { label: "Meta EBITDA 2026", share: 22, mrr: 0, risk: "Meta"    },
+      { label: "EBITDA Realizado", share: 18, mrr: 0, risk: "Atual"   },
+      { label: "Gap",              share: -4, mrr: 0, risk: "4pp gap" },
+    ],
+    threshold: "Meta: EBITDA ≥ 22%",
+    current:   "Realizado: 18% EBITDA",
+    action:    "Revisar mix de clientes e custos operacionais",
+  },
+  {
+    id: "cashPressure",
+    title:    "Cash Pressure — AWQ Venture",
+    iconKey:  "zap",
+    colorKey: "amber",
+    severity: "medium",
+    details: [
+      { label: "Dry Powder atual",     share: 0, mrr: 6_200_000, risk: "Disponível" },
+      { label: "Próximo investimento", share: 0, mrr: 8_000_000, risk: "Necessário" },
+      { label: "Gap de funding",       share: 0, mrr: 1_800_000, risk: "A captar"   },
+    ],
+    threshold: "Dry powder ≥ próximo deploy",
+    current:   "Gap: R$1.8M a captar",
+    action:    "Avaliar distribuição de dividendos ou captação",
+  },
+  {
+    id: "forecastDet",
+    title:    "Deterioração de Forecast",
+    iconKey:  "shield-alert",
+    colorKey: "brand",
+    severity: "low",
+    details: [
+      { label: "Cenário base Q2", share: 0, mrr: 11_550_000, risk: "Base"  },
+      { label: "Cenário bear Q2", share: 0, mrr: 10_020_000, risk: "Bear"  },
+      { label: "Downside máximo", share: 0, mrr: -1_530_000, risk: "-13.2%"},
+    ],
+    threshold: "Bear < -20% do base",
+    current:   "Bear = -13.2%: dentro do tolerável",
+    action:    "Monitorar — sem ação imediata necessária",
+  },
 ];

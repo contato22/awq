@@ -1,12 +1,27 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+// ─── /awq/bank — Contas de Banco ─────────────────────────────────────────────
+//
+// ROLE: Local cash position tracker — accounts, balances, manual transaction history.
+//       Data lives in localStorage (browser-local, not server-persistent).
+//
+// SCOPE: This page is NOT the document ingestion pipeline.
+//        For PDF-based bank statement import with full traceability, use /awq/ingest.
+//
+// ARCHITECTURE:
+//   • Accounts and transactions: localStorage ("awq_bank_accounts")
+//   • No server API calls for data storage — intentionally local/scratchpad
+//   • No AI parsing — that responsibility moved to /api/ingest/process (server-only)
+//   • Complements /awq/ingest: provides quick manual balance tracking; ingest provides
+//     the canonical document-backed financial database
+
+import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import Header from "@/components/Header";
 import {
-  Building2, Plus, Trash2, Loader2, CheckCircle2, AlertCircle,
-  Search, X, Wallet, TrendingUp, TrendingDown, Sparkles,
-  ArrowUpRight, ArrowDownRight, CreditCard, ChevronDown, ChevronUp,
-  RefreshCw, Upload, BarChart3,
+  Building2, Plus, Trash2, Search, X, Wallet,
+  TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight,
+  CreditCard, ChevronDown, ChevronUp, BarChart3, FileUp,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -33,25 +48,37 @@ interface BankAccount {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
+// localStorage key for this page's local account data.
+// This is intentionally separate from public/data/financial/* (the canonical store).
 const LS_KEY = "awq_bank_accounts";
-const LS_API  = "openclaw_api_key";
-const BUILTIN = process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY ?? "";
 
-const BANK_OPTIONS = [
-  "Bradesco", "Itaú", "Nubank", "Santander",
-  "Banco do Brasil", "XP", "BTG", "Inter", "Sicoob", "Outro",
+const BANK_GROUPS: { label: string; banks: string[] }[] = [
+  {
+    label: "Digital / Fintech",
+    banks: ["Cora", "Nubank", "Inter", "C6 Bank", "PagBank", "BTG Empresas", "XP", "Mercado Pago"],
+  },
+  {
+    label: "Tradicional",
+    banks: ["Itaú", "Bradesco", "Banco do Brasil", "Santander", "Sicoob", "Sicredi"],
+  },
+  { label: "Outro", banks: ["Outro"] },
 ];
 
 const BANK_COLOR: Record<string, string> = {
-  "Bradesco":        "bg-red-600",
-  "Itaú":            "bg-orange-500",
+  "Cora":            "bg-brand-600",
   "Nubank":          "bg-purple-600",
-  "Santander":       "bg-red-700",
-  "Banco do Brasil": "bg-yellow-500",
+  "Inter":           "bg-orange-500",
+  "C6 Bank":         "bg-gray-800",
+  "PagBank":         "bg-green-600",
+  "BTG Empresas":    "bg-blue-700",
   "XP":              "bg-gray-700",
-  "BTG":             "bg-blue-700",
-  "Inter":           "bg-orange-600",
+  "Mercado Pago":    "bg-sky-500",
+  "Itaú":            "bg-orange-600",
+  "Bradesco":        "bg-red-600",
+  "Banco do Brasil": "bg-yellow-600",
+  "Santander":       "bg-red-700",
   "Sicoob":          "bg-green-700",
+  "Sicredi":         "bg-green-800",
   "Outro":           "bg-gray-500",
 };
 
@@ -96,130 +123,17 @@ function uid() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
-function resolveKey(): string | null {
-  const stored = typeof window !== "undefined" ? localStorage.getItem(LS_API) : null;
-  return stored || BUILTIN || null;
-}
-
-// ─── Claude parsing ───────────────────────────────────────────────────────────
-
-async function parseStatementWithClaude(
-  statement: string,
-  apiKey: string,
-  retryFix?: string
-): Promise<{ transactions: BankTransaction[]; bankDetected: string | null; closingBalance: number | null }> {
-  const userMessage = retryFix
-    ? `The previous response was invalid JSON. Return ONLY valid JSON, fixing: ${retryFix}\n\nStatement:\n${statement}`
-    : `Extract all transactions from this bank statement and return JSON with this exact structure:
-{
-  "bank_detected": "bank name or null",
-  "period_from": "YYYY-MM-DD or null",
-  "period_to": "YYYY-MM-DD or null",
-  "closing_balance": number or null,
-  "transactions": [
-    {
-      "date": "YYYY-MM-DD",
-      "description": "cleaned description in Portuguese",
-      "amount": -150.00,
-      "category": "one of: salario|aluguel|servicos|transferencia|imposto|investimento|saque|deposito|cartao|tarifas|outros",
-      "balance": null
-    }
-  ]
-}
-
-Rules:
-- negative amount = debit/saída, positive = credit/entrada
-- Dates as YYYY-MM-DD (convert DD/MM/YYYY or any format)
-- Parse ALL transactions, none skipped
-- Clean and translate descriptions to Portuguese when needed
-- Return ONLY raw JSON, no markdown, no explanation
-
-Statement:
-${statement}`;
-
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-      "anthropic-dangerous-direct-browser-access": "true",
-    },
-    body: JSON.stringify({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 4096,
-      system: "You are a precise financial data extractor for Brazilian banks. Extract ALL transactions from any bank statement format (CSV, OFX, CNAB, plain text, PDF paste). Return ONLY valid raw JSON — no markdown, no code blocks, no explanation.",
-      messages: [{ role: "user", content: userMessage }],
-    }),
-  });
-
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`API error ${res.status}: ${err.slice(0, 200)}`);
-  }
-
-  const data = await res.json();
-  const text = data.content?.[0]?.text ?? "";
-
-  // Strip markdown fences if present
-  const clean = text.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
-
-  let parsed: {
-    bank_detected?: string | null;
-    closing_balance?: number | null;
-    transactions?: Array<{
-      date?: string;
-      description?: string;
-      amount?: number;
-      category?: string;
-      balance?: number | null;
-    }>;
-  };
-
-  try {
-    parsed = JSON.parse(clean);
-  } catch {
-    if (!retryFix) {
-      return parseStatementWithClaude(statement, apiKey, "invalid JSON returned");
-    }
-    throw new Error("Claude returned invalid JSON after retry");
-  }
-
-  const transactions: BankTransaction[] = (parsed.transactions ?? []).map((t) => ({
-    id: uid(),
-    date: t.date ?? "",
-    description: t.description ?? "",
-    amount: typeof t.amount === "number" ? t.amount : 0,
-    category: t.category ?? "outros",
-    balance: t.balance ?? undefined,
-    original: undefined,
-  }));
-
-  return {
-    transactions,
-    bankDetected: parsed.bank_detected ?? null,
-    closingBalance: parsed.closing_balance ?? null,
-  };
-}
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function BankAccountsPage() {
-  const [accounts, setAccounts]               = useState<BankAccount[]>([]);
-  const [selectedId, setSelectedId]           = useState<string | null>(null);
-  const [showAddForm, setShowAddForm]         = useState(false);
-  const [showUpload, setShowUpload]           = useState(false);
-  const [statement, setStatement]             = useState("");
-  const [parsing, setParsing]                 = useState(false);
-  const [parseError, setParseError]           = useState<string | null>(null);
-  const [preview, setPreview]                 = useState<BankTransaction[] | null>(null);
-  const [previewMeta, setPreviewMeta]         = useState<{ bank: string | null; balance: number | null } | null>(null);
-  const [search, setSearch]                   = useState("");
-  const [sortAsc, setSortAsc]                 = useState(false);
-  const [newBank, setNewBank]                 = useState("Bradesco");
-  const [newName, setNewName]                 = useState("");
-  const [newBalance, setNewBalance]           = useState("");
-  const textareaRef                           = useRef<HTMLTextAreaElement>(null);
+  const [accounts, setAccounts]     = useState<BankAccount[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [search, setSearch]         = useState("");
+  const [sortAsc, setSortAsc]       = useState(false);
+  const [newBank, setNewBank]       = useState("Cora");
+  const [newName, setNewName]       = useState("");
+  const [newBalance, setNewBalance] = useState("");
 
   // ── Load from localStorage ───────────────────────────────────────────────
   useEffect(() => {
@@ -256,7 +170,7 @@ export default function BankAccountsPage() {
     const updated = [...accounts, acct];
     save(updated);
     setSelectedId(acct.id);
-    setNewBank("Bradesco");
+    setNewBank("Cora");
     setNewName("");
     setNewBalance("");
     setShowAddForm(false);
@@ -269,57 +183,11 @@ export default function BankAccountsPage() {
     setSelectedId(updated[0]?.id ?? null);
   }
 
-  // ── Parse statement ──────────────────────────────────────────────────────
-  async function handleParse() {
-    if (!statement.trim()) return;
-    const apiKey = resolveKey();
-    if (!apiKey) { setParseError("Chave da API não configurada. Acesse Configurações."); return; }
-    setParsing(true);
-    setParseError(null);
-    setPreview(null);
-    try {
-      const result = await parseStatementWithClaude(statement, apiKey);
-      setPreview(result.transactions);
-      setPreviewMeta({ bank: result.bankDetected, balance: result.closingBalance });
-    } catch (err) {
-      setParseError(err instanceof Error ? err.message : "Erro ao processar extrato");
-    } finally {
-      setParsing(false);
-    }
-  }
-
-  // ── Confirm parsed transactions ──────────────────────────────────────────
-  function handleConfirm() {
-    if (!preview || !selected) return;
-    const updated = accounts.map((a) => {
-      if (a.id !== selected.id) return a;
-      const merged = [...a.transactions];
-      for (const tx of preview) {
-        if (!merged.find((m) => m.date === tx.date && m.description === tx.description && m.amount === tx.amount)) {
-          merged.push(tx);
-        }
-      }
-      merged.sort((x, y) => y.date.localeCompare(x.date));
-      const newBalance = previewMeta?.balance ?? a.currentBalance;
-      return {
-        ...a,
-        transactions: merged,
-        currentBalance: newBalance,
-        lastUpdated: new Date().toISOString().slice(0, 10),
-      };
-    });
-    save(updated);
-    setPreview(null);
-    setPreviewMeta(null);
-    setStatement("");
-    setShowUpload(false);
-  }
-
   // ── Derived totals ───────────────────────────────────────────────────────
-  const totalBalance  = accounts.reduce((s, a) => s + a.currentBalance, 0);
-  const allTx         = accounts.flatMap((a) => a.transactions);
-  const totalCredits  = allTx.filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0);
-  const totalDebits   = allTx.filter((t) => t.amount < 0).reduce((s, t) => s + t.amount, 0);
+  const totalBalance = accounts.reduce((s, a) => s + a.currentBalance, 0);
+  const allTx        = accounts.flatMap((a) => a.transactions);
+  const totalCredits = allTx.filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0);
+  const totalDebits  = allTx.filter((t) => t.amount < 0).reduce((s, t) => s + t.amount, 0);
 
   const filteredTx = (selected?.transactions ?? [])
     .filter((t) =>
@@ -333,16 +201,35 @@ export default function BankAccountsPage() {
 
   return (
     <>
-      <Header title="Contas de Banco" subtitle="Extratos, reconciliação e histórico de transações" />
+      <Header
+        title="Contas de Banco"
+        subtitle="Saldos manuais · Visão de caixa local · Dados em localStorage"
+      />
       <div className="px-8 py-6 space-y-5">
+
+        {/* ── Ingest callout ────────────────────────────────────────────────── */}
+        <div className="flex items-center justify-between p-3 bg-brand-50 border border-brand-200 rounded-xl">
+          <div className="flex items-center gap-2 text-sm text-brand-800">
+            <FileUp size={14} className="text-brand-600 shrink-0" />
+            <span>
+              Para importar extratos PDF com rastreabilidade, classificação e reconciliação:
+            </span>
+          </div>
+          <Link
+            href="/awq/ingest"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-semibold transition-colors shrink-0"
+          >
+            <FileUp size={12} /> Ingestão de Extratos
+          </Link>
+        </div>
 
         {/* ── Summary cards ────────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: "Saldo Total",    value: fmtR(totalBalance),  icon: Wallet,      color: "text-brand-600",   bg: "bg-brand-50",   delta: `${accounts.length} conta${accounts.length !== 1 ? "s" : ""}` },
-            { label: "Entradas (YTD)", value: fmtR(totalCredits),  icon: TrendingUp,  color: "text-emerald-600", bg: "bg-emerald-50", delta: `${allTx.filter(t=>t.amount>0).length} créditos` },
-            { label: "Saídas (YTD)",   value: fmtR(totalDebits),   icon: TrendingDown,color: "text-red-600",     bg: "bg-red-50",     delta: `${allTx.filter(t=>t.amount<0).length} débitos` },
-            { label: "Transações",     value: allTx.length.toString(), icon: BarChart3, color: "text-amber-700", bg: "bg-amber-50",   delta: `em ${accounts.length} conta${accounts.length !== 1 ? "s" : ""}` },
+            { label: "Saldo Total",    value: fmtR(totalBalance),        icon: Wallet,      color: "text-brand-600",   bg: "bg-brand-50",   delta: `${accounts.length} conta${accounts.length !== 1 ? "s" : ""}` },
+            { label: "Entradas (YTD)", value: fmtR(totalCredits),        icon: TrendingUp,  color: "text-emerald-600", bg: "bg-emerald-50", delta: `${allTx.filter(t => t.amount > 0).length} créditos` },
+            { label: "Saídas (YTD)",   value: fmtR(totalDebits),         icon: TrendingDown,color: "text-red-600",     bg: "bg-red-50",     delta: `${allTx.filter(t => t.amount < 0).length} débitos` },
+            { label: "Transações",     value: allTx.length.toString(),   icon: BarChart3,   color: "text-amber-700",   bg: "bg-amber-50",   delta: `em ${accounts.length} conta${accounts.length !== 1 ? "s" : ""}` },
           ].map((c) => {
             const Icon = c.icon;
             return (
@@ -382,7 +269,11 @@ export default function BankAccountsPage() {
                   onChange={(e) => setNewBank(e.target.value)}
                   className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none focus:border-brand-500"
                 >
-                  {BANK_OPTIONS.map((b) => <option key={b} value={b}>{b}</option>)}
+                  {BANK_GROUPS.map((group) => (
+                    <optgroup key={group.label} label={group.label}>
+                      {group.banks.map((b) => <option key={b} value={b}>{b}</option>)}
+                    </optgroup>
+                  ))}
                 </select>
                 <input
                   type="text"
@@ -426,7 +317,7 @@ export default function BankAccountsPage() {
               return (
                 <div
                   key={acct.id}
-                  onClick={() => { setSelectedId(acct.id); setShowUpload(false); setPreview(null); }}
+                  onClick={() => setSelectedId(acct.id)}
                   className={`card p-4 cursor-pointer transition-all ${isSelected ? "border-brand-300 bg-brand-50" : "hover:border-gray-300"}`}
                 >
                   <div className="flex items-center gap-3 mb-2">
@@ -492,171 +383,19 @@ export default function BankAccountsPage() {
                       <div className="text-gray-400">transações</div>
                     </div>
                   </div>
-                  <button
-                    onClick={() => { setShowUpload((v) => !v); setPreview(null); setParseError(null); }}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-colors shrink-0"
-                  >
-                    <Upload size={14} /> Carregar Extrato
-                    {showUpload ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-                  </button>
                 </div>
-
-                {/* Upload / parse panel */}
-                {showUpload && (
-                  <div className="card p-5 space-y-4">
-                    <div className="flex items-center gap-2">
-                      <Sparkles size={15} className="text-brand-600" />
-                      <h3 className="text-sm font-semibold text-gray-900">Processar Extrato com Claude IA</h3>
-                      <span className="text-[10px] text-gray-400 ml-1">Aceita qualquer formato: CSV, OFX, CNAB, texto</span>
-                    </div>
-
-                    <textarea
-                      ref={textareaRef}
-                      value={statement}
-                      onChange={(e) => setStatement(e.target.value)}
-                      placeholder={`Cole aqui o extrato bancário em qualquer formato:
-
-Exemplos aceitos:
-• CSV do banco (copie e cole diretamente)
-• Texto copiado do PDF do extrato
-• Formato OFX ou CNAB
-• Qualquer formato de texto com datas e valores
-
-Ex:
-01/03/2026;TED RECEBIDA - CLIENTE ABC;+15.000,00;R$42.350,00
-02/03/2026;PAGAMENTO FORNECEDOR XYZ;-3.200,00;R$39.150,00
-...`}
-                      rows={10}
-                      className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 bg-gray-50 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-400 focus:bg-white transition-colors resize-y font-mono"
-                    />
-
-                    {parseError && (
-                      <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-                        <AlertCircle size={14} className="shrink-0" />
-                        {parseError}
-                      </div>
-                    )}
-
-                    {!preview && (
-                      <div className="flex gap-3">
-                        <button
-                          onClick={handleParse}
-                          disabled={parsing || !statement.trim()}
-                          className="flex items-center gap-2 px-5 py-2.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-sm font-semibold transition-colors"
-                        >
-                          {parsing ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
-                          {parsing ? "Processando…" : "Processar com Claude ✨"}
-                        </button>
-                        <button
-                          onClick={() => { setShowUpload(false); setStatement(""); setParseError(null); }}
-                          className="px-4 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-sm font-semibold hover:bg-gray-200 transition-colors"
-                        >
-                          Cancelar
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Preview */}
-                    {preview && (
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-3">
-                          <CheckCircle2 size={15} className="text-emerald-600" />
-                          <span className="text-sm font-semibold text-gray-900">
-                            {preview.length} transações extraídas
-                            {previewMeta?.bank && <span className="text-gray-500 font-normal"> · {previewMeta.bank}</span>}
-                            {previewMeta?.balance != null && (
-                              <span className="text-gray-500 font-normal"> · Saldo final: {fmtR(previewMeta.balance)}</span>
-                            )}
-                          </span>
-                          <button onClick={() => { setPreview(null); setPreviewMeta(null); }} className="ml-auto text-gray-400 hover:text-gray-600">
-                            <X size={14} />
-                          </button>
-                        </div>
-                        <div className="border border-gray-200 rounded-xl overflow-hidden">
-                          <div className="max-h-72 overflow-y-auto">
-                            <table className="w-full text-xs">
-                              <thead className="bg-gray-50 sticky top-0">
-                                <tr className="border-b border-gray-200">
-                                  <th className="text-left py-2 px-3 font-semibold text-gray-500">Data</th>
-                                  <th className="text-left py-2 px-3 font-semibold text-gray-500">Descrição</th>
-                                  <th className="text-left py-2 px-3 font-semibold text-gray-500">Categoria</th>
-                                  <th className="text-right py-2 px-3 font-semibold text-gray-500">Valor</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {preview.map((tx) => (
-                                  <tr key={tx.id} className="border-b border-gray-100 hover:bg-gray-50">
-                                    <td className="py-2 px-3 text-gray-500 whitespace-nowrap">{fmtDate(tx.date)}</td>
-                                    <td className="py-2 px-3 text-gray-900 max-w-xs truncate">{tx.description}</td>
-                                    <td className="py-2 px-3">
-                                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${CATEGORY_COLOR[tx.category] ?? "bg-gray-100 text-gray-600"}`}>
-                                        {CATEGORY_LABEL[tx.category] ?? tx.category}
-                                      </span>
-                                    </td>
-                                    <td className={`py-2 px-3 text-right font-bold ${tx.amount >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-                                      {tx.amount >= 0 ? "+" : ""}{fmtR(tx.amount)}
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                        <div className="flex gap-3">
-                          <button
-                            onClick={handleConfirm}
-                            className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors"
-                          >
-                            <CheckCircle2 size={14} /> Confirmar e Salvar
-                          </button>
-                          <button
-                            onClick={() => { setPreview(null); setPreviewMeta(null); }}
-                            className="px-4 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-sm font-semibold hover:bg-gray-200 transition-colors"
-                          >
-                            Descartar
-                          </button>
-                          <button
-                            onClick={handleParse}
-                            disabled={parsing}
-                            className="flex items-center gap-1.5 px-4 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-sm font-semibold hover:bg-gray-200 disabled:opacity-50 transition-colors ml-auto"
-                          >
-                            <RefreshCw size={13} /> Reprocessar
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
 
                 {/* Reconciliation strip */}
                 <div className="card p-4">
                   <div className="flex items-center gap-2 mb-3">
                     <BarChart3 size={13} className="text-gray-400" />
-                    <span className="text-xs font-semibold text-gray-700">Reconciliação</span>
+                    <span className="text-xs font-semibold text-gray-700">Posição da Conta</span>
                   </div>
                   <div className="grid grid-cols-3 gap-3">
                     {[
-                      {
-                        label: "Saldo da Conta",
-                        value: fmtR(selected.currentBalance),
-                        icon: Wallet,
-                        color: "text-brand-600",
-                        bg: "bg-brand-50",
-                      },
-                      {
-                        label: "Entradas",
-                        value: fmtR(acctCredits),
-                        icon: ArrowUpRight,
-                        color: "text-emerald-600",
-                        bg: "bg-emerald-50",
-                      },
-                      {
-                        label: "Saídas",
-                        value: fmtR(Math.abs(acctDebits)),
-                        icon: ArrowDownRight,
-                        color: "text-red-600",
-                        bg: "bg-red-50",
-                      },
+                      { label: "Saldo da Conta",   value: fmtR(selected.currentBalance), icon: Wallet,          color: "text-brand-600",   bg: "bg-brand-50"   },
+                      { label: "Entradas",          value: fmtR(acctCredits),             icon: ArrowUpRight,    color: "text-emerald-600", bg: "bg-emerald-50" },
+                      { label: "Saídas",            value: fmtR(Math.abs(acctDebits)),    icon: ArrowDownRight,  color: "text-red-600",     bg: "bg-red-50"     },
                     ].map((item) => {
                       const Icon = item.icon;
                       return (
@@ -706,10 +445,21 @@ Ex:
                   </div>
 
                   {filteredTx.length === 0 ? (
-                    <div className="text-center py-12">
-                      <Upload size={28} className="text-gray-300 mx-auto mb-2" />
-                      <div className="text-sm font-semibold text-gray-900">Nenhum extrato carregado</div>
-                      <div className="text-xs text-gray-400 mt-1">Clique em &quot;Carregar Extrato&quot; para importar</div>
+                    <div className="text-center py-12 space-y-2">
+                      <Wallet size={28} className="text-gray-200 mx-auto" />
+                      <div className="text-sm font-semibold text-gray-400">
+                        {selected.transactions.length === 0
+                          ? "Nenhuma transação nesta conta"
+                          : "Nenhuma transação com este filtro"}
+                      </div>
+                      {selected.transactions.length === 0 && (
+                        <div className="text-xs text-gray-400 mt-1">
+                          Para importar extratos PDF com rastreabilidade completa, acesse{" "}
+                          <Link href="/awq/ingest" className="text-brand-600 hover:underline font-medium">
+                            Ingestão de Extratos
+                          </Link>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="table-scroll">

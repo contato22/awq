@@ -8,6 +8,7 @@ import {
   ArrowUpRight,
   ChevronRight,
   Zap,
+  AlertTriangle,
 } from "lucide-react";
 import {
   buData,
@@ -15,7 +16,8 @@ import {
   consolidated,
   allocFlags,
   flagConfig,
-} from "@/lib/awq-group-data";
+  PAYBACK_ESTIMATES,
+} from "@/lib/awq-derived-metrics";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -25,15 +27,6 @@ function fmtR(n: number) {
   if (Math.abs(n) >= 1_000)         return "R$" + (n / 1_000).toFixed(0) + "K";
   return "R$" + n.toLocaleString("pt-BR");
 }
-
-// ─── Payback estimates ────────────────────────────────────────────────────────
-
-const paybackMonths: Record<string, number> = {
-  jacqes:  Math.round((2_400_000 / 518_000) * 3),   // ~14m
-  caza:    Math.round((1_200_000 / 420_000) * 3),   // ~9m
-  advisor: Math.round((800_000  / 479_000) * 3),   // ~5m
-  venture: null as unknown as number,
-};
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -52,6 +45,24 @@ export default function AwqAllocationsPage() {
         subtitle="Capital por BU · ROIC · Payback · Expand / Maintain / Review / Cut"
       />
       <div className="page-container">
+
+        {/* ── Snapshot notice ─────────────────────────────────────────────── */}
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <div className="flex items-start gap-2">
+            <AlertTriangle size={14} className="text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-xs font-semibold text-amber-800">
+                Capital alocado, ROIC e Cash Gerado são dados de planejamento (snapshot).
+              </p>
+              <p className="text-[11px] text-amber-600 mt-0.5">
+                Não derivados da base bancária. Para fluxo de caixa real por entidade, acesse{" "}
+                <a href="/awq/cashflow" className="underline font-medium">/awq/cashflow</a>{" "}
+                ou{" "}
+                <a href="/awq/financial" className="underline font-medium">/awq/financial</a>.
+              </p>
+            </div>
+          </div>
+        </div>
 
         {/* ── Summary Cards ─────────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -136,7 +147,7 @@ export default function AwqAllocationsPage() {
                   const flag    = allocFlags[bu.id];
                   const flagCfg = flagConfig[flag];
                   const share   = (bu.capitalAllocated / totalCap) * 100;
-                  const pb      = paybackMonths[bu.id];
+                  const pb      = PAYBACK_ESTIMATES[bu.id];
                   return (
                     <tr key={bu.id} className="border-b border-gray-100 hover:bg-gray-50/80 transition-colors">
                       <td className="py-2.5 px-3">

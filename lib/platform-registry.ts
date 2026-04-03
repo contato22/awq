@@ -52,21 +52,25 @@ export interface PlatformRoute {
 
 export const PLATFORM_ROUTES: PlatformRoute[] = [
   // ── AWQ Group — Control Tower ─────────────────────────────────────────────
-  { href: "/awq",              label: "Visão Geral",    bu: "awq",  layer: "control-tower", status: "active", dataSource: "lib/awq-group-data.ts", inSidebar: true,  inTabNav: false },
-  { href: "/business-units",   label: "Business Units", bu: "awq",  layer: "control-tower", status: "active", dataSource: "lib/awq-group-data.ts", inSidebar: true,  inTabNav: false },
-  { href: "/awq/kpis",         label: "KPIs",           bu: "awq",  layer: "control-tower", status: "active", dataSource: "lib/awq-group-data.ts", inSidebar: true,  inTabNav: false },
-  { href: "/awq/financial",    label: "Financial",      bu: "awq",  layer: "bu-financial",  status: "active", dataSource: "lib/awq-group-data.ts", inSidebar: true,  inTabNav: false },
-  { href: "/awq/portfolio",    label: "Portfolio",      bu: "awq",  layer: "control-tower", status: "active", dataSource: "lib/awq-group-data.ts", inSidebar: true,  inTabNav: false },
-  { href: "/awq/cashflow",     label: "Cash Flow",      bu: "awq",  layer: "bu-financial",  status: "active", dataSource: "lib/awq-group-data.ts", inSidebar: true,  inTabNav: false },
-  { href: "/awq/budget",       label: "Budget",         bu: "awq",  layer: "bu-financial",  status: "active", dataSource: "lib/awq-group-data.ts", inSidebar: true,  inTabNav: false },
-  { href: "/awq/forecast",     label: "Forecast",       bu: "awq",  layer: "bu-financial",  status: "active", dataSource: "lib/awq-group-data.ts", inSidebar: true,  inTabNav: false },
-  { href: "/awq/allocations",  label: "Allocations",    bu: "awq",  layer: "control-tower", status: "active", dataSource: "lib/awq-group-data.ts", inSidebar: true,  inTabNav: false },
-  { href: "/awq/risk",         label: "Risk",           bu: "awq",  layer: "control-tower", status: "active", dataSource: "lib/awq-group-data.ts", inSidebar: true,  inTabNav: false },
-  { href: "/awq/bank",         label: "Contas Banco",   bu: "awq",  layer: "bu-financial",  status: "active", dataSource: "lib/awq-group-data.ts", inSidebar: true,  inTabNav: false },
+  { href: "/awq",              label: "Visão Geral",    bu: "awq",  layer: "control-tower", status: "active", dataSource: "lib/financial-query.ts (FCO real) + lib/awq-group-data.ts (risk/alloc snapshot)", inSidebar: true,  inTabNav: false },
+  { href: "/business-units",   label: "Business Units", bu: "awq",  layer: "control-tower", status: "active", dataSource: "lib/financial-query.ts (FCO real) + lib/awq-group-data.ts (snapshot fallback)", inSidebar: true,  inTabNav: false },
+  { href: "/awq/kpis",         label: "KPIs",           bu: "awq",  layer: "control-tower", status: "active", dataSource: "lib/financial-query.ts (real) + lib/awq-group-data.ts (accrual KPIs snapshot)", inSidebar: true,  inTabNav: false },
+  { href: "/awq/financial",    label: "Financial",      bu: "awq",  layer: "bu-financial",  status: "active", dataSource: "lib/financial-query.ts (pipeline canônico — sem snapshot)", inSidebar: true,  inTabNav: false },
+  { href: "/awq/portfolio",    label: "Portfolio",      bu: "awq",  layer: "control-tower", status: "active", dataSource: "lib/financial-query.ts (real) + lib/awq-group-data.ts (snapshot fallback)", inSidebar: true,  inTabNav: false },
+  { href: "/awq/cashflow",     label: "Cash Flow",      bu: "awq",  layer: "bu-financial",  status: "active", dataSource: "lib/financial-query.ts (pipeline canônico — sem snapshot)", inSidebar: true,  inTabNav: false },
+  { href: "/awq/investments",  label: "Investimentos",  bu: "awq",  layer: "bu-financial",  status: "active", dataSource: "lib/investment-query.ts (aplicacao/resgate financeiro — pipeline canônico)", inSidebar: true, inTabNav: false },
+  { href: "/awq/budget",       label: "Budget",         bu: "awq",  layer: "bu-financial",  status: "active", dataSource: "lib/awq-group-data.ts (snapshot accrual — aviso explícito na página)", inSidebar: true,  inTabNav: false },
+  { href: "/awq/forecast",     label: "Forecast",       bu: "awq",  layer: "bu-financial",  status: "active", dataSource: "lib/awq-group-data.ts (snapshot accrual — aviso explícito na página)", inSidebar: true,  inTabNav: false },
+  { href: "/awq/allocations",  label: "Allocations",    bu: "awq",  layer: "control-tower", status: "active", dataSource: "lib/awq-group-data.ts (snapshot planejamento — aviso explícito na página)", inSidebar: true,  inTabNav: false },
+  { href: "/awq/risk",         label: "Risk",           bu: "awq",  layer: "control-tower", status: "active", dataSource: "lib/financial-query.ts (posição real) + lib/awq-group-data.ts (risk signals snapshot)", inSidebar: true,  inTabNav: false },
+  { href: "/awq/bank",         label: "Contas Banco",   bu: "awq",  layer: "bu-financial",  status: "active", dataSource: "localStorage (saldos locais — não persistido no servidor)",    inSidebar: true,  inTabNav: false },
+  { href: "/awq/ingest",       label: "Ingestão",       bu: "awq",  layer: "bu-financial",  status: "active", dataSource: "public/data/financial/ (documento-backed, server-side — fluxo canônico)",   inSidebar: true,  inTabNav: false },
+  { href: "/awq/data",         label: "Base de Dados",  bu: "awq",  layer: "control-tower", status: "active", dataSource: "lib/financial-ingest-status.ts + lib/platform-registry.ts + financial-db.ts (gestão real da camada de storage)", inSidebar: true, inTabNav: false },
+  { href: "/awq/management",   label: "Governança",     bu: "awq",  layer: "control-tower", status: "active", dataSource: "lib/financial-metric-query.ts (diagnostics) + lib/snapshot-registry.ts + lib/platform-registry.ts", inSidebar: true, inTabNav: false },
 
   // ── JACQES — Agência ─────────────────────────────────────────────────────
   { href: "/jacqes",                  label: "Visão Geral",    bu: "jacqes", layer: "bu-overview",   status: "active", dataSource: "lib/data.ts",            inSidebar: true,  inTabNav: false },
-  { href: "/jacqes/financial",        label: "Financial",      bu: "jacqes", layer: "bu-financial",  status: "active", dataSource: "lib/data.ts",            inSidebar: true,  inTabNav: false },
+  { href: "/jacqes/financial",        label: "Financial",      bu: "jacqes", layer: "bu-financial",  status: "active", dataSource: "lib/financial-query.ts (caixa real JACQES) + lib/data.ts (DRE snapshot)", inSidebar: true, inTabNav: false },
   { href: "/jacqes/revenue",          label: "Revenue",        bu: "jacqes", layer: "bu-financial",  status: "active", dataSource: "lib/data.ts",            inSidebar: true,  inTabNav: false },
   { href: "/jacqes/customers",        label: "Customers",      bu: "jacqes", layer: "bu-operations", status: "active", dataSource: "lib/data.ts",            inSidebar: true,  inTabNav: false },
   { href: "/jacqes/unit-economics",   label: "Unit Economics", bu: "jacqes", layer: "bu-operations", status: "active", dataSource: "lib/data.ts",            inSidebar: true,  inTabNav: false },
@@ -95,7 +99,7 @@ export const PLATFORM_ROUTES: PlatformRoute[] = [
   { href: "/caza-vision",                label: "Visão Geral",    bu: "caza", layer: "bu-overview",   status: "active", dataSource: "lib/caza-data.ts",     inSidebar: true,  inTabNav: false },
   { href: "/caza-vision/imoveis",        label: "Projetos",       bu: "caza", layer: "bu-operations", status: "active", dataSource: "lib/caza-data.ts",     inSidebar: true,  inTabNav: false },
   { href: "/caza-vision/clientes",       label: "Clientes",       bu: "caza", layer: "bu-operations", status: "active", dataSource: "lib/caza-data.ts + Notion", inSidebar: true, inTabNav: false },
-  { href: "/caza-vision/financial",      label: "Financial",      bu: "caza", layer: "bu-financial",  status: "active", dataSource: "lib/caza-data.ts",     inSidebar: true,  inTabNav: false },
+  { href: "/caza-vision/financial",      label: "Financial",      bu: "caza", layer: "bu-financial",  status: "active", dataSource: "Notion API (receita projetos, accrual) — aviso bancário na página", inSidebar: true, inTabNav: false },
   { href: "/caza-vision/unit-economics", label: "Unit Economics", bu: "caza", layer: "bu-operations", status: "active", dataSource: "lib/caza-data.ts",     inSidebar: true,  inTabNav: false },
   // Not yet implemented — add to sidebar only after page is created
   // { href: "/caza-vision/pipeline",    label: "Pipeline",        status: "stub", inSidebar: false }

@@ -1,7 +1,8 @@
 import Header from "@/components/Header";
 import Link from "next/link";
-import { BarChart3, Building2, TrendingUp, ChevronRight, Users, DollarSign, Briefcase } from "lucide-react";
-import { buData, consolidated } from "@/lib/awq-group-data";
+import { BarChart3, Building2, TrendingUp, ChevronRight, Users, DollarSign, Briefcase, Zap, CheckCircle2 } from "lucide-react";
+import { buData, consolidated } from "@/lib/awq-derived-metrics";
+import { buildFinancialQuery, fmtBRL } from "@/lib/financial-query";
 
 // ── Formatters ──────────────────────────────────────────────────────────────
 function fmtR(n: number): string {
@@ -102,7 +103,10 @@ const BUS = [
   },
 ];
 
-export default function BusinessUnitsPage() {
+export default async function BusinessUnitsPage() {
+  const q = buildFinancialQuery();
+  const c = q.consolidated;
+
   return (
     <>
       <Header title="Business Units" subtitle="Portfolio de empresas do AWQ Group" />
@@ -110,17 +114,24 @@ export default function BusinessUnitsPage() {
         {/* Summary */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
-            { icon: Building2, label: "Total de BUs",        value: String(buData.length) },
-            { icon: Users,     label: "BUs Ativas",          value: String(buData.filter((b) => b.status === "Ativo").length) },
-            { icon: DollarSign,label: "Receita Consolidada", value: fmtR(consolidated.revenue) },
+            { icon: Building2,    label: "Total de BUs",              value: String(buData.length),                                         isReal: false },
+            { icon: Users,        label: "BUs Ativas",                value: String(buData.filter((b) => b.status === "Ativo").length),     isReal: false },
+            { icon: Zap,          label: "FCO Real (base bancária)",  value: q.hasData ? fmtBRL(c.operationalNetCash) : "Aguardando extratos", isReal: true },
           ].map((s) => (
             <div key={s.label} className="card p-5 flex items-center gap-4">
-              <div className="w-9 h-9 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-center">
-                <s.icon size={16} className="text-gray-400" />
+              <div className={`w-9 h-9 rounded-xl ${s.isReal ? "bg-emerald-50 border border-emerald-200" : "bg-gray-50 border border-gray-200"} flex items-center justify-center`}>
+                <s.icon size={16} className={s.isReal ? "text-emerald-600" : "text-gray-400"} />
               </div>
               <div>
                 <div className="text-xl font-bold text-gray-900">{s.value}</div>
-                <div className="text-xs text-gray-500 mt-0.5">{s.label}</div>
+                <div className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+                  {s.label}
+                  {s.isReal && (
+                    <span className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1 py-0.5 rounded bg-emerald-100 text-emerald-700 border border-emerald-200">
+                      <CheckCircle2 size={7} /> REAL
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           ))}
@@ -162,6 +173,7 @@ export default function BusinessUnitsPage() {
                     </div>
                   ))}
                 </div>
+                <div className="text-[9px] text-amber-500 font-semibold tracking-wide">⚠ snapshot accrual</div>
 
                 {/* CTA */}
                 <div className="flex items-center justify-between pt-1">
