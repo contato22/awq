@@ -25,6 +25,7 @@
 // DO NOT import this module in client components.
 
 import type { BankTransaction, ManagerialCategory } from "./financial-db";
+import { isInvestmentVehicle } from "./bank-account-registry";
 import crypto from "crypto";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -95,6 +96,16 @@ export function reconcileIntercompany(
       const bothOwned =
         isAWQOwned(debit.entity) && isAWQOwned(credit.entity);
       if (!bothOwned) continue;
+
+      // Investment vehicle accounts must NOT be matched as intercompany.
+      // Transfers to/from BTG Investimentos or other investment vehicles are
+      // patrimonial movements (aplicacao_financeira / resgate_financeiro),
+      // not revenue/expense eliminations. Matching them as intercompany would
+      // override the correct category and hide them from investment-query.ts.
+      if (
+        isInvestmentVehicle(debit.bank, debit.accountName) ||
+        isInvestmentVehicle(credit.bank, credit.accountName)
+      ) continue;
 
       // Amount must match (within tolerance)
       const debitAmt  = Math.abs(debit.amount);

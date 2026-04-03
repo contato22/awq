@@ -42,69 +42,39 @@ interface CounterpartyRule {
 }
 
 const COUNTERPARTY_RULES: CounterpartyRule[] = [
-  // ── Known clients (revenue)
+  // ── Banking fees / IOF — checked FIRST to prevent client-name patterns from
+  //    firing on fee descriptions that happen to contain a bank/client name.
+  //    e.g. "Tarifa mensal Nubank" must NOT match the "nubank" client entry.
   {
-    patterns: ["ambev", "ab inbev"],
-    name: "Ambev",
-    category: "receita_recorrente",
+    patterns: ["tarifa", "ted tarifa", "tarifa ted", "tarifa pix", "tarifa manutencao", "tarifa mensal", "cot bancaria", "cobrança bancaria"],
+    name: null,
+    category: "tarifa_bancaria",
     entity: null,
     confidence: "confirmed",
   },
   {
-    patterns: ["natura", "natura&co"],
-    name: "Natura",
-    category: "receita_recorrente",
+    patterns: ["iof"],
+    name: "IOF",
+    category: "imposto_tributo",
     entity: null,
     confidence: "confirmed",
   },
+  // ── Financial investments — resgates BEFORE aplicacoes so that descriptions
+  //    containing both a redemption keyword AND an instrument name (e.g. "Resgate CDB")
+  //    are correctly classified as resgate_financeiro, not aplicacao_financeira.
   {
-    patterns: ["ifood", "i food"],
-    name: "iFood",
-    category: "receita_recorrente",
+    patterns: ["resgate", "resg.", "resgat"],
+    name: null,
+    category: "resgate_financeiro",
     entity: null,
-    confidence: "confirmed",
+    confidence: "probable",
   },
   {
-    patterns: ["samsung"],
-    name: "Samsung Brasil",
-    category: "receita_recorrente",
+    patterns: ["aplicacao", "aplicação", "invest. aut", "investimento automatico", "cdb", "lci", "lca", "fundo de investimento", "rdb"],
+    name: null,
+    category: "aplicacao_financeira",
     entity: null,
-    confidence: "confirmed",
-  },
-  {
-    patterns: ["nike"],
-    name: "Nike Brasil",
-    category: "receita_recorrente",
-    entity: null,
-    confidence: "confirmed",
-  },
-  {
-    patterns: ["banco xp", "bxp", "xp investimentos", "xp sa"],
-    name: "Banco XP",
-    category: "receita_recorrente",
-    entity: null,
-    confidence: "confirmed",
-  },
-  {
-    patterns: ["nubank", "nu pagamentos"],
-    name: "Nubank",
-    category: "receita_recorrente",
-    entity: null,
-    confidence: "confirmed",
-  },
-  {
-    patterns: ["arezzo"],
-    name: "Arezzo",
-    category: "receita_recorrente",
-    entity: null,
-    confidence: "confirmed",
-  },
-  {
-    patterns: ["magazine luiza", "magalu"],
-    name: "Magazine Luiza",
-    category: "receita_recorrente",
-    entity: null,
-    confidence: "confirmed",
+    confidence: "probable",
   },
   // ── Government / taxes
   {
@@ -221,35 +191,73 @@ const COUNTERPARTY_RULES: CounterpartyRule[] = [
     entity: null,
     confidence: "confirmed",
   },
-  // ── Banking fees
+  // ── Known clients (revenue) — after fees and investment rules to prevent
+  //    false positives on bank-generated descriptions that echo the bank name.
+  //    e.g. "Rendimento Nubank" or "Tarifa mensal Nubank" are fees, not client revenue.
   {
-    patterns: ["tarifa", "ted tarifa", "tarifa ted", "tarifa pix", "tarifa manutencao", "tarifa mensal", "cot bancaria", "cobrança bancaria"],
-    name: null,
-    category: "tarifa_bancaria",
+    patterns: ["ambev", "ab inbev"],
+    name: "Ambev",
+    category: "receita_recorrente",
     entity: null,
     confidence: "confirmed",
   },
   {
-    patterns: ["iof"],
-    name: "IOF",
-    category: "imposto_tributo",
+    patterns: ["natura", "natura&co"],
+    name: "Natura",
+    category: "receita_recorrente",
     entity: null,
     confidence: "confirmed",
   },
-  // ── Financial investments
   {
-    patterns: ["aplicacao", "aplicação", "invest. aut", "investimento automatico", "cdb", "lci", "lca", "fundo de investimento", "rdb"],
-    name: null,
-    category: "aplicacao_financeira",
+    patterns: ["ifood", "i food"],
+    name: "iFood",
+    category: "receita_recorrente",
     entity: null,
-    confidence: "probable",
+    confidence: "confirmed",
   },
   {
-    patterns: ["resgate", "resg.", "resgat"],
-    name: null,
-    category: "resgate_financeiro",
+    patterns: ["samsung"],
+    name: "Samsung Brasil",
+    category: "receita_recorrente",
     entity: null,
-    confidence: "probable",
+    confidence: "confirmed",
+  },
+  {
+    patterns: ["nike"],
+    name: "Nike Brasil",
+    category: "receita_recorrente",
+    entity: null,
+    confidence: "confirmed",
+  },
+  {
+    patterns: ["banco xp", "bxp", "xp investimentos", "xp sa"],
+    name: "Banco XP",
+    category: "receita_recorrente",
+    entity: null,
+    confidence: "confirmed",
+  },
+  {
+    // "pagamento nubank" / "pix nubank s.a." = client payment.
+    // "nubank" alone is intentionally NOT in this list — too broad; caught by tarifa rule above.
+    patterns: ["pagamento nubank", "pix nubank", "nu pagamentos"],
+    name: "Nubank",
+    category: "receita_recorrente",
+    entity: null,
+    confidence: "confirmed",
+  },
+  {
+    patterns: ["arezzo"],
+    name: "Arezzo",
+    category: "receita_recorrente",
+    entity: null,
+    confidence: "confirmed",
+  },
+  {
+    patterns: ["magazine luiza", "magalu"],
+    name: "Magazine Luiza",
+    category: "receita_recorrente",
+    entity: null,
+    confidence: "confirmed",
   },
 ];
 

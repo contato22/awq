@@ -247,7 +247,9 @@ export interface ConsolidatedCashPosition {
   internalTransfersIn: number;
   internalTransfersOut: number;
   intercompanyEliminated: number;
-  operationalNetCash: number;   // credits - debits, excluding intercompany
+  investmentApplications: number;  // aplicacao_financeira debits (excluded from operational)
+  investmentRedemptions: number;   // resgate_financeiro credits (excluded from operational)
+  operationalNetCash: number;      // credits - debits, excluding intercompany AND investment
 }
 
 export function getCashPositionByEntity(): ConsolidatedCashPosition[] {
@@ -270,6 +272,8 @@ export function getCashPositionByEntity(): ConsolidatedCashPosition[] {
         internalTransfersIn: 0,
         internalTransfersOut: 0,
         intercompanyEliminated: 0,
+        investmentApplications: 0,
+        investmentRedemptions: 0,
         operationalNetCash: 0,
       });
     }
@@ -296,14 +300,19 @@ export function getCashPositionByEntity(): ConsolidatedCashPosition[] {
       pos.intercompanyEliminated += amt;
       if (txn.direction === "credit") pos.internalTransfersIn += amt;
       else pos.internalTransfersOut += amt;
+    } else if (txn.managerialCategory === "aplicacao_financeira") {
+      pos.investmentApplications += amt;  // debit — money leaving to investment vehicle
+    } else if (txn.managerialCategory === "resgate_financeiro") {
+      pos.investmentRedemptions += amt;   // credit — money returning from investment vehicle
     }
   }
 
   for (const pos of Array.from(entityMap.values())) {
     pos.netCash = pos.totalCredits - pos.totalDebits;
+    // Operational net cash excludes BOTH intercompany transfers AND investment movements
     pos.operationalNetCash =
-      (pos.totalCredits - pos.internalTransfersIn) -
-      (pos.totalDebits - pos.internalTransfersOut);
+      (pos.totalCredits - pos.internalTransfersIn - pos.investmentRedemptions) -
+      (pos.totalDebits - pos.internalTransfersOut - pos.investmentApplications);
   }
 
   return Array.from(entityMap.values());
