@@ -14,7 +14,9 @@ import {
   operatingBus,
   consolidated,
   budgetVsActual,
-} from "@/lib/awq-group-data";
+  categoryBudget,
+  BUDGET_LINES,
+} from "@/lib/awq-derived-metrics";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -28,57 +30,6 @@ function varPct(actual: number, budget: number) {
   if (budget === 0) return 0;
   return ((actual - budget) / budget) * 100;
 }
-
-// ─── Budget Lines ─────────────────────────────────────────────────────────────
-
-const budgetLines = [
-  {
-    line:         "Receita",
-    jacquesBudg:  4_440_000, jacquesActual: 4_820_000,
-    cazaBudg:     2_148_000, cazaActual:    2_418_000,
-    advisorBudg:  1_400_000, advisorActual: 1_572_000,
-    isExpense:    false,
-  },
-  {
-    line:         "Gross Profit",
-    jacquesBudg:  2_664_000, jacquesActual: 2_892_000,
-    cazaBudg:     1_546_000, cazaActual:    1_730_000,
-    advisorBudg:  770_000,   advisorActual: 865_000,
-    isExpense:    false,
-  },
-  {
-    line:         "EBITDA",
-    jacquesBudg:  976_800,  jacquesActual: 867_000,
-    cazaBudg:     515_520,  cazaActual:    653_000,
-    advisorBudg:  644_000,  advisorActual: 723_000,
-    isExpense:    false,
-  },
-  {
-    line:         "Lucro Líquido",
-    jacquesBudg:  489_000,  jacquesActual: 518_000,
-    cazaBudg:     386_640,  cazaActual:    420_000,
-    advisorBudg:  427_000,  advisorActual: 479_000,
-    isExpense:    false,
-  },
-  {
-    line:         "Cash Gerado",
-    jacquesBudg:  630_000,  jacquesActual: 720_000,
-    cazaBudg:     450_000,  cazaActual:    580_000,
-    advisorBudg:  460_000,  advisorActual: 510_000,
-    isExpense:    false,
-  },
-];
-
-// ─── Consolidated budget by category ─────────────────────────────────────────
-
-const categoryBudget = [
-  { category: "Marketing & Growth",    budget: 1_440_000, actual: 1_238_000, bu: "Grupo" },
-  { category: "Salários & Benefícios", budget: 3_720_000, actual: 3_540_000, bu: "Grupo" },
-  { category: "Tecnologia & Infra",    budget:   540_000, actual:   462_000, bu: "Grupo" },
-  { category: "Vendas & Comissões",    budget:   960_000, actual: 1_044_000, bu: "Grupo" },
-  { category: "G&A Consolidado",       budget:   720_000, actual:   684_000, bu: "Grupo" },
-  { category: "Desp. Operacionais",    budget:   360_000, actual:   396_000, bu: "Grupo" },
-];
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -198,7 +149,7 @@ export default function AwqBudgetPage() {
                 </tr>
               </thead>
               <tbody>
-                {budgetLines.map((row) => {
+                {BUDGET_LINES.map((row) => {
                   const vJ = varPct(row.jacquesActual, row.jacquesBudg);
                   const vC = varPct(row.cazaActual, row.cazaBudg);
                   const vA = varPct(row.advisorActual, row.advisorBudg);

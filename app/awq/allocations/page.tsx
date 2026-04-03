@@ -16,7 +16,8 @@ import {
   consolidated,
   allocFlags,
   flagConfig,
-} from "@/lib/awq-group-data";
+  PAYBACK_ESTIMATES,
+} from "@/lib/awq-derived-metrics";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -26,15 +27,6 @@ function fmtR(n: number) {
   if (Math.abs(n) >= 1_000)         return "R$" + (n / 1_000).toFixed(0) + "K";
   return "R$" + n.toLocaleString("pt-BR");
 }
-
-// ─── Payback estimates ────────────────────────────────────────────────────────
-
-const paybackMonths: Record<string, number> = {
-  jacqes:  Math.round((2_400_000 / 518_000) * 3),   // ~14m
-  caza:    Math.round((1_200_000 / 420_000) * 3),   // ~9m
-  advisor: Math.round((800_000  / 479_000) * 3),   // ~5m
-  venture: null as unknown as number,
-};
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -155,7 +147,7 @@ export default function AwqAllocationsPage() {
                   const flag    = allocFlags[bu.id];
                   const flagCfg = flagConfig[flag];
                   const share   = (bu.capitalAllocated / totalCap) * 100;
-                  const pb      = paybackMonths[bu.id];
+                  const pb      = PAYBACK_ESTIMATES[bu.id];
                   return (
                     <tr key={bu.id} className="border-b border-gray-100 hover:bg-gray-50/80 transition-colors">
                       <td className="py-2.5 px-3">

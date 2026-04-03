@@ -27,7 +27,7 @@ import {
   consolidatedMargins,
   consolidatedRoic,
   budgetVsActual,
-} from "@/lib/awq-group-data";
+} from "@/lib/awq-derived-metrics";
 import {
   buildFinancialQuery,
   fmtBRL,

@@ -6,7 +6,7 @@ import {
   ChevronRight, ShieldAlert, Activity, Wallet, Target, Building2,
   Scale, CheckCircle, AlertTriangle, Database, Clock, GitMerge,
 } from "lucide-react";
-import { riskSignals, buData, allocFlags, flagConfig } from "@/lib/awq-group-data";
+import { riskSignals, buData, allocFlags, flagConfig } from "@/lib/awq-derived-metrics";
 import {
   buildFinancialQuery,
   fmtBRL,

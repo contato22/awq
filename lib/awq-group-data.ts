@@ -318,3 +318,86 @@ export const cashFlowRows: CashFlowRow[] = [
   { label: "(-) Distribuições/Divid.",   jacqes:  -200_000, caza:  -80_000, advisor: -100_000, venture:           0, indent: 1, bold: false },
   { label: "= Var. de Caixa",            jacqes:   472_000, caza:  468_000, advisor:  398_000, venture:  11_500_000, indent: 0, bold: true  },
 ];
+
+// ─── Budget targets by P&L line (complement to buData.budgetRevenue) ──────────
+//
+// These are the accrual budget targets for lines NOT already in buData.
+// buData already has budgetRevenue. This covers grossProfit, EBITDA, netIncome, cash.
+// Used by lib/awq-derived-metrics.ts to derive BUDGET_LINES without duplication.
+
+export interface BuBudgetTargets {
+  budgGrossProfit: number;
+  budgEbitda:      number;
+  budgNetIncome:   number;
+  budgCash:        number;
+}
+
+export const buBudgetTargets: Record<string, BuBudgetTargets> = {
+  jacqes:  { budgGrossProfit: 2_664_000, budgEbitda:  976_800, budgNetIncome: 489_000, budgCash: 630_000 },
+  caza:    { budgGrossProfit: 1_546_000, budgEbitda:  515_520, budgNetIncome: 386_640, budgCash: 450_000 },
+  advisor: { budgGrossProfit:   770_000, budgEbitda:  644_000, budgNetIncome: 427_000, budgCash: 460_000 },
+};
+
+// ─── Expense category budgets (consolidated AWQ Group) ────────────────────────
+
+export interface CategoryBudgetItem {
+  category: string;
+  budget:   number;
+  actual:   number;
+  bu:       string;
+}
+
+export const categoryBudget: CategoryBudgetItem[] = [
+  { category: "Marketing & Growth",    budget: 1_440_000, actual: 1_238_000, bu: "Grupo" },
+  { category: "Salários & Benefícios", budget: 3_720_000, actual: 3_540_000, bu: "Grupo" },
+  { category: "Tecnologia & Infra",    budget:   540_000, actual:   462_000, bu: "Grupo" },
+  { category: "Vendas & Comissões",    budget:   960_000, actual: 1_044_000, bu: "Grupo" },
+  { category: "G&A Consolidado",       budget:   720_000, actual:   684_000, bu: "Grupo" },
+  { category: "Desp. Operacionais",    budget:   360_000, actual:   396_000, bu: "Grupo" },
+];
+
+// ─── Forecast accuracy history ────────────────────────────────────────────────
+//
+// Stores the original forecast vs actual comparison.
+// Note: revenueForecasts[] tracks forward-looking scenarios; this tracks past accuracy.
+
+export interface ForecastAccuracyPoint {
+  month:    string;
+  forecast: number;   // original forecast issued for that month
+  actual:   number;   // confirmed actual revenue
+  error:    number;   // % error: positive = underestimated, negative = overestimated
+}
+
+export const forecastAccuracyHistory: ForecastAccuracyPoint[] = [
+  { month: "Jan/26", forecast: 2_580_000, actual: 2_640_000, error:  2.3 },
+  { month: "Fev/26", forecast: 2_900_000, actual: 2_838_000, error: -2.1 },
+  { month: "Mar/26", forecast: 3_280_000, actual: 3_332_000, error:  1.6 },
+];
+
+// ─── Per-BU full-year forecast scenarios ─────────────────────────────────────
+
+export interface BuForecastScenario {
+  bu:           string;
+  color:        string; // Tailwind class
+  accent:       string; // Tailwind class
+  ytd:          number;
+  fullYearBase: number;
+  fullYearBull: number;
+  fullYearBear: number;
+  growth:       number; // % YoY growth in base scenario
+}
+
+export const buForecastScenarios: BuForecastScenario[] = [
+  {
+    bu: "JACQES",      color: "bg-brand-500",   accent: "text-brand-600",
+    ytd: 4_820_000, fullYearBase: 19_800_000, fullYearBull: 21_780_000, fullYearBear: 16_830_000, growth: 12.4,
+  },
+  {
+    bu: "Caza Vision", color: "bg-emerald-500", accent: "text-emerald-600",
+    ytd: 2_418_000, fullYearBase: 12_100_000, fullYearBull: 13_310_000, fullYearBear:  9_680_000, growth: 28.3,
+  },
+  {
+    bu: "Advisor",     color: "bg-violet-500",  accent: "text-violet-700",
+    ytd: 1_572_000, fullYearBase:  7_200_000, fullYearBull:  7_920_000, fullYearBear:  5_760_000, growth: 18.6,
+  },
+];

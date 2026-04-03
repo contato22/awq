@@ -1,7 +1,7 @@
 import Header from "@/components/Header";
 import Link from "next/link";
 import { BarChart3, Building2, TrendingUp, ChevronRight, Users, DollarSign, Briefcase, Zap, CheckCircle2 } from "lucide-react";
-import { buData, consolidated } from "@/lib/awq-group-data";
+import { buData, consolidated } from "@/lib/awq-derived-metrics";
 import { buildFinancialQuery, fmtBRL } from "@/lib/financial-query";
 
 // ── Formatters ──────────────────────────────────────────────────────────────

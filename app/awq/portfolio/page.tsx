@@ -16,7 +16,7 @@ import {
   consolidatedRoic,
   allocFlags,
   flagConfig,
-} from "@/lib/awq-group-data";
+} from "@/lib/awq-derived-metrics";
 import { buildFinancialQuery, fmtBRL, ENTITY_LABELS } from "@/lib/financial-query";
 
 function fmtR(n: number) {

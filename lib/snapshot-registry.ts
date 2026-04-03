@@ -53,20 +53,17 @@ export interface SnapshotSource {
 
 export const SNAPSHOT_REGISTRY: SnapshotSource[] = [
   {
-    file:     "lib/awq-group-data.ts",
+    file:     "lib/awq-group-data.ts (accessed via lib/awq-derived-metrics.ts)",
     scope:    "AWQ Group consolidated P&L, BU metrics (revenue, EBITDA, margins, ROIC, capital), " +
-              "risk signals, revenue forecasts (base/bull/bear), allocation flags",
+              "risk signals, revenue forecasts (base/bull/bear), allocation flags, " +
+              "budget targets (buBudgetTargets), expense category budgets (categoryBudget), " +
+              "forecast accuracy history (forecastAccuracyHistory), BU forecast scenarios (buForecastScenarios)",
     status:   "active",
     period:   "YTD Jan–Mar 2026 (Q1 2026 — frozen snapshot)",
     consumers: [
-      "app/awq/kpis/page.tsx",
-      "app/awq/budget/page.tsx",
-      "app/awq/forecast/page.tsx",
-      "app/awq/allocations/page.tsx",
-      "app/awq/portfolio/page.tsx",
-      "app/awq/risk/page.tsx",
-      "app/business-units/page.tsx",
-      "app/awq/page.tsx",
+      // NOTE: pages import from awq-derived-metrics, NOT awq-group-data directly.
+      // awq-derived-metrics is the canonical derivation layer (P2 — implemented).
+      "lib/awq-derived-metrics.ts (canonical derivation layer — all pages route through here)",
     ],
     migratesTo: "lib/financial-query.ts (cash-basis) for FCO/caixa; " +
                 "accrual P&L pipeline (not yet built) for revenue/EBITDA/margins",
@@ -75,9 +72,11 @@ export const SNAPSHOT_REGISTRY: SnapshotSource[] = [
       "Requires invoice/NF ingestion pipeline. Cash-basis pages already migrated. " +
       "Hybrid approach (REAL cash + SNAPSHOT accrual) is intentional until invoice pipeline is built.",
     notes:
-      "Do NOT add new hardcoded revenue/expense/EBITDA values here. " +
-      "If you need a new metric, derive it from existing buData properties or build the real pipeline. " +
-      "All pages that consume this file show explicit SNAPSHOT banners in UI.",
+      "DERIVATION LAYER ACTIVE: pages no longer import awq-group-data directly. " +
+      "All planning data flows through lib/awq-derived-metrics.ts. " +
+      "BUDGET_LINES derived from buData (no drift). PAYBACK_ESTIMATES derived from buData. " +
+      "Do NOT add new hardcoded revenue/expense/EBITDA values to awq-group-data. " +
+      "All pages show explicit SNAPSHOT banners in UI.",
   },
   {
     file:     "lib/data.ts",

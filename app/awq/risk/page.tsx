@@ -11,7 +11,7 @@ import {
   ArrowUpRight,
   ChevronRight,
 } from "lucide-react";
-import { riskSignals, buData } from "@/lib/awq-group-data";
+import { riskSignals, buData } from "@/lib/awq-derived-metrics";
 import { buildFinancialQuery, fmtBRL, ENTITY_LABELS } from "@/lib/financial-query";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

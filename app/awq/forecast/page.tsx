@@ -11,7 +11,9 @@ import {
   operatingBus,
   consolidated,
   revenueForecasts,
-} from "@/lib/awq-group-data";
+  forecastAccuracyHistory,
+  buForecastScenarios,
+} from "@/lib/awq-derived-metrics";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -22,39 +24,14 @@ function fmtR(n: number) {
   return "R$" + n.toLocaleString("pt-BR");
 }
 
-// ─── Forecast accuracy ────────────────────────────────────────────────────────
+// ─── Derived from canonical stores ───────────────────────────────────────────
 
-const accuracyHistory = [
-  { month: "Jan/26", forecast: 2_580_000, actual: 2_640_000, error: 2.3  },
-  { month: "Fev/26", forecast: 2_900_000, actual: 2_838_000, error: -2.1 },
-  { month: "Mar/26", forecast: 3_280_000, actual: 3_332_000, error: 1.6  },
-];
-
-const avgError = accuracyHistory.reduce((s, r) => s + Math.abs(r.error), 0) / accuracyHistory.length;
+const avgError    = forecastAccuracyHistory.reduce((s, r) => s + Math.abs(r.error), 0) / forecastAccuracyHistory.length;
 const avgAccuracy = 100 - avgError;
-
-// ─── Full-year forecast ───────────────────────────────────────────────────────
 
 const fullYearBase = revenueForecasts.reduce((s, r) => s + r.base, 0);
 const fullYearBull = revenueForecasts.reduce((s, r) => s + r.bull, 0);
 const fullYearBear = revenueForecasts.reduce((s, r) => s + r.bear, 0);
-
-// ─── BU-level forecasts ────────────────────────────────────────────────────────
-
-const buForecasts = [
-  {
-    bu: "JACQES",       color: "bg-brand-500",   accent: "text-brand-600",
-    ytd: 4_820_000,  fullYearBase: 19_800_000, fullYearBull: 21_780_000, fullYearBear: 16_830_000, growth: 12.4,
-  },
-  {
-    bu: "Caza Vision",  color: "bg-emerald-500", accent: "text-emerald-600",
-    ytd: 2_418_000,  fullYearBase: 12_100_000, fullYearBull: 13_310_000, fullYearBear: 9_680_000,  growth: 28.3,
-  },
-  {
-    bu: "Advisor",      color: "bg-violet-500",  accent: "text-violet-700",
-    ytd: 1_572_000,  fullYearBase:  7_200_000, fullYearBull:  7_920_000, fullYearBear: 5_760_000,  growth: 18.6,
-  },
-];
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -206,7 +183,7 @@ export default function AwqForecastPage() {
             <div className="card p-5">
               <h2 className="text-sm font-semibold text-gray-900 mb-4">Forecast Accuracy</h2>
               <div className="space-y-3">
-                {accuracyHistory.map((row) => {
+                {forecastAccuracyHistory.map((row) => {
                   const acc  = 100 - Math.abs(row.error);
                   const isPos = row.error >= 0;
                   return (
@@ -237,7 +214,7 @@ export default function AwqForecastPage() {
             <div className="card p-5">
               <h2 className="text-sm font-semibold text-gray-900 mb-4">Forecast por BU — Full Year 2026</h2>
               <div className="space-y-3">
-                {buForecasts.map((bu) => (
+                {buForecastScenarios.map((bu) => (
                   <div key={bu.bu} className="rounded-lg border border-gray-200 p-3">
                     <div className="flex items-center justify-between mb-1.5">
                       <div className="flex items-center gap-2">
