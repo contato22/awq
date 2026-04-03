@@ -31,6 +31,7 @@ import {
     FileUp,
     Landmark,
     Database,
+    ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -162,6 +163,7 @@ const awqNav = [
     { label: "Contas Banco",   href: "/awq/bank",         icon: CreditCard      },
     { label: "Ingestão",       href: "/awq/ingest",       icon: FileUp          },
     { label: "Base de Dados",  href: "/awq/data",         icon: Database        },
+    { label: "Governança",     href: "/awq/management",   icon: ShieldCheck     },
 ];
 
 // ── Shared helpers ────────────────────────────────────────────────────────────

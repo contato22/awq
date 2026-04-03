@@ -66,6 +66,7 @@ export const PLATFORM_ROUTES: PlatformRoute[] = [
   { href: "/awq/bank",         label: "Contas Banco",   bu: "awq",  layer: "bu-financial",  status: "active", dataSource: "localStorage (saldos locais — não persistido no servidor)",    inSidebar: true,  inTabNav: false },
   { href: "/awq/ingest",       label: "Ingestão",       bu: "awq",  layer: "bu-financial",  status: "active", dataSource: "public/data/financial/ (documento-backed, server-side — fluxo canônico)",   inSidebar: true,  inTabNav: false },
   { href: "/awq/data",         label: "Base de Dados",  bu: "awq",  layer: "control-tower", status: "active", dataSource: "lib/financial-ingest-status.ts + lib/platform-registry.ts + financial-db.ts (gestão real da camada de storage)", inSidebar: true, inTabNav: false },
+  { href: "/awq/management",   label: "Governança",     bu: "awq",  layer: "control-tower", status: "active", dataSource: "lib/financial-metric-query.ts (diagnostics) + lib/snapshot-registry.ts + lib/platform-registry.ts", inSidebar: true, inTabNav: false },
 
   // ── JACQES — Agência ─────────────────────────────────────────────────────
   { href: "/jacqes",                  label: "Visão Geral",    bu: "jacqes", layer: "bu-overview",   status: "active", dataSource: "lib/data.ts",            inSidebar: true,  inTabNav: false },
