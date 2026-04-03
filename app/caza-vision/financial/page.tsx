@@ -13,6 +13,7 @@ import {
   Database,
   CloudOff,
   Minus,
+  AlertTriangle,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -170,6 +171,24 @@ export default function CazaFinancialPage() {
         subtitle="Receita, despesas e lucro por projeto · agrupado por mês"
       />
       <div className="page-container">
+
+        {/* ── Banking notice ───────────────────────────────────────────────── */}
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <div className="flex items-start gap-2">
+            <AlertTriangle size={14} className="text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-xs font-semibold text-amber-800">
+                Receita por projeto vem do Notion (accrual/competência) — não derivada da base bancária.
+              </p>
+              <p className="text-[11px] text-amber-600 mt-0.5">
+                Para caixa real da Caza Vision, acesse{" "}
+                <a href="/awq/financial" className="underline font-medium">/awq/financial</a>{" "}
+                ou{" "}
+                <a href="/awq/cashflow" className="underline font-medium">/awq/cashflow</a>.
+              </p>
+            </div>
+          </div>
+        </div>
 
         {/* ── Source badge ─────────────────────────────────────────────────── */}
         <div className="flex items-center gap-2">
