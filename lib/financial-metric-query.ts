@@ -85,8 +85,8 @@ export interface AWQGroupKPIs {
   periodLabel:         string | null;
 }
 
-export function getAWQGroupKPIs(): AWQGroupKPIs {
-  const q = buildFinancialQuery();
+export async function getAWQGroupKPIs(): Promise<AWQGroupKPIs> {
+  const q = await buildFinancialQuery();
   const c = q.consolidated;
   const has = q.hasData;
 
@@ -237,8 +237,8 @@ export interface EntityCashMetrics {
   periodEnd:          string | null;
 }
 
-export function getEntityCashMetrics(): EntityCashMetrics[] {
-  const q = buildFinancialQuery();
+export async function getEntityCashMetrics(): Promise<EntityCashMetrics[]> {
+  const q = await buildFinancialQuery();
   if (!q.hasData) return [];
 
   return q.entities
@@ -281,8 +281,8 @@ export interface PortfolioMetrics {
   buCount:               FinancialMetric<number>;
 }
 
-export function getPortfolioMetrics(): PortfolioMetrics {
-  const q = buildFinancialQuery();
+export async function getPortfolioMetrics(): Promise<PortfolioMetrics> {
+  const q = await buildFinancialQuery();
   const totalCap      = buData.reduce((s, b) => s + b.capitalAllocated, 0);
   const totalNetIncome= buData.reduce((s, b) => s + b.netIncome, 0);
 
@@ -326,8 +326,8 @@ export interface RiskCashPosition {
   hasRealData: boolean;
 }
 
-export function getRiskCashPosition(): RiskCashPosition {
-  const q = buildFinancialQuery();
+export async function getRiskCashPosition(): Promise<RiskCashPosition> {
+  const q = await buildFinancialQuery();
 
   if (!q.hasData) {
     return {
@@ -381,8 +381,8 @@ export interface ManagementDiagnostics {
   hasRealData:            boolean;
 }
 
-export function getManagementDiagnostics(): ManagementDiagnostics {
-  const q = buildFinancialQuery();
+export async function getManagementDiagnostics(): Promise<ManagementDiagnostics> {
+  const q = await buildFinancialQuery();
 
   if (!q.hasData && q.dataQuality.totalDocuments === 0) {
     return {

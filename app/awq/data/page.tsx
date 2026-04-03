@@ -145,9 +145,9 @@ function PriorityBadge({ p }: { p: ActionItem["priority"] }) {
 
 export default async function AwqDataPage() {
   // ── Real data from canonical infrastructure ──────────────────────────────
-  const docs   = getAllDocuments();
-  const txns   = getAllTransactions();
-  const q      = buildFinancialQuery();
+  const docs   = await getAllDocuments();
+  const txns   = await getAllTransactions();
+  const q      = await buildFinancialQuery();
 
   const doneDocs      = docs.filter((d) => d.status === "done");
   const errorDocs     = docs.filter((d) => d.status === "error");

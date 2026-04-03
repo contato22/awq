@@ -58,10 +58,9 @@ export async function POST(req: NextRequest): Promise<Response> {
     );
   }
 
-  // Narrowed to string — safe to use in closures below
   const docId: string = documentId;
 
-  const doc = getDocument(docId);
+  const doc = await getDocument(docId);
   if (!doc) {
     return new Response(
       sse({ error: `Documento ${documentId} não encontrado.` }),
@@ -69,8 +68,6 @@ export async function POST(req: NextRequest): Promise<Response> {
     );
   }
 
-  // API key is optional — rule-based parser runs without it.
-  // Claude Vision fallback activates automatically when key is present.
   const apiKey = process.env.ANTHROPIC_API_KEY;
 
   const encoder = new TextEncoder();
@@ -84,18 +81,30 @@ export async function POST(req: NextRequest): Promise<Response> {
       try {
         // ── Stage 1: Extract ──────────────────────────────────────────────────
         send({ stage: "extracting", message: "Enviando PDF para Claude para extração..." });
-        updateDocumentStatus(docId, "extracting");
+        await updateDocumentStatus(docId, "extracting");
 
-        // Find PDF file
-        if (!fs.existsSync(PDF_DIR)) {
-          throw new Error(`Diretório de PDFs não encontrado (${PDF_DIR}). Nenhum arquivo foi enviado ainda ou o servidor foi reiniciado.`);
+        // Load PDF: from Vercel Blob or local filesystem
+        let pdfBuffer: Buffer;
+
+        if (doc.blobUrl) {
+          // Blob storage (Vercel production)
+          send({ stage: "extracting", message: "Carregando PDF do Blob storage..." });
+          const res = await fetch(doc.blobUrl);
+          if (!res.ok) {
+            throw new Error(`Falha ao carregar PDF do Blob (${res.status}): ${doc.blobUrl}`);
+          }
+          pdfBuffer = Buffer.from(await res.arrayBuffer());
+        } else {
+          // Local filesystem (development)
+          if (!fs.existsSync(PDF_DIR)) {
+            throw new Error(`Diretório de PDFs não encontrado (${PDF_DIR}). Nenhum arquivo foi enviado ainda ou o servidor foi reiniciado.`);
+          }
+          const pdfFiles = fs.readdirSync(PDF_DIR).filter((f) => f.startsWith(docId));
+          if (pdfFiles.length === 0) {
+            throw new Error(`PDF não encontrado em disco para documentId ${docId}. O arquivo pode ter sido perdido.`);
+          }
+          pdfBuffer = fs.readFileSync(path.join(PDF_DIR, pdfFiles[0]));
         }
-        const pdfFiles = fs.readdirSync(PDF_DIR).filter((f) => f.startsWith(docId));
-        if (pdfFiles.length === 0) {
-          throw new Error(`PDF não encontrado em disco para documentId ${docId}. O arquivo pode ter sido perdido.`);
-        }
-        const pdfPath = path.join(PDF_DIR, pdfFiles[0]);
-        const pdfBuffer = fs.readFileSync(pdfPath);
 
         send({
           stage: "extracting",
@@ -103,8 +112,6 @@ export async function POST(req: NextRequest): Promise<Response> {
           hasApiKey: !!apiKey,
         });
 
-        // Pass the buffer directly — parsePDF accepts Buffer or base64.
-        // apiKey is optional; Claude Vision fallback only runs if key is set.
         const parsed = await parsePDF(pdfBuffer, doc.bank, apiKey);
 
         send({
@@ -116,7 +123,7 @@ export async function POST(req: NextRequest): Promise<Response> {
         });
 
         if (parsed.transactions.length === 0) {
-          updateDocumentStatus(docId, "error", {
+          await updateDocumentStatus(docId, "error", {
             errorMessage: `Nenhum lançamento extraído. ${parsed.extractionNotes}`,
             parserConfidence: parsed.parserConfidence,
             extractionNotes: parsed.extractionNotes,
@@ -130,8 +137,7 @@ export async function POST(req: NextRequest): Promise<Response> {
           return;
         }
 
-        // Update document with extraction metadata
-        updateDocumentStatus(docId, "classifying", {
+        await updateDocumentStatus(docId, "classifying", {
           periodStart: parsed.periodStart,
           periodEnd: parsed.periodEnd,
           openingBalance: parsed.openingBalance,
@@ -193,7 +199,7 @@ export async function POST(req: NextRequest): Promise<Response> {
           ambiguous: ambiguousCount,
         });
 
-        updateDocumentStatus(docId, "reconciling");
+        await updateDocumentStatus(docId, "reconciling");
 
         // ── Stage 3: Reconcile ────────────────────────────────────────────────
         send({ stage: "reconciling", message: "Verificando transferências intercompany..." });
@@ -211,8 +217,8 @@ export async function POST(req: NextRequest): Promise<Response> {
         });
 
         // ── Stage 4: Persist ──────────────────────────────────────────────────
-        saveTransactions(reconciledTransactions);
-        updateDocumentStatus(docId, "done", {
+        await saveTransactions(reconciledTransactions);
+        await updateDocumentStatus(docId, "done", {
           transactionCount: reconciledTransactions.length,
         });
 
@@ -233,7 +239,7 @@ export async function POST(req: NextRequest): Promise<Response> {
         });
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        updateDocumentStatus(docId, "error", { errorMessage: msg });
+        await updateDocumentStatus(docId, "error", { errorMessage: msg });
         send({ stage: "error", error: msg, done: true, success: false });
       }
 

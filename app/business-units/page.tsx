@@ -104,7 +104,7 @@ const BUS = [
 ];
 
 export default async function BusinessUnitsPage() {
-  const kpis = getAWQGroupKPIs();
+  const kpis = await getAWQGroupKPIs();
 
   return (
     <>

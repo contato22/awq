@@ -186,7 +186,7 @@ function MonthlyBridgeChart({ entries }: { entries: MonthlyEntry[] }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function AwqCashflowPage() {
-  const q   = buildFinancialQuery();
+  const q   = await buildFinancialQuery();
   const c   = q.consolidated;
   const gap = q.dataQuality.coverageGaps;
 

@@ -217,7 +217,7 @@ function RevenueByCounterparty({ q }: { q: FinancialQueryResult }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function AwqFinancialPage() {
-  const q          = buildFinancialQuery();
+  const q          = await buildFinancialQuery();
 
   const opEntities = q.entities.filter((e) =>
     ["AWQ_Holding", "JACQES", "Caza_Vision"].includes(e.entity)

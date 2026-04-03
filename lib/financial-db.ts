@@ -1,26 +1,21 @@
-// ─── AWQ Financial DB — JSON-backed persistence layer ─────────────────────────
+// ─── AWQ Financial DB — persistence layer ────────────────────────────────────
 //
 // SOURCE OF TRUTH CLASSIFICATION:
 //   This module is the canonical server-side store for all ingested financial data.
-//   It replaces hardcoded snapshots with traceable, document-backed records.
 //
-// STORAGE STRATEGY:
-//   Files are written to public/data/financial/ (readable by static builds as JSON).
-//   On Vercel: filesystem is ephemeral between deployments — upgrade to Postgres/Neon
-//   when persistence across deployments is required. All APIs return empty state
-//   gracefully if files are missing (no crashes, no silent corruption).
+// STORAGE ADAPTERS (auto-selected at runtime):
+//   DATABASE_URL set  → Neon (Postgres) via @neondatabase/serverless
+//   DATABASE_URL unset → JSON files in public/data/financial/ (local dev)
 //
-// FILES:
-//   public/data/financial/documents.json     → FinancialDocument[]
-//   public/data/financial/transactions.json  → BankTransaction[]
-//
-// DO NOT import this module in client components — it uses Node's `fs` module.
+// DO NOT import this module in client components — it uses Node's `fs` module
+// (filesystem adapter) or Neon (DB adapter). Both are server-only.
 
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
+import { sql, USE_DB } from "./db";
 
-// ─── Directory ────────────────────────────────────────────────────────────────
+// ─── Directory (filesystem adapter only) ─────────────────────────────────────
 
 const DATA_DIR   = path.join(process.cwd(), "public", "data", "financial");
 const DOCS_FILE  = path.join(DATA_DIR, "documents.json");
@@ -135,6 +130,7 @@ export interface FinancialDocument {
   transactionCount: number;
   parserConfidence: "high" | "medium" | "low" | null;
   extractionNotes: string | null;
+  blobUrl: string | null;       // Vercel Blob URL for the PDF (null = filesystem or not set)
 }
 
 export interface BankTransaction {
@@ -164,18 +160,120 @@ export interface BankTransaction {
   classifiedAt: string | null;
 }
 
+// ─── Row mappers (DB adapter) ─────────────────────────────────────────────────
+
+type Row = Record<string, unknown>;
+const s  = (v: unknown): string       => v as string;
+const sn = (v: unknown): string | null => (v != null ? (v as string) : null);
+
+function rowToDocument(r: Row): FinancialDocument {
+  return {
+    id:               s(r.id),
+    filename:         s(r.filename),
+    fileHash:         s(r.file_hash),
+    bank:             s(r.bank) as BankName,
+    accountName:      s(r.account_name),
+    accountNumber:    sn(r.account_number),
+    entity:           s(r.entity) as EntityLayer,
+    periodStart:      sn(r.period_start),
+    periodEnd:        sn(r.period_end),
+    openingBalance:   r.opening_balance != null ? Number(r.opening_balance) : null,
+    closingBalance:   r.closing_balance != null ? Number(r.closing_balance) : null,
+    uploadedAt:       s(r.uploaded_at),
+    uploadedBy:       s(r.uploaded_by),
+    status:           s(r.status) as DocumentStatus,
+    errorMessage:     sn(r.error_message),
+    transactionCount: Number(r.transaction_count),
+    parserConfidence: sn(r.parser_confidence) as FinancialDocument["parserConfidence"],
+    extractionNotes:  sn(r.extraction_notes),
+    blobUrl:          sn(r.blob_url),
+  };
+}
+
+function rowToTransaction(r: Row): BankTransaction {
+  return {
+    id:                        s(r.id),
+    documentId:                s(r.document_id),
+    bank:                      s(r.bank),
+    accountName:               s(r.account_name),
+    entity:                    s(r.entity) as EntityLayer,
+    transactionDate:           s(r.transaction_date),
+    descriptionOriginal:       s(r.description_original),
+    amount:                    Number(r.amount),
+    direction:                 s(r.direction) as "credit" | "debit",
+    runningBalance:            r.running_balance != null ? Number(r.running_balance) : null,
+    counterpartyName:          sn(r.counterparty_name),
+    managerialCategory:        s(r.managerial_category) as ManagerialCategory,
+    classificationConfidence:  s(r.classification_confidence) as ClassificationConfidence,
+    classificationNote:        sn(r.classification_note),
+    isIntercompany:            Boolean(r.is_intercompany),
+    intercompanyMatchId:       sn(r.intercompany_match_id),
+    excludedFromConsolidated:  Boolean(r.excluded_from_consolidated),
+    extractedAt:               s(r.extracted_at),
+    classifiedAt:              sn(r.classified_at),
+  };
+}
+
 // ─── Documents CRUD ───────────────────────────────────────────────────────────
 
-export function getAllDocuments(): FinancialDocument[] {
-  return readJSON<FinancialDocument[]>(DOCS_FILE, []);
+export async function getAllDocuments(): Promise<FinancialDocument[]> {
+  if (USE_DB && sql) {
+    const rows = await sql`SELECT * FROM financial_documents ORDER BY uploaded_at DESC`;
+    return rows.map(rowToDocument);
+  }
+  return readJSON<FinancialDocument[]>(DOCS_FILE, []).map((d) => ({
+    ...d,
+    blobUrl: (d as FinancialDocument & { blobUrl?: string | null }).blobUrl ?? null,
+  }));
 }
 
-export function getDocument(id: string): FinancialDocument | null {
-  return getAllDocuments().find((d) => d.id === id) ?? null;
+export async function getDocument(id: string): Promise<FinancialDocument | null> {
+  if (USE_DB && sql) {
+    const rows = await sql`SELECT * FROM financial_documents WHERE id = ${id} LIMIT 1`;
+    return rows.length > 0 ? rowToDocument(rows[0]) : null;
+  }
+  const docs = readJSON<FinancialDocument[]>(DOCS_FILE, []);
+  const doc = docs.find((d) => d.id === id);
+  return doc ? { ...doc, blobUrl: doc.blobUrl ?? null } : null;
 }
 
-export function saveDocument(doc: FinancialDocument): void {
-  const all = getAllDocuments();
+export async function saveDocument(doc: FinancialDocument): Promise<void> {
+  if (USE_DB && sql) {
+    await sql`
+      INSERT INTO financial_documents (
+        id, filename, file_hash, bank, account_name, account_number,
+        entity, period_start, period_end, opening_balance, closing_balance,
+        uploaded_at, uploaded_by, status, error_message, transaction_count,
+        parser_confidence, extraction_notes, blob_url
+      ) VALUES (
+        ${doc.id}, ${doc.filename}, ${doc.fileHash}, ${doc.bank},
+        ${doc.accountName}, ${doc.accountNumber},
+        ${doc.entity}, ${doc.periodStart}, ${doc.periodEnd},
+        ${doc.openingBalance}, ${doc.closingBalance},
+        ${doc.uploadedAt}, ${doc.uploadedBy}, ${doc.status},
+        ${doc.errorMessage}, ${doc.transactionCount},
+        ${doc.parserConfidence}, ${doc.extractionNotes}, ${doc.blobUrl}
+      )
+      ON CONFLICT (id) DO UPDATE SET
+        filename           = EXCLUDED.filename,
+        bank               = EXCLUDED.bank,
+        account_name       = EXCLUDED.account_name,
+        account_number     = EXCLUDED.account_number,
+        entity             = EXCLUDED.entity,
+        period_start       = EXCLUDED.period_start,
+        period_end         = EXCLUDED.period_end,
+        opening_balance    = EXCLUDED.opening_balance,
+        closing_balance    = EXCLUDED.closing_balance,
+        status             = EXCLUDED.status,
+        error_message      = EXCLUDED.error_message,
+        transaction_count  = EXCLUDED.transaction_count,
+        parser_confidence  = EXCLUDED.parser_confidence,
+        extraction_notes   = EXCLUDED.extraction_notes,
+        blob_url           = EXCLUDED.blob_url
+    `;
+    return;
+  }
+  const all = readJSON<FinancialDocument[]>(DOCS_FILE, []);
   const idx = all.findIndex((d) => d.id === doc.id);
   if (idx >= 0) {
     all[idx] = doc;
@@ -185,49 +283,128 @@ export function saveDocument(doc: FinancialDocument): void {
   writeJSON(DOCS_FILE, all);
 }
 
-export function updateDocumentStatus(
+export async function updateDocumentStatus(
   id: string,
   status: DocumentStatus,
   patch?: Partial<FinancialDocument>
-): void {
-  const all = getAllDocuments();
+): Promise<void> {
+  if (USE_DB && sql) {
+    const p = patch ?? {};
+    await sql`
+      UPDATE financial_documents SET
+        status             = ${status},
+        error_message      = COALESCE(${p.errorMessage ?? null}, error_message),
+        period_start       = COALESCE(${p.periodStart ?? null}, period_start),
+        period_end         = COALESCE(${p.periodEnd ?? null}, period_end),
+        opening_balance    = COALESCE(${p.openingBalance ?? null}, opening_balance),
+        closing_balance    = COALESCE(${p.closingBalance ?? null}, closing_balance),
+        account_number     = COALESCE(${p.accountNumber ?? null}, account_number),
+        parser_confidence  = COALESCE(${p.parserConfidence ?? null}, parser_confidence),
+        extraction_notes   = COALESCE(${p.extractionNotes ?? null}, extraction_notes),
+        transaction_count  = COALESCE(${p.transactionCount ?? null}, transaction_count),
+        blob_url           = COALESCE(${p.blobUrl ?? null}, blob_url)
+      WHERE id = ${id}
+    `;
+    return;
+  }
+  const all = readJSON<FinancialDocument[]>(DOCS_FILE, []);
   const idx = all.findIndex((d) => d.id === id);
   if (idx < 0) return;
   all[idx] = { ...all[idx], status, ...(patch ?? {}) };
   writeJSON(DOCS_FILE, all);
 }
 
-export function findDuplicateDocument(fileHash: string): FinancialDocument | null {
-  return getAllDocuments().find((d) => d.fileHash === fileHash) ?? null;
+export async function findDuplicateDocument(fileHash: string): Promise<FinancialDocument | null> {
+  if (USE_DB && sql) {
+    const rows = await sql`SELECT * FROM financial_documents WHERE file_hash = ${fileHash} LIMIT 1`;
+    return rows.length > 0 ? rowToDocument(rows[0]) : null;
+  }
+  const docs = readJSON<FinancialDocument[]>(DOCS_FILE, []);
+  const doc = docs.find((d) => d.fileHash === fileHash);
+  return doc ? { ...doc, blobUrl: doc.blobUrl ?? null } : null;
 }
 
 // ─── Transactions CRUD ────────────────────────────────────────────────────────
 
-export function getAllTransactions(): BankTransaction[] {
+export async function getAllTransactions(): Promise<BankTransaction[]> {
+  if (USE_DB && sql) {
+    const rows = await sql`SELECT * FROM bank_transactions ORDER BY transaction_date DESC`;
+    return rows.map(rowToTransaction);
+  }
   return readJSON<BankTransaction[]>(TXN_FILE, []);
 }
 
-export function getTransactionsByDocument(documentId: string): BankTransaction[] {
-  return getAllTransactions().filter((t) => t.documentId === documentId);
+export async function getTransactionsByDocument(documentId: string): Promise<BankTransaction[]> {
+  if (USE_DB && sql) {
+    const rows = await sql`SELECT * FROM bank_transactions WHERE document_id = ${documentId} ORDER BY transaction_date DESC`;
+    return rows.map(rowToTransaction);
+  }
+  return (await getAllTransactions()).filter((t) => t.documentId === documentId);
 }
 
-export function getTransactionsByEntity(entity: EntityLayer): BankTransaction[] {
-  return getAllTransactions().filter((t) => t.entity === entity);
+export async function getTransactionsByEntity(entity: EntityLayer): Promise<BankTransaction[]> {
+  if (USE_DB && sql) {
+    const rows = await sql`SELECT * FROM bank_transactions WHERE entity = ${entity} ORDER BY transaction_date DESC`;
+    return rows.map(rowToTransaction);
+  }
+  return (await getAllTransactions()).filter((t) => t.entity === entity);
 }
 
-export function saveTransactions(transactions: BankTransaction[]): void {
-  const all = getAllTransactions();
+export async function saveTransactions(transactions: BankTransaction[]): Promise<void> {
+  if (USE_DB && sql) {
+    if (transactions.length === 0) return;
+    const docIds = Array.from(new Set(transactions.map((t) => t.documentId)));
+    for (const docId of docIds) {
+      await sql`DELETE FROM bank_transactions WHERE document_id = ${docId}`;
+    }
+    for (const t of transactions) {
+      await sql`
+        INSERT INTO bank_transactions (
+          id, document_id, bank, account_name, entity, transaction_date,
+          description_original, amount, direction, running_balance,
+          counterparty_name, managerial_category, classification_confidence,
+          classification_note, is_intercompany, intercompany_match_id,
+          excluded_from_consolidated, extracted_at, classified_at
+        ) VALUES (
+          ${t.id}, ${t.documentId}, ${t.bank}, ${t.accountName}, ${t.entity},
+          ${t.transactionDate}, ${t.descriptionOriginal}, ${t.amount},
+          ${t.direction}, ${t.runningBalance}, ${t.counterpartyName},
+          ${t.managerialCategory}, ${t.classificationConfidence},
+          ${t.classificationNote}, ${t.isIntercompany}, ${t.intercompanyMatchId},
+          ${t.excludedFromConsolidated}, ${t.extractedAt}, ${t.classifiedAt}
+        )
+      `;
+    }
+    return;
+  }
+  const all = readJSON<BankTransaction[]>(TXN_FILE, []);
   // Replace existing transactions for these documentIds, then prepend new ones
   const docIds = new Set(transactions.map((t) => t.documentId));
   const kept = all.filter((t) => !docIds.has(t.documentId));
   writeJSON(TXN_FILE, [...transactions, ...kept]);
 }
 
-export function updateTransaction(
+export async function updateTransaction(
   id: string,
   patch: Partial<BankTransaction>
-): void {
-  const all = getAllTransactions();
+): Promise<void> {
+  if (USE_DB && sql) {
+    const p = patch;
+    await sql`
+      UPDATE bank_transactions SET
+        managerial_category        = COALESCE(${p.managerialCategory ?? null}, managerial_category),
+        classification_confidence  = COALESCE(${p.classificationConfidence ?? null}, classification_confidence),
+        classification_note        = COALESCE(${p.classificationNote ?? null}, classification_note),
+        counterparty_name          = COALESCE(${p.counterpartyName ?? null}, counterparty_name),
+        is_intercompany            = COALESCE(${p.isIntercompany ?? null}, is_intercompany),
+        intercompany_match_id      = COALESCE(${p.intercompanyMatchId ?? null}, intercompany_match_id),
+        excluded_from_consolidated = COALESCE(${p.excludedFromConsolidated ?? null}, excluded_from_consolidated),
+        classified_at              = COALESCE(${p.classifiedAt ?? null}, classified_at)
+      WHERE id = ${id}
+    `;
+    return;
+  }
+  const all = readJSON<BankTransaction[]>(TXN_FILE, []);
   const idx = all.findIndex((t) => t.id === id);
   if (idx < 0) return;
   all[idx] = { ...all[idx], ...patch };
@@ -252,9 +429,9 @@ export interface ConsolidatedCashPosition {
   operationalNetCash: number;      // credits - debits, excluding intercompany AND investment
 }
 
-export function getCashPositionByEntity(): ConsolidatedCashPosition[] {
-  const docs = getAllDocuments().filter((d) => d.status === "done");
-  const txns = getAllTransactions();
+export async function getCashPositionByEntity(): Promise<ConsolidatedCashPosition[]> {
+  const docs = (await getAllDocuments()).filter((d) => d.status === "done");
+  const txns = await getAllTransactions();
 
   const entityMap = new Map<string, ConsolidatedCashPosition>();
 

@@ -1,10 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getAllDocuments } from "@/lib/financial-db";
 
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { entity, bank, status } = req.query;
 
-  let docs = getAllDocuments();
+  let docs = await getAllDocuments();
 
   if (entity) docs = docs.filter((d) => d.entity === (entity as string));
   if (bank)   docs = docs.filter((d) => d.bank   === (bank   as string));

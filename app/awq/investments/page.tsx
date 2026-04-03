@@ -233,7 +233,7 @@ function EntityCard({ s }: { s: EntityInvestmentSummary }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function AwqInvestmentsPage() {
-  const q = buildInvestmentQuery();
+  const q = await buildInvestmentQuery();
 
   const periodLabel = q.periodStart && q.periodEnd
     ? `${fmtDate(q.periodStart)} – ${fmtDate(q.periodEnd)}`

@@ -84,12 +84,12 @@ export default async function ManagementPage() {
   // Environment detection — baked in at build time by the GitHub Pages workflow
   const isStaticEnv = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 
-  const diag   = getManagementDiagnostics();
+  const diag   = await getManagementDiagnostics();
   const snap   = getSnapshotMigrationStatus();
   const awqRoutes = PLATFORM_ROUTES.filter((r) => r.bu === "awq" && r.status === "active");
 
   // Bank registry coverage
-  const doneDocs = getAllDocuments().filter((d) => d.status === "done");
+  const doneDocs = (await getAllDocuments()).filter((d) => d.status === "done");
   const accountCoverage = buildAccountCoverageReport(doneDocs);
 
   // Categorise pages by data regime

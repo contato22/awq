@@ -150,8 +150,8 @@ function RiskCard({ risk }: { risk: RiskCategory }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function AwqRiskPage() {
-  const kpis     = getAWQGroupKPIs();
-  const entities = getEntityCashMetrics();
+  const kpis     = await getAWQGroupKPIs();
+  const entities = await getEntityCashMetrics();
 
   // Risk score derived from severity counts (simple weighted formula)
   const riskScore = ((highCount * 3 + mediumCount * 2 + lowCount * 1) /

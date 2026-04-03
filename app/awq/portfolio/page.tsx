@@ -27,7 +27,7 @@ function fmtR(n: number) {
 }
 
 export default async function AwqPortfolioPage() {
-  const pm  = getPortfolioMetrics();
+  const pm  = await getPortfolioMetrics();
   const totalCap      = pm.totalCapitalAllocated.value;
   const totalNetIncome = pm.totalNetIncome.value;
 

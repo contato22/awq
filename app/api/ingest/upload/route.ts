@@ -3,8 +3,8 @@
 // Receives a PDF bank statement via multipart/form-data and:
 //   1. Validates the file (type, size)
 //   2. Computes SHA-256 hash for deduplication
-//   3. Saves document metadata to financial-db
-//   4. Stores the PDF to public/data/financial/pdfs/
+//   3. Saves document metadata to financial-db (Neon or filesystem)
+//   4. Stores the PDF: Vercel Blob (BLOB_READ_WRITE_TOKEN set) or local filesystem
 //   5. Returns the document ID for subsequent processing
 //
 // FIELDS (form-data):
@@ -16,16 +16,6 @@
 // AUTHENTICATION:
 //   Middleware (middleware.ts) enforces JWT presence for all non-auth routes.
 //   This route uses getToken() to extract the user email from the JWT for audit trail.
-//   getServerSession() is intentionally NOT used here: in Next.js 14 App Router,
-//   getServerSession() called without authOptions returns null. getToken() is correct.
-//
-// STORAGE NOTE:
-//   PDFs are stored to public/data/financial/pdfs/ on the local filesystem.
-//   This works correctly in local development and single-instance deploys.
-//   On Vercel (serverless): filesystem is ephemeral — PDFs survive within a single
-//   function invocation but are lost after cold restarts. For production persistence,
-//   migrate PDF storage to Vercel Blob or S3. Document metadata (documents.json)
-//   has the same ephemeral limitation on Vercel.
 
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
@@ -38,6 +28,7 @@ import {
   findDuplicateDocument,
 } from "@/lib/financial-db";
 import { inferEntityFromAccount } from "@/lib/financial-classifier";
+import { USE_BLOB, initDB } from "@/lib/db";
 import type { BankName, EntityLayer, FinancialDocument } from "@/lib/financial-db";
 
 export const runtime = "nodejs";
@@ -52,6 +43,9 @@ function ensurePDFDir() {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  // ── Ensure DB schema exists (idempotent) ──
+  await initDB();
+
   // ── Auth: extract user email from JWT (correct for App Router) ──
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   const userEmail = (token?.email as string | undefined) ?? "anonymous";
@@ -101,7 +95,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const fileHash = hashBuffer(buffer);
 
   // ── Deduplication ──
-  const existing = findDuplicateDocument(fileHash);
+  const existing = await findDuplicateDocument(fileHash);
   if (existing) {
     return NextResponse.json(
       {
@@ -119,11 +113,25 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     ? (entityOverride as EntityLayer)
     : inferEntityFromAccount(bank, accountName);
 
-  // ── Save PDF to disk ──
   const docId = newId();
   const safeFilename = `${docId}_${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-  ensurePDFDir();
-  fs.writeFileSync(path.join(PDF_DIR, safeFilename), buffer);
+
+  // ── Store PDF: Vercel Blob or filesystem ──
+  let blobUrl: string | null = null;
+
+  if (USE_BLOB) {
+    // Vercel Blob — persistent across deployments
+    const { put } = await import("@vercel/blob");
+    const result = await put(`financial-pdfs/${safeFilename}`, buffer, {
+      access: "private",
+      contentType: "application/pdf",
+    });
+    blobUrl = result.url;
+  } else {
+    // Local filesystem (development or single-instance deploy)
+    ensurePDFDir();
+    fs.writeFileSync(path.join(PDF_DIR, safeFilename), buffer);
+  }
 
   // ── Save document record ──
   const doc: FinancialDocument = {
@@ -145,8 +153,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     transactionCount: 0,
     parserConfidence: null,
     extractionNotes: null,
+    blobUrl,
   };
-  saveDocument(doc);
+  await saveDocument(doc);
 
   return NextResponse.json({ documentId: docId, document: doc }, { status: 201 });
 }

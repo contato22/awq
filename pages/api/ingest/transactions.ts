@@ -1,10 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getAllTransactions, getCashPositionByEntity } from "@/lib/financial-db";
 
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { documentId, entity, category, confidence, excludeIntercompany, consolidatedOnly } = req.query;
 
-  let txns = getAllTransactions();
+  let txns = await getAllTransactions();
 
   if (documentId)                          txns = txns.filter((t) => t.documentId            === (documentId as string));
   if (entity)                              txns = txns.filter((t) => t.entity                === (entity     as string));
@@ -17,7 +17,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
   txns = txns.sort((a, b) => b.transactionDate.localeCompare(a.transactionDate));
 
   if (consolidatedOnly === "true") {
-    const positions = getCashPositionByEntity();
+    const positions = await getCashPositionByEntity();
     return res.json({ transactions: txns, total: txns.length, cashPositions: positions });
   }
 

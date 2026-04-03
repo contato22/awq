@@ -205,10 +205,10 @@ function maxDate(a: string | null, b: string | null): string | null {
 
 // ─── Main export ──────────────────────────────────────────────────────────────
 
-export function buildInvestmentQuery(): InvestmentQueryResult {
-  const allDocs  = getAllDocuments();
+export async function buildInvestmentQuery(): Promise<InvestmentQueryResult> {
+  const allDocs  = await getAllDocuments();
   const doneDocs = allDocs.filter((d) => d.status === "done");
-  const allTxns  = getAllTransactions();
+  const allTxns  = await getAllTransactions();
 
   // Compute operational reference for separation display
   // (lightweight — avoid importing buildFinancialQuery to prevent circular deps)

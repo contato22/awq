@@ -400,10 +400,10 @@ function buildEntitySummary(entity: EntityLayer, accounts: CashAccount[]): Entit
 
 // ─── Main export ──────────────────────────────────────────────────────────────
 
-export function buildFinancialQuery(): FinancialQueryResult {
-  const allDocs  = getAllDocuments();
+export async function buildFinancialQuery(): Promise<FinancialQueryResult> {
+  const allDocs  = await getAllDocuments();
   const doneDocs = allDocs.filter((d) => d.status === "done");
-  const allTxns  = getAllTransactions();
+  const allTxns  = await getAllTransactions();
 
   const empty: FinancialQueryResult = {
     hasData: false,

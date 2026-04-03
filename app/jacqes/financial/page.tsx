@@ -91,7 +91,7 @@ function varIcon(v: number) {
 
 export default async function JacqesFinancialPage() {
   // Real banking data — JACQES entity
-  const q         = buildFinancialQuery();
+  const q         = await buildFinancialQuery();
   const jacqes    = q.entities.find((e) => e.entity === "JACQES");
   const hasJacqes = q.hasData && !!jacqes;
 

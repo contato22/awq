@@ -151,7 +151,7 @@ function EntityCashCard({ e }: { e: EntitySummary }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function AwqGroupPage() {
-  const q = buildFinancialQuery();
+  const q = await buildFinancialQuery();
   const highRisks   = riskSignals.filter((r) => r.severity === "high").length;
   const mediumRisks = riskSignals.filter((r) => r.severity === "medium").length;
 

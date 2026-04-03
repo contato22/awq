@@ -41,8 +41,8 @@ import { buData, operatingBus } from "@/lib/awq-derived-metrics";
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function AwqKpisPage() {
-  const kpis    = getAWQGroupKPIs();
-  const entities = getEntityCashMetrics();
+  const kpis    = await getAWQGroupKPIs();
+  const entities = await getEntityCashMetrics();
 
   // ── Top 4 KPI cards ─────────────────────────────────────────────────────────
   const topCards = [
