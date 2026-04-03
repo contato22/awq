@@ -34,9 +34,21 @@ function varPct(actual: number, budget: number) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AwqBudgetPage() {
-  const totalBudget   = consolidated.budgetRevenue;
-  const totalActual   = consolidated.revenue;
-  const var_           = budgetVsActual;
+  const totalBudget = consolidated.budgetRevenue;
+  const totalActual = consolidated.revenue;
+  const var_        = budgetVsActual;
+
+  // ── Derived from canonical BUDGET_LINES — no hardcoded strings ───────────────
+  const revLine        = BUDGET_LINES.find((l) => l.line === "Receita")!;
+  const busAboveBudget = operatingBus.filter((bu) => bu.revenue > bu.budgetRevenue).length;
+  const jacquesVar     = varPct(revLine.jacquesActual, revLine.jacquesBudg);
+  const cazaVar        = varPct(revLine.cazaActual, revLine.cazaBudg);
+  const advisorVar     = varPct(revLine.advisorActual, revLine.advisorBudg);
+  const buAboveDelta   = [
+    jacquesVar >= 0 ? `JACQES +${jacquesVar.toFixed(1)}%` : `JACQES ${jacquesVar.toFixed(1)}%`,
+    cazaVar    >= 0 ? `Caza +${cazaVar.toFixed(1)}%`      : `Caza ${cazaVar.toFixed(1)}%`,
+    advisorVar >= 0 ? `Advisor +${advisorVar.toFixed(1)}%` : `Advisor ${advisorVar.toFixed(1)}%`,
+  ].join("  ");
 
   return (
     <>
@@ -90,10 +102,10 @@ export default function AwqBudgetPage() {
             },
             {
               label: "BUs acima do Budget",
-              value: "3 / 3",
-              sub:   "Todas operacionais",
-              delta: "JACQES +8.6%  Caza +12.6%",
-              up:    true,
+              value: `${busAboveBudget} / ${operatingBus.length}`,
+              sub:   "BUs operacionais",
+              delta: buAboveDelta,
+              up:    busAboveBudget > 0,
               icon:  CheckCircle2,
               color: "text-violet-700",
               bg:    "bg-violet-50",

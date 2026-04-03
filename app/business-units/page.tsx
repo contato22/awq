@@ -173,6 +173,7 @@ export default async function BusinessUnitsPage() {
                     </div>
                   ))}
                 </div>
+                <div className="text-[9px] text-amber-500 font-semibold tracking-wide">⚠ snapshot accrual</div>
 
                 {/* CTA */}
                 <div className="flex items-center justify-between pt-1">

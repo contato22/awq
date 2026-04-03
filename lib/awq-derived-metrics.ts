@@ -40,6 +40,7 @@ export {
   monthlyRevenue,
   // Risk
   riskSignals,
+  riskCategories,
   // Allocation
   allocFlags,
   flagConfig,
@@ -56,6 +57,8 @@ export {
   type BuData,
   type MonthlyPoint,
   type RiskSignal,
+  type RiskCategory,
+  type RiskCategoryDetail,
   type AllocFlag,
   type ForecastPoint,
   type CashFlowRow,
