@@ -235,23 +235,39 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 function SidebarFooter() {
+    const { data: session } = useSession();
+    const user = session?.user as { name?: string; email?: string; role?: string } | undefined;
+    const name = user?.name ?? user?.email ?? "Usuário";
+    const initials = name
+        .split(" ")
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((w) => w[0])
+        .join("")
+        .toUpperCase() || "?";
+    const role = user?.role;
+    const roleLabel = ROLE_LABELS[role ?? ""] ?? role ?? "—";
+
     return (
         <div className="px-4 py-4 border-t border-gray-100">
             <div className="flex items-center gap-3 px-1">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-awq-gold to-amber-600 flex items-center justify-center text-xs font-bold text-gray-900 shrink-0">
-                    AD
+                    {initials}
                 </div>
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-gray-800 truncate">Admin</span>
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-200">
-                            ADMIN
-                        </span>
+                        <span className="text-sm font-semibold text-gray-800 truncate">{name}</span>
+                        {role && (
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-200">
+                                {roleLabel.toUpperCase()}
+                            </span>
+                        )}
                     </div>
-                    <div className="text-[10px] text-gray-400 truncate">Administrador</div>
+                    <div className="text-[10px] text-gray-400 truncate">{user?.email ?? "—"}</div>
                 </div>
                 <button
-                    className="p-1.5 text-gray-400 hover:text-gray-400 hover:bg-gray-100 rounded-lg transition-colors"
+                    onClick={() => void signOut({ callbackUrl: "/login" })}
+                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                     title="Sair"
                 >
                     <LogOut size={14} />
