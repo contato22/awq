@@ -50,7 +50,24 @@ function writeJSON(file: string, data: unknown): void {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type BankName = "Cora" | "Itaú" | "Outro";
+// Digital / fintech banks
+// Traditional banks
+export type BankName =
+  | "Cora"
+  | "Nubank"
+  | "Inter"
+  | "C6 Bank"
+  | "PagBank"
+  | "BTG Empresas"
+  | "XP"
+  | "Mercado Pago"
+  | "Itaú"
+  | "Bradesco"
+  | "Banco do Brasil"
+  | "Santander"
+  | "Sicoob"
+  | "Sicredi"
+  | "Outro";
 export type EntityLayer =
   | "AWQ_Holding"
   | "JACQES"

@@ -12,7 +12,10 @@ import {
 
 // ─── Types (client-safe — mirrors lib/financial-db without fs imports) ────────
 
-type BankName = "Cora" | "Itaú" | "Outro";
+type BankName =
+  | "Cora" | "Nubank" | "Inter" | "C6 Bank" | "PagBank" | "BTG Empresas" | "XP" | "Mercado Pago"
+  | "Itaú" | "Bradesco" | "Banco do Brasil" | "Santander" | "Sicoob" | "Sicredi"
+  | "Outro";
 type EntityLayer = "AWQ_Holding" | "JACQES" | "Caza_Vision" | "Intercompany" | "Socio_PF" | "Unknown";
 type DocumentStatus = "received" | "extracting" | "classifying" | "reconciling" | "done" | "error";
 
@@ -76,7 +79,20 @@ interface PipelineEvent {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const BANK_OPTIONS: BankName[] = ["Cora", "Itaú", "Outro"];
+const BANK_GROUPS: { label: string; banks: BankName[] }[] = [
+  {
+    label: "Digital / Fintech",
+    banks: ["Cora", "Nubank", "Inter", "C6 Bank", "PagBank", "BTG Empresas", "XP", "Mercado Pago"],
+  },
+  {
+    label: "Tradicional",
+    banks: ["Itaú", "Bradesco", "Banco do Brasil", "Santander", "Sicoob", "Sicredi"],
+  },
+  {
+    label: "Outro",
+    banks: ["Outro"],
+  },
+];
 
 const ENTITY_OPTIONS: { value: EntityLayer; label: string }[] = [
   { value: "AWQ_Holding", label: "AWQ Holding" },
@@ -420,7 +436,11 @@ export default function IngestPage() {
                   onChange={(e) => setBank(e.target.value as BankName)}
                   className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none focus:border-brand-500"
                 >
-                  {BANK_OPTIONS.map((b) => <option key={b} value={b}>{b}</option>)}
+                  {BANK_GROUPS.map((group) => (
+                    <optgroup key={group.label} label={group.label}>
+                      {group.banks.map((b) => <option key={b} value={b}>{b}</option>)}
+                    </optgroup>
+                  ))}
                 </select>
               </div>
               <div>

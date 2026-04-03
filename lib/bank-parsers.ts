@@ -140,6 +140,84 @@ function parseItau(text: string): ParsedTransaction[] {
   return transactions;
 }
 
+// ─── Nubank parser ────────────────────────────────────────────────────────────
+//
+// Nubank extrato PJ typical text pattern:
+//   01/03/2026  Pix enviado - João Silva              -R$ 500,00
+//   01/03/2026  Recebimento Pix - Maria Santos        +R$ 1.200,00
+//   01/03/2026  Compra no débito - Mercado Livre       -R$ 89,90
+//
+// Values are prefixed with R$ and a sign.
+
+function parseNubank(text: string): ParsedTransaction[] {
+  const transactions: ParsedTransaction[] = [];
+
+  // Pattern: date | description | R$ amount (with sign)
+  const lineRe =
+    /(\d{2}\/\d{2}\/\d{2,4})\s+(.+?)\s{2,}([+-])?R\$\s*([\d.,]+)/gm;
+
+  for (const m of Array.from(text.matchAll(lineRe))) {
+    const [, dateRaw, descRaw, signRaw, amountRaw] = m;
+    const date = parseBRDate(dateRaw.trim());
+    const desc = descRaw.trim().replace(/\s+/g, " ");
+    const absAmount = parseBRL(amountRaw);
+    if (absAmount === 0) continue;
+
+    const isDebit = signRaw === "-";
+    const amount = isDebit ? -absAmount : absAmount;
+    const direction: "credit" | "debit" = isDebit ? "debit" : "credit";
+
+    transactions.push({
+      transactionDate: date,
+      descriptionOriginal: desc,
+      amount,
+      direction,
+      runningBalance: null,
+      extractionNote: null,
+    });
+  }
+
+  return transactions;
+}
+
+// ─── Inter parser ─────────────────────────────────────────────────────────────
+//
+// Banco Inter extrato PJ typical text pattern:
+//   01/03/2026  PIX - João Silva                     500,00 D
+//   01/03/2026  PIX - Maria Santos                  1.200,00 C
+//   01/03/2026  Tarifa de manutenção                   15,90 D
+//
+// D/C suffix (same as Itaú) but without document number column.
+
+function parseInter(text: string): ParsedTransaction[] {
+  const transactions: ParsedTransaction[] = [];
+
+  const lineRe =
+    /(\d{2}\/\d{2}\/\d{2,4})\s+(.+?)\s{2,}(\d[\d.,]*)\s*([DC])/gm;
+
+  for (const m of Array.from(text.matchAll(lineRe))) {
+    const [, dateRaw, descRaw, amountRaw, dcFlag] = m;
+    const date = parseBRDate(dateRaw.trim());
+    const desc = descRaw.trim().replace(/\s+/g, " ");
+    const absAmount = parseBRL(amountRaw);
+    if (absAmount === 0) continue;
+
+    const direction: "credit" | "debit" = dcFlag === "C" ? "credit" : "debit";
+    const amount = direction === "debit" ? -absAmount : absAmount;
+
+    transactions.push({
+      transactionDate: date,
+      descriptionOriginal: desc,
+      amount,
+      direction,
+      runningBalance: null,
+      extractionNote: null,
+    });
+  }
+
+  return transactions;
+}
+
 // ─── Generic fallback parser ──────────────────────────────────────────────────
 //
 // Tries to extract any line that has a date-like prefix and at least one amount.
@@ -249,21 +327,40 @@ async function parseWithRules(
     };
   }
 
-  // Select parser by bank hint
+  // Select parser by bank hint — most specific first, generic last
   let transactions: ParsedTransaction[];
   const bankLower = bankHint.toLowerCase();
+
   if (bankLower.includes("cora")) {
     transactions = parseCora(text);
-  } else if (bankLower.includes("itaú") || bankLower.includes("itau")) {
+  } else if (bankLower.includes("nubank")) {
+    transactions = parseNubank(text);
+    if (transactions.length === 0) transactions = parseCora(text); // Nubank layout varies by export
+  } else if (bankLower.includes("inter")) {
+    transactions = parseInter(text);
+    if (transactions.length === 0) transactions = parseItau(text);  // similar D/C format
+  } else if (
+    bankLower.includes("itaú") || bankLower.includes("itau") ||
+    bankLower.includes("bradesco") || bankLower.includes("santander") ||
+    bankLower.includes("sicoob") || bankLower.includes("sicredi") ||
+    bankLower.includes("banco do brasil") || bankLower.includes("bb")
+  ) {
+    // Traditional banks share the D/C column convention
     transactions = parseItau(text);
+  } else if (
+    bankLower.includes("c6") || bankLower.includes("pagbank") ||
+    bankLower.includes("pag bank") || bankLower.includes("btg") ||
+    bankLower.includes("xp") || bankLower.includes("mercado pago")
+  ) {
+    // Digital banks tend to use signed values like Nubank
+    transactions = parseNubank(text);
+    if (transactions.length === 0) transactions = parseCora(text);
   } else {
-    transactions = parseCora(text); // try Cora first
-    if (transactions.length === 0) {
-      transactions = parseItau(text);
-    }
-    if (transactions.length === 0) {
-      transactions = parseGeneric(text);
-    }
+    // Unknown bank — try all parsers in order of specificity
+    transactions = parseCora(text);
+    if (transactions.length === 0) transactions = parseNubank(text);
+    if (transactions.length === 0) transactions = parseItau(text);
+    if (transactions.length === 0) transactions = parseGeneric(text);
   }
 
   const { periodStart, periodEnd } = extractPeriod(text);
@@ -309,10 +406,22 @@ async function parseWithClaude(
   const client = new Anthropic({ apiKey });
 
   const bankHints: Record<string, string> = {
-    Cora: "Extrato Banco Cora (fintech PME). Colunas: Data | Descrição | Valor | Saldo. Débitos negativos ou marcados como Saída.",
-    Itaú: "Extrato Banco Itaú PJ. Colunas: Data | Histórico | Doc | Valor D/C | Saldo. D=Débito C=Crédito.",
+    Cora:            "Extrato Banco Cora (fintech PME). Colunas: Data | Descrição | Valor | Saldo. Débitos negativos ou com sinal '-'; créditos positivos ou '+'. Formato de data DD/MM/YYYY.",
+    Nubank:          "Extrato Nubank PJ. Valores prefixados por R$ com sinal: -R$ para débito, +R$ para crédito. Sem coluna de saldo em alguns formatos. Data DD/MM/YYYY.",
+    Inter:           "Extrato Banco Inter PJ. Colunas: Data | Descrição | Valor | D/C onde D=Débito e C=Crédito. Sem número de documento. Data DD/MM/YYYY.",
+    "C6 Bank":       "Extrato C6 Bank PJ. Similar ao Nubank: valores com sinal +/- e prefixo R$. Data DD/MM/YYYY.",
+    PagBank:         "Extrato PagBank (PagSeguro) PJ. Valores com sinal, descrições incluem Pix, TED, Boleto. Data DD/MM/YYYY.",
+    "BTG Empresas":  "Extrato BTG Empresas. Colunas: Data | Descrição | Valor | Saldo. Valores negativos para débito. Data DD/MM/YYYY.",
+    XP:              "Extrato XP Investimentos conta corrente. Valores com sinal. Data DD/MM/YYYY.",
+    "Mercado Pago":  "Extrato Mercado Pago. Débitos e créditos com sinal, descrições incluem Pix, pagamentos e recebimentos. Data DD/MM/YYYY.",
+    Itaú:            "Extrato Banco Itaú PJ. Colunas: Data | Histórico | Documento | Valor | D/C | Saldo. D=Débito C=Crédito. Data DD/MM/YY.",
+    Bradesco:        "Extrato Banco Bradesco PJ. Colunas: Data | Histórico | Documento | Débito | Crédito | Saldo. Colunas separadas para débito e crédito. Data DD/MM/YY.",
+    "Banco do Brasil": "Extrato Banco do Brasil PJ. Colunas: Data | Histórico | Documento | Valor | D/C | Saldo. D=Débito C=Crédito. Data DD/MM/YY.",
+    Santander:       "Extrato Santander PJ. Colunas: Data | Descrição | Documento | Débito | Crédito | Saldo. Data DD/MM/YYYY.",
+    Sicoob:          "Extrato Sicoob cooperativa. Colunas: Data | Histórico | Documento | Valor | D/C | Saldo. D=Débito C=Crédito. Data DD/MM/YYYY.",
+    Sicredi:         "Extrato Sicredi cooperativa. Similar ao Sicoob. Colunas: Data | Histórico | Valor | D/C | Saldo. Data DD/MM/YYYY.",
   };
-  const hint = bankHints[bankHint] ?? "Extrato bancário brasileiro.";
+  const hint = bankHints[bankHint] ?? "Extrato bancário brasileiro. Extraia data (YYYY-MM-DD), descrição original, valor (negativo=débito) e saldo quando disponível.";
 
   interface RawTxn { transaction_date?: string; description_original?: string; amount?: number; direction?: string; running_balance?: number | null; extraction_note?: string | null; }
   interface RawResp { bank?: string; account_number?: string | null; period_from?: string | null; period_to?: string | null; opening_balance?: number | null; closing_balance?: number | null; parser_confidence?: string; extraction_notes?: string; transactions?: RawTxn[]; }
