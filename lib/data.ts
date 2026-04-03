@@ -47,18 +47,6 @@ export interface TopProduct {
   status: "trending" | "stable" | "declining";
 }
 
-export interface CustomerRecord {
-  id: string;
-  name: string;
-  company: string;
-  email: string;
-  segment: "Enterprise" | "SMB" | "Startup";
-  ltv: number;
-  lastOrder: string;
-  status: "active" | "at-risk" | "churned";
-  country: string;
-}
-
 export interface RegionData {
   region: string;
   revenue: number;
@@ -202,12 +190,6 @@ export const topProducts: TopProduct[] = [
     status: "stable",
   },
 ];
-
-// ─── Customers — dead code (not consumed by UI) ───────────────────────────────
-// /jacqes/customers/page.tsx uses its own inline data (JC001–JC010).
-// Kept for interface compatibility only.
-
-export const customers: CustomerRecord[] = [];
 
 // ─── Regional Performance — distribuição geográfica Brasil ────────────────────
 
