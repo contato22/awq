@@ -12,6 +12,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { riskSignals, buData } from "@/lib/awq-group-data";
+import { buildFinancialQuery, fmtBRL, ENTITY_LABELS } from "@/lib/financial-query";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -142,10 +143,15 @@ const severityConfig = {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function AwqRiskPage() {
+export default async function AwqRiskPage() {
+  const q = buildFinancialQuery();
+  const c = q.consolidated;
   const highCount   = riskCategories.filter((r) => r.severity === "high").length;
   const mediumCount = riskCategories.filter((r) => r.severity === "medium").length;
   const lowCount    = riskCategories.filter((r) => r.severity === "low").length;
+  const operationalEntities = q.entities.filter((e) =>
+    ["AWQ_Holding", "JACQES", "Caza_Vision"].includes(e.entity)
+  );
 
   return (
     <>
@@ -238,6 +244,77 @@ export default function AwqRiskPage() {
               </div>
             );
           })}
+        </div>
+
+        {/* ── Cash Position Real ───────────────────────────────────────────── */}
+        <div className="card p-5">
+          <h2 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
+            Posição de Caixa Real por Entidade
+            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 border border-emerald-200">REAL</span>
+          </h2>
+          <p className="text-[11px] text-gray-400 mb-4">
+            FCO e caixa da base bancária ingerida — os sinais de risco qualitativos acima usam snapshot.
+          </p>
+          {!q.hasData ? (
+            <div className="text-xs text-amber-600 flex items-center gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200">
+              <AlertTriangle size={12} />
+              Aguardando extratos bancários —{" "}
+              <a href="/awq/ingest" className="underline">ingerir via /awq/ingest</a>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+              <div className="rounded-xl bg-gray-50 border border-gray-200 p-3">
+                <div className="text-[10px] font-semibold text-gray-400 uppercase mb-1.5">Consolidado AWQ</div>
+                <div className="space-y-1 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Entradas</span>
+                    <span className="text-emerald-600 font-semibold">{fmtBRL(c.totalRevenue)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Saídas</span>
+                    <span className="text-red-600">{fmtBRL(c.totalExpenses)}</span>
+                  </div>
+                  <div className="flex justify-between border-t border-gray-200 pt-1">
+                    <span className="font-semibold text-gray-700">FCO</span>
+                    <span className={`font-bold ${c.operationalNetCash >= 0 ? "text-gray-900" : "text-red-600"}`}>
+                      {fmtBRL(c.operationalNetCash)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Caixa</span>
+                    <span className="font-semibold text-brand-700">{fmtBRL(c.totalCashBalance)}</span>
+                  </div>
+                </div>
+              </div>
+              {operationalEntities.map((e) => (
+                <div key={e.entity} className="rounded-xl bg-gray-50 border border-gray-200 p-3">
+                  <div className="text-[10px] font-semibold text-gray-400 uppercase mb-1.5">
+                    {ENTITY_LABELS[e.entity]}
+                  </div>
+                  <div className="space-y-1 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Entradas</span>
+                      <span className="text-emerald-600 font-semibold">{fmtBRL(e.operationalRevenue)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Saídas</span>
+                      <span className="text-red-600">{fmtBRL(e.operationalExpenses)}</span>
+                    </div>
+                    <div className="flex justify-between border-t border-gray-200 pt-1">
+                      <span className="font-semibold text-gray-700">FCO</span>
+                      <span className={`font-bold ${e.operationalNetCash >= 0 ? "text-gray-900" : "text-red-600"}`}>
+                        {fmtBRL(e.operationalNetCash)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Caixa</span>
+                      <span className="font-semibold text-brand-700">{fmtBRL(e.totalCashBalance)}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* ── Risk Heatmap by BU ────────────────────────────────────────────── */}

@@ -21,8 +21,7 @@ import {
   type EntitySummary,
   type FinancialQueryResult,
 } from "@/lib/financial-query";
-import DataSourceBanner from "@/components/DataSourceBanner";
-import { getFinancialDataSource } from "@/lib/financial-data-bridge";
+// DataSourceBanner removed — page is fully on financial-query pipeline.
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -219,7 +218,6 @@ function RevenueByCounterparty({ q }: { q: FinancialQueryResult }) {
 
 export default async function AwqFinancialPage() {
   const q          = buildFinancialQuery();
-  const dataSource = getFinancialDataSource();
 
   const opEntities = q.entities.filter((e) =>
     ["AWQ_Holding", "JACQES", "Caza_Vision"].includes(e.entity)
@@ -237,7 +235,6 @@ export default async function AwqFinancialPage() {
       />
       <div className="page-container">
 
-        <DataSourceBanner data={dataSource} />
         <SnapshotNotice />
 
         {/* ── Consolidated summary cards ──────────────────────────────── */}

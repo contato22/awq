@@ -17,6 +17,7 @@ import {
   allocFlags,
   flagConfig,
 } from "@/lib/awq-group-data";
+import { buildFinancialQuery, fmtBRL, ENTITY_LABELS } from "@/lib/financial-query";
 
 function fmtR(n: number) {
   if (Math.abs(n) >= 1_000_000_000) return "R$" + (n / 1_000_000_000).toFixed(2) + "B";
@@ -25,10 +26,11 @@ function fmtR(n: number) {
   return "R$" + n.toLocaleString("pt-BR");
 }
 
-export default function AwqPortfolioPage() {
-  const totalCap = buData.reduce((s, b) => s + b.capitalAllocated, 0);
+export default async function AwqPortfolioPage() {
+  const q   = buildFinancialQuery();
+  const qc  = q.consolidated;
+  const totalCap      = buData.reduce((s, b) => s + b.capitalAllocated, 0);
   const totalNetIncome = buData.reduce((s, b) => s + b.netIncome, 0);
-  const totalCash = buData.reduce((s, b) => s + b.cashBalance, 0);
 
   return (
     <>
@@ -41,24 +43,29 @@ export default function AwqPortfolioPage() {
         {/* ── Group summary ──────────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: "BUs no Portfolio",   value: buData.length.toString(),         icon: Building2,  color: "text-brand-600",   bg: "bg-brand-50"   },
-            { label: "Capital Total",       value: fmtR(totalCap),                   icon: Wallet,     color: "text-amber-700",   bg: "bg-amber-50"   },
-            { label: "Lucro Líquido Total", value: fmtR(totalNetIncome),             icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
-            { label: "ROIC Consolidado",    value: `${consolidatedRoic.toFixed(1)}%`,icon: TrendingUp, color: "text-violet-700",  bg: "bg-violet-50"  },
+            { label: "BUs no Portfolio",        value: buData.length.toString(),             icon: Building2,  color: "text-brand-600",   bg: "bg-brand-50",   isReal: false },
+            { label: "Capital Total",            value: fmtR(totalCap),                       icon: Wallet,     color: "text-amber-700",   bg: "bg-amber-50",   isReal: false },
+            { label: q.hasData ? "Caixa Real (Pipeline)" : "Caixa (Pipeline)",
+              value: q.hasData ? fmtBRL(qc.totalCashBalance) : "Aguardando extratos",         icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50", isReal: true  },
+            { label: "ROIC Consolidado",         value: `${consolidatedRoic.toFixed(1)}%`,    icon: TrendingUp, color: "text-violet-700",  bg: "bg-violet-50",  isReal: false },
           ].map((c) => {
             const Icon = c.icon;
             return (
-              <div key={c.label} className="card p-5 flex items-start gap-4">
+              <div key={c.label} className={`card p-5 flex items-start gap-4 ${(c as {isReal?: boolean}).isReal ? "border-emerald-200 bg-emerald-50/20" : ""}`}>
                 <div className={`w-10 h-10 rounded-xl ${c.bg} flex items-center justify-center shrink-0`}>
                   <Icon size={18} className={c.color} />
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-gray-900">{c.value}</div>
-                  <div className="text-xs font-medium text-gray-400 mt-0.5">{c.label}</div>
-                  <div className="flex items-center gap-1 mt-1">
-                    <ArrowUpRight size={10} className="text-emerald-600" />
-                    <span className="text-[10px] font-semibold text-emerald-600">YTD Jan–Mar 2026</span>
+                  <div className="text-xs font-medium text-gray-400 mt-0.5 flex items-center gap-1">
+                    {c.label}
+                    {(c as {isReal?: boolean}).isReal && (
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 border border-emerald-200">REAL</span>
+                    )}
                   </div>
+                  {!(c as {isReal?: boolean}).isReal && (
+                    <div className="text-[9px] text-amber-500 mt-0.5">snapshot</div>
+                  )}
                 </div>
               </div>
             );

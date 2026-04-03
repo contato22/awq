@@ -5,6 +5,7 @@ import {
   Target,
   ArrowUpRight,
   CheckCircle2,
+  AlertTriangle,
 } from "lucide-react";
 import {
   operatingBus,
@@ -68,6 +69,23 @@ export default function AwqForecastPage() {
         subtitle="Receita · Cenários base / bull / bear · Forecast Accuracy · 2026"
       />
       <div className="page-container">
+
+        {/* ── Snapshot notice ─────────────────────────────────────────────── */}
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <div className="flex items-start gap-2">
+            <AlertTriangle size={14} className="text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-xs font-semibold text-amber-800">
+                Dados de forecast são modelos de planejamento (snapshot) — não derivados da base bancária.
+              </p>
+              <p className="text-[11px] text-amber-600 mt-0.5">
+                Os valores &quot;actual&quot; e de forecast são accrual. Para caixa real,
+                acesse{" "}
+                <a href="/awq/cashflow" className="underline font-medium">/awq/cashflow</a>.
+              </p>
+            </div>
+          </div>
+        </div>
 
         {/* ── Summary Cards ─────────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
