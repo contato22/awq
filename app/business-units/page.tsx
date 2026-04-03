@@ -2,7 +2,7 @@ import Header from "@/components/Header";
 import Link from "next/link";
 import { BarChart3, Building2, TrendingUp, ChevronRight, Users, DollarSign, Briefcase, Zap, CheckCircle2 } from "lucide-react";
 import { buData, consolidated } from "@/lib/awq-derived-metrics";
-import { buildFinancialQuery, fmtBRL } from "@/lib/financial-query";
+import { getAWQGroupKPIs, fmtBRL } from "@/lib/financial-metric-query";
 
 // ── Formatters ──────────────────────────────────────────────────────────────
 function fmtR(n: number): string {
@@ -104,8 +104,7 @@ const BUS = [
 ];
 
 export default async function BusinessUnitsPage() {
-  const q = buildFinancialQuery();
-  const c = q.consolidated;
+  const kpis = getAWQGroupKPIs();
 
   return (
     <>
@@ -116,7 +115,7 @@ export default async function BusinessUnitsPage() {
           {[
             { icon: Building2,    label: "Total de BUs",              value: String(buData.length),                                         isReal: false },
             { icon: Users,        label: "BUs Ativas",                value: String(buData.filter((b) => b.status === "Ativo").length),     isReal: false },
-            { icon: Zap,          label: "FCO Real (base bancária)",  value: q.hasData ? fmtBRL(c.operationalNetCash) : "Aguardando extratos", isReal: true },
+            { icon: Zap,          label: "FCO Real (base bancária)",  value: kpis.hasRealData ? fmtBRL(kpis.operationalNetCash.value!) : "Aguardando extratos", isReal: true },
           ].map((s) => (
             <div key={s.label} className="card p-5 flex items-center gap-4">
               <div className={`w-9 h-9 rounded-xl ${s.isReal ? "bg-emerald-50 border border-emerald-200" : "bg-gray-50 border border-gray-200"} flex items-center justify-center`}>

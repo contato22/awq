@@ -26,15 +26,7 @@ import {
   buData,
   type RiskCategory,
 } from "@/lib/awq-derived-metrics";
-import { buildFinancialQuery, fmtBRL, ENTITY_LABELS } from "@/lib/financial-query";
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function fmtR(n: number) {
-  if (Math.abs(n) >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  if (Math.abs(n) >= 1_000)     return "R$" + (n / 1_000).toFixed(0) + "K";
-  return "R$" + n.toLocaleString("pt-BR");
-}
+import { getAWQGroupKPIs, getEntityCashMetrics, fmtBRL, ENTITY_LABELS, fmtR } from "@/lib/financial-metric-query";
 
 // ─── Icon mapping (UI concern — maps canonical iconKey → Lucide component) ───
 
@@ -158,11 +150,8 @@ function RiskCard({ risk }: { risk: RiskCategory }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function AwqRiskPage() {
-  const q = buildFinancialQuery();
-  const c = q.consolidated;
-  const operationalEntities = q.entities.filter((e) =>
-    ["AWQ_Holding", "JACQES", "Caza_Vision"].includes(e.entity)
-  );
+  const kpis     = getAWQGroupKPIs();
+  const entities = getEntityCashMetrics();
 
   // Risk score derived from severity counts (simple weighted formula)
   const riskScore = ((highCount * 3 + mediumCount * 2 + lowCount * 1) /
@@ -225,7 +214,7 @@ export default async function AwqRiskPage() {
           <p className="text-[11px] text-gray-400 mb-4">
             FCO e caixa da base bancária ingerida — os sinais de risco acima usam snapshot de planejamento.
           </p>
-          {!q.hasData ? (
+          {!kpis.hasRealData ? (
             <div className="text-xs text-amber-600 flex items-center gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200">
               <AlertTriangle size={12} />
               Aguardando extratos bancários —{" "}
@@ -238,47 +227,47 @@ export default async function AwqRiskPage() {
                 <div className="space-y-1 text-xs">
                   <div className="flex justify-between">
                     <span className="text-gray-500">Entradas</span>
-                    <span className="text-emerald-600 font-semibold">{fmtBRL(c.totalRevenue)}</span>
+                    <span className="text-emerald-600 font-semibold">{fmtBRL(kpis.cashInflows.value ?? 0)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-500">Saídas</span>
-                    <span className="text-red-600">{fmtBRL(c.totalExpenses)}</span>
+                    <span className="text-red-600">{fmtBRL(kpis.cashOutflows.value ?? 0)}</span>
                   </div>
                   <div className="flex justify-between border-t border-gray-200 pt-1">
                     <span className="font-semibold text-gray-700">FCO</span>
-                    <span className={`font-bold ${c.operationalNetCash >= 0 ? "text-gray-900" : "text-red-600"}`}>
-                      {fmtBRL(c.operationalNetCash)}
+                    <span className={`font-bold ${(kpis.operationalNetCash.value ?? 0) >= 0 ? "text-gray-900" : "text-red-600"}`}>
+                      {fmtBRL(kpis.operationalNetCash.value ?? 0)}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-500">Caixa</span>
-                    <span className="font-semibold text-brand-700">{fmtBRL(c.totalCashBalance)}</span>
+                    <span className="font-semibold text-brand-700">{fmtBRL(kpis.totalCashBalance.value ?? 0)}</span>
                   </div>
                 </div>
               </div>
-              {operationalEntities.map((e) => (
+              {entities.map((e) => (
                 <div key={e.entity} className="rounded-xl bg-gray-50 border border-gray-200 p-3">
                   <div className="text-[10px] font-semibold text-gray-400 uppercase mb-1.5">
-                    {ENTITY_LABELS[e.entity]}
+                    {e.label}
                   </div>
                   <div className="space-y-1 text-xs">
                     <div className="flex justify-between">
                       <span className="text-gray-500">Entradas</span>
-                      <span className="text-emerald-600 font-semibold">{fmtBRL(e.operationalRevenue)}</span>
+                      <span className="text-emerald-600 font-semibold">{fmtBRL(e.cashInflows.value)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Saídas</span>
-                      <span className="text-red-600">{fmtBRL(e.operationalExpenses)}</span>
+                      <span className="text-red-600">{fmtBRL(e.cashOutflows.value)}</span>
                     </div>
                     <div className="flex justify-between border-t border-gray-200 pt-1">
                       <span className="font-semibold text-gray-700">FCO</span>
-                      <span className={`font-bold ${e.operationalNetCash >= 0 ? "text-gray-900" : "text-red-600"}`}>
-                        {fmtBRL(e.operationalNetCash)}
+                      <span className={`font-bold ${e.operationalNetCash.value >= 0 ? "text-gray-900" : "text-red-600"}`}>
+                        {fmtBRL(e.operationalNetCash.value)}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Caixa</span>
-                      <span className="font-semibold text-brand-700">{fmtBRL(e.totalCashBalance)}</span>
+                      <span className="font-semibold text-brand-700">{fmtBRL(e.totalCashBalance.value)}</span>
                     </div>
                   </div>
                 </div>

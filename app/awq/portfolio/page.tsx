@@ -17,7 +17,7 @@ import {
   allocFlags,
   flagConfig,
 } from "@/lib/awq-derived-metrics";
-import { buildFinancialQuery, fmtBRL, ENTITY_LABELS } from "@/lib/financial-query";
+import { getPortfolioMetrics, fmtBRL } from "@/lib/financial-metric-query";
 
 function fmtR(n: number) {
   if (Math.abs(n) >= 1_000_000_000) return "R$" + (n / 1_000_000_000).toFixed(2) + "B";
@@ -27,10 +27,9 @@ function fmtR(n: number) {
 }
 
 export default async function AwqPortfolioPage() {
-  const q   = buildFinancialQuery();
-  const qc  = q.consolidated;
-  const totalCap      = buData.reduce((s, b) => s + b.capitalAllocated, 0);
-  const totalNetIncome = buData.reduce((s, b) => s + b.netIncome, 0);
+  const pm  = getPortfolioMetrics();
+  const totalCap      = pm.totalCapitalAllocated.value;
+  const totalNetIncome = pm.totalNetIncome.value;
 
   return (
     <>
@@ -45,8 +44,8 @@ export default async function AwqPortfolioPage() {
           {[
             { label: "BUs no Portfolio",        value: buData.length.toString(),             icon: Building2,  color: "text-brand-600",   bg: "bg-brand-50",   isReal: false },
             { label: "Capital Total",            value: fmtR(totalCap),                       icon: Wallet,     color: "text-amber-700",   bg: "bg-amber-50",   isReal: false },
-            { label: q.hasData ? "Caixa Real (Pipeline)" : "Caixa (Pipeline)",
-              value: q.hasData ? fmtBRL(qc.totalCashBalance) : "Aguardando extratos",         icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50", isReal: true  },
+            { label: pm.realCashBalance.source_type !== "empty" ? "Caixa Real (Pipeline)" : "Caixa (Pipeline)",
+              value: pm.realCashBalance.source_type !== "empty" ? fmtBRL(pm.realCashBalance.value!) : "Aguardando extratos", icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50", isReal: true  },
             { label: "ROIC Consolidado",         value: `${consolidatedRoic.toFixed(1)}%`,    icon: TrendingUp, color: "text-violet-700",  bg: "bg-violet-50",  isReal: false },
           ].map((c) => {
             const Icon = c.icon;
