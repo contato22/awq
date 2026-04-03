@@ -136,7 +136,7 @@ export default async function AwqPortfolioPage() {
 
                 <div className="flex items-center justify-between pt-2 border-t border-gray-200">
                   <div className="flex gap-3 text-[10px] text-gray-400">
-                    <span>Caixa: <span className="text-gray-400 font-semibold">{fmtR(bu.cashBalance)}</span></span>
+                    <span>Caixa: <span className="text-gray-400 font-semibold">{fmtR(bu.cashBalance)}</span><span className="ml-1 px-1 py-0.5 rounded text-[8px] font-semibold bg-amber-100 text-amber-700">snapshot</span></span>
                     <span>FTEs: <span className="text-gray-400 font-semibold">{bu.ftes}</span></span>
                   </div>
                   <Link

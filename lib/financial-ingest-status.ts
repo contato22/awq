@@ -187,13 +187,14 @@ export const INGEST_LAYER_STATUS: IngestLayerStatus[] = [
   {
     name: "Query APIs (documents + transactions)",
     files: [
-      "app/api/ingest/documents/route.ts",
-      "app/api/ingest/transactions/route.ts",
+      "pages/api/ingest/documents.ts",
+      "pages/api/ingest/transactions.ts",
     ],
     implementation: "implemented",
     validation: "staging_functional",
     production: "local_only",
-    notes: "Filter queries with entity/bank/status/confidence/intercompany params. Correct.",
+    notes: "Filter queries with entity/bank/status/confidence/intercompany params. Correct. " +
+      "Moved from App Router (app/api/ingest/) to Pages Router (pages/api/ingest/) for static export compatibility.",
     knownLimitations: ["Returns empty state if no documents ingested yet (correct behavior)"],
   },
   {
@@ -213,25 +214,28 @@ export const INGEST_LAYER_STATUS: IngestLayerStatus[] = [
   {
     name: "Dashboard Integration (AWQ Financial)",
     files: [
-      "lib/awq-group-data.ts",
-      "lib/data.ts",
-      "lib/caza-data.ts",
+      "lib/financial-query.ts",
+      "lib/investment-query.ts",
+      "lib/bank-account-registry.ts",
       "app/awq/financial/page.tsx",
       "app/awq/cashflow/page.tsx",
-      "app/jacqes/financial/page.tsx",
-      "app/caza-vision/financial/page.tsx",
+      "app/awq/kpis/page.tsx",
+      "app/awq/risk/page.tsx",
+      "app/awq/portfolio/page.tsx",
     ],
-    implementation: "not_implemented",
-    validation: "not_validated",
+    implementation: "implemented",
+    validation: "depends_on_real_pdfs",
     production: "staging_only",
     notes:
-      "NOT CONNECTED. All dashboards still read from hardcoded snapshots. " +
-      "This is intentional sequencing: real data must be ingested and validated " +
-      "before migrating dashboard reads. No mock data was replaced.",
+      "CONNECTED — dashboards read from financial-query.ts (real pipeline). " +
+      "When public/data/financial/ is empty (no PDFs ingested), pages render honest empty state " +
+      "with 'Aguardando extratos' message. Planning KPIs (ROIC, capital allocated, payback) remain " +
+      "in snapshot via awq-group-data.ts with amber 'snapshot' badge. " +
+      "Next gate: ingest real Cora + Itaú PDFs via /awq/ingest to populate dashboards.",
     knownLimitations: [
-      "awq-group-data.ts, data.ts, caza-data.ts remain the source for all KPI/financial displays",
-      "Zero financial dashboard reads from public/data/financial/",
-      "Migration path exists (getCashPositionByEntity(), getTransactionsByEntity()) but not wired up",
+      "public/data/financial/ is empty until real PDFs are ingested — dashboards show empty state",
+      "Planning KPIs (awq-group-data.ts) remain snapshot — not replaced until real data validates",
+      "Ephemeral storage on Vercel: PDFs and JSON lost between cold starts — needs Blob/Neon",
     ],
   },
 ];
