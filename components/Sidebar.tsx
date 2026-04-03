@@ -30,6 +30,7 @@ import {
     CreditCard,
     FileUp,
     Landmark,
+    Database,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -160,6 +161,7 @@ const awqNav = [
     { label: "Risk",           href: "/awq/risk",         icon: Activity        },
     { label: "Contas Banco",   href: "/awq/bank",         icon: CreditCard      },
     { label: "Ingestão",       href: "/awq/ingest",       icon: FileUp          },
+    { label: "Base de Dados",  href: "/awq/data",         icon: Database        },
 ];
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
