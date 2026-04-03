@@ -1,3 +1,15 @@
+// ─── JACQES BU — Snapshot Data · Q1 2026 ─────────────────────────────────────
+//
+// CLASSIFICATION: snapshot — hardcoded data aligned with awq-group-data.ts (Q1 2026).
+// Not a live Notion feed. When Notion is wired, replace these values.
+// KPIs, revenue trend, client segments, services and regional breakdown
+// reflect JACQES as a Brazilian B2B creative/marketing agency.
+//
+// SOURCE ALIGNMENT:
+//   KPIs.revenue → lib/awq-group-data.ts buData[jacqes].revenue = 4_820_000
+//   KPIs.customers → lib/awq-group-data.ts buData[jacqes].customers = 10
+//   KPIs.margin → grossProfit/revenue = 2_892_000/4_820_000 = 60.0%
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface KPI {
@@ -70,14 +82,14 @@ export interface Alert {
   timestamp: string;
 }
 
-// ─── KPIs ─────────────────────────────────────────────────────────────────────
+// ─── KPIs — aligned with awq-group-data Q1 2026 ──────────────────────────────
 
 export const kpis: KPI[] = [
   {
     id: "revenue",
     label: "Receita Bruta",
-    value: 9_780,
-    previousValue: 8_420,
+    value:         4_820_000,   // YTD Q1 2026 — source: awq-group-data
+    previousValue: 4_440_000,   // YTD budget — source: awq-group-data budgetRevenue
     unit: "currency",
     icon: "DollarSign",
     color: "brand",
@@ -85,26 +97,27 @@ export const kpis: KPI[] = [
   {
     id: "customers",
     label: "Contas Ativas",
-    value: 5,
-    previousValue: 4,
+    value:         10,           // source: awq-group-data customers
+    previousValue:  9,
     unit: "number",
     icon: "Users",
     color: "emerald",
   },
   {
-    id: "orders",
-    label: "Monthly Orders",
-    value: 12_394,
-    previousValue: 11_280,
-    unit: "number",
-    icon: "ShoppingCart",
+    id: "nps",
+    label: "NPS Médio",
+    value:         69,           // calculated from /jacqes/customers inline data (10 clients)
+    previousValue: 72,
+    unit: "percent",
+    suffix: "",
+    icon: "TrendingUp",
     color: "blue",
   },
   {
     id: "margin",
     label: "Margem Bruta",
-    value: 72.4,
-    previousValue: 68.1,
+    value:         60.0,         // grossProfit/revenue = 2_892_000/4_820_000 — awq-group-data
+    previousValue: 57.2,
     unit: "percent",
     suffix: "%",
     icon: "TrendingUp",
@@ -112,194 +125,108 @@ export const kpis: KPI[] = [
   },
 ];
 
-// ─── Revenue Trend ────────────────────────────────────────────────────────────
+// ─── Revenue Trend — FY 2025 monthly · snapshot ───────────────────────────────
+// Values calibrated to match Q1 2026 scale (Jan/26 = R$1.42M)
+// Expense ratio ~40% consistent with awq-group-data gross margin 60%
 
 export const revenueData: RevenueDataPoint[] = [
-  { month: "Jan", revenue: 3_210_000, expenses: 1_120_000, profit: 2_090_000 },
-  { month: "Feb", revenue: 3_480_000, expenses: 1_195_000, profit: 2_285_000 },
-  { month: "Mar", revenue: 3_650_000, expenses: 1_240_000, profit: 2_410_000 },
-  { month: "Apr", revenue: 3_520_000, expenses: 1_180_000, profit: 2_340_000 },
-  { month: "May", revenue: 3_900_000, expenses: 1_310_000, profit: 2_590_000 },
-  { month: "Jun", revenue: 4_120_000, expenses: 1_390_000, profit: 2_730_000 },
-  { month: "Jul", revenue: 4_250_000, expenses: 1_420_000, profit: 2_830_000 },
-  { month: "Aug", revenue: 4_380_000, expenses: 1_450_000, profit: 2_930_000 },
-  { month: "Sep", revenue: 4_510_000, expenses: 1_500_000, profit: 3_010_000 },
-  { month: "Oct", revenue: 4_620_000, expenses: 1_530_000, profit: 3_090_000 },
-  { month: "Nov", revenue: 4_730_000, expenses: 1_560_000, profit: 3_170_000 },
-  { month: "Dec", revenue: 4_821_500, expenses: 1_580_000, profit: 3_241_500 },
+  { month: "Jan", revenue: 850_000,   expenses: 340_000, profit: 510_000  },
+  { month: "Feb", revenue: 910_000,   expenses: 364_000, profit: 546_000  },
+  { month: "Mar", revenue: 940_000,   expenses: 376_000, profit: 564_000  },
+  { month: "Apr", revenue: 980_000,   expenses: 392_000, profit: 588_000  },
+  { month: "May", revenue: 1_020_000, expenses: 408_000, profit: 612_000  },
+  { month: "Jun", revenue: 1_060_000, expenses: 424_000, profit: 636_000  },
+  { month: "Jul", revenue: 1_100_000, expenses: 440_000, profit: 660_000  },
+  { month: "Aug", revenue: 1_150_000, expenses: 460_000, profit: 690_000  },
+  { month: "Sep", revenue: 1_110_000, expenses: 444_000, profit: 666_000  },
+  { month: "Oct", revenue: 1_200_000, expenses: 480_000, profit: 720_000  },
+  { month: "Nov", revenue: 1_310_000, expenses: 524_000, profit: 786_000  },
+  { month: "Dec", revenue: 1_420_000, expenses: 568_000, profit: 852_000  },
 ];
 
-// ─── Customer Segments ────────────────────────────────────────────────────────
+// ─── Client Segments ──────────────────────────────────────────────────────────
 
 export const customerSegments: CustomerSegment[] = [
-  { name: "Enterprise", value: 42, color: "#6366f1" },
-  { name: "SMB", value: 31, color: "#22d3ee" },
-  { name: "Startup", value: 18, color: "#f59e0b" },
-  { name: "Individual", value: 9, color: "#ec4899" },
+  { name: "Enterprise", value: 50, color: "#6366f1" },
+  { name: "Mid Market", value: 30, color: "#22d3ee" },
+  { name: "SMB",        value: 20, color: "#f59e0b" },
 ];
 
-// ─── Top Products ─────────────────────────────────────────────────────────────
+// ─── Top Services — JACQES agência · snapshot ─────────────────────────────────
+// Revenue aligned to total YTD R$4.82M
 
 export const topProducts: TopProduct[] = [
   {
-    id: "P001",
-    name: "JACQES Platform Pro",
-    category: "SaaS",
+    id: "S001",
+    name: "Branding & Identidade",
+    category: "Estratégia",
     revenue: 1_842_000,
-    units: 412,
+    units: 8,
     growth: 18.4,
     status: "trending",
   },
   {
-    id: "P002",
-    name: "Analytics Suite",
-    category: "SaaS",
-    revenue: 1_120_500,
-    units: 289,
+    id: "S002",
+    name: "Estratégia & Planejamento",
+    category: "Consultoria",
+    revenue: 1_120_000,
+    units: 10,
     growth: 12.7,
     status: "trending",
   },
   {
-    id: "P003",
-    name: "Data Connector API",
-    category: "API",
+    id: "S003",
+    name: "Mídia Paga",
+    category: "Performance",
     revenue: 756_000,
-    units: 1_840,
+    units: 7,
     growth: 9.2,
     status: "stable",
   },
   {
-    id: "P004",
-    name: "Enterprise Reporting",
-    category: "Add-on",
+    id: "S004",
+    name: "Conteúdo & Social",
+    category: "Produção",
     revenue: 580_000,
-    units: 124,
+    units: 6,
     growth: -2.1,
     status: "declining",
   },
   {
-    id: "P005",
-    name: "Custom Dashboards",
-    category: "Service",
-    revenue: 523_000,
-    units: 98,
+    id: "S005",
+    name: "Projetos Especiais",
+    category: "Ativação",
+    revenue: 522_000,
+    units: 4,
     growth: 6.8,
     status: "stable",
   },
 ];
 
-// ─── Customers ────────────────────────────────────────────────────────────────
+// ─── Customers — dead code (not consumed by UI) ───────────────────────────────
+// /jacqes/customers/page.tsx uses its own inline data (JC001–JC010).
+// Kept for interface compatibility only.
 
-export const customers: CustomerRecord[] = [
-  {
-    id: "C001",
-    name: "Sarah Mitchell",
-    company: "Nexus Corp",
-    email: "s.mitchell@nexuscorp.com",
-    segment: "Enterprise",
-    ltv: 284_500,
-    lastOrder: "2026-03-12",
-    status: "active",
-    country: "US",
-  },
-  {
-    id: "C002",
-    name: "James Okafor",
-    company: "Zenith Digital",
-    email: "james@zenithdigital.io",
-    segment: "SMB",
-    ltv: 94_200,
-    lastOrder: "2026-03-10",
-    status: "active",
-    country: "UK",
-  },
-  {
-    id: "C003",
-    name: "Amara Patel",
-    company: "Stellar Labs",
-    email: "apatel@stellarlabs.co",
-    segment: "Startup",
-    ltv: 38_700,
-    lastOrder: "2026-02-28",
-    status: "at-risk",
-    country: "CA",
-  },
-  {
-    id: "C004",
-    name: "Lena Hoffmann",
-    company: "EuroVenture GmbH",
-    email: "lhoffmann@euroventure.de",
-    segment: "Enterprise",
-    ltv: 312_000,
-    lastOrder: "2026-03-15",
-    status: "active",
-    country: "DE",
-  },
-  {
-    id: "C005",
-    name: "Kwame Asante",
-    company: "AfricaTech Hub",
-    email: "kasante@africatechhub.com",
-    segment: "SMB",
-    ltv: 67_400,
-    lastOrder: "2026-01-20",
-    status: "at-risk",
-    country: "GH",
-  },
-  {
-    id: "C006",
-    name: "Yuki Tanaka",
-    company: "Shibuya Solutions",
-    email: "y.tanaka@shibuya.jp",
-    segment: "Enterprise",
-    ltv: 198_000,
-    lastOrder: "2026-03-14",
-    status: "active",
-    country: "JP",
-  },
-  {
-    id: "C007",
-    name: "Diego Ramirez",
-    company: "LatamScale",
-    email: "diego@latamscale.mx",
-    segment: "Startup",
-    ltv: 22_100,
-    lastOrder: "2025-11-30",
-    status: "churned",
-    country: "MX",
-  },
-  {
-    id: "C008",
-    name: "Nina Volkov",
-    company: "Baltic Systems",
-    email: "nvolkov@balticsys.ee",
-    segment: "SMB",
-    ltv: 81_500,
-    lastOrder: "2026-03-08",
-    status: "active",
-    country: "EE",
-  },
-];
+export const customers: CustomerRecord[] = [];
 
-// ─── Regional Performance ─────────────────────────────────────────────────────
+// ─── Regional Performance — distribuição geográfica Brasil ────────────────────
 
 export const regionData: RegionData[] = [
-  { region: "North America", revenue: 1_928_600, customers: 1_542, growth: 14.2 },
-  { region: "Europe", revenue: 1_445_000, customers: 1_089, growth: 11.8 },
-  { region: "Asia Pacific", revenue: 896_500, customers: 712, growth: 22.5 },
-  { region: "Middle East & Africa", revenue: 337_200, customers: 284, growth: 31.0 },
-  { region: "Latin America", revenue: 214_200, customers: 220, growth: 8.4 },
+  { region: "SP Capital",    revenue: 3_615_000, customers: 7, growth: 14.2 },
+  { region: "Interior SP",   revenue:   482_000, customers: 1, growth: 11.8 },
+  { region: "Rio de Janeiro",revenue:   482_000, customers: 1, growth: 22.5 },
+  { region: "Sul do Brasil", revenue:   241_000, customers: 1, growth: 8.4  },
 ];
 
 // ─── Acquisition Channels ─────────────────────────────────────────────────────
 
 export const channelData: ChannelData[] = [
-  { channel: "Organic Search", sessions: 48_200, conversions: 1_204, revenue: 1_420_000, cac: 0 },
-  { channel: "Paid Search", sessions: 22_400, conversions: 672, revenue: 890_000, cac: 180 },
-  { channel: "Direct", sessions: 18_900, conversions: 511, revenue: 760_000, cac: 0 },
-  { channel: "Referral", sessions: 12_500, conversions: 375, revenue: 640_000, cac: 45 },
-  { channel: "Social Media", sessions: 31_000, conversions: 496, revenue: 580_000, cac: 95 },
-  { channel: "Email", sessions: 14_700, conversions: 588, revenue: 531_500, cac: 12 },
+  { channel: "Indicação / Referral",  sessions: 480,  conversions: 8,  revenue: 1_420_000, cac:   0 },
+  { channel: "Prospecção Ativa",      sessions: 220,  conversions: 6,  revenue:   890_000, cac: 180 },
+  { channel: "Inbound / Site",        sessions: 180,  conversions: 5,  revenue:   760_000, cac:   0 },
+  { channel: "Parceiros / Canais",    sessions: 120,  conversions: 4,  revenue:   640_000, cac:  45 },
+  { channel: "Eventos / Networking",  sessions: 310,  conversions: 5,  revenue:   580_000, cac:  95 },
+  { channel: "Email / Outbound",      sessions: 145,  conversions: 6,  revenue:   530_000, cac:  12 },
 ];
 
 // ─── Alerts ───────────────────────────────────────────────────────────────────
@@ -308,29 +235,29 @@ export const alerts: Alert[] = [
   {
     id: "A1",
     type: "warning",
-    title: "At-Risk Customers",
-    message: "12 enterprise customers have not placed an order in 45+ days.",
+    title: "Cliente em Risco",
+    message: "Banco XP (JC006): NPS 42, churn risco Alto. R$230K MRR em risco — ação necessária.",
     timestamp: "2026-03-18T09:15:00Z",
   },
   {
     id: "A2",
     type: "success",
-    title: "Revenue Milestone",
-    message: "Q1 2026 revenue exceeded target by 8.3% — $4.82M vs $4.45M goal.",
+    title: "Meta Q1 Batida",
+    message: "Q1 2026 receita superou o budget em 8.6% — R$4.82M vs R$4.44M meta.",
     timestamp: "2026-03-18T08:00:00Z",
   },
   {
     id: "A3",
     type: "info",
-    title: "APAC Growth Surge",
-    message: "Asia Pacific region showing 22.5% YoY growth — consider capacity planning.",
+    title: "Novo Contrato",
+    message: "Magazine Luiza (JC010) onboardado em Mar/26. MRR: R$260K — potencial de expansão.",
     timestamp: "2026-03-17T16:30:00Z",
   },
   {
     id: "A4",
     type: "error",
-    title: "Analytics Suite Churn Signal",
-    message: "NPS for Analytics Suite dropped to 32 this month from 48 last month.",
+    title: "Queda de NPS — Conteúdo",
+    message: "NPS do serviço Conteúdo & Social caiu de 68 para 51. Revisão de equipe necessária.",
     timestamp: "2026-03-17T11:00:00Z",
   },
 ];
