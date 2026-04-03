@@ -29,6 +29,7 @@ import {
     Wallet,
     CreditCard,
     FileUp,
+    Landmark,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -152,6 +153,7 @@ const awqNav = [
     { label: "Financial",      href: "/awq/financial",    icon: LineChart       },
     { label: "Portfolio",      href: "/awq/portfolio",    icon: Briefcase       },
     { label: "Cash Flow",      href: "/awq/cashflow",     icon: Zap             },
+    { label: "Investimentos",  href: "/awq/investments",  icon: Landmark        },
     { label: "Budget",         href: "/awq/budget",       icon: Wallet          },
     { label: "Forecast",       href: "/awq/forecast",     icon: TrendingUp      },
     { label: "Allocations",    href: "/awq/allocations",  icon: Wallet          },
