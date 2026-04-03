@@ -52,21 +52,33 @@ interface BankAccount {
 // This is intentionally separate from public/data/financial/* (the canonical store).
 const LS_KEY = "awq_bank_accounts";
 
-const BANK_OPTIONS = [
-  "Bradesco", "Itaú", "Nubank", "Santander",
-  "Banco do Brasil", "XP", "BTG", "Inter", "Sicoob", "Outro",
+const BANK_GROUPS: { label: string; banks: string[] }[] = [
+  {
+    label: "Digital / Fintech",
+    banks: ["Cora", "Nubank", "Inter", "C6 Bank", "PagBank", "BTG Empresas", "XP", "Mercado Pago"],
+  },
+  {
+    label: "Tradicional",
+    banks: ["Itaú", "Bradesco", "Banco do Brasil", "Santander", "Sicoob", "Sicredi"],
+  },
+  { label: "Outro", banks: ["Outro"] },
 ];
 
 const BANK_COLOR: Record<string, string> = {
-  "Bradesco":        "bg-red-600",
-  "Itaú":            "bg-orange-500",
+  "Cora":            "bg-brand-600",
   "Nubank":          "bg-purple-600",
-  "Santander":       "bg-red-700",
-  "Banco do Brasil": "bg-yellow-500",
+  "Inter":           "bg-orange-500",
+  "C6 Bank":         "bg-gray-800",
+  "PagBank":         "bg-green-600",
+  "BTG Empresas":    "bg-blue-700",
   "XP":              "bg-gray-700",
-  "BTG":             "bg-blue-700",
-  "Inter":           "bg-orange-600",
+  "Mercado Pago":    "bg-sky-500",
+  "Itaú":            "bg-orange-600",
+  "Bradesco":        "bg-red-600",
+  "Banco do Brasil": "bg-yellow-600",
+  "Santander":       "bg-red-700",
   "Sicoob":          "bg-green-700",
+  "Sicredi":         "bg-green-800",
   "Outro":           "bg-gray-500",
 };
 
@@ -119,7 +131,7 @@ export default function BankAccountsPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [search, setSearch]         = useState("");
   const [sortAsc, setSortAsc]       = useState(false);
-  const [newBank, setNewBank]       = useState("Bradesco");
+  const [newBank, setNewBank]       = useState("Cora");
   const [newName, setNewName]       = useState("");
   const [newBalance, setNewBalance] = useState("");
 
@@ -158,7 +170,7 @@ export default function BankAccountsPage() {
     const updated = [...accounts, acct];
     save(updated);
     setSelectedId(acct.id);
-    setNewBank("Bradesco");
+    setNewBank("Cora");
     setNewName("");
     setNewBalance("");
     setShowAddForm(false);
@@ -257,7 +269,11 @@ export default function BankAccountsPage() {
                   onChange={(e) => setNewBank(e.target.value)}
                   className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none focus:border-brand-500"
                 >
-                  {BANK_OPTIONS.map((b) => <option key={b} value={b}>{b}</option>)}
+                  {BANK_GROUPS.map((group) => (
+                    <optgroup key={group.label} label={group.label}>
+                      {group.banks.map((b) => <option key={b} value={b}>{b}</option>)}
+                    </optgroup>
+                  ))}
                 </select>
                 <input
                   type="text"
