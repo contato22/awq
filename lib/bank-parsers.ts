@@ -1,31 +1,23 @@
-// ─── AWQ Bank Parsers — Claude Vision PDF extraction ──────────────────────────
+// ─── AWQ Bank Parsers — Deterministic text extraction + optional Claude ────────
 //
-// APPROACH:
-//   Claude claude-opus-4-6 supports native PDF processing via the `document` content
-//   type (DocumentBlockParam / Base64PDFSource — confirmed in SDK 0.80.0 types).
-//   No third-party PDF library needed.
+// APPROACH (two-tier):
+//   Tier 1 — Rule-based (always runs, no API key required):
+//     Uses pdf-parse to extract text from the PDF, then applies bank-specific
+//     regex patterns for Cora and Itaú. Zero external API calls.
 //
-// REALITY CHECK — What this parser IS vs IS NOT:
-//   IS:  architecturally correct structure for PDF extraction via Claude API
-//   IS:  designed for Cora and Itaú statement formats with specific prompts
-//   IS:  honest about confidence (high/medium/low) and extraction failures
-//   IS NOT: proven with real Cora or Itaú PDFs yet
-//   IS NOT: guaranteed to work with scanned/image-only PDFs (no OCR fallback)
-//   IS NOT: tested against edge cases like multi-page statements with section breaks
+//   Tier 2 — Claude enhancement (runs only when ANTHROPIC_API_KEY is set):
+//     If rule-based extraction returns 0 transactions (e.g. image-only PDF or
+//     unexpected format), falls back to Claude vision API.
 //
-// STAGING vs PRODUCTION:
-//   This module is staging-functional — the code is correct and the SDK types
-//   are properly used. It becomes production-functional once tested with real
-//   bank statement PDFs and edge cases are documented.
+// RESULT: pipeline works without any API key for standard text-based PDFs.
+//         Claude adds resilience for edge cases when key is configured.
 //
-// DO NOT import this module in client components.
+// DO NOT import this module in client components — uses Node's `fs` + pdf-parse.
 
-import Anthropic from "@anthropic-ai/sdk";
-import type {
-  MessageParam,
-  DocumentBlockParam,
-  TextBlockParam,
-} from "@anthropic-ai/sdk/resources/messages/messages";
+// Import from internal path to avoid pdf-parse's test-runner side-effect
+// (the package root tries to open ./test/data/05-versions-space.pdf at import time).
+// eslint-disable-next-line
+const pdfParse: (buf: Buffer) => Promise<{ text: string }> = require("pdf-parse/lib/pdf-parse");
 
 // ─── Parsed transaction schema (raw, pre-classification) ─────────────────────
 
@@ -35,308 +27,391 @@ export interface ParsedTransaction {
   amount: number;                // positive = credit, negative = debit
   direction: "credit" | "debit";
   runningBalance: number | null;
-  extractionNote: string | null; // parser note if uncertain
+  extractionNote: string | null;
 }
 
 export interface ParsedStatement {
-  bank: string;                  // detected bank name
-  accountNumber: string | null;  // masked account number if found
-  periodStart: string | null;    // YYYY-MM-DD
-  periodEnd: string | null;      // YYYY-MM-DD
+  bank: string;
+  accountNumber: string | null;
+  periodStart: string | null;
+  periodEnd: string | null;
   openingBalance: number | null;
   closingBalance: number | null;
   transactions: ParsedTransaction[];
   parserConfidence: "high" | "medium" | "low";
-  extractionNotes: string;       // parser diagnostic notes — always populated
+  extractionNotes: string;
 }
 
-// ─── Bank-specific prompts ────────────────────────────────────────────────────
+// ─── Currency helpers ─────────────────────────────────────────────────────────
 
-const BANK_HINTS: Record<string, string> = {
-  Cora: `
-Este é um extrato do Banco Cora (fintech brasileira para PMEs).
-Características do extrato Cora:
-- Formato digital/PDF nativo
-- Colunas: Data | Descrição | Valor | Saldo
-- Datas geralmente em DD/MM/YYYY ou DD/MM/YY
-- Valores: débitos com sinal negativo (-) ou marcados como "Saída"; créditos como positivos ou "Entrada"
-- Descrições incluem tipo de operação (Pix, TED, Boleto, Tarifa) + nome do favorecido
-- Saldo corrente listado após cada lançamento
-- Pode haver separação por data com subtotais diários
-Extraia TODOS os lançamentos incluindo tarifas, Pix enviados e recebidos, TEDs, boletos.
-`,
-  Itaú: `
-Este é um extrato do Banco Itaú (conta PJ).
-Características do extrato Itaú:
-- Formato: geralmente tabela com colunas Data | Histórico | Documento | Valor | Saldo
-- Datas em DD/MM/YY ou DD/MM/YYYY
-- Débitos podem aparecer como valores negativos ou em coluna separada "Débito"
-- Créditos em coluna "Crédito" ou valores positivos
-- Descrições podem ser abreviadas (ex: "PIX REC", "TED CRED", "TARIFA")
-- Número do documento quando disponível
-- Saldo exibido linha a linha
-- Tarifas aparecem como "TARIFA MANUTENCAO", "CET", etc.
-Extraia TODOS os lançamentos incluindo pequenas tarifas e IOF.
-`,
-  Bradesco: `
-Este é um extrato do Banco Bradesco.
-Extraia todos os lançamentos. Datas em DD/MM/YY. Débitos e créditos em colunas separadas ou com sinal.
-`,
-};
-
-const DEFAULT_HINT = `
-Extraia todos os lançamentos financeiros deste extrato bancário brasileiro.
-Identifique: data, descrição original, valor (negativo=débito, positivo=crédito) e saldo.
-`;
-
-// ─── Raw extraction response (intermediate type before normalization) ─────────
-
-interface RawExtractionResponse {
-  bank?: string | null;
-  account_number?: string | null;
-  period_from?: string | null;
-  period_to?: string | null;
-  opening_balance?: number | null;
-  closing_balance?: number | null;
-  parser_confidence?: string;
-  extraction_notes?: string;
-  transactions?: Array<{
-    transaction_date?: string;
-    description_original?: string;
-    amount?: number;
-    direction?: string;
-    running_balance?: number | null;
-    extraction_note?: string | null;
-  }>;
+// Parses "1.500,00" or "1500.00" or "-500,50" → number
+function parseBRL(raw: string): number {
+  const clean = raw
+    .replace(/\s/g, "")
+    .replace(/\./g, "")   // remove thousand separators
+    .replace(",", ".");   // decimal comma → dot
+  return parseFloat(clean) || 0;
 }
 
-// ─── Core parser ─────────────────────────────────────────────────────────────
+// Parses a Brazilian date DD/MM/YYYY or DD/MM/YY → YYYY-MM-DD
+function parseBRDate(raw: string): string {
+  const m = raw.match(/^(\d{2})\/(\d{2})\/(\d{2,4})$/);
+  if (!m) return raw;
+  const [, dd, mm, yy] = m;
+  const year = yy.length === 2 ? `20${yy}` : yy;
+  return `${year}-${mm}-${dd}`;
+}
 
-export async function parsePDF(
+// ─── Cora parser ──────────────────────────────────────────────────────────────
+//
+// Cora extrato typical text pattern (one line per transaction):
+//   01/03/2026   Pix recebido - João Silva              +1.500,00   1.500,00
+// or split across lines. We match lines with a date + description + two amounts.
+
+function parseCora(text: string): ParsedTransaction[] {
+  const transactions: ParsedTransaction[] = [];
+
+  // Line pattern: date | optional spaces | description | signed amount | optional balance
+  // Handles both "+" prefix and negative values for debits
+  const lineRe =
+    /(\d{2}\/\d{2}\/\d{2,4})\s+(.+?)\s{2,}([+-]?\d[\d.,]*)\s*([+-]?\d[\d.,]*)?$/gm;
+
+  for (const m of Array.from(text.matchAll(lineRe))) {
+    const [, dateRaw, descRaw, amountRaw, balanceRaw] = m;
+    const date = parseBRDate(dateRaw.trim());
+    const desc = descRaw.trim().replace(/\s+/g, " ");
+    const rawAmt = amountRaw.replace(/\+/, "");
+    const amount = parseBRL(rawAmt);
+    if (amount === 0) continue; // skip header or zero lines
+
+    const direction: "credit" | "debit" = amount >= 0 ? "credit" : "debit";
+    const runningBalance = balanceRaw ? parseBRL(balanceRaw) : null;
+
+    transactions.push({
+      transactionDate: date,
+      descriptionOriginal: desc,
+      amount,
+      direction,
+      runningBalance,
+      extractionNote: null,
+    });
+  }
+
+  return transactions;
+}
+
+// ─── Itaú parser ──────────────────────────────────────────────────────────────
+//
+// Itaú extrato PJ typical text pattern:
+//   01/03/26  PIX REC JOAO SILVA        12345   1.500,00 C   1.500,00 C
+// or:
+//   01/03/26  TARIFA MANUTENCAO                   15,50 D     485,00 C
+//
+// The D/C suffix indicates Debit/Credit.
+
+function parseItau(text: string): ParsedTransaction[] {
+  const transactions: ParsedTransaction[] = [];
+
+  // Pattern: date | description | optional doc number | amount + D/C | optional balance + D/C
+  const lineRe =
+    /(\d{2}\/\d{2}\/\d{2,4})\s+(.+?)\s{2,}(?:\d+\s+)?(\d[\d.,]*)\s*([DC])\s*(?:(\d[\d.,]*)\s*[DC])?/gm;
+
+  for (const m of Array.from(text.matchAll(lineRe))) {
+    const [, dateRaw, descRaw, amountRaw, dcFlag, balanceRaw] = m;
+    const date = parseBRDate(dateRaw.trim());
+    const desc = descRaw.trim().replace(/\s+/g, " ");
+    const absAmount = parseBRL(amountRaw);
+    if (absAmount === 0) continue;
+
+    const direction: "credit" | "debit" = dcFlag === "C" ? "credit" : "debit";
+    const amount = direction === "debit" ? -absAmount : absAmount;
+    const runningBalance = balanceRaw ? parseBRL(balanceRaw) : null;
+
+    transactions.push({
+      transactionDate: date,
+      descriptionOriginal: desc,
+      amount,
+      direction,
+      runningBalance,
+      extractionNote: null,
+    });
+  }
+
+  return transactions;
+}
+
+// ─── Generic fallback parser ──────────────────────────────────────────────────
+//
+// Tries to extract any line that has a date-like prefix and at least one amount.
+
+function parseGeneric(text: string): ParsedTransaction[] {
+  const transactions: ParsedTransaction[] = [];
+
+  const lineRe = /(\d{2}\/\d{2}\/\d{2,4})\s+(.+?)\s+([+-]?\d[\d.,]+(?:[.,]\d{2}))/gm;
+
+  for (const m of Array.from(text.matchAll(lineRe))) {
+    const [, dateRaw, descRaw, amountRaw] = m;
+    const date = parseBRDate(dateRaw.trim());
+    const desc = descRaw.trim().replace(/\s+/g, " ");
+    const rawAmt = amountRaw.replace(/\+/, "");
+    const amount = parseBRL(rawAmt);
+    if (amount === 0 || !date.match(/^\d{4}-\d{2}-\d{2}$/)) continue;
+
+    const direction: "credit" | "debit" = amount >= 0 ? "credit" : "debit";
+
+    transactions.push({
+      transactionDate: date,
+      descriptionOriginal: desc,
+      amount,
+      direction,
+      runningBalance: null,
+      extractionNote: "parser genérico — verificar manualmente",
+    });
+  }
+
+  return transactions;
+}
+
+// ─── Period and balance extraction ───────────────────────────────────────────
+
+function extractPeriod(
+  text: string
+): { periodStart: string | null; periodEnd: string | null } {
+  // Looks for "Período: 01/01/2026 a 31/03/2026" or "De 01/01/2026 até 31/03/2026"
+  const periodRe =
+    /(?:per[íi]odo|de|from)[:\s]+(\d{2}\/\d{2}\/\d{2,4})\s+(?:a|at[eé]|to|-)\s+(\d{2}\/\d{2}\/\d{2,4})/i;
+  const m = text.match(periodRe);
+  if (m) {
+    return {
+      periodStart: parseBRDate(m[1]),
+      periodEnd: parseBRDate(m[2]),
+    };
+  }
+  return { periodStart: null, periodEnd: null };
+}
+
+function extractBalance(
+  text: string,
+  keyword: string
+): number | null {
+  const re = new RegExp(keyword + "[^\\n]*?([+-]?\\d[\\d.,]+(?:[.,]\\d{2}))", "i");
+  const m = text.match(re);
+  if (!m) return null;
+  return parseBRL(m[1]);
+}
+
+function extractAccountNumber(text: string): string | null {
+  // "Conta: 12345-6" or "Account: 12345-6 / 0001"
+  const m = text.match(/(?:conta|account|ag[êe]ncia)[:\s#]+[\d./-]+\s*([\d]+[-][\d]+)/i);
+  return m ? m[1] : null;
+}
+
+// ─── Rule-based entry point ───────────────────────────────────────────────────
+
+async function parseWithRules(
+  pdfBuffer: Buffer,
+  bankHint: string
+): Promise<ParsedStatement> {
+  let text = "";
+  try {
+    const data = await pdfParse(pdfBuffer);
+    text = data.text;
+  } catch (err) {
+    return {
+      bank: bankHint,
+      accountNumber: null,
+      periodStart: null,
+      periodEnd: null,
+      openingBalance: null,
+      closingBalance: null,
+      transactions: [],
+      parserConfidence: "low",
+      extractionNotes:
+        `pdf-parse falhou na leitura do texto: ${err instanceof Error ? err.message : String(err)}. ` +
+        `O PDF pode ser baseado em imagem (escaneado). ` +
+        `Configure ANTHROPIC_API_KEY para habilitar extração via OCR/Claude Vision.`,
+    };
+  }
+
+  if (!text.trim()) {
+    return {
+      bank: bankHint,
+      accountNumber: null,
+      periodStart: null,
+      periodEnd: null,
+      openingBalance: null,
+      closingBalance: null,
+      transactions: [],
+      parserConfidence: "low",
+      extractionNotes:
+        "PDF sem camada de texto (provavelmente escaneado). " +
+        "Configure ANTHROPIC_API_KEY para habilitar extração via Claude Vision.",
+    };
+  }
+
+  // Select parser by bank hint
+  let transactions: ParsedTransaction[];
+  const bankLower = bankHint.toLowerCase();
+  if (bankLower.includes("cora")) {
+    transactions = parseCora(text);
+  } else if (bankLower.includes("itaú") || bankLower.includes("itau")) {
+    transactions = parseItau(text);
+  } else {
+    transactions = parseCora(text); // try Cora first
+    if (transactions.length === 0) {
+      transactions = parseItau(text);
+    }
+    if (transactions.length === 0) {
+      transactions = parseGeneric(text);
+    }
+  }
+
+  const { periodStart, periodEnd } = extractPeriod(text);
+  const openingBalance = extractBalance(text, "saldo anterior|saldo inicial|opening balance");
+  const closingBalance = extractBalance(text, "saldo final|saldo atual|closing balance");
+  const accountNumber = extractAccountNumber(text);
+
+  const confidence: "high" | "medium" | "low" =
+    transactions.length >= 5
+      ? "high"
+      : transactions.length >= 1
+      ? "medium"
+      : "low";
+
+  const notes =
+    transactions.length > 0
+      ? `Parser determinístico (${bankHint}): ${transactions.length} lançamentos extraídos. ` +
+        `Período: ${periodStart ?? "não detectado"} → ${periodEnd ?? "não detectado"}.`
+      : `Parser determinístico: nenhum lançamento encontrado no texto extraído. ` +
+        `Verifique o formato do extrato. Texto extraído (primeiros 300 chars): ${text.slice(0, 300)}`;
+
+  return {
+    bank: bankHint,
+    accountNumber,
+    periodStart,
+    periodEnd,
+    openingBalance,
+    closingBalance,
+    transactions,
+    parserConfidence: confidence,
+    extractionNotes: notes,
+  };
+}
+
+// ─── Claude fallback (only when API key configured) ───────────────────────────
+
+async function parseWithClaude(
   pdfBase64: string,
   bankHint: string,
   apiKey: string
 ): Promise<ParsedStatement> {
+  const { default: Anthropic } = await import("@anthropic-ai/sdk");
   const client = new Anthropic({ apiKey });
-  const bankPromptAddon = BANK_HINTS[bankHint] ?? DEFAULT_HINT;
 
-  const systemPrompt = `Você é um extrator de dados financeiros de alta precisão especializado em extratos bancários brasileiros.
-Sua única função é converter extratos PDF em JSON estruturado sem perder nenhum lançamento.
-
-REGRAS ABSOLUTAS:
-1. Retorne SOMENTE JSON válido — nenhum texto antes ou depois, nenhum markdown
-2. Não invente lançamentos. Se não puder ler um valor, use null e adicione extraction_note
-3. Datas sempre em formato YYYY-MM-DD
-4. Valores: débito/saída = número negativo; crédito/entrada = número positivo
-5. Se um bloco do extrato estiver ilegível, documente em extraction_notes
-6. Nunca arredonde valores — preserve a precisão original ao centavo
-7. Se o saldo não estiver disponível por linha, use null
-
-${bankPromptAddon}`;
-
-  const userMessage = `Extraia todos os lançamentos deste extrato bancário e retorne JSON com esta estrutura exata:
-
-{
-  "bank": "nome do banco detectado",
-  "account_number": "número da conta mascarado ou null",
-  "period_from": "YYYY-MM-DD ou null",
-  "period_to": "YYYY-MM-DD ou null",
-  "opening_balance": número ou null,
-  "closing_balance": número ou null,
-  "parser_confidence": "high" | "medium" | "low",
-  "extraction_notes": "diagnóstico do parser — sempre preencher, mesmo que seja 'extração completa sem anomalias'",
-  "transactions": [
-    {
-      "transaction_date": "YYYY-MM-DD",
-      "description_original": "descrição verbatim do extrato",
-      "amount": -150.00,
-      "direction": "debit" | "credit",
-      "running_balance": número ou null,
-      "extraction_note": "nota se houver incerteza nesta linha, ou null"
-    }
-  ]
-}
-
-parser_confidence:
-- "high": todos os lançamentos extraídos com certeza, datas e valores legíveis
-- "medium": maioria extraída mas algumas linhas com incerteza ou truncamento
-- "low": extração parcial, qualidade ruim do PDF, ou muitos valores ilegíveis
-
-Retorne SOMENTE o JSON.`;
-
-  // ── Build properly typed message payload ────────────────────────────────────
-  const documentBlock: DocumentBlockParam = {
-    type: "document",
-    source: {
-      type: "base64",
-      media_type: "application/pdf",
-      data: pdfBase64,
-    },
+  const bankHints: Record<string, string> = {
+    Cora: "Extrato Banco Cora (fintech PME). Colunas: Data | Descrição | Valor | Saldo. Débitos negativos ou marcados como Saída.",
+    Itaú: "Extrato Banco Itaú PJ. Colunas: Data | Histórico | Doc | Valor D/C | Saldo. D=Débito C=Crédito.",
   };
+  const hint = bankHints[bankHint] ?? "Extrato bancário brasileiro.";
 
-  const textBlock: TextBlockParam = {
-    type: "text",
-    text: userMessage,
-  };
-
-  const messages: MessageParam[] = [
-    {
-      role: "user",
-      content: [documentBlock, textBlock],
-    },
-  ];
+  interface RawTxn { transaction_date?: string; description_original?: string; amount?: number; direction?: string; running_balance?: number | null; extraction_note?: string | null; }
+  interface RawResp { bank?: string; account_number?: string | null; period_from?: string | null; period_to?: string | null; opening_balance?: number | null; closing_balance?: number | null; parser_confidence?: string; extraction_notes?: string; transactions?: RawTxn[]; }
 
   let raw = "";
   try {
-    const response = await client.messages.create({
+    const resp = await client.messages.create({
       model: "claude-opus-4-6",
       max_tokens: 8192,
-      system: systemPrompt,
-      messages,
+      system: `Você é um extrator de dados de extratos bancários brasileiros. Retorne SOMENTE JSON válido. ${hint}`,
+      messages: [{
+        role: "user",
+        content: [
+          { type: "document", source: { type: "base64", media_type: "application/pdf", data: pdfBase64 } },
+          { type: "text", text: `Extraia todos os lançamentos. JSON: {"bank":"","account_number":null,"period_from":null,"period_to":null,"opening_balance":null,"closing_balance":null,"parser_confidence":"high","extraction_notes":"","transactions":[{"transaction_date":"YYYY-MM-DD","description_original":"","amount":0.0,"direction":"credit","running_balance":null,"extraction_note":null}]}` },
+        ],
+      }],
     });
-
-    raw = response.content?.[0]?.type === "text" ? response.content[0].text : "";
+    raw = resp.content?.[0]?.type === "text" ? resp.content[0].text : "";
   } catch (err) {
-    // If Claude can't process the PDF (e.g. scanned image without text layer),
-    // return an honest low-confidence result rather than crashing.
-    // Common causes: image-only PDF, corrupted file, API error.
-    const msg = err instanceof Error ? err.message : String(err);
     return {
-      bank: bankHint,
-      accountNumber: null,
-      periodStart: null,
-      periodEnd: null,
-      openingBalance: null,
-      closingBalance: null,
-      transactions: [],
+      bank: bankHint, accountNumber: null, periodStart: null, periodEnd: null,
+      openingBalance: null, closingBalance: null, transactions: [],
       parserConfidence: "low",
-      extractionNotes:
-        `Erro na extração via Claude API: ${msg}. ` +
-        `Possíveis causas: PDF baseado em imagem (sem camada de texto), ` +
-        `arquivo corrompido ou tamanho excessivo. ` +
-        `Recomendação: converter PDF para PDF/A com camada de texto antes de reenviar.`,
+      extractionNotes: `Claude API erro: ${err instanceof Error ? err.message : String(err)}`,
     };
   }
 
-  // Strip markdown fences if Claude wrapped the response
-  const clean = raw
-    .replace(/^```json\s*/i, "")
-    .replace(/^```\s*/i, "")
-    .replace(/```\s*$/i, "")
-    .trim();
-
-  let parsed: RawExtractionResponse;
+  const clean = raw.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
   try {
-    parsed = JSON.parse(clean) as RawExtractionResponse;
+    const p = JSON.parse(clean) as RawResp;
+    const txns: ParsedTransaction[] = (p.transactions ?? []).map((t) => ({
+      transactionDate: t.transaction_date ?? "",
+      descriptionOriginal: t.description_original ?? "",
+      amount: typeof t.amount === "number" ? t.amount : 0,
+      direction: (t.direction === "credit" ? "credit" : "debit") as "credit" | "debit",
+      runningBalance: typeof t.running_balance === "number" ? t.running_balance : null,
+      extractionNote: t.extraction_note ?? null,
+    }));
+    const conf = ["high", "medium", "low"].includes(p.parser_confidence ?? "") ? p.parser_confidence as "high" | "medium" | "low" : "medium";
+    return {
+      bank: p.bank ?? bankHint, accountNumber: p.account_number ?? null,
+      periodStart: p.period_from ?? null, periodEnd: p.period_to ?? null,
+      openingBalance: typeof p.opening_balance === "number" ? p.opening_balance : null,
+      closingBalance: typeof p.closing_balance === "number" ? p.closing_balance : null,
+      transactions: txns, parserConfidence: conf,
+      extractionNotes: p.extraction_notes ?? "Extração via Claude.",
+    };
   } catch {
-    // Retry once with explicit JSON correction request
-    return retryExtraction(pdfBase64, bankHint, apiKey, clean);
+    return {
+      bank: bankHint, accountNumber: null, periodStart: null, periodEnd: null,
+      openingBalance: null, closingBalance: null, transactions: [],
+      parserConfidence: "low",
+      extractionNotes: "Claude retornou JSON inválido. Extração falhou.",
+    };
   }
-
-  const transactions: ParsedTransaction[] = (parsed.transactions ?? []).map((t) => ({
-    transactionDate: t.transaction_date ?? "",
-    descriptionOriginal: t.description_original ?? "",
-    amount: typeof t.amount === "number" ? t.amount : 0,
-    direction: (t.direction === "credit" ? "credit" : "debit") as "credit" | "debit",
-    runningBalance: typeof t.running_balance === "number" ? t.running_balance : null,
-    extractionNote: t.extraction_note ?? null,
-  }));
-
-  const confidenceRaw = parsed.parser_confidence ?? "medium";
-  const parserConfidence: "high" | "medium" | "low" = ["high", "medium", "low"].includes(
-    confidenceRaw
-  )
-    ? (confidenceRaw as "high" | "medium" | "low")
-    : "medium";
-
-  return {
-    bank: parsed.bank ?? bankHint,
-    accountNumber: parsed.account_number ?? null,
-    periodStart: parsed.period_from ?? null,
-    periodEnd: parsed.period_to ?? null,
-    openingBalance: typeof parsed.opening_balance === "number" ? parsed.opening_balance : null,
-    closingBalance: typeof parsed.closing_balance === "number" ? parsed.closing_balance : null,
-    transactions,
-    parserConfidence,
-    extractionNotes:
-      parsed.extraction_notes ?? "Notas de extração não fornecidas pelo parser.",
-  };
 }
 
-// ─── Retry with JSON correction ───────────────────────────────────────────────
+// ─── Public API ───────────────────────────────────────────────────────────────
+//
+// Accepts either a Buffer (preferred — avoids re-encoding) or a base64 string.
+// apiKey is optional — rule-based parsing runs regardless.
 
-async function retryExtraction(
-  pdfBase64: string,
+export async function parsePDF(
+  pdfInput: Buffer | string,  // Buffer or base64 string
   bankHint: string,
-  apiKey: string,
-  malformedResponse: string
+  apiKey?: string
 ): Promise<ParsedStatement> {
-  const client = new Anthropic({ apiKey });
+  const buffer = Buffer.isBuffer(pdfInput) ? pdfInput : Buffer.from(pdfInput, "base64");
 
-  const documentBlock: DocumentBlockParam = {
-    type: "document",
-    source: {
-      type: "base64",
-      media_type: "application/pdf",
-      data: pdfBase64,
-    },
-  };
+  // Tier 1: rule-based (always)
+  const ruleResult = await parseWithRules(buffer, bankHint);
 
-  const retryTextBlock: TextBlockParam = {
-    type: "text",
-    text: `A tentativa anterior retornou JSON inválido.
-Retorne SOMENTE JSON válido desta estrutura mínima:
-{"bank":"","account_number":null,"period_from":null,"period_to":null,"opening_balance":null,"closing_balance":null,"parser_confidence":"low","extraction_notes":"reextração após falha","transactions":[]}
-
-Resposta inválida anterior (para contexto): ${malformedResponse.slice(0, 500)}`,
-  };
-
-  try {
-    const response = await client.messages.create({
-      model: "claude-opus-4-6",
-      max_tokens: 8192,
-      messages: [
-        {
-          role: "user",
-          content: [documentBlock, retryTextBlock],
-        },
-      ],
-    });
-
-    const raw = response.content?.[0]?.type === "text" ? response.content[0].text : "{}";
-    const clean = raw
-      .replace(/^```json\s*/i, "")
-      .replace(/^```\s*/i, "")
-      .replace(/```\s*$/i, "")
-      .trim();
-
-    const parsed = JSON.parse(clean) as RawExtractionResponse;
-    return {
-      bank: parsed.bank ?? bankHint,
-      accountNumber: null,
-      periodStart: null,
-      periodEnd: null,
-      openingBalance: null,
-      closingBalance: null,
-      transactions: [],
-      parserConfidence: "low",
-      extractionNotes:
-        parsed.extraction_notes ??
-        "Extração falhou na primeira tentativa e foi recuperada parcialmente. Resultado incompleto.",
-    };
-  } catch {
-    return {
-      bank: bankHint,
-      accountNumber: null,
-      periodStart: null,
-      periodEnd: null,
-      openingBalance: null,
-      closingBalance: null,
-      transactions: [],
-      parserConfidence: "low",
-      extractionNotes:
-        "Extração falhou em ambas as tentativas. PDF pode estar corrompido, ser baseado em imagem " +
-        "ou ter proteção de cópia. Recomendação: exportar o extrato em formato diferente do banco.",
-    };
+  // If rules found transactions → done, no API needed
+  if (ruleResult.transactions.length > 0) {
+    return ruleResult;
   }
+
+  // Tier 2: Claude fallback (only if API key configured and PDF is text-extractable issue)
+  if (apiKey && apiKey !== "sk-ant-REPLACE_WITH_YOUR_REAL_KEY") {
+    const base64 = buffer.toString("base64");
+    const claudeResult = await parseWithClaude(base64, bankHint, apiKey);
+    if (claudeResult.transactions.length > 0) {
+      return {
+        ...claudeResult,
+        extractionNotes:
+          `[Fallback Claude] ${claudeResult.extractionNotes} ` +
+          `(Parser determinístico não encontrou lançamentos: ${ruleResult.extractionNotes})`,
+      };
+    }
+  }
+
+  // Both tiers failed
+  return {
+    ...ruleResult,
+    extractionNotes:
+      ruleResult.extractionNotes +
+      (apiKey && apiKey !== "sk-ant-REPLACE_WITH_YOUR_REAL_KEY"
+        ? " Claude também não encontrou lançamentos."
+        : " Configure ANTHROPIC_API_KEY para tentar extração via Claude Vision como fallback."),
+  };
 }

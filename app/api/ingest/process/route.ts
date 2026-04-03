@@ -69,14 +69,9 @@ export async function POST(req: NextRequest): Promise<Response> {
     );
   }
 
-  // Resolve API key — server only
+  // API key is optional — rule-based parser runs without it.
+  // Claude Vision fallback activates automatically when key is present.
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey || apiKey === "sk-ant-api03-placeholder") {
-    return new Response(
-      sse({ error: "ANTHROPIC_API_KEY não configurada no servidor. Configure a env var para usar ingestão." }),
-      { status: 503, headers: { "Content-Type": "text/event-stream" } }
-    );
-  }
 
   const encoder = new TextEncoder();
 
@@ -101,11 +96,16 @@ export async function POST(req: NextRequest): Promise<Response> {
         }
         const pdfPath = path.join(PDF_DIR, pdfFiles[0]);
         const pdfBuffer = fs.readFileSync(pdfPath);
-        const pdfBase64 = pdfBuffer.toString("base64");
 
-        send({ stage: "extracting", message: `PDF carregado (${Math.round(pdfBuffer.length / 1024)}KB). Iniciando extração...` });
+        send({
+          stage: "extracting",
+          message: `PDF carregado (${Math.round(pdfBuffer.length / 1024)}KB). Iniciando extração...`,
+          hasApiKey: !!apiKey,
+        });
 
-        const parsed = await parsePDF(pdfBase64, doc.bank, apiKey);
+        // Pass the buffer directly — parsePDF accepts Buffer or base64.
+        // apiKey is optional; Claude Vision fallback only runs if key is set.
+        const parsed = await parsePDF(pdfBuffer, doc.bank, apiKey);
 
         send({
           stage: "extracting",
