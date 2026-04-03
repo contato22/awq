@@ -333,12 +333,16 @@ async function parseWithRules(
 
   if (bankLower.includes("cora")) {
     transactions = parseCora(text);
+    // Fallback: Cora export format varies — try generic if specific parser yields nothing
+    if (transactions.length === 0) transactions = parseGeneric(text);
   } else if (bankLower.includes("nubank")) {
     transactions = parseNubank(text);
-    if (transactions.length === 0) transactions = parseCora(text); // Nubank layout varies by export
+    if (transactions.length === 0) transactions = parseCora(text);
+    if (transactions.length === 0) transactions = parseGeneric(text);
   } else if (bankLower.includes("inter")) {
     transactions = parseInter(text);
-    if (transactions.length === 0) transactions = parseItau(text);  // similar D/C format
+    if (transactions.length === 0) transactions = parseItau(text); // similar D/C format
+    if (transactions.length === 0) transactions = parseGeneric(text);
   } else if (
     bankLower.includes("itaú") || bankLower.includes("itau") ||
     bankLower.includes("bradesco") || bankLower.includes("santander") ||
@@ -347,6 +351,7 @@ async function parseWithRules(
   ) {
     // Traditional banks share the D/C column convention
     transactions = parseItau(text);
+    if (transactions.length === 0) transactions = parseGeneric(text);
   } else if (
     bankLower.includes("c6") || bankLower.includes("pagbank") ||
     bankLower.includes("pag bank") || bankLower.includes("btg") ||
@@ -355,6 +360,7 @@ async function parseWithRules(
     // Digital banks tend to use signed values like Nubank
     transactions = parseNubank(text);
     if (transactions.length === 0) transactions = parseCora(text);
+    if (transactions.length === 0) transactions = parseGeneric(text);
   } else {
     // Unknown bank — try all parsers in order of specificity
     transactions = parseCora(text);

@@ -18,6 +18,7 @@ import {
   type LayerValidationStatus, type LayerProductionStatus,
 } from "@/lib/financial-ingest-status";
 import { PLATFORM_ROUTES } from "@/lib/platform-registry";
+import { SNAPSHOT_REGISTRY, getSnapshotMigrationStatus } from "@/lib/snapshot-registry";
 
 // ─── Local types ─────────────────────────────────────────────────────────────
 
@@ -492,6 +493,70 @@ export default async function AwqDataPage() {
             ))}
           </div>
         </div>
+
+        {/* ── 5.8 Snapshot Migration Map ──────────────────────────────────── */}
+        {(() => {
+          const migration = getSnapshotMigrationStatus();
+          return (
+            <div className="card p-5">
+              <div className="flex items-center gap-2 mb-1">
+                <AlertTriangle size={15} className="text-amber-600" />
+                <h2 className="text-sm font-semibold text-gray-900">Mapa de Migracao de Snapshots</h2>
+                <span className="ml-auto text-[10px] text-gray-400">{migration.totalSources} fontes · {migration.totalConsumers} paginas consumidoras</span>
+              </div>
+              <p className="text-[11px] text-gray-500 mb-4">
+                Toda fonte de dados snapshot esta registrada aqui. Este e o firewall contra proliferacao de novos hardcodes.
+                Nenhum novo array financeiro pode ser adicionado sem entrada neste registro.
+              </p>
+              <div className="grid grid-cols-4 gap-3 mb-4 text-center">
+                {[
+                  { label: "Ativas",             v: migration.activeSources,   cls: "bg-amber-50 text-amber-700 border-amber-200" },
+                  { label: "Migracao pendente",   v: migration.pendingSources,  cls: "bg-blue-50 text-blue-700 border-blue-200"   },
+                  { label: "Substituidas",         v: migration.replacedSources, cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+                  { label: "Bloqueadas",           v: migration.blockedSources,  cls: "bg-red-50 text-red-700 border-red-200"     },
+                ].map((s) => (
+                  <div key={s.label} className={"rounded-lg border p-3 " + s.cls}>
+                    <div className="text-xl font-bold">{s.v}</div>
+                    <div className="text-[10px] mt-0.5">{s.label}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="space-y-3">
+                {SNAPSHOT_REGISTRY.map((src) => (
+                  <div key={src.file} className="rounded-lg border border-amber-100 bg-amber-50/40 p-3">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                      <code className="text-[10px] font-mono font-semibold text-amber-900 bg-amber-100 px-1.5 py-0.5 rounded">{src.file}</code>
+                      <span className={"inline-block px-2 py-0.5 rounded text-[9px] font-bold " +
+                        (src.status === "active" ? "bg-amber-200 text-amber-800" :
+                         src.status === "migration-pending" ? "bg-blue-100 text-blue-700" :
+                         src.status === "replaced" ? "bg-emerald-100 text-emerald-700" :
+                         "bg-red-100 text-red-700")}>
+                        {src.status}
+                      </span>
+                      <span className="text-[10px] text-gray-500">{src.period}</span>
+                    </div>
+                    <p className="text-[10px] text-gray-600 mb-1">{src.scope}</p>
+                    <div className="flex flex-wrap gap-1 mb-2">
+                      {src.consumers.map((c) => (
+                        <code key={c} className="text-[9px] font-mono bg-white border border-amber-100 px-1 py-0.5 rounded text-gray-500">{c}</code>
+                      ))}
+                    </div>
+                    {src.migratesTo && (
+                      <p className="text-[10px] text-blue-600">
+                        <span className="font-semibold">Migra para:</span> {src.migratesTo}
+                      </p>
+                    )}
+                    {src.migrationBlocker && (
+                      <p className="text-[10px] text-gray-400 mt-0.5">
+                        <span className="font-semibold">Bloqueio:</span> {src.migrationBlocker}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* ── Footer ──────────────────────────────────────────────────────── */}
         <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">

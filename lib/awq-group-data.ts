@@ -1,4 +1,17 @@
 // ─── AWQ Group — Consolidated holding data · YTD Jan–Mar 2026 ─────────────────
+//
+// ⚠  SNAPSHOT / PLANNING DATA — registered in lib/snapshot-registry.ts
+//
+// CLASSIFICATION: accrual P&L snapshot (NOT cash-basis, NOT from bank statements).
+// SOURCE: manually curated Q1 2026 planning data.
+// STATUS: intentional — hybrid architecture until invoice/NF ingestion is built.
+//
+// FOR CASH-BASIS REAL DATA: use lib/financial-query.ts → buildFinancialQuery()
+// Pages that already use the real pipeline: /awq/financial, /awq/cashflow
+//
+// DO NOT add new hardcoded revenue/EBITDA/expense values here.
+// DO NOT import this file in new pages without a snapshot-registry.ts entry.
+// DO NOT use these values as source of truth for cash-position or bank reconciliation.
 
 export interface BuData {
   id:               string;
