@@ -1,5 +1,11 @@
 "use client";
 
+// ─── Environment detection ─────────────────────────────────────────────────────
+// NEXT_PUBLIC_STATIC_DATA=1 is set by the GitHub Pages workflow (STATIC_EXPORT=1).
+// In a static export there is no server, no filesystem writes, and no API routes.
+// The ingestion pipeline is structurally incompatible with this environment.
+const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
+
 import { useState, useRef, useCallback, useEffect } from "react";
 import Header from "@/components/Header";
 import {
@@ -345,6 +351,77 @@ export default function IngestPage() {
   const docDebits  = transactions.filter((t) => !t.excludedFromConsolidated && t.direction === "debit").reduce((s, t) => s + Math.abs(t.amount), 0);
   const intercompanyCount = transactions.filter((t) => t.isIntercompany).length;
   const ambiguousCount    = transactions.filter((t) => t.classificationConfidence === "ambiguous").length;
+
+  // ── Static environment blocker ────────────────────────────────────────────
+  // In GitHub Pages (NEXT_PUBLIC_STATIC_DATA=1) the API routes do not exist.
+  // Rendering the upload form would silently fail — show an honest notice instead.
+  if (IS_STATIC) {
+    return (
+      <>
+        <Header
+          title="Ingestão Financeira"
+          subtitle="Upload de extratos PDF · Extração · Classificação · Reconciliação"
+        />
+        <div className="px-8 py-10 max-w-2xl">
+          <div className="rounded-xl border-2 border-amber-200 bg-amber-50 p-6 space-y-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle size={20} className="text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <h2 className="text-sm font-bold text-amber-900">
+                  Pipeline de ingestão não disponível neste ambiente
+                </h2>
+                <p className="text-xs text-amber-700 mt-1 leading-relaxed">
+                  Este site está publicado como exportação estática (GitHub Pages).
+                  Ambientes estáticos não suportam execução de servidor, gravação em
+                  sistema de arquivos ou chamadas à API Claude — todas operações
+                  obrigatórias para o pipeline de ingestão bancária.
+                </p>
+              </div>
+            </div>
+
+            <div className="border-t border-amber-200 pt-4 space-y-3">
+              <p className="text-xs font-semibold text-amber-900">O que não está disponível aqui:</p>
+              <ul className="text-xs text-amber-700 space-y-1 ml-3">
+                <li>✗ Upload de PDF de extrato bancário</li>
+                <li>✗ Extração de transações (Claude API — requer servidor)</li>
+                <li>✗ Classificação e reconciliação (requer Node.js + fs)</li>
+                <li>✗ Persistência de <code className="font-mono bg-amber-100 px-1 rounded">documents.json</code> / <code className="font-mono bg-amber-100 px-1 rounded">transactions.json</code></li>
+                <li>✗ Streaming SSE do pipeline (<code className="font-mono bg-amber-100 px-1 rounded">/api/ingest/process</code>)</li>
+              </ul>
+            </div>
+
+            <div className="border-t border-amber-200 pt-4 space-y-3">
+              <p className="text-xs font-semibold text-amber-900">Para usar o pipeline real:</p>
+              <div className="bg-gray-900 text-green-400 text-xs font-mono rounded-lg p-3 space-y-1">
+                <div>git clone https://github.com/contato22/awq</div>
+                <div>npm install</div>
+                <div>npm run dev  <span className="text-gray-500"># ingestão disponível em localhost:3000</span></div>
+              </div>
+              <p className="text-[11px] text-amber-600">
+                Para produção persistente: migre para Vercel + Vercel Blob (storage externo).
+                O filesystem do GitHub Pages é somente leitura e sem execução server-side.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-6 flex gap-3">
+            <a
+              href="../management"
+              className="text-xs px-4 py-2 bg-gray-100 border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-200 transition-colors font-medium"
+            >
+              → Ver Gestão da Base
+            </a>
+            <a
+              href="../data"
+              className="text-xs px-4 py-2 bg-gray-100 border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-200 transition-colors font-medium"
+            >
+              → Base de Dados
+            </a>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>

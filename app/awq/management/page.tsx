@@ -81,6 +81,9 @@ function Stat({ label, value, sub, color = "text-gray-900" }: {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function ManagementPage() {
+  // Environment detection — baked in at build time by the GitHub Pages workflow
+  const isStaticEnv = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
+
   const diag   = getManagementDiagnostics();
   const snap   = getSnapshotMigrationStatus();
   const awqRoutes = PLATFORM_ROUTES.filter((r) => r.bu === "awq" && r.status === "active");
@@ -127,6 +130,43 @@ export default async function ManagementPage() {
           </Link>
         </div>
       </div>
+
+      {/* ── §∅ Environment Status ─────────────────────────────────────────── */}
+      {isStaticEnv ? (
+        <div className="mb-6 flex items-start gap-3 bg-amber-50 border-2 border-amber-300 rounded-xl p-4">
+          <span className="text-amber-500 shrink-0 mt-0.5 text-lg">⚠</span>
+          <div>
+            <div className="text-sm font-bold text-amber-800">
+              Ambiente: GitHub Pages (exportação estática)
+              <span className="ml-2 text-[10px] font-bold px-2 py-0.5 rounded bg-amber-200 text-amber-800 uppercase tracking-widest">SEM SERVIDOR</span>
+            </div>
+            <div className="text-xs text-amber-700 mt-1 leading-relaxed">
+              Este ambiente não suporta ingestão real de extratos bancários. Não há servidor,
+              não há sistema de arquivos gravável e não há execução de API routes. A base
+              financeira (<code className="font-mono bg-amber-100 px-1 rounded">documents.json</code> /{" "}
+              <code className="font-mono bg-amber-100 px-1 rounded">transactions.json</code>) estará
+              sempre vazia neste ambiente — isso não é um bug, é uma limitação estrutural do deploy.
+            </div>
+            <div className="text-xs text-amber-600 mt-2">
+              Para ingestão real: execute localmente (<code className="font-mono bg-amber-100 px-1 rounded">npm run dev</code>) ou
+              migre para Vercel + armazenamento externo (Vercel Blob / Postgres).
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="mb-6 flex items-start gap-3 bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+          <span className="text-emerald-500 shrink-0 mt-0.5 text-lg">✓</span>
+          <div>
+            <div className="text-sm font-bold text-emerald-800">
+              Ambiente: Servidor ativo
+              <span className="ml-2 text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-200 text-emerald-800 uppercase tracking-widest">PIPELINE DISPONÍVEL</span>
+            </div>
+            <div className="text-xs text-emerald-700 mt-1">
+              API routes disponíveis. Ingestão real operacional. Pipeline pode receber e processar extratos.
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── §0 Bank Account Registry ──────────────────────────────────────── */}
       <SectionTitle>§0 · Topologia Bancária Canônica</SectionTitle>
