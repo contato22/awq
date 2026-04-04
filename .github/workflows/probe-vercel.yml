@@ -6,6 +6,9 @@ name: Probe Live Vercel Environment
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
 
 permissions:
   contents: read
@@ -16,6 +19,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Wait for Vercel deployment
+        if: github.event_name == 'push'
+        run: |
+          echo "Waiting 90s for Vercel GitHub App to build and deploy..."
+          sleep 90
+
       - name: Probe — login page (unauthenticated)
         id: login
         run: |
