@@ -187,6 +187,51 @@ jobs:
           fi
           # Do NOT exit 1 here — this is informational
 
+      # ── ASSERTION 5: /api/health — full env var presence check ──────────────────
+      # PASS: endpoint returns 200 with valid JSON containing db/blob/ai/auth flags
+      # FAIL: endpoint not found (not deployed), returns 500, or body missing flags
+      # Each flag (db, blob, ai, auth, authUrl) is stored as GITHUB_OUTPUT for Summary.
+      # This is the ONLY way to empirically verify DATABASE_URL, BLOB_READ_WRITE_TOKEN,
+      # and ANTHROPIC_API_KEY from the probe without uploading real data.
+      - name: "ASSERT — /api/health returns env var presence map (public endpoint)"
+        id: assert_health
+        continue-on-error: true
+        run: |
+          BODY=$(curl -s --max-time 20 https://awq-brown.vercel.app/api/health 2>/dev/null || true)
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 \
+            https://awq-brown.vercel.app/api/health 2>/dev/null || echo "000")
+          echo "health_status=$STATUS" >> $GITHUB_OUTPUT
+          echo "HTTP $STATUS"
+          echo "Body: $BODY"
+          if [ "$STATUS" != "200" ]; then
+            echo "FAIL: /api/health returned $STATUS (expected 200)"
+            echo "Endpoint may not exist yet or deployment is outdated"
+            exit 1
+          fi
+          # Parse each flag from JSON
+          DB=$(echo "$BODY"   | python3 -c "import json,sys; d=json.load(sys.stdin); print(str(d.get('db',False)).lower())" 2>/dev/null || echo "parse_error")
+          BLOB=$(echo "$BODY" | python3 -c "import json,sys; d=json.load(sys.stdin); print(str(d.get('blob',False)).lower())" 2>/dev/null || echo "parse_error")
+          AI=$(echo "$BODY"   | python3 -c "import json,sys; d=json.load(sys.stdin); print(str(d.get('ai',False)).lower())" 2>/dev/null || echo "parse_error")
+          AUTH=$(echo "$BODY" | python3 -c "import json,sys; d=json.load(sys.stdin); print(str(d.get('auth',False)).lower())" 2>/dev/null || echo "parse_error")
+          AUTHURL=$(echo "$BODY" | python3 -c "import json,sys; d=json.load(sys.stdin); print(str(d.get('authUrl',False)).lower())" 2>/dev/null || echo "parse_error")
+          DBADAPTER=$(echo "$BODY" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('dbAdapter','unknown'))" 2>/dev/null || echo "unknown")
+          BLOBADAPTER=$(echo "$BODY" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('blobAdapter','unknown'))" 2>/dev/null || echo "unknown")
+          echo "health_db=$DB"               >> $GITHUB_OUTPUT
+          echo "health_blob=$BLOB"           >> $GITHUB_OUTPUT
+          echo "health_ai=$AI"               >> $GITHUB_OUTPUT
+          echo "health_auth=$AUTH"           >> $GITHUB_OUTPUT
+          echo "health_authurl=$AUTHURL"     >> $GITHUB_OUTPUT
+          echo "health_dbadapter=$DBADAPTER" >> $GITHUB_OUTPUT
+          echo "health_blobadapter=$BLOBADAPTER" >> $GITHUB_OUTPUT
+          echo ""
+          echo "═══ Infrastructure Status ═══"
+          echo "  DATABASE_URL        → db=$DB        (adapter: $DBADAPTER)"
+          echo "  BLOB_READ_WRITE_TOKEN → blob=$BLOB  (adapter: $BLOBADAPTER)"
+          echo "  ANTHROPIC_API_KEY   → ai=$AI"
+          echo "  NEXTAUTH_SECRET     → auth=$AUTH"
+          echo "  NEXTAUTH_URL        → authUrl=$AUTHURL"
+          echo "══════════════════════════════"
+
       # ── Summary ────────────────────────────────────────────────────────────────
       - name: Summary
         if: always()
@@ -215,12 +260,13 @@ jobs:
           echo "| Next.js __NEXT_DATA__ marker | ${{ steps.info_db.outputs.next_data }} |" >> $GITHUB_STEP_SUMMARY
           echo "| CSRF token length | ${{ steps.assert_nextauth.outputs.csrf_token_length }} chars |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Env vars still requiring Vercel dashboard verification" >> $GITHUB_STEP_SUMMARY
+          echo "### /api/health — Env var presence map" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Variable | Verifiable by probe | Evidence needed |" >> $GITHUB_STEP_SUMMARY
+          echo "| Variable | Present | Adapter |" >> $GITHUB_STEP_SUMMARY
           echo "|---|---|---|" >> $GITHUB_STEP_SUMMARY
-          echo "| NEXTAUTH_SECRET | YES — via /api/auth/csrf csrfToken | step assert_nextauth |" >> $GITHUB_STEP_SUMMARY
-          echo "| NEXTAUTH_URL | PARTIAL — via CSRF response URL | dashboard check |" >> $GITHUB_STEP_SUMMARY
-          echo "| DATABASE_URL | PARTIAL — via 500 on /api/ingest/* | upload real PDF |" >> $GITHUB_STEP_SUMMARY
-          echo "| BLOB_READ_WRITE_TOKEN | NO — requires actual upload | upload real PDF |" >> $GITHUB_STEP_SUMMARY
-          echo "| ANTHROPIC_API_KEY | NO — requires actual processing | process real PDF |" >> $GITHUB_STEP_SUMMARY
+          echo "| DATABASE_URL | ${{ steps.assert_health.outputs.health_db }} | ${{ steps.assert_health.outputs.health_dbadapter }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| BLOB_READ_WRITE_TOKEN | ${{ steps.assert_health.outputs.health_blob }} | ${{ steps.assert_health.outputs.health_blobadapter }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| ANTHROPIC_API_KEY | ${{ steps.assert_health.outputs.health_ai }} | — |" >> $GITHUB_STEP_SUMMARY
+          echo "| NEXTAUTH_SECRET | ${{ steps.assert_health.outputs.health_auth }} | — |" >> $GITHUB_STEP_SUMMARY
+          echo "| NEXTAUTH_URL | ${{ steps.assert_health.outputs.health_authurl }} | — |" >> $GITHUB_STEP_SUMMARY
+          echo "| /api/health HTTP | ${{ steps.assert_health.outputs.health_status }} | — |" >> $GITHUB_STEP_SUMMARY
