@@ -1,8 +1,9 @@
 // ─── /awq/investments — Área de Investimentos Financeiros ────────────────────
-// DATA SOURCE: financial-db.ts via investment-query.ts
+// DATA SOURCE: financial-db.ts via investment-query.ts (primary — real pipeline)
+//              holdingTreasurySnapshot (fallback — empirical print when no PDF ingested)
 // SCOPE: aplicacao_financeira + resgate_financeiro + fila de revisão
 // This is NOT operational cash flow. Patrimonial / treasury movements only.
-// NO MOCKS, NO SNAPSHOTS, NO HARDCODES.
+// NO MOCKS. Snapshot only shown when pipeline has no data, clearly labeled.
 
 import Header from "@/components/Header";
 import {
@@ -17,6 +18,8 @@ import {
   ShieldAlert,
   Activity,
   Building2,
+  Camera,
+  XCircle,
 } from "lucide-react";
 import {
   buildInvestmentQuery,
@@ -27,6 +30,7 @@ import {
   type InvestmentEntry,
   type EntityInvestmentSummary,
 } from "@/lib/investment-query";
+import { holdingTreasurySnapshot } from "@/lib/awq-derived-metrics";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -65,6 +69,117 @@ function ConfidenceChip({ level }: { level: InvestmentEntry["classificationConfi
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
+
+// ─── Empirical Investment Panel ────────────────────────────────────────────────
+// Shown when pipeline has no ingested documents.
+// Source: holdingTreasurySnapshot — confirmed by bank prints.
+// Clearly labeled as empirical snapshot, not pipeline data.
+
+function EmpiricalInvestmentPanel() {
+  const s = holdingTreasurySnapshot;
+  return (
+    <div className="rounded-xl border border-amber-300 bg-amber-50 p-5">
+      <div className="flex items-start gap-3 mb-4">
+        <Camera size={16} className="text-amber-600 shrink-0 mt-0.5" />
+        <div>
+          <p className="text-sm font-bold text-amber-800">
+            Posição Empírica Confirmada — Print Bancário
+          </p>
+          <p className="text-[11px] text-amber-600 mt-0.5">
+            Fonte: {s.source} · Referência: {s.asOf} · Confiança: print bancário
+          </p>
+          <p className="text-[11px] text-amber-600 mt-0.5">
+            Esta posição será substituída automaticamente após ingesta do extrato PDF em{" "}
+            <a href="/awq/ingest" className="underline font-medium">/awq/ingest</a>.
+          </p>
+        </div>
+      </div>
+
+      {/* Investment position */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+        <div className="rounded-lg bg-white border border-amber-200 p-4">
+          <div className="text-[10px] font-bold text-amber-700 uppercase tracking-wider mb-1">
+            Saldo Total Investido
+          </div>
+          <div className="text-2xl font-bold text-gray-900">{fmtBRL(s.totalInvestedReal)}</div>
+          <div className="text-[11px] text-gray-500 mt-1">{s.investmentType}</div>
+          <div className="text-[10px] text-gray-400">{s.investmentBank}</div>
+          <div className="mt-2 text-[10px] font-semibold text-amber-700 bg-amber-100 border border-amber-200 rounded px-1.5 py-0.5 inline-flex items-center gap-1">
+            <Camera size={8} /> print confirmado
+          </div>
+        </div>
+        <div className="rounded-lg bg-white border border-gray-200 p-4">
+          <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">
+            Caixa Operacional Holding
+          </div>
+          <div className="text-xl font-bold text-gray-900">{fmtBRL(s.operationalCash)}</div>
+          <div className="text-[11px] text-gray-500 mt-1">Cora AWQ — saldo disponível</div>
+          <div className="text-[10px] text-red-500 mt-1 font-semibold">
+            ≠ investimento
+          </div>
+        </div>
+        <div className="rounded-lg bg-white border border-gray-200 p-4">
+          <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">
+            Saldo em Conta Itaú
+          </div>
+          <div className="text-xl font-bold text-gray-900">{fmtBRL(s.investmentAccountCash)}</div>
+          <div className="text-[11px] text-gray-500 mt-1">Itaú Empresas — conta corrente</div>
+          <div className="text-[10px] text-red-500 mt-1 font-semibold">
+            ≠ saldo investido
+          </div>
+        </div>
+      </div>
+
+      {/* Last application */}
+      <div className="rounded-lg bg-white border border-emerald-200 p-3 mb-4">
+        <div className="flex items-center gap-2">
+          <ArrowUpRight size={12} className="text-emerald-600" />
+          <span className="text-xs font-semibold text-gray-800">
+            Última aplicação confirmada:
+          </span>
+          <span className="text-xs font-bold text-red-600">− {fmtBRL(s.lastApplicationAmount)}</span>
+          <span className="text-[11px] text-gray-400">APLICACAO CDB DI · {s.lastApplicationDate}</span>
+          <span className="ml-auto text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-1.5 py-0.5">
+            aplicacao_financeira ✓
+          </span>
+        </div>
+        <div className="text-[10px] text-gray-400 mt-1 ml-5">
+          Classificação correta: excluída do P&amp;L operacional
+        </div>
+      </div>
+
+      {/* NOT investment section */}
+      <div className="rounded-lg border border-red-100 bg-red-50/60 p-3">
+        <p className="text-[11px] font-bold text-red-700 mb-2 flex items-center gap-1.5">
+          <XCircle size={12} /> Itens excluídos da contagem de investimento (evidência empírica)
+        </p>
+        <div className="space-y-1">
+          {[
+            { label: "Tarifas bancárias (Itaú)", amount: s.bankFees, cat: "tarifa_bancaria" },
+            { label: "Reserva de Limite Cartão Cora", amount: s.cardReserveDeposited, cat: "transferencia_interna" },
+            { label: "Pix para AWQ Producoes (intercompany)", amount: s.intercompanyTotal, cat: "transferencia_interna_enviada" },
+            { label: "Retirada sócio Miguel Costa", amount: s.partnerWithdrawals, cat: "prolabore_retirada" },
+            { label: "Saldo em conta Itaú (operacional)", amount: s.investmentAccountCash, cat: "conta_corrente" },
+            { label: "Caixa Cora (operacional)", amount: s.operationalCash, cat: "caixa_operacional" },
+          ].map((item) => (
+            <div key={item.label} className="flex items-center justify-between text-[11px]">
+              <span className="text-gray-600 flex items-center gap-1">
+                <XCircle size={9} className="text-red-400" />
+                {item.label}
+              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-gray-500">{fmtBRL(item.amount)}</span>
+                <span className="text-[9px] text-gray-400 bg-gray-100 border border-gray-200 rounded px-1 py-0.5 font-mono">
+                  {item.cat}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function NoDataBanner({ message, gaps }: { message: string; gaps: string[] }) {
   return (
@@ -260,10 +375,14 @@ export default async function AwqInvestmentsPage() {
 
         {/* ── Empty states ─────────────────────────────────────────────────── */}
         {!q.hasData && (
-          <NoDataBanner
-            message="Aguardando extratos bancários"
-            gaps={q.coverageGaps}
-          />
+          <>
+            <NoDataBanner
+              message="Pipeline financeira aguardando extratos bancários"
+              gaps={q.coverageGaps}
+            />
+            {/* Show empirical snapshot from bank prints while pipeline is empty */}
+            <EmpiricalInvestmentPanel />
+          </>
         )}
 
         {q.hasData && !q.hasInvestmentData && (

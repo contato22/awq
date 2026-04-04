@@ -53,6 +53,8 @@ export {
   buBudgetTargets,
   forecastAccuracyHistory,
   buForecastScenarios,
+  // Empirical holding investment snapshot
+  holdingTreasurySnapshot,
   // Types
   type BuData,
   type MonthlyPoint,
@@ -66,6 +68,7 @@ export {
   type BuBudgetTargets,
   type ForecastAccuracyPoint,
   type BuForecastScenario,
+  type HoldingTreasurySnapshot,
 } from "./awq-group-data";
 
 import {

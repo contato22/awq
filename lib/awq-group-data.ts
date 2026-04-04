@@ -118,22 +118,35 @@ export const buData: BuData[] = [
     hrefBudget:       "/advisor",
   },
   {
+    // ⚠  CORRECTED 2026-04-04 — previous values (R$40.5M capital, R$18.5M exit) were
+    //    unverified planning data with no empirical backing. Replaced with confirmed values.
+    //
+    // EMPIRICAL SOURCE: bank print Itaú Empresas (print confirmado 02/04/2026)
+    //   totalInvestedReal:          R$ 15.762,62  (CDB DI renda fixa)
+    //   investmentAccountBalance:   R$ 1.193,58   (saldo em conta — NÃO investido)
+    //   lastApplication:            R$ 5.000,00   (APLICACAO CDB DI em 02/04/2026)
+    //
+    // PROIBIÇÕES (evidenciadas pelos prints):
+    //   • saldo em conta R$1.193,58 ≠ saldo investido
+    //   • tarifas (R$87 + R$21,60) ≠ investimento
+    //   • intercompany AWQ Producoes ≠ investimento novo
+    //   • retirada sócio Miguel Costa ≠ investimento
     id:               "venture",
     name:             "AWQ Venture",
     sub:              "Investimentos · AWQ Group",
     color:            "bg-amber-600",
     accentColor:      "text-amber-400",
     status:           "Ativo",
-    revenue:          0,            // investment vehicle — no operating revenue
+    revenue:          0,               // investment vehicle — no operating revenue
     grossProfit:      0,
     ebitda:           0,
-    netIncome:        18_500_000,   // exit proceeds (Saúde Digital)
-    cashGenerated:    18_500_000,
-    cashBalance:      6_200_000,    // dry powder
-    customers:        6,            // portfolio companies
+    netIncome:        0,               // sem saída confirmada empiricamente
+    cashGenerated:    0,               // sem retorno de investimento confirmado
+    cashBalance:      15_762.62,       // EMPIRICAL: CDB DI saldo investido (Itaú Empresas)
+    customers:        0,               // sem portfólio confirmado
     ftes:             3,
-    capitalAllocated: 40_500_000,
-    roic:             137.3,        // portfolio total return %
+    capitalAllocated: 15_762.62,       // EMPIRICAL: valor confirmado em CDB DI
+    roic:             0,               // sem retorno realizável comprovado
     budgetRevenue:    0,
     hrefOverview:     "/awq-venture",
     hrefFinancial:    "/awq-venture/financial",
@@ -493,18 +506,18 @@ export const riskCategories: RiskCategory[] = [
   },
   {
     id: "cashPressure",
-    title:    "Cash Pressure — AWQ Venture",
+    title:    "Posição de Investimento — AWQ Holding",
     iconKey:  "zap",
     colorKey: "amber",
     severity: "medium",
     details: [
-      { label: "Dry Powder atual",     share: 0, mrr: 6_200_000, risk: "Disponível" },
-      { label: "Próximo investimento", share: 0, mrr: 8_000_000, risk: "Necessário" },
-      { label: "Gap de funding",       share: 0, mrr: 1_800_000, risk: "A captar"   },
+      { label: "CDB DI (Itaú Empresas)",   share: 0, mrr: 15_762, risk: "Investido"  },
+      { label: "Saldo em conta Itaú",      share: 0, mrr:  1_193, risk: "Operacional"},
+      { label: "Caixa Cora (operacional)", share: 0, mrr:  8_460, risk: "Operacional"},
     ],
-    threshold: "Dry powder ≥ próximo deploy",
-    current:   "Gap: R$1.8M a captar",
-    action:    "Avaliar distribuição de dividendos ou captação",
+    threshold: "Posição empírica — print 02-04/04/2026",
+    current:   "CDB DI: R$15.762,62 (única posição investida confirmada)",
+    action:    "Ingira extrato Itaú Empresas em /awq/ingest para atualização automática",
   },
   {
     id: "forecastDet",
@@ -522,3 +535,92 @@ export const riskCategories: RiskCategory[] = [
     action:    "Monitorar — sem ação imediata necessária",
   },
 ];
+
+// ─── Holding Treasury Snapshot — empirical position (prints bancários) ────────
+//
+// ⚠  EMPIRICAL DATA — NOT planning/accrual.
+// Source: prints bancários Cora AWQ + Itaú Empresas (02–04 Abr 2026).
+// Use this as source of truth for investment display UNTIL real PDF extrato
+// is ingested via /awq/ingest and processado pela pipeline financeira.
+//
+// RECONCILIATION RULES (invioláveis — evidenciadas pelos prints):
+//   ✓ CDB DI R$15.762,62   → totalInvestedReal   (ÚNICA posição de investimento confirmada)
+//   ✗ R$1.193,58 Itaú      → investmentAccountCash (saldo em conta — NÃO investido)
+//   ✗ R$8.460,00 Cora       → operationalCash       (caixa operacional — NÃO investido)
+//   ✗ R$5.000 CDB aplicação → fluxo de investimento (classificar como aplicacao_financeira)
+//   ✗ R$87 + R$21,60 tarifas → tarifa_bancaria      (NÃO investimento)
+//   ✗ R$1.000 Reserva Limite → transferencia_interna (NÃO investimento)
+//   ✗ R$14.000 AWQ Producoes → intercompany         (NÃO investimento novo)
+//   ✗ R$2.000 Miguel Costa   → prolabore_retirada   (NÃO investimento)
+
+export interface HoldingTreasurySnapshot {
+  asOf:                    string;    // YYYY-MM-DD — data da observação
+  source:                  string;
+  // Itaú Empresas — AWQ Holding
+  totalInvestedReal:       number;    // CDB DI saldo total — ÚNICA posição investida
+  lastApplicationAmount:   number;    // APLICACAO CDB DI mais recente
+  lastApplicationDate:     string;    // data da última aplicação
+  investmentType:          string;    // tipo de investimento
+  investmentBank:          string;    // banco custodiante
+  investmentAccountCash:   number;    // saldo em conta (NÃO investido)
+  bankFees:                number;    // tarifas bancárias (NÃO investimento)
+  // Cora AWQ — operacional
+  operationalCash:         number;    // saldo disponível Cora
+  cardLimitTotal:          number;    // limite total cartão garantido
+  cardLimitCommitted:      number;    // comprometido em compras
+  cardReserveDeposited:    number;    // valor reservado como garantia (2×R$500)
+  // Confirmed NOT investment
+  intercompanyTotal:       number;    // total enviado para AWQ Producoes (intercompany)
+  partnerWithdrawals:      number;    // total retirada sócio Miguel Costa
+  // Quality
+  confidence:              "empirical_print" | "ingested" | "estimated";
+  reconciledWith:          string[];  // itens reconciliados
+  NOT_investment:          string[];  // itens explicitamente excluídos
+  note:                    string;
+}
+
+export const holdingTreasurySnapshot: HoldingTreasurySnapshot = {
+  asOf:                  "2026-04-04",
+  source:                "Prints bancários Cora AWQ + Itaú Empresas (02–04/04/2026)",
+
+  // Itaú Empresas
+  totalInvestedReal:     15_762.62,   // saldo total investido — renda fixa CDB DI
+  lastApplicationAmount:  5_000.00,   // APLICACAO CDB DI em 02/04/2026
+  lastApplicationDate:   "2026-04-02",
+  investmentType:        "Renda Fixa — CDB DI",
+  investmentBank:        "Itaú Empresas",
+  investmentAccountCash:  1_193.58,   // saldo em conta Itaú (operacional, NÃO investido)
+  bankFees:                 108.60,   // R$87 tarifa mensal + R$21,60 tarifa Pix
+
+  // Cora AWQ
+  operationalCash:        8_460.00,   // saldo disponível Cora
+  cardLimitTotal:         1_000.00,   // limite garantido do cartão
+  cardLimitCommitted:       522.61,   // comprometido em compras
+  cardReserveDeposited:   1_000.00,   // 2×R$500 reserva de limite para cartão
+
+  // Confirmed NOT investment (proof by print)
+  intercompanyTotal:     14_000.00,   // AWQ Producoes: R$5k+R$4k+R$5k (intercompany)
+  partnerWithdrawals:     2_000.00,   // Miguel Costa de Souza: R$1k+R$1k (sócio)
+
+  confidence: "empirical_print",
+  reconciledWith: [
+    "Print Cora AWQ — Saldo R$8.460,00 (03/04/2026 18:39)",
+    "Print Itaú Empresas — Saldo investido R$15.762,62 (02/04/2026 13:06)",
+    "Print Itaú Empresas — Extrato APLICACAO CDB DI -R$5.000 (02/04/2026)",
+    "Print Itaú Empresas — Saldo em conta R$1.193,58",
+    "Print Cora — Cartão limite garantido R$1.000 (comprometido R$522,61)",
+  ],
+  NOT_investment: [
+    "Reserva de Limite para Cartão 2×R$500 = R$1.000 (garantia interna Cora — transferencia_interna_enviada)",
+    "Pix MIGUEL COSTA DE SOUZA R$1.000 + R$1.000 = R$2.000 (prolabore_retirada)",
+    "Pix AWQ PRODUCOES LTDA R$5.000 + R$4.000 + R$5.000 = R$14.000 (transferencia_interna_enviada — intercompany)",
+    "TAR MANUT CONTA R$87,00 (tarifa_bancaria)",
+    "TAR PIX PGTO TRANSF R$21,60 (tarifa_bancaria)",
+    "Saldo em conta Itaú R$1.193,58 (investmentAccountCash — NÃO totalInvestedReal)",
+    "Saldo Cora R$8.460,00 (caixa operacional — NÃO investimento)",
+  ],
+  note:
+    "Posição empírica confirmada. totalInvestedReal = R$15.762,62 é o único valor " +
+    "de investimento com prova documental nesta data. Aguardando extrato PDF Itaú " +
+    "para integração com pipeline financeira e atualização automática via ingest.",
+};

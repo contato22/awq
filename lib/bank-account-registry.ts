@@ -113,30 +113,59 @@ export const KNOWN_ACCOUNTS: KnownBankAccount[] = [
       "Formato do extrato: Itaú PJ com colunas Data | Histórico | Doc | Valor | D/C | Saldo.",
   },
 
-  // ── AWQ Venture (investment vehicle — NOT operational) ────────────────────
+  // ── AWQ Holding — Itaú Empresas (investment account with CDB DI) ──────────
   //
-  // IMPORTANT: AWQ Venture's bank account is an INVESTMENT VEHICLE, not operating cash.
-  // Transactions here are capital deployments and returns, NOT revenue or expenses.
-  // They MUST be classified as aplicacao_financeira / resgate_financeiro.
-  // They MUST NOT appear in the consolidated P&L or operating cash flow.
-  // The R$40.5M capitalAllocated in awq-group-data.ts refers to capital committed
-  // to portfolio companies — NOT to the cash in this bank account.
+  // EMPIRICAL: confirmed by bank print 02–04 Apr 2026.
+  // This is the AWQ Holding treasury investment account at Itaú Empresas.
+  // It is NOT the Caza Vision operating account.
+  //
+  // CLASSIFICATION RULES (mandatory — evidenced by print):
+  //   "APLICACAO CDB DI"           → aplicacao_financeira   (NOT despesa operacional)
+  //   "TAR MANUT CONTA"            → tarifa_bancaria        (NOT investimento)
+  //   "TAR PIX PGTO TRANSF"        → tarifa_bancaria        (NOT investimento)
+  //   saldo em conta R$1.193,58    → investmentCashAccountBalance (NOT saldo investido)
+  //   saldo total investido R$15.762,62 → captured by closingBalance of investment sub-account
+  //
+  // DO NOT confuse with caza-itau-operating (Caza Vision PJ account — also Itaú).
+  {
+    id:                        "awq-itau-empresas-investment",
+    bank:                      "Itaú",
+    accountName:               "Conta Itaú Empresas AWQ",
+    accountNumberHint:         null,
+    entity:                    "AWQ_Holding",
+    usage:                     "investment_vehicle",
+    parserFormat:              "itau",
+    participatesInIntercompany: false,
+    activeSince:               "2024-01",
+    closedAt:                  null,
+    notes:
+      "Conta Itaú Empresas da AWQ Holding com aplicações em CDB DI (renda fixa). " +
+      "Saldo investido confirmado por print: R$15.762,62 (CDB DI). " +
+      "Saldo em conta: R$1.193,58 — operacional, NÃO saldo investido. " +
+      "Tarifas (R$87 manutenção + R$21,60 Pix) são tarifa_bancaria, jamais investimento. " +
+      "APLICACAO CDB DI é aplicacao_financeira — excluída do P&L operacional.",
+  },
+
+  // ── AWQ Venture (future BTG investment vehicle — aspirational) ─────────────
+  //
+  // NOTE: As of Q1 2026, the confirmed real investment vehicle is awq-itau-empresas-investment.
+  // This BTG account is aspirational/planned — no document ingested yet.
+  // Do NOT attribute financial values from awq-group-data.ts Venture BU to this account.
   {
     id:                        "venture-btg-investment",
     bank:                      "BTG Empresas",
     accountName:               "Conta Investimentos AWQ Venture",
     accountNumberHint:         null,
-    entity:                    "AWQ_Holding",     // legal entity is AWQ Holding
+    entity:                    "AWQ_Holding",
     usage:                     "investment_vehicle",
     parserFormat:              "btg",
-    participatesInIntercompany: false,            // venture flows are not intercompany
+    participatesInIntercompany: false,
     activeSince:               "2023-01",
     closedAt:                  null,
     notes:
-      "Conta de investimentos do AWQ Venture (veículo de investimento). " +
-      "ATENÇÃO: lançamentos aqui são aplicações e resgates patrimoniais, NÃO receita operacional. " +
-      "Exit proceeds (ex: R$18.5M Saúde Digital) são resgate_financeiro — excluídos do P&L consolidado. " +
-      "Dry powder (caixa disponível para deploy) é saldo desta conta, não FCO.",
+      "Conta de investimentos BTG (aspiracional / planejamento). " +
+      "Conta real confirmada em 2026: awq-itau-empresas-investment (Itaú Empresas). " +
+      "Sem extrato ingerido — sem dados reais.",
   },
 ];
 
@@ -205,7 +234,15 @@ export function inferEntityFromRegistry(bank: string, accountName: string): Enti
     if (aLower.includes("jacqes")) return "JACQES";
     return "AWQ_Holding";
   }
-  if (bLower.includes("itaú") || bLower.includes("itau")) return "Caza_Vision";
+  if (bLower.includes("itaú") || bLower.includes("itau")) {
+    // Itaú can be Caza_Vision (operating PJ) OR AWQ_Holding (Itaú Empresas investment).
+    // Distinguish by account name keywords.
+    if (aLower.includes("caza") || aLower.includes("vision")) return "Caza_Vision";
+    if (aLower.includes("awq") || aLower.includes("holding") || aLower.includes("empresas")) return "AWQ_Holding";
+    // Ambiguous Itaú account — default to Caza_Vision for backwards compatibility
+    // but emit Unknown so the ingest pipeline surfaces the gap.
+    return "Unknown";
+  }
   if (bLower.includes("btg")) return "AWQ_Holding";  // BTG used by Venture (held under AWQ Holding)
   if (bLower.includes("nubank") && aLower.includes("caza")) return "Caza_Vision";
   if (bLower.includes("inter") && aLower.includes("jacqes")) return "JACQES";

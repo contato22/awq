@@ -46,7 +46,13 @@ const COUNTERPARTY_RULES: CounterpartyRule[] = [
   //    firing on fee descriptions that happen to contain a bank/client name.
   //    e.g. "Tarifa mensal Nubank" must NOT match the "nubank" client entry.
   {
-    patterns: ["tarifa", "ted tarifa", "tarifa ted", "tarifa pix", "tarifa manutencao", "tarifa mensal", "cot bancaria", "cobrança bancaria"],
+    patterns: [
+      "tarifa", "ted tarifa", "tarifa ted", "tarifa pix", "tarifa manutencao",
+      "tarifa mensal", "cot bancaria", "cobrança bancaria",
+      // Itaú Empresas specific (confirmed in print 02/04/2026):
+      "tar manut conta", "tar pix pgto", "tar pix pagto", "tar pix transf",
+      "tarifa manutenção", "manutenção conta", "manutencao conta",
+    ],
     name: null,
     category: "tarifa_bancaria",
     entity: null,
@@ -59,6 +65,37 @@ const COUNTERPARTY_RULES: CounterpartyRule[] = [
     entity: null,
     confidence: "confirmed",
   },
+  // ── Cora credit card limit reserve (confirmed in print 30/03/2026)
+  //    "Reserva de Limite para Cartão" — internal collateral deposit within Cora.
+  //    Money leaves checking balance, becomes credit card guarantee.
+  //    NOT investment, NOT operational expense — internal transfer excluded from P&L.
+  {
+    patterns: ["reserva de limite", "reserva limite", "limite para cartao", "limite para cartão", "garantia cartao"],
+    name: "Reserva de Limite — Cartão Cora",
+    category: "transferencia_interna_enviada",
+    entity: null,
+    confidence: "confirmed",
+  },
+  // ── AWQ PRODUCOES LTDA — intercompany (confirmed in prints 30/03–02/04/2026)
+  //    Pix from AWQ Holding → AWQ Producoes: intercompany transfer, NOT new investment,
+  //    NOT operational expense. Excluded from consolidated P&L.
+  {
+    patterns: ["awq producoes", "awq produções", "awq prod ltda", "awq producao"],
+    name: "AWQ Producoes Ltda",
+    category: "transferencia_interna_enviada",
+    entity: "Intercompany",
+    confidence: "confirmed",
+  },
+  // ── MIGUEL COSTA DE SOUZA — sócio / PF (confirmed in prints 01/04 + 03/04/2026)
+  //    Pix to individual: R$1.000 + R$1.000 = R$2.000. Partner withdrawal / pro-labore.
+  //    NOT investment. NOT operational expense.
+  {
+    patterns: ["miguel costa de souza", "miguel costa"],
+    name: "Miguel Costa de Souza",
+    category: "prolabore_retirada",
+    entity: "Socio_PF",
+    confidence: "probable",
+  },
   // ── Financial investments — resgates BEFORE aplicacoes so that descriptions
   //    containing both a redemption keyword AND an instrument name (e.g. "Resgate CDB")
   //    are correctly classified as resgate_financeiro, not aplicacao_financeira.
@@ -70,6 +107,9 @@ const COUNTERPARTY_RULES: CounterpartyRule[] = [
     confidence: "probable",
   },
   {
+    // "APLICACAO CDB DI" confirmed in Itaú Empresas print 02/04/2026 — R$5.000,00
+    // This is applicação financeira: money leaving operating account → CDB investment.
+    // NOT an operational expense. NOT a debit from P&L.
     patterns: ["aplicacao", "aplicação", "invest. aut", "investimento automatico", "cdb", "lci", "lca", "fundo de investimento", "rdb"],
     name: null,
     category: "aplicacao_financeira",
@@ -258,6 +298,39 @@ const COUNTERPARTY_RULES: CounterpartyRule[] = [
     category: "receita_recorrente",
     entity: null,
     confidence: "confirmed",
+  },
+  // ── AWQ Holding confirmed revenue counterparties (from Cora print Mar–Apr 2026) ──
+  {
+    // R$9.000 received 01/04/2026 on Cora AWQ — production project revenue
+    patterns: ["at films"],
+    name: "AT FILMS",
+    category: "receita_projeto",
+    entity: null,
+    confidence: "probable",
+  },
+  {
+    // R$5.000 received 30/03/2026 on Cora AWQ — project/event revenue
+    patterns: ["live roupas esportivas", "live roupas"],
+    name: "Live Roupas Esportivas Ltda",
+    category: "receita_projeto",
+    entity: null,
+    confidence: "probable",
+  },
+  {
+    // R$3.200 received 02/04/2026 on Cora AWQ
+    patterns: ["centro de ensino moderno", "ensino moderno"],
+    name: "Centro de Ensino Moderno Ltda",
+    category: "receita_recorrente",
+    entity: null,
+    confidence: "probable",
+  },
+  {
+    // R$260 received 03/04/2026 on Cora AWQ — may be individual client or reimbursement
+    patterns: ["mariana patrocinio", "mariana patroc"],
+    name: "Mariana Patrocínio R Almeida",
+    category: "receita_eventual",
+    entity: null,
+    confidence: "ambiguous",
   },
 ];
 
