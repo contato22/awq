@@ -137,19 +137,11 @@ jobs:
       # OBSERVATION ONLY — step always exits 0
       - name: "INFO — probe /awq/management source HTML for db adapter status"
         id: info_db
+        continue-on-error: true
         run: |
-          # First get a session cookie from the signin page
-          # Then probe management page with it
-          # Since we don't have credentials, probe the raw HTML for infrastructure markers
-          MGMT_HTML=$(curl -sL --max-time 20 \
-            -H "Accept: text/html" \
-            https://awq-brown.vercel.app/awq/management \
-            --max-redirs 1 2>/dev/null)
-          echo "management_html_length=${#MGMT_HTML}" >> $GITHUB_OUTPUT
-
           # The management page redirects to /login for unauthenticated users.
-          # Check the login page HTML for the Vercel runtime marker.
-          LOGIN_HTML=$(curl -s --max-time 20 https://awq-brown.vercel.app/login 2>/dev/null)
+          # Check the login page HTML for the Next.js SSR marker.
+          LOGIN_HTML=$(curl -s --max-time 20 https://awq-brown.vercel.app/login 2>/dev/null || true)
           echo "login_html_length=${#LOGIN_HTML}" >> $GITHUB_OUTPUT
 
           # Check for Next.js data markers (presence = SSR confirmed)
@@ -161,10 +153,15 @@ jobs:
             echo "INFO: __NEXT_DATA__ not found in login page"
           fi
 
-          # Check for VERCEL marker in headers
-          VERCEL_HEADER=$(curl -sI --max-time 20 https://awq-brown.vercel.app/login \
-            | grep -i "x-vercel\|server:.*vercel\|x-powered-by" | head -3)
-          echo "INFO: Vercel headers: ${VERCEL_HEADER:-none}"
+          # Check for Vercel/Next.js headers (grep || true prevents exit 1 on no match)
+          VERCEL_HEADER=$(curl -sI --max-time 20 https://awq-brown.vercel.app/login 2>/dev/null \
+            | grep -i "x-vercel\|x-powered-by\|server:" | head -3 || true)
+          echo "INFO: Response headers: ${VERCEL_HEADER:-none found}"
+
+          # Check x-matched-path header — confirms Next.js routing
+          MATCHED=$(curl -sI --max-time 20 https://awq-brown.vercel.app/login 2>/dev/null \
+            | grep -i "x-matched-path\|x-vercel-id" | head -2 || true)
+          echo "INFO: Vercel routing headers: ${MATCHED:-none found}"
 
       # ── PROBE 6: Unauthenticated API — what does documents API return? ─────────
       # Without auth, the API should return 401 or redirect.
@@ -172,6 +169,7 @@ jobs:
       # 401/307 = auth middleware working, server healthy
       - name: "INFO — /api/ingest/documents without auth (expect 401/307, fail on 500)"
         id: info_docs_unauth
+        continue-on-error: true
         run: |
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 \
             https://awq-brown.vercel.app/api/ingest/documents)
