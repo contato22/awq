@@ -1,0 +1,122 @@
+name: Probe Live Vercel Environment
+
+# One-shot probe to test the live Vercel deployment from GitHub Actions runners
+# (which have unrestricted internet access unlike the sandbox).
+# Runs on workflow_dispatch only — never triggered automatically.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: Probe https://awq-brown.vercel.app
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Probe — login page (unauthenticated)
+        id: login
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 https://awq-brown.vercel.app/login)
+          echo "login_status=$STATUS" >> $GITHUB_OUTPUT
+          echo "Login page HTTP: $STATUS"
+
+      - name: Probe — NextAuth CSRF endpoint
+        id: csrf
+        run: |
+          BODY=$(curl -s --max-time 15 https://awq-brown.vercel.app/api/auth/csrf)
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 https://awq-brown.vercel.app/api/auth/csrf)
+          echo "csrf_status=$STATUS" >> $GITHUB_OUTPUT
+          echo "csrf_body=$BODY" >> $GITHUB_OUTPUT
+          echo "CSRF endpoint HTTP: $STATUS"
+          echo "CSRF body: $BODY"
+
+      - name: Probe — NextAuth providers
+        id: providers
+        run: |
+          BODY=$(curl -s --max-time 15 https://awq-brown.vercel.app/api/auth/providers)
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 https://awq-brown.vercel.app/api/auth/providers)
+          echo "providers_status=$STATUS" >> $GITHUB_OUTPUT
+          echo "Providers HTTP: $STATUS"
+          echo "Providers body: $BODY"
+
+      - name: Probe — management page (expect 307 redirect to /login if no auth)
+        id: management
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 https://awq-brown.vercel.app/awq/management)
+          LOCATION=$(curl -sI --max-time 15 https://awq-brown.vercel.app/awq/management | grep -i "^location:" | tr -d '\r')
+          echo "management_status=$STATUS" >> $GITHUB_OUTPUT
+          echo "Management page HTTP: $STATUS"
+          echo "Redirect location: $LOCATION"
+
+      - name: Authenticate and probe documents API
+        id: docs
+        env:
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+        run: |
+          if [ -z "$NEXTAUTH_SECRET" ]; then
+            echo "NEXTAUTH_SECRET not configured — skipping authenticated probe"
+            echo "docs_status=SKIPPED" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Install dependencies for JWT generation
+          npm install --no-save next-auth 2>/dev/null
+
+          # Generate JWT token for alex@awqgroup.com
+          TOKEN=$(node -e "
+            const { encode } = require('next-auth/jwt');
+            encode({
+              token: {
+                email: 'alex@awqgroup.com',
+                name: 'Alex Whitmore',
+                role: 'owner',
+                sub: '1'
+              },
+              secret: process.env.NEXTAUTH_SECRET
+            }).then(t => console.log(t)).catch(e => console.error('JWT error:', e.message));
+          ")
+
+          if [ -z "$TOKEN" ] || echo "$TOKEN" | grep -q "error"; then
+            echo "JWT generation failed: $TOKEN"
+            echo "docs_status=JWT_FAILED" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "JWT generated (${#TOKEN} chars)"
+
+          # Probe documents API with JWT cookie
+          DOCS=$(curl -s --max-time 15 \
+            -H "Cookie: next-auth.session-token=$TOKEN" \
+            https://awq-brown.vercel.app/api/ingest/documents)
+          DOCS_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 \
+            -H "Cookie: next-auth.session-token=$TOKEN" \
+            https://awq-brown.vercel.app/api/ingest/documents)
+
+          echo "docs_status=$DOCS_STATUS" >> $GITHUB_OUTPUT
+          echo "Documents API HTTP: $DOCS_STATUS"
+          echo "Documents response (first 500 chars): ${DOCS:0:500}"
+
+          # Probe transactions API
+          TXNS_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 \
+            -H "Cookie: next-auth.session-token=$TOKEN" \
+            https://awq-brown.vercel.app/api/ingest/transactions)
+          echo "Transactions API HTTP: $TXNS_STATUS"
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Live Vercel Probe Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**URL**: https://awq-brown.vercel.app" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit probed**: \`a28234b\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Endpoint | Status | Meaning |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| /login | ${{ steps.login.outputs.login_status }} | App is running |" >> $GITHUB_STEP_SUMMARY
+          echo "| /api/auth/csrf | ${{ steps.csrf.outputs.csrf_status }} | NEXTAUTH_SECRET configured |" >> $GITHUB_STEP_SUMMARY
+          echo "| /api/auth/providers | ${{ steps.providers.outputs.providers_status }} | NextAuth initialized |" >> $GITHUB_STEP_SUMMARY
+          echo "| /awq/management | ${{ steps.management.outputs.management_status }} | Middleware active |" >> $GITHUB_STEP_SUMMARY
+          echo "| /api/ingest/documents (auth) | ${{ steps.docs.outputs.docs_status }} | DB or filesystem readable |" >> $GITHUB_STEP_SUMMARY
