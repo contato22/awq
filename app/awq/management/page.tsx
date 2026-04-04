@@ -12,6 +12,7 @@ import Link from "next/link";
 import {
   getManagementDiagnostics,
 } from "@/lib/financial-metric-query";
+import { USE_DB, USE_BLOB } from "@/lib/db";
 import {
   SNAPSHOT_REGISTRY,
   getSnapshotMigrationStatus,
@@ -163,6 +164,32 @@ export default async function ManagementPage() {
             </div>
             <div className="text-xs text-emerald-700 mt-1">
               API routes disponíveis. Ingestão real operacional. Pipeline pode receber e processar extratos.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── §∅b Storage Adapter Status ───────────────────────────────────── */}
+      {!isStaticEnv && (
+        <div className="mb-6 grid grid-cols-2 gap-3">
+          <div className={`rounded-xl border p-4 ${USE_DB ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200"}`}>
+            <div className={`text-xs font-bold uppercase tracking-widest mb-1 ${USE_DB ? "text-emerald-700" : "text-amber-700"}`}>
+              {USE_DB ? "✓ Banco: Neon Postgres" : "⚠ Banco: JSON filesystem"}
+            </div>
+            <div className={`text-[11px] leading-relaxed ${USE_DB ? "text-emerald-600" : "text-amber-600"}`}>
+              {USE_DB
+                ? "DATABASE_URL configurada — documents e transactions persistidos no Neon. Dados sobrevivem a reinicializações e deployments."
+                : "DATABASE_URL ausente — usando JSON local (public/data/financial/). Dados perdidos entre deployments no Vercel. Correto apenas para desenvolvimento local."}
+            </div>
+          </div>
+          <div className={`rounded-xl border p-4 ${USE_BLOB ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200"}`}>
+            <div className={`text-xs font-bold uppercase tracking-widest mb-1 ${USE_BLOB ? "text-emerald-700" : "text-amber-700"}`}>
+              {USE_BLOB ? "✓ PDF Storage: Vercel Blob" : "⚠ PDF Storage: filesystem local"}
+            </div>
+            <div className={`text-[11px] leading-relaxed ${USE_BLOB ? "text-emerald-600" : "text-amber-600"}`}>
+              {USE_BLOB
+                ? "BLOB_READ_WRITE_TOKEN configurada — PDFs armazenados no Vercel Blob. Persistentes e acessíveis entre funções serverless."
+                : "BLOB_READ_WRITE_TOKEN ausente — PDFs escritos em public/data/financial/pdfs/. Efêmero no Vercel serverless. Correto apenas para desenvolvimento local."}
             </div>
           </div>
         </div>
