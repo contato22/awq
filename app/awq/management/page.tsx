@@ -85,6 +85,20 @@ export default async function ManagementPage() {
   // Environment detection — baked in at build time by the GitHub Pages workflow
   const isStaticEnv = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 
+  // ── Operational URL (Vercel injects VERCEL_URL; user sets NEXT_PUBLIC_APP_URL) ──
+  const operationalUrl =
+    process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : (process.env.NEXT_PUBLIC_APP_URL ?? null);
+
+  // ── Infrastructure status — checked server-side only (never expose values) ──
+  const hasDb       = !!process.env.DATABASE_URL;
+  const hasBlob     = !!process.env.BLOB_READ_WRITE_TOKEN;
+  const hasAI       = !!process.env.ANTHROPIC_API_KEY;
+  const hasAuth     = !!process.env.NEXTAUTH_SECRET;
+  const hasAuthUrl  = !!process.env.NEXTAUTH_URL;
+  const infraComplete = hasDb && hasBlob && hasAI && hasAuth && hasAuthUrl;
+
   const diag   = await getManagementDiagnostics();
   const snap   = getSnapshotMigrationStatus();
   const awqRoutes = PLATFORM_ROUTES.filter((r) => r.bu === "awq" && r.status === "active");
@@ -157,13 +171,27 @@ export default async function ManagementPage() {
       ) : (
         <div className="mb-6 flex items-start gap-3 bg-emerald-50 border border-emerald-200 rounded-xl p-4">
           <span className="text-emerald-500 shrink-0 mt-0.5 text-lg">✓</span>
-          <div>
+          <div className="flex-1 min-w-0">
             <div className="text-sm font-bold text-emerald-800">
               Ambiente: Servidor ativo
               <span className="ml-2 text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-200 text-emerald-800 uppercase tracking-widest">PIPELINE DISPONÍVEL</span>
             </div>
             <div className="text-xs text-emerald-700 mt-1">
               API routes disponíveis. Ingestão real operacional. Pipeline pode receber e processar extratos.
+            </div>
+            <div className="mt-2 text-[11px] font-mono">
+              <span className="text-gray-500">URL operacional: </span>
+              {operationalUrl ? (
+                <a href={operationalUrl} target="_blank" rel="noopener noreferrer"
+                   className="text-emerald-700 underline font-semibold break-all">
+                  {operationalUrl}
+                </a>
+              ) : (
+                <span className="text-amber-600">
+                  não configurada — defina <span className="font-bold">VERCEL_URL</span> (automático no Vercel) ou{" "}
+                  <span className="font-bold">NEXT_PUBLIC_APP_URL</span>
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -191,6 +219,40 @@ export default async function ManagementPage() {
                 ? "BLOB_READ_WRITE_TOKEN configurada — PDFs armazenados no Vercel Blob. Persistentes e acessíveis entre funções serverless."
                 : "BLOB_READ_WRITE_TOKEN ausente — PDFs escritos em public/data/financial/pdfs/. Efêmero no Vercel serverless. Correto apenas para desenvolvimento local."}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── §∅c Infrastructure Blockers ──────────────────────────────────── */}
+      {!isStaticEnv && (
+        <div className="mb-6">
+          <div className={`rounded-xl border p-4 ${infraComplete ? "bg-emerald-50 border-emerald-200" : "bg-red-50 border-red-200"}`}>
+            <div className={`text-xs font-bold uppercase tracking-widest mb-3 ${infraComplete ? "text-emerald-700" : "text-red-700"}`}>
+              {infraComplete ? "✓ Infraestrutura completa" : "✕ Bloqueios de infraestrutura — deploy operacional incompleto"}
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              {[
+                { key: "DATABASE_URL",          ok: hasDb,      label: "Neon DB",      desc: "Persistência de documentos e transações" },
+                { key: "BLOB_READ_WRITE_TOKEN",  ok: hasBlob,    label: "Vercel Blob",  desc: "Storage de PDFs entre deployments" },
+                { key: "ANTHROPIC_API_KEY",      ok: hasAI,      label: "Claude AI",    desc: "Extração e classificação de transações" },
+                { key: "NEXTAUTH_SECRET",        ok: hasAuth,    label: "Auth Secret",  desc: "Segurança de sessão JWT" },
+                { key: "NEXTAUTH_URL",           ok: hasAuthUrl, label: "Auth URL",     desc: "URL base para callbacks de autenticação" },
+              ].map(({ key, ok, label, desc }) => (
+                <div key={key} className={`rounded-lg border p-3 ${ok ? "bg-white border-emerald-200" : "bg-red-50 border-red-200"}`}>
+                  <div className={`text-[10px] font-bold mb-1 ${ok ? "text-emerald-700" : "text-red-700"}`}>
+                    {ok ? "✓" : "✕"} {label}
+                  </div>
+                  <div className="text-[9px] font-mono text-gray-500 mb-1 truncate">{key}</div>
+                  <div className="text-[9px] text-gray-400 leading-tight">{desc}</div>
+                </div>
+              ))}
+            </div>
+            {!infraComplete && (
+              <div className="mt-3 text-[11px] text-red-700">
+                Configure as variáveis ausentes no Vercel Dashboard → Project → Settings → Environment Variables.
+                Sem elas: PDFs são efêmeros (sem Blob), dados são perdidos no redeploy (sem DB), extração falha (sem API Key).
+              </div>
+            )}
           </div>
         </div>
       )}

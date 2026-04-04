@@ -44,8 +44,8 @@ export default async function AwqKpisPage() {
   const kpis    = await getAWQGroupKPIs();
   const entities = await getEntityCashMetrics();
 
-  // ── Top 4 KPI cards ─────────────────────────────────────────────────────────
-  const topCards = [
+  // ── Real KPI cards (cash-basis, from bank pipeline) ─────────────────────────
+  const realCards = [
     {
       label:   "Entradas Ops.",
       metric:  kpis.cashInflows,
@@ -55,6 +55,14 @@ export default async function AwqKpisPage() {
       bg:      "bg-emerald-50",
     },
     {
+      label:   "FCO Líquido",
+      metric:  kpis.operationalNetCash,
+      display: kpis.operationalNetCash.value !== null ? fmtBRL(kpis.operationalNetCash.value) : "—",
+      icon:    TrendingUp,
+      color:   kpis.operationalNetCash.value !== null && (kpis.operationalNetCash.value as number) >= 0 ? "text-emerald-600" : "text-red-600",
+      bg:      kpis.operationalNetCash.value !== null && (kpis.operationalNetCash.value as number) >= 0 ? "bg-emerald-50" : "bg-red-50",
+    },
+    {
       label:   "Caixa Total",
       metric:  kpis.totalCashBalance,
       display: kpis.totalCashBalance.value !== null ? fmtBRL(kpis.totalCashBalance.value) : "—",
@@ -62,6 +70,10 @@ export default async function AwqKpisPage() {
       color:   "text-brand-600",
       bg:      "bg-brand-50",
     },
+  ];
+
+  // ── Snapshot KPI cards (accrual plan — subordinate layer) ────────────────────
+  const snapshotCards = [
     {
       label:   "EBITDA Margem",
       metric:  kpis.ebitdaMargin,
@@ -107,26 +119,63 @@ export default async function AwqKpisPage() {
           </Link>
         </div>
 
-        {/* ── Top 4 KPI cards ──────────────────────────────────────────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {topCards.map((card) => {
-            const Icon = card.icon;
-            return (
-              <div key={card.label} className="card p-5 flex items-start gap-4">
-                <div className={`w-10 h-10 rounded-xl ${card.bg} flex items-center justify-center shrink-0`}>
-                  <Icon size={18} className={card.color} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-2xl font-bold text-gray-900">{card.display}</div>
-                  <div className="text-xs font-medium text-gray-400 mt-0.5 flex items-center flex-wrap">
-                    {card.label}
-                    <MetricSourceBadge sourceType={card.metric.source_type} />
+        {/* ── Real KPI cards (bank pipeline — primary) ─────────────────────── */}
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <CheckCircle2 size={11} className="text-emerald-600" />
+            <span className="text-[11px] font-semibold text-emerald-700 uppercase tracking-widest">Base Real — Caixa (extratos bancários)</span>
+            {!kpis.hasRealData && (
+              <span className="text-[10px] text-amber-600 ml-auto">Aguardando ingestão</span>
+            )}
+          </div>
+          <div className={`grid grid-cols-1 sm:grid-cols-3 gap-4 ${!kpis.hasRealData ? "opacity-60" : ""}`}>
+            {realCards.map((card) => {
+              const Icon = card.icon;
+              return (
+                <div key={card.label} className={`card p-5 flex items-start gap-4 ${kpis.hasRealData ? "border-emerald-100 bg-emerald-50/20" : "bg-gray-50"}`}>
+                  <div className={`w-10 h-10 rounded-xl ${kpis.hasRealData ? card.bg : "bg-gray-100"} flex items-center justify-center shrink-0`}>
+                    <Icon size={18} className={kpis.hasRealData ? card.color : "text-gray-400"} />
                   </div>
-                  <MetricDetail metric={card.metric} compact />
+                  <div className="flex-1 min-w-0">
+                    <div className={`text-2xl font-bold ${kpis.hasRealData ? "text-gray-900" : "text-gray-400"}`}>{card.display}</div>
+                    <div className="text-xs font-medium text-gray-400 mt-0.5 flex items-center flex-wrap">
+                      {card.label}
+                      <MetricSourceBadge sourceType={card.metric.source_type} />
+                    </div>
+                    <MetricDetail metric={card.metric} compact />
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ── Snapshot KPI cards (accrual plan — subordinate) ──────────────── */}
+        <div className="opacity-75">
+          <div className="flex items-center gap-2 mb-2">
+            <AlertCircle size={11} className="text-amber-500" />
+            <span className="text-[11px] font-semibold text-amber-600 uppercase tracking-widest">Planejamento (snapshot — accrual)</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {snapshotCards.map((card) => {
+              const Icon = card.icon;
+              return (
+                <div key={card.label} className="card p-5 flex items-start gap-4 bg-amber-50/30 border-amber-100">
+                  <div className={`w-10 h-10 rounded-xl ${card.bg} flex items-center justify-center shrink-0`}>
+                    <Icon size={18} className={card.color} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-2xl font-bold text-gray-700">{card.display}</div>
+                    <div className="text-xs font-medium text-gray-400 mt-0.5 flex items-center flex-wrap">
+                      {card.label}
+                      <MetricSourceBadge sourceType={card.metric.source_type} />
+                    </div>
+                    <MetricDetail metric={card.metric} compact />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         {/* ── Real Cash by Entity ───────────────────────────────────────────── */}
