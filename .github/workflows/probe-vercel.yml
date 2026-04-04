@@ -285,6 +285,57 @@ jobs:
             exit 1
           fi
 
+      # ── DB CONNECTIVITY + SCHEMA + DATA assertions ────────────────────────────
+
+      - name: "ASSERT — Neon DB is reachable (SELECT 1 ping via /api/health)"
+        id: assert_db_ping
+        continue-on-error: true
+        run: |
+          BODY=$(curl -s --max-time 30 https://awq-brown.vercel.app/api/health 2>/dev/null || true)
+          PING=$(echo "$BODY" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('dbPing','unknown'))" 2>/dev/null || echo "unknown")
+          MS=$(echo "$BODY"   | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('dbPingMs','null'))" 2>/dev/null || echo "null")
+          echo "db_ping=$PING"   >> $GITHUB_OUTPUT
+          echo "db_ping_ms=$MS"  >> $GITHUB_OUTPUT
+          echo "dbPing=$PING | dbPingMs=${MS}ms"
+          echo "Full body: $BODY"
+          if [ "$PING" = "ok" ]; then
+            echo "PASS: Neon DB is reachable (SELECT 1 returned ok in ${MS}ms)"
+          elif [ "$PING" = "skipped" ]; then
+            echo "FAIL: DB ping skipped — DATABASE_URL not configured"
+            exit 1
+          else
+            echo "FAIL: Neon DB not reachable — dbPing=$PING"
+            echo "Check Neon dashboard for connection string correctness"
+            exit 1
+          fi
+
+      - name: "ASSERT — DB tables exist (financial_documents + bank_transactions)"
+        id: assert_db_tables
+        continue-on-error: true
+        run: |
+          BODY=$(curl -s --max-time 30 https://awq-brown.vercel.app/api/health 2>/dev/null || true)
+          DOCS_TABLE=$(echo "$BODY"  | python3 -c "import json,sys; d=json.load(sys.stdin); t=d.get('tablesExist') or {}; print(str(t.get('documents',False)).lower())" 2>/dev/null || echo "false")
+          TXN_TABLE=$(echo "$BODY"   | python3 -c "import json,sys; d=json.load(sys.stdin); t=d.get('tablesExist') or {}; print(str(t.get('transactions',False)).lower())" 2>/dev/null || echo "false")
+          DOC_COUNT=$(echo "$BODY"   | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('documentCount','null'))" 2>/dev/null || echo "null")
+          echo "docs_table=$DOCS_TABLE"  >> $GITHUB_OUTPUT
+          echo "txn_table=$TXN_TABLE"    >> $GITHUB_OUTPUT
+          echo "document_count=$DOC_COUNT" >> $GITHUB_OUTPUT
+          echo "financial_documents table: $DOCS_TABLE"
+          echo "bank_transactions table: $TXN_TABLE"
+          echo "document count: $DOC_COUNT"
+          if [ "$DOCS_TABLE" = "true" ] && [ "$TXN_TABLE" = "true" ]; then
+            echo "PASS: Both tables exist — schema initialized"
+            echo "Document count in Neon: $DOC_COUNT"
+            if [ "$DOC_COUNT" = "0" ]; then
+              echo "INFO: 0 documents — DB ready but no real data yet. Upload a PDF at /awq/ingest"
+            elif [ "$DOC_COUNT" != "null" ]; then
+              echo "INFO: $DOC_COUNT real documents found in Neon"
+            fi
+          else
+            echo "FAIL: Tables missing — financial_documents=$DOCS_TABLE bank_transactions=$TXN_TABLE"
+            exit 1
+          fi
+
       # ── Summary ────────────────────────────────────────────────────────────────
       - name: Summary
         if: always()
@@ -323,3 +374,12 @@ jobs:
           echo "| NEXTAUTH_SECRET | ${{ steps.health_fetch.outputs.health_auth }} | — | ${{ steps.assert_nextauth.conclusion }} |" >> $GITHUB_STEP_SUMMARY
           echo "| NEXTAUTH_URL | ${{ steps.health_fetch.outputs.health_authurl }} | — | ${{ steps.assert_authurl.conclusion }} |" >> $GITHUB_STEP_SUMMARY
           echo "| /api/health HTTP | ${{ steps.health_fetch.outputs.health_status }} | — | ${{ steps.health_fetch.conclusion }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### DB Connectivity (Neon)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Value | Step conclusion |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| SELECT 1 ping | ${{ steps.assert_db_ping.outputs.db_ping }} (${steps.assert_db_ping.outputs.db_ping_ms}ms) | ${{ steps.assert_db_ping.conclusion }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| financial_documents table | ${{ steps.assert_db_tables.outputs.docs_table }} | ${{ steps.assert_db_tables.conclusion }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| bank_transactions table | ${{ steps.assert_db_tables.outputs.txn_table }} | ${{ steps.assert_db_tables.conclusion }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| document count in Neon | ${{ steps.assert_db_tables.outputs.document_count }} | — |" >> $GITHUB_STEP_SUMMARY
