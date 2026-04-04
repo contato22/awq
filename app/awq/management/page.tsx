@@ -514,7 +514,7 @@ export default async function ManagementPage() {
       {/* ── §4 Data Quality Diagnostics ───────────────────────────────────── */}
       <SectionTitle>§4 · Diagnóstico de Qualidade de Dados</SectionTitle>
       <Card className="mb-6">
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           <div>
             <div className="text-xs font-semibold text-gray-500 mb-2">Cobertura de classificação</div>
             <div className="flex items-center gap-2">
@@ -569,6 +569,23 @@ export default async function ManagementPage() {
                 )}
               </ul>
             )}
+          </div>
+
+          <div>
+            <div className="text-xs font-semibold text-gray-500 mb-2">Reconciliação intercompany</div>
+            {diag.intercompanyPairs === 0 ? (
+              <div className="text-sm text-gray-400 font-medium">Nenhum par identificado</div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-bold text-indigo-700">{diag.intercompanyPairs}</span>
+                <span className="text-xs text-gray-500">par{diag.intercompanyPairs !== 1 ? "es" : ""} eliminado{diag.intercompanyPairs !== 1 ? "s" : ""}</span>
+              </div>
+            )}
+            <div className="text-[10px] text-gray-400 mt-1">
+              {diag.intercompanyPairs > 0
+                ? "Transações intercompany excluídas do consolidado operacional"
+                : "Aguardando extratos de múltiplas entidades"}
+            </div>
           </div>
         </div>
 

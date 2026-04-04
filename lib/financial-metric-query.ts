@@ -375,6 +375,7 @@ export interface ManagementDiagnostics {
   totalTransactions:      number;
   confirmedTransactions:  number;
   ambiguousTransactions:  number;
+  intercompanyPairs:      number;
   coverageGaps:           string[];
   pipelineHealthy:        boolean;
   lastUpdated:            string | null;
@@ -392,6 +393,7 @@ export async function getManagementDiagnostics(): Promise<ManagementDiagnostics>
       totalTransactions: 0,
       confirmedTransactions: 0,
       ambiguousTransactions: 0,
+      intercompanyPairs: 0,
       coverageGaps: ["Nenhum extrato ingerido. Acesse /awq/ingest."],
       pipelineHealthy: false,
       lastUpdated: null,
@@ -407,6 +409,7 @@ export async function getManagementDiagnostics(): Promise<ManagementDiagnostics>
     totalTransactions:      dq.totalTransactions,
     confirmedTransactions:  dq.confirmedCount,
     ambiguousTransactions:  dq.ambiguousCount,
+    intercompanyPairs:      dq.intercompanyPairs,
     coverageGaps:           dq.coverageGaps,
     pipelineHealthy:        dq.doneDocuments > 0 && dq.coverageGaps.length === 0,
     lastUpdated:            q.consolidated.lastUpdated,
