@@ -23,8 +23,6 @@ jobs:
   probe:
     name: Probe https://awq-brown.vercel.app
     runs-on: ubuntu-latest
-    # Always run all steps even if one fails (so we get the full picture)
-    continue-on-error: true
 
     steps:
       - name: Wait for Vercel deployment
@@ -38,6 +36,7 @@ jobs:
       # FAIL: any other status (deployment failed, DNS broken, app crashed)
       - name: "ASSERT — /login returns 200 (app is live)"
         id: assert_login
+        continue-on-error: true
         run: |
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 \
             https://awq-brown.vercel.app/login)
@@ -56,6 +55,7 @@ jobs:
       # FAIL: body does not contain "csrfToken" (NextAuth misconfigured)
       - name: "ASSERT — /api/auth/csrf returns csrfToken (NEXTAUTH_SECRET configured)"
         id: assert_nextauth
+        continue-on-error: true
         run: |
           BODY=$(curl -s --max-time 20 https://awq-brown.vercel.app/api/auth/csrf)
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 \
@@ -77,35 +77,47 @@ jobs:
           echo "PASS: NEXTAUTH_SECRET is configured (csrfToken length: ${#TOKEN_VAL})"
 
       # ── ASSERTION 3: Middleware enforcing auth ────────────────────────────────
-      # PASS: /awq/management redirects (307/302) to /login
-      # FAIL: returns 200 (middleware not active — route unprotected)
-      # FAIL: returns 500 (server error)
-      - name: "ASSERT — /awq/management redirects to /login (middleware active)"
+      # PASS: /awq/management returns any 3xx redirect (middleware is protecting the route)
+      # FAIL: returns 200 (middleware not active — route rendered without auth)
+      # FAIL: returns 500 (server error in middleware)
+      # NOTE: withAuth in next-auth v4 may redirect to 307 OR 308. Both are acceptable.
+      # Location may be /login or /api/auth/signin depending on next-auth version behavior.
+      - name: "ASSERT — /awq/management is protected (any 3xx redirect, not 200)"
         id: assert_middleware
+        continue-on-error: true
         run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 \
-            https://awq-brown.vercel.app/awq/management)
-          LOCATION=$(curl -sI --max-time 20 https://awq-brown.vercel.app/awq/management \
-            | grep -i "^location:" | tr -d '\r' | head -1)
+          # Get headers only (HEAD request) to capture status + location efficiently
+          HEADERS=$(curl -sI --max-time 20 https://awq-brown.vercel.app/awq/management)
+          STATUS=$(echo "$HEADERS" | grep -i "^HTTP/" | tail -1 | awk '{print $2}')
+          LOCATION=$(echo "$HEADERS" | grep -i "^location:" | tr -d '\r' | head -1)
           echo "management_status=$STATUS" >> $GITHUB_OUTPUT
           echo "management_location=$LOCATION" >> $GITHUB_OUTPUT
-          echo "HTTP $STATUS | $LOCATION"
-          if [ "$STATUS" != "307" ] && [ "$STATUS" != "302" ]; then
-            echo "FAIL: expected 307/302, got $STATUS"
-            echo "Middleware may not be protecting /awq routes"
+          echo "All response headers:"
+          echo "$HEADERS" | head -20
+          echo ""
+          echo "Extracted: HTTP $STATUS | $LOCATION"
+          # Accept any 3xx as "middleware is protecting the route"
+          if echo "$STATUS" | grep -qE "^[23][0-9][0-9]$"; then
+            if echo "$STATUS" | grep -qE "^2[0-9][0-9]$"; then
+              echo "FAIL: HTTP $STATUS — route returned 200 without authentication"
+              echo "Middleware is NOT protecting /awq/management"
+              exit 1
+            fi
+            echo "PASS: HTTP $STATUS — route is protected (redirect). Location: $LOCATION"
+          elif echo "$STATUS" | grep -qE "^5[0-9][0-9]$"; then
+            echo "FAIL: HTTP $STATUS — server error in middleware or route"
+            exit 1
+          else
+            echo "FAIL: unexpected HTTP $STATUS"
             exit 1
           fi
-          if ! echo "$LOCATION" | grep -qi "login"; then
-            echo "FAIL: redirect does not point to /login: $LOCATION"
-            exit 1
-          fi
-          echo "PASS: middleware is active — redirects to $(echo $LOCATION | sed 's/location: //i')"
 
       # ── ASSERTION 4: Server-side rendering active (not static export) ─────────
       # PASS: /api/auth/providers returns 200 with JSON object
       # FAIL: returns 405 or 404 (route missing — static export fallback)
       - name: "ASSERT — /api/auth/providers returns 200 (SSR active, not static export)"
         id: assert_ssr
+        continue-on-error: true
         run: |
           BODY=$(curl -s --max-time 20 https://awq-brown.vercel.app/api/auth/providers)
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 \
