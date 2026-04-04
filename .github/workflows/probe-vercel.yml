@@ -379,7 +379,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Check | Value | Step conclusion |" >> $GITHUB_STEP_SUMMARY
           echo "|---|---|---|" >> $GITHUB_STEP_SUMMARY
-          echo "| SELECT 1 ping | ${{ steps.assert_db_ping.outputs.db_ping }} (${steps.assert_db_ping.outputs.db_ping_ms}ms) | ${{ steps.assert_db_ping.conclusion }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| SELECT 1 ping | ${{ steps.assert_db_ping.outputs.db_ping }} (${{ steps.assert_db_ping.outputs.db_ping_ms }}ms) | ${{ steps.assert_db_ping.conclusion }} |" >> $GITHUB_STEP_SUMMARY
           echo "| financial_documents table | ${{ steps.assert_db_tables.outputs.docs_table }} | ${{ steps.assert_db_tables.conclusion }} |" >> $GITHUB_STEP_SUMMARY
           echo "| bank_transactions table | ${{ steps.assert_db_tables.outputs.txn_table }} | ${{ steps.assert_db_tables.conclusion }} |" >> $GITHUB_STEP_SUMMARY
           echo "| document count in Neon | ${{ steps.assert_db_tables.outputs.document_count }} | — |" >> $GITHUB_STEP_SUMMARY
