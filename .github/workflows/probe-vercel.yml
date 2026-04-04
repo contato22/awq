@@ -217,6 +217,10 @@ jobs:
           AUTHURL=$(echo "$BODY"   | python3 -c "import json,sys; d=json.load(sys.stdin); print(str(d.get('authUrl',False)).lower())" 2>/dev/null || echo "false")
           DBADAPTER=$(echo "$BODY" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('dbAdapter','unknown'))" 2>/dev/null || echo "unknown")
           BLOBADAPTER=$(echo "$BODY" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('blobAdapter','unknown'))" 2>/dev/null || echo "unknown")
+          DOC_COUNT=$(echo "$BODY"     | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('documentCount','null'))" 2>/dev/null || echo "null")
+          DONE_COUNT=$(echo "$BODY"    | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('doneDocumentCount','null'))" 2>/dev/null || echo "null")
+          TXN_COUNT=$(echo "$BODY"     | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('transactionCount','null'))" 2>/dev/null || echo "null")
+          HAS_REAL=$(echo "$BODY"      | python3 -c "import json,sys; d=json.load(sys.stdin); print(str(d.get('hasRealData',False)).lower())" 2>/dev/null || echo "false")
           echo "health_db=$DB"               >> $GITHUB_OUTPUT
           echo "health_blob=$BLOB"           >> $GITHUB_OUTPUT
           echo "health_ai=$AI"               >> $GITHUB_OUTPUT
@@ -224,6 +228,10 @@ jobs:
           echo "health_authurl=$AUTHURL"     >> $GITHUB_OUTPUT
           echo "health_dbadapter=$DBADAPTER" >> $GITHUB_OUTPUT
           echo "health_blobadapter=$BLOBADAPTER" >> $GITHUB_OUTPUT
+          echo "health_doc_count=$DOC_COUNT"     >> $GITHUB_OUTPUT
+          echo "health_done_count=$DONE_COUNT"   >> $GITHUB_OUTPUT
+          echo "health_txn_count=$TXN_COUNT"     >> $GITHUB_OUTPUT
+          echo "health_has_real=$HAS_REAL"       >> $GITHUB_OUTPUT
           echo ""
           echo "═══ Infrastructure Status ═══"
           echo "  DATABASE_URL          → db=$DB        (adapter: $DBADAPTER)"
@@ -231,6 +239,11 @@ jobs:
           echo "  ANTHROPIC_API_KEY     → ai=$AI"
           echo "  NEXTAUTH_SECRET       → auth=$AUTH"
           echo "  NEXTAUTH_URL          → authUrl=$AUTHURL"
+          echo "═══ Real Data Counters ════"
+          echo "  documentCount:     $DOC_COUNT"
+          echo "  doneDocumentCount: $DONE_COUNT"
+          echo "  transactionCount:  $TXN_COUNT"
+          echo "  hasRealData:       $HAS_REAL"
           echo "══════════════════════════════"
 
       # ── Per-env-var ASSERTIONS — each step conclusion is machine-readable ─────
@@ -284,6 +297,36 @@ jobs:
             echo "Action: add NEXTAUTH_URL=https://awq-brown.vercel.app to Vercel dashboard"
             exit 1
           fi
+
+      # ── DATA COUNTERS — prove real pipeline state (machine-readable) ─────────
+      # hasRealData=true → pipeline ran end-to-end: docs processed, txns persisted
+      # hasRealData=false → DB ready but no PDF uploaded yet (ausência de dado)
+      # This is the single most important assertion: it separates "env ready"
+      # from "pipeline actually ran with real data".
+
+      - name: "INFO — real data state (documentCount / doneDocumentCount / transactionCount)"
+        id: assert_real_data
+        continue-on-error: true
+        run: |
+          DOC_COUNT="${{ steps.health_fetch.outputs.health_doc_count }}"
+          DONE_COUNT="${{ steps.health_fetch.outputs.health_done_count }}"
+          TXN_COUNT="${{ steps.health_fetch.outputs.health_txn_count }}"
+          HAS_REAL="${{ steps.health_fetch.outputs.health_has_real }}"
+          echo "documentCount:     $DOC_COUNT"
+          echo "doneDocumentCount: $DONE_COUNT"
+          echo "transactionCount:  $TXN_COUNT"
+          echo "hasRealData:       $HAS_REAL"
+          if [ "$HAS_REAL" = "true" ]; then
+            echo "REAL DATA CONFIRMED: Pipeline ran end-to-end"
+            echo "  Docs processed: $DONE_COUNT | Transactions: $TXN_COUNT"
+          elif [ "$DOC_COUNT" = "0" ] || [ "$DOC_COUNT" = "null" ]; then
+            echo "AUSÊNCIA DE DADO: DB ready (tables exist) but no PDFs uploaded yet"
+            echo "  Action: upload a real PDF at https://awq-brown.vercel.app/awq/ingest"
+          else
+            echo "PARTIAL: $DOC_COUNT docs uploaded, $DONE_COUNT done, $TXN_COUNT transactions"
+            echo "  Some docs may still be processing"
+          fi
+          # This is INFO only — never exit 1 (DB empty ≠ broken, just no data)
 
       # ── DB CONNECTIVITY + SCHEMA + DATA assertions ────────────────────────────
 
@@ -383,3 +426,12 @@ jobs:
           echo "| financial_documents table | ${{ steps.assert_db_tables.outputs.docs_table }} | ${{ steps.assert_db_tables.conclusion }} |" >> $GITHUB_STEP_SUMMARY
           echo "| bank_transactions table | ${{ steps.assert_db_tables.outputs.txn_table }} | ${{ steps.assert_db_tables.conclusion }} |" >> $GITHUB_STEP_SUMMARY
           echo "| document count in Neon | ${{ steps.assert_db_tables.outputs.document_count }} | — |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Real Data State (CENÁRIO 1 vs CENÁRIO 2)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Counter | Value | Meaning |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| documentCount | ${{ steps.health_fetch.outputs.health_doc_count }} | total PDFs uploaded |" >> $GITHUB_STEP_SUMMARY
+          echo "| doneDocumentCount | ${{ steps.health_fetch.outputs.health_done_count }} | PDFs fully processed |" >> $GITHUB_STEP_SUMMARY
+          echo "| transactionCount | ${{ steps.health_fetch.outputs.health_txn_count }} | transactions in Neon |" >> $GITHUB_STEP_SUMMARY
+          echo "| hasRealData | ${{ steps.health_fetch.outputs.health_has_real }} | pipeline ran end-to-end |" >> $GITHUB_STEP_SUMMARY
