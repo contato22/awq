@@ -52,14 +52,42 @@ jobs:
         run: npx tsc --noEmit
 
       # ── Production build (no STATIC_EXPORT — SSR + API routes active) ────────
+      #
+      # IMPORTANT: Do NOT pass NEXTAUTH_URL here.
+      # When a GitHub Secret is unset, Actions evaluates it as "" (empty string).
+      # NextAuth reads NEXTAUTH_URL at module init and calls `new URL("")` which
+      # throws TypeError: Invalid URL and breaks every prerendered page.
+      # NEXTAUTH_URL is RUNTIME-ONLY (OAuth callback routing) — not needed at build.
+      # NEXTAUTH_SECRET is safe to pass (string value, not used as URL).
+      #
+      # DATABASE_URL and BLOB_READ_WRITE_TOKEN are injected by Vercel at runtime —
+      # not needed at build time. The adapters detect them at request time.
       - name: Build
         run: npm run build
         env:
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
-          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
-          # Note: DATABASE_URL and BLOB_READ_WRITE_TOKEN are injected by Vercel
-          # at runtime — they are NOT needed at build time for Next.js SSR.
-          # Do NOT set them here; the adapters detect them at request time.
+
+      # ── Pre-flight: verify Vercel secrets are configured ─────────────────────
+      - name: Check Vercel secrets
+        run: |
+          MISSING=""
+          [ -z "$VERCEL_TOKEN" ]      && MISSING="$MISSING VERCEL_TOKEN"
+          [ -z "$VERCEL_ORG_ID" ]     && MISSING="$MISSING VERCEL_ORG_ID"
+          [ -z "$VERCEL_PROJECT_ID" ] && MISSING="$MISSING VERCEL_PROJECT_ID"
+          if [ -n "$MISSING" ]; then
+            echo "❌ Missing GitHub Secrets:$MISSING"
+            echo ""
+            echo "Add these secrets at: Settings → Secrets → Actions"
+            echo "  VERCEL_TOKEN       — from vercel.com/account/tokens"
+            echo "  VERCEL_ORG_ID      — from vercel link (stores in .vercel/project.json)"
+            echo "  VERCEL_PROJECT_ID  — from vercel link (stores in .vercel/project.json)"
+            exit 1
+          fi
+          echo "✓ All Vercel secrets present"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
       # ── Deploy via Vercel CLI ─────────────────────────────────────────────────
       - name: Install Vercel CLI
