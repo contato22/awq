@@ -120,7 +120,7 @@ jobs:
           echo "## Live Vercel Probe Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**URL**: https://awq-brown.vercel.app" >> $GITHUB_STEP_SUMMARY
-          echo "**Commit probed**: \`a28234b\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit probed**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Endpoint | Status | Meaning |" >> $GITHUB_STEP_SUMMARY
           echo "|---|---|---|" >> $GITHUB_STEP_SUMMARY
