@@ -35,3 +35,6 @@ next-env.d.ts
 /public/data/*.json
 !/public/data/venture-sales.json
 !/public/data/jacqes-kpis.json
+
+# Uploaded PDFs (filesystem adapter — ephemeral, not versioned)
+/public/data/financial/pdfs/*.pdf

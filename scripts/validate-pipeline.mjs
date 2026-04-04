@@ -62,8 +62,9 @@ if (process.argv.includes("--clean")) {
 
 h1("Stage 1 — Seeding mock financial documents");
 
-function newId() {
-  return crypto.randomBytes(8).toString("hex") + Date.now().toString(36);
+// Deterministic IDs — same output every run, so JSON files stay stable in git.
+function seedId(label) {
+  return crypto.createHash("sha256").update("awq-seed-v1:" + label).digest("hex").slice(0, 20);
 }
 
 function ensureDir() {
@@ -88,15 +89,16 @@ writeJSON(DOCS_FILE, []);
 writeJSON(TXN_FILE, []);
 
 // ── Create 3 mock documents (AWQ_Holding, JACQES, Caza_Vision) ───────────────
+// All IDs and hashes are deterministic — stable across runs, no git churn.
 
-const NOW = new Date().toISOString();
+const NOW          = "2026-01-31T23:59:59.000Z";  // fixed timestamp
 const PERIOD_START = "2026-01-01";
 const PERIOD_END   = "2026-01-31";
 
 const docAWQ = {
-  id:               newId(),
+  id:               seedId("doc-awq-holding"),
   filename:         "extrato_cora_awq_jan2026.pdf",
-  fileHash:         crypto.randomBytes(32).toString("hex"),
+  fileHash:         seedId("hash-awq-holding"),
   bank:             "Cora",
   accountName:      "Conta PJ AWQ Holding",
   accountNumber:    "****1234",
@@ -116,9 +118,9 @@ const docAWQ = {
 };
 
 const docJACQES = {
-  id:               newId(),
+  id:               seedId("doc-jacqes"),
   filename:         "extrato_itau_jacqes_jan2026.pdf",
-  fileHash:         crypto.randomBytes(32).toString("hex"),
+  fileHash:         seedId("hash-jacqes"),
   bank:             "Itaú",
   accountName:      "Conta PJ JACQES",
   accountNumber:    "****5678",
@@ -138,9 +140,9 @@ const docJACQES = {
 };
 
 const docCaza = {
-  id:               newId(),
+  id:               seedId("doc-caza-vision"),
   filename:         "extrato_nubank_caza_jan2026.pdf",
-  fileHash:         crypto.randomBytes(32).toString("hex"),
+  fileHash:         seedId("hash-caza-vision"),
   bank:             "Nubank",
   accountName:      "Conta PJ Caza Vision",
   accountNumber:    "****9012",
@@ -174,8 +176,9 @@ assert(
 
 h1("Stage 2 — Seeding mock transactions");
 
+let _txnSeq = 0;
 const txnBase = (docId, entity, bank, account) => ({
-  id:                        newId(),
+  id:                        seedId(`txn-${entity}-${++_txnSeq}`),
   documentId:                docId,
   bank,
   accountName:               account,
