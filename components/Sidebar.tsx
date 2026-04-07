@@ -32,6 +32,7 @@ import {
     Landmark,
     Database,
     ShieldCheck,
+    Package,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -69,6 +70,7 @@ const jacqesNav = [
     { label: "Customers",      href: "/jacqes/customers",         icon: Users           },
     { label: "Unit Economics", href: "/jacqes/unit-economics",    icon: Calculator      },
     { label: "Budget",         href: "/jacqes/budget",            icon: Wallet          },
+    { label: "Ativos",         href: "/jacqes/assets",            icon: Package         },
     { label: "Desempenho",     href: "/jacqes/desempenho",        icon: TrendingUp      },
     { label: "Carteira",       href: "/jacqes/carteira",          icon: Users           },
     { label: "Análise",        href: "/jacqes/analise",           icon: Activity        },
@@ -83,12 +85,14 @@ const cazaNav = [
     { label: "Clientes",       href: "/caza-vision/clientes",          icon: Users           },
     { label: "Financial",      href: "/caza-vision/financial",         icon: DollarSign      },
     { label: "Unit Economics", href: "/caza-vision/unit-economics",    icon: Calculator      },
+    { label: "Ativos",         href: "/caza-vision/assets",           icon: Package         },
 ];
 
 const advisorNav = [
     { label: "Visão Geral", href: "/advisor",              icon: LayoutDashboard },
     { label: "Financial",   href: "/advisor/financial",    icon: DollarSign      },
     { label: "Customers",   href: "/advisor/customers",    icon: Users           },
+    { label: "Ativos",      href: "/advisor/assets",       icon: Package         },
 ];
 
 const ventureNav = [
@@ -98,6 +102,7 @@ const ventureNav = [
     { label: "Financial",   href: "/awq-venture/financial",    icon: DollarSign      },
     { label: "YoY 2025",    href: "/awq-venture/yoy-2025",     icon: LineChart       },
     { label: "Sales",       href: "/awq-venture/sales",        icon: DollarSign      },
+    { label: "Ativos",      href: "/awq-venture/assets",       icon: Package         },
 ];
 
 const gestaoNav = [
@@ -157,6 +162,7 @@ const awqNav = [
     { label: "Portfolio",      href: "/awq/portfolio",    icon: Briefcase       },
     { label: "Cash Flow",      href: "/awq/cashflow",     icon: Zap             },
     { label: "Investimentos",  href: "/awq/investments",  icon: Landmark        },
+    { label: "Ativos",         href: "/awq/assets",       icon: Package         },
     { label: "Budget",         href: "/awq/budget",       icon: Wallet          },
     { label: "Forecast",       href: "/awq/forecast",     icon: TrendingUp      },
     { label: "Allocations",    href: "/awq/allocations",  icon: Wallet          },

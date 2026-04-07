@@ -119,6 +119,25 @@ export const SNAPSHOT_REGISTRY: SnapshotSource[] = [
       "Financial KPIs in caza-data.ts align with awq-group-data.ts buData[caza]. " +
       "Keep in sync during snapshot phase.",
   },
+  {
+    file:   "lib/asset-data.ts",
+    scope:  "Subledger patrimonial por BU — ativos tangíveis, intangíveis reconhecidos e estratégicos não reconhecidos. Q1 2026 snapshot.",
+    status: "active",
+    period: "Q1 2026 (snapshot patrimonial)",
+    consumers: [
+      "lib/asset-query.ts (sole query path)",
+      "app/awq/assets/page.tsx",
+      "app/awq/assets/governance/page.tsx",
+      "app/awq/assets/strategic/page.tsx",
+      "app/jacqes/assets/page.tsx",
+      "app/caza-vision/assets/page.tsx",
+      "app/advisor/assets/page.tsx",
+      "app/awq-venture/assets/page.tsx",
+    ],
+    migratesTo: "lib/asset-db.ts (Neon/JSON adapter — not yet built); requires fixed asset register integration",
+    migrationBlocker: "No real fixed asset register ingestion pipeline yet. Manual entry or ERP integration required.",
+    notes: "strategic_non_recognized assets never enter consolidated equity. Governance enforced by lib/asset-governance.ts.",
+  },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
