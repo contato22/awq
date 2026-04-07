@@ -9,6 +9,11 @@ import {
   ArrowDownRight,
   Minus,
 } from "lucide-react";
+import {
+  JACQES_BUDGET,
+  JACQES_BUDGET_LINES,
+  JACQES_PL,
+} from "@/lib/jacqes-data";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -28,76 +33,19 @@ function varLabel(v: number) {
   return `${v >= 0 ? "+" : ""}${v.toFixed(1)}%`;
 }
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
+// ─── Fonte canônica — lib/jacqes-data.ts (Camada 2 + 3) ─────────────────────
+// yearBudget e budgetLines eram inline com erro crítico:
+//   yearBudget.receita = 15_600_000 → implica Q1 budget = 3_900_000
+//   mas awq-group-data.budgetRevenue (Q1 real) = 4_440_000
+//   Divergência de 540K no budget Q1 — inaceitável para consistência.
+//
+// CORREÇÃO:
+//   annualRevenue = budgetRevenue × 4 = 17_760_000 (anualizado do Q1)
+//   ytdRevenue    = budgetRevenue     = 4_440_000  (Q1 real)
+//   ytdActual     = JACQES_PL.revenueBruta = 4_820_000 → var = +8.6% ✓
+//   (consistente com Alert A2: "superou o budget em 8.6%")
 
-const yearBudget = {
-  receita:    15_600_000,
-  cogs:        5_616_000,
-  lucrobruto:  9_984_000,
-  opex:        5_990_000,
-  ebitda:      3_994_000,
-  lucroliq:    2_396_000,
-};
-
-const yearActual = {
-  receita:    4_820_000,   // Jan–Mar only (YTD)
-  cogs:       1_927_800,
-  lucrobruto: 2_892_200,
-  opex:       1_712_600,
-  ebitda:       866_800,  // YTD
-  lucroliq:     518_370,
-};
-
-const budgetLines = [
-  {
-    category: "Receita de Serviços",
-    budgetAno:  yearBudget.receita,
-    actualYtd:  yearActual.receita,
-    budgetYtd:  yearBudget.receita * (3 / 12),
-    forecast:   yearBudget.receita * 1.04,
-    type: "revenue",
-  },
-  {
-    category: "Custo dos Serviços (COGS)",
-    budgetAno:  yearBudget.cogs,
-    actualYtd:  yearActual.cogs,
-    budgetYtd:  yearBudget.cogs * (3 / 12),
-    forecast:   yearBudget.cogs * 1.02,
-    type: "cost",
-  },
-  {
-    category: "Lucro Bruto",
-    budgetAno:  yearBudget.lucrobruto,
-    actualYtd:  yearActual.lucrobruto,
-    budgetYtd:  yearBudget.lucrobruto * (3 / 12),
-    forecast:   yearBudget.lucrobruto * 1.05,
-    type: "subtotal",
-  },
-  {
-    category: "OpEx Total",
-    budgetAno:  yearBudget.opex,
-    actualYtd:  yearActual.opex,
-    budgetYtd:  yearBudget.opex * (3 / 12),
-    forecast:   yearBudget.opex * 1.01,
-    type: "cost",
-  },
-  {
-    category: "EBITDA",
-    budgetAno:  yearBudget.ebitda,
-    actualYtd:  yearActual.ebitda,
-    budgetYtd:  yearBudget.ebitda * (3 / 12),
-    forecast:   yearBudget.ebitda * 1.08,
-    type: "ebitda",
-  },
-  {
-    category: "Lucro Líquido",
-    budgetAno:  yearBudget.lucroliq,
-    actualYtd:  yearActual.lucroliq,
-    budgetYtd:  yearBudget.lucroliq * (3 / 12),
-    forecast:   yearBudget.lucroliq * 1.06,
-    type: "net",
-  },
-];
+const budgetLines = JACQES_BUDGET_LINES;
 
 const categoryBudget = [
   { category: "Marketing & Growth",   budget: 480_000, actual: 412_000, icon: TrendingUp,    color: "text-brand-600"   },
@@ -132,8 +80,11 @@ function rowTextColor(type: string) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function JacqesBudgetPage() {
-  const receitaVar = variance(yearActual.receita, yearBudget.receita * (3 / 12));
-  const ebitdaVar  = variance(yearActual.ebitda,  yearBudget.ebitda  * (3 / 12));
+  // Variâncias derivadas da camada canônica:
+  //   receitaVar = (4_820_000 - 4_440_000) / 4_440_000 = +8.6% ✓
+  //   ebitdaVar  = (866_800 - 976_800) / 976_800 = -11.3% (abaixo do budget)
+  const receitaVar = variance(JACQES_PL.revenueBruta, JACQES_BUDGET.ytdRevenue);
+  const ebitdaVar  = variance(JACQES_PL.ebitda,       JACQES_BUDGET.ytdEbitda);
 
   return (
     <>
@@ -148,9 +99,9 @@ export default function JacqesBudgetPage() {
           {[
             {
               label: "Budget Receita 2026",
-              value: fmtR(yearBudget.receita),
-              sub: `YTD: ${fmtR(yearActual.receita)}`,
-              delta: `${receitaVar >= 0 ? "+" : ""}${receitaVar.toFixed(1)}% vs budget YTD`,
+              value: fmtR(JACQES_BUDGET.annualRevenue),
+              sub: `YTD realizado: ${fmtR(JACQES_PL.revenueBruta)}`,
+              delta: `${receitaVar >= 0 ? "+" : ""}${receitaVar.toFixed(1)}% vs budget Q1`,
               up: receitaVar >= 0,
               icon: DollarSign,
               color: "text-emerald-600",
@@ -158,9 +109,9 @@ export default function JacqesBudgetPage() {
             },
             {
               label: "Budget EBITDA 2026",
-              value: fmtR(yearBudget.ebitda),
-              sub: `YTD: ${fmtR(yearActual.ebitda)}`,
-              delta: `${ebitdaVar >= 0 ? "+" : ""}${ebitdaVar.toFixed(1)}% vs budget YTD`,
+              value: fmtR(JACQES_BUDGET.annualEbitda),
+              sub: `YTD realizado: ${fmtR(JACQES_PL.ebitda)}`,
+              delta: `${ebitdaVar >= 0 ? "+" : ""}${ebitdaVar.toFixed(1)}% vs budget Q1`,
               up: ebitdaVar >= 0,
               icon: BarChart3,
               color: "text-brand-600",
@@ -168,8 +119,8 @@ export default function JacqesBudgetPage() {
             },
             {
               label: "Forecast Receita 2026",
-              value: fmtR(yearBudget.receita * 1.04),
-              sub: `+4% vs budget`,
+              value: fmtR(Math.round(JACQES_BUDGET.annualRevenue * 1.04)),
+              sub: `+4% vs budget anualizado`,
               delta: "+4.0% acima do budget",
               up: true,
               icon: TrendingUp,
@@ -178,8 +129,8 @@ export default function JacqesBudgetPage() {
             },
             {
               label: "% Budget Executado",
-              value: ((yearActual.receita / yearBudget.receita) * 100).toFixed(0) + "%",
-              sub: "3 de 12 meses",
+              value: ((JACQES_PL.revenueBruta / JACQES_BUDGET.annualRevenue) * 100).toFixed(0) + "%",
+              sub: "3 de 12 meses · anualizado",
               delta: "Ritmo adequado",
               up: true,
               icon: CheckCircle2,

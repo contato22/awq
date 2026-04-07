@@ -8,6 +8,15 @@ import {
   ArrowDownRight,
   Target,
 } from "lucide-react";
+import {
+  JACQES_CAC,
+  JACQES_AVG_LTV,
+  JACQES_LTV_CAC,
+  JACQES_PAYBACK_MONTHS,
+  JACQES_CURRENT_MRR,
+  JACQES_MRR_HISTORY,
+  JACQES_COHORT_DATA,
+} from "@/lib/jacqes-data";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -17,73 +26,61 @@ function fmtR(n: number) {
   return "R$" + n.toLocaleString("pt-BR");
 }
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
+// ─── Fonte canônica — lib/jacqes-data.ts (Camada 1 + 3) ─────────────────────
+// unitMetrics, mrrHistory e cohortData eram inline mock com divergências:
+//   LTV hardcoded = 1_742_000 ≠ LTV derivado da carteira = JACQES_AVG_LTV (1_922_700)
+//   LTV/CAC hardcoded = 36.3× ≠ derivado = JACQES_LTV_CAC (40.1×)
+//   MRR Mar/26 = 2_143_000 ≠ soma dos clientes ativos = JACQES_CURRENT_MRR (2_323_000)
+// Agora todos derivados da mesma carteira que Customers e Overview leem.
+
+const mrrHistory = JACQES_MRR_HISTORY;
+const cohortData = JACQES_COHORT_DATA;
 
 const unitMetrics = [
   {
-    label: "CAC",
-    value: fmtR(48_000),
-    sub: "Custo de Aquisição",
-    delta: "-12.3%",
-    up: true,
-    icon: Users,
-    color: "text-brand-600",
-    bg: "bg-brand-50",
+    label:       "CAC",
+    value:       fmtR(JACQES_CAC),
+    sub:         "Custo de Aquisição",
+    delta:       "-12.3%",
+    up:          true,
+    icon:        Users,
+    color:       "text-brand-600",
+    bg:          "bg-brand-50",
     description: "Inclui marketing, comercial e onboarding",
   },
   {
-    label: "LTV Médio",
-    value: fmtR(1_742_000),
-    sub: "Lifetime Value",
-    delta: "+18.1%",
-    up: true,
-    icon: DollarSign,
-    color: "text-emerald-600",
-    bg: "bg-emerald-50",
-    description: "Baseado em 36 meses de vida média",
+    label:       "LTV Médio",
+    value:       fmtR(JACQES_AVG_LTV),
+    sub:         "Lifetime Value",
+    delta:       "+18.1%",
+    up:          true,
+    icon:        DollarSign,
+    color:       "text-emerald-600",
+    bg:          "bg-emerald-50",
+    description: "Média da carteira de 10 clientes (lib/jacqes-data)",
   },
   {
-    label: "LTV / CAC",
-    value: "36.3×",
-    sub: "Referência: >3×",
-    delta: "+4.2×",
-    up: true,
-    icon: TrendingUp,
-    color: "text-violet-700",
-    bg: "bg-violet-50",
-    description: "Retorno por real investido em aquisição",
+    label:       "LTV / CAC",
+    value:       `${JACQES_LTV_CAC}×`,
+    sub:         "Referência: >3×",
+    delta:       "+4.2×",
+    up:          true,
+    icon:        TrendingUp,
+    color:       "text-violet-700",
+    bg:          "bg-violet-50",
+    description: "Derivado: LTV médio / CAC",
   },
   {
-    label: "Payback",
-    value: "3.8 meses",
-    sub: "Referência: <12 meses",
-    delta: "-0.6m",
-    up: true,
-    icon: Target,
-    color: "text-amber-700",
-    bg: "bg-amber-50",
+    label:       "Payback",
+    value:       `${JACQES_PAYBACK_MONTHS} meses`,
+    sub:         "Referência: <12 meses",
+    delta:       "-0.6m",
+    up:          true,
+    icon:        Target,
+    color:       "text-amber-700",
+    bg:          "bg-amber-50",
     description: "Meses para recuperar o CAC",
   },
-];
-
-const mrrHistory = [
-  { month: "Out/25", mrr: 1_480_000, newMrr: 195_000, churnMrr: 48_000,  expansionMrr: 62_000  },
-  { month: "Nov/25", mrr: 1_689_000, newMrr: 230_000, churnMrr: 21_000,  expansionMrr: 0       },
-  { month: "Dez/25", mrr: 1_710_000, newMrr: 0,       churnMrr: 0,       expansionMrr: 21_000  },
-  { month: "Jan/26", mrr: 1_820_000, newMrr: 175_000, churnMrr: 65_000,  expansionMrr: 0       },
-  { month: "Fev/26", mrr: 1_930_000, newMrr: 175_000, churnMrr: 65_000,  expansionMrr: 0       },
-  { month: "Mar/26", mrr: 2_143_000, newMrr: 260_000, churnMrr: 47_000,  expansionMrr: 0       },
-];
-
-const cohortData = [
-  { cohort: "Q1/2023", clientes: 3, retencao12m: 100, retencao24m: 100, ltvMedio: 5_040_000 },
-  { cohort: "Q2/2023", clientes: 2, retencao12m: 100, retencao24m: 100, ltvMedio: 3_910_000 },
-  { cohort: "Q3/2023", clientes: 1, retencao12m: 100, retencao24m: 100, ltvMedio: 4_200_000 },
-  { cohort: "Q4/2023", clientes: 1, retencao12m: 100, retencao24m:  75, ltvMedio: 2_100_000 },
-  { cohort: "Q1/2024", clientes: 2, retencao12m: 100, retencao24m:   0, ltvMedio: 1_060_000 },
-  { cohort: "Q2/2024", clientes: 1, retencao12m: 100, retencao24m:   0, ltvMedio:   800_000 },
-  { cohort: "Q3/2024", clientes: 1, retencao12m:  50, retencao24m:   0, ltvMedio:   145_000 },
-  { cohort: "Q1/2025", clientes: 2, retencao12m: 100, retencao24m:   0, ltvMedio:   696_000 },
 ];
 
 function retencaoColor(v: number) {
@@ -99,7 +96,8 @@ export default function JacqesUnitEconomicsPage() {
   const latestMrr = mrrHistory[mrrHistory.length - 1];
   const prevMrr   = mrrHistory[mrrHistory.length - 2];
   const mrrGrowth = prevMrr ? (((latestMrr.mrr - prevMrr.mrr) / prevMrr.mrr) * 100).toFixed(1) : "0.0";
-  const arr       = latestMrr.mrr * 12;
+  // MRR e ARR derivados da carteira real (JACQES_CURRENT_MRR = soma dos contratos ativos)
+  const arr = JACQES_CURRENT_MRR * 12;
 
   return (
     <>
@@ -205,8 +203,8 @@ export default function JacqesUnitEconomicsPage() {
           <div className="card p-5 flex flex-col gap-4">
             <h2 className="text-sm font-semibold text-gray-900">Benchmarks</h2>
             {[
-              { label: "LTV / CAC",         value: "36.3×", benchmark: ">3×",   status: "great", pct: 100 },
-              { label: "Gross Margin",      value: "60.0%", benchmark: ">50%",  status: "great", pct: 100 },
+              { label: "LTV / CAC",         value: `${JACQES_LTV_CAC}×`, benchmark: ">3×",   status: "great", pct: 100 },
+              { label: "Gross Margin",      value: "60.0%",               benchmark: ">50%",  status: "great", pct: 100 },
               { label: "Net Revenue Retention", value: "112%", benchmark: ">100%", status: "great", pct: 100 },
               { label: "Payback (meses)",   value: "3.8",   benchmark: "<12",   status: "great", pct: 100 },
               { label: "Magic Number",      value: "1.8",   benchmark: ">1.0",  status: "great", pct: 100 },

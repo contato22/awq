@@ -17,6 +17,11 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { buildFinancialQuery, fmtBRL, fmtDate } from "@/lib/financial-query";
+import {
+  JACQES_PL,
+  JACQES_DRE_ROWS,
+  JACQES_BUDGET_VS_ACTUAL,
+} from "@/lib/jacqes-data";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -35,36 +40,13 @@ function variance(actual: number, budget: number) {
   return ((actual - budget) / budget) * 100;
 }
 
-// ─── Snapshot accrual data (NOT from banking pipeline) ────────────────────────
-// These numbers are estimates from the financial model.
-// They will remain until a proper accounting layer is integrated.
+// ─── Snapshot accrual data — importado de lib/jacqes-data (camada canônica BU) ─
+// dreData e budgetVsActual eram inline e ERRADOS (budgetVsActual ~4-5× menor que real).
+// Agora derivados da mesma base que Overview, Revenue, Budget e Customers.
+// Ver lib/jacqes-data.ts para metodologia e fonte de cada valor.
 
-const dreData = [
-  { label: "Receita Bruta de Serviços",   value: 4_820_000,  indent: 0, bold: false, type: "revenue"   },
-  { label: "(-) Deduções e Impostos",     value: -481_000,   indent: 1, bold: false, type: "deduction"  },
-  { label: "= Receita Líquida",           value: 4_339_000,  indent: 0, bold: true,  type: "subtotal"   },
-  { label: "(-) Custo dos Serviços",      value: -1_735_600, indent: 1, bold: false, type: "cost"       },
-  { label: "= Lucro Bruto",              value: 2_603_400,  indent: 0, bold: true,  type: "subtotal"   },
-  { label: "(-) Desp. Comerciais",        value: -347_120,   indent: 1, bold: false, type: "expense"    },
-  { label: "(-) Desp. Administrativas",  value: -520_680,   indent: 1, bold: false, type: "expense"    },
-  { label: "(-) Desp. com Pessoal",       value: -868_800,   indent: 1, bold: false, type: "expense"    },
-  { label: "= EBITDA",                    value: 866_800,    indent: 0, bold: true,  type: "ebitda"     },
-  { label: "(-) Depreciação e Amort.",    value: -43_390,    indent: 1, bold: false, type: "expense"    },
-  { label: "= EBIT",                      value: 823_410,    indent: 0, bold: true,  type: "subtotal"   },
-  { label: "(+/-) Resultado Financeiro",  value: -38_000,    indent: 1, bold: false, type: "expense"    },
-  { label: "= Resultado Antes do IR",     value: 785_410,    indent: 0, bold: true,  type: "subtotal"   },
-  { label: "(-) IR e CSLL",              value: -267_040,   indent: 1, bold: false, type: "expense"    },
-  { label: "= Lucro Líquido",            value: 518_370,    indent: 0, bold: true,  type: "net"        },
-];
-
-const budgetVsActual = [
-  { month: "Jan/26", receitaBudget: 320_000, receitaActual: 298_000, ebitdaBudget: 57_600, ebitdaActual: 51_500 },
-  { month: "Fev/26", receitaBudget: 340_000, receitaActual: 375_000, ebitdaBudget: 61_200, ebitdaActual: 71_250 },
-  { month: "Mar/26", receitaBudget: 380_000, receitaActual: 421_000, ebitdaBudget: 68_400, ebitdaActual: 80_000 },
-  { month: "Abr/26", receitaBudget: 400_000, receitaActual: 0,       ebitdaBudget: 72_000, ebitdaActual: 0      },
-  { month: "Mai/26", receitaBudget: 420_000, receitaActual: 0,       ebitdaBudget: 75_600, ebitdaActual: 0      },
-  { month: "Jun/26", receitaBudget: 440_000, receitaActual: 0,       ebitdaBudget: 79_200, ebitdaActual: 0      },
-];
+const dreData = JACQES_DRE_ROWS;
+const budgetVsActual = JACQES_BUDGET_VS_ACTUAL;
 
 // ─── Color helpers ────────────────────────────────────────────────────────────
 
@@ -101,17 +83,20 @@ export default async function JacqesFinancialPage() {
     ? `${fmtDate(q.consolidated.periodStart)} – ${fmtDate(q.consolidated.periodEnd)}`
     : null;
 
-  // Snapshot accrual summary cards
+  // Snapshot accrual summary cards — derivados de JACQES_PL (lib/jacqes-data)
   const snapshotCards = [
-    { label: "Receita Líquida YTD",   value: fmtR(4_339_000), sub: "Jan–Mar/26", delta: "+18.4%", up: true,  icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
-    { label: "Lucro Bruto YTD",       value: fmtR(2_603_400), sub: `Margem ${pct(2_603_400 / 4_339_000)}`, delta: "+12.1%", up: true, icon: TrendingUp, color: "text-brand-600", bg: "bg-brand-50" },
-    { label: "EBITDA YTD",            value: fmtR(866_800),   sub: `Margem ${pct(866_800 / 4_339_000)}`, delta: "+9.3%", up: true,  icon: BarChart3, color: "text-violet-700", bg: "bg-violet-50" },
-    { label: "Lucro Líquido YTD",     value: fmtR(518_370),   sub: `Margem ${pct(518_370 / 4_339_000)}`, delta: "+7.8%", up: true,  icon: TrendingDown, color: "text-amber-700", bg: "bg-amber-50" },
+    { label: "Receita Líquida YTD",   value: fmtR(JACQES_PL.receitaLiquida), sub: "Jan–Mar/26", delta: "+18.4%", up: true,  icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
+    { label: "Lucro Bruto YTD",       value: fmtR(JACQES_PL.lucrobruto),     sub: `Margem ${pct(JACQES_PL.lucrobruto / JACQES_PL.receitaLiquida)}`, delta: "+12.1%", up: true, icon: TrendingUp, color: "text-brand-600", bg: "bg-brand-50" },
+    { label: "EBITDA YTD",            value: fmtR(JACQES_PL.ebitda),         sub: `Margem ${pct(JACQES_PL.ebitda / JACQES_PL.receitaLiquida)}`, delta: "+9.3%", up: true,  icon: BarChart3, color: "text-violet-700", bg: "bg-violet-50" },
+    { label: "Lucro Líquido YTD",     value: fmtR(JACQES_PL.netIncome),      sub: `Margem ${pct(JACQES_PL.netIncome / JACQES_PL.receitaLiquida)}`, delta: "+7.8%", up: true,  icon: TrendingDown, color: "text-amber-700", bg: "bg-amber-50" },
   ];
 
   const ytdBudgetReceita = budgetVsActual.filter((r) => r.receitaActual > 0).reduce((s, r) => s + r.receitaBudget, 0);
   const ytdActualReceita = budgetVsActual.filter((r) => r.receitaActual > 0).reduce((s, r) => s + r.receitaActual, 0);
   const ytdVarReceita    = variance(ytdActualReceita, ytdBudgetReceita);
+  // ytdActualReceita = 4_820_000 (Jan+Fev+Mar de awq-group-data.monthlyRevenue)
+  // ytdBudgetReceita = 4_440_000 (3 × 1_480_000 = budgetRevenue Q1 / 3 × 3)
+  // ytdVarReceita ≈ +8.6% — consistente com Alert A2 e awq-group-data
 
   return (
     <>
@@ -260,7 +245,7 @@ export default async function JacqesFinancialPage() {
                 </thead>
                 <tbody>
                   {dreData.map((row, i) => {
-                    const receitaLiq = 4_339_000;
+                    const receitaLiq = JACQES_PL.receitaLiquida;
                     const isSubtotal = row.bold;
                     const pctReceita = receitaLiq > 0
                       ? ((row.value / receitaLiq) * 100).toFixed(1) + "%"
@@ -297,10 +282,10 @@ export default async function JacqesFinancialPage() {
               <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 border border-amber-200">snapshot</span>
             </h2>
             {[
-              { label: "Margem Bruta",   value: 2_603_400, base: 4_339_000, color: "bg-emerald-500" },
-              { label: "Margem EBITDA",  value: 866_800,   base: 4_339_000, color: "bg-brand-500"   },
-              { label: "Margem EBIT",    value: 823_410,   base: 4_339_000, color: "bg-violet-500"  },
-              { label: "Margem Líquida", value: 518_370,   base: 4_339_000, color: "bg-amber-500"   },
+              { label: "Margem Bruta",   value: JACQES_PL.lucrobruto, base: JACQES_PL.receitaLiquida, color: "bg-emerald-500" },
+              { label: "Margem EBITDA",  value: JACQES_PL.ebitda,     base: JACQES_PL.receitaLiquida, color: "bg-brand-500"   },
+              { label: "Margem EBIT",    value: JACQES_PL.ebit,       base: JACQES_PL.receitaLiquida, color: "bg-violet-500"  },
+              { label: "Margem Líquida", value: JACQES_PL.netIncome,  base: JACQES_PL.receitaLiquida, color: "bg-amber-500"   },
             ].map((m) => {
               const p = ((m.value / m.base) * 100);
               return (

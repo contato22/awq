@@ -15,6 +15,7 @@ import ChannelTable from "@/components/ChannelTable";
 import { revenueData } from "@/lib/data";
 import { formatCurrency } from "@/lib/utils";
 import { DollarSign, TrendingUp, ArrowUpRight, ArrowDownRight, BarChart3 } from "lucide-react";
+import { JACQES_REVENUE_SUMMARY } from "@/lib/jacqes-data";
 
 interface CustomTooltipProps {
   active?: boolean;
@@ -42,11 +43,27 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   );
 }
 
+// summaryStats derivados de JACQES_REVENUE_SUMMARY (lib/jacqes-data — camada canônica BU).
+// CORREÇÃO: valores anteriores eram hardcoded e errados:
+//   "Total Profit = R$3.24M" e "Total Expenses = R$1.58M" não correspondiam a nenhuma
+//   linha do P&L canônico da JACQES (nem lucro bruto, nem lucro líquido, nem COGS).
+// AGORA:
+//   Receita Bruta     = JACQES_PL.revenueBruta     = 4_820_000
+//   Lucro Bruto       = JACQES_PL.grossProfitSimple = 2_892_000 (60% margem bruta)
+//   COGS              = 4_820_000 - 2_892_000       = 1_928_000
+//   Receita Média/Mês = 4_820_000 / 3               = 1_606_667
+
+function fmtStat(n: number): string {
+  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
+  if (n >= 1_000)     return "R$" + (n / 1_000).toFixed(1) + "K";
+  return "R$" + n.toLocaleString("pt-BR");
+}
+
 const summaryStats = [
-  { label: "Total Revenue", value: "R$4.82M", sub: "+14.6% YoY", positive: true, icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
-  { label: "Total Profit",  value: "R$3.24M", sub: "+21.3% YoY", positive: true, icon: TrendingUp, color: "text-brand-600",   bg: "bg-brand-50" },
-  { label: "Total Expenses", value: "R$1.58M", sub: "+8.2% YoY", positive: false, icon: BarChart3, color: "text-amber-700",   bg: "bg-amber-50" },
-  { label: "Avg Monthly Rev.", value: "R$401.8K", sub: "per month", positive: true, icon: DollarSign, color: "text-cyan-700",  bg: "bg-cyan-50" },
+  { label: "Receita Bruta YTD",    value: fmtStat(JACQES_REVENUE_SUMMARY.revenue),       sub: "Q1 2026 (Jan–Mar)", positive: true,  icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
+  { label: "Lucro Bruto YTD",      value: fmtStat(JACQES_REVENUE_SUMMARY.grossProfit),   sub: "Margem 60%",        positive: true,  icon: TrendingUp,  color: "text-brand-600",   bg: "bg-brand-50"   },
+  { label: "COGS YTD",             value: fmtStat(JACQES_REVENUE_SUMMARY.cogs),          sub: "40% da receita",    positive: false, icon: BarChart3,   color: "text-amber-700",   bg: "bg-amber-50"   },
+  { label: "Receita Média / Mês",  value: fmtStat(JACQES_REVENUE_SUMMARY.avgMonthlyRev), sub: "Jan–Mar/26",        positive: true,  icon: DollarSign,  color: "text-cyan-700",    bg: "bg-cyan-50"    },
 ];
 
 export default function RevenuePage() {
