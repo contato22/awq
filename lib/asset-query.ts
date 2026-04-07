@@ -304,7 +304,8 @@ export interface StrategicBuView {
   bu_id:        BuId;
   bu_name:      string;
   total_count:  number;
-  by_class:     Array<{ asset_class: string; count: number; estimated_value: number }>;
+  /** Uses `class` (not `asset_class`) to match BuStrategicView in the strategic page */
+  by_class:     Array<{ class: string; count: number; estimated_value: number | null }>;
 }
 
 export function buildBuStrategicView(): StrategicBuView[] {
@@ -324,9 +325,10 @@ export function buildBuStrategicView(): StrategicBuView[] {
       bu_id:       sub.bu_id as BuId,
       bu_name:     sub.bu_name,
       total_count: strategic.length,
-      by_class:    Array.from(classMap.entries()).map(([asset_class, v]) => ({
-        asset_class,
-        ...v,
+      by_class:    Array.from(classMap.entries()).map(([cls, v]) => ({
+        class: cls,
+        count: v.count,
+        estimated_value: v.estimated_value || null,
       })),
     };
   });
