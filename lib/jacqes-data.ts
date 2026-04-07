@@ -81,11 +81,11 @@ export const JACQES_CURRENT_MRR: number =
 
 /** LTV total histórico + projetado da carteira */
 export const JACQES_TOTAL_LTV: number =
-  JACQES_CUSTOMERS.reduce((s, c) => s + c.ltv, 0); // 19_227_000
+  JACQES_CUSTOMERS.reduce((s, c) => s + c.ltv, 0); // 19_427_000
 
 /** LTV médio por cliente (derivado da carteira) */
 export const JACQES_AVG_LTV: number =
-  Math.round(JACQES_TOTAL_LTV / JACQES_CUSTOMERS.length); // 1_922_700
+  Math.round(JACQES_TOTAL_LTV / JACQES_CUSTOMERS.length); // 1_942_700
 
 /** Churn rate % — derivado da carteira */
 export const JACQES_CHURN_RATE: string =
@@ -251,8 +251,8 @@ export const JACQES_MRR_HISTORY: MRRHistoryPoint[] = [
 // ─── Camada 3 — Unit economics ────────────────────────────────────────────────
 //
 // CAC = 48_000 (inclui marketing, comercial, onboarding — estimativa operacional)
-// LTV = JACQES_AVG_LTV (derivado da carteira = 1_922_700)
-// LTV/CAC derivado = 40.1× (CORREÇÃO: unit-economics tinha 36.3× com LTV hardcoded 1,742K)
+// LTV = JACQES_AVG_LTV (derivado da carteira = 1_942_700)
+// LTV/CAC derivado = 40.5× (CORREÇÃO: unit-economics tinha 36.3× com LTV hardcoded 1,742K)
 // Payback = 3.8m (estimativa operacional)
 
 export const JACQES_CAC            = 48_000;
