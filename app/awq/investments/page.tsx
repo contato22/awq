@@ -1,9 +1,9 @@
 // ─── /awq/investments — Área de Investimentos Financeiros ────────────────────
-// DATA SOURCE: financial-db.ts via investment-query.ts (primary — real pipeline)
-//              holdingTreasurySnapshot (fallback — empirical print when no PDF ingested)
+// DATA SOURCE: investment-reconciliation.ts → buildCanonicalInvestmentPosition()
+//              (Camada 4 canonical layer — handles pipeline-real + empirical fallback)
 // SCOPE: aplicacao_financeira + resgate_financeiro + fila de revisão
 // This is NOT operational cash flow. Patrimonial / treasury movements only.
-// NO MOCKS. Snapshot only shown when pipeline has no data, clearly labeled.
+// NO MOCKS. Empirical snapshot only shown when pipeline has no data, clearly labeled.
 
 import Header from "@/components/Header";
 import {
@@ -30,6 +30,11 @@ import {
   type InvestmentEntry,
   type EntityInvestmentSummary,
 } from "@/lib/investment-query";
+import {
+  buildCanonicalInvestmentPosition,
+  fmtInvestmentConfidence,
+  fmtReconciliationStatus,
+} from "@/lib/investment-reconciliation";
 import { holdingTreasurySnapshot } from "@/lib/awq-derived-metrics";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -348,11 +353,18 @@ function EntityCard({ s }: { s: EntityInvestmentSummary }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function AwqInvestmentsPage() {
-  const q = await buildInvestmentQuery();
+  // ── Camada 4 canonical position (primary source for investment display) ──────
+  // Priority: pipeline real → empirical snapshot → SEM DADO CONFIÁVEL
+  const [q, canonical] = await Promise.all([
+    buildInvestmentQuery(),
+    buildCanonicalInvestmentPosition(),
+  ]);
 
   const periodLabel = q.periodStart && q.periodEnd
     ? `${fmtDate(q.periodStart)} – ${fmtDate(q.periodEnd)}`
-    : "Período: aguardando extratos";
+    : canonical.asOf
+      ? `Referência: ${canonical.asOf} (print bancário)`
+      : "Período: aguardando extratos";
 
   const allConfirmed = [...q.applications, ...q.redemptions].sort(
     (a, b) => b.transactionDate.localeCompare(a.transactionDate)
@@ -364,6 +376,8 @@ export default async function AwqInvestmentsPage() {
       : 0;
 
   const op = q.operationalReference;
+  const confFmt  = fmtInvestmentConfidence(canonical.investmentConfidence);
+  const reconFmt = fmtReconciliationStatus(canonical.reconciliationStatus);
 
   return (
     <>
@@ -409,48 +423,54 @@ export default async function AwqInvestmentsPage() {
           </div>
         )}
 
-        {/* ── KPI cards ────────────────────────────────────────────────────── */}
+        {/* ── Camada 4 KPI cards — canonical investment position ────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
           {[
             {
-              label:   "Aplicado",
-              value:   fmtBRL(q.totalApplications),
-              sub:     `${q.applications.length} transação(ões)`,
-              icon:    ArrowUpRight,
-              color:   "text-red-600",
-              bg:      "bg-red-50",
+              label:  "Total Investido Real",
+              value:  canonical.totalInvestedReal !== null
+                        ? fmtBRL(canonical.totalInvestedReal)
+                        : canonical.investmentApplications > 0
+                          ? fmtBRL(canonical.investmentApplications)
+                          : "—",
+              sub:    canonical.totalInvestedReal !== null
+                        ? "CDB DI — posição confirmada"
+                        : "Fluxo observável (sem posição)",
+              icon:   Landmark,
+              color:  "text-amber-700",
+              bg:     "bg-amber-50",
             },
             {
-              label:   "Resgatado",
-              value:   fmtBRL(q.totalRedemptions),
-              sub:     `${q.redemptions.length} transação(ões)`,
-              icon:    ArrowDownLeft,
-              color:   "text-emerald-600",
-              bg:      "bg-emerald-50",
+              label:  "Aplicações",
+              value:  fmtBRL(canonical.investmentApplications),
+              sub:    `${q.applications.length} aplicação(ões)`,
+              icon:   ArrowUpRight,
+              color:  "text-red-600",
+              bg:     "bg-red-50",
             },
             {
-              label:   "Saldo Líq. Investido",
-              value:   fmtBRL(q.netInvested),
-              sub:     q.netInvested > 0 ? "Mais aplicado que resgatado" : q.netInvested < 0 ? "Mais resgatado que aplicado" : "Zerado no período",
-              icon:    Landmark,
-              color:   q.netInvested > 0 ? "text-gray-700" : "text-emerald-700",
-              bg:      "bg-gray-50",
+              label:  "Resgates",
+              value:  fmtBRL(canonical.investmentRedemptions),
+              sub:    `${q.redemptions.length} resgate(s)`,
+              icon:   ArrowDownLeft,
+              color:  "text-emerald-600",
+              bg:     "bg-emerald-50",
             },
             {
-              label:   "Em Revisão",
-              value:   String(q.ambiguousCount),
-              sub:     "Itens pendentes de decisão",
-              icon:    Clock,
-              color:   q.ambiguousCount > 0 ? "text-amber-600" : "text-gray-400",
-              bg:      q.ambiguousCount > 0 ? "bg-amber-50" : "bg-gray-50",
+              label:  "Tarifas (excl.)",
+              value:  canonical.investmentFees > 0 ? fmtBRL(canonical.investmentFees) : "—",
+              sub:    "Tarifas bancárias — NÃO investimento",
+              icon:   XCircle,
+              color:  canonical.investmentFees > 0 ? "text-red-500" : "text-gray-400",
+              bg:     canonical.investmentFees > 0 ? "bg-red-50" : "bg-gray-50",
             },
             {
-              label:   "Confiança",
-              value:   `${confidencePct}%`,
-              sub:     `${q.confirmedCount} de ${q.confirmedCount + q.ambiguousCount} classificados`,
-              icon:    CheckCircle2,
-              color:   confidencePct >= 80 ? "text-emerald-600" : confidencePct >= 50 ? "text-amber-600" : "text-red-600",
-              bg:      "bg-gray-50",
+              label:  "Confiança",
+              value:  confFmt.label,
+              sub:    reconFmt.label,
+              icon:   CheckCircle2,
+              color:  confFmt.color,
+              bg:     "bg-gray-50",
             },
           ].map((card) => {
             const Icon = card.icon;
@@ -468,6 +488,14 @@ export default async function AwqInvestmentsPage() {
             );
           })}
         </div>
+
+        {/* ── Canonical position note ───────────────────────────────────────── */}
+        {canonical.note && (
+          <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 flex items-start gap-2">
+            <AlertCircle size={12} className="text-gray-400 shrink-0 mt-0.5" />
+            <p className="text-[11px] text-gray-500 leading-relaxed">{canonical.note}</p>
+          </div>
+        )}
 
         {/* ── Investment vs Operational Separation ─────────────────────────── */}
         <div className="card p-5">

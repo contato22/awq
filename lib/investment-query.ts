@@ -9,6 +9,11 @@
 //   These are EXCLUDED from operational cash flow (FCO).
 //   They represent patrimonial / treasury movements, not revenue or expense.
 //
+// CAMADA 4 — canonical investment position:
+//   Use buildCanonicalInvestmentPosition() from lib/investment-reconciliation.ts.
+//   That layer wraps this query and adds: totalInvestedReal, investmentCashAccountBalance,
+//   investmentFees, investmentConfidence, investmentSource, reconciliationStatus, note.
+//
 // REVIEW QUEUE:
 //   Internal transfers (transferencia_interna_*) that are NOT matched as
 //   intercompany may be routing to/from investment accounts.
@@ -18,6 +23,8 @@
 //   - It does not report investment yields (no rendimento_financeiro category yet).
 //   - It does not compute asset market value (no position data available).
 //   - It does not claim a "balance in investment" — only observable cash flows.
+//     For position balance use buildCanonicalInvestmentPosition() which reads
+//     the empirical snapshot (holdingTreasurySnapshot) or pipeline closingBalance.
 //
 // DO NOT import in client components — uses Node fs via financial-db.
 
