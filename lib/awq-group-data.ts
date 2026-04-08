@@ -99,6 +99,9 @@ export const ventureContractValueRemaining = ventureContracts
 
 export const buData: BuData[] = [
   {
+    // ⚠  ZEROED — aguardando pipeline de dados real (CRM / extrato JACQES).
+    //    Valores anteriores (revenue=4.82M, grossProfit=2.89M, etc.) foram removidos
+    //    pois não possuem respaldo em fonte verificável conectada ao sistema.
     id:               "jacqes",
     name:             "JACQES",
     sub:              "Agência · AWQ Group",
@@ -106,17 +109,17 @@ export const buData: BuData[] = [
     accentColor:      "text-brand-400",
     status:           "Ativo",
     economicType:     "operational",
-    revenue:          4_820_000,
-    grossProfit:      2_892_000,
-    ebitda:           867_000,
-    netIncome:        518_000,
-    cashGenerated:    720_000,
-    cashBalance:      1_840_000,
-    customers:        10,
-    ftes:             28,
-    capitalAllocated: 2_400_000,
-    roic:             21.6,
-    budgetRevenue:    4_440_000,
+    revenue:          0,
+    grossProfit:      0,
+    ebitda:           0,
+    netIncome:        0,
+    cashGenerated:    0,
+    cashBalance:      0,
+    customers:        0,
+    ftes:             0,
+    capitalAllocated: 0,
+    roic:             0,
+    budgetRevenue:    0,
     hrefOverview:     "/jacqes",
     hrefFinancial:    "/jacqes/financial",
     hrefCustomers:    "/jacqes/customers",
@@ -263,9 +266,9 @@ export interface MonthlyPoint {
 // showed advisor R$508K / R$528K / R$536K / month (total R$1.572M) which contradicted
 // buData.advisor.revenue = 0. Zeroed here. total = jacqes + caza only.
 const _monthlyRaw = [
-  { month: "Jan/26", jacqes: 1_420_000, caza:  712_000, advisor: 0 },
-  { month: "Fev/26", jacqes: 1_512_000, caza:  798_000, advisor: 0 },
-  { month: "Mar/26", jacqes: 1_888_000, caza:  908_000, advisor: 0 },
+  { month: "Jan/26", jacqes: 0, caza:  712_000, advisor: 0 },
+  { month: "Fev/26", jacqes: 0, caza:  798_000, advisor: 0 },
+  { month: "Mar/26", jacqes: 0, caza:  908_000, advisor: 0 },
 ] as const;
 
 export const monthlyRevenue: MonthlyPoint[] = _monthlyRaw.map(m => ({
@@ -305,24 +308,10 @@ export interface RiskSignal {
 
 export const riskSignals: RiskSignal[] = [
   {
-    id: "R1",
-    title:       "Concentração de Cliente — JACQES",
-    // ⚠ CORRECTED 2026-04-08: alinhado com riskCategories.concentration (50%).
-    // Anterior: 58% — inconsistência interna com o breakdown de detalhes (Ambev+Samsung+Natura=50%).
-    description: "Top 3 clientes representam 50% do MRR JACQES. Ambev sozinho = 20%.",
-    severity:    "high",
-    bu:          "JACQES",
-    metric:      "Top-3 share: 50%",
-    threshold:   "Limite: 40%",
-  },
-  {
     id: "R2",
     title:       "Concentração de BU — Receita",
-    // ⚠ CORRECTED 2026-04-08: percentage now derived from buData (_jacqesRevPct).
-    // Anterior: 55% — calculado com Advisor ativo (R$1.57M). Advisor é pre_revenue → revenue=0.
-    // Com apenas JACQES+Caza: JACQES = 4.82M / 7.238M ≈ 67%.
     description: `JACQES representa ${_jacqesRevPct}% da receita operacional do grupo.`,
-    severity:    "high",   // upgraded: 67% > 50% limiar
+    severity:    "high",
     bu:          "AWQ Group",
     metric:      `JACQES share: ${_jacqesRevPct}%`,
     threshold:   "Limite: 50%",
@@ -335,15 +324,6 @@ export const riskSignals: RiskSignal[] = [
     bu:          "Caza Vision",
     metric:      "Em aberto: R$465K",
     threshold:   "Limite: R$200K",
-  },
-  {
-    id: "R4",
-    title:       "Margem EBITDA JACQES abaixo de meta",
-    description: "Meta anual de 22% vs realizado 18%. Gap de 4pp pressionando EBITDA consolidado.",
-    severity:    "medium",
-    bu:          "JACQES",
-    metric:      "EBITDA: 18.0%",
-    threshold:   "Meta: 22.0%",
   },
   {
     id: "R5",

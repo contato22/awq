@@ -42,21 +42,21 @@ function varLabel(v: number) {
 //   demais linhas derivadas da mesma proporção dos actuals acima
 
 const yearActual = {
-  receita:    4_820_000,   // buData.revenue
-  cogs:       1_928_000,   // revenue − grossProfit
-  lucrobruto: 2_892_000,   // buData.grossProfit  (margem 60.0%)
-  opex:       2_025_000,   // grossProfit − ebitda
-  ebitda:       867_000,   // buData.ebitda        (margem 18.0%)
-  lucroliq:     518_000,   // buData.netIncome     (margem 10.7%)
+  receita:    0,
+  cogs:       0,
+  lucrobruto: 0,
+  opex:       0,
+  ebitda:     0,
+  lucroliq:   0,
 };
 
 const yearBudget = {
-  receita:    17_760_000,  // budgetRevenue(4,440,000) × 4 trimestres
-  cogs:        7_104_000,  // 17,760,000 × 40.0%
-  lucrobruto: 10_656_000,  // 17,760,000 × 60.0%
-  opex:        7_459_200,  // 17,760,000 × 42.0%
-  ebitda:      3_196_800,  // 17,760,000 × 18.0%
-  lucroliq:    1_901_040,  // 17,760,000 × 10.7%
+  receita:    0,
+  cogs:       0,
+  lucrobruto: 0,
+  opex:       0,
+  ebitda:     0,
+  lucroliq:   0,
 };
 
 const budgetLines = [
