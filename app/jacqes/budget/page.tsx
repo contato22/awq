@@ -43,7 +43,7 @@ function varLabel(v: number) {
 
 // receita Mar/26 = JACQES_MRR (Notion CRM). Custo/margem aguardam confirmação.
 const yearActual = {
-  receita:    8_280,  // Notion CRM Abr/2026 — MRR mensal confirmado
+  receita:   27_750,  // Notion CRM · YTD Jan–Abr/26 (6490×3 + 8280)
   cogs:           0,  // aguardando confirmação contábil
   lucrobruto:     0,  // aguardando confirmação contábil
   opex:           0,  // aguardando confirmação contábil

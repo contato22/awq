@@ -40,10 +40,10 @@ function variance(actual: number, budget: number) {
 // desp comerciais 347.1K, desp admin 520.7K, pessoal 868.8K, depreciação
 // 43.4K, resultado financeiro -38K, IR 267K) — não existem na base de dados.
 // Mantidas apenas as 4 linhas que têm fonte direta em buData["jacqes"].
-// Receita Bruta = JACQES_MRR confirmado (Notion CRM Abr/2026)
+// Receita Bruta YTD (Jan–Abr): 6.490×3 + 8.280 = 27.750
 // Lucro Bruto / EBITDA / Lucro Líquido = 0 (aguardando confirmação contábil)
 const dreData = [
-  { label: "Receita Bruta de Serviços", value: 8_280, bold: false, type: "revenue"  },
+  { label: "Receita Bruta de Serviços", value: 27_750, bold: false, type: "revenue"  },
   { label: "= Lucro Bruto",            value:     0, bold: true,  type: "subtotal" },
   { label: "= EBITDA",                  value:     0, bold: true,  type: "ebitda"   },
   { label: "= Lucro Líquido",          value:     0, bold: true,  type: "net"      },
@@ -54,12 +54,12 @@ const dreData = [
 //   receitaBudget: budgetRevenue(4,440,000) / 3 meses = 1,480,000/mês (flat)
 //   ebitdaActual:  receitaActual × 18.0% (ebitda/revenue = 867,000/4,820,000)
 //   ebitdaBudget:  1,480,000 × 18.0% = 266,400/mês
-// Mar/26 realizado = JACQES_MRR (Notion CRM). Jan/Fev = 0 (não confirmados).
+// Jan/Fev/Mar: 3 clientes = R$6.490 · Abr: 4 clientes = R$8.280 (Tati entrou)
 const budgetVsActual = [
-  { month: "Jan/26", receitaBudget: 0, receitaActual:     0, ebitdaBudget: 0, ebitdaActual: 0 },
-  { month: "Fev/26", receitaBudget: 0, receitaActual:     0, ebitdaBudget: 0, ebitdaActual: 0 },
-  { month: "Mar/26", receitaBudget: 0, receitaActual: 8_280, ebitdaBudget: 0, ebitdaActual: 0 },
-  { month: "Abr/26", receitaBudget: 0, receitaActual:     0, ebitdaBudget: 0, ebitdaActual: 0 },
+  { month: "Jan/26", receitaBudget: 0, receitaActual: 6_490, ebitdaBudget: 0, ebitdaActual: 0 },
+  { month: "Fev/26", receitaBudget: 0, receitaActual: 6_490, ebitdaBudget: 0, ebitdaActual: 0 },
+  { month: "Mar/26", receitaBudget: 0, receitaActual: 6_490, ebitdaBudget: 0, ebitdaActual: 0 },
+  { month: "Abr/26", receitaBudget: 0, receitaActual: 8_280, ebitdaBudget: 0, ebitdaActual: 0 },
   { month: "Mai/26", receitaBudget: 0, receitaActual:     0, ebitdaBudget: 0, ebitdaActual: 0 },
   { month: "Jun/26", receitaBudget: 0, receitaActual:     0, ebitdaBudget: 0, ebitdaActual: 0 },
 ];
@@ -102,7 +102,7 @@ export default async function JacqesFinancialPage() {
   // Snapshot accrual summary cards — SOURCE: buData["jacqes"] direto
   // Margens calculadas sobre Receita Bruta (sem deduções fictícias)
   const snapshotCards = [
-    { label: "MRR Confirmado",    value: fmtR(8_280), sub: "Notion CRM Abr/2026 · 4 clientes",   icon: DollarSign,  color: "text-emerald-600", bg: "bg-emerald-50" },
+    { label: "Receita YTD (Jan–Abr)", value: fmtR(27_750), sub: "6.490×3 + 8.280 · Notion CRM",   icon: DollarSign,  color: "text-emerald-600", bg: "bg-emerald-50" },
     { label: "Lucro Bruto",       value: "R$0",       sub: "Aguardando confirmação contábil",      icon: TrendingUp,  color: "text-brand-600",   bg: "bg-brand-50"   },
     { label: "EBITDA",            value: "R$0",       sub: "Aguardando confirmação contábil",      icon: BarChart3,   color: "text-violet-700",  bg: "bg-violet-50"  },
     { label: "Lucro Líquido",     value: "R$0",       sub: "Aguardando confirmação contábil",      icon: TrendingDown,color: "text-amber-700",   bg: "bg-amber-50"   },

@@ -42,18 +42,15 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   );
 }
 
-// summaryStats — SOURCE: buData["jacqes"] Q1/26
-//   Receita Bruta:    4,820,000   (buData.revenue)
-//   Lucro Bruto:      2,892,000   (buData.grossProfit — margem 60%)
-//   COGS + OpEx:      3,953,000   (revenue − netIncome = 4,820,000 − 867,000 EBITDA)
-//   MRR Médio Q1/26:  1,607,000   (4,820,000 / 3 meses)
-// MRR confirmado: Notion CRM Abr/2026 — R$8.280 (4 clientes FEE)
+// summaryStats — SOURCE: Notion CRM Abr/2026
+// MRR Abr/26: R$8.280 (4 clientes: CEM, Carol, André, Tati)
+// YTD Jan–Abr/26: 6490×3 + 8280 = R$27.750
 // Lucro Bruto / EBITDA aguardam confirmação contábil
 const summaryStats = [
-  { label: "MRR Confirmado (Mar/26)", value: "R$8.280",  sub: "Notion CRM · 4 clientes FEE",          positive: true,  icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
-  { label: "Lucro Bruto",             value: "R$0",       sub: "Aguardando confirmação contábil",       positive: false, icon: TrendingUp, color: "text-brand-600",   bg: "bg-brand-50"   },
-  { label: "EBITDA",                  value: "R$0",       sub: "Aguardando confirmação contábil",       positive: false, icon: BarChart3,  color: "text-violet-700",  bg: "bg-violet-50"  },
-  { label: "Contas Ativas",           value: "4",          sub: "Notion CRM · CEM, Carol, André, Tati", positive: true,  icon: DollarSign, color: "text-cyan-700",    bg: "bg-cyan-50"    },
+  { label: "MRR Atual (Abr/26)",  value: "R$8.280",  sub: "Notion CRM · 4 clientes FEE",          positive: true,  icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
+  { label: "Receita YTD (Jan–Abr)", value: "R$27.750", sub: "6490×3 (Jan/Fev/Mar) + 8280 (Abr)",  positive: true,  icon: BarChart3,  color: "text-brand-600",   bg: "bg-brand-50"   },
+  { label: "Lucro Bruto / EBITDA", value: "R$0",      sub: "Aguardando confirmação contábil",       positive: false, icon: TrendingUp, color: "text-violet-700",  bg: "bg-violet-50"  },
+  { label: "Contas Ativas",        value: "4",         sub: "Notion CRM · CEM, Carol, André, Tati", positive: true,  icon: DollarSign, color: "text-cyan-700",    bg: "bg-cyan-50"    },
 ];
 
 export default function RevenuePage() {
