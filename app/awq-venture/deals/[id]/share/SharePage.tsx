@@ -459,7 +459,7 @@ export default function DealSharePage({ params }: { params: { id: string } }) {
                 onClick={handleMarkAnalise}
                 className="w-full text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors"
               >
-                Estou analisando a proposta → marcar como "Em análise"
+                Estou analisando a proposta → marcar como &quot;Em análise&quot;
               </button>
             )}
           </div>
