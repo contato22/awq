@@ -115,7 +115,7 @@ export const buData: BuData[] = [
     netIncome:        0,
     cashGenerated:    0,
     cashBalance:      0,
-    customers:        0,
+    customers:        4,    // Notion CRM Abr/2026: CEM, Carol Bertolini, André Vieira, Tati Simões
     ftes:             0,
     capitalAllocated: 0,
     roic:             0,

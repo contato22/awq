@@ -1,20 +1,34 @@
 import Header from "@/components/Header";
-import { Users, DollarSign, Info, AlertTriangle } from "lucide-react";
+import { Users, DollarSign, CheckCircle2, Clock, Info } from "lucide-react";
 
 // ─── /jacqes/customers — Carteira JACQES ──────────────────────────────────────
 //
-// ZEROED — aguardando pipeline de dados real (CRM / extrato JACQES).
-// Nenhum valor pode ser exibido sem fonte verificável.
+// SOURCE: Notion CRM — snapshot recebido diretamente pelo usuário (Abr/2026)
+//   4 clientes reais com FEE mensal contratado
 //
-// REMOVIDO: lista individual de clientes (Ambev, Samsung, Nike, iFood, etc.)
-// era uma criação fictícia sem respaldo em CRM, contrato ou extrato bancário.
-// Nenhum nome de cliente, MRR individual, LTV ou NPS pode ser exibido sem
-// fonte real (Notion CRM, ERP, ou extrato conciliado).
+// REGRA: apenas dados com origem confirmada. Nomes, valores e status são
+// exatamente os fornecidos. Nenhum campo foi interpolado ou estimado.
+
+// ─── Clientes reais (Notion CRM) ─────────────────────────────────────────────
+const clientes = [
+  { projeto: "CEM",            tipo: "FEE", fee: 3_200, status: "Pago"     },
+  { projeto: "CAROL BERTOLINI",tipo: "FEE", fee: 1_790, status: "Pendente" },
+  { projeto: "ANDRÉ VIEIRA",   tipo: "FEE", fee: 1_500, status: "Pendente" },
+  { projeto: "TATI SIMÕES",    tipo: "FEE", fee: 1_790, status: "Pago"     },
+];
+
+// ─── Métricas derivadas dos dados acima ──────────────────────────────────────
+const totalMRR   = clientes.reduce((s, c) => s + c.fee, 0);          // 8.280
+const totalPago  = clientes.filter(c => c.status === "Pago")
+                           .reduce((s, c) => s + c.fee, 0);           // 4.990
+const totalPend  = clientes.filter(c => c.status === "Pendente")
+                           .reduce((s, c) => s + c.fee, 0);           // 3.290
+const mrrMedio   = Math.round(totalMRR / clientes.length);            // 2.070
 
 function fmtR(n: number) {
   if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  if (n >= 1_000) return "R$" + (n / 1_000).toFixed(0) + "K";
-  return "R$" + n.toLocaleString("pt-BR");
+  if (n >= 1_000) return "R$" + (n / 1_000).toFixed(1) + "K";
+  return "R$" + n.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
 }
 
 export default function JacqesCustomersPage() {
@@ -22,44 +36,44 @@ export default function JacqesCustomersPage() {
     <>
       <Header
         title="Customers — JACQES"
-        subtitle="Carteira de clientes · Dados agregados Q1/26"
+        subtitle="Carteira de clientes · Notion CRM · Abr/2026"
       />
       <div className="page-container">
 
-        {/* ── Aggregate cards (buData only) ──────────────────────────────────── */}
+        {/* ── KPI Cards ─────────────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             {
-              label:  "Contas Ativas",
-              value:  "0",
-              sub:    "Aguardando dados",
-              icon:   Users,
-              color:  "text-brand-600",
-              bg:     "bg-brand-50",
+              label: "Contas Ativas",
+              value: String(clientes.length),
+              sub:   "Notion CRM · Abr/2026",
+              icon:  Users,
+              color: "text-brand-600",
+              bg:    "bg-brand-50",
             },
             {
-              label:  "MRR Total (Mar/26)",
-              value:  "R$0",
-              sub:    "Aguardando dados",
-              icon:   DollarSign,
-              color:  "text-emerald-600",
-              bg:     "bg-emerald-50",
+              label: "MRR Total Contratado",
+              value: fmtR(totalMRR),
+              sub:   "Soma dos FEEs mensais",
+              icon:  DollarSign,
+              color: "text-emerald-600",
+              bg:    "bg-emerald-50",
             },
             {
-              label:  "MRR Médio por Conta",
-              value:  "R$0",
-              sub:    "Aguardando dados",
-              icon:   DollarSign,
-              color:  "text-violet-700",
-              bg:     "bg-violet-50",
+              label: "Recebido (Pago)",
+              value: fmtR(totalPago),
+              sub:   `${clientes.filter(c => c.status === "Pago").length} clientes · Pago`,
+              icon:  CheckCircle2,
+              color: "text-emerald-700",
+              bg:    "bg-emerald-50",
             },
             {
-              label:  "Receita YTD Q1/26",
-              value:  "R$0",
-              sub:    "Aguardando dados",
-              icon:   DollarSign,
-              color:  "text-amber-700",
-              bg:     "bg-amber-50",
+              label: "A Receber (Pendente)",
+              value: fmtR(totalPend),
+              sub:   `${clientes.filter(c => c.status === "Pendente").length} clientes · Pendente`,
+              icon:  Clock,
+              color: "text-amber-700",
+              bg:    "bg-amber-50",
             },
           ].map((card) => {
             const Icon = card.icon;
@@ -78,35 +92,71 @@ export default function JacqesCustomersPage() {
           })}
         </div>
 
-        {/* ── Pending notice ─────────────────────────────────────────────────── */}
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 flex items-start gap-3">
-          <AlertTriangle size={15} className="text-amber-600 shrink-0 mt-0.5" />
-          <div>
-            <p className="text-xs font-semibold text-amber-800">
-              Carteira detalhada pendente de ingestão
-            </p>
-            <p className="text-[11px] text-amber-700 mt-1 leading-relaxed">
-              Para ver a carteira individual (nome, MRR por cliente, LTV, NPS, risco de churn)
-              é necessário importar dados reais via CRM integrado ou extrato conciliado.
-              Ingira o extrato bancário JACQES em{" "}
-              <a href="/awq/ingest" className="underline font-medium text-amber-800">
-                /awq/ingest
-              </a>{" "}
-              e conecte o banco de clientes ao Notion para habilitar esta visão.
-            </p>
+        {/* ── Tabela de clientes ────────────────────────────────────────────── */}
+        <div className="card p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold text-gray-900">
+              Carteira de Clientes
+              <span className="ml-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 border border-emerald-200">NOTION</span>
+            </h2>
+            <span className="text-[11px] text-gray-400">
+              MRR médio: {fmtR(mrrMedio)}/cliente
+            </span>
+          </div>
+          <div className="table-scroll">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Cliente</th>
+                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Tipo</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Fee Mensal</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {clientes.map((c) => (
+                  <tr key={c.projeto} className="border-b border-gray-100 hover:bg-gray-50/80 transition-colors">
+                    <td className="py-3 px-3 text-xs font-semibold text-gray-900">{c.projeto}</td>
+                    <td className="py-3 px-3 text-xs text-gray-500">{c.tipo}</td>
+                    <td className="py-3 px-3 text-right text-xs font-semibold text-gray-900">
+                      {fmtR(c.fee)}
+                    </td>
+                    <td className="py-3 px-3 text-right">
+                      {c.status === "Pago" ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                          <CheckCircle2 size={10} /> Pago
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                          <Clock size={10} /> Pendente
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t border-gray-300">
+                  <td colSpan={2} className="py-2.5 px-3 text-xs font-bold text-gray-500">
+                    Total · {clientes.length} clientes
+                  </td>
+                  <td className="py-2.5 px-3 text-right text-xs font-bold text-gray-900">
+                    {fmtR(totalMRR)}
+                  </td>
+                  <td />
+                </tr>
+              </tfoot>
+            </table>
           </div>
         </div>
 
-        {/* ── Info: what was removed ─────────────────────────────────────────── */}
+        {/* ── Nota de fonte ─────────────────────────────────────────────────── */}
         <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 flex items-start gap-3">
           <Info size={14} className="text-gray-500 shrink-0 mt-0.5" />
           <p className="text-[11px] text-gray-500 leading-relaxed">
-            <strong>Dados removidos:</strong> a lista anterior de 10 clientes com nomes
-            (Ambev, Samsung, Nike, etc.), valores de MRR individuais, LTV, NPS e histórico
-            de churn era uma <strong>criação fictícia</strong> sem origem em CRM, contrato
-            ou extrato bancário. Exibi-la criava risco de decisões baseadas em dados falsos.
-            Apenas o total de 10 contas ativas (buData) e o MRR agregado (monthlyRevenue)
-            são exibidos enquanto a ingestão real não for realizada.
+            Dados originados diretamente do Notion CRM (campo &quot;Valor a Receber&quot; · snapshot Abr/2026).
+            Campos não disponíveis no snapshot (LTV, NPS, data de início, histórico de churn)
+            serão exibidos após integração completa da base Notion.
           </p>
         </div>
 
