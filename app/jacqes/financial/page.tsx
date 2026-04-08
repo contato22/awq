@@ -25,7 +25,6 @@ const _jacqes = buData.find((b) => b.id === "jacqes")!;
 
 function fmtR(n: number) {
   if (Math.abs(n) >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  if (Math.abs(n) >= 1_000) return "R$" + (n / 1_000).toFixed(0) + "K";
   return "R$" + n.toLocaleString("pt-BR");
 }
 
@@ -112,7 +111,7 @@ export default async function JacqesFinancialPage() {
     <>
       <Header
         title="Financial — JACQES"
-        subtitle="Caixa Real (pipeline) + DRE Snapshot · Jan–Mar 2026"
+        subtitle="Caixa Real (pipeline) + DRE Snapshot · Jan–Abr 2026"
       />
       <div className="page-container">
 
@@ -232,7 +231,7 @@ export default async function JacqesFinancialPage() {
           {/* ── DRE snapshot ─────────────────────────────────────────────────── */}
           <div className="xl:col-span-2 card p-5">
             <h2 className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-2">
-              DRE — Jan–Mar 2026 (YTD)
+              DRE — Jan–Abr 2026 (YTD)
               <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 border border-amber-200">snapshot</span>
             </h2>
             <p className="text-[11px] text-amber-600 mb-4">

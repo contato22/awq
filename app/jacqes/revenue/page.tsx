@@ -48,7 +48,6 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
 // summaryStats — derivados de awq-group-data.ts (auto-atualiza)
 function fmtR(n: number) {
   if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  if (n >= 1_000) return "R$" + (n / 1_000).toFixed(1) + "K";
   return "R$" + n.toLocaleString("pt-BR");
 }
 

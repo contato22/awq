@@ -27,8 +27,7 @@ const LS_KEY = "jacqes_carteira_extra";
 
 function fmtR(n: number) {
   if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  if (n >= 1_000) return "R$" + (n / 1_000).toFixed(1) + "K";
-  return "R$" + n.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
+  return "R$" + n.toLocaleString("pt-BR");
 }
 
 const TIPOS = ["FEE", "Projeto", "Retainer", "Consultoria", "Outro"];

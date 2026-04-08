@@ -16,7 +16,6 @@ const _jacqes = buData.find((b) => b.id === "jacqes")!;
 
 function fmtR(n: number) {
   if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  if (n >= 1_000) return "R$" + (n / 1_000).toFixed(0) + "K";
   return "R$" + n.toLocaleString("pt-BR");
 }
 
@@ -125,8 +124,8 @@ function rowTextColor(type: string) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function JacqesBudgetPage() {
-  const receitaVar = variance(yearActual.receita, yearBudget.receita * (3 / 12));
-  const ebitdaVar  = variance(yearActual.ebitda,  yearBudget.ebitda  * (3 / 12));
+  const receitaVar = variance(yearActual.receita, yearBudget.receita * (4 / 12));
+  const ebitdaVar  = variance(yearActual.ebitda,  yearBudget.ebitda  * (4 / 12));
 
   return (
     <>
@@ -171,8 +170,10 @@ export default function JacqesBudgetPage() {
             },
             {
               label: "% Budget Executado",
-              value: ((yearActual.receita / yearBudget.receita) * 100).toFixed(0) + "%",
-              sub: "3 de 12 meses",
+              value: yearBudget.receita > 0
+                ? ((yearActual.receita / yearBudget.receita) * 100).toFixed(0) + "%"
+                : "—",
+              sub: "4 de 12 meses",
               delta: "Ritmo adequado",
               up: true,
               icon: CheckCircle2,
