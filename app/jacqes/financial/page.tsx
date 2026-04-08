@@ -35,26 +35,16 @@ function variance(actual: number, budget: number) {
   return ((actual - budget) / budget) * 100;
 }
 
-// ─── Snapshot accrual data (NOT from banking pipeline) ────────────────────────
-// These numbers are estimates from the financial model.
-// They will remain until a proper accounting layer is integrated.
-
+// ─── Snapshot accrual data — SOURCE: buData["jacqes"] apenas ─────────────────
+// REMOVIDO: sub-linhas inventadas (deduções 481K, custo serviços 1,735.6K,
+// desp comerciais 347.1K, desp admin 520.7K, pessoal 868.8K, depreciação
+// 43.4K, resultado financeiro -38K, IR 267K) — não existem na base de dados.
+// Mantidas apenas as 4 linhas que têm fonte direta em buData["jacqes"].
 const dreData = [
-  { label: "Receita Bruta de Serviços",   value: 4_820_000,  indent: 0, bold: false, type: "revenue"   },
-  { label: "(-) Deduções e Impostos",     value: -481_000,   indent: 1, bold: false, type: "deduction"  },
-  { label: "= Receita Líquida",           value: 4_339_000,  indent: 0, bold: true,  type: "subtotal"   },
-  { label: "(-) Custo dos Serviços",      value: -1_735_600, indent: 1, bold: false, type: "cost"       },
-  { label: "= Lucro Bruto",              value: 2_603_400,  indent: 0, bold: true,  type: "subtotal"   },
-  { label: "(-) Desp. Comerciais",        value: -347_120,   indent: 1, bold: false, type: "expense"    },
-  { label: "(-) Desp. Administrativas",  value: -520_680,   indent: 1, bold: false, type: "expense"    },
-  { label: "(-) Desp. com Pessoal",       value: -868_800,   indent: 1, bold: false, type: "expense"    },
-  { label: "= EBITDA",                    value: 866_800,    indent: 0, bold: true,  type: "ebitda"     },
-  { label: "(-) Depreciação e Amort.",    value: -43_390,    indent: 1, bold: false, type: "expense"    },
-  { label: "= EBIT",                      value: 823_410,    indent: 0, bold: true,  type: "subtotal"   },
-  { label: "(+/-) Resultado Financeiro",  value: -38_000,    indent: 1, bold: false, type: "expense"    },
-  { label: "= Resultado Antes do IR",     value: 785_410,    indent: 0, bold: true,  type: "subtotal"   },
-  { label: "(-) IR e CSLL",              value: -267_040,   indent: 1, bold: false, type: "expense"    },
-  { label: "= Lucro Líquido",            value: 518_370,    indent: 0, bold: true,  type: "net"        },
+  { label: "Receita Bruta de Serviços", value: 4_820_000, bold: false, type: "revenue"  },
+  { label: "= Lucro Bruto",            value: 2_892_000, bold: true,  type: "subtotal" }, // grossProfit 60.0%
+  { label: "= EBITDA",                  value:   867_000, bold: true,  type: "ebitda"   }, // 18.0%
+  { label: "= Lucro Líquido",          value:   518_000, bold: true,  type: "net"      }, // 10.7%
 ];
 
 // budgetVsActual — SOURCE: awq-group-data.ts
@@ -106,12 +96,13 @@ export default async function JacqesFinancialPage() {
     ? `${fmtDate(q.consolidated.periodStart)} – ${fmtDate(q.consolidated.periodEnd)}`
     : null;
 
-  // Snapshot accrual summary cards
+  // Snapshot accrual summary cards — SOURCE: buData["jacqes"] direto
+  // Margens calculadas sobre Receita Bruta (sem deduções fictícias)
   const snapshotCards = [
-    { label: "Receita Líquida YTD",   value: fmtR(4_339_000), sub: "Jan–Mar/26", delta: "+18.4%", up: true,  icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
-    { label: "Lucro Bruto YTD",       value: fmtR(2_603_400), sub: `Margem ${pct(2_603_400 / 4_339_000)}`, delta: "+12.1%", up: true, icon: TrendingUp, color: "text-brand-600", bg: "bg-brand-50" },
-    { label: "EBITDA YTD",            value: fmtR(866_800),   sub: `Margem ${pct(866_800 / 4_339_000)}`, delta: "+9.3%", up: true,  icon: BarChart3, color: "text-violet-700", bg: "bg-violet-50" },
-    { label: "Lucro Líquido YTD",     value: fmtR(518_370),   sub: `Margem ${pct(518_370 / 4_339_000)}`, delta: "+7.8%", up: true,  icon: TrendingDown, color: "text-amber-700", bg: "bg-amber-50" },
+    { label: "Receita Bruta YTD",  value: fmtR(4_820_000), sub: "Jan–Mar/26 · buData.revenue",     icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
+    { label: "Lucro Bruto YTD",    value: fmtR(2_892_000), sub: `Margem ${pct(2_892_000 / 4_820_000)} · buData.grossProfit`, icon: TrendingUp,   color: "text-brand-600",   bg: "bg-brand-50"   },
+    { label: "EBITDA YTD",         value: fmtR(867_000),   sub: `Margem ${pct(867_000   / 4_820_000)} · buData.ebitda`,      icon: BarChart3,     color: "text-violet-700",  bg: "bg-violet-50"  },
+    { label: "Lucro Líquido YTD",  value: fmtR(518_000),   sub: `Margem ${pct(518_000   / 4_820_000)} · buData.netIncome`,   icon: TrendingDown,  color: "text-amber-700",   bg: "bg-amber-50"   },
   ];
 
   const ytdBudgetReceita = budgetVsActual.filter((r) => r.receitaActual > 0).reduce((s, r) => s + r.receitaBudget, 0);
@@ -230,13 +221,7 @@ export default async function JacqesFinancialPage() {
                     {card.label}
                     <span className="ml-1 text-[9px] font-bold px-1 py-0.5 rounded bg-amber-50 text-amber-600 border border-amber-200">snapshot</span>
                   </div>
-                  <div className="flex items-center gap-1 mt-1">
-                    {card.up
-                      ? <ArrowUpRight size={11} className="text-emerald-500" />
-                      : <ArrowDownRight size={11} className="text-red-500" />}
-                    <span className={`text-[10px] font-semibold ${card.up ? "text-emerald-500" : "text-red-500"}`}>{card.delta}</span>
-                    <span className="text-[10px] text-gray-400">{card.sub}</span>
-                  </div>
+                  <div className="text-[10px] text-gray-400 mt-1">{card.sub}</div>
                 </div>
               </div>
             );
@@ -265,18 +250,17 @@ export default async function JacqesFinancialPage() {
                 </thead>
                 <tbody>
                   {dreData.map((row, i) => {
-                    const receitaLiq = 4_339_000;
+                    const receitaBase = 4_820_000;
                     const isSubtotal = row.bold;
-                    const pctReceita = receitaLiq > 0
-                      ? ((row.value / receitaLiq) * 100).toFixed(1) + "%"
+                    const pctReceita = receitaBase > 0
+                      ? ((row.value / receitaBase) * 100).toFixed(1) + "%"
                       : "—";
                     return (
                       <tr
                         key={i}
                         className={`border-b border-gray-100 transition-colors ${isSubtotal ? "bg-gray-50" : "hover:bg-gray-50/80"}`}
                       >
-                        <td className={`py-2 px-3 text-xs ${isSubtotal ? "font-bold text-gray-700" : "text-gray-400"}`}
-                          style={{ paddingLeft: `${(row.indent * 16) + 12}px` }}>
+                        <td className={`py-2 px-3 text-xs ${isSubtotal ? "font-bold text-gray-700" : "text-gray-400"}`}>
                           {row.label}
                         </td>
                         <td className={`py-2 px-3 text-right text-xs ${isSubtotal ? "font-bold" : ""} ${dreRowColor(row.type, row.value)}`}>
@@ -302,10 +286,9 @@ export default async function JacqesFinancialPage() {
               <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 border border-amber-200">snapshot</span>
             </h2>
             {[
-              { label: "Margem Bruta",   value: 2_603_400, base: 4_339_000, color: "bg-emerald-500" },
-              { label: "Margem EBITDA",  value: 866_800,   base: 4_339_000, color: "bg-brand-500"   },
-              { label: "Margem EBIT",    value: 823_410,   base: 4_339_000, color: "bg-violet-500"  },
-              { label: "Margem Líquida", value: 518_370,   base: 4_339_000, color: "bg-amber-500"   },
+              { label: "Margem Bruta",   value: 2_892_000, base: 4_820_000, color: "bg-emerald-500" },
+              { label: "Margem EBITDA",  value: 867_000,   base: 4_820_000, color: "bg-brand-500"   },
+              { label: "Margem Líquida", value: 518_000,   base: 4_820_000, color: "bg-amber-500"   },
             ].map((m) => {
               const p = ((m.value / m.base) * 100);
               return (
