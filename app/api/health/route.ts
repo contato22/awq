@@ -20,7 +20,8 @@ import { NextResponse } from "next/server";
 import { USE_DB, USE_BLOB, sql, initDB } from "@/lib/db";
 
 export const runtime = "nodejs";
-export const dynamic = "force-dynamic"; // Never cache — always live env state
+// NOTE: "force-dynamic" removed — incompatible with output: "export" (static build).
+// This route is excluded from static export; Vercel SSR handles it dynamically by default.
 
 export async function GET(): Promise<NextResponse> {
   // ── Presence flags (boolean only — no secret values) ──────────────────────
