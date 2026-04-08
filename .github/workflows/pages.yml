@@ -39,7 +39,10 @@ jobs:
         env:
           STATIC_EXPORT: "1"
           NEXT_PUBLIC_STATIC_DATA: "1"
-          NEXT_PUBLIC_ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # NEXT_PUBLIC_ANTHROPIC_API_KEY deliberately omitted:
+          # NEXT_PUBLIC_* vars are inlined into the client JS bundle and are
+          # publicly visible to anyone who inspects the static output.
+          # AI features on GitHub Pages require the user to supply their own key.
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3

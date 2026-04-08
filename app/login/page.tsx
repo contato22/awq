@@ -3,7 +3,11 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Zap, Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
+import { Zap, Eye, EyeOff, Loader2, AlertCircle, ExternalLink } from "lucide-react";
+
+// NEXT_PUBLIC_STATIC_DATA is inlined at build time (set to "1" in pages.yml).
+// In static/GitHub Pages mode there is no backend — auth is unavailable.
+const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -17,6 +21,12 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+
+    // Static/demo mode — no backend available. Skip auth and go straight to /awq.
+    if (IS_STATIC) {
+      router.push("/awq");
+      return;
+    }
 
     const result = await signIn("credentials", {
       email,
@@ -59,6 +69,27 @@ export default function LoginPage() {
         {/* Card */}
         <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-executive">
           <h2 className="text-base font-semibold text-gray-900 mb-6">Entrar na plataforma</h2>
+
+          {/* Static/demo mode notice */}
+          {IS_STATIC && (
+            <div className="mb-5 flex items-start gap-2.5 px-3.5 py-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
+              <ExternalLink size={13} className="shrink-0 text-amber-500 mt-0.5" />
+              <div>
+                <span className="font-semibold">Ambiente de demonstração.</span>{" "}
+                Autenticação não está disponível nesta versão estática.
+                Clique em Entrar para acessar como visitante, ou acesse a versão completa no{" "}
+                <a
+                  href="https://awq-brown.vercel.app"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline hover:text-amber-900 transition-colors"
+                >
+                  servidor Vercel
+                </a>
+                .
+              </div>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>

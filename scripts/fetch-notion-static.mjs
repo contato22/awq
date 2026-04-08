@@ -330,15 +330,18 @@ function write(filename, data, { skipIfExists = false } = {}) {
     console.log(` OK ${filename} (${Array.isArray(data) ? data.length : Object.keys(data).length} records)`);
 }
 
-// ── JACQES KPIs ── mirrors lib/data.ts; update here when source data changes ──
-// Source: /jacqes/financial — DRE Gerencial (Mar/2026)
+// ── JACQES KPIs ── mirrors lib/awq-group-data.ts buData["jacqes"] ──
+// Source: awq-group-data.ts (Mar/2026 empirical snapshot)
+// NOTE: no app component currently reads this file — kept as a seed/fallback
+// for future consumers. Update whenever buData["jacqes"] changes.
+// Gross margin = grossProfit (2,892,000) / revenue (4,820,000) = 60.0%
 const JACQES_KPIS = {
-    revenue:      9_780,
-    customers:    5,
-    margin:       72.4,
-    receita_fmt:  "R$ 9.780",
-    clientes_fmt: "5",
-    margem_fmt:   "72.4%",
+    revenue:      4_820_000,
+    customers:    10,
+    margin:       60.0,
+    receita_fmt:  "R$ 4.820.000",
+    clientes_fmt: "10",
+    margem_fmt:   "60.0%",
     periodo:      "Mar/2026",
     lastUpdated:  new Date().toISOString(),
 };

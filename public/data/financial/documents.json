@@ -13,11 +13,11 @@
     "closingBalance": 38500,
     "uploadedAt": "2026-01-31T23:59:59.000Z",
     "uploadedBy": "admin@awq.co",
-    "status": "done",
-    "errorMessage": null,
+    "status": "pending",
+    "errorMessage": "MOCK SEED — transações fictícias para validação do pipeline. Não ingerir como dado real. Substitua com extrato bancário real via /awq/ingest.",
     "transactionCount": 5,
-    "parserConfidence": "high",
-    "extractionNotes": "Mock seed — validation script",
+    "parserConfidence": "low",
+    "extractionNotes": "MOCK SEED — dados fictícios (BOLETO CLIENTE A/B). NÃO são extratos reais. Status=pending garante que financial-query não os trate como dados reais.",
     "blobUrl": null
   },
   {
@@ -34,11 +34,11 @@
     "closingBalance": 16000,
     "uploadedAt": "2026-01-31T23:59:59.000Z",
     "uploadedBy": "admin@awq.co",
-    "status": "done",
-    "errorMessage": null,
+    "status": "pending",
+    "errorMessage": "MOCK SEED — transações fictícias para validação do pipeline. Não ingerir como dado real. Substitua com extrato bancário real via /awq/ingest.",
     "transactionCount": 5,
-    "parserConfidence": "high",
-    "extractionNotes": "Mock seed — validation script",
+    "parserConfidence": "low",
+    "extractionNotes": "MOCK SEED — dados fictícios (CLIENTE IMOVEL A). NÃO são extratos reais. Status=pending garante que financial-query não os trate como dados reais.",
     "blobUrl": null
   },
   {
