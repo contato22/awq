@@ -64,18 +64,14 @@ function isVentureRoute(pathname: string) {
 
 // ── Nav items ────────────────────────────────────────────────────────────────
 const jacqesNav = [
-    { label: "Visão Geral",    href: "/jacqes",                   icon: LayoutDashboard },
-    { label: "Financial",      href: "/jacqes/financial",         icon: DollarSign      },
-    { label: "Revenue",        href: "/jacqes/revenue",           icon: TrendingUp      },
-    { label: "Customers",      href: "/jacqes/customers",         icon: Users           },
-    { label: "Unit Economics", href: "/jacqes/unit-economics",    icon: Calculator      },
-    { label: "Budget",         href: "/jacqes/budget",            icon: Wallet          },
-    { label: "Desempenho",     href: "/jacqes/desempenho",        icon: TrendingUp      },
-    { label: "Carteira",       href: "/jacqes/carteira",          icon: Users           },
-    { label: "Análise",        href: "/jacqes/analise",           icon: Activity        },
-    { label: "CS Ops",         href: "/jacqes/csops",             icon: HeartPulse      },
-    { label: "Relatórios",     href: "/jacqes/reports",           icon: BarChart3       },
-    { label: "Categorias",     href: "/jacqes/categorias",        icon: Tag             },
+    { label: "Visão Geral",    href: "/jacqes",             icon: LayoutDashboard },
+    { label: "SG&A",           href: "/jacqes/sga",         icon: BarChart3       },
+    { label: "Carteira",       href: "/jacqes/carteira",    icon: Users           },
+    { label: "Desempenho",     href: "/jacqes/desempenho",  icon: TrendingUp      },
+    { label: "Análise",        href: "/jacqes/analise",     icon: Activity        },
+    { label: "CS Ops",         href: "/jacqes/csops",       icon: HeartPulse      },
+    { label: "Relatórios",     href: "/jacqes/reports",     icon: BarChart3       },
+    { label: "Categorias",     href: "/jacqes/categorias",  icon: Tag             },
 ];
 
 const cazaNav = [
