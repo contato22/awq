@@ -41,13 +41,14 @@ function varLabel(v: number) {
 //   budgetRevenue Q1 = 4,440,000 → anual = 4,440,000 × 4 = 17,760,000
 //   demais linhas derivadas da mesma proporção dos actuals acima
 
+// receita Mar/26 = JACQES_MRR (Notion CRM). Custo/margem aguardam confirmação.
 const yearActual = {
-  receita:    0,
-  cogs:       0,
-  lucrobruto: 0,
-  opex:       0,
-  ebitda:     0,
-  lucroliq:   0,
+  receita:    8_280,  // Notion CRM Abr/2026 — MRR mensal confirmado
+  cogs:           0,  // aguardando confirmação contábil
+  lucrobruto:     0,  // aguardando confirmação contábil
+  opex:           0,  // aguardando confirmação contábil
+  ebitda:         0,  // aguardando confirmação contábil
+  lucroliq:       0,  // aguardando confirmação contábil
 };
 
 const yearBudget = {

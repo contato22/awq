@@ -97,11 +97,15 @@ export const ventureContractValueRemaining = ventureContracts
   .filter((c) => c.status === "active")
   .reduce((s, c) => s + c.totalContractValue, 0);  // approximate — no start date to prorate
 
+// ─── JACQES MRR confirmado — Notion CRM Abr/2026 ─────────────────────────────
+// CEM R$3.200 + CAROL BERTOLINI R$1.790 + ANDRÉ VIEIRA R$1.500 + TATI SIMÕES R$1.790
+// Fonte única: snapshot fornecido diretamente pelo usuário.
+// Margens (grossProfit, ebitda, netIncome) permanecem 0 até confirmação contábil.
+export const JACQES_MRR = 8_280;
+
 export const buData: BuData[] = [
   {
-    // ⚠  ZEROED — aguardando pipeline de dados real (CRM / extrato JACQES).
-    //    Valores anteriores (revenue=4.82M, grossProfit=2.89M, etc.) foram removidos
-    //    pois não possuem respaldo em fonte verificável conectada ao sistema.
+    // SOURCE: Notion CRM Abr/2026 — revenue = MRR mensal confirmado (4 clientes FEE)
     id:               "jacqes",
     name:             "JACQES",
     sub:              "Agência · AWQ Group",
@@ -109,13 +113,13 @@ export const buData: BuData[] = [
     accentColor:      "text-brand-400",
     status:           "Ativo",
     economicType:     "operational",
-    revenue:          0,
-    grossProfit:      0,
-    ebitda:           0,
-    netIncome:        0,
+    revenue:          8_280,   // JACQES_MRR — Notion CRM Abr/2026
+    grossProfit:      0,       // aguardando confirmação contábil
+    ebitda:           0,       // aguardando confirmação contábil
+    netIncome:        0,       // aguardando confirmação contábil
     cashGenerated:    0,
     cashBalance:      0,
-    customers:        4,    // Notion CRM Abr/2026: CEM, Carol Bertolini, André Vieira, Tati Simões
+    customers:        4,       // Notion CRM: CEM, Carol Bertolini, André Vieira, Tati Simões
     ftes:             0,
     capitalAllocated: 0,
     roic:             0,
@@ -269,10 +273,12 @@ export interface MonthlyPoint {
 // ⚠  CORRECTED 2026-04-08 — Advisor is pre_revenue (revenue = 0). Previous entries
 // showed advisor R$508K / R$528K / R$536K / month (total R$1.572M) which contradicted
 // buData.advisor.revenue = 0. Zeroed here. total = jacqes + caza only.
+// jacqes Mar/26 = JACQES_MRR confirmado (Notion CRM Abr/2026)
+// Jan/26 e Fev/26 permanecem 0 — sem confirmação para esses meses
 const _monthlyRaw = [
-  { month: "Jan/26", jacqes: 0, caza:  712_000, advisor: 0 },
-  { month: "Fev/26", jacqes: 0, caza:  798_000, advisor: 0 },
-  { month: "Mar/26", jacqes: 0, caza:  908_000, advisor: 0 },
+  { month: "Jan/26", jacqes:         0, caza:  712_000, advisor: 0 },
+  { month: "Fev/26", jacqes:         0, caza:  798_000, advisor: 0 },
+  { month: "Mar/26", jacqes: JACQES_MRR, caza:  908_000, advisor: 0 },
 ] as const;
 
 export const monthlyRevenue: MonthlyPoint[] = _monthlyRaw.map(m => ({

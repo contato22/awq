@@ -80,11 +80,12 @@ export interface Alert {
 
 // ─── KPIs — aligned with awq-group-data Q1 2026 ──────────────────────────────
 
+// SOURCE: Notion CRM Abr/2026 — JACQES_MRR = 8_280
 export const kpis: KPI[] = [
   {
     id: "revenue",
-    label: "Receita Bruta",
-    value:         0,
+    label: "MRR Atual",
+    value:         8_280,   // Notion CRM: CEM+Carol+André+Tati (Abr/2026)
     previousValue: 0,
     unit: "currency",
     icon: "DollarSign",
@@ -93,7 +94,7 @@ export const kpis: KPI[] = [
   {
     id: "customers",
     label: "Contas Ativas",
-    value:         0,
+    value:         4,       // Notion CRM Abr/2026
     previousValue: 0,
     unit: "number",
     icon: "Users",
@@ -112,7 +113,7 @@ export const kpis: KPI[] = [
   {
     id: "margin",
     label: "Margem Bruta",
-    value:         0,
+    value:         0,       // aguardando confirmação contábil
     previousValue: 0,
     unit: "percent",
     suffix: "%",
@@ -125,10 +126,12 @@ export const kpis: KPI[] = [
 // SOURCE: awq-group-data.ts monthlyRevenue
 // Expense ratio ~40% consistent with gross margin 60% (buData)
 
+// Mar/26: revenue confirmado via Notion CRM (JACQES_MRR=8.280)
+// Expenses e profit = 0 — dados de custo não confirmados ainda
 export const revenueData: RevenueDataPoint[] = [
-  { month: "Jan/26", revenue: 0, expenses: 0, profit: 0 },
-  { month: "Fev/26", revenue: 0, expenses: 0, profit: 0 },
-  { month: "Mar/26", revenue: 0, expenses: 0, profit: 0 },
+  { month: "Jan/26", revenue:     0, expenses: 0, profit: 0 },
+  { month: "Fev/26", revenue:     0, expenses: 0, profit: 0 },
+  { month: "Mar/26", revenue: 8_280, expenses: 0, profit: 0 },
 ];
 
 // ─── Arrays esvaziados — dados granulares sem fonte empírica ─────────────────

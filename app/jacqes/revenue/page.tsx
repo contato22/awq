@@ -47,11 +47,13 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
 //   Lucro Bruto:      2,892,000   (buData.grossProfit — margem 60%)
 //   COGS + OpEx:      3,953,000   (revenue − netIncome = 4,820,000 − 867,000 EBITDA)
 //   MRR Médio Q1/26:  1,607,000   (4,820,000 / 3 meses)
+// MRR confirmado: Notion CRM Abr/2026 — R$8.280 (4 clientes FEE)
+// Lucro Bruto / EBITDA aguardam confirmação contábil
 const summaryStats = [
-  { label: "Receita Bruta YTD",  value: "R$0", sub: "Aguardando dados", positive: false, icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
-  { label: "Lucro Bruto YTD",    value: "R$0", sub: "Aguardando dados", positive: false, icon: TrendingUp, color: "text-brand-600",   bg: "bg-brand-50" },
-  { label: "EBITDA YTD",         value: "R$0", sub: "Aguardando dados", positive: false, icon: BarChart3,  color: "text-violet-700",  bg: "bg-violet-50" },
-  { label: "MRR Médio Q1/26",    value: "R$0", sub: "Aguardando dados", positive: false, icon: DollarSign, color: "text-cyan-700",    bg: "bg-cyan-50" },
+  { label: "MRR Confirmado (Mar/26)", value: "R$8.280",  sub: "Notion CRM · 4 clientes FEE",          positive: true,  icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
+  { label: "Lucro Bruto",             value: "R$0",       sub: "Aguardando confirmação contábil",       positive: false, icon: TrendingUp, color: "text-brand-600",   bg: "bg-brand-50"   },
+  { label: "EBITDA",                  value: "R$0",       sub: "Aguardando confirmação contábil",       positive: false, icon: BarChart3,  color: "text-violet-700",  bg: "bg-violet-50"  },
+  { label: "Contas Ativas",           value: "4",          sub: "Notion CRM · CEM, Carol, André, Tati", positive: true,  icon: DollarSign, color: "text-cyan-700",    bg: "bg-cyan-50"    },
 ];
 
 export default function RevenuePage() {

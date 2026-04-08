@@ -33,10 +33,12 @@ function fmtR(n: number) {
 
 // ─── MRR — Q1/26 empírico (monthlyRevenue) ────────────────────────────────────
 // ONLY real months. No invented Oct/Nov/Dec/25, no newMrr/churnMrr decomposition.
+// Mar/26 = JACQES_MRR confirmado (Notion CRM Abr/2026)
+// Jan/26 e Fev/26 = 0 — não confirmados para esses meses
 const mrrHistory = [
-  { month: "Jan/26", mrr: 0 },
-  { month: "Fev/26", mrr: 0 },
-  { month: "Mar/26", mrr: 0 },
+  { month: "Jan/26", mrr:     0 },
+  { month: "Fev/26", mrr:     0 },
+  { month: "Mar/26", mrr: 8_280 },
 ];
 
 // ─── Benchmarks — derivados de buData ────────────────────────────────────────
