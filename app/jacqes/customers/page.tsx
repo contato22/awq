@@ -1,17 +1,16 @@
 import Header from "@/components/Header";
-import {
-  Users,
-  TrendingUp,
-  TrendingDown,
-  DollarSign,
-  AlertTriangle,
-  CheckCircle2,
-  Clock,
-  ArrowUpRight,
-  ArrowDownRight,
-} from "lucide-react";
+import { Users, DollarSign, Info, AlertTriangle } from "lucide-react";
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── /jacqes/customers — Carteira JACQES ──────────────────────────────────────
+//
+// SOURCE: lib/awq-group-data.ts buData["jacqes"]
+//   customers: 10   — contagem confirmada no snapshot Q1/26
+//   revenue:   4_820_000 (YTD Q1) → MRR Mar/26 = 1_888_000 (monthlyRevenue)
+//
+// REMOVIDO: lista individual de clientes (Ambev, Samsung, Nike, iFood, etc.)
+// era uma criação fictícia sem respaldo em CRM, contrato ou extrato bancário.
+// Nenhum nome de cliente, MRR individual, LTV ou NPS pode ser exibido sem
+// fonte real (Notion CRM, ERP, ou extrato conciliado).
 
 function fmtR(n: number) {
   if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
@@ -19,81 +18,50 @@ function fmtR(n: number) {
   return "R$" + n.toLocaleString("pt-BR");
 }
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-
-// customers — MRR escalado para soma ≈ 1,888,000 (receita mensal Mar/26 de buData)
-// Escala: 1,888,000 / 2,323,000 original = 0.813
-// LTV escalado proporcionalmente (mantém razão LTV/MRR por cliente)
-// SOURCE: awq-group-data.ts buData["jacqes"].revenue = 4,820,000 (Q1 YTD)
-//         monthlyRevenue["Mar/26"].jacqes = 1,888,000
-const customers = [
-  { id: "JC001", name: "Ambev",          segment: "Bebidas & FMCG",        mrr: 340_000, ltv: 4_080_000, since: "2023-04-01", status: "Ativo",        churnRisk: "Baixo",  nps: 82 },
-  { id: "JC002", name: "Natura",         segment: "Beleza & Sustentab.",   mrr: 250_000, ltv: 2_000_000, since: "2024-01-15", status: "Ativo",        churnRisk: "Baixo",  nps: 78 },
-  { id: "JC003", name: "iFood",          segment: "Food & Tech",           mrr: 230_000, ltv: 1_380_000, since: "2024-06-01", status: "Ativo",        churnRisk: "Médio",  nps: 65 },
-  { id: "JC004", name: "Samsung Brasil", segment: "Tecnologia",            mrr: 285_000, ltv: 3_420_000, since: "2023-03-10", status: "Ativo",        churnRisk: "Baixo",  nps: 91 },
-  { id: "JC005", name: "Nike Brasil",    segment: "Esporte & Lifestyle",   mrr: 160_000, ltv: 1_920_000, since: "2024-01-20", status: "Ativo",        churnRisk: "Baixo",  nps: 88 },
-  { id: "JC006", name: "Banco XP",       segment: "Finanças",              mrr: 185_000, ltv: 1_110_000, since: "2024-07-01", status: "Em Risco",     churnRisk: "Alto",   nps: 42 },
-  { id: "JC007", name: "Nubank",         segment: "Fintech",               mrr: 142_000, ltv:   570_000, since: "2025-01-10", status: "Ativo",        churnRisk: "Médio",  nps: 74 },
-  { id: "JC008", name: "Arezzo",         segment: "Moda & Varejo",         mrr:  80_000, ltv:   320_000, since: "2025-02-15", status: "Ativo",        churnRisk: "Baixo",  nps: 79 },
-  { id: "JC009", name: "Startup XYZ",    segment: "Tecnologia",            mrr:       0, ltv:   145_000, since: "2024-12-01", status: "Churned",      churnRisk: "—",      nps: 31 },
-  { id: "JC010", name: "Magazine Luiza", segment: "Varejo",                mrr: 211_000, ltv:   840_000, since: "2025-03-01", status: "Ativo",        churnRisk: "Médio",  nps: 61 },
-]; // MRR ativo+risco sum = 1,883,000 ≈ 1,888,000 (Mar/26 receita mensal)
-
-const churnHistory = [
-  { month: "Out/25", novos: 2, churned: 1, net: 1 },
-  { month: "Nov/25", novos: 1, churned: 0, net: 1 },
-  { month: "Dez/25", novos: 3, churned: 1, net: 2 },
-  { month: "Jan/26", novos: 2, churned: 1, net: 1 },
-  { month: "Fev/26", novos: 1, churned: 0, net: 1 },
-  { month: "Mar/26", novos: 2, churned: 0, net: 2 },
-];
-
-// ─── Config ───────────────────────────────────────────────────────────────────
-
-const statusConfig: Record<string, string> = {
-  "Ativo":    "badge badge-green",
-  "Em Risco": "badge badge-yellow",
-  "Churned":  "bg-red-50 text-red-600 border border-red-200 text-[10px] font-semibold px-2 py-0.5 rounded-full",
-};
-
-const churnRiskColor: Record<string, string> = {
-  "Baixo": "text-emerald-600",
-  "Médio": "text-amber-700",
-  "Alto":  "text-red-600",
-  "—":     "text-gray-400",
-};
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
-
 export default function JacqesCustomersPage() {
-  const ativos   = customers.filter((c) => c.status === "Ativo").length;
-  const churned  = customers.filter((c) => c.status === "Churned").length;
-  const emRisco  = customers.filter((c) => c.status === "Em Risco").length;
-  const totalMrr = customers.filter((c) => c.status === "Ativo" || c.status === "Em Risco")
-    .reduce((s, c) => s + c.mrr, 0);
-  const totalLtv = customers.reduce((s, c) => s + c.ltv, 0);
-  const avgLtv   = Math.round(totalLtv / customers.length);
-  const churnRate = ((churned / customers.length) * 100).toFixed(1);
-  const avgNps    = Math.round(
-    customers.filter((c) => c.nps > 0).reduce((s, c) => s + c.nps, 0) /
-    customers.filter((c) => c.nps > 0).length
-  );
-
   return (
     <>
       <Header
         title="Customers — JACQES"
-        subtitle="Carteira de clientes · LTV · Churn · NPS"
+        subtitle="Carteira de clientes · Dados agregados Q1/26"
       />
       <div className="page-container">
 
-        {/* ── Summary Cards ─────────────────────────────────────────────────── */}
+        {/* ── Aggregate cards (buData only) ──────────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: "MRR Total",       value: fmtR(totalMrr),    sub: `${ativos} clientes ativos`,    icon: DollarSign,    color: "text-emerald-600", bg: "bg-emerald-50", delta: "+14.2%", up: true  },
-            { label: "LTV Médio",        value: fmtR(avgLtv),      sub: `Carteira: ${fmtR(totalLtv)}`, icon: TrendingUp,    color: "text-brand-600",   bg: "bg-brand-50",   delta: "+8.7%",  up: true  },
-            { label: "Churn Rate",       value: churnRate + "%",   sub: "últimos 12 meses",            icon: TrendingDown,  color: "text-red-600",     bg: "bg-red-50",     delta: "-0.5pp", up: true  },
-            { label: "NPS Médio",        value: String(avgNps),    sub: `${emRisco} em risco`,         icon: Users,         color: "text-violet-700",  bg: "bg-violet-50",  delta: "+3pts",  up: true  },
+            {
+              label:  "Contas Ativas",
+              value:  "10",
+              sub:    "Snapshot Q1/26 · buData",
+              icon:   Users,
+              color:  "text-brand-600",
+              bg:     "bg-brand-50",
+            },
+            {
+              label:  "MRR Total (Mar/26)",
+              value:  fmtR(1_888_000),
+              sub:    "monthlyRevenue · awq-group-data",
+              icon:   DollarSign,
+              color:  "text-emerald-600",
+              bg:     "bg-emerald-50",
+            },
+            {
+              label:  "MRR Médio por Conta",
+              value:  fmtR(Math.round(1_888_000 / 10)),
+              sub:    "1.888K ÷ 10 clientes",
+              icon:   DollarSign,
+              color:  "text-violet-700",
+              bg:     "bg-violet-50",
+            },
+            {
+              label:  "Receita YTD Q1/26",
+              value:  fmtR(4_820_000),
+              sub:    "Jan–Mar · buData.revenue",
+              icon:   DollarSign,
+              color:  "text-amber-700",
+              bg:     "bg-amber-50",
+            },
           ].map((card) => {
             const Icon = card.icon;
             return (
@@ -102,144 +70,45 @@ export default function JacqesCustomersPage() {
                   <Icon size={18} className={card.color} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-2xl font-bold text-gray-900">{card.value}</div>
+                  <div className={`text-2xl font-bold ${card.color}`}>{card.value}</div>
                   <div className="text-xs font-medium text-gray-400 mt-0.5">{card.label}</div>
-                  <div className="flex items-center gap-1 mt-1">
-                    {card.up
-                      ? <ArrowUpRight size={11} className="text-emerald-600" />
-                      : <ArrowDownRight size={11} className="text-red-600" />}
-                    <span className={`text-[10px] font-semibold ${card.up ? "text-emerald-600" : "text-red-600"}`}>{card.delta}</span>
-                    <span className="text-[10px] text-gray-400">{card.sub}</span>
-                  </div>
+                  <div className="text-[10px] text-gray-400 mt-1">{card.sub}</div>
                 </div>
               </div>
             );
           })}
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-
-          {/* ── Customer Table ────────────────────────────────────────────────── */}
-          <div className="xl:col-span-2 card p-5">
-            <h2 className="text-sm font-semibold text-gray-900 mb-4">Carteira de Clientes</h2>
-            <div className="table-scroll">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Cliente</th>
-                    <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Segmento</th>
-                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">MRR</th>
-                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">LTV</th>
-                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">NPS</th>
-                    <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Risco</th>
-                    <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {customers.map((c) => (
-                    <tr key={c.id} className="border-b border-gray-100 hover:bg-gray-50/80 transition-colors">
-                      <td className="py-2.5 px-3">
-                        <div className="text-gray-400 font-medium text-xs">{c.name}</div>
-                        <div className="text-[10px] text-gray-400 mt-0.5">desde {c.since.split("-")[0]}</div>
-                      </td>
-                      <td className="py-2.5 px-3 text-xs text-gray-500">{c.segment}</td>
-                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-gray-900">
-                        {c.mrr > 0 ? fmtR(c.mrr) : <span className="text-gray-400">—</span>}
-                      </td>
-                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-emerald-600">
-                        {fmtR(c.ltv)}
-                      </td>
-                      <td className="py-2.5 px-3 text-right text-xs">
-                        {c.nps > 0 ? (
-                          <span className={`font-bold ${c.nps >= 70 ? "text-emerald-600" : c.nps >= 50 ? "text-amber-700" : "text-red-600"}`}>
-                            {c.nps}
-                          </span>
-                        ) : <span className="text-gray-400">—</span>}
-                      </td>
-                      <td className="py-2.5 px-3 text-xs">
-                        <span className={`font-semibold ${churnRiskColor[c.churnRisk]}`}>{c.churnRisk}</span>
-                      </td>
-                      <td className="py-2.5 px-3">
-                        <span className={statusConfig[c.status] ?? "badge"}>{c.status}</span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr className="border-t border-gray-300">
-                    <td className="py-2.5 px-3 text-xs font-bold text-gray-400">TOTAL</td>
-                    <td />
-                    <td className="py-2.5 px-3 text-right text-gray-900 font-bold text-xs">{fmtR(totalMrr)}</td>
-                    <td className="py-2.5 px-3 text-right text-emerald-600 font-bold text-xs">{fmtR(totalLtv)}</td>
-                    <td colSpan={3} />
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
+        {/* ── Pending notice ─────────────────────────────────────────────────── */}
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 flex items-start gap-3">
+          <AlertTriangle size={15} className="text-amber-600 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-xs font-semibold text-amber-800">
+              Carteira detalhada pendente de ingestão
+            </p>
+            <p className="text-[11px] text-amber-700 mt-1 leading-relaxed">
+              Para ver a carteira individual (nome, MRR por cliente, LTV, NPS, risco de churn)
+              é necessário importar dados reais via CRM integrado ou extrato conciliado.
+              Ingira o extrato bancário JACQES em{" "}
+              <a href="/awq/ingest" className="underline font-medium text-amber-800">
+                /awq/ingest
+              </a>{" "}
+              e conecte o banco de clientes ao Notion para habilitar esta visão.
+            </p>
           </div>
+        </div>
 
-          {/* ── Churn History + Alerts ────────────────────────────────────────── */}
-          <div className="space-y-4">
-            <div className="card p-5">
-              <h2 className="text-sm font-semibold text-gray-900 mb-4">Movimentação de Clientes</h2>
-              <div className="space-y-1">
-                <div className="grid grid-cols-4 pb-2 border-b border-gray-200">
-                  <span className="text-[10px] text-gray-400">Mês</span>
-                  <span className="text-[10px] text-gray-400 text-center">Novos</span>
-                  <span className="text-[10px] text-gray-400 text-center">Churn</span>
-                  <span className="text-[10px] text-gray-400 text-center">Net</span>
-                </div>
-                {churnHistory.map((row) => (
-                  <div key={row.month} className="grid grid-cols-4 py-1.5 border-b border-gray-200/30 last:border-0">
-                    <span className="text-xs text-gray-500">{row.month}</span>
-                    <span className="text-xs text-emerald-600 text-center font-semibold">+{row.novos}</span>
-                    <span className="text-xs text-red-600 text-center font-semibold">{row.churned > 0 ? `-${row.churned}` : "—"}</span>
-                    <span className={`text-xs text-center font-bold ${row.net > 0 ? "text-emerald-600" : "text-red-600"}`}>
-                      {row.net > 0 ? `+${row.net}` : row.net}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="card p-5">
-              <div className="flex items-center gap-2 mb-3">
-                <AlertTriangle size={14} className="text-amber-700" />
-                <h2 className="text-sm font-semibold text-gray-900">Alertas de Churn</h2>
-              </div>
-              <div className="space-y-3">
-                {customers.filter((c) => c.churnRisk === "Alto" || c.status === "Em Risco").map((c) => (
-                  <div key={c.id} className="flex items-start gap-2.5 p-3 rounded-lg bg-red-500/5 border border-red-500/15">
-                    <AlertTriangle size={12} className="text-red-600 shrink-0 mt-0.5" />
-                    <div>
-                      <div className="text-xs font-semibold text-gray-900">{c.name}</div>
-                      <div className="text-[10px] text-gray-500 mt-0.5">
-                        MRR em risco: {fmtR(c.mrr)} · NPS: {c.nps}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                {customers.filter((c) => c.churnRisk === "Médio").slice(0, 2).map((c) => (
-                  <div key={c.id} className="flex items-start gap-2.5 p-3 rounded-lg bg-amber-500/5 border border-amber-500/15">
-                    <Clock size={12} className="text-amber-700 shrink-0 mt-0.5" />
-                    <div>
-                      <div className="text-xs font-semibold text-gray-900">{c.name}</div>
-                      <div className="text-[10px] text-gray-500 mt-0.5">
-                        Risco médio · NPS: {c.nps}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                <div className="flex items-start gap-2.5 p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/15">
-                  <CheckCircle2 size={12} className="text-emerald-600 shrink-0 mt-0.5" />
-                  <div>
-                    <div className="text-xs font-semibold text-gray-900">{ativos - emRisco} clientes saudáveis</div>
-                    <div className="text-[10px] text-gray-500 mt-0.5">Baixo risco de churn</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+        {/* ── Info: what was removed ─────────────────────────────────────────── */}
+        <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 flex items-start gap-3">
+          <Info size={14} className="text-gray-500 shrink-0 mt-0.5" />
+          <p className="text-[11px] text-gray-500 leading-relaxed">
+            <strong>Dados removidos:</strong> a lista anterior de 10 clientes com nomes
+            (Ambev, Samsung, Nike, etc.), valores de MRR individuais, LTV, NPS e histórico
+            de churn era uma <strong>criação fictícia</strong> sem origem em CRM, contrato
+            ou extrato bancário. Exibi-la criava risco de decisões baseadas em dados falsos.
+            Apenas o total de 10 contas ativas (buData) e o MRR agregado (monthlyRevenue)
+            são exibidos enquanto a ingestão real não for realizada.
+          </p>
         </div>
 
       </div>

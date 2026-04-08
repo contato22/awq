@@ -42,11 +42,16 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   );
 }
 
+// summaryStats — SOURCE: buData["jacqes"] Q1/26
+//   Receita Bruta:    4,820,000   (buData.revenue)
+//   Lucro Bruto:      2,892,000   (buData.grossProfit — margem 60%)
+//   COGS + OpEx:      3,953,000   (revenue − netIncome = 4,820,000 − 867,000 EBITDA)
+//   MRR Médio Q1/26:  1,607,000   (4,820,000 / 3 meses)
 const summaryStats = [
-  { label: "Total Revenue", value: "R$4.82M", sub: "+14.6% YoY", positive: true, icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
-  { label: "Total Profit",  value: "R$3.24M", sub: "+21.3% YoY", positive: true, icon: TrendingUp, color: "text-brand-600",   bg: "bg-brand-50" },
-  { label: "Total Expenses", value: "R$1.58M", sub: "+8.2% YoY", positive: false, icon: BarChart3, color: "text-amber-700",   bg: "bg-amber-50" },
-  { label: "Avg Monthly Rev.", value: "R$401.8K", sub: "per month", positive: true, icon: DollarSign, color: "text-cyan-700",  bg: "bg-cyan-50" },
+  { label: "Receita Bruta YTD",  value: "R$4.82M",   sub: "Q1/26 Jan–Mar · buData",   positive: true,  icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
+  { label: "Lucro Bruto YTD",    value: "R$2.89M",   sub: "Margem bruta 60% · buData", positive: true,  icon: TrendingUp, color: "text-brand-600",   bg: "bg-brand-50" },
+  { label: "EBITDA YTD",         value: "R$867K",    sub: "Margem EBITDA 18% · buData",positive: true,  icon: BarChart3,  color: "text-violet-700",  bg: "bg-violet-50" },
+  { label: "MRR Médio Q1/26",    value: "R$1.607M",  sub: "4.820K ÷ 3 meses",         positive: true,  icon: DollarSign, color: "text-cyan-700",    bg: "bg-cyan-50" },
 ];
 
 export default function RevenuePage() {
@@ -86,7 +91,7 @@ export default function RevenuePage() {
         <section className="card p-5 lg:p-6">
           <SectionHeader
             title="Monthly Revenue vs Profit"
-            badge={<span className="text-[11px] text-gray-400 font-medium ml-1">FY 2025 — grouped bar comparison</span>}
+            badge={<span className="text-[11px] text-gray-400 font-medium ml-1">Q1 2026 — Jan/Fev/Mar · monthlyRevenue empírico</span>}
           />
           <ResponsiveContainer width="100%" height={280}>
             <BarChart
@@ -139,7 +144,7 @@ export default function RevenuePage() {
         <section className="card p-5 lg:p-6">
           <SectionHeader
             title="Gross Margin Progression"
-            badge={<span className="text-[11px] text-gray-400 font-medium ml-1">Month-by-month profit margin trend</span>}
+            badge={<span className="text-[11px] text-gray-400 font-medium ml-1">Q1/26 · margem = profit/revenue (expenses = COGS 40%)</span>}
           />
           <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-12 gap-2">
             {revenueData.map((d) => {
