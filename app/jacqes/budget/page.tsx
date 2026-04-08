@@ -3,7 +3,6 @@ import {
   DollarSign,
   TrendingUp,
   BarChart3,
-  AlertTriangle,
   CheckCircle2,
   ArrowUpRight,
   ArrowDownRight,
@@ -43,21 +42,21 @@ function varLabel(v: number) {
 //   demais linhas derivadas da mesma proporção dos actuals acima
 
 const yearActual = {
-  receita:    4_820_000,   // buData.revenue
-  cogs:       1_928_000,   // revenue − grossProfit
-  lucrobruto: 2_892_000,   // buData.grossProfit  (margem 60.0%)
-  opex:       2_025_000,   // grossProfit − ebitda
-  ebitda:       867_000,   // buData.ebitda        (margem 18.0%)
-  lucroliq:     518_000,   // buData.netIncome     (margem 10.7%)
+  receita:    0,
+  cogs:       0,
+  lucrobruto: 0,
+  opex:       0,
+  ebitda:     0,
+  lucroliq:   0,
 };
 
 const yearBudget = {
-  receita:    17_760_000,  // budgetRevenue(4,440,000) × 4 trimestres
-  cogs:        7_104_000,  // 17,760,000 × 40.0%
-  lucrobruto: 10_656_000,  // 17,760,000 × 60.0%
-  opex:        7_459_200,  // 17,760,000 × 42.0%
-  ebitda:      3_196_800,  // 17,760,000 × 18.0%
-  lucroliq:    1_901_040,  // 17,760,000 × 10.7%
+  receita:    0,
+  cogs:       0,
+  lucrobruto: 0,
+  opex:       0,
+  ebitda:     0,
+  lucroliq:   0,
 };
 
 const budgetLines = [
@@ -109,15 +108,6 @@ const budgetLines = [
     forecast:   yearBudget.lucroliq * 1.06,
     type: "net",
   },
-];
-
-const categoryBudget = [
-  { category: "Marketing & Growth",   budget: 480_000, actual: 412_000, icon: TrendingUp,    color: "text-brand-600"   },
-  { category: "Salários & Benefícios",budget: 1_240_000, actual: 1_180_000, icon: DollarSign, color: "text-violet-700" },
-  { category: "Tecnologia & Infra",   budget: 180_000, actual: 154_000, icon: BarChart3,     color: "text-emerald-600" },
-  { category: "Vendas & Comissões",   budget: 320_000, actual: 348_000, icon: TrendingUp,    color: "text-amber-700"   },
-  { category: "G&A",                  budget: 240_000, actual: 228_000, icon: BarChart3,     color: "text-gray-400"    },
-  { category: "Desp. Operacionais",   budget: 120_000, actual: 132_000, icon: AlertTriangle, color: "text-red-600"     },
 ];
 
 // ─── Color helpers ────────────────────────────────────────────────────────────
@@ -270,45 +260,6 @@ export default function JacqesBudgetPage() {
                 })}
               </tbody>
             </table>
-          </div>
-        </div>
-
-        {/* ── Category Budget ───────────────────────────────────────────────── */}
-        <div className="card p-5">
-          <h2 className="text-sm font-semibold text-gray-900 mb-4">Budget por Categoria — YTD Jan–Mar 2026</h2>
-          <div className="space-y-4">
-            {categoryBudget.map((cat) => {
-              const Icon = cat.icon;
-              const usedPct = Math.min((cat.actual / cat.budget) * 100, 100);
-              const v = variance(cat.actual, cat.budget);
-              const isExpense = true;
-              const overBudget = cat.actual > cat.budget;
-              return (
-                <div key={cat.category}>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className="flex items-center gap-2">
-                      <Icon size={12} className={cat.color} />
-                      <span className="text-xs text-gray-500">{cat.category}</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-[11px]">
-                      <span className="text-gray-500">Budget: {fmtR(cat.budget)}</span>
-                      <span className={`font-semibold ${overBudget ? "text-red-600" : "text-emerald-600"}`}>
-                        Real: {fmtR(cat.actual)}
-                      </span>
-                      <span className={`font-bold ${varColor(v, isExpense)}`}>
-                        {varLabel(v)}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full ${overBudget ? "bg-red-500" : "bg-emerald-500"}`}
-                      style={{ width: `${usedPct}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
           </div>
         </div>
 

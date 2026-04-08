@@ -78,7 +78,7 @@ export default function AdvisorFinancialPage() {
             <p className="text-[11px] text-violet-600 mt-2">
               Fonte autoritativa:{" "}
               <code className="bg-violet-100 px-1 rounded text-[10px]">lib/awq-group-data.ts</code>
-              {" "}→ buData["advisor"].economicType = "pre_revenue"
+              {" "}→ buData[&quot;advisor&quot;].economicType = &quot;pre_revenue&quot;
             </p>
           </div>
         </div>

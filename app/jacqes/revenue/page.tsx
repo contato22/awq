@@ -48,10 +48,10 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
 //   COGS + OpEx:      3,953,000   (revenue − netIncome = 4,820,000 − 867,000 EBITDA)
 //   MRR Médio Q1/26:  1,607,000   (4,820,000 / 3 meses)
 const summaryStats = [
-  { label: "Receita Bruta YTD",  value: "R$4.82M",   sub: "Q1/26 Jan–Mar · buData",   positive: true,  icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
-  { label: "Lucro Bruto YTD",    value: "R$2.89M",   sub: "Margem bruta 60% · buData", positive: true,  icon: TrendingUp, color: "text-brand-600",   bg: "bg-brand-50" },
-  { label: "EBITDA YTD",         value: "R$867K",    sub: "Margem EBITDA 18% · buData",positive: true,  icon: BarChart3,  color: "text-violet-700",  bg: "bg-violet-50" },
-  { label: "MRR Médio Q1/26",    value: "R$1.607M",  sub: "4.820K ÷ 3 meses",         positive: true,  icon: DollarSign, color: "text-cyan-700",    bg: "bg-cyan-50" },
+  { label: "Receita Bruta YTD",  value: "R$0", sub: "Aguardando dados", positive: false, icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
+  { label: "Lucro Bruto YTD",    value: "R$0", sub: "Aguardando dados", positive: false, icon: TrendingUp, color: "text-brand-600",   bg: "bg-brand-50" },
+  { label: "EBITDA YTD",         value: "R$0", sub: "Aguardando dados", positive: false, icon: BarChart3,  color: "text-violet-700",  bg: "bg-violet-50" },
+  { label: "MRR Médio Q1/26",    value: "R$0", sub: "Aguardando dados", positive: false, icon: DollarSign, color: "text-cyan-700",    bg: "bg-cyan-50" },
 ];
 
 export default function RevenuePage() {

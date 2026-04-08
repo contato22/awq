@@ -84,8 +84,8 @@ export const kpis: KPI[] = [
   {
     id: "revenue",
     label: "Receita Bruta",
-    value:         4_820_000,   // YTD Q1 2026 — source: buData[jacqes].revenue
-    previousValue: 4_440_000,   // YTD budget — source: buData[jacqes].budgetRevenue
+    value:         0,
+    previousValue: 0,
     unit: "currency",
     icon: "DollarSign",
     color: "brand",
@@ -93,8 +93,8 @@ export const kpis: KPI[] = [
   {
     id: "customers",
     label: "Contas Ativas",
-    value:         10,           // source: buData[jacqes].customers
-    previousValue:  9,
+    value:         0,
+    previousValue: 0,
     unit: "number",
     icon: "Users",
     color: "emerald",
@@ -102,7 +102,7 @@ export const kpis: KPI[] = [
   {
     id: "nps",
     label: "NPS Médio",
-    value:         0,            // sem dados reais de NPS — aguardando ingestion
+    value:         0,
     previousValue: 0,
     unit: "percent",
     suffix: "",
@@ -112,8 +112,8 @@ export const kpis: KPI[] = [
   {
     id: "margin",
     label: "Margem Bruta",
-    value:         60.0,         // grossProfit/revenue = 2_892_000/4_820_000 — buData
-    previousValue: 57.2,
+    value:         0,
+    previousValue: 0,
     unit: "percent",
     suffix: "%",
     icon: "TrendingUp",
@@ -126,9 +126,9 @@ export const kpis: KPI[] = [
 // Expense ratio ~40% consistent with gross margin 60% (buData)
 
 export const revenueData: RevenueDataPoint[] = [
-  { month: "Jan/26", revenue: 1_420_000, expenses:   568_000, profit:   852_000 },
-  { month: "Fev/26", revenue: 1_512_000, expenses:   604_800, profit:   907_200 },
-  { month: "Mar/26", revenue: 1_888_000, expenses:   755_200, profit: 1_132_800 },
+  { month: "Jan/26", revenue: 0, expenses: 0, profit: 0 },
+  { month: "Fev/26", revenue: 0, expenses: 0, profit: 0 },
+  { month: "Mar/26", revenue: 0, expenses: 0, profit: 0 },
 ];
 
 // ─── Arrays esvaziados — dados granulares sem fonte empírica ─────────────────

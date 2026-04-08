@@ -3,9 +3,8 @@ import { Users, DollarSign, Info, AlertTriangle } from "lucide-react";
 
 // ─── /jacqes/customers — Carteira JACQES ──────────────────────────────────────
 //
-// SOURCE: lib/awq-group-data.ts buData["jacqes"]
-//   customers: 10   — contagem confirmada no snapshot Q1/26
-//   revenue:   4_820_000 (YTD Q1) → MRR Mar/26 = 1_888_000 (monthlyRevenue)
+// ZEROED — aguardando pipeline de dados real (CRM / extrato JACQES).
+// Nenhum valor pode ser exibido sem fonte verificável.
 //
 // REMOVIDO: lista individual de clientes (Ambev, Samsung, Nike, iFood, etc.)
 // era uma criação fictícia sem respaldo em CRM, contrato ou extrato bancário.
@@ -32,32 +31,32 @@ export default function JacqesCustomersPage() {
           {[
             {
               label:  "Contas Ativas",
-              value:  "10",
-              sub:    "Snapshot Q1/26 · buData",
+              value:  "0",
+              sub:    "Aguardando dados",
               icon:   Users,
               color:  "text-brand-600",
               bg:     "bg-brand-50",
             },
             {
               label:  "MRR Total (Mar/26)",
-              value:  fmtR(1_888_000),
-              sub:    "monthlyRevenue · awq-group-data",
+              value:  "R$0",
+              sub:    "Aguardando dados",
               icon:   DollarSign,
               color:  "text-emerald-600",
               bg:     "bg-emerald-50",
             },
             {
               label:  "MRR Médio por Conta",
-              value:  fmtR(Math.round(1_888_000 / 10)),
-              sub:    "1.888K ÷ 10 clientes",
+              value:  "R$0",
+              sub:    "Aguardando dados",
               icon:   DollarSign,
               color:  "text-violet-700",
               bg:     "bg-violet-50",
             },
             {
               label:  "Receita YTD Q1/26",
-              value:  fmtR(4_820_000),
-              sub:    "Jan–Mar · buData.revenue",
+              value:  "R$0",
+              sub:    "Aguardando dados",
               icon:   DollarSign,
               color:  "text-amber-700",
               bg:     "bg-amber-50",

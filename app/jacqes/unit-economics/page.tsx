@@ -34,9 +34,9 @@ function fmtR(n: number) {
 // ─── MRR — Q1/26 empírico (monthlyRevenue) ────────────────────────────────────
 // ONLY real months. No invented Oct/Nov/Dec/25, no newMrr/churnMrr decomposition.
 const mrrHistory = [
-  { month: "Jan/26", mrr: 1_420_000 },
-  { month: "Fev/26", mrr: 1_512_000 },
-  { month: "Mar/26", mrr: 1_888_000 },
+  { month: "Jan/26", mrr: 0 },
+  { month: "Fev/26", mrr: 0 },
+  { month: "Mar/26", mrr: 0 },
 ];
 
 // ─── Benchmarks — derivados de buData ────────────────────────────────────────
@@ -44,9 +44,9 @@ const mrrHistory = [
 // EBITDA Margin: 867_000 / 4_820_000 = 18.0%
 // Net Margin: 518_000 / 4_820_000 = 10.7%
 const benchmarks = [
-  { label: "Gross Margin",      value: "60.0%", benchmark: ">50%",  pct: 100, ok: true  },
-  { label: "EBITDA Margin",     value: "18.0%", benchmark: ">15%",  pct: 90,  ok: true  },
-  { label: "Net Margin",        value: "10.7%", benchmark: ">8%",   pct: 100, ok: true  },
+  { label: "Gross Margin",  value: "—", benchmark: ">50%", pct: 0, ok: false },
+  { label: "EBITDA Margin", value: "—", benchmark: ">15%", pct: 0, ok: false },
+  { label: "Net Margin",    value: "—", benchmark: ">8%",  pct: 0, ok: false },
 ];
 
 // ─── Margens por tipo de serviço — REMOVIDAS (sem fonte real) ─────────────────
@@ -72,7 +72,7 @@ export default function JacqesUnitEconomicsPage() {
           {[
             { label: "MRR Mar/26",      value: fmtR(latestMrr.mrr), sub: "monthlyRevenue · empírico",    color: "text-brand-600",   bg: "bg-brand-50",   icon: DollarSign  },
             { label: "ARR Projetado",   value: fmtR(arr),            sub: "MRR Mar/26 × 12",             color: "text-emerald-600", bg: "bg-emerald-50", icon: TrendingUp  },
-            { label: "Receita YTD Q1",  value: fmtR(4_820_000),      sub: "buData.revenue · Jan–Mar/26", color: "text-violet-700",  bg: "bg-violet-50",  icon: BarChart3   },
+            { label: "Receita YTD Q1",  value: "R$0",                 sub: "Aguardando dados",            color: "text-violet-700",  bg: "bg-violet-50",  icon: BarChart3   },
             { label: "MRR MoM (Mar)",   value: `+${mrrGrowth}%`,     sub: "Fev→Mar · monthlyRevenue",    color: "text-amber-700",   bg: "bg-amber-50",   icon: TrendingUp  },
           ].map((m) => {
             const Icon = m.icon;
