@@ -1,15 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getDealById } from "@/lib/deal-data";
-import type { DealWorkspace } from "@/lib/deal-types";
+import type { DealWorkspace, DealStage, DealSendStatus } from "@/lib/deal-types";
 import {
   ArrowLeft, Building2, Target, BarChart2, DollarSign, Shield,
   Layers, Settings, Eye, Send, Save, CheckCircle, CheckCircle2,
   Clock, AlertTriangle, XCircle, Globe, Mail, Phone, MapPin,
-  User, Calendar, ArrowRight, TrendingUp,
+  User, Calendar, ArrowRight, TrendingUp, Trash2, X, ChevronDown,
 } from "lucide-react";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -401,16 +401,188 @@ function PreviewInterno({ deal }: { deal: DealWorkspace }) {
     </div>
   );
 }
+// ─── Local State Override (localStorage) ─────────────────────────────────────
+// Permite alterar stage/sendStatus e excluir proposta sem banco de dados.
+// Dados estáticos (deal-data.ts) são a fonte canônica; overrides são locais.
+// Em produção: substituir por PATCH /api/awq-venture/deals/:id
+
+export interface DealOverride {
+  stage?:           DealStage;
+  sendStatus?:      DealSendStatus;
+  proposalDeleted?: boolean;
+  overriddenAt?:    string;
+}
+
+function overrideKey(id: string) { return `awq_deal_override_${id}`; }
+
+function loadOverride(id: string): DealOverride {
+  if (typeof window === "undefined") return {};
+  try { return JSON.parse(localStorage.getItem(overrideKey(id)) ?? "{}"); }
+  catch { return {}; }
+}
+
+function saveOverride(id: string, data: DealOverride) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(overrideKey(id), JSON.stringify(data));
+}
+
+// ─── StatusChangeModal ────────────────────────────────────────────────────────
+
+const ALL_STAGES: DealStage[] = [
+  "Triagem", "Prospecção", "Due Diligence", "Term Sheet",
+  "Negociação", "Fechado", "Cancelado",
+];
+const ALL_SEND_STATUSES: DealSendStatus[] = [
+  "Rascunho", "Pronto para Envio", "Enviado",
+  "Em Negociação", "Aprovado", "Rejeitado",
+];
+
+function StatusChangeModal({
+  currentStage,
+  currentSendStatus,
+  onApply,
+  onClose,
+}: {
+  currentStage:      DealStage;
+  currentSendStatus: DealSendStatus;
+  onApply:           (stage: DealStage, sendStatus: DealSendStatus) => void;
+  onClose:           () => void;
+}) {
+  const [stage,      setStage]      = useState<DealStage>(currentStage);
+  const [sendStatus, setSendStatus] = useState<DealSendStatus>(currentSendStatus);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+          <h3 className="text-sm font-bold text-gray-900">Alterar Status do Deal</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-700 transition-colors">
+            <X size={16} />
+          </button>
+        </div>
+        <div className="px-5 py-4 space-y-4">
+          {/* Stage */}
+          <div>
+            <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
+              Estágio do Deal
+            </label>
+            <div className="relative">
+              <select
+                value={stage}
+                onChange={(e) => setStage(e.target.value as DealStage)}
+                className="w-full appearance-none rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-400 pr-8"
+              >
+                {ALL_STAGES.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+              <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            </div>
+          </div>
+          {/* Send Status */}
+          <div>
+            <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
+              Status de Envio / Proposta
+            </label>
+            <div className="relative">
+              <select
+                value={sendStatus}
+                onChange={(e) => setSendStatus(e.target.value as DealSendStatus)}
+                className="w-full appearance-none rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-400 pr-8"
+              >
+                {ALL_SEND_STATUSES.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+              <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            </div>
+          </div>
+          <div className="text-[10px] text-gray-400 bg-gray-50 rounded-lg px-3 py-2">
+            Alteração salva localmente. Para persistência permanente, integrar com API.
+          </div>
+        </div>
+        <div className="px-5 py-4 border-t border-gray-100 flex gap-2 justify-end">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
+            Cancelar
+          </button>
+          <button
+            onClick={() => { onApply(stage, sendStatus); onClose(); }}
+            className="px-4 py-2 text-sm font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-xl transition-colors"
+          >
+            Aplicar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── DeleteProposalConfirm ────────────────────────────────────────────────────
+
+function DeleteProposalConfirm({
+  companyName,
+  onConfirm,
+  onClose,
+}: {
+  companyName: string;
+  onConfirm:   () => void;
+  onClose:     () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
+        <div className="px-5 py-4 border-b border-gray-100">
+          <h3 className="text-sm font-bold text-gray-900">Excluir Proposta</h3>
+        </div>
+        <div className="px-5 py-4 space-y-3">
+          <div className="flex items-start gap-3 p-3 bg-red-50 rounded-xl border border-red-100">
+            <AlertTriangle size={16} className="text-red-500 mt-0.5 shrink-0" />
+            <div>
+              <div className="text-sm font-semibold text-red-700">Ação irreversível (localmente)</div>
+              <div className="text-xs text-red-600 mt-0.5">
+                A proposta de <strong>{companyName}</strong> será marcada como excluída.
+                O deal permanece — apenas a estrutura da proposta é ocultada.
+              </div>
+            </div>
+          </div>
+          <p className="text-xs text-gray-500">
+            O status de envio será revertido para <strong>Rascunho</strong>.
+            Para restaurar, limpe o override em localStorage ou recarregue sem override.
+          </p>
+        </div>
+        <div className="px-5 py-4 border-t border-gray-100 flex gap-2 justify-end">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
+            Cancelar
+          </button>
+          <button
+            onClick={() => { onConfirm(); onClose(); }}
+            className="px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors flex items-center gap-2"
+          >
+            <Trash2 size={13} />
+            Excluir Proposta
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Sticky Sidebar ───────────────────────────────────────────────────────────
 
 function StickySidebar({
   deal,
   onPreviewInterno,
   onPreviewCliente,
+  onChangeStatus,
+  onDeleteProposal,
+  proposalDeleted,
 }: {
   deal: DealWorkspace;
   onPreviewInterno: () => void;
   onPreviewCliente: () => void;
+  onChangeStatus: () => void;
+  onDeleteProposal: () => void;
+  proposalDeleted: boolean;
 }) {
   const rs = riskStyle[deal.riskLevel] ?? riskStyle["Médio"];
   return (
@@ -476,6 +648,32 @@ function StickySidebar({
 
         <div className="border-t border-gray-100 my-1" />
 
+        <button
+          onClick={onChangeStatus}
+          className="w-full flex items-center justify-center gap-2 text-[11px] text-gray-600 hover:text-gray-900 hover:bg-gray-100 py-2 rounded-lg transition-colors font-medium"
+        >
+          <Settings size={12} />
+          Alterar Status
+        </button>
+
+        {!proposalDeleted && (
+          <button
+            onClick={onDeleteProposal}
+            className="w-full flex items-center justify-center gap-2 text-[11px] text-red-500 hover:text-red-700 hover:bg-red-50 py-2 rounded-lg transition-colors"
+          >
+            <Trash2 size={12} />
+            Excluir Proposta
+          </button>
+        )}
+
+        {proposalDeleted && (
+          <div className="text-center text-[10px] text-red-400 bg-red-50 rounded-lg py-2 px-3">
+            Proposta excluída localmente
+          </div>
+        )}
+
+        <div className="border-t border-gray-100 my-1" />
+
         <button className="w-full flex items-center justify-center gap-2 text-[11px] text-gray-400 hover:text-gray-700 hover:bg-gray-100 py-2 rounded-lg transition-colors">
           <Building2 size={12} />
           Publicar Resumo na Holding
@@ -511,7 +709,27 @@ export default function DealWorkspacePage({
   const deal = getDealById(params.id);
   if (!deal) notFound();
 
-  const [preview, setPreview] = useState<"interno" | "cliente" | null>(null);
+  const [preview,           setPreview]           = useState<"interno" | "cliente" | null>(null);
+  const [override,          setOverride]           = useState<DealOverride>({});
+  const [showStatusModal,   setShowStatusModal]    = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm]  = useState(false);
+
+  useEffect(() => {
+    setOverride(loadOverride(deal.id));
+  }, [deal.id]);
+
+  function applyOverride(patch: Partial<DealOverride>) {
+    const next = { ...override, ...patch, overriddenAt: new Date().toISOString() };
+    setOverride(next);
+    saveOverride(deal.id, next);
+  }
+
+  const effectiveDeal = {
+    ...deal,
+    stage:      (override.stage      ?? deal.stage)      as DealStage,
+    sendStatus: (override.sendStatus ?? deal.sendStatus) as DealSendStatus,
+  };
+  const proposalDeleted = override.proposalDeleted ?? false;
 
   function scrollToPreview(mode: "interno" | "cliente") {
     setPreview(mode);
@@ -520,8 +738,8 @@ export default function DealWorkspacePage({
     }, 50);
   }
 
-  const rs = riskStyle[deal.riskLevel] ?? riskStyle["Médio"];
-  const readiness = ((deal.assetDiagnosis.operationalMaturity + deal.assetDiagnosis.commercialMaturity) / 2);
+  const rs = riskStyle[effectiveDeal.riskLevel] ?? riskStyle["Médio"];
+  const readiness = ((effectiveDeal.assetDiagnosis.operationalMaturity + effectiveDeal.assetDiagnosis.commercialMaturity) / 2);
 
   const anchors = [
     { href: "#indicadores",  label: "Indicadores"  },
@@ -556,8 +774,8 @@ export default function DealWorkspacePage({
             <div className="flex items-center gap-2 mb-1.5 flex-wrap">
               <h1 className="text-2xl font-bold text-gray-900">{deal.companyName}</h1>
               <span className="badge bg-gray-100 text-gray-500 ring-1 ring-gray-200/60">{deal.id}</span>
-              <span className={stageBadge[deal.stage] ?? "badge bg-gray-100 text-gray-600"}>{deal.stage}</span>
-              <span className={`text-sm ${sendStatusColor[deal.sendStatus] ?? "text-gray-400"}`}>{deal.sendStatus}</span>
+              <span className={stageBadge[effectiveDeal.stage] ?? "badge bg-gray-100 text-gray-600"}>{effectiveDeal.stage}</span>
+              <span className={`text-sm ${sendStatusColor[effectiveDeal.sendStatus] ?? "text-gray-400"}`}>{effectiveDeal.sendStatus}</span>
             </div>
             <div className="flex flex-wrap gap-2 mt-2">
               <InfoChip label="Responsável"  value={deal.assignee} />
@@ -637,7 +855,7 @@ export default function DealWorkspacePage({
                   <div className="text-xs text-gray-400">{deal.identification.mainContactRole}</div>
                 </div>
               } />
-              <FieldRow label="Estágio Atual" value={<span className={stageBadge[deal.stage] ?? ""}>{deal.stage}</span>} />
+              <FieldRow label="Estágio Atual" value={<span className={stageBadge[effectiveDeal.stage] ?? ""}>{effectiveDeal.stage}</span>} />
               {deal.identification.mainContactEmail && (
                 <FieldRow label="Email" value={<span className="flex items-center gap-1 text-brand-600"><Mail size={12} />{deal.identification.mainContactEmail}</span>} />
               )}
@@ -819,6 +1037,28 @@ export default function DealWorkspacePage({
 
           {/* §8 Estrutura da Proposta ────────────────────────────────────── */}
           <SectionCard id="proposta" icon={Layers} title="Estrutura da Proposta">
+            {proposalDeleted ? (
+              <div className="flex flex-col items-center justify-center py-10 gap-3 text-center">
+                <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
+                  <Trash2 size={18} className="text-red-400" />
+                </div>
+                <div className="text-sm font-semibold text-gray-600">Proposta excluída</div>
+                <div className="text-xs text-gray-400 max-w-xs">
+                  A estrutura da proposta foi removida localmente. Para restaurar, limpe o override em localStorage
+                  ou acesse via nova aba sem o override armazenado.
+                </div>
+                <button
+                  onClick={() => {
+                    const next = { ...override, proposalDeleted: false, sendStatus: deal.sendStatus };
+                    setOverride(next);
+                    saveOverride(deal.id, next);
+                  }}
+                  className="mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 px-4 py-2 rounded-xl hover:bg-amber-100 transition-colors"
+                >
+                  Restaurar Proposta
+                </button>
+              </div>
+            ) : (
             <div className="space-y-4">
               <div className="surface-subtle p-4 rounded-xl">
                 <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1.5">Proposta Econômica</div>
@@ -889,6 +1129,7 @@ export default function DealWorkspacePage({
                 )}
               </div>
             </div>
+            )}{/* end proposalDeleted conditional */}
           </SectionCard>
 
           {/* §9 Governança ───────────────────────────────────────────────── */}
@@ -995,13 +1236,38 @@ export default function DealWorkspacePage({
         {/* ── Right: Sticky Sidebar ────────────────────────────────────────── */}
         <div className="w-72 shrink-0 hidden lg:block">
           <StickySidebar
-            deal={deal}
+            deal={effectiveDeal}
             onPreviewInterno={() => scrollToPreview("interno")}
             onPreviewCliente={() => scrollToPreview("cliente")}
+            onChangeStatus={() => setShowStatusModal(true)}
+            onDeleteProposal={() => setShowDeleteConfirm(true)}
+            proposalDeleted={proposalDeleted}
           />
         </div>
 
       </div>{/* end two-col */}
+
+      {/* ── Modals ────────────────────────────────────────────────────── */}
+      {showStatusModal && (
+        <StatusChangeModal
+          currentStage={effectiveDeal.stage}
+          currentSendStatus={effectiveDeal.sendStatus}
+          onApply={(newStage, newSendStatus) => {
+            applyOverride({ stage: newStage, sendStatus: newSendStatus });
+          }}
+          onClose={() => setShowStatusModal(false)}
+        />
+      )}
+
+      {showDeleteConfirm && (
+        <DeleteProposalConfirm
+          companyName={effectiveDeal.companyName}
+          onConfirm={() => {
+            applyOverride({ proposalDeleted: true, sendStatus: "Rascunho" });
+          }}
+          onClose={() => setShowDeleteConfirm(false)}
+        />
+      )}
     </>
   );
 }
