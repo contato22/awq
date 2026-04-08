@@ -96,6 +96,7 @@ export type ClassificationConfidence =
 //   receita_producao             — produção audiovisual / conteúdo (ex: AT FILMS)
 //   receita_social_media         — social media management recorrente
 //   receita_revenue_share        — revenue share / participação em resultados
+//   receita_fee_venture          — fee recorrente de advisory/incubação da Venture (ex: ENERDY)
 //   receita_eventual             — receita avulsa / one-off não recorrente
 //   rendimento_financeiro        — juros, rendimentos CDB/LCI/LCA, dividendos
 //   aporte_socio                 — capitalização direta do sócio
@@ -122,7 +123,8 @@ export type ClassificationConfidence =
 //   cartao_compra_operacional    — compra operacional via cartão corporativo
 //   despesa_pessoal_misturada    — despesa pessoal do sócio na conta PJ (flag)
 //   aplicacao_financeira         — aplicação em CDB, LCI, LCA, fundo de investimento
-//   transferencia_interna_enviada — transferência intercompany enviada / reserva cartão
+//   transferencia_interna_enviada — transferência intercompany enviada
+//   reserva_limite_cartao        — reserva de limite para cartão de crédito garantido
 //   despesa_ambigua              — débito não classificado, pendente revisão
 //   unclassified                 — não classificado (só com confidence=unclassifiable)
 
@@ -134,6 +136,7 @@ export type ManagerialCategory =
   | "receita_producao"
   | "receita_social_media"
   | "receita_revenue_share"
+  | "receita_fee_venture"
   | "receita_eventual"
   | "rendimento_financeiro"
   | "aporte_socio"
@@ -161,6 +164,7 @@ export type ManagerialCategory =
   | "aplicacao_financeira"
   | "resgate_financeiro"
   | "transferencia_interna_enviada"
+  | "reserva_limite_cartao"
   | "despesa_ambigua"
   | "unclassified";
 

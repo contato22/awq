@@ -1,7 +1,7 @@
 import Header from "@/components/Header";
 import Link from "next/link";
 import { BarChart3, Building2, TrendingUp, ChevronRight, Users, DollarSign, Briefcase, Zap, CheckCircle2 } from "lucide-react";
-import { buData, consolidated } from "@/lib/awq-derived-metrics";
+import { buData, consolidated, ventureFeeMRR, ventureFeeARR } from "@/lib/awq-derived-metrics";
 import { getAWQGroupKPIs, fmtBRL } from "@/lib/financial-metric-query";
 
 // ── Formatters ──────────────────────────────────────────────────────────────
@@ -58,48 +58,36 @@ const BUS = [
   {
     id: "venture",
     label: "AWQ Venture",
-    sub: "Investimentos",
+    sub: "Investimentos (híbrido)",
     href: "/awq-venture",
     bgColor: "bg-amber-50",
     textColor: "text-amber-700",
     badgeColor: "bg-amber-100 text-amber-600 border-amber-200",
     icon: TrendingUp,
-    kpis: venture
-      ? [
-          { label: "Receita",  value: fmtR(venture.revenue)   },
-          { label: "Capital",  value: fmtR(venture.capitalAllocated) },
-          { label: "ROIC",     value: fmtPct(venture.roic)    },
-        ]
-      : [
-          { label: "Portfolio", value: "—" },
-          { label: "AUM",       value: "—" },
-          { label: "IRR",       value: "—" },
-        ],
+    kpis: [
+      { label: "Fee MRR",   value: fmtR(ventureFeeMRR) },
+      { label: "CDB DI",    value: fmtR(venture?.capitalAllocated ?? 0) },
+      { label: "Fee ARR",   value: fmtR(ventureFeeARR) },
+    ],
     status: venture?.status ?? "Em construção",
     statusColor: "bg-amber-100 text-amber-600 border-amber-200",
   },
   {
     id: "advisor",
     label: "Advisor",
-    sub: "Consultoria",
+    sub: "Consultoria (pré-receita)",
     href: "/advisor",
     bgColor: "bg-violet-50",
     textColor: "text-violet-700",
     badgeColor: "bg-violet-100 text-violet-600 border-violet-200",
     icon: Briefcase,
-    kpis: advisor
-      ? [
-          { label: "Receita",  value: fmtR(advisor.revenue)   },
-          { label: "Clientes", value: String(advisor.customers) },
-          { label: "EBITDA %", value: fmtPct((advisor.ebitda / advisor.revenue) * 100) },
-        ]
-      : [
-          { label: "Clientes", value: "—" },
-          { label: "AUM",      value: "—" },
-          { label: "Retorno",  value: "—" },
-        ],
+    kpis: [
+      { label: "Receita",  value: "—" },
+      { label: "Status",   value: "Pré-receita" },
+      { label: "Tipo",     value: "Estratégico" },
+    ],
     status: advisor?.status ?? "Em construção",
-    statusColor: "bg-emerald-100 text-emerald-600 border-emerald-200",
+    statusColor: "bg-violet-100 text-violet-600 border-violet-200",
   },
 ];
 

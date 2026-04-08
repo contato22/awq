@@ -39,6 +39,9 @@ import {
   operatingBus,
   buData,
   riskSignals,
+  ventureFeeMRR,
+  ventureFeeARR,
+  ventureContractValueRemaining,
 } from "./awq-derived-metrics";
 
 import {
@@ -428,4 +431,38 @@ export function fmtR(n: number): string {
 
 export function fmtPct(n: number, decimals = 1): string {
   return (n * 100).toFixed(decimals) + "%";
+}
+
+// ─── Venture fee metrics ─────────────────────────────────────────────────────
+//
+// Exported for pages that display Venture's operational fee component
+// separate from the patrimonial/investment component.
+
+export interface VentureFeeMetrics {
+  feeMRR:                  FinancialMetric<number>;
+  feeARR:                  FinancialMetric<number>;
+  contractValueRemaining:  FinancialMetric<number>;
+  advisorHasRevenue:       boolean;
+  advisorEconomicStatus:   string;
+}
+
+export function getVentureFeeMetrics(): VentureFeeMetrics {
+  const advisor = buData.find((b) => b.id === "advisor");
+  return {
+    feeMRR: snapshotMetric(ventureFeeMRR, {
+      entity:           "AWQ Venture",
+      calculation_rule: "SUM(ventureContracts.monthlyFee WHERE status=active)",
+      note:             "ENERDY: R$2.000/mês × 36 meses",
+    }),
+    feeARR: snapshotMetric(ventureFeeARR, {
+      entity:           "AWQ Venture",
+      calculation_rule: "feeMRR × 12",
+    }),
+    contractValueRemaining: snapshotMetric(ventureContractValueRemaining, {
+      entity:           "AWQ Venture",
+      calculation_rule: "SUM(ventureContracts.totalContractValue WHERE status=active)",
+    }),
+    advisorHasRevenue: (advisor?.revenue ?? 0) > 0,
+    advisorEconomicStatus: advisor?.economicType ?? "pre_revenue",
+  };
 }

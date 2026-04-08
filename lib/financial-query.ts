@@ -57,6 +57,7 @@ const REVENUE_CATS = new Set<ManagerialCategory>([
   "receita_producao",
   "receita_social_media",
   "receita_revenue_share",
+  "receita_fee_venture",
   "receita_eventual",
   "rendimento_financeiro",
   "ajuste_bancario_credito",
@@ -97,6 +98,7 @@ export const CATEGORY_LABELS: Record<ManagerialCategory, string> = {
   receita_producao:               "Receita de Produção",
   receita_social_media:           "Receita Social Media",
   receita_revenue_share:          "Revenue Share",
+  receita_fee_venture:            "Fee Recorrente Venture",
   receita_eventual:               "Receita Eventual",
   rendimento_financeiro:          "Rendimento Financeiro",
   aporte_socio:                   "Aporte do Sócio",
@@ -124,6 +126,7 @@ export const CATEGORY_LABELS: Record<ManagerialCategory, string> = {
   aplicacao_financeira:           "Aplicação Financeira",
   resgate_financeiro:             "Resgate Financeiro",
   transferencia_interna_enviada:  "Transf. Intercompany (enviada)",
+  reserva_limite_cartao:          "Reserva Limite Cartão",
   despesa_ambigua:                "Despesa Ambígua",
   unclassified:                   "Não Classificado",
 };

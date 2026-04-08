@@ -55,8 +55,14 @@ export {
   buForecastScenarios,
   // Empirical holding investment snapshot
   holdingTreasurySnapshot,
+  // Venture contract data
+  ventureContracts,
+  ventureFeeMRR,
+  ventureFeeARR,
+  ventureContractValueRemaining,
   // Types
   type BuData,
+  type BuEconomicType,
   type MonthlyPoint,
   type RiskSignal,
   type RiskCategory,
@@ -69,6 +75,7 @@ export {
   type ForecastAccuracyPoint,
   type BuForecastScenario,
   type HoldingTreasurySnapshot,
+  type VentureContract,
 } from "./awq-group-data";
 
 import {
@@ -76,14 +83,20 @@ import {
   buBudgetTargets,
 } from "./awq-group-data";
 
-import type { BuData } from "./awq-group-data";
+import type { BuData, BuBudgetTargets } from "./awq-group-data";
 
-// ─── Internal helper ──────────────────────────────────────────────────────────
+// ─── Internal helpers ─────────────────────────────────────────────────────────
 
 function findBU(id: string): BuData {
   const b = buData.find((x) => x.id === id);
   if (!b) throw new Error(`awq-derived-metrics: BU "${id}" not found in buData`);
   return b;
+}
+
+const ZERO_BUDGET: BuBudgetTargets = { budgGrossProfit: 0, budgEbitda: 0, budgNetIncome: 0, budgCash: 0 };
+
+function budgetFor(id: string): BuBudgetTargets {
+  return buBudgetTargets[id] ?? ZERO_BUDGET;
 }
 
 // ─── BUDGET_LINES — derived, not hardcoded ────────────────────────────────────
@@ -123,41 +136,41 @@ export const BUDGET_LINES: BudgetLine[] = [
   },
   {
     line:          "Gross Profit",
-    jacquesBudg:   buBudgetTargets["jacqes"].budgGrossProfit,
+    jacquesBudg:   budgetFor("jacqes").budgGrossProfit,
     jacquesActual: findBU("jacqes").grossProfit,
-    cazaBudg:      buBudgetTargets["caza"].budgGrossProfit,
+    cazaBudg:      budgetFor("caza").budgGrossProfit,
     cazaActual:    findBU("caza").grossProfit,
-    advisorBudg:   buBudgetTargets["advisor"].budgGrossProfit,
+    advisorBudg:   budgetFor("advisor").budgGrossProfit,
     advisorActual: findBU("advisor").grossProfit,
     isExpense:     false,
   },
   {
     line:          "EBITDA",
-    jacquesBudg:   buBudgetTargets["jacqes"].budgEbitda,
+    jacquesBudg:   budgetFor("jacqes").budgEbitda,
     jacquesActual: findBU("jacqes").ebitda,
-    cazaBudg:      buBudgetTargets["caza"].budgEbitda,
+    cazaBudg:      budgetFor("caza").budgEbitda,
     cazaActual:    findBU("caza").ebitda,
-    advisorBudg:   buBudgetTargets["advisor"].budgEbitda,
+    advisorBudg:   budgetFor("advisor").budgEbitda,
     advisorActual: findBU("advisor").ebitda,
     isExpense:     false,
   },
   {
     line:          "Lucro Líquido",
-    jacquesBudg:   buBudgetTargets["jacqes"].budgNetIncome,
+    jacquesBudg:   budgetFor("jacqes").budgNetIncome,
     jacquesActual: findBU("jacqes").netIncome,
-    cazaBudg:      buBudgetTargets["caza"].budgNetIncome,
+    cazaBudg:      budgetFor("caza").budgNetIncome,
     cazaActual:    findBU("caza").netIncome,
-    advisorBudg:   buBudgetTargets["advisor"].budgNetIncome,
+    advisorBudg:   budgetFor("advisor").budgNetIncome,
     advisorActual: findBU("advisor").netIncome,
     isExpense:     false,
   },
   {
     line:          "Cash Gerado",
-    jacquesBudg:   buBudgetTargets["jacqes"].budgCash,
+    jacquesBudg:   budgetFor("jacqes").budgCash,
     jacquesActual: findBU("jacqes").cashGenerated,
-    cazaBudg:      buBudgetTargets["caza"].budgCash,
+    cazaBudg:      budgetFor("caza").budgCash,
     cazaActual:    findBU("caza").cashGenerated,
-    advisorBudg:   buBudgetTargets["advisor"].budgCash,
+    advisorBudg:   budgetFor("advisor").budgCash,
     advisorActual: findBU("advisor").cashGenerated,
     isExpense:     false,
   },

@@ -13,6 +13,12 @@
 // DO NOT import this file in new pages without a snapshot-registry.ts entry.
 // DO NOT use these values as source of truth for cash-position or bank reconciliation.
 
+// Economic type determines how the BU is treated in consolidation and page display.
+//   operational        — standard P&L BU (revenue, EBITDA, ROIC are meaningful)
+//   hybrid_investment  — has operational fee revenue AND patrimonial/investment component
+//   pre_revenue        — strategic layer with no operating revenue yet
+export type BuEconomicType = "operational" | "hybrid_investment" | "pre_revenue";
+
 export interface BuData {
   id:               string;
   name:             string;
@@ -20,6 +26,7 @@ export interface BuData {
   color:            string;       // Tailwind bg color
   accentColor:      string;       // Tailwind text color
   status:           "Ativo" | "Em breve" | "Em construção";
+  economicType:     BuEconomicType;
   // P&L
   revenue:          number;
   grossProfit:      number;
@@ -44,6 +51,52 @@ export interface BuData {
   hrefBudget:       string;
 }
 
+// ─── Venture contract data ──────────────────────────────────────────────────
+//
+// ENERDY — confirmed recurring advisory/incubation fee.
+// Source: user-provided evidence (contract).
+//   fee mensal: R$2.000,00
+//   duração: 36 meses
+//   valor contratual bruto: R$72.000,00
+//   ARR: R$24.000,00
+//
+// This is OPERATING revenue for the Venture (hybrid BU),
+// separate from the patrimonial/investment position.
+
+export interface VentureContract {
+  counterparty:     string;
+  monthlyFee:       number;
+  durationMonths:   number;
+  totalContractValue: number;
+  arr:              number;
+  startDate:        string | null;
+  status:           "active" | "pending" | "completed";
+  note:             string;
+}
+
+export const ventureContracts: VentureContract[] = [
+  {
+    counterparty:       "ENERDY",
+    monthlyFee:         2_000.00,
+    durationMonths:     36,
+    totalContractValue: 72_000.00,
+    arr:                24_000.00,
+    startDate:          null,        // exact start date not yet provided
+    status:             "active",
+    note:               "Fee recorrente de advisory/incubação. Confirmed by user. Único contrato operacional confirmado da Venture.",
+  },
+];
+
+export const ventureFeeMRR = ventureContracts
+  .filter((c) => c.status === "active")
+  .reduce((s, c) => s + c.monthlyFee, 0);
+
+export const ventureFeeARR = ventureFeeMRR * 12;
+
+export const ventureContractValueRemaining = ventureContracts
+  .filter((c) => c.status === "active")
+  .reduce((s, c) => s + c.totalContractValue, 0);  // approximate — no start date to prorate
+
 export const buData: BuData[] = [
   {
     id:               "jacqes",
@@ -52,6 +105,7 @@ export const buData: BuData[] = [
     color:            "bg-brand-600",
     accentColor:      "text-brand-400",
     status:           "Ativo",
+    economicType:     "operational",
     revenue:          4_820_000,
     grossProfit:      2_892_000,
     ebitda:           867_000,
@@ -76,6 +130,7 @@ export const buData: BuData[] = [
     color:            "bg-emerald-600",
     accentColor:      "text-emerald-400",
     status:           "Ativo",
+    economicType:     "operational",
     revenue:          2_418_000,
     grossProfit:      1_730_000,
     ebitda:           653_000,
@@ -94,23 +149,32 @@ export const buData: BuData[] = [
     hrefBudget:       "/caza-vision",
   },
   {
+    // ⚠  CORRECTED 2026-04-08 — Advisor has NO confirmed operating revenue.
+    //    Previous values (R$1.57M revenue, R$479K net income, 30 customers, 59.9% ROIC)
+    //    were unverified planning data with no empirical backing.
+    //
+    //    ECONOMIC TYPE: pre_revenue
+    //    Advisor is a strategic layer / incubation entity. It does not generate
+    //    operating revenue at this time. It must NOT appear in consolidated P&L
+    //    as if it had revenue, EBITDA, or ROIC.
     id:               "advisor",
     name:             "Advisor",
     sub:              "Consultoria · AWQ Group",
     color:            "bg-violet-600",
     accentColor:      "text-violet-400",
-    status:           "Ativo",
-    revenue:          1_572_000,
-    grossProfit:      865_000,
-    ebitda:           723_000,
-    netIncome:        479_000,
-    cashGenerated:    510_000,
-    cashBalance:      680_000,
-    customers:        30,
-    ftes:             8,
-    capitalAllocated: 800_000,
-    roic:             59.9,
-    budgetRevenue:    1_400_000,
+    status:           "Em construção",
+    economicType:     "pre_revenue",
+    revenue:          0,
+    grossProfit:      0,
+    ebitda:           0,
+    netIncome:        0,
+    cashGenerated:    0,
+    cashBalance:      0,
+    customers:        0,
+    ftes:             0,
+    capitalAllocated: 0,
+    roic:             0,
+    budgetRevenue:    0,
     hrefOverview:     "/advisor",
     hrefFinancial:    "/advisor/financial",
     hrefCustomers:    "/advisor/customers",
@@ -137,7 +201,8 @@ export const buData: BuData[] = [
     color:            "bg-amber-600",
     accentColor:      "text-amber-400",
     status:           "Ativo",
-    revenue:          0,               // investment vehicle — no operating revenue
+    economicType:     "hybrid_investment",
+    revenue:          0,               // operating fee revenue tracked via ventureContracts / ventureFeeMRR
     grossProfit:      0,
     ebitda:           0,
     netIncome:        0,               // sem saída confirmada empiricamente
@@ -250,12 +315,12 @@ export const riskSignals: RiskSignal[] = [
   },
   {
     id: "R5",
-    title:       "Cash Runway — AWQ Venture",
-    description: "Dry powder de R$6.2M. Próximo investimento previsto R$8M: necessidade de captação.",
-    severity:    "medium",
+    title:       "Posição Investida — AWQ Venture",
+    description: "CDB DI R$15.762,62 (única posição confirmada). Venture fee ENERDY: R$2K/mês ativo.",
+    severity:    "low",
     bu:          "AWQ Venture",
-    metric:      "Dry powder: R$6.2M",
-    threshold:   "Próximo deploy: R$8M",
+    metric:      "CDB DI: R$15.762,62",
+    threshold:   "Posição empírica — print 02/04/2026",
   },
   {
     id: "R6",
@@ -349,10 +414,10 @@ export interface BuBudgetTargets {
   budgCash:        number;
 }
 
+// ⚠  Advisor removed — pre_revenue BU has no budget targets.
 export const buBudgetTargets: Record<string, BuBudgetTargets> = {
   jacqes:  { budgGrossProfit: 2_664_000, budgEbitda:  976_800, budgNetIncome: 489_000, budgCash: 630_000 },
   caza:    { budgGrossProfit: 1_546_000, budgEbitda:  515_520, budgNetIncome: 386_640, budgCash: 450_000 },
-  advisor: { budgGrossProfit:   770_000, budgEbitda:  644_000, budgNetIncome: 427_000, budgCash: 460_000 },
 };
 
 // ─── Expense category budgets (consolidated AWQ Group) ────────────────────────

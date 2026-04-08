@@ -72,7 +72,7 @@ const COUNTERPARTY_RULES: CounterpartyRule[] = [
   {
     patterns: ["reserva de limite", "reserva limite", "limite para cartao", "limite para cartão", "garantia cartao"],
     name: "Reserva de Limite — Cartão Cora",
-    category: "transferencia_interna_enviada",
+    category: "reserva_limite_cartao",
     entity: null,
     confidence: "confirmed",
   },
@@ -332,6 +332,16 @@ const COUNTERPARTY_RULES: CounterpartyRule[] = [
     category: "receita_eventual",
     entity: null,
     confidence: "ambiguous",
+  },
+  // ── ENERDY — AWQ Venture advisory/incubation fee (confirmed contract)
+  //    R$2.000/mês × 36 meses = R$72K contrato bruto.
+  //    This is operating fee revenue for Venture (hybrid BU), NOT investment.
+  {
+    patterns: ["enerdy"],
+    name: "ENERDY",
+    category: "receita_fee_venture",
+    entity: null,
+    confidence: "confirmed",
   },
   // ── IOF / juros / multas — separated from imposto_tributo for DRE accuracy
   {
@@ -609,6 +619,7 @@ export const CATEGORY_LABELS: Record<ManagerialCategory, string> = {
   receita_producao:               "Receita de Produção",
   receita_social_media:           "Receita Social Media",
   receita_revenue_share:          "Revenue Share",
+  receita_fee_venture:            "Fee Recorrente Venture",
   receita_eventual:               "Receita Eventual",
   rendimento_financeiro:          "Rendimento Financeiro",
   aporte_socio:                   "Aporte do Sócio",
@@ -636,6 +647,7 @@ export const CATEGORY_LABELS: Record<ManagerialCategory, string> = {
   aplicacao_financeira:           "Aplicação Financeira",
   resgate_financeiro:             "Resgate Financeiro",
   transferencia_interna_enviada:  "Transferência Intercompany (enviada)",
+  reserva_limite_cartao:          "Reserva Limite Cartão",
   despesa_ambigua:                "Despesa Ambígua",
   unclassified:                   "Não Classificado",
 };
@@ -657,6 +669,7 @@ export const REVENUE_CATEGORIES: ManagerialCategory[] = [
   "receita_producao",
   "receita_social_media",
   "receita_revenue_share",
+  "receita_fee_venture",
   "receita_eventual",
   "rendimento_financeiro",
   "ajuste_bancario_credito",
@@ -666,6 +679,7 @@ export const REVENUE_CATEGORIES: ManagerialCategory[] = [
 export const CONSOLIDATION_EXCLUDED_CATEGORIES: ManagerialCategory[] = [
   "transferencia_interna_recebida",
   "transferencia_interna_enviada",
+  "reserva_limite_cartao",
   "aplicacao_financeira",
   "resgate_financeiro",
 ];

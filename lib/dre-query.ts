@@ -40,7 +40,7 @@ import {
 
 // ─── DRE Category groupings ───────────────────────────────────────────────────
 
-/** Operational revenue (client-facing, core business). */
+/** Operational revenue (client-facing, core business + Venture fee). */
 const OPERATIONAL_REVENUE_CATS = new Set<ManagerialCategory>([
   "receita_recorrente",
   "receita_projeto",
@@ -48,6 +48,7 @@ const OPERATIONAL_REVENUE_CATS = new Set<ManagerialCategory>([
   "receita_producao",
   "receita_social_media",
   "receita_revenue_share",
+  "receita_fee_venture",
   "receita_eventual",
 ]);
 
@@ -105,6 +106,7 @@ const NON_DRE_CATS = new Set<ManagerialCategory>([
   "resgate_financeiro",
   "transferencia_interna_enviada",
   "transferencia_interna_recebida",
+  "reserva_limite_cartao",
   "aporte_socio",
   "recebimento_ambiguo",
   "unclassified",
@@ -209,6 +211,7 @@ const DRE_LABELS: Partial<Record<ManagerialCategory, string>> = {
   receita_producao:               "Receita de Produção",
   receita_social_media:           "Receita Social Media",
   receita_revenue_share:          "Revenue Share",
+  receita_fee_venture:            "Fee Recorrente Venture",
   receita_eventual:               "Receita Eventual",
   rendimento_financeiro:          "Rendimento Financeiro",
   ajuste_bancario_credito:        "Ajuste / Crédito Bancário",
