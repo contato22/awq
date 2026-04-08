@@ -9,6 +9,7 @@ const tabs = [
   { label: "Visão Geral",  href: "/awq-venture",              stub: false },
   { label: "Portfólio",    href: "/awq-venture/portfolio",    stub: false },
   { label: "Pipeline",     href: "/awq-venture/pipeline",     stub: false },
+  { label: "Deals",        href: "/awq-venture/deals",        stub: false },
   { label: "Financial",    href: "/awq-venture/financial",    stub: false },
   { label: "YoY 2025",     href: "/awq-venture/yoy-2025",     stub: false },
   { label: "AWQ",          href: "/awq-venture/awq",          stub: true  },

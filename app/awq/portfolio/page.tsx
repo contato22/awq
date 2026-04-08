@@ -9,7 +9,11 @@ import {
   ArrowUpRight,
   Wallet,
   Target,
+  Briefcase,
+  AlertTriangle,
+  CheckCircle2,
 } from "lucide-react";
+import { getDealHoldingSummaries } from "@/lib/deal-data";
 import {
   buData,
   consolidated,
@@ -235,6 +239,67 @@ export default async function AwqPortfolioPage() {
               </Link>
             );
           })}
+        </div>
+
+        {/* ── Deals AWQ Venture (resumo consolidado — read-only) ────────────── */}
+        <div className="card p-5">
+          <div className="flex items-center gap-2 mb-1">
+            <Briefcase size={14} className="text-violet-600" />
+            <h2 className="text-sm font-semibold text-gray-900">Propostas de Aquisição — AWQ Venture</h2>
+            <span className="ml-1 text-[9px] font-bold px-1.5 py-0.5 rounded bg-violet-50 text-violet-700 border border-violet-200">READ-ONLY</span>
+            <Link href="/awq-venture/deals" className="ml-auto text-[11px] text-brand-600 hover:text-brand-500 flex items-center gap-1 transition-colors">
+              Ver workspace <ChevronRight size={12} />
+            </Link>
+          </div>
+          <p className="text-[11px] text-gray-400 mb-4">Resumo autorizado pela AWQ Venture. Origem e edição exclusivas na BU.</p>
+          <div className="table-scroll">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-gray-100 bg-gray-50/60">
+                  {["Empresa","Setor","Stage","Valor Proposto","Valuation","Risco","Upside","Status","Responsável"].map((h) => (
+                    <th key={h} className={`py-2 px-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wide ${h==="Valor Proposto"||h==="Upside"?"text-right":"text-left"}`}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {getDealHoldingSummaries().map((d) => (
+                  <tr key={d.dealId} className="hover:bg-gray-50/60 transition-colors">
+                    <td className="py-2.5 px-3">
+                      <div className="font-semibold text-gray-900">{d.companyName}</div>
+                      <div className="text-[10px] text-gray-400">{d.dealId}</div>
+                    </td>
+                    <td className="py-2.5 px-3 text-gray-500">{d.sector}</td>
+                    <td className="py-2.5 px-3">
+                      <span className="text-[11px] font-medium text-gray-700">{d.stage}</span>
+                    </td>
+                    <td className="py-2.5 px-3 text-right font-bold text-amber-600 tabular-nums">
+                      {d.proposedValue >= 1_000_000 ? "R$"+(d.proposedValue/1_000_000).toFixed(1)+"M" : "R$"+(d.proposedValue/1_000).toFixed(0)+"K"}
+                    </td>
+                    <td className="py-2.5 px-3 text-gray-500 text-[11px]">{d.valuationRange}</td>
+                    <td className="py-2.5 px-3">
+                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                        d.riskLevel==="Baixo"?"bg-emerald-50 text-emerald-700":
+                        d.riskLevel==="Médio"?"bg-amber-50 text-amber-700":
+                        "bg-red-50 text-red-700"
+                      }`}>{d.riskLevel}</span>
+                    </td>
+                    <td className="py-2.5 px-3 text-right font-semibold text-emerald-600 tabular-nums">
+                      {d.expectedUpside !== null ? `+${d.expectedUpside.toFixed(0)}%` : "—"}
+                    </td>
+                    <td className="py-2.5 px-3">
+                      <span className={`text-[11px] font-medium ${
+                        d.sendStatus==="Aprovado"?"text-emerald-600":
+                        d.sendStatus==="Enviado"||d.sendStatus==="Em Negociação"?"text-blue-600":
+                        d.sendStatus==="Pronto para Envio"?"text-amber-600":
+                        "text-gray-400"
+                      }`}>{d.sendStatus}</span>
+                    </td>
+                    <td className="py-2.5 px-3 text-gray-500">{d.assignee}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
       </div>
