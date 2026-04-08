@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
@@ -149,48 +150,34 @@ const businessUnits = [
     },
 ];
 
-// ── AWQ Group nav — grouped into 5 labelled sections ─────────────────────────
-const awqNavGroups = [
-  {
-    label: "Executivo",
-    items: [
-      { label: "Visão Geral",    href: "/awq",            icon: LayoutDashboard },
-      { label: "KPIs",           href: "/awq/kpis",        icon: BarChart3       },
-      { label: "Business Units", href: "/business-units",  icon: Building2       },
-    ],
-  },
-  {
-    label: "Financeiro / DRE",
-    items: [
-      { label: "Financial",  href: "/awq/financial", icon: LineChart  },
-      { label: "Cash Flow",  href: "/awq/cashflow",  icon: Zap        },
-      { label: "Budget",     href: "/awq/budget",    icon: Wallet     },
-      { label: "Forecast",   href: "/awq/forecast",  icon: TrendingUp },
-    ],
-  },
-  {
-    label: "Portfólio / Alocação",
-    items: [
-      { label: "Investimentos", href: "/awq/investments", icon: Landmark  },
-      { label: "Portfolio",     href: "/awq/portfolio",   icon: Briefcase },
-      { label: "Allocations",   href: "/awq/allocations", icon: Wallet    },
-    ],
-  },
-  {
-    label: "Risco / Auditoria",
-    items: [
-      { label: "Risk",         href: "/awq/risk",  icon: Activity   },
-      { label: "Contas Banco", href: "/awq/bank",  icon: CreditCard },
-    ],
-  },
-  {
-    label: "Governança / Base",
-    items: [
-      { label: "Ingestão",     href: "/awq/ingest",      icon: FileUp    },
-      { label: "Base de Dados", href: "/awq/data",        icon: Database  },
-      { label: "Governança",   href: "/awq/management",  icon: ShieldCheck },
-    ],
-  },
+// ── AWQ primary nav (always visible, top of sidebar) ─────────────────────────
+const awqPrimaryNav = [
+    { label: "Visão Geral",    href: "/awq",           icon: LayoutDashboard },
+    { label: "Business Units", href: "/business-units", icon: Building2       },
+] as const;
+
+// ── GOVERNANCE REGISTRY: all AWQ holding indicator routes ────────────────────
+// RULE: Every /awq/* indicator page MUST appear here and ONLY here.
+// Do NOT add indicator pages as standalone primary nav items.
+// To add a new indicator page, append it to this array — never elsewhere.
+const HOLDING_INDICATOR_ITEMS = [
+    { label: "KPIs",          href: "/awq/kpis",        icon: BarChart3   },
+    { label: "Financial",     href: "/awq/financial",   icon: LineChart   },
+    { label: "Cash Flow",     href: "/awq/cashflow",    icon: Zap         },
+    { label: "Investimentos", href: "/awq/investments", icon: Landmark    },
+    { label: "Portfolio",     href: "/awq/portfolio",   icon: Briefcase   },
+    { label: "Allocations",   href: "/awq/allocations", icon: Wallet      },
+    { label: "Risk",          href: "/awq/risk",        icon: Activity    },
+    { label: "Budget",        href: "/awq/budget",      icon: Wallet      },
+    { label: "Forecast",      href: "/awq/forecast",    icon: TrendingUp  },
+    { label: "Contas Banco",  href: "/awq/bank",        icon: CreditCard  },
+] as const;
+
+// ── AWQ ops/governance nav (always visible, below indicators) ────────────────
+const awqOpsNav = [
+    { label: "Ingestão",      href: "/awq/ingest",     icon: FileUp    },
+    { label: "Base de Dados", href: "/awq/data",        icon: Database  },
+    { label: "Governança",    href: "/awq/management",  icon: ShieldCheck },
 ] as const;
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
@@ -312,33 +299,86 @@ function SidebarFooter() {
 
 // ── AWQ Group sidebar ────────────────────────────────────────────────────────
 function AwqSidebar({ pathname }: { pathname: string }) {
+    // /awq root is active only on exact match (all /awq/* belong to Indicadores Holding)
     const isActive = (href: string) =>
         href === "/awq"
-            ? pathname === "/awq" || pathname.startsWith("/awq/")
+            ? pathname === "/awq"
             : pathname === href || pathname.startsWith(href + "/");
+
+    // Determine if any indicator child is currently active
+    const anyIndicatorActive = HOLDING_INDICATOR_ITEMS.some(
+        (item) => pathname === item.href || pathname.startsWith(item.href + "/")
+    );
+
+    const [indicatorsOpen, setIndicatorsOpen] = useState(anyIndicatorActive);
+
+    // Auto-expand when navigating into any indicator route
+    useEffect(() => {
+        if (anyIndicatorActive) setIndicatorsOpen(true);
+    }, [anyIndicatorActive]);
+
     return (
         <>
             <AwqHeader />
             <nav className="flex-1 overflow-y-auto px-3 py-2">
-                {/* ── AWQ Holding indicator sub-sections ─────────────────── */}
-                {awqNavGroups.map((group) => (
-                    <div key={group.label}>
-                        <SectionLabel>{group.label}</SectionLabel>
-                        <div className="space-y-0.5">
-                            {group.items.map((item) => (
+
+                {/* ── Primary nav: Visão Geral + Business Units ─────────── */}
+                <div className="space-y-0.5 mt-1">
+                    {awqPrimaryNav.map((item) => (
+                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
+                    ))}
+                </div>
+
+                {/* ── Indicadores Holding — collapsible parent ──────────── */}
+                <div className="mt-0.5">
+                    <button
+                        onClick={() => setIndicatorsOpen((o) => !o)}
+                        className={cn(
+                            "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 focus-visible:ring-offset-1",
+                            anyIndicatorActive
+                                ? "bg-brand-50 text-brand-700 shadow-sm"
+                                : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                        )}
+                    >
+                        <BarChart3
+                            size={16}
+                            className={cn(
+                                "shrink-0 transition-colors",
+                                anyIndicatorActive ? "text-brand-600" : "text-gray-400"
+                            )}
+                        />
+                        <span className="flex-1 text-left truncate">Indicadores Holding</span>
+                        {indicatorsOpen ? (
+                            <ChevronDown size={13} className="shrink-0 text-gray-400" />
+                        ) : (
+                            <ChevronRight size={13} className="shrink-0 text-gray-400" />
+                        )}
+                    </button>
+
+                    {indicatorsOpen && (
+                        <div className="ml-3 mt-0.5 pl-3 border-l border-gray-100 space-y-0.5">
+                            {HOLDING_INDICATOR_ITEMS.map((item) => (
                                 <NavItem
                                     key={item.href}
                                     href={item.href}
                                     icon={item.icon}
                                     label={item.label}
-                                    active={isActive(item.href)}
+                                    active={pathname === item.href || pathname.startsWith(item.href + "/")}
                                 />
                             ))}
                         </div>
-                    </div>
-                ))}
+                    )}
+                </div>
 
-                {/* ── Business Unit cards ─────────────────────────────────── */}
+                {/* ── Ops / governance (primary, always visible) ────────── */}
+                <div className="space-y-0.5 mt-0.5">
+                    {awqOpsNav.map((item) => (
+                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
+                    ))}
+                </div>
+
+                {/* ── Business Unit quick-access cards ────────────────────── */}
                 <SectionLabel>Business Units</SectionLabel>
                 <div className="space-y-2 mt-1">
                     {businessUnits.map((bu) => (
