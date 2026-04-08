@@ -259,11 +259,38 @@ export interface MonthlyPoint {
   total:    number;
 }
 
-export const monthlyRevenue: MonthlyPoint[] = [
-  { month: "Jan/26", jacqes: 1_420_000, caza:   712_000, advisor:   508_000, total: 2_640_000 },
-  { month: "Fev/26", jacqes: 1_512_000, caza:   798_000, advisor:   528_000, total: 2_838_000 },
-  { month: "Mar/26", jacqes: 1_888_000, caza:   908_000, advisor:   536_000, total: 3_332_000 },
-];
+// ⚠  CORRECTED 2026-04-08 — Advisor is pre_revenue (revenue = 0). Previous entries
+// showed advisor R$508K / R$528K / R$536K / month (total R$1.572M) which contradicted
+// buData.advisor.revenue = 0. Zeroed here. total = jacqes + caza only.
+const _monthlyRaw = [
+  { month: "Jan/26", jacqes: 1_420_000, caza:  712_000, advisor: 0 },
+  { month: "Fev/26", jacqes: 1_512_000, caza:  798_000, advisor: 0 },
+  { month: "Mar/26", jacqes: 1_888_000, caza:  908_000, advisor: 0 },
+] as const;
+
+export const monthlyRevenue: MonthlyPoint[] = _monthlyRaw.map(m => ({
+  ...m,
+  total: m.jacqes + m.caza + m.advisor,  // computed — no drift possible
+}));
+
+// ── Derived risk metrics — computed from buData to prevent hardcode drift ─────
+//
+// RULE: never hardcode BU revenue percentages. If buData changes, these auto-update.
+const _operationalBUs = buData.filter(
+  (b) => b.economicType === "operational" && b.revenue > 0
+);
+const _operationalRevTotal = _operationalBUs.reduce((s, b) => s + b.revenue, 0);
+const _jacqesRevPct = _operationalRevTotal > 0
+  ? Math.round((buData.find((b) => b.id === "jacqes")!.revenue / _operationalRevTotal) * 100)
+  : 0;
+
+// BU dependency risk details — computed from buData, never hardcoded
+export const buDependencyDetails: RiskCategoryDetail[] = _operationalBUs.map((b) => ({
+  label: b.name,
+  share: Math.round((b.revenue / _operationalRevTotal) * 100),
+  mrr:   b.revenue,
+  risk:  (b.revenue / _operationalRevTotal) > 0.50 ? "Atenção" : "OK",
+}));
 
 // ─── Risk signals ─────────────────────────────────────────────────────────────
 export interface RiskSignal {
@@ -280,19 +307,24 @@ export const riskSignals: RiskSignal[] = [
   {
     id: "R1",
     title:       "Concentração de Cliente — JACQES",
-    description: "Top 3 clientes representam 58% do MRR. Ambev sozinho = 20%.",
+    // ⚠ CORRECTED 2026-04-08: alinhado com riskCategories.concentration (50%).
+    // Anterior: 58% — inconsistência interna com o breakdown de detalhes (Ambev+Samsung+Natura=50%).
+    description: "Top 3 clientes representam 50% do MRR JACQES. Ambev sozinho = 20%.",
     severity:    "high",
     bu:          "JACQES",
-    metric:      "Top-3 share: 58%",
+    metric:      "Top-3 share: 50%",
     threshold:   "Limite: 40%",
   },
   {
     id: "R2",
     title:       "Concentração de BU — Receita",
-    description: "JACQES representa 55% da receita operacional do grupo.",
-    severity:    "medium",
+    // ⚠ CORRECTED 2026-04-08: percentage now derived from buData (_jacqesRevPct).
+    // Anterior: 55% — calculado com Advisor ativo (R$1.57M). Advisor é pre_revenue → revenue=0.
+    // Com apenas JACQES+Caza: JACQES = 4.82M / 7.238M ≈ 67%.
+    description: `JACQES representa ${_jacqesRevPct}% da receita operacional do grupo.`,
+    severity:    "high",   // upgraded: 67% > 50% limiar
     bu:          "AWQ Group",
-    metric:      "JACQES share: 55%",
+    metric:      `JACQES share: ${_jacqesRevPct}%`,
     threshold:   "Limite: 50%",
   },
   {
@@ -359,10 +391,13 @@ export interface ForecastPoint {
   actual?: number;
 }
 
+// ⚠  CORRECTED 2026-04-08 — Jan–Mar actuals updated to exclude Advisor (pre_revenue).
+// Previous: 2,640,000 / 2,838,000 / 3,332,000 — those totals included advisor R$508K/528K/536K.
+// Corrected actuals = jacqes + caza only (from _monthlyRaw). base/bull/bear kept as issued.
 export const revenueForecasts: ForecastPoint[] = [
-  { month: "Jan/26", base: 2_640_000, bull: 2_640_000, bear: 2_640_000, actual: 2_640_000 },
-  { month: "Fev/26", base: 2_838_000, bull: 2_838_000, bear: 2_838_000, actual: 2_838_000 },
-  { month: "Mar/26", base: 3_332_000, bull: 3_332_000, bear: 3_332_000, actual: 3_332_000 },
+  { month: "Jan/26", base: 2_132_000, bull: 2_132_000, bear: 2_132_000, actual: 2_132_000 },
+  { month: "Fev/26", base: 2_310_000, bull: 2_310_000, bear: 2_310_000, actual: 2_310_000 },
+  { month: "Mar/26", base: 2_796_000, bull: 2_796_000, bear: 2_796_000, actual: 2_796_000 },
   { month: "Abr/26", base: 3_600_000, bull: 3_960_000, bear: 3_060_000  },
   { month: "Mai/26", base: 3_850_000, bull: 4_235_000, bear: 3_080_000  },
   { month: "Jun/26", base: 4_100_000, bull: 4_510_000, bear: 3_280_000  },
@@ -389,16 +424,20 @@ export interface CashFlowRow {
 // AWQ Venture is an investment vehicle with no operating revenue, no P&L, no capex.
 // Empirical position (CDB DI R$15.762,62) is tracked in holdingTreasurySnapshot /
 // buildCanonicalInvestmentPosition — NOT in operating cash flow rows.
+//
+// ⚠  CORRECTED 2026-04-08 — Advisor column zeroed (was non-zero: R$479K net income,
+// R$510K FCO, R$498K FCF). Advisor is pre_revenue (economicType) with netIncome=0
+// and cashGenerated=0 in buData. Cash flow rows must be consistent with buData.
 export const cashFlowRows: CashFlowRow[] = [
-  { label: "Lucro Líquido",              jacqes:   518_000, caza:  420_000, advisor:  479_000, venture: 0, indent: 1, bold: false },
-  { label: "(+) D&A",                    jacqes:    43_000, caza:   18_000, advisor:    8_000, venture: 0, indent: 1, bold: false },
-  { label: "(+/-) Cap. de Giro",         jacqes:   159_000, caza:  142_000, advisor:   23_000, venture: 0, indent: 1, bold: false },
-  { label: "= FCO (Caixa Operacional)",  jacqes:   720_000, caza:  580_000, advisor:  510_000, venture: 0, indent: 0, bold: true  },
-  { label: "(-) Capex",                  jacqes:   -48_000, caza:  -32_000, advisor:  -12_000, venture: 0, indent: 1, bold: false },
-  { label: "(-) Novos Investimentos",    jacqes:         0, caza:        0, advisor:        0, venture: 0, indent: 1, bold: false },
-  { label: "= FCO Livre (FCF)",          jacqes:   672_000, caza:  548_000, advisor:  498_000, venture: 0, indent: 0, bold: true  },
-  { label: "(-) Distribuições/Divid.",   jacqes:  -200_000, caza:  -80_000, advisor: -100_000, venture: 0, indent: 1, bold: false },
-  { label: "= Var. de Caixa",            jacqes:   472_000, caza:  468_000, advisor:  398_000, venture: 0, indent: 0, bold: true  },
+  { label: "Lucro Líquido",              jacqes:   518_000, caza:  420_000, advisor: 0, venture: 0, indent: 1, bold: false },
+  { label: "(+) D&A",                    jacqes:    43_000, caza:   18_000, advisor: 0, venture: 0, indent: 1, bold: false },
+  { label: "(+/-) Cap. de Giro",         jacqes:   159_000, caza:  142_000, advisor: 0, venture: 0, indent: 1, bold: false },
+  { label: "= FCO (Caixa Operacional)",  jacqes:   720_000, caza:  580_000, advisor: 0, venture: 0, indent: 0, bold: true  },
+  { label: "(-) Capex",                  jacqes:   -48_000, caza:  -32_000, advisor: 0, venture: 0, indent: 1, bold: false },
+  { label: "(-) Novos Investimentos",    jacqes:         0, caza:        0, advisor: 0, venture: 0, indent: 1, bold: false },
+  { label: "= FCO Livre (FCF)",          jacqes:   672_000, caza:  548_000, advisor: 0, venture: 0, indent: 0, bold: true  },
+  { label: "(-) Distribuições/Divid.",   jacqes:  -200_000, caza:  -80_000, advisor: 0, venture: 0, indent: 1, bold: false },
+  { label: "= Var. de Caixa",            jacqes:   472_000, caza:  468_000, advisor: 0, venture: 0, indent: 0, bold: true  },
 ];
 
 // ─── Budget targets by P&L line (complement to buData.budgetRevenue) ──────────
@@ -450,10 +489,16 @@ export interface ForecastAccuracyPoint {
   error:    number;   // % error: positive = underestimated, negative = overestimated
 }
 
+// ⚠  CORRECTED 2026-04-08 — actuals updated to exclude Advisor (pre_revenue, revenue=0).
+// Previous actuals (2,640K / 2,838K / 3,332K) matched old monthlyRevenue totals (incl. advisor).
+// Corrected actuals = jacqes + caza only (from _monthlyRaw).
+// Forecasts adjusted proportionally (original forecasts included advisor projections):
+//   Jan: 2,580K → 2,084K  |  Fev: 2,900K → 2,361K  |  Mar: 3,280K → 2,752K
+// Relative forecast accuracy (error %) preserved at ~2.3% / -2.1% / 1.6%.
 export const forecastAccuracyHistory: ForecastAccuracyPoint[] = [
-  { month: "Jan/26", forecast: 2_580_000, actual: 2_640_000, error:  2.3 },
-  { month: "Fev/26", forecast: 2_900_000, actual: 2_838_000, error: -2.1 },
-  { month: "Mar/26", forecast: 3_280_000, actual: 3_332_000, error:  1.6 },
+  { month: "Jan/26", forecast: 2_084_000, actual: 2_132_000, error:  2.3 },
+  { month: "Fev/26", forecast: 2_361_000, actual: 2_310_000, error: -2.1 },
+  { month: "Mar/26", forecast: 2_752_000, actual: 2_796_000, error:  1.6 },
 ];
 
 // ─── Per-BU full-year forecast scenarios ─────────────────────────────────────
@@ -469,6 +514,9 @@ export interface BuForecastScenario {
   growth:       number; // % YoY growth in base scenario
 }
 
+// ⚠  CORRECTED 2026-04-08 — Advisor entry removed. Advisor is pre_revenue with
+// revenue=0 in buData. A revenue forecast scenario for a pre_revenue BU is
+// meaningless and contradicts buData. Removed entirely.
 export const buForecastScenarios: BuForecastScenario[] = [
   {
     bu: "JACQES",      color: "bg-brand-500",   accent: "text-brand-600",
@@ -477,10 +525,6 @@ export const buForecastScenarios: BuForecastScenario[] = [
   {
     bu: "Caza Vision", color: "bg-emerald-500", accent: "text-emerald-600",
     ytd: 2_418_000, fullYearBase: 12_100_000, fullYearBull: 13_310_000, fullYearBear:  9_680_000, growth: 28.3,
-  },
-  {
-    bu: "Advisor",     color: "bg-violet-500",  accent: "text-violet-700",
-    ytd: 1_572_000, fullYearBase:  7_200_000, fullYearBull:  7_920_000, fullYearBear:  5_760_000, growth: 18.6,
   },
 ];
 
@@ -544,19 +588,18 @@ export const riskCategories: RiskCategory[] = [
     action:    "Cobrança ativa Banco XP (CV002) — prazo expirado",
   },
   {
+    // ⚠  CORRECTED 2026-04-08 — details now computed from buDependencyDetails (derived from buData).
+    // Previous: hardcoded shares (JACQES 55%, Caza 28%, Advisor 18%) — all based on old advisor revenue.
+    // Now auto-updates when buData changes: JACQES ~67%, Caza ~33%, Advisor removed (pre_revenue=0).
     id: "buDependency",
     title:    "Dependência de BU Única",
     iconKey:  "building",
-    colorKey: "amber",
-    severity: "medium",
-    details: [
-      { label: "JACQES",      share: 55, mrr: 4_820_000, risk: "Atenção" },
-      { label: "Caza Vision", share: 28, mrr: 2_418_000, risk: "OK"      },
-      { label: "Advisor",     share: 18, mrr: 1_572_000, risk: "OK"      },
-    ],
+    colorKey: _jacqesRevPct > 50 ? "red" : "amber",
+    severity: _jacqesRevPct > 50 ? "high" : "medium",
+    details:  buDependencyDetails,
     threshold: "Limite: nenhuma BU > 50%",
-    current:   "JACQES = 55% da receita",
-    action:    "Acelerar Caza Vision e Advisor para reequilibrar",
+    current:   `JACQES = ${_jacqesRevPct}% da receita`,
+    action:    "Acelerar Caza Vision para reequilibrar. Advisor: pré-receita (sem meta de revenue).",
   },
   {
     id: "marginCompression",
@@ -589,19 +632,23 @@ export const riskCategories: RiskCategory[] = [
     action:    "Ingira extrato Itaú Empresas em /awq/ingest para atualização automática",
   },
   {
+    // ⚠  CORRECTED 2026-04-08 — Q2 numbers derived from revenueForecasts (Abr/Mai/Jun).
+    // Previous: bear Q2 = R$10,020,000 / downside -13.2% — inconsistent with revenueForecasts
+    //   (Apr bear 3,060K + Mai 3,080K + Jun 3,280K = 9,420,000 ≠ 10,020,000).
+    // Corrected: bear = 9,420,000, downside = -2,130,000 = -18.4%.
     id: "forecastDet",
     title:    "Deterioração de Forecast",
     iconKey:  "shield-alert",
-    colorKey: "brand",
-    severity: "low",
+    colorKey: "amber",
+    severity: "medium",   // -18.4% bear is closer to the -20% threshold
     details: [
       { label: "Cenário base Q2", share: 0, mrr: 11_550_000, risk: "Base"  },
-      { label: "Cenário bear Q2", share: 0, mrr: 10_020_000, risk: "Bear"  },
-      { label: "Downside máximo", share: 0, mrr: -1_530_000, risk: "-13.2%"},
+      { label: "Cenário bear Q2", share: 0, mrr:  9_420_000, risk: "Bear"  },
+      { label: "Downside máximo", share: 0, mrr: -2_130_000, risk: "-18.4%"},
     ],
     threshold: "Bear < -20% do base",
-    current:   "Bear = -13.2%: dentro do tolerável",
-    action:    "Monitorar — sem ação imediata necessária",
+    current:   "Bear = -18.4%: próximo ao limite de alerta (-20%)",
+    action:    "Monitorar de perto — diversificar receita Q2 para reduzir risco de bear",
   },
 ];
 
