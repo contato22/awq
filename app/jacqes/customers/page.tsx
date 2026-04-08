@@ -21,18 +21,23 @@ function fmtR(n: number) {
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 
+// customers — MRR escalado para soma ≈ 1,888,000 (receita mensal Mar/26 de buData)
+// Escala: 1,888,000 / 2,323,000 original = 0.813
+// LTV escalado proporcionalmente (mantém razão LTV/MRR por cliente)
+// SOURCE: awq-group-data.ts buData["jacqes"].revenue = 4,820,000 (Q1 YTD)
+//         monthlyRevenue["Mar/26"].jacqes = 1,888,000
 const customers = [
-  { id: "JC001", name: "Ambev",          segment: "Bebidas & FMCG",        mrr: 420_000, ltv: 5_040_000, since: "2023-04-01", status: "Ativo",        churnRisk: "Baixo",  nps: 82 },
-  { id: "JC002", name: "Natura",         segment: "Beleza & Sustentab.",   mrr: 310_000, ltv: 2_480_000, since: "2024-01-15", status: "Ativo",        churnRisk: "Baixo",  nps: 78 },
-  { id: "JC003", name: "iFood",          segment: "Food & Tech",           mrr: 285_000, ltv: 1_710_000, since: "2024-06-01", status: "Ativo",        churnRisk: "Médio",  nps: 65 },
-  { id: "JC004", name: "Samsung Brasil", segment: "Tecnologia",            mrr: 350_000, ltv: 4_200_000, since: "2023-03-10", status: "Ativo",        churnRisk: "Baixo",  nps: 91 },
-  { id: "JC005", name: "Nike Brasil",    segment: "Esporte & Lifestyle",   mrr: 195_000, ltv: 2_340_000, since: "2024-01-20", status: "Ativo",        churnRisk: "Baixo",  nps: 88 },
-  { id: "JC006", name: "Banco XP",       segment: "Finanças",              mrr: 230_000, ltv: 1_380_000, since: "2024-07-01", status: "Em Risco",     churnRisk: "Alto",   nps: 42 },
-  { id: "JC007", name: "Nubank",         segment: "Fintech",               mrr: 175_000, ltv: 700_000,   since: "2025-01-10", status: "Ativo",        churnRisk: "Médio",  nps: 74 },
-  { id: "JC008", name: "Arezzo",         segment: "Moda & Varejo",         mrr: 98_000,  ltv: 392_000,   since: "2025-02-15", status: "Ativo",        churnRisk: "Baixo",  nps: 79 },
-  { id: "JC009", name: "Startup XYZ",    segment: "Tecnologia",            mrr: 0,       ltv: 145_000,   since: "2024-12-01", status: "Churned",      churnRisk: "—",      nps: 31 },
-  { id: "JC010", name: "Magazine Luiza", segment: "Varejo",                mrr: 260_000, ltv: 1_040_000, since: "2025-03-01", status: "Ativo",        churnRisk: "Médio",  nps: 61 },
-];
+  { id: "JC001", name: "Ambev",          segment: "Bebidas & FMCG",        mrr: 340_000, ltv: 4_080_000, since: "2023-04-01", status: "Ativo",        churnRisk: "Baixo",  nps: 82 },
+  { id: "JC002", name: "Natura",         segment: "Beleza & Sustentab.",   mrr: 250_000, ltv: 2_000_000, since: "2024-01-15", status: "Ativo",        churnRisk: "Baixo",  nps: 78 },
+  { id: "JC003", name: "iFood",          segment: "Food & Tech",           mrr: 230_000, ltv: 1_380_000, since: "2024-06-01", status: "Ativo",        churnRisk: "Médio",  nps: 65 },
+  { id: "JC004", name: "Samsung Brasil", segment: "Tecnologia",            mrr: 285_000, ltv: 3_420_000, since: "2023-03-10", status: "Ativo",        churnRisk: "Baixo",  nps: 91 },
+  { id: "JC005", name: "Nike Brasil",    segment: "Esporte & Lifestyle",   mrr: 160_000, ltv: 1_920_000, since: "2024-01-20", status: "Ativo",        churnRisk: "Baixo",  nps: 88 },
+  { id: "JC006", name: "Banco XP",       segment: "Finanças",              mrr: 185_000, ltv: 1_110_000, since: "2024-07-01", status: "Em Risco",     churnRisk: "Alto",   nps: 42 },
+  { id: "JC007", name: "Nubank",         segment: "Fintech",               mrr: 142_000, ltv:   570_000, since: "2025-01-10", status: "Ativo",        churnRisk: "Médio",  nps: 74 },
+  { id: "JC008", name: "Arezzo",         segment: "Moda & Varejo",         mrr:  80_000, ltv:   320_000, since: "2025-02-15", status: "Ativo",        churnRisk: "Baixo",  nps: 79 },
+  { id: "JC009", name: "Startup XYZ",    segment: "Tecnologia",            mrr:       0, ltv:   145_000, since: "2024-12-01", status: "Churned",      churnRisk: "—",      nps: 31 },
+  { id: "JC010", name: "Magazine Luiza", segment: "Varejo",                mrr: 211_000, ltv:   840_000, since: "2025-03-01", status: "Ativo",        churnRisk: "Médio",  nps: 61 },
+]; // MRR ativo+risco sum = 1,883,000 ≈ 1,888,000 (Mar/26 receita mensal)
 
 const churnHistory = [
   { month: "Out/25", novos: 2, churned: 1, net: 1 },

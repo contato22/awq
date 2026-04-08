@@ -1,253 +1,85 @@
 import Header from "@/components/Header";
-import {
-  DollarSign,
-  TrendingUp,
-  TrendingDown,
-  BarChart3,
-  ArrowUpRight,
-  ArrowDownRight,
-  Briefcase,
-} from "lucide-react";
+import { Construction, Info } from "lucide-react";
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function fmtR(n: number) {
-  if (n >= 1_000_000_000) return "R$" + (n / 1_000_000_000).toFixed(2) + "B";
-  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  if (n >= 1_000) return "R$" + (n / 1_000).toFixed(0) + "K";
-  return "R$" + n.toLocaleString("pt-BR");
-}
-
-function pct(n: number, d: number) {
-  if (d === 0) return "0.0%";
-  return ((n / d) * 100).toFixed(1) + "%";
-}
-
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-
-const summaryCards = [
-  {
-    label: "AUM Total",
-    value: fmtR(142_800_000),
-    sub: "Assets Under Management",
-    delta: "+18.3%",
-    up: true,
-    icon: Briefcase,
-    color: "text-violet-700",
-    bg: "bg-violet-50",
-  },
-  {
-    label: "Receita de Taxas YTD",
-    value: fmtR(1_284_000),
-    sub: "Jan–Mar 2026",
-    delta: "+22.1%",
-    up: true,
-    icon: DollarSign,
-    color: "text-emerald-600",
-    bg: "bg-emerald-50",
-  },
-  {
-    label: "Lucro Operacional YTD",
-    value: fmtR(642_000),
-    sub: `Margem ${pct(642_000, 1_284_000)}`,
-    delta: "+9.4%",
-    up: true,
-    icon: TrendingUp,
-    color: "text-brand-600",
-    bg: "bg-brand-50",
-  },
-  {
-    label: "Retorno Médio Carteiras",
-    value: "+14.8%",
-    sub: "vs Ibovespa +9.2%",
-    delta: "+5.6pp vs benchmark",
-    up: true,
-    icon: BarChart3,
-    color: "text-amber-700",
-    bg: "bg-amber-50",
-  },
-];
-
-const feeIncome = [
-  { month: "Jan/26", taxaGestao: 312_000, taxaPerformance: 128_000, taxaConsultoria: 88_000, total: 528_000 },
-  { month: "Fev/26", taxaGestao: 318_000, taxaPerformance:  98_000, taxaConsultoria: 92_000, total: 508_000 },
-  { month: "Mar/26", taxaGestao: 326_000, taxaPerformance: 112_000, taxaConsultoria: 98_000, total: 536_000 },
-];
-
-const dreAdvisor = [
-  { label: "Receita de Taxas de Gestão",     value: 956_000,  indent: 1, bold: false },
-  { label: "Receita de Performance Fee",      value: 338_000,  indent: 1, bold: false },
-  { label: "Receita de Consultoria",          value: 278_000,  indent: 1, bold: false },
-  { label: "= Receita Total",                 value: 1_572_000, indent: 0, bold: true  },
-  { label: "(-) Custos Operacionais",         value: -471_600, indent: 1, bold: false },
-  { label: "(-) Desp. Compliance & Jurídico", value: -94_320,  indent: 1, bold: false },
-  { label: "(-) Desp. Tecnologia",            value: -62_880,  indent: 1, bold: false },
-  { label: "(-) Desp. Pessoal",               value: -220_080, indent: 1, bold: false },
-  { label: "= EBITDA",                        value: 723_120,  indent: 0, bold: true  },
-  { label: "(-) Depreciação",                 value: -15_720,  indent: 1, bold: false },
-  { label: "(-) IR e CSLL",                   value: -228_480, indent: 1, bold: false },
-  { label: "= Lucro Líquido",                 value: 478_920,  indent: 0, bold: true  },
-];
-
-const aumByStrategy = [
-  { strategy: "Renda Variável",     aum: 57_120_000, clientes: 8,  retorno: 18.4, fee: 1.8 },
-  { strategy: "Renda Fixa",         aum: 42_840_000, clientes: 12, retorno:  9.6, fee: 0.9 },
-  { strategy: "Multi-Market",       aum: 28_560_000, clientes: 6,  retorno: 14.2, fee: 1.5 },
-  { strategy: "Real Estate (FII)",  aum: 14_280_000, clientes: 4,  retorno: 11.8, fee: 1.2 },
-];
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
+// ─── /advisor/financial — Advisor · BU Em Construção ─────────────────────────
+//
+// SOURCE: lib/awq-group-data.ts buData["advisor"]
+//   economicType: "pre_revenue"
+//   status:       "Em construção"
+//   revenue:      0   — sem receita confirmada
+//   customers:    0   — sem clientes ativos
+//   capitalAllocated: 0
+//
+// IMPORTANT: todos os dados financeiros anteriores (AUM R$142.8M, DRE R$1.57M,
+// feeIncome, aumByStrategy) eram FICCIONAIS — não tinham respaldo em extrato
+// bancário ou contrato assinado. Removidos para não contaminar o P&L da holding.
 
 export default function AdvisorFinancialPage() {
-  const totalFee = feeIncome.reduce((s, r) => s + r.total, 0);
-
   return (
     <>
       <Header
         title="Financial — Advisor"
-        subtitle="AUM · Receita de Taxas · DRE · Jan–Mar 2026"
+        subtitle="Consultoria · AWQ Group"
       />
       <div className="page-container">
 
-        {/* ── Summary Cards ─────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {summaryCards.map((card) => {
-            const Icon = card.icon;
-            return (
-              <div key={card.label} className="card p-5 flex items-start gap-4">
-                <div className={`w-10 h-10 rounded-xl ${card.bg} flex items-center justify-center shrink-0`}>
-                  <Icon size={18} className={card.color} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-2xl font-bold text-gray-900">{card.value}</div>
-                  <div className="text-xs font-medium text-gray-400 mt-0.5">{card.label}</div>
-                  <div className="flex items-center gap-1 mt-1">
-                    {card.up
-                      ? <ArrowUpRight size={11} className="text-emerald-600" />
-                      : <ArrowDownRight size={11} className="text-red-600" />}
-                    <span className={`text-[10px] font-semibold ${card.up ? "text-emerald-600" : "text-red-600"}`}>{card.delta}</span>
-                    <span className="text-[10px] text-gray-400">{card.sub}</span>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+        {/* ── Status card ───────────────────────────────────────────────────── */}
+        <div className="card p-6 flex items-start gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-violet-50 flex items-center justify-center shrink-0">
+            <Construction size={22} className="text-violet-600" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <h2 className="text-base font-bold text-gray-900">BU em construção · Pré-receita</h2>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-100 text-violet-700 border border-violet-200">
+                PRÉ-RECEITA
+              </span>
+            </div>
+            <p className="text-sm text-gray-500 mt-1 max-w-xl">
+              A BU Advisor não possui receita operacional confirmada, clientes ativos
+              ou capital alocado registrado. Dados financeiros serão exibidos aqui
+              após o primeiro contrato assinado e extrato bancário ingerido via{" "}
+              <a href="/awq/ingest" className="underline font-medium text-violet-700">
+                /awq/ingest
+              </a>.
+            </p>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-
-          {/* ── DRE ──────────────────────────────────────────────────────────── */}
-          <div className="card p-5">
-            <h2 className="text-sm font-semibold text-gray-900 mb-4">DRE Simplificado · YTD 2026</h2>
-            <div className="space-y-0.5">
-              {dreAdvisor.map((row, i) => (
-                <div
-                  key={i}
-                  className={`flex items-center justify-between py-2 px-2 rounded-lg ${row.bold ? "bg-gray-100" : ""}`}
-                  style={{ paddingLeft: `${(row.indent * 12) + 8}px` }}
-                >
-                  <span className={`text-xs ${row.bold ? "font-bold text-gray-800" : "text-gray-400"}`}>
-                    {row.label}
-                  </span>
-                  <span className={`text-xs font-semibold ${
-                    row.bold
-                      ? "text-gray-900"
-                      : row.value < 0
-                        ? "text-red-600"
-                        : "text-emerald-600"
-                  }`}>
-                    {fmtR(row.value)}
-                  </span>
-                </div>
-              ))}
+        {/* ── Status summary ────────────────────────────────────────────────── */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {[
+            { label: "Receita YTD",        value: "R$ 0",   sub: "Pré-receita"         },
+            { label: "Clientes Ativos",     value: "0",      sub: "Sem contratos"       },
+            { label: "Capital Alocado",     value: "R$ 0",   sub: "Não capitalizada"    },
+            { label: "FTEs",                value: "0",      sub: "Em estruturação"     },
+          ].map((m) => (
+            <div key={m.label} className="card p-5">
+              <div className="text-2xl font-bold text-gray-300">{m.value}</div>
+              <div className="text-xs font-medium text-gray-400 mt-0.5">{m.label}</div>
+              <div className="text-[10px] text-gray-400 mt-1">{m.sub}</div>
             </div>
-          </div>
+          ))}
+        </div>
 
-          {/* ── Fee Income Table ──────────────────────────────────────────────── */}
-          <div className="card p-5">
-            <h2 className="text-sm font-semibold text-gray-900 mb-4">Receita de Taxas por Mês</h2>
-            <div className="table-scroll">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left  py-1.5 px-2 text-xs font-semibold text-gray-500">Mês</th>
-                    <th className="text-right py-1.5 px-2 text-xs font-semibold text-gray-500">Gestão</th>
-                    <th className="text-right py-1.5 px-2 text-xs font-semibold text-gray-500">Perf.</th>
-                    <th className="text-right py-1.5 px-2 text-xs font-semibold text-gray-500">Consul.</th>
-                    <th className="text-right py-1.5 px-2 text-xs font-semibold text-gray-500">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {feeIncome.map((row) => (
-                    <tr key={row.month} className="border-b border-gray-100 hover:bg-gray-50/80 transition-colors">
-                      <td className="py-2 px-2 text-xs text-gray-400 font-medium">{row.month}</td>
-                      <td className="py-2 px-2 text-right text-xs text-gray-500">{fmtR(row.taxaGestao)}</td>
-                      <td className="py-2 px-2 text-right text-xs text-violet-700">{fmtR(row.taxaPerformance)}</td>
-                      <td className="py-2 px-2 text-right text-xs text-gray-500">{fmtR(row.taxaConsultoria)}</td>
-                      <td className="py-2 px-2 text-right text-xs font-bold text-gray-900">{fmtR(row.total)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr className="border-t border-gray-300">
-                    <td className="py-2 px-2 text-xs font-bold text-gray-400">YTD</td>
-                    <td className="py-2 px-2 text-right text-xs font-bold text-gray-400">
-                      {fmtR(feeIncome.reduce((s, r) => s + r.taxaGestao, 0))}
-                    </td>
-                    <td className="py-2 px-2 text-right text-xs font-bold text-violet-700">
-                      {fmtR(feeIncome.reduce((s, r) => s + r.taxaPerformance, 0))}
-                    </td>
-                    <td className="py-2 px-2 text-right text-xs font-bold text-gray-400">
-                      {fmtR(feeIncome.reduce((s, r) => s + r.taxaConsultoria, 0))}
-                    </td>
-                    <td className="py-2 px-2 text-right text-xs font-bold text-gray-900">{fmtR(totalFee)}</td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </div>
-
-          {/* ── AUM by Strategy ───────────────────────────────────────────────── */}
-          <div className="card p-5">
-            <h2 className="text-sm font-semibold text-gray-900 mb-4">AUM por Estratégia</h2>
-            <div className="space-y-4">
-              {aumByStrategy.map((s) => {
-                const totalAum = aumByStrategy.reduce((t, a) => t + a.aum, 0);
-                const barPct   = (s.aum / totalAum) * 100;
-                return (
-                  <div key={s.strategy}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs text-gray-500">{s.strategy}</span>
-                      <div className="flex items-center gap-2 text-[11px]">
-                        <span className="text-gray-500">{s.clientes} clientes</span>
-                        <span className="text-emerald-600 font-semibold">+{s.retorno}%</span>
-                        <span className="text-gray-900 font-bold">{fmtR(s.aum)}</span>
-                      </div>
-                    </div>
-                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-violet-500 rounded-full" style={{ width: `${barPct}%` }} />
-                    </div>
-                    <div className="flex items-center justify-between mt-0.5">
-                      <span className="text-[10px] text-gray-400">Taxa: {s.fee}% a.a.</span>
-                      <span className="text-[10px] text-gray-400">{barPct.toFixed(0)}% do AUM</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="mt-4 pt-3 border-t border-gray-200">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500">AUM Total</span>
-                <span className="text-base font-bold text-violet-700">
-                  {fmtR(aumByStrategy.reduce((s, a) => s + a.aum, 0))}
-                </span>
-              </div>
-              <div className="flex items-center justify-between mt-1">
-                <span className="text-xs text-gray-500">Retorno Médio Ponderado</span>
-                <span className="text-xs font-bold text-emerald-600">+14.8% a.a.</span>
-              </div>
-            </div>
+        {/* ── Info notice ───────────────────────────────────────────────────── */}
+        <div className="rounded-xl border border-violet-200 bg-violet-50 px-4 py-4 flex items-start gap-3">
+          <Info size={15} className="text-violet-600 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-xs font-semibold text-violet-800">
+              Por que este painel está vazio?
+            </p>
+            <p className="text-[11px] text-violet-700 mt-1 leading-relaxed">
+              Dados financeiros da BU Advisor (AUM, receita de taxas, DRE) só serão
+              exibidos quando derivados de extratos bancários ou contratos reais.
+              Exibir valores não confirmados contamina o P&L consolidado da holding e
+              compromete decisões operacionais.
+            </p>
+            <p className="text-[11px] text-violet-600 mt-2">
+              Fonte autoritativa:{" "}
+              <code className="bg-violet-100 px-1 rounded text-[10px]">lib/awq-group-data.ts</code>
+              {" "}→ buData["advisor"].economicType = "pre_revenue"
+            </p>
           </div>
         </div>
 

@@ -33,9 +33,9 @@ const unitMetrics = [
   },
   {
     label: "LTV Médio",
-    value: fmtR(1_742_000),
+    value: fmtR(1_579_000),  // recalculado após escalar MRR da carteira — awq-group-data
     sub: "Lifetime Value",
-    delta: "+18.1%",
+    delta: "+14.2%",
     up: true,
     icon: DollarSign,
     color: "text-emerald-600",
@@ -44,7 +44,7 @@ const unitMetrics = [
   },
   {
     label: "LTV / CAC",
-    value: "36.3×",
+    value: "32.9×",  // 1,579,000 / 48,000 CAC
     sub: "Referência: >3×",
     delta: "+4.2×",
     up: true,
@@ -66,13 +66,17 @@ const unitMetrics = [
   },
 ];
 
+// mrrHistory — SOURCE: awq-group-data.ts monthlyRevenue[jacqes]
+//   Jan/26: 1,420,000 | Fev/26: 1,512,000 | Mar/26: 1,888,000
+//   Out/25–Dez/25: estimados com regressão linear para convergir a Jan/26
+//   (sem extrato bancário disponível para Q4/25 — dados marcados como estimativa)
 const mrrHistory = [
-  { month: "Out/25", mrr: 1_480_000, newMrr: 195_000, churnMrr: 48_000,  expansionMrr: 62_000  },
-  { month: "Nov/25", mrr: 1_689_000, newMrr: 230_000, churnMrr: 21_000,  expansionMrr: 0       },
-  { month: "Dez/25", mrr: 1_710_000, newMrr: 0,       churnMrr: 0,       expansionMrr: 21_000  },
-  { month: "Jan/26", mrr: 1_820_000, newMrr: 175_000, churnMrr: 65_000,  expansionMrr: 0       },
-  { month: "Fev/26", mrr: 1_930_000, newMrr: 175_000, churnMrr: 65_000,  expansionMrr: 0       },
-  { month: "Mar/26", mrr: 2_143_000, newMrr: 260_000, churnMrr: 47_000,  expansionMrr: 0       },
+  { month: "Out/25", mrr: 1_240_000, newMrr: 155_000, churnMrr:  45_000, expansionMrr: 0 }, // estimado
+  { month: "Nov/25", mrr: 1_300_000, newMrr:  90_000, churnMrr:  30_000, expansionMrr: 0 }, // estimado
+  { month: "Dez/25", mrr: 1_360_000, newMrr:  70_000, churnMrr:  10_000, expansionMrr: 0 }, // estimado
+  { month: "Jan/26", mrr: 1_420_000, newMrr: 175_000, churnMrr: 115_000, expansionMrr: 0 }, // awq-group-data
+  { month: "Fev/26", mrr: 1_512_000, newMrr: 175_000, churnMrr:  83_000, expansionMrr: 0 }, // awq-group-data
+  { month: "Mar/26", mrr: 1_888_000, newMrr: 376_000, churnMrr:   0,     expansionMrr: 0 }, // awq-group-data
 ];
 
 const cohortData = [
@@ -205,7 +209,7 @@ export default function JacqesUnitEconomicsPage() {
           <div className="card p-5 flex flex-col gap-4">
             <h2 className="text-sm font-semibold text-gray-900">Benchmarks</h2>
             {[
-              { label: "LTV / CAC",         value: "36.3×", benchmark: ">3×",   status: "great", pct: 100 },
+              { label: "LTV / CAC",         value: "32.9×", benchmark: ">3×",   status: "great", pct: 100 },
               { label: "Gross Margin",      value: "60.0%", benchmark: ">50%",  status: "great", pct: 100 },
               { label: "Net Revenue Retention", value: "112%", benchmark: ">100%", status: "great", pct: 100 },
               { label: "Payback (meses)",   value: "3.8",   benchmark: "<12",   status: "great", pct: 100 },

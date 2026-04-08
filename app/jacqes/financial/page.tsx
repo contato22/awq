@@ -57,13 +57,18 @@ const dreData = [
   { label: "= Lucro Líquido",            value: 518_370,    indent: 0, bold: true,  type: "net"        },
 ];
 
+// budgetVsActual — SOURCE: awq-group-data.ts
+//   receitaActual: monthlyRevenue[jacqes]  → Jan=1,420,000 / Fev=1,512,000 / Mar=1,888,000
+//   receitaBudget: budgetRevenue(4,440,000) / 3 meses = 1,480,000/mês (flat)
+//   ebitdaActual:  receitaActual × 18.0% (ebitda/revenue = 867,000/4,820,000)
+//   ebitdaBudget:  1,480,000 × 18.0% = 266,400/mês
 const budgetVsActual = [
-  { month: "Jan/26", receitaBudget: 320_000, receitaActual: 298_000, ebitdaBudget: 57_600, ebitdaActual: 51_500 },
-  { month: "Fev/26", receitaBudget: 340_000, receitaActual: 375_000, ebitdaBudget: 61_200, ebitdaActual: 71_250 },
-  { month: "Mar/26", receitaBudget: 380_000, receitaActual: 421_000, ebitdaBudget: 68_400, ebitdaActual: 80_000 },
-  { month: "Abr/26", receitaBudget: 400_000, receitaActual: 0,       ebitdaBudget: 72_000, ebitdaActual: 0      },
-  { month: "Mai/26", receitaBudget: 420_000, receitaActual: 0,       ebitdaBudget: 75_600, ebitdaActual: 0      },
-  { month: "Jun/26", receitaBudget: 440_000, receitaActual: 0,       ebitdaBudget: 79_200, ebitdaActual: 0      },
+  { month: "Jan/26", receitaBudget: 1_480_000, receitaActual: 1_420_000, ebitdaBudget: 266_400, ebitdaActual: 255_600 },
+  { month: "Fev/26", receitaBudget: 1_480_000, receitaActual: 1_512_000, ebitdaBudget: 266_400, ebitdaActual: 272_160 },
+  { month: "Mar/26", receitaBudget: 1_480_000, receitaActual: 1_888_000, ebitdaBudget: 266_400, ebitdaActual: 339_840 },
+  { month: "Abr/26", receitaBudget: 1_480_000, receitaActual: 0,         ebitdaBudget: 266_400, ebitdaActual: 0       },
+  { month: "Mai/26", receitaBudget: 1_480_000, receitaActual: 0,         ebitdaBudget: 266_400, ebitdaActual: 0       },
+  { month: "Jun/26", receitaBudget: 1_480_000, receitaActual: 0,         ebitdaBudget: 266_400, ebitdaActual: 0       },
 ];
 
 // ─── Color helpers ────────────────────────────────────────────────────────────
