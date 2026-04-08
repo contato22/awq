@@ -3,10 +3,13 @@
 // Cada linha linka para o Deal Workspace único (/awq-venture/deals/:id).
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import { dealWorkspaces } from "@/lib/deal-data";
+import type { CustomDeal } from "./novo/page";
+import { loadCustomDeals } from "./novo/page";
 import {
   TrendingUp,
   DollarSign,
@@ -17,6 +20,7 @@ import {
   ArrowRight,
   AlertTriangle,
   ShieldCheck,
+  Plus,
 } from "lucide-react";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -71,9 +75,15 @@ const priorityBadge: Record<string, string> = {
 
 export default function DealsIndexPage() {
   const router = useRouter();
+  const [customDeals, setCustomDeals] = useState<CustomDeal[]>([]);
+
+  useEffect(() => {
+    setCustomDeals(loadCustomDeals());
+  }, []);
+
   const deals = dealWorkspaces;
 
-  const totalTicket   = deals.reduce((s, d) => s + d.proposedValue, 0);
+  const totalTicket   = deals.reduce((s, d) => s + d.proposedValue, 0) + customDeals.reduce((s, d) => s + d.ticket, 0);
   const activeDeals   = deals.filter((d) => d.stage !== "Cancelado" && d.stage !== "Fechado");
   const advancedDeals = deals.filter((d) => d.stage === "Due Diligence" || d.stage === "Term Sheet" || d.stage === "Negociação");
   const readyToSend   = deals.filter((d) => d.sendStatus === "Pronto para Envio" || d.sendStatus === "Enviado" || d.sendStatus === "Em Negociação");
@@ -82,13 +92,13 @@ export default function DealsIndexPage() {
     <>
       <Header
         title="Deals — AWQ Venture"
-        subtitle={`${deals.length} propostas de aquisição · ${fmtR(totalTicket)} em valor potencial`}
+        subtitle={`${deals.length + customDeals.length} propostas de aquisição · ${fmtR(totalTicket)} em valor potencial`}
       />
 
       {/* ── Summary KPIs ─────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {[
-          { label: "Deals Ativos",     value: activeDeals.length,   icon: TrendingUp,  color: "text-brand-600", bg: "bg-brand-50"   },
+          { label: "Deals Ativos",     value: activeDeals.length + customDeals.filter(d => d.stage !== "Cancelado" && d.stage !== "Fechado").length,   icon: TrendingUp,  color: "text-brand-600", bg: "bg-brand-50"   },
           { label: "Ticket Total",     value: fmtR(totalTicket),    icon: DollarSign,  color: "text-amber-700", bg: "bg-amber-50"   },
           { label: "Em Avaliação Avançada", value: advancedDeals.length, icon: FileText, color: "text-blue-600", bg: "bg-blue-50" },
           { label: "Propostas Ativas", value: readyToSend.length,   icon: ShieldCheck, color: "text-emerald-700", bg: "bg-emerald-50" },
@@ -112,7 +122,15 @@ export default function DealsIndexPage() {
       <div className="card overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-gray-900">Todas as Propostas</h2>
-          <span className="text-xs text-gray-400">Clique em uma linha para abrir o workspace completo</span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-gray-400 hidden sm:block">Clique em uma linha para abrir o workspace</span>
+            <Link
+              href="/awq-venture/deals/novo"
+              className="flex items-center gap-1.5 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 px-3 py-1.5 rounded-lg transition-colors"
+            >
+              <Plus size={12} /> Novo Deal
+            </Link>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -176,8 +194,63 @@ export default function DealsIndexPage() {
                   </tr>
                 );
               })}
+
+              {/* Custom deals from localStorage */}
+              {customDeals.map((d) => {
+                const StageIcon = stageIcon[d.stage] ?? Clock;
+                return (
+                  <tr
+                    key={d.id}
+                    onClick={() => router.push(`/awq-venture/deals/novo?id=${d.id}`)}
+                    className="hover:bg-amber-50/40 cursor-pointer transition-colors group"
+                  >
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-2">
+                        <div className="font-semibold text-gray-900 text-sm">{d.companyName || "Sem nome"}</div>
+                        <span className="text-[9px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-full uppercase tracking-wide">Novo</span>
+                      </div>
+                      <div className="text-[11px] text-gray-400 mt-0.5">{d.id} · {d.dealType}</div>
+                    </td>
+                    <td className="py-3 px-4 text-sm text-gray-500">{d.sector || "—"}</td>
+                    <td className="py-3 px-4">
+                      <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-1 rounded-full ${stageColor[d.stage] ?? "text-gray-500 bg-gray-100"}`}>
+                        <StageIcon size={10} />
+                        {d.stage}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-right font-bold text-amber-600 text-sm tabular-nums">
+                      {d.ticket > 0 ? fmtR(d.ticket) : "—"}
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <span className="text-sm text-gray-400">—</span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${riskColor[d.riskLevel] ?? "text-gray-500"}`}>
+                        {d.riskLevel}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className={priorityBadge[d.priority] ?? "badge"}>{d.priority}</span>
+                    </td>
+                    <td className={`py-3 px-4 text-[12px] ${sendStatusColor[d.sendStatus] ?? "text-gray-500"}`}>
+                      {d.sendStatus}
+                    </td>
+                    <td className="py-3 px-4 text-sm text-gray-500">{d.assignee || "—"}</td>
+                    <td className="py-3 px-4">
+                      <ArrowRight size={14} className="text-gray-300 group-hover:text-gray-500 transition-colors" />
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
+
+          {customDeals.length === 0 && deals.length === 0 && (
+            <div className="py-12 text-center text-gray-400 text-sm">
+              Nenhum deal cadastrado ainda.{" "}
+              <Link href="/awq-venture/deals/novo" className="text-amber-600 hover:underline">Criar primeiro deal</Link>
+            </div>
+          )}
         </div>
       </div>
 
