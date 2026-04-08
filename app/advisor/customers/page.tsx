@@ -70,7 +70,7 @@ export default function AdvisorCustomersPage() {
             <p className="text-[11px] text-violet-600 mt-2">
               Fonte autoritativa:{" "}
               <code className="bg-violet-100 px-1 rounded text-[10px]">lib/awq-group-data.ts</code>
-              {" "}→ buData["advisor"].customers = 0
+              {" "}→ buData[&quot;advisor&quot;].customers = 0
             </p>
           </div>
         </div>

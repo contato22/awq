@@ -198,7 +198,7 @@ export default function AwqVentureFinancialPage() {
             <p className="text-[11px] text-amber-600 mt-2">
               Fonte autoritativa:{" "}
               <code className="bg-amber-100 px-1 rounded text-[10px]">lib/awq-group-data.ts</code>
-              {" "}→ buData["venture"].capitalAllocated = R$ 15.762,62
+              {" "}→ buData[&quot;venture&quot;].capitalAllocated = R$ 15.762,62
             </p>
           </div>
         </div>
