@@ -971,24 +971,38 @@ export default function DealWorkspacePage({
   useEffect(() => { setOverride(loadOverride(deal.id)); }, [deal.id]);
 
   function applyOverride(patch: Partial<DealOverride>) {
-    const next = { ...override, ...patch, overriddenAt: new Date().toISOString() };
-    setOverride(next);
-    saveOverride(deal.id, next);
+    setOverride((prev) => {
+      const next = { ...prev, ...patch, overriddenAt: new Date().toISOString() };
+      saveOverride(deal.id, next);
+      return next;
+    });
   }
 
   function saveField(key: string, val: string) {
-    const log = [...(override.historyLog ?? []), { timestamp: new Date().toISOString(), field: key, from: override.fields?.[key] ?? "—", to: val }];
-    applyOverride({ fields: { ...(override.fields ?? {}), [key]: val }, historyLog: log });
+    setOverride((prev) => {
+      const log = [...(prev.historyLog ?? []), { timestamp: new Date().toISOString(), field: key, from: prev.fields?.[key] ?? "—", to: val }];
+      const next = { ...prev, fields: { ...(prev.fields ?? {}), [key]: val }, historyLog: log, overriddenAt: new Date().toISOString() };
+      saveOverride(deal.id, next);
+      return next;
+    });
   }
 
   function saveNumericField(key: string, val: number) {
-    const log = [...(override.historyLog ?? []), { timestamp: new Date().toISOString(), field: key, from: String(override.numericFields?.[key] ?? "—"), to: String(val) }];
-    applyOverride({ numericFields: { ...(override.numericFields ?? {}), [key]: val }, historyLog: log });
+    setOverride((prev) => {
+      const log = [...(prev.historyLog ?? []), { timestamp: new Date().toISOString(), field: key, from: String(prev.numericFields?.[key] ?? "—"), to: String(val) }];
+      const next = { ...prev, numericFields: { ...(prev.numericFields ?? {}), [key]: val }, historyLog: log, overriddenAt: new Date().toISOString() };
+      saveOverride(deal.id, next);
+      return next;
+    });
   }
 
   function saveArrayField(key: string, arr: string[]) {
-    const log = [...(override.historyLog ?? []), { timestamp: new Date().toISOString(), field: key, from: (override.arrayFields?.[key] ?? []).join("; ") || "—", to: arr.join("; ") }];
-    applyOverride({ arrayFields: { ...(override.arrayFields ?? {}), [key]: arr }, historyLog: log });
+    setOverride((prev) => {
+      const log = [...(prev.historyLog ?? []), { timestamp: new Date().toISOString(), field: key, from: (prev.arrayFields?.[key] ?? []).join("; ") || "—", to: arr.join("; ") }];
+      const next = { ...prev, arrayFields: { ...(prev.arrayFields ?? {}), [key]: arr }, historyLog: log, overriddenAt: new Date().toISOString() };
+      saveOverride(deal.id, next);
+      return next;
+    });
   }
 
   function saveNextSteps(steps: string[]) {

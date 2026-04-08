@@ -31,102 +31,24 @@ function roic(returned: number, invested: number) {
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
+// Apenas empresas reais do portfólio. Dados fictícios removidos.
 const portfolio = [
   {
-    id: "AV001",
-    company:     "TechFlow Soluções",
-    sector:      "B2B SaaS",
-    stage:       "Series A",
-    invested:    8_000_000,
-    currentVal:  22_400_000,
+    id:          "AV007",
+    company:     "Grupo Energdy",
+    sector:      "Energia / Utilities",
+    stage:       "Advisory",
+    invested:    0,
+    currentVal:  72_000,
     returned:    0,
-    entryDate:   "Mar 2022",
+    entryDate:   "2025",
     status:      "Ativo",
-    ownership:   18.5,
-    irr:         38.4,
-    description: "Plataforma de automação de processos para PMEs. Crescimento de ARR acelerado pós Series A.",
-    founders:    "João Silva & Maria Souza",
-    location:    "São Paulo, SP",
-  },
-  {
-    id: "AV002",
-    company:     "Verde Energia",
-    sector:      "CleanTech",
-    stage:       "Series B",
-    invested:    12_000_000,
-    currentVal:  31_200_000,
-    returned:    0,
-    entryDate:   "Jul 2021",
-    status:      "Ativo",
-    ownership:   12.0,
-    irr:         28.6,
-    description: "Soluções de energia solar e armazenamento para indústria. Líder no segmento industrial renovável.",
-    founders:    "Carlos Mendes & Ana Lima",
-    location:    "Belo Horizonte, MG",
-  },
-  {
-    id: "AV003",
-    company:     "Saúde Digital",
-    sector:      "HealthTech",
-    stage:       "Exit",
-    invested:    5_000_000,
-    currentVal:  0,
-    returned:    18_500_000,
-    entryDate:   "Mai 2020",
-    status:      "Exitado",
     ownership:   0,
-    irr:         52.1,
-    description: "Plataforma de telemedicina adquirida por grupo hospitalar nacional em 2025. Exit 3.7×.",
-    founders:    "Dr. Lucas Faria",
-    location:    "Rio de Janeiro, RJ",
-  },
-  {
-    id: "AV004",
-    company:     "AgriSmart",
-    sector:      "AgTech",
-    stage:       "Seed",
-    invested:    2_000_000,
-    currentVal:  4_600_000,
-    returned:    0,
-    entryDate:   "Set 2023",
-    status:      "Ativo",
-    ownership:   22.0,
-    irr:         31.2,
-    description: "IoT e analytics para agricultura de precisão. Operando em 4 estados com 120+ clientes.",
-    founders:    "Roberto Costa & Fernanda Alves",
-    location:    "Ribeirão Preto, SP",
-  },
-  {
-    id: "AV005",
-    company:     "FinBridge",
-    sector:      "Fintech",
-    stage:       "Series A",
-    invested:    6_500_000,
-    currentVal:  5_200_000,
-    returned:    0,
-    entryDate:   "Jan 2023",
-    status:      "Em monitoramento",
-    ownership:   15.0,
-    irr:         -6.2,
-    description: "Infraestrutura de pagamentos B2B. Crescimento desacelerado — plano de reestruturação em curso.",
-    founders:    "Thiago Ramos",
-    location:    "São Paulo, SP",
-  },
-  {
-    id: "AV006",
-    company:     "Logística Plus",
-    sector:      "LogTech",
-    stage:       "Series A",
-    invested:    7_000_000,
-    currentVal:  14_700_000,
-    returned:    0,
-    entryDate:   "Nov 2022",
-    status:      "Ativo",
-    ownership:   20.0,
-    irr:         24.8,
-    description: "Gestão de última milha e roteirização inteligente. Expansão para 12 cidades em 2026.",
-    founders:    "Patricia Gomes & André Nunes",
-    location:    "Curitiba, PR",
+    irr:         0,
+    description: "Cliente de advisory e incubação estratégica. Fee mensal de R$2K por 36 meses (R$72K contrato). Único contrato operacional confirmado da AWQ Venture.",
+    founders:    "—",
+    location:    "Brasil",
+    contractFee: 2_000,
   },
 ];
 
@@ -147,6 +69,7 @@ const stageColors: Record<string, string> = {
   "Series A": "bg-brand-500/10 text-brand-400",
   "Series B": "bg-emerald-500/10 text-emerald-400",
   "Exit":     "bg-violet-500/10 text-violet-400",
+  "Advisory": "bg-orange-500/10 text-orange-400",
 };
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -222,6 +145,22 @@ export default function AwqVenturePortfolioPage() {
                 <p className="text-xs text-gray-400 leading-relaxed">{p.description}</p>
 
                 {/* Metrics */}
+                {p.stage === "Advisory" ? (
+                  <div className="grid grid-cols-3 gap-2 pt-1 border-t border-gray-800">
+                    <div>
+                      <div className="text-[10px] text-gray-600 mb-0.5">Fee Mensal</div>
+                      <div className="text-xs font-bold text-amber-400">{fmtR((p as typeof p & { contractFee?: number }).contractFee ?? 0)}</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] text-gray-600 mb-0.5">ARR Advisory</div>
+                      <div className="text-xs font-bold text-emerald-400">{fmtR(((p as typeof p & { contractFee?: number }).contractFee ?? 0) * 12)}</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] text-gray-600 mb-0.5">Contrato Total</div>
+                      <div className="text-xs font-bold text-white">{fmtR(p.currentVal)}</div>
+                    </div>
+                  </div>
+                ) : (
                 <div className="grid grid-cols-4 gap-2 pt-1 border-t border-gray-800">
                   <div>
                     <div className="text-[10px] text-gray-600 mb-0.5">Investido</div>
@@ -244,16 +183,19 @@ export default function AwqVenturePortfolioPage() {
                     </div>
                   </div>
                 </div>
+                )}
 
                 {/* Footer */}
                 <div className="flex items-center justify-between pt-1">
                   <div className="flex items-center gap-1">
-                    {r >= 0
+                    {p.stage !== "Advisory" && (r >= 0
                       ? <ArrowUpRight size={12} className="text-emerald-400" />
-                      : <ArrowDownRight size={12} className="text-red-400" />}
+                      : <ArrowDownRight size={12} className="text-red-400" />)}
+                    {p.stage !== "Advisory" && (
                     <span className={`text-[10px] font-semibold ${r >= 0 ? "text-emerald-400" : "text-red-400"}`}>
                       ROIC {r >= 0 ? "+" : ""}{r.toFixed(0)}%
                     </span>
+                    )}
                     {p.ownership > 0 && (
                       <span className="text-[10px] text-gray-600 ml-2">· {p.ownership}% participação</span>
                     )}
