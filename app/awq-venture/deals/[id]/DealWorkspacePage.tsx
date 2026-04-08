@@ -408,8 +408,12 @@ export interface DealOverride {
   stage?: DealStage;
   sendStatus?: DealSendStatus;
   proposalDeleted?: boolean;
-  fields?: Record<string, string>;   // key = field path, value = edited string
+  fields?: Record<string, string>;
+  numericFields?: Record<string, number>;
+  arrayFields?: Record<string, string[]>;
   nextSteps?: string[];
+  internalNotes?: { id: string; text: string; createdAt: string }[];
+  historyLog?: { timestamp: string; field: string; from: string; to: string }[];
   overriddenAt?: string;
 }
 
@@ -570,6 +574,150 @@ function EditableNextSteps({
       <div className="flex gap-1.5 mt-1">
         <button onClick={commit} className="px-3 py-1 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-lg transition-colors">Salvar</button>
         <button onClick={() => setEditing(false)} className="px-3 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">Cancelar</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── EditableNumber ───────────────────────────────────────────────────────────
+
+function EditableNumber({
+  value,
+  fieldKey,
+  overrideNumeric,
+  onSave,
+  format = "currency",
+  placeholder = "0",
+}: {
+  value: number | null | undefined;
+  fieldKey: string;
+  overrideNumeric: Record<string, number>;
+  onSave: (key: string, val: number) => void;
+  format?: "currency" | "percent" | "multiple" | "raw";
+  placeholder?: string;
+}) {
+  const effective = overrideNumeric[fieldKey] ?? value;
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(String(effective ?? ""));
+  const ref = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { if (editing) ref.current?.focus(); }, [editing]);
+
+  function display() {
+    if (effective === null || effective === undefined) return "—";
+    if (format === "currency") return fmtR(effective);
+    if (format === "percent")  return effective.toFixed(1) + "%";
+    if (format === "multiple") return effective.toFixed(2) + "×";
+    return String(effective);
+  }
+
+  function commit() {
+    const n = parseFloat(draft.replace(/[^\d.,]/g, "").replace(",", "."));
+    if (!isNaN(n)) onSave(fieldKey, n);
+    setEditing(false);
+  }
+
+  if (!editing) {
+    return (
+      <span
+        className="group relative cursor-pointer hover:bg-amber-50/60 rounded px-1 -mx-1 transition-colors inline-flex items-center gap-1"
+        onClick={() => { setDraft(String(effective ?? "")); setEditing(true); }}
+      >
+        {display()}
+        <Pencil size={10} className="text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <input
+        ref={ref}
+        type="text"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        className="w-28 rounded-lg border border-amber-300 bg-amber-50/30 px-2 py-1 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-400/40"
+        placeholder={placeholder}
+        onKeyDown={(e) => { if (e.key === "Enter") commit(); if (e.key === "Escape") setEditing(false); }}
+      />
+      <button onClick={commit} className="text-xs text-amber-700 bg-amber-100 px-2 py-1 rounded-lg hover:bg-amber-200 transition-colors">✓</button>
+      <button onClick={() => setEditing(false)} className="text-xs text-gray-400 hover:text-gray-700">✕</button>
+    </span>
+  );
+}
+
+// ─── EditableStringArray ──────────────────────────────────────────────────────
+
+function EditableStringArray({
+  items,
+  fieldKey,
+  overrideArrays,
+  onSave,
+  icon: Icon,
+  iconClass = "text-gray-400",
+  emptyText = "A preencher.",
+}: {
+  items: string[];
+  fieldKey: string;
+  overrideArrays: Record<string, string[]>;
+  onSave: (key: string, arr: string[]) => void;
+  icon?: React.ElementType;
+  iconClass?: string;
+  emptyText?: string;
+}) {
+  const effective = overrideArrays[fieldKey] ?? items;
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState<string[]>(effective);
+
+  function commit() { onSave(fieldKey, draft.filter((s) => s.trim())); setEditing(false); }
+
+  if (!editing) {
+    return (
+      <div
+        className="group relative cursor-pointer rounded-lg hover:bg-amber-50/60 transition-colors px-1 -mx-1"
+        onClick={() => { setDraft([...effective]); setEditing(true); }}
+      >
+        {effective.length === 0 ? (
+          <p className="text-xs text-gray-400 italic">{emptyText}</p>
+        ) : (
+          <ul className="space-y-1.5">
+            {effective.map((s, i) => (
+              <li key={i} className="flex items-start gap-2 text-xs text-gray-700">
+                {Icon && <Icon size={12} className={`${iconClass} mt-0.5 shrink-0`} />}
+                {s}
+              </li>
+            ))}
+          </ul>
+        )}
+        <Pencil size={11} className="absolute right-1 top-1 text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {draft.map((s, i) => (
+        <div key={i} className="flex gap-2 items-center">
+          <input
+            type="text"
+            value={s}
+            onChange={(e) => { const d = [...draft]; d[i] = e.target.value; setDraft(d); }}
+            className="flex-1 rounded-lg border border-amber-300 bg-amber-50/30 px-2 py-1.5 text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-400/40"
+          />
+          <button onClick={() => setDraft(draft.filter((_, j) => j !== i))} className="text-red-400 hover:text-red-600 transition-colors">
+            <Minus size={12} />
+          </button>
+        </div>
+      ))}
+      <button
+        onClick={() => setDraft([...draft, ""])}
+        className="flex items-center gap-1 text-xs text-amber-600 hover:text-amber-800 transition-colors"
+      >
+        <Plus size={12} /> Adicionar item
+      </button>
+      <div className="flex gap-1.5 mt-1">
+        <button onClick={commit} className="px-3 py-1 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-lg transition-colors">Salvar</button>
+        <button onClick={() => setEditing(false)} className="px-3 py-1 text-xs text-gray-500 hover:bg-gray-100 rounded-lg transition-colors">Cancelar</button>
       </div>
     </div>
   );
@@ -829,7 +977,18 @@ export default function DealWorkspacePage({
   }
 
   function saveField(key: string, val: string) {
-    applyOverride({ fields: { ...(override.fields ?? {}), [key]: val } });
+    const log = [...(override.historyLog ?? []), { timestamp: new Date().toISOString(), field: key, from: override.fields?.[key] ?? "—", to: val }];
+    applyOverride({ fields: { ...(override.fields ?? {}), [key]: val }, historyLog: log });
+  }
+
+  function saveNumericField(key: string, val: number) {
+    const log = [...(override.historyLog ?? []), { timestamp: new Date().toISOString(), field: key, from: String(override.numericFields?.[key] ?? "—"), to: String(val) }];
+    applyOverride({ numericFields: { ...(override.numericFields ?? {}), [key]: val }, historyLog: log });
+  }
+
+  function saveArrayField(key: string, arr: string[]) {
+    const log = [...(override.historyLog ?? []), { timestamp: new Date().toISOString(), field: key, from: (override.arrayFields?.[key] ?? []).join("; ") || "—", to: arr.join("; ") }];
+    applyOverride({ arrayFields: { ...(override.arrayFields ?? {}), [key]: arr }, historyLog: log });
   }
 
   function saveNextSteps(steps: string[]) {
@@ -841,7 +1000,9 @@ export default function DealWorkspacePage({
     stage:      (override.stage      ?? deal.stage)      as DealStage,
     sendStatus: (override.sendStatus ?? deal.sendStatus) as DealSendStatus,
   };
-  const overrideFields = override.fields ?? {};
+  const overrideFields  = override.fields        ?? {};
+  const overrideNumeric = override.numericFields ?? {};
+  const overrideArrays  = override.arrayFields   ?? {};
   const proposalDeleted = override.proposalDeleted ?? false;
 
   function scrollToPreview(mode: "interno" | "cliente") {
@@ -909,6 +1070,31 @@ export default function DealWorkspacePage({
         </div>
       </div>
 
+      {/* ── Sub-navigation (workspace / negotiation / history / preview) ── */}
+      <div className="flex gap-1 bg-white border border-gray-200 rounded-xl p-1 overflow-x-auto">
+        <span className="flex items-center gap-1.5 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg">
+          <Settings size={11} /> Workspace
+        </span>
+        <Link
+          href={`/awq-venture/deals/${effectiveDeal.id}/negotiation`}
+          className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-100 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap"
+        >
+          <Eye size={11} /> Negociação
+        </Link>
+        <Link
+          href={`/awq-venture/deals/${effectiveDeal.id}/history`}
+          className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-100 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap"
+        >
+          <Clock size={11} /> Histórico
+        </Link>
+        <Link
+          href={`/awq-venture/deals/${effectiveDeal.id}/share`}
+          className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-100 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap"
+        >
+          <Send size={11} /> Preview Cliente
+        </Link>
+      </div>
+
       {/* ── Anchor Nav ────────────────────────────────────────────────────── */}
       <div className="sticky top-[49px] z-[5] bg-white border-b border-gray-200 rounded-xl overflow-hidden">
         <nav className="flex gap-0.5 overflow-x-auto py-1">
@@ -957,27 +1143,25 @@ export default function DealWorkspacePage({
 
           {/* §3 Identificação ────────────────────────────────────────────── */}
           <SectionCard id="identificacao" icon={Building2} title="Identificação da Empresa-Alvo">
+            <div className="text-[10px] text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 flex items-center gap-2 mb-3">
+              <Pencil size={10} className="shrink-0" /> Clique em qualquer campo para editar.
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <FieldRow label="Nome" value={deal.identification.companyName} />
-              <FieldRow label="Setor" value={deal.identification.sector} />
-              <FieldRow label="Localização" value={<span className="flex items-center gap-1"><MapPin size={12} className="text-gray-400" />{deal.identification.location}</span>} />
-              <FieldRow label="Origem do Deal" value={deal.identification.dealOrigin} />
+              <FieldRow label="Nome" value={<EditableText fieldKey="id.companyName" value={deal.identification.companyName} overrideFields={overrideFields} onSave={saveField} multiline={false} />} />
+              <FieldRow label="Setor" value={<EditableText fieldKey="id.sector" value={deal.identification.sector} overrideFields={overrideFields} onSave={saveField} multiline={false} />} />
+              <FieldRow label="Localização" value={<EditableText fieldKey="id.location" value={deal.identification.location} overrideFields={overrideFields} onSave={saveField} multiline={false} placeholder="Cidade / UF" />} />
+              <FieldRow label="CNPJ" value={<EditableText fieldKey="id.cnpj" value={overrideFields["id.cnpj"] ?? ""} overrideFields={overrideFields} onSave={saveField} multiline={false} placeholder="00.000.000/0000-00" />} />
+              <FieldRow label="Origem do Deal" value={<EditableText fieldKey="id.dealOrigin" value={deal.identification.dealOrigin} overrideFields={overrideFields} onSave={saveField} multiline={false} />} />
               <FieldRow label="Contato Principal" value={
-                <div>
-                  <div className="font-medium">{deal.identification.mainContact}</div>
-                  <div className="text-xs text-gray-400">{deal.identification.mainContactRole}</div>
+                <div className="space-y-1">
+                  <EditableText fieldKey="id.mainContact" value={deal.identification.mainContact} overrideFields={overrideFields} onSave={saveField} multiline={false} placeholder="Nome do contato" />
+                  <EditableText fieldKey="id.mainContactRole" value={deal.identification.mainContactRole} overrideFields={overrideFields} onSave={saveField} multiline={false} placeholder="Cargo" className="text-gray-400" />
                 </div>
               } />
+              <FieldRow label="Email" value={<EditableText fieldKey="id.email" value={deal.identification.mainContactEmail} overrideFields={overrideFields} onSave={saveField} multiline={false} placeholder="email@empresa.com" />} />
+              <FieldRow label="Telefone" value={<EditableText fieldKey="id.phone" value={deal.identification.mainContactPhone} overrideFields={overrideFields} onSave={saveField} multiline={false} placeholder="+55 11 9..." />} />
+              <FieldRow label="Website" value={<EditableText fieldKey="id.website" value={deal.identification.website} overrideFields={overrideFields} onSave={saveField} multiline={false} placeholder="https://..." />} />
               <FieldRow label="Estágio Atual" value={<span className={stageBadge[effectiveDeal.stage] ?? ""}>{effectiveDeal.stage}</span>} />
-              {deal.identification.mainContactEmail && (
-                <FieldRow label="Email" value={<span className="flex items-center gap-1 text-brand-600"><Mail size={12} />{deal.identification.mainContactEmail}</span>} />
-              )}
-              {deal.identification.mainContactPhone && (
-                <FieldRow label="Telefone" value={<span className="flex items-center gap-1"><Phone size={12} className="text-gray-400" />{deal.identification.mainContactPhone}</span>} />
-              )}
-              {deal.identification.website && (
-                <FieldRow label="Website" value={<span className="flex items-center gap-1 text-brand-600"><Globe size={12} />{deal.identification.website}</span>} />
-              )}
             </div>
           </SectionCard>
 
@@ -985,15 +1169,15 @@ export default function DealWorkspacePage({
           <SectionCard id="tese" icon={Target} title="Tese Estratégica">
             <div className="space-y-4">
               {[
-                { label: "Racional Estratégico",    value: deal.strategicThesis.strategicRationale  },
-                { label: "Por que Agora",            value: deal.strategicThesis.whyNow              },
-                { label: "Sinergias",                value: deal.strategicThesis.synergies           },
-                { label: "Tese de Criação de Valor", value: deal.strategicThesis.valueCreationThesis },
-                { label: "Encaixe AWQ Venture",      value: deal.strategicThesis.awqVentureFit       },
-              ].map(({ label, value }) => (
+                { label: "Racional Estratégico",    key: "thesis.rationale",    value: deal.strategicThesis.strategicRationale  },
+                { label: "Por que Agora",            key: "thesis.whyNow",       value: deal.strategicThesis.whyNow              },
+                { label: "Sinergias",                key: "thesis.synergies",    value: deal.strategicThesis.synergies           },
+                { label: "Tese de Criação de Valor", key: "thesis.valueCreation",value: deal.strategicThesis.valueCreationThesis },
+                { label: "Encaixe AWQ Venture",      key: "thesis.awqFit",       value: deal.strategicThesis.awqVentureFit       },
+              ].map(({ label, key, value }) => (
                 <div key={label} className="surface-subtle p-4 rounded-xl">
                   <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1.5">{label}</div>
-                  <p className="text-sm text-gray-700 leading-relaxed">{value}</p>
+                  <EditableText fieldKey={key} value={value} overrideFields={overrideFields} onSave={saveField} />
                 </div>
               ))}
             </div>
@@ -1004,59 +1188,34 @@ export default function DealWorkspacePage({
             <div className="space-y-5">
               <div className="surface-subtle p-4 rounded-xl">
                 <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1.5">Diagnóstico Resumido</div>
-                <p className="text-sm text-gray-700 leading-relaxed">{deal.assetDiagnosis.summary}</p>
+                <EditableText fieldKey="diag.summary" value={deal.assetDiagnosis.summary} overrideFields={overrideFields} onSave={saveField} />
               </div>
 
               <div className="surface-subtle p-4 rounded-xl space-y-2">
                 <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Maturidade</div>
-                <MaturityDots level={deal.assetDiagnosis.operationalMaturity} label="Maturidade Operacional" />
-                <MaturityDots level={deal.assetDiagnosis.commercialMaturity}  label="Maturidade Comercial"   />
+                <MaturityDots level={overrideNumeric["diag.opMaturity"] ?? deal.assetDiagnosis.operationalMaturity} label="Maturidade Operacional" />
+                <MaturityDots level={overrideNumeric["diag.comMaturity"] ?? deal.assetDiagnosis.commercialMaturity}  label="Maturidade Comercial"   />
+                <div className="flex gap-4 mt-1">
+                  <span className="text-[10px] text-gray-400">Operacional: <EditableNumber fieldKey="diag.opMaturity" value={deal.assetDiagnosis.operationalMaturity} overrideNumeric={overrideNumeric} onSave={saveNumericField} format="raw" placeholder="1–5" /></span>
+                  <span className="text-[10px] text-gray-400">Comercial: <EditableNumber fieldKey="diag.comMaturity" value={deal.assetDiagnosis.commercialMaturity} overrideNumeric={overrideNumeric} onSave={saveNumericField} format="raw" placeholder="1–5" /></span>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="surface-subtle p-4 rounded-xl">
                   <div className="text-[10px] font-bold text-emerald-500 uppercase tracking-wide mb-2">Pontos Fortes</div>
-                  {deal.assetDiagnosis.strengths.length === 0
-                    ? <p className="text-xs text-gray-400 italic">A preencher.</p>
-                    : <ul className="space-y-1.5">
-                        {deal.assetDiagnosis.strengths.map((s, i) => (
-                          <li key={i} className="flex items-start gap-2 text-xs text-gray-700">
-                            <CheckCircle2 size={12} className="text-emerald-500 mt-0.5 shrink-0" />
-                            {s}
-                          </li>
-                        ))}
-                      </ul>
-                  }
+                  <EditableStringArray fieldKey="diag.strengths" items={deal.assetDiagnosis.strengths} overrideArrays={overrideArrays} onSave={saveArrayField} icon={CheckCircle2} iconClass="text-emerald-500" emptyText="A preencher." />
                 </div>
                 <div className="surface-subtle p-4 rounded-xl">
                   <div className="text-[10px] font-bold text-red-400 uppercase tracking-wide mb-2">Fragilidades</div>
-                  {deal.assetDiagnosis.weaknesses.length === 0
-                    ? <p className="text-xs text-gray-400 italic">A preencher.</p>
-                    : <ul className="space-y-1.5">
-                        {deal.assetDiagnosis.weaknesses.map((w, i) => (
-                          <li key={i} className="flex items-start gap-2 text-xs text-gray-700">
-                            <XCircle size={12} className="text-red-400 mt-0.5 shrink-0" />
-                            {w}
-                          </li>
-                        ))}
-                      </ul>
-                  }
+                  <EditableStringArray fieldKey="diag.weaknesses" items={deal.assetDiagnosis.weaknesses} overrideArrays={overrideArrays} onSave={saveArrayField} icon={XCircle} iconClass="text-red-400" emptyText="A preencher." />
                 </div>
               </div>
 
-              {deal.assetDiagnosis.risks.length > 0 && (
-                <div className="surface-subtle p-4 rounded-xl">
-                  <div className="text-[10px] font-bold text-amber-500 uppercase tracking-wide mb-2">Riscos Identificados</div>
-                  <ul className="space-y-1.5">
-                    {deal.assetDiagnosis.risks.map((r, i) => (
-                      <li key={i} className="flex items-start gap-2 text-xs text-gray-700">
-                        <AlertTriangle size={12} className="text-amber-500 mt-0.5 shrink-0" />
-                        {r}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+              <div className="surface-subtle p-4 rounded-xl">
+                <div className="text-[10px] font-bold text-amber-500 uppercase tracking-wide mb-2">Riscos Identificados</div>
+                <EditableStringArray fieldKey="diag.risks" items={deal.assetDiagnosis.risks} overrideArrays={overrideArrays} onSave={saveArrayField} icon={AlertTriangle} iconClass="text-amber-500" emptyText="Nenhum risco mapeado." />
+              </div>
             </div>
           </SectionCard>
           {/* §6 Financeiro ───────────────────────────────────────────────── */}
@@ -1065,30 +1224,33 @@ export default function DealWorkspacePage({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 {/* Left */}
                 <div className="space-y-3">
-                  <FieldRow label="Receita Estimada"   value={<span className="text-blue-600 font-bold">{fmtR(deal.financials.estimatedRevenue)}</span>} />
-                  <FieldRow label="EBITDA Estimado"    value={<span className="text-violet-600 font-bold">{fmtR(deal.financials.estimatedEbitda)}</span>} />
-                  <FieldRow label="Margem EBITDA"      value={fmtPct(deal.financials.ebitdaMargin)} />
-                  <FieldRow label="Valuation Pedido"   value={<span className="text-amber-600 font-bold">{fmtR(deal.financials.askValuation)}</span>} />
-                  <FieldRow label="Valuation Proposto" value={<span className="text-emerald-600 font-bold">{fmtR(deal.financials.proposedValuation)}</span>} />
-                  <FieldRow label="Múltiplo Implícito" value={deal.financials.impliedMultiple ? deal.financials.impliedMultiple.toFixed(2) + "× receita" : "—"} />
+                  <FieldRow label="Receita Estimada"   value={<span className="text-blue-600 font-bold"><EditableNumber fieldKey="fin.revenue" value={deal.financials.estimatedRevenue} overrideNumeric={overrideNumeric} onSave={saveNumericField} format="currency" /></span>} />
+                  <FieldRow label="EBITDA Estimado"    value={<span className="text-violet-600 font-bold"><EditableNumber fieldKey="fin.ebitda" value={deal.financials.estimatedEbitda} overrideNumeric={overrideNumeric} onSave={saveNumericField} format="currency" /></span>} />
+                  <FieldRow label="Margem EBITDA"      value={<EditableNumber fieldKey="fin.ebitdaMargin" value={deal.financials.ebitdaMargin} overrideNumeric={overrideNumeric} onSave={saveNumericField} format="percent" />} />
+                  <FieldRow label="Valuation Pedido"   value={<span className="text-amber-600 font-bold"><EditableNumber fieldKey="fin.askVal" value={deal.financials.askValuation} overrideNumeric={overrideNumeric} onSave={saveNumericField} format="currency" /></span>} />
+                  <FieldRow label="Valuation Proposto" value={<span className="text-emerald-600 font-bold"><EditableNumber fieldKey="fin.propVal" value={deal.financials.proposedValuation} overrideNumeric={overrideNumeric} onSave={saveNumericField} format="currency" /></span>} />
+                  <FieldRow label="Múltiplo Implícito" value={<EditableNumber fieldKey="fin.multiple" value={deal.financials.impliedMultiple} overrideNumeric={overrideNumeric} onSave={saveNumericField} format="multiple" />} />
                 </div>
                 {/* Right */}
                 <div className="space-y-3">
-                  <FieldRow label="Tipo de Deal"          value={deal.financials.dealType} />
-                  <FieldRow label="Participação Pretendida" value={<span className="text-brand-600 font-bold">{deal.financials.targetOwnership}%</span>} />
-                  <FieldRow label="Investimento Estimado"  value={<span className="text-amber-600 font-bold">{fmtR(deal.financials.estimatedInvestment)}</span>} />
-                  <FieldRow label="Upside Esperado"        value={<span className="text-emerald-600 font-bold">{fmtPct(deal.financials.expectedUpside)}</span>} />
-                  <FieldRow label="Confiança dos Dados"    value={confLabel[deal.financials.revenueConfidence] ?? deal.financials.revenueConfidence} />
-                  <FieldRow label="Estrutura da Oferta"    value={deal.financials.offerStructure} />
+                  <FieldRow label="Tipo de Deal"           value={<EditableText fieldKey="fin.dealType" value={deal.financials.dealType} overrideFields={overrideFields} onSave={saveField} multiline={false} />} />
+                  <FieldRow label="Participação Pretendida" value={<span className="text-brand-600 font-bold"><EditableNumber fieldKey="fin.ownership" value={deal.financials.targetOwnership} overrideNumeric={overrideNumeric} onSave={saveNumericField} format="percent" /></span>} />
+                  <FieldRow label="Fee Estruturado"         value={<EditableText fieldKey="fin.fee" value={overrideFields["fin.fee"] ?? ""} overrideFields={overrideFields} onSave={saveField} multiline={false} placeholder="Ex: 2% a.a. sobre AUM" />} />
+                  <FieldRow label="Earn-in / Upside"        value={<EditableText fieldKey="fin.earnin" value={overrideFields["fin.earnin"] ?? ""} overrideFields={overrideFields} onSave={saveField} multiline={false} placeholder="Ex: 10% acima de X" />} />
+                  <FieldRow label="Investimento Estimado"   value={<span className="text-amber-600 font-bold"><EditableNumber fieldKey="fin.investment" value={deal.financials.estimatedInvestment} overrideNumeric={overrideNumeric} onSave={saveNumericField} format="currency" /></span>} />
+                  <FieldRow label="Upside Esperado"         value={<span className="text-emerald-600 font-bold"><EditableNumber fieldKey="fin.upside" value={deal.financials.expectedUpside} overrideNumeric={overrideNumeric} onSave={saveNumericField} format="percent" /></span>} />
                 </div>
               </div>
 
-              {deal.financials.financialNotes && (
-                <div className="surface-subtle p-4 rounded-xl">
-                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1.5">Observações Financeiras</div>
-                  <p className="text-sm text-gray-600 leading-relaxed italic">{deal.financials.financialNotes}</p>
-                </div>
-              )}
+              <div className="surface-subtle p-4 rounded-xl">
+                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1.5">Estrutura da Oferta</div>
+                <EditableText fieldKey="fin.offerStructure" value={deal.financials.offerStructure} overrideFields={overrideFields} onSave={saveField} />
+              </div>
+
+              <div className="surface-subtle p-4 rounded-xl">
+                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1.5">Observações Financeiras</div>
+                <EditableText fieldKey="fin.notes" value={deal.financials.financialNotes} overrideFields={overrideFields} onSave={saveField} />
+              </div>
             </div>
           </SectionCard>
 
@@ -1097,53 +1259,38 @@ export default function DealWorkspacePage({
             <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {[
-                  { label: "Riscos Jurídicos",     value: deal.riskDiligence.legalRisks       },
-                  { label: "Riscos Financeiros",   value: deal.riskDiligence.financialRisks   },
-                  { label: "Riscos Operacionais",  value: deal.riskDiligence.operationalRisks },
-                  { label: "Riscos de Integração", value: deal.riskDiligence.integrationRisks },
-                ].map(({ label, value }) => (
+                  { label: "Riscos Jurídicos",     key: "risk.legal",   value: deal.riskDiligence.legalRisks       },
+                  { label: "Riscos Financeiros",   key: "risk.fin",     value: deal.riskDiligence.financialRisks   },
+                  { label: "Riscos Operacionais",  key: "risk.ops",     value: deal.riskDiligence.operationalRisks },
+                  { label: "Riscos de Integração", key: "risk.integ",   value: deal.riskDiligence.integrationRisks },
+                ].map(({ label, key, value }) => (
                   <div key={label} className="surface-subtle p-4 rounded-xl">
                     <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1.5">{label}</div>
-                    <p className="text-xs text-gray-700 leading-relaxed">{value || "—"}</p>
+                    <EditableText fieldKey={key} value={value} overrideFields={overrideFields} onSave={saveField} />
                   </div>
                 ))}
               </div>
 
-              {deal.riskDiligence.diligencePending.length > 0 && (
-                <div className="surface-subtle p-4 rounded-xl">
-                  <div className="text-[10px] font-bold text-amber-500 uppercase tracking-wide mb-2">Pendências de Diligência</div>
-                  <ol className="space-y-1.5">
-                    {deal.riskDiligence.diligencePending.map((p, i) => (
-                      <li key={i} className="flex items-start gap-2 text-xs text-gray-700">
-                        <Clock size={12} className="text-amber-500 mt-0.5 shrink-0" />
-                        <span><span className="font-semibold text-gray-500 mr-1">{i + 1}.</span>{p}</span>
-                      </li>
-                    ))}
-                  </ol>
-                </div>
-              )}
+              <div className="surface-subtle p-4 rounded-xl">
+                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Kill Criteria</div>
+                <EditableText fieldKey="risk.killCriteria" value={overrideFields["risk.killCriteria"] ?? ""} overrideFields={overrideFields} onSave={saveField} placeholder="Condições que encerram o deal…" />
+              </div>
 
               <div className="surface-subtle p-4 rounded-xl">
-                <div className="text-[10px] font-bold uppercase tracking-wide mb-2">
-                  <span className={deal.riskDiligence.blockers.length > 0 ? "text-red-500" : "text-emerald-500"}>
-                    Blockers
-                  </span>
+                <div className="text-[10px] font-bold text-amber-500 uppercase tracking-wide mb-2">Pendências de Diligência</div>
+                <EditableStringArray fieldKey="risk.pending" items={deal.riskDiligence.diligencePending} overrideArrays={overrideArrays} onSave={saveArrayField} icon={Clock} iconClass="text-amber-500" emptyText="Sem pendências registradas." />
+              </div>
+
+              <div className="surface-subtle p-4 rounded-xl">
+                <div className={`text-[10px] font-bold uppercase tracking-wide mb-2 ${(overrideArrays["risk.blockers"] ?? deal.riskDiligence.blockers).length > 0 ? "text-red-500" : "text-emerald-500"}`}>
+                  Blockers
                 </div>
-                {deal.riskDiligence.blockers.length === 0 ? (
-                  <div className="flex items-center gap-2 text-xs text-emerald-600">
-                    <CheckCircle2 size={13} className="shrink-0" />
-                    Nenhum blocker identificado
-                  </div>
-                ) : (
-                  <ul className="space-y-1.5">
-                    {deal.riskDiligence.blockers.map((b, i) => (
-                      <li key={i} className="flex items-start gap-2 text-xs text-red-600">
-                        <AlertTriangle size={12} className="mt-0.5 shrink-0" />
-                        {b}
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                <EditableStringArray fieldKey="risk.blockers" items={deal.riskDiligence.blockers} overrideArrays={overrideArrays} onSave={saveArrayField} icon={AlertTriangle} iconClass="text-red-500" emptyText="Nenhum blocker identificado." />
+              </div>
+
+              <div className="surface-subtle p-4 rounded-xl">
+                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Condições Precedentes</div>
+                <EditableText fieldKey="risk.precedentConditions" value={overrideFields["risk.precedentConditions"] ?? ""} overrideFields={overrideFields} onSave={saveField} placeholder="Condições que devem ser satisfeitas antes do fechamento…" />
               </div>
             </div>
           </SectionCard>
