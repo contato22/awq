@@ -7,6 +7,7 @@ import { LogIn } from "lucide-react";
 // Tabs ordered: real-content pages first, then stubs (marked visually as Em breve)
 const tabs = [
   { label: "Visão Geral",  href: "/awq-venture",              stub: false },
+  { label: "Comercial",    href: "/awq-venture/comercial",    stub: false },
   { label: "Portfólio",    href: "/awq-venture/portfolio",    stub: false },
   { label: "Pipeline",     href: "/awq-venture/pipeline",     stub: false },
   { label: "Deals",        href: "/awq-venture/deals",        stub: false },

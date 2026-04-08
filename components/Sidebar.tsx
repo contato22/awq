@@ -94,8 +94,10 @@ const advisorNav = [
 
 const ventureNav = [
     { label: "Visão Geral", href: "/awq-venture",              icon: LayoutDashboard },
-    { label: "Portfólio",   href: "/awq-venture/portfolio",    icon: Briefcase       },
+    { label: "Comercial",   href: "/awq-venture/comercial",    icon: TrendingUp      },
+    { label: "Deals",       href: "/awq-venture/deals",        icon: FileText        },
     { label: "Pipeline",    href: "/awq-venture/pipeline",     icon: Activity        },
+    { label: "Portfólio",   href: "/awq-venture/portfolio",    icon: Briefcase       },
     { label: "Financial",   href: "/awq-venture/financial",    icon: DollarSign      },
     { label: "YoY 2025",    href: "/awq-venture/yoy-2025",     icon: LineChart       },
     { label: "Sales",       href: "/awq-venture/sales",        icon: DollarSign      },
