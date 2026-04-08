@@ -320,16 +320,20 @@ export interface CashFlowRow {
   bold:     boolean;
 }
 
+// ⚠ venture column must be 0 for all operating cash flow lines.
+// AWQ Venture is an investment vehicle with no operating revenue, no P&L, no capex.
+// Empirical position (CDB DI R$15.762,62) is tracked in holdingTreasurySnapshot /
+// buildCanonicalInvestmentPosition — NOT in operating cash flow rows.
 export const cashFlowRows: CashFlowRow[] = [
-  { label: "Lucro Líquido",              jacqes:   518_000, caza:  420_000, advisor:  479_000, venture:  18_500_000, indent: 1, bold: false },
-  { label: "(+) D&A",                    jacqes:    43_000, caza:   18_000, advisor:    8_000, venture:           0, indent: 1, bold: false },
-  { label: "(+/-) Cap. de Giro",         jacqes:   159_000, caza:  142_000, advisor:   23_000, venture:           0, indent: 1, bold: false },
-  { label: "= FCO (Caixa Operacional)",  jacqes:   720_000, caza:  580_000, advisor:  510_000, venture:  18_500_000, indent: 0, bold: true  },
-  { label: "(-) Capex",                  jacqes:   -48_000, caza:  -32_000, advisor:  -12_000, venture:  -7_000_000, indent: 1, bold: false },
-  { label: "(-) Novos Investimentos",    jacqes:         0, caza:        0, advisor:        0, venture:           0, indent: 1, bold: false },
-  { label: "= FCO Livre (FCF)",          jacqes:   672_000, caza:  548_000, advisor:  498_000, venture:  11_500_000, indent: 0, bold: true  },
-  { label: "(-) Distribuições/Divid.",   jacqes:  -200_000, caza:  -80_000, advisor: -100_000, venture:           0, indent: 1, bold: false },
-  { label: "= Var. de Caixa",            jacqes:   472_000, caza:  468_000, advisor:  398_000, venture:  11_500_000, indent: 0, bold: true  },
+  { label: "Lucro Líquido",              jacqes:   518_000, caza:  420_000, advisor:  479_000, venture: 0, indent: 1, bold: false },
+  { label: "(+) D&A",                    jacqes:    43_000, caza:   18_000, advisor:    8_000, venture: 0, indent: 1, bold: false },
+  { label: "(+/-) Cap. de Giro",         jacqes:   159_000, caza:  142_000, advisor:   23_000, venture: 0, indent: 1, bold: false },
+  { label: "= FCO (Caixa Operacional)",  jacqes:   720_000, caza:  580_000, advisor:  510_000, venture: 0, indent: 0, bold: true  },
+  { label: "(-) Capex",                  jacqes:   -48_000, caza:  -32_000, advisor:  -12_000, venture: 0, indent: 1, bold: false },
+  { label: "(-) Novos Investimentos",    jacqes:         0, caza:        0, advisor:        0, venture: 0, indent: 1, bold: false },
+  { label: "= FCO Livre (FCF)",          jacqes:   672_000, caza:  548_000, advisor:  498_000, venture: 0, indent: 0, bold: true  },
+  { label: "(-) Distribuições/Divid.",   jacqes:  -200_000, caza:  -80_000, advisor: -100_000, venture: 0, indent: 1, bold: false },
+  { label: "= Var. de Caixa",            jacqes:   472_000, caza:  468_000, advisor:  398_000, venture: 0, indent: 0, bold: true  },
 ];
 
 // ─── Budget targets by P&L line (complement to buData.budgetRevenue) ──────────

@@ -37,12 +37,29 @@ import {
 
 export type { EntityLayer, ManagerialCategory };
 
-// ─── Category sets ────────────────────────────────────────────────────────────
+// ─── Category sets (DRE-complete) ────────────────────────────────────────────
+//
+// REVENUE_CATS: all credit categories that feed the DRE revenue lines.
+//   rendimento_financeiro is included — it feeds DRE "Receita Financeira".
+//   ajuste_bancario_credito is included — storno / credit adjustment.
+//   transferencia_interna_recebida is EXCLUDED — intercompany, no P&L.
+//   aporte_socio is EXCLUDED — capitalização, not revenue.
+//
+// OPERATIONAL_EXPENSE_CATS: all debit categories that feed DRE expense lines.
+//   Excludes aplicacao_financeira, resgate_financeiro, transferencia_interna_enviada
+//   (those are in CONSOLIDATION_EXCLUDED via excludedFromConsolidated flag).
+//   Includes prolabore_retirada (below-the-line, shown separately in FCO).
 
 const REVENUE_CATS = new Set<ManagerialCategory>([
   "receita_recorrente",
   "receita_projeto",
+  "receita_consultoria",
+  "receita_producao",
+  "receita_social_media",
+  "receita_revenue_share",
   "receita_eventual",
+  "rendimento_financeiro",
+  "ajuste_bancario_credito",
 ]);
 
 const OPERATIONAL_EXPENSE_CATS = new Set<ManagerialCategory>([
@@ -51,11 +68,17 @@ const OPERATIONAL_EXPENSE_CATS = new Set<ManagerialCategory>([
   "folha_remuneracao",
   "prolabore_retirada",
   "imposto_tributo",
+  "juros_multa_iof",
   "tarifa_bancaria",
   "software_assinatura",
   "marketing_midia",
   "deslocamento_combustivel",
   "alimentacao_representacao",
+  "viagem_hospedagem",
+  "aluguel_locacao",
+  "energia_agua_internet",
+  "servicos_contabeis_juridicos",
+  "cartao_compra_operacional",
   "despesa_pessoal_misturada",
   "despesa_ambigua",
 ]);
@@ -67,28 +90,42 @@ const AMBIGUOUS_CATS = new Set<ManagerialCategory>([
 ]);
 
 export const CATEGORY_LABELS: Record<ManagerialCategory, string> = {
-  receita_recorrente:              "Receita Recorrente",
-  receita_projeto:                 "Receita de Projeto",
-  receita_eventual:                "Receita Eventual",
-  aporte_socio:                    "Aporte do Sócio",
-  transferencia_interna_recebida:  "Transf. Interna Recebida",
-  transferencia_interna_enviada:   "Transf. Interna Enviada",
-  fornecedor_operacional:          "Fornecedor Operacional",
-  freelancer_terceiro:             "Freelancer / Terceiro",
-  folha_remuneracao:               "Folha / Remuneração",
-  prolabore_retirada:              "Pró-labore / Retirada",
-  imposto_tributo:                 "Imposto / Tributo",
-  tarifa_bancaria:                 "Tarifa Bancária",
-  software_assinatura:             "Software / Assinatura",
-  marketing_midia:                 "Marketing / Mídia",
-  deslocamento_combustivel:        "Deslocamento / Combustível",
-  alimentacao_representacao:       "Alimentação / Representação",
-  despesa_pessoal_misturada:       "Despesa Pessoal Misturada",
-  aplicacao_financeira:            "Aplicação Financeira",
-  resgate_financeiro:              "Resgate Financeiro",
-  despesa_ambigua:                 "Despesa Ambígua",
-  recebimento_ambiguo:             "Recebimento Ambíguo",
-  unclassified:                    "Não Classificado",
+  // ── Entradas ──────────────────────────────────────────────────────────────
+  receita_recorrente:             "Receita Recorrente",
+  receita_projeto:                "Receita de Projeto",
+  receita_consultoria:            "Receita de Consultoria",
+  receita_producao:               "Receita de Produção",
+  receita_social_media:           "Receita Social Media",
+  receita_revenue_share:          "Revenue Share",
+  receita_eventual:               "Receita Eventual",
+  rendimento_financeiro:          "Rendimento Financeiro",
+  aporte_socio:                   "Aporte do Sócio",
+  transferencia_interna_recebida: "Transf. Intercompany (recebida)",
+  ajuste_bancario_credito:        "Ajuste / Crédito Bancário",
+  recebimento_ambiguo:            "Recebimento Ambíguo",
+  // ── Saídas ────────────────────────────────────────────────────────────────
+  fornecedor_operacional:         "Fornecedor Operacional",
+  freelancer_terceiro:            "Freelancer / Terceiro",
+  folha_remuneracao:              "Folha / Remuneração",
+  prolabore_retirada:             "Pró-labore / Retirada",
+  imposto_tributo:                "Imposto / Tributo",
+  juros_multa_iof:                "Juros / Multa / IOF",
+  tarifa_bancaria:                "Tarifa Bancária",
+  software_assinatura:            "Software / Assinatura",
+  marketing_midia:                "Marketing / Mídia Paga",
+  deslocamento_combustivel:       "Deslocamento / Combustível",
+  alimentacao_representacao:      "Alimentação / Representação",
+  viagem_hospedagem:              "Viagem / Hospedagem",
+  aluguel_locacao:                "Aluguel / Locação",
+  energia_agua_internet:          "Energia / Água / Internet",
+  servicos_contabeis_juridicos:   "Serviços Contábeis / Jurídicos",
+  cartao_compra_operacional:      "Compra via Cartão Corporativo",
+  despesa_pessoal_misturada:      "Despesa Pessoal Misturada",
+  aplicacao_financeira:           "Aplicação Financeira",
+  resgate_financeiro:             "Resgate Financeiro",
+  transferencia_interna_enviada:  "Transf. Intercompany (enviada)",
+  despesa_ambigua:                "Despesa Ambígua",
+  unclassified:                   "Não Classificado",
 };
 
 export const ENTITY_LABELS: Record<EntityLayer, string> = {

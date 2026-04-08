@@ -87,28 +87,81 @@ export type ClassificationConfidence =
 
 // Gerencial category taxonomy — every transaction must resolve to one of these.
 // "unclassified" is only acceptable if confidence = "unclassifiable".
+// ─── Taxonomia DRE Gerencial (completa) ───────────────────────────────────────
+//
+// ENTRADAS (receitas e créditos)
+//   receita_recorrente           — mensalidade/retainer de cliente recorrente
+//   receita_projeto              — projeto fechado (produção, campanha, entrega)
+//   receita_consultoria          — honorários de consultoria / advisory
+//   receita_producao             — produção audiovisual / conteúdo (ex: AT FILMS)
+//   receita_social_media         — social media management recorrente
+//   receita_revenue_share        — revenue share / participação em resultados
+//   receita_eventual             — receita avulsa / one-off não recorrente
+//   rendimento_financeiro        — juros, rendimentos CDB/LCI/LCA, dividendos
+//   aporte_socio                 — capitalização direta do sócio
+//   transferencia_interna_recebida — transferência intercompany recebida
+//   ajuste_bancario_credito      — estorno, ajuste ou crédito bancário avulso
+//   recebimento_ambiguo          — crédito não classificado, pendente revisão
+//
+// SAÍDAS (despesas e débitos)
+//   fornecedor_operacional       — fornecedor/prestador operacional geral
+//   freelancer_terceiro          — freelancer, autônomo, MEI contratado
+//   folha_remuneracao            — salário CLT, benefícios, FGTS, INSS folha
+//   prolabore_retirada           — pró-labore ou retirada do sócio
+//   imposto_tributo              — DAS, DARF, ISS, Simples Nacional, IRPJ, CSLL
+//   juros_multa_iof              — IOF, multas, juros bancários/fiscais
+//   tarifa_bancaria              — tarifa de conta, TED, Pix manual, manutenção
+//   software_assinatura          — SaaS, ferramentas digitais, licenças
+//   marketing_midia              — tráfego pago, Meta/Google Ads, mídia comprada
+//   deslocamento_combustivel     — combustível, Uber, táxi, transporte
+//   alimentacao_representacao    — alimentação (operacional ou representação)
+//   viagem_hospedagem            — passagem aérea, hotel, hospedagem
+//   aluguel_locacao              — aluguel de imóvel ou equipamento, coworking
+//   energia_agua_internet        — contas de concessionária (energia, água, net)
+//   servicos_contabeis_juridicos — contabilidade, escritório jurídico, compliance
+//   cartao_compra_operacional    — compra operacional via cartão corporativo
+//   despesa_pessoal_misturada    — despesa pessoal do sócio na conta PJ (flag)
+//   aplicacao_financeira         — aplicação em CDB, LCI, LCA, fundo de investimento
+//   transferencia_interna_enviada — transferência intercompany enviada / reserva cartão
+//   despesa_ambigua              — débito não classificado, pendente revisão
+//   unclassified                 — não classificado (só com confidence=unclassifiable)
+
 export type ManagerialCategory =
+  // ── Entradas ──────────────────────────────────────────────────────────────
   | "receita_recorrente"
   | "receita_projeto"
+  | "receita_consultoria"
+  | "receita_producao"
+  | "receita_social_media"
+  | "receita_revenue_share"
   | "receita_eventual"
+  | "rendimento_financeiro"
   | "aporte_socio"
   | "transferencia_interna_recebida"
-  | "transferencia_interna_enviada"
+  | "ajuste_bancario_credito"
+  | "recebimento_ambiguo"
+  // ── Saídas ────────────────────────────────────────────────────────────────
   | "fornecedor_operacional"
   | "freelancer_terceiro"
   | "folha_remuneracao"
   | "prolabore_retirada"
   | "imposto_tributo"
+  | "juros_multa_iof"
   | "tarifa_bancaria"
   | "software_assinatura"
   | "marketing_midia"
   | "deslocamento_combustivel"
   | "alimentacao_representacao"
+  | "viagem_hospedagem"
+  | "aluguel_locacao"
+  | "energia_agua_internet"
+  | "servicos_contabeis_juridicos"
+  | "cartao_compra_operacional"
   | "despesa_pessoal_misturada"
   | "aplicacao_financeira"
   | "resgate_financeiro"
+  | "transferencia_interna_enviada"
   | "despesa_ambigua"
-  | "recebimento_ambiguo"
   | "unclassified";
 
 export interface FinancialDocument {

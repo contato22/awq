@@ -149,23 +149,49 @@ const businessUnits = [
     },
 ];
 
-const awqNav = [
-    { label: "Visão Geral",    href: "/awq",             icon: LayoutDashboard },
-    { label: "Business Units", href: "/business-units",   icon: Building2       },
-    { label: "KPIs",           href: "/awq/kpis",         icon: BarChart3       },
-    { label: "Financial",      href: "/awq/financial",    icon: LineChart       },
-    { label: "Portfolio",      href: "/awq/portfolio",    icon: Briefcase       },
-    { label: "Cash Flow",      href: "/awq/cashflow",     icon: Zap             },
-    { label: "Investimentos",  href: "/awq/investments",  icon: Landmark        },
-    { label: "Budget",         href: "/awq/budget",       icon: Wallet          },
-    { label: "Forecast",       href: "/awq/forecast",     icon: TrendingUp      },
-    { label: "Allocations",    href: "/awq/allocations",  icon: Wallet          },
-    { label: "Risk",           href: "/awq/risk",         icon: Activity        },
-    { label: "Contas Banco",   href: "/awq/bank",         icon: CreditCard      },
-    { label: "Ingestão",       href: "/awq/ingest",       icon: FileUp          },
-    { label: "Base de Dados",  href: "/awq/data",         icon: Database        },
-    { label: "Governança",     href: "/awq/management",   icon: ShieldCheck     },
-];
+// ── AWQ Group nav — grouped into 5 labelled sections ─────────────────────────
+const awqNavGroups = [
+  {
+    label: "Executivo",
+    items: [
+      { label: "Visão Geral",    href: "/awq",            icon: LayoutDashboard },
+      { label: "KPIs",           href: "/awq/kpis",        icon: BarChart3       },
+      { label: "Business Units", href: "/business-units",  icon: Building2       },
+    ],
+  },
+  {
+    label: "Financeiro / DRE",
+    items: [
+      { label: "Financial",  href: "/awq/financial", icon: LineChart  },
+      { label: "Cash Flow",  href: "/awq/cashflow",  icon: Zap        },
+      { label: "Budget",     href: "/awq/budget",    icon: Wallet     },
+      { label: "Forecast",   href: "/awq/forecast",  icon: TrendingUp },
+    ],
+  },
+  {
+    label: "Portfólio / Alocação",
+    items: [
+      { label: "Investimentos", href: "/awq/investments", icon: Landmark  },
+      { label: "Portfolio",     href: "/awq/portfolio",   icon: Briefcase },
+      { label: "Allocations",   href: "/awq/allocations", icon: Wallet    },
+    ],
+  },
+  {
+    label: "Risco / Auditoria",
+    items: [
+      { label: "Risk",         href: "/awq/risk",  icon: Activity   },
+      { label: "Contas Banco", href: "/awq/bank",  icon: CreditCard },
+    ],
+  },
+  {
+    label: "Governança / Base",
+    items: [
+      { label: "Ingestão",     href: "/awq/ingest",      icon: FileUp    },
+      { label: "Base de Dados", href: "/awq/data",        icon: Database  },
+      { label: "Governança",   href: "/awq/management",  icon: ShieldCheck },
+    ],
+  },
+] as const;
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
 function NavItem({
@@ -294,13 +320,25 @@ function AwqSidebar({ pathname }: { pathname: string }) {
         <>
             <AwqHeader />
             <nav className="flex-1 overflow-y-auto px-3 py-2">
-                <SectionLabel>AWQ Group</SectionLabel>
-                <div className="space-y-0.5">
-                    {awqNav.map((item) => (
-                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
-                    ))}
-                </div>
+                {/* ── AWQ Holding indicator sub-sections ─────────────────── */}
+                {awqNavGroups.map((group) => (
+                    <div key={group.label}>
+                        <SectionLabel>{group.label}</SectionLabel>
+                        <div className="space-y-0.5">
+                            {group.items.map((item) => (
+                                <NavItem
+                                    key={item.href}
+                                    href={item.href}
+                                    icon={item.icon}
+                                    label={item.label}
+                                    active={isActive(item.href)}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                ))}
 
+                {/* ── Business Unit cards ─────────────────────────────────── */}
                 <SectionLabel>Business Units</SectionLabel>
                 <div className="space-y-2 mt-1">
                     {businessUnits.map((bu) => (

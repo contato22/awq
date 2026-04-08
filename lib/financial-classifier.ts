@@ -83,17 +83,18 @@ const COUNTERPARTY_RULES: CounterpartyRule[] = [
     patterns: ["awq producoes", "awq produções", "awq prod ltda", "awq producao"],
     name: "AWQ Producoes Ltda",
     category: "transferencia_interna_enviada",
-    entity: "Intercompany",
+    entity: null,  // keep accountEntity — this is AWQ's own transaction
     confidence: "confirmed",
   },
   // ── MIGUEL COSTA DE SOUZA — sócio / PF (confirmed in prints 01/04 + 03/04/2026)
   //    Pix to individual: R$1.000 + R$1.000 = R$2.000. Partner withdrawal / pro-labore.
   //    NOT investment. NOT operational expense.
+  //    entity=null: keep accountEntity (AWQ_Holding) — entity tracks the ACCOUNT, not the payee.
   {
     patterns: ["miguel costa de souza", "miguel costa"],
     name: "Miguel Costa de Souza",
     category: "prolabore_retirada",
-    entity: "Socio_PF",
+    entity: null,  // keep accountEntity — counterpartyName already captures payee identity
     confidence: "probable",
   },
   // ── Financial investments — resgates BEFORE aplicacoes so that descriptions
@@ -332,6 +333,70 @@ const COUNTERPARTY_RULES: CounterpartyRule[] = [
     entity: null,
     confidence: "ambiguous",
   },
+  // ── IOF / juros / multas — separated from imposto_tributo for DRE accuracy
+  {
+    patterns: ["multa", "mora ", "juros debito", "juros db", "encargo"],
+    name: null,
+    category: "juros_multa_iof",
+    entity: null,
+    confidence: "probable",
+  },
+  // ── Rendimentos financeiros (CDB, LCI, LCA, fundo)
+  {
+    patterns: ["rendimento", "rend. cdb", "rend cdb", "juros cdb", "creditado cdb", "creditado lci", "creditado lca"],
+    name: null,
+    category: "rendimento_financeiro",
+    entity: null,
+    confidence: "probable",
+  },
+  // ── Aluguel / locação
+  {
+    patterns: ["aluguel", "locação", "locacao", "coworking", "escritorio aluguel"],
+    name: null,
+    category: "aluguel_locacao",
+    entity: null,
+    confidence: "probable",
+  },
+  // ── Energia, água, internet
+  {
+    patterns: ["celpe", "cemig", "copel", "enel ", "light ", "sabesp", "cosanpa", "claro", "vivo ", "tim ", "oi internet", "net combof", "serasa broadband"],
+    name: null,
+    category: "energia_agua_internet",
+    entity: null,
+    confidence: "probable",
+  },
+  // ── Viagem / hospedagem
+  {
+    patterns: ["airbnb", "booking.com", "hotel", "pousada", "hospedagem", "passagem aerea", "gol airlines", "latam airlines", "azul linhas"],
+    name: null,
+    category: "viagem_hospedagem",
+    entity: null,
+    confidence: "probable",
+  },
+  // ── Serviços contábeis / jurídicos
+  {
+    patterns: ["contabilidade", "contador", "juridico", "advocacia", "escritorio adv", "compliance"],
+    name: null,
+    category: "servicos_contabeis_juridicos",
+    entity: null,
+    confidence: "probable",
+  },
+  // ── Compra operacional via cartão
+  {
+    patterns: ["debito cartao", "fatura cartao", "compra cartao", "pagto fatura"],
+    name: null,
+    category: "cartao_compra_operacional",
+    entity: null,
+    confidence: "ambiguous",
+  },
+  // ── Ajuste de crédito bancário (estorno, devolução, crédito avulso)
+  {
+    patterns: ["estorno", "devolucao", "devoluçao", "devol pix", "ajuste credito", "credito ajuste"],
+    name: null,
+    category: "ajuste_bancario_credito",
+    entity: null,
+    confidence: "probable",
+  },
 ];
 
 // ─── Pattern rules — structural heuristics ────────────────────────────────────
@@ -345,6 +410,14 @@ interface PatternRule {
 }
 
 const PATTERN_RULES: PatternRule[] = [
+  // Rendimento financeiro — before Pix patterns
+  {
+    test: (d) => /(rendimento|rend\. )/i.test(d),
+    category: "rendimento_financeiro",
+    entity: null,
+    confidence: "probable",
+    note: "Rendimento financeiro detectado — confirmar instrumento (CDB, LCI, LCA, fundo).",
+  },
   // Pix transfers — high ambiguity, need counterparty to resolve
   {
     test: (d) => /\bpix\b/i.test(d) && /(recebido|entrada|credito|receb)/i.test(d),
@@ -529,28 +602,42 @@ export function classifyAll(
 // ─── Category labels for display ─────────────────────────────────────────────
 
 export const CATEGORY_LABELS: Record<ManagerialCategory, string> = {
-  receita_recorrente:           "Receita Recorrente",
-  receita_projeto:              "Receita de Projeto",
-  receita_eventual:             "Receita Eventual",
-  aporte_socio:                 "Aporte do Sócio",
-  transferencia_interna_recebida: "Transferência Interna (entrada)",
-  transferencia_interna_enviada:  "Transferência Interna (saída)",
-  fornecedor_operacional:       "Fornecedor Operacional",
-  freelancer_terceiro:          "Freelancer / Terceiro",
-  folha_remuneracao:            "Folha / Remuneração",
-  prolabore_retirada:           "Pró-labore / Retirada",
-  imposto_tributo:              "Imposto / Tributo",
-  tarifa_bancaria:              "Tarifa Bancária",
-  software_assinatura:          "Software / Assinatura",
-  marketing_midia:              "Marketing / Mídia",
-  deslocamento_combustivel:     "Deslocamento / Combustível",
-  alimentacao_representacao:    "Alimentação / Representação",
-  despesa_pessoal_misturada:    "Despesa Pessoal Misturada",
-  aplicacao_financeira:         "Aplicação Financeira",
-  resgate_financeiro:           "Resgate Financeiro",
-  despesa_ambigua:              "Despesa Ambígua",
-  recebimento_ambiguo:          "Recebimento Ambíguo",
-  unclassified:                 "Não Classificado",
+  // ── Entradas ──────────────────────────────────────────────────────────────
+  receita_recorrente:             "Receita Recorrente",
+  receita_projeto:                "Receita de Projeto",
+  receita_consultoria:            "Receita de Consultoria",
+  receita_producao:               "Receita de Produção",
+  receita_social_media:           "Receita Social Media",
+  receita_revenue_share:          "Revenue Share",
+  receita_eventual:               "Receita Eventual",
+  rendimento_financeiro:          "Rendimento Financeiro",
+  aporte_socio:                   "Aporte do Sócio",
+  transferencia_interna_recebida: "Transferência Intercompany (recebida)",
+  ajuste_bancario_credito:        "Ajuste / Crédito Bancário",
+  recebimento_ambiguo:            "Recebimento Ambíguo",
+  // ── Saídas ────────────────────────────────────────────────────────────────
+  fornecedor_operacional:         "Fornecedor Operacional",
+  freelancer_terceiro:            "Freelancer / Terceiro",
+  folha_remuneracao:              "Folha / Remuneração",
+  prolabore_retirada:             "Pró-labore / Retirada",
+  imposto_tributo:                "Imposto / Tributo",
+  juros_multa_iof:                "Juros / Multa / IOF",
+  tarifa_bancaria:                "Tarifa Bancária",
+  software_assinatura:            "Software / Assinatura",
+  marketing_midia:                "Marketing / Mídia Paga",
+  deslocamento_combustivel:       "Deslocamento / Combustível",
+  alimentacao_representacao:      "Alimentação / Representação",
+  viagem_hospedagem:              "Viagem / Hospedagem",
+  aluguel_locacao:                "Aluguel / Locação",
+  energia_agua_internet:          "Energia / Água / Internet",
+  servicos_contabeis_juridicos:   "Serviços Contábeis / Jurídicos",
+  cartao_compra_operacional:      "Compra via Cartão Corporativo",
+  despesa_pessoal_misturada:      "Despesa Pessoal Misturada",
+  aplicacao_financeira:           "Aplicação Financeira",
+  resgate_financeiro:             "Resgate Financeiro",
+  transferencia_interna_enviada:  "Transferência Intercompany (enviada)",
+  despesa_ambigua:                "Despesa Ambígua",
+  unclassified:                   "Não Classificado",
 };
 
 export const ENTITY_LABELS: Record<EntityLayer, string> = {
@@ -562,14 +649,20 @@ export const ENTITY_LABELS: Record<EntityLayer, string> = {
   Unknown:       "Não identificado",
 };
 
-// Revenue categories — used to compute total revenue, excluding intercompany
+// Revenue categories — full DRE revenue taxonomy
 export const REVENUE_CATEGORIES: ManagerialCategory[] = [
   "receita_recorrente",
   "receita_projeto",
+  "receita_consultoria",
+  "receita_producao",
+  "receita_social_media",
+  "receita_revenue_share",
   "receita_eventual",
+  "rendimento_financeiro",
+  "ajuste_bancario_credito",
 ];
 
-// Excluded from consolidated P&L
+// Excluded from consolidated P&L (pass-through, no P&L impact)
 export const CONSOLIDATION_EXCLUDED_CATEGORIES: ManagerialCategory[] = [
   "transferencia_interna_recebida",
   "transferencia_interna_enviada",
