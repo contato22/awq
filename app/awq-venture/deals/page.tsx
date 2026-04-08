@@ -1,8 +1,10 @@
 // ─── /awq-venture/deals — Índice de Deals ────────────────────────────────────
 // Lista consolidada de todas as propostas de aquisição da AWQ Venture.
 // Cada linha linka para o Deal Workspace único (/awq-venture/deals/:id).
+"use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import { dealWorkspaces } from "@/lib/deal-data";
 import {
@@ -68,6 +70,7 @@ const priorityBadge: Record<string, string> = {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function DealsIndexPage() {
+  const router = useRouter();
   const deals = dealWorkspaces;
 
   const totalTicket   = deals.reduce((s, d) => s + d.proposedValue, 0);
@@ -131,44 +134,46 @@ export default function DealsIndexPage() {
               {deals.map((d) => {
                 const StageIcon = stageIcon[d.stage] ?? Clock;
                 return (
-                  <Link key={d.id} href={`/awq-venture/deals/${d.id}`} legacyBehavior>
-                    <tr className="hover:bg-gray-50 cursor-pointer transition-colors group">
-                      <td className="py-3 px-4">
-                        <div className="font-semibold text-gray-900 text-sm">{d.companyName}</div>
-                        <div className="text-[11px] text-gray-400 mt-0.5">{d.id} · {d.operationType}</div>
-                      </td>
-                      <td className="py-3 px-4 text-sm text-gray-500">{d.identification.sector}</td>
-                      <td className="py-3 px-4">
-                        <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-1 rounded-full ${stageColor[d.stage] ?? "text-gray-500 bg-gray-100"}`}>
-                          <StageIcon size={10} />
-                          {d.stage}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-right font-bold text-amber-600 text-sm tabular-nums">
-                        {fmtR(d.proposedValue)}
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <span className={`text-sm font-bold tabular-nums ${d.dealScore >= 8 ? "text-emerald-600" : d.dealScore >= 7 ? "text-amber-600" : "text-gray-500"}`}>
-                          {d.dealScore.toFixed(1)}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${riskColor[d.riskLevel] ?? "text-gray-500"}`}>
-                          {d.riskLevel}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className={priorityBadge[d.priority] ?? "badge"}>{d.priority}</span>
-                      </td>
-                      <td className={`py-3 px-4 text-[12px] ${sendStatusColor[d.sendStatus] ?? "text-gray-500"}`}>
-                        {d.sendStatus}
-                      </td>
-                      <td className="py-3 px-4 text-sm text-gray-500">{d.assignee}</td>
-                      <td className="py-3 px-4">
-                        <ArrowRight size={14} className="text-gray-300 group-hover:text-gray-500 transition-colors" />
-                      </td>
-                    </tr>
-                  </Link>
+                  <tr
+                    key={d.id}
+                    onClick={() => router.push(`/awq-venture/deals/${d.id}`)}
+                    className="hover:bg-gray-50 cursor-pointer transition-colors group"
+                  >
+                    <td className="py-3 px-4">
+                      <div className="font-semibold text-gray-900 text-sm">{d.companyName}</div>
+                      <div className="text-[11px] text-gray-400 mt-0.5">{d.id} · {d.operationType}</div>
+                    </td>
+                    <td className="py-3 px-4 text-sm text-gray-500">{d.identification.sector}</td>
+                    <td className="py-3 px-4">
+                      <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-1 rounded-full ${stageColor[d.stage] ?? "text-gray-500 bg-gray-100"}`}>
+                        <StageIcon size={10} />
+                        {d.stage}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-right font-bold text-amber-600 text-sm tabular-nums">
+                      {fmtR(d.proposedValue)}
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <span className={`text-sm font-bold tabular-nums ${d.dealScore >= 8 ? "text-emerald-600" : d.dealScore >= 7 ? "text-amber-600" : "text-gray-500"}`}>
+                        {d.dealScore.toFixed(1)}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${riskColor[d.riskLevel] ?? "text-gray-500"}`}>
+                        {d.riskLevel}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className={priorityBadge[d.priority] ?? "badge"}>{d.priority}</span>
+                    </td>
+                    <td className={`py-3 px-4 text-[12px] ${sendStatusColor[d.sendStatus] ?? "text-gray-500"}`}>
+                      {d.sendStatus}
+                    </td>
+                    <td className="py-3 px-4 text-sm text-gray-500">{d.assignee}</td>
+                    <td className="py-3 px-4">
+                      <ArrowRight size={14} className="text-gray-300 group-hover:text-gray-500 transition-colors" />
+                    </td>
+                  </tr>
                 );
               })}
             </tbody>

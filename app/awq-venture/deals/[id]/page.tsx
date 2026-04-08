@@ -579,7 +579,7 @@ export default function DealWorkspacePage({
       </div>
 
       {/* ── Anchor Nav ────────────────────────────────────────────────────── */}
-      <div className="sticky top-[57px] z-[5] bg-white border-b border-gray-200 -mx-6 lg:-mx-8 px-6 lg:px-8">
+      <div className="sticky top-[49px] z-[5] bg-white border-b border-gray-200 rounded-xl overflow-hidden">
         <nav className="flex gap-0.5 overflow-x-auto py-1">
           {anchors.map((a) => (
             <a
