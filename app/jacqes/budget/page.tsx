@@ -8,6 +8,9 @@ import {
   ArrowDownRight,
   Minus,
 } from "lucide-react";
+import { buData } from "@/lib/awq-group-data";
+
+const _jacqes = buData.find((b) => b.id === "jacqes")!;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -27,28 +30,15 @@ function varLabel(v: number) {
   return `${v >= 0 ? "+" : ""}${v.toFixed(1)}%`;
 }
 
-// ─── Data — SOURCE: lib/awq-group-data.ts buData["jacqes"] ───────────────────
-//
-// yearActual (Q1 YTD Jan–Mar/26):
-//   receita    → buData.revenue         = 4,820,000
-//   cogs       → revenue − grossProfit  = 4,820,000 − 2,892,000 = 1,928,000
-//   lucrobruto → buData.grossProfit     = 2,892,000  (margem bruta 60.0%)
-//   opex       → grossProfit − ebitda   = 2,892,000 − 867,000   = 2,025,000
-//   ebitda     → buData.ebitda          = 867,000    (margem EBITDA 18.0%)
-//   lucroliq   → buData.netIncome       = 518,000    (margem líquida 10.7%)
-//
-// yearBudget (anual extrapolado):
-//   budgetRevenue Q1 = 4,440,000 → anual = 4,440,000 × 4 = 17,760,000
-//   demais linhas derivadas da mesma proporção dos actuals acima
-
-// receita Mar/26 = JACQES_MRR (Notion CRM). Custo/margem aguardam confirmação.
+// ─── Data — SOURCE: buData["jacqes"] (awq-group-data.ts) ─────────────────────
+// Custo/margem aguardam confirmação contábil (todos zero).
 const yearActual = {
-  receita:   27_750,  // Notion CRM · YTD Jan–Abr/26 (6490×3 + 8280)
-  cogs:           0,  // aguardando confirmação contábil
-  lucrobruto:     0,  // aguardando confirmação contábil
-  opex:           0,  // aguardando confirmação contábil
-  ebitda:         0,  // aguardando confirmação contábil
-  lucroliq:       0,  // aguardando confirmação contábil
+  receita:    _jacqes.revenue,     // YTD Jan–Abr/26: auto-atualiza com buData
+  cogs:       _jacqes.revenue - _jacqes.grossProfit,  // 0 enquanto grossProfit=0
+  lucrobruto: _jacqes.grossProfit, // aguardando confirmação contábil
+  opex:       _jacqes.grossProfit - _jacqes.ebitda,   // 0 enquanto ebitda=0
+  ebitda:     _jacqes.ebitda,      // aguardando confirmação contábil
+  lucroliq:   _jacqes.netIncome,   // aguardando confirmação contábil
 };
 
 const yearBudget = {

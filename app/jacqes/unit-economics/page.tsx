@@ -7,6 +7,9 @@ import {
   Info,
   AlertTriangle,
 } from "lucide-react";
+import { monthlyRevenue, buData } from "@/lib/awq-group-data";
+
+const _jacqes = buData.find((b) => b.id === "jacqes")!;
 
 // ─── /jacqes/unit-economics ──────────────────────────────────────────────────
 //
@@ -31,16 +34,11 @@ function fmtR(n: number) {
   return "R$" + n.toLocaleString("pt-BR");
 }
 
-// ─── MRR — Q1/26 + Abr/26 empírico (monthlyRevenue) ──────────────────────────
+// ─── MRR — derivado de monthlyRevenue[jacqes] (awq-group-data.ts) ─────────────
 // ONLY real months. No invented Oct/Nov/Dec/25, no newMrr/churnMrr decomposition.
-// Jan/Fev/Mar: 3 clientes × R$6.490  (CEM, Carol, André)
-// Abr/26:      4 clientes × R$8.280  (+ Tati Simões)
-const mrrHistory = [
-  { month: "Jan/26", mrr: 6_490 },
-  { month: "Fev/26", mrr: 6_490 },
-  { month: "Mar/26", mrr: 6_490 },
-  { month: "Abr/26", mrr: 8_280 },
-];
+const mrrHistory = monthlyRevenue
+  .filter((m) => m.jacqes > 0)
+  .map((m) => ({ month: m.month, mrr: m.jacqes }));
 
 // ─── Benchmarks — derivados de buData ────────────────────────────────────────
 // Gross Margin: buData.grossProfit / revenue = 2_892_000 / 4_820_000 = 60.0%
@@ -75,7 +73,7 @@ export default function JacqesUnitEconomicsPage() {
           {[
             { label: "MRR Abr/26",      value: fmtR(latestMrr.mrr), sub: "monthlyRevenue · empírico",    color: "text-brand-600",   bg: "bg-brand-50",   icon: DollarSign  },
             { label: "ARR Projetado",   value: fmtR(arr),            sub: "MRR Abr/26 × 12",             color: "text-emerald-600", bg: "bg-emerald-50", icon: TrendingUp  },
-            { label: "Receita YTD",     value: fmtR(27_750),         sub: "Jan–Abr/26 · 4 meses",        color: "text-violet-700",  bg: "bg-violet-50",  icon: BarChart3   },
+            { label: "Receita YTD",     value: fmtR(_jacqes.revenue), sub: "Jan–Abr/26 · 4 meses",        color: "text-violet-700",  bg: "bg-violet-50",  icon: BarChart3   },
             { label: "MRR MoM (Mar→Abr)", value: `+${mrrGrowth}%`,  sub: "Tati Simões entrou em Abr",   color: "text-amber-700",   bg: "bg-amber-50",   icon: TrendingUp  },
           ].map((m) => {
             const Icon = m.icon;

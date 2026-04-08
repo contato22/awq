@@ -1,15 +1,12 @@
-// ─── JACQES BU — Snapshot Data · Q1 2026 ─────────────────────────────────────
+// ─── JACQES BU — Snapshot Data · derivado de awq-group-data.ts ────────────────
 //
-// CLASSIFICAÇÃO: snapshot — valores alinhados com awq-group-data.ts (Q1 2026).
+// CLASSIFICAÇÃO: snapshot — valores IMPORTADOS de awq-group-data.ts.
 // Não é feed ao vivo do Notion. Quando o Notion for conectado, substituir.
 //
-// REGRA: Nenhum dado granular inventado aqui. Apenas valores deriváveis
-// diretamente de buData["jacqes"] ou monthlyRevenue.
-//
-// KPIs.revenue   → buData[jacqes].revenue         = 4_820_000
-// KPIs.customers → buData[jacqes].customers        = 10
-// KPIs.margin    → grossProfit/revenue             = 2_892_000/4_820_000 = 60.0%
-// revenueData    → monthlyRevenue[jacqes] Q1/26    = empirical (awq-group-data)
+// REGRA: nenhum número hardcoded aqui. Todos os valores derivam de:
+//   JACQES_MRR     → MRR atual (Abr+, com Tati)
+//   buData[jacqes] → customers, revenue YTD
+//   monthlyRevenue → revenueData por mês
 //
 // Arrays ESVAZIADOS (dados eram invenções sem respaldo):
 //   topProducts      → sem breakdown real de serviços por categoria
@@ -17,6 +14,10 @@
 //   channelData      → sem breakdown real por canal de aquisição
 //   customerSegments → sem segmentação validada
 //   alerts           → sem alertas de clientes reais (clientes eram fictícios)
+
+import { JACQES_MRR, buData, monthlyRevenue } from "@/lib/awq-group-data";
+
+const _jacqes = buData.find((b) => b.id === "jacqes")!;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -78,14 +79,13 @@ export interface Alert {
   timestamp: string;
 }
 
-// ─── KPIs — aligned with awq-group-data Q1 2026 ──────────────────────────────
-
-// SOURCE: Notion CRM — receita confirmada por mês
+// ─── KPIs — derivados de buData["jacqes"] e JACQES_MRR ──────────────────────
+// SOURCE: awq-group-data.ts
 export const kpis: KPI[] = [
   {
     id: "revenue",
     label: "MRR Atual",
-    value:         8_280,   // Abr/2026: 4 clientes (com Tati)
+    value:         JACQES_MRR,          // Abr+: 4 clientes (com Tati)
     previousValue: 0,
     unit: "currency",
     icon: "DollarSign",
@@ -94,7 +94,7 @@ export const kpis: KPI[] = [
   {
     id: "customers",
     label: "Contas Ativas",
-    value:         4,       // Notion CRM Abr/2026
+    value:         _jacqes.customers,   // buData["jacqes"].customers
     previousValue: 0,
     unit: "number",
     icon: "Users",
@@ -113,7 +113,7 @@ export const kpis: KPI[] = [
   {
     id: "margin",
     label: "Margem Bruta",
-    value:         0,       // aguardando confirmação contábil
+    value:         0,                   // aguardando confirmação contábil
     previousValue: 0,
     unit: "percent",
     suffix: "%",
@@ -122,18 +122,15 @@ export const kpis: KPI[] = [
   },
 ];
 
-// ─── Revenue Data — Q1 2026 real (monthlyRevenue[jacqes]) ────────────────────
+// ─── Revenue Data — derivado de monthlyRevenue[jacqes] ───────────────────────
 // SOURCE: awq-group-data.ts monthlyRevenue
-// Expense ratio ~40% consistent with gross margin 60% (buData)
-
-// Jan/Fev/Mar: 3 clientes × R$6.490 · Abr: 4 clientes × R$8.280 (Tati entrou)
 // Expenses/profit = 0 — dados de custo ainda não confirmados
-export const revenueData: RevenueDataPoint[] = [
-  { month: "Jan/26", revenue: 6_490, expenses: 0, profit: 0 },
-  { month: "Fev/26", revenue: 6_490, expenses: 0, profit: 0 },
-  { month: "Mar/26", revenue: 6_490, expenses: 0, profit: 0 },
-  { month: "Abr/26", revenue: 8_280, expenses: 0, profit: 0 },
-];
+export const revenueData: RevenueDataPoint[] = monthlyRevenue.map((m) => ({
+  month:    m.month,
+  revenue:  m.jacqes,
+  expenses: 0,
+  profit:   0,
+}));
 
 // ─── Arrays esvaziados — dados granulares sem fonte empírica ─────────────────
 

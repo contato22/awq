@@ -13,8 +13,11 @@ import Header from "@/components/Header";
 import SectionHeader from "@/components/SectionHeader";
 import ChannelTable from "@/components/ChannelTable";
 import { revenueData } from "@/lib/data";
+import { JACQES_MRR, buData } from "@/lib/awq-group-data";
 import { formatCurrency } from "@/lib/utils";
 import { DollarSign, TrendingUp, ArrowUpRight, ArrowDownRight, BarChart3 } from "lucide-react";
+
+const _jacqes = buData.find((b) => b.id === "jacqes")!;
 
 interface CustomTooltipProps {
   active?: boolean;
@@ -42,15 +45,18 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   );
 }
 
-// summaryStats — SOURCE: Notion CRM Abr/2026
-// MRR Abr/26: R$8.280 (4 clientes: CEM, Carol, André, Tati)
-// YTD Jan–Abr/26: 6490×3 + 8280 = R$27.750
-// Lucro Bruto / EBITDA aguardam confirmação contábil
+// summaryStats — derivados de awq-group-data.ts (auto-atualiza)
+function fmtR(n: number) {
+  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
+  if (n >= 1_000) return "R$" + (n / 1_000).toFixed(1) + "K";
+  return "R$" + n.toLocaleString("pt-BR");
+}
+
 const summaryStats = [
-  { label: "MRR Atual (Abr/26)",  value: "R$8.280",  sub: "Notion CRM · 4 clientes FEE",          positive: true,  icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
-  { label: "Receita YTD (Jan–Abr)", value: "R$27.750", sub: "6490×3 (Jan/Fev/Mar) + 8280 (Abr)",  positive: true,  icon: BarChart3,  color: "text-brand-600",   bg: "bg-brand-50"   },
-  { label: "Lucro Bruto / EBITDA", value: "R$0",      sub: "Aguardando confirmação contábil",       positive: false, icon: TrendingUp, color: "text-violet-700",  bg: "bg-violet-50"  },
-  { label: "Contas Ativas",        value: "4",         sub: "Notion CRM · CEM, Carol, André, Tati", positive: true,  icon: DollarSign, color: "text-cyan-700",    bg: "bg-cyan-50"    },
+  { label: "MRR Atual (Abr/26)",    value: fmtR(JACQES_MRR),         sub: "Notion CRM · 4 clientes FEE",          positive: true,  icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
+  { label: "Receita YTD (Jan–Abr)", value: fmtR(_jacqes.revenue),    sub: "6490×3 (Jan/Fev/Mar) + 8280 (Abr)",    positive: true,  icon: BarChart3,  color: "text-brand-600",   bg: "bg-brand-50"   },
+  { label: "Lucro Bruto / EBITDA",  value: "R$0",                     sub: "Aguardando confirmação contábil",       positive: false, icon: TrendingUp, color: "text-violet-700",  bg: "bg-violet-50"  },
+  { label: "Contas Ativas",         value: String(_jacqes.customers), sub: "Notion CRM · CEM, Carol, André, Tati", positive: true,  icon: DollarSign, color: "text-cyan-700",    bg: "bg-cyan-50"    },
 ];
 
 export default function RevenuePage() {
