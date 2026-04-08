@@ -8,8 +8,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Header from "@/components/Header";
 import {
-  ArrowLeft, Save, Building2, DollarSign, User,
-  Target, AlertTriangle, Check, Plus, Trash2,
+  ArrowLeft, Save, Building2, DollarSign,
+  Target, AlertTriangle, Check, Trash2,
 } from "lucide-react";
 
 // ─── Types & utils ────────────────────────────────────────────────────────────
