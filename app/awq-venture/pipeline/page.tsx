@@ -28,6 +28,18 @@ function fmtR(n: number) {
 
 const deals = [
   {
+    id: "P007",
+    company:     "Grupo Energdy",
+    sector:      "Energia / Utilities",
+    stage:       "Due Diligence",
+    ticket:      5_000_000,
+    eta:         "Q3 2026",
+    score:       8.1,
+    source:      "Advisory Contract",
+    description: "Cliente ativo de advisory/incubação (R$2K/mês confirmado). Avaliação para participação estratégica ou aquisição parcial em andamento.",
+    priority:    "Alta",
+  },
+  {
     id: "P001",
     company:     "MedIA Health",
     sector:      "HealthTech",

@@ -12,46 +12,9 @@ import {
   Target, AlertTriangle, Check, Plus, Trash2,
 } from "lucide-react";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-export interface CustomDeal {
-  id:           string;
-  companyName:  string;
-  cnpj:         string;
-  sector:       string;
-  location:     string;
-  dealType:     string;
-  stage:        string;
-  ticket:       number;
-  assignee:     string;
-  riskLevel:    string;
-  priority:     string;
-  sendStatus:   string;
-  tese:         string;
-  structura:    string;
-  fee:          string;
-  earnin:       string;
-  conditions:   string;
-  nextSteps:    string;
-  notes:        string;
-  contactName:  string;
-  contactEmail: string;
-  contactPhone: string;
-  website:      string;
-  createdAt:    string;
-  updatedAt:    string;
-}
-
-const STORAGE_KEY = "awq_custom_deals";
-
-export function loadCustomDeals(): CustomDeal[] {
-  if (typeof window === "undefined") return [];
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]"); } catch { return []; }
-}
-
-function saveCustomDeals(deals: CustomDeal[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(deals));
-}
+// ─── Types & utils ────────────────────────────────────────────────────────────
+import { loadCustomDeals, saveCustomDeals } from "../custom-deal-utils";
+import type { CustomDeal } from "../custom-deal-utils";
 
 // ─── Field helpers ────────────────────────────────────────────────────────────
 

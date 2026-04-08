@@ -33,6 +33,23 @@ function roic(returned: number, invested: number) {
 
 const portfolio = [
   {
+    id: "AV007",
+    company:     "Grupo Energdy",
+    sector:      "Energia / Utilities",
+    stage:       "Advisory",
+    invested:    0,
+    currentVal:  72_000,
+    returned:    0,
+    entryDate:   "2025",
+    status:      "Ativo",
+    ownership:   0,
+    irr:         0,
+    description: "Cliente de advisory e incubação estratégica. Fee mensal de R$2K por 36 meses (R$72K contrato). Único contrato operacional confirmado da AWQ Venture.",
+    founders:    "—",
+    location:    "Brasil",
+    contractFee: 2_000,
+  },
+  {
     id: "AV001",
     company:     "TechFlow Soluções",
     sector:      "B2B SaaS",
@@ -147,6 +164,7 @@ const stageColors: Record<string, string> = {
   "Series A": "bg-brand-500/10 text-brand-400",
   "Series B": "bg-emerald-500/10 text-emerald-400",
   "Exit":     "bg-violet-500/10 text-violet-400",
+  "Advisory": "bg-orange-500/10 text-orange-400",
 };
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -222,6 +240,22 @@ export default function AwqVenturePortfolioPage() {
                 <p className="text-xs text-gray-400 leading-relaxed">{p.description}</p>
 
                 {/* Metrics */}
+                {p.stage === "Advisory" ? (
+                  <div className="grid grid-cols-3 gap-2 pt-1 border-t border-gray-800">
+                    <div>
+                      <div className="text-[10px] text-gray-600 mb-0.5">Fee Mensal</div>
+                      <div className="text-xs font-bold text-amber-400">{fmtR((p as typeof p & { contractFee?: number }).contractFee ?? 0)}</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] text-gray-600 mb-0.5">ARR Advisory</div>
+                      <div className="text-xs font-bold text-emerald-400">{fmtR(((p as typeof p & { contractFee?: number }).contractFee ?? 0) * 12)}</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] text-gray-600 mb-0.5">Contrato Total</div>
+                      <div className="text-xs font-bold text-white">{fmtR(p.currentVal)}</div>
+                    </div>
+                  </div>
+                ) : (
                 <div className="grid grid-cols-4 gap-2 pt-1 border-t border-gray-800">
                   <div>
                     <div className="text-[10px] text-gray-600 mb-0.5">Investido</div>
@@ -244,16 +278,19 @@ export default function AwqVenturePortfolioPage() {
                     </div>
                   </div>
                 </div>
+                )}
 
                 {/* Footer */}
                 <div className="flex items-center justify-between pt-1">
                   <div className="flex items-center gap-1">
-                    {r >= 0
+                    {p.stage !== "Advisory" && (r >= 0
                       ? <ArrowUpRight size={12} className="text-emerald-400" />
-                      : <ArrowDownRight size={12} className="text-red-400" />}
+                      : <ArrowDownRight size={12} className="text-red-400" />)}
+                    {p.stage !== "Advisory" && (
                     <span className={`text-[10px] font-semibold ${r >= 0 ? "text-emerald-400" : "text-red-400"}`}>
                       ROIC {r >= 0 ? "+" : ""}{r.toFixed(0)}%
                     </span>
+                    )}
                     {p.ownership > 0 && (
                       <span className="text-[10px] text-gray-600 ml-2">· {p.ownership}% participação</span>
                     )}

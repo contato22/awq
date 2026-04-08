@@ -8,8 +8,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import { dealWorkspaces } from "@/lib/deal-data";
-import type { CustomDeal } from "./novo/page";
-import { loadCustomDeals } from "./novo/page";
+import type { CustomDeal } from "./custom-deal-utils";
+import { loadCustomDeals } from "./custom-deal-utils";
 import {
   TrendingUp,
   DollarSign,
