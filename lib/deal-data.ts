@@ -367,13 +367,25 @@ function stubDeal(
 
 // ─── Full Dataset ─────────────────────────────────────────────────────────────
 
+// ─── P007 — Grupo Energdy (único deal real confirmado) ────────────────────────
+
+const grupoEnergdy: DealWorkspace = stubDeal(
+  "P007",
+  "Grupo Energdy",
+  "Energia / Utilities",
+  "Due Diligence",
+  5_000_000,
+  8.1,
+  "Alta",
+  "Médio",
+  "Advisory Contract",
+  "Cliente ativo de advisory e incubação estratégica (fee R$2K/mês, 36 meses, contrato R$72K confirmado). Avaliação para participação estratégica ou aquisição parcial em andamento.",
+  "Q3 2026",
+);
+
+// Apenas deals reais confirmados.
 export const dealWorkspaces: DealWorkspace[] = [
-  mediaHealth,
-  eduFlow,
-  stubDeal("P003", "CarbonX",    "CleanTech",    "Prospecção", 8_000_000, 7.2, "Média", "Médio",  "Evento",       "Créditos de carbono tokenizados para mercado voluntário. Pré-receita.", "Q3 2026"),
-  stubDeal("P004", "RetailAI",   "RetailTech",   "Prospecção", 2_500_000, 6.8, "Média", "Médio",  "Cold Inbound", "Precificação dinâmica e gestão de estoque por IA para varejo físico.",  "Q3 2026"),
-  stubDeal("P005", "CyberShield","Cybersecurity","Triagem",    5_000_000, 7.5, "Alta",  "Alto",   "Network",      "Proteção de endpoints para PMEs com modelo managed service.",           "Q4 2026"),
-  stubDeal("P006", "FarmAI",     "AgTech",       "Triagem",    1_800_000, 6.1, "Baixa", "Baixo",  "Cold Inbound", "Previsão de colheita e risco climático via sensoriamento remoto.",       "Q4 2026"),
+  grupoEnergdy,
 ];
 
 // ─── Query helpers ────────────────────────────────────────────────────────────
