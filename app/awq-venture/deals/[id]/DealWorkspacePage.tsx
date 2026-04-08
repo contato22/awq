@@ -1,15 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getDealById } from "@/lib/deal-data";
-import type { DealWorkspace } from "@/lib/deal-types";
+import type { DealWorkspace, DealStage, DealSendStatus } from "@/lib/deal-types";
 import {
   ArrowLeft, Building2, Target, BarChart2, DollarSign, Shield,
   Layers, Settings, Eye, Send, Save, CheckCircle, CheckCircle2,
   Clock, AlertTriangle, XCircle, Globe, Mail, Phone, MapPin,
-  User, Calendar, ArrowRight, TrendingUp,
+  User, Calendar, ArrowRight, TrendingUp, Trash2, X, ChevronDown,
+  Pencil, Plus, Minus,
 } from "lucide-react";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -401,16 +402,295 @@ function PreviewInterno({ deal }: { deal: DealWorkspace }) {
     </div>
   );
 }
+// ─── Override / persistence ───────────────────────────────────────────────────
+
+export interface DealOverride {
+  stage?: DealStage;
+  sendStatus?: DealSendStatus;
+  proposalDeleted?: boolean;
+  fields?: Record<string, string>;   // key = field path, value = edited string
+  nextSteps?: string[];
+  overriddenAt?: string;
+}
+
+function overrideKey(id: string) { return `awq_deal_override_${id}`; }
+function loadOverride(id: string): DealOverride {
+  if (typeof window === "undefined") return {};
+  try { return JSON.parse(localStorage.getItem(overrideKey(id)) ?? "{}"); } catch { return {}; }
+}
+function saveOverride(id: string, data: DealOverride) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(overrideKey(id), JSON.stringify(data));
+}
+
+const ALL_STAGES: DealStage[] = [
+  "Triagem", "Prospecção", "Due Diligence", "Term Sheet",
+  "Negociação", "Fechado", "Cancelado",
+];
+const ALL_SEND_STATUSES: DealSendStatus[] = [
+  "Rascunho", "Pronto para Envio", "Enviado",
+  "Em Negociação", "Aprovado", "Rejeitado",
+];
+
+// ─── EditableText ─────────────────────────────────────────────────────────────
+
+function EditableText({
+  value,
+  fieldKey,
+  overrideFields,
+  onSave,
+  multiline = true,
+  placeholder = "A preencher…",
+  className = "",
+}: {
+  value: string | null | undefined;
+  fieldKey: string;
+  overrideFields: Record<string, string>;
+  onSave: (key: string, val: string) => void;
+  multiline?: boolean;
+  placeholder?: string;
+  className?: string;
+}) {
+  const effective = overrideFields[fieldKey] ?? value ?? "";
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(effective);
+  const ref = useRef<HTMLTextAreaElement & HTMLInputElement>(null);
+
+  useEffect(() => { if (editing) ref.current?.focus(); }, [editing]);
+
+  function commit() {
+    onSave(fieldKey, draft);
+    setEditing(false);
+  }
+
+  if (!editing) {
+    return (
+      <div
+        className={`group relative cursor-pointer rounded-lg hover:bg-amber-50/60 transition-colors px-1 -mx-1 ${className}`}
+        onClick={() => { setDraft(effective); setEditing(true); }}
+      >
+        <span className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+          {effective || <span className="text-gray-400 italic">{placeholder}</span>}
+        </span>
+        <Pencil size={11} className="absolute right-1 top-1 text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-1.5">
+      {multiline ? (
+        <textarea
+          ref={ref as React.RefObject<HTMLTextAreaElement>}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          rows={4}
+          className="w-full rounded-xl border border-amber-300 bg-amber-50/30 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-400/40 resize-y"
+          placeholder={placeholder}
+        />
+      ) : (
+        <input
+          ref={ref as React.RefObject<HTMLInputElement>}
+          type="text"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          className="w-full rounded-xl border border-amber-300 bg-amber-50/30 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-400/40"
+          placeholder={placeholder}
+        />
+      )}
+      <div className="flex gap-1.5">
+        <button onClick={commit} className="px-3 py-1 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-lg transition-colors">Salvar</button>
+        <button onClick={() => setEditing(false)} className="px-3 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">Cancelar</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── EditableNextSteps ────────────────────────────────────────────────────────
+
+function EditableNextSteps({
+  steps,
+  overrideSteps,
+  onSave,
+}: {
+  steps: string[];
+  overrideSteps: string[] | undefined;
+  onSave: (steps: string[]) => void;
+}) {
+  const effective = overrideSteps ?? steps;
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState<string[]>(effective);
+
+  function commit() { onSave(draft.filter((s) => s.trim())); setEditing(false); }
+
+  if (!editing) {
+    return (
+      <div
+        className="group relative cursor-pointer rounded-lg hover:bg-amber-50/60 transition-colors px-1 -mx-1"
+        onClick={() => { setDraft([...effective]); setEditing(true); }}
+      >
+        {effective.length === 0
+          ? <p className="text-xs text-gray-400 italic">A preencher.</p>
+          : <ol className="space-y-1.5">
+              {effective.map((s, i) => (
+                <li key={i} className="flex items-start gap-2 text-xs text-gray-700">
+                  <ArrowRight size={11} className="text-brand-500 mt-0.5 shrink-0" />
+                  <span><span className="font-semibold text-gray-400 mr-1">{i + 1}.</span>{s}</span>
+                </li>
+              ))}
+            </ol>
+        }
+        <Pencil size={11} className="absolute right-1 top-1 text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {draft.map((s, i) => (
+        <div key={i} className="flex gap-2 items-center">
+          <span className="text-xs text-gray-400 w-4 shrink-0">{i + 1}.</span>
+          <input
+            type="text"
+            value={s}
+            onChange={(e) => { const d = [...draft]; d[i] = e.target.value; setDraft(d); }}
+            className="flex-1 rounded-lg border border-amber-300 bg-amber-50/30 px-2 py-1.5 text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-400/40"
+          />
+          <button onClick={() => setDraft(draft.filter((_, j) => j !== i))} className="text-red-400 hover:text-red-600 transition-colors">
+            <Minus size={12} />
+          </button>
+        </div>
+      ))}
+      <button
+        onClick={() => setDraft([...draft, ""])}
+        className="flex items-center gap-1 text-xs text-amber-600 hover:text-amber-800 transition-colors"
+      >
+        <Plus size={12} /> Adicionar passo
+      </button>
+      <div className="flex gap-1.5 mt-1">
+        <button onClick={commit} className="px-3 py-1 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-lg transition-colors">Salvar</button>
+        <button onClick={() => setEditing(false)} className="px-3 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">Cancelar</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── StatusChangeModal ────────────────────────────────────────────────────────
+
+function StatusChangeModal({
+  currentStage, currentSendStatus, onApply, onClose,
+}: {
+  currentStage:      DealStage;
+  currentSendStatus: DealSendStatus;
+  onApply:           (stage: DealStage, sendStatus: DealSendStatus) => void;
+  onClose:           () => void;
+}) {
+  const [stage,      setStage]      = useState<DealStage>(currentStage);
+  const [sendStatus, setSendStatus] = useState<DealSendStatus>(currentSendStatus);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+          <h3 className="text-sm font-bold text-gray-900">Alterar Status do Deal</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-700 transition-colors"><X size={16} /></button>
+        </div>
+        <div className="px-5 py-4 space-y-4">
+          <div>
+            <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Estágio do Deal</label>
+            <div className="relative">
+              <select value={stage} onChange={(e) => setStage(e.target.value as DealStage)}
+                className="w-full appearance-none rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-400 pr-8">
+                {ALL_STAGES.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            </div>
+          </div>
+          <div>
+            <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Status de Envio / Proposta</label>
+            <div className="relative">
+              <select value={sendStatus} onChange={(e) => setSendStatus(e.target.value as DealSendStatus)}
+                className="w-full appearance-none rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-400 pr-8">
+                {ALL_SEND_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            </div>
+          </div>
+          <div className="text-[10px] text-gray-400 bg-gray-50 rounded-lg px-3 py-2">
+            Alteração salva localmente. Para persistência permanente, integrar com API.
+          </div>
+        </div>
+        <div className="px-5 py-4 border-t border-gray-100 flex gap-2 justify-end">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">Cancelar</button>
+          <button onClick={() => { onApply(stage, sendStatus); onClose(); }}
+            className="px-4 py-2 text-sm font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-xl transition-colors">
+            Aplicar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── DeleteProposalConfirm ────────────────────────────────────────────────────
+
+function DeleteProposalConfirm({
+  companyName, onConfirm, onClose,
+}: {
+  companyName: string;
+  onConfirm:   () => void;
+  onClose:     () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
+        <div className="px-5 py-4 border-b border-gray-100">
+          <h3 className="text-sm font-bold text-gray-900">Excluir Proposta</h3>
+        </div>
+        <div className="px-5 py-4 space-y-3">
+          <div className="flex items-start gap-3 p-3 bg-red-50 rounded-xl border border-red-100">
+            <AlertTriangle size={16} className="text-red-500 mt-0.5 shrink-0" />
+            <div>
+              <div className="text-sm font-semibold text-red-700">Ação irreversível (localmente)</div>
+              <div className="text-xs text-red-600 mt-0.5">
+                A proposta de <strong>{companyName}</strong> será marcada como excluída.
+                O deal permanece — apenas a estrutura da proposta é ocultada.
+              </div>
+            </div>
+          </div>
+          <p className="text-xs text-gray-500">
+            O status de envio será revertido para <strong>Rascunho</strong>.
+            Para restaurar, use o botão de restauração exibido na seção da proposta.
+          </p>
+        </div>
+        <div className="px-5 py-4 border-t border-gray-100 flex gap-2 justify-end">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">Cancelar</button>
+          <button onClick={() => { onConfirm(); onClose(); }}
+            className="px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors flex items-center gap-2">
+            <Trash2 size={13} /> Excluir Proposta
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Sticky Sidebar ───────────────────────────────────────────────────────────
 
 function StickySidebar({
   deal,
   onPreviewInterno,
   onPreviewCliente,
+  onChangeStatus,
+  onDeleteProposal,
+  proposalDeleted,
 }: {
   deal: DealWorkspace;
   onPreviewInterno: () => void;
   onPreviewCliente: () => void;
+  onChangeStatus: () => void;
+  onDeleteProposal: () => void;
+  proposalDeleted: boolean;
 }) {
   const rs = riskStyle[deal.riskLevel] ?? riskStyle["Médio"];
   return (
@@ -476,6 +756,30 @@ function StickySidebar({
 
         <div className="border-t border-gray-100 my-1" />
 
+        <button
+          onClick={onChangeStatus}
+          className="w-full flex items-center justify-center gap-2 text-[11px] text-gray-600 hover:text-gray-900 hover:bg-gray-100 py-2 rounded-lg transition-colors font-medium"
+        >
+          <Settings size={12} />
+          Alterar Status
+        </button>
+
+        {!proposalDeleted ? (
+          <button
+            onClick={onDeleteProposal}
+            className="w-full flex items-center justify-center gap-2 text-[11px] text-red-500 hover:text-red-700 hover:bg-red-50 py-2 rounded-lg transition-colors"
+          >
+            <Trash2 size={12} />
+            Excluir Proposta
+          </button>
+        ) : (
+          <div className="text-center text-[10px] text-red-400 bg-red-50 rounded-lg py-2 px-3">
+            Proposta excluída localmente
+          </div>
+        )}
+
+        <div className="border-t border-gray-100 my-1" />
+
         <button className="w-full flex items-center justify-center gap-2 text-[11px] text-gray-400 hover:text-gray-700 hover:bg-gray-100 py-2 rounded-lg transition-colors">
           <Building2 size={12} />
           Publicar Resumo na Holding
@@ -511,7 +815,34 @@ export default function DealWorkspacePage({
   const deal = getDealById(params.id);
   if (!deal) notFound();
 
-  const [preview, setPreview] = useState<"interno" | "cliente" | null>(null);
+  const [preview,           setPreview]          = useState<"interno" | "cliente" | null>(null);
+  const [override,          setOverride]          = useState<DealOverride>({});
+  const [showStatusModal,   setShowStatusModal]   = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  useEffect(() => { setOverride(loadOverride(deal.id)); }, [deal.id]);
+
+  function applyOverride(patch: Partial<DealOverride>) {
+    const next = { ...override, ...patch, overriddenAt: new Date().toISOString() };
+    setOverride(next);
+    saveOverride(deal.id, next);
+  }
+
+  function saveField(key: string, val: string) {
+    applyOverride({ fields: { ...(override.fields ?? {}), [key]: val } });
+  }
+
+  function saveNextSteps(steps: string[]) {
+    applyOverride({ nextSteps: steps });
+  }
+
+  const effectiveDeal = {
+    ...deal,
+    stage:      (override.stage      ?? deal.stage)      as DealStage,
+    sendStatus: (override.sendStatus ?? deal.sendStatus) as DealSendStatus,
+  };
+  const overrideFields = override.fields ?? {};
+  const proposalDeleted = override.proposalDeleted ?? false;
 
   function scrollToPreview(mode: "interno" | "cliente") {
     setPreview(mode);
@@ -520,8 +851,8 @@ export default function DealWorkspacePage({
     }, 50);
   }
 
-  const rs = riskStyle[deal.riskLevel] ?? riskStyle["Médio"];
-  const readiness = ((deal.assetDiagnosis.operationalMaturity + deal.assetDiagnosis.commercialMaturity) / 2);
+  const rs = riskStyle[effectiveDeal.riskLevel] ?? riskStyle["Médio"];
+  const readiness = ((effectiveDeal.assetDiagnosis.operationalMaturity + effectiveDeal.assetDiagnosis.commercialMaturity) / 2);
 
   const anchors = [
     { href: "#indicadores",  label: "Indicadores"  },
@@ -556,8 +887,8 @@ export default function DealWorkspacePage({
             <div className="flex items-center gap-2 mb-1.5 flex-wrap">
               <h1 className="text-2xl font-bold text-gray-900">{deal.companyName}</h1>
               <span className="badge bg-gray-100 text-gray-500 ring-1 ring-gray-200/60">{deal.id}</span>
-              <span className={stageBadge[deal.stage] ?? "badge bg-gray-100 text-gray-600"}>{deal.stage}</span>
-              <span className={`text-sm ${sendStatusColor[deal.sendStatus] ?? "text-gray-400"}`}>{deal.sendStatus}</span>
+              <span className={stageBadge[effectiveDeal.stage] ?? "badge bg-gray-100 text-gray-600"}>{effectiveDeal.stage}</span>
+              <span className={`text-sm ${sendStatusColor[effectiveDeal.sendStatus] ?? "text-gray-400"}`}>{effectiveDeal.sendStatus}</span>
             </div>
             <div className="flex flex-wrap gap-2 mt-2">
               <InfoChip label="Responsável"  value={deal.assignee} />
@@ -637,7 +968,7 @@ export default function DealWorkspacePage({
                   <div className="text-xs text-gray-400">{deal.identification.mainContactRole}</div>
                 </div>
               } />
-              <FieldRow label="Estágio Atual" value={<span className={stageBadge[deal.stage] ?? ""}>{deal.stage}</span>} />
+              <FieldRow label="Estágio Atual" value={<span className={stageBadge[effectiveDeal.stage] ?? ""}>{effectiveDeal.stage}</span>} />
               {deal.identification.mainContactEmail && (
                 <FieldRow label="Email" value={<span className="flex items-center gap-1 text-brand-600"><Mail size={12} />{deal.identification.mainContactEmail}</span>} />
               )}
@@ -819,15 +1150,37 @@ export default function DealWorkspacePage({
 
           {/* §8 Estrutura da Proposta ────────────────────────────────────── */}
           <SectionCard id="proposta" icon={Layers} title="Estrutura da Proposta">
+            {proposalDeleted ? (
+              <div className="flex flex-col items-center justify-center py-10 gap-3 text-center">
+                <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
+                  <Trash2 size={18} className="text-red-400" />
+                </div>
+                <div className="text-sm font-semibold text-gray-600">Proposta excluída</div>
+                <div className="text-xs text-gray-400 max-w-xs">
+                  A estrutura da proposta foi removida localmente.
+                </div>
+                <button
+                  onClick={() => applyOverride({ proposalDeleted: false, sendStatus: deal.sendStatus })}
+                  className="mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 px-4 py-2 rounded-xl hover:bg-amber-100 transition-colors"
+                >
+                  Restaurar Proposta
+                </button>
+              </div>
+            ) : (
             <div className="space-y-4">
+              <div className="text-[10px] text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 flex items-center gap-2">
+                <Pencil size={10} className="shrink-0" />
+                Clique em qualquer campo para editar. Alterações salvas localmente.
+              </div>
+
               <div className="surface-subtle p-4 rounded-xl">
                 <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1.5">Proposta Econômica</div>
-                <p className="text-sm text-gray-700 leading-relaxed">{deal.proposalStructure.economicProposal || "—"}</p>
+                <EditableText fieldKey="economicProposal" value={deal.proposalStructure.economicProposal} overrideFields={overrideFields} onSave={saveField} />
               </div>
 
               <div className="surface-subtle p-4 rounded-xl">
                 <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1.5">Forma de Pagamento</div>
-                <p className="text-sm text-gray-700 leading-relaxed">{deal.proposalStructure.paymentStructure || "—"}</p>
+                <EditableText fieldKey="paymentStructure" value={deal.proposalStructure.paymentStructure} overrideFields={overrideFields} onSave={saveField} />
               </div>
 
               {deal.proposalStructure.stages.length > 0 && (
@@ -838,13 +1191,10 @@ export default function DealWorkspacePage({
                     {deal.proposalStructure.stages.map((s, i) => (
                       <div key={i} className="relative flex items-start gap-3">
                         <div className="absolute -left-4 w-3 h-3 rounded-full bg-brand-500 border-2 border-white shrink-0 mt-0.5" />
-                        <div>
-                          <div className="text-xs font-bold text-gray-900">{s.label}</div>
-                          <div className="text-xs text-gray-500 mt-0.5">{s.description}</div>
-                          <div className="text-[10px] text-brand-600 font-semibold mt-0.5 flex items-center gap-1">
-                            <Calendar size={10} />
-                            {s.targetDate}
-                          </div>
+                        <div className="flex-1">
+                          <EditableText fieldKey={`stage_${i}_label`} value={s.label} overrideFields={overrideFields} onSave={saveField} multiline={false} className="font-bold text-gray-900 text-xs" />
+                          <EditableText fieldKey={`stage_${i}_desc`} value={s.description} overrideFields={overrideFields} onSave={saveField} className="text-gray-500 text-xs mt-0.5" />
+                          <EditableText fieldKey={`stage_${i}_date`} value={s.targetDate} overrideFields={overrideFields} onSave={saveField} multiline={false} className="text-brand-600 text-[10px] font-semibold mt-0.5" />
                         </div>
                       </div>
                     ))}
@@ -857,9 +1207,9 @@ export default function DealWorkspacePage({
                   <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Condicionantes</div>
                   <ul className="space-y-1.5">
                     {deal.proposalStructure.conditions.map((c, i) => (
-                      <li key={i} className="flex items-start gap-2 text-xs text-gray-700">
+                      <li key={i} className="flex items-start gap-2">
                         <CheckCircle size={12} className="text-brand-500 mt-0.5 shrink-0" />
-                        {c}
+                        <EditableText fieldKey={`condition_${i}`} value={c} overrideFields={overrideFields} onSave={saveField} multiline={false} />
                       </li>
                     ))}
                   </ul>
@@ -867,28 +1217,22 @@ export default function DealWorkspacePage({
               )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {deal.proposalStructure.timeline && (
-                  <div className="surface-subtle p-4 rounded-xl">
-                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1.5">Cronograma</div>
-                    <p className="text-sm text-gray-600 italic">{deal.proposalStructure.timeline}</p>
-                  </div>
-                )}
+                <div className="surface-subtle p-4 rounded-xl">
+                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1.5">Cronograma</div>
+                  <EditableText fieldKey="timeline" value={deal.proposalStructure.timeline} overrideFields={overrideFields} onSave={saveField} />
+                </div>
 
-                {deal.proposalStructure.nextSteps.length > 0 && (
-                  <div className="surface-subtle p-4 rounded-xl">
-                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Próximos Passos</div>
-                    <ol className="space-y-1.5">
-                      {deal.proposalStructure.nextSteps.map((s, i) => (
-                        <li key={i} className="flex items-start gap-2 text-xs text-gray-700">
-                          <ArrowRight size={11} className="text-brand-500 mt-0.5 shrink-0" />
-                          <span><span className="font-semibold text-gray-400 mr-1">{i + 1}.</span>{s}</span>
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
-                )}
+                <div className="surface-subtle p-4 rounded-xl">
+                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Próximos Passos</div>
+                  <EditableNextSteps
+                    steps={deal.proposalStructure.nextSteps}
+                    overrideSteps={override.nextSteps}
+                    onSave={saveNextSteps}
+                  />
+                </div>
               </div>
             </div>
+            )}{/* end proposalDeleted */}
           </SectionCard>
 
           {/* §9 Governança ───────────────────────────────────────────────── */}
@@ -995,13 +1339,33 @@ export default function DealWorkspacePage({
         {/* ── Right: Sticky Sidebar ────────────────────────────────────────── */}
         <div className="w-72 shrink-0 hidden lg:block">
           <StickySidebar
-            deal={deal}
+            deal={effectiveDeal}
             onPreviewInterno={() => scrollToPreview("interno")}
             onPreviewCliente={() => scrollToPreview("cliente")}
+            onChangeStatus={() => setShowStatusModal(true)}
+            onDeleteProposal={() => setShowDeleteConfirm(true)}
+            proposalDeleted={proposalDeleted}
           />
         </div>
 
       </div>{/* end two-col */}
+
+      {showStatusModal && (
+        <StatusChangeModal
+          currentStage={effectiveDeal.stage}
+          currentSendStatus={effectiveDeal.sendStatus}
+          onApply={(s, ss) => applyOverride({ stage: s, sendStatus: ss })}
+          onClose={() => setShowStatusModal(false)}
+        />
+      )}
+
+      {showDeleteConfirm && (
+        <DeleteProposalConfirm
+          companyName={effectiveDeal.companyName}
+          onConfirm={() => applyOverride({ proposalDeleted: true, sendStatus: "Rascunho" })}
+          onClose={() => setShowDeleteConfirm(false)}
+        />
+      )}
     </>
   );
 }
