@@ -250,7 +250,7 @@ export default async function JacqesFinancialPage() {
                 </thead>
                 <tbody>
                   {dreData.map((row, i) => {
-                    const receitaBase = 4_820_000;
+                    const receitaBase = dreData[0]?.value ?? 0;
                     const isSubtotal = row.bold;
                     const pctReceita = receitaBase > 0
                       ? ((row.value / receitaBase) * 100).toFixed(1) + "%"
