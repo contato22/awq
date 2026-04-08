@@ -9,14 +9,19 @@ import {
   ArrowUpRight,
   Wallet,
   Target,
+  Briefcase,
+  AlertTriangle,
+  CheckCircle2,
 } from "lucide-react";
+import { getDealHoldingSummaries } from "@/lib/deal-data";
 import {
   buData,
   consolidated,
   consolidatedRoic,
   allocFlags,
   flagConfig,
-} from "@/lib/awq-group-data";
+} from "@/lib/awq-derived-metrics";
+import { getPortfolioMetrics, fmtBRL } from "@/lib/financial-metric-query";
 
 function fmtR(n: number) {
   if (Math.abs(n) >= 1_000_000_000) return "R$" + (n / 1_000_000_000).toFixed(2) + "B";
@@ -25,10 +30,10 @@ function fmtR(n: number) {
   return "R$" + n.toLocaleString("pt-BR");
 }
 
-export default function AwqPortfolioPage() {
-  const totalCap = buData.reduce((s, b) => s + b.capitalAllocated, 0);
-  const totalNetIncome = buData.reduce((s, b) => s + b.netIncome, 0);
-  const totalCash = buData.reduce((s, b) => s + b.cashBalance, 0);
+export default async function AwqPortfolioPage() {
+  const pm  = await getPortfolioMetrics();
+  const totalCap      = pm.totalCapitalAllocated.value;
+  const totalNetIncome = pm.totalNetIncome.value;
 
   return (
     <>
@@ -41,24 +46,29 @@ export default function AwqPortfolioPage() {
         {/* ── Group summary ──────────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: "BUs no Portfolio",   value: buData.length.toString(),         icon: Building2,  color: "text-brand-600",   bg: "bg-brand-50"   },
-            { label: "Capital Total",       value: fmtR(totalCap),                   icon: Wallet,     color: "text-amber-700",   bg: "bg-amber-50"   },
-            { label: "Lucro Líquido Total", value: fmtR(totalNetIncome),             icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
-            { label: "ROIC Consolidado",    value: `${consolidatedRoic.toFixed(1)}%`,icon: TrendingUp, color: "text-violet-700",  bg: "bg-violet-50"  },
+            { label: "BUs no Portfolio",        value: buData.length.toString(),             icon: Building2,  color: "text-brand-600",   bg: "bg-brand-50",   isReal: false },
+            { label: "Capital Total",            value: fmtR(totalCap),                       icon: Wallet,     color: "text-amber-700",   bg: "bg-amber-50",   isReal: false },
+            { label: pm.realCashBalance.source_type !== "empty" ? "Caixa Real (Pipeline)" : "Caixa (Pipeline)",
+              value: pm.realCashBalance.source_type !== "empty" ? fmtBRL(pm.realCashBalance.value!) : "Aguardando extratos", icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50", isReal: true  },
+            { label: "ROIC Consolidado",         value: `${consolidatedRoic.toFixed(1)}%`,    icon: TrendingUp, color: "text-violet-700",  bg: "bg-violet-50",  isReal: false },
           ].map((c) => {
             const Icon = c.icon;
             return (
-              <div key={c.label} className="card p-5 flex items-start gap-4">
+              <div key={c.label} className={`card p-5 flex items-start gap-4 ${(c as {isReal?: boolean}).isReal ? "border-emerald-200 bg-emerald-50/20" : ""}`}>
                 <div className={`w-10 h-10 rounded-xl ${c.bg} flex items-center justify-center shrink-0`}>
                   <Icon size={18} className={c.color} />
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-gray-900">{c.value}</div>
-                  <div className="text-xs font-medium text-gray-400 mt-0.5">{c.label}</div>
-                  <div className="flex items-center gap-1 mt-1">
-                    <ArrowUpRight size={10} className="text-emerald-600" />
-                    <span className="text-[10px] font-semibold text-emerald-600">YTD Jan–Mar 2026</span>
+                  <div className="text-xs font-medium text-gray-400 mt-0.5 flex items-center gap-1">
+                    {c.label}
+                    {(c as {isReal?: boolean}).isReal && (
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 border border-emerald-200">REAL</span>
+                    )}
                   </div>
+                  {!(c as {isReal?: boolean}).isReal && (
+                    <div className="text-[9px] text-amber-500 mt-0.5">snapshot</div>
+                  )}
                 </div>
               </div>
             );
@@ -129,7 +139,7 @@ export default function AwqPortfolioPage() {
 
                 <div className="flex items-center justify-between pt-2 border-t border-gray-200">
                   <div className="flex gap-3 text-[10px] text-gray-400">
-                    <span>Caixa: <span className="text-gray-400 font-semibold">{fmtR(bu.cashBalance)}</span></span>
+                    <span>Caixa: <span className="text-gray-400 font-semibold">{fmtR(bu.cashBalance)}</span><span className="ml-1 px-1 py-0.5 rounded text-[8px] font-semibold bg-amber-100 text-amber-700">snapshot</span></span>
                     <span>FTEs: <span className="text-gray-400 font-semibold">{bu.ftes}</span></span>
                   </div>
                   <Link
@@ -229,6 +239,67 @@ export default function AwqPortfolioPage() {
               </Link>
             );
           })}
+        </div>
+
+        {/* ── Deals AWQ Venture (resumo consolidado — read-only) ────────────── */}
+        <div className="card p-5">
+          <div className="flex items-center gap-2 mb-1">
+            <Briefcase size={14} className="text-violet-600" />
+            <h2 className="text-sm font-semibold text-gray-900">Propostas de Aquisição — AWQ Venture</h2>
+            <span className="ml-1 text-[9px] font-bold px-1.5 py-0.5 rounded bg-violet-50 text-violet-700 border border-violet-200">READ-ONLY</span>
+            <Link href="/awq-venture/deals" className="ml-auto text-[11px] text-brand-600 hover:text-brand-500 flex items-center gap-1 transition-colors">
+              Ver workspace <ChevronRight size={12} />
+            </Link>
+          </div>
+          <p className="text-[11px] text-gray-400 mb-4">Resumo autorizado pela AWQ Venture. Origem e edição exclusivas na BU.</p>
+          <div className="table-scroll">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-gray-100 bg-gray-50/60">
+                  {["Empresa","Setor","Stage","Valor Proposto","Valuation","Risco","Upside","Status","Responsável"].map((h) => (
+                    <th key={h} className={`py-2 px-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wide ${h==="Valor Proposto"||h==="Upside"?"text-right":"text-left"}`}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {getDealHoldingSummaries().map((d) => (
+                  <tr key={d.dealId} className="hover:bg-gray-50/60 transition-colors">
+                    <td className="py-2.5 px-3">
+                      <div className="font-semibold text-gray-900">{d.companyName}</div>
+                      <div className="text-[10px] text-gray-400">{d.dealId}</div>
+                    </td>
+                    <td className="py-2.5 px-3 text-gray-500">{d.sector}</td>
+                    <td className="py-2.5 px-3">
+                      <span className="text-[11px] font-medium text-gray-700">{d.stage}</span>
+                    </td>
+                    <td className="py-2.5 px-3 text-right font-bold text-amber-600 tabular-nums">
+                      {d.proposedValue >= 1_000_000 ? "R$"+(d.proposedValue/1_000_000).toFixed(1)+"M" : "R$"+(d.proposedValue/1_000).toFixed(0)+"K"}
+                    </td>
+                    <td className="py-2.5 px-3 text-gray-500 text-[11px]">{d.valuationRange}</td>
+                    <td className="py-2.5 px-3">
+                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                        d.riskLevel==="Baixo"?"bg-emerald-50 text-emerald-700":
+                        d.riskLevel==="Médio"?"bg-amber-50 text-amber-700":
+                        "bg-red-50 text-red-700"
+                      }`}>{d.riskLevel}</span>
+                    </td>
+                    <td className="py-2.5 px-3 text-right font-semibold text-emerald-600 tabular-nums">
+                      {d.expectedUpside !== null ? `+${d.expectedUpside.toFixed(0)}%` : "—"}
+                    </td>
+                    <td className="py-2.5 px-3">
+                      <span className={`text-[11px] font-medium ${
+                        d.sendStatus==="Aprovado"?"text-emerald-600":
+                        d.sendStatus==="Enviado"||d.sendStatus==="Em Negociação"?"text-blue-600":
+                        d.sendStatus==="Pronto para Envio"?"text-amber-600":
+                        "text-gray-400"
+                      }`}>{d.sendStatus}</span>
+                    </td>
+                    <td className="py-2.5 px-3 text-gray-500">{d.assignee}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
       </div>

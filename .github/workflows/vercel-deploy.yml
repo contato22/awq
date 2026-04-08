@@ -1,0 +1,91 @@
+name: CI — TypeScript + Build (Vercel Operational)
+
+# ─── TRIGGER ─────────────────────────────────────────────────────────────────
+#
+# DEPLOYMENT ARCHITECTURE:
+#
+# Auto-deploy: Vercel GitHub App watches this repo and deploys on every push
+#   to main automatically. Production URL: https://awq-brown.vercel.app
+#   No GitHub Secrets or CLI required — the GitHub App has its own auth.
+#
+# This workflow: CI gate (TypeScript check + SSR build) that must pass before
+#   any push is considered deployable. It validates that the code compiles and
+#   the SSR build succeeds in a clean environment, catching build errors early.
+#
+# GitHub Pages (pages.yml): STATIC VITRINE only — incompatible with the
+#   operational pipeline (no API routes, no SSR, no ingest capability).
+
+on:
+  push:
+    branches:
+      - main
+      - claude/consolidate-awq-platform-sMoN0
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+# ─── PERMISSIONS ─────────────────────────────────────────────────────────────
+
+permissions:
+  contents: read
+
+# ─── JOBS ─────────────────────────────────────────────────────────────────────
+
+jobs:
+  ci:
+    name: TypeScript + Build (SSR)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      # ── TypeScript — must have 0 errors ────────────────────────────────────
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      # ── SSR build (Vercel runtime — no STATIC_EXPORT) ─────────────────────
+      #
+      # IMPORTANT: Do NOT pass NEXTAUTH_URL.
+      # When a GitHub Secret is unset, Actions evaluates "" (empty string).
+      # NextAuth reads NEXTAUTH_URL at module init: `new URL("")` throws
+      # TypeError: Invalid URL and fails prerendering on every page.
+      # NEXTAUTH_URL is RUNTIME-ONLY (OAuth callback routing) — not needed at
+      # build time. NEXTAUTH_SECRET is safe (plain string, not used as URL).
+      #
+      # DATABASE_URL / BLOB_READ_WRITE_TOKEN are Vercel runtime env vars —
+      # set in the Vercel dashboard, not in CI. The adapters detect them at
+      # request time (USE_DB / USE_BLOB flags).
+      - name: Build (SSR)
+        run: npm run build
+        env:
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## CI Result" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Operational Infrastructure (Vercel Dashboard)" >> $GITHUB_STEP_SUMMARY
+          echo "| Variable | Purpose | Required |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| DATABASE_URL | Neon Postgres — persistent documents + transactions | Yes |" >> $GITHUB_STEP_SUMMARY
+          echo "| BLOB_READ_WRITE_TOKEN | Vercel Blob — PDF storage across deployments | Yes |" >> $GITHUB_STEP_SUMMARY
+          echo "| ANTHROPIC_API_KEY | Claude — PDF text extraction pipeline | Yes |" >> $GITHUB_STEP_SUMMARY
+          echo "| NEXTAUTH_SECRET | JWT signing key | Yes |" >> $GITHUB_STEP_SUMMARY
+          echo "| NEXTAUTH_URL | https://awq-brown.vercel.app | Yes |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Production URL**: https://awq-brown.vercel.app" >> $GITHUB_STEP_SUMMARY

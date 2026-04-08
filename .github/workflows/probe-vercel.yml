@@ -1,0 +1,437 @@
+name: Probe Live Vercel Environment
+
+# Empirical probe of the live Vercel deployment.
+# Each assertion step exits 1 on failure — conclusions are machine-readable
+# via the public GitHub Actions API without requiring log access.
+#
+# API to read results:
+#   GET /repos/contato22/awq/actions/runs/{run_id}/jobs
+#   → step.conclusion == "success" | "failure" | "skipped"
+#
+# Probe targets: https://awq-brown.vercel.app
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: Probe https://awq-brown.vercel.app
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Wait for Vercel deployment
+        if: github.event_name == 'push'
+        run: |
+          echo "Waiting 90s for Vercel GitHub App to build and deploy..."
+          sleep 90
+
+      # ── ASSERTION 1: App is live ──────────────────────────────────────────────
+      # PASS: /login returns HTTP 200
+      # FAIL: any other status (deployment failed, DNS broken, app crashed)
+      - name: "ASSERT — /login returns 200 (app is live)"
+        id: assert_login
+        continue-on-error: true
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 \
+            https://awq-brown.vercel.app/login)
+          echo "login_status=$STATUS" >> $GITHUB_OUTPUT
+          echo "HTTP $STATUS"
+          if [ "$STATUS" != "200" ]; then
+            echo "FAIL: expected 200, got $STATUS"
+            exit 1
+          fi
+          echo "PASS: app is live at https://awq-brown.vercel.app"
+
+      # ── ASSERTION 2: NEXTAUTH_SECRET is configured in Vercel ─────────────────
+      # PASS: /api/auth/csrf returns 200 AND body contains "csrfToken"
+      # FAIL: returns 500 (NEXTAUTH_SECRET missing from Vercel env vars)
+      # FAIL: returns non-200
+      # FAIL: body does not contain "csrfToken" (NextAuth misconfigured)
+      - name: "ASSERT — /api/auth/csrf returns csrfToken (NEXTAUTH_SECRET configured)"
+        id: assert_nextauth
+        continue-on-error: true
+        run: |
+          BODY=$(curl -s --max-time 20 https://awq-brown.vercel.app/api/auth/csrf)
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 \
+            https://awq-brown.vercel.app/api/auth/csrf)
+          echo "csrf_status=$STATUS" >> $GITHUB_OUTPUT
+          echo "HTTP $STATUS | body: ${BODY:0:200}"
+          if [ "$STATUS" != "200" ]; then
+            echo "FAIL: /api/auth/csrf returned $STATUS (expected 200)"
+            echo "This means NEXTAUTH_SECRET is missing or misconfigured in Vercel dashboard"
+            exit 1
+          fi
+          if ! echo "$BODY" | grep -q "csrfToken"; then
+            echo "FAIL: body does not contain 'csrfToken'"
+            echo "Body: $BODY"
+            exit 1
+          fi
+          TOKEN_VAL=$(echo "$BODY" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('csrfToken','MISSING'))" 2>/dev/null || echo "parse_error")
+          echo "csrf_token_length=${#TOKEN_VAL}" >> $GITHUB_OUTPUT
+          echo "PASS: NEXTAUTH_SECRET is configured (csrfToken length: ${#TOKEN_VAL})"
+
+      # ── ASSERTION 3: Middleware enforcing auth ────────────────────────────────
+      # PASS: /awq/management returns any 3xx redirect (middleware is protecting the route)
+      # FAIL: returns 200 (middleware not active — route rendered without auth)
+      # FAIL: returns 500 (server error in middleware)
+      # NOTE: withAuth in next-auth v4 may redirect to 307 OR 308. Both are acceptable.
+      # Location may be /login or /api/auth/signin depending on next-auth version behavior.
+      - name: "ASSERT — /awq/management is protected (any 3xx redirect, not 200)"
+        id: assert_middleware
+        continue-on-error: true
+        run: |
+          # Get headers only (HEAD request) to capture status + location efficiently
+          HEADERS=$(curl -sI --max-time 20 https://awq-brown.vercel.app/awq/management)
+          STATUS=$(echo "$HEADERS" | grep -i "^HTTP/" | tail -1 | awk '{print $2}')
+          LOCATION=$(echo "$HEADERS" | grep -i "^location:" | tr -d '\r' | head -1)
+          echo "management_status=$STATUS" >> $GITHUB_OUTPUT
+          echo "management_location=$LOCATION" >> $GITHUB_OUTPUT
+          echo "All response headers:"
+          echo "$HEADERS" | head -20
+          echo ""
+          echo "Extracted: HTTP $STATUS | $LOCATION"
+          # Accept any 3xx as "middleware is protecting the route"
+          if echo "$STATUS" | grep -qE "^[23][0-9][0-9]$"; then
+            if echo "$STATUS" | grep -qE "^2[0-9][0-9]$"; then
+              echo "FAIL: HTTP $STATUS — route returned 200 without authentication"
+              echo "Middleware is NOT protecting /awq/management"
+              exit 1
+            fi
+            echo "PASS: HTTP $STATUS — route is protected (redirect). Location: $LOCATION"
+          elif echo "$STATUS" | grep -qE "^5[0-9][0-9]$"; then
+            echo "FAIL: HTTP $STATUS — server error in middleware or route"
+            exit 1
+          else
+            echo "FAIL: unexpected HTTP $STATUS"
+            exit 1
+          fi
+
+      # ── ASSERTION 4: Server-side rendering active (not static export) ─────────
+      # PASS: /api/auth/providers returns 200 with JSON object
+      # FAIL: returns 405 or 404 (route missing — static export fallback)
+      - name: "ASSERT — /api/auth/providers returns 200 (SSR active, not static export)"
+        id: assert_ssr
+        continue-on-error: true
+        run: |
+          BODY=$(curl -s --max-time 20 https://awq-brown.vercel.app/api/auth/providers)
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 \
+            https://awq-brown.vercel.app/api/auth/providers)
+          echo "providers_status=$STATUS" >> $GITHUB_OUTPUT
+          echo "HTTP $STATUS | body: ${BODY:0:200}"
+          if [ "$STATUS" != "200" ]; then
+            echo "FAIL: expected 200, got $STATUS"
+            exit 1
+          fi
+          echo "PASS: SSR is active"
+
+      # ── PROBE 5: DATABASE_URL — check management page for db adapter ──────────
+      # This is informational only (no exit 1) — the management page shows
+      # infrastructure state in plain text when rendered server-side.
+      # We probe it authenticated via the session cookie from the CSRF token above.
+      # OBSERVATION ONLY — step always exits 0
+      - name: "INFO — probe /awq/management source HTML for db adapter status"
+        id: info_db
+        continue-on-error: true
+        run: |
+          # The management page redirects to /login for unauthenticated users.
+          # Check the login page HTML for the Next.js SSR marker.
+          LOGIN_HTML=$(curl -s --max-time 20 https://awq-brown.vercel.app/login 2>/dev/null || true)
+          echo "login_html_length=${#LOGIN_HTML}" >> $GITHUB_OUTPUT
+
+          # Check for Next.js data markers (presence = SSR confirmed)
+          if echo "$LOGIN_HTML" | grep -q "__NEXT_DATA__"; then
+            echo "next_data=present" >> $GITHUB_OUTPUT
+            echo "INFO: __NEXT_DATA__ present — Next.js SSR confirmed on login page"
+          else
+            echo "next_data=absent" >> $GITHUB_OUTPUT
+            echo "INFO: __NEXT_DATA__ not found in login page"
+          fi
+
+          # Check for Vercel/Next.js headers (grep || true prevents exit 1 on no match)
+          VERCEL_HEADER=$(curl -sI --max-time 20 https://awq-brown.vercel.app/login 2>/dev/null \
+            | grep -i "x-vercel\|x-powered-by\|server:" | head -3 || true)
+          echo "INFO: Response headers: ${VERCEL_HEADER:-none found}"
+
+          # Check x-matched-path header — confirms Next.js routing
+          MATCHED=$(curl -sI --max-time 20 https://awq-brown.vercel.app/login 2>/dev/null \
+            | grep -i "x-matched-path\|x-vercel-id" | head -2 || true)
+          echo "INFO: Vercel routing headers: ${MATCHED:-none found}"
+
+      # ── PROBE 6: Unauthenticated API — what does documents API return? ─────────
+      # Without auth, the API should return 401 or redirect.
+      # 500 = server error (possibly DATABASE_URL misconfiguration)
+      # 401/307 = auth middleware working, server healthy
+      - name: "INFO — /api/ingest/documents without auth (expect 401/307, fail on 500)"
+        id: info_docs_unauth
+        continue-on-error: true
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 \
+            https://awq-brown.vercel.app/api/ingest/documents)
+          BODY=$(curl -s --max-time 20 https://awq-brown.vercel.app/api/ingest/documents \
+            2>/dev/null | head -c 500)
+          echo "docs_unauth_status=$STATUS" >> $GITHUB_OUTPUT
+          echo "HTTP $STATUS | body: ${BODY:0:200}"
+          if [ "$STATUS" = "500" ]; then
+            echo "WARN: /api/ingest/documents returned 500 — possible server error"
+            echo "This may indicate missing DATABASE_URL or other env var misconfiguration"
+          elif [ "$STATUS" = "401" ] || [ "$STATUS" = "307" ] || [ "$STATUS" = "302" ]; then
+            echo "INFO: API returns $STATUS (auth enforced — server is healthy)"
+          else
+            echo "INFO: API returns $STATUS"
+          fi
+          # Do NOT exit 1 here — this is informational
+
+      # ── HEALTH FETCH: get /api/health and store all flags ────────────────────────
+      # Fetches /api/health and writes all env var flags to GITHUB_OUTPUT.
+      # Subsequent assertion steps read these outputs via ${{ steps.health_fetch.outputs.* }}
+      # to produce machine-readable step conclusions (success/failure per env var).
+      - name: "FETCH — /api/health env var presence map"
+        id: health_fetch
+        continue-on-error: true
+        run: |
+          BODY=$(curl -s --max-time 20 https://awq-brown.vercel.app/api/health 2>/dev/null || true)
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 \
+            https://awq-brown.vercel.app/api/health 2>/dev/null || echo "000")
+          echo "health_status=$STATUS" >> $GITHUB_OUTPUT
+          echo "HTTP $STATUS | Body: $BODY"
+          if [ "$STATUS" != "200" ]; then
+            echo "health_db=false"      >> $GITHUB_OUTPUT
+            echo "health_blob=false"    >> $GITHUB_OUTPUT
+            echo "health_ai=false"      >> $GITHUB_OUTPUT
+            echo "health_auth=false"    >> $GITHUB_OUTPUT
+            echo "health_authurl=false" >> $GITHUB_OUTPUT
+            echo "health_dbadapter=unknown"   >> $GITHUB_OUTPUT
+            echo "health_blobadapter=unknown" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          DB=$(echo "$BODY"        | python3 -c "import json,sys; d=json.load(sys.stdin); print(str(d.get('db',False)).lower())" 2>/dev/null || echo "false")
+          BLOB=$(echo "$BODY"      | python3 -c "import json,sys; d=json.load(sys.stdin); print(str(d.get('blob',False)).lower())" 2>/dev/null || echo "false")
+          AI=$(echo "$BODY"        | python3 -c "import json,sys; d=json.load(sys.stdin); print(str(d.get('ai',False)).lower())" 2>/dev/null || echo "false")
+          AUTH=$(echo "$BODY"      | python3 -c "import json,sys; d=json.load(sys.stdin); print(str(d.get('auth',False)).lower())" 2>/dev/null || echo "false")
+          AUTHURL=$(echo "$BODY"   | python3 -c "import json,sys; d=json.load(sys.stdin); print(str(d.get('authUrl',False)).lower())" 2>/dev/null || echo "false")
+          DBADAPTER=$(echo "$BODY" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('dbAdapter','unknown'))" 2>/dev/null || echo "unknown")
+          BLOBADAPTER=$(echo "$BODY" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('blobAdapter','unknown'))" 2>/dev/null || echo "unknown")
+          DOC_COUNT=$(echo "$BODY"     | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('documentCount','null'))" 2>/dev/null || echo "null")
+          DONE_COUNT=$(echo "$BODY"    | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('doneDocumentCount','null'))" 2>/dev/null || echo "null")
+          TXN_COUNT=$(echo "$BODY"     | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('transactionCount','null'))" 2>/dev/null || echo "null")
+          HAS_REAL=$(echo "$BODY"      | python3 -c "import json,sys; d=json.load(sys.stdin); print(str(d.get('hasRealData',False)).lower())" 2>/dev/null || echo "false")
+          echo "health_db=$DB"               >> $GITHUB_OUTPUT
+          echo "health_blob=$BLOB"           >> $GITHUB_OUTPUT
+          echo "health_ai=$AI"               >> $GITHUB_OUTPUT
+          echo "health_auth=$AUTH"           >> $GITHUB_OUTPUT
+          echo "health_authurl=$AUTHURL"     >> $GITHUB_OUTPUT
+          echo "health_dbadapter=$DBADAPTER" >> $GITHUB_OUTPUT
+          echo "health_blobadapter=$BLOBADAPTER" >> $GITHUB_OUTPUT
+          echo "health_doc_count=$DOC_COUNT"     >> $GITHUB_OUTPUT
+          echo "health_done_count=$DONE_COUNT"   >> $GITHUB_OUTPUT
+          echo "health_txn_count=$TXN_COUNT"     >> $GITHUB_OUTPUT
+          echo "health_has_real=$HAS_REAL"       >> $GITHUB_OUTPUT
+          echo ""
+          echo "═══ Infrastructure Status ═══"
+          echo "  DATABASE_URL          → db=$DB        (adapter: $DBADAPTER)"
+          echo "  BLOB_READ_WRITE_TOKEN → blob=$BLOB     (adapter: $BLOBADAPTER)"
+          echo "  ANTHROPIC_API_KEY     → ai=$AI"
+          echo "  NEXTAUTH_SECRET       → auth=$AUTH"
+          echo "  NEXTAUTH_URL          → authUrl=$AUTHURL"
+          echo "═══ Real Data Counters ════"
+          echo "  documentCount:     $DOC_COUNT"
+          echo "  doneDocumentCount: $DONE_COUNT"
+          echo "  transactionCount:  $TXN_COUNT"
+          echo "  hasRealData:       $HAS_REAL"
+          echo "══════════════════════════════"
+
+      # ── Per-env-var ASSERTIONS — each step conclusion is machine-readable ─────
+      # PASS (success): env var is configured in Vercel
+      # FAIL (failure): env var is missing from Vercel
+
+      - name: "ASSERT — DATABASE_URL configured (Neon adapter active)"
+        id: assert_db
+        continue-on-error: true
+        run: |
+          if [ "${{ steps.health_fetch.outputs.health_db }}" = "true" ]; then
+            echo "PASS: DATABASE_URL is configured — using neon-postgres adapter"
+          else
+            echo "FAIL: DATABASE_URL not configured — using filesystem-json fallback"
+            echo "Action: add DATABASE_URL to Vercel dashboard → Settings → Environment Variables"
+            exit 1
+          fi
+
+      - name: "ASSERT — BLOB_READ_WRITE_TOKEN configured (Blob adapter active)"
+        id: assert_blob
+        continue-on-error: true
+        run: |
+          if [ "${{ steps.health_fetch.outputs.health_blob }}" = "true" ]; then
+            echo "PASS: BLOB_READ_WRITE_TOKEN is configured — using vercel-blob adapter"
+          else
+            echo "FAIL: BLOB_READ_WRITE_TOKEN not configured — PDFs stored to local filesystem (ephemeral)"
+            echo "Action: add BLOB_READ_WRITE_TOKEN to Vercel dashboard → Settings → Environment Variables"
+            exit 1
+          fi
+
+      - name: "ASSERT — ANTHROPIC_API_KEY configured (AI extraction active)"
+        id: assert_ai
+        continue-on-error: true
+        run: |
+          if [ "${{ steps.health_fetch.outputs.health_ai }}" = "true" ]; then
+            echo "PASS: ANTHROPIC_API_KEY is configured — AI extraction pipeline active"
+          else
+            echo "FAIL: ANTHROPIC_API_KEY not configured — PDF extraction will fail at /api/ingest/process"
+            echo "Action: add ANTHROPIC_API_KEY to Vercel dashboard → Settings → Environment Variables"
+            exit 1
+          fi
+
+      - name: "ASSERT — NEXTAUTH_URL configured (auth URL correct)"
+        id: assert_authurl
+        continue-on-error: true
+        run: |
+          if [ "${{ steps.health_fetch.outputs.health_authurl }}" = "true" ]; then
+            echo "PASS: NEXTAUTH_URL is configured"
+          else
+            echo "FAIL: NEXTAUTH_URL not configured — set to https://awq-brown.vercel.app"
+            echo "Action: add NEXTAUTH_URL=https://awq-brown.vercel.app to Vercel dashboard"
+            exit 1
+          fi
+
+      # ── DATA COUNTERS — prove real pipeline state (machine-readable) ─────────
+      # hasRealData=true → pipeline ran end-to-end: docs processed, txns persisted
+      # hasRealData=false → DB ready but no PDF uploaded yet (ausência de dado)
+      # This is the single most important assertion: it separates "env ready"
+      # from "pipeline actually ran with real data".
+
+      - name: "INFO — real data state (documentCount / doneDocumentCount / transactionCount)"
+        id: assert_real_data
+        continue-on-error: true
+        run: |
+          DOC_COUNT="${{ steps.health_fetch.outputs.health_doc_count }}"
+          DONE_COUNT="${{ steps.health_fetch.outputs.health_done_count }}"
+          TXN_COUNT="${{ steps.health_fetch.outputs.health_txn_count }}"
+          HAS_REAL="${{ steps.health_fetch.outputs.health_has_real }}"
+          echo "documentCount:     $DOC_COUNT"
+          echo "doneDocumentCount: $DONE_COUNT"
+          echo "transactionCount:  $TXN_COUNT"
+          echo "hasRealData:       $HAS_REAL"
+          if [ "$HAS_REAL" = "true" ]; then
+            echo "REAL DATA CONFIRMED: Pipeline ran end-to-end"
+            echo "  Docs processed: $DONE_COUNT | Transactions: $TXN_COUNT"
+          elif [ "$DOC_COUNT" = "0" ] || [ "$DOC_COUNT" = "null" ]; then
+            echo "AUSÊNCIA DE DADO: DB ready (tables exist) but no PDFs uploaded yet"
+            echo "  Action: upload a real PDF at https://awq-brown.vercel.app/awq/ingest"
+          else
+            echo "PARTIAL: $DOC_COUNT docs uploaded, $DONE_COUNT done, $TXN_COUNT transactions"
+            echo "  Some docs may still be processing"
+          fi
+          # This is INFO only — never exit 1 (DB empty ≠ broken, just no data)
+
+      # ── DB CONNECTIVITY + SCHEMA + DATA assertions ────────────────────────────
+
+      - name: "ASSERT — Neon DB is reachable (SELECT 1 ping via /api/health)"
+        id: assert_db_ping
+        continue-on-error: true
+        run: |
+          BODY=$(curl -s --max-time 30 https://awq-brown.vercel.app/api/health 2>/dev/null || true)
+          PING=$(echo "$BODY" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('dbPing','unknown'))" 2>/dev/null || echo "unknown")
+          MS=$(echo "$BODY"   | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('dbPingMs','null'))" 2>/dev/null || echo "null")
+          echo "db_ping=$PING"   >> $GITHUB_OUTPUT
+          echo "db_ping_ms=$MS"  >> $GITHUB_OUTPUT
+          echo "dbPing=$PING | dbPingMs=${MS}ms"
+          echo "Full body: $BODY"
+          if [ "$PING" = "ok" ]; then
+            echo "PASS: Neon DB is reachable (SELECT 1 returned ok in ${MS}ms)"
+          elif [ "$PING" = "skipped" ]; then
+            echo "FAIL: DB ping skipped — DATABASE_URL not configured"
+            exit 1
+          else
+            echo "FAIL: Neon DB not reachable — dbPing=$PING"
+            echo "Check Neon dashboard for connection string correctness"
+            exit 1
+          fi
+
+      - name: "ASSERT — DB tables exist (financial_documents + bank_transactions)"
+        id: assert_db_tables
+        continue-on-error: true
+        run: |
+          BODY=$(curl -s --max-time 30 https://awq-brown.vercel.app/api/health 2>/dev/null || true)
+          DOCS_TABLE=$(echo "$BODY"  | python3 -c "import json,sys; d=json.load(sys.stdin); t=d.get('tablesExist') or {}; print(str(t.get('documents',False)).lower())" 2>/dev/null || echo "false")
+          TXN_TABLE=$(echo "$BODY"   | python3 -c "import json,sys; d=json.load(sys.stdin); t=d.get('tablesExist') or {}; print(str(t.get('transactions',False)).lower())" 2>/dev/null || echo "false")
+          DOC_COUNT=$(echo "$BODY"   | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('documentCount','null'))" 2>/dev/null || echo "null")
+          echo "docs_table=$DOCS_TABLE"  >> $GITHUB_OUTPUT
+          echo "txn_table=$TXN_TABLE"    >> $GITHUB_OUTPUT
+          echo "document_count=$DOC_COUNT" >> $GITHUB_OUTPUT
+          echo "financial_documents table: $DOCS_TABLE"
+          echo "bank_transactions table: $TXN_TABLE"
+          echo "document count: $DOC_COUNT"
+          if [ "$DOCS_TABLE" = "true" ] && [ "$TXN_TABLE" = "true" ]; then
+            echo "PASS: Both tables exist — schema initialized"
+            echo "Document count in Neon: $DOC_COUNT"
+            if [ "$DOC_COUNT" = "0" ]; then
+              echo "INFO: 0 documents — DB ready but no real data yet. Upload a PDF at /awq/ingest"
+            elif [ "$DOC_COUNT" != "null" ]; then
+              echo "INFO: $DOC_COUNT real documents found in Neon"
+            fi
+          else
+            echo "FAIL: Tables missing — financial_documents=$DOCS_TABLE bank_transactions=$TXN_TABLE"
+            exit 1
+          fi
+
+      # ── Summary ────────────────────────────────────────────────────────────────
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Live Vercel Probe Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**URL**: https://awq-brown.vercel.app" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit probed**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Probed at**: $(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Assertions (exit 1 on failure — readable via GitHub API)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Assertion | HTTP | Result |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| App is live (/login → 200) | ${{ steps.assert_login.outputs.login_status }} | ${{ steps.assert_login.conclusion }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| NEXTAUTH_SECRET configured (/api/auth/csrf → 200+csrfToken) | ${{ steps.assert_nextauth.outputs.csrf_status }} | ${{ steps.assert_nextauth.conclusion }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Middleware active (/awq/management → 307 /login) | ${{ steps.assert_middleware.outputs.management_status }} | ${{ steps.assert_middleware.conclusion }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| SSR active (/api/auth/providers → 200) | ${{ steps.assert_ssr.outputs.providers_status }} | ${{ steps.assert_ssr.conclusion }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Informational probes" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Probe | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| /api/ingest/documents (no auth) | ${{ steps.info_docs_unauth.outputs.docs_unauth_status }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Login page HTML length | ${{ steps.info_db.outputs.login_html_length }} chars |" >> $GITHUB_STEP_SUMMARY
+          echo "| Next.js __NEXT_DATA__ marker | ${{ steps.info_db.outputs.next_data }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| CSRF token length | ${{ steps.assert_nextauth.outputs.csrf_token_length }} chars |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### /api/health — Env var presence (step conclusion = success/failure)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Variable | Present | Adapter | Step conclusion |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| DATABASE_URL | ${{ steps.health_fetch.outputs.health_db }} | ${{ steps.health_fetch.outputs.health_dbadapter }} | ${{ steps.assert_db.conclusion }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| BLOB_READ_WRITE_TOKEN | ${{ steps.health_fetch.outputs.health_blob }} | ${{ steps.health_fetch.outputs.health_blobadapter }} | ${{ steps.assert_blob.conclusion }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| ANTHROPIC_API_KEY | ${{ steps.health_fetch.outputs.health_ai }} | — | ${{ steps.assert_ai.conclusion }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| NEXTAUTH_SECRET | ${{ steps.health_fetch.outputs.health_auth }} | — | ${{ steps.assert_nextauth.conclusion }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| NEXTAUTH_URL | ${{ steps.health_fetch.outputs.health_authurl }} | — | ${{ steps.assert_authurl.conclusion }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| /api/health HTTP | ${{ steps.health_fetch.outputs.health_status }} | — | ${{ steps.health_fetch.conclusion }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### DB Connectivity (Neon)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Value | Step conclusion |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| SELECT 1 ping | ${{ steps.assert_db_ping.outputs.db_ping }} (${{ steps.assert_db_ping.outputs.db_ping_ms }}ms) | ${{ steps.assert_db_ping.conclusion }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| financial_documents table | ${{ steps.assert_db_tables.outputs.docs_table }} | ${{ steps.assert_db_tables.conclusion }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| bank_transactions table | ${{ steps.assert_db_tables.outputs.txn_table }} | ${{ steps.assert_db_tables.conclusion }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| document count in Neon | ${{ steps.assert_db_tables.outputs.document_count }} | — |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Real Data State (CENÁRIO 1 vs CENÁRIO 2)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Counter | Value | Meaning |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| documentCount | ${{ steps.health_fetch.outputs.health_doc_count }} | total PDFs uploaded |" >> $GITHUB_STEP_SUMMARY
+          echo "| doneDocumentCount | ${{ steps.health_fetch.outputs.health_done_count }} | PDFs fully processed |" >> $GITHUB_STEP_SUMMARY
+          echo "| transactionCount | ${{ steps.health_fetch.outputs.health_txn_count }} | transactions in Neon |" >> $GITHUB_STEP_SUMMARY
+          echo "| hasRealData | ${{ steps.health_fetch.outputs.health_has_real }} | pipeline ran end-to-end |" >> $GITHUB_STEP_SUMMARY

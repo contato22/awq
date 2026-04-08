@@ -8,6 +8,7 @@ import {
   ArrowUpRight,
   ChevronRight,
   Zap,
+  AlertTriangle,
 } from "lucide-react";
 import {
   buData,
@@ -15,7 +16,8 @@ import {
   consolidated,
   allocFlags,
   flagConfig,
-} from "@/lib/awq-group-data";
+  PAYBACK_ESTIMATES,
+} from "@/lib/awq-derived-metrics";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -25,15 +27,6 @@ function fmtR(n: number) {
   if (Math.abs(n) >= 1_000)         return "R$" + (n / 1_000).toFixed(0) + "K";
   return "R$" + n.toLocaleString("pt-BR");
 }
-
-// ─── Payback estimates ────────────────────────────────────────────────────────
-
-const paybackMonths: Record<string, number> = {
-  jacqes:  Math.round((2_400_000 / 518_000) * 3),   // ~14m
-  caza:    Math.round((1_200_000 / 420_000) * 3),   // ~9m
-  advisor: Math.round((800_000  / 479_000) * 3),   // ~5m
-  venture: null as unknown as number,
-};
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -53,46 +46,70 @@ export default function AwqAllocationsPage() {
       />
       <div className="page-container">
 
+        {/* ── Snapshot notice ─────────────────────────────────────────────── */}
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <div className="flex items-start gap-2">
+            <AlertTriangle size={14} className="text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-xs font-semibold text-amber-800">
+                Capital alocado, ROIC e Cash Gerado são dados de planejamento (snapshot).
+              </p>
+              <p className="text-[11px] text-amber-600 mt-0.5">
+                Não derivados da base bancária. Para fluxo de caixa real por entidade, acesse{" "}
+                <a href="/awq/cashflow" className="underline font-medium">/awq/cashflow</a>{" "}
+                ou{" "}
+                <a href="/awq/financial" className="underline font-medium">/awq/financial</a>.
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* ── Summary Cards ─────────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[
-            {
-              label: "Capital Total Alocado",
-              value: fmtR(totalCap),
-              sub:   "Todas as BUs",
-              delta: "+R$15M em 2026",
-              icon:  Wallet,
-              color: "text-amber-700",
-              bg:    "bg-amber-50",
-            },
-            {
-              label: "ROIC Médio (Ops)",
-              value: `${((operatingBus.reduce((s, b) => s + b.roic, 0) / operatingBus.length)).toFixed(1)}%`,
-              sub:   "excl. Venture",
-              delta: "+5.2pp vs 2025",
-              icon:  TrendingUp,
-              color: "text-emerald-600",
-              bg:    "bg-emerald-50",
-            },
-            {
-              label: "Melhor ROIC",
-              value: `${buData.reduce((a, b) => a.roic > b.roic ? a : b).name}`,
-              sub:   `${buData.reduce((a, b) => a.roic > b.roic ? a : b).roic.toFixed(0)}% ROIC`,
-              delta: "Advisor lidera",
-              icon:  BarChart3,
-              color: "text-violet-700",
-              bg:    "bg-violet-50",
-            },
-            {
-              label: "BUs p/ Expandir",
-              value: `${Object.values(allocFlags).filter(f => f === "expand").length}`,
-              sub:   "Caza Vision + Advisor",
-              delta: "Capital adicional aprovado",
-              icon:  Zap,
-              color: "text-brand-600",
-              bg:    "bg-brand-50",
-            },
-          ].map((card) => {
+          {(() => {
+            const roicMedio     = operatingBus.reduce((s, b) => s + b.roic, 0) / operatingBus.length;
+            const bestRoicBU    = buData.reduce((a, b) => a.roic > b.roic ? a : b);
+            const expandBUs     = buData.filter((b) => allocFlags[b.id] === "expand");
+            const expandNames   = expandBUs.map((b) => b.name).join(" + ");
+            return [
+              {
+                label: "Capital Total Alocado",
+                value: fmtR(totalCap),
+                sub:   `${buData.length} BUs`,
+                delta: `snapshot Q1 2026`,
+                icon:  Wallet,
+                color: "text-amber-700",
+                bg:    "bg-amber-50",
+              },
+              {
+                label: "ROIC Médio (Ops)",
+                value: `${roicMedio.toFixed(1)}%`,
+                sub:   "excl. Venture",
+                delta: "snapshot accrual",
+                icon:  TrendingUp,
+                color: "text-emerald-600",
+                bg:    "bg-emerald-50",
+              },
+              {
+                label: "Melhor ROIC",
+                value: bestRoicBU.name,
+                sub:   `${bestRoicBU.roic.toFixed(0)}% ROIC`,
+                delta: `lidera entre ${buData.length} BUs`,
+                icon:  BarChart3,
+                color: "text-violet-700",
+                bg:    "bg-violet-50",
+              },
+              {
+                label: "BUs p/ Expandir",
+                value: `${expandBUs.length}`,
+                sub:   expandNames || "nenhuma",
+                delta: "capital adicional sinalizado",
+                icon:  Zap,
+                color: "text-brand-600",
+                bg:    "bg-brand-50",
+              },
+            ];
+          })().map((card) => {
             const Icon = card.icon;
             return (
               <div key={card.label} className="card p-5 flex items-start gap-4">
@@ -136,7 +153,7 @@ export default function AwqAllocationsPage() {
                   const flag    = allocFlags[bu.id];
                   const flagCfg = flagConfig[flag];
                   const share   = (bu.capitalAllocated / totalCap) * 100;
-                  const pb      = paybackMonths[bu.id];
+                  const pb      = PAYBACK_ESTIMATES[bu.id];
                   return (
                     <tr key={bu.id} className="border-b border-gray-100 hover:bg-gray-50/80 transition-colors">
                       <td className="py-2.5 px-3">

@@ -1,4 +1,11 @@
 {
+  "framework": "nextjs",
   "buildCommand": "next build",
-  "framework": "nextjs"
+  "outputDirectory": ".next",
+  "regions": ["gru1"],
+  "git": {
+    "deploymentEnabled": {
+      "gh-pages": false
+    }
+  }
 }

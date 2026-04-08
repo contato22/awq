@@ -40,7 +40,7 @@ export default function RegionTable() {
                     {formatNumber(region.customers)} customers
                   </span>
                   <span className="font-semibold text-gray-900 tabular-nums w-16">
-                    {formatCurrency(region.revenue, "USD", true)}
+                    {formatCurrency(region.revenue, "BRL", true)}
                   </span>
                   <div className="flex items-center gap-1 text-emerald-600 w-12 justify-end">
                     <TrendingUp size={11} />

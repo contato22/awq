@@ -21,9 +21,9 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   if (!active || !payload?.length) return null;
 
   const fmt = (v: number) =>
-    new Intl.NumberFormat("en-US", {
+    new Intl.NumberFormat("pt-BR", {
       style: "currency",
-      currency: "USD",
+      currency: "BRL",
       notation: "compact",
       maximumFractionDigits: 1,
     }).format(v);
@@ -107,10 +107,10 @@ export default function RevenueChart() {
             axisLine={false}
             tickLine={false}
             tickFormatter={(v) =>
-              new Intl.NumberFormat("en-US", {
+              new Intl.NumberFormat("pt-BR", {
                 notation: "compact",
                 style: "currency",
-                currency: "USD",
+                currency: "BRL",
                 maximumFractionDigits: 1,
               }).format(v)
             }

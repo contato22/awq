@@ -1,17 +1,6 @@
-import Header from "@/components/Header";
-import EmptyState from "@/components/EmptyState";
-import { Users } from "lucide-react";
+import { redirect } from "next/navigation";
 
-export default function CarteiraPage() {
-  return (
-    <>
-      <Header title="Carteira" subtitle="Gestão de carteira de clientes — JACQES" />
-      <EmptyState
-        icon={<Users size={20} className="text-gray-400" />}
-        title="Carteira"
-        description="Em construção — em breve"
-        className="h-[60vh]"
-      />
-    </>
-  );
+// Migrated to /jacqes/carteira — kept for backward compatibility
+export default function CarteiraRedirect() {
+  redirect("/jacqes/carteira");
 }

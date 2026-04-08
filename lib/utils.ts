@@ -7,18 +7,15 @@ export function cn(...inputs: ClassValue[]) {
 
 export function formatCurrency(
   value: number,
-  currency = "USD",
+  currency = "BRL",
   compact = false
 ): string {
   if (compact) {
-    if (value >= 1_000_000) {
-      return `$${(value / 1_000_000).toFixed(1)}M`;
-    }
-    if (value >= 1_000) {
-      return `$${(value / 1_000).toFixed(1)}K`;
-    }
+    const sym = currency === "BRL" ? "R$" : "$";
+    if (value >= 1_000_000) return `${sym}${(value / 1_000_000).toFixed(1)}M`;
+    if (value >= 1_000) return `${sym}${(value / 1_000).toFixed(1)}K`;
   }
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency,
     maximumFractionDigits: 0,

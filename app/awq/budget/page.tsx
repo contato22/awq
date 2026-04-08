@@ -14,7 +14,9 @@ import {
   operatingBus,
   consolidated,
   budgetVsActual,
-} from "@/lib/awq-group-data";
+  categoryBudget,
+  BUDGET_LINES,
+} from "@/lib/awq-derived-metrics";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -29,63 +31,24 @@ function varPct(actual: number, budget: number) {
   return ((actual - budget) / budget) * 100;
 }
 
-// ─── Budget Lines ─────────────────────────────────────────────────────────────
-
-const budgetLines = [
-  {
-    line:         "Receita",
-    jacquesBudg:  4_440_000, jacquesActual: 4_820_000,
-    cazaBudg:     2_148_000, cazaActual:    2_418_000,
-    advisorBudg:  1_400_000, advisorActual: 1_572_000,
-    isExpense:    false,
-  },
-  {
-    line:         "Gross Profit",
-    jacquesBudg:  2_664_000, jacquesActual: 2_892_000,
-    cazaBudg:     1_546_000, cazaActual:    1_730_000,
-    advisorBudg:  770_000,   advisorActual: 865_000,
-    isExpense:    false,
-  },
-  {
-    line:         "EBITDA",
-    jacquesBudg:  976_800,  jacquesActual: 867_000,
-    cazaBudg:     515_520,  cazaActual:    653_000,
-    advisorBudg:  644_000,  advisorActual: 723_000,
-    isExpense:    false,
-  },
-  {
-    line:         "Lucro Líquido",
-    jacquesBudg:  489_000,  jacquesActual: 518_000,
-    cazaBudg:     386_640,  cazaActual:    420_000,
-    advisorBudg:  427_000,  advisorActual: 479_000,
-    isExpense:    false,
-  },
-  {
-    line:         "Cash Gerado",
-    jacquesBudg:  630_000,  jacquesActual: 720_000,
-    cazaBudg:     450_000,  cazaActual:    580_000,
-    advisorBudg:  460_000,  advisorActual: 510_000,
-    isExpense:    false,
-  },
-];
-
-// ─── Consolidated budget by category ─────────────────────────────────────────
-
-const categoryBudget = [
-  { category: "Marketing & Growth",    budget: 1_440_000, actual: 1_238_000, bu: "Grupo" },
-  { category: "Salários & Benefícios", budget: 3_720_000, actual: 3_540_000, bu: "Grupo" },
-  { category: "Tecnologia & Infra",    budget:   540_000, actual:   462_000, bu: "Grupo" },
-  { category: "Vendas & Comissões",    budget:   960_000, actual: 1_044_000, bu: "Grupo" },
-  { category: "G&A Consolidado",       budget:   720_000, actual:   684_000, bu: "Grupo" },
-  { category: "Desp. Operacionais",    budget:   360_000, actual:   396_000, bu: "Grupo" },
-];
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AwqBudgetPage() {
-  const totalBudget   = consolidated.budgetRevenue;
-  const totalActual   = consolidated.revenue;
-  const var_           = budgetVsActual;
+  const totalBudget = consolidated.budgetRevenue;
+  const totalActual = consolidated.revenue;
+  const var_        = budgetVsActual;
+
+  // ── Derived from canonical BUDGET_LINES — no hardcoded strings ───────────────
+  const revLine        = BUDGET_LINES.find((l) => l.line === "Receita")!;
+  const busAboveBudget = operatingBus.filter((bu) => bu.revenue > bu.budgetRevenue).length;
+  const jacquesVar     = varPct(revLine.jacquesActual, revLine.jacquesBudg);
+  const cazaVar        = varPct(revLine.cazaActual, revLine.cazaBudg);
+  const advisorVar     = varPct(revLine.advisorActual, revLine.advisorBudg);
+  const buAboveDelta   = [
+    jacquesVar >= 0 ? `JACQES +${jacquesVar.toFixed(1)}%` : `JACQES ${jacquesVar.toFixed(1)}%`,
+    cazaVar    >= 0 ? `Caza +${cazaVar.toFixed(1)}%`      : `Caza ${cazaVar.toFixed(1)}%`,
+    advisorVar >= 0 ? `Advisor +${advisorVar.toFixed(1)}%` : `Advisor ${advisorVar.toFixed(1)}%`,
+  ].join("  ");
 
   return (
     <>
@@ -94,6 +57,25 @@ export default function AwqBudgetPage() {
         subtitle="Budget vs Actual consolidado por BU · YTD Jan–Mar 2026"
       />
       <div className="page-container">
+
+        {/* ── Snapshot notice ─────────────────────────────────────────────── */}
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <div className="flex items-start gap-2">
+            <AlertTriangle size={14} className="text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-xs font-semibold text-amber-800">
+                Esta página usa dados de snapshot (accrual) — não verificados pela base bancária.
+              </p>
+              <p className="text-[11px] text-amber-600 mt-0.5">
+                Budget e &quot;actual&quot; de receita/EBITDA são da base de planejamento, não dos extratos bancários ingeridos.
+                Para caixa real por BU, acesse{" "}
+                <a href="/awq/cashflow" className="underline font-medium">/awq/cashflow</a>{" "}
+                ou{" "}
+                <a href="/awq/financial" className="underline font-medium">/awq/financial</a>.
+              </p>
+            </div>
+          </div>
+        </div>
 
         {/* ── Summary Cards ─────────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -120,10 +102,10 @@ export default function AwqBudgetPage() {
             },
             {
               label: "BUs acima do Budget",
-              value: "3 / 3",
-              sub:   "Todas operacionais",
-              delta: "JACQES +8.6%  Caza +12.6%",
-              up:    true,
+              value: `${busAboveBudget} / ${operatingBus.length}`,
+              sub:   "BUs operacionais",
+              delta: buAboveDelta,
+              up:    busAboveBudget > 0,
               icon:  CheckCircle2,
               color: "text-violet-700",
               bg:    "bg-violet-50",
@@ -179,7 +161,7 @@ export default function AwqBudgetPage() {
                 </tr>
               </thead>
               <tbody>
-                {budgetLines.map((row) => {
+                {BUDGET_LINES.map((row) => {
                   const vJ = varPct(row.jacquesActual, row.jacquesBudg);
                   const vC = varPct(row.cazaActual, row.cazaBudg);
                   const vA = varPct(row.advisorActual, row.advisorBudg);

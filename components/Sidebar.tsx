@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
@@ -28,19 +29,16 @@ import {
     Calculator,
     Wallet,
     CreditCard,
+    FileUp,
+    Landmark,
+    Database,
+    ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // ── Route membership ──────────────────────────────────────────────────────────
-const JACQES_PREFIXES = [
-    "/jacqes",
-    "/desempenho",
-    "/carteira",
-    "/analise",
-    "/csops",
-    "/revenue",
-    "/reports",
-];
+// All JACQES routes are now under /jacqes/*. Root-level legacy routes redirect here.
+const JACQES_PREFIXES = ["/jacqes"];
 
 const CAZA_PREFIXES = ["/caza-vision"];
 
@@ -66,17 +64,18 @@ function isVentureRoute(pathname: string) {
 
 // ── Nav items ────────────────────────────────────────────────────────────────
 const jacqesNav = [
-    { label: "Visão Geral",    href: "/jacqes",                 icon: LayoutDashboard },
-    { label: "Desempenho",     href: "/desempenho",             icon: TrendingUp       },
-    { label: "Carteira",       href: "/carteira",               icon: Users            },
-    { label: "Análise",        href: "/analise",                icon: Activity         },
-    { label: "CS Ops",         href: "/csops",                  icon: HeartPulse       },
-    { label: "Financial",      href: "/jacqes/financial",       icon: DollarSign       },
-    { label: "Customers",      href: "/jacqes/customers",       icon: Users            },
-    { label: "Unit Economics", href: "/jacqes/unit-economics",  icon: Calculator       },
-    { label: "Budget",         href: "/jacqes/budget",          icon: Wallet           },
-    { label: "Relatórios",     href: "/reports",                icon: BarChart3        },
-    { label: "Categorias",     href: "/categorias",             icon: Tag              },
+    { label: "Visão Geral",    href: "/jacqes",                   icon: LayoutDashboard },
+    { label: "Financial",      href: "/jacqes/financial",         icon: DollarSign      },
+    { label: "Revenue",        href: "/jacqes/revenue",           icon: TrendingUp      },
+    { label: "Customers",      href: "/jacqes/customers",         icon: Users           },
+    { label: "Unit Economics", href: "/jacqes/unit-economics",    icon: Calculator      },
+    { label: "Budget",         href: "/jacqes/budget",            icon: Wallet          },
+    { label: "Desempenho",     href: "/jacqes/desempenho",        icon: TrendingUp      },
+    { label: "Carteira",       href: "/jacqes/carteira",          icon: Users           },
+    { label: "Análise",        href: "/jacqes/analise",           icon: Activity        },
+    { label: "CS Ops",         href: "/jacqes/csops",             icon: HeartPulse      },
+    { label: "Relatórios",     href: "/jacqes/reports",           icon: BarChart3       },
+    { label: "Categorias",     href: "/jacqes/categorias",        icon: Tag             },
 ];
 
 const cazaNav = [
@@ -85,27 +84,25 @@ const cazaNav = [
     { label: "Clientes",       href: "/caza-vision/clientes",          icon: Users           },
     { label: "Financial",      href: "/caza-vision/financial",         icon: DollarSign      },
     { label: "Unit Economics", href: "/caza-vision/unit-economics",    icon: Calculator      },
-    { label: "Pipeline",       href: "/caza-vision/pipeline",          icon: Activity        },
-    { label: "Relatórios",     href: "/caza-vision/relatorios",        icon: BarChart3       },
 ];
 
 const advisorNav = [
     { label: "Visão Geral", href: "/advisor",              icon: LayoutDashboard },
     { label: "Financial",   href: "/advisor/financial",    icon: DollarSign      },
     { label: "Customers",   href: "/advisor/customers",    icon: Users           },
-    { label: "Portfólio",   href: "/advisor/portfolio",    icon: LineChart       },
-    { label: "Relatórios",  href: "/advisor/relatorios",   icon: FileText        },
 ];
 
 const ventureNav = [
-    { label: "Visão Geral", href: "/awq-venture",           icon: LayoutDashboard },
-    { label: "Portfólio",   href: "/awq-venture/portfolio", icon: Briefcase       },
-    { label: "Pipeline",    href: "/awq-venture/pipeline",  icon: Activity        },
-    { label: "Financial",   href: "/awq-venture/financial", icon: DollarSign      },
+    { label: "Visão Geral", href: "/awq-venture",              icon: LayoutDashboard },
+    { label: "Portfólio",   href: "/awq-venture/portfolio",    icon: Briefcase       },
+    { label: "Pipeline",    href: "/awq-venture/pipeline",     icon: Activity        },
+    { label: "Financial",   href: "/awq-venture/financial",    icon: DollarSign      },
+    { label: "YoY 2025",    href: "/awq-venture/yoy-2025",     icon: LineChart       },
+    { label: "Sales",       href: "/awq-venture/sales",        icon: DollarSign      },
 ];
 
 const gestaoNav = [
-    { label: "Modo Carreira", href: "/carreira", icon: Briefcase },
+    { label: "Modo Carreira", href: "/jacqes/carreira", icon: Briefcase },
 ];
 
 const aiNav = [
@@ -123,7 +120,7 @@ const businessUnits = [
         id: "jacqes",
         label: "JACQES",
         sub: "Agência · AWQ Group",
-        href: "https://contato22.github.io/jacqes-bi/",
+        href: "/jacqes",
         icon: BarChart3,
         color: "bg-brand-600",
     },
@@ -147,23 +144,41 @@ const businessUnits = [
         id: "advisor",
         label: "Advisor",
         sub: "Consultoria · AWQ Group",
-        href: "https://contato22.github.io/advisor-bi/",
+        href: "/advisor",
         icon: Briefcase,
         color: "bg-violet-600",
     },
 ];
 
-const awqNav = [
-    { label: "Visão Geral",    href: "/awq",            icon: LayoutDashboard },
-    { label: "Business Units", href: "/business-units",  icon: Building2       },
-    { label: "Financial",      href: "/awq/financial",   icon: LineChart       },
-    { label: "Cash Flow",      href: "/awq/cashflow",    icon: Zap             },
-    { label: "Budget",         href: "/awq/budget",      icon: Wallet          },
-    { label: "Forecast",       href: "/awq/forecast",    icon: TrendingUp      },
-    { label: "Allocations",    href: "/awq/allocations", icon: Wallet          },
-    { label: "Risk",           href: "/awq/risk",        icon: Activity        },
-    { label: "Contas Banco",   href: "/awq/bank",        icon: CreditCard      },
-];
+// ── AWQ primary nav (always visible, top of sidebar) ─────────────────────────
+const awqPrimaryNav = [
+    { label: "Visão Geral",    href: "/awq",           icon: LayoutDashboard },
+    { label: "Business Units", href: "/business-units", icon: Building2       },
+] as const;
+
+// ── GOVERNANCE REGISTRY: all AWQ holding indicator routes ────────────────────
+// RULE: Every /awq/* indicator page MUST appear here and ONLY here.
+// Do NOT add indicator pages as standalone primary nav items.
+// To add a new indicator page, append it to this array — never elsewhere.
+const HOLDING_INDICATOR_ITEMS = [
+    { label: "KPIs",          href: "/awq/kpis",        icon: BarChart3   },
+    { label: "Financial",     href: "/awq/financial",   icon: LineChart   },
+    { label: "Cash Flow",     href: "/awq/cashflow",    icon: Zap         },
+    { label: "Investimentos", href: "/awq/investments", icon: Landmark    },
+    { label: "Portfolio",     href: "/awq/portfolio",   icon: Briefcase   },
+    { label: "Allocations",   href: "/awq/allocations", icon: Wallet      },
+    { label: "Risk",          href: "/awq/risk",        icon: Activity    },
+    { label: "Budget",        href: "/awq/budget",      icon: Wallet      },
+    { label: "Forecast",      href: "/awq/forecast",    icon: TrendingUp  },
+    { label: "Contas Banco",  href: "/awq/bank",        icon: CreditCard  },
+] as const;
+
+// ── AWQ ops/governance nav (always visible, below indicators) ────────────────
+const awqOpsNav = [
+    { label: "Ingestão",      href: "/awq/ingest",     icon: FileUp    },
+    { label: "Base de Dados", href: "/awq/data",        icon: Database  },
+    { label: "Governança",    href: "/awq/management",  icon: ShieldCheck },
+] as const;
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
 function NavItem({
@@ -240,23 +255,39 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 function SidebarFooter() {
+    const { data: session } = useSession();
+    const user = session?.user as { name?: string; email?: string; role?: string } | undefined;
+    const name = user?.name ?? user?.email ?? "Usuário";
+    const initials = name
+        .split(" ")
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((w) => w[0])
+        .join("")
+        .toUpperCase() || "?";
+    const role = user?.role;
+    const roleLabel = ROLE_LABELS[role ?? ""] ?? role ?? "—";
+
     return (
         <div className="px-4 py-4 border-t border-gray-100">
             <div className="flex items-center gap-3 px-1">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-awq-gold to-amber-600 flex items-center justify-center text-xs font-bold text-gray-900 shrink-0">
-                    AD
+                    {initials}
                 </div>
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-gray-800 truncate">Admin</span>
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-200">
-                            ADMIN
-                        </span>
+                        <span className="text-sm font-semibold text-gray-800 truncate">{name}</span>
+                        {role && (
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-200">
+                                {roleLabel.toUpperCase()}
+                            </span>
+                        )}
                     </div>
-                    <div className="text-[10px] text-gray-400 truncate">Administrador</div>
+                    <div className="text-[10px] text-gray-400 truncate">{user?.email ?? "—"}</div>
                 </div>
                 <button
-                    className="p-1.5 text-gray-400 hover:text-gray-400 hover:bg-gray-100 rounded-lg transition-colors"
+                    onClick={() => void signOut({ callbackUrl: "/login" })}
+                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                     title="Sair"
                 >
                     <LogOut size={14} />
@@ -268,18 +299,86 @@ function SidebarFooter() {
 
 // ── AWQ Group sidebar ────────────────────────────────────────────────────────
 function AwqSidebar({ pathname }: { pathname: string }) {
-    const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
+    // /awq root is active only on exact match (all /awq/* belong to Indicadores Holding)
+    const isActive = (href: string) =>
+        href === "/awq"
+            ? pathname === "/awq"
+            : pathname === href || pathname.startsWith(href + "/");
+
+    // Determine if any indicator child is currently active
+    const anyIndicatorActive = HOLDING_INDICATOR_ITEMS.some(
+        (item) => pathname === item.href || pathname.startsWith(item.href + "/")
+    );
+
+    const [indicatorsOpen, setIndicatorsOpen] = useState(anyIndicatorActive);
+
+    // Auto-expand when navigating into any indicator route
+    useEffect(() => {
+        if (anyIndicatorActive) setIndicatorsOpen(true);
+    }, [anyIndicatorActive]);
+
     return (
         <>
             <AwqHeader />
             <nav className="flex-1 overflow-y-auto px-3 py-2">
-                <SectionLabel>AWQ Group</SectionLabel>
-                <div className="space-y-0.5">
-                    {awqNav.map((item) => (
+
+                {/* ── Primary nav: Visão Geral + Business Units ─────────── */}
+                <div className="space-y-0.5 mt-1">
+                    {awqPrimaryNav.map((item) => (
                         <NavItem key={item.href} {...item} active={isActive(item.href)} />
                     ))}
                 </div>
 
+                {/* ── Indicadores Holding — collapsible parent ──────────── */}
+                <div className="mt-0.5">
+                    <button
+                        onClick={() => setIndicatorsOpen((o) => !o)}
+                        className={cn(
+                            "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 focus-visible:ring-offset-1",
+                            anyIndicatorActive
+                                ? "bg-brand-50 text-brand-700 shadow-sm"
+                                : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                        )}
+                    >
+                        <BarChart3
+                            size={16}
+                            className={cn(
+                                "shrink-0 transition-colors",
+                                anyIndicatorActive ? "text-brand-600" : "text-gray-400"
+                            )}
+                        />
+                        <span className="flex-1 text-left truncate">Indicadores Holding</span>
+                        {indicatorsOpen ? (
+                            <ChevronDown size={13} className="shrink-0 text-gray-400" />
+                        ) : (
+                            <ChevronRight size={13} className="shrink-0 text-gray-400" />
+                        )}
+                    </button>
+
+                    {indicatorsOpen && (
+                        <div className="ml-3 mt-0.5 pl-3 border-l border-gray-100 space-y-0.5">
+                            {HOLDING_INDICATOR_ITEMS.map((item) => (
+                                <NavItem
+                                    key={item.href}
+                                    href={item.href}
+                                    icon={item.icon}
+                                    label={item.label}
+                                    active={pathname === item.href || pathname.startsWith(item.href + "/")}
+                                />
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                {/* ── Ops / governance (primary, always visible) ────────── */}
+                <div className="space-y-0.5 mt-0.5">
+                    {awqOpsNav.map((item) => (
+                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
+                    ))}
+                </div>
+
+                {/* ── Business Unit quick-access cards ────────────────────── */}
                 <SectionLabel>Business Units</SectionLabel>
                 <div className="space-y-2 mt-1">
                     {businessUnits.map((bu) => (
@@ -323,7 +422,10 @@ function AwqSidebar({ pathname }: { pathname: string }) {
 
 // ── JACQES sidebar ───────────────────────────────────────────────────────────
 function JacqesSidebar({ pathname }: { pathname: string }) {
-    const isActive = (href: string) => pathname.startsWith(href);
+    const isActive = (href: string) =>
+        href === "/jacqes"
+            ? pathname === "/jacqes"
+            : pathname === href || pathname.startsWith(href + "/");
     return (
         <>
             <AwqHeader />
