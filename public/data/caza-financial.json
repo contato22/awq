@@ -1,0 +1,17 @@
+[
+  { "month": "Jan/25", "receita": 0,     "orcamento": 0,     "lucro": 0,     "despesas": 0, "expenses": 0, "profit": 0     },
+  { "month": "Fev/25", "receita": 0,     "orcamento": 0,     "lucro": 0,     "despesas": 0, "expenses": 0, "profit": 0     },
+  { "month": "Mar/25", "receita": 0,     "orcamento": 0,     "lucro": 0,     "despesas": 0, "expenses": 0, "profit": 0     },
+  { "month": "Abr/25", "receita": 30000, "orcamento": 30000, "lucro": 30000, "despesas": 0, "expenses": 0, "profit": 30000 },
+  { "month": "Mai/25", "receita": 0,     "orcamento": 0,     "lucro": 0,     "despesas": 0, "expenses": 0, "profit": 0     },
+  { "month": "Jun/25", "receita": 0,     "orcamento": 0,     "lucro": 0,     "despesas": 0, "expenses": 0, "profit": 0     },
+  { "month": "Jul/25", "receita": 0,     "orcamento": 0,     "lucro": 0,     "despesas": 0, "expenses": 0, "profit": 0     },
+  { "month": "Ago/25", "receita": 0,     "orcamento": 0,     "lucro": 0,     "despesas": 0, "expenses": 0, "profit": 0     },
+  { "month": "Set/25", "receita": 0,     "orcamento": 0,     "lucro": 0,     "despesas": 0, "expenses": 0, "profit": 0     },
+  { "month": "Out/25", "receita": 0,     "orcamento": 0,     "lucro": 0,     "despesas": 0, "expenses": 0, "profit": 0     },
+  { "month": "Nov/25", "receita": 2300,  "orcamento": 2300,  "lucro": 2300,  "despesas": 0, "expenses": 0, "profit": 2300  },
+  { "month": "Dez/25", "receita": 0,     "orcamento": 0,     "lucro": 0,     "despesas": 0, "expenses": 0, "profit": 0     },
+  { "month": "Jan/26", "receita": 0,     "orcamento": 0,     "lucro": 0,     "despesas": 0, "expenses": 0, "profit": 0     },
+  { "month": "Fev/26", "receita": 12400, "orcamento": 12400, "lucro": 12400, "despesas": 0, "expenses": 0, "profit": 12400 },
+  { "month": "Mar/26", "receita": 33900, "orcamento": 33900, "lucro": 33900, "despesas": 0, "expenses": 0, "profit": 33900 }
+]

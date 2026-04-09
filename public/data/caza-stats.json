@@ -1,0 +1,27 @@
+{
+  "kpis": [
+    { "id": "projetos",  "label": "Projetos Ativos",    "value": 5,     "unit": "number",   "icon": "Building2",     "color": "emerald" },
+    { "id": "receita",   "label": "Receita YTD",         "value": 82700, "unit": "currency", "icon": "DollarSign",    "color": "brand"   },
+    { "id": "entregues", "label": "Projetos Entregues",  "value": 12,    "unit": "number",   "icon": "HandshakeIcon", "color": "violet"  },
+    { "id": "ticket",    "label": "Ticket Médio",        "value": 6765,  "unit": "currency", "icon": "TrendingUp",    "color": "amber"   }
+  ],
+  "revenueData": [
+    { "month": "Abr/25", "receita": 30000, "expenses": 0, "profit": 30000, "orcamento": 30000 },
+    { "month": "Nov/25", "receita": 2300,  "expenses": 0, "profit": 2300,  "orcamento": 2300  },
+    { "month": "Fev/26", "receita": 12400, "expenses": 0, "profit": 12400, "orcamento": 12400 },
+    { "month": "Mar/26", "receita": 33900, "expenses": 0, "profit": 33900, "orcamento": 33900 },
+    { "month": "Abr/26", "receita": 27900, "expenses": 0, "profit": 27900, "orcamento": 27900 },
+    { "month": "Mai/26", "receita": 8500,  "expenses": 0, "profit": 8500,  "orcamento": 8500  }
+  ],
+  "pipeline": [
+    { "stage": "Em Produção", "count": 5  },
+    { "stage": "Entregue",    "count": 12 }
+  ],
+  "projectTypeRevenue": [
+    { "type": "Vídeo Publicitário",  "projetos": 6, "receita": 41500, "avgValue": 6917 },
+    { "type": "Evento / Live",       "projetos": 5, "receita": 30300, "avgValue": 6060 },
+    { "type": "Filme Institucional", "projetos": 3, "receita": 27300, "avgValue": 9100 },
+    { "type": "Fotografia",          "projetos": 3, "receita": 15900, "avgValue": 5300 }
+  ],
+  "source": "notion"
+}
