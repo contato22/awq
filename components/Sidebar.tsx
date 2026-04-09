@@ -80,6 +80,7 @@ const cazaNav = [
     { label: "Clientes",       href: "/caza-vision/clientes",          icon: Users           },
     { label: "Financial",      href: "/caza-vision/financial",         icon: DollarSign      },
     { label: "Unit Economics", href: "/caza-vision/unit-economics",    icon: Calculator      },
+    { label: "Importar",       href: "/caza-vision/import",            icon: FileUp          },
 ];
 
 const advisorNav = [
