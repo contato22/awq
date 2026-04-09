@@ -65,7 +65,7 @@ function isVentureRoute(pathname: string) {
 // ── Nav items ────────────────────────────────────────────────────────────────
 const jacqesNav = [
     { label: "Visão Geral",    href: "/jacqes",             icon: LayoutDashboard },
-    { label: "SG&A",           href: "/jacqes/sga",         icon: BarChart3       },
+    { label: "FP&A",           href: "/jacqes/fpa",         icon: BarChart3       },
     { label: "Carteira",       href: "/jacqes/carteira",    icon: Users           },
     { label: "Desempenho",     href: "/jacqes/desempenho",  icon: TrendingUp      },
     { label: "Análise",        href: "/jacqes/analise",     icon: Activity        },
