@@ -124,7 +124,8 @@ function ChartTooltip({
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function SgaPage() {
-  const [tab, setTab] = useState<TabId>("receita");
+  const [tab,     setTab]     = useState<TabId>("receita");
+  const [dreView, setDreView] = useState<"both" | "prev" | "real">("both");
 
   return (
     <>
@@ -244,12 +245,27 @@ export default function SgaPage() {
 
             {/* Tabela DRE matricial */}
             <div className="card p-5">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
                 <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
                   DRE Anual — 2026
                   <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 border border-amber-200">snapshot</span>
                 </h2>
-                <span className="text-[10px] text-gray-400">Prev = Previsto · Real = Realizado</span>
+                {/* Seletor Prev / Real */}
+                <div className="flex gap-0.5 p-0.5 bg-gray-100 rounded-lg">
+                  {(["both", "prev", "real"] as const).map((v) => (
+                    <button
+                      key={v}
+                      onClick={() => setDreView(v)}
+                      className={`px-3 py-1.5 text-[11px] font-medium rounded-md transition-all ${
+                        dreView === v
+                          ? "bg-white text-brand-700 shadow-sm"
+                          : "text-gray-500 hover:text-gray-700"
+                      }`}
+                    >
+                      {v === "both" ? "Prev + Real" : v === "prev" ? "Só Previsto" : "Só Realizado"}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="overflow-x-auto">
@@ -261,12 +277,12 @@ export default function SgaPage() {
                         Linha DRE
                       </th>
                       {MONTHS.map((m) => (
-                        <th key={m} colSpan={2}
+                        <th key={m} colSpan={dreView === "both" ? 2 : 1}
                           className="text-center py-2 px-2 text-[10px] font-semibold text-gray-600 border-l border-gray-100 bg-gray-50">
                           {m}
                         </th>
                       ))}
-                      <th colSpan={2}
+                      <th colSpan={dreView === "both" ? 2 : 1}
                         className="text-center py-2 px-2 text-[10px] font-bold text-brand-700 border-l border-gray-200 bg-brand-50">
                         YTD Total
                       </th>
@@ -274,18 +290,16 @@ export default function SgaPage() {
                     {/* ── Cabeçalho nível 2: Prev / Real ── */}
                     <tr className="border-b-2 border-gray-200 bg-gray-50">
                       <th className="sticky left-0 z-10 bg-gray-50" />
-                      {[...MONTHS.map(() => null), null].map((_, gi) => (
-                        [
-                          <th key={`p${gi}`}
-                            className={`py-1.5 px-3 text-[10px] font-semibold text-center border-l border-gray-100 text-gray-400 w-[88px]`}>
-                            Prev
-                          </th>,
-                          <th key={`r${gi}`}
-                            className={`py-1.5 px-3 text-[10px] font-semibold text-center text-gray-700 w-[88px] ${gi === MONTHS.length ? "border-l border-gray-200" : ""}`}>
-                            Real
-                          </th>,
-                        ]
-                      ))}
+                      {MONTHS.flatMap((_, mi) => [
+                        ...(dreView !== "real"
+                          ? [<th key={`ph${mi}`} className="py-1.5 px-3 text-[10px] font-semibold text-center border-l border-gray-100 text-gray-400 w-[88px]">Prev</th>]
+                          : []),
+                        ...(dreView !== "prev"
+                          ? [<th key={`rh${mi}`} className="py-1.5 px-3 text-[10px] font-semibold text-center text-gray-700 w-[88px]">Real</th>]
+                          : []),
+                      ])}
+                      {dreView !== "real" && <th className="py-1.5 px-3 text-[10px] font-semibold text-center border-l border-gray-200 text-gray-400 w-[88px]">Prev</th>}
+                      {dreView !== "prev" && <th className="py-1.5 px-3 text-[10px] font-semibold text-center text-brand-600 w-[88px]">Real</th>}
                     </tr>
                   </thead>
 
@@ -321,7 +335,6 @@ export default function SgaPage() {
                           {/* Células por mês */}
                           {row.real.flatMap((realVal, mi) => {
                             const prevVal = row.prev[mi];
-                            const borderL = "border-l border-gray-100";
                             const realColor = realVal === 0
                               ? "text-gray-300"
                               : isReceita
@@ -330,32 +343,40 @@ export default function SgaPage() {
                                   ? "font-bold text-gray-900"
                                   : "text-gray-700";
                             return [
-                              <td key={`p${mi}`} className={`py-2.5 px-3 text-right ${borderL} text-gray-400`}>
-                                {prevVal === 0 ? "—" : fmtR(prevVal)}
-                              </td>,
-                              <td key={`r${mi}`} className={`py-2.5 px-3 text-right ${realColor}`}>
-                                {fmtR(realVal)}
-                              </td>,
+                              ...(dreView !== "real"
+                                ? [<td key={`p${mi}`} className="py-2.5 px-3 text-right border-l border-gray-100 text-gray-400">
+                                    {prevVal === 0 ? "—" : fmtR(prevVal)}
+                                  </td>]
+                                : []),
+                              ...(dreView !== "prev"
+                                ? [<td key={`r${mi}`} className={`py-2.5 px-3 text-right ${realColor}`}>
+                                    {fmtR(realVal)}
+                                  </td>]
+                                : []),
                             ];
                           })}
 
                           {/* YTD */}
-                          <td className="py-2.5 px-3 text-right border-l border-gray-200 text-gray-400">
-                            {ytdPrev === 0 ? "—" : fmtR(ytdPrev)}
-                          </td>
-                          <td className={`py-2.5 px-3 text-right ${
-                            ytdReal === 0
-                              ? "text-gray-300"
-                              : isNet
-                                ? "font-bold text-brand-700"
-                                : isSubtotal
-                                  ? "font-bold text-gray-900"
-                                  : isReceita
-                                    ? "font-semibold text-emerald-700"
-                                    : "text-gray-700"
-                          }`}>
-                            {fmtR(ytdReal)}
-                          </td>
+                          {dreView !== "real" && (
+                            <td className="py-2.5 px-3 text-right border-l border-gray-200 text-gray-400">
+                              {ytdPrev === 0 ? "—" : fmtR(ytdPrev)}
+                            </td>
+                          )}
+                          {dreView !== "prev" && (
+                            <td className={`py-2.5 px-3 text-right ${
+                              ytdReal === 0
+                                ? "text-gray-300"
+                                : isNet
+                                  ? "font-bold text-brand-700"
+                                  : isSubtotal
+                                    ? "font-bold text-gray-900"
+                                    : isReceita
+                                      ? "font-semibold text-emerald-700"
+                                      : "text-gray-700"
+                            }`}>
+                              {fmtR(ytdReal)}
+                            </td>
+                          )}
                         </tr>
                       );
                     })}
