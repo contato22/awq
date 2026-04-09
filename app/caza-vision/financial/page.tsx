@@ -37,11 +37,7 @@ function fmtR(n: number) {
 
 // ─── Budget vs Actual Data ────────────────────────────────────────────────────
 
-const budgetVsActual = [
-  { month: "Jan/26", budgetReceita: 620_000, budgetLucro: 186_000 },
-  { month: "Fev/26", budgetReceita: 720_000, budgetLucro: 216_000 },
-  { month: "Mar/26", budgetReceita: 808_000, budgetLucro: 242_400 },
-];
+const budgetVsActual: { month: string; budgetReceita: number; budgetLucro: number }[] = [];
 
 function variance(actual: number, budget: number) {
   if (budget === 0) return 0;

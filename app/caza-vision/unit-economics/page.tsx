@@ -20,73 +20,27 @@ function fmtR(n: number) {
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 
-const unitCards = [
-  {
-    label: "CAC",
-    value: fmtR(12_400),
-    sub: "Custo médio por cliente novo",
-    delta: "-8.2%",
-    up: true,
-    icon: Users,
-    color: "text-brand-600",
-    bg: "bg-brand-50",
-  },
-  {
-    label: "LTV Médio por Cliente",
-    value: fmtR(1_890_000),
-    sub: "Baseado em clientes ativos",
-    delta: "+22.4%",
-    up: true,
-    icon: TrendingUp,
-    color: "text-emerald-600",
-    bg: "bg-emerald-50",
-  },
-  {
-    label: "Receita por Projeto",
-    value: fmtR(71_118),
-    sub: "Ticket médio",
-    delta: "+2.1%",
-    up: true,
-    icon: Clapperboard,
-    color: "text-violet-700",
-    bg: "bg-violet-50",
-  },
-  {
-    label: "Margem Bruta por Projeto",
-    value: "56.8%",
-    sub: "Descontando alim. + gasolina",
-    delta: "+1.4pp",
-    up: true,
-    icon: DollarSign,
-    color: "text-amber-700",
-    bg: "bg-amber-50",
-  },
-];
+const unitCards: {
+  label: string; value: string; sub: string; delta: string;
+  up: boolean; icon: React.ElementType; color: string; bg: string;
+}[] = [];
 
-const directorEconomics = [
-  { name: "Ana Ferreira",  projetos: 12, receita: 980_000,   despesas: 185_000, lucro: 795_000,  ticketMedio: 81_667  },
-  { name: "Rafael Souza",  projetos: 10, receita: 800_000,   despesas: 162_000, lucro: 638_000,  ticketMedio: 80_000  },
-  { name: "Carlos Lima",   projetos:  7, receita: 485_000,   despesas: 108_000, lucro: 377_000,  ticketMedio: 69_286  },
-  { name: "Mariana Costa", projetos:  5, receita: 209_000,   despesas:  53_000, lucro: 156_000,  ticketMedio: 41_800  },
-];
+const directorEconomics: {
+  name: string; projetos: number; receita: number;
+  despesas: number; lucro: number; ticketMedio: number;
+}[] = [];
 
-const clientEconomics = [
-  { name: "Ambev",          projetos: 3, receitaTotal: 480_000,  ltvEstimado: 2_880_000, ticketMedio: 160_000, margin: 58 },
-  { name: "Samsung Brasil", projetos: 4, receitaTotal: 630_000,  ltvEstimado: 3_150_000, ticketMedio: 157_500, margin: 62 },
-  { name: "Natura",         projetos: 3, receitaTotal: 530_000,  ltvEstimado: 3_500_000, ticketMedio: 176_667, margin: 60 },
-  { name: "Nike Brasil",    projetos: 2, receitaTotal: 180_000,  ltvEstimado: 2_340_000, ticketMedio:  90_000, margin: 67 },
-  { name: "iFood",          projetos: 2, receitaTotal:  95_000,  ltvEstimado:   800_000, ticketMedio:  47_500, margin: 49 },
-  { name: "Banco XP",       projetos: 1, receitaTotal: 320_000,  ltvEstimado: 1_380_000, ticketMedio: 320_000, margin: 54 },
-  { name: "Arezzo",         projetos: 1, receitaTotal:  64_000,  ltvEstimado:   392_000, ticketMedio:  64_000, margin: 52 },
-  { name: "Nubank",         projetos: 1, receitaTotal: 145_000,  ltvEstimado:   700_000, ticketMedio: 145_000, margin: 55 },
-];
+const clientEconomics: {
+  name: string; projetos: number; receitaTotal: number;
+  ltvEstimado: number; ticketMedio: number; margin: number;
+}[] = [];
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function CazaUnitEconomicsPage() {
   const totalProjetos = projectTypeRevenue.reduce((s, t) => s + t.projetos, 0);
   const totalReceita  = projectTypeRevenue.reduce((s, t) => s + t.receita, 0);
-  const avgTicket     = Math.round(totalReceita / totalProjetos);
+  const avgTicket     = totalProjetos > 0 ? Math.round(totalReceita / totalProjetos) : 0;
 
   return (
     <>
