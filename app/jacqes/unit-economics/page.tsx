@@ -7,6 +7,9 @@ import {
   Info,
   AlertTriangle,
 } from "lucide-react";
+import { monthlyRevenue, buData } from "@/lib/awq-group-data";
+
+const _jacqes = buData.find((b) => b.id === "jacqes")!;
 
 // ─── /jacqes/unit-economics ──────────────────────────────────────────────────
 //
@@ -27,17 +30,14 @@ import {
 
 function fmtR(n: number) {
   if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  if (n >= 1_000) return "R$" + (n / 1_000).toFixed(0) + "K";
   return "R$" + n.toLocaleString("pt-BR");
 }
 
-// ─── MRR — Q1/26 empírico (monthlyRevenue) ────────────────────────────────────
+// ─── MRR — derivado de monthlyRevenue[jacqes] (awq-group-data.ts) ─────────────
 // ONLY real months. No invented Oct/Nov/Dec/25, no newMrr/churnMrr decomposition.
-const mrrHistory = [
-  { month: "Jan/26", mrr: 0 },
-  { month: "Fev/26", mrr: 0 },
-  { month: "Mar/26", mrr: 0 },
-];
+const mrrHistory = monthlyRevenue
+  .filter((m) => m.jacqes > 0)
+  .map((m) => ({ month: m.month, mrr: m.jacqes }));
 
 // ─── Benchmarks — derivados de buData ────────────────────────────────────────
 // Gross Margin: buData.grossProfit / revenue = 2_892_000 / 4_820_000 = 60.0%
@@ -70,10 +70,10 @@ export default function JacqesUnitEconomicsPage() {
         {/* ── Aggregate KPI cards ───────────────────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: "MRR Mar/26",      value: fmtR(latestMrr.mrr), sub: "monthlyRevenue · empírico",    color: "text-brand-600",   bg: "bg-brand-50",   icon: DollarSign  },
-            { label: "ARR Projetado",   value: fmtR(arr),            sub: "MRR Mar/26 × 12",             color: "text-emerald-600", bg: "bg-emerald-50", icon: TrendingUp  },
-            { label: "Receita YTD Q1",  value: "R$0",                 sub: "Aguardando dados",            color: "text-violet-700",  bg: "bg-violet-50",  icon: BarChart3   },
-            { label: "MRR MoM (Mar)",   value: `+${mrrGrowth}%`,     sub: "Fev→Mar · monthlyRevenue",    color: "text-amber-700",   bg: "bg-amber-50",   icon: TrendingUp  },
+            { label: "MRR Abr/26",      value: fmtR(latestMrr.mrr), sub: "monthlyRevenue · empírico",    color: "text-brand-600",   bg: "bg-brand-50",   icon: DollarSign  },
+            { label: "ARR Projetado",   value: fmtR(arr),            sub: "MRR Abr/26 × 12",             color: "text-emerald-600", bg: "bg-emerald-50", icon: TrendingUp  },
+            { label: "Receita YTD",     value: fmtR(_jacqes.revenue), sub: "Jan–Abr/26 · 4 meses",        color: "text-violet-700",  bg: "bg-violet-50",  icon: BarChart3   },
+            { label: "MRR MoM (Mar→Abr)", value: `+${mrrGrowth}%`,  sub: "Tati Simões entrou em Abr",   color: "text-amber-700",   bg: "bg-amber-50",   icon: TrendingUp  },
           ].map((m) => {
             const Icon = m.icon;
             return (
@@ -97,7 +97,7 @@ export default function JacqesUnitEconomicsPage() {
           <div className="xl:col-span-2 card p-5">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                Evolução do MRR — Q1/26
+                Evolução do MRR — Jan–Abr/26
                 <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 border border-emerald-200">EMPÍRICO</span>
               </h2>
               <div className="flex items-center gap-2 text-[11px]">
