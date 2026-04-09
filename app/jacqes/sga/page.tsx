@@ -124,8 +124,16 @@ function ChartTooltip({
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function SgaPage() {
-  const [tab,     setTab]     = useState<TabId>("receita");
-  const [dreView, setDreView] = useState<"both" | "prev" | "real">("both");
+  const [tab,        setTab]        = useState<TabId>("receita");
+  const [dreView,    setDreView]    = useState<"both" | "prev" | "real">("both");
+  const [periodFrom, setPeriodFrom] = useState(0);
+  const [periodTo,   setPeriodTo]   = useState(MONTHS.length - 1);
+
+  // Índices dos meses ativos (window de período)
+  const activeMIs   = Array.from({ length: periodTo - periodFrom + 1 }, (_, i) => periodFrom + i);
+  const periodLabel = periodFrom === periodTo
+    ? MONTHS[periodFrom]
+    : `${MONTHS[periodFrom]}–${MONTHS[periodTo]}`;
 
   return (
     <>
@@ -247,24 +255,57 @@ export default function SgaPage() {
             <div className="card p-5">
               <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
                 <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                  DRE Anual — 2026
+                  DRE — {periodLabel}
                   <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 border border-amber-200">snapshot</span>
                 </h2>
-                {/* Seletor Prev / Real */}
-                <div className="flex gap-0.5 p-0.5 bg-gray-100 rounded-lg">
-                  {(["both", "prev", "real"] as const).map((v) => (
-                    <button
-                      key={v}
-                      onClick={() => setDreView(v)}
-                      className={`px-3 py-1.5 text-[11px] font-medium rounded-md transition-all ${
-                        dreView === v
-                          ? "bg-white text-brand-700 shadow-sm"
-                          : "text-gray-500 hover:text-gray-700"
-                      }`}
+
+                <div className="flex items-center gap-3 flex-wrap">
+                  {/* ── Seletor de período ── */}
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] text-gray-400 font-medium">De</span>
+                    <select
+                      value={periodFrom}
+                      onChange={(e) => {
+                        const v = Number(e.target.value);
+                        setPeriodFrom(v);
+                        if (v > periodTo) setPeriodTo(v);
+                      }}
+                      className="border border-gray-200 rounded-lg px-2 py-1.5 text-[11px] text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-brand-400 cursor-pointer"
                     >
-                      {v === "both" ? "Prev + Real" : v === "prev" ? "Só Previsto" : "Só Realizado"}
-                    </button>
-                  ))}
+                      {MONTHS.map((m, i) => <option key={m} value={i}>{m}</option>)}
+                    </select>
+                    <span className="text-[11px] text-gray-400 font-medium">Até</span>
+                    <select
+                      value={periodTo}
+                      onChange={(e) => {
+                        const v = Number(e.target.value);
+                        setPeriodTo(v);
+                        if (v < periodFrom) setPeriodFrom(v);
+                      }}
+                      className="border border-gray-200 rounded-lg px-2 py-1.5 text-[11px] text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-brand-400 cursor-pointer"
+                    >
+                      {MONTHS.map((m, i) => (
+                        <option key={m} value={i} disabled={i < periodFrom}>{m}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* ── Seletor Prev / Real ── */}
+                  <div className="flex gap-0.5 p-0.5 bg-gray-100 rounded-lg">
+                    {(["both", "prev", "real"] as const).map((v) => (
+                      <button
+                        key={v}
+                        onClick={() => setDreView(v)}
+                        className={`px-3 py-1.5 text-[11px] font-medium rounded-md transition-all ${
+                          dreView === v
+                            ? "bg-white text-brand-700 shadow-sm"
+                            : "text-gray-500 hover:text-gray-700"
+                        }`}
+                      >
+                        {v === "both" ? "Prev + Real" : v === "prev" ? "Só Previsto" : "Só Realizado"}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -276,21 +317,21 @@ export default function SgaPage() {
                       <th className="text-left py-2 px-3 text-[11px] font-semibold text-gray-500 min-w-[220px] bg-white sticky left-0 z-10">
                         Linha DRE
                       </th>
-                      {MONTHS.map((m) => (
-                        <th key={m} colSpan={dreView === "both" ? 2 : 1}
+                      {activeMIs.map((mi) => (
+                        <th key={mi} colSpan={dreView === "both" ? 2 : 1}
                           className="text-center py-2 px-2 text-[10px] font-semibold text-gray-600 border-l border-gray-100 bg-gray-50">
-                          {m}
+                          {MONTHS[mi]}
                         </th>
                       ))}
                       <th colSpan={dreView === "both" ? 2 : 1}
                         className="text-center py-2 px-2 text-[10px] font-bold text-brand-700 border-l border-gray-200 bg-brand-50">
-                        YTD Total
+                        {activeMIs.length === MONTHS.length ? "YTD Total" : `Total (${periodLabel})`}
                       </th>
                     </tr>
                     {/* ── Cabeçalho nível 2: Prev / Real ── */}
                     <tr className="border-b-2 border-gray-200 bg-gray-50">
                       <th className="sticky left-0 z-10 bg-gray-50" />
-                      {MONTHS.flatMap((_, mi) => [
+                      {activeMIs.flatMap((mi) => [
                         ...(dreView !== "real"
                           ? [<th key={`ph${mi}`} className="py-1.5 px-3 text-[10px] font-semibold text-center border-l border-gray-100 text-gray-400 w-[88px]">Prev</th>]
                           : []),
@@ -306,8 +347,8 @@ export default function SgaPage() {
                   {/* ── Corpo ── */}
                   <tbody>
                     {dreRows.map((row, ri) => {
-                      const ytdReal = ytd(row.real);
-                      const ytdPrev = ytd(row.prev);
+                      const ytdReal = activeMIs.reduce((s, mi) => s + row.real[mi], 0);
+                      const ytdPrev = activeMIs.reduce((s, mi) => s + row.prev[mi], 0);
                       const isSubtotal = row.bold;
                       const isReceita  = row.type === "revenue";
                       const isNet      = row.type === "net";
@@ -332,8 +373,9 @@ export default function SgaPage() {
                             {row.label}
                           </td>
 
-                          {/* Células por mês */}
-                          {row.real.flatMap((realVal, mi) => {
+                          {/* Células por mês (apenas período ativo) */}
+                          {activeMIs.flatMap((mi) => {
+                            const realVal = row.real[mi];
                             const prevVal = row.prev[mi];
                             const realColor = realVal === 0
                               ? "text-gray-300"
