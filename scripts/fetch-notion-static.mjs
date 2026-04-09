@@ -462,108 +462,205 @@ const JACQES_KPIS = {
     lastUpdated:  new Date().toISOString(),
 };
 
-async function main() {
-  mkdirSync(OUT_DIR, { recursive: true });
+// --- Stats builder (used for both Notion path and as fallback) ---
 
-  // ── Try Neon DB first (canonical source of truth) ──────────────────────────
-  if (DATABASE_URL) {
-        console.log("Exporting from Neon DB (canonical source of truth)...");
+function buildStatsFromProjects(projects) {
+    const MN = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+    const currentYear = new Date().getFullYear();
+
+    const activeProjects    = projects.filter(p => !p.recebido).length;
+    const deliveredProjects = projects.filter(p => p.recebido).length;
+    const receitaYtd        = projects
+        .filter(p => p.prazo && p.prazo.startsWith(String(currentYear)))
+        .reduce((s, p) => s + (p.valor ?? 0), 0);
+    const ticketMedio       = projects.length > 0
+        ? Math.round(projects.reduce((s, p) => s + (p.valor ?? 0), 0) / projects.length)
+        : 0;
+
+    const stageMap = new Map();
+    const typeMap  = new Map();
+    const monthMap = new Map();
+
+    for (const p of projects) {
+        const stage = p.status || "Em Produção";
+        stageMap.set(stage, (stageMap.get(stage) ?? 0) + 1);
+
+        const tipo = p.tipo || "Outros";
+        const t    = typeMap.get(tipo) ?? { projetos: 0, receita: 0 };
+        t.projetos++; t.receita += (p.valor ?? 0);
+        typeMap.set(tipo, t);
+
+        if (p.prazo) {
+            const parts = p.prazo.split("-");
+            const m     = parseInt(parts[1], 10) - 1;
+            const label = `${MN[m]}/${parts[0].slice(2)}`;
+            const acc   = monthMap.get(label) ?? { month: label, receita: 0, expenses: 0, profit: 0, orcamento: 0 };
+            acc.receita   += (p.valor    ?? 0);
+            acc.expenses  += (p.despesas ?? 0);
+            acc.profit    += (p.lucro    ?? 0);
+            acc.orcamento += (p.valor    ?? 0);
+            monthMap.set(label, acc);
+        }
+    }
+
+    const revenueData = Array.from(monthMap.values())
+        .sort((a, b) => {
+            const [ma, ya] = a.month.split("/");
+            const [mb, yb] = b.month.split("/");
+            return (parseInt("20"+ya,10)*12 + MN.indexOf(ma)) - (parseInt("20"+yb,10)*12 + MN.indexOf(mb));
+        })
+        .slice(-12);
+
+    return {
+        kpis: [
+            { id: "projetos",  label: "Projetos Ativos",   value: activeProjects,    unit: "number",   icon: "Building2",     color: "emerald" },
+            { id: "receita",   label: "Receita YTD",        value: receitaYtd,        unit: "currency", icon: "DollarSign",    color: "brand"   },
+            { id: "entregues", label: "Projetos Entregues", value: deliveredProjects, unit: "number",   icon: "HandshakeIcon", color: "violet"  },
+            { id: "ticket",    label: "Ticket Médio",       value: ticketMedio,       unit: "currency", icon: "TrendingUp",    color: "amber"   },
+        ],
+        revenueData,
+        pipeline: Array.from(stageMap.entries()).map(([stage, count]) => ({ stage, count })),
+        projectTypeRevenue: Array.from(typeMap.entries()).map(([type, d]) => ({
+            type, projetos: d.projetos, receita: d.receita,
+            avgValue: d.projetos > 0 ? Math.round(d.receita / d.projetos) : 0,
+        })),
+        source: projects.length > 0 ? "notion" : "empty",
+    };
+}
+
+const EMPTY_VENTURE = { rows: [], totalFechado: 0, totalLeads: 0, byCategoria: {}, byCanal: [], byQuarter: {}, byQCat: {} };
+const EMPTY_STATS   = { kpis: [], revenueData: [], pipeline: [], projectTypeRevenue: [], source: "empty" };
+
+async function main() {
+    mkdirSync(OUT_DIR, { recursive: true });
+
+    // ── 1. Try Neon DB (canonical source of truth) ─────────────────────────────
+    if (DATABASE_URL) {
+        console.log("[1/3] DATABASE_URL found — exporting from Neon DB...");
         const neonData = await exportFromNeon();
         if (neonData) {
-              write("caza-properties.json", neonData.projetoRows);
-              write("caza-financial.json",  neonData.financialRows);
-              write("caza-clients.json",    neonData.clientRows);
-              write("caza-stats.json",      neonData.statsPayload);
-              console.log("Neon export complete — skipping Notion for Caza data.");
+            write("caza-properties.json", neonData.projetoRows);
+            write("caza-financial.json",  neonData.financialRows);
+            write("caza-clients.json",    neonData.clientRows);
+            write("caza-stats.json",      neonData.statsPayload);
+            console.log(`  Neon: ${neonData.projetoRows.length} projects, ${neonData.clientRows.length} clients`);
 
-              // Still need AWQ Venture from Notion
-              if (DB_VENTURE && API_KEY) {
-                    console.log("Fetching AWQ Venture from Notion...");
-                    try {
-                          const pages = await queryAllPages(DB_VENTURE);
-                          const rows  = pages.map(mapVentureSale);
-                          const agg   = aggregateVenture(rows);
-                          write("venture-sales.json", agg);
-                    } catch (err) {
-                          console.warn("  Venture fetch failed:", err.message);
-                          write("venture-sales.json", { rows: [], totalFechado: 0, totalLeads: 0, byCategoria: {}, byCanal: [], byQuarter: {}, byQCat: {} }, { skipIfExists: true });
-                    }
-              } else {
-                    write("venture-sales.json", { rows: [], totalFechado: 0, totalLeads: 0, byCategoria: {}, byCanal: [], byQuarter: {}, byQCat: {} }, { skipIfExists: true });
-              }
-              write("jacqes-kpis.json", JACQES_KPIS);
-              console.log("Done.");
-              return;
+            // Venture from Notion (independent of Caza data)
+            if (DB_VENTURE && API_KEY) {
+                try {
+                    const pages = await queryAllPages(DB_VENTURE);
+                    write("venture-sales.json", aggregateVenture(pages.map(mapVentureSale)));
+                } catch (err) {
+                    console.warn("  Venture fetch failed:", err.message);
+                    write("venture-sales.json", EMPTY_VENTURE, { skipIfExists: true });
+                }
+            } else {
+                write("venture-sales.json", EMPTY_VENTURE, { skipIfExists: true });
+            }
+            write("jacqes-kpis.json", JACQES_KPIS);
+            console.log("[1/3] Done — Neon export complete.");
+            return;
         }
-  }
+        console.warn("  Neon export returned null — falling back to Notion.");
+    }
 
-  // ── Fallback: Notion fetch ─────────────────────────────────────────────────
-  if (!API_KEY) {
-        console.warn("NOTION_TOKEN not set and DATABASE_URL not set -- writing empty Caza JSONs.");
+    // ── 2. Try Notion (reference/import source) ─────────────────────────────────
+    if (!API_KEY) {
+        console.warn("[2/3] No NOTION_TOKEN / NOTION_API_KEY and no DATABASE_URL.");
+        console.warn("      Writing empty Caza JSONs. Configure secrets to populate data.");
         write("caza-properties.json", []);
-        write("caza-financial.json", []);
-        write("caza-clients.json", []);
-        write("caza-stats.json", { kpis: [], revenueData: [], pipeline: [], projectTypeRevenue: [], source: "empty" });
-        write("venture-sales.json", { rows: [], totalFechado: 0, totalLeads: 0, byCategoria: {}, byCanal: [], byQuarter: {}, byQCat: {} }, { skipIfExists: true });
-        write("jacqes-kpis.json", JACQES_KPIS);
+        write("caza-financial.json",  []);
+        write("caza-clients.json",    []);
+        write("caza-stats.json",      EMPTY_STATS);
+        write("venture-sales.json",   EMPTY_VENTURE, { skipIfExists: true });
+        write("jacqes-kpis.json",     JACQES_KPIS);
         return;
-  }
+    }
 
-  console.log("Fetching Notion data for static export...");
+    console.log("[2/3] Fetching from Notion (NOTION_TOKEN / NOTION_API_KEY)...");
+    let cazaProjects = [];
 
-  // Properties / Projects
-  if (DB_PROPS) {
-        const pages = await queryDatabase(DB_PROPS);
-        const projetos = pages.map(mapProjeto);
-        write("caza-properties.json", projetos);
-  } else {
-        console.warn(" NOTION_DATABASE_ID_CAZA_PROPERTIES not set");
+    // Properties / Projects — isolated catch: one DB failure doesn't kill others
+    if (DB_PROPS) {
+        try {
+            const pages  = await queryDatabase(DB_PROPS);
+            cazaProjects = pages.map(mapProjeto);
+            write("caza-properties.json", cazaProjects);
+            console.log(`  OK caza-properties: ${cazaProjects.length} records`);
+        } catch (err) {
+            console.error(`  ERR caza-properties: ${err.message}`);
+            write("caza-properties.json", []);
+        }
+    } else {
+        console.warn("  NOTION_DATABASE_ID_CAZA_PROPERTIES not set — writing empty");
         write("caza-properties.json", []);
-  }
+    }
 
-  // Financial (same DB as properties -- aggregate by month)
-  if (DB_FIN) {
-        const pages = await queryDatabase(DB_FIN);
-        const projetos = pages.map(mapProjeto);
-        const monthly = aggregateByMonth(projetos);
-        write("caza-financial.json", monthly);
-  } else {
-        console.warn(" NOTION_DATABASE_ID_CAZA_FINANCIAL not set");
+    // Financial — isolated catch
+    if (DB_FIN) {
+        try {
+            // DB_FIN is often the same as DB_PROPS; if so, reuse cazaProjects
+            const projetos = DB_FIN === DB_PROPS && cazaProjects.length > 0
+                ? cazaProjects
+                : (await queryDatabase(DB_FIN)).map(mapProjeto);
+            write("caza-financial.json", aggregateByMonth(projetos));
+            console.log(`  OK caza-financial: ${projetos.length} source records`);
+        } catch (err) {
+            console.error(`  ERR caza-financial: ${err.message}`);
+            write("caza-financial.json", []);
+        }
+    } else {
+        console.warn("  NOTION_DATABASE_ID_CAZA_FINANCIAL not set — writing empty");
         write("caza-financial.json", []);
-  }
+    }
 
-  // Clients
-  if (DB_CLI) {
-        const pages = await queryDatabase(DB_CLI);
-        const clients = pages.map(mapClient);
-        write("caza-clients.json", clients);
-  } else {
-        console.warn(" NOTION_DATABASE_ID_CAZA_CLIENTS not set");
+    // Clients — isolated catch
+    if (DB_CLI) {
+        try {
+            const pages   = await queryDatabase(DB_CLI);
+            const clients = pages.map(mapClient);
+            write("caza-clients.json", clients);
+            console.log(`  OK caza-clients: ${clients.length} records`);
+        } catch (err) {
+            console.error(`  ERR caza-clients: ${err.message}`);
+            write("caza-clients.json", []);
+        }
+    } else {
+        console.warn("  NOTION_DATABASE_ID_CAZA_CLIENTS not set — writing empty");
         write("caza-clients.json", []);
-  }
+    }
 
-  // Stats (aggregated from properties)
-  write("caza-stats.json", { kpis: [], revenueData: [], pipeline: [], projectTypeRevenue: [], source: "empty" });
+    // Stats — computed from real project data (not hardcoded empty)
+    write("caza-stats.json", buildStatsFromProjects(cazaProjects));
+    console.log(`  OK caza-stats: source=${cazaProjects.length > 0 ? "notion" : "empty"}`);
 
-  // AWQ Venture Sales
-  if (DB_VENTURE) {
-        console.log("Fetching AWQ Venture sales database...");
-        const pages = await queryAllPages(DB_VENTURE);
-        const rows  = pages.map(mapVentureSale);
-        const agg   = aggregateVenture(rows);
-        write("venture-sales.json", agg);
-  } else {
-        console.warn(" NOTION_DATABASE_ID_VENTURE_SALES not set");
-        write("venture-sales.json", { rows: [], totalFechado: 0, totalLeads: 0, byCategoria: {}, byCanal: [], byQuarter: {}, byQCat: {} }, { skipIfExists: true });
-  }
+    // Venture — isolated catch
+    if (DB_VENTURE) {
+        try {
+            console.log("  Fetching AWQ Venture sales database...");
+            const pages = await queryAllPages(DB_VENTURE);
+            write("venture-sales.json", aggregateVenture(pages.map(mapVentureSale)));
+        } catch (err) {
+            console.error(`  ERR venture-sales: ${err.message}`);
+            write("venture-sales.json", EMPTY_VENTURE, { skipIfExists: true });
+        }
+    } else {
+        write("venture-sales.json", EMPTY_VENTURE, { skipIfExists: true });
+    }
 
-  // JACQES KPIs — always written so business-units card has a fetchable source
-  write("jacqes-kpis.json", JACQES_KPIS);
-
-  console.log("Done.");
+    write("jacqes-kpis.json", JACQES_KPIS);
+    console.log("[2/3] Done — Notion export complete.");
 }
 
 main().catch((err) => {
-    console.error("fetch-notion-static failed:", err.message);
-    process.exit(0);
+    // Unhandled error — write safe fallbacks so next build doesn't 404
+    console.error("fetch-notion-static FATAL:", err.message);
+    mkdirSync(OUT_DIR, { recursive: true });
+    try { write("caza-properties.json", []); } catch (_) {}
+    try { write("caza-financial.json",  []); } catch (_) {}
+    try { write("caza-clients.json",    []); } catch (_) {}
+    try { write("caza-stats.json",      EMPTY_STATS); } catch (_) {}
+    try { write("jacqes-kpis.json",     JACQES_KPIS); } catch (_) {}
+    console.warn("  Wrote empty fallbacks so build can continue.");
+    process.exit(0);   // allow build to continue with empty data (shows empty state, not 404)
 });
