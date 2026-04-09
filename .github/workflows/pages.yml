@@ -25,9 +25,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Fetch Notion data (pre-build)
+      - name: Fetch data for static export (Neon DB preferred, Notion fallback)
         run: node scripts/fetch-notion-static.mjs
         env:
+          # ── Canonical source (Neon DB) ─────────────────────────────────────
+          # When set, exports from internal DB — Notion is NOT queried for Caza data.
+          # Configure DATABASE_URL in GitHub repo secrets to activate this path.
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          # ── Reference/import source (Notion fallback) ──────────────────────
+          # Used only when DATABASE_URL is not set.
+          # NOTION_TOKEN is the primary variable; NOTION_API_KEY is legacy alias.
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
           NOTION_DATABASE_ID_CAZA_PROPERTIES: ${{ secrets.NOTION_DATABASE_ID_CAZA_PROPERTIES }}
           NOTION_DATABASE_ID_CAZA_FINANCIAL: ${{ secrets.NOTION_DATABASE_ID_CAZA_FINANCIAL }}
