@@ -89,19 +89,13 @@ const kpiColorMap: Record<string, { text: string; bg: string }> = {
 
 // ─── Pipeline ─────────────────────────────────────────────────────────────────
 
-const pipeline = [
-  { stage: "Briefings",         count: 12, color: "bg-gray-400"   },
-  { stage: "Em Proposta",       count:  8, color: "bg-blue-500"   },
-  { stage: "Aprovados",         count: 23, color: "bg-amber-500"  },
-  { stage: "Em Pós-Produção",   count:  6, color: "bg-violet-500" },
-  { stage: "Entregues",         count: 34, color: "bg-emerald-500"},
-];
+const pipeline: { stage: string; count: number; color: string }[] = [];
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function CazaVisionPage() {
-  const lastMonth = cazaRevenueData[cazaRevenueData.length - 1];
-  const prevMonth = cazaRevenueData[cazaRevenueData.length - 2];
+  const lastMonth = cazaRevenueData.length > 0 ? cazaRevenueData[cazaRevenueData.length - 1] : null;
+  const prevMonth = cazaRevenueData.length > 1 ? cazaRevenueData[cazaRevenueData.length - 2] : null;
 
   return (
     <>
@@ -223,12 +217,14 @@ export default function CazaVisionPage() {
           <SectionHeader
             title="Receita — Últimos 3 Meses"
             badge={
-              <div className="flex items-center gap-1 ml-2">
-                <ArrowUpRight size={12} className="text-emerald-600" />
-                <span className="text-[11px] font-semibold text-emerald-600">
-                  +{pct(lastMonth.receita, prevMonth.receita)}% vs mês anterior
-                </span>
-              </div>
+              lastMonth && prevMonth ? (
+                <div className="flex items-center gap-1 ml-2">
+                  <ArrowUpRight size={12} className="text-emerald-600" />
+                  <span className="text-[11px] font-semibold text-emerald-600">
+                    +{pct(lastMonth.receita, prevMonth.receita)}% vs mês anterior
+                  </span>
+                </div>
+              ) : undefined
             }
           />
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
