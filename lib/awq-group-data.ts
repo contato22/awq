@@ -128,7 +128,7 @@ export const buData: BuData[] = [
     roic:             0,
     budgetRevenue:    0,
     hrefOverview:     "/jacqes",
-    hrefFinancial:    "/jacqes/financial",
+    hrefFinancial:    "/jacqes/fpa",
     hrefCustomers:    "/jacqes/customers",
     hrefUnitEcon:     "/jacqes/unit-economics",
     hrefBudget:       "/jacqes/budget",
