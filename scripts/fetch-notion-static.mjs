@@ -13,11 +13,12 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = join(__dirname, "..", "public", "data");
 
 const NOTION_VERSION = "2022-06-28";
-const API_KEY        = process.env.NOTION_API_KEY;
+const API_KEY        = process.env.NOTION_TOKEN ?? process.env.NOTION_API_KEY;
 const DB_PROPS       = process.env.NOTION_DATABASE_ID_CAZA_PROPERTIES;
 const DB_FIN         = process.env.NOTION_DATABASE_ID_CAZA_FINANCIAL;
 const DB_CLI         = process.env.NOTION_DATABASE_ID_CAZA_CLIENTS;
 const DB_VENTURE     = process.env.NOTION_DATABASE_ID_VENTURE_SALES;
+const DATABASE_URL   = process.env.DATABASE_URL;
 
 const MONTH_NAMES = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 
@@ -318,6 +319,121 @@ function aggregateVenture(rows) {
     };
 }
 
+// --- Neon DB export (preferred over Notion for static export) ---
+
+async function exportFromNeon() {
+    try {
+        const { neon } = await import("@neondatabase/serverless");
+        const sql = neon(DATABASE_URL);
+
+        const MONTH_NAMES_LOCAL = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+
+        // Projects
+        const projects = await sql`SELECT * FROM caza_projects ORDER BY prazo DESC`;
+        const projetoRows = projects.map(p => ({
+            id:          p.id,
+            titulo:      p.titulo ?? "",
+            prioridade:  p.prioridade ?? "",
+            diretor:     p.diretor ?? "",
+            prazo:       p.prazo ?? "",
+            recebimento: p.recebimento ?? "",
+            recebido:    p.recebido ?? false,
+            valor:       Number(p.valor ?? 0),
+            alimentacao: Number(p.alimentacao ?? 0),
+            gasolina:    Number(p.gasolina ?? 0),
+            despesas:    Number(p.despesas ?? 0),
+            lucro:       Number(p.lucro ?? 0),
+            status:      p.status ?? "",
+            tipo:        p.tipo ?? "",
+        }));
+
+        // Financial aggregation
+        const monthMap = new Map();
+        for (const p of projetoRows) {
+            if (!p.prazo) continue;
+            const parts = p.prazo.split("-");
+            const m     = parseInt(parts[1], 10) - 1;
+            const label = `${MONTH_NAMES_LOCAL[m]}/${parts[0].slice(2)}`;
+            const acc   = monthMap.get(label) ?? { month: label, receita: 0, alimentacao: 0, gasolina: 0, expenses: 0, profit: 0, orcamento: 0 };
+            acc.receita     += p.valor;
+            acc.alimentacao += p.alimentacao;
+            acc.gasolina    += p.gasolina;
+            acc.expenses    += p.despesas;
+            acc.profit      += p.lucro;
+            acc.orcamento   += p.valor;
+            monthMap.set(label, acc);
+        }
+        const financialRows = Array.from(monthMap.values())
+            .sort((a, b) => {
+                const [ma, ya] = a.month.split("/");
+                const [mb, yb] = b.month.split("/");
+                const ia = parseInt("20" + ya, 10) * 12 + MONTH_NAMES_LOCAL.indexOf(ma);
+                const ib = parseInt("20" + yb, 10) * 12 + MONTH_NAMES_LOCAL.indexOf(mb);
+                return ia - ib;
+            });
+
+        // Clients
+        const clients = await sql`SELECT * FROM caza_clients ORDER BY name`;
+        const clientRows = clients.map(c => ({
+            id:           c.id,
+            name:         c.name ?? "",
+            email:        c.email ?? "",
+            phone:        c.phone ?? "",
+            type:         c.type ?? "",
+            budget_anual: Number(c.budget_anual ?? 0),
+            status:       c.status ?? "",
+            segmento:     c.segmento ?? "",
+            since:        c.since ?? "",
+        }));
+
+        // Stats payload
+        const activeProjects    = projetoRows.filter(p => !p.recebido).length;
+        const deliveredProjects = projetoRows.filter(p => p.recebido).length;
+        const currentYear       = new Date().getFullYear();
+        const receitaYtd        = projetoRows
+            .filter(p => p.prazo.startsWith(String(currentYear)))
+            .reduce((s, p) => s + p.valor, 0);
+        const ticketMedio       = projetoRows.length > 0
+            ? Math.round(projetoRows.reduce((s, p) => s + p.valor, 0) / projetoRows.length)
+            : 0;
+        const stageMap = new Map();
+        for (const p of projetoRows) {
+            const stage = p.status || "Em Produção";
+            stageMap.set(stage, (stageMap.get(stage) ?? 0) + 1);
+        }
+        const typeMap2 = new Map();
+        for (const p of projetoRows) {
+            const tipo = p.tipo || "Outros";
+            const acc  = typeMap2.get(tipo) ?? { projetos: 0, receita: 0 };
+            acc.projetos++;
+            acc.receita += p.valor;
+            typeMap2.set(tipo, acc);
+        }
+        const statsPayload = {
+            kpis: [
+                { id: "projetos",  label: "Projetos Ativos",    value: activeProjects,    unit: "number",   icon: "Building2",     color: "emerald" },
+                { id: "receita",   label: "Receita YTD",         value: receitaYtd,        unit: "currency", icon: "DollarSign",    color: "brand"   },
+                { id: "entregues", label: "Projetos Entregues",  value: deliveredProjects, unit: "number",   icon: "HandshakeIcon", color: "violet"  },
+                { id: "ticket",    label: "Ticket Médio",        value: ticketMedio,       unit: "currency", icon: "TrendingUp",    color: "amber"   },
+            ],
+            revenueData: financialRows.slice(-12).map(r => ({
+                month: r.month, receita: r.receita, expenses: r.expenses, profit: r.profit, orcamento: r.orcamento,
+            })),
+            pipeline: Array.from(stageMap.entries()).map(([stage, count]) => ({ stage, count })),
+            projectTypeRevenue: Array.from(typeMap2.entries()).map(([type, d]) => ({
+                type, projetos: d.projetos, receita: d.receita,
+                avgValue: d.projetos > 0 ? Math.round(d.receita / d.projetos) : 0,
+            })),
+            source: "internal",
+        };
+
+        return { projetoRows, financialRows, clientRows, statsPayload };
+    } catch (err) {
+        console.warn("  Neon export failed:", err.message, "— falling back to Notion");
+        return null;
+    }
+}
+
 // --- Main ---
 
 function write(filename, data, { skipIfExists = false } = {}) {
@@ -347,19 +463,53 @@ const JACQES_KPIS = {
 };
 
 async function main() {
-    if (!API_KEY) {
-          console.warn("NOTION_API_KEY not set -- skipping Notion fetch, pages will use mock data.");
-          mkdirSync(OUT_DIR, { recursive: true });
-          write("caza-properties.json", []);
-          write("caza-financial.json", []);
-          write("caza-clients.json", []);
-          write("venture-sales.json", { rows: [], totalFechado: 0, totalLeads: 0, byCategoria: {}, byCanal: [], byQuarter: {}, byQCat: {} }, { skipIfExists: true });
-          write("jacqes-kpis.json", JACQES_KPIS);
-          return;
-    }
-
   mkdirSync(OUT_DIR, { recursive: true });
-    console.log("Fetching Notion data for static export...");
+
+  // ── Try Neon DB first (canonical source of truth) ──────────────────────────
+  if (DATABASE_URL) {
+        console.log("Exporting from Neon DB (canonical source of truth)...");
+        const neonData = await exportFromNeon();
+        if (neonData) {
+              write("caza-properties.json", neonData.projetoRows);
+              write("caza-financial.json",  neonData.financialRows);
+              write("caza-clients.json",    neonData.clientRows);
+              write("caza-stats.json",      neonData.statsPayload);
+              console.log("Neon export complete — skipping Notion for Caza data.");
+
+              // Still need AWQ Venture from Notion
+              if (DB_VENTURE && API_KEY) {
+                    console.log("Fetching AWQ Venture from Notion...");
+                    try {
+                          const pages = await queryAllPages(DB_VENTURE);
+                          const rows  = pages.map(mapVentureSale);
+                          const agg   = aggregateVenture(rows);
+                          write("venture-sales.json", agg);
+                    } catch (err) {
+                          console.warn("  Venture fetch failed:", err.message);
+                          write("venture-sales.json", { rows: [], totalFechado: 0, totalLeads: 0, byCategoria: {}, byCanal: [], byQuarter: {}, byQCat: {} }, { skipIfExists: true });
+                    }
+              } else {
+                    write("venture-sales.json", { rows: [], totalFechado: 0, totalLeads: 0, byCategoria: {}, byCanal: [], byQuarter: {}, byQCat: {} }, { skipIfExists: true });
+              }
+              write("jacqes-kpis.json", JACQES_KPIS);
+              console.log("Done.");
+              return;
+        }
+  }
+
+  // ── Fallback: Notion fetch ─────────────────────────────────────────────────
+  if (!API_KEY) {
+        console.warn("NOTION_TOKEN not set and DATABASE_URL not set -- writing empty Caza JSONs.");
+        write("caza-properties.json", []);
+        write("caza-financial.json", []);
+        write("caza-clients.json", []);
+        write("caza-stats.json", { kpis: [], revenueData: [], pipeline: [], projectTypeRevenue: [], source: "empty" });
+        write("venture-sales.json", { rows: [], totalFechado: 0, totalLeads: 0, byCategoria: {}, byCanal: [], byQuarter: {}, byQCat: {} }, { skipIfExists: true });
+        write("jacqes-kpis.json", JACQES_KPIS);
+        return;
+  }
+
+  console.log("Fetching Notion data for static export...");
 
   // Properties / Projects
   if (DB_PROPS) {
@@ -391,6 +541,9 @@ async function main() {
         console.warn(" NOTION_DATABASE_ID_CAZA_CLIENTS not set");
         write("caza-clients.json", []);
   }
+
+  // Stats (aggregated from properties)
+  write("caza-stats.json", { kpis: [], revenueData: [], pipeline: [], projectTypeRevenue: [], source: "empty" });
 
   // AWQ Venture Sales
   if (DB_VENTURE) {
