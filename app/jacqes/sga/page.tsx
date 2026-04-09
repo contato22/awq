@@ -9,7 +9,7 @@ import {
   DollarSign, TrendingUp, Users, BarChart3,
   CheckCircle2, Clock, Info, AlertTriangle,
 } from "lucide-react";
-import { buData, monthlyRevenue, JACQES_MRR } from "@/lib/awq-group-data";
+import { buData, monthlyRevenue, JACQES_MRR, JACQES_MRR_Q1 } from "@/lib/awq-group-data";
 import { revenueData } from "@/lib/data";
 
 // ─── Source of truth ──────────────────────────────────────────────────────────
@@ -36,42 +36,55 @@ const clientes = [
 const totalPago = clientes.filter((c) => c.status === "Pago").reduce((s, c) => s + c.fee, 0);
 const totalPend = clientes.filter((c) => c.status === "Pendente").reduce((s, c) => s + c.fee, 0);
 
+// ─── Período expandido 2021–2030 ─────────────────────────────────────────────
+const YEAR_START = 2021;
+const YEAR_END   = 2030;
+const ALL_YEARS  = Array.from({ length: YEAR_END - YEAR_START + 1 }, (_, i) => YEAR_START + i);
+const MES_PT     = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+const TOTAL_MIS  = ALL_YEARS.length * 12; // 120
+
+/** mi = índice global de mês: 0 = Jan/2021 … 119 = Dez/2030 */
+function miOf(year: number, mes: number) { return (year - YEAR_START) * 12 + mes; }
+function yearOfMi(mi: number) { return YEAR_START + Math.floor(mi / 12); }
+function mesOfMi(mi: number)  { return mi % 12; }
+function labelMi(mi: number)  { return `${MES_PT[mesOfMi(mi)]}/${String(yearOfMi(mi)).slice(2)}`; }
+
+// Dados reais mapeados por índice global (Notion CRM)
+const REAL_BY_MI: Partial<Record<number, number>> = {
+  [miOf(2026, 0)]: JACQES_MRR_Q1,  // Jan/26 — 3 clientes
+  [miOf(2026, 1)]: JACQES_MRR_Q1,  // Fev/26 — 3 clientes
+  [miOf(2026, 2)]: JACQES_MRR_Q1,  // Mar/26 — 3 clientes
+  [miOf(2026, 3)]: JACQES_MRR,     // Abr/26 — 4 clientes (Tati)
+};
+const realRevArr: number[] = Array.from({ length: TOTAL_MIS }, (_, mi) => REAL_BY_MI[mi] ?? 0);
+const zeroArr:    number[] = Array(TOTAL_MIS).fill(0);
+
 // ─── DRE Matricial — linhas × meses (Prev | Real) ────────────────────────────
-// Meses confirmados (Notion CRM). Budget ainda não definido → Prev = 0 → exibe "—".
-// Receita Líquida = Receita Bruta (deduções aguardam confirmação fiscal).
-// Subtotais derivados: Lucro Bruto = Rec.Liq − COGS; EBITDA = LB − OpEx; etc.
-
-const MONTHS = ["Jan/26", "Fev/26", "Mar/26", "Abr/26"] as const;
-
-// Real por mês: [jan, fev, mar, abr]
-const mrrReal = monthlyRevenue.map((m) => m.jacqes) as [number, number, number, number];
-const zero4: [number, number, number, number] = [0, 0, 0, 0];
-
 type DreRow = {
   label:  string;
-  indent: number;        // 0 = principal, 1 = sub-item
-  bold:   boolean;       // subtotais em negrito
+  indent: number;
+  bold:   boolean;
   type:   string;
-  real:   [number, number, number, number];
-  prev:   [number, number, number, number];
+  real:   number[];
+  prev:   number[];
 };
 
 const dreRows: DreRow[] = [
-  { label: "(+) Receita Bruta de Serviços",     indent: 0, bold: false, type: "revenue",    real: mrrReal, prev: zero4 },
-  { label: "    (-) Deduções (ISS · PIS · COFINS)", indent: 1, bold: false, type: "deduction", real: zero4,   prev: zero4 },
-  { label: "(=) Receita Líquida",               indent: 0, bold: true,  type: "subtotal",   real: mrrReal, prev: zero4 },
-  { label: "    (-) Custo dos Serviços (COGS)", indent: 1, bold: false, type: "cost",       real: zero4,   prev: zero4 },
-  { label: "(=) Lucro Bruto",                   indent: 0, bold: true,  type: "subtotal",   real: zero4,   prev: zero4 },
-  { label: "    (-) Despesas com Pessoal",      indent: 1, bold: false, type: "cost",       real: zero4,   prev: zero4 },
-  { label: "    (-) Despesas Administrativas",  indent: 1, bold: false, type: "cost",       real: zero4,   prev: zero4 },
-  { label: "    (-) Vendas & Marketing",        indent: 1, bold: false, type: "cost",       real: zero4,   prev: zero4 },
-  { label: "(=) EBITDA",                        indent: 0, bold: true,  type: "ebitda",     real: zero4,   prev: zero4 },
-  { label: "    (-) Depreciação e Amortização", indent: 1, bold: false, type: "cost",       real: zero4,   prev: zero4 },
-  { label: "(=) EBIT",                          indent: 0, bold: true,  type: "subtotal",   real: zero4,   prev: zero4 },
-  { label: "    (+/-) Resultado Financeiro",    indent: 1, bold: false, type: "financial",  real: zero4,   prev: zero4 },
-  { label: "(=) LAIR",                          indent: 0, bold: true,  type: "subtotal",   real: zero4,   prev: zero4 },
-  { label: "    (-) IR / CSLL",                indent: 1, bold: false, type: "tax",        real: zero4,   prev: zero4 },
-  { label: "(=) Lucro Líquido",               indent: 0, bold: true,  type: "net",        real: zero4,   prev: zero4 },
+  { label: "(+) Receita Bruta de Serviços",        indent: 0, bold: false, type: "revenue",   real: realRevArr, prev: zeroArr },
+  { label: "    (-) Deduções (ISS · PIS · COFINS)", indent: 1, bold: false, type: "deduction", real: zeroArr,    prev: zeroArr },
+  { label: "(=) Receita Líquida",                  indent: 0, bold: true,  type: "subtotal",  real: realRevArr, prev: zeroArr },
+  { label: "    (-) Custo dos Serviços (COGS)",    indent: 1, bold: false, type: "cost",      real: zeroArr,    prev: zeroArr },
+  { label: "(=) Lucro Bruto",                      indent: 0, bold: true,  type: "subtotal",  real: zeroArr,    prev: zeroArr },
+  { label: "    (-) Despesas com Pessoal",         indent: 1, bold: false, type: "cost",      real: zeroArr,    prev: zeroArr },
+  { label: "    (-) Despesas Administrativas",     indent: 1, bold: false, type: "cost",      real: zeroArr,    prev: zeroArr },
+  { label: "    (-) Vendas & Marketing",           indent: 1, bold: false, type: "cost",      real: zeroArr,    prev: zeroArr },
+  { label: "(=) EBITDA",                           indent: 0, bold: true,  type: "ebitda",    real: zeroArr,    prev: zeroArr },
+  { label: "    (-) Depreciação e Amortização",    indent: 1, bold: false, type: "cost",      real: zeroArr,    prev: zeroArr },
+  { label: "(=) EBIT",                             indent: 0, bold: true,  type: "subtotal",  real: zeroArr,    prev: zeroArr },
+  { label: "    (+/-) Resultado Financeiro",       indent: 1, bold: false, type: "financial", real: zeroArr,    prev: zeroArr },
+  { label: "(=) LAIR",                             indent: 0, bold: true,  type: "subtotal",  real: zeroArr,    prev: zeroArr },
+  { label: "    (-) IR / CSLL",                   indent: 1, bold: false, type: "tax",       real: zeroArr,    prev: zeroArr },
+  { label: "(=) Lucro Líquido",                   indent: 0, bold: true,  type: "net",       real: zeroArr,    prev: zeroArr },
 ];
 
 // ─── Unit Econ ────────────────────────────────────────────────────────────────
@@ -120,16 +133,46 @@ function ChartTooltip({
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function SgaPage() {
-  const [tab,        setTab]        = useState<TabId>("receita");
-  const [dreView,    setDreView]    = useState<"both" | "prev" | "real">("both");
-  const [periodFrom, setPeriodFrom] = useState(0);
-  const [periodTo,   setPeriodTo]   = useState(MONTHS.length - 1);
+  const [tab,     setTab]     = useState<TabId>("receita");
+  const [dreView, setDreView] = useState<"both" | "prev" | "real">("both");
 
-  // Índices dos meses ativos (window de período)
-  const activeMIs   = Array.from({ length: periodTo - periodFrom + 1 }, (_, i) => periodFrom + i);
-  const periodLabel = periodFrom === periodTo
-    ? MONTHS[periodFrom]
-    : `${MONTHS[periodFrom]}–${MONTHS[periodTo]}`;
+  // ── Seletor de período expandido 2021–2030 ──────────────────────────────
+  type Granularity = "dia" | "mes" | "ano";
+  const [gran,     setGran]     = useState<Granularity>("mes");
+  const [miFrom,   setMiFrom]   = useState(miOf(2026, 0));   // Jan/26
+  const [miTo,     setMiTo]     = useState(miOf(2026, 3));   // Abr/26
+  const [yearFrom, setYearFrom] = useState(2026);
+  const [yearTo,   setYearTo]   = useState(2026);
+  const [dateFrom, setDateFrom] = useState("2026-01-01");
+  const [dateTo,   setDateTo]   = useState("2026-04-30");
+
+  // Índices de mês ativos conforme granularidade
+  const activeMIs: number[] = (() => {
+    if (gran === "mes") {
+      return Array.from({ length: miTo - miFrom + 1 }, (_, i) => miFrom + i);
+    }
+    if (gran === "ano") {
+      const s = miOf(yearFrom, 0);
+      const e = miOf(yearTo,   11);
+      return Array.from({ length: e - s + 1 }, (_, i) => s + i);
+    }
+    // dia → converte para intervalo de meses
+    const [fy, fm] = dateFrom.split("-").map(Number);
+    const [ty, tm] = dateTo.split("-").map(Number);
+    const s = miOf(fy, fm - 1);
+    const e = miOf(ty, tm - 1);
+    return e >= s ? Array.from({ length: e - s + 1 }, (_, i) => s + i) : [s];
+  })();
+
+  const activeYears = gran === "ano"
+    ? Array.from({ length: yearTo - yearFrom + 1 }, (_, i) => yearFrom + i)
+    : [];
+
+  const periodLabel = (() => {
+    if (gran === "ano") return yearFrom === yearTo ? String(yearFrom) : `${yearFrom}–${yearTo}`;
+    if (gran === "dia") return `${dateFrom.slice(0, 7)} → ${dateTo.slice(0, 7)}`;
+    return miFrom === miTo ? labelMi(miFrom) : `${labelMi(miFrom)}–${labelMi(miTo)}`;
+  })();
 
   return (
     <>
@@ -256,37 +299,97 @@ export default function SgaPage() {
                 </h2>
 
                 <div className="flex items-center gap-3 flex-wrap">
-                  {/* ── Seletor de período ── */}
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] text-gray-400 font-medium">De</span>
-                    <select
-                      value={periodFrom}
-                      onChange={(e) => {
-                        const v = Number(e.target.value);
-                        setPeriodFrom(v);
-                        if (v > periodTo) setPeriodTo(v);
-                      }}
-                      className="border border-gray-200 rounded-lg px-2 py-1.5 text-[11px] text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-brand-400 cursor-pointer"
-                    >
-                      {MONTHS.map((m, i) => <option key={m} value={i}>{m}</option>)}
-                    </select>
-                    <span className="text-[11px] text-gray-400 font-medium">Até</span>
-                    <select
-                      value={periodTo}
-                      onChange={(e) => {
-                        const v = Number(e.target.value);
-                        setPeriodTo(v);
-                        if (v < periodFrom) setPeriodFrom(v);
-                      }}
-                      className="border border-gray-200 rounded-lg px-2 py-1.5 text-[11px] text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-brand-400 cursor-pointer"
-                    >
-                      {MONTHS.map((m, i) => (
-                        <option key={m} value={i} disabled={i < periodFrom}>{m}</option>
-                      ))}
-                    </select>
+
+                  {/* ── Granularidade: Dia / Mês / Ano ── */}
+                  <div className="flex gap-0.5 p-0.5 bg-gray-100 rounded-lg">
+                    {(["dia", "mes", "ano"] as const).map((g) => (
+                      <button
+                        key={g}
+                        onClick={() => setGran(g)}
+                        className={`px-3 py-1.5 text-[11px] font-medium rounded-md transition-all ${
+                          gran === g
+                            ? "bg-white text-brand-700 shadow-sm"
+                            : "text-gray-500 hover:text-gray-700"
+                        }`}
+                      >
+                        {g === "dia" ? "Dia" : g === "mes" ? "Mês" : "Ano"}
+                      </button>
+                    ))}
                   </div>
 
-                  {/* ── Seletor Prev / Real ── */}
+                  {/* ── De / Até ── */}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[11px] text-gray-400 font-medium">De</span>
+
+                    {gran === "dia" && (
+                      <input
+                        type="date" value={dateFrom} min="2021-01-01" max="2030-12-31"
+                        onChange={(e) => { setDateFrom(e.target.value); if (e.target.value > dateTo) setDateTo(e.target.value); }}
+                        className="border border-gray-200 rounded-lg px-2 py-1.5 text-[11px] text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-brand-400 cursor-pointer"
+                      />
+                    )}
+                    {gran === "mes" && (
+                      <select
+                        value={miFrom}
+                        onChange={(e) => { const v = Number(e.target.value); setMiFrom(v); if (v > miTo) setMiTo(v); }}
+                        className="border border-gray-200 rounded-lg px-2 py-1.5 text-[11px] text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-brand-400 cursor-pointer"
+                      >
+                        {ALL_YEARS.map((y) => (
+                          <optgroup key={y} label={String(y)}>
+                            {MES_PT.map((m, mi) => (
+                              <option key={mi} value={miOf(y, mi)}>{m}/{String(y).slice(2)}</option>
+                            ))}
+                          </optgroup>
+                        ))}
+                      </select>
+                    )}
+                    {gran === "ano" && (
+                      <select
+                        value={yearFrom}
+                        onChange={(e) => { const v = Number(e.target.value); setYearFrom(v); if (v > yearTo) setYearTo(v); }}
+                        className="border border-gray-200 rounded-lg px-2 py-1.5 text-[11px] text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-brand-400 cursor-pointer"
+                      >
+                        {ALL_YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
+                      </select>
+                    )}
+
+                    <span className="text-[11px] text-gray-400 font-medium">Até</span>
+
+                    {gran === "dia" && (
+                      <input
+                        type="date" value={dateTo} min={dateFrom} max="2030-12-31"
+                        onChange={(e) => { setDateTo(e.target.value); if (e.target.value < dateFrom) setDateFrom(e.target.value); }}
+                        className="border border-gray-200 rounded-lg px-2 py-1.5 text-[11px] text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-brand-400 cursor-pointer"
+                      />
+                    )}
+                    {gran === "mes" && (
+                      <select
+                        value={miTo}
+                        onChange={(e) => { const v = Number(e.target.value); setMiTo(v); if (v < miFrom) setMiFrom(v); }}
+                        className="border border-gray-200 rounded-lg px-2 py-1.5 text-[11px] text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-brand-400 cursor-pointer"
+                      >
+                        {ALL_YEARS.map((y) => (
+                          <optgroup key={y} label={String(y)}>
+                            {MES_PT.map((m, mi) => {
+                              const idx = miOf(y, mi);
+                              return <option key={mi} value={idx} disabled={idx < miFrom}>{m}/{String(y).slice(2)}</option>;
+                            })}
+                          </optgroup>
+                        ))}
+                      </select>
+                    )}
+                    {gran === "ano" && (
+                      <select
+                        value={yearTo}
+                        onChange={(e) => { const v = Number(e.target.value); setYearTo(v); if (v < yearFrom) setYearFrom(v); }}
+                        className="border border-gray-200 rounded-lg px-2 py-1.5 text-[11px] text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-brand-400 cursor-pointer"
+                      >
+                        {ALL_YEARS.map((y) => <option key={y} value={y} disabled={y < yearFrom}>{y}</option>)}
+                      </select>
+                    )}
+                  </div>
+
+                  {/* ── Prev / Real toggle ── */}
                   <div className="flex gap-0.5 p-0.5 bg-gray-100 rounded-lg">
                     {(["both", "prev", "real"] as const).map((v) => (
                       <button
@@ -305,34 +408,51 @@ export default function SgaPage() {
                 </div>
               </div>
 
+              {gran === "dia" && (
+                <div className="mb-3 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 flex items-start gap-2">
+                  <Info size={12} className="text-blue-500 shrink-0 mt-0.5" />
+                  <p className="text-[10px] text-blue-700">
+                    Dados por dia aguardam ingestion. Exibindo agregado por mês no intervalo selecionado.
+                  </p>
+                </div>
+              )}
+
               <div className="overflow-x-auto">
                 <table className="w-full text-xs whitespace-nowrap border-collapse">
-                  {/* ── Cabeçalho nível 1: meses ── */}
+                  {/* ── Cabeçalho nível 1: períodos ── */}
                   <thead>
                     <tr className="border-b border-gray-200">
                       <th className="text-left py-2 px-3 text-[11px] font-semibold text-gray-500 min-w-[220px] bg-white sticky left-0 z-10">
                         Linha DRE
                       </th>
-                      {activeMIs.map((mi) => (
-                        <th key={mi} colSpan={dreView === "both" ? 2 : 1}
-                          className="text-center py-2 px-2 text-[10px] font-semibold text-gray-600 border-l border-gray-100 bg-gray-50">
-                          {MONTHS[mi]}
-                        </th>
-                      ))}
+                      {gran === "ano"
+                        ? activeYears.map((y) => (
+                            <th key={y} colSpan={dreView === "both" ? 2 : 1}
+                              className="text-center py-2 px-2 text-[10px] font-semibold text-gray-600 border-l border-gray-100 bg-gray-50">
+                              {y}
+                            </th>
+                          ))
+                        : activeMIs.map((mi) => (
+                            <th key={mi} colSpan={dreView === "both" ? 2 : 1}
+                              className="text-center py-2 px-2 text-[10px] font-semibold text-gray-600 border-l border-gray-100 bg-gray-50">
+                              {labelMi(mi)}
+                            </th>
+                          ))
+                      }
                       <th colSpan={dreView === "both" ? 2 : 1}
                         className="text-center py-2 px-2 text-[10px] font-bold text-brand-700 border-l border-gray-200 bg-brand-50">
-                        {activeMIs.length === MONTHS.length ? "YTD Total" : `Total (${periodLabel})`}
+                        Total
                       </th>
                     </tr>
                     {/* ── Cabeçalho nível 2: Prev / Real ── */}
                     <tr className="border-b-2 border-gray-200 bg-gray-50">
                       <th className="sticky left-0 z-10 bg-gray-50" />
-                      {activeMIs.flatMap((mi) => [
+                      {(gran === "ano" ? activeYears : activeMIs).flatMap((key) => [
                         ...(dreView !== "real"
-                          ? [<th key={`ph${mi}`} className="py-1.5 px-3 text-[10px] font-semibold text-center border-l border-gray-100 text-gray-400 w-[88px]">Prev</th>]
+                          ? [<th key={`ph${key}`} className="py-1.5 px-3 text-[10px] font-semibold text-center border-l border-gray-100 text-gray-400 w-[88px]">Prev</th>]
                           : []),
                         ...(dreView !== "prev"
-                          ? [<th key={`rh${mi}`} className="py-1.5 px-3 text-[10px] font-semibold text-center text-gray-700 w-[88px]">Real</th>]
+                          ? [<th key={`rh${key}`} className="py-1.5 px-3 text-[10px] font-semibold text-center text-gray-700 w-[88px]">Real</th>]
                           : []),
                       ])}
                       {dreView !== "real" && <th className="py-1.5 px-3 text-[10px] font-semibold text-center border-l border-gray-200 text-gray-400 w-[88px]">Prev</th>}
@@ -343,76 +463,83 @@ export default function SgaPage() {
                   {/* ── Corpo ── */}
                   <tbody>
                     {dreRows.map((row, ri) => {
-                      const ytdReal = activeMIs.reduce((s, mi) => s + row.real[mi], 0);
-                      const ytdPrev = activeMIs.reduce((s, mi) => s + row.prev[mi], 0);
                       const isSubtotal = row.bold;
                       const isReceita  = row.type === "revenue";
                       const isNet      = row.type === "net";
-
-                      const rowBg = isNet
-                        ? "bg-brand-50/60"
-                        : isSubtotal
-                          ? "bg-gray-50"
-                          : "";
-
+                      const rowBg      = isNet ? "bg-brand-50/60" : isSubtotal ? "bg-gray-50" : "";
                       const labelClass = isSubtotal
                         ? "font-bold text-gray-800"
-                        : row.indent === 1
-                          ? "text-gray-400"
-                          : "text-gray-600";
+                        : row.indent === 1 ? "text-gray-400" : "text-gray-600";
+
+                      // Colunas modo Mês / Dia (um td por mês)
+                      const monthCols = (gran !== "ano" ? activeMIs : []).flatMap((mi) => {
+                        const rv = row.real[mi];
+                        const pv = row.prev[mi];
+                        const rc = rv === 0 ? "text-gray-300"
+                          : isReceita ? "text-emerald-700 font-semibold"
+                          : isSubtotal ? "font-bold text-gray-900"
+                          : "text-gray-700";
+                        return [
+                          ...(dreView !== "real"
+                            ? [<td key={`p${mi}`} className="py-2.5 px-3 text-right border-l border-gray-100 text-gray-400">
+                                {pv === 0 ? "—" : fmtR(pv)}
+                              </td>]
+                            : []),
+                          ...(dreView !== "prev"
+                            ? [<td key={`r${mi}`} className={`py-2.5 px-3 text-right ${rc}`}>{fmtR(rv)}</td>]
+                            : []),
+                        ];
+                      });
+
+                      // Colunas modo Ano (agrega 12 meses por ano)
+                      const yearCols = (gran === "ano" ? activeYears : []).flatMap((y) => {
+                        const yMIs    = Array.from({ length: 12 }, (_, m) => miOf(y, m));
+                        const rv      = yMIs.reduce((s, mi) => s + row.real[mi], 0);
+                        const pv      = yMIs.reduce((s, mi) => s + row.prev[mi], 0);
+                        const rc = rv === 0 ? "text-gray-300"
+                          : isReceita ? "text-emerald-700 font-semibold"
+                          : isSubtotal ? "font-bold text-gray-900"
+                          : "text-gray-700";
+                        return [
+                          ...(dreView !== "real"
+                            ? [<td key={`py${y}`} className="py-2.5 px-3 text-right border-l border-gray-100 text-gray-400">
+                                {pv === 0 ? "—" : fmtR(pv)}
+                              </td>]
+                            : []),
+                          ...(dreView !== "prev"
+                            ? [<td key={`ry${y}`} className={`py-2.5 px-3 text-right ${rc}`}>
+                                {rv === 0 ? "—" : fmtR(rv)}
+                              </td>]
+                            : []),
+                        ];
+                      });
+
+                      // Totais do período selecionado
+                      const totalReal = activeMIs.reduce((s, mi) => s + row.real[mi], 0);
+                      const totalPrev = activeMIs.reduce((s, mi) => s + row.prev[mi], 0);
+                      const totalRc = totalReal === 0 ? "text-gray-300"
+                        : isNet ? "font-bold text-brand-700"
+                        : isSubtotal ? "font-bold text-gray-900"
+                        : isReceita ? "font-semibold text-emerald-700"
+                        : "text-gray-700";
 
                       return (
                         <tr key={ri} className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${rowBg}`}>
-                          {/* Label — sticky */}
                           <td className={`py-2.5 px-3 sticky left-0 z-10 ${rowBg || "bg-white"} ${labelClass}`}
                             style={{ paddingLeft: row.indent === 1 ? 24 : 12 }}>
                             {row.label}
                           </td>
 
-                          {/* Células por mês (apenas período ativo) */}
-                          {activeMIs.flatMap((mi) => {
-                            const realVal = row.real[mi];
-                            const prevVal = row.prev[mi];
-                            const realColor = realVal === 0
-                              ? "text-gray-300"
-                              : isReceita
-                                ? "text-emerald-700 font-semibold"
-                                : isSubtotal
-                                  ? "font-bold text-gray-900"
-                                  : "text-gray-700";
-                            return [
-                              ...(dreView !== "real"
-                                ? [<td key={`p${mi}`} className="py-2.5 px-3 text-right border-l border-gray-100 text-gray-400">
-                                    {prevVal === 0 ? "—" : fmtR(prevVal)}
-                                  </td>]
-                                : []),
-                              ...(dreView !== "prev"
-                                ? [<td key={`r${mi}`} className={`py-2.5 px-3 text-right ${realColor}`}>
-                                    {fmtR(realVal)}
-                                  </td>]
-                                : []),
-                            ];
-                          })}
+                          {gran === "ano" ? yearCols : monthCols}
 
-                          {/* YTD */}
                           {dreView !== "real" && (
                             <td className="py-2.5 px-3 text-right border-l border-gray-200 text-gray-400">
-                              {ytdPrev === 0 ? "—" : fmtR(ytdPrev)}
+                              {totalPrev === 0 ? "—" : fmtR(totalPrev)}
                             </td>
                           )}
                           {dreView !== "prev" && (
-                            <td className={`py-2.5 px-3 text-right ${
-                              ytdReal === 0
-                                ? "text-gray-300"
-                                : isNet
-                                  ? "font-bold text-brand-700"
-                                  : isSubtotal
-                                    ? "font-bold text-gray-900"
-                                    : isReceita
-                                      ? "font-semibold text-emerald-700"
-                                      : "text-gray-700"
-                            }`}>
-                              {fmtR(ytdReal)}
+                            <td className={`py-2.5 px-3 text-right ${totalRc}`}>
+                              {totalReal === 0 ? "—" : fmtR(totalReal)}
                             </td>
                           )}
                         </tr>
