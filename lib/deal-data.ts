@@ -2,7 +2,7 @@
 // SOURCE OF TRUTH: AWQ Venture
 // Exports: dealWorkspaces (full), getDealById(), getDealHoldingSummaries()
 
-import type { DealWorkspace, Proposal10Blocks } from "./deal-types";
+import type { DealWorkspace, Proposal10Blocks, Proposal13Blocks } from "./deal-types";
 import { toDealHoldingSummary } from "./deal-types";
 
 // ─── P001 — MedIA Health (fully populated — Due Diligence) ───────────────────

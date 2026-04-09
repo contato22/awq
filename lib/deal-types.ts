@@ -161,11 +161,14 @@ export interface DealWorkspace {
   proposalStructure: DealProposalStructure;
   governance:        DealGovernance;
 
-  // 10-Block Proposal (optional, replaces SharePage content when present)
+  // 10-Block Proposal (legacy, optional)
   proposal10Blocks?: Proposal10Blocks;
+
+  // 13-Block Proposal (template-master, optional — takes precedence over 10-block)
+  proposal13Blocks?: Proposal13Blocks;
 }
 
-// ─── 10-Block Proposal Architecture ──────────────────────────────────────────
+// ─── 10-Block Proposal Architecture (legacy) ────────────────────────────────
 
 export interface ProposalMetrica {
   nome:     string;
@@ -198,7 +201,7 @@ export interface ProposalCaminhoDecisao {
   cta:        string;
 }
 
-// BLOCO 1: Contexto do Deal
+// Legacy BLOCO 1: Contexto do Deal
 export interface ProposalB1Contexto {
   diagnostico:     string;
   situacaoAtual:   string;
@@ -208,7 +211,7 @@ export interface ProposalB1Contexto {
   riscoNaoAgir:    string;
 }
 
-// BLOCO 2: Tese de Criação de Valor
+// Legacy BLOCO 2: Tese de Criação de Valor
 export interface ProposalB2Tese {
   alavancasPrincipais: string[];
   assimetriaDeal:      string;
@@ -217,7 +220,7 @@ export interface ProposalB2Tese {
   horizonte:           string;
 }
 
-// BLOCO 3: Escopo da Atuação
+// Legacy BLOCO 3: Escopo da Atuação
 export interface ProposalB3Escopo {
   oQueEntrega:    string[];
   oQueCoordena:   string[];
@@ -225,7 +228,7 @@ export interface ProposalB3Escopo {
   dedicacao:      string;
 }
 
-// BLOCO 4: Objeto Econômico da Proposta
+// Legacy BLOCO 4: Objeto Econômico da Proposta
 export interface ProposalB4Objeto {
   ativo:             string;
   veiculo:           string;
@@ -234,7 +237,7 @@ export interface ProposalB4Objeto {
   valorReferencia:   string;
 }
 
-// BLOCO 5: Estrutura Econômica
+// Legacy BLOCO 5: Estrutura Econômica
 export interface ProposalB5Estrutura {
   feeDescricao:     string;
   feeValor:         string;
@@ -247,7 +250,7 @@ export interface ProposalB5Estrutura {
   earnin:           string;
 }
 
-// BLOCO 6: Scorecard e Métricas
+// Legacy BLOCO 6: Scorecard e Métricas
 export interface ProposalB6Scorecard {
   financeiras:     ProposalMetrica[];
   comerciais:      ProposalMetrica[];
@@ -256,7 +259,7 @@ export interface ProposalB6Scorecard {
   auditor:         string;
 }
 
-// BLOCO 7: Governança e Alçadas
+// Legacy BLOCO 7: Governança e Alçadas
 export interface ProposalB7Governanca {
   direitosAWQ:       string[];
   rotinasReporting:  string[];
@@ -265,7 +268,7 @@ export interface ProposalB7Governanca {
   conflito:          string;
 }
 
-// BLOCO 8: Proteções Contratuais
+// Legacy BLOCO 8: Proteções Contratuais
 export interface ProposalB8Protecoes {
   goodLeaver:       string;
   badLeaver:        string;
@@ -276,7 +279,7 @@ export interface ProposalB8Protecoes {
   lockup:           string;
 }
 
-// BLOCO 9: Cronograma de Fechamento e Execução
+// Legacy BLOCO 9: Cronograma de Fechamento e Execução
 export interface ProposalB9Cronograma {
   marcos:              ProposalMarco[];
   prazoTotal:          string;
@@ -285,7 +288,7 @@ export interface ProposalB9Cronograma {
   condicoesFechamento: string[];
 }
 
-// BLOCO 10: Decisão Solicitada
+// Legacy BLOCO 10: Decisão Solicitada
 export interface ProposalB10Decisao {
   perguntasEstruturadas: string[];
   ctaLabel:              string;
@@ -309,6 +312,231 @@ export interface Proposal10Blocks {
   b8:  ProposalB8Protecoes;
   b9:  ProposalB9Cronograma;
   b10: ProposalB10Decisao;
+}
+
+// ─── 13-Block Proposal Architecture (Template-Master) ────────────────────────
+// Disciplined M&A / Venture deal structuring with:
+// - Binding vs non-binding clarity
+// - Cliff/vesting/earn-in logic
+// - Media for Equity (M4E) rationale
+// - Fee vs upside separation
+// - Phantom equity / instrument precision
+// - Segregated client link architecture
+// - Contractual protections with PE/MIP rigor
+
+// BLOCO 0: Natureza do Documento
+export interface P13B0NaturezaDocumento {
+  tipoDocumento:         string;  // e.g. "Memorando de Entendimento Indicativo"
+  objetivoAlinhamento:   string;  // what this document seeks to align
+  caraterPreliminar:     string;  // what is preliminary / non-binding
+  pontosIndicativos:     string;  // what is indicative only
+  pontosVinculantes:     string;  // what may migrate to binding in next phase
+  interpretacaoCliente:  string;  // how the counterparty should interpret
+  confidencialidade:     string;  // confidentiality clause
+  vigenciaDocumento:     string;  // document validity
+}
+
+// BLOCO 1: Contexto do Deal
+export interface P13B1Contexto {
+  leituraDoAtivo:    string;
+  situacaoAtual:     string;
+  rupturaPrincipal:  string;
+  oportunidade:      string;
+  riscoNaoAgir:      string;
+}
+
+// BLOCO 2: Tese de Criação de Valor
+export interface P13B2Tese {
+  qualValorCria:          string;
+  alavancas:              string[];
+  transformacaoPretendida: string;
+  porQueAlemDeServico:     string;
+  papelAWQvsOutros:        string;
+  horizonte:               string;
+}
+
+// BLOCO 3: Racional de Captura M4E (Media for Equity)
+export interface P13B3RacionalM4E {
+  porQueNaoFeeOnly:        string;
+  porQueNaoMAClassico:     string;
+  logicaFeeUpside:         string;
+  intervencaoOperacional:  string;
+  feeRemuneraCamada:       string;
+  upsideRemuneraRerating:  string;
+}
+
+// BLOCO 4: Objeto Econômico
+export interface P13B4ObjetoEconomico {
+  ativoObjeto:             string;
+  unidadeVeiculo:          string;
+  cnpjAfetado:             string;  // [LACUNA] when unknown
+  incidenciaDireito:       string;
+  camadaIncidencia:        string;
+  formaLiquidacao:         string;
+}
+
+// BLOCO 5: Instrumento
+export type TipoInstrumento =
+  | "equity_real"
+  | "phantom_equity"
+  | "earn_in"
+  | "opcao"
+  | "direito_economico_contingente"
+  | "profit_interest"
+  | "hibrido";
+
+export interface P13B5Instrumento {
+  tipoInstrumento:       TipoInstrumento;
+  descricaoInstrumento:  string;
+  direitosEconomicos:    string;
+  direitosPoliticos:     string;
+  conversaoFutura:       string;
+  estruturaSocietariaOuContratual: string; // "societária" | "contratual" | "híbrida"
+}
+
+// BLOCO 6: Estrutura Econômica (with vesting/cliff sub-section)
+export interface P13VestingCliff {
+  temCliff:              boolean;
+  duracaoCliff:          string;
+  tipoCliff:             string;  // "temporal" | "operacional" | "híbrido"
+  vestingFrequencia:     string;  // "mensal" | "trimestral" | "por marcos"
+  temAceleracao:         boolean;
+  condicoesAceleracao:   string;
+  temCongelamento:       boolean;
+  condicoesCongelamento: string;
+  valorCriadoCedo:       string;
+  permanenciaLonga:      string;
+}
+
+export interface P13B6Estrutura {
+  feeFixo:               string;
+  feeDescricao:          string;
+  feePrazo:              string;
+  upsideTotalPotencial:  string;
+  upsideDescricao:       string;
+  prazoTotal:            string;
+  gateInicial:           string;
+  baseline:              string;
+  tranches:              ProposalTrancheItem[];
+  criteriosAquisicao:    string[];
+  logicaEarnIn:          string;
+  vestingCliff:          P13VestingCliff;
+}
+
+// BLOCO 7: Scorecard e Métricas (split into 7A, 7B, 7C)
+export interface P13B7Scorecard {
+  // 7A: Métricas de performance econômica
+  performanceEconomica: ProposalMetrica[];
+  // 7B: Métricas de institucionalização
+  institucionalizacao:  ProposalMetrica[];
+  // 7C: Regras de apuração
+  regrasApuracao: {
+    formulas:            string;
+    periodicidade:       string;
+    criterioApuracao:    string;
+    fonteDado:           string;
+    janelaMedicao:       string;
+    tratamentoDisputa:   string;
+  };
+}
+
+// BLOCO 8: Governança e Alçadas (enhanced)
+export interface P13B8Governanca {
+  poderExecucao:          string;
+  acessoDados:            string;
+  cadenciaReuniao:        string;
+  sobreQueDecide:         string[];
+  sobreQueInfluencia:     string[];
+  aprovacaoConjunta:      string[];
+  direitoInformacao:      string;
+  reporting:              string[];
+  rituaisAcompanhamento:  string[];
+  fluxoDecisorio:         string;
+  alcadasMinimas:         string;
+  temasCriticos:          string[];
+}
+
+// BLOCO 9: Proteções Contratuais (6 sub-blocks)
+export interface P13B9Protecoes {
+  // 9A: Leaver provisions
+  goodLeaver:            string;
+  badLeaver:             string;
+  // 9B: Change of control
+  changeOfControl:       string;
+  // 9C: Anti-diluição / preservação econômica
+  antiDiluicao:          string;
+  preservacaoEconomica:  string;
+  // 9D: Recompra / fórmula de saída
+  formulaRecompra:       string;
+  formulaSaida:          string;
+  // 9E: Reorganização societária
+  reorganizacao:         string;
+  // 9F: Não circunvenção / confidencialidade
+  naoCircunvencao:       string;
+  confidencialidade:     string;
+  lockup:                string;
+  clausulasPenais:       string[];
+}
+
+// BLOCO 10: Condições Precedentes
+export interface P13B10CondicoesPrecedentes {
+  baselineFechado:       string;
+  acessoDados:           string;
+  diligenciaMinima:      string;
+  validacaoPassivos:     string;
+  aceiteInstrumento:     string;
+  alinhamentoJuridico:   string;
+  alinhamentoContabil:   string;
+  definicaoStack:        string;
+  demaisCondicoes:       string[];
+}
+
+// BLOCO 11: Cronograma de Fechamento e Execução
+export interface P13B11Cronograma {
+  prazoRetorno:          string;
+  prazoDiligencia:       string;
+  prazoBaseline:         string;
+  prazoAssinatura:       string;
+  prazoKickoff:          string;
+  checkpoints:           ProposalMarco[];
+  marcosCriticos:        string[];
+  dependencias:          string[];
+  janelasRevisao:        string[];
+  prazoTotal:            string;
+}
+
+// BLOCO 12: Decisão Solicitada ao Cliente
+export interface P13B12Decisao {
+  perguntasEstruturadas: string[];
+  aprovacaoIntegral:     string;
+  aprovacaoComAjustes:   string;
+  contraproposta:        string;
+  itensParaJuridico:     string[];
+  itensParaFinanceiro:   string[];
+  responsavel:           string;
+  prazoRetorno:          string;
+  contatoNegociacao:     string;
+  caminhos:              ProposalCaminhoDecisao[];
+}
+
+// Full 13-Block Proposal
+export interface Proposal13Blocks {
+  versao:       number;
+  criadoEm:     string;
+  atualizadoEm: string;
+  b0:  P13B0NaturezaDocumento;
+  b1:  P13B1Contexto;
+  b2:  P13B2Tese;
+  b3:  P13B3RacionalM4E;
+  b4:  P13B4ObjetoEconomico;
+  b5:  P13B5Instrumento;
+  b6:  P13B6Estrutura;
+  b7:  P13B7Scorecard;
+  b8:  P13B8Governanca;
+  b9:  P13B9Protecoes;
+  b10: P13B10CondicoesPrecedentes;
+  b11: P13B11Cronograma;
+  b12: P13B12Decisao;
 }
 
 // ─── Holding Summary (read-only — AWQ Holding consumes only this) ─────────────
