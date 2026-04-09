@@ -735,7 +735,7 @@ export default function DealSharePage({ params }: { params: { id: string } }) {
   const allApproved = approvedAll === sections.length;
 
   function handlePrint() {
-    window.print();
+    window.open(`/awq-venture/deals/${deal.id}/pdf`, "_blank");
   }
 
   function handleSubmit() {
@@ -843,10 +843,10 @@ export default function DealSharePage({ params }: { params: { id: string } }) {
             </div>
             <button
               onClick={handlePrint}
-              className="no-print flex items-center gap-1.5 text-[11px] font-semibold text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg transition-colors"
-              title="Exportar proposta em PDF"
+              className="no-print flex items-center gap-1.5 text-[11px] font-semibold text-white bg-gray-800 hover:bg-gray-900 px-3 py-1.5 rounded-lg transition-colors"
+              title="Abrir versão PDF da proposta"
             >
-              <FileDown size={13} /> PDF
+              <FileDown size={13} /> Exportar PDF
             </button>
           </div>
         </div>
