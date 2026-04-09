@@ -160,6 +160,155 @@ export interface DealWorkspace {
   riskDiligence:     DealRiskDiligence;
   proposalStructure: DealProposalStructure;
   governance:        DealGovernance;
+
+  // 10-Block Proposal (optional, replaces SharePage content when present)
+  proposal10Blocks?: Proposal10Blocks;
+}
+
+// ─── 10-Block Proposal Architecture ──────────────────────────────────────────
+
+export interface ProposalMetrica {
+  nome:     string;
+  formula:  string;
+  baseline: string;
+  meta:     string;
+  auditavel: boolean;
+}
+
+export interface ProposalTrancheItem {
+  label:      string;
+  valor:      string;
+  condicao:   string;
+  prazo:      string;
+}
+
+export interface ProposalMarco {
+  numero:     number;
+  label:      string;
+  descricao:  string;
+  prazo:      string;
+  dependencia?: string;
+  revisao?:   string;
+}
+
+export interface ProposalCaminhoDecisao {
+  opcao:      "aprovacao" | "ajuste" | "contraproposta";
+  label:      string;
+  descricao:  string;
+  cta:        string;
+}
+
+// BLOCO 1: Contexto do Deal
+export interface ProposalB1Contexto {
+  diagnostico:     string;
+  situacaoAtual:   string;
+  problema:        string;
+  ruptura:         string;
+  oportunidade:    string;
+  riscoNaoAgir:    string;
+}
+
+// BLOCO 2: Tese de Criação de Valor
+export interface ProposalB2Tese {
+  alavancasPrincipais: string[];
+  assimetriaDeal:      string;
+  papelAWQ:            string;
+  resultadoEsperado:   string;
+  horizonte:           string;
+}
+
+// BLOCO 3: Escopo da Atuação
+export interface ProposalB3Escopo {
+  oQueEntrega:    string[];
+  oQueCoordena:   string[];
+  foraDoCampo:    string[];
+  dedicacao:      string;
+}
+
+// BLOCO 4: Objeto Econômico da Proposta
+export interface ProposalB4Objeto {
+  ativo:             string;
+  veiculo:           string;
+  naturezaDireito:   string;
+  conversaoFutura:   string;
+  valorReferencia:   string;
+}
+
+// BLOCO 5: Estrutura Econômica
+export interface ProposalB5Estrutura {
+  feeDescricao:     string;
+  feeValor:         string;
+  feePrazo:         string;
+  upsideDescricao:  string;
+  upsidePercentual: string;
+  gates:            string[];
+  tranches:         ProposalTrancheItem[];
+  baseline:         string;
+  earnin:           string;
+}
+
+// BLOCO 6: Scorecard e Métricas
+export interface ProposalB6Scorecard {
+  financeiras:     ProposalMetrica[];
+  comerciais:      ProposalMetrica[];
+  institucionais:  ProposalMetrica[];
+  periodicidade:   string;
+  auditor:         string;
+}
+
+// BLOCO 7: Governança e Alçadas
+export interface ProposalB7Governanca {
+  direitosAWQ:       string[];
+  rotinasReporting:  string[];
+  alcadasDecisao:    string;
+  representacao:     string;
+  conflito:          string;
+}
+
+// BLOCO 8: Proteções Contratuais
+export interface ProposalB8Protecoes {
+  goodLeaver:       string;
+  badLeaver:        string;
+  antiDiluicao:     string;
+  changeOfControl:  string;
+  tagDragAlong:     string;
+  clausulasPenais:  string[];
+  lockup:           string;
+}
+
+// BLOCO 9: Cronograma de Fechamento e Execução
+export interface ProposalB9Cronograma {
+  marcos:              ProposalMarco[];
+  prazoTotal:          string;
+  janelaRevisao:       string;
+  condicoesAbertura:   string[];
+  condicoesFechamento: string[];
+}
+
+// BLOCO 10: Decisão Solicitada
+export interface ProposalB10Decisao {
+  perguntasEstruturadas: string[];
+  ctaLabel:              string;
+  ctaDescricao:          string;
+  caminhos:              ProposalCaminhoDecisao[];
+  prazoResposta:         string;
+  contatoNegociacao:     string;
+}
+
+export interface Proposal10Blocks {
+  versao:     number;
+  criadoEm:   string;
+  atualizadoEm: string;
+  b1:  ProposalB1Contexto;
+  b2:  ProposalB2Tese;
+  b3:  ProposalB3Escopo;
+  b4:  ProposalB4Objeto;
+  b5:  ProposalB5Estrutura;
+  b6:  ProposalB6Scorecard;
+  b7:  ProposalB7Governanca;
+  b8:  ProposalB8Protecoes;
+  b9:  ProposalB9Cronograma;
+  b10: ProposalB10Decisao;
 }
 
 // ─── Holding Summary (read-only — AWQ Holding consumes only this) ─────────────

@@ -2,7 +2,7 @@
 // SOURCE OF TRUTH: AWQ Venture
 // Exports: dealWorkspaces (full), getDealById(), getDealHoldingSummaries()
 
-import type { DealWorkspace } from "./deal-types";
+import type { DealWorkspace, Proposal10Blocks } from "./deal-types";
 import { toDealHoldingSummary } from "./deal-types";
 
 // ─── P001 — MedIA Health (fully populated — Due Diligence) ───────────────────
@@ -369,19 +369,214 @@ function stubDeal(
 
 // ─── P007 — Grupo Energdy (único deal real confirmado) ────────────────────────
 
-const grupoEnergdy: DealWorkspace = stubDeal(
-  "P007",
-  "Grupo Energdy",
-  "Energia / Utilities",
-  "Due Diligence",
-  5_000_000,
-  8.1,
-  "Alta",
-  "Médio",
-  "Advisory Contract",
-  "Cliente ativo de advisory e incubação estratégica (fee R$2K/mês, 36 meses, contrato R$72K confirmado). Avaliação para participação estratégica ou aquisição parcial em andamento.",
-  "Q3 2026",
-);
+const energdyBlocks: Proposal10Blocks = {
+  versao:       1,
+  criadoEm:     "2025-01-01",
+  atualizadoEm: "2026-04-09",
+
+  b1: {
+    diagnostico:
+      "O Grupo Energdy opera no setor de Energia / Utilities com capacidade operacional instalada, base de clientes em formação e contratos em andamento. A empresa se encontra em estágio de incubação estratégica, com operação confirmada mas ainda sem estrutura de governança, captação formal de capital ou visibilidade institucional.",
+    situacaoAtual:
+      "Fee mensal de advisory de R$2.000/mês ativo desde 2025, com contrato de 36 meses totalizando R$72.000. A empresa está em fase de avaliação para participação estratégica ou aquisição parcial pela AWQ Venture.",
+    problema:
+      "A empresa não possui acesso a capital inteligente, rede de distribuição estratégica, estrutura de governança mínima ou reputação institucional para acelerar crescimento. Operar isoladamente neste setor significa concorrer com players capitalizados sem as ferramentas necessárias.",
+    ruptura:
+      "O setor de energia brasileiro está em momento de transformação estrutural: descentralização energética, mercado livre em expansão, e entrada de novos competidores capitalizados. Empresas sem parceria estratégica até o final de 2026 perderão janela de posicionamento.",
+    oportunidade:
+      "AWQ Venture identifica potencial de participação estratégica ou aquisição parcial, alavancando o contrato de advisory como base de confiança e validação operacional. O ticket avaliado é de R$5.000.000 com score interno 8.1/10.",
+    riscoNaoAgir:
+      "Manutenção de fee de advisory como único vínculo, sem captura de upside de valorização, sem direitos de governança e sem proteção contra diluição futura. A janela de entrada em termos favoráveis se fecha com a chegada de outros investidores.",
+  },
+
+  b2: {
+    alavancasPrincipais: [
+      "Capital paciente com orientação estratégica (não meramente financeira)",
+      "Rede de distribuição e clientes da AWQ Venture e holding parceira",
+      "Governança institucional: board advisory, reporting e compliance mínimo",
+      "Acesso a estrutura jurídica e financeira da AWQ para M&A e captação futura",
+      "Credibilidade institucional para atrair novos contratos e parceiros",
+    ],
+    assimetriaDeal:
+      "AWQ entra em momento pré-capitalização formal, com valuation ainda em formação, fee como âncora de relacionamento já comprovado, e score de 8.1 indicando alta potencialidade. A relação risco/retorno é favorável para AWQ.",
+    papelAWQ:
+      "AWQ Venture atua como operador-investidor: não apenas aporta capital, mas entrega governança, rede, estrutura de gestão e capacidade de saída. É parceiro de construção, não apenas de financiamento.",
+    resultadoEsperado:
+      "Em 24–36 meses: Grupo Energdy com governança estruturada, receita escalável, posicionamento institucional no setor e capacidade de atrair rodada Series A ou strategic buyer.",
+    horizonte: "36 meses operacionais · saída estimada Q3 2028–2029",
+  },
+
+  b3: {
+    oQueEntrega: [
+      "Capital de participação estratégica (ticket a definir — avaliado em R$5M)",
+      "Advisory mensal continuado (R$2K/mês — já ativo)",
+      "Estrutura de governança: board advisory, routinas de reporting trimestrais",
+      "Acesso à rede de clientes e parceiros da AWQ Holding",
+      "Suporte a captação futura e estruturação de term sheets",
+      "Modelo de precificação e proposta comercial institucional",
+    ],
+    oQueCoordena: [
+      "Introduções estratégicas com distribuidores e clientes do setor de energia",
+      "Conexão com jurídico especializado em M&A e estruturação societária",
+      "Pipeline de co-investidores para rodadas futuras",
+    ],
+    foraDoCampo: [
+      "Gestão operacional diária da empresa",
+      "Contratação e gestão de equipe",
+      "Decisões técnicas do setor (operação, infraestrutura, engenharia)",
+      "Garantias sobre receita ou market share",
+    ],
+    dedicacao: "Parceria ativa com reuniões mensais de alinhamento + revisões trimestrais de scorecard",
+  },
+
+  b4: {
+    ativo:           "Participação societária no Grupo Energdy (Energia / Utilities)",
+    veiculo:         "A definir — Aquisição Parcial ou Participação Estratégica (SPE ou direta)",
+    naturezaDireito: "Participação com direitos econômicos e de governança (tag-along, veto em decisões materiais, seats board)",
+    conversaoFutura: "Opção de call para posição majoritária em 24–36 meses a múltiplo prefixado ou por evento de liquidez",
+    valorReferencia: "Ticket avaliado: R$5.000.000 · Contrato advisory ativo: R$72.000 (R$2K × 36 meses)",
+  },
+
+  b5: {
+    feeDescricao:     "Advisory e incubação estratégica mensal",
+    feeValor:         "R$2.000/mês",
+    feePrazo:         "36 meses (contrato ativo — confirmado)",
+    upsideDescricao:  "Participação societária com direito a upside de valorização do ativo no evento de saída",
+    upsidePercentual: "A definir na negociação do SHA (referência: 20–35% conforme ticket aportado)",
+    gates: [
+      "Gate 1 — Formalização do SHA e estrutura societária: liberação da Tranche 1",
+      "Gate 2 — Atingimento de meta operacional ou receita validada: liberação da Tranche 2",
+      "Gate 3 — Auditoria financeira sem ressalvas materiais",
+    ],
+    tranches: [
+      { label: "Tranche 1", valor: "A definir (referência: 60% do ticket total)", condicao: "Assinatura do SHA + due diligence aprovada", prazo: "D+30 do fechamento" },
+      { label: "Tranche 2", valor: "A definir (referência: 40% restantes)",       condicao: "Gate operacional atingido",                  prazo: "D+180 do fechamento" },
+    ],
+    baseline:
+      "Receita base do Grupo Energdy no momento do aporte — a ser auditada e documentada como piso de referência para cálculo de upside e earnout.",
+    earnin:
+      "Acelerador de participação: se Grupo Energdy atingir 2× o baseline de receita em 18 meses, AWQ pode exercer opção de aumento de participação sem desembolso adicional.",
+  },
+
+  b6: {
+    financeiras: [
+      { nome: "Receita Recorrente (MRR)", formula: "Soma de contratos ativos no mês / meses ativos", baseline: "R$2.000/mês (advisory)", meta: "R$20.000/mês em 24 meses", auditavel: true },
+      { nome: "ARR (Receita Recorrente Anual)", formula: "MRR × 12", baseline: "R$24.000/ano", meta: "R$240.000/ano em 24 meses", auditavel: true },
+      { nome: "EBITDA Ajustado", formula: "Resultado operacional antes de depreciação e amortização", baseline: "A definir pós-auditoria", meta: "Positivo em 18 meses", auditavel: true },
+      { nome: "Runway (meses)", formula: "Caixa disponível / Burn mensal", baseline: "A definir", meta: "Mínimo 12 meses após aporte", auditavel: true },
+    ],
+    comerciais: [
+      { nome: "Número de Contratos Ativos", formula: "Contagem de contratos vigentes com pagamento em dia", baseline: "1 (advisory AWQ)", meta: "5 contratos em 18 meses", auditavel: true },
+      { nome: "Ticket Médio por Contrato", formula: "Receita total / número de contratos", baseline: "R$2.000/mês", meta: "R$5.000/mês em 24 meses", auditavel: true },
+      { nome: "Taxa de Renovação", formula: "Contratos renovados / contratos vencidos", baseline: "100% (advisory)", meta: "≥ 85%", auditavel: true },
+    ],
+    institucionais: [
+      { nome: "Governança Implantada", formula: "Checklist: board ativo, reporting, compliance", baseline: "Informal", meta: "Formalizada em 90 dias", auditavel: false },
+      { nome: "Documentação Societária", formula: "SHA assinado, cap table auditado, CNPJ regular", baseline: "Em andamento", meta: "100% em D+60 do aporte", auditavel: true },
+    ],
+    periodicidade: "Revisão trimestral de scorecard com AWQ Venture",
+    auditor:       "A definir — contador externo aceito por AWQ",
+  },
+
+  b7: {
+    direitosAWQ: [
+      "Assento no board advisory (com voto consultivo)",
+      "Veto em decisões materiais: novas emissões, alienação de ativos, mudança de controle",
+      "Acesso irrestrito a dados financeiros e operacionais mensais",
+      "Tag-along em qualquer cessão de participação",
+      "Opção de call para maioria conforme previsto no SHA",
+    ],
+    rotinasReporting: [
+      "Relatório financeiro mensal (DRE, fluxo de caixa, runway)",
+      "Reunião de alinhamento mensal com sócio AWQ designado",
+      "Scorecard trimestral de métricas do Bloco 6",
+      "Relatório anual auditado por contador externo",
+    ],
+    alcadasDecisao:
+      "Decisões operacionais (até R$10K): autonomia total da empresa. Decisões financeiras relevantes (R$10K–R$100K): notificação prévia AWQ. Decisões estratégicas e acima de R$100K: co-aprovação AWQ obrigatória.",
+    representacao:
+      "AWQ Venture indica um membro para o board advisory com mandato de 24 meses, renovável.",
+    conflito:
+      "Conflitos de interesse declarados formalmente. Resolução por mediação em 30 dias; arbitragem se não resolvido. Câmara: CAMARB ou CAM-CCBC.",
+  },
+
+  b8: {
+    goodLeaver:
+      "Fundador/sócio que sai por acordo mútuo, aposentadoria ou doença recebe fair value da participação calculado por múltiplo de receita vigente, com prazo de pagamento de 12 meses.",
+    badLeaver:
+      "Fundador/sócio que sai por violação contratual, concorrência ou ato lesivo recebe valor nominal da participação (sem prêmio de liquidez), com lock-up de 24 meses para qualquer nova atividade concorrente.",
+    antiDiluicao:
+      "Proteção broad-based weighted average: em caso de novas rodadas, AWQ mantém percentual ajustado por fórmula padrão de mercado. Direito de preferência em novas emissões com prazo de exercício de 15 dias.",
+    changeOfControl:
+      "Qualquer mudança de controle acionário acima de 30% exige aprovação prévia da AWQ Venture. Em caso de venda da empresa, AWQ tem direito de drag-along proporcional.",
+    tagDragAlong:
+      "Tag-along: AWQ acompanha qualquer venda nas mesmas condições. Drag-along: AWQ pode exigir venda conjunta se oferta superar 2× o valuation de entrada por investidor estratégico qualificado.",
+    clausulasPenais: [
+      "Multa de 10% do ticket aportado por violação de exclusividade de negociação durante due diligence",
+      "Multa de 20% do ticket por descumprimento de condição precedente sem justa causa",
+      "Recompra compulsória a valor de entrada por omissão material de informação pré-aporte",
+    ],
+    lockup:
+      "Lock-up de 18 meses para os fundadores após aporte. AWQ não tem lock-up após 12 meses.",
+  },
+
+  b9: {
+    marcos: [
+      { numero: 1, label: "Aceite da proposta",             descricao: "Confirmação formal de interesse pelo Grupo Energdy",            prazo: "Até 30/04/2026",     dependencia: "Resposta à esta proposta" },
+      { numero: 2, label: "Due diligence",                  descricao: "Auditoria financeira, societária e operacional",                 prazo: "Até 31/05/2026",     dependencia: "Entrega de documentação completa" },
+      { numero: 3, label: "Negociação do SHA",              descricao: "Shareholders Agreement e termos finais de participação",         prazo: "Até 15/06/2026",     dependencia: "DD aprovada sem ressalvas materiais" },
+      { numero: 4, label: "Fechamento e Tranche 1",         descricao: "Assinatura do SHA e desembolso da primeira tranche",             prazo: "Até 30/06/2026",     dependencia: "SHA assinado por todas as partes" },
+      { numero: 5, label: "Implantação de governança",      descricao: "Board ativo, reporting instalado, compliance básico",            prazo: "D+60 do fechamento", dependencia: "Tranche 1 liberada" },
+      { numero: 6, label: "Revisão de scorecard (Gate 2)",  descricao: "Avaliação de métricas operacionais para liberação da Tranche 2", prazo: "D+180 do fechamento",dependencia: "Relatório auditado aprovado" },
+    ],
+    prazoTotal:          "Fechamento estimado Q3 2026 · ciclo completo 36 meses",
+    janelaRevisao:       "Revisão anual do SHA e condições econômicas no aniversário do fechamento",
+    condicoesAbertura:   ["Aceite formal desta proposta", "Entrega de documentação societária completa"],
+    condicoesFechamento: [
+      "Due diligence sem ressalvas materiais",
+      "SHA assinado por todas as partes",
+      "Cap table limpo e aprovado por advogado AWQ",
+      "Fundadores com vesting formalizado (cliff 12 meses, total 36 meses)",
+    ],
+  },
+
+  b10: {
+    perguntasEstruturadas: [
+      "Você concorda com o diagnóstico apresentado sobre o momento atual do Grupo Energdy?",
+      "A tese de parceria (AWQ como operador-investidor) faz sentido para o estágio da empresa?",
+      "O escopo de atuação proposto (o que AWQ entrega, coordena e não faz) está alinhado com suas expectativas?",
+      "Os termos econômicos (fee continuado + participação societária + estrutura de tranches) são aceitáveis como base de negociação?",
+      "As proteções contratuais propostas (good/bad leaver, anti-diluição, tag-drag) são razoáveis para ambas as partes?",
+      "Você está pronto para avançar para due diligence e negociação do SHA dentro do cronograma proposto?",
+    ],
+    ctaLabel:    "Responda a esta proposta",
+    ctaDescricao: "Avalie cada bloco individualmente. Aprove, solicite ajuste ou envie contraproposta. Ao final, confirme sua decisão geral para que a equipe AWQ Venture inicie os próximos passos.",
+    caminhos: [
+      { opcao: "aprovacao",      label: "Aprovar Proposta",           descricao: "Você concorda com os termos apresentados e autoriza AWQ a iniciar due diligence formal.",         cta: "Aprovar todos os termos" },
+      { opcao: "ajuste",         label: "Solicitar Ajustes",          descricao: "Há pontos específicos que precisam de revisão. Indique cada um e AWQ preparará nova versão.",       cta: "Enviar ajustes para AWQ" },
+      { opcao: "contraproposta", label: "Enviar Contraproposta",      descricao: "Você tem termos alternativos. Descreva sua contraproposta e AWQ avaliará formalmente.",             cta: "Enviar contraproposta" },
+    ],
+    prazoResposta:     "Resposta esperada em até 10 dias úteis a partir do recebimento",
+    contatoNegociacao: "AWQ Venture · contato@awqventure.com.br",
+  },
+};
+
+const grupoEnergdy: DealWorkspace = {
+  ...stubDeal(
+    "P007",
+    "Grupo Energdy",
+    "Energia / Utilities",
+    "Due Diligence",
+    5_000_000,
+    8.1,
+    "Alta",
+    "Médio",
+    "Advisory Contract",
+    "Cliente ativo de advisory e incubação estratégica (fee R$2K/mês, 36 meses, contrato R$72K confirmado). Avaliação para participação estratégica ou aquisição parcial em andamento.",
+    "Q3 2026",
+  ),
+  proposal10Blocks: energdyBlocks,
+};
 
 // Apenas deals reais confirmados.
 export const dealWorkspaces: DealWorkspace[] = [
