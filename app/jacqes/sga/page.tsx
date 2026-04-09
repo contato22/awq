@@ -36,23 +36,47 @@ const clientes = [
 const totalPago = clientes.filter((c) => c.status === "Pago").reduce((s, c) => s + c.fee, 0);
 const totalPend = clientes.filter((c) => c.status === "Pendente").reduce((s, c) => s + c.fee, 0);
 
-// ─── DRE ──────────────────────────────────────────────────────────────────────
-const dreData = [
-  { label: "Receita Bruta de Serviços", value: _jacqes.revenue,    bold: false, type: "revenue"  },
-  { label: "= Lucro Bruto",            value: _jacqes.grossProfit, bold: true,  type: "subtotal" },
-  { label: "= EBITDA",                  value: _jacqes.ebitda,      bold: true,  type: "ebitda"   },
-  { label: "= Lucro Líquido",          value: _jacqes.netIncome,   bold: true,  type: "net"      },
+// ─── DRE Matricial — linhas × meses (Prev | Real) ────────────────────────────
+// Meses confirmados (Notion CRM). Budget ainda não definido → Prev = 0 → exibe "—".
+// Receita Líquida = Receita Bruta (deduções aguardam confirmação fiscal).
+// Subtotais derivados: Lucro Bruto = Rec.Liq − COGS; EBITDA = LB − OpEx; etc.
+
+const MONTHS = ["Jan/26", "Fev/26", "Mar/26", "Abr/26"] as const;
+
+// Real por mês: [jan, fev, mar, abr]
+const mrrReal = monthlyRevenue.map((m) => m.jacqes) as [number, number, number, number];
+const zero4: [number, number, number, number] = [0, 0, 0, 0];
+
+type DreRow = {
+  label:  string;
+  indent: number;        // 0 = principal, 1 = sub-item
+  bold:   boolean;       // subtotais em negrito
+  type:   string;
+  real:   [number, number, number, number];
+  prev:   [number, number, number, number];
+};
+
+const dreRows: DreRow[] = [
+  { label: "(+) Receita Bruta de Serviços",     indent: 0, bold: false, type: "revenue",    real: mrrReal, prev: zero4 },
+  { label: "    (-) Deduções (ISS · PIS · COFINS)", indent: 1, bold: false, type: "deduction", real: zero4,   prev: zero4 },
+  { label: "(=) Receita Líquida",               indent: 0, bold: true,  type: "subtotal",   real: mrrReal, prev: zero4 },
+  { label: "    (-) Custo dos Serviços (COGS)", indent: 1, bold: false, type: "cost",       real: zero4,   prev: zero4 },
+  { label: "(=) Lucro Bruto",                   indent: 0, bold: true,  type: "subtotal",   real: zero4,   prev: zero4 },
+  { label: "    (-) Despesas com Pessoal",      indent: 1, bold: false, type: "cost",       real: zero4,   prev: zero4 },
+  { label: "    (-) Despesas Administrativas",  indent: 1, bold: false, type: "cost",       real: zero4,   prev: zero4 },
+  { label: "    (-) Vendas & Marketing",        indent: 1, bold: false, type: "cost",       real: zero4,   prev: zero4 },
+  { label: "(=) EBITDA",                        indent: 0, bold: true,  type: "ebitda",     real: zero4,   prev: zero4 },
+  { label: "    (-) Depreciação e Amortização", indent: 1, bold: false, type: "cost",       real: zero4,   prev: zero4 },
+  { label: "(=) EBIT",                          indent: 0, bold: true,  type: "subtotal",   real: zero4,   prev: zero4 },
+  { label: "    (+/-) Resultado Financeiro",    indent: 1, bold: false, type: "financial",  real: zero4,   prev: zero4 },
+  { label: "(=) LAIR",                          indent: 0, bold: true,  type: "subtotal",   real: zero4,   prev: zero4 },
+  { label: "    (-) IR / CSLL",                indent: 1, bold: false, type: "tax",        real: zero4,   prev: zero4 },
+  { label: "(=) Lucro Líquido",               indent: 0, bold: true,  type: "net",        real: zero4,   prev: zero4 },
 ];
 
-// ─── Budget vs Actual ────────────────────────────────────────────────────────
-const budgetRows = [
-  ...monthlyRevenue.map((m) => ({
-    month: m.month, receitaBudget: 0, receitaActual: m.jacqes,
-  })),
-  { month: "Mai/26", receitaBudget: 0, receitaActual: 0 },
-  { month: "Jun/26", receitaBudget: 0, receitaActual: 0 },
-];
-const ytdActual = budgetRows.filter((r) => r.receitaActual > 0).reduce((s, r) => s + r.receitaActual, 0);
+function ytd(vals: [number, number, number, number]) {
+  return vals.reduce((s, v) => s + v, 0);
+}
 
 // ─── Unit Econ ────────────────────────────────────────────────────────────────
 const mrrHistory = monthlyRevenue
@@ -207,86 +231,135 @@ export default function SgaPage() {
 
         {/* ══════════════════ DRE ══════════════════════════════════════════════ */}
         {tab === "dre" && (
-          <div className="space-y-6">
+          <div className="space-y-4">
+            {/* Aviso */}
             <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 flex items-start gap-2">
-              <AlertTriangle size={14} className="text-amber-600 shrink-0 mt-0.5" />
+              <AlertTriangle size={13} className="text-amber-600 shrink-0 mt-0.5" />
               <p className="text-[11px] text-amber-700">
-                DRE é snapshot accrual (Notion CRM). Lucro Bruto, EBITDA e Lucro Líquido aguardam confirmação contábil.
+                Receita Bruta confirmada via Notion CRM.
+                Deduções, custos e margens aguardam confirmação contábil — exibidos como R$0.
+                Budget 2026 ainda não definido — coluna <strong>Prev</strong> exibe &quot;—&quot;.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-              {/* DRE snapshot */}
-              <div className="card p-5">
-                <h2 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
-                  DRE — Jan–Abr 2026 (YTD)
+            {/* Tabela DRE matricial */}
+            <div className="card p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                  DRE Anual — 2026
                   <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 border border-amber-200">snapshot</span>
                 </h2>
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Linha</th>
-                      <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Valor YTD</th>
-                      <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">% Receita</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {dreData.map((row, i) => {
-                      const base = dreData[0]?.value ?? 0;
-                      const pctReceita = base > 0 ? ((row.value / base) * 100).toFixed(1) + "%" : "—";
-                      return (
-                        <tr key={i} className={`border-b border-gray-100 ${row.bold ? "bg-gray-50" : "hover:bg-gray-50/80"}`}>
-                          <td className={`py-2.5 px-3 text-xs ${row.bold ? "font-bold text-gray-700" : "text-gray-400"}`}>
-                            {row.label}
-                          </td>
-                          <td className={`py-2.5 px-3 text-right text-xs ${row.bold ? "font-bold text-gray-900" : "text-gray-900"}`}>
-                            {fmtR(row.value)}
-                          </td>
-                          <td className="py-2.5 px-3 text-right text-[11px] text-gray-400">{pctReceita}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                <span className="text-[10px] text-gray-400">Prev = Previsto · Real = Realizado</span>
               </div>
 
-              {/* Budget vs Actual */}
-              <div className="card p-5">
-                <h2 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
-                  Receita Realizada vs Budget
-                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 border border-amber-200">snapshot</span>
-                </h2>
-                <table className="w-full text-sm">
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs whitespace-nowrap border-collapse">
+                  {/* ── Cabeçalho nível 1: meses ── */}
                   <thead>
                     <tr className="border-b border-gray-200">
-                      <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Mês</th>
-                      <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Budget</th>
-                      <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Realizado</th>
+                      <th className="text-left py-2 px-3 text-[11px] font-semibold text-gray-500 min-w-[220px] bg-white sticky left-0 z-10">
+                        Linha DRE
+                      </th>
+                      {MONTHS.map((m) => (
+                        <th key={m} colSpan={2}
+                          className="text-center py-2 px-2 text-[10px] font-semibold text-gray-600 border-l border-gray-100 bg-gray-50">
+                          {m}
+                        </th>
+                      ))}
+                      <th colSpan={2}
+                        className="text-center py-2 px-2 text-[10px] font-bold text-brand-700 border-l border-gray-200 bg-brand-50">
+                        YTD Total
+                      </th>
+                    </tr>
+                    {/* ── Cabeçalho nível 2: Prev / Real ── */}
+                    <tr className="border-b-2 border-gray-200 bg-gray-50">
+                      <th className="sticky left-0 z-10 bg-gray-50" />
+                      {[...MONTHS.map(() => null), null].map((_, gi) => (
+                        [
+                          <th key={`p${gi}`}
+                            className={`py-1.5 px-3 text-[10px] font-semibold text-center border-l border-gray-100 text-gray-400 w-[88px]`}>
+                            Prev
+                          </th>,
+                          <th key={`r${gi}`}
+                            className={`py-1.5 px-3 text-[10px] font-semibold text-center text-gray-700 w-[88px] ${gi === MONTHS.length ? "border-l border-gray-200" : ""}`}>
+                            Real
+                          </th>,
+                        ]
+                      ))}
                     </tr>
                   </thead>
+
+                  {/* ── Corpo ── */}
                   <tbody>
-                    {budgetRows.map((row) => {
-                      const isFuture = row.receitaActual === 0;
+                    {dreRows.map((row, ri) => {
+                      const ytdReal = ytd(row.real);
+                      const ytdPrev = ytd(row.prev);
+                      const isSubtotal = row.bold;
+                      const isReceita  = row.type === "revenue";
+                      const isNet      = row.type === "net";
+
+                      const rowBg = isNet
+                        ? "bg-brand-50/60"
+                        : isSubtotal
+                          ? "bg-gray-50"
+                          : "";
+
+                      const labelClass = isSubtotal
+                        ? "font-bold text-gray-800"
+                        : row.indent === 1
+                          ? "text-gray-400"
+                          : "text-gray-600";
+
                       return (
-                        <tr key={row.month} className="border-b border-gray-100 hover:bg-gray-50/80">
-                          <td className="py-2 px-3 text-xs text-gray-500 font-medium">{row.month}</td>
-                          <td className="py-2 px-3 text-right text-xs text-gray-400">{fmtR(row.receitaBudget)}</td>
-                          <td className="py-2 px-3 text-right text-xs font-semibold">
-                            {isFuture
-                              ? <span className="text-gray-400">—</span>
-                              : <span className="text-gray-900">{fmtR(row.receitaActual)}</span>}
+                        <tr key={ri} className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${rowBg}`}>
+                          {/* Label — sticky */}
+                          <td className={`py-2.5 px-3 sticky left-0 z-10 ${rowBg || "bg-white"} ${labelClass}`}
+                            style={{ paddingLeft: row.indent === 1 ? 24 : 12 }}>
+                            {row.label}
+                          </td>
+
+                          {/* Células por mês */}
+                          {row.real.flatMap((realVal, mi) => {
+                            const prevVal = row.prev[mi];
+                            const borderL = "border-l border-gray-100";
+                            const realColor = realVal === 0
+                              ? "text-gray-300"
+                              : isReceita
+                                ? "text-emerald-700 font-semibold"
+                                : isSubtotal
+                                  ? "font-bold text-gray-900"
+                                  : "text-gray-700";
+                            return [
+                              <td key={`p${mi}`} className={`py-2.5 px-3 text-right ${borderL} text-gray-400`}>
+                                {prevVal === 0 ? "—" : fmtR(prevVal)}
+                              </td>,
+                              <td key={`r${mi}`} className={`py-2.5 px-3 text-right ${realColor}`}>
+                                {fmtR(realVal)}
+                              </td>,
+                            ];
+                          })}
+
+                          {/* YTD */}
+                          <td className="py-2.5 px-3 text-right border-l border-gray-200 text-gray-400">
+                            {ytdPrev === 0 ? "—" : fmtR(ytdPrev)}
+                          </td>
+                          <td className={`py-2.5 px-3 text-right ${
+                            ytdReal === 0
+                              ? "text-gray-300"
+                              : isNet
+                                ? "font-bold text-brand-700"
+                                : isSubtotal
+                                  ? "font-bold text-gray-900"
+                                  : isReceita
+                                    ? "font-semibold text-emerald-700"
+                                    : "text-gray-700"
+                          }`}>
+                            {fmtR(ytdReal)}
                           </td>
                         </tr>
                       );
                     })}
                   </tbody>
-                  <tfoot>
-                    <tr className="border-t border-gray-300">
-                      <td className="py-2.5 px-3 text-xs font-bold text-gray-700">YTD Real</td>
-                      <td className="py-2.5 px-3 text-right text-xs text-gray-400 font-bold">R$0</td>
-                      <td className="py-2.5 px-3 text-right text-xs font-bold text-brand-700">{fmtR(ytdActual)}</td>
-                    </tr>
-                  </tfoot>
                 </table>
               </div>
             </div>
