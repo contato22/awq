@@ -29,13 +29,13 @@ function rawToProject(r: RawNotionProject): Omit<CazaProject, "last_internal_upd
   return {
     id:                   notionProjectId(r.notion_page_id),
     titulo:               r.titulo,
-    cliente:              "",               // Notion projects DB has no client field
-    tipo:                 "",
+    cliente:              r.cliente,
+    tipo:                 r.tipo,
     status:               r.status,
     prioridade:           r.prioridade,
     diretor:              r.diretor,
     prazo:                r.prazo,
-    inicio:               r.prazo,          // use prazo as proxy if inicio absent
+    inicio:               r.inicio || r.prazo,
     valor:                r.valor,
     alimentacao:          r.alimentacao,
     gasolina:             r.gasolina,
