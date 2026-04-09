@@ -17,14 +17,15 @@ import {
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ImportSummary {
-  projects_imported: number;
-  projects_skipped:  number;
-  projects_conflicts:number;
-  clients_imported:  number;
-  clients_skipped:   number;
-  errors:            string[];
-  imported_at:       string;
-  dry_run:           boolean;
+  projects_imported:  number;
+  projects_skipped:   number;
+  projects_conflicts: string[];
+  clients_imported:   number;
+  clients_skipped:    number;
+  clients_conflicts:  string[];
+  errors:             string[];
+  imported_at:        string;
+  dry_run:            boolean;
 }
 
 type ImportState = "idle" | "running" | "done" | "error";
@@ -188,7 +189,7 @@ export default function CazaImportPage() {
               {[
                 { label: "Projetos importados", value: summary.projects_imported, color: "text-emerald-600", icon: CheckCircle2 },
                 { label: "Projetos ignorados",  value: summary.projects_skipped,  color: "text-gray-500",   icon: SkipForward  },
-                { label: "Conflitos",           value: summary.projects_conflicts, color: "text-amber-700", icon: AlertTriangle },
+                { label: "Conflitos",           value: summary.projects_conflicts.length + summary.clients_conflicts.length, color: "text-amber-700", icon: AlertTriangle },
                 { label: "Clientes importados", value: summary.clients_imported,  color: "text-emerald-600",icon: Database      },
                 { label: "Clientes ignorados",  value: summary.clients_skipped,   color: "text-gray-500",   icon: SkipForward  },
               ].map((s) => {

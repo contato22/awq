@@ -8,7 +8,7 @@
 //               process.env.NOTION_API_KEY (legacy fallback)
 // Never hardcoded. Never logged. Never exposed in responses.
 
-import { newProjectId, newClientId, type CazaProject, type CazaClient } from "@/lib/caza-db";
+import { type CazaProject, type CazaClient } from "@/lib/caza-db";
 
 const NOTION_VERSION = "2022-06-28";
 const MONTH_NAMES = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
@@ -196,12 +196,17 @@ export function mapNotionProject(page: Record<string, unknown>): RawNotionProjec
   };
 }
 
+/** Derives a stable CL-XXXXXXXX ID from a Notion page ID so re-imports upsert correctly. */
+function notionClientId(notionPageId: string): string {
+  return `CL-${notionPageId.replace(/-/g, "").slice(0, 8).toUpperCase()}`;
+}
+
 export function mapNotionClient(page: Record<string, unknown>): Omit<CazaClient, "last_internal_update"> {
   const p = page.properties as Props;
   const pageId = String(page.id ?? "");
 
   return {
-    id:                   newClientId(),
+    id:                   notionClientId(pageId),
     name:                 getTitle(p,    ["Nome","Name","Title","Cliente"]) ||
                           getRichText(p, ["Nome","Name"]),
     email:                getRichText(p, ["Email","E-mail","email"]),

@@ -14,15 +14,20 @@
 //   - Middleware enforces JWT auth
 
 import { NextRequest, NextResponse } from "next/server";
-import { initCazaDB, upsertProject, upsertClient, newProjectId, type CazaProject } from "@/lib/caza-db";
+import { initCazaDB, upsertProject, upsertClient, type CazaProject } from "@/lib/caza-db";
 import { fetchFromNotion, type RawNotionProject } from "@/lib/notion-import";
 import { sql } from "@/lib/db";
 
 export const runtime = "nodejs";
 
+/** Derives a stable CV-XXXXXXXX ID from a Notion page ID so re-imports upsert correctly. */
+function notionProjectId(notionPageId: string): string {
+  return `CV-${notionPageId.replace(/-/g, "").slice(0, 8).toUpperCase()}`;
+}
+
 function rawToProject(r: RawNotionProject): Omit<CazaProject, "last_internal_update"> {
   return {
-    id:                   newProjectId(),
+    id:                   notionProjectId(r.notion_page_id),
     titulo:               r.titulo,
     cliente:              "",               // Notion projects DB has no client field
     tipo:                 "",
