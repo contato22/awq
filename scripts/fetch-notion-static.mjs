@@ -583,11 +583,11 @@ async function main() {
     // ── 2. Try Notion (reference/import source) ─────────────────────────────────
     if (!API_KEY) {
         console.warn("[2/3] No NOTION_TOKEN / NOTION_API_KEY and no DATABASE_URL.");
-        console.warn("      Writing empty Caza JSONs. Configure secrets to populate data.");
-        write("caza-properties.json", []);
-        write("caza-financial.json",  []);
-        write("caza-clients.json",    []);
-        write("caza-stats.json",      EMPTY_STATS);
+        console.warn("      Keeping committed seed data. Configure secrets to refresh.");
+        write("caza-properties.json", [], { skipIfExists: true });
+        write("caza-financial.json",  [], { skipIfExists: true });
+        write("caza-clients.json",    [], { skipIfExists: true });
+        write("caza-stats.json",      EMPTY_STATS, { skipIfExists: true });
         write("venture-sales.json",   EMPTY_VENTURE, { skipIfExists: true });
         write("jacqes-kpis.json",     JACQES_KPIS);
         return;
@@ -605,11 +605,11 @@ async function main() {
             console.log(`  OK caza-properties: ${cazaProjects.length} records`);
         } catch (err) {
             console.error(`  ERR caza-properties: ${err.message}`);
-            write("caza-properties.json", []);
+            write("caza-properties.json", [], { skipIfExists: true });
         }
     } else {
-        console.warn("  NOTION_DATABASE_ID_CAZA_PROPERTIES not set — writing empty");
-        write("caza-properties.json", []);
+        console.warn("  NOTION_DATABASE_ID_CAZA_PROPERTIES not set — skipping");
+        write("caza-properties.json", [], { skipIfExists: true });
     }
 
     // Financial — isolated catch
@@ -631,11 +631,11 @@ async function main() {
             }
         } catch (err) {
             console.error(`  ERR caza-financial: ${err.message}`);
-            write("caza-financial.json", []);
+            write("caza-financial.json", [], { skipIfExists: true });
         }
     } else {
-        console.warn("  NOTION_DATABASE_ID_CAZA_FINANCIAL not set — writing empty");
-        write("caza-financial.json", []);
+        console.warn("  NOTION_DATABASE_ID_CAZA_FINANCIAL not set — skipping");
+        write("caza-financial.json", [], { skipIfExists: true });
     }
 
     // Clients — isolated catch
@@ -647,16 +647,21 @@ async function main() {
             console.log(`  OK caza-clients: ${clients.length} records`);
         } catch (err) {
             console.error(`  ERR caza-clients: ${err.message}`);
-            write("caza-clients.json", []);
+            write("caza-clients.json", [], { skipIfExists: true });
         }
     } else {
-        console.warn("  NOTION_DATABASE_ID_CAZA_CLIENTS not set — writing empty");
-        write("caza-clients.json", []);
+        console.warn("  NOTION_DATABASE_ID_CAZA_CLIENTS not set — skipping");
+        write("caza-clients.json", [], { skipIfExists: true });
     }
 
-    // Stats — computed from real project data (not hardcoded empty)
-    write("caza-stats.json", buildStatsFromProjects(cazaProjects));
-    console.log(`  OK caza-stats: source=${cazaProjects.length > 0 ? "notion" : "empty"}`);
+    // Stats — computed from real project data; keep committed seed if fetch produced nothing
+    if (cazaProjects.length > 0) {
+        write("caza-stats.json", buildStatsFromProjects(cazaProjects));
+        console.log(`  OK caza-stats: source=notion (${cazaProjects.length} projects)`);
+    } else {
+        write("caza-stats.json", EMPTY_STATS, { skipIfExists: true });
+        console.log(`  SKIP caza-stats: no projects fetched, keeping committed data`);
+    }
 
     // Venture — isolated catch
     if (DB_VENTURE) {

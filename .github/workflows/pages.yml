@@ -42,6 +42,26 @@ jobs:
           NOTION_DATABASE_ID_CAZA_CLIENTS: ${{ secrets.NOTION_DATABASE_ID_CAZA_CLIENTS }}
           NOTION_DATABASE_ID_VENTURE_SALES: ${{ secrets.NOTION_DATABASE_ID_VENTURE_SALES }}
 
+      - name: Verify data (diagnose empty vs real)
+        run: |
+          echo "=== Data pipeline status ==="
+          node -e "
+            const fs = require('fs');
+            const props = JSON.parse(fs.readFileSync('public/data/caza-properties.json','utf8'));
+            const fin   = JSON.parse(fs.readFileSync('public/data/caza-financial.json','utf8'));
+            const cli   = JSON.parse(fs.readFileSync('public/data/caza-clients.json','utf8'));
+            const stats = JSON.parse(fs.readFileSync('public/data/caza-stats.json','utf8'));
+            console.log('properties:', props.length, 'records');
+            console.log('financial:', fin.length, 'records');
+            console.log('clients:', cli.length, 'records');
+            console.log('stats source:', stats.source);
+            if (props.length === 0 && fin.length === 0 && cli.length === 0) {
+              console.error('WARNING: all Caza data files are empty — check NOTION_TOKEN or DATABASE_URL secret');
+            } else {
+              console.log('OK: real data fetched successfully');
+            }
+          "
+
       - name: Build
         run: npm run build
         env:

@@ -8,6 +8,12 @@ import { sql } from "@/lib/db";
 
 export const runtime = "nodejs";
 
+// Required for `output: export` — dummy entry satisfies Next.js static check.
+// These routes are server-only; the placeholder path is never used in production.
+export async function generateStaticParams() {
+  return [{ id: "_" }];
+}
+
 export async function GET(
   _req: NextRequest,
   { params }: { params: { id: string } }
