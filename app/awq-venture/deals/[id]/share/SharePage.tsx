@@ -16,7 +16,7 @@ import {
   DollarSign, Calendar, ArrowRight, Target,
   CheckCheck, AlertTriangle, RotateCcw, Zap,
   Building2, Layers, BarChart3, Lock, ListChecks,
-  Users, Handshake, Star,
+  Users, Handshake, Star, FileDown, MapPin,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -598,6 +598,102 @@ function BlockContent({ blockIdx, blocks }: { blockIdx: number; blocks: NonNulla
   return null;
 }
 
+// ─── Stages Tracker ──────────────────────────────────────────────────────────
+
+function StagesTracker({ blocks, dealStage }: {
+  blocks: NonNullable<ReturnType<typeof getDealById>>["proposal10Blocks"];
+  dealStage: string;
+}) {
+  if (!blocks?.b9) return null;
+  const marcos = blocks.b9.marcos;
+
+  // Map deal stage to index to show progress
+  const stageOrder = ["Triagem","Prospecção","Due Diligence","Term Sheet","Negociação","Fechado"];
+  const currentIdx = stageOrder.indexOf(dealStage);
+
+  // Color each marco: completed = emerald, current = amber, upcoming = gray
+  const marcoStatus = (i: number) => {
+    if (i < currentIdx) return "done";
+    if (i === currentIdx) return "current";
+    return "upcoming";
+  };
+
+  const statusStyle = {
+    done:     { ring: "border-emerald-400 bg-emerald-50",  dot: "bg-emerald-500",  num: "bg-emerald-500 text-white",  label: "text-emerald-700" },
+    current:  { ring: "border-amber-400 bg-amber-50",     dot: "bg-amber-400",    num: "bg-amber-500 text-white",    label: "text-amber-700"   },
+    upcoming: { ring: "border-gray-200 bg-white",          dot: "bg-gray-300",     num: "bg-gray-100 text-gray-500",  label: "text-gray-500"    },
+  };
+
+  return (
+    <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden print:block">
+      <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <MapPin size={14} className="text-amber-600" />
+          <span className="text-sm font-bold text-gray-900">Acompanhamento de Etapas</span>
+        </div>
+        <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-1 rounded-full uppercase tracking-wide">
+          {dealStage}
+        </span>
+      </div>
+
+      {/* Progress bar */}
+      <div className="h-1.5 bg-gray-100">
+        <div
+          className="h-full bg-gradient-to-r from-emerald-400 to-amber-400 transition-all duration-700"
+          style={{ width: `${marcos.length === 0 ? 0 : Math.max(5, (currentIdx / (marcos.length - 1)) * 100)}%` }}
+        />
+      </div>
+
+      <div className="px-5 py-4 space-y-3">
+        {marcos.map((m, i) => {
+          const st = statusStyle[marcoStatus(i)];
+          const isDone    = marcoStatus(i) === "done";
+          const isCurrent = marcoStatus(i) === "current";
+          return (
+            <div key={m.numero} className={`flex items-start gap-3 p-3 rounded-xl border ${st.ring} transition-all`}>
+              <div className={`w-7 h-7 rounded-full ${st.num} flex items-center justify-center text-[11px] font-bold shrink-0`}>
+                {isDone ? <CheckCircle2 size={14} className="text-white" /> : m.numero}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className={`text-sm font-bold ${isCurrent ? "text-gray-900" : isDone ? "text-gray-600" : "text-gray-400"}`}>
+                    {m.label}
+                  </span>
+                  {isCurrent && (
+                    <span className="text-[9px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-full uppercase tracking-wide">
+                      Etapa atual
+                    </span>
+                  )}
+                </div>
+                <p className={`text-xs mt-0.5 ${isDone ? "text-gray-400" : isCurrent ? "text-gray-600" : "text-gray-400"}`}>
+                  {m.descricao}
+                </p>
+                <div className="flex flex-wrap gap-3 mt-1">
+                  {m.prazo && (
+                    <span className="flex items-center gap-1 text-[10px] text-amber-600">
+                      <Calendar size={9} /> {m.prazo}
+                    </span>
+                  )}
+                  {m.dependencia && (
+                    <span className="text-[10px] text-gray-400">Dep: {m.dependencia}</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="px-5 py-3 border-t border-gray-100 bg-gray-50">
+        <div className="flex flex-wrap gap-4 text-[11px] text-gray-500">
+          <span><strong className="text-gray-700">Prazo total:</strong> {blocks.b9.prazoTotal}</span>
+          <span><strong className="text-gray-700">Revisão:</strong> {blocks.b9.janelaRevisao}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Página principal ─────────────────────────────────────────────────────────
 
 export default function DealSharePage({ params }: { params: { id: string } }) {
@@ -637,6 +733,10 @@ export default function DealSharePage({ params }: { params: { id: string } }) {
   const hasCounter  = sections.some((s) => s.status === "rejected" || s.status === "adjusted");
   const allReviewed = reviewed === sections.length;
   const allApproved = approvedAll === sections.length;
+
+  function handlePrint() {
+    window.print();
+  }
 
   function handleSubmit() {
     if (!respondedBy.trim() || !allReviewed) return;
@@ -702,6 +802,21 @@ export default function DealSharePage({ params }: { params: { id: string } }) {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* ── Print CSS ─────────────────────────────────────────────────────── */}
+      <style>{`
+        @media print {
+          .no-print { display: none !important; }
+          body { background: white !important; }
+          .min-h-screen { min-height: unset !important; background: white !important; }
+          .sticky { position: static !important; }
+          .shadow-sm { box-shadow: none !important; }
+          .rounded-2xl, .rounded-3xl, .rounded-xl { border-radius: 8px !important; }
+          .max-w-3xl { max-width: 100% !important; padding: 0 !important; }
+          .space-y-6 > * + * { margin-top: 16px !important; }
+          @page { margin: 1.5cm; size: A4; }
+        }
+      `}</style>
+
       {/* ── Sticky Header ─────────────────────────────────────────────────── */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-20 shadow-sm">
         <div className="max-w-3xl mx-auto px-6 py-3 flex items-center justify-between">
@@ -724,8 +839,15 @@ export default function DealSharePage({ params }: { params: { id: string } }) {
               <span className={reviewed === sections.length ? "text-emerald-600" : "text-amber-600"}>{reviewed}</span>
               <span className="text-gray-400">/</span>
               <span>{sections.length}</span>
-              <span className="text-gray-400 font-normal">blocos revisados</span>
+              <span className="text-gray-400 font-normal hidden sm:inline">blocos revisados</span>
             </div>
+            <button
+              onClick={handlePrint}
+              className="no-print flex items-center gap-1.5 text-[11px] font-semibold text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg transition-colors"
+              title="Exportar proposta em PDF"
+            >
+              <FileDown size={13} /> PDF
+            </button>
           </div>
         </div>
 
@@ -807,6 +929,11 @@ export default function DealSharePage({ params }: { params: { id: string } }) {
             Avalie cada bloco individualmente e envie sua resposta ao final.
           </span>
         </div>
+
+        {/* ── Acompanhamento de Etapas ─────────────────────────────────────── */}
+        {blocks && (
+          <StagesTracker blocks={blocks} dealStage={deal.stage} />
+        )}
 
         {/* ── 10 Blocos Negociais ───────────────────────────────────────────── */}
         {!blocks ? (
