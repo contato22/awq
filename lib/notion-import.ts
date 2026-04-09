@@ -139,14 +139,39 @@ function getPerson(props: Props, keys: string[]): string {
   return "";
 }
 
+function getEmail(props: Props, keys: string[]): string {
+  for (const key of keys) {
+    const p = props[key];
+    if (!p) continue;
+    if (p.type === "email")     return String(p.email ?? "");
+    if (p.type === "rich_text") return (p.rich_text as { plain_text: string }[])[0]?.plain_text ?? "";
+  }
+  return "";
+}
+
+function getPhone(props: Props, keys: string[]): string {
+  for (const key of keys) {
+    const p = props[key];
+    if (!p) continue;
+    if (p.type === "phone_number") return String(p.phone_number ?? "");
+    if (p.type === "rich_text")    return (p.rich_text as { plain_text: string }[])[0]?.plain_text ?? "";
+  }
+  return "";
+}
+
 // ─── Mappers ──────────────────────────────────────────────────────────────────
 
+// Actual Caza Projetos Notion schema:
+// Título (title), Cliente (rich_text), Diretor (rich_text), Início (date),
+// Prazo (date), Status (select), Tipo (select), Valor (number)
 export interface RawNotionProject {
   id: string;
   titulo: string;
   prioridade: string;
   diretor: string;
+  cliente: string;
   prazo: string;
+  inicio: string;
   recebimento: string;
   recebido: boolean;
   valor: number;
@@ -155,6 +180,7 @@ export interface RawNotionProject {
   despesas: number;
   lucro: number;
   status: string;
+  tipo: string;
   notion_page_id: string;
 }
 
@@ -162,36 +188,35 @@ export function mapNotionProject(page: Record<string, unknown>): RawNotionProjec
   const p = page.properties as Props;
   const pageId = String(page.id ?? "");
 
-  const recebido = getCheckbox(p, ["Recebido","Pago","Received","Concluido"]);
-  const orcamento = getNumber(p, ["Orcamento","Orcamento","Valor","Budget","Price","orc","valor","budget"]);
-  const alimentacao = getNumber(p, ["Alimentacao","Alimentacao","Aliment.","Alimentacoes","aliment"]);
-  const gasolina = getNumber(p, ["Gasolina","Combustivel","Gas","Gasolina ","gasolin","combustiv"]);
-  const despesas = alimentacao + gasolina;
-  const lucro = orcamento - despesas;
-
-  const diretor =
-    getPerson(p, ["Responsavel","Assigned","Resp."]) ||
-    getRichText(p, ["Responsavel","Diretor","Director"]);
-
-  const status = recebido ? "Entregue" : (
-    getSelect(p, ["Status","Stage"]) || "Em Produção"
-  );
+  const titulo = getTitle(p, ["Título","Titulo","Title","Nome do projeto","Nome"]) ||
+                 getRichText(p, ["Título","Titulo","Nome do projeto","Nome"]);
+  const valor  = getNumber(p, ["Valor","Orcamento","Budget","Value"]);
+  const status = getSelect(p, ["Status","Stage"]) || "";
+  const tipo   = getSelect(p, ["Tipo","Type","Categoria"]) || "";
+  const diretor = getPerson(p, ["Diretor","Responsavel","Assigned"]) ||
+                  getRichText(p, ["Diretor","Director","Responsavel"]);
+  const prazo  = getDate(p, ["Prazo","Data","Due Date","COMPETENCIA","Competencia"]);
+  const inicio = getDate(p, ["Início","Inicio","Start","Data Início","Data Inicio"]);
+  // Projetos DB has no despesas/alimentacao/gasolina — lucro = valor
+  const recebido = /entregue|conclu|pago|done|finished/i.test(status);
 
   return {
-    id:            pageId,
-    titulo:        getTitle(p,     ["Nome do projeto","Nome","Title","Titulo","Projeto"]) ||
-                   getRichText(p,  ["Nome do projeto","Nome","Titulo","Projeto"]),
-    prioridade:    getSelect(p,    ["Prioridade","Priority"]),
+    id:             pageId,
+    titulo,
+    prioridade:     getSelect(p, ["Prioridade","Priority"]),
     diretor,
-    prazo:         getDate(p,      ["COMPETENCIA","Competencia","Competencia","Prazo","Data","Due Date"]),
-    recebimento:   getDate(p,      ["Recebimento","Data Recebimento","Payment Date"]),
+    cliente:        getRichText(p, ["Cliente","Client"]),
+    prazo,
+    inicio,
+    recebimento:    "",
     recebido,
-    valor:         orcamento,
-    alimentacao,
-    gasolina,
-    despesas,
-    lucro,
-    status,
+    valor,
+    alimentacao:    0,
+    gasolina:       0,
+    despesas:       0,
+    lucro:          valor,
+    status:         status || "Em Produção",
+    tipo,
     notion_page_id: pageId,
   };
 }
@@ -201,6 +226,9 @@ function notionClientId(notionPageId: string): string {
   return `CL-${notionPageId.replace(/-/g, "").slice(0, 8).toUpperCase()}`;
 }
 
+// Actual Caza Clientes Notion schema:
+// Nome (title), Email (email), Segmento (rich_text), Status (select),
+// Desde (date), Tipo (select), Telefone (phone_number), Budget Anual (number)
 export function mapNotionClient(page: Record<string, unknown>): Omit<CazaClient, "last_internal_update"> {
   const p = page.properties as Props;
   const pageId = String(page.id ?? "");
@@ -209,14 +237,14 @@ export function mapNotionClient(page: Record<string, unknown>): Omit<CazaClient,
     id:                   notionClientId(pageId),
     name:                 getTitle(p,    ["Nome","Name","Title","Cliente"]) ||
                           getRichText(p, ["Nome","Name"]),
-    email:                getRichText(p, ["Email","E-mail","email"]),
-    phone:                getRichText(p, ["Telefone","Phone","Celular","Whatsapp"]),
+    email:                getEmail(p,    ["Email","E-mail"]),
+    phone:                getPhone(p,    ["Telefone","Phone","Celular","Whatsapp"]),
     type:                 getSelect(p,   ["Tipo","Type","Perfil"]) || "Marca",
-    budget_anual:         getNumber(p,   ["Budget Anual","Budget","Orcamento","Orcamento","Valor","budget","orcamento"]),
+    budget_anual:         getNumber(p,   ["Budget Anual","Budget","Orcamento","Valor"]),
     status:               getSelect(p,   ["Status"]) || "Ativo",
-    segmento:             getRichText(p, ["Segmento","Segment","Setor","Cidade"]) ||
+    segmento:             getRichText(p, ["Segmento","Segment","Setor"]) ||
                           getSelect(p,   ["Segmento","Segment","Setor"]),
-    since:                getDate(p,     ["Data","Desde","Since","Cadastro"]),
+    since:                getDate(p,     ["Desde","Data","Since","Cadastro"]),
     imported_from_notion: true,
     notion_page_id:       pageId,
     imported_at:          new Date().toISOString(),
