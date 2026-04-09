@@ -129,9 +129,9 @@ export const buData: BuData[] = [
     budgetRevenue:    0,
     hrefOverview:     "/jacqes",
     hrefFinancial:    "/jacqes/fpa",
-    hrefCustomers:    "/jacqes/customers",
-    hrefUnitEcon:     "/jacqes/unit-economics",
-    hrefBudget:       "/jacqes/budget",
+    hrefCustomers:    "/jacqes/fpa",
+    hrefUnitEcon:     "/jacqes/fpa",
+    hrefBudget:       "/jacqes/fpa",
   },
   {
     id:               "caza",

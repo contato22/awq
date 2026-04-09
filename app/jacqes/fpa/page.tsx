@@ -7,6 +7,7 @@ import {
   AlertTriangle, Info, Activity,
 } from "lucide-react";
 import { buData, monthlyRevenue, JACQES_MRR, JACQES_MRR_Q1 } from "@/lib/awq-group-data";
+import { JACQES_CLIENTS } from "@/lib/jacqes-customers";
 
 // ─── Source of truth ──────────────────────────────────────────────────────────
 const _jacqes = buData.find((b) => b.id === "jacqes")!;
@@ -21,13 +22,8 @@ const SEL_CLS =
   "border border-gray-200 rounded-lg px-2 py-1.5 text-[11px] text-gray-700 bg-white " +
   "focus:outline-none focus:ring-1 focus:ring-brand-400 cursor-pointer";
 
-// ─── Clientes (Notion CRM — Abr/2026) ────────────────────────────────────────
-const clientes = [
-  { nome: "CEM",             fee: 3_200, status: "Pago",     alloc: "expandir" },
-  { nome: "CAROL BERTOLINI", fee: 1_790, status: "Pendente", alloc: "observar" },
-  { nome: "ANDRÉ VIEIRA",    fee: 1_500, status: "Pendente", alloc: "observar" },
-  { nome: "TATI SIMÕES",     fee: 1_790, status: "Pago",     alloc: "manter"   },
-];
+// ─── Clientes — fonte única: lib/jacqes-customers.ts ─────────────────────────
+const clientes = JACQES_CLIENTS;
 const totalPago = clientes.filter((c) => c.status === "Pago").reduce((s, c) => s + c.fee, 0);
 const totalPend = clientes.filter((c) => c.status === "Pendente").reduce((s, c) => s + c.fee, 0);
 
