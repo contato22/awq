@@ -72,15 +72,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     dryRun = Boolean(body.dryRun);
   } catch { /* body optional */ }
 
-  const projectsDbId = process.env.NOTION_DATABASE_ID_CAZA_PROPERTIES;
-  const clientsDbId  = process.env.NOTION_DATABASE_ID_CAZA_CLIENTS;
-
-  if (!projectsDbId && !clientsDbId) {
-    return NextResponse.json(
-      { error: "Nenhum database ID configurado (NOTION_DATABASE_ID_CAZA_PROPERTIES / NOTION_DATABASE_ID_CAZA_CLIENTS)." },
-      { status: 503 }
-    );
-  }
+  // Hardcoded fallback IDs — real Caza Vision databases (same as fetch-notion-static.mjs)
+  const projectsDbId = process.env.NOTION_DATABASE_ID_CAZA_PROPERTIES ?? "308e2d13-dfa9-433e-a0f6-8439b5181845";
+  const clientsDbId  = process.env.NOTION_DATABASE_ID_CAZA_CLIENTS    ?? "ca1ba0fe-3d47-4356-8643-23a223a4e710";
 
   // ── Fetch from Notion ──────────────────────────────────────────────────────
   const { projects: rawProjects, clients: rawClients, errors } = await fetchFromNotion({

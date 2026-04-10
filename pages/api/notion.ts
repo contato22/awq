@@ -173,7 +173,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const database = (req.query.database as string) ?? "financial";
 
-  const apiKey = process.env.NOTION_API_KEY;
+  const apiKey = process.env.NOTION_TOKEN ?? process.env.NOTION_API_KEY;
   if (!apiKey) {
     return res.status(200).json({ source: "mock", data: null, error: "NOTION_API_KEY não configurada" });
   }
