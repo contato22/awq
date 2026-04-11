@@ -409,9 +409,14 @@ async function exportFromNeon() {
         const receitaYtd        = projetoRows
             .filter(p => p.prazo.startsWith(String(currentYear)))
             .reduce((s, p) => s + p.valor, 0);
+        const receitaTotal      = projetoRows.reduce((s, p) => s + p.valor, 0);
         const ticketMedio       = projetoRows.length > 0
-            ? Math.round(projetoRows.reduce((s, p) => s + p.valor, 0) / projetoRows.length)
+            ? Math.round(receitaTotal / projetoRows.length)
             : 0;
+        const taxaEntrega       = projetoRows.length > 0
+            ? parseFloat(((deliveredProjects / projetoRows.length) * 100).toFixed(1))
+            : 0;
+        const clientesAtivos    = clientRows.filter(c => c.status === "Ativo").length;
         const stageMap = new Map();
         for (const p of projetoRows) {
             const stage = p.status || "Em Produção";
@@ -427,10 +432,14 @@ async function exportFromNeon() {
         }
         const statsPayload = {
             kpis: [
-                { id: "projetos",  label: "Projetos Ativos",    value: activeProjects,    unit: "number",   icon: "Building2",     color: "emerald" },
-                { id: "receita",   label: "Receita YTD",         value: receitaYtd,        unit: "currency", icon: "DollarSign",    color: "brand"   },
-                { id: "entregues", label: "Projetos Entregues",  value: deliveredProjects, unit: "number",   icon: "HandshakeIcon", color: "violet"  },
-                { id: "ticket",    label: "Ticket Médio",        value: ticketMedio,       unit: "currency", icon: "TrendingUp",    color: "amber"   },
+                { id: "projetos",        label: "Projetos Ativos",    value: activeProjects,    unit: "number",   icon: "Building2",     color: "emerald" },
+                { id: "receita",         label: "Receita YTD",         value: receitaYtd,        unit: "currency", icon: "DollarSign",    color: "brand"   },
+                { id: "entregues",       label: "Projetos Entregues",  value: deliveredProjects, unit: "number",   icon: "HandshakeIcon", color: "violet"  },
+                { id: "ticket",          label: "Ticket Médio",        value: ticketMedio,       unit: "currency", icon: "TrendingUp",    color: "amber"   },
+                { id: "total_projetos",  label: "Total de Projetos",   value: projetoRows.length, unit: "number",  icon: "Film",          color: "brand"   },
+                { id: "receita_total",   label: "Receita Total",       value: receitaTotal,      unit: "currency", icon: "DollarSign",    color: "emerald" },
+                { id: "taxa_entrega",    label: "Taxa de Entrega",     value: taxaEntrega,       unit: "percent",  icon: "CheckCircle",   color: "violet"  },
+                { id: "clientes_ativos", label: "Clientes Ativos",     value: clientesAtivos,    unit: "number",   icon: "Users",         color: "amber"   },
             ],
             revenueData: financialRows.slice(-12).map(r => ({
                 month: r.month, receita: r.receita, expenses: r.expenses, profit: r.profit, orcamento: r.orcamento,
@@ -480,7 +489,7 @@ const JACQES_KPIS = {
 
 // --- Stats builder (used for both Notion path and as fallback) ---
 
-function buildStatsFromProjects(projects) {
+function buildStatsFromProjects(projects, clients = []) {
     const MN = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
     const currentYear = new Date().getFullYear();
 
@@ -489,9 +498,14 @@ function buildStatsFromProjects(projects) {
     const receitaYtd        = projects
         .filter(p => p.prazo && p.prazo.startsWith(String(currentYear)))
         .reduce((s, p) => s + (p.valor ?? 0), 0);
+    const receitaTotal      = projects.reduce((s, p) => s + (p.valor ?? 0), 0);
     const ticketMedio       = projects.length > 0
-        ? Math.round(projects.reduce((s, p) => s + (p.valor ?? 0), 0) / projects.length)
+        ? Math.round(receitaTotal / projects.length)
         : 0;
+    const taxaEntrega       = projects.length > 0
+        ? parseFloat(((deliveredProjects / projects.length) * 100).toFixed(1))
+        : 0;
+    const clientesAtivos    = clients.filter(c => c.status === "Ativo").length;
 
     const stageMap = new Map();
     const typeMap  = new Map();
@@ -529,10 +543,14 @@ function buildStatsFromProjects(projects) {
 
     return {
         kpis: [
-            { id: "projetos",  label: "Projetos Ativos",   value: activeProjects,    unit: "number",   icon: "Building2",     color: "emerald" },
-            { id: "receita",   label: "Receita YTD",        value: receitaYtd,        unit: "currency", icon: "DollarSign",    color: "brand"   },
-            { id: "entregues", label: "Projetos Entregues", value: deliveredProjects, unit: "number",   icon: "HandshakeIcon", color: "violet"  },
-            { id: "ticket",    label: "Ticket Médio",       value: ticketMedio,       unit: "currency", icon: "TrendingUp",    color: "amber"   },
+            { id: "projetos",        label: "Projetos Ativos",    value: activeProjects,    unit: "number",   icon: "Building2",     color: "emerald" },
+            { id: "receita",         label: "Receita YTD",         value: receitaYtd,        unit: "currency", icon: "DollarSign",    color: "brand"   },
+            { id: "entregues",       label: "Projetos Entregues",  value: deliveredProjects, unit: "number",   icon: "HandshakeIcon", color: "violet"  },
+            { id: "ticket",          label: "Ticket Médio",        value: ticketMedio,       unit: "currency", icon: "TrendingUp",    color: "amber"   },
+            { id: "total_projetos",  label: "Total de Projetos",   value: projects.length,   unit: "number",   icon: "Film",          color: "brand"   },
+            { id: "receita_total",   label: "Receita Total",       value: receitaTotal,      unit: "currency", icon: "DollarSign",    color: "emerald" },
+            { id: "taxa_entrega",    label: "Taxa de Entrega",     value: taxaEntrega,       unit: "percent",  icon: "CheckCircle",   color: "violet"  },
+            { id: "clientes_ativos", label: "Clientes Ativos",     value: clientesAtivos,    unit: "number",   icon: "Users",         color: "amber"   },
         ],
         revenueData,
         pipeline: Array.from(stageMap.entries()).map(([stage, count]) => ({ stage, count })),
@@ -595,6 +613,7 @@ async function main() {
 
     console.log("[2/3] Fetching from Notion (NOTION_TOKEN / NOTION_API_KEY)...");
     let cazaProjects = [];
+    let cazaClients  = [];
 
     // Properties / Projects — isolated catch: one DB failure doesn't kill others
     if (DB_PROPS) {
@@ -641,10 +660,10 @@ async function main() {
     // Clients — isolated catch
     if (DB_CLI) {
         try {
-            const pages   = await queryDatabase(DB_CLI);
-            const clients = pages.map(mapClient);
-            write("caza-clients.json", clients);
-            console.log(`  OK caza-clients: ${clients.length} records`);
+            const pages = await queryDatabase(DB_CLI);
+            cazaClients = pages.map(mapClient);
+            write("caza-clients.json", cazaClients);
+            console.log(`  OK caza-clients: ${cazaClients.length} records`);
         } catch (err) {
             console.error(`  ERR caza-clients: ${err.message}`);
             write("caza-clients.json", [], { skipIfExists: true });
@@ -656,7 +675,7 @@ async function main() {
 
     // Stats — computed from real project data; keep committed seed if fetch produced nothing
     if (cazaProjects.length > 0) {
-        write("caza-stats.json", buildStatsFromProjects(cazaProjects));
+        write("caza-stats.json", buildStatsFromProjects(cazaProjects, cazaClients));
         console.log(`  OK caza-stats: source=notion (${cazaProjects.length} projects)`);
     } else {
         write("caza-stats.json", EMPTY_STATS, { skipIfExists: true });
