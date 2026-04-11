@@ -41,20 +41,22 @@ interface StatsPayload {
 }
 
 async function loadStats(): Promise<StatsPayload | null> {
-  // Try internal Neon DB first; fall back to static snapshot if empty or unavailable.
-  try {
-    const res = await fetch("/api/caza/stats");
-    if (res.ok) {
-      const data = await res.json() as StatsPayload;
-      if (data?.kpis?.length > 0) return data;
-    }
-  } catch { /* API unavailable (e.g. GitHub Pages) — fall through */ }
+  // Vercel/SSR: API routes available at root (no basePath). GitHub Pages: skip API.
+  if (!IS_STATIC) {
+    try {
+      const res = await fetch("/api/caza/stats");
+      if (res.ok) {
+        const data = await res.json() as StatsPayload;
+        if (data?.kpis?.length > 0) return data;
+      }
+    } catch { /* API unavailable — fall through */ }
+  }
 
+  // GitHub Pages (IS_STATIC=true) or API returned empty: load static snapshot.
   try {
     const res = await fetch(`${BASE_PATH}/data/caza-stats.json`);
     if (res.ok) {
       const data = await res.json() as StatsPayload;
-      // Mark source as static so the badge reflects correctly
       return { ...data, source: data.source ?? "static" };
     }
   } catch { /* ignore */ }

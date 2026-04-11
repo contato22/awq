@@ -63,15 +63,17 @@ export default function ClientesPage() {
 
   useEffect(() => {
     async function load() {
-      try {
-        const res = await fetch("/api/caza/clients");
-        if (res.ok) {
-          const data = await res.json() as ClienteRow[];
-          if (Array.isArray(data) && data.length > 0) {
-            setClients(data); setSource("internal"); return;
+      if (!IS_STATIC) {
+        try {
+          const res = await fetch("/api/caza/clients");
+          if (res.ok) {
+            const data = await res.json() as ClienteRow[];
+            if (Array.isArray(data) && data.length > 0) {
+              setClients(data); setSource("internal"); return;
+            }
           }
-        }
-      } catch { /* API unavailable — fall through */ }
+        } catch { /* API unavailable — fall through */ }
+      }
 
       try {
         const res = await fetch(`${BASE_PATH}/data/caza-clients.json`);

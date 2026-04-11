@@ -56,15 +56,17 @@ export default function ProjetosPage() {
 
   useEffect(() => {
     async function load() {
-      try {
-        const res = await fetch("/api/caza/projects");
-        if (res.ok) {
-          const data = await res.json() as ProjetoRow[];
-          if (Array.isArray(data) && data.length > 0) {
-            setRows(data); setSource("internal"); return;
+      if (!IS_STATIC) {
+        try {
+          const res = await fetch("/api/caza/projects");
+          if (res.ok) {
+            const data = await res.json() as ProjetoRow[];
+            if (Array.isArray(data) && data.length > 0) {
+              setRows(data); setSource("internal"); return;
+            }
           }
-        }
-      } catch { /* API unavailable — fall through */ }
+        } catch { /* API unavailable — fall through */ }
+      }
 
       try {
         const res = await fetch(`${BASE_PATH}/data/caza-properties.json`);
