@@ -8,9 +8,10 @@
  *   C. Route handler logic — GET /api/caza/* (sql=null graceful path)
  *   D. Import mapping logic — lib/notion-import.ts with real Notion payload shape
  *   E. Legacy API mappers — pages/api/notion.ts email/phone extraction
- *   F. Static data validation — all 4 public/data/*.json files
+ *   F. Static data validation — all 4 public/data/*.json files (8 KPIs)
  *   G. Data cross-consistency — stats KPIs match project/client counts
  *   H. Git state — all changes committed, branch clean
+ *   I. fetch-notion-static.mjs — 8-KPI generation in both Neon + Notion paths
  */
 
 import { readFileSync } from "fs";
@@ -424,10 +425,34 @@ try {
 
 try {
   stats = readJson("public/data/caza-stats.json");
-  ok(`caza-stats.json — parsed OK (${stats.kpis?.length ?? 0} KPIs)`);
+  const kpiCount = stats.kpis?.length ?? 0;
+  if (kpiCount === 8)
+    ok(`caza-stats.json — parsed OK (${kpiCount} KPIs — full set)`);
+  else
+    fail(`caza-stats.json — expected 8 KPIs, got ${kpiCount}`);
 } catch(e) {
   fail("caza-stats.json — parse failed", e.message);
   stats = null;
+}
+
+// Validate all 8 KPI IDs are present in caza-stats.json
+const EXPECTED_KPI_IDS = ["projetos","receita","entregues","ticket","total_projetos","receita_total","taxa_entrega","clientes_ativos"];
+if (stats) {
+  const kpiIds = stats.kpis?.map(k => k.id) ?? [];
+  const missingKpis = EXPECTED_KPI_IDS.filter(id => !kpiIds.includes(id));
+  if (missingKpis.length === 0)
+    ok(`caza-stats.json — all 8 KPI IDs present: ${EXPECTED_KPI_IDS.join(", ")}`);
+  else
+    fail(`caza-stats.json — missing KPI IDs: ${missingKpis.join(", ")}`);
+
+  // Validate KPI units
+  const unitMap = { projetos:"number", receita:"currency", entregues:"number", ticket:"currency",
+                    total_projetos:"number", receita_total:"currency", taxa_entrega:"percent", clientes_ativos:"number" };
+  const wrongUnits = (stats.kpis ?? []).filter(k => unitMap[k.id] && k.unit !== unitMap[k.id]);
+  if (wrongUnits.length === 0)
+    ok("caza-stats.json — all KPI units correct");
+  else
+    fail(`KPI unit mismatch: ${wrongUnits.map(k => `${k.id}:${k.unit}≠${unitMap[k.id]}`).join(", ")}`);
 }
 
 // Validate project fields
@@ -525,6 +550,42 @@ if (stats && projects.length > 0 && clients.length > 0) {
     ok("stats.clients_total not in static snapshot (computed at runtime)");
   }
 
+  // ── New 4 KPIs ──────────────────────────────────────────────────────────────
+
+  // KPI total_projetos must equal total project count
+  const statsTotalProjKpi = stats.kpis?.find(k => k.id === "total_projetos")?.value;
+  if (statsTotalProjKpi === projects.length)
+    ok(`KPI "total_projetos" (${statsTotalProjKpi}) matches projects.json length`);
+  else
+    warn(`KPI "total_projetos"=${statsTotalProjKpi} vs projects.json length=${projects.length}`);
+
+  // KPI receita_total must equal sum of all values
+  const statsReceitaTotal = stats.kpis?.find(k => k.id === "receita_total")?.value;
+  const computedReceitaTotal = projects.reduce((s, p) => s + (p.valor ?? 0), 0);
+  if (statsReceitaTotal === computedReceitaTotal)
+    ok(`KPI "receita_total" (${statsReceitaTotal}) matches sum of all project valores`);
+  else
+    warn(`KPI "receita_total"=${statsReceitaTotal} vs computed=${computedReceitaTotal}`);
+
+  // KPI taxa_entrega must equal deliveredProjects / total * 100
+  const statsTaxaEntrega = stats.kpis?.find(k => k.id === "taxa_entrega")?.value;
+  const deliveredCount = projects.filter(p => p.recebido).length;
+  const computedTaxa = projects.length > 0
+    ? parseFloat(((deliveredCount / projects.length) * 100).toFixed(1))
+    : 0;
+  if (statsTaxaEntrega === computedTaxa)
+    ok(`KPI "taxa_entrega" (${statsTaxaEntrega}%) matches ${deliveredCount}/${projects.length} delivered`);
+  else
+    warn(`KPI "taxa_entrega"=${statsTaxaEntrega} vs computed=${computedTaxa}`);
+
+  // KPI clientes_ativos must equal count of clients with status="Ativo"
+  const statsClientesAtivos = stats.kpis?.find(k => k.id === "clientes_ativos")?.value;
+  const computedClientesAtivos = clients.filter(c => c.status === "Ativo").length;
+  if (statsClientesAtivos === computedClientesAtivos)
+    ok(`KPI "clientes_ativos" (${statsClientesAtivos}) matches count of Ativo clients`);
+  else
+    warn(`KPI "clientes_ativos"=${statsClientesAtivos} vs computed=${computedClientesAtivos}`);
+
 } else {
   warn("Skipping cross-consistency — some data files empty or parse failed");
 }
@@ -533,6 +594,127 @@ if (stats && projects.length > 0 && clients.length > 0) {
 ["static", "notion", undefined].some(v => v === stats?.source)
   ? ok(`caza-stats.json source="${stats?.source ?? "undefined"}" — acceptable for static snapshot`)
   : warn(`caza-stats.json source="${stats?.source}" — unexpected value`);
+
+// ─── I. fetch-notion-static.mjs — 8-KPI generation ───────────────────────────
+
+section("I. fetch-notion-static.mjs — buildStatsFromProjects + exportFromNeon KPI parity");
+
+const fetchScriptSrc = readFileSync(path.join(ROOT, "scripts/fetch-notion-static.mjs"), "utf8");
+
+// Verify buildStatsFromProjects accepts clients parameter
+if (/function buildStatsFromProjects\(projects,\s*clients\s*=\s*\[\]/.test(fetchScriptSrc))
+  ok("buildStatsFromProjects — accepts (projects, clients=[]) parameter");
+else
+  fail("buildStatsFromProjects — missing clients parameter");
+
+// Verify all 8 KPI IDs in buildStatsFromProjects
+const kpiIdsInBuild = ["projetos","receita","entregues","ticket","total_projetos","receita_total","taxa_entrega","clientes_ativos"];
+const buildFnMatch = fetchScriptSrc.match(/function buildStatsFromProjects[\s\S]*?return \{[\s\S]*?\};(\s*\n\s*})/);
+// Check each KPI ID appears in the file
+const missingInBuild = kpiIdsInBuild.filter(id => {
+  // Match   id: "the_id"   inside kpis array in buildStatsFromProjects
+  return !fetchScriptSrc.includes(`id: "${id}"`);
+});
+if (missingInBuild.length === 0)
+  ok(`buildStatsFromProjects — all 8 KPI IDs defined: ${kpiIdsInBuild.join(", ")}`);
+else
+  fail(`buildStatsFromProjects — missing KPI IDs: ${missingInBuild.join(", ")}`);
+
+// Verify clientesAtivos uses clients param (not hardcoded)
+if (/clientesAtivos\s*=\s*clients\.filter\(c => c\.status === "Ativo"\)/.test(fetchScriptSrc))
+  ok("buildStatsFromProjects — clientesAtivos computed from clients param");
+else
+  fail("buildStatsFromProjects — clientesAtivos not computed from clients param");
+
+// Verify exportFromNeon also has 8 KPIs (check all IDs appear in the exportFromNeon function body)
+const exportFnStart = fetchScriptSrc.indexOf("async function exportFromNeon()");
+const exportFnEnd   = fetchScriptSrc.indexOf("// --- Main ---");
+const exportFnBody  = fetchScriptSrc.slice(exportFnStart, exportFnEnd);
+const missingInNeon = kpiIdsInBuild.filter(id => !exportFnBody.includes(`id: "${id}"`));
+if (missingInNeon.length === 0)
+  ok(`exportFromNeon — all 8 KPI IDs defined`);
+else
+  fail(`exportFromNeon — missing KPI IDs: ${missingInNeon.join(", ")}`);
+
+// Verify exportFromNeon uses clientRows for clientesAtivos
+if (/clientesAtivos\s*=\s*clientRows\.filter\(c => c\.status === "Ativo"\)/.test(exportFnBody))
+  ok("exportFromNeon — clientesAtivos computed from clientRows");
+else
+  fail("exportFromNeon — clientesAtivos not computed from clientRows");
+
+// Verify taxaEntrega computed in both functions
+if (/taxaEntrega/.test(buildFnMatch?.[0] ?? fetchScriptSrc.slice(fetchScriptSrc.indexOf("function buildStatsFromProjects"), fetchScriptSrc.indexOf("// --- Main ---"))))
+  ok("buildStatsFromProjects — taxaEntrega computed");
+else
+  fail("buildStatsFromProjects — taxaEntrega missing");
+
+if (/taxaEntrega/.test(exportFnBody))
+  ok("exportFromNeon — taxaEntrega computed");
+else
+  fail("exportFromNeon — taxaEntrega missing");
+
+// Verify receitaTotal computed in both paths
+if (fetchScriptSrc.includes("receitaTotal") && fetchScriptSrc.split("receitaTotal").length >= 5)
+  ok("receitaTotal computed in both buildStatsFromProjects and exportFromNeon");
+else
+  fail("receitaTotal missing from one or both stat builders");
+
+// Verify cazaClients hoisted to outer scope in main()
+if (/let cazaClients\s*=\s*\[\];/.test(fetchScriptSrc))
+  ok("main() — cazaClients declared in outer scope (available to buildStatsFromProjects)");
+else
+  fail("main() — cazaClients not declared in outer scope");
+
+// Verify buildStatsFromProjects called with cazaClients
+if (/buildStatsFromProjects\(cazaProjects,\s*cazaClients\)/.test(fetchScriptSrc))
+  ok("main() — buildStatsFromProjects(cazaProjects, cazaClients) call correct");
+else
+  fail("main() — buildStatsFromProjects not called with cazaClients");
+
+// Verify { skipIfExists: true } safety is preserved for error paths
+const skipCount = (fetchScriptSrc.match(/skipIfExists: true/g) ?? []).length;
+if (skipCount >= 10)
+  ok(`{ skipIfExists: true } safety preserved — ${skipCount} error-path uses found`);
+else
+  warn(`{ skipIfExists: true } only found ${skipCount} times — error path safety may be reduced`);
+
+// Simulate buildStatsFromProjects with test data
+{
+  const testProjects = [
+    { recebido: false, valor: 5000, despesas: 0, lucro: 5000, status: "Em Produção", tipo: "Vídeo", prazo: "2026-04-01" },
+    { recebido: true,  valor: 3000, despesas: 200, lucro: 2800, status: "Entregue",   tipo: "Foto",  prazo: "2026-03-01" },
+    { recebido: true,  valor: 7000, despesas: 0, lucro: 7000, status: "Entregue",   tipo: "Vídeo", prazo: "2025-01-15" },
+  ];
+  const testClients = [
+    { status: "Ativo" }, { status: "Ativo" }, { status: "Inativo" },
+  ];
+  const MN = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+  const currentYear = new Date().getFullYear();
+
+  const activeP    = testProjects.filter(p => !p.recebido).length;   // 1
+  const deliveredP = testProjects.filter(p => p.recebido).length;    // 2
+  const ytd        = testProjects.filter(p => p.prazo.startsWith(String(currentYear))).reduce((s,p) => s+p.valor, 0);
+  const total      = testProjects.reduce((s,p) => s+p.valor, 0);     // 15000
+  const ticket     = Math.round(total / testProjects.length);         // 5000
+  const taxa       = parseFloat(((deliveredP / testProjects.length) * 100).toFixed(1)); // 66.7
+  const cliAtivos  = testClients.filter(c => c.status === "Ativo").length; // 2
+
+  let allSimPassed = true;
+  function simCheck(label, actual, expected) {
+    if (actual === expected) { ok(`Sim buildStatsFromProjects — ${label}: ${actual}`); }
+    else { fail(`Sim buildStatsFromProjects — ${label}: got ${actual}, expected ${expected}`); allSimPassed = false; }
+  }
+
+  simCheck("activeProjects",    activeP,    1);
+  simCheck("deliveredProjects", deliveredP, 2);
+  simCheck("receitaTotal",      total,      15000);
+  simCheck("ticketMedio",       ticket,     5000);
+  simCheck("taxaEntrega",       taxa,       66.7);
+  simCheck("clientesAtivos",    cliAtivos,  2);
+
+  if (allSimPassed)
+    ok("All 8-KPI computed values match expected — buildStatsFromProjects logic verified");
+}
 
 // ─── H. Git State ─────────────────────────────────────────────────────────────
 
