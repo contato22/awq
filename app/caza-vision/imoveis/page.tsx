@@ -3,13 +3,14 @@
 import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import EmptyState from "@/components/EmptyState";
-import { Film, CheckCircle2, Clock, Clapperboard, Database, CloudOff, AlertCircle, TrendingUp } from "lucide-react";
+import { Film, CheckCircle2, Clock, Clapperboard, Database, CloudOff, AlertCircle, TrendingUp, BarChart3 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ProjetoRow {
   id: string;
   titulo: string;
+  tipo: string;
   prioridade: string;
   diretor: string;
   prazo: string;
@@ -85,6 +86,31 @@ export default function ProjetosPage() {
   const totalValor    = rows.reduce((s, p) => s + p.valor, 0);
   const totalDespesas = rows.reduce((s, p) => s + (p.despesas ?? 0), 0);
   const totalLucro    = rows.reduce((s, p) => s + (p.lucro ?? p.valor), 0);
+  const taxaEntrega   = total > 0 ? ((entregues / total) * 100).toFixed(0) : "0";
+  const ticketMedio   = total > 0 ? Math.round(totalValor / total) : 0;
+
+  // Por tipo
+  const tipoMap = new Map<string, { count: number; receita: number }>();
+  for (const p of rows) {
+    const tipo = p.tipo || "Outros";
+    const acc  = tipoMap.get(tipo) ?? { count: 0, receita: 0 };
+    acc.count++;
+    acc.receita += p.valor;
+    tipoMap.set(tipo, acc);
+  }
+  const tipoStats = Array.from(tipoMap.entries())
+    .map(([tipo, d]) => ({ tipo, ...d }))
+    .sort((a, b) => b.receita - a.receita);
+
+  // Por status
+  const statusMap = new Map<string, number>();
+  for (const p of rows) {
+    const s = p.status || "Em Produção";
+    statusMap.set(s, (statusMap.get(s) ?? 0) + 1);
+  }
+  const statusStats = Array.from(statusMap.entries())
+    .map(([status, count]) => ({ status, count }))
+    .sort((a, b) => b.count - a.count);
 
   return (
     <>
@@ -116,21 +142,81 @@ export default function ProjetosPage() {
         </div>
 
         {/* Summary strip */}
-        <div className="grid grid-cols-2 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-3">
           {[
-            { label: "Total Projetos",  value: total,         color: "text-gray-900",    fmt: String },
-            { label: "Em Aberto",       value: emAberto,      color: "text-brand-600",   fmt: String },
-            { label: "Recebidos",       value: entregues,     color: "text-emerald-600", fmt: String },
-            { label: "Orçamento Total", value: totalValor,    color: "text-gray-900",    fmt: fmtR   },
-            { label: "Despesas",        value: totalDespesas, color: "text-red-600",     fmt: fmtR   },
-            { label: "Lucro Líquido",   value: totalLucro,    color: "text-emerald-600", fmt: fmtR   },
+            { label: "Total Projetos",  value: total,                    color: "text-gray-900",    fmt: String },
+            { label: "Em Aberto",       value: emAberto,                 color: "text-brand-600",   fmt: String },
+            { label: "Recebidos",       value: entregues,                color: "text-emerald-600", fmt: String },
+            { label: "Taxa Entrega",    value: taxaEntrega + "%",        color: "text-violet-600",  fmt: (v: string) => v },
+            { label: "Orçamento Total", value: totalValor,               color: "text-gray-900",    fmt: fmtR   },
+            { label: "Despesas",        value: totalDespesas,            color: "text-red-600",     fmt: fmtR   },
+            { label: "Lucro Líquido",   value: totalLucro,               color: "text-emerald-600", fmt: fmtR   },
+            { label: "Ticket Médio",    value: ticketMedio,              color: "text-amber-700",   fmt: fmtR   },
           ].map((s) => (
             <div key={s.label} className="card p-4 text-center">
-              <div className={`text-3xl font-bold ${s.color}`}>{s.fmt(s.value)}</div>
+              <div className={`text-2xl font-bold ${s.color} tabular-nums`}>{s.fmt(s.value as never)}</div>
               <div className="text-xs text-gray-500 mt-1">{s.label}</div>
             </div>
           ))}
         </div>
+
+        {/* Tipo + Status distribution */}
+        {rows.length > 0 && (
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+            <div className="card p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <Film size={14} className="text-brand-600" />
+                <h2 className="text-sm font-semibold text-gray-900">Projetos por Tipo</h2>
+              </div>
+              <div className="space-y-2">
+                {tipoStats.map((t) => {
+                  const pct = totalValor > 0 ? Math.round((t.receita / totalValor) * 100) : 0;
+                  return (
+                    <div key={t.tipo} className="flex items-center gap-3">
+                      <span className="text-xs text-gray-500 w-40 shrink-0 truncate">{t.tipo}</span>
+                      <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <div className="h-full bg-brand-500 rounded-full" style={{ width: `${Math.max(pct, 2)}%` }} />
+                      </div>
+                      <span className="text-xs font-bold text-gray-900 w-6 text-right shrink-0 tabular-nums">{t.count}</span>
+                      <span className="text-[11px] text-gray-400 w-16 text-right shrink-0">{fmtR(t.receita)}</span>
+                      <span className="text-[10px] text-gray-400 w-8 text-right shrink-0">{pct}%</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="card p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <BarChart3 size={14} className="text-emerald-600" />
+                <h2 className="text-sm font-semibold text-gray-900">Distribuição por Status</h2>
+              </div>
+              <div className="space-y-2">
+                {statusStats.map((s) => {
+                  const pct = total > 0 ? Math.round((s.count / total) * 100) : 0;
+                  const color = s.status === "Entregue" ? "bg-emerald-500"
+                    : s.status === "Em Produção" ? "bg-brand-500"
+                    : s.status === "Em Edição" ? "bg-amber-500"
+                    : "bg-violet-500";
+                  return (
+                    <div key={s.status} className="flex items-center gap-3">
+                      <span className="text-xs text-gray-500 w-40 shrink-0">{s.status}</span>
+                      <div className="flex-1 h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full ${color}`} style={{ width: `${Math.max(pct, 2)}%` }} />
+                      </div>
+                      <span className="text-xs font-bold text-gray-900 w-6 text-right shrink-0 tabular-nums">{s.count}</span>
+                      <span className="text-[10px] text-gray-400 w-8 text-right shrink-0">{pct}%</span>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="mt-4 pt-3 border-t border-gray-100 flex justify-between text-xs text-gray-400">
+                <span>{total} projetos total</span>
+                <span className="font-semibold text-emerald-600">{taxaEntrega}% entregues</span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Margin analytics */}
         {rows.length > 0 && (
@@ -178,6 +264,7 @@ export default function ProjetosPage() {
                 <thead>
                   <tr className="border-b border-gray-200">
                     <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Projeto</th>
+                    <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Tipo</th>
                     <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Prioridade</th>
                     <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Orçamento</th>
                     <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Alimentação</th>
@@ -197,6 +284,7 @@ export default function ProjetosPage() {
                           {p.titulo || "—"}
                         </div>
                       </td>
+                      <td className="py-2.5 px-3 text-xs text-gray-500">{p.tipo || <span className="text-gray-400">—</span>}</td>
                       <td className="py-2.5 px-3 text-xs">
                         {p.prioridade
                           ? <span className={`font-semibold ${prioridadeColor[p.prioridade] ?? "text-gray-400"}`}>{p.prioridade}</span>
@@ -233,7 +321,7 @@ export default function ProjetosPage() {
                 <tfoot>
                   <tr className="border-t border-gray-300">
                     <td className="py-2.5 px-3 text-xs font-bold text-gray-400">TOTAL</td>
-                    <td />
+                    <td /><td />
                     <td className="py-2.5 px-3 text-right text-gray-900 font-bold text-xs">{fmtR(totalValor)}</td>
                     <td className="py-2.5 px-3 text-right text-red-600 font-bold text-xs">{totalDespesas > 0 ? fmtR(totalDespesas) : "—"}</td>
                     <td />

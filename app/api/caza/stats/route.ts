@@ -27,9 +27,21 @@ export async function GET(): Promise<NextResponse> {
   const receitaYtd        = projects
     .filter(p => p.prazo.startsWith(String(currentYear)))
     .reduce((s, p) => s + p.valor, 0);
-  const ticketMedio       = projects.length > 0
-    ? Math.round(projects.reduce((s, p) => s + p.valor, 0) / projects.length)
+  const receitaTotal      = projects.reduce((s, p) => s + p.valor, 0);
+  const totalDespesas     = projects.reduce((s, p) => s + p.despesas, 0);
+  const totalLucro        = projects.reduce((s, p) => s + p.lucro, 0);
+  const margemMedia       = receitaTotal > 0
+    ? parseFloat(((totalLucro / receitaTotal) * 100).toFixed(1))
     : 0;
+  const ticketMedio       = projects.length > 0
+    ? Math.round(receitaTotal / projects.length)
+    : 0;
+  const taxaEntrega       = projects.length > 0
+    ? parseFloat(((deliveredProjects / projects.length) * 100).toFixed(1))
+    : 0;
+  const clientesAtivos    = clients.filter(c => c.status === "Ativo").length;
+  const today             = new Date().toISOString().slice(0, 10);
+  const projetosProximos  = projects.filter(p => !p.recebido && p.prazo >= today).length;
 
   // ── Revenue by month (last 12) ─────────────────────────────────────────────
   const MONTH_NAMES = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
@@ -83,16 +95,24 @@ export async function GET(): Promise<NextResponse> {
 
   return NextResponse.json({
     kpis: [
-      { id: "projetos",  label: "Projetos Ativos",    value: activeProjects,    unit: "number",   icon: "Building2",     color: "emerald" },
-      { id: "receita",   label: "Receita YTD",         value: receitaYtd,        unit: "currency", icon: "DollarSign",    color: "brand"   },
-      { id: "entregues", label: "Projetos Entregues",  value: deliveredProjects, unit: "number",   icon: "HandshakeIcon", color: "violet"  },
-      { id: "ticket",    label: "Ticket Médio",        value: ticketMedio,       unit: "currency", icon: "TrendingUp",    color: "amber"   },
+      { id: "projetos",         label: "Projetos Ativos",    value: activeProjects,    unit: "number",   icon: "Building2",     color: "emerald" },
+      { id: "receita",          label: "Receita YTD",         value: receitaYtd,        unit: "currency", icon: "DollarSign",    color: "brand"   },
+      { id: "entregues",        label: "Projetos Entregues",  value: deliveredProjects, unit: "number",   icon: "HandshakeIcon", color: "violet"  },
+      { id: "ticket",           label: "Ticket Médio",        value: ticketMedio,       unit: "currency", icon: "TrendingUp",    color: "amber"   },
+      { id: "total_projetos",   label: "Total de Projetos",   value: projects.length,   unit: "number",   icon: "Film",          color: "brand"   },
+      { id: "receita_total",    label: "Receita Total",       value: receitaTotal,      unit: "currency", icon: "DollarSign",    color: "emerald" },
+      { id: "taxa_entrega",     label: "Taxa de Entrega",     value: taxaEntrega,       unit: "percent",  icon: "CheckCircle",   color: "violet"  },
+      { id: "clientes_ativos",  label: "Clientes Ativos",     value: clientesAtivos,    unit: "number",   icon: "Users",         color: "amber"   },
     ],
     revenueData,
     pipeline,
     projectTypeRevenue,
-    clients_total:  clients.length,
-    projects_total: projects.length,
+    clients_total:       clients.length,
+    projects_total:      projects.length,
+    total_despesas:      totalDespesas,
+    total_lucro:         totalLucro,
+    margem_media:        margemMedia,
+    projetos_proximos:   projetosProximos,
     source: "internal",
   });
 }
