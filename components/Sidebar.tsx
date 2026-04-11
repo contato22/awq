@@ -33,6 +33,11 @@ import {
     Landmark,
     Database,
     ShieldCheck,
+    UserPlus,
+    ClipboardList,
+    MessageSquare,
+    ArrowUpRight,
+    CheckCircle2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -66,12 +71,26 @@ function isVentureRoute(pathname: string) {
 const jacqesNav = [
     { label: "Visão Geral",    href: "/jacqes",             icon: LayoutDashboard },
     { label: "FP&A",           href: "/jacqes/fpa",         icon: BarChart3       },
-    { label: "Carteira",       href: "/jacqes/carteira",    icon: Users           },
     { label: "Desempenho",     href: "/jacqes/desempenho",  icon: TrendingUp      },
     { label: "Análise",        href: "/jacqes/analise",     icon: Activity        },
-    { label: "CS Ops",         href: "/jacqes/csops",       icon: HeartPulse      },
     { label: "Relatórios",     href: "/jacqes/reports",     icon: BarChart3       },
     { label: "Categorias",     href: "/jacqes/categorias",  icon: Tag             },
+];
+
+// CRM sub-navigation — todos os módulos do CRM JACQES
+const crmNav = [
+    { label: "Visão Geral",   href: "/jacqes/crm",                 icon: LayoutDashboard },
+    { label: "Pipeline",      href: "/jacqes/crm/pipeline",        icon: TrendingUp      },
+    { label: "Leads",         href: "/jacqes/crm/leads",           icon: UserPlus        },
+    { label: "Oportunidades", href: "/jacqes/crm/oportunidades",   icon: CheckCircle2    },
+    { label: "Propostas",     href: "/jacqes/crm/propostas",       icon: FileText        },
+    { label: "Clientes",      href: "/jacqes/crm/clientes",        icon: Users           },
+    { label: "Carteira",      href: "/jacqes/crm/carteira",        icon: Wallet          },
+    { label: "Tarefas & SLA", href: "/jacqes/crm/tarefas",         icon: ClipboardList   },
+    { label: "Interações",    href: "/jacqes/crm/interacoes",      icon: MessageSquare   },
+    { label: "Expansão",      href: "/jacqes/crm/expansao",        icon: ArrowUpRight    },
+    { label: "Churn & Health",href: "/jacqes/crm/health",          icon: HeartPulse      },
+    { label: "Relatórios CRM",href: "/jacqes/crm/relatorios",      icon: BarChart3       },
 ];
 
 const cazaNav = [
@@ -425,6 +444,14 @@ function JacqesSidebar({ pathname }: { pathname: string }) {
         href === "/jacqes"
             ? pathname === "/jacqes"
             : pathname === href || pathname.startsWith(href + "/");
+
+    const isCrmActive = pathname === "/jacqes/crm" || pathname.startsWith("/jacqes/crm/");
+    const [crmOpen, setCrmOpen] = useState(isCrmActive);
+
+    useEffect(() => {
+        if (isCrmActive) setCrmOpen(true);
+    }, [isCrmActive]);
+
     return (
         <>
             <AwqHeader />
@@ -463,6 +490,56 @@ function JacqesSidebar({ pathname }: { pathname: string }) {
                         <NavItem key={item.href} {...item} active={isActive(item.href)} />
                     ))}
                 </div>
+
+                {/* CRM — collapsible group */}
+                <div className="mt-0.5">
+                    <button
+                        onClick={() => setCrmOpen((o) => !o)}
+                        className={cn(
+                            "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 focus-visible:ring-offset-1",
+                            isCrmActive
+                                ? "bg-brand-50 text-brand-700 shadow-sm"
+                                : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                        )}
+                    >
+                        <Users
+                            size={16}
+                            className={cn(
+                                "shrink-0 transition-colors",
+                                isCrmActive ? "text-brand-600" : "text-gray-400"
+                            )}
+                        />
+                        <span className="flex-1 text-left truncate">CRM</span>
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-brand-100 text-brand-600 border border-brand-200 shrink-0">
+                            NOVO
+                        </span>
+                        {crmOpen ? (
+                            <ChevronDown size={13} className="shrink-0 text-gray-400 ml-1" />
+                        ) : (
+                            <ChevronRight size={13} className="shrink-0 text-gray-400 ml-1" />
+                        )}
+                    </button>
+
+                    {crmOpen && (
+                        <div className="ml-3 mt-0.5 pl-3 border-l border-gray-100 space-y-0.5">
+                            {crmNav.map((item) => (
+                                <NavItem
+                                    key={item.href}
+                                    href={item.href}
+                                    icon={item.icon}
+                                    label={item.label}
+                                    active={
+                                        item.href === "/jacqes/crm"
+                                            ? pathname === "/jacqes/crm"
+                                            : pathname === item.href || pathname.startsWith(item.href + "/")
+                                    }
+                                />
+                            ))}
+                        </div>
+                    )}
+                </div>
+
                 <SectionLabel>Gestão</SectionLabel>
                 <div className="space-y-0.5">
                     {gestaoNav.map((item) => (
