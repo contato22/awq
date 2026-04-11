@@ -7,6 +7,7 @@ import EmptyState from "@/components/EmptyState";
 import {
   TrendingUp, DollarSign, BarChart2, Target, Hash, Plus, X, AlertTriangle,
 } from "lucide-react";
+import { fetchCRM } from "@/lib/jacqes-crm-query";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -121,16 +122,9 @@ export default function OportunidadesPage() {
   async function fetchOpps() {
     setLoading(true);
     setError(null);
-    try {
-      const res = await fetch("/api/jacqes/crm/oportunidades");
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      setOpps(data.oportunidades ?? data.opportunities ?? data ?? []);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Erro ao carregar oportunidades.");
-    } finally {
-      setLoading(false);
-    }
+    fetchCRM<CrmOpportunity>("opportunities")
+      .then(d => { setOpps(d); setLoading(false); })
+      .catch(() => { setError("Erro ao carregar oportunidades."); setLoading(false); });
   }
 
   useEffect(() => { fetchOpps(); }, []);

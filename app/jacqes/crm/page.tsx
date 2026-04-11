@@ -6,43 +6,22 @@ import SectionHeader from "@/components/SectionHeader";
 import EmptyState from "@/components/EmptyState";
 import {
   Users, Target, DollarSign, TrendingUp, FileText, CheckCircle2,
-  XCircle, Building2, Activity, AlertTriangle, Clock, ClipboardList,
-  Phone, Mail, MessageSquare, CalendarClock, Repeat2, Handshake,
-  HeartPulse, BarChart3, Zap, ArrowRight,
+  Building2, Activity, AlertTriangle, Clock, ClipboardList,
+  Phone, Mail, MessageSquare, Repeat2, Handshake,
+  HeartPulse, BarChart3, Zap, CalendarClock,
 } from "lucide-react";
-import type { CrmOpportunity, CrmInteraction, CrmTask } from "@/lib/jacqes-crm-db";
+import { fetchCRM } from "@/lib/jacqes-crm-query";
+import type {
+  CrmLead, CrmOpportunity, CrmClient, CrmTask,
+  CrmInteraction, CrmExpansion, CrmHealthSnapshot,
+} from "@/lib/jacqes-crm-db";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Constants ────────────────────────────────────────────────────────────────
 
-type KPIs = {
-  leadsAtivos: number;
-  oppsAbertas: number;
-  pipelineTotal: number;
-  receitaPotencial: number;
-  propostasNegociacao: number;
-  winRate: number;
-  clientesAtivos: number;
-  mrrTotal: number;
-  healthMedio: number;
-  expansaoAberta: number;
-  expansaoValor: number;
-  tarefasAbertas: number;
-  tarefasVencidas: number;
-  followupsPendentes: number;
-  fechadosGanhos: number;
-  fechadosPerdidos: number;
-  emRisco: number;
-};
-
-type PipelineStage = { stage: string; count: number; valor: number };
-
-type StatsData = {
-  kpis: KPIs;
-  pipelineByStage: PipelineStage[];
-  oportunidadesCriticas: CrmOpportunity[];
-  ultimasInteracoes: CrmInteraction[];
-  tarefasUrgentes: CrmTask[];
-};
+const PIPELINE_STAGES = [
+  "Novo Lead", "Qualificação", "Diagnóstico", "Proposta", "Negociação",
+  "Fechado Ganho", "Fechado Perdido",
+] as const;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -57,14 +36,6 @@ function fmtDate(d: string | null | undefined): string {
   const [y, m, day] = d.split("-");
   return `${day}/${m}/${y}`;
 }
-
-function daysSince(d: string): number {
-  return Math.floor((Date.now() - new Date(d).getTime()) / 86400000);
-}
-
-const TODAY = new Date().toISOString().slice(0, 10);
-
-// ─── Stage colours ────────────────────────────────────────────────────────────
 
 const STAGE_COLORS: Record<string, { bar: string; text: string; bg: string }> = {
   "Novo Lead":       { bar: "bg-gray-400",    text: "text-gray-400",    bg: "bg-gray-500/10"    },
@@ -82,15 +53,11 @@ function stageBadgeClass(stage: string): string {
   return `inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${c.text} ${c.bg}`;
 }
 
-// ─── Risk badge ───────────────────────────────────────────────────────────────
-
 function riskBadge(risco: string) {
   if (risco === "Alto")  return <span className="badge badge-red text-[10px]">Alto</span>;
   if (risco === "Médio") return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold text-amber-700 bg-amber-100 border border-amber-200">Médio</span>;
   return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold text-emerald-700 bg-emerald-100 border border-emerald-200">Baixo</span>;
 }
-
-// ─── Priority badge ───────────────────────────────────────────────────────────
 
 function prioClass(p: string): string {
   if (p === "Crítica") return "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold text-white bg-red-600";
@@ -98,8 +65,6 @@ function prioClass(p: string): string {
   if (p === "Média")   return "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold text-amber-700 bg-amber-100 border border-amber-200";
   return "badge text-[10px]";
 }
-
-// ─── Interaction type icon ────────────────────────────────────────────────────
 
 function InteractionIcon({ tipo }: { tipo: string }) {
   const cls = "w-7 h-7 rounded-lg flex items-center justify-center shrink-0";
@@ -113,8 +78,6 @@ function InteractionIcon({ tipo }: { tipo: string }) {
   if (tipo === "Contraproposta")    return <div className={`${cls} bg-red-500/10`}><Handshake size={13} className="text-red-400" /></div>;
   return <div className={`${cls} bg-gray-500/10`}><Activity size={13} className="text-gray-400" /></div>;
 }
-
-// ─── KPI Card ─────────────────────────────────────────────────────────────────
 
 interface KpiCardProps {
   label: string;
@@ -146,15 +109,29 @@ function KpiCard({ label, value, icon: Icon, iconColor, iconBg, sub, alert }: Kp
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function JacqesCrmPage() {
-  const [data, setData] = useState<StatsData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [leads,    setLeads]    = useState<CrmLead[]>([]);
+  const [opps,     setOpps]     = useState<CrmOpportunity[]>([]);
+  const [clients,  setClients]  = useState<CrmClient[]>([]);
+  const [tasks,    setTasks]    = useState<CrmTask[]>([]);
+  const [ints,     setInts]     = useState<CrmInteraction[]>([]);
+  const [expansion,setExpansion]= useState<CrmExpansion[]>([]);
+  const [health,   setHealth]   = useState<CrmHealthSnapshot[]>([]);
+  const [loading,  setLoading]  = useState(true);
 
   useEffect(() => {
-    fetch("/api/jacqes/crm/stats")
-      .then((r) => r.json())
-      .then((d) => { setData(d); setLoading(false); })
-      .catch((e) => { setError(String(e)); setLoading(false); });
+    Promise.all([
+      fetchCRM<CrmLead>("leads"),
+      fetchCRM<CrmOpportunity>("opportunities"),
+      fetchCRM<CrmClient>("clients"),
+      fetchCRM<CrmTask>("tasks"),
+      fetchCRM<CrmInteraction>("interactions"),
+      fetchCRM<CrmExpansion>("expansion"),
+      fetchCRM<CrmHealthSnapshot>("health"),
+    ]).then(([l, o, c, t, i, e, h]) => {
+      setLeads(l); setOpps(o); setClients(c);
+      setTasks(t); setInts(i); setExpansion(e); setHealth(h);
+      setLoading(false);
+    });
   }, []);
 
   if (loading) {
@@ -173,147 +150,101 @@ export default function JacqesCrmPage() {
     );
   }
 
-  if (error || !data) {
-    return (
-      <>
-        <Header title="CRM — JACQES" subtitle="Erro ao carregar dados" />
-        <div className="page-container">
-          <EmptyState
-            icon={<AlertTriangle size={20} className="text-red-400" />}
-            title="Erro ao carregar CRM"
-            description={error ?? "Resposta inesperada da API."}
-          />
-        </div>
-      </>
-    );
-  }
+  // ── KPI derivations ──────────────────────────────────────────────────────────
+  const TODAY = new Date().toISOString().slice(0, 10);
+  const TODAY_PLUS_7 = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
 
-  const { kpis, pipelineByStage, oportunidadesCriticas, ultimasInteracoes, tarefasUrgentes } = data;
-  const maxPipelineCount = Math.max(...pipelineByStage.map((s) => s.count), 1);
+  const openOpps  = opps.filter(o => o.stage !== "Fechado Ganho" && o.stage !== "Fechado Perdido");
+  const fechadosGanhos   = opps.filter(o => o.stage === "Fechado Ganho").length;
+  const fechadosPerdidos = opps.filter(o => o.stage === "Fechado Perdido").length;
+  const totalFechados    = fechadosGanhos + fechadosPerdidos;
+
+  const kpis = {
+    leadsAtivos:          leads.filter(l => l.status !== "Convertido" && l.status !== "Perdido").length,
+    oppsAbertas:          openOpps.length,
+    pipelineTotal:        openOpps.reduce((s, o) => s + o.valor_potencial, 0),
+    receitaPotencial:     Math.round(openOpps.reduce((s, o) => s + o.valor_potencial * o.probabilidade / 100, 0)),
+    propostasNegociacao:  opps.filter(o => o.stage === "Proposta" || o.stage === "Negociação").length,
+    winRate:              totalFechados > 0 ? Math.round((fechadosGanhos / totalFechados) * 100) : 0,
+    clientesAtivos:       clients.filter(c => c.status_conta === "Ativo").length,
+    mrrTotal:             clients.reduce((s, c) => s + c.ticket_mensal, 0),
+    healthMedio:          health.length > 0 ? Math.round(health.reduce((s, h) => s + h.health_score, 0) / health.length) : 0,
+    expansaoAberta:       expansion.filter(e => e.status !== "Fechado").length,
+    expansaoValor:        expansion.filter(e => e.status !== "Fechado").reduce((s, e) => s + e.valor_potencial, 0),
+    tarefasAbertas:       tasks.filter(t => t.status === "Aberta" || t.status === "Em Andamento").length,
+    tarefasVencidas:      tasks.filter(t => t.prazo && t.prazo < TODAY && t.status === "Aberta").length,
+    followupsPendentes:   tasks.filter(t => t.status === "Aberta" && t.categoria.toLowerCase().startsWith("follow")).length,
+    emRisco:              clients.filter(c => c.status_conta === "Em Risco").length,
+  };
+
+  const pipelineByStage = PIPELINE_STAGES.map(stage => ({
+    stage,
+    count: opps.filter(o => o.stage === stage).length,
+    valor: opps.filter(o => o.stage === stage).reduce((s, o) => s + o.valor_potencial, 0),
+  }));
+
+  const oportunidadesCriticas = opps
+    .filter(o => o.risco === "Alto" || (o.data_proxima_acao && o.data_proxima_acao <= TODAY_PLUS_7))
+    .filter(o => o.stage !== "Fechado Ganho" && o.stage !== "Fechado Perdido")
+    .slice(0, 5);
+
+  const ultimasInteracoes = [...ints]
+    .sort((a, b) => b.data.localeCompare(a.data))
+    .slice(0, 5);
+
+  const tarefasUrgentes = tasks
+    .filter(t => (t.prioridade === "Alta" || t.prioridade === "Crítica") && (t.status === "Aberta" || t.status === "Em Andamento"))
+    .sort((a, b) => (a.prazo ?? "").localeCompare(b.prazo ?? ""))
+    .slice(0, 5);
+
+  const maxPipelineCount = Math.max(...pipelineByStage.map(s => s.count), 1);
 
   return (
     <>
-      <Header
-        title="CRM — JACQES"
-        subtitle="Mission Control · Sistema operacional comercial"
-      />
+      <Header title="CRM — JACQES" subtitle="Mission Control · Sistema operacional comercial" />
       <div className="page-container">
 
         {/* ── KPI Row 1 — Operacional ─────────────────────────────────────── */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          <KpiCard
-            label="Leads Ativos"
-            value={kpis.leadsAtivos}
-            icon={Users}
-            iconColor="text-blue-400"
-            iconBg="bg-blue-500/10"
-          />
-          <KpiCard
-            label="Opps Abertas"
-            value={kpis.oppsAbertas}
-            icon={Target}
-            iconColor="text-violet-400"
-            iconBg="bg-violet-500/10"
-          />
-          <KpiCard
-            label="Pipeline Total"
-            value={fmtCurrency(kpis.pipelineTotal)}
-            icon={BarChart3}
-            iconColor="text-amber-400"
-            iconBg="bg-amber-500/10"
-          />
-          <KpiCard
-            label="Receita Potencial"
-            value={fmtCurrency(kpis.receitaPotencial)}
-            icon={DollarSign}
-            iconColor="text-emerald-400"
-            iconBg="bg-emerald-500/10"
-            sub="ponderada por probabilidade"
-          />
-          <KpiCard
-            label="Propostas / Negociação"
-            value={kpis.propostasNegociacao}
-            icon={FileText}
-            iconColor="text-orange-400"
-            iconBg="bg-orange-500/10"
-          />
-          <KpiCard
-            label="Win Rate"
-            value={`${kpis.winRate}%`}
-            icon={TrendingUp}
-            iconColor="text-brand-400"
-            iconBg="bg-brand-500/10"
-          />
+          <KpiCard label="Leads Ativos"          value={kpis.leadsAtivos}              icon={Users}        iconColor="text-blue-400"    iconBg="bg-blue-500/10" />
+          <KpiCard label="Opps Abertas"           value={kpis.oppsAbertas}              icon={Target}       iconColor="text-violet-400"  iconBg="bg-violet-500/10" />
+          <KpiCard label="Pipeline Total"         value={fmtCurrency(kpis.pipelineTotal)}icon={BarChart3}   iconColor="text-amber-400"   iconBg="bg-amber-500/10" />
+          <KpiCard label="Receita Potencial"      value={fmtCurrency(kpis.receitaPotencial)} icon={DollarSign} iconColor="text-emerald-400" iconBg="bg-emerald-500/10" sub="ponderada por probabilidade" />
+          <KpiCard label="Propostas / Negociação" value={kpis.propostasNegociacao}      icon={FileText}     iconColor="text-orange-400"  iconBg="bg-orange-500/10" />
+          <KpiCard label="Win Rate"               value={`${kpis.winRate}%`}            icon={TrendingUp}   iconColor="text-brand-400"   iconBg="bg-brand-500/10" />
         </div>
 
         {/* ── KPI Row 2 — Consolidado ─────────────────────────────────────── */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          <KpiCard
-            label="Clientes Ativos"
-            value={kpis.clientesAtivos}
-            icon={Building2}
-            iconColor="text-teal-400"
-            iconBg="bg-teal-500/10"
-          />
-          <KpiCard
-            label="MRR Total"
-            value={fmtCurrency(kpis.mrrTotal)}
-            icon={DollarSign}
-            iconColor="text-emerald-400"
-            iconBg="bg-emerald-500/10"
-          />
-          <KpiCard
-            label="Health Médio"
-            value={`${kpis.healthMedio}/100`}
-            icon={HeartPulse}
+          <KpiCard label="Clientes Ativos"   value={kpis.clientesAtivos}   icon={Building2}     iconColor="text-teal-400"  iconBg="bg-teal-500/10" />
+          <KpiCard label="MRR Total"         value={fmtCurrency(kpis.mrrTotal)} icon={DollarSign} iconColor="text-emerald-400" iconBg="bg-emerald-500/10" />
+          <KpiCard label="Health Médio"      value={`${kpis.healthMedio}/100`} icon={HeartPulse}
             iconColor={kpis.healthMedio >= 80 ? "text-emerald-400" : kpis.healthMedio >= 60 ? "text-amber-400" : "text-red-400"}
-            iconBg={kpis.healthMedio >= 80 ? "bg-emerald-500/10" : kpis.healthMedio >= 60 ? "bg-amber-500/10" : "bg-red-500/10"}
-          />
-          <KpiCard
-            label="Expansão Aberta"
-            value={kpis.expansaoAberta}
-            icon={Zap}
-            iconColor="text-yellow-400"
-            iconBg="bg-yellow-500/10"
-            sub={kpis.expansaoValor > 0 ? fmtCurrency(kpis.expansaoValor) : undefined}
-          />
-          <KpiCard
-            label="Tarefas Vencidas"
-            value={kpis.tarefasVencidas}
-            icon={ClipboardList}
+            iconBg   ={kpis.healthMedio >= 80 ? "bg-emerald-500/10" : kpis.healthMedio >= 60 ? "bg-amber-500/10" : "bg-red-500/10"} />
+          <KpiCard label="Expansão Aberta"   value={kpis.expansaoAberta}   icon={Zap}           iconColor="text-yellow-400" iconBg="bg-yellow-500/10"
+            sub={kpis.expansaoValor > 0 ? fmtCurrency(kpis.expansaoValor) : undefined} />
+          <KpiCard label="Tarefas Vencidas"  value={kpis.tarefasVencidas}  icon={ClipboardList}
             iconColor={kpis.tarefasVencidas > 0 ? "text-red-400" : "text-gray-400"}
-            iconBg={kpis.tarefasVencidas > 0 ? "bg-red-500/10" : "bg-gray-500/10"}
-            alert={kpis.tarefasVencidas > 0}
-          />
-          <KpiCard
-            label="Follow-ups Pendentes"
-            value={kpis.followupsPendentes}
-            icon={CalendarClock}
+            iconBg   ={kpis.tarefasVencidas > 0 ? "bg-red-500/10" : "bg-gray-500/10"}
+            alert    ={kpis.tarefasVencidas > 0} />
+          <KpiCard label="Follow-ups Pendentes" value={kpis.followupsPendentes} icon={CalendarClock}
             iconColor={kpis.followupsPendentes > 0 ? "text-amber-400" : "text-gray-400"}
-            iconBg={kpis.followupsPendentes > 0 ? "bg-amber-500/10" : "bg-gray-500/10"}
-          />
+            iconBg   ={kpis.followupsPendentes > 0 ? "bg-amber-500/10" : "bg-gray-500/10"} />
         </div>
 
         {/* ── Pipeline Funnel ─────────────────────────────────────────────── */}
         <div className="card p-5">
-          <SectionHeader
-            icon={<BarChart3 size={15} />}
-            title="Pipeline por Estágio"
-          />
+          <SectionHeader icon={<BarChart3 size={15} />} title="Pipeline por Estágio" />
           <div className="space-y-3">
             {pipelineByStage.map((s) => {
               const cfg = STAGE_COLORS[s.stage] ?? { bar: "bg-gray-400", text: "text-gray-400", bg: "bg-gray-500/10" };
               const pct = maxPipelineCount > 0 ? (s.count / maxPipelineCount) * 100 : 0;
               return (
                 <div key={s.stage} className="flex items-center gap-3">
-                  <div className="w-28 shrink-0 text-[11px] font-medium text-gray-400 text-right">
-                    {s.stage}
-                  </div>
+                  <div className="w-28 shrink-0 text-[11px] font-medium text-gray-400 text-right">{s.stage}</div>
                   <div className="flex-1 h-6 bg-gray-800/60 rounded-lg overflow-hidden relative">
-                    <div
-                      className={`h-full rounded-lg ${cfg.bar} transition-all duration-500`}
-                      style={{ width: `${Math.max(pct, s.count > 0 ? 4 : 0)}%` }}
-                    />
+                    <div className={`h-full rounded-lg ${cfg.bar} transition-all duration-500`}
+                      style={{ width: `${Math.max(pct, s.count > 0 ? 4 : 0)}%` }} />
                     {s.count > 0 && (
                       <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-white/90">
                         {s.count} opp{s.count !== 1 ? "s" : ""}
@@ -336,19 +267,11 @@ export default function JacqesCrmPage() {
 
           {/* Oportunidades Críticas */}
           <div className="card p-5">
-            <SectionHeader
-              icon={<AlertTriangle size={15} />}
-              title="Oportunidades Críticas"
-              linkLabel="Ver todas"
-              linkHref="/jacqes/crm/oportunidades"
-            />
+            <SectionHeader icon={<AlertTriangle size={15} />} title="Oportunidades Críticas"
+              linkLabel="Ver todas" linkHref="/jacqes/crm/oportunidades" />
             {oportunidadesCriticas.length === 0 ? (
-              <EmptyState
-                compact
-                icon={<CheckCircle2 size={16} className="text-emerald-400" />}
-                title="Nenhuma oportunidade crítica"
-                description="Tudo sob controle."
-              />
+              <EmptyState compact icon={<CheckCircle2 size={16} className="text-emerald-400" />}
+                title="Nenhuma oportunidade crítica" description="Tudo sob controle." />
             ) : (
               <div className="table-scroll">
                 <table className="w-full text-sm">
@@ -367,16 +290,10 @@ export default function JacqesCrmPage() {
                       return (
                         <tr key={o.id} className="border-b border-gray-800/50 hover:bg-gray-800/20">
                           <td className="py-2 px-2">
-                            <div className="text-[11px] font-semibold text-gray-200 truncate max-w-[140px]">
-                              {o.nome_oportunidade}
-                            </div>
-                            <div className="text-[10px] text-gray-600 truncate max-w-[140px]">
-                              {o.empresa}
-                            </div>
+                            <div className="text-[11px] font-semibold text-gray-200 truncate max-w-[140px]">{o.nome_oportunidade}</div>
+                            <div className="text-[10px] text-gray-600 truncate max-w-[140px]">{o.empresa}</div>
                           </td>
-                          <td className="py-2 px-2">
-                            <span className={stageBadgeClass(o.stage)}>{o.stage}</span>
-                          </td>
+                          <td className="py-2 px-2"><span className={stageBadgeClass(o.stage)}>{o.stage}</span></td>
                           <td className="py-2 px-2">
                             <span className={`text-[10px] font-medium ${past ? "text-red-400" : "text-gray-400"}`}>
                               {fmtDate(o.data_proxima_acao)}
@@ -395,19 +312,11 @@ export default function JacqesCrmPage() {
 
           {/* Tarefas Urgentes */}
           <div className="card p-5">
-            <SectionHeader
-              icon={<ClipboardList size={15} />}
-              title="Tarefas Urgentes"
-              linkLabel="Ver todas"
-              linkHref="/jacqes/crm/tarefas"
-            />
+            <SectionHeader icon={<ClipboardList size={15} />} title="Tarefas Urgentes"
+              linkLabel="Ver todas" linkHref="/jacqes/crm/tarefas" />
             {tarefasUrgentes.length === 0 ? (
-              <EmptyState
-                compact
-                icon={<CheckCircle2 size={16} className="text-emerald-400" />}
-                title="Sem tarefas urgentes"
-                description="Boa notícia — agenda limpa."
-              />
+              <EmptyState compact icon={<CheckCircle2 size={16} className="text-emerald-400" />}
+                title="Sem tarefas urgentes" description="Boa notícia — agenda limpa." />
             ) : (
               <div className="space-y-2.5">
                 {tarefasUrgentes.map((t) => {
@@ -417,9 +326,7 @@ export default function JacqesCrmPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-1">
                           <span className={prioClass(t.prioridade)}>{t.prioridade}</span>
-                          <span className="text-[10px] text-gray-600 bg-gray-800 px-1.5 py-0.5 rounded-md">
-                            {t.categoria}
-                          </span>
+                          <span className="text-[10px] text-gray-600 bg-gray-800 px-1.5 py-0.5 rounded-md">{t.categoria}</span>
                         </div>
                         <p className="text-[11px] font-medium text-gray-200 leading-snug">{t.titulo}</p>
                         <p className={`text-[10px] mt-1 ${past ? "text-red-400 font-semibold" : "text-gray-600"}`}>
@@ -437,25 +344,14 @@ export default function JacqesCrmPage() {
 
         {/* ── Últimas Interações ──────────────────────────────────────────── */}
         <div className="card p-5">
-          <SectionHeader
-            icon={<Activity size={15} />}
-            title="Últimas Interações"
-            linkLabel="Ver histórico"
-            linkHref="/jacqes/crm/interacoes"
-          />
+          <SectionHeader icon={<Activity size={15} />} title="Últimas Interações"
+            linkLabel="Ver histórico" linkHref="/jacqes/crm/interacoes" />
           {ultimasInteracoes.length === 0 ? (
-            <EmptyState
-              compact
-              icon={<Clock size={16} className="text-gray-400" />}
-              title="Sem interações registradas"
-            />
+            <EmptyState compact icon={<Clock size={16} className="text-gray-400" />} title="Sem interações registradas" />
           ) : (
             <div className="flex gap-3 overflow-x-auto pb-1">
               {ultimasInteracoes.map((i) => (
-                <div
-                  key={i.id}
-                  className="shrink-0 w-56 p-3.5 rounded-xl bg-gray-800/40 border border-gray-800 space-y-2"
-                >
+                <div key={i.id} className="shrink-0 w-56 p-3.5 rounded-xl bg-gray-800/40 border border-gray-800 space-y-2">
                   <div className="flex items-center gap-2">
                     <InteractionIcon tipo={i.tipo} />
                     <div className="min-w-0">
@@ -463,9 +359,7 @@ export default function JacqesCrmPage() {
                       <div className="text-[10px] text-gray-600">{fmtDate(i.data)}</div>
                     </div>
                   </div>
-                  <p className="text-[11px] text-gray-400 leading-relaxed line-clamp-3">
-                    {i.resumo}
-                  </p>
+                  <p className="text-[11px] text-gray-400 leading-relaxed line-clamp-3">{i.resumo}</p>
                   <div className="flex items-center justify-between pt-1 border-t border-gray-800">
                     <span className="text-[10px] text-gray-600">{i.responsavel}</span>
                     {i.risco_percebido !== "Baixo" && (

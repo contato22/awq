@@ -9,6 +9,7 @@ import {
   AlertTriangle, Plus, X, ChevronDown, Clock, Layers,
 } from "lucide-react";
 import type { CrmInteraction } from "@/lib/jacqes-crm-db";
+import { fetchCRM } from "@/lib/jacqes-crm-query";
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -121,9 +122,8 @@ export default function InteracoesPage() {
   const [saving, setSaving]         = useState(false);
 
   useEffect(() => {
-    fetch("/api/jacqes/crm/interacoes")
-      .then(r => r.json())
-      .then(d => { setInteracoes(d.interacoes ?? d ?? []); setLoading(false); })
+    fetchCRM<CrmInteraction>("interactions")
+      .then(d => { setInteracoes(d); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);
 

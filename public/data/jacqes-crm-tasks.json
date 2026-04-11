@@ -1,0 +1,30 @@
+[
+  {
+    "id": "task-001", "cliente_id": "cli-002", "opportunity_id": null, "lead_id": null,
+    "titulo": "Follow-up pagamento Carol Bertolini — Abr/26",
+    "categoria": "Follow-up Financeiro", "prioridade": "Alta", "status": "Aberta",
+    "responsavel": "Danilo", "data_criacao": "2026-04-10", "prazo": "2026-04-12",
+    "sla_horas": 24, "data_conclusao": null, "bloqueio": "", "retrabalho": false
+  },
+  {
+    "id": "task-002", "cliente_id": "cli-003", "opportunity_id": null, "lead_id": null,
+    "titulo": "Retorno André Vieira — revisão de contrato",
+    "categoria": "Gestão de Conta", "prioridade": "Alta", "status": "Aberta",
+    "responsavel": "Danilo", "data_criacao": "2026-04-08", "prazo": "2026-04-11",
+    "sla_horas": 48, "data_conclusao": null, "bloqueio": "", "retrabalho": false
+  },
+  {
+    "id": "task-003", "cliente_id": null, "opportunity_id": "opp-002", "lead_id": "lead-002",
+    "titulo": "Agendar call de diagnóstico com Fernanda Ribeiro",
+    "categoria": "Qualificação", "prioridade": "Média", "status": "Aberta",
+    "responsavel": "Danilo", "data_criacao": "2026-04-09", "prazo": "2026-04-13",
+    "sla_horas": 48, "data_conclusao": null, "bloqueio": "", "retrabalho": false
+  },
+  {
+    "id": "task-004", "cliente_id": null, "opportunity_id": "opp-001", "lead_id": null,
+    "titulo": "Responder dúvidas da proposta — Studio MKT",
+    "categoria": "Proposta", "prioridade": "Alta", "status": "Aberta",
+    "responsavel": "Danilo", "data_criacao": "2026-04-08", "prazo": "2026-04-14",
+    "sla_horas": 24, "data_conclusao": null, "bloqueio": "", "retrabalho": false
+  }
+]

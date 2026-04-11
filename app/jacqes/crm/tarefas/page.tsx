@@ -8,6 +8,7 @@ import {
   CheckSquare, AlertTriangle, Clock, Flame, BarChart2, Plus, X, ChevronDown,
 } from "lucide-react";
 import type { CrmTask } from "@/lib/jacqes-crm-db";
+import { fetchCRM } from "@/lib/jacqes-crm-query";
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -97,9 +98,8 @@ export default function TarefasPage() {
   const [saving, setSaving]     = useState(false);
 
   useEffect(() => {
-    fetch("/api/jacqes/crm/tarefas")
-      .then(r => r.json())
-      .then(d => { setTarefas(d.tarefas ?? d ?? []); setLoading(false); })
+    fetchCRM<CrmTask>("tasks")
+      .then(d => { setTarefas(d); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);
 

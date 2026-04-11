@@ -9,13 +9,8 @@ import {
   ArrowUpRight, Megaphone, Clock, Target,
   FileBarChart, RefreshCw, ChevronRight,
 } from "lucide-react";
-import {
-  SEED_OPPORTUNITIES,
-  SEED_CLIENTS,
-  PIPELINE_STAGES,
-  type CrmOpportunity,
-  type CrmClient,
-} from "@/lib/jacqes-crm-db";
+import { PIPELINE_STAGES, type CrmOpportunity, type CrmClient } from "@/lib/jacqes-crm-db";
+import { fetchCRM } from "@/lib/jacqes-crm-query";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -190,8 +185,10 @@ export default function RelatoriosPage() {
   const [clients, setClients] = useState<CrmClient[]>([]);
 
   useEffect(() => {
-    setOpps(SEED_OPPORTUNITIES);
-    setClients(SEED_CLIENTS);
+    Promise.all([
+      fetchCRM<CrmOpportunity>("opportunities"),
+      fetchCRM<CrmClient>("clients"),
+    ]).then(([o, c]) => { setOpps(o); setClients(c); });
   }, []);
 
   // ── Computed metrics ──────────────────────────────────────────────────────

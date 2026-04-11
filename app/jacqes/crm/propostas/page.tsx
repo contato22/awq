@@ -8,12 +8,8 @@ import {
   FileText, Send, CheckCircle2, DollarSign,
   ArrowRightLeft, CalendarDays,
 } from "lucide-react";
-import {
-  SEED_PROPOSALS,
-  SEED_OPPORTUNITIES,
-  type CrmProposal,
-  type CrmOpportunity,
-} from "@/lib/jacqes-crm-db";
+import type { CrmProposal, CrmOpportunity } from "@/lib/jacqes-crm-db";
+import { fetchCRM } from "@/lib/jacqes-crm-query";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -77,9 +73,10 @@ export default function PropostasPage() {
   const [loading,       setLoading]       = useState(true);
 
   useEffect(() => {
-    setProposals(SEED_PROPOSALS);
-    setOpportunities(SEED_OPPORTUNITIES);
-    setLoading(false);
+    Promise.all([
+      fetchCRM<CrmProposal>("proposals"),
+      fetchCRM<CrmOpportunity>("opportunities"),
+    ]).then(([p, o]) => { setProposals(p); setOpportunities(o); setLoading(false); });
   }, []);
 
   const totalPropostas  = proposals.length;

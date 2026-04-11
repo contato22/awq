@@ -8,12 +8,8 @@ import {
   HeartPulse, ShieldAlert, AlertTriangle, CheckCircle2,
   Clock, ArrowUpRight, X, Check, Activity, CalendarClock,
 } from "lucide-react";
-import {
-  SEED_HEALTH,
-  SEED_CLIENTS,
-  type CrmHealthSnapshot,
-  type CrmClient,
-} from "@/lib/jacqes-crm-db";
+import type { CrmHealthSnapshot, CrmClient } from "@/lib/jacqes-crm-db";
+import { fetchCRM } from "@/lib/jacqes-crm-query";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -190,9 +186,10 @@ export default function HealthPage() {
   const [loading,   setLoading]   = useState(true);
 
   useEffect(() => {
-    setSnapshots(SEED_HEALTH);
-    setClients(SEED_CLIENTS);
-    setLoading(false);
+    Promise.all([
+      fetchCRM<CrmHealthSnapshot>("health"),
+      fetchCRM<CrmClient>("clients"),
+    ]).then(([h, c]) => { setSnapshots(h); setClients(c); setLoading(false); });
   }, []);
 
   const avgHealth    = snapshots.length

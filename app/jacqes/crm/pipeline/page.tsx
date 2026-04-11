@@ -9,6 +9,7 @@ import {
   AlertTriangle, Clock, ArrowRight,
 } from "lucide-react";
 import type { CrmOpportunity } from "@/lib/jacqes-crm-db";
+import { fetchCRM } from "@/lib/jacqes-crm-query";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -126,10 +127,9 @@ export default function JacqesCrmPipelinePage() {
   const [activeStage, setActiveStage] = useState<Stage>("Todas");
 
   useEffect(() => {
-    fetch("/api/jacqes/crm/oportunidades")
-      .then((r) => r.json())
-      .then((d: CrmOpportunity[]) => { setOpps(d); setLoading(false); })
-      .catch((e) => { setError(String(e)); setLoading(false); });
+    fetchCRM<CrmOpportunity>("opportunities")
+      .then(d => { setOpps(d); setLoading(false); })
+      .catch(() => setLoading(false));
   }, []);
 
   // Derived summary metrics

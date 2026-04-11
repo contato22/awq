@@ -9,11 +9,10 @@ import {
   User, Zap, Target, CheckCircle2,
 } from "lucide-react";
 import {
-  SEED_CLIENTS,
-  SEED_EXPANSION,
   type CrmExpansion,
   type CrmClient,
 } from "@/lib/jacqes-crm-db";
+import { fetchCRM } from "@/lib/jacqes-crm-query";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -142,9 +141,10 @@ export default function ExpansaoPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setExpansions(SEED_EXPANSION);
-    setClients(SEED_CLIENTS);
-    setLoading(false);
+    Promise.all([
+      fetchCRM<CrmExpansion>("expansion"),
+      fetchCRM<CrmClient>("clients"),
+    ]).then(([e, c]) => { setExpansions(e); setClients(c); setLoading(false); });
   }, []);
 
   const totalPotencial = expansions.reduce((s, e) => s + e.valor_potencial, 0);

@@ -8,6 +8,7 @@ import {
   Users, DollarSign, Heart, TrendingUp, Plus, X, ChevronDown,
 } from "lucide-react";
 import type { CrmClient } from "@/lib/jacqes-crm-db";
+import { fetchCRM } from "@/lib/jacqes-crm-query";
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -80,9 +81,8 @@ export default function ClientesPage() {
   const [tooltip, setTooltip]   = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/jacqes/crm/clientes")
-      .then(r => r.json())
-      .then(d => { setClientes(d.clientes ?? d ?? []); setLoading(false); })
+    fetchCRM<CrmClient>("clients")
+      .then(d => { setClientes(d); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);
 

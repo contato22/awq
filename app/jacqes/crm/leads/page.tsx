@@ -7,6 +7,7 @@ import EmptyState from "@/components/EmptyState";
 import {
   Users, Star, Clock, Leaf, Plus, X, Filter, PlusCircle,
 } from "lucide-react";
+import { fetchCRM } from "@/lib/jacqes-crm-query";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -91,16 +92,9 @@ export default function LeadsPage() {
   async function fetchLeads() {
     setLoading(true);
     setError(null);
-    try {
-      const res = await fetch("/api/jacqes/crm/leads");
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      setLeads(data.leads ?? data ?? []);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Erro ao carregar leads.");
-    } finally {
-      setLoading(false);
-    }
+    fetchCRM<CrmLead>("leads")
+      .then(d => { setLeads(d); setLoading(false); })
+      .catch(() => { setError("Erro ao carregar leads."); setLoading(false); });
   }
 
   useEffect(() => { fetchLeads(); }, []);

@@ -8,7 +8,8 @@ import {
   Users, DollarSign, CheckCircle2, TrendingUp, ArrowUpRight,
   Percent, AlertTriangle,
 } from "lucide-react";
-import type { CrmClient } from "@/lib/jacqes-crm-db";
+import type { CrmClient, CrmExpansion } from "@/lib/jacqes-crm-db";
+import { fetchCRM } from "@/lib/jacqes-crm-query";
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -52,22 +53,18 @@ const STATUS_BAR: Record<string, string> = {
   "Em Risco":   "bg-red-500",
 };
 
-// Static expansion seed (matches SEED_EXPANSION)
-const EXPANSION_SEED = [
-  { clienteId: "cli-001", tipo: "Upsell",     valor: 4800 },
-  { clienteId: "cli-004", tipo: "Cross-sell", valor: 2500 },
-];
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function CarteiraActivaPage() {
-  const [clientes, setClientes] = useState<CrmClient[]>([]);
-  const [loading, setLoading]   = useState(true);
+  const [clientes,  setClientes]  = useState<CrmClient[]>([]);
+  const [expansion, setExpansion] = useState<CrmExpansion[]>([]);
+  const [loading,   setLoading]   = useState(true);
 
   useEffect(() => {
-    fetch("/api/jacqes/crm/clientes")
-      .then(r => r.json())
-      .then(d => { setClientes(d.clientes ?? d ?? []); setLoading(false); })
+    Promise.all([
+      fetchCRM<CrmClient>("clients"),
+      fetchCRM<CrmExpansion>("expansion"),
+    ]).then(([c, e]) => { setClientes(c); setExpansion(e); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);
 
@@ -77,7 +74,7 @@ export default function CarteiraActivaPage() {
   const mrr            = clientes.reduce((s, c) => s + c.ticket_mensal, 0);
   const recebido       = ativos.reduce((s, c) => s + c.ticket_mensal, 0);
   const taxaColeta     = mrr > 0 ? Math.round((recebido / mrr) * 100) : 0;
-  const expansaoTotal  = EXPANSION_SEED.reduce((s, e) => s + e.valor, 0);
+  const expansaoTotal  = expansion.filter(e => e.status !== "Fechado").reduce((s, e) => s + e.valor_potencial, 0);
 
   const mrrAtivos    = ativos.reduce((s, c) => s + c.ticket_mensal, 0);
   const mrrAtencao   = emAtencao.reduce((s, c) => s + c.ticket_mensal, 0);
@@ -119,7 +116,7 @@ export default function CarteiraActivaPage() {
             {
               label: "Expansão Aberta",    value: fmtCurrency(expansaoTotal),
               icon: TrendingUp,  color: "text-teal-600",    bg: "bg-teal-50",
-              sub:  `${EXPANSION_SEED.length} oportunidades`,
+              sub:  `${expansion.filter(e => e.status !== "Fechado").length} oportunidades`,
             },
           ].map(card => {
             const Icon = card.icon;
@@ -161,7 +158,7 @@ export default function CarteiraActivaPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-4">
               {clientes.map(c => {
-                const exp = EXPANSION_SEED.find(e => e.clienteId === c.id);
+                const exp = expansion.find(e => e.cliente_id === c.id && e.status !== "Fechado");
                 const barColor = STATUS_BAR[c.status_conta] ?? "bg-gray-300";
                 const avatarColor = STATUS_AVATAR[c.status_conta] ?? "bg-gray-100 text-gray-500";
                 return (
@@ -224,7 +221,7 @@ export default function CarteiraActivaPage() {
                         <ArrowUpRight size={13} className="shrink-0" />
                         <span className="font-semibold">{exp.tipo}</span>
                         <span className="text-teal-500">·</span>
-                        <span className="font-bold">{fmtCurrency(exp.valor)}</span>
+                        <span className="font-bold">{fmtCurrency(exp.valor_potencial)}</span>
                         <span className="text-teal-500 ml-auto">Potencial</span>
                       </div>
                     )}
