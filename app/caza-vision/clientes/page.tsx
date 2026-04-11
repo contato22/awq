@@ -62,17 +62,29 @@ export default function ClientesPage() {
   const [source, setSource]   = useState<"internal" | "static" | "empty" | "loading">("loading");
 
   useEffect(() => {
-    const url = IS_STATIC ? `${BASE_PATH}/data/caza-clients.json` : "/api/caza/clients";
-    fetch(url)
-      .then(r => r.ok ? r.json() : Promise.reject(r.status))
-      .then((data: ClienteRow[]) => {
-        setClients(Array.isArray(data) ? data : []);
-        setSource(Array.isArray(data) && data.length > 0
-          ? (IS_STATIC ? "static" : "internal")
-          : "empty"
-        );
-      })
-      .catch(() => { setClients([]); setSource("empty"); });
+    async function load() {
+      try {
+        const res = await fetch("/api/caza/clients");
+        if (res.ok) {
+          const data = await res.json() as ClienteRow[];
+          if (Array.isArray(data) && data.length > 0) {
+            setClients(data); setSource("internal"); return;
+          }
+        }
+      } catch { /* API unavailable — fall through */ }
+
+      try {
+        const res = await fetch(`${BASE_PATH}/data/caza-clients.json`);
+        if (res.ok) {
+          const data = await res.json() as ClienteRow[];
+          setClients(Array.isArray(data) ? data : []);
+          setSource(Array.isArray(data) && data.length > 0 ? "static" : "empty");
+          return;
+        }
+      } catch { /* ignore */ }
+      setClients([]); setSource("empty");
+    }
+    load();
   }, []);
 
   const total        = clients.length;

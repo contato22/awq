@@ -1,9 +1,13 @@
 {
   "kpis": [
-    { "id": "projetos",  "label": "Projetos Ativos",    "value": 5,     "unit": "number",   "icon": "Building2",     "color": "emerald" },
-    { "id": "receita",   "label": "Receita YTD",         "value": 82700, "unit": "currency", "icon": "DollarSign",    "color": "brand"   },
-    { "id": "entregues", "label": "Projetos Entregues",  "value": 12,    "unit": "number",   "icon": "HandshakeIcon", "color": "violet"  },
-    { "id": "ticket",    "label": "Ticket Médio",        "value": 6765,  "unit": "currency", "icon": "TrendingUp",    "color": "amber"   }
+    { "id": "projetos",        "label": "Projetos Ativos",   "value": 5,      "unit": "number",   "icon": "Building2",     "color": "emerald" },
+    { "id": "receita",         "label": "Receita YTD",        "value": 82700,  "unit": "currency", "icon": "DollarSign",    "color": "brand"   },
+    { "id": "entregues",       "label": "Projetos Entregues", "value": 12,     "unit": "number",   "icon": "HandshakeIcon", "color": "violet"  },
+    { "id": "ticket",          "label": "Ticket Médio",       "value": 6765,   "unit": "currency", "icon": "TrendingUp",    "color": "amber"   },
+    { "id": "total_projetos",  "label": "Total de Projetos",  "value": 17,     "unit": "number",   "icon": "Film",          "color": "brand"   },
+    { "id": "receita_total",   "label": "Receita Total",      "value": 115000, "unit": "currency", "icon": "DollarSign",    "color": "emerald" },
+    { "id": "taxa_entrega",    "label": "Taxa de Entrega",    "value": 70.6,   "unit": "percent",  "icon": "CheckCircle",   "color": "violet"  },
+    { "id": "clientes_ativos", "label": "Clientes Ativos",    "value": 6,      "unit": "number",   "icon": "Users",         "color": "amber"   }
   ],
   "revenueData": [
     { "month": "Abr/25", "receita": 30000, "expenses": 0, "profit": 30000, "orcamento": 30000 },

@@ -3,6 +3,12 @@
 // default → Vercel/Node (SSR + /api/chat proxy)
 const isStaticExport = process.env.STATIC_EXPORT === "1";
 
+// Pin NEXT_PUBLIC_STATIC_DATA to the actual build target.
+// NEXT_PUBLIC_* vars are inlined by Next.js at build time from process.env.
+// If the Vercel project has NEXT_PUBLIC_STATIC_DATA=1 leftover from a
+// GitHub Pages setup, this override ensures SSR builds always get "0".
+process.env.NEXT_PUBLIC_STATIC_DATA = isStaticExport ? "1" : "0";
+
 const nextConfig = {
     reactStrictMode: true,
 

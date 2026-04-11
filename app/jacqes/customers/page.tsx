@@ -3,9 +3,9 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-// Rota consolidada — hub canônico FP&A
-export default function Redirect() {
+// Customers consolidado no CRM Clientes — /jacqes/crm/clientes
+export default function CustomersRedirect() {
   const router = useRouter();
-  useEffect(() => { router.replace("/jacqes/fpa"); }, [router]);
+  useEffect(() => { router.replace("/jacqes/crm/clientes"); }, [router]);
   return null;
 }

@@ -1,17 +1,11 @@
-import Header from "@/components/Header";
-import EmptyState from "@/components/EmptyState";
-import { HeartPulse } from "lucide-react";
+"use client";
 
-export default function CsOpsPage() {
-  return (
-    <>
-      <Header title="CS Ops" subtitle="Customer Success Operations — JACQES" />
-      <EmptyState
-        icon={<HeartPulse size={20} className="text-gray-400" />}
-        title="CS Ops"
-        description="Em construção — em breve"
-        className="h-[60vh]"
-      />
-    </>
-  );
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+
+// CS Ops consolidado no CRM Health — /jacqes/crm/health
+export default function CsOpsRedirect() {
+  const router = useRouter();
+  useEffect(() => { router.replace("/jacqes/crm/health"); }, [router]);
+  return null;
 }

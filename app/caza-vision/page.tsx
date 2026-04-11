@@ -7,7 +7,7 @@ import EmptyState from "@/components/EmptyState";
 import {
   Building2, DollarSign, TrendingUp, ArrowUpRight,
   Film, CheckCircle2, AlertTriangle, CheckCircle,
-  BarChart3, Database, CloudOff,
+  BarChart3, Database, CloudOff, Users,
 } from "lucide-react";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -33,22 +33,39 @@ interface StatsPayload {
   revenueData: { month: string; receita: number; expenses: number; profit: number; orcamento: number }[];
   pipeline: { stage: string; count: number }[];
   projectTypeRevenue: { type: string; projetos: number; receita: number; avgValue: number }[];
+  total_despesas?:    number;
+  total_lucro?:       number;
+  margem_media?:      number;
+  projetos_proximos?: number;
   source: string;
 }
 
 async function loadStats(): Promise<StatsPayload | null> {
+  // Try internal Neon DB first; fall back to static snapshot if empty or unavailable.
   try {
-    const url = IS_STATIC ? `${BASE_PATH}/data/caza-stats.json` : "/api/caza/stats";
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.json() as StatsPayload;
-  } catch { return null; }
+    const res = await fetch("/api/caza/stats");
+    if (res.ok) {
+      const data = await res.json() as StatsPayload;
+      if (data?.kpis?.length > 0) return data;
+    }
+  } catch { /* API unavailable (e.g. GitHub Pages) — fall through */ }
+
+  try {
+    const res = await fetch(`${BASE_PATH}/data/caza-stats.json`);
+    if (res.ok) {
+      const data = await res.json() as StatsPayload;
+      // Mark source as static so the badge reflects correctly
+      return { ...data, source: data.source ?? "static" };
+    }
+  } catch { /* ignore */ }
+  return null;
 }
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 const kpiIconMap: Record<string, React.ElementType> = {
   Building2, DollarSign, HandshakeIcon: CheckCircle2, TrendingUp,
+  Film, CheckCircle, Users,
 };
 const kpiColorMap: Record<string, { text: string; bg: string }> = {
   emerald: { text: "text-emerald-600", bg: "bg-emerald-50" },
@@ -79,6 +96,10 @@ export default function CazaVisionPage() {
   const projectTypeRev = stats?.projectTypeRevenue ?? [];
   const source         = stats?.source ?? null;
 
+  // Split KPIs into primary (first 4) and secondary (rest)
+  const kpisPrimary   = kpis.slice(0, 4);
+  const kpisSecondary = kpis.slice(4);
+
   const lastMonth = revenueData.length > 0 ? revenueData[revenueData.length - 1] : null;
   const prevMonth = revenueData.length > 1 ? revenueData[revenueData.length - 2] : null;
 
@@ -95,6 +116,11 @@ export default function CazaVisionPage() {
                 <Database size={11} /> Base interna AWQ
               </span>
             )}
+            {(source === "static" || source === "notion") && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-xs text-blue-600">
+                <Database size={11} /> Snapshot estático
+              </span>
+            )}
             {(source === "empty" || source === null) && (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-xs text-amber-700">
                 <CloudOff size={11} /> Sem dados — importe do Notion ou crie internamente
@@ -105,9 +131,10 @@ export default function CazaVisionPage() {
 
         {/* KPI Cards */}
         {kpis.length > 0 ? (
-          <section>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {kpis.map((kpi) => {
+          <section className="space-y-3">
+            {/* Row 1 — Operacional */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {kpisPrimary.map((kpi) => {
                 const Icon   = kpiIconMap[kpi.icon] ?? Building2;
                 const colors = kpiColorMap[kpi.color] ?? kpiColorMap.emerald;
                 const displayValue =
@@ -127,6 +154,30 @@ export default function CazaVisionPage() {
                 );
               })}
             </div>
+            {/* Row 2 — Consolidado */}
+            {kpisSecondary.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {kpisSecondary.map((kpi) => {
+                  const Icon   = kpiIconMap[kpi.icon] ?? Building2;
+                  const colors = kpiColorMap[kpi.color] ?? kpiColorMap.emerald;
+                  const displayValue =
+                    kpi.unit === "currency" ? fmtCurrency(kpi.value)
+                    : kpi.unit === "percent" ? kpi.value.toFixed(1) + "%"
+                    : fmtNumber(kpi.value);
+                  return (
+                    <div key={kpi.id} className="card card-hover p-4 flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-lg ${colors.bg} flex items-center justify-center shrink-0`}>
+                        <Icon size={15} className={colors.text} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-lg font-bold text-gray-900 tabular-nums tracking-tight">{displayValue}</div>
+                        <div className="text-[11px] font-medium text-gray-400 mt-0.5">{kpi.label}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </section>
         ) : !loading && (
           <EmptyState compact title="Sem KPIs" description="Importe projetos do Notion ou crie registros internamente." />
