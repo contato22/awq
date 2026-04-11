@@ -21,7 +21,6 @@ import {
     Bot,
     Sparkles,
     LogOut,
-    Tag,
     Building2,
     LineChart,
     Film,
@@ -71,10 +70,7 @@ function isVentureRoute(pathname: string) {
 const jacqesNav = [
     { label: "Visão Geral",    href: "/jacqes",             icon: LayoutDashboard },
     { label: "FP&A",           href: "/jacqes/fpa",         icon: BarChart3       },
-    { label: "Desempenho",     href: "/jacqes/desempenho",  icon: TrendingUp      },
-    { label: "Análise",        href: "/jacqes/analise",     icon: Activity        },
     { label: "Relatórios",     href: "/jacqes/reports",     icon: BarChart3       },
-    { label: "Categorias",     href: "/jacqes/categorias",  icon: Tag             },
 ];
 
 // CRM sub-navigation — todos os módulos do CRM JACQES
