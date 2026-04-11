@@ -266,11 +266,13 @@ export const budgetVsActual =
 
 // ─── Monthly consolidated revenue (Jan–Mar 2026 per BU) ──────────────────────
 export interface MonthlyPoint {
-  month:    string;
-  jacqes:   number;
-  caza:     number;
-  advisor:  number;
-  total:    number;
+  month:        string;
+  jacqes:       number;
+  caza:         number;
+  advisor:      number;
+  total:        number;
+  /** true = período não fechado (estimativa); false/undefined = realizado */
+  is_forecast?: boolean;
 }
 
 // ⚠  CORRECTED 2026-04-08 — Advisor is pre_revenue (revenue = 0). Previous entries
@@ -278,12 +280,15 @@ export interface MonthlyPoint {
 // buData.advisor.revenue = 0. Zeroed here. total = jacqes + caza only.
 // Jan/Fev/Mar: JACQES_MRR_Q1 = 6.490 (3 clientes, sem Tati)
 // Abr: JACQES_MRR = 8.280 (Tati entrou início de Abr, já paga)
-const _monthlyRaw = [
+type MonthlyRaw = Omit<MonthlyPoint, "total">;
+const _monthlyRaw: MonthlyRaw[] = [
   { month: "Jan/26", jacqes: JACQES_MRR_Q1, caza:  712_000, advisor: 0 },
   { month: "Fev/26", jacqes: JACQES_MRR_Q1, caza:  798_000, advisor: 0 },
   { month: "Mar/26", jacqes: JACQES_MRR_Q1, caza:  908_000, advisor: 0 },
-  { month: "Abr/26", jacqes: JACQES_MRR,    caza:        0, advisor: 0 },
-] as const;
+  // is_forecast: true — Caza Abr/26 ainda não fechado (caza=0 = estimativa, não zero real).
+  // JACQES Abr confirmado (Tati Simões entrou início Abr, já paga = JACQES_MRR = 8.280).
+  { month: "Abr/26", jacqes: JACQES_MRR,    caza:        0, advisor: 0, is_forecast: true },
+];
 
 export const monthlyRevenue: MonthlyPoint[] = _monthlyRaw.map(m => ({
   ...m,
@@ -349,13 +354,17 @@ export const riskSignals: RiskSignal[] = [
     threshold:   "Posição empírica — print 02/04/2026",
   },
   {
+    // ⚠  CORRECTED 2026-04-11 — previous entry referenced "André Teixeira (R$6.2M AUM, NPS 68)",
+    // a fictitious client that survived the 2026-04-08 Advisor correction.
+    // Advisor economicType = "pre_revenue" with customers = 0 and revenue = 0.
+    // The AUM, NPS, and client name were unverified planning data with no empirical backing.
     id: "R6",
-    title:       "Cliente em Risco — Advisor",
-    description: "André Teixeira (R$6.2M AUM, NPS 68) em revisão contratual — risco de saída.",
+    title:       "Advisor — Em Construção (Pré-Receita)",
+    description: "Advisor é uma camada estratégica em construção. Nenhum cliente operacional confirmado. Revenue = R$0, AUM = R$0. Sem meta de receita até primeiro contrato.",
     severity:    "low",
     bu:          "Advisor",
-    metric:      "AUM em risco: R$6.2M",
-    threshold:   "NPS: 68 (alerta <70)",
+    metric:      "Clientes: 0 · Revenue: R$0",
+    threshold:   "economicType: pre_revenue",
   },
 ];
 
@@ -575,10 +584,12 @@ export const riskCategories: RiskCategory[] = [
     details: [
       { label: "CV002 — Banco XP (Caza)", share: 0, mrr: 320_000, risk: "Alto",  days: 8 },
       { label: "CV008 — Nubank (Caza)",   share: 0, mrr: 145_000, risk: "Médio", days: 5 },
-      { label: "Banco XP Advisory",       share: 0, mrr:  42_000, risk: "Baixo", days: 3 },
+      // ⚠  CORRECTED 2026-04-11 — "Banco XP Advisory" (R$42K) removido.
+      //    Advisor é pre_revenue com customers=0. Recebível era dado fictício pré-2026-04-08.
+      //    Total corrigido de R$507K → R$465K.
     ],
     threshold: "Limite: total ≤ R$200K",
-    current:   "Total em aberto: R$507K",
+    current:   "Total em aberto: R$465K",
     action:    "Cobrança ativa Banco XP (CV002) — prazo expirado",
   },
   {
