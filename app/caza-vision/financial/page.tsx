@@ -63,18 +63,18 @@ export default function CazaFinancialPage() {
   const [source, setSource] = useState<"internal" | "static" | "empty" | "loading">("loading");
 
   useEffect(() => {
-    // Always try the internal Neon DB first; fall back to static JSON if empty or unavailable.
-    // This ensures live data is shown even when NEXT_PUBLIC_STATIC_DATA was baked as "1".
     async function load() {
-      try {
-        const res = await fetch("/api/caza/financial");
-        if (res.ok) {
-          const data = await res.json() as MonthRow[];
-          if (Array.isArray(data) && data.length > 0) {
-            setRows(data); setSource("internal"); return;
+      if (!IS_STATIC) {
+        try {
+          const res = await fetch("/api/caza/financial");
+          if (res.ok) {
+            const data = await res.json() as MonthRow[];
+            if (Array.isArray(data) && data.length > 0) {
+              setRows(data); setSource("internal"); return;
+            }
           }
-        }
-      } catch { /* API unavailable (e.g. GitHub Pages) — fall through */ }
+        } catch { /* API unavailable — fall through */ }
+      }
 
       // Fallback: static snapshot
       try {
