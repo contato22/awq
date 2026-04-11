@@ -54,17 +54,29 @@ export default function ProjetosPage() {
   const [source, setSource] = useState<"internal" | "static" | "empty" | "loading">("loading");
 
   useEffect(() => {
-    const url = IS_STATIC ? `${BASE_PATH}/data/caza-properties.json` : "/api/caza/projects";
-    fetch(url)
-      .then(r => r.ok ? r.json() : Promise.reject(r.status))
-      .then((data: ProjetoRow[]) => {
-        setRows(Array.isArray(data) ? data : []);
-        setSource(Array.isArray(data) && data.length > 0
-          ? (IS_STATIC ? "static" : "internal")
-          : "empty"
-        );
-      })
-      .catch(() => { setRows([]); setSource("empty"); });
+    async function load() {
+      try {
+        const res = await fetch("/api/caza/projects");
+        if (res.ok) {
+          const data = await res.json() as ProjetoRow[];
+          if (Array.isArray(data) && data.length > 0) {
+            setRows(data); setSource("internal"); return;
+          }
+        }
+      } catch { /* API unavailable — fall through */ }
+
+      try {
+        const res = await fetch(`${BASE_PATH}/data/caza-properties.json`);
+        if (res.ok) {
+          const data = await res.json() as ProjetoRow[];
+          setRows(Array.isArray(data) ? data : []);
+          setSource(Array.isArray(data) && data.length > 0 ? "static" : "empty");
+          return;
+        }
+      } catch { /* ignore */ }
+      setRows([]); setSource("empty");
+    }
+    load();
   }, []);
 
   const total         = rows.length;

@@ -37,12 +37,24 @@ interface StatsPayload {
 }
 
 async function loadStats(): Promise<StatsPayload | null> {
+  // Try internal Neon DB first; fall back to static snapshot if empty or unavailable.
   try {
-    const url = IS_STATIC ? `${BASE_PATH}/data/caza-stats.json` : "/api/caza/stats";
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.json() as StatsPayload;
-  } catch { return null; }
+    const res = await fetch("/api/caza/stats");
+    if (res.ok) {
+      const data = await res.json() as StatsPayload;
+      if (data?.kpis?.length > 0) return data;
+    }
+  } catch { /* API unavailable (e.g. GitHub Pages) — fall through */ }
+
+  try {
+    const res = await fetch(`${BASE_PATH}/data/caza-stats.json`);
+    if (res.ok) {
+      const data = await res.json() as StatsPayload;
+      // Mark source as static so the badge reflects correctly
+      return { ...data, source: data.source ?? "static" };
+    }
+  } catch { /* ignore */ }
+  return null;
 }
 
 // ─── Config ───────────────────────────────────────────────────────────────────
@@ -93,6 +105,11 @@ export default function CazaVisionPage() {
             {source === "internal" && (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-xs text-emerald-600">
                 <Database size={11} /> Base interna AWQ
+              </span>
+            )}
+            {(source === "static" || source === "notion") && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-xs text-blue-600">
+                <Database size={11} /> Snapshot estático
               </span>
             )}
             {(source === "empty" || source === null) && (
