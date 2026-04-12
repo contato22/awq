@@ -40,7 +40,11 @@ jobs:
           NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
           NOTION_DATABASE_ID_CAZA_PROPERTIES: ${{ secrets.NOTION_DATABASE_ID_CAZA_PROPERTIES }}
           NOTION_DATABASE_ID_CAZA_FINANCIAL: ${{ secrets.NOTION_DATABASE_ID_CAZA_FINANCIAL }}
-          NOTION_DATABASE_ID_CAZA_CLIENTS: ${{ secrets.NOTION_DATABASE_ID_CAZA_CLIENTS }}
+          # NOTION_DATABASE_ID_CAZA_CLIENTS deliberately omitted: the committed
+          # caza-clients.json is the source of truth until real data is added.
+          # To re-enable Notion sync for clients, add real records to the Notion
+          # database, then uncomment the line below:
+          # NOTION_DATABASE_ID_CAZA_CLIENTS: ${{ secrets.NOTION_DATABASE_ID_CAZA_CLIENTS }}
           NOTION_DATABASE_ID_VENTURE_SALES: ${{ secrets.NOTION_DATABASE_ID_VENTURE_SALES }}
 
       - name: Verify data (diagnose empty vs real)
