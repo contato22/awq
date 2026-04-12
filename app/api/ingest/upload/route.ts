@@ -19,6 +19,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
+import { guard } from "@/lib/security-guard";
 import fs from "fs";
 import path from "path";
 import {
@@ -46,9 +47,20 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   // ── Ensure DB schema exists (idempotent) ──
   await initDB();
 
-  // ── Auth: extract user email from JWT (correct for App Router) ──
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  // ── Auth: extract JWT + RBAC guard ──
+  const token     = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   const userEmail = (token?.email as string | undefined) ?? "anonymous";
+  const userRole  = (token?.role  as string | undefined) ?? "anonymous";
+
+  const { result: guardResult, reason: guardReason } = guard(
+    userEmail, userRole, "/api/ingest/upload", "dados_infra", "import", "Extrato bancário PDF"
+  );
+  if (guardResult === "blocked") {
+    return NextResponse.json(
+      { error: "Acesso negado", code: "RBAC_DENIED", reason: guardReason },
+      { status: 403 }
+    );
+  }
 
   // ── Parse multipart form ──
   let formData: FormData;

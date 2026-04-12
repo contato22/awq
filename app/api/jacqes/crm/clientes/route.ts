@@ -1,16 +1,23 @@
 // GET /api/jacqes/crm/clientes   — lista clientes CRM
 // POST /api/jacqes/crm/clientes  — cria cliente
 import { NextRequest, NextResponse } from "next/server";
+import { apiGuard } from "@/lib/api-guard";
 import { listCrmClients, createCrmClient } from "@/lib/jacqes-crm-db";
 
 export const runtime = "nodejs";
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(req: NextRequest): Promise<NextResponse> {
+  const denied = await apiGuard(req, "view", "jacqes", "CRM JACQES — Clientes");
+  if (denied) return denied;
+
   const clients = await listCrmClients();
   return NextResponse.json(clients);
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  const denied = await apiGuard(req, "create", "jacqes", "CRM JACQES — Clientes");
+  if (denied) return denied;
+
   try {
     const body = await req.json();
     if (!body.nome?.trim()) {

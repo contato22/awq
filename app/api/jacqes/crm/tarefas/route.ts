@@ -1,16 +1,23 @@
 // GET /api/jacqes/crm/tarefas   — lista tarefas
 // POST /api/jacqes/crm/tarefas  — cria tarefa
 import { NextRequest, NextResponse } from "next/server";
+import { apiGuard } from "@/lib/api-guard";
 import { listTasks, createTask } from "@/lib/jacqes-crm-db";
 
 export const runtime = "nodejs";
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(req: NextRequest): Promise<NextResponse> {
+  const denied = await apiGuard(req, "view", "jacqes", "CRM JACQES — Tarefas");
+  if (denied) return denied;
+
   const tasks = await listTasks();
   return NextResponse.json(tasks);
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  const denied = await apiGuard(req, "create", "jacqes", "CRM JACQES — Tarefas");
+  if (denied) return denied;
+
   try {
     const body = await req.json();
     if (!body.titulo?.trim()) {

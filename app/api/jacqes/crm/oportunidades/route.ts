@@ -1,16 +1,23 @@
 // GET /api/jacqes/crm/oportunidades   — lista oportunidades
 // POST /api/jacqes/crm/oportunidades  — cria oportunidade
 import { NextRequest, NextResponse } from "next/server";
+import { apiGuard } from "@/lib/api-guard";
 import { listOpportunities, createOpportunity } from "@/lib/jacqes-crm-db";
 
 export const runtime = "nodejs";
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(req: NextRequest): Promise<NextResponse> {
+  const denied = await apiGuard(req, "view", "jacqes", "CRM JACQES — Oportunidades");
+  if (denied) return denied;
+
   const opps = await listOpportunities();
   return NextResponse.json(opps);
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  const denied = await apiGuard(req, "create", "jacqes", "CRM JACQES — Oportunidades");
+  if (denied) return denied;
+
   try {
     const body = await req.json();
     if (!body.nome_oportunidade?.trim()) {

@@ -1,5 +1,6 @@
 // GET /api/jacqes/crm/stats — visão geral do CRM JACQES
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { apiGuard } from "@/lib/api-guard";
 import {
   listLeads, listOpportunities, listCrmClients,
   listTasks, listInteractions, listExpansion, listHealth,
@@ -8,7 +9,11 @@ import {
 
 export const runtime = "nodejs";
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(req: NextRequest): Promise<NextResponse> {
+  // ── RBAC guard: view em jacqes ──
+  const denied = await apiGuard(req, "view", "jacqes", "CRM JACQES — Stats");
+  if (denied) return denied;
+
   const [leads, opps, clients, tasks, interactions, expansion, health] = await Promise.all([
     listLeads(), listOpportunities(), listCrmClients(),
     listTasks(), listInteractions(), listExpansion(), listHealth(),

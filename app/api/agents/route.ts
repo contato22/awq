@@ -14,6 +14,8 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest } from "next/server";
+import { getToken } from "next-auth/jwt";
+import { guard } from "@/lib/security-guard";
 import { AGENTS } from "@/lib/agents-config";
 import { AGENT_TOOLS, executeTool } from "@/lib/agent-tools";
 
@@ -27,6 +29,20 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  // ── RBAC guard: view em ai — owner, admin, finance, operator permitidos ──
+  const token   = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  const user_id = (token?.email as string | undefined) ?? "anonymous";
+  const rawRole = (token?.role  as string | undefined) ?? "anonymous";
+  const { result: guardResult, reason: guardReason } = guard(
+    user_id, rawRole, "/api/agents", "ai", "view", "Agentes IA"
+  );
+  if (guardResult === "blocked") {
+    return new Response(
+      JSON.stringify({ error: "Acesso negado", code: "RBAC_DENIED", reason: guardReason }),
+      { status: 403, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
   try {
     const { agentId } = await req.json();
 
