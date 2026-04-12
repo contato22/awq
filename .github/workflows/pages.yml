@@ -5,6 +5,9 @@ on:
     branches:
       - main
   workflow_dispatch:
+  schedule:
+    # Rebuild daily at 03:00 UTC to pick up Notion changes automatically
+    - cron: "0 3 * * *"
 
 permissions:
   contents: write
@@ -25,16 +28,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Fetch data for static export (Neon DB preferred, Notion fallback)
+      - name: Fetch data for static export (Notion as source of truth)
         run: node scripts/fetch-notion-static.mjs
         env:
-          # ── Canonical source (Neon DB) ─────────────────────────────────────
-          # When set, exports from internal DB — Notion is NOT queried for Caza data.
-          # Configure DATABASE_URL in GitHub repo secrets to activate this path.
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          # ── Reference/import source (Notion fallback) ──────────────────────
-          # Used only when DATABASE_URL is not set.
-          # NOTION_TOKEN is the primary variable; NOTION_API_KEY is legacy alias.
+          # ── GitHub Pages static build always uses Notion ───────────────────
+          # DATABASE_URL is intentionally NOT passed here: Neon is the
+          # operational DB for Vercel SSR only. The static vitrine must always
+          # reflect Notion (the source of truth), not a potentially-stale DB.
+          # ── Notion credentials ─────────────────────────────────────────────
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
           NOTION_DATABASE_ID_CAZA_PROPERTIES: ${{ secrets.NOTION_DATABASE_ID_CAZA_PROPERTIES }}
@@ -56,7 +57,7 @@ jobs:
             console.log('clients:', cli.length, 'records');
             console.log('stats source:', stats.source);
             if (props.length === 0 && fin.length === 0 && cli.length === 0) {
-              console.error('WARNING: all Caza data files are empty — check NOTION_TOKEN or DATABASE_URL secret');
+              console.error('WARNING: all Caza data files are empty — check NOTION_TOKEN secret in repo settings');
             } else {
               console.log('OK: real data fetched successfully');
             }
