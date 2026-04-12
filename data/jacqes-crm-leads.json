@@ -1,0 +1,26 @@
+[
+  {
+    "id": "lead-001", "nome": "Marcos Oliveira", "empresa": "Studio MKT",
+    "contato_principal": "Marcos Oliveira", "telefone": "+55 11 98888-0001",
+    "email": "marcos@studiomkt.com.br", "origem": "Indicação", "segmento": "Marketing Digital",
+    "canal": "WhatsApp", "interesse": "Gestão de redes + tráfego pago",
+    "status": "Qualificando", "owner": "Danilo", "data_entrada": "2026-04-03",
+    "observacoes": "Indicado pela CEM. Orçamento estimado ~R$3.000/mês."
+  },
+  {
+    "id": "lead-002", "nome": "Fernanda Ribeiro", "empresa": "Fernanda Ribeiro ME",
+    "contato_principal": "Fernanda Ribeiro", "telefone": "+55 21 97777-0002",
+    "email": "fernanda@fernrib.com", "origem": "Instagram", "segmento": "Moda / Influência",
+    "canal": "DM Instagram", "interesse": "FEE Mensal + Conteúdo",
+    "status": "Novo", "owner": "Danilo", "data_entrada": "2026-04-09",
+    "observacoes": "Chegou pelo perfil da JACQES. Primeiro contato feito."
+  },
+  {
+    "id": "lead-003", "nome": "Roberto Nascimento", "empresa": "Grupo Nasc",
+    "contato_principal": "Roberto Nascimento", "telefone": "+55 31 96666-0003",
+    "email": "roberto@gruponasc.com", "origem": "LinkedIn", "segmento": "Varejo",
+    "canal": "LinkedIn", "interesse": "Estratégia + Branding",
+    "status": "Nurturing", "owner": "Danilo", "data_entrada": "2026-03-21",
+    "observacoes": "Bom potencial mas timing não ideal. Nutrir até Q3/26."
+  }
+]
