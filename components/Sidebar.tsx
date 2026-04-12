@@ -98,7 +98,7 @@ const crmNav = [
 
 const cazaNav = [
     { label: "Visão Geral",    href: "/caza-vision",                   icon: LayoutDashboard },
-    { label: "Projetos",       href: "/caza-vision/imoveis",           icon: Film            },
+    { label: "Projetos",       href: "/caza-vision/projetos",          icon: Film            },
     { label: "Clientes",       href: "/caza-vision/clientes",          icon: Users           },
     { label: "Financial",      href: "/caza-vision/financial",         icon: DollarSign      },
     { label: "Unit Economics", href: "/caza-vision/unit-economics",    icon: Calculator      },

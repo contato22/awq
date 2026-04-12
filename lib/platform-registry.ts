@@ -151,12 +151,18 @@ export const PLATFORM_ROUTES: PlatformRoute[] = [
   { href: "/financial",  label: "Financial",   bu: "jacqes", layer: "bu-financial",  status: "redirect", dataSource: "n/a", inSidebar: false, inTabNav: false, canonical: "/jacqes/financial"  },
 
   // ── Caza Vision — Produtora ───────────────────────────────────────────────
-  { href: "/caza-vision",                label: "Visão Geral",    bu: "caza", layer: "bu-overview",   status: "active", dataSource: "lib/caza-data.ts",                                                         inSidebar: true,  inTabNav: false },
-  { href: "/caza-vision/imoveis",        label: "Projetos",       bu: "caza", layer: "bu-operations", status: "active", dataSource: "lib/caza-data.ts",                                                         inSidebar: true,  inTabNav: false },
-  { href: "/caza-vision/clientes",       label: "Clientes",       bu: "caza", layer: "bu-operations", status: "active", dataSource: "lib/caza-data.ts + Notion",                                                inSidebar: true,  inTabNav: false },
-  { href: "/caza-vision/financial",      label: "Financial",      bu: "caza", layer: "bu-financial",  status: "active", dataSource: "Notion API (receita projetos, accrual) — aviso bancário na página",        inSidebar: true,  inTabNav: false },
-  { href: "/caza-vision/unit-economics", label: "Unit Economics", bu: "caza", layer: "bu-operations", status: "active", dataSource: "lib/caza-data.ts",                                                         inSidebar: true,  inTabNav: false },
-  { href: "/caza-vision/import",         label: "Importar",       bu: "caza", layer: "bu-operations", status: "active", dataSource: "lib/notion-import.ts + Notion API — importação de projetos/clientes",      inSidebar: true,  inTabNav: false },
+  { href: "/caza-vision",                label: "Visão Geral",    bu: "caza", layer: "bu-overview",   status: "active",   dataSource: "lib/caza-data.ts",                                                         inSidebar: true,  inTabNav: false },
+  // CANONICAL: /caza-vision/projetos — Caza Vision é produtora/audiovisual, não imobiliária.
+  // "Projetos" é a entidade correta (jobs audiovisuais, campanhas, produções).
+  { href: "/caza-vision/projetos",       label: "Projetos",       bu: "caza", layer: "bu-operations", status: "active",   dataSource: "/api/caza/projects (interno) → public/data/caza-properties.json (static snapshot)", inSidebar: true,  inTabNav: false },
+  // LEGACY REDIRECT: /caza-vision/imoveis → /caza-vision/projetos
+  // Mantido apenas para compatibilidade com bookmarks e links externos.
+  // NÃO aparecer em sidebar. NÃO usar em novos links. Rota semânticamente errada.
+  { href: "/caza-vision/imoveis",        label: "Projetos (legado)", bu: "caza", layer: "bu-operations", status: "redirect", dataSource: "→ /caza-vision/projetos (redirect legado — rota imobiliária incorreta para BU audiovisual)", inSidebar: false, inTabNav: false, canonical: "/caza-vision/projetos" },
+  { href: "/caza-vision/clientes",       label: "Clientes",       bu: "caza", layer: "bu-operations", status: "active",   dataSource: "lib/caza-data.ts + Notion",                                                inSidebar: true,  inTabNav: false },
+  { href: "/caza-vision/financial",      label: "Financial",      bu: "caza", layer: "bu-financial",  status: "active",   dataSource: "Notion API (receita projetos, accrual) — aviso bancário na página",        inSidebar: true,  inTabNav: false },
+  { href: "/caza-vision/unit-economics", label: "Unit Economics", bu: "caza", layer: "bu-operations", status: "active",   dataSource: "lib/caza-data.ts",                                                         inSidebar: true,  inTabNav: false },
+  { href: "/caza-vision/import",         label: "Importar",       bu: "caza", layer: "bu-operations", status: "active",   dataSource: "lib/notion-import.ts + Notion API — importação de projetos/clientes",      inSidebar: true,  inTabNav: false },
   // Not yet implemented — add to sidebar only after page is created
   // { href: "/caza-vision/pipeline",    label: "Pipeline",        status: "stub", inSidebar: false }
   // { href: "/caza-vision/relatorios",  label: "Relatórios",      status: "stub", inSidebar: false }

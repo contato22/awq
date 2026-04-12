@@ -271,7 +271,7 @@ export default function CazaVisionPage() {
         {/* Recent Projects — link to full list */}
         <section className="card p-5 lg:p-6">
           <SectionHeader icon={<Film size={15} className="text-violet-500" />} title="Projetos Recentes"
-            linkLabel="Ver todos" linkHref="/caza-vision/imoveis" />
+            linkLabel="Ver todos" linkHref="/caza-vision/projetos" />
           <EmptyState compact title="Acesse Projetos" description="Visualize e gerencie todos os projetos na página de Projetos." />
         </section>
 
