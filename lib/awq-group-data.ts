@@ -560,20 +560,32 @@ export interface RiskCategory {
 
 export const riskCategories: RiskCategory[] = [
   {
+    // ⚠  CORRECTED 2026-04-11 — previous entries showed Ambev (R$420K), Samsung (R$350K),
+    // Natura (R$310K) as JACQES clients. These are FICTITIOUS — JACQES has 4 confirmed clients
+    // from Notion CRM (Apr/2026): CEM R$3.200, Carol Bertolini R$1.790, André Vieira R$1.500,
+    // Tati Simões R$1.790. Total MRR = R$8.280. Concentration updated to reflect real state.
+    //
+    // Real shares (of MRR R$8.280):
+    //   CEM:             3.200 / 8.280 = 38.6%  →  share: 39
+    //   Tati Simões:     1.790 / 8.280 = 21.6%  →  share: 22
+    //   Carol Bertolini: 1.790 / 8.280 = 21.6%  →  share: 22
+    //   André Vieira:    1.500 / 8.280 = 18.1%  →  share: 18
+    //   Top-3 (CEM+Tati+Carol): 39+22+22 = 83% — concentration is CRITICAL (threshold 40%)
     id: "concentration",
-    title:     "Concentração de Cliente",
+    title:     "Concentração de Cliente — JACQES",
     iconKey:   "users",
     colorKey:  "red",
     severity:  "high",
     details: [
-      { label: "Ambev (JACQES)",           share: 20, mrr: 420_000,   risk: "Alto"    },
-      { label: "Samsung (JACQES)",         share: 16, mrr: 350_000,   risk: "Alto"    },
-      { label: "Natura (JACQES)",          share: 14, mrr: 310_000,   risk: "Médio"   },
-      { label: "Ambev + Samsung + Natura", share: 50, mrr: 1_080_000, risk: "Crítico", isTotal: true },
+      { label: "CEM",                             share: 39, mrr: 3_200, risk: "Crítico"  },
+      { label: "Tati Simões",                     share: 22, mrr: 1_790, risk: "Alto"     },
+      { label: "Carol Bertolini",                 share: 22, mrr: 1_790, risk: "Alto"     },
+      { label: "André Vieira",                    share: 18, mrr: 1_500, risk: "Médio"    },
+      { label: "CEM + Tati + Carol (top-3)",      share: 83, mrr: 6_780, risk: "Crítico", isTotal: true },
     ],
-    threshold: "Limite: top-3 ≤ 40%",
-    current:   "Top-3 = 50% do MRR JACQES",
-    action:    "Diversificar carteira — 3+ novos clientes em Q2",
+    threshold: "Limite: nenhum cliente > 30%; top-3 ≤ 40%",
+    current:   "Top-3 = 83% do MRR JACQES · 1 cliente (CEM) = 39%",
+    action:    "Prioridade máxima: diversificar carteira JACQES — adicionar 3+ novos clientes em Q2/Q3",
   },
   {
     id: "receivables",
@@ -607,19 +619,24 @@ export const riskCategories: RiskCategory[] = [
     action:    "Acelerar Caza Vision para reequilibrar. Advisor: pré-receita (sem meta de revenue).",
   },
   {
+    // ⚠  SNAPSHOT — EBITDA ainda não confirmado contabilmente para JACQES.
+    // buData.jacqes.ebitda = 0 (aguardando confirmação contábil).
+    // Os valores abaixo são estimativas de planejamento (não "realizado" empírico).
+    // CORRECTED 2026-04-11: "EBITDA Realizado" renomeado para "EBITDA Estimado" para
+    // evitar confusão entre dado confirmado e projeção planejamento.
     id: "marginCompression",
-    title:    "Compressão de Margem — JACQES",
+    title:    "Margem JACQES — Pendente Confirmação",
     iconKey:  "trending-down",
     colorKey: "amber",
     severity: "medium",
     details: [
-      { label: "Meta EBITDA 2026", share: 22, mrr: 0, risk: "Meta"    },
-      { label: "EBITDA Realizado", share: 18, mrr: 0, risk: "Atual"   },
-      { label: "Gap",              share: -4, mrr: 0, risk: "4pp gap" },
+      { label: "Meta EBITDA 2026",              share: 22, mrr: 0, risk: "Meta"         },
+      { label: "EBITDA Estimado (planejamento)", share: 18, mrr: 0, risk: "Estimado"     },
+      { label: "Gap estimado",                  share: -4, mrr: 0, risk: "4pp (estim.)" },
     ],
     threshold: "Meta: EBITDA ≥ 22%",
-    current:   "Realizado: 18% EBITDA",
-    action:    "Revisar mix de clientes e custos operacionais",
+    current:   "EBITDA pendente confirmação contábil (estimado: 18%)",
+    action:    "Aguardar confirmação contábil Q1/2026 para validar margem real JACQES",
   },
   {
     id: "cashPressure",
