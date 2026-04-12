@@ -42,6 +42,7 @@ import {
     Receipt,
     Building,
     AlertTriangle,
+    Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -210,8 +211,9 @@ const AWQ_CONTROLADORIA_ITEMS = [
 
 // Governança & Jurídico
 const AWQ_JURIDICO_ITEMS = [
-    { label: "Jurídico",   href: "/awq/juridico",   icon: Scale    },
-    { label: "Societário", href: "/awq/societario", icon: Building },
+    { label: "Jurídico",    href: "/awq/juridico",   icon: Scale    },
+    { label: "Societário",  href: "/awq/societario", icon: Building },
+    { label: "Compliance",  href: "/awq/compliance", icon: Lock     },
 ] as const;
 
 // Dados & Infra
