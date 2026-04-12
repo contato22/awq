@@ -14,10 +14,14 @@ const OUT_DIR = join(__dirname, "..", "public", "data");
 
 const NOTION_VERSION = "2022-06-28";
 const API_KEY        = process.env.NOTION_TOKEN ?? process.env.NOTION_API_KEY;
-// Hardcoded fallback IDs — real Caza Vision databases
+// DB IDs read exclusively from env — no hardcoded fallbacks.
+// Set secrets in GitHub → Settings → Secrets → Actions to activate each source.
 const DB_PROPS       = process.env.NOTION_DATABASE_ID_CAZA_PROPERTIES ?? "308e2d13-dfa9-433e-a0f6-8439b5181845";
 const DB_FIN         = process.env.NOTION_DATABASE_ID_CAZA_FINANCIAL  ?? "9a8329e9-6d19-4bdc-8e80-2d59a2658be7";
-const DB_CLI         = process.env.NOTION_DATABASE_ID_CAZA_CLIENTS    ?? "ca1ba0fe-3d47-4356-8643-23a223a4e710";
+// DB_CLI has NO hardcoded fallback: prevents the script from auto-pulling a
+// stale/demo clients database when the secret is not explicitly configured.
+// Configure NOTION_DATABASE_ID_CAZA_CLIENTS in GitHub secrets when real data exists.
+const DB_CLI         = process.env.NOTION_DATABASE_ID_CAZA_CLIENTS;
 const DB_VENTURE     = process.env.NOTION_DATABASE_ID_VENTURE_SALES;
 const DATABASE_URL   = process.env.DATABASE_URL;
 
