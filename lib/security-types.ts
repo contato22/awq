@@ -1,4 +1,4 @@
-// ─── AWQ Security v1 — Types ──────────────────────────────────────────────────
+// ─── AWQ Security — Types (v1 → v2) ──────────────────────────────────────────
 //
 // ESCOPO: Tipos canônicos da camada de segurança da AWQ.
 //
@@ -6,13 +6,31 @@
 //   Security  → protege acesso, dado, API e gera logs de auditoria
 //   Compliance → prova LGPD, aceites, políticas internas (lib/compliance — futuro)
 //
-// ROLES: reaproveitados de lib/auth-users.ts — não renomear, não criar fictícios
-//   "owner"   → acesso irrestrito
-//   "admin"   → gestão plena exceto gerenciar security
-//   "analyst" → leitura/exportação de dados financeiros e BUs
-//   "cs-ops"  → operação de CRM JACQES
+// ROLES CANÔNICOS (v2):
+//   "owner"    → acesso irrestrito
+//   "admin"    → gestão plena exceto manage_security; pode usar supervisor
+//   "finance"  → financeiro — leitura, exportação e importação de dados financeiros
+//   "operator" → operações/CRM — sem acesso financeiro ou security
+//   "viewer"   → leitura mínima, sem acesso a financeiro ou infra
+//
+// ROLES LEGADOS (aliases — mantidos para não quebrar JWTs ativos):
+//   "analyst"  → normalizado para "finance" em runtime (Priya Nair)
+//   "cs-ops"   → normalizado para "operator" em runtime (Danilo)
 
-export type SecurityRole = "owner" | "admin" | "analyst" | "cs-ops";
+export type SecurityRole =
+  | "owner"     // acesso irrestrito
+  | "admin"     // gestão plena exceto manage_security
+  | "finance"   // analista financeiro — leitura/export/import financeiro
+  | "operator"  // operações/CRM — sem acesso financeiro ou security
+  | "viewer"    // leitura limitada, sem financeiro ou infra
+  | "analyst"   // LEGADO — alias de "finance"
+  | "cs-ops";   // LEGADO — alias de "operator"
+
+// Modo de enforcement do guard (substitui ENFORCEMENT_ACTIVE boolean)
+//   audit_only  → loga tudo, nunca bloqueia
+//   api_guarded → bloqueia em APIs sensíveis; UI permanece permissiva (MODO ATUAL)
+//   full        → bloqueia API e UI (futuro v3)
+export type EnforcementMode = "audit_only" | "api_guarded" | "full";
 
 // Ações possíveis sobre um recurso
 export type SecurityAction =
@@ -22,7 +40,7 @@ export type SecurityAction =
   | "delete"          // exclusão de registros
   | "export"          // exportação de dados
   | "import"          // ingestão/importação
-  | "approve"         // aprovação de fluxos
+  | "approve"         // aprovação de fluxos / uso de ferramentas autônomas
   | "manage_security"; // configurar security layer
 
 // Camadas arquiteturais da plataforma para controle de acesso
@@ -36,8 +54,8 @@ export type SecurityLayer =
   | "juridico"     // Governança & Jurídico (contratos, societário, compliance)
   | "dados_infra"  // Dados & Infra (ingestão, base, qualidade)
   | "security"     // Segurança de Dados (esta camada)
-  | "system"       // Sistema (auth, settings)
-  | "ai";          // IA & Agentes
+  | "system"       // Sistema (auth, settings, supervisor autônomo)
+  | "ai";          // IA & Agentes (chat, agents, supervisor)
 
 // Resultado de uma verificação de acesso ou evento de auditoria
 export type AuditResult = "allowed" | "blocked";
@@ -50,7 +68,7 @@ export interface AuditEvent {
   timestamp: string;
   /** Email do usuário ou "anonymous" — JAMAIS senha, token ou secret */
   user_id: string;
-  /** Nome do role ou "unknown" */
+  /** Nome do role raw (antes de normalização) ou "unknown" */
   role: string;
   /** Rota ou path da API acessada */
   path: string;
@@ -66,30 +84,21 @@ export interface AuditEvent {
 
 // Rota sensível registrada no security registry
 export interface SensitiveRoute {
-  /** Path canônico da rota */
   path: string;
-  /** Camada de segurança à qual pertence */
   layer: SecurityLayer;
-  /** Nível de sensibilidade */
   sensitivity: "high" | "medium" | "low";
-  /** Ação mínima exigida para acesso */
   requiredAction: SecurityAction;
-  /** Descrição do que a rota expõe */
   description: string;
 }
 
 // API sensível registrada no security registry
 export interface SensitiveApi {
-  /** Padrão da rota (pode conter * para wildcard) */
   pattern: string;
-  /** Camada de segurança */
   layer: SecurityLayer;
-  /** Recurso que a API manipula */
   resource: string;
-  /** Ação mínima exigida */
   requiredAction: SecurityAction;
-  /** Descrição do que a API faz e como está protegida */
   description: string;
-  /** Como a auth é aplicada hoje */
   authEnforcement: "middleware-jwt" | "internal-token-check" | "middleware-only" | "none";
+  /** Estado do guard nesta API */
+  guardStatus: "guarded" | "audit_only" | "registered";
 }

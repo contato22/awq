@@ -14,6 +14,8 @@
 //   - Middleware enforces JWT auth
 
 import { NextRequest, NextResponse } from "next/server";
+import { getToken } from "next-auth/jwt";
+import { apiGuard } from "@/lib/api-guard";
 import { initCazaDB, upsertProject, upsertClient, type CazaProject } from "@/lib/caza-db";
 import { fetchFromNotion, type RawNotionProject } from "@/lib/notion-import";
 import { sql } from "@/lib/db";
@@ -51,6 +53,10 @@ function rawToProject(r: RawNotionProject): Omit<CazaProject, "last_internal_upd
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  // ── RBAC guard: somente owner/admin podem importar dados do Notion ──
+  const denied = await apiGuard(req, "import", "caza_vision", "Importação Notion → Caza Vision DB");
+  if (denied) return denied;
+
   if (!sql) {
     return NextResponse.json(
       { error: "DB não disponível. Configure DATABASE_URL no ambiente Vercel." },

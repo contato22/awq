@@ -1,4 +1,4 @@
-// ─── AWQ Security — Painel de Segurança v1 ───────────────────────────────────
+// ─── AWQ Security — Painel de Segurança (v2 — api_guarded) ───────────────────
 //
 // ESCOPO: Dados & Infra → visualização da camada de segurança.
 // NÃO É COMPLIANCE. Compliance (LGPD, políticas, aceites) → /awq/compliance
@@ -6,26 +6,22 @@
 // COMPATIBILIDADE:
 //   Static export (GitHub Pages): exibe matriz RBAC + registry estático — OK
 //   SSR (Vercel): exibe também audit log in-memory (acumula por cold start)
-//
-// Dados desta página: 100% de lib/security-*.ts — zero snapshot/financeiro.
 
 import {
   SENSITIVE_ROUTES,
   SENSITIVE_APIS,
 } from "@/lib/security-registry";
 import {
-  PERMISSION_MATRIX,
-  ENFORCEMENT_ACTIVE,
+  SECURITY_ENFORCEMENT_MODE,
   getAllowedActions,
 } from "@/lib/security-access";
 import type { SecurityLayer, SecurityRole, SecurityAction } from "@/lib/security-types";
 
-// ── Metadados ─────────────────────────────────────────────────────────────────
 export const metadata = {
   title: "Segurança | AWQ",
 };
 
-// ── Helpers de exibição ───────────────────────────────────────────────────────
+// ── Labels ────────────────────────────────────────────────────────────────────
 
 const LAYER_LABELS: Record<SecurityLayer, string> = {
   holding:     "Holding",
@@ -41,13 +37,6 @@ const LAYER_LABELS: Record<SecurityLayer, string> = {
   ai:          "IA",
 };
 
-const ROLE_LABELS: Record<SecurityRole, string> = {
-  owner:   "Owner",
-  admin:   "Admin",
-  analyst: "Analyst",
-  "cs-ops": "CS Ops",
-};
-
 const ACTION_SHORT: Record<SecurityAction, string> = {
   view:            "view",
   create:          "create",
@@ -56,7 +45,7 @@ const ACTION_SHORT: Record<SecurityAction, string> = {
   export:          "export",
   import:          "import",
   approve:         "approve",
-  manage_security: "manage_sec",
+  manage_security: "mgmt_sec",
 };
 
 const SENSITIVITY_COLOR: Record<string, string> = {
@@ -66,27 +55,50 @@ const SENSITIVITY_COLOR: Record<string, string> = {
 };
 
 const AUTH_COLOR: Record<string, string> = {
-  "middleware-jwt":       "bg-emerald-100 text-emerald-700",
+  "middleware-jwt":        "bg-emerald-100 text-emerald-700",
   "internal-token-check": "bg-blue-100 text-blue-700",
-  "middleware-only":      "bg-amber-100 text-amber-700",
-  "none":                 "bg-red-100 text-red-700",
+  "middleware-only":       "bg-amber-100 text-amber-700",
+  "none":                  "bg-red-100 text-red-700",
 };
 
-const ALL_ROLES: SecurityRole[]  = ["owner", "admin", "analyst", "cs-ops"];
+const GUARD_STATUS_COLOR: Record<string, string> = {
+  guarded:    "bg-emerald-100 text-emerald-700",
+  audit_only: "bg-amber-100 text-amber-700",
+  registered: "bg-gray-100 text-gray-500",
+};
+
+const ENFORCEMENT_CONFIG = {
+  audit_only: {
+    label: "AUDIT ONLY",
+    desc:  "Loga tudo, nunca bloqueia",
+    color: "text-amber-700 bg-amber-50 border-amber-200",
+  },
+  api_guarded: {
+    label: "API GUARDED",
+    desc:  "APIs bloqueiam sem permissão — UI permanece permissiva",
+    color: "text-blue-700 bg-blue-50 border-blue-200",
+  },
+  full: {
+    label: "FULL ENFORCEMENT",
+    desc:  "Bloqueia API e UI (futuro v3)",
+    color: "text-red-700 bg-red-50 border-red-200",
+  },
+};
+
+const CANONICAL_ROLES: SecurityRole[] = ["owner", "admin", "finance", "operator", "viewer"];
 const ALL_LAYERS: SecurityLayer[] = [
   "holding", "jacqes", "caza_vision", "awq_venture", "advisor",
   "financeiro", "juridico", "dados_infra", "security", "system", "ai",
-];
-const ALL_ACTIONS: SecurityAction[] = [
-  "view", "create", "update", "delete", "export", "import", "approve", "manage_security",
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function SecurityPage() {
-  const totalRoutes = SENSITIVE_ROUTES.length;
-  const totalApis   = SENSITIVE_APIS.length;
-  const highRoutes  = SENSITIVE_ROUTES.filter((r) => r.sensitivity === "high").length;
+  const totalRoutes  = SENSITIVE_ROUTES.length;
+  const totalApis    = SENSITIVE_APIS.length;
+  const guardedApis  = SENSITIVE_APIS.filter(a => a.guardStatus === "guarded").length;
+  const highRoutes   = SENSITIVE_ROUTES.filter(r => r.sensitivity === "high").length;
+  const modeConfig   = ENFORCEMENT_CONFIG[SECURITY_ENFORCEMENT_MODE];
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-8">
@@ -100,99 +112,96 @@ export default function SecurityPage() {
           </span>
         </div>
         <p className="text-sm text-gray-500">
-          Matriz RBAC, rotas e APIs protegidas, e audit log de eventos de acesso.
+          Enforcement progressivo: APIs bloqueadas por RBAC · Audit log in-memory · Matriz de roles.
         </p>
         <p className="text-xs text-blue-600 mt-1">
           Compliance (LGPD, políticas, aceites) →{" "}
-          <a href="/awq/compliance" className="underline">
-            /awq/compliance
-          </a>
+          <a href="/awq/compliance" className="underline">/awq/compliance</a>
         </p>
       </div>
 
-      {/* ── Status do enforcement ───────────────────────────────────────────── */}
+      {/* ── Enforcement mode ────────────────────────────────────────────────── */}
       <section>
         <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">
-          Status v1
+          Modo de Enforcement
         </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <StatusCard
-            label="Enforcement"
-            value={ENFORCEMENT_ACTIVE ? "ATIVO" : "PERMISSIVE"}
-            sub={ENFORCEMENT_ACTIVE ? "Bloqueia acessos não autorizados" : "Loga mas nunca bloqueia (MVP)"}
-            color={ENFORCEMENT_ACTIVE ? "text-red-700 bg-red-50 border-red-200" : "text-amber-700 bg-amber-50 border-amber-200"}
-          />
-          <StatusCard
-            label="Rotas sensíveis"
-            value={String(totalRoutes)}
-            sub={`${highRoutes} sensibilidade alta`}
-            color="text-gray-700 bg-gray-50 border-gray-200"
-          />
-          <StatusCard
-            label="APIs sensíveis"
-            value={String(totalApis)}
-            sub="incluindo wildcard patterns"
-            color="text-gray-700 bg-gray-50 border-gray-200"
-          />
-          <StatusCard
-            label="Roles definidos"
-            value="4"
-            sub="owner · admin · analyst · cs-ops"
-            color="text-gray-700 bg-gray-50 border-gray-200"
-          />
-        </div>
-
-        {!ENFORCEMENT_ACTIVE && (
-          <div className="mt-3 p-4 rounded-lg border border-amber-200 bg-amber-50 text-sm text-amber-800">
-            <strong>Permissive mode ativo.</strong> O guard loga eventos mas nunca bloqueia.
-            Para ativar enforcement: definir{" "}
-            <code className="font-mono bg-amber-100 px-1 rounded">ENFORCEMENT_ACTIVE = true</code>{" "}
-            em <code className="font-mono bg-amber-100 px-1 rounded">lib/security-access.ts</code> —
-            somente após validar todos os roles e testar UI em cada perfil.
+        <div className={`p-4 rounded-xl border ${modeConfig.color}`}>
+          <div className="flex items-center gap-3">
+            <span className="text-lg font-bold font-mono">{modeConfig.label}</span>
+            <span className="text-sm opacity-80">{modeConfig.desc}</span>
           </div>
-        )}
-      </section>
+          <div className="mt-2 text-xs opacity-70 flex items-center gap-2">
+            <span className={SECURITY_ENFORCEMENT_MODE === "audit_only" ? "font-bold underline" : ""}>audit_only</span>
+            <span>→</span>
+            <span className={SECURITY_ENFORCEMENT_MODE === "api_guarded" ? "font-bold underline" : ""}>api_guarded ← atual</span>
+            <span>→</span>
+            <span className={SECURITY_ENFORCEMENT_MODE === "full" ? "font-bold underline" : "opacity-50"}>full (futuro)</span>
+          </div>
+        </div>
 
-      {/* ── Limites honestos v1 ─────────────────────────────────────────────── */}
-      <section>
-        <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">
-          Limites v1 — O que esta versão NÃO tem
-        </h2>
-        <div className="grid sm:grid-cols-2 gap-3 text-sm text-gray-600">
-          {[
-            ["Audit log persistente", "Ring buffer in-memory (100 eventos · reset no cold start · sem banco)"],
-            ["SIEM / exportação", "Sem integração com Datadog, Splunk, CloudWatch ou similares"],
-            ["MFA / 2FA enterprise", "Apenas JWT de sessão via next-auth"],
-            ["WAF / rate-limit", "Sem proteção contra brute-force ou DDoS a nível de infra"],
-            ["DLP (Data Loss Prevention)", "Sem inspeção de payloads de resposta"],
-            ["Alertas em tempo real", "Sem notificação por e-mail ou Slack em eventos bloqueados"],
-          ].map(([title, desc]) => (
-            <div key={title} className="flex gap-2 p-3 rounded-lg border border-gray-200 bg-gray-50">
-              <span className="text-red-400 shrink-0 mt-0.5">✕</span>
-              <div>
-                <div className="font-medium text-gray-700">{title}</div>
-                <div className="text-xs text-gray-500 mt-0.5">{desc}</div>
-              </div>
-            </div>
-          ))}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4">
+          <StatusCard label="Rotas sensíveis"   value={String(totalRoutes)} sub={`${highRoutes} high · UI permissiva`}     color="text-gray-700 bg-gray-50 border-gray-200" />
+          <StatusCard label="APIs registradas"  value={String(totalApis)}   sub="no security registry"                     color="text-gray-700 bg-gray-50 border-gray-200" />
+          <StatusCard label="APIs com guard"    value={String(guardedApis)} sub={`de ${totalApis} registradas`}            color="text-emerald-700 bg-emerald-50 border-emerald-200" />
+          <StatusCard label="Roles canônicos"   value="5"                   sub="owner · admin · finance · operator · viewer" color="text-gray-700 bg-gray-50 border-gray-200" />
         </div>
       </section>
 
-      {/* ── Matriz de permissões ────────────────────────────────────────────── */}
+      {/* ── Role aliases ────────────────────────────────────────────────────── */}
       <section>
         <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">
-          Matriz RBAC — Role × Camada → Ações permitidas
+          Normalização de Roles — Aliases Legados
+        </h2>
+        <div className="overflow-x-auto rounded-xl border border-gray-200">
+          <table className="min-w-full text-xs">
+            <thead>
+              <tr className="bg-gray-50 border-b border-gray-200 text-gray-600 font-semibold">
+                <th className="px-3 py-2 text-left">Role no JWT</th>
+                <th className="px-3 py-2 text-left">Normalizado para</th>
+                <th className="px-3 py-2 text-left">Usuário atual</th>
+                <th className="px-3 py-2 text-left">Razão</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              <tr className="hover:bg-gray-50/60">
+                <td className="px-3 py-2 font-mono text-amber-700">analyst</td>
+                <td className="px-3 py-2 font-mono text-blue-700">finance</td>
+                <td className="px-3 py-2 text-gray-600">p.nair@jacqes.com (Priya Nair)</td>
+                <td className="px-3 py-2 text-gray-500">Analista financeiro → role canônico finance</td>
+              </tr>
+              <tr className="hover:bg-gray-50/60">
+                <td className="px-3 py-2 font-mono text-amber-700">cs-ops</td>
+                <td className="px-3 py-2 font-mono text-blue-700">operator</td>
+                <td className="px-3 py-2 text-gray-600">danilo@jacqes.com (Danilo)</td>
+                <td className="px-3 py-2 text-gray-500">CS Ops → role canônico operator</td>
+              </tr>
+              <tr className="bg-gray-50/40">
+                <td className="px-3 py-2 font-mono text-gray-500">anonymous</td>
+                <td className="px-3 py-2 text-red-600 font-semibold">bloqueado (sem fallback)</td>
+                <td className="px-3 py-2 text-gray-400">— sem JWT válido —</td>
+                <td className="px-3 py-2 text-gray-500">Sem autenticação → negado em todas as APIs</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p className="text-xs text-gray-400 mt-1">
+          Fonte: <code>lib/security-access.ts · normalizeRole()</code>
+        </p>
+      </section>
+
+      {/* ── Matriz RBAC ─────────────────────────────────────────────────────── */}
+      <section>
+        <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">
+          Matriz RBAC — Role × Camada → Ações
         </h2>
         <div className="overflow-x-auto rounded-xl border border-gray-200">
           <table className="min-w-full text-xs">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="px-3 py-2 text-left font-semibold text-gray-600 whitespace-nowrap">
-                  Camada
-                </th>
-                {ALL_ROLES.map((r) => (
-                  <th key={r} className="px-3 py-2 text-center font-semibold text-gray-600 whitespace-nowrap">
-                    {ROLE_LABELS[r]}
+                <th className="px-3 py-2 text-left font-semibold text-gray-600 whitespace-nowrap">Camada</th>
+                {CANONICAL_ROLES.map((r) => (
+                  <th key={r} className="px-3 py-2 text-center font-semibold text-gray-600 whitespace-nowrap capitalize">
+                    {r}
                   </th>
                 ))}
               </tr>
@@ -203,7 +212,7 @@ export default function SecurityPage() {
                   <td className="px-3 py-2 font-medium text-gray-700 whitespace-nowrap">
                     {LAYER_LABELS[layer]}
                   </td>
-                  {ALL_ROLES.map((role) => {
+                  {CANONICAL_ROLES.map((role) => {
                     const actions = getAllowedActions(role, layer);
                     return (
                       <td key={role} className="px-3 py-2 text-center">
@@ -211,9 +220,7 @@ export default function SecurityPage() {
                           <span className="text-gray-300">—</span>
                         ) : (
                           <div className="flex flex-wrap gap-0.5 justify-center">
-                            {actions.map((a) => (
-                              <ActionBadge key={a} action={a} />
-                            ))}
+                            {actions.map((a) => <ActionBadge key={a} action={a} />)}
                           </div>
                         )}
                       </td>
@@ -224,15 +231,62 @@ export default function SecurityPage() {
             </tbody>
           </table>
         </div>
-        <p className="text-xs text-gray-400 mt-2">
-          Fonte: <code>lib/security-access.ts · PERMISSION_MATRIX</code>
+        <p className="text-xs text-gray-400 mt-1">
+          Fonte: <code>lib/security-access.ts · PERMISSION_MATRIX</code> · analyst/cs-ops normalizados para finance/operator
+        </p>
+      </section>
+
+      {/* ── APIs com guard status ───────────────────────────────────────────── */}
+      <section>
+        <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">
+          APIs Sensíveis — Guard Status ({totalApis})
+        </h2>
+        <div className="overflow-x-auto rounded-xl border border-gray-200">
+          <table className="min-w-full text-xs">
+            <thead>
+              <tr className="bg-gray-50 border-b border-gray-200 text-gray-600 font-semibold">
+                <th className="px-3 py-2 text-left">Pattern</th>
+                <th className="px-3 py-2 text-left">Camada</th>
+                <th className="px-3 py-2 text-left">Guard</th>
+                <th className="px-3 py-2 text-left">Auth</th>
+                <th className="px-3 py-2 text-left">Ação mínima</th>
+                <th className="px-3 py-2 text-left">Descrição</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {SENSITIVE_APIS.map((api) => (
+                <tr key={api.pattern} className="hover:bg-gray-50/60">
+                  <td className="px-3 py-2 font-mono text-gray-800 whitespace-nowrap">{api.pattern}</td>
+                  <td className="px-3 py-2 text-gray-600 whitespace-nowrap">
+                    {LAYER_LABELS[api.layer] ?? api.layer}
+                  </td>
+                  <td className="px-3 py-2 whitespace-nowrap">
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${GUARD_STATUS_COLOR[api.guardStatus]}`}>
+                      {api.guardStatus}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2 whitespace-nowrap">
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${AUTH_COLOR[api.authEnforcement]}`}>
+                      {api.authEnforcement}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2"><ActionBadge action={api.requiredAction} /></td>
+                  <td className="px-3 py-2 text-gray-500 max-w-xs">{api.description}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="text-xs text-gray-400 mt-1">
+          <span className="text-emerald-600 font-medium">guarded</span> = guard() bloqueia sem permissão ·{" "}
+          <span className="text-gray-500 font-medium">registered</span> = apenas registrado, sem guard interno ainda
         </p>
       </section>
 
       {/* ── Rotas sensíveis ─────────────────────────────────────────────────── */}
       <section>
         <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">
-          Rotas sensíveis ({totalRoutes})
+          Rotas Sensíveis — UI ({totalRoutes}) — middleware permissivo (modo full = futuro)
         </h2>
         <div className="overflow-x-auto rounded-xl border border-gray-200">
           <table className="min-w-full text-xs">
@@ -248,9 +302,7 @@ export default function SecurityPage() {
             <tbody className="divide-y divide-gray-100">
               {SENSITIVE_ROUTES.map((route) => (
                 <tr key={route.path} className="hover:bg-gray-50/60">
-                  <td className="px-3 py-2 font-mono text-gray-800 whitespace-nowrap">
-                    {route.path}
-                  </td>
+                  <td className="px-3 py-2 font-mono text-gray-800 whitespace-nowrap">{route.path}</td>
                   <td className="px-3 py-2 text-gray-600 whitespace-nowrap">
                     {LAYER_LABELS[route.layer] ?? route.layer}
                   </td>
@@ -259,66 +311,13 @@ export default function SecurityPage() {
                       {route.sensitivity}
                     </span>
                   </td>
-                  <td className="px-3 py-2">
-                    <ActionBadge action={route.requiredAction} />
-                  </td>
-                  <td className="px-3 py-2 text-gray-500 max-w-xs">
-                    {route.description}
-                  </td>
+                  <td className="px-3 py-2"><ActionBadge action={route.requiredAction} /></td>
+                  <td className="px-3 py-2 text-gray-500 max-w-xs">{route.description}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        <p className="text-xs text-gray-400 mt-2">
-          Fonte: <code>lib/security-registry.ts · SENSITIVE_ROUTES</code>
-        </p>
-      </section>
-
-      {/* ── APIs sensíveis ──────────────────────────────────────────────────── */}
-      <section>
-        <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">
-          APIs sensíveis ({totalApis})
-        </h2>
-        <div className="overflow-x-auto rounded-xl border border-gray-200">
-          <table className="min-w-full text-xs">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-200 text-gray-600 font-semibold">
-                <th className="px-3 py-2 text-left">Pattern</th>
-                <th className="px-3 py-2 text-left">Camada</th>
-                <th className="px-3 py-2 text-left">Auth enforcement</th>
-                <th className="px-3 py-2 text-left">Recurso</th>
-                <th className="px-3 py-2 text-left">Descrição</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {SENSITIVE_APIS.map((api) => (
-                <tr key={api.pattern} className="hover:bg-gray-50/60">
-                  <td className="px-3 py-2 font-mono text-gray-800 whitespace-nowrap">
-                    {api.pattern}
-                  </td>
-                  <td className="px-3 py-2 text-gray-600 whitespace-nowrap">
-                    {LAYER_LABELS[api.layer] ?? api.layer}
-                  </td>
-                  <td className="px-3 py-2 whitespace-nowrap">
-                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${AUTH_COLOR[api.authEnforcement]}`}>
-                      {api.authEnforcement}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2 text-gray-600 whitespace-nowrap">
-                    {api.resource}
-                  </td>
-                  <td className="px-3 py-2 text-gray-500 max-w-xs">
-                    {api.description}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <p className="text-xs text-gray-400 mt-2">
-          Fonte: <code>lib/security-registry.ts · SENSITIVE_APIS</code>
-        </p>
       </section>
 
       {/* ── Audit log ───────────────────────────────────────────────────────── */}
@@ -327,37 +326,61 @@ export default function SecurityPage() {
           Audit Log
         </h2>
         <div className="p-4 rounded-lg border border-blue-200 bg-blue-50 text-sm text-blue-800">
-          <strong>Limitação v1 — sem persistência.</strong> O audit log é um ring buffer
-          in-memory de até 100 eventos por instância de servidor. Em deployments SSR
-          (Vercel), eventos acumulam até o próximo cold start. Em static export (GitHub
-          Pages), nenhum evento é capturado — não há servidor. Para visualização de
-          eventos em tempo real, use a API interna:{" "}
-          <code className="font-mono bg-blue-100 px-1 rounded">/api/security/audit</code>{" "}
-          (a implementar em v2). Em v2, os eventos serão persistidos em tabela Neon e
-          exportados para SIEM.
+          <strong>Ring buffer in-memory — sem persistência em v2.</strong>{" "}
+          Máximo 100 eventos por instância. Reset em cold start (Vercel).
+          Em static export (GitHub Pages), zero eventos capturados.{" "}
+          v3 → persistir em Neon{" "}
+          <code className="font-mono bg-blue-100 px-1 rounded">awq_security_audit_log</code>{" "}
+          + endpoint{" "}
+          <code className="font-mono bg-blue-100 px-1 rounded">/api/security/audit</code>.
         </div>
         <div className="mt-3 p-4 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-500 text-center">
           Visualização de eventos requer endpoint SSR — não disponível em static export.
           <br />
-          Consulte <code className="font-mono">lib/security-audit.ts · getRecentAuditEvents()</code> para
-          acesso programático.
+          <code className="font-mono text-xs">lib/security-audit.ts · getRecentAuditEvents()</code>
+        </div>
+      </section>
+
+      {/* ── O que esta versão NÃO tem ───────────────────────────────────────── */}
+      <section>
+        <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">
+          O que esta versão NÃO tem
+        </h2>
+        <div className="grid sm:grid-cols-2 gap-3 text-sm text-gray-600">
+          {[
+            ["Rotas UI bloqueadas",      "Middleware permanece permissivo — modo full é futuro (v3)"],
+            ["Audit log persistente",    "Ring buffer in-memory (100 eventos · sem banco · v3)"],
+            ["SIEM / exportação",        "Sem Datadog, Splunk, CloudWatch (v4)"],
+            ["MFA / 2FA enterprise",     "Apenas JWT de sessão via next-auth (v5)"],
+            ["WAF / rate-limit",         "Sem proteção contra brute-force ou DDoS (v4)"],
+            ["DLP",                      "Sem inspeção de payloads de resposta (v5)"],
+          ].map(([title, desc]) => (
+            <div key={title} className="flex gap-2 p-3 rounded-lg border border-gray-200 bg-gray-50">
+              <span className="text-red-400 shrink-0 mt-0.5">✕</span>
+              <div>
+                <div className="font-medium text-gray-700">{title}</div>
+                <div className="text-xs text-gray-500 mt-0.5">{desc}</div>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 
       {/* ── Roadmap ─────────────────────────────────────────────────────────── */}
       <section>
-        <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">
-          Roadmap
-        </h2>
+        <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">Roadmap</h2>
         <div className="space-y-2 text-sm">
-          {[
-            ["v1 — atual",  "RBAC matrix definida, guard loga, enforcement desligado, registry de rotas e APIs"],
-            ["v2",          "Ativar ENFORCEMENT_ACTIVE, persistir audit log em Neon (awq_security_audit_log), endpoint /api/security/audit"],
-            ["v3",          "Exportar para SIEM, alertas Slack/e-mail em bloqueios, rate limiting por role"],
-            ["v4",          "MFA enterprise, WAF, DLP, revisão periódica de permissões com evidência"],
-          ].map(([version, desc]) => (
+          {([
+            ["v1 — concluído", "RBAC matrix, guard loga, enforcement desligado, registry de rotas/APIs"],
+            ["v2 — atual",     "api_guarded: guard() bloqueia APIs críticas; roles canônicos; aliases legados; 58 testes passando"],
+            ["v3",             "Ativar modo full para UI, persistir audit log em Neon, /api/security/audit"],
+            ["v4",             "SIEM, alertas Slack/e-mail, rate limiting por role, WAF"],
+            ["v5",             "MFA enterprise, DLP, revisão periódica de permissões, SOC/MDR"],
+          ] as const).map(([version, desc]) => (
             <div key={version} className="flex gap-3 p-3 rounded-lg border border-gray-200">
-              <span className="font-mono font-semibold text-gray-500 shrink-0 w-20">{version}</span>
+              <span className={`font-mono font-semibold shrink-0 w-24 ${version.includes("atual") ? "text-blue-600" : "text-gray-500"}`}>
+                {version}
+              </span>
               <span className="text-gray-600">{desc}</span>
             </div>
           ))}
@@ -370,22 +393,12 @@ export default function SecurityPage() {
 
 // ── Sub-componentes ───────────────────────────────────────────────────────────
 
-function StatusCard({
-  label,
-  value,
-  sub,
-  color,
-}: {
-  label: string;
-  value: string;
-  sub: string;
-  color: string;
+function StatusCard({ label, value, sub, color }: {
+  label: string; value: string; sub: string; color: string;
 }) {
   return (
     <div className={`p-4 rounded-xl border ${color}`}>
-      <div className="text-xs font-semibold uppercase tracking-wide mb-1 opacity-70">
-        {label}
-      </div>
+      <div className="text-xs font-semibold uppercase tracking-wide mb-1 opacity-70">{label}</div>
       <div className="text-xl font-bold">{value}</div>
       <div className="text-xs mt-1 opacity-60">{sub}</div>
     </div>
@@ -405,9 +418,7 @@ const ACTION_COLORS: Record<SecurityAction, string> = {
 
 function ActionBadge({ action }: { action: SecurityAction }) {
   return (
-    <span
-      className={`inline-block px-1 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wide ${ACTION_COLORS[action]}`}
-    >
+    <span className={`inline-block px-1 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wide ${ACTION_COLORS[action]}`}>
       {ACTION_SHORT[action]}
     </span>
   );

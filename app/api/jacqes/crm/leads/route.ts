@@ -1,16 +1,23 @@
 // GET /api/jacqes/crm/leads   — lista leads
 // POST /api/jacqes/crm/leads  — cria lead
 import { NextRequest, NextResponse } from "next/server";
+import { apiGuard } from "@/lib/api-guard";
 import { listLeads, createLead } from "@/lib/jacqes-crm-db";
 
 export const runtime = "nodejs";
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(req: NextRequest): Promise<NextResponse> {
+  const denied = await apiGuard(req, "view", "jacqes", "CRM JACQES — Leads");
+  if (denied) return denied;
+
   const leads = await listLeads();
   return NextResponse.json(leads);
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  const denied = await apiGuard(req, "create", "jacqes", "CRM JACQES — Leads");
+  if (denied) return denied;
+
   try {
     const body = await req.json();
     if (!body.nome?.trim()) {

@@ -10,6 +10,8 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest } from "next/server";
+import { getToken } from "next-auth/jwt";
+import { guard } from "@/lib/security-guard";
 import { AGENT_TOOLS, executeTool, type NotionEnv } from "@/lib/agent-tools";
 
 const SUPERVISOR_SYSTEM = `You are the AWQ BU Supervisor — an autonomous AI supervisor embedded permanently in the AWQ BI dashboard. You speak directly to the founder/operator. You are decisive, action-oriented, and concise.
@@ -53,6 +55,20 @@ List 3–5 alerts, one per line, using this exact format:
 • When writing files, write the COMPLETE file content`;
 
 export async function POST(req: NextRequest) {
+  // ── RBAC guard: approve em system — apenas owner e admin ──
+  const token   = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  const user_id = (token?.email as string | undefined) ?? "anonymous";
+  const rawRole = (token?.role  as string | undefined) ?? "anonymous";
+  const { result: guardResult, reason: guardReason } = guard(
+    user_id, rawRole, "/api/supervisor", "system", "approve", "BU Supervisor autônomo"
+  );
+  if (guardResult === "blocked") {
+    return new Response(
+      JSON.stringify({ error: "Acesso negado", code: "RBAC_DENIED", reason: guardReason }),
+      { status: 403, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
   try {
     const { messages, buContext = "jacqes", briefing = false } = await req.json();
 

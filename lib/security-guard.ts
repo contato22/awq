@@ -1,52 +1,38 @@
-// ─── AWQ Security v1 — Guard ──────────────────────────────────────────────────
+// ─── AWQ Security — Guard (v1 → v2) ──────────────────────────────────────────
 //
 // Ponto central de verificação de acesso.
-// Combina RBAC (hasPermission) com auditoria (logAuditEvent) numa única chamada.
+// Combina RBAC (hasPermission + normalizeRole) com auditoria (logAuditEvent).
 //
-// ENFORCEMENT_ACTIVE = false → sempre retorna "allowed", mas loga o que
-// TERIA acontecido se enforcement estivesse ativo (permissive by design — MVP).
+// MODOS (SECURITY_ENFORCEMENT_MODE em security-access.ts):
+//   audit_only  → sempre retorna "allowed"; loga o que TERIA acontecido
+//   api_guarded → retorna resultado real (bloqueia APIs sem permissão) ← MODO ATUAL
+//   full        → futuro — enforcement em API e UI
 //
-// ENFORCEMENT_ACTIVE = true  → bloqueia roles sem permissão e loga o bloqueio (v2).
-//
-// USO:
-//   import { guard } from "@/lib/security-guard";
-//   const { result } = guard(email, role, path, "financeiro", "view", "DRE consolidado");
-//   if (result === "blocked") return redirect("/login");  // só quando ENFORCEMENT_ACTIVE=true
+// IMPORTANTE: não passar senha, token, secret ou payload nos parâmetros.
+// user_id deve ser email ou "anonymous".
 
-import { ENFORCEMENT_ACTIVE, hasPermission } from "./security-access";
-import { logAuditEvent }                      from "./security-audit";
-import type { SecurityRole, SecurityLayer, SecurityAction, AuditResult } from "./security-types";
+import { SECURITY_ENFORCEMENT_MODE, hasPermission, normalizeRole } from "./security-access";
+import { logAuditEvent } from "./security-audit";
+import type { SecurityLayer, SecurityAction, AuditResult } from "./security-types";
 
 export interface GuardResult {
-  /** Se o acesso foi (ou teria sido) permitido ou bloqueado */
+  /** Resultado efetivo no modo atual */
   result: AuditResult;
   /** Motivo legível — sem dados sensíveis */
   reason: string;
-  /** true quando ENFORCEMENT_ACTIVE=false e o acesso teria sido bloqueado */
+  /** true quando audit_only e o acesso teria sido bloqueado */
   wouldBeBlocked: boolean;
-}
-
-// ── Conjunto de roles conhecidos (derivado de security-types.ts) ──────────────
-const KNOWN_ROLES = new Set<SecurityRole>(["owner", "admin", "analyst", "cs-ops"]);
-
-function isKnownRole(role: string): role is SecurityRole {
-  return KNOWN_ROLES.has(role as SecurityRole);
 }
 
 /**
  * Verifica acesso e registra evento de auditoria.
  *
- * Em v1 (ENFORCEMENT_ACTIVE=false): sempre retorna "allowed", mas loga
- * o que o enforcement retornaria se ativado. Inspecionar wouldBeBlocked
- * para antecipar bloqueios antes da ativação.
- *
- * Em v2 (ENFORCEMENT_ACTIVE=true): bloqueia e loga.
- *
- * IMPORTANTE: Não passar senha, token, secret ou qualquer dado sensível
- * nos parâmetros. user_id deve ser email ou "anonymous".
+ * audit_only:  sempre retorna "allowed", loga o que teria acontecido.
+ * api_guarded: retorna resultado real; bloqueia quando sem permissão.
+ * full:        igual a api_guarded (futuro).
  *
  * @param user_id   email do usuário ou "anonymous" — JAMAIS senha/token
- * @param role      role do usuário ou "unknown"
+ * @param rawRole   role raw do JWT ou "anonymous"
  * @param path      rota ou API path acessado
  * @param layer     camada de segurança do recurso
  * @param action    ação tentada
@@ -54,45 +40,32 @@ function isKnownRole(role: string): role is SecurityRole {
  */
 export function guard(
   user_id: string,
-  role: string,
+  rawRole: string,
   path: string,
   layer: SecurityLayer,
   action: SecurityAction,
   resource: string
 ): GuardResult {
-  // Determina se o role tem permissão conforme a matriz
-  const knownRole  = isKnownRole(role);
-  const permitted  = knownRole ? hasPermission(role, layer, action) : false;
+  // hasPermission normaliza o role internamente (analyst→finance, cs-ops→operator)
+  const permitted  = hasPermission(rawRole, layer, action);
+  const canonical  = normalizeRole(rawRole);
 
   const effectiveResult: AuditResult = permitted ? "allowed" : "blocked";
   const effectiveReason = permitted
-    ? `Role '${role}' tem permissão para '${action}' em '${layer}'`
-    : knownRole
-      ? `Role '${role}' não tem permissão para '${action}' em '${layer}'`
-      : `Role '${role}' não reconhecido na matriz de acesso`;
+    ? `Role '${rawRole}'${rawRole !== canonical ? ` (→${canonical})` : ""} tem permissão para '${action}' em '${layer}'`
+    : `Role '${rawRole}'${rawRole !== canonical ? ` (→${canonical})` : ""} não tem permissão para '${action}' em '${layer}'`;
 
-  if (ENFORCEMENT_ACTIVE) {
-    // ── Enforcement real ──────────────────────────────────────────────────────
-    logAuditEvent(user_id, role, path, action, resource, effectiveResult, effectiveReason);
-    return {
-      result:        effectiveResult,
-      reason:        effectiveReason,
-      wouldBeBlocked: false,
-    };
-  } else {
-    // ── Permissive mode (v1) ──────────────────────────────────────────────────
-    // Sempre permite, mas loga o que teria acontecido para preparar o v2.
+  if (SECURITY_ENFORCEMENT_MODE === "audit_only") {
+    // Nunca bloqueia — loga o que TERIA acontecido
     const wouldBeBlocked = effectiveResult === "blocked";
-    const permissiveReason = wouldBeBlocked
-      ? `[PERMISSIVE] TERIA bloqueado: ${effectiveReason}`
-      : `[PERMISSIVE] Permitido: ${effectiveReason}`;
-
-    logAuditEvent(user_id, role, path, action, resource, "allowed", permissiveReason);
-
-    return {
-      result:        "allowed",
-      reason:        permissiveReason,
-      wouldBeBlocked,
-    };
+    const reason = wouldBeBlocked
+      ? `[AUDIT_ONLY] TERIA bloqueado: ${effectiveReason}`
+      : `[AUDIT_ONLY] Permitido: ${effectiveReason}`;
+    logAuditEvent(user_id, rawRole, path, action, resource, "allowed", reason);
+    return { result: "allowed", reason, wouldBeBlocked };
   }
+
+  // api_guarded e full: enforcement real
+  logAuditEvent(user_id, rawRole, path, action, resource, effectiveResult, effectiveReason);
+  return { result: effectiveResult, reason: effectiveReason, wouldBeBlocked: false };
 }

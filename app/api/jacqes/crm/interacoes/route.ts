@@ -1,16 +1,23 @@
 // GET /api/jacqes/crm/interacoes   — lista interações
 // POST /api/jacqes/crm/interacoes  — cria interação
 import { NextRequest, NextResponse } from "next/server";
+import { apiGuard } from "@/lib/api-guard";
 import { listInteractions, createInteraction } from "@/lib/jacqes-crm-db";
 
 export const runtime = "nodejs";
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(req: NextRequest): Promise<NextResponse> {
+  const denied = await apiGuard(req, "view", "jacqes", "CRM JACQES — Interações");
+  if (denied) return denied;
+
   const interactions = await listInteractions();
   return NextResponse.json(interactions);
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  const denied = await apiGuard(req, "create", "jacqes", "CRM JACQES — Interações");
+  if (denied) return denied;
+
   try {
     const body = await req.json();
     if (!body.tipo?.trim()) {

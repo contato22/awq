@@ -1,23 +1,20 @@
-// ─── AWQ Security v1 — Registry de Rotas e APIs Sensíveis ────────────────────
+// ─── AWQ Security — Registry de Rotas e APIs Sensíveis (v1 → v2) ─────────────
 //
 // PROPÓSITO: Catálogo canônico de todas as rotas e APIs que manipulam dados
-// sensíveis da plataforma. Todo novo endpoint sensível DEVE ser registrado aqui.
+// sensíveis. Todo novo endpoint sensível DEVE ser registrado aqui.
 //
-// REGRA: Nenhum endpoint sensível pode existir sem entrada neste registry.
-//        Se não está registrado, está desprotegido e invisível para auditoria.
+// guardStatus por API:
+//   guarded     = guard() aplicado; bloqueia sem permissão em api_guarded
+//   audit_only  = guard() aplicado mas enforcement desligado para esta API
+//   registered  = registrado mas sem guard aplicado ainda
 //
 // SEPARAÇÃO:
-//   /awq/compliance → Governança & Jurídico (LGPD, aceites, políticas) — NÃO É SECURITY
-//   /awq/security   → Dados & Infra (acesso, RBAC, APIs, audit log) — ESTE MÓDULO
+//   /awq/compliance → Governança & Jurídico (LGPD, aceites, políticas)
+//   /awq/security   → Dados & Infra (acesso, RBAC, APIs, audit log) ← ESTE MÓDULO
 
 import type { SensitiveRoute, SensitiveApi } from "./security-types";
 
 // ── Rotas sensíveis da plataforma ─────────────────────────────────────────────
-//
-// Sensibilidade:
-//   high   = expõe dados financeiros reais, estrutura societária ou permite escrita crítica
-//   medium = expõe dados de planejamento, stubs com informação estrutural
-//   low    = UI informativa com dados não críticos
 export const SENSITIVE_ROUTES: SensitiveRoute[] = [
   {
     path:           "/awq/financial",
@@ -80,7 +77,7 @@ export const SENSITIVE_ROUTES: SensitiveRoute[] = [
     layer:          "juridico",
     sensitivity:    "high",
     requiredAction: "view",
-    description:    "Jurídico operacional: contratos, aditivos, vencimentos (stub — aguarda pipeline)",
+    description:    "Jurídico operacional: contratos, aditivos, vencimentos (stub)",
   },
   {
     path:           "/awq/societario",
@@ -114,75 +111,82 @@ export const SENSITIVE_ROUTES: SensitiveRoute[] = [
 
 // ── APIs sensíveis da plataforma ──────────────────────────────────────────────
 //
-// authEnforcement:
-//   "middleware-jwt"       = middleware verifica JWT + role check interno na API
-//   "internal-token-check" = API usa getToken() internamente (além do middleware)
-//   "middleware-only"      = apenas middleware verifica JWT, sem role check interno
-//   "none"                 = sem proteção (somente rotas públicas como /api/health)
+// guardStatus:
+//   guarded     = guard() ativo → bloqueia sem permissão no modo api_guarded
+//   audit_only  = guard() aplicado com enforcement desligado para esta rota
+//   registered  = apenas registrado, sem guard implementado ainda
 export const SENSITIVE_APIS: SensitiveApi[] = [
   {
     pattern:         "/api/ingest/upload",
     layer:           "dados_infra",
     resource:        "Extrato bancário PDF",
     requiredAction:  "import",
-    description:     "Upload de extrato bancário — único endpoint com getToken() interno para audit trail",
+    description:     "Upload de extrato bancário — getToken() interno + guard() ativo",
     authEnforcement: "internal-token-check",
+    guardStatus:     "guarded",
   },
   {
     pattern:         "/api/ingest/process",
     layer:           "dados_infra",
     resource:        "Pipeline de processamento de extrato",
     requiredAction:  "import",
-    description:     "Processamento e parsing de extrato já ingerido — sem role check interno",
+    description:     "Processamento e parsing de extrato já ingerido — middleware-only, sem guard interno",
     authEnforcement: "middleware-only",
+    guardStatus:     "registered",
   },
   {
     pattern:         "/api/caza/import",
     layer:           "caza_vision",
     resource:        "Importação Notion → Caza Vision DB",
     requiredAction:  "import",
-    description:     "Importação de projetos e clientes do Notion para Neon — NOTION_TOKEN server-side",
-    authEnforcement: "middleware-only",
+    description:     "Importação de projetos e clientes do Notion para Neon — guard() ativo",
+    authEnforcement: "internal-token-check",
+    guardStatus:     "guarded",
   },
   {
     pattern:         "/api/caza/*",
     layer:           "caza_vision",
     resource:        "Dados BU Caza Vision (projetos, clientes, financeiro)",
     requiredAction:  "view",
-    description:     "CRUD de projetos e clientes da Caza Vision — sem role check interno",
+    description:     "CRUD de projetos e clientes da Caza Vision — middleware-only, sem guard interno",
     authEnforcement: "middleware-only",
+    guardStatus:     "registered",
   },
   {
     pattern:         "/api/jacqes/crm/*",
     layer:           "jacqes",
     resource:        "CRM JACQES — Neon Postgres",
     requiredAction:  "view",
-    description:     "Leitura e escrita no CRM JACQES (leads, clientes, oportunidades, tarefas) — sem role check interno",
-    authEnforcement: "middleware-only",
+    description:     "Leitura e escrita no CRM JACQES (leads, clientes, oportunidades, tarefas) — guard() ativo",
+    authEnforcement: "internal-token-check",
+    guardStatus:     "guarded",
   },
   {
     pattern:         "/api/agents/*",
     layer:           "ai",
     resource:        "Agentes IA (agentic loop com ferramentas Notion e BU)",
     requiredAction:  "view",
-    description:     "Execução de agentes com acesso a ferramentas de leitura/escrita no Notion e BUs — sem role check",
-    authEnforcement: "middleware-only",
+    description:     "Execução de agentes com acesso a ferramentas de leitura/escrita — guard() ativo via JWT",
+    authEnforcement: "internal-token-check",
+    guardStatus:     "guarded",
   },
   {
     pattern:         "/api/chat",
     layer:           "ai",
     resource:        "OpenClaw — LLM com contexto financeiro AWQ",
     requiredAction:  "view",
-    description:     "Chat IA com contexto de dados financeiros e BUs injetado no system prompt — sem role check",
-    authEnforcement: "middleware-only",
+    description:     "Chat IA com contexto de dados financeiros — guard() ativo via JWT",
+    authEnforcement: "internal-token-check",
+    guardStatus:     "guarded",
   },
   {
     pattern:         "/api/supervisor/*",
-    layer:           "ai",
-    resource:        "BU Supervisor — agente autônomo com acesso a dados sensíveis",
-    requiredAction:  "view",
-    description:     "Supervisor com acesso a Notion, KPIs e dados de BU — escopo amplo sem role check interno",
-    authEnforcement: "middleware-only",
+    layer:           "system",
+    resource:        "BU Supervisor — agente autônomo com escrita em Notion e arquivos",
+    requiredAction:  "approve",
+    description:     "Supervisor autônomo (owner/admin only) — guard() ativo; requer approve em system",
+    authEnforcement: "internal-token-check",
+    guardStatus:     "guarded",
   },
 ];
 
