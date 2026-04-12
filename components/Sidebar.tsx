@@ -37,6 +37,11 @@ import {
     MessageSquare,
     ArrowUpRight,
     CheckCircle2,
+    Scale,
+    BookOpen,
+    Receipt,
+    Building,
+    AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -170,28 +175,49 @@ const awqPrimaryNav = [
     { label: "Business Units", href: "/business-units", icon: Building2       },
 ] as const;
 
-// ── GOVERNANCE REGISTRY: all AWQ holding indicator routes ────────────────────
-// RULE: Every /awq/* indicator page MUST appear here and ONLY here.
-// Do NOT add indicator pages as standalone primary nav items.
-// To add a new indicator page, append it to this array — never elsewhere.
-const HOLDING_INDICATOR_ITEMS = [
-    { label: "KPIs",          href: "/awq/kpis",        icon: BarChart3   },
-    { label: "Financial",     href: "/awq/financial",   icon: LineChart   },
-    { label: "Cash Flow",     href: "/awq/cashflow",    icon: Zap         },
-    { label: "Investimentos", href: "/awq/investments", icon: Landmark    },
-    { label: "Portfolio",     href: "/awq/portfolio",   icon: Briefcase   },
-    { label: "Allocations",   href: "/awq/allocations", icon: Wallet      },
-    { label: "Risk",          href: "/awq/risk",        icon: Activity    },
-    { label: "Budget",        href: "/awq/budget",      icon: Wallet      },
-    { label: "Forecast",      href: "/awq/forecast",    icon: TrendingUp  },
-    { label: "Contas Banco",  href: "/awq/bank",        icon: CreditCard  },
+// ── GOVERNANCE REGISTRY: AWQ holding routes by ERP layer ─────────────────────
+// RULE: Every /awq/* page MUST appear here and ONLY here.
+// To add a new page: append to the correct section array → never elsewhere.
+
+// Control Tower — visão executiva, KPIs, risco, portfolio
+const AWQ_CONTROL_TOWER_ITEMS = [
+    { label: "KPIs Consolidados", href: "/awq/kpis",        icon: BarChart3      },
+    { label: "Risk & Alertas",    href: "/awq/risk",         icon: AlertTriangle  },
+    { label: "Portfolio",         href: "/awq/portfolio",    icon: Briefcase      },
+    { label: "Allocations",       href: "/awq/allocations",  icon: Wallet         },
 ] as const;
 
-// ── AWQ ops/governance nav (always visible, below indicators) ────────────────
-const awqOpsNav = [
-    { label: "Ingestão",      href: "/awq/ingest",     icon: FileUp    },
-    { label: "Base de Dados", href: "/awq/data",        icon: Database  },
-    { label: "Governança",    href: "/awq/management",  icon: ShieldCheck },
+// Financeiro Corporativo — FP&A (DRE, planejamento, projeção)
+const AWQ_FPA_ITEMS = [
+    { label: "Financial (DRE)", href: "/awq/financial",   icon: LineChart  },
+    { label: "Budget",          href: "/awq/budget",      icon: BarChart3  },
+    { label: "Forecast",        href: "/awq/forecast",    icon: TrendingUp },
+] as const;
+
+// Financeiro Corporativo — Tesouraria (caixa, contas, aplicações)
+const AWQ_TESOURARIA_ITEMS = [
+    { label: "Cash Flow",     href: "/awq/cashflow",    icon: Zap        },
+    { label: "Contas Banco",  href: "/awq/bank",        icon: CreditCard },
+    { label: "Investimentos", href: "/awq/investments", icon: Landmark   },
+] as const;
+
+// Financeiro Corporativo — Controladoria & Contábil
+const AWQ_CONTROLADORIA_ITEMS = [
+    { label: "Controladoria", href: "/awq/management",    icon: ShieldCheck },
+    { label: "Contabilidade", href: "/awq/contabilidade", icon: BookOpen    },
+    { label: "Fiscal",        href: "/awq/fiscal",        icon: Receipt     },
+] as const;
+
+// Governança & Jurídico
+const AWQ_JURIDICO_ITEMS = [
+    { label: "Jurídico",   href: "/awq/juridico",   icon: Scale    },
+    { label: "Societário", href: "/awq/societario", icon: Building },
+] as const;
+
+// Dados & Infra
+const AWQ_DADOS_ITEMS = [
+    { label: "Ingestão",      href: "/awq/ingest", icon: FileUp   },
+    { label: "Base de Dados", href: "/awq/data",   icon: Database },
 ] as const;
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
@@ -311,88 +337,187 @@ function SidebarFooter() {
     );
 }
 
+// ── Collapsible section helper ────────────────────────────────────────────────
+function CollapsibleSection({
+    label,
+    icon: Icon,
+    isAnyActive,
+    isOpen,
+    onToggle,
+    children,
+}: {
+    label: string;
+    icon: React.ElementType;
+    isAnyActive: boolean;
+    isOpen: boolean;
+    onToggle: () => void;
+    children: React.ReactNode;
+}) {
+    return (
+        <div className="mt-0.5">
+            <button
+                onClick={onToggle}
+                className={cn(
+                    "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 focus-visible:ring-offset-1",
+                    isAnyActive
+                        ? "bg-brand-50 text-brand-700 shadow-sm"
+                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                )}
+            >
+                <Icon
+                    size={16}
+                    className={cn("shrink-0 transition-colors", isAnyActive ? "text-brand-600" : "text-gray-400")}
+                />
+                <span className="flex-1 text-left truncate">{label}</span>
+                {isOpen ? (
+                    <ChevronDown size={13} className="shrink-0 text-gray-400" />
+                ) : (
+                    <ChevronRight size={13} className="shrink-0 text-gray-400" />
+                )}
+            </button>
+            {isOpen && (
+                <div className="ml-3 mt-0.5 pl-3 border-l border-gray-100 space-y-0.5">
+                    {children}
+                </div>
+            )}
+        </div>
+    );
+}
+
 // ── AWQ Group sidebar ────────────────────────────────────────────────────────
+// Navigation structure follows the AWQ ERP macro-architecture:
+//   1. Control Tower    — visão executiva, KPIs, risco, portfolio
+//   2. Financeiro Corp  — FP&A · Tesouraria · Controladoria
+//   3. Governança       — Jurídico · Societário
+//   4. Dados & Infra    — Ingestão · Base de Dados
+//   5. Business Units   — access cards to BU sidebars
 function AwqSidebar({ pathname }: { pathname: string }) {
-    // /awq root is active only on exact match (all /awq/* belong to Indicadores Holding)
     const isActive = (href: string) =>
         href === "/awq"
             ? pathname === "/awq"
             : pathname === href || pathname.startsWith(href + "/");
 
-    // Determine if any indicator child is currently active
-    const anyIndicatorActive = HOLDING_INDICATOR_ITEMS.some(
-        (item) => pathname === item.href || pathname.startsWith(item.href + "/")
-    );
+    const isGroupActive = (items: readonly { href: string }[]) =>
+        items.some((i) => pathname === i.href || pathname.startsWith(i.href + "/"));
 
-    const [indicatorsOpen, setIndicatorsOpen] = useState(anyIndicatorActive);
+    // Collapsible open states — auto-expand when child route is active
+    const ctActive           = isGroupActive(AWQ_CONTROL_TOWER_ITEMS);
+    const fpaActive          = isGroupActive(AWQ_FPA_ITEMS);
+    const tesourariaActive   = isGroupActive(AWQ_TESOURARIA_ITEMS);
+    const controladoriaActive= isGroupActive(AWQ_CONTROLADORIA_ITEMS);
 
-    // Auto-expand when navigating into any indicator route
-    useEffect(() => {
-        if (anyIndicatorActive) setIndicatorsOpen(true);
-    }, [anyIndicatorActive]);
+    const [ctOpen,            setCtOpen]           = useState(ctActive);
+    const [fpaOpen,           setFpaOpen]          = useState(fpaActive);
+    const [tesourariaOpen,    setTesourariaOpen]   = useState(tesourariaActive);
+    const [controladoriaOpen, setControladoriaOpen]= useState(controladoriaActive);
+
+    useEffect(() => { if (ctActive)           setCtOpen(true);           }, [ctActive]);
+    useEffect(() => { if (fpaActive)          setFpaOpen(true);          }, [fpaActive]);
+    useEffect(() => { if (tesourariaActive)   setTesourariaOpen(true);   }, [tesourariaActive]);
+    useEffect(() => { if (controladoriaActive)setControladoriaOpen(true);}, [controladoriaActive]);
 
     return (
         <>
             <AwqHeader />
             <nav className="flex-1 overflow-y-auto px-3 py-2">
 
-                {/* ── Primary nav: Visão Geral + Business Units ─────────── */}
-                <div className="space-y-0.5 mt-1">
+                {/* ── 1. Control Tower ──────────────────────────────────── */}
+                <SectionLabel>Control Tower</SectionLabel>
+                <div className="space-y-0.5">
                     {awqPrimaryNav.map((item) => (
                         <NavItem key={item.href} {...item} active={isActive(item.href)} />
                     ))}
                 </div>
-
-                {/* ── Indicadores Holding — collapsible parent ──────────── */}
-                <div className="mt-0.5">
-                    <button
-                        onClick={() => setIndicatorsOpen((o) => !o)}
-                        className={cn(
-                            "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150",
-                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 focus-visible:ring-offset-1",
-                            anyIndicatorActive
-                                ? "bg-brand-50 text-brand-700 shadow-sm"
-                                : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                        )}
-                    >
-                        <BarChart3
-                            size={16}
-                            className={cn(
-                                "shrink-0 transition-colors",
-                                anyIndicatorActive ? "text-brand-600" : "text-gray-400"
-                            )}
+                <CollapsibleSection
+                    label="Indicadores"
+                    icon={BarChart3}
+                    isAnyActive={ctActive}
+                    isOpen={ctOpen}
+                    onToggle={() => setCtOpen((o) => !o)}
+                >
+                    {AWQ_CONTROL_TOWER_ITEMS.map((item) => (
+                        <NavItem
+                            key={item.href}
+                            href={item.href}
+                            icon={item.icon}
+                            label={item.label}
+                            active={pathname === item.href || pathname.startsWith(item.href + "/")}
                         />
-                        <span className="flex-1 text-left truncate">Indicadores Holding</span>
-                        {indicatorsOpen ? (
-                            <ChevronDown size={13} className="shrink-0 text-gray-400" />
-                        ) : (
-                            <ChevronRight size={13} className="shrink-0 text-gray-400" />
-                        )}
-                    </button>
+                    ))}
+                </CollapsibleSection>
 
-                    {indicatorsOpen && (
-                        <div className="ml-3 mt-0.5 pl-3 border-l border-gray-100 space-y-0.5">
-                            {HOLDING_INDICATOR_ITEMS.map((item) => (
-                                <NavItem
-                                    key={item.href}
-                                    href={item.href}
-                                    icon={item.icon}
-                                    label={item.label}
-                                    active={pathname === item.href || pathname.startsWith(item.href + "/")}
-                                />
-                            ))}
-                        </div>
-                    )}
-                </div>
+                {/* ── 2. Financeiro Corporativo ─────────────────────────── */}
+                <SectionLabel>Financeiro Corporativo</SectionLabel>
+                <CollapsibleSection
+                    label="FP&A"
+                    icon={LineChart}
+                    isAnyActive={fpaActive}
+                    isOpen={fpaOpen}
+                    onToggle={() => setFpaOpen((o) => !o)}
+                >
+                    {AWQ_FPA_ITEMS.map((item) => (
+                        <NavItem
+                            key={item.href}
+                            href={item.href}
+                            icon={item.icon}
+                            label={item.label}
+                            active={pathname === item.href || pathname.startsWith(item.href + "/")}
+                        />
+                    ))}
+                </CollapsibleSection>
+                <CollapsibleSection
+                    label="Tesouraria"
+                    icon={Wallet}
+                    isAnyActive={tesourariaActive}
+                    isOpen={tesourariaOpen}
+                    onToggle={() => setTesourariaOpen((o) => !o)}
+                >
+                    {AWQ_TESOURARIA_ITEMS.map((item) => (
+                        <NavItem
+                            key={item.href}
+                            href={item.href}
+                            icon={item.icon}
+                            label={item.label}
+                            active={pathname === item.href || pathname.startsWith(item.href + "/")}
+                        />
+                    ))}
+                </CollapsibleSection>
+                <CollapsibleSection
+                    label="Controladoria"
+                    icon={ShieldCheck}
+                    isAnyActive={controladoriaActive}
+                    isOpen={controladoriaOpen}
+                    onToggle={() => setControladoriaOpen((o) => !o)}
+                >
+                    {AWQ_CONTROLADORIA_ITEMS.map((item) => (
+                        <NavItem
+                            key={item.href}
+                            href={item.href}
+                            icon={item.icon}
+                            label={item.label}
+                            active={pathname === item.href || pathname.startsWith(item.href + "/")}
+                        />
+                    ))}
+                </CollapsibleSection>
 
-                {/* ── Ops / governance (primary, always visible) ────────── */}
-                <div className="space-y-0.5 mt-0.5">
-                    {awqOpsNav.map((item) => (
+                {/* ── 3. Governança & Jurídico ──────────────────────────── */}
+                <SectionLabel>Governança & Jurídico</SectionLabel>
+                <div className="space-y-0.5">
+                    {AWQ_JURIDICO_ITEMS.map((item) => (
                         <NavItem key={item.href} {...item} active={isActive(item.href)} />
                     ))}
                 </div>
 
-                {/* ── Business Unit quick-access cards ────────────────────── */}
+                {/* ── 4. Dados & Infra ──────────────────────────────────── */}
+                <SectionLabel>Dados & Infra</SectionLabel>
+                <div className="space-y-0.5">
+                    {AWQ_DADOS_ITEMS.map((item) => (
+                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
+                    ))}
+                </div>
+
+                {/* ── 5. Business Unit quick-access cards ───────────────── */}
                 <SectionLabel>Business Units</SectionLabel>
                 <div className="space-y-2 mt-1">
                     {businessUnits.map((bu) => (
