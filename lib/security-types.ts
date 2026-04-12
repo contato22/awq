@@ -89,6 +89,8 @@ export interface SensitiveRoute {
   sensitivity: "high" | "medium" | "low";
   requiredAction: SecurityAction;
   description: string;
+  /** v3 prep: prontidão para enforcement em UI */
+  routeGuardStatus?: "registered" | "ready_for_guard" | "guarded" | "not_ready";
 }
 
 // API sensível registrada no security registry
