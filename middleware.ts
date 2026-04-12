@@ -2,6 +2,15 @@ import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
 import { canAccess, findUserByEmail, type Role } from "@/lib/auth-users";
 
+// ── Security headers (aplicados a todas as respostas server-side) ──────────
+function withSecurityHeaders(response: NextResponse): NextResponse {
+  response.headers.set("X-Content-Type-Options", "nosniff");
+  response.headers.set("X-Frame-Options", "SAMEORIGIN");
+  response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  return response;
+}
+
 export default withAuth(
   function middleware(req) {
     const { pathname } = req.nextUrl;
@@ -13,7 +22,7 @@ export default withAuth(
 
     // Skip RBAC for API routes — each API handler manages its own authorization
     if (pathname.startsWith("/api/")) {
-      return NextResponse.next();
+      return withSecurityHeaders(NextResponse.next());
     }
 
     const role = token.role as Role;
@@ -25,7 +34,7 @@ export default withAuth(
       return NextResponse.redirect(new URL(home, req.url));
     }
 
-    return NextResponse.next();
+    return withSecurityHeaders(NextResponse.next());
   },
   {
     callbacks: {
@@ -35,13 +44,6 @@ export default withAuth(
 );
 
 export const config = {
-  // Protect all routes except:
-  //   login          — public sign-in page
-  //   api/auth       — NextAuth internal endpoints
-  //   api/health     — public infrastructure probe (boolean presence flags only)
-  //   _next/static   — static assets
-  //   _next/image    — image optimization
-  //   favicon.ico    — favicon
   matcher: [
     "/((?!login|api/auth|api/health|_next/static|_next/image|favicon\\.ico).*)",
   ],

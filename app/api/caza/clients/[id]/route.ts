@@ -3,21 +3,23 @@
 // ─── DELETE /api/caza/clients/[id]
 
 import { NextRequest, NextResponse } from "next/server";
+import { apiGuard } from "@/lib/api-guard";
 import { initCazaDB, getClient, updateClient, deleteClient } from "@/lib/caza-db";
 import { sql } from "@/lib/db";
 
 export const runtime = "nodejs";
 
-// Required for `output: export` — dummy entry satisfies Next.js static check.
-// These routes are server-only; the placeholder path is never used in production.
 export async function generateStaticParams() {
   return [{ id: "_" }];
 }
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: { id: string } }
 ): Promise<NextResponse> {
+  const denied = await apiGuard(req, "view", "caza_vision", "Cliente Caza Vision");
+  if (denied) return denied;
+
   if (!sql) return NextResponse.json({ error: "DB not available" }, { status: 503 });
   await initCazaDB();
   const client = await getClient(params.id);
@@ -29,6 +31,9 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: { id: string } }
 ): Promise<NextResponse> {
+  const denied = await apiGuard(req, "update", "caza_vision", "Cliente Caza Vision");
+  if (denied) return denied;
+
   if (!sql) return NextResponse.json({ error: "DB not available" }, { status: 503 });
   await initCazaDB();
   const body = await req.json() as Record<string, unknown>;
@@ -49,9 +54,12 @@ export async function PUT(
 }
 
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: { id: string } }
 ): Promise<NextResponse> {
+  const denied = await apiGuard(req, "delete", "caza_vision", "Cliente Caza Vision");
+  if (denied) return denied;
+
   if (!sql) return NextResponse.json({ error: "DB not available" }, { status: 503 });
   await initCazaDB();
   await deleteClient(params.id);

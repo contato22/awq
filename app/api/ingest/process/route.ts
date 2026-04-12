@@ -18,6 +18,8 @@
 // API KEY: uses server ANTHROPIC_API_KEY (never expose client key to server processing)
 
 import { NextRequest } from "next/server";
+import { getToken } from "next-auth/jwt";
+import { guard } from "@/lib/security-guard";
 import fs from "fs";
 import path from "path";
 import {
@@ -40,6 +42,20 @@ function sse(event: Record<string, unknown>): string {
 }
 
 export async function POST(req: NextRequest): Promise<Response> {
+  // ── RBAC guard: import em dados_infra — owner/admin/finance ──
+  const token   = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  const user_id = (token?.email as string | undefined) ?? "anonymous";
+  const rawRole = (token?.role  as string | undefined) ?? "anonymous";
+  const { result: guardResult, reason: guardReason } = guard(
+    user_id, rawRole, "/api/ingest/process", "dados_infra", "import", "Pipeline de processamento de extrato"
+  );
+  if (guardResult === "blocked") {
+    return new Response(
+      JSON.stringify({ error: "Acesso negado", code: "RBAC_DENIED", reason: guardReason }),
+      { status: 403, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
   let documentId: string | undefined;
   try {
     const body = await req.json() as { documentId?: string };

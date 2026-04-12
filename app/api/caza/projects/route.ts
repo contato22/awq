@@ -2,12 +2,16 @@
 // ─── POST /api/caza/projects — create a new project
 
 import { NextRequest, NextResponse } from "next/server";
+import { apiGuard } from "@/lib/api-guard";
 import { initCazaDB, listProjects, upsertProject, newProjectId } from "@/lib/caza-db";
 import { sql } from "@/lib/db";
 
 export const runtime = "nodejs";
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(req: NextRequest): Promise<NextResponse> {
+  const denied = await apiGuard(req, "view", "caza_vision", "Projetos Caza Vision");
+  if (denied) return denied;
+
   if (!sql) return NextResponse.json([], { status: 200 });
   await initCazaDB();
   const projects = await listProjects();
@@ -15,6 +19,9 @@ export async function GET(): Promise<NextResponse> {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  const denied = await apiGuard(req, "create", "caza_vision", "Projetos Caza Vision");
+  if (denied) return denied;
+
   if (!sql) return NextResponse.json({ error: "DB not available" }, { status: 503 });
   await initCazaDB();
 
