@@ -1,7 +1,10 @@
 "use client";
 
 import { Bell, Search, RefreshCw } from "lucide-react";
-import { alerts } from "@/lib/data";
+// NOTE: alerts system not yet implemented globally. lib/data.ts is JACQES-specific
+// and must not be imported here (shared component). Notification count will be wired
+// to a platform-wide notification store when built.
+const unreadCount = 0;
 
 interface HeaderProps {
   title: string;
@@ -9,7 +12,6 @@ interface HeaderProps {
 }
 
 export default function Header({ title, subtitle }: HeaderProps) {
-  const unreadCount = alerts.filter((a) => a.type === "warning" || a.type === "error").length;
 
   return (
     <header className="sticky top-0 z-30 px-6 lg:px-8 py-4 border-b border-gray-200/80 bg-white/95 backdrop-blur-sm flex items-center justify-between gap-4">

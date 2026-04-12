@@ -59,7 +59,8 @@ export const SNAPSHOT_REGISTRY: SnapshotSource[] = [
               "budget targets (buBudgetTargets), expense category budgets (categoryBudget), " +
               "forecast accuracy history (forecastAccuracyHistory), BU forecast scenarios (buForecastScenarios)",
     status:   "active",
-    period:   "YTD Jan–Mar 2026 (Q1 2026 — frozen snapshot)",
+    // JACQES inclui Abr/2026 (Tati Simões confirmada, já paga); Caza encerrado em Mar/2026 (Abr = forecast = 0)
+    period:   "YTD Jan–Abr 2026 (JACQES) / YTD Jan–Mar 2026 (Caza) · snapshot accrual",
     consumers: [
       // NOTE: pages import from awq-derived-metrics, NOT awq-group-data directly.
       // awq-derived-metrics is the canonical derivation layer (P2 — implemented).

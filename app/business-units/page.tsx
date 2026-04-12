@@ -33,8 +33,10 @@ const BUS = [
     kpis: [
       { label: "Receita",  value: fmtR(jacqes.revenue)                },
       { label: "Clientes", value: String(jacqes.customers)            },
-      { label: "EBITDA %", value: fmtPct((jacqes.ebitda / jacqes.revenue) * 100) },
+      // ebitda=0 significa "aguardando confirmação contábil", não margem zero
+      { label: "EBITDA %", value: jacqes.ebitda > 0 ? fmtPct((jacqes.ebitda / jacqes.revenue) * 100) : "—" },
     ],
+    sourceBadge: "⚠ snapshot accrual",
     status: jacqes.status,
     statusColor: "bg-emerald-100 text-emerald-600 border-emerald-200",
   },
@@ -52,6 +54,7 @@ const BUS = [
       { label: "Clientes", value: String(caza.customers)            },
       { label: "EBITDA %", value: fmtPct((caza.ebitda / caza.revenue) * 100) },
     ],
+    sourceBadge: "⚠ snapshot accrual",
     status: caza.status,
     statusColor: "bg-emerald-100 text-emerald-600 border-emerald-200",
   },
@@ -66,9 +69,12 @@ const BUS = [
     icon: TrendingUp,
     kpis: [
       { label: "Fee MRR",   value: fmtR(ventureFeeMRR) },
+      // capitalAllocated = CDB DI empírico (Itaú print 02/04/2026) — fonte: real, não snapshot
       { label: "CDB DI",    value: fmtR(venture?.capitalAllocated ?? 0) },
       { label: "Fee ARR",   value: fmtR(ventureFeeARR) },
     ],
+    // Fee MRR/ARR = contrato confirmado (ENERDY); CDB DI = empírico (extrato bancário)
+    sourceBadge: "✓ contrato + empírico",
     status: venture?.status ?? "Em construção",
     statusColor: "bg-amber-100 text-amber-600 border-amber-200",
   },
@@ -86,6 +92,8 @@ const BUS = [
       { label: "Status",   value: "Pré-receita" },
       { label: "Tipo",     value: "Estratégico" },
     ],
+    // sem dados financeiros — pré-receita, badge inaplicável
+    sourceBadge: "ℹ pré-receita",
     status: advisor?.status ?? "Em construção",
     statusColor: "bg-violet-100 text-violet-600 border-violet-200",
   },
@@ -160,7 +168,11 @@ export default async function BusinessUnitsPage() {
                     </div>
                   ))}
                 </div>
-                <div className="text-[9px] text-amber-500 font-semibold tracking-wide">⚠ snapshot accrual</div>
+                <div className={`text-[9px] font-semibold tracking-wide ${
+                  bu.sourceBadge.startsWith("✓") ? "text-emerald-600" :
+                  bu.sourceBadge.startsWith("ℹ") ? "text-gray-400" :
+                  "text-amber-500"
+                }`}>{bu.sourceBadge}</div>
 
                 {/* CTA */}
                 <div className="flex items-center justify-between pt-1">

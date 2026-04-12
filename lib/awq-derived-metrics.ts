@@ -36,6 +36,9 @@ export {
   consolidatedMargins,
   consolidatedRoic,
   budgetVsActual,
+  // JACQES MRR constants (re-exported so pages never import awq-group-data directly)
+  JACQES_MRR,
+  JACQES_MRR_Q1,
   // Monthly
   monthlyRevenue,
   // Risk
@@ -213,11 +216,13 @@ export interface MetricMeta {
   derivedFrom?: string;
 }
 
-/** Metadata for metrics read directly from the planning snapshot layer */
+/** Metadata for metrics read directly from the planning snapshot layer.
+ *  NOTE: período heterogêneo — JACQES inclui Abr/2026 (confirmado); Caza encerrado em Mar/2026.
+ */
 export const SNAPSHOT_META: MetricMeta = {
   sourceType:  "snapshot",
   sourcePath:  "lib/awq-group-data.ts",
-  period:      "Q1 2026 (Jan–Mar · accrual P&L)",
+  period:      "YTD Jan–Abr 2026 (JACQES) / Jan–Mar 2026 (Caza) · accrual P&L",
   derivedFrom: undefined,
 };
 
@@ -225,6 +230,6 @@ export const SNAPSHOT_META: MetricMeta = {
 export const DERIVED_META: MetricMeta = {
   sourceType:  "derived",
   sourcePath:  "lib/awq-derived-metrics.ts",
-  period:      "Q1 2026 (Jan–Mar · accrual P&L)",
+  period:      "YTD Jan–Abr 2026 (JACQES) / Jan–Mar 2026 (Caza) · accrual P&L",
   derivedFrom: "lib/awq-group-data.ts",
 };

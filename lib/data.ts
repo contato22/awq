@@ -15,7 +15,7 @@
 //   customerSegments → sem segmentação validada
 //   alerts           → sem alertas de clientes reais (clientes eram fictícios)
 
-import { JACQES_MRR, buData, monthlyRevenue } from "@/lib/awq-group-data";
+import { JACQES_MRR, buData, monthlyRevenue } from "@/lib/awq-derived-metrics";
 
 const _jacqes = buData.find((b) => b.id === "jacqes")!;
 
