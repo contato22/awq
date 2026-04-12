@@ -32,6 +32,7 @@ import {
     Landmark,
     Database,
     ShieldCheck,
+    ShieldAlert,
     UserPlus,
     ClipboardList,
     MessageSquare,
@@ -218,8 +219,9 @@ const AWQ_JURIDICO_ITEMS = [
 
 // Dados & Infra
 const AWQ_DADOS_ITEMS = [
-    { label: "Ingestão",      href: "/awq/ingest", icon: FileUp   },
-    { label: "Base de Dados", href: "/awq/data",   icon: Database },
+    { label: "Ingestão",      href: "/awq/ingest",    icon: FileUp      },
+    { label: "Base de Dados", href: "/awq/data",      icon: Database    },
+    { label: "Segurança",     href: "/awq/security",  icon: ShieldAlert },
 ] as const;
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
