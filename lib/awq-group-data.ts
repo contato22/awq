@@ -175,7 +175,7 @@ export const buData: BuData[] = [
     sub:              "Consultoria · AWQ Group",
     color:            "bg-violet-600",
     accentColor:      "text-violet-400",
-    status:           "Em construção",
+    status:           "Ativo",
     economicType:     "pre_revenue",
     revenue:          0,
     grossProfit:      0,
