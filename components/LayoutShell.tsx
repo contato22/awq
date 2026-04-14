@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Menu, X } from "lucide-react";
 import Sidebar from "./Sidebar";
 import OpenClawWidget from "./OpenClawWidget";
@@ -12,8 +12,10 @@ const SIDEBAR_STORAGE_KEY = "awq-sidebar-collapsed";
 
 export default function LayoutShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [collapsed,   setCollapsed]   = useState(false);
+  const [sidebarOpen,   setSidebarOpen]   = useState(false);
+  const [collapsed,     setCollapsed]     = useState(false);
+  const [hoverExpanded, setHoverExpanded] = useState(false);
+  const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const openSidebar  = useCallback(() => setSidebarOpen(true),  []);
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
@@ -29,8 +31,20 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
     setCollapsed((prev) => {
       const next = !prev;
       localStorage.setItem(SIDEBAR_STORAGE_KEY, String(next));
+      // Clear hover-expanded when user explicitly toggles
+      setHoverExpanded(false);
       return next;
     });
+  }, []);
+
+  // Hover expansion — only meaningful when collapsed on desktop
+  const handleMouseEnter = useCallback(() => {
+    if (hoverTimer.current) clearTimeout(hoverTimer.current);
+    setHoverExpanded(true);
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    hoverTimer.current = setTimeout(() => setHoverExpanded(false), 200);
   }, []);
 
   // Close mobile sidebar on route change
@@ -64,6 +78,8 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
 
       {/* ── Sidebar ────────────────────────────────────────────── */}
       <aside
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
         className={cn(
           "fixed inset-y-0 left-0 z-50 bg-white border-r border-gray-200 flex flex-col",
           "transform transition-all duration-300 ease-out",
@@ -71,8 +87,8 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
           // Mobile: always full-width, slides in/out
           "w-[280px]",
           sidebarOpen ? "translate-x-0" : "-translate-x-full",
-          // Desktop: width depends on collapsed state
-          collapsed ? "lg:w-[72px]" : "lg:w-[260px]"
+          // Desktop: collapsed unless user is hovering over it
+          collapsed && !hoverExpanded ? "lg:w-[72px]" : "lg:w-[260px]"
         )}
       >
         {/* Mobile close button */}
@@ -84,7 +100,7 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
           <X size={18} />
         </button>
 
-        <Sidebar collapsed={collapsed} onToggle={toggleCollapsed} />
+        <Sidebar collapsed={collapsed} hoverExpanded={hoverExpanded} onToggle={toggleCollapsed} />
       </aside>
 
       {/* ── Main Content ───────────────────────────────────────── */}

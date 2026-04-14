@@ -55,6 +55,8 @@ interface SidebarCtxValue {
     collapsed: boolean;
     /** True when viewport is ≥ 1024 px (desktop). */
     isDesktop: boolean;
+    /** True when sidebar is temporarily expanded via mouse hover. */
+    hoverExpanded: boolean;
     /** Toggle collapsed preference. */
     toggle: () => void;
 }
@@ -62,16 +64,19 @@ interface SidebarCtxValue {
 const SidebarCtx = createContext<SidebarCtxValue>({
     collapsed: false,
     isDesktop: false,
+    hoverExpanded: false,
     toggle: () => {},
 });
 
 /**
- * Returns true only when the sidebar should visually be collapsed.
- * On mobile the sidebar is an overlay, so it is always "expanded" content-wise.
+ * Returns true only when the sidebar should visually appear collapsed:
+ *   - user preference is collapsed, AND
+ *   - viewport is desktop (≥ 1024 px), AND
+ *   - the sidebar is NOT temporarily hover-expanded.
  */
 function useEffectiveCollapsed(): boolean {
-    const { collapsed, isDesktop } = useContext(SidebarCtx);
-    return collapsed && isDesktop;
+    const { collapsed, isDesktop, hoverExpanded } = useContext(SidebarCtx);
+    return collapsed && isDesktop && !hoverExpanded;
 }
 
 // ── Route membership ──────────────────────────────────────────────────────────
@@ -1017,9 +1022,11 @@ function AwqVentureSidebar({ pathname }: { pathname: string }) {
 // ── Root Sidebar ──────────────────────────────────────────────────────────────
 export default function Sidebar({
     collapsed,
+    hoverExpanded,
     onToggle,
 }: {
     collapsed: boolean;
+    hoverExpanded: boolean;
     onToggle: () => void;
 }) {
     const rawPathname = usePathname();
@@ -1041,7 +1048,7 @@ export default function Sidebar({
     const ventureMode = isVentureRoute(pathname);
 
     return (
-        <SidebarCtx.Provider value={{ collapsed, isDesktop, toggle: onToggle }}>
+        <SidebarCtx.Provider value={{ collapsed, isDesktop, hoverExpanded, toggle: onToggle }}>
             <div className="flex flex-col h-full">
                 {jacqesMode ? (
                     <JacqesSidebar pathname={pathname} />
