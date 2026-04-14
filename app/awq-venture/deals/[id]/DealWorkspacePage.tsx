@@ -960,8 +960,9 @@ export default function DealWorkspacePage({
 }: {
   params: { id: string };
 }) {
-  const deal = getDealById(params.id);
-  if (!deal) notFound();
+  const maybeDeal = getDealById(params.id);
+  if (!maybeDeal) notFound();
+  const deal = maybeDeal;
 
   const [preview,           setPreview]          = useState<"interno" | "cliente" | null>(null);
   const [override,          setOverride]          = useState<DealOverride>({});

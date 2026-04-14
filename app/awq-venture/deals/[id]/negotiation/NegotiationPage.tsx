@@ -81,8 +81,9 @@ const categoryConfig: Record<NoteCategory, { label: string; color: string; bg: s
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function NegotiationPage({ params }: { params: { id: string } }) {
-  const deal = getDealById(params.id);
-  if (!deal) notFound();
+  const maybeDeal = getDealById(params.id);
+  if (!maybeDeal) notFound();
+  const deal = maybeDeal;
 
   const [override, setOverride]         = useState<DealOverride>({});
   const [newNote, setNewNote]           = useState("");

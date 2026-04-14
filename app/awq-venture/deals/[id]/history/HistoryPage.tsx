@@ -45,8 +45,9 @@ function fieldLabel(key: string): string {
 }
 
 export default function HistoryPage({ params }: { params: { id: string } }) {
-  const deal = getDealById(params.id);
-  if (!deal) notFound();
+  const maybeDeal = getDealById(params.id);
+  if (!maybeDeal) notFound();
+  const deal = maybeDeal;
 
   const [override, setOverride] = useState<DealOverride>({});
 
