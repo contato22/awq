@@ -187,6 +187,7 @@ export const PLATFORM_ROUTES: PlatformRoute[] = [
   { href: "/advisor",           label: "Visão Geral", bu: "advisor", layer: "bu-overview",   status: "active", dataSource: "dados próprios — pre_revenue, sem extrato ou contrato ativo", inSidebar: true, inTabNav: false },
   { href: "/advisor/financial", label: "Financial",   bu: "advisor", layer: "bu-financial",  status: "active", dataSource: "dados próprios — pre_revenue, estado vazio explícito",         inSidebar: true, inTabNav: false },
   { href: "/advisor/customers", label: "Customers",   bu: "advisor", layer: "bu-operations", status: "active", dataSource: "dados próprios — pre_revenue, carteira vazia",                 inSidebar: true, inTabNav: false },
+  { href: "/advisor/customers/avva", label: "AVVA — Ficha",  bu: "advisor", layer: "bu-operations", status: "active", dataSource: "lib/advisor-clients.ts → getAdvisorClient('avva')", inSidebar: false, inTabNav: false },
   // Not yet implemented — add to sidebar only after page is created
   // { href: "/advisor/mandatos",   label: "Mandatos",    status: "stub", inSidebar: false }
   // { href: "/advisor/pipeline",   label: "Pipeline",    status: "stub", inSidebar: false }

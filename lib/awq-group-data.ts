@@ -180,7 +180,7 @@ export const buData: BuData[] = [
     netIncome:        0,
     cashGenerated:    0,
     cashBalance:      0,
-    customers:        0,
+    customers:        1,  // AVVA — primeiro cliente (onboarding, Abr/2026)
     ftes:             0,
     capitalAllocated: 0,
     roic:             0,
