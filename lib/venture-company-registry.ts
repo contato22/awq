@@ -11,7 +11,7 @@
 //   - Não misturar empresas entre si.
 //   - Não confundir contrato ativo com pipeline ou investimento patrimonial.
 
-import { ventureContracts } from "./awq-group-data";
+import { ventureContracts } from "./awq-derived-metrics";
 
 export type CompanyRelationshipType =
   | "advisory"            // AWQ presta advisory

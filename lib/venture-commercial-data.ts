@@ -14,7 +14,7 @@
 //   Não confundir pipeline comercial com patrimônio real.
 
 import type { CommercialOpportunity, CommercialKPIs } from "./venture-commercial-types";
-import { ventureContracts } from "./awq-group-data";
+import { ventureContracts } from "./awq-derived-metrics";
 
 // Único contrato operacional confirmado da Venture.
 // Fonte: evidência de contrato fornecida pelo usuário (awq-group-data.ts).
