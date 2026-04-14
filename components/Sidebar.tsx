@@ -232,9 +232,11 @@ function NavItem({
     active,
 }: {
     href: string;
-    icon: React.ElementType;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    icon: any;
     label: string;
     active: boolean;
+    [extra: string]: unknown;
 }) {
     return (
         <Link
@@ -261,7 +263,7 @@ function NavItem({
     );
 }
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
+function SectionLabel({ children }: { children?: React.ReactNode }) {
     return (
         <div className="px-3 mb-1.5 mt-6 first:mt-2">
             <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.08em]">
@@ -355,7 +357,7 @@ function CollapsibleSection({
     isAnyActive: boolean;
     isOpen: boolean;
     onToggle: () => void;
-    children: React.ReactNode;
+    children?: React.ReactNode;
 }) {
     return (
         <div className="mt-0.5">
@@ -438,7 +440,7 @@ function AwqSidebar({ pathname }: { pathname: string }) {
                     icon={BarChart3}
                     isAnyActive={ctActive}
                     isOpen={ctOpen}
-                    onToggle={() => setCtOpen((o) => !o)}
+                    onToggle={() => setCtOpen((o: boolean) => !o)}
                 >
                     {AWQ_CONTROL_TOWER_ITEMS.map((item) => (
                         <NavItem
@@ -458,7 +460,7 @@ function AwqSidebar({ pathname }: { pathname: string }) {
                     icon={LineChart}
                     isAnyActive={fpaActive}
                     isOpen={fpaOpen}
-                    onToggle={() => setFpaOpen((o) => !o)}
+                    onToggle={() => setFpaOpen((o: boolean) => !o)}
                 >
                     {AWQ_FPA_ITEMS.map((item) => (
                         <NavItem
@@ -475,7 +477,7 @@ function AwqSidebar({ pathname }: { pathname: string }) {
                     icon={Wallet}
                     isAnyActive={tesourariaActive}
                     isOpen={tesourariaOpen}
-                    onToggle={() => setTesourariaOpen((o) => !o)}
+                    onToggle={() => setTesourariaOpen((o: boolean) => !o)}
                 >
                     {AWQ_TESOURARIA_ITEMS.map((item) => (
                         <NavItem
@@ -492,7 +494,7 @@ function AwqSidebar({ pathname }: { pathname: string }) {
                     icon={ShieldCheck}
                     isAnyActive={controladoriaActive}
                     isOpen={controladoriaOpen}
-                    onToggle={() => setControladoriaOpen((o) => !o)}
+                    onToggle={() => setControladoriaOpen((o: boolean) => !o)}
                 >
                     {AWQ_CONTROLADORIA_ITEMS.map((item) => (
                         <NavItem
@@ -619,7 +621,7 @@ function JacqesSidebar({ pathname }: { pathname: string }) {
                 {/* CRM — collapsible group */}
                 <div className="mt-0.5">
                     <button
-                        onClick={() => setCrmOpen((o) => !o)}
+                        onClick={() => setCrmOpen((o: boolean) => !o)}
                         className={cn(
                             "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150",
                             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 focus-visible:ring-offset-1",

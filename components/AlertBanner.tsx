@@ -27,6 +27,7 @@ const alertConfig = {
 
 interface AlertBannerProps {
   alert: Alert;
+  [extra: string]: unknown;
 }
 
 export default function AlertBanner({ alert }: AlertBannerProps) {

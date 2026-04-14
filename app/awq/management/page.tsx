@@ -51,7 +51,7 @@ const STATUS_LABEL: Record<SnapshotStatus, string> = {
 
 // ─── Section components ───────────────────────────────────────────────────────
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
+function SectionTitle({ children }: { children?: React.ReactNode; [extra: string]: unknown }) {
   return (
     <h2 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3 mt-8 first:mt-0">
       {children}
@@ -59,7 +59,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+function Card({ children, className = "" }: { children?: React.ReactNode; className?: string; [extra: string]: unknown }) {
   return (
     <div className={`bg-white rounded-xl border border-gray-200 p-5 ${className}`}>
       {children}

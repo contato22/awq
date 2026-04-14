@@ -74,6 +74,7 @@ function KpiCard({
   icon: React.ElementType;
   color: string;
   bg: string;
+  [extra: string]: unknown;
 }) {
   return (
     <div className="card p-5 flex items-start gap-4">

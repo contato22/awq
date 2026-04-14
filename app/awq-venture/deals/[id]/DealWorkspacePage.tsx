@@ -66,7 +66,7 @@ const confLabel: Record<string, string> = {
 function SectionCard({
   id, icon: Icon, title, children,
 }: {
-  id: string; icon: React.ElementType; title: string; children: React.ReactNode;
+  id: string; icon: React.ElementType; title: string; children?: React.ReactNode;
 }) {
   return (
     <div id={id} className="card scroll-mt-28">
@@ -487,7 +487,7 @@ function EditableText({
         <textarea
           ref={ref as React.RefObject<HTMLTextAreaElement>}
           value={draft}
-          onChange={(e) => setDraft(e.target.value)}
+          onChange={(e: { target: { value: string } }) => setDraft(e.target.value)}
           rows={4}
           className="w-full rounded-xl border border-amber-300 bg-amber-50/30 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-400/40 resize-y"
           placeholder={placeholder}
@@ -497,7 +497,7 @@ function EditableText({
           ref={ref as React.RefObject<HTMLInputElement>}
           type="text"
           value={draft}
-          onChange={(e) => setDraft(e.target.value)}
+          onChange={(e: { target: { value: string } }) => setDraft(e.target.value)}
           className="w-full rounded-xl border border-amber-300 bg-amber-50/30 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-400/40"
           placeholder={placeholder}
         />
@@ -525,7 +525,7 @@ function EditableNextSteps({
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<string[]>(effective);
 
-  function commit() { onSave(draft.filter((s) => s.trim())); setEditing(false); }
+  function commit() { onSave(draft.filter((s: string) => s.trim())); setEditing(false); }
 
   if (!editing) {
     return (
@@ -536,7 +536,7 @@ function EditableNextSteps({
         {effective.length === 0
           ? <p className="text-xs text-gray-400 italic">A preencher.</p>
           : <ol className="space-y-1.5">
-              {effective.map((s, i) => (
+              {effective.map((s: string, i: number) => (
                 <li key={i} className="flex items-start gap-2 text-xs text-gray-700">
                   <ArrowRight size={11} className="text-brand-500 mt-0.5 shrink-0" />
                   <span><span className="font-semibold text-gray-400 mr-1">{i + 1}.</span>{s}</span>
@@ -551,16 +551,16 @@ function EditableNextSteps({
 
   return (
     <div className="space-y-2">
-      {draft.map((s, i) => (
+      {draft.map((s: string, i: number) => (
         <div key={i} className="flex gap-2 items-center">
           <span className="text-xs text-gray-400 w-4 shrink-0">{i + 1}.</span>
           <input
             type="text"
             value={s}
-            onChange={(e) => { const d = [...draft]; d[i] = e.target.value; setDraft(d); }}
+            onChange={(e: { target: { value: string } }) => { const d = [...draft]; d[i] = e.target.value; setDraft(d); }}
             className="flex-1 rounded-lg border border-amber-300 bg-amber-50/30 px-2 py-1.5 text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-400/40"
           />
-          <button onClick={() => setDraft(draft.filter((_, j) => j !== i))} className="text-red-400 hover:text-red-600 transition-colors">
+          <button onClick={() => setDraft(draft.filter((_: string, j: number) => j !== i))} className="text-red-400 hover:text-red-600 transition-colors">
             <Minus size={12} />
           </button>
         </div>
@@ -635,10 +635,10 @@ function EditableNumber({
         ref={ref}
         type="text"
         value={draft}
-        onChange={(e) => setDraft(e.target.value)}
+        onChange={(e: { target: { value: string } }) => setDraft(e.target.value)}
         className="w-28 rounded-lg border border-amber-300 bg-amber-50/30 px-2 py-1 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-400/40"
         placeholder={placeholder}
-        onKeyDown={(e) => { if (e.key === "Enter") commit(); if (e.key === "Escape") setEditing(false); }}
+        onKeyDown={(e: { key: string }) => { if (e.key === "Enter") commit(); if (e.key === "Escape") setEditing(false); }}
       />
       <button onClick={commit} className="text-xs text-amber-700 bg-amber-100 px-2 py-1 rounded-lg hover:bg-amber-200 transition-colors">✓</button>
       <button onClick={() => setEditing(false)} className="text-xs text-gray-400 hover:text-gray-700">✕</button>
@@ -669,7 +669,7 @@ function EditableStringArray({
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<string[]>(effective);
 
-  function commit() { onSave(fieldKey, draft.filter((s) => s.trim())); setEditing(false); }
+  function commit() { onSave(fieldKey, draft.filter((s: string) => s.trim())); setEditing(false); }
 
   if (!editing) {
     return (
@@ -681,7 +681,7 @@ function EditableStringArray({
           <p className="text-xs text-gray-400 italic">{emptyText}</p>
         ) : (
           <ul className="space-y-1.5">
-            {effective.map((s, i) => (
+            {effective.map((s: string, i: number) => (
               <li key={i} className="flex items-start gap-2 text-xs text-gray-700">
                 {Icon && <Icon size={12} className={`${iconClass} mt-0.5 shrink-0`} />}
                 {s}
@@ -696,15 +696,15 @@ function EditableStringArray({
 
   return (
     <div className="space-y-2">
-      {draft.map((s, i) => (
+      {draft.map((s: string, i: number) => (
         <div key={i} className="flex gap-2 items-center">
           <input
             type="text"
             value={s}
-            onChange={(e) => { const d = [...draft]; d[i] = e.target.value; setDraft(d); }}
+            onChange={(e: { target: { value: string } }) => { const d = [...draft]; d[i] = e.target.value; setDraft(d); }}
             className="flex-1 rounded-lg border border-amber-300 bg-amber-50/30 px-2 py-1.5 text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-400/40"
           />
-          <button onClick={() => setDraft(draft.filter((_, j) => j !== i))} className="text-red-400 hover:text-red-600 transition-colors">
+          <button onClick={() => setDraft(draft.filter((_: string, j: number) => j !== i))} className="text-red-400 hover:text-red-600 transition-colors">
             <Minus size={12} />
           </button>
         </div>
@@ -747,7 +747,7 @@ function StatusChangeModal({
           <div>
             <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Estágio do Deal</label>
             <div className="relative">
-              <select value={stage} onChange={(e) => setStage(e.target.value as DealStage)}
+              <select value={stage} onChange={(e: { target: { value: string } }) => setStage(e.target.value as DealStage)}
                 className="w-full appearance-none rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-400 pr-8">
                 {ALL_STAGES.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
@@ -757,7 +757,7 @@ function StatusChangeModal({
           <div>
             <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Status de Envio / Proposta</label>
             <div className="relative">
-              <select value={sendStatus} onChange={(e) => setSendStatus(e.target.value as DealSendStatus)}
+              <select value={sendStatus} onChange={(e: { target: { value: string } }) => setSendStatus(e.target.value as DealSendStatus)}
                 className="w-full appearance-none rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-400 pr-8">
                 {ALL_SEND_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
@@ -961,7 +961,7 @@ export default function DealWorkspacePage({
   params: { id: string };
 }) {
   const deal = getDealById(params.id);
-  if (!deal) notFound();
+  if (!deal) { notFound(); return null; }
 
   const [preview,           setPreview]          = useState<"interno" | "cliente" | null>(null);
   const [override,          setOverride]          = useState<DealOverride>({});
@@ -971,36 +971,36 @@ export default function DealWorkspacePage({
   useEffect(() => { setOverride(loadOverride(deal.id)); }, [deal.id]);
 
   function applyOverride(patch: Partial<DealOverride>) {
-    setOverride((prev) => {
+    setOverride((prev: DealOverride) => {
       const next = { ...prev, ...patch, overriddenAt: new Date().toISOString() };
-      saveOverride(deal.id, next);
+      saveOverride(deal!.id, next);
       return next;
     });
   }
 
   function saveField(key: string, val: string) {
-    setOverride((prev) => {
+    setOverride((prev: DealOverride) => {
       const log = [...(prev.historyLog ?? []), { timestamp: new Date().toISOString(), field: key, from: prev.fields?.[key] ?? "—", to: val }];
       const next = { ...prev, fields: { ...(prev.fields ?? {}), [key]: val }, historyLog: log, overriddenAt: new Date().toISOString() };
-      saveOverride(deal.id, next);
+      saveOverride(deal!.id, next);
       return next;
     });
   }
 
   function saveNumericField(key: string, val: number) {
-    setOverride((prev) => {
+    setOverride((prev: DealOverride) => {
       const log = [...(prev.historyLog ?? []), { timestamp: new Date().toISOString(), field: key, from: String(prev.numericFields?.[key] ?? "—"), to: String(val) }];
       const next = { ...prev, numericFields: { ...(prev.numericFields ?? {}), [key]: val }, historyLog: log, overriddenAt: new Date().toISOString() };
-      saveOverride(deal.id, next);
+      saveOverride(deal!.id, next);
       return next;
     });
   }
 
   function saveArrayField(key: string, arr: string[]) {
-    setOverride((prev) => {
+    setOverride((prev: DealOverride) => {
       const log = [...(prev.historyLog ?? []), { timestamp: new Date().toISOString(), field: key, from: (prev.arrayFields?.[key] ?? []).join("; ") || "—", to: arr.join("; ") }];
       const next = { ...prev, arrayFields: { ...(prev.arrayFields ?? {}), [key]: arr }, historyLog: log, overriddenAt: new Date().toISOString() };
-      saveOverride(deal.id, next);
+      saveOverride(deal!.id, next);
       return next;
     });
   }

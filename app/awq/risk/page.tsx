@@ -76,7 +76,7 @@ const mrrAtRisk = riskCategories
 
 // ─── Risk card component ──────────────────────────────────────────────────────
 
-function RiskCard({ risk }: { risk: RiskCategory }) {
+function RiskCard({ risk }: { risk: RiskCategory; [extra: string]: unknown }) {
   const Icon    = ICON_MAP[risk.iconKey];
   const colors  = COLOR_MAP[risk.colorKey];
   const sev     = severityConfig[risk.severity];

@@ -277,7 +277,7 @@ function safeListDir(dirPath: string): string[] {
   try {
     const abs = join(REPO_ROOT, dirPath.replace(/^\//, ""));
     if (!existsSync(abs)) return [];
-    return readdirSync(abs).map((f) => join(dirPath, f));
+    return readdirSync(abs).map((f: string) => join(dirPath, f));
   } catch {
     return [];
   }

@@ -82,13 +82,13 @@ function SetupScreen({ onSave }: { onSave: (key: string) => void }) {
           autoFocus
           type={show ? "text" : "password"}
           value={value}
-          onChange={(e) => setValue(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && save()}
+          onChange={(e: { target: { value: string } }) => setValue(e.target.value)}
+          onKeyDown={(e: { key: string }) => e.key === "Enter" && save()}
           placeholder="sk-ant-... ou sk-..."
           className="w-full px-3 py-2.5 pr-9 bg-gray-100 border border-gray-300 rounded-xl text-xs text-gray-400 placeholder:text-gray-400 focus:outline-none focus:border-brand-500 transition-colors"
         />
         <button
-          onClick={() => setShow((v) => !v)}
+          onClick={() => setShow((v: boolean) => !v)}
           className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-400"
         >
           {show ? <EyeOff size={14} /> : <Eye size={14} />}
@@ -189,7 +189,7 @@ export default function OpenClawWidget() {
       const decoder = new TextDecoder();
       let assistantText = "";
 
-      setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
+      setMessages((prev: Message[]) => [...prev, { role: "assistant", content: "" }]);
 
       while (true) {
         const { done, value } = await reader.read();
@@ -204,7 +204,7 @@ export default function OpenClawWidget() {
           if (parsed.error) throw new Error(parsed.error);
           if (parsed.text) {
             assistantText += parsed.text;
-            setMessages((prev) => {
+            setMessages((prev: Message[]) => {
               const updated = [...prev];
               updated[updated.length - 1] = { role: "assistant", content: assistantText };
               return updated;
@@ -214,7 +214,7 @@ export default function OpenClawWidget() {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao conectar");
-      setMessages((prev) => {
+      setMessages((prev: Message[]) => {
         const last = prev[prev.length - 1];
         return last?.role === "assistant" && !last.content ? prev.slice(0, -1) : prev;
       });
@@ -229,7 +229,7 @@ export default function OpenClawWidget() {
     <>
       {/* Floating toggle button */}
       <button
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => setOpen((v: boolean) => !v)}
         className={`fixed bottom-6 right-6 z-50 w-12 h-12 rounded-2xl shadow-2xl flex items-center justify-center transition-all duration-200 ${
           open ? "bg-gray-200 hover:bg-gray-600" : "bg-gradient-to-br from-brand-600 to-brand-500 hover:scale-105 shadow-brand-900/50"
         }`}
@@ -312,7 +312,7 @@ export default function OpenClawWidget() {
                   </div>
                 )}
 
-                {messages.map((msg, i) => (
+                {messages.map((msg: Message, i: number) => (
                   <div key={i} className={`flex gap-2 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                     {msg.role === "assistant" && (
                       <div className="w-5 h-5 rounded-md bg-gradient-to-br from-brand-600 to-brand-400 flex items-center justify-center shrink-0 mt-0.5">
@@ -353,12 +353,12 @@ export default function OpenClawWidget() {
                   <textarea
                     ref={textareaRef}
                     value={input}
-                    onChange={(e) => {
+                    onChange={(e: { target: { value: string; style: { height: string }; scrollHeight: number } }) => {
                       setInput(e.target.value);
                       e.target.style.height = "auto";
                       e.target.style.height = `${Math.min(e.target.scrollHeight, 80)}px`;
                     }}
-                    onKeyDown={(e) => {
+                    onKeyDown={(e: { key: string; shiftKey: boolean; preventDefault: () => void }) => {
                       if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();
                         sendMessage(input);

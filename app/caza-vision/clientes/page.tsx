@@ -90,10 +90,10 @@ export default function ClientesPage() {
   }, []);
 
   const total        = clients.length;
-  const ativos       = clients.filter((c) => c.status === "Ativo" || c.status === "Em Proposta").length;
-  const totalWallet  = clients.reduce((s, c) => s + c.budget_anual, 0);
+  const ativos       = clients.filter((c: ClienteRow) => c.status === "Ativo" || c.status === "Em Proposta").length;
+  const totalWallet  = clients.reduce((s: number, c: ClienteRow) => s + c.budget_anual, 0);
   const avgBudget    = total > 0 ? Math.round(totalWallet / total) : 0;
-  const ativosWallet = clients.filter((c) => c.status === "Ativo").reduce((s, c) => s + c.budget_anual, 0);
+  const ativosWallet = clients.filter((c: ClienteRow) => c.status === "Ativo").reduce((s: number, c: ClienteRow) => s + c.budget_anual, 0);
 
   return (
     <>
@@ -197,7 +197,7 @@ export default function ClientesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {clients.map((c) => {
+                  {clients.map((c: ClienteRow) => {
                     const TypeIcon = typeIcon[c.type] ?? Users;
                     return (
                       <tr key={c.id} className="border-b border-gray-100 hover:bg-gray-50/80 transition-colors">

@@ -127,7 +127,7 @@ function parseAlerts(text: string): SupervisorAlert[] {
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function AlertCard({ alert, onRead }: { alert: SupervisorAlert; onRead: (id: string) => void }) {
+function AlertCard({ alert, onRead }: { alert: SupervisorAlert; onRead: (id: string) => void; [extra: string]: unknown }) {
   const cfg = {
     critical: { icon: AlertCircle, color: "text-red-400", bg: "bg-red-500/8 border-red-500/20", dot: "bg-red-400" },
     warning:  { icon: AlertTriangle, color: "text-amber-400", bg: "bg-amber-500/8 border-amber-500/20", dot: "bg-amber-400" },
@@ -154,7 +154,7 @@ function AlertCard({ alert, onRead }: { alert: SupervisorAlert; onRead: (id: str
   );
 }
 
-function ToolPill({ event }: { event: ToolEvent }) {
+function ToolPill({ event }: { event: ToolEvent; [extra: string]: unknown }) {
   const isCall = event.type === "tool_call";
   const toolIcons: Record<string, React.ElementType> = {
     read_file: FileCode, write_file: FileCode, list_directory: FileCode,
@@ -221,8 +221,8 @@ export default function SupervisorWidget() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const apiKey = resolveKey();
-  const unreadCount = alerts.filter((a) => !a.read).length;
-  const criticalCount = alerts.filter((a) => a.level === "critical" && !a.read).length;
+  const unreadCount = alerts.filter((a: SupervisorAlert) => !a.read).length;
+  const criticalCount = alerts.filter((a: SupervisorAlert) => a.level === "critical" && !a.read).length;
 
   // Load persisted alerts
   useEffect(() => {
@@ -298,7 +298,7 @@ export default function SupervisorWidget() {
 
       const parsed = parseAlerts(rawText.trim());
       if (parsed.length > 0) {
-        setAlerts((prev) => [...parsed, ...prev].slice(0, 20));
+        setAlerts((prev: SupervisorAlert[]) => [...parsed, ...prev].slice(0, 20));
       }
     } catch { /* silently skip briefing on error */ }
   }, [apiKey, briefingDone, buContext]);
@@ -321,7 +321,7 @@ export default function SupervisorWidget() {
     try {
       let assistantText = "";
       const toolEventsBuffer: ToolEvent[] = [];
-      setMessages((prev) => [...prev, { role: "assistant", content: "", toolEvents: [] }]);
+      setMessages((prev: ChatMessage[]) => [...prev, { role: "assistant", content: "", toolEvents: [] }]);
 
       if (detectStaticMode()) {
         const liveData = await fetchStaticData();
@@ -350,7 +350,7 @@ export default function SupervisorWidget() {
           const e = ev as { type?: string; delta?: { type: string; text: string } };
           if (e.type === "content_block_delta" && e.delta?.type === "text_delta") {
             assistantText += e.delta.text;
-            setMessages((prev) => {
+            setMessages((prev: ChatMessage[]) => {
               const updated = [...prev];
               updated[updated.length - 1] = { role: "assistant", content: assistantText, toolEvents: [] };
               return updated;
@@ -374,14 +374,14 @@ export default function SupervisorWidget() {
         for await (const ev of readSSE(reader)) {
           if (ev.text) {
             assistantText += (assistantText && !assistantText.endsWith(" ") ? " " : "") + ev.text;
-            setMessages((prev) => {
+            setMessages((prev: ChatMessage[]) => {
               const updated = [...prev];
               updated[updated.length - 1] = { role: "assistant", content: assistantText, toolEvents: [...toolEventsBuffer] };
               return updated;
             });
           } else if (ev.type === "tool_call" || ev.type === "tool_result") {
             toolEventsBuffer.push({ type: ev.type as "tool_call" | "tool_result", name: ev.name ?? "", label: ev.label, summary: ev.summary });
-            setMessages((prev) => {
+            setMessages((prev: ChatMessage[]) => {
               const updated = [...prev];
               updated[updated.length - 1] = { ...updated[updated.length - 1], toolEvents: [...toolEventsBuffer] };
               return updated;
@@ -395,11 +395,11 @@ export default function SupervisorWidget() {
       // If assistant response contains new alerts, parse and add them
       const newAlerts = parseAlerts(assistantText);
       if (newAlerts.length >= 2) {
-        setAlerts((prev) => [...newAlerts, ...prev].slice(0, 20));
+        setAlerts((prev: SupervisorAlert[]) => [...newAlerts, ...prev].slice(0, 20));
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Erro ao processar";
-      setMessages((prev) => {
+      setMessages((prev: ChatMessage[]) => {
         const last = prev[prev.length - 1];
         if (last?.role === "assistant" && !last.content) {
           return [...prev.slice(0, -1), { role: "assistant", content: `⚠️ ${msg}` }];
@@ -411,9 +411,9 @@ export default function SupervisorWidget() {
     }
   }, [messages, loading, apiKey, buContext]);
 
-  const markAllRead = () => setAlerts((prev) => prev.map((a) => ({ ...a, read: true })));
+  const markAllRead = () => setAlerts((prev: SupervisorAlert[]) => prev.map((a: SupervisorAlert) => ({ ...a, read: true })));
   const clearAlerts = () => { setAlerts([]); localStorage.removeItem(LS_ALERTS); };
-  const markRead = (id: string) => setAlerts((prev) => prev.map((a) => a.id === id ? { ...a, read: true } : a));
+  const markRead = (id: string) => setAlerts((prev: SupervisorAlert[]) => prev.map((a: SupervisorAlert) => a.id === id ? { ...a, read: true } : a));
 
   // Don't render on login page
   if (pathname === "/login") return null;
@@ -425,7 +425,7 @@ export default function SupervisorWidget() {
     <>
       {/* ── Floating trigger button ────────────────────────────────────────── */}
       <button
-        onClick={() => { setOpen((v) => !v); if (!open) setTab("alerts"); }}
+        onClick={() => { setOpen((v: boolean) => !v); if (!open) setTab("alerts"); }}
         className={`fixed bottom-24 right-6 z-50 rounded-2xl shadow-2xl flex items-center justify-center transition-all duration-200 ${
           open
             ? "bg-gray-800 hover:bg-gray-700 w-12 h-12"
@@ -466,7 +466,7 @@ export default function SupervisorWidget() {
               </div>
             </div>
             <div className="flex items-center gap-0.5">
-              <button onClick={() => setExpanded((v) => !v)} className="p-1.5 text-gray-600 hover:text-gray-400 transition-colors" title={expanded ? "Minimizar" : "Expandir"}>
+              <button onClick={() => setExpanded((v: boolean) => !v)} className="p-1.5 text-gray-600 hover:text-gray-400 transition-colors" title={expanded ? "Minimizar" : "Expandir"}>
                 {expanded ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
               </button>
               <button onClick={() => setOpen(false)} className="p-1.5 text-gray-600 hover:text-gray-400 transition-colors">
@@ -520,7 +520,7 @@ export default function SupervisorWidget() {
                     <p className="text-[11px] text-gray-500">Nenhum alerta crítico no momento.</p>
                   </div>
                 )}
-                {alerts.map((alert) => (
+                {alerts.map((alert: SupervisorAlert) => (
                   <AlertCard key={alert.id} alert={alert} onRead={markRead} />
                 ))}
                 {alerts.length > 0 && (
@@ -562,12 +562,12 @@ export default function SupervisorWidget() {
                   </div>
                 )}
 
-                {messages.map((msg, i) => (
+                {messages.map((msg: ChatMessage, i: number) => (
                   <div key={i} className={`flex flex-col gap-1 ${msg.role === "user" ? "items-end" : "items-start"}`}>
                     {/* Tool events above assistant message */}
                     {msg.role === "assistant" && msg.toolEvents && msg.toolEvents.length > 0 && (
                       <div className="flex flex-wrap gap-1 max-w-[90%] pl-1">
-                        {msg.toolEvents.map((te, j) => (
+                        {msg.toolEvents.map((te: ToolEvent, j: number) => (
                           <ToolPill key={j} event={te} />
                         ))}
                       </div>
@@ -580,7 +580,7 @@ export default function SupervisorWidget() {
                       {msg.content || (
                         <span className="flex items-center gap-1.5 text-gray-500">
                           <Loader2 size={10} className="animate-spin" />
-                          {msg.toolEvents?.some((te) => te.type === "tool_call")
+                          {msg.toolEvents?.some((te: ToolEvent) => te.type === "tool_call")
                             ? "Executando ação..."
                             : "Pensando..."}
                         </span>
@@ -606,12 +606,12 @@ export default function SupervisorWidget() {
                 <textarea
                   ref={textareaRef}
                   value={input}
-                  onChange={(e) => {
+                  onChange={(e: { target: { value: string; style: { height: string }; scrollHeight: number } }) => {
                     setInput(e.target.value);
                     e.target.style.height = "auto";
                     e.target.style.height = `${Math.min(e.target.scrollHeight, 80)}px`;
                   }}
-                  onKeyDown={(e) => {
+                  onKeyDown={(e: { key: string; shiftKey: boolean; preventDefault: () => void }) => {
                     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(input); }
                   }}
                   placeholder="Pergunte ou dê uma ordem ao supervisor..."

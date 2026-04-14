@@ -11,7 +11,7 @@ export default NextAuth({
         email: { label: "Email", type: "email" },
         password: { label: "Senha", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials: Record<string, string> | undefined) {
         if (!credentials?.email || !credentials?.password) return null;
         const user = findUserByEmail(credentials.email);
         if (!user) return null;
@@ -22,14 +22,14 @@ export default NextAuth({
     }),
   ],
   callbacks: {
-    jwt({ token, user }) {
+    jwt({ token, user }: { token: Record<string, unknown>; user?: { id: string; role: string } }) {
       if (user) {
         token.id = (user as { id: string }).id;
         token.role = (user as { role: string }).role;
       }
       return token;
     },
-    session({ session, token }) {
+    session({ session, token }: { session: { user?: { id?: string; role?: string } }; token: Record<string, unknown> }) {
       if (session.user) {
         (session.user as { id?: string }).id = token.id as string;
         (session.user as { role?: string }).role = token.role as string;

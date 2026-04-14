@@ -118,6 +118,7 @@ function NavLink({
   label: string;
   active: boolean;
   onNavigate: () => void;
+  [extra: string]: unknown;
 }) {
   return (
     <Link
@@ -137,7 +138,7 @@ function NavLink({
   );
 }
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
+function SectionLabel({ children }: { children?: React.ReactNode; [extra: string]: unknown }) {
   return (
     <div className="px-3 mb-1 mt-5">
       <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">

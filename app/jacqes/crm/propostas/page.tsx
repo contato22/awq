@@ -80,14 +80,14 @@ export default function PropostasPage() {
   }, []);
 
   const totalPropostas  = proposals.length;
-  const enviadas        = proposals.filter((p) => p.status === "Enviada").length;
-  const aceitas         = proposals.filter((p) => p.status === "Aceita").length;
+  const enviadas        = proposals.filter((p: CrmProposal) => p.status === "Enviada").length;
+  const aceitas         = proposals.filter((p: CrmProposal) => p.status === "Aceita").length;
   const valorEnviado    = proposals
-    .filter((p) => p.status === "Enviada" || p.status === "Em Negociação" || p.status === "Aceita")
-    .reduce((s, p) => s + p.valor_proposto, 0);
+    .filter((p: CrmProposal) => p.status === "Enviada" || p.status === "Em Negociação" || p.status === "Aceita")
+    .reduce((s: number, p: CrmProposal) => s + p.valor_proposto, 0);
 
   function getOpp(id: string): CrmOpportunity | undefined {
-    return opportunities.find((o) => o.id === id);
+    return opportunities.find((o: CrmOpportunity) => o.id === id);
   }
 
   return (
@@ -190,7 +190,7 @@ export default function PropostasPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {proposals.map((p) => {
+                  {proposals.map((p: CrmProposal) => {
                     const opp = getOpp(p.opportunity_id);
                     return (
                       <tr

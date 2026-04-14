@@ -554,11 +554,11 @@ export default function FpaPage() {
                     <span className="text-[11px] text-gray-400">De</span>
                     {gran === "dia" && (
                       <input type="date" value={dateFrom} min="2021-01-01" max="2030-12-31"
-                        onChange={(e) => { setDateFrom(e.target.value); if (e.target.value > dateTo) setDateTo(e.target.value); }}
+                        onChange={(e: { target: { value: string } }) => { setDateFrom(e.target.value); if (e.target.value > dateTo) setDateTo(e.target.value); }}
                         className={SEL_CLS} />
                     )}
                     {gran === "mes" && (
-                      <select value={miFrom} onChange={(e) => { const v=Number(e.target.value); setMiFrom(v); if(v>miTo)setMiTo(v); }} className={SEL_CLS}>
+                      <select value={miFrom} onChange={(e: { target: { value: string } }) => { const v=Number(e.target.value); setMiFrom(v); if(v>miTo)setMiTo(v); }} className={SEL_CLS}>
                         {ALL_YEARS.map((y) => (
                           <optgroup key={y} label={String(y)}>
                             {MES_PT.map((m, mi) => <option key={mi} value={miOf(y,mi)}>{m}/{String(y).slice(2)}</option>)}
@@ -567,18 +567,18 @@ export default function FpaPage() {
                       </select>
                     )}
                     {gran === "ano" && (
-                      <select value={yearFrom} onChange={(e) => { const v=Number(e.target.value); setYearFrom(v); if(v>yearTo)setYearTo(v); }} className={SEL_CLS}>
+                      <select value={yearFrom} onChange={(e: { target: { value: string } }) => { const v=Number(e.target.value); setYearFrom(v); if(v>yearTo)setYearTo(v); }} className={SEL_CLS}>
                         {ALL_YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
                       </select>
                     )}
                     <span className="text-[11px] text-gray-400">Até</span>
                     {gran === "dia" && (
                       <input type="date" value={dateTo} min={dateFrom} max="2030-12-31"
-                        onChange={(e) => { setDateTo(e.target.value); if(e.target.value<dateFrom)setDateFrom(e.target.value); }}
+                        onChange={(e: { target: { value: string } }) => { setDateTo(e.target.value); if(e.target.value<dateFrom)setDateFrom(e.target.value); }}
                         className={SEL_CLS} />
                     )}
                     {gran === "mes" && (
-                      <select value={miTo} onChange={(e) => { const v=Number(e.target.value); setMiTo(v); if(v<miFrom)setMiFrom(v); }} className={SEL_CLS}>
+                      <select value={miTo} onChange={(e: { target: { value: string } }) => { const v=Number(e.target.value); setMiTo(v); if(v<miFrom)setMiFrom(v); }} className={SEL_CLS}>
                         {ALL_YEARS.map((y) => (
                           <optgroup key={y} label={String(y)}>
                             {MES_PT.map((m, mi) => { const idx=miOf(y,mi); return <option key={mi} value={idx} disabled={idx<miFrom}>{m}/{String(y).slice(2)}</option>; })}
@@ -587,7 +587,7 @@ export default function FpaPage() {
                       </select>
                     )}
                     {gran === "ano" && (
-                      <select value={yearTo} onChange={(e) => { const v=Number(e.target.value); setYearTo(v); if(v<yearFrom)setYearFrom(v); }} className={SEL_CLS}>
+                      <select value={yearTo} onChange={(e: { target: { value: string } }) => { const v=Number(e.target.value); setYearTo(v); if(v<yearFrom)setYearFrom(v); }} className={SEL_CLS}>
                         {ALL_YEARS.map((y) => <option key={y} value={y} disabled={y<yearFrom}>{y}</option>)}
                       </select>
                     )}

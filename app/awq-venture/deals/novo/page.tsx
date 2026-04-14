@@ -18,7 +18,7 @@ import type { CustomDeal } from "../custom-deal-utils";
 
 // ─── Field helpers ────────────────────────────────────────────────────────────
 
-function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+function Field({ label, required, children }: { label: string; required?: boolean; children?: React.ReactNode }) {
   return (
     <div>
       <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
@@ -65,7 +65,7 @@ export default function NovoDealPage() {
   }, []);
 
   function set(field: keyof CustomDeal, val: string | number) {
-    setForm((f) => ({ ...f, [field]: val }));
+    setForm((f: CustomDeal) => ({ ...f, [field]: val }));
   }
 
   function handleSave() {
@@ -122,22 +122,22 @@ export default function NovoDealPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Nome da Empresa" required>
-              <input className={inputCls} value={form.companyName} onChange={(e) => set("companyName", e.target.value)} placeholder="Ex: TechCorp Ltda" />
+              <input className={inputCls} value={form.companyName} onChange={(e: { target: { value: string } }) => set("companyName", e.target.value)} placeholder="Ex: TechCorp Ltda" />
             </Field>
             <Field label="CNPJ">
-              <input className={inputCls} value={form.cnpj} onChange={(e) => set("cnpj", e.target.value)} placeholder="00.000.000/0000-00" />
+              <input className={inputCls} value={form.cnpj} onChange={(e: { target: { value: string } }) => set("cnpj", e.target.value)} placeholder="00.000.000/0000-00" />
             </Field>
             <Field label="Setor">
-              <input className={inputCls} value={form.sector} onChange={(e) => set("sector", e.target.value)} placeholder="Ex: HealthTech, Fintech…" />
+              <input className={inputCls} value={form.sector} onChange={(e: { target: { value: string } }) => set("sector", e.target.value)} placeholder="Ex: HealthTech, Fintech…" />
             </Field>
             <Field label="Cidade / UF">
-              <input className={inputCls} value={form.location} onChange={(e) => set("location", e.target.value)} placeholder="Ex: São Paulo, SP" />
+              <input className={inputCls} value={form.location} onChange={(e: { target: { value: string } }) => set("location", e.target.value)} placeholder="Ex: São Paulo, SP" />
             </Field>
             <Field label="Website">
-              <input className={inputCls} value={form.website} onChange={(e) => set("website", e.target.value)} placeholder="https://..." />
+              <input className={inputCls} value={form.website} onChange={(e: { target: { value: string } }) => set("website", e.target.value)} placeholder="https://..." />
             </Field>
             <Field label="Responsável (Owner)" required>
-              <input className={inputCls} value={form.assignee} onChange={(e) => set("assignee", e.target.value)} placeholder="Nome do sócio / analista responsável" />
+              <input className={inputCls} value={form.assignee} onChange={(e: { target: { value: string } }) => set("assignee", e.target.value)} placeholder="Nome do sócio / analista responsável" />
             </Field>
           </div>
 
@@ -145,13 +145,13 @@ export default function NovoDealPage() {
             <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-3">Contato Principal</p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <Field label="Nome">
-                <input className={inputCls} value={form.contactName} onChange={(e) => set("contactName", e.target.value)} placeholder="Nome do contato" />
+                <input className={inputCls} value={form.contactName} onChange={(e: { target: { value: string } }) => set("contactName", e.target.value)} placeholder="Nome do contato" />
               </Field>
               <Field label="Email">
-                <input className={inputCls} type="email" value={form.contactEmail} onChange={(e) => set("contactEmail", e.target.value)} placeholder="email@empresa.com" />
+                <input className={inputCls} type="email" value={form.contactEmail} onChange={(e: { target: { value: string } }) => set("contactEmail", e.target.value)} placeholder="email@empresa.com" />
               </Field>
               <Field label="Telefone">
-                <input className={inputCls} value={form.contactPhone} onChange={(e) => set("contactPhone", e.target.value)} placeholder="+55 11 9..." />
+                <input className={inputCls} value={form.contactPhone} onChange={(e: { target: { value: string } }) => set("contactPhone", e.target.value)} placeholder="+55 11 9..." />
               </Field>
             </div>
           </div>
@@ -165,31 +165,31 @@ export default function NovoDealPage() {
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             <Field label="Tipo de Deal">
-              <select className={selectCls} value={form.dealType} onChange={(e) => set("dealType", e.target.value)}>
+              <select className={selectCls} value={form.dealType} onChange={(e: { target: { value: string } }) => set("dealType", e.target.value)}>
                 {["M&A", "Investimento Minoritário", "Advisory", "Joint Venture", "Fusão", "Aquisição Total", "Participação Estratégica", "M4E"].map((t) => (
                   <option key={t}>{t}</option>
                 ))}
               </select>
             </Field>
             <Field label="Estágio">
-              <select className={selectCls} value={form.stage} onChange={(e) => set("stage", e.target.value)}>
+              <select className={selectCls} value={form.stage} onChange={(e: { target: { value: string } }) => set("stage", e.target.value)}>
                 {["Triagem", "Prospecção", "Due Diligence", "Term Sheet", "Negociação", "Fechado", "Cancelado"].map((s) => (
                   <option key={s}>{s}</option>
                 ))}
               </select>
             </Field>
             <Field label="Risco">
-              <select className={selectCls} value={form.riskLevel} onChange={(e) => set("riskLevel", e.target.value)}>
+              <select className={selectCls} value={form.riskLevel} onChange={(e: { target: { value: string } }) => set("riskLevel", e.target.value)}>
                 {["Baixo", "Médio", "Alto", "Crítico"].map((r) => <option key={r}>{r}</option>)}
               </select>
             </Field>
             <Field label="Prioridade">
-              <select className={selectCls} value={form.priority} onChange={(e) => set("priority", e.target.value)}>
+              <select className={selectCls} value={form.priority} onChange={(e: { target: { value: string } }) => set("priority", e.target.value)}>
                 {["Alta", "Média", "Baixa"].map((p) => <option key={p}>{p}</option>)}
               </select>
             </Field>
             <Field label="Status de Envio">
-              <select className={selectCls} value={form.sendStatus} onChange={(e) => set("sendStatus", e.target.value)}>
+              <select className={selectCls} value={form.sendStatus} onChange={(e: { target: { value: string } }) => set("sendStatus", e.target.value)}>
                 {["Rascunho", "Pronto para Envio", "Enviado", "Em Negociação", "Aprovado", "Rejeitado"].map((s) => (
                   <option key={s}>{s}</option>
                 ))}
@@ -206,13 +206,13 @@ export default function NovoDealPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Field label="Ticket (R$)" required>
-              <input className={inputCls} type="number" value={form.ticket || ""} onChange={(e) => set("ticket", parseFloat(e.target.value) || 0)} placeholder="0" />
+              <input className={inputCls} type="number" value={form.ticket || ""} onChange={(e: { target: { value: string } }) => set("ticket", parseFloat(e.target.value) || 0)} placeholder="0" />
             </Field>
             <Field label="Fee Estruturado">
-              <input className={inputCls} value={form.fee} onChange={(e) => set("fee", e.target.value)} placeholder="Ex: 2% a.a. sobre AUM" />
+              <input className={inputCls} value={form.fee} onChange={(e: { target: { value: string } }) => set("fee", e.target.value)} placeholder="Ex: 2% a.a. sobre AUM" />
             </Field>
             <Field label="Earn-in / Upside">
-              <input className={inputCls} value={form.earnin} onChange={(e) => set("earnin", e.target.value)} placeholder="Ex: 15% acima de X" />
+              <input className={inputCls} value={form.earnin} onChange={(e: { target: { value: string } }) => set("earnin", e.target.value)} placeholder="Ex: 15% acima de X" />
             </Field>
           </div>
         </div>
@@ -224,17 +224,17 @@ export default function NovoDealPage() {
             <h2 className="text-sm font-bold text-gray-900">Tese e Proposta</h2>
           </div>
           <Field label="Tese do Deal">
-            <textarea className={inputCls} rows={3} value={form.tese} onChange={(e) => set("tese", e.target.value)} placeholder="Por que este deal faz sentido para a AWQ Venture?" />
+            <textarea className={inputCls} rows={3} value={form.tese} onChange={(e: { target: { value: string } }) => set("tese", e.target.value)} placeholder="Por que este deal faz sentido para a AWQ Venture?" />
           </Field>
           <Field label="Estrutura Proposta">
-            <textarea className={inputCls} rows={3} value={form.structura} onChange={(e) => set("structura", e.target.value)} placeholder="Descreva a estrutura da operação proposta…" />
+            <textarea className={inputCls} rows={3} value={form.structura} onChange={(e: { target: { value: string } }) => set("structura", e.target.value)} placeholder="Descreva a estrutura da operação proposta…" />
           </Field>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Condições Precedentes">
-              <textarea className={inputCls} rows={2} value={form.conditions} onChange={(e) => set("conditions", e.target.value)} placeholder="Condições que devem ser satisfeitas antes do fechamento…" />
+              <textarea className={inputCls} rows={2} value={form.conditions} onChange={(e: { target: { value: string } }) => set("conditions", e.target.value)} placeholder="Condições que devem ser satisfeitas antes do fechamento…" />
             </Field>
             <Field label="Próximos Passos">
-              <textarea className={inputCls} rows={2} value={form.nextSteps} onChange={(e) => set("nextSteps", e.target.value)} placeholder="Quais são as próximas ações concretas?" />
+              <textarea className={inputCls} rows={2} value={form.nextSteps} onChange={(e: { target: { value: string } }) => set("nextSteps", e.target.value)} placeholder="Quais são as próximas ações concretas?" />
             </Field>
           </div>
         </div>
@@ -246,7 +246,7 @@ export default function NovoDealPage() {
             <h2 className="text-sm font-bold text-gray-900">Observações Internas</h2>
           </div>
           <Field label="Notas e contexto adicional">
-            <textarea className={inputCls} rows={4} value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="Informações adicionais, contexto do deal, alertas internos, origem do contato…" />
+            <textarea className={inputCls} rows={4} value={form.notes} onChange={(e: { target: { value: string } }) => set("notes", e.target.value)} placeholder="Informações adicionais, contexto do deal, alertas internos, origem do contato…" />
           </Field>
           <div className="text-[10px] text-gray-400 bg-gray-50 rounded-lg px-3 py-2">
             Deal salvo localmente em localStorage. Para sincronização com pipeline e base, integrar com API.

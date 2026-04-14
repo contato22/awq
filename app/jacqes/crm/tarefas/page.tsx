@@ -104,14 +104,14 @@ export default function TarefasPage() {
   }, []);
 
   // KPIs
-  const abertas      = tarefas.filter(t => t.status !== "Concluída");
-  const vencidas     = tarefas.filter(t => t.status !== "Concluída" && isPast(t.prazo));
-  const noPrazo      = abertas.filter(t => !isPast(t.prazo));
-  const altaCritica  = tarefas.filter(t => t.prioridade === "Alta" || t.prioridade === "Crítica");
-  const concluidas   = tarefas.filter(t => t.status === "Concluída");
+  const abertas      = tarefas.filter((t: CrmTask) => t.status !== "Concluída");
+  const vencidas     = tarefas.filter((t: CrmTask) => t.status !== "Concluída" && isPast(t.prazo));
+  const noPrazo      = abertas.filter((t: CrmTask) => !isPast(t.prazo));
+  const altaCritica  = tarefas.filter((t: CrmTask) => t.prioridade === "Alta" || t.prioridade === "Crítica");
+  const concluidas   = tarefas.filter((t: CrmTask) => t.status === "Concluída");
   const pctConcluidas = tarefas.length > 0 ? Math.round((concluidas.length / tarefas.length) * 100) : 0;
 
-  const filtered = tarefas.filter(t => {
+  const filtered = tarefas.filter((t: CrmTask) => {
     const matchStatus = statusF === "Todos" || t.status === statusF;
     const matchPrio   = prioF === "Todas"  || t.prioridade === prioF;
     return matchStatus && matchPrio;
@@ -133,7 +133,7 @@ export default function TarefasPage() {
       });
       if (!res.ok) throw new Error("Erro ao salvar");
       const nova = await res.json();
-      setTarefas(prev => [nova.tarefa ?? nova, ...prev]);
+      setTarefas((prev: CrmTask[]) => [nova.tarefa ?? nova, ...prev]);
       setModal(false);
       setForm(EMPTY_FORM);
       setErro("");
@@ -232,7 +232,7 @@ export default function TarefasPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {filtered.map(t => {
+                  {filtered.map((t: CrmTask) => {
                     const pastPrazo = isPast(t.prazo);
                     const aging     = daysSince(t.data_criacao);
                     return (
@@ -295,7 +295,7 @@ export default function TarefasPage() {
               {/* Título */}
               <div>
                 <label className="text-xs font-semibold text-gray-600 block mb-1">Título *</label>
-                <input type="text" value={form.titulo} onChange={e => setForm(f => ({ ...f, titulo: e.target.value }))}
+                <input type="text" value={form.titulo} onChange={(e: { target: { value: string } }) => setForm((f: FormState) => ({ ...f, titulo: e.target.value }))}
                   placeholder="Ex: Follow-up pagamento Carol" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
               </div>
 
@@ -304,7 +304,7 @@ export default function TarefasPage() {
                 <div>
                   <label className="text-xs font-semibold text-gray-600 block mb-1">Categoria</label>
                   <div className="relative">
-                    <select value={form.categoria} onChange={e => setForm(f => ({ ...f, categoria: e.target.value }))}
+                    <select value={form.categoria} onChange={(e: { target: { value: string } }) => setForm((f: FormState) => ({ ...f, categoria: e.target.value }))}
                       className="w-full appearance-none border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 pr-8">
                       {CATEGORIAS.map(c => <option key={c}>{c}</option>)}
                     </select>
@@ -314,7 +314,7 @@ export default function TarefasPage() {
                 <div>
                   <label className="text-xs font-semibold text-gray-600 block mb-1">Prioridade *</label>
                   <div className="relative">
-                    <select value={form.prioridade} onChange={e => setForm(f => ({ ...f, prioridade: e.target.value }))}
+                    <select value={form.prioridade} onChange={(e: { target: { value: string } }) => setForm((f: FormState) => ({ ...f, prioridade: e.target.value }))}
                       className="w-full appearance-none border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 pr-8">
                       {["Baixa", "Média", "Alta", "Crítica"].map(p => <option key={p}>{p}</option>)}
                     </select>
@@ -327,12 +327,12 @@ export default function TarefasPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-gray-600 block mb-1">Responsável</label>
-                  <input type="text" value={form.responsavel} onChange={e => setForm(f => ({ ...f, responsavel: e.target.value }))}
+                  <input type="text" value={form.responsavel} onChange={(e: { target: { value: string } }) => setForm((f: FormState) => ({ ...f, responsavel: e.target.value }))}
                     placeholder="Ex: Danilo" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-600 block mb-1">SLA (horas)</label>
-                  <input type="number" value={form.sla_horas} onChange={e => setForm(f => ({ ...f, sla_horas: e.target.value }))}
+                  <input type="number" value={form.sla_horas} onChange={(e: { target: { value: string } }) => setForm((f: FormState) => ({ ...f, sla_horas: e.target.value }))}
                     min="1" placeholder="Ex: 24" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
                 </div>
               </div>
@@ -340,7 +340,7 @@ export default function TarefasPage() {
               {/* Prazo */}
               <div>
                 <label className="text-xs font-semibold text-gray-600 block mb-1">Prazo *</label>
-                <input type="date" value={form.prazo} onChange={e => setForm(f => ({ ...f, prazo: e.target.value }))}
+                <input type="date" value={form.prazo} onChange={(e: { target: { value: string } }) => setForm((f: FormState) => ({ ...f, prazo: e.target.value }))}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
               </div>
 

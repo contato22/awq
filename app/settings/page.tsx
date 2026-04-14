@@ -9,7 +9,8 @@ interface SettingsSectionProps {
   icon: React.ElementType;
   title: string;
   description: string;
-  children: React.ReactNode;
+  children?: React.ReactNode;
+  [extra: string]: unknown;
 }
 
 function SettingsSection({ icon: Icon, title, description, children }: SettingsSectionProps) {
@@ -65,7 +66,7 @@ function Toggle({ label, description, defaultChecked = false }: {
   );
 }
 
-function FormField({ label, children }: { label: string; children: React.ReactNode }) {
+function FormField({ label, children }: { label: string; children?: React.ReactNode; [extra: string]: unknown }) {
   return (
     <div>
       <label className="block text-xs font-medium text-gray-600 mb-1.5">{label}</label>

@@ -48,13 +48,13 @@ function SetupScreen({ onSave }: { onSave: (key: string) => void }) {
           autoFocus
           type={show ? "text" : "password"}
           value={value}
-          onChange={(e) => setValue(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && save()}
+          onChange={(e: { target: { value: string } }) => setValue(e.target.value)}
+          onKeyDown={(e: { key: string }) => e.key === "Enter" && save()}
           placeholder="sk-ant-..."
           className="w-full px-4 py-3 pr-10 bg-gray-100 border border-gray-300 rounded-xl text-sm text-gray-400 placeholder:text-gray-400 focus:outline-none focus:border-brand-500 transition-colors"
         />
         <button
-          onClick={() => setShow((v) => !v)}
+          onClick={() => setShow((v: boolean) => !v)}
           className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-400"
         >
           {show ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -137,7 +137,7 @@ export default function OpenClaw() {
       const decoder = new TextDecoder();
       let assistantText = "";
 
-      setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
+      setMessages((prev: Message[]) => [...prev, { role: "assistant", content: "" }]);
 
       while (true) {
         const { done, value } = await reader.read();
@@ -153,7 +153,7 @@ export default function OpenClaw() {
           if (parsed.error) throw new Error(parsed.error);
           if (parsed.text) {
             assistantText += parsed.text;
-            setMessages((prev) => {
+            setMessages((prev: Message[]) => {
               const updated = [...prev];
               updated[updated.length - 1] = { role: "assistant", content: assistantText };
               return updated;
@@ -164,7 +164,7 @@ export default function OpenClaw() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Algo deu errado";
       setError(msg);
-      setMessages((prev) => {
+      setMessages((prev: Message[]) => {
         const last = prev[prev.length - 1];
         return last?.role === "assistant" && !last.content ? prev.slice(0, -1) : prev;
       });
@@ -221,7 +221,7 @@ export default function OpenClaw() {
           </div>
         )}
 
-        {messages.map((msg, i) => (
+        {messages.map((msg: Message, i: number) => (
           <div key={i} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
             {msg.role === "assistant" && (
               <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-brand-600 to-brand-400 flex items-center justify-center shrink-0 mt-0.5">

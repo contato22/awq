@@ -44,7 +44,7 @@ function SnapshotNotice() {
 
 // ─── Cash P&L for a single entity ─────────────────────────────────────────────
 
-function EntityCashPL({ e, totalRevenue }: { e: EntitySummary; totalRevenue: number }) {
+function EntityCashPL({ e, totalRevenue }: { e: EntitySummary; totalRevenue: number; [extra: string]: unknown }) {
   const share = totalRevenue > 0 ? (e.operationalRevenue / totalRevenue) * 100 : 0;
   const netPositive = e.operationalNetCash >= 0;
 

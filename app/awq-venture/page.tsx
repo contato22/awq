@@ -123,13 +123,14 @@ export default function PoCPage() {
   const meta          = 120000;
   const om            = venture?.byCategoria["O&M"] ?? 40411.97;
   const seguro        = venture?.byCategoria["Seguro"] ?? 2095.02;
-  const faturamento   = Object.values(venture?.byCategoria ?? {}).reduce((s, v) => s + v, 0) || 433687.08;
+  const _byCat: Record<string, number> = venture?.byCategoria ?? {};
+  const faturamento   = Object.values(_byCat).reduce((s: number, v: number) => s + v, 0) || 433687.08;
   const canais        = (venture?.byCanal ?? [
     { canal: "Não informado", leads: 354, pct: 74, valor: 1189409.49 },
     { canal: "Indicação",     leads: 29,  pct: 6,  valor: 469598.96  },
     { canal: "Cliente Ativo", leads: 21,  pct: 4,  valor: 498506.14  },
     { canal: "Site/ADS",      leads: 17,  pct: 4,  valor: 192101.32  },
-  ]).map((c, i) => ({ ...c, color: CANAL_COLORS[i % CANAL_COLORS.length] }));
+  ] as { canal: string; leads: number; pct: number; valor: number }[]).map((c: { canal: string; leads: number; pct: number; valor: number }, i: number) => ({ ...c, color: CANAL_COLORS[i % CANAL_COLORS.length] }));
 
   const kpis = [
     { label: "Total Fechados",    value: `R$ ${fmtBRL(totalFechados)}`, sub: "O&M + Seguro",                pct: Math.round((totalFechados / meta) * 100) },
@@ -274,13 +275,13 @@ export default function PoCPage() {
 
           {/* stacked bar */}
           <div className="flex h-2.5 rounded-full overflow-hidden mb-4 gap-px bg-gray-100">
-            {canais.map((c) => (
+            {canais.map((c: { canal: string; leads: number; pct: number; valor: number; color: string }) => (
               <div key={c.canal} className="h-full transition-all duration-500" style={{ width: `${c.pct}%`, backgroundColor: c.color }} />
             ))}
           </div>
 
           <div className="space-y-3">
-            {canais.map((c) => (
+            {canais.map((c: { canal: string; leads: number; pct: number; valor: number; color: string }) => (
               <div key={c.canal}>
                 <div className="flex items-center justify-between mb-0.5">
                   <div className="flex items-center gap-2">

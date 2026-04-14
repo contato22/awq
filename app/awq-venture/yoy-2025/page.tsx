@@ -134,7 +134,7 @@ export default function YoY2025Page() {
   ] : receitaBarData;
 
   const liveDetalhamento = venture
-    ? Object.entries(venture.byCategoria).map(([cat, total]) => ({
+    ? (Object.entries(venture.byCategoria) as [string, number][]).map(([cat, total]: [string, number]) => ({
         cat,
         q1: venture.byQCat.Q1?.[cat] ?? 0,
         q2: venture.byQCat.Q2?.[cat] ?? 0,

@@ -46,7 +46,7 @@ function fieldLabel(key: string): string {
 
 export default function HistoryPage({ params }: { params: { id: string } }) {
   const deal = getDealById(params.id);
-  if (!deal) notFound();
+  if (!deal) { notFound(); return null; }
 
   const [override, setOverride] = useState<DealOverride>({});
 
@@ -55,12 +55,12 @@ export default function HistoryPage({ params }: { params: { id: string } }) {
   function clearOverrides() {
     const cleared = { internalNotes: override.internalNotes, historyLog: override.historyLog };
     setOverride(cleared);
-    saveOverride(deal.id, cleared);
+    saveOverride(deal!.id, cleared);
   }
 
   function clearAll() {
     setOverride({});
-    saveOverride(deal.id, {});
+    saveOverride(deal!.id, {});
   }
 
   const historyLog = (override.historyLog ?? []) as { timestamp: string; field: string; from: string; to: string }[];

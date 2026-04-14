@@ -131,27 +131,27 @@ export default function OportunidadesPage() {
 
   // ── Derived KPIs ──────────────────────────────────────────────────────────────
   const total      = opps.length;
-  const abertas    = opps.filter(o => o.stage !== "Fechado Ganho" && o.stage !== "Fechado Perdido").length;
+  const abertas    = opps.filter((o: CrmOpportunity) => o.stage !== "Fechado Ganho" && o.stage !== "Fechado Perdido").length;
   const pipeline   = opps
-    .filter(o => o.stage !== "Fechado Perdido")
-    .reduce((s, o) => s + (o.valor_potencial || 0), 0);
+    .filter((o: CrmOpportunity) => o.stage !== "Fechado Perdido")
+    .reduce((s: number, o: CrmOpportunity) => s + (o.valor_potencial || 0), 0);
   const recPond    = opps
-    .filter(o => o.stage !== "Fechado Perdido")
-    .reduce((s, o) => s + (o.valor_potencial || 0) * ((o.probabilidade || 0) / 100), 0);
+    .filter((o: CrmOpportunity) => o.stage !== "Fechado Perdido")
+    .reduce((s: number, o: CrmOpportunity) => s + (o.valor_potencial || 0) * ((o.probabilidade || 0) / 100), 0);
   const ticketMed  = abertas > 0
-    ? opps.filter(o => o.stage !== "Fechado Ganho" && o.stage !== "Fechado Perdido")
-        .reduce((s, o) => s + (o.ticket_estimado || 0), 0) / abertas
+    ? opps.filter((o: CrmOpportunity) => o.stage !== "Fechado Ganho" && o.stage !== "Fechado Perdido")
+        .reduce((s: number, o: CrmOpportunity) => s + (o.ticket_estimado || 0), 0) / abertas
     : 0;
 
   // Stage filter counts
   const stageCounts: Record<string, number> = { Todos: opps.length };
-  PIPELINE_STAGES.forEach(s => {
-    stageCounts[s] = opps.filter(o => o.stage === s).length;
+  PIPELINE_STAGES.forEach((s: string) => {
+    stageCounts[s] = opps.filter((o: CrmOpportunity) => o.stage === s).length;
   });
 
   const filtered = stageFilter === "Todos"
     ? opps
-    : opps.filter(o => o.stage === stageFilter);
+    : opps.filter((o: CrmOpportunity) => o.stage === stageFilter);
 
   // ── Modal helpers ─────────────────────────────────────────────────────────────
   function openModal() {
@@ -166,7 +166,7 @@ export default function OportunidadesPage() {
   }
 
   function field(key: keyof typeof EMPTY_FORM, value: string) {
-    setForm(f => ({ ...f, [key]: value }));
+    setForm((f: typeof EMPTY_FORM) => ({ ...f, [key]: value }));
   }
 
   async function handleSave() {
@@ -303,7 +303,7 @@ export default function OportunidadesPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {filtered.map(opp => {
+                  {filtered.map((opp: CrmOpportunity) => {
                     const aging = agingDays(opp.data_abertura);
                     const actionPast = isDatePast(opp.data_proxima_acao);
                     return (
@@ -394,7 +394,7 @@ export default function OportunidadesPage() {
                   type="text"
                   placeholder="Ex: Cliente X — FEE Mensal"
                   value={form.nome_oportunidade}
-                  onChange={e => field("nome_oportunidade", e.target.value)}
+                  onChange={(e: { target: { value: string } }) => field("nome_oportunidade", e.target.value)}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
@@ -406,7 +406,7 @@ export default function OportunidadesPage() {
                   type="text"
                   placeholder="Nome da empresa"
                   value={form.empresa}
-                  onChange={e => field("empresa", e.target.value)}
+                  onChange={(e: { target: { value: string } }) => field("empresa", e.target.value)}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
@@ -418,7 +418,7 @@ export default function OportunidadesPage() {
                   type="text"
                   placeholder="Ex: FEE Mensal, Tráfego Pago"
                   value={form.produto}
-                  onChange={e => field("produto", e.target.value)}
+                  onChange={(e: { target: { value: string } }) => field("produto", e.target.value)}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
@@ -431,7 +431,7 @@ export default function OportunidadesPage() {
                     type="number"
                     placeholder="Ex: 3000"
                     value={form.ticket_estimado}
-                    onChange={e => field("ticket_estimado", e.target.value)}
+                    onChange={(e: { target: { value: string } }) => field("ticket_estimado", e.target.value)}
                     min="0"
                     step="0.01"
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
@@ -443,7 +443,7 @@ export default function OportunidadesPage() {
                     type="number"
                     placeholder="Ex: 36000"
                     value={form.valor_potencial}
-                    onChange={e => field("valor_potencial", e.target.value)}
+                    onChange={(e: { target: { value: string } }) => field("valor_potencial", e.target.value)}
                     min="0"
                     step="0.01"
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
@@ -456,7 +456,7 @@ export default function OportunidadesPage() {
                 <label className="text-xs font-semibold text-gray-600 block mb-1">Stage *</label>
                 <select
                   value={form.stage}
-                  onChange={e => field("stage", e.target.value)}
+                  onChange={(e: { target: { value: string } }) => field("stage", e.target.value)}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
                 >
                   {PIPELINE_STAGES.map(s => <option key={s} value={s}>{s}</option>)}
@@ -474,7 +474,7 @@ export default function OportunidadesPage() {
                   max="100"
                   step="5"
                   value={form.probabilidade}
-                  onChange={e => field("probabilidade", e.target.value)}
+                  onChange={(e: { target: { value: string } }) => field("probabilidade", e.target.value)}
                   className="w-full accent-brand-600"
                 />
               </div>
@@ -486,7 +486,7 @@ export default function OportunidadesPage() {
                   type="text"
                   placeholder="Responsável"
                   value={form.owner}
-                  onChange={e => field("owner", e.target.value)}
+                  onChange={(e: { target: { value: string } }) => field("owner", e.target.value)}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
@@ -498,7 +498,7 @@ export default function OportunidadesPage() {
                   type="text"
                   placeholder="Descreva a próxima ação"
                   value={form.proxima_acao}
-                  onChange={e => field("proxima_acao", e.target.value)}
+                  onChange={(e: { target: { value: string } }) => field("proxima_acao", e.target.value)}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
@@ -510,7 +510,7 @@ export default function OportunidadesPage() {
                   <input
                     type="date"
                     value={form.data_proxima_acao}
-                    onChange={e => field("data_proxima_acao", e.target.value)}
+                    onChange={(e: { target: { value: string } }) => field("data_proxima_acao", e.target.value)}
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
                   />
                 </div>
@@ -518,7 +518,7 @@ export default function OportunidadesPage() {
                   <label className="text-xs font-semibold text-gray-600 block mb-1">Risco</label>
                   <select
                     value={form.risco}
-                    onChange={e => field("risco", e.target.value)}
+                    onChange={(e: { target: { value: string } }) => field("risco", e.target.value)}
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
                   >
                     {RISK_LEVELS.map(r => <option key={r} value={r}>{r}</option>)}
@@ -532,7 +532,7 @@ export default function OportunidadesPage() {
                 <input
                   type="date"
                   value={form.data_fechamento_prevista}
-                  onChange={e => field("data_fechamento_prevista", e.target.value)}
+                  onChange={(e: { target: { value: string } }) => field("data_fechamento_prevista", e.target.value)}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
@@ -544,7 +544,7 @@ export default function OportunidadesPage() {
                   rows={3}
                   placeholder="Notas adicionais"
                   value={form.observacoes}
-                  onChange={e => field("observacoes", e.target.value)}
+                  onChange={(e: { target: { value: string } }) => field("observacoes", e.target.value)}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
                 />
               </div>

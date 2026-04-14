@@ -153,7 +153,7 @@ export default function BankAccountsPage() {
     try { localStorage.setItem(LS_KEY, JSON.stringify(updated)); } catch { /* ignore */ }
   }, []);
 
-  const selected = accounts.find((a) => a.id === selectedId) ?? null;
+  const selected = accounts.find((a: BankAccount) => a.id === selectedId) ?? null;
 
   // ── Add account ──────────────────────────────────────────────────────────
   function handleAddAccount() {
@@ -178,26 +178,26 @@ export default function BankAccountsPage() {
 
   // ── Delete account ───────────────────────────────────────────────────────
   function handleDelete(id: string) {
-    const updated = accounts.filter((a) => a.id !== id);
+    const updated = accounts.filter((a: BankAccount) => a.id !== id);
     save(updated);
     setSelectedId(updated[0]?.id ?? null);
   }
 
   // ── Derived totals ───────────────────────────────────────────────────────
-  const totalBalance = accounts.reduce((s, a) => s + a.currentBalance, 0);
-  const allTx        = accounts.flatMap((a) => a.transactions);
-  const totalCredits = allTx.filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0);
-  const totalDebits  = allTx.filter((t) => t.amount < 0).reduce((s, t) => s + t.amount, 0);
+  const totalBalance = accounts.reduce((s: number, a: BankAccount) => s + a.currentBalance, 0);
+  const allTx        = accounts.flatMap((a: BankAccount) => a.transactions);
+  const totalCredits = allTx.filter((t: BankTransaction) => t.amount > 0).reduce((s: number, t: BankTransaction) => s + t.amount, 0);
+  const totalDebits  = allTx.filter((t: BankTransaction) => t.amount < 0).reduce((s: number, t: BankTransaction) => s + t.amount, 0);
 
   const filteredTx = (selected?.transactions ?? [])
-    .filter((t) =>
+    .filter((t: BankTransaction) =>
       t.description.toLowerCase().includes(search.toLowerCase()) ||
       (CATEGORY_LABEL[t.category] ?? "").toLowerCase().includes(search.toLowerCase())
     )
-    .sort((a, b) => sortAsc ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date));
+    .sort((a: BankTransaction, b: BankTransaction) => sortAsc ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date));
 
-  const acctCredits = (selected?.transactions ?? []).filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0);
-  const acctDebits  = (selected?.transactions ?? []).filter((t) => t.amount < 0).reduce((s, t) => s + t.amount, 0);
+  const acctCredits = (selected?.transactions ?? []).filter((t: BankTransaction) => t.amount > 0).reduce((s: number, t: BankTransaction) => s + t.amount, 0);
+  const acctDebits  = (selected?.transactions ?? []).filter((t: BankTransaction) => t.amount < 0).reduce((s: number, t: BankTransaction) => s + t.amount, 0);
 
   return (
     <>
@@ -227,8 +227,8 @@ export default function BankAccountsPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             { label: "Saldo Total",    value: fmtR(totalBalance),        icon: Wallet,      color: "text-brand-600",   bg: "bg-brand-50",   delta: `${accounts.length} conta${accounts.length !== 1 ? "s" : ""}` },
-            { label: "Entradas (YTD)", value: fmtR(totalCredits),        icon: TrendingUp,  color: "text-emerald-600", bg: "bg-emerald-50", delta: `${allTx.filter(t => t.amount > 0).length} créditos` },
-            { label: "Saídas (YTD)",   value: fmtR(totalDebits),         icon: TrendingDown,color: "text-red-600",     bg: "bg-red-50",     delta: `${allTx.filter(t => t.amount < 0).length} débitos` },
+            { label: "Entradas (YTD)", value: fmtR(totalCredits),        icon: TrendingUp,  color: "text-emerald-600", bg: "bg-emerald-50", delta: `${allTx.filter((t: BankTransaction) => t.amount > 0).length} créditos` },
+            { label: "Saídas (YTD)",   value: fmtR(totalDebits),         icon: TrendingDown,color: "text-red-600",     bg: "bg-red-50",     delta: `${allTx.filter((t: BankTransaction) => t.amount < 0).length} débitos` },
             { label: "Transações",     value: allTx.length.toString(),   icon: BarChart3,   color: "text-amber-700",   bg: "bg-amber-50",   delta: `em ${accounts.length} conta${accounts.length !== 1 ? "s" : ""}` },
           ].map((c) => {
             const Icon = c.icon;
@@ -254,7 +254,7 @@ export default function BankAccountsPage() {
           {/* ── Account sidebar ──────────────────────────────────────────────── */}
           <div className="w-72 shrink-0 space-y-2">
             <button
-              onClick={() => setShowAddForm((v) => !v)}
+              onClick={() => setShowAddForm((v: boolean) => !v)}
               className="w-full flex items-center gap-2 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-colors"
             >
               <Plus size={15} /> Nova Conta
@@ -266,7 +266,7 @@ export default function BankAccountsPage() {
                 <div className="text-xs font-semibold text-gray-700 mb-1">Nova Conta</div>
                 <select
                   value={newBank}
-                  onChange={(e) => setNewBank(e.target.value)}
+                  onChange={(e: { target: { value: string } }) => setNewBank(e.target.value)}
                   className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none focus:border-brand-500"
                 >
                   {BANK_GROUPS.map((group) => (
@@ -279,15 +279,15 @@ export default function BankAccountsPage() {
                   type="text"
                   placeholder="Nome da conta (ex: Conta PJ)"
                   value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
+                  onChange={(e: { target: { value: string } }) => setNewName(e.target.value)}
                   className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-500"
-                  onKeyDown={(e) => e.key === "Enter" && handleAddAccount()}
+                  onKeyDown={(e: { key: string }) => e.key === "Enter" && handleAddAccount()}
                 />
                 <input
                   type="number"
                   placeholder="Saldo inicial (opcional)"
                   value={newBalance}
-                  onChange={(e) => setNewBalance(e.target.value)}
+                  onChange={(e: { target: { value: string } }) => setNewBalance(e.target.value)}
                   className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-500"
                 />
                 <div className="flex gap-2">
@@ -310,10 +310,10 @@ export default function BankAccountsPage() {
               </div>
             )}
 
-            {accounts.map((acct) => {
+            {accounts.map((acct: BankAccount) => {
               const isSelected = acct.id === selectedId;
-              const credits = acct.transactions.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
-              const debits  = acct.transactions.filter(t => t.amount < 0).reduce((s, t) => s + t.amount, 0);
+              const credits = acct.transactions.filter((t: BankTransaction) => t.amount > 0).reduce((s: number, t: BankTransaction) => s + t.amount, 0);
+              const debits  = acct.transactions.filter((t: BankTransaction) => t.amount < 0).reduce((s: number, t: BankTransaction) => s + t.amount, 0);
               return (
                 <div
                   key={acct.id}
@@ -329,7 +329,7 @@ export default function BankAccountsPage() {
                       <div className="text-[10px] text-gray-500">{acct.bank}</div>
                     </div>
                     <button
-                      onClick={(e) => { e.stopPropagation(); handleDelete(acct.id); }}
+                      onClick={(e: { stopPropagation: () => void }) => { e.stopPropagation(); handleDelete(acct.id); }}
                       className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
                     >
                       <Trash2 size={12} />
@@ -424,7 +424,7 @@ export default function BankAccountsPage() {
                         <input
                           type="text"
                           value={search}
-                          onChange={(e) => setSearch(e.target.value)}
+                          onChange={(e: { target: { value: string } }) => setSearch(e.target.value)}
                           placeholder="Buscar transações…"
                           className="w-full pl-8 pr-3 py-2 text-xs border border-gray-200 rounded-lg bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-400"
                         />
@@ -435,7 +435,7 @@ export default function BankAccountsPage() {
                         )}
                       </div>
                       <button
-                        onClick={() => setSortAsc((v) => !v)}
+                        onClick={() => setSortAsc((v: boolean) => !v)}
                         className="flex items-center gap-1 px-3 py-2 text-xs border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"
                       >
                         {sortAsc ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
@@ -474,7 +474,7 @@ export default function BankAccountsPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {filteredTx.map((tx) => (
+                          {filteredTx.map((tx: BankTransaction) => (
                             <tr key={tx.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                               <td className="py-2.5 px-3 text-xs text-gray-500 whitespace-nowrap">{fmtDate(tx.date)}</td>
                               <td className="py-2.5 px-3 text-xs text-gray-900 max-w-xs">

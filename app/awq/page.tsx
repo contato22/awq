@@ -108,7 +108,7 @@ function PipelineBadge({ q }: { q: FinancialQueryResult }) {
 }
 
 // Cash panel for one entity
-function EntityCashCard({ e }: { e: EntitySummary }) {
+function EntityCashCard({ e }: { e: EntitySummary; [extra: string]: unknown }) {
   const netPositive = e.operationalNetCash >= 0;
   const ambiguousPct = e.transactionCount > 0
     ? ((e.ambiguousCount / e.transactionCount) * 100).toFixed(0)

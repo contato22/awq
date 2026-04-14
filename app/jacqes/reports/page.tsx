@@ -8,6 +8,7 @@ interface ReportCardProps {
   lastGenerated: string;
   type: string;
   color: string;
+  [extra: string]: unknown;
 }
 
 function ReportCard({ icon: Icon, title, description, lastGenerated, type, color }: ReportCardProps) {

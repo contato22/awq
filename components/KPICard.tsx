@@ -32,6 +32,7 @@ function formatValue(kpi: KPI): string {
 
 interface KPICardProps {
   kpi: KPI;
+  [extra: string]: unknown;
 }
 
 export default function KPICard({ kpi }: KPICardProps) {

@@ -93,12 +93,12 @@ export default function CazaFinancialPage() {
 
   // ── Summaries ─────────────────────────────────────────────────────────────
   const currentYear  = new Date().getFullYear().toString().slice(2);
-  const ytdRows      = rows.filter((r) => r.month.includes(`/${currentYear}`));
+  const ytdRows      = rows.filter((r: MonthRow) => r.month.includes(`/${currentYear}`));
   const summary      = ytdRows.length > 0 ? ytdRows : rows;
 
-  const totalReceita  = summary.reduce((s, r) => s + r.receita,  0);
-  const totalDespesas = summary.reduce((s, r) => s + r.expenses, 0);
-  const totalLucro    = summary.reduce((s, r) => s + r.profit,   0);
+  const totalReceita  = summary.reduce((s: number, r: MonthRow) => s + r.receita,  0);
+  const totalDespesas = summary.reduce((s: number, r: MonthRow) => s + r.expenses, 0);
+  const totalLucro    = summary.reduce((s: number, r: MonthRow) => s + r.profit,   0);
   const margem        = totalReceita > 0 ? ((totalLucro / totalReceita) * 100).toFixed(1) : "0.0";
 
   const lastRow   = rows[rows.length - 1];
@@ -108,9 +108,9 @@ export default function CazaFinancialPage() {
     : "0.0";
 
   const prevYear     = String(Number(currentYear) - 1).padStart(2, "0");
-  const prevYtdRows  = rows.filter((r) => r.month.includes(`/${prevYear}`)).slice(0, ytdRows.length || summary.length);
-  const prevReceita  = prevYtdRows.reduce((s, r) => s + r.receita, 0);
-  const prevLucro    = prevYtdRows.reduce((s, r) => s + r.profit,  0);
+  const prevYtdRows  = rows.filter((r: MonthRow) => r.month.includes(`/${prevYear}`)).slice(0, ytdRows.length || summary.length);
+  const prevReceita  = prevYtdRows.reduce((s: number, r: MonthRow) => s + r.receita, 0);
+  const prevLucro    = prevYtdRows.reduce((s: number, r: MonthRow) => s + r.profit,  0);
   const receitaDelta = prevReceita > 0 ? (((totalReceita - prevReceita) / prevReceita) * 100).toFixed(1) : null;
   const lucroDelta   = prevLucro   > 0 ? (((totalLucro   - prevLucro)   / prevLucro)   * 100).toFixed(1) : null;
 
@@ -246,7 +246,7 @@ export default function CazaFinancialPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((row) => {
+                  {rows.map((row: MonthRow) => {
                     const margin = row.receita > 0
                       ? ((row.profit / row.receita) * 100).toFixed(1)
                       : "0.0";
@@ -272,11 +272,11 @@ export default function CazaFinancialPage() {
                 <tfoot>
                   <tr className="border-t border-gray-300">
                     <td className="py-2.5 px-3 text-xs font-bold text-gray-400">TOTAL</td>
-                    <td className="py-2.5 px-3 text-right text-gray-900 font-bold text-xs">{fmtR(rows.reduce((s, r) => s + r.receita, 0))}</td>
-                    <td className="py-2.5 px-3 text-right text-red-600 font-bold text-xs">{fmtR(rows.reduce((s, r) => s + r.alimentacao, 0))}</td>
-                    <td className="py-2.5 px-3 text-right text-red-600 font-bold text-xs">{fmtR(rows.reduce((s, r) => s + r.gasolina, 0))}</td>
-                    <td className="py-2.5 px-3 text-right text-red-600 font-bold text-xs">{fmtR(rows.reduce((s, r) => s + r.expenses, 0))}</td>
-                    <td className="py-2.5 px-3 text-right text-emerald-600 font-bold text-xs">{fmtR(rows.reduce((s, r) => s + r.profit, 0))}</td>
+                    <td className="py-2.5 px-3 text-right text-gray-900 font-bold text-xs">{fmtR(rows.reduce((s: number, r: MonthRow) => s + r.receita, 0))}</td>
+                    <td className="py-2.5 px-3 text-right text-red-600 font-bold text-xs">{fmtR(rows.reduce((s: number, r: MonthRow) => s + r.alimentacao, 0))}</td>
+                    <td className="py-2.5 px-3 text-right text-red-600 font-bold text-xs">{fmtR(rows.reduce((s: number, r: MonthRow) => s + r.gasolina, 0))}</td>
+                    <td className="py-2.5 px-3 text-right text-red-600 font-bold text-xs">{fmtR(rows.reduce((s: number, r: MonthRow) => s + r.expenses, 0))}</td>
+                    <td className="py-2.5 px-3 text-right text-emerald-600 font-bold text-xs">{fmtR(rows.reduce((s: number, r: MonthRow) => s + r.profit, 0))}</td>
                     <td />
                   </tr>
                 </tfoot>

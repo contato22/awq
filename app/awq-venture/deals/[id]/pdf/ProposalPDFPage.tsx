@@ -217,7 +217,7 @@ function PF({ id, n }: { id: string; n: number }) {
 
 export default function ProposalPDFPage({ params }: { params: { id: string } }) {
   const deal = getDealById(params.id);
-  if (!deal || !deal.proposal10Blocks) notFound();
+  if (!deal || !deal.proposal10Blocks) { notFound(); return null; }
   const B = deal.proposal10Blocks!;
 
   useEffect(() => {

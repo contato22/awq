@@ -80,8 +80,8 @@ export default function CazaUnitEconomicsPage() {
 
   // ── Derived metrics ──────────────────────────────────────────────────────
   const totalProjetos = projects.length;
-  const totalReceita  = projects.reduce((s, p) => s + p.valor, 0);
-  const totalLucro    = projects.reduce((s, p) => s + (p.lucro ?? 0), 0);
+  const totalReceita  = projects.reduce((s: number, p: ProjetoRow) => s + p.valor, 0);
+  const totalLucro    = projects.reduce((s: number, p: ProjetoRow) => s + (p.lucro ?? 0), 0);
   const avgTicket     = totalProjetos > 0 ? Math.round(totalReceita / totalProjetos) : 0;
   const avgMargem     = totalReceita > 0 ? ((totalLucro / totalReceita) * 100).toFixed(1) : "0.0";
 

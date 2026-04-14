@@ -101,15 +101,15 @@ export default function LeadsPage() {
 
   // ── Derived KPIs ──────────────────────────────────────────────────────────────
   const total       = leads.length;
-  const qualif      = leads.filter(l => l.status === "Qualificando").length;
-  const sevenDays   = leads.filter(l => {
+  const qualif      = leads.filter((l: CrmLead) => l.status === "Qualificando").length;
+  const sevenDays   = leads.filter((l: CrmLead) => {
     if (!l.data_entrada) return false;
     const diff = (Date.now() - new Date(l.data_entrada + "T00:00:00").getTime()) / 86400000;
     return diff <= 7;
   }).length;
-  const nurturing   = leads.filter(l => l.status === "Nurturing").length;
+  const nurturing   = leads.filter((l: CrmLead) => l.status === "Nurturing").length;
 
-  const filtered = filter === "Todos" ? leads : leads.filter(l => l.status === filter);
+  const filtered = filter === "Todos" ? leads : leads.filter((l: CrmLead) => l.status === filter);
 
   // ── Modal helpers ─────────────────────────────────────────────────────────────
   function openModal() {
@@ -124,7 +124,7 @@ export default function LeadsPage() {
   }
 
   function field(key: keyof typeof EMPTY_FORM, value: string) {
-    setForm(f => ({ ...f, [key]: value }));
+    setForm((f: typeof EMPTY_FORM) => ({ ...f, [key]: value }));
   }
 
   async function handleSave() {
@@ -244,7 +244,7 @@ export default function LeadsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {filtered.map(lead => (
+                  {filtered.map((lead: CrmLead) => (
                     <tr key={lead.id} className="card-hover group">
                       <td className="py-3 pr-4">
                         <div className="font-semibold text-gray-900 text-[13px]">{lead.nome}</div>
@@ -312,7 +312,7 @@ export default function LeadsPage() {
                   type="text"
                   placeholder="Nome do contato"
                   value={form.nome}
-                  onChange={e => field("nome", e.target.value)}
+                  onChange={(e: { target: { value: string } }) => field("nome", e.target.value)}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
@@ -324,7 +324,7 @@ export default function LeadsPage() {
                   type="text"
                   placeholder="Nome da empresa"
                   value={form.empresa}
-                  onChange={e => field("empresa", e.target.value)}
+                  onChange={(e: { target: { value: string } }) => field("empresa", e.target.value)}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
@@ -337,7 +337,7 @@ export default function LeadsPage() {
                     type="text"
                     placeholder="+55 11 9..."
                     value={form.telefone}
-                    onChange={e => field("telefone", e.target.value)}
+                    onChange={(e: { target: { value: string } }) => field("telefone", e.target.value)}
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
                   />
                 </div>
@@ -347,7 +347,7 @@ export default function LeadsPage() {
                     type="email"
                     placeholder="email@empresa.com"
                     value={form.email}
-                    onChange={e => field("email", e.target.value)}
+                    onChange={(e: { target: { value: string } }) => field("email", e.target.value)}
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
                   />
                 </div>
@@ -358,7 +358,7 @@ export default function LeadsPage() {
                 <label className="text-xs font-semibold text-gray-600 block mb-1">Origem</label>
                 <select
                   value={form.origem}
-                  onChange={e => field("origem", e.target.value)}
+                  onChange={(e: { target: { value: string } }) => field("origem", e.target.value)}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
                 >
                   {ORIGENS.map(o => <option key={o} value={o}>{o}</option>)}
@@ -373,7 +373,7 @@ export default function LeadsPage() {
                     type="text"
                     placeholder="Ex: Marketing Digital"
                     value={form.segmento}
-                    onChange={e => field("segmento", e.target.value)}
+                    onChange={(e: { target: { value: string } }) => field("segmento", e.target.value)}
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
                   />
                 </div>
@@ -383,7 +383,7 @@ export default function LeadsPage() {
                     type="text"
                     placeholder="Ex: WhatsApp"
                     value={form.canal}
-                    onChange={e => field("canal", e.target.value)}
+                    onChange={(e: { target: { value: string } }) => field("canal", e.target.value)}
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
                   />
                 </div>
@@ -396,7 +396,7 @@ export default function LeadsPage() {
                   type="text"
                   placeholder="Produto ou serviço de interesse"
                   value={form.interesse}
-                  onChange={e => field("interesse", e.target.value)}
+                  onChange={(e: { target: { value: string } }) => field("interesse", e.target.value)}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
@@ -406,7 +406,7 @@ export default function LeadsPage() {
                 <label className="text-xs font-semibold text-gray-600 block mb-1">Status</label>
                 <select
                   value={form.status}
-                  onChange={e => field("status", e.target.value)}
+                  onChange={(e: { target: { value: string } }) => field("status", e.target.value)}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
                 >
                   {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
@@ -420,7 +420,7 @@ export default function LeadsPage() {
                   type="text"
                   placeholder="Responsável"
                   value={form.owner}
-                  onChange={e => field("owner", e.target.value)}
+                  onChange={(e: { target: { value: string } }) => field("owner", e.target.value)}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
@@ -432,7 +432,7 @@ export default function LeadsPage() {
                   rows={3}
                   placeholder="Notas adicionais"
                   value={form.observacoes}
-                  onChange={e => field("observacoes", e.target.value)}
+                  onChange={(e: { target: { value: string } }) => field("observacoes", e.target.value)}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
                 />
               </div>

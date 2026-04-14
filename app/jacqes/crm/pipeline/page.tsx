@@ -134,19 +134,19 @@ export default function JacqesCrmPipelinePage() {
 
   // Derived summary metrics
   const totalOpps = opps.length;
-  const pipelineTotal = opps.reduce((s, o) => s + o.valor_potencial, 0);
-  const receitaPonderada = opps.reduce((s, o) => s + (o.valor_potencial * o.probabilidade / 100), 0);
+  const pipelineTotal = opps.reduce((s: number, o: CrmOpportunity) => s + o.valor_potencial, 0);
+  const receitaPonderada = opps.reduce((s: number, o: CrmOpportunity) => s + (o.valor_potencial * o.probabilidade / 100), 0);
   const ticketMedio = totalOpps > 0 ? pipelineTotal / totalOpps : 0;
 
   // Filtered rows
   const filtered = activeStage === "Todas"
     ? opps
-    : opps.filter((o) => o.stage === activeStage);
+    : opps.filter((o: CrmOpportunity) => o.stage === activeStage);
 
   const allStages: Stage[] = ["Todas", ...PIPELINE_STAGES];
 
   const stageCount = (s: Stage) =>
-    s === "Todas" ? opps.length : opps.filter((o) => o.stage === s).length;
+    s === "Todas" ? opps.length : opps.filter((o: CrmOpportunity) => o.stage === s).length;
 
   if (loading) {
     return (
@@ -280,7 +280,7 @@ export default function JacqesCrmPipelinePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((o) => {
+                  {filtered.map((o: CrmOpportunity) => {
                     const actionPast = o.data_proxima_acao && o.data_proxima_acao < TODAY;
                     return (
                       <tr

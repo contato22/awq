@@ -87,16 +87,16 @@ export default function ClientesPage() {
   }, []);
 
   // KPIs
-  const ativos      = clientes.filter(c => c.status_conta === "Ativo");
-  const mrr         = clientes.reduce((s, c) => s + c.ticket_mensal, 0);
+  const ativos      = clientes.filter((c: CrmClient) => c.status_conta === "Ativo");
+  const mrr         = clientes.reduce((s: number, c: CrmClient) => s + c.ticket_mensal, 0);
   const healthMedia = clientes.length
-    ? Math.round(clientes.reduce((s, c) => s + c.health_score, 0) / clientes.length)
+    ? Math.round(clientes.reduce((s: number, c: CrmClient) => s + c.health_score, 0) / clientes.length)
     : 0;
-  const expansao    = clientes.reduce((s, c) => s + (c.potencial_expansao ?? 0), 0);
+  const expansao    = clientes.reduce((s: number, c: CrmClient) => s + (c.potencial_expansao ?? 0), 0);
 
   const filtered = filter === "Todos"
     ? clientes
-    : clientes.filter(c => c.status_conta === filter);
+    : clientes.filter((c: CrmClient) => c.status_conta === filter);
 
   async function salvar() {
     if (!form.nome.trim()) { setErro("Nome é obrigatório."); return; }
@@ -116,7 +116,7 @@ export default function ClientesPage() {
       });
       if (!res.ok) throw new Error("Erro ao salvar");
       const novo = await res.json();
-      setClientes(prev => [novo.cliente ?? novo, ...prev]);
+      setClientes((prev: CrmClient[]) => [novo.cliente ?? novo, ...prev]);
       setModal(false);
       setForm(EMPTY_FORM);
       setErro("");
@@ -207,7 +207,7 @@ export default function ClientesPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {filtered.map(c => (
+                  {filtered.map((c: CrmClient) => (
                     <tr key={c.id} className="hover:bg-gray-50/60 transition-colors">
                       {/* Cliente */}
                       <td className="px-3 py-3">
@@ -289,12 +289,12 @@ export default function ClientesPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-gray-600 block mb-1">Nome *</label>
-                  <input type="text" value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))}
+                  <input type="text" value={form.nome} onChange={(e: { target: { value: string } }) => setForm((f: FormState) => ({ ...f, nome: e.target.value }))}
                     placeholder="Ex: CEM" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-600 block mb-1">Razão Social</label>
-                  <input type="text" value={form.razao_social} onChange={e => setForm(f => ({ ...f, razao_social: e.target.value }))}
+                  <input type="text" value={form.razao_social} onChange={(e: { target: { value: string } }) => setForm((f: FormState) => ({ ...f, razao_social: e.target.value }))}
                     placeholder="Ex: CEM Ltda" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
                 </div>
               </div>
@@ -303,12 +303,12 @@ export default function ClientesPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-gray-600 block mb-1">Segmento</label>
-                  <input type="text" value={form.segmento} onChange={e => setForm(f => ({ ...f, segmento: e.target.value }))}
+                  <input type="text" value={form.segmento} onChange={(e: { target: { value: string } }) => setForm((f: FormState) => ({ ...f, segmento: e.target.value }))}
                     placeholder="Ex: Comunicação" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-600 block mb-1">Produto Ativo</label>
-                  <input type="text" value={form.produto_ativo} onChange={e => setForm(f => ({ ...f, produto_ativo: e.target.value }))}
+                  <input type="text" value={form.produto_ativo} onChange={(e: { target: { value: string } }) => setForm((f: FormState) => ({ ...f, produto_ativo: e.target.value }))}
                     placeholder="Ex: FEE Mensal" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
                 </div>
               </div>
@@ -317,12 +317,12 @@ export default function ClientesPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-gray-600 block mb-1">Ticket Mensal (R$) *</label>
-                  <input type="number" value={form.ticket_mensal} onChange={e => setForm(f => ({ ...f, ticket_mensal: e.target.value }))}
+                  <input type="number" value={form.ticket_mensal} onChange={(e: { target: { value: string } }) => setForm((f: FormState) => ({ ...f, ticket_mensal: e.target.value }))}
                     placeholder="Ex: 3200" min="0" step="0.01" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-600 block mb-1">Expansão Potencial (R$)</label>
-                  <input type="number" value={form.potencial_expansao} onChange={e => setForm(f => ({ ...f, potencial_expansao: e.target.value }))}
+                  <input type="number" value={form.potencial_expansao} onChange={(e: { target: { value: string } }) => setForm((f: FormState) => ({ ...f, potencial_expansao: e.target.value }))}
                     placeholder="Ex: 5000" min="0" step="0.01" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
                 </div>
               </div>
@@ -331,13 +331,13 @@ export default function ClientesPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-gray-600 block mb-1">Owner</label>
-                  <input type="text" value={form.owner} onChange={e => setForm(f => ({ ...f, owner: e.target.value }))}
+                  <input type="text" value={form.owner} onChange={(e: { target: { value: string } }) => setForm((f: FormState) => ({ ...f, owner: e.target.value }))}
                     placeholder="Ex: Danilo" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-600 block mb-1">Status Conta</label>
                   <div className="relative">
-                    <select value={form.status_conta} onChange={e => setForm(f => ({ ...f, status_conta: e.target.value }))}
+                    <select value={form.status_conta} onChange={(e: { target: { value: string } }) => setForm((f: FormState) => ({ ...f, status_conta: e.target.value }))}
                       className="w-full appearance-none border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 pr-8">
                       {["Ativo", "Em Atenção", "Em Risco", "Churned", "Inativo"].map(s => <option key={s}>{s}</option>)}
                     </select>
@@ -350,13 +350,13 @@ export default function ClientesPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-gray-600 block mb-1">Health Score (0–100)</label>
-                  <input type="number" value={form.health_score} onChange={e => setForm(f => ({ ...f, health_score: e.target.value }))}
+                  <input type="number" value={form.health_score} onChange={(e: { target: { value: string } }) => setForm((f: FormState) => ({ ...f, health_score: e.target.value }))}
                     min="0" max="100" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-600 block mb-1">Churn Risk</label>
                   <div className="relative">
-                    <select value={form.churn_risk} onChange={e => setForm(f => ({ ...f, churn_risk: e.target.value }))}
+                    <select value={form.churn_risk} onChange={(e: { target: { value: string } }) => setForm((f: FormState) => ({ ...f, churn_risk: e.target.value }))}
                       className="w-full appearance-none border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 pr-8">
                       {["Baixo", "Médio", "Alto"].map(s => <option key={s}>{s}</option>)}
                     </select>
@@ -368,7 +368,7 @@ export default function ClientesPage() {
               {/* Observações */}
               <div>
                 <label className="text-xs font-semibold text-gray-600 block mb-1">Observações</label>
-                <textarea value={form.observacoes} onChange={e => setForm(f => ({ ...f, observacoes: e.target.value }))}
+                <textarea value={form.observacoes} onChange={(e: { target: { value: string } }) => setForm((f: FormState) => ({ ...f, observacoes: e.target.value }))}
                   rows={3} placeholder="Notas relevantes sobre o cliente..."
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none" />
               </div>

@@ -305,7 +305,7 @@ function LedgerTable({
   );
 }
 
-function EntityCard({ s }: { s: EntityInvestmentSummary }) {
+function EntityCard({ s }: { s: EntityInvestmentSummary; [extra: string]: unknown }) {
   const net = s.netInvested;
   return (
     <div className="card p-4">

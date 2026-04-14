@@ -9,7 +9,7 @@ import BottomNavigation from "./BottomNavigation";
 import OpenClawWidget from "./OpenClawWidget";
 import SupervisorWidget from "./SupervisorWidget";
 
-export default function LayoutShell({ children }: { children: React.ReactNode }) {
+export default function LayoutShell({ children }: { children?: React.ReactNode; [extra: string]: unknown }) {
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
 

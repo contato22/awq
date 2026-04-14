@@ -1,10 +1,10 @@
 import { cn } from "@/lib/utils";
 
-function SkeletonLine({ className }: { className?: string }) {
+function SkeletonLine({ className }: { className?: string; [extra: string]: unknown }) {
   return <div className={cn("bg-gray-200/60 rounded animate-pulse", className)} />;
 }
 
-export function CardSkeleton({ className }: { className?: string }) {
+export function CardSkeleton({ className }: { className?: string; [extra: string]: unknown }) {
   return (
     <div className={cn("card p-5 space-y-4", className)}>
       <div className="flex items-center justify-between">

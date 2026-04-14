@@ -83,11 +83,11 @@ export default function ProjetosPage() {
   }, []);
 
   const total         = rows.length;
-  const emAberto      = rows.filter(p => !p.recebido).length;
-  const entregues     = rows.filter(p => p.recebido).length;
-  const totalValor    = rows.reduce((s, p) => s + p.valor, 0);
-  const totalDespesas = rows.reduce((s, p) => s + (p.despesas ?? 0), 0);
-  const totalLucro    = rows.reduce((s, p) => s + (p.lucro ?? p.valor), 0);
+  const emAberto      = rows.filter((p: ProjetoRow) => !p.recebido).length;
+  const entregues     = rows.filter((p: ProjetoRow) => p.recebido).length;
+  const totalValor    = rows.reduce((s: number, p: ProjetoRow) => s + p.valor, 0);
+  const totalDespesas = rows.reduce((s: number, p: ProjetoRow) => s + (p.despesas ?? 0), 0);
+  const totalLucro    = rows.reduce((s: number, p: ProjetoRow) => s + (p.lucro ?? p.valor), 0);
   const taxaEntrega   = total > 0 ? ((entregues / total) * 100).toFixed(0) : "0";
   const ticketMedio   = total > 0 ? Math.round(totalValor / total) : 0;
 
@@ -228,9 +228,9 @@ export default function ProjetosPage() {
               <h2 className="text-sm font-semibold text-gray-900">Análise de Margem por Projeto</h2>
             </div>
             <div className="space-y-2">
-              {rows.filter(p => p.valor > 0)
-                .sort((a, b) => (b.lucro ?? b.valor) / b.valor - (a.lucro ?? a.valor) / a.valor)
-                .map((p) => {
+              {rows.filter((p: ProjetoRow) => p.valor > 0)
+                .sort((a: ProjetoRow, b: ProjetoRow) => (b.lucro ?? b.valor) / b.valor - (a.lucro ?? a.valor) / a.valor)
+                .map((p: ProjetoRow) => {
                   const lucro  = p.lucro ?? p.valor;
                   const margin = p.valor > 0 ? (lucro / p.valor) * 100 : 0;
                   return (
@@ -278,7 +278,7 @@ export default function ProjetosPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((p) => (
+                  {rows.map((p: ProjetoRow) => (
                     <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-50/80 transition-colors">
                       <td className="py-2.5 px-3">
                         <div className="flex items-center gap-1.5 text-gray-700 font-medium text-xs">

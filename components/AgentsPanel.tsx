@@ -48,7 +48,7 @@ const AGENT_META: Record<string, { icon: React.ElementType; color: string; buCol
 const BU_AGENTS = ["jacqes", "caza-vision", "awq-venture"];
 
 // ── Single agent card ──────────────────────────────────────────────────────────
-function AgentCard({ agent, onRun }: { agent: AgentResult; onRun: (id: string) => void }) {
+function AgentCard({ agent, onRun }: { agent: AgentResult; onRun: (id: string) => void; [extra: string]: unknown }) {
   const meta = AGENT_META[agent.id];
   const Icon = meta.icon;
 
@@ -143,13 +143,13 @@ function NoKeyScreen({ onSave }: { onSave: (k: string) => void }) {
         <input
           type={show ? "text" : "password"}
           value={value}
-          onChange={(e) => setValue(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && save()}
+          onChange={(e: { target: { value: string } }) => setValue(e.target.value)}
+          onKeyDown={(e: { key: string }) => e.key === "Enter" && save()}
           placeholder="sk-ant-..."
           className="w-full px-4 py-3 pr-10 bg-gray-100 border border-gray-300 rounded-xl text-sm text-gray-400 placeholder:text-gray-400 focus:outline-none focus:border-brand-500 transition-colors"
         />
         <button
-          onClick={() => setShow((v) => !v)}
+          onClick={() => setShow((v: boolean) => !v)}
           className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-400"
         >
           {show ? "🙈" : "👁"}
@@ -193,8 +193,8 @@ export default function AgentsPanel() {
     const activeKey = key ?? apiKey;
     if (!activeKey) return;
 
-    setAgents((prev) =>
-      prev.map((a) =>
+    setAgents((prev: AgentResult[]) =>
+      prev.map((a: AgentResult) =>
         a.id === agentId ? { ...a, status: "running", content: "", errorMsg: undefined } : a
       )
     );
@@ -242,8 +242,8 @@ export default function AgentsPanel() {
               const parsed = JSON.parse(d) as { type: string; delta?: { type: string; text: string } };
               if (parsed.type === "content_block_delta" && parsed.delta?.type === "text_delta") {
                 text += parsed.delta.text;
-                setAgents((prev) =>
-                  prev.map((a) => (a.id === agentId ? { ...a, content: text } : a))
+                setAgents((prev: AgentResult[]) =>
+                  prev.map((a: AgentResult) => (a.id === agentId ? { ...a, content: text } : a))
                 );
               }
             } catch { /* ignore malformed SSE lines */ }
@@ -279,8 +279,8 @@ export default function AgentsPanel() {
               const parsed = JSON.parse(d) as { text?: string };
               if (parsed.text) {
                 text += parsed.text;
-                setAgents((prev) =>
-                  prev.map((a) => (a.id === agentId ? { ...a, content: text } : a))
+                setAgents((prev: AgentResult[]) =>
+                  prev.map((a: AgentResult) => (a.id === agentId ? { ...a, content: text } : a))
                 );
               }
             } catch { /* ignore */ }
@@ -288,8 +288,8 @@ export default function AgentsPanel() {
         }
       }
 
-      setAgents((prev) =>
-        prev.map((a) =>
+      setAgents((prev: AgentResult[]) =>
+        prev.map((a: AgentResult) =>
           a.id === agentId
             ? { ...a, status: "done", timestamp: new Date().toLocaleTimeString("pt-BR") }
             : a
@@ -297,8 +297,8 @@ export default function AgentsPanel() {
       );
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Erro desconhecido";
-      setAgents((prev) =>
-        prev.map((a) => (a.id === agentId ? { ...a, status: "error", errorMsg: msg } : a))
+      setAgents((prev: AgentResult[]) =>
+        prev.map((a: AgentResult) => (a.id === agentId ? { ...a, status: "error", errorMsg: msg } : a))
       );
     }
   }, [apiKey]);
@@ -314,9 +314,9 @@ export default function AgentsPanel() {
   // Only block rendering if there's truly no key available anywhere
   if (!apiKey) return <NoKeyScreen onSave={(k) => setApiKey(k)} />;
 
-  const buAgents = agents.filter((a) => BU_AGENTS.includes(a.id));
-  const masterAgent = agents.find((a) => a.id === "awq-master");
-  const doneCount = agents.filter((a) => a.status === "done").length;
+  const buAgents = agents.filter((a: AgentResult) => BU_AGENTS.includes(a.id));
+  const masterAgent = agents.find((a: AgentResult) => a.id === "awq-master");
+  const doneCount = agents.filter((a: AgentResult) => a.status === "done").length;
   const usingBuiltin = !localStorage.getItem(LS_KEY) && !!BUILTIN_KEY;
 
   return (
@@ -361,7 +361,7 @@ export default function AgentsPanel() {
           </span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {buAgents.map((agent) => (
+          {buAgents.map((agent: AgentResult) => (
             <AgentCard key={agent.id} agent={agent} onRun={runAgent} />
           ))}
         </div>

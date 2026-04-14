@@ -28,11 +28,16 @@ function pct(cur: number, prev: number) {
 const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "/awq";
 
+type KpiRow = { id: string; label: string; value: number; unit: string; icon: string; color: string };
+type RevenueRow = { month: string; receita: number; expenses: number; profit: number; orcamento: number };
+type PipelineRow = { stage: string; count: number };
+type ProjectTypeRow = { type: string; projetos: number; receita: number; avgValue: number };
+
 interface StatsPayload {
-  kpis: { id: string; label: string; value: number; unit: string; icon: string; color: string }[];
-  revenueData: { month: string; receita: number; expenses: number; profit: number; orcamento: number }[];
-  pipeline: { stage: string; count: number }[];
-  projectTypeRevenue: { type: string; projetos: number; receita: number; avgValue: number }[];
+  kpis: KpiRow[];
+  revenueData: RevenueRow[];
+  pipeline: PipelineRow[];
+  projectTypeRevenue: ProjectTypeRow[];
   total_despesas?:    number;
   total_lucro?:       number;
   margem_media?:      number;
@@ -136,7 +141,7 @@ export default function CazaVisionPage() {
           <section className="space-y-3">
             {/* Row 1 — Operacional */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              {kpisPrimary.map((kpi) => {
+              {kpisPrimary.map((kpi: KpiRow) => {
                 const Icon   = kpiIconMap[kpi.icon] ?? Building2;
                 const colors = kpiColorMap[kpi.color] ?? kpiColorMap.emerald;
                 const displayValue =
@@ -159,7 +164,7 @@ export default function CazaVisionPage() {
             {/* Row 2 — Consolidado */}
             {kpisSecondary.length > 0 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                {kpisSecondary.map((kpi) => {
+                {kpisSecondary.map((kpi: KpiRow) => {
                   const Icon   = kpiIconMap[kpi.icon] ?? Building2;
                   const colors = kpiColorMap[kpi.color] ?? kpiColorMap.emerald;
                   const displayValue =
@@ -192,8 +197,8 @@ export default function CazaVisionPage() {
             {pipeline.length > 0 ? (
               <>
                 <div className="space-y-3">
-                  {pipeline.map((s) => {
-                    const total    = pipeline.reduce((sum, x) => sum + x.count, 0);
+                  {pipeline.map((s: PipelineRow) => {
+                    const total    = pipeline.reduce((sum: number, x: PipelineRow) => sum + x.count, 0);
                     const widthPct = total > 0 ? Math.max(4, Math.round((s.count / total) * 100)) : 4;
                     const color    = pipelineColors[s.stage] ?? "bg-gray-400";
                     return (
@@ -209,7 +214,7 @@ export default function CazaVisionPage() {
                 </div>
                 {projectTypeRev.length > 0 && (
                   <div className="mt-5 pt-4 border-t border-gray-100 grid grid-cols-3 gap-3">
-                    {projectTypeRev.slice(0, 3).map((pt) => (
+                    {projectTypeRev.slice(0, 3).map((pt: ProjectTypeRow) => (
                       <div key={pt.type} className="text-center p-2 rounded-lg bg-gray-50">
                         <div className="text-sm font-bold text-gray-900">{pt.projetos}</div>
                         <div className="text-[11px] text-gray-500 mt-0.5 font-medium">{pt.type.split(" ")[0]}</div>
@@ -248,7 +253,7 @@ export default function CazaVisionPage() {
           />
           {revenueData.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {revenueData.slice(-3).map((m) => {
+              {revenueData.slice(-3).map((m: RevenueRow) => {
                 const margin = m.receita > 0 ? ((m.profit / m.receita) * 100).toFixed(1) : "0.0";
                 return (
                   <div key={m.month} className="p-4 rounded-lg bg-gray-50 border border-gray-100">

@@ -83,7 +83,7 @@ export default function DealsIndexPage() {
 
   const deals = dealWorkspaces;
 
-  const totalTicket   = deals.reduce((s, d) => s + d.proposedValue, 0) + customDeals.reduce((s, d) => s + d.ticket, 0);
+  const totalTicket   = deals.reduce((s, d) => s + d.proposedValue, 0) + customDeals.reduce((s: number, d: CustomDeal) => s + d.ticket, 0);
   const activeDeals   = deals.filter((d) => d.stage !== "Cancelado" && d.stage !== "Fechado");
   const advancedDeals = deals.filter((d) => d.stage === "Due Diligence" || d.stage === "Term Sheet" || d.stage === "Negociação");
   const readyToSend   = deals.filter((d) => d.sendStatus === "Pronto para Envio" || d.sendStatus === "Enviado" || d.sendStatus === "Em Negociação");
@@ -98,7 +98,7 @@ export default function DealsIndexPage() {
       {/* ── Summary KPIs ─────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {[
-          { label: "Deals Ativos",     value: activeDeals.length + customDeals.filter(d => d.stage !== "Cancelado" && d.stage !== "Fechado").length,   icon: TrendingUp,  color: "text-brand-600", bg: "bg-brand-50"   },
+          { label: "Deals Ativos",     value: activeDeals.length + customDeals.filter((d: CustomDeal) => d.stage !== "Cancelado" && d.stage !== "Fechado").length,   icon: TrendingUp,  color: "text-brand-600", bg: "bg-brand-50"   },
           { label: "Ticket Total",     value: fmtR(totalTicket),    icon: DollarSign,  color: "text-amber-700", bg: "bg-amber-50"   },
           { label: "Em Avaliação Avançada", value: advancedDeals.length, icon: FileText, color: "text-blue-600", bg: "bg-blue-50" },
           { label: "Propostas Ativas", value: readyToSend.length,   icon: ShieldCheck, color: "text-emerald-700", bg: "bg-emerald-50" },
@@ -196,7 +196,7 @@ export default function DealsIndexPage() {
               })}
 
               {/* Custom deals from localStorage */}
-              {customDeals.map((d) => {
+              {customDeals.map((d: CustomDeal) => {
                 const StageIcon = stageIcon[d.stage] ?? Clock;
                 return (
                   <tr

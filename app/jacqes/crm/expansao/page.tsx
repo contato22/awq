@@ -81,6 +81,7 @@ function ExpansionCard({
 }: {
   expansion: CrmExpansion;
   client: CrmClient | undefined;
+  [extra: string]: unknown;
 }) {
   return (
     <div className="card card-hover p-5 flex flex-col gap-3">
@@ -147,16 +148,16 @@ export default function ExpansaoPage() {
     ]).then(([e, c]) => { setExpansions(e); setClients(c); setLoading(false); });
   }, []);
 
-  const totalPotencial = expansions.reduce((s, e) => s + e.valor_potencial, 0);
-  const emDiagnostico  = expansions.filter((e) => e.status === "Em Diagnóstico").length;
-  const fechadasGanhas = expansions.filter((e) => e.status === "Fechado").length;
+  const totalPotencial = expansions.reduce((s: number, e: CrmExpansion) => s + e.valor_potencial, 0);
+  const emDiagnostico  = expansions.filter((e: CrmExpansion) => e.status === "Em Diagnóstico").length;
+  const fechadasGanhas = expansions.filter((e: CrmExpansion) => e.status === "Fechado").length;
 
   const filtered =
     tipoFilter === "Todos"
       ? expansions
-      : expansions.filter((e) => e.tipo === tipoFilter);
+      : expansions.filter((e: CrmExpansion) => e.tipo === tipoFilter);
 
-  const totalMrr = clients.reduce((s, c) => s + c.ticket_mensal, 0);
+  const totalMrr = clients.reduce((s: number, c: CrmClient) => s + c.ticket_mensal, 0);
   const expansaoRatio = totalMrr > 0 ? ((totalPotencial / totalMrr) * 100).toFixed(0) : "0";
 
   return (
@@ -244,11 +245,11 @@ export default function ExpansaoPage() {
             />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {filtered.map((exp) => (
+              {filtered.map((exp: CrmExpansion) => (
                 <ExpansionCard
                   key={exp.id}
                   expansion={exp}
-                  client={clients.find((c) => c.id === exp.cliente_id)}
+                  client={clients.find((c: CrmClient) => c.id === exp.cliente_id)}
                 />
               ))}
             </div>

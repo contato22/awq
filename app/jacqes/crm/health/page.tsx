@@ -80,6 +80,7 @@ function HealthCard({
 }: {
   snapshot: CrmHealthSnapshot;
   client: CrmClient | undefined;
+  [extra: string]: unknown;
 }) {
   const days = daysAgo(snapshot.ultima_interacao);
   const scoreColor = healthColor(snapshot.health_score);
@@ -193,14 +194,14 @@ export default function HealthPage() {
   }, []);
 
   const avgHealth    = snapshots.length
-    ? Math.round(snapshots.reduce((s, h) => s + h.health_score, 0) / snapshots.length)
+    ? Math.round(snapshots.reduce((s: number, h: CrmHealthSnapshot) => s + h.health_score, 0) / snapshots.length)
     : 0;
-  const saudaveis    = snapshots.filter((h) => h.health_score >= 80).length;
-  const atencao      = snapshots.filter((h) => h.health_score >= 60 && h.health_score < 80).length;
-  const emRisco      = snapshots.filter((h) => h.health_score < 60 || h.churn_risk === "Alto").length;
-  const followupLate = snapshots.filter((h) => !h.followups_em_dia).length;
+  const saudaveis    = snapshots.filter((h: CrmHealthSnapshot) => h.health_score >= 80).length;
+  const atencao      = snapshots.filter((h: CrmHealthSnapshot) => h.health_score >= 60 && h.health_score < 80).length;
+  const emRisco      = snapshots.filter((h: CrmHealthSnapshot) => h.health_score < 60 || h.churn_risk === "Alto").length;
+  const followupLate = snapshots.filter((h: CrmHealthSnapshot) => !h.followups_em_dia).length;
 
-  const riskAlerts = snapshots.filter((h) => h.churn_risk !== "Baixo");
+  const riskAlerts = snapshots.filter((h: CrmHealthSnapshot) => h.churn_risk !== "Baixo");
 
   return (
     <>
@@ -274,11 +275,11 @@ export default function HealthPage() {
             />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-              {snapshots.map((snap) => (
+              {snapshots.map((snap: CrmHealthSnapshot) => (
                 <HealthCard
                   key={snap.id}
                   snapshot={snap}
-                  client={clients.find((c) => c.id === snap.cliente_id)}
+                  client={clients.find((c: CrmClient) => c.id === snap.cliente_id)}
                 />
               ))}
             </div>
@@ -296,8 +297,8 @@ export default function HealthPage() {
               }
             />
             <div className="space-y-0">
-              {riskAlerts.map((snap) => {
-                const client = clients.find((c) => c.id === snap.cliente_id);
+              {riskAlerts.map((snap: CrmHealthSnapshot) => {
+                const client = clients.find((c: CrmClient) => c.id === snap.cliente_id);
                 const isAlto  = snap.churn_risk === "Alto";
                 return (
                   <div

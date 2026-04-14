@@ -68,17 +68,17 @@ export default function CarteiraActivaPage() {
       .catch(() => setLoading(false));
   }, []);
 
-  const ativos         = clientes.filter(c => c.status_conta === "Ativo");
-  const emAtencao      = clientes.filter(c => c.status_conta === "Em Atenção");
-  const emRisco        = clientes.filter(c => c.status_conta === "Em Risco");
-  const mrr            = clientes.reduce((s, c) => s + c.ticket_mensal, 0);
-  const recebido       = ativos.reduce((s, c) => s + c.ticket_mensal, 0);
+  const ativos         = clientes.filter((c: CrmClient) => c.status_conta === "Ativo");
+  const emAtencao      = clientes.filter((c: CrmClient) => c.status_conta === "Em Atenção");
+  const emRisco        = clientes.filter((c: CrmClient) => c.status_conta === "Em Risco");
+  const mrr            = clientes.reduce((s: number, c: CrmClient) => s + c.ticket_mensal, 0);
+  const recebido       = ativos.reduce((s: number, c: CrmClient) => s + c.ticket_mensal, 0);
   const taxaColeta     = mrr > 0 ? Math.round((recebido / mrr) * 100) : 0;
-  const expansaoTotal  = expansion.filter(e => e.status !== "Fechado").reduce((s, e) => s + e.valor_potencial, 0);
+  const expansaoTotal  = expansion.filter((e: CrmExpansion) => e.status !== "Fechado").reduce((s: number, e: CrmExpansion) => s + e.valor_potencial, 0);
 
-  const mrrAtivos    = ativos.reduce((s, c) => s + c.ticket_mensal, 0);
-  const mrrAtencao   = emAtencao.reduce((s, c) => s + c.ticket_mensal, 0);
-  const mrrRisco     = emRisco.reduce((s, c) => s + c.ticket_mensal, 0);
+  const mrrAtivos    = ativos.reduce((s: number, c: CrmClient) => s + c.ticket_mensal, 0);
+  const mrrAtencao   = emAtencao.reduce((s: number, c: CrmClient) => s + c.ticket_mensal, 0);
+  const mrrRisco     = emRisco.reduce((s: number, c: CrmClient) => s + c.ticket_mensal, 0);
 
   return (
     <>
@@ -116,7 +116,7 @@ export default function CarteiraActivaPage() {
             {
               label: "Expansão Aberta",    value: fmtCurrency(expansaoTotal),
               icon: TrendingUp,  color: "text-teal-600",    bg: "bg-teal-50",
-              sub:  `${expansion.filter(e => e.status !== "Fechado").length} oportunidades`,
+              sub:  `${expansion.filter((e: CrmExpansion) => e.status !== "Fechado").length} oportunidades`,
             },
           ].map(card => {
             const Icon = card.icon;
@@ -157,8 +157,8 @@ export default function CarteiraActivaPage() {
             />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-4">
-              {clientes.map(c => {
-                const exp = expansion.find(e => e.cliente_id === c.id && e.status !== "Fechado");
+              {clientes.map((c: CrmClient) => {
+                const exp = expansion.find((e: CrmExpansion) => e.cliente_id === c.id && e.status !== "Fechado");
                 const barColor = STATUS_BAR[c.status_conta] ?? "bg-gray-300";
                 const avatarColor = STATUS_AVATAR[c.status_conta] ?? "bg-gray-100 text-gray-500";
                 return (

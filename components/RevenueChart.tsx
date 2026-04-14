@@ -107,7 +107,7 @@ export default function RevenueChart() {
             tick={{ fill: "#9ca3af", fontSize: isMobile ? 10 : 11 }}
             axisLine={false}
             tickLine={false}
-            tickFormatter={(v) =>
+            tickFormatter={(v: number) =>
               new Intl.NumberFormat("pt-BR", {
                 notation: "compact",
                 style: "currency",

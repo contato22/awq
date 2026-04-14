@@ -119,7 +119,7 @@ function MetricCard({
   );
 }
 
-function ReportCard({ def }: { def: ReportDef }) {
+function ReportCard({ def }: { def: ReportDef; [extra: string]: unknown }) {
   const Icon = def.icon;
   return (
     <div className="card card-hover p-5 flex flex-col gap-4">
@@ -156,6 +156,7 @@ function FunnelBar({
   count: number;
   maxCount: number;
   value: number;
+  [extra: string]: unknown;
 }) {
   const pct = maxCount > 0 ? (count / maxCount) * 100 : 0;
   const isLost = stage === "Fechado Perdido";
@@ -192,35 +193,35 @@ export default function RelatoriosPage() {
   }, []);
 
   // ── Computed metrics ──────────────────────────────────────────────────────
-  const closed    = opps.filter((o) => o.stage === "Fechado Ganho" || o.stage === "Fechado Perdido");
-  const won       = opps.filter((o) => o.stage === "Fechado Ganho");
+  const closed    = opps.filter((o: CrmOpportunity) => o.stage === "Fechado Ganho" || o.stage === "Fechado Perdido");
+  const won       = opps.filter((o: CrmOpportunity) => o.stage === "Fechado Ganho");
   const winRate   = closed.length > 0
     ? Math.round((won.length / closed.length) * 100)
     : 0;
 
-  const closedTickets = won.map((o) => o.ticket_estimado).filter((t) => t > 0);
+  const closedTickets = won.map((o: CrmOpportunity) => o.ticket_estimado).filter((t: number) => t > 0);
   const ticketMedio   = closedTickets.length > 0
-    ? Math.round(closedTickets.reduce((s, t) => s + t, 0) / closedTickets.length)
+    ? Math.round(closedTickets.reduce((s: number, t: number) => s + t, 0) / closedTickets.length)
     : opps.length > 0
-      ? Math.round(opps.reduce((s, o) => s + o.ticket_estimado, 0) / opps.length)
+      ? Math.round(opps.reduce((s: number, o: CrmOpportunity) => s + o.ticket_estimado, 0) / opps.length)
       : 0;
 
-  const totalMrr         = clients.reduce((s, c) => s + c.ticket_mensal, 0);
-  const pipelineTotal    = opps.reduce((s, o) => s + o.valor_potencial, 0);
+  const totalMrr         = clients.reduce((s: number, c: CrmClient) => s + c.ticket_mensal, 0);
+  const pipelineTotal    = opps.reduce((s: number, o: CrmOpportunity) => s + o.valor_potencial, 0);
   const pipelineCoverage = totalMrr > 0
     ? (pipelineTotal / (totalMrr * 12)).toFixed(1) + "x"
     : "—";
 
   // ── Funnel by stage ───────────────────────────────────────────────────────
-  const stageData = PIPELINE_STAGES.map((stage) => {
-    const stageOpps = opps.filter((o) => o.stage === stage);
+  const stageData = PIPELINE_STAGES.map((stage: string) => {
+    const stageOpps = opps.filter((o: CrmOpportunity) => o.stage === stage);
     return {
       stage,
       count: stageOpps.length,
-      value: stageOpps.reduce((s, o) => s + o.valor_potencial, 0),
+      value: stageOpps.reduce((s: number, o: CrmOpportunity) => s + o.valor_potencial, 0),
     };
   });
-  const maxCount = Math.max(...stageData.map((s) => s.count), 1);
+  const maxCount = Math.max(...stageData.map((s: { count: number }) => s.count), 1);
 
   return (
     <>
@@ -317,7 +318,7 @@ export default function RelatoriosPage() {
             <span>
               Oportunidades ativas:{" "}
               <span className="font-semibold text-gray-700">
-                {opps.filter((o) => o.stage !== "Fechado Ganho" && o.stage !== "Fechado Perdido").length}
+                {opps.filter((o: CrmOpportunity) => o.stage !== "Fechado Ganho" && o.stage !== "Fechado Perdido").length}
               </span>
             </span>
           </div>

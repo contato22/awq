@@ -82,7 +82,7 @@ const categoryConfig: Record<NoteCategory, { label: string; color: string; bg: s
 
 export default function NegotiationPage({ params }: { params: { id: string } }) {
   const deal = getDealById(params.id);
-  if (!deal) notFound();
+  if (!deal) { notFound(); return null; }
 
   const [override, setOverride]         = useState<DealOverride>({});
   const [newNote, setNewNote]           = useState("");
@@ -107,14 +107,14 @@ export default function NegotiationPage({ params }: { params: { id: string } }) 
     };
     const updated = { ...override, internalNotes: [...(override.internalNotes ?? []), note] };
     setOverride(updated);
-    saveOverride(deal.id, updated);
+    saveOverride(deal!.id, updated);
     setNewNote("");
   }
 
   function deleteNote(id: string) {
     const updated = { ...override, internalNotes: (override.internalNotes ?? []).filter((n: any) => n.id !== id) };
     setOverride(updated);
-    saveOverride(deal.id, updated);
+    saveOverride(deal!.id, updated);
   }
 
   const notes = (override.internalNotes ?? []) as any[];
@@ -224,9 +224,9 @@ export default function NegotiationPage({ params }: { params: { id: string } }) 
             </Link>
           </div>
 
-          {clientRounds.map((round) => {
-            const approved = round.sections.filter((s) => s.status === "approved").length;
-            const counters = round.sections.filter((s) => s.status === "rejected" || s.status === "adjusted");
+          {clientRounds.map((round: NegotiationRound) => {
+            const approved = round.sections.filter((s: ClientSectionResponse) => s.status === "approved").length;
+            const counters = round.sections.filter((s: ClientSectionResponse) => s.status === "rejected" || s.status === "adjusted");
             const isOpen   = openRound === round.round;
 
             return (
@@ -275,7 +275,7 @@ export default function NegotiationPage({ params }: { params: { id: string } }) 
                     {/* Per-section breakdown */}
                     <div className="px-5 py-4 space-y-2">
                       <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Avaliação por seção</div>
-                      {round.sections.map((s, i) => {
+                      {round.sections.map((s: ClientSectionResponse, i: number) => {
                         const ui  = sectionStatusUi[s.status];
                         const SI  = ui.icon;
                         return (
@@ -312,7 +312,7 @@ export default function NegotiationPage({ params }: { params: { id: string } }) 
                         <button
                           onClick={() => {
                             setCategory("decisao");
-                            setNewNote(`Rodada ${round.round} — ${round.finalDecision === "approved" ? "Proposta aprovada" : "Contraproposta recebida"}. Cliente: ${round.respondedBy}. Seções aprovadas: ${round.sections.filter(s => s.status === "approved").length}/${round.sections.length}.`);
+                            setNewNote(`Rodada ${round.round} — ${round.finalDecision === "approved" ? "Proposta aprovada" : "Contraproposta recebida"}. Cliente: ${round.respondedBy}. Seções aprovadas: ${round.sections.filter((s: ClientSectionResponse) => s.status === "approved").length}/${round.sections.length}.`);
                           }}
                           className="text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
                         >
@@ -321,7 +321,7 @@ export default function NegotiationPage({ params }: { params: { id: string } }) 
                         <button
                           onClick={() => {
                             setCategory("contraproposta");
-                            setNewNote(`Rodada ${round.round} — preparar nova contraproposta em resposta a: ${counters.map((_, i) => sectionLabels[round.sections.findIndex(s => s === _)] ?? "seção").join(", ")}.`);
+                            setNewNote(`Rodada ${round.round} — preparar nova contraproposta em resposta a: ${counters.map((_: ClientSectionResponse, i: number) => sectionLabels[round.sections.findIndex((s: ClientSectionResponse) => s === _)] ?? "seção").join(", ")}.`);
                           }}
                           className="text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
                         >
@@ -361,7 +361,7 @@ export default function NegotiationPage({ params }: { params: { id: string } }) 
           <input
             type="text"
             value={author}
-            onChange={(e) => setAuthor(e.target.value)}
+            onChange={(e: { target: { value: string } }) => setAuthor(e.target.value)}
             placeholder="Autor (opcional)"
             className="w-40 rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-400"
           />
@@ -369,7 +369,7 @@ export default function NegotiationPage({ params }: { params: { id: string } }) 
 
         <textarea
           value={newNote}
-          onChange={(e) => setNewNote(e.target.value)}
+          onChange={(e: { target: { value: string } }) => setNewNote(e.target.value)}
           placeholder={
             category === "contraproposta" ? "Descreva a contraproposta recebida ou sugerida…" :
             category === "ajuste" ? "Descreva o ajuste a ser feito na proposta…" :

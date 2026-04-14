@@ -108,7 +108,8 @@ function SectionCard({
   icon:     React.ElementType;
   response: SectionResponse;
   onUpdate: (r: SectionResponse) => void;
-  children: React.ReactNode;
+  children?: React.ReactNode;
+  [extra: string]: unknown;
 }) {
   const [open, setOpen] = useState(false);
   const st = statusUi[response.status];
@@ -144,7 +145,7 @@ function SectionCard({
         <div className="flex items-center gap-2">
           {isDecided && (
             <button
-              onClick={(e) => { e.stopPropagation(); onUpdate({ ...response, status: "pending", counterText: "" }); setOpen(true); }}
+              onClick={(e: { stopPropagation: () => void }) => { e.stopPropagation(); onUpdate({ ...response, status: "pending", counterText: "" }); setOpen(true); }}
               className="text-[10px] text-gray-400 hover:text-gray-600 flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-white/60 transition-colors"
             >
               <RotateCcw size={10} /> Refazer
@@ -200,7 +201,7 @@ function SectionCard({
               </div>
               <textarea
                 value={response.counterText}
-                onChange={(e) => onUpdate({ ...response, counterText: e.target.value })}
+                onChange={(e: { target: { value: string } }) => onUpdate({ ...response, counterText: e.target.value })}
                 placeholder={
                   response.status === "rejected"
                     ? "Ex: Os termos de valuation estão acima do nosso benchmark. Propomos R$X com participação de Y%..."
@@ -725,12 +726,12 @@ export default function DealSharePage({ params }: { params: { id: string } }) {
   }, [deal.id]);
 
   function updateSection(idx: number, r: SectionResponse) {
-    setSections((prev) => prev.map((s, i) => i === idx ? r : s));
+    setSections((prev: SectionResponse[]) => prev.map((s: SectionResponse, i: number) => i === idx ? r : s));
   }
 
-  const reviewed    = sections.filter((s) => s.status !== "pending").length;
-  const approvedAll = sections.filter((s) => s.status === "approved").length;
-  const hasCounter  = sections.some((s) => s.status === "rejected" || s.status === "adjusted");
+  const reviewed    = sections.filter((s: SectionResponse) => s.status !== "pending").length;
+  const approvedAll = sections.filter((s: SectionResponse) => s.status === "approved").length;
+  const hasCounter  = sections.some((s: SectionResponse) => s.status === "rejected" || s.status === "adjusted");
   const allReviewed = reviewed === sections.length;
   const allApproved = approvedAll === sections.length;
 
@@ -778,7 +779,7 @@ export default function DealSharePage({ params }: { params: { id: string } }) {
           </div>
           <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-2 text-left">
             <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-3">Resumo da rodada {currentRound}</div>
-            {sections.map((s, i) => {
+            {sections.map((s: SectionResponse, i: number) => {
               const st = statusUi[s.status];
               const SI = st.icon;
               const labels = BLOCK_LABELS;
@@ -870,8 +871,8 @@ export default function DealSharePage({ params }: { params: { id: string } }) {
               Histórico de negociação: {rounds.length} rodada{rounds.length > 1 ? "s" : ""} anterior{rounds.length > 1 ? "es" : ""}
             </div>
             <div className="mt-2 space-y-1">
-              {rounds.map((r) => {
-                const approved = r.sections.filter((s) => s.status === "approved").length;
+              {rounds.map((r: NegotiationRound) => {
+                const approved = r.sections.filter((s: SectionResponse) => s.status === "approved").length;
                 return (
                   <div key={r.round} className="text-[11px] text-violet-700 flex items-center gap-2">
                     <span className="font-bold">Rodada {r.round}:</span>
@@ -970,18 +971,18 @@ export default function DealSharePage({ params }: { params: { id: string } }) {
               <div className="text-[10px] text-emerald-600">Aprovadas</div>
             </div>
             <div className="text-center p-3 rounded-xl bg-amber-50">
-              <div className="text-xl font-black text-amber-600">{sections.filter(s => s.status === "adjusted").length}</div>
+              <div className="text-xl font-black text-amber-600">{sections.filter((s: SectionResponse) => s.status === "adjusted").length}</div>
               <div className="text-[10px] text-amber-600">Com ajuste</div>
             </div>
             <div className="text-center p-3 rounded-xl bg-red-50">
-              <div className="text-xl font-black text-red-600">{sections.filter(s => s.status === "rejected").length}</div>
+              <div className="text-xl font-black text-red-600">{sections.filter((s: SectionResponse) => s.status === "rejected").length}</div>
               <div className="text-[10px] text-red-600">Não aprovadas</div>
             </div>
           </div>
 
           {/* Section status list */}
           <div className="space-y-1.5">
-            {sections.map((s, i) => {
+            {sections.map((s: SectionResponse, i: number) => {
               const st = statusUi[s.status];
               const SI = st.icon;
               const labels = BLOCK_LABELS;
@@ -1043,7 +1044,7 @@ export default function DealSharePage({ params }: { params: { id: string } }) {
                   </label>
                   <textarea
                     value={overallMsg}
-                    onChange={(e) => setOverallMsg(e.target.value)}
+                    onChange={(e: { target: { value: string } }) => setOverallMsg(e.target.value)}
                     placeholder="Comentários gerais, contexto adicional ou mensagem para a equipe AWQ Venture..."
                     rows={3}
                     className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-400 resize-none"
@@ -1057,7 +1058,7 @@ export default function DealSharePage({ params }: { params: { id: string } }) {
                   <input
                     type="text"
                     value={respondedBy}
-                    onChange={(e) => setRespondedBy(e.target.value)}
+                    onChange={(e: { target: { value: string } }) => setRespondedBy(e.target.value)}
                     placeholder="Nome para identificação desta resposta"
                     className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-400"
                   />

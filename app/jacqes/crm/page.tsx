@@ -154,50 +154,50 @@ export default function JacqesCrmPage() {
   const TODAY = new Date().toISOString().slice(0, 10);
   const TODAY_PLUS_7 = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
 
-  const openOpps  = opps.filter(o => o.stage !== "Fechado Ganho" && o.stage !== "Fechado Perdido");
-  const fechadosGanhos   = opps.filter(o => o.stage === "Fechado Ganho").length;
-  const fechadosPerdidos = opps.filter(o => o.stage === "Fechado Perdido").length;
+  const openOpps  = opps.filter((o: CrmOpportunity) => o.stage !== "Fechado Ganho" && o.stage !== "Fechado Perdido");
+  const fechadosGanhos   = opps.filter((o: CrmOpportunity) => o.stage === "Fechado Ganho").length;
+  const fechadosPerdidos = opps.filter((o: CrmOpportunity) => o.stage === "Fechado Perdido").length;
   const totalFechados    = fechadosGanhos + fechadosPerdidos;
 
   const kpis = {
-    leadsAtivos:          leads.filter(l => l.status !== "Convertido" && l.status !== "Perdido").length,
+    leadsAtivos:          leads.filter((l: CrmLead) => l.status !== "Convertido" && l.status !== "Perdido").length,
     oppsAbertas:          openOpps.length,
-    pipelineTotal:        openOpps.reduce((s, o) => s + o.valor_potencial, 0),
-    receitaPotencial:     Math.round(openOpps.reduce((s, o) => s + o.valor_potencial * o.probabilidade / 100, 0)),
-    propostasNegociacao:  opps.filter(o => o.stage === "Proposta" || o.stage === "Negociação").length,
+    pipelineTotal:        openOpps.reduce((s: number, o: CrmOpportunity) => s + o.valor_potencial, 0),
+    receitaPotencial:     Math.round(openOpps.reduce((s: number, o: CrmOpportunity) => s + o.valor_potencial * o.probabilidade / 100, 0)),
+    propostasNegociacao:  opps.filter((o: CrmOpportunity) => o.stage === "Proposta" || o.stage === "Negociação").length,
     winRate:              totalFechados > 0 ? Math.round((fechadosGanhos / totalFechados) * 100) : 0,
-    clientesAtivos:       clients.filter(c => c.status_conta === "Ativo").length,
-    mrrTotal:             clients.reduce((s, c) => s + c.ticket_mensal, 0),
-    healthMedio:          health.length > 0 ? Math.round(health.reduce((s, h) => s + h.health_score, 0) / health.length) : 0,
-    expansaoAberta:       expansion.filter(e => e.status !== "Fechado").length,
-    expansaoValor:        expansion.filter(e => e.status !== "Fechado").reduce((s, e) => s + e.valor_potencial, 0),
-    tarefasAbertas:       tasks.filter(t => t.status === "Aberta" || t.status === "Em Andamento").length,
-    tarefasVencidas:      tasks.filter(t => t.prazo && t.prazo < TODAY && t.status === "Aberta").length,
-    followupsPendentes:   tasks.filter(t => t.status === "Aberta" && t.categoria.toLowerCase().startsWith("follow")).length,
-    emRisco:              clients.filter(c => c.status_conta === "Em Risco").length,
+    clientesAtivos:       clients.filter((c: CrmClient) => c.status_conta === "Ativo").length,
+    mrrTotal:             clients.reduce((s: number, c: CrmClient) => s + c.ticket_mensal, 0),
+    healthMedio:          health.length > 0 ? Math.round(health.reduce((s: number, h: CrmHealthSnapshot) => s + h.health_score, 0) / health.length) : 0,
+    expansaoAberta:       expansion.filter((e: CrmExpansion) => e.status !== "Fechado").length,
+    expansaoValor:        expansion.filter((e: CrmExpansion) => e.status !== "Fechado").reduce((s: number, e: CrmExpansion) => s + e.valor_potencial, 0),
+    tarefasAbertas:       tasks.filter((t: CrmTask) => t.status === "Aberta" || t.status === "Em Andamento").length,
+    tarefasVencidas:      tasks.filter((t: CrmTask) => t.prazo && t.prazo < TODAY && t.status === "Aberta").length,
+    followupsPendentes:   tasks.filter((t: CrmTask) => t.status === "Aberta" && t.categoria.toLowerCase().startsWith("follow")).length,
+    emRisco:              clients.filter((c: CrmClient) => c.status_conta === "Em Risco").length,
   };
 
-  const pipelineByStage = PIPELINE_STAGES.map(stage => ({
+  const pipelineByStage = PIPELINE_STAGES.map((stage: string) => ({
     stage,
-    count: opps.filter(o => o.stage === stage).length,
-    valor: opps.filter(o => o.stage === stage).reduce((s, o) => s + o.valor_potencial, 0),
+    count: opps.filter((o: CrmOpportunity) => o.stage === stage).length,
+    valor: opps.filter((o: CrmOpportunity) => o.stage === stage).reduce((s: number, o: CrmOpportunity) => s + o.valor_potencial, 0),
   }));
 
   const oportunidadesCriticas = opps
-    .filter(o => o.risco === "Alto" || (o.data_proxima_acao && o.data_proxima_acao <= TODAY_PLUS_7))
-    .filter(o => o.stage !== "Fechado Ganho" && o.stage !== "Fechado Perdido")
+    .filter((o: CrmOpportunity) => o.risco === "Alto" || (o.data_proxima_acao && o.data_proxima_acao <= TODAY_PLUS_7))
+    .filter((o: CrmOpportunity) => o.stage !== "Fechado Ganho" && o.stage !== "Fechado Perdido")
     .slice(0, 5);
 
   const ultimasInteracoes = [...ints]
-    .sort((a, b) => b.data.localeCompare(a.data))
+    .sort((a: CrmInteraction, b: CrmInteraction) => b.data.localeCompare(a.data))
     .slice(0, 5);
 
   const tarefasUrgentes = tasks
-    .filter(t => (t.prioridade === "Alta" || t.prioridade === "Crítica") && (t.status === "Aberta" || t.status === "Em Andamento"))
-    .sort((a, b) => (a.prazo ?? "").localeCompare(b.prazo ?? ""))
+    .filter((t: CrmTask) => (t.prioridade === "Alta" || t.prioridade === "Crítica") && (t.status === "Aberta" || t.status === "Em Andamento"))
+    .sort((a: CrmTask, b: CrmTask) => (a.prazo ?? "").localeCompare(b.prazo ?? ""))
     .slice(0, 5);
 
-  const maxPipelineCount = Math.max(...pipelineByStage.map(s => s.count), 1);
+  const maxPipelineCount = Math.max(...pipelineByStage.map((s: { stage: string; count: number; valor: number }) => s.count), 1);
 
   return (
     <>
@@ -293,7 +293,7 @@ export default function JacqesCrmPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {oportunidadesCriticas.map((o) => {
+                    {oportunidadesCriticas.map((o: CrmOpportunity) => {
                       const past = o.data_proxima_acao && o.data_proxima_acao < TODAY;
                       return (
                         <tr key={o.id} className="border-b border-gray-800/50 hover:bg-gray-800/20">
@@ -327,7 +327,7 @@ export default function JacqesCrmPage() {
                 title="Sem tarefas urgentes" description="Boa notícia — agenda limpa." />
             ) : (
               <div className="space-y-2.5">
-                {tarefasUrgentes.map((t) => {
+                {tarefasUrgentes.map((t: CrmTask) => {
                   const past = t.prazo && t.prazo < TODAY;
                   return (
                     <div key={t.id} className="flex items-start gap-3 p-3 rounded-xl bg-gray-800/40 border border-gray-800">

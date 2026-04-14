@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Header from "@/components/Header";
-import { fetchVentureSales, type VentureSalesData } from "@/lib/notion-fetch";
+import { fetchVentureSales, type VentureSalesData, type VentureSaleRow } from "@/lib/notion-fetch";
 import {
   DollarSign,
   Users,
@@ -137,7 +137,7 @@ export default function VentureSalesPage() {
           <div className="card p-5">
             <div className="text-sm font-semibold text-gray-900 mb-4">Pipeline por Canal</div>
             <div className="space-y-0">
-              {data.byCanal.map((c) => (
+              {data.byCanal.map((c: { canal: string; leads: number; valor: number; pct: number }) => (
                 <div
                   key={c.canal}
                   className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0"
@@ -177,7 +177,7 @@ export default function VentureSalesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.rows.map((row) => (
+                  {data.rows.map((row: VentureSaleRow) => (
                     <tr key={row.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                       <td className="px-5 py-3 text-xs font-mono text-gray-400">{row.id}</td>
                       <td className="px-5 py-3 font-medium text-gray-800">{row.nome}</td>

@@ -105,7 +105,7 @@ export default function CazaImportPage() {
             {/* Dry run toggle */}
             <label className="flex items-center gap-2 cursor-pointer select-none">
               <div
-                onClick={() => setDryRun(d => !d)}
+                onClick={() => setDryRun((d: boolean) => !d)}
                 className={`relative w-10 h-5 rounded-full transition-colors ${dryRun ? "bg-amber-400" : "bg-emerald-500"}`}
               >
                 <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${dryRun ? "left-0.5" : "left-5"}`} />
@@ -210,7 +210,7 @@ export default function CazaImportPage() {
                   <AlertTriangle size={12} /> {summary.errors.length} erro(s) encontrado(s)
                 </p>
                 <ul className="space-y-1">
-                  {summary.errors.map((e, i) => (
+                  {summary.errors.map((e: string, i: number) => (
                     <li key={i} className="text-[11px] text-red-600 font-mono">{e}</li>
                   ))}
                 </ul>

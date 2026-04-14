@@ -118,7 +118,7 @@ export async function getRecentAuditEvents(limit = 20): Promise<AuditEvent[]> {
         FROM awq_security_audit_log ORDER BY timestamp DESC LIMIT ${n}
       `;
       if (rows.length > 0) {
-        return rows.map((r) => ({
+        return rows.map((r: Record<string, unknown>) => ({
           id:        r.id as string,
           timestamp: r.timestamp as string,
           user_id:   r.user_id as string,

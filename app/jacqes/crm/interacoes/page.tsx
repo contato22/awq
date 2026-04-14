@@ -129,12 +129,12 @@ export default function InteracoesPage() {
 
   // KPIs
   const total        = interacoes.length;
-  const estasSemana  = interacoes.filter(i => isThisWeek(i.data)).length;
-  const riscoAlto    = interacoes.filter(i => i.risco_percebido === "Alto").length;
+  const estasSemana  = interacoes.filter((i: CrmInteraction) => isThisWeek(i.data)).length;
+  const riscoAlto    = interacoes.filter((i: CrmInteraction) => i.risco_percebido === "Alto").length;
 
   const filtered = tipoF === "Todos"
     ? interacoes
-    : interacoes.filter(i => i.tipo === tipoF);
+    : interacoes.filter((i: CrmInteraction) => i.tipo === tipoF);
 
   // Sort by date desc
   const sorted = [...filtered].sort((a, b) => b.data.localeCompare(a.data));
@@ -151,7 +151,7 @@ export default function InteracoesPage() {
       });
       if (!res.ok) throw new Error("Erro ao salvar");
       const nova = await res.json();
-      setInteracoes(prev => [nova.interacao ?? nova, ...prev]);
+      setInteracoes((prev: CrmInteraction[]) => [nova.interacao ?? nova, ...prev]);
       setModal(false);
       setForm(EMPTY_FORM);
       setErro("");
@@ -318,7 +318,7 @@ export default function InteracoesPage() {
                 <div>
                   <label className="text-xs font-semibold text-gray-600 block mb-1">Tipo *</label>
                   <div className="relative">
-                    <select value={form.tipo} onChange={e => setForm(f => ({ ...f, tipo: e.target.value }))}
+                    <select value={form.tipo} onChange={(e: { target: { value: string } }) => setForm((f: FormState) => ({ ...f, tipo: e.target.value }))}
                       className="w-full appearance-none border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 pr-8">
                       {["Ligação", "Reunião", "Visita", "WhatsApp", "E-mail", "Follow-up",
                         "Proposta Enviada", "Contraproposta", "Alinhamento Interno", "Observação de Risco"].map(t => (
@@ -330,7 +330,7 @@ export default function InteracoesPage() {
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-600 block mb-1">Canal</label>
-                  <input type="text" value={form.canal} onChange={e => setForm(f => ({ ...f, canal: e.target.value }))}
+                  <input type="text" value={form.canal} onChange={(e: { target: { value: string } }) => setForm((f: FormState) => ({ ...f, canal: e.target.value }))}
                     placeholder="Ex: WhatsApp" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
                 </div>
               </div>
@@ -339,12 +339,12 @@ export default function InteracoesPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-gray-600 block mb-1">Data</label>
-                  <input type="date" value={form.data} onChange={e => setForm(f => ({ ...f, data: e.target.value }))}
+                  <input type="date" value={form.data} onChange={(e: { target: { value: string } }) => setForm((f: FormState) => ({ ...f, data: e.target.value }))}
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-600 block mb-1">Responsável</label>
-                  <input type="text" value={form.responsavel} onChange={e => setForm(f => ({ ...f, responsavel: e.target.value }))}
+                  <input type="text" value={form.responsavel} onChange={(e: { target: { value: string } }) => setForm((f: FormState) => ({ ...f, responsavel: e.target.value }))}
                     placeholder="Ex: Danilo" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
                 </div>
               </div>
@@ -352,7 +352,7 @@ export default function InteracoesPage() {
               {/* Resumo */}
               <div>
                 <label className="text-xs font-semibold text-gray-600 block mb-1">Resumo *</label>
-                <textarea value={form.resumo} onChange={e => setForm(f => ({ ...f, resumo: e.target.value }))}
+                <textarea value={form.resumo} onChange={(e: { target: { value: string } }) => setForm((f: FormState) => ({ ...f, resumo: e.target.value }))}
                   rows={3} placeholder="Descreva o que aconteceu nesta interação..."
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none" />
               </div>
@@ -360,7 +360,7 @@ export default function InteracoesPage() {
               {/* Próximo Passo */}
               <div>
                 <label className="text-xs font-semibold text-gray-600 block mb-1">Próximo Passo</label>
-                <input type="text" value={form.proximo_passo} onChange={e => setForm(f => ({ ...f, proximo_passo: e.target.value }))}
+                <input type="text" value={form.proximo_passo} onChange={(e: { target: { value: string } }) => setForm((f: FormState) => ({ ...f, proximo_passo: e.target.value }))}
                   placeholder="Ex: Enviar proposta até 15/04" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
               </div>
 
@@ -369,7 +369,7 @@ export default function InteracoesPage() {
                 <div>
                   <label className="text-xs font-semibold text-gray-600 block mb-1">Satisfação Percebida</label>
                   <div className="relative">
-                    <select value={form.satisfacao_percebida} onChange={e => setForm(f => ({ ...f, satisfacao_percebida: e.target.value }))}
+                    <select value={form.satisfacao_percebida} onChange={(e: { target: { value: string } }) => setForm((f: FormState) => ({ ...f, satisfacao_percebida: e.target.value }))}
                       className="w-full appearance-none border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 pr-8">
                       {["Alta", "Neutro", "Baixa"].map(s => <option key={s}>{s}</option>)}
                     </select>
@@ -379,7 +379,7 @@ export default function InteracoesPage() {
                 <div>
                   <label className="text-xs font-semibold text-gray-600 block mb-1">Risco Percebido</label>
                   <div className="relative">
-                    <select value={form.risco_percebido} onChange={e => setForm(f => ({ ...f, risco_percebido: e.target.value }))}
+                    <select value={form.risco_percebido} onChange={(e: { target: { value: string } }) => setForm((f: FormState) => ({ ...f, risco_percebido: e.target.value }))}
                       className="w-full appearance-none border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 pr-8">
                       {["Baixo", "Médio", "Alto"].map(r => <option key={r}>{r}</option>)}
                     </select>

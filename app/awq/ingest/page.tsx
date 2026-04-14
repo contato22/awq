@@ -319,7 +319,7 @@ export default function IngestPage() {
             if (!json || json === "[DONE]") continue;
             try {
               const event = JSON.parse(json) as PipelineEvent;
-              setPipelineLog((prev) => [...prev, event]);
+              setPipelineLog((prev: PipelineEvent[]) => [...prev, event]);
               if (event.done) {
                 await loadDocuments();
                 if (event.success) void loadTransactions(docId);
@@ -329,7 +329,7 @@ export default function IngestPage() {
         }
       }
     } catch (err) {
-      setPipelineLog((prev) => [
+      setPipelineLog((prev: PipelineEvent[]) => [
         ...prev,
         { error: err instanceof Error ? err.message : "Erro na pipeline." },
       ]);
@@ -339,18 +339,18 @@ export default function IngestPage() {
   }
 
   // ── Derived data ──
-  const selectedDocData = documents.find((d) => d.id === selectedDoc) ?? null;
-  const filteredTxns = transactions.filter((t) => {
+  const selectedDocData = documents.find((d: FinancialDocument) => d.id === selectedDoc) ?? null;
+  const filteredTxns = transactions.filter((t: BankTransaction) => {
     if (filterEntity !== "all" && t.entity !== filterEntity) return false;
     if (!showIntercompany && t.isIntercompany) return false;
     if (showAmbiguous && t.classificationConfidence !== "ambiguous") return false;
     return true;
   });
 
-  const docCredits = transactions.filter((t) => !t.excludedFromConsolidated && t.direction === "credit").reduce((s, t) => s + Math.abs(t.amount), 0);
-  const docDebits  = transactions.filter((t) => !t.excludedFromConsolidated && t.direction === "debit").reduce((s, t) => s + Math.abs(t.amount), 0);
-  const intercompanyCount = transactions.filter((t) => t.isIntercompany).length;
-  const ambiguousCount    = transactions.filter((t) => t.classificationConfidence === "ambiguous").length;
+  const docCredits = transactions.filter((t: BankTransaction) => !t.excludedFromConsolidated && t.direction === "credit").reduce((s: number, t: BankTransaction) => s + Math.abs(t.amount), 0);
+  const docDebits  = transactions.filter((t: BankTransaction) => !t.excludedFromConsolidated && t.direction === "debit").reduce((s: number, t: BankTransaction) => s + Math.abs(t.amount), 0);
+  const intercompanyCount = transactions.filter((t: BankTransaction) => t.isIntercompany).length;
+  const ambiguousCount    = transactions.filter((t: BankTransaction) => t.classificationConfidence === "ambiguous").length;
 
   // ── Static environment blocker ────────────────────────────────────────────
   // In GitHub Pages (NEXT_PUBLIC_STATIC_DATA=1) the API routes do not exist.
@@ -435,7 +435,7 @@ export default function IngestPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => { setShowUpload((v) => !v); setUploadError(null); }}
+              onClick={() => { setShowUpload((v: boolean) => !v); setUploadError(null); }}
               className="flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-colors"
             >
               <Upload size={14} /> Enviar Extrato
@@ -448,7 +448,7 @@ export default function IngestPage() {
             </button>
           </div>
           <div className="text-sm text-gray-400">
-            {documents.length} extrato{documents.length !== 1 ? "s" : ""} · {documents.filter((d) => d.status === "done").length} processados
+            {documents.length} extrato{documents.length !== 1 ? "s" : ""} · {documents.filter((d: FinancialDocument) => d.status === "done").length} processados
           </div>
         </div>
 
@@ -468,8 +468,8 @@ export default function IngestPage() {
                 file ? "border-brand-400 bg-brand-50" : "border-gray-200 hover:border-brand-300 hover:bg-gray-50"
               }`}
               onClick={() => fileInputRef.current?.click()}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
+              onDragOver={(e: { preventDefault: () => void }) => e.preventDefault()}
+              onDrop={(e: { preventDefault: () => void; dataTransfer: { files: FileList } }) => {
                 e.preventDefault();
                 const f = e.dataTransfer.files[0];
                 if (f?.type === "application/pdf" || f?.name.endsWith(".pdf")) setFile(f);
@@ -480,7 +480,7 @@ export default function IngestPage() {
                 type="file"
                 accept=".pdf,application/pdf"
                 className="hidden"
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) setFile(f); }}
+                onChange={(e: { target: { files: FileList | null } }) => { const f = e.target.files?.[0]; if (f) setFile(f); }}
               />
               {file ? (
                 <div className="flex items-center justify-center gap-3">
@@ -491,7 +491,7 @@ export default function IngestPage() {
                   </div>
                   <button
                     className="ml-2 text-gray-400 hover:text-red-500"
-                    onClick={(e) => { e.stopPropagation(); setFile(null); }}
+                    onClick={(e: { stopPropagation: () => void }) => { e.stopPropagation(); setFile(null); }}
                   >
                     <X size={14} />
                   </button>
@@ -510,7 +510,7 @@ export default function IngestPage() {
                 <label className="block text-xs font-medium text-gray-600 mb-1">Banco</label>
                 <select
                   value={bank}
-                  onChange={(e) => setBank(e.target.value as BankName)}
+                  onChange={(e: { target: { value: string } }) => setBank(e.target.value as BankName)}
                   className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none focus:border-brand-500"
                 >
                   {BANK_GROUPS.map((group) => (
@@ -526,7 +526,7 @@ export default function IngestPage() {
                   type="text"
                   placeholder="ex: Conta PJ AWQ"
                   value={accountName}
-                  onChange={(e) => setAccountName(e.target.value)}
+                  onChange={(e: { target: { value: string } }) => setAccountName(e.target.value)}
                   className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-500"
                 />
               </div>
@@ -534,7 +534,7 @@ export default function IngestPage() {
                 <label className="block text-xs font-medium text-gray-600 mb-1">Entidade</label>
                 <select
                   value={entity}
-                  onChange={(e) => setEntity(e.target.value as EntityLayer)}
+                  onChange={(e: { target: { value: string } }) => setEntity(e.target.value as EntityLayer)}
                   className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none focus:border-brand-500"
                 >
                   {ENTITY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -573,7 +573,7 @@ export default function IngestPage() {
           <div className="card p-4 space-y-2">
             <div className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Pipeline Log</div>
             <div className="space-y-1 max-h-48 overflow-y-auto font-mono text-xs">
-              {pipelineLog.map((event, i) => (
+              {pipelineLog.map((event: PipelineEvent, i: number) => (
                 <div
                   key={i}
                   className={`flex items-start gap-2 py-1 ${
@@ -613,7 +613,7 @@ export default function IngestPage() {
                 Nenhum extrato enviado ainda.
               </div>
             ) : (
-              documents.map((doc) => (
+              documents.map((doc: FinancialDocument) => (
                 <button
                   key={doc.id}
                   onClick={() => { setSelectedDoc(doc.id); setPipelineLog([]); }}
@@ -647,7 +647,7 @@ export default function IngestPage() {
                     <div className="mt-2">
                       <button
                         disabled={processing === doc.id}
-                        onClick={(e) => { e.stopPropagation(); void runPipeline(doc.id); }}
+                        onClick={(e: { stopPropagation: () => void }) => { e.stopPropagation(); void runPipeline(doc.id); }}
                         className="text-[10px] text-brand-600 hover:text-brand-800 disabled:opacity-40"
                       >
                         Reprocessar
@@ -658,7 +658,7 @@ export default function IngestPage() {
                     <div className="mt-2">
                       <button
                         disabled={processing === doc.id}
-                        onClick={(e) => { e.stopPropagation(); void runPipeline(doc.id); setSelectedDoc(doc.id); }}
+                        onClick={(e: { stopPropagation: () => void }) => { e.stopPropagation(); void runPipeline(doc.id); setSelectedDoc(doc.id); }}
                         className="text-[10px] font-semibold text-brand-600 hover:text-brand-800 disabled:opacity-40"
                       >
                         {processing === doc.id ? "Processando..." : "▶ Iniciar pipeline"}
@@ -749,7 +749,7 @@ export default function IngestPage() {
                   <Filter size={13} className="text-gray-400" />
                   <select
                     value={filterEntity}
-                    onChange={(e) => setFilterEntity(e.target.value)}
+                    onChange={(e: { target: { value: string } }) => setFilterEntity(e.target.value)}
                     className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-700 focus:outline-none focus:border-brand-400"
                   >
                     <option value="all">Todas as entidades</option>
@@ -761,7 +761,7 @@ export default function IngestPage() {
                     <input
                       type="checkbox"
                       checked={showIntercompany}
-                      onChange={(e) => setShowIntercompany(e.target.checked)}
+                      onChange={(e: { target: { checked: boolean } }) => setShowIntercompany(e.target.checked)}
                       className="rounded"
                     />
                     Intercompany
@@ -770,7 +770,7 @@ export default function IngestPage() {
                     <input
                       type="checkbox"
                       checked={showAmbiguous}
-                      onChange={(e) => setShowAmbiguous(e.target.checked)}
+                      onChange={(e: { target: { checked: boolean } }) => setShowAmbiguous(e.target.checked)}
                       className="rounded"
                     />
                     Só ambíguos
@@ -806,7 +806,7 @@ export default function IngestPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {filteredTxns.map((txn) => {
+                          {filteredTxns.map((txn: BankTransaction) => {
                             const txConf = CONFIDENCE_TX_CONFIG[txn.classificationConfidence];
                             const entityCfg = ENTITY_CONFIG[txn.entity];
                             return (
