@@ -60,8 +60,8 @@ const FINANCIAL_REVENUE_CATS = new Set<ManagerialCategory>([
 
 /** All revenue categories that enter the DRE (operational + financial). */
 const ALL_REVENUE_CATS = new Set<ManagerialCategory>([
-  ...OPERATIONAL_REVENUE_CATS,
-  ...FINANCIAL_REVENUE_CATS,
+  ...Array.from(OPERATIONAL_REVENUE_CATS),
+  ...Array.from(FINANCIAL_REVENUE_CATS),
 ]);
 
 /**
@@ -271,7 +271,7 @@ function aggregateByCategory(
   }
 
   const lines: DreCategoryLine[] = [];
-  for (const [cat, entry] of map) {
+  for (const [cat, entry] of Array.from(map.entries())) {
     const cs = entry.confidences;
     const confidence: DreCategoryLine["confidence"] =
       cs.size === 1 && cs.has("confirmed") ? "confirmed"

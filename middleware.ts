@@ -12,7 +12,7 @@ function withSecurityHeaders(response: NextResponse): NextResponse {
 }
 
 export default withAuth(
-  function middleware(req: { nextUrl: { pathname: string }; nextauth: { token: { role?: string; email?: string } | null }; url: string }) {
+  function middleware(req) {
     const { pathname } = req.nextUrl;
     const token = req.nextauth.token;
 

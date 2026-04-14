@@ -22,14 +22,14 @@ export default NextAuth({
     }),
   ],
   callbacks: {
-    jwt({ token, user }: { token: Record<string, unknown>; user?: { id: string; role: string } }) {
+    jwt({ token, user }) {
       if (user) {
         token.id = (user as { id: string }).id;
         token.role = (user as { role: string }).role;
       }
       return token;
     },
-    session({ session, token }: { session: { user?: { id?: string; role?: string } }; token: Record<string, unknown> }) {
+    session({ session, token }) {
       if (session.user) {
         (session.user as { id?: string }).id = token.id as string;
         (session.user as { role?: string }).role = token.role as string;
