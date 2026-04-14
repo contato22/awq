@@ -1,17 +1,15 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import Header from "@/components/Header";
-import EmptyState from "@/components/EmptyState";
-import { Users, TrendingUp, DollarSign, Star, Database, CloudOff, AlertCircle, BarChart3 } from "lucide-react";
-
 // ─── /advisor/customers — Advisor · Carteira de Clientes ─────────────────────
 //
-// SOURCE: /api/advisor/clients  (Neon Postgres)
-//         /data/advisor-clients.json  (fallback estático)
+// SERVER COMPONENT — dados embutidos em build time via import estático.
+// No export estático (GitHub Pages) o HTML já contém AVVA sem depender de JS.
+// No SSR (Vercel) o componente re-renderiza a cada request com dados do DB.
 //
-// IMPORTANT: Apenas clientes com contratos confirmados devem aparecer aqui.
-// Dados fictícios foram removidos. AVVA é o primeiro cliente real cadastrado.
+// FONTE AUTORITATIVA: public/data/advisor-clients.json  (seed / fallback)
+//                     /api/advisor/clients               (Neon Postgres — SSR only)
+
+import Header from "@/components/Header";
+import { Users, DollarSign, Star, BarChart3, Database } from "lucide-react";
+import advisorClientsRaw from "@/public/data/advisor-clients.json";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -38,62 +36,24 @@ function fmtR(n: number) {
   return "R$" + n;
 }
 
-// ─── Data source ──────────────────────────────────────────────────────────────
-
-const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
-const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "/awq";
-
-// ─── Status config ────────────────────────────────────────────────────────────
-
-const statusConfig: Record<string, string> = {
-  "Ativo":          "badge badge-green",
-  "Em Negociação":  "badge badge-yellow",
-  "Pausado":        "badge badge-yellow",
-  "Encerrado":      "bg-red-50 text-red-600 border border-red-200 text-[10px] font-semibold px-2 py-0.5 rounded-full",
+const statusBadge: Record<string, string> = {
+  "Ativo":         "badge badge-green",
+  "Em Negociação": "badge badge-yellow",
+  "Pausado":       "badge badge-yellow",
+  "Encerrado":     "bg-red-50 text-red-600 border border-red-200 text-[10px] font-semibold px-2 py-0.5 rounded-full",
 };
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AdvisorCustomersPage() {
-  const [clients, setClients] = useState<AdvisorClientRow[]>([]);
-  const [source, setSource]   = useState<"internal" | "static" | "empty" | "loading">("loading");
+  const clients = advisorClientsRaw as AdvisorClientRow[];
 
-  useEffect(() => {
-    async function load() {
-      if (!IS_STATIC) {
-        try {
-          const res = await fetch("/api/advisor/clients");
-          if (res.ok) {
-            const data = await res.json() as AdvisorClientRow[];
-            if (Array.isArray(data) && data.length > 0) {
-              setClients(data); setSource("internal"); return;
-            }
-          }
-        } catch { /* API unavailable — fall through */ }
-      }
-
-      try {
-        const res = await fetch(`${BASE_PATH}/data/advisor-clients.json`);
-        if (res.ok) {
-          const data = await res.json() as AdvisorClientRow[];
-          setClients(Array.isArray(data) ? data : []);
-          setSource(Array.isArray(data) && data.length > 0 ? "static" : "empty");
-          return;
-        }
-      } catch { /* ignore */ }
-      setClients([]); setSource("empty");
-    }
-    load();
-  }, []);
-
-  const total    = clients.length;
   const ativos   = clients.filter((c) => c.status === "Ativo").length;
-  const totalAum = clients.reduce((s, c) => s + c.aum, 0);
-  const avgNps   = (() => {
-    const scored = clients.filter((c) => c.nps != null);
-    if (scored.length === 0) return null;
-    return Math.round(scored.reduce((s, c) => s + (c.nps ?? 0), 0) / scored.length);
-  })();
+  const totalAum = clients.reduce((s, c) => s + (c.aum ?? 0), 0);
+  const scored   = clients.filter((c) => c.nps != null);
+  const avgNps   = scored.length > 0
+    ? Math.round(scored.reduce((s, c) => s + (c.nps ?? 0), 0) / scored.length)
+    : null;
 
   return (
     <>
@@ -102,35 +62,18 @@ export default function AdvisorCustomersPage() {
 
         {/* Source badge */}
         <div className="flex items-center gap-2">
-          {source === "loading" && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-50 border border-gray-200 text-xs text-gray-500">
-              <Database size={11} /> Carregando…
-            </span>
-          )}
-          {source === "internal" && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-violet-50 border border-violet-200 text-xs text-violet-600">
-              <Database size={11} /> Base interna AWQ
-            </span>
-          )}
-          {source === "static" && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-xs text-blue-600">
-              <Database size={11} /> Snapshot estático
-            </span>
-          )}
-          {source === "empty" && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-xs text-amber-700">
-              <CloudOff size={11} /> Sem clientes cadastrados
-            </span>
-          )}
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-violet-50 border border-violet-200 text-xs text-violet-600">
+            <Database size={11} /> Carteira Advisor
+          </span>
         </div>
 
-        {/* Summary strip */}
+        {/* KPI strip */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
-            { label: "Clientes Ativos", value: String(ativos),                     color: "text-violet-600", icon: Users      },
-            { label: "Total Carteira",  value: String(total),                      color: "text-gray-900",   icon: BarChart3  },
-            { label: "AUM Total",       value: totalAum > 0 ? fmtR(totalAum) : "—", color: "text-violet-600", icon: DollarSign },
-            { label: "NPS Médio",       value: avgNps != null ? String(avgNps) : "—", color: "text-amber-600", icon: Star       },
+            { label: "Clientes Ativos",  value: String(ativos),                         color: "text-violet-600", icon: Users      },
+            { label: "Total Carteira",   value: String(clients.length),                 color: "text-gray-900",   icon: BarChart3  },
+            { label: "AUM Total",        value: totalAum > 0 ? fmtR(totalAum) : "—",   color: "text-violet-600", icon: DollarSign },
+            { label: "NPS Médio",        value: avgNps != null ? String(avgNps) : "—", color: "text-amber-600",  icon: Star       },
           ].map((s) => {
             const Icon = s.icon;
             return (
@@ -150,16 +93,11 @@ export default function AdvisorCustomersPage() {
         {/* Clients table */}
         <div className="card p-5">
           <h2 className="text-sm font-semibold text-gray-900 mb-4">Carteira de Clientes</h2>
-          {source === "loading" ? (
-            <div className="flex items-center justify-center py-12 text-gray-400 text-sm gap-2">
-              <AlertCircle size={16} /> Carregando…
+
+          {clients.length === 0 ? (
+            <div className="py-12 text-center text-sm text-gray-400">
+              Nenhum cliente cadastrado.
             </div>
-          ) : clients.length === 0 ? (
-            <EmptyState
-              compact
-              title="Nenhum cliente"
-              description="Cadastre o primeiro cliente Advisor via API ou adicione-o ao arquivo advisor-clients.json."
-            />
           ) : (
             <div className="table-scroll">
               <table className="w-full text-sm">
@@ -187,12 +125,12 @@ export default function AdvisorCustomersPage() {
                       <td className="py-2.5 px-3 text-xs text-gray-500">{c.tipo_servico || "—"}</td>
                       <td className="py-2.5 px-3 text-xs text-gray-500">{c.segmento || "—"}</td>
                       <td className="py-2.5 px-3 text-right text-xs">
-                        {c.aum > 0
+                        {(c.aum ?? 0) > 0
                           ? <span className="text-gray-900 font-semibold">{fmtR(c.aum)}</span>
                           : <span className="text-gray-400">—</span>}
                       </td>
                       <td className="py-2.5 px-3 text-right text-xs">
-                        {c.fee_mensal > 0
+                        {(c.fee_mensal ?? 0) > 0
                           ? <span className="text-violet-600 font-semibold">{fmtR(c.fee_mensal)}</span>
                           : <span className="text-gray-400">—</span>}
                       </td>
@@ -204,7 +142,7 @@ export default function AdvisorCustomersPage() {
                       <td className="py-2.5 px-3 text-xs text-gray-500">{c.responsavel || "—"}</td>
                       <td className="py-2.5 px-3 text-[11px] text-gray-400">{c.since || "—"}</td>
                       <td className="py-2.5 px-3">
-                        <span className={statusConfig[c.status] ?? "badge"}>{c.status || "—"}</span>
+                        <span className={statusBadge[c.status] ?? "badge"}>{c.status || "—"}</span>
                       </td>
                     </tr>
                   ))}
