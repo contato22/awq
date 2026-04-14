@@ -167,6 +167,9 @@ export const buData: BuData[] = [
     //    Advisor is a strategic layer / incubation entity. It does not generate
     //    operating revenue at this time. It must NOT appear in consolidated P&L
     //    as if it had revenue, EBITDA, or ROIC.
+    //
+    //    CLIENTES: 1 cliente ativo cadastrado (AVVA — desde 2026-04-14).
+    //    Fonte: public/data/advisor-clients.json + advisor_clients (Neon Postgres).
     id:               "advisor",
     name:             "Advisor",
     sub:              "Consultoria · AWQ Group",
@@ -180,7 +183,7 @@ export const buData: BuData[] = [
     netIncome:        0,
     cashGenerated:    0,
     cashBalance:      0,
-    customers:        0,
+    customers:        1,
     ftes:             0,
     capitalAllocated: 0,
     roic:             0,
