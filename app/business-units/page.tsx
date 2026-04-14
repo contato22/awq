@@ -134,7 +134,7 @@ export default async function BusinessUnitsPage() {
                 key={bu.id}
                 href={bu.href}
                 className={`card card-interactive p-6 flex flex-col gap-5 ${
-                  isActive ? "cursor-pointer" : "cursor-default opacity-60 pointer-events-none"
+                  !isActive ? "opacity-75" : ""
                 }`}
               >
                 {/* Header */}
@@ -165,9 +165,9 @@ export default async function BusinessUnitsPage() {
                 {/* CTA */}
                 <div className="flex items-center justify-between pt-1">
                   <span className="text-xs text-gray-500">
-                    {isActive ? "Acessar dashboard" : "Em desenvolvimento"}
+                    {isActive ? "Acessar dashboard" : "Ver módulo"}
                   </span>
-                  {isActive && <ChevronRight size={14} className="text-brand-500" />}
+                  <ChevronRight size={14} className="text-brand-500" />
                 </div>
               </Link>
             );
