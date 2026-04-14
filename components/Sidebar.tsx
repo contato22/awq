@@ -289,7 +289,7 @@ function AwqHeader() {
                     onClick={toggle}
                     aria-label="Expandir menu"
                     title="Expandir menu"
-                    className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                    className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors hidden lg:flex"
                 >
                     <PanelLeftOpen size={15} />
                 </button>
