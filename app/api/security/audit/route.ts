@@ -12,6 +12,11 @@ import { SECURITY_ENFORCEMENT_MODE } from "@/lib/security-access";
 export const runtime = "nodejs";
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
+  // Static export build: no NEXTAUTH_SECRET → no cookies/searchParams access
+  if (!process.env.NEXTAUTH_SECRET) {
+    return NextResponse.json({ enforcement_mode: SECURITY_ENFORCEMENT_MODE, stats: {}, events: [], meta: { returned: 0 } });
+  }
+
   // RBAC guard: view em security — somente owner/admin
   const denied = await apiGuard(req, "view", "security", "Audit log de segurança");
   if (denied) return denied;

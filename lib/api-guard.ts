@@ -38,7 +38,14 @@ export async function apiGuard(
   layer: SecurityLayer,
   resource: string
 ): Promise<NextResponse | null> {
-  const token   = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  // During static export builds (output: "export"), NEXTAUTH_SECRET is not set.
+  // API routes are not served in static exports anyway — skip auth entirely.
+  // This prevents Next.js from detecting req.cookies access during pre-rendering
+  // which would otherwise fail the static build with "dynamic = error".
+  const secret = process.env.NEXTAUTH_SECRET;
+  if (!secret) return null;
+
+  const token   = await getToken({ req, secret });
   const user_id = (token?.email   as string | undefined) ?? "anonymous";
   const rawRole = (token?.role    as string | undefined) ?? "anonymous";
   const path    = new URL(req.url).pathname;
