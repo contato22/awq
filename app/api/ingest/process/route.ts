@@ -88,6 +88,14 @@ export async function POST(req: NextRequest): Promise<Response> {
 
   const encoder = new TextEncoder();
 
+  // Sends SSE comment pings to prevent the proxy from closing an idle stream.
+  const startKeepAlive = (controller: ReadableStreamDefaultController, intervalMs = 15_000) => {
+    const id = setInterval(() => {
+      try { controller.enqueue(encoder.encode(": ping\n\n")); } catch { /* stream already closed */ }
+    }, intervalMs);
+    return () => clearInterval(id);
+  };
+
   const stream = new ReadableStream({
     async start(controller) {
       const send = (event: Record<string, unknown>) => {
@@ -128,7 +136,9 @@ export async function POST(req: NextRequest): Promise<Response> {
           hasApiKey: !!apiKey,
         });
 
+        const stopExtractPing = startKeepAlive(controller);
         const parsed = await parsePDF(pdfBuffer, doc.bank, apiKey);
+        stopExtractPing();
 
         send({
           stage: "extracting",
