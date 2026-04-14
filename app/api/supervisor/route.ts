@@ -160,7 +160,7 @@ export async function POST(req: NextRequest) {
 
             if (response.stop_reason === "tool_use") {
               const toolBlocks = response.content.filter(
-                (b): b is Anthropic.ToolUseBlock => b.type === "tool_use"
+                (b: Anthropic.ContentBlock): b is Anthropic.ToolUseBlock => b.type === "tool_use"
               );
               allMessages.push({ role: "assistant", content: response.content });
 
