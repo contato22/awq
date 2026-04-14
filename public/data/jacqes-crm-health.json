@@ -1,0 +1,22 @@
+[
+  {
+    "id": "health-001", "cliente_id": "cli-001", "periodo": "Abr/26",
+    "health_score": 92, "churn_risk": "Baixo", "ultima_interacao": "2026-04-06",
+    "followups_em_dia": true, "pendencias": 0, "expansao_aberta": true
+  },
+  {
+    "id": "health-002", "cliente_id": "cli-002", "periodo": "Abr/26",
+    "health_score": 65, "churn_risk": "Médio", "ultima_interacao": "2026-04-09",
+    "followups_em_dia": false, "pendencias": 1, "expansao_aberta": false
+  },
+  {
+    "id": "health-003", "cliente_id": "cli-003", "periodo": "Abr/26",
+    "health_score": 58, "churn_risk": "Médio", "ultima_interacao": "2026-04-01",
+    "followups_em_dia": false, "pendencias": 2, "expansao_aberta": false
+  },
+  {
+    "id": "health-004", "cliente_id": "cli-004", "periodo": "Abr/26",
+    "health_score": 88, "churn_risk": "Baixo", "ultima_interacao": "2026-04-04",
+    "followups_em_dia": true, "pendencias": 0, "expansao_aberta": true
+  }
+]

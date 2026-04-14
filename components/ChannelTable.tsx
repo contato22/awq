@@ -14,7 +14,8 @@ export default function ChannelTable() {
         badge={<span className="text-[11px] text-gray-400 font-medium ml-1">Traffic, conversions & revenue by source</span>}
       />
 
-      <div className="table-scroll">
+      {/* Desktop: full table */}
+      <div className="hidden lg:block table-scroll">
         <table className="w-full text-sm min-w-[600px]">
           <thead>
             <tr className="border-b border-gray-200">
@@ -32,10 +33,7 @@ export default function ChannelTable() {
               const barWidth = (ch.revenue / maxRevenue) * 100;
 
               return (
-                <tr
-                  key={ch.channel}
-                  className="table-row"
-                >
+                <tr key={ch.channel} className="table-row">
                   <td className="py-3 px-3">
                     <div className="font-medium text-gray-700 text-sm">{ch.channel}</div>
                     <div className="mt-1.5 h-1 w-24 bg-gray-100 rounded-full overflow-hidden">
@@ -69,6 +67,50 @@ export default function ChannelTable() {
             })}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile: card list */}
+      <div className="lg:hidden space-y-2">
+        {channelData.map((ch) => {
+          const cvr = ((ch.conversions / ch.sessions) * 100).toFixed(1);
+          const barWidth = (ch.revenue / maxRevenue) * 100;
+          return (
+            <div key={ch.channel} className="p-3 rounded-xl bg-gray-50 border border-gray-100 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-700">{ch.channel}</span>
+                {ch.cac === 0 ? (
+                  <span className="badge-green text-[10px]">Organic</span>
+                ) : (
+                  <span className="text-[10px] text-gray-400">CAC R${ch.cac}</span>
+                )}
+              </div>
+              <div className="flex items-center gap-4 text-xs">
+                <div>
+                  <span className="text-gray-400">Rev </span>
+                  <span className="font-semibold text-gray-900 tabular-nums">
+                    {formatCurrency(ch.revenue, "BRL", true)}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-400">CVR </span>
+                  <span className="font-medium text-brand-600 tabular-nums">{cvr}%</span>
+                </div>
+                <div>
+                  <span className="text-gray-400">Conv </span>
+                  <span className="tabular-nums text-gray-600">
+                    {formatNumber(ch.conversions, true)}
+                  </span>
+                </div>
+              </div>
+              <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-brand-500 rounded-full transition-all duration-500"
+                  style={{ width: `${barWidth}%` }}
+                />
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

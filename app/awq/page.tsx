@@ -7,6 +7,7 @@ import {
   Scale, CheckCircle, AlertTriangle, Database, Clock, GitMerge,
 } from "lucide-react";
 import { riskSignals, buData, allocFlags, flagConfig } from "@/lib/awq-derived-metrics";
+import { MetricSourceBadge } from "@/components/MetricSourceBadge";
 import {
   buildFinancialQuery,
   fmtBRL,
@@ -408,14 +409,15 @@ export default async function AwqGroupPage() {
                   <div className="flex items-center gap-1.5 ml-1">
                     <span className="badge-red">{highRisks} alto</span>
                     <span className="badge-yellow">{mediumRisks} médio</span>
+                    <MetricSourceBadge sourceType="snapshot" />
                   </div>
                 }
                 linkLabel="Ver todos"
                 linkHref="/awq/risk"
               />
             </div>
-            <div className="text-[10px] text-gray-400 mb-3 italic">
-              Análise qualitativa — ainda não verificada pela base bancária
+            <div className="text-[10px] text-amber-600 font-medium mb-3">
+              Análise qualitativa (snapshot) — não derivada de extratos bancários
             </div>
             <div className="space-y-2">
               {riskSignals.map((risk) => {
@@ -445,12 +447,13 @@ export default async function AwqGroupPage() {
               <SectionHeader
                 icon={<Wallet size={15} className="text-amber-600" />}
                 title="Capital Allocation"
+                badge={<MetricSourceBadge sourceType="snapshot" />}
                 linkLabel="Detalhes"
                 linkHref="/awq/allocations"
               />
             </div>
-            <div className="text-[10px] text-gray-400 mb-3 italic">
-              Alocação estratégica — ainda não migrada para base bancária
+            <div className="text-[10px] text-amber-600 font-medium mb-3">
+              Alocação estratégica (snapshot) — planejamento accrual, não derivado de extratos
             </div>
             <div className="space-y-3.5">
               {[...buData].sort((a, b) => b.roic - a.roic).map((bu) => {
@@ -469,9 +472,19 @@ export default async function AwqGroupPage() {
                         <span className={`text-[10px] font-bold ${flagCfg.color} ${flagCfg.bg} px-1.5 py-0.5 rounded`}>
                           {flagCfg.label}
                         </span>
-                        <span className={`text-xs font-bold ${bu.roic >= 30 ? "text-emerald-600" : bu.roic >= 15 ? "text-amber-700" : "text-red-600"}`}>
-                          ROIC {bu.roic.toFixed(0)}%
-                        </span>
+                        {bu.economicType === "pre_revenue" ? (
+                          <span className="text-[10px] font-medium text-violet-600 bg-violet-50 px-1.5 py-0.5 rounded border border-violet-200">
+                            Pré-receita
+                          </span>
+                        ) : bu.economicType === "hybrid_investment" ? (
+                          <span className="text-[10px] font-medium text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                            Investimento
+                          </span>
+                        ) : (
+                          <span className={`text-xs font-bold ${bu.roic >= 30 ? "text-emerald-600" : bu.roic >= 15 ? "text-amber-700" : bu.roic > 0 ? "text-red-600" : "text-gray-400"}`}>
+                            ROIC {bu.roic > 0 ? bu.roic.toFixed(0) + "%" : "—"}
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-2">

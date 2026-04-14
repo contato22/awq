@@ -5,6 +5,9 @@ on:
     branches:
       - main
   workflow_dispatch:
+  schedule:
+    # Rebuild daily at 03:00 UTC to pick up Notion changes automatically
+    - cron: "0 3 * * *"
 
 permissions:
   contents: write
@@ -25,20 +28,47 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Fetch Notion data (pre-build)
+      - name: Fetch data for static export (Notion as source of truth)
         run: node scripts/fetch-notion-static.mjs
         env:
+          # ── GitHub Pages static build always uses Notion ───────────────────
+          # DATABASE_URL is intentionally NOT passed here: Neon is the
+          # operational DB for Vercel SSR only. The static vitrine must always
+          # reflect Notion (the source of truth), not a potentially-stale DB.
+          # ── Notion credentials ─────────────────────────────────────────────
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
           NOTION_DATABASE_ID_CAZA_PROPERTIES: ${{ secrets.NOTION_DATABASE_ID_CAZA_PROPERTIES }}
           NOTION_DATABASE_ID_CAZA_FINANCIAL: ${{ secrets.NOTION_DATABASE_ID_CAZA_FINANCIAL }}
           NOTION_DATABASE_ID_CAZA_CLIENTS: ${{ secrets.NOTION_DATABASE_ID_CAZA_CLIENTS }}
           NOTION_DATABASE_ID_VENTURE_SALES: ${{ secrets.NOTION_DATABASE_ID_VENTURE_SALES }}
 
+      - name: Verify data (diagnose empty vs real)
+        run: |
+          echo "=== Data pipeline status ==="
+          node -e "
+            const fs = require('fs');
+            const props = JSON.parse(fs.readFileSync('public/data/caza-properties.json','utf8'));
+            const fin   = JSON.parse(fs.readFileSync('public/data/caza-financial.json','utf8'));
+            const cli   = JSON.parse(fs.readFileSync('public/data/caza-clients.json','utf8'));
+            const stats = JSON.parse(fs.readFileSync('public/data/caza-stats.json','utf8'));
+            console.log('properties:', props.length, 'records');
+            console.log('financial:', fin.length, 'records');
+            console.log('clients:', cli.length, 'records');
+            console.log('stats source:', stats.source);
+            if (props.length === 0 && fin.length === 0 && cli.length === 0) {
+              console.error('WARNING: all Caza data files are empty — check NOTION_TOKEN secret in repo settings');
+            } else {
+              console.log('OK: real data fetched successfully');
+            }
+          "
+
       - name: Build
         run: npm run build
         env:
           STATIC_EXPORT: "1"
           NEXT_PUBLIC_STATIC_DATA: "1"
+          NEXT_PUBLIC_BASE_PATH: "/awq"
           # NEXT_PUBLIC_ANTHROPIC_API_KEY deliberately omitted:
           # NEXT_PUBLIC_* vars are inlined into the client JS bundle and are
           # publicly visible to anyone who inspects the static output.
@@ -49,4 +79,4 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./out
-          force_orphan: true
+          keep_files: true

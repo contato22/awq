@@ -167,6 +167,9 @@ export const buData: BuData[] = [
     //    Advisor is a strategic layer / incubation entity. It does not generate
     //    operating revenue at this time. It must NOT appear in consolidated P&L
     //    as if it had revenue, EBITDA, or ROIC.
+    //
+    //    CLIENTES: 1 cliente ativo cadastrado (AVVA — desde 2026-04-14).
+    //    Fonte: public/data/advisor-clients.json + advisor_clients (Neon Postgres).
     id:               "advisor",
     name:             "Advisor",
     sub:              "Consultoria · AWQ Group",
@@ -180,7 +183,7 @@ export const buData: BuData[] = [
     netIncome:        0,
     cashGenerated:    0,
     cashBalance:      0,
-    customers:        0,
+    customers:        1,
     ftes:             0,
     capitalAllocated: 0,
     roic:             0,
@@ -266,11 +269,13 @@ export const budgetVsActual =
 
 // ─── Monthly consolidated revenue (Jan–Mar 2026 per BU) ──────────────────────
 export interface MonthlyPoint {
-  month:    string;
-  jacqes:   number;
-  caza:     number;
-  advisor:  number;
-  total:    number;
+  month:        string;
+  jacqes:       number;
+  caza:         number;
+  advisor:      number;
+  total:        number;
+  /** true = período não fechado (estimativa); false/undefined = realizado */
+  is_forecast?: boolean;
 }
 
 // ⚠  CORRECTED 2026-04-08 — Advisor is pre_revenue (revenue = 0). Previous entries
@@ -278,12 +283,15 @@ export interface MonthlyPoint {
 // buData.advisor.revenue = 0. Zeroed here. total = jacqes + caza only.
 // Jan/Fev/Mar: JACQES_MRR_Q1 = 6.490 (3 clientes, sem Tati)
 // Abr: JACQES_MRR = 8.280 (Tati entrou início de Abr, já paga)
-const _monthlyRaw = [
+type MonthlyRaw = Omit<MonthlyPoint, "total">;
+const _monthlyRaw: MonthlyRaw[] = [
   { month: "Jan/26", jacqes: JACQES_MRR_Q1, caza:  712_000, advisor: 0 },
   { month: "Fev/26", jacqes: JACQES_MRR_Q1, caza:  798_000, advisor: 0 },
   { month: "Mar/26", jacqes: JACQES_MRR_Q1, caza:  908_000, advisor: 0 },
-  { month: "Abr/26", jacqes: JACQES_MRR,    caza:        0, advisor: 0 },
-] as const;
+  // is_forecast: true — Caza Abr/26 ainda não fechado (caza=0 = estimativa, não zero real).
+  // JACQES Abr confirmado (Tati Simões entrou início Abr, já paga = JACQES_MRR = 8.280).
+  { month: "Abr/26", jacqes: JACQES_MRR,    caza:        0, advisor: 0, is_forecast: true },
+];
 
 export const monthlyRevenue: MonthlyPoint[] = _monthlyRaw.map(m => ({
   ...m,
@@ -349,13 +357,17 @@ export const riskSignals: RiskSignal[] = [
     threshold:   "Posição empírica — print 02/04/2026",
   },
   {
+    // ⚠  CORRECTED 2026-04-11 — previous entry referenced "André Teixeira (R$6.2M AUM, NPS 68)",
+    // a fictitious client that survived the 2026-04-08 Advisor correction.
+    // Advisor economicType = "pre_revenue" with customers = 0 and revenue = 0.
+    // The AUM, NPS, and client name were unverified planning data with no empirical backing.
     id: "R6",
-    title:       "Cliente em Risco — Advisor",
-    description: "André Teixeira (R$6.2M AUM, NPS 68) em revisão contratual — risco de saída.",
+    title:       "Advisor — Em Construção (Pré-Receita)",
+    description: "Advisor é uma camada estratégica em construção. Nenhum cliente operacional confirmado. Revenue = R$0, AUM = R$0. Sem meta de receita até primeiro contrato.",
     severity:    "low",
     bu:          "Advisor",
-    metric:      "AUM em risco: R$6.2M",
-    threshold:   "NPS: 68 (alerta <70)",
+    metric:      "Clientes: 0 · Revenue: R$0",
+    threshold:   "economicType: pre_revenue",
   },
 ];
 
@@ -551,20 +563,32 @@ export interface RiskCategory {
 
 export const riskCategories: RiskCategory[] = [
   {
+    // ⚠  CORRECTED 2026-04-11 — previous entries showed Ambev (R$420K), Samsung (R$350K),
+    // Natura (R$310K) as JACQES clients. These are FICTITIOUS — JACQES has 4 confirmed clients
+    // from Notion CRM (Apr/2026): CEM R$3.200, Carol Bertolini R$1.790, André Vieira R$1.500,
+    // Tati Simões R$1.790. Total MRR = R$8.280. Concentration updated to reflect real state.
+    //
+    // Real shares (of MRR R$8.280):
+    //   CEM:             3.200 / 8.280 = 38.6%  →  share: 39
+    //   Tati Simões:     1.790 / 8.280 = 21.6%  →  share: 22
+    //   Carol Bertolini: 1.790 / 8.280 = 21.6%  →  share: 22
+    //   André Vieira:    1.500 / 8.280 = 18.1%  →  share: 18
+    //   Top-3 (CEM+Tati+Carol): 39+22+22 = 83% — concentration is CRITICAL (threshold 40%)
     id: "concentration",
-    title:     "Concentração de Cliente",
+    title:     "Concentração de Cliente — JACQES",
     iconKey:   "users",
     colorKey:  "red",
     severity:  "high",
     details: [
-      { label: "Ambev (JACQES)",           share: 20, mrr: 420_000,   risk: "Alto"    },
-      { label: "Samsung (JACQES)",         share: 16, mrr: 350_000,   risk: "Alto"    },
-      { label: "Natura (JACQES)",          share: 14, mrr: 310_000,   risk: "Médio"   },
-      { label: "Ambev + Samsung + Natura", share: 50, mrr: 1_080_000, risk: "Crítico", isTotal: true },
+      { label: "CEM",                             share: 39, mrr: 3_200, risk: "Crítico"  },
+      { label: "Tati Simões",                     share: 22, mrr: 1_790, risk: "Alto"     },
+      { label: "Carol Bertolini",                 share: 22, mrr: 1_790, risk: "Alto"     },
+      { label: "André Vieira",                    share: 18, mrr: 1_500, risk: "Médio"    },
+      { label: "CEM + Tati + Carol (top-3)",      share: 83, mrr: 6_780, risk: "Crítico", isTotal: true },
     ],
-    threshold: "Limite: top-3 ≤ 40%",
-    current:   "Top-3 = 50% do MRR JACQES",
-    action:    "Diversificar carteira — 3+ novos clientes em Q2",
+    threshold: "Limite: nenhum cliente > 30%; top-3 ≤ 40%",
+    current:   "Top-3 = 83% do MRR JACQES · 1 cliente (CEM) = 39%",
+    action:    "Prioridade máxima: diversificar carteira JACQES — adicionar 3+ novos clientes em Q2/Q3",
   },
   {
     id: "receivables",
@@ -575,10 +599,12 @@ export const riskCategories: RiskCategory[] = [
     details: [
       { label: "CV002 — Banco XP (Caza)", share: 0, mrr: 320_000, risk: "Alto",  days: 8 },
       { label: "CV008 — Nubank (Caza)",   share: 0, mrr: 145_000, risk: "Médio", days: 5 },
-      { label: "Banco XP Advisory",       share: 0, mrr:  42_000, risk: "Baixo", days: 3 },
+      // ⚠  CORRECTED 2026-04-11 — "Banco XP Advisory" (R$42K) removido.
+      //    Advisor é pre_revenue com customers=0. Recebível era dado fictício pré-2026-04-08.
+      //    Total corrigido de R$507K → R$465K.
     ],
     threshold: "Limite: total ≤ R$200K",
-    current:   "Total em aberto: R$507K",
+    current:   "Total em aberto: R$465K",
     action:    "Cobrança ativa Banco XP (CV002) — prazo expirado",
   },
   {
@@ -596,19 +622,24 @@ export const riskCategories: RiskCategory[] = [
     action:    "Acelerar Caza Vision para reequilibrar. Advisor: pré-receita (sem meta de revenue).",
   },
   {
+    // ⚠  SNAPSHOT — EBITDA ainda não confirmado contabilmente para JACQES.
+    // buData.jacqes.ebitda = 0 (aguardando confirmação contábil).
+    // Os valores abaixo são estimativas de planejamento (não "realizado" empírico).
+    // CORRECTED 2026-04-11: "EBITDA Realizado" renomeado para "EBITDA Estimado" para
+    // evitar confusão entre dado confirmado e projeção planejamento.
     id: "marginCompression",
-    title:    "Compressão de Margem — JACQES",
+    title:    "Margem JACQES — Pendente Confirmação",
     iconKey:  "trending-down",
     colorKey: "amber",
     severity: "medium",
     details: [
-      { label: "Meta EBITDA 2026", share: 22, mrr: 0, risk: "Meta"    },
-      { label: "EBITDA Realizado", share: 18, mrr: 0, risk: "Atual"   },
-      { label: "Gap",              share: -4, mrr: 0, risk: "4pp gap" },
+      { label: "Meta EBITDA 2026",              share: 22, mrr: 0, risk: "Meta"         },
+      { label: "EBITDA Estimado (planejamento)", share: 18, mrr: 0, risk: "Estimado"     },
+      { label: "Gap estimado",                  share: -4, mrr: 0, risk: "4pp (estim.)" },
     ],
     threshold: "Meta: EBITDA ≥ 22%",
-    current:   "Realizado: 18% EBITDA",
-    action:    "Revisar mix de clientes e custos operacionais",
+    current:   "EBITDA pendente confirmação contábil (estimado: 18%)",
+    action:    "Aguardar confirmação contábil Q1/2026 para validar margem real JACQES",
   },
   {
     id: "cashPressure",

@@ -10,6 +10,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { revenueData } from "@/lib/data";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 interface CustomTooltipProps {
   active?: boolean;
@@ -34,10 +35,7 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
       {payload.map((entry) => (
         <div key={entry.name} className="flex items-center justify-between gap-4 text-xs py-0.5">
           <div className="flex items-center gap-1.5">
-            <span
-              className="w-2 h-2 rounded-full"
-              style={{ backgroundColor: entry.color }}
-            />
+            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
             <span className="text-gray-500 capitalize">{entry.name}</span>
           </div>
           <span className="font-semibold text-gray-900 tabular-nums">{fmt(entry.value)}</span>
@@ -48,9 +46,11 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
 }
 
 export default function RevenueChart() {
+  const isMobile = useIsMobile();
+
   return (
-    <div className="card p-5 lg:p-6">
-      <div className="flex items-center justify-between mb-5">
+    <div className="card p-4 lg:p-6">
+      <div className="flex items-center justify-between mb-4 lg:mb-5">
         <div>
           <h2 className="text-sm font-semibold text-gray-900">Revenue Overview</h2>
           <p className="text-[11px] text-gray-500 mt-0.5 font-medium">Monthly P&amp;L — FY 2025</p>
@@ -71,10 +71,14 @@ export default function RevenueChart() {
         </div>
       </div>
 
-      <ResponsiveContainer width="100%" height={260}>
+      <ResponsiveContainer width="100%" height={isMobile ? 200 : 260}>
         <AreaChart
           data={revenueData}
-          margin={{ top: 4, right: 4, left: -10, bottom: 0 }}
+          margin={
+            isMobile
+              ? { top: 4, right: 0, left: -20, bottom: 0 }
+              : { top: 4, right: 4, left: -10, bottom: 0 }
+          }
         >
           <defs>
             <linearGradient id="gradRevenue" x1="0" y1="0" x2="0" y2="1">
@@ -91,19 +95,16 @@ export default function RevenueChart() {
             </linearGradient>
           </defs>
 
-          <CartesianGrid
-            strokeDasharray="3 3"
-            stroke="#e5e7eb"
-            vertical={false}
-          />
+          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
           <XAxis
             dataKey="month"
-            tick={{ fill: "#9ca3af", fontSize: 11 }}
+            tick={{ fill: "#9ca3af", fontSize: isMobile ? 10 : 11 }}
             axisLine={false}
             tickLine={false}
+            interval={isMobile ? 1 : 0}
           />
           <YAxis
-            tick={{ fill: "#9ca3af", fontSize: 11 }}
+            tick={{ fill: "#9ca3af", fontSize: isMobile ? 10 : 11 }}
             axisLine={false}
             tickLine={false}
             tickFormatter={(v) =>
@@ -114,27 +115,33 @@ export default function RevenueChart() {
                 maximumFractionDigits: 1,
               }).format(v)
             }
+            width={isMobile ? 40 : 50}
           />
           <Tooltip content={<CustomTooltip />} cursor={{ stroke: "#d1d5db", strokeWidth: 1 }} />
 
-          <Area
-            type="monotone"
-            dataKey="expenses"
-            name="expenses"
-            stroke="#f59e0b"
-            strokeWidth={1.5}
-            fill="url(#gradExpenses)"
-            dot={false}
-          />
-          <Area
-            type="monotone"
-            dataKey="profit"
-            name="profit"
-            stroke="#10b981"
-            strokeWidth={1.5}
-            fill="url(#gradProfit)"
-            dot={false}
-          />
+          {/* On mobile, only show revenue line for readability */}
+          {!isMobile && (
+            <>
+              <Area
+                type="monotone"
+                dataKey="expenses"
+                name="expenses"
+                stroke="#f59e0b"
+                strokeWidth={1.5}
+                fill="url(#gradExpenses)"
+                dot={false}
+              />
+              <Area
+                type="monotone"
+                dataKey="profit"
+                name="profit"
+                stroke="#10b981"
+                strokeWidth={1.5}
+                fill="url(#gradProfit)"
+                dot={false}
+              />
+            </>
+          )}
           <Area
             type="monotone"
             dataKey="revenue"
@@ -147,18 +154,23 @@ export default function RevenueChart() {
         </AreaChart>
       </ResponsiveContainer>
 
-      {/* Legend */}
+      {/* Legend — responsive */}
       <div className="flex items-center justify-center gap-5 mt-3 pt-3 border-t border-gray-100">
-        {[
-          { label: "Revenue", color: "#6366f1" },
-          { label: "Profit", color: "#10b981" },
-          { label: "Expenses", color: "#f59e0b" },
-        ].map((item) => (
-          <span key={item.label} className="flex items-center gap-1.5 text-[11px] text-gray-500 font-medium">
-            <span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ backgroundColor: item.color }} />
-            {item.label}
-          </span>
-        ))}
+        <span className="flex items-center gap-1.5 text-[11px] text-gray-500 font-medium">
+          <span className="w-2.5 h-2.5 rounded-sm inline-block bg-brand-500" />
+          Revenue
+        </span>
+        <span className="hidden lg:flex items-center gap-1.5 text-[11px] text-gray-500 font-medium">
+          <span className="w-2.5 h-2.5 rounded-sm inline-block bg-emerald-500" />
+          Profit
+        </span>
+        <span className="hidden lg:flex items-center gap-1.5 text-[11px] text-gray-500 font-medium">
+          <span className="w-2.5 h-2.5 rounded-sm inline-block bg-amber-500" />
+          Expenses
+        </span>
+        {isMobile && (
+          <span className="text-[10px] text-gray-400 italic">Mais linhas no desktop</span>
+        )}
       </div>
     </div>
   );

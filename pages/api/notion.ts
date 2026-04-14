@@ -23,14 +23,16 @@ async function queryDatabase(databaseId: string, apiKey: string) {
 }
 
 type NotionPropertyValue =
-  | { type: "number";    number: number | null }
-  | { type: "title";     title: Array<{ plain_text: string }> }
-  | { type: "rich_text"; rich_text: Array<{ plain_text: string }> }
-  | { type: "select";    select: { name: string } | null }
-  | { type: "date";      date: { start: string } | null }
-  | { type: "checkbox";  checkbox: boolean }
-  | { type: "people";    people: Array<{ id: string; name?: string; person?: { email?: string } }> }
-  | { type: "formula";   formula: { type: string; number?: number; string?: string; boolean?: boolean } };
+  | { type: "number";       number: number | null }
+  | { type: "title";        title: Array<{ plain_text: string }> }
+  | { type: "rich_text";    rich_text: Array<{ plain_text: string }> }
+  | { type: "select";       select: { name: string } | null }
+  | { type: "date";         date: { start: string } | null }
+  | { type: "checkbox";     checkbox: boolean }
+  | { type: "people";       people: Array<{ id: string; name?: string; person?: { email?: string } }> }
+  | { type: "formula";      formula: { type: string; number?: number; string?: string; boolean?: boolean } }
+  | { type: "email";        email: string | null }
+  | { type: "phone_number"; phone_number: string | null };
 
 function getProp(
   props: Record<string, NotionPropertyValue>,
@@ -107,14 +109,34 @@ function mapProjeto(page: { id: string; properties: Record<string, NotionPropert
   };
 }
 
+function getEmailProp(props: Record<string, NotionPropertyValue>, keys: string[]): string {
+  for (const key of keys) {
+    const p = props[key];
+    if (!p) continue;
+    if (p.type === "email")     return p.email ?? "";
+    if (p.type === "rich_text") return p.rich_text[0]?.plain_text ?? "";
+  }
+  return "";
+}
+
+function getPhoneProp(props: Record<string, NotionPropertyValue>, keys: string[]): string {
+  for (const key of keys) {
+    const p = props[key];
+    if (!p) continue;
+    if (p.type === "phone_number") return p.phone_number ?? "";
+    if (p.type === "rich_text")    return p.rich_text[0]?.plain_text ?? "";
+  }
+  return "";
+}
+
 // ─── Clients mapper ───────────────────────────────────────────────────────────
 function mapClient(page: { id: string; properties: Record<string, NotionPropertyValue> }) {
   const p = page.properties;
   return {
     id:           page.id,
     name:         getProp(p, ["Nome", "Name", "Title"], "title") ?? "",
-    email:        getProp(p, ["Email", "E-mail"], "rich_text") ?? "",
-    phone:        getProp(p, ["Telefone", "Phone", "Celular"], "rich_text") ?? "",
+    email:        getEmailProp(p, ["Email", "E-mail"]),
+    phone:        getPhoneProp(p, ["Telefone", "Phone", "Celular"]),
     type:         getProp(p, ["Tipo", "Type", "Perfil"], "select") ?? "Marca",
     budget_anual: getProp(p, ["Budget Anual", "Budget", "Orçamento", "Orcamento", "Valor"], "number") ?? 0,
     status:       getProp(p, ["Status"], "select") ?? "Ativo",
@@ -173,7 +195,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const database = (req.query.database as string) ?? "financial";
 
-  const apiKey = process.env.NOTION_API_KEY;
+  const apiKey = process.env.NOTION_TOKEN ?? process.env.NOTION_API_KEY;
   if (!apiKey) {
     return res.status(200).json({ source: "mock", data: null, error: "NOTION_API_KEY não configurada" });
   }
