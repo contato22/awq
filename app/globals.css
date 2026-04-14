@@ -299,4 +299,14 @@
   .transition-smooth {
     @apply transition-all duration-300 ease-out;
   }
+
+  /* ── Mobile / iOS Safe Area ──────────────────────────────────── */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* ── Responsive Page Content Wrapper ────────────────────────── */
+  .page-content {
+    @apply px-4 py-4 space-y-4 lg:px-8 lg:py-6 lg:space-y-6;
+  }
 }
