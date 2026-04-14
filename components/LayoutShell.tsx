@@ -6,20 +6,39 @@ import { Menu, X } from "lucide-react";
 import Sidebar from "./Sidebar";
 import OpenClawWidget from "./OpenClawWidget";
 import SupervisorWidget from "./SupervisorWidget";
+import { cn } from "@/lib/utils";
+
+const SIDEBAR_STORAGE_KEY = "awq-sidebar-collapsed";
 
 export default function LayoutShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [collapsed,   setCollapsed]   = useState(false);
 
-  const openSidebar = useCallback(() => setSidebarOpen(true), []);
+  const openSidebar  = useCallback(() => setSidebarOpen(true),  []);
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
 
-  // Close sidebar on route change (mobile)
+  // Load collapsed preference from localStorage after mount
+  useEffect(() => {
+    const stored = localStorage.getItem(SIDEBAR_STORAGE_KEY);
+    if (stored === "true") setCollapsed(true);
+  }, []);
+
+  // Persist and toggle collapsed state
+  const toggleCollapsed = useCallback(() => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem(SIDEBAR_STORAGE_KEY, String(next));
+      return next;
+    });
+  }, []);
+
+  // Close mobile sidebar on route change
   useEffect(() => {
     setSidebarOpen(false);
   }, [pathname]);
 
-  // Close sidebar on Escape key
+  // Close mobile sidebar on Escape key
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === "Escape") setSidebarOpen(false);
@@ -45,12 +64,16 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
 
       {/* ── Sidebar ────────────────────────────────────────────── */}
       <aside
-        className={`
-          fixed inset-y-0 left-0 z-50 w-[280px] bg-white border-r border-gray-200 flex flex-col
-          transform transition-transform duration-300 ease-out
-          lg:relative lg:translate-x-0 lg:w-[260px] lg:z-auto
-          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
-        `}
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 bg-white border-r border-gray-200 flex flex-col",
+          "transform transition-all duration-300 ease-out",
+          "lg:relative lg:translate-x-0 lg:z-auto",
+          // Mobile: always full-width, slides in/out
+          "w-[280px]",
+          sidebarOpen ? "translate-x-0" : "-translate-x-full",
+          // Desktop: width depends on collapsed state
+          collapsed ? "lg:w-[72px]" : "lg:w-[260px]"
+        )}
       >
         {/* Mobile close button */}
         <button
@@ -60,7 +83,8 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
         >
           <X size={18} />
         </button>
-        <Sidebar />
+
+        <Sidebar collapsed={collapsed} onToggle={toggleCollapsed} />
       </aside>
 
       {/* ── Main Content ───────────────────────────────────────── */}
