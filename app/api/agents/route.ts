@@ -212,6 +212,7 @@ export async function POST(req: NextRequest) {
           controller.close();
         } catch (err) {
           send({ error: err instanceof Error ? err.message : "Agent failed" });
+          controller.enqueue(encoder.encode("data: [DONE]\n\n"));
           controller.close();
         }
       },

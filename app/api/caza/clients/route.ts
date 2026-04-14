@@ -25,23 +25,30 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   if (!sql) return NextResponse.json({ error: "DB not available" }, { status: 503 });
   await initCazaDB();
 
-  const body = await req.json() as Record<string, unknown>;
+  let body: Record<string, unknown>;
+  try { body = await req.json() as Record<string, unknown>; }
+  catch { return NextResponse.json({ error: "JSON inválido." }, { status: 400 }); }
 
-  const client = await upsertClient({
-    id:                   newClientId(),
-    name:                 String(body.name ?? ""),
-    email:                String(body.email ?? ""),
-    phone:                String(body.phone ?? ""),
-    type:                 String(body.type ?? "Marca"),
-    budget_anual:         Number(body.budget_anual ?? 0),
-    status:               String(body.status ?? "Ativo"),
-    segmento:             String(body.segmento ?? ""),
-    since:                String(body.since ?? new Date().toISOString().slice(0, 10)),
-    imported_from_notion: false,
-    notion_page_id:       null,
-    imported_at:          null,
-    sync_status:          "internal",
-  });
+  const toNum = (v: unknown, fallback = 0) => { const n = Number(v ?? fallback); return isNaN(n) ? fallback : n; };
 
-  return NextResponse.json(client, { status: 201 });
+  try {
+    const client = await upsertClient({
+      id:                   newClientId(),
+      name:                 String(body.name ?? ""),
+      email:                String(body.email ?? ""),
+      phone:                String(body.phone ?? ""),
+      type:                 String(body.type ?? "Marca"),
+      budget_anual:         toNum(body.budget_anual),
+      status:               String(body.status ?? "Ativo"),
+      segmento:             String(body.segmento ?? ""),
+      since:                String(body.since ?? new Date().toISOString().slice(0, 10)),
+      imported_from_notion: false,
+      notion_page_id:       null,
+      imported_at:          null,
+      sync_status:          "internal",
+    });
+    return NextResponse.json(client, { status: 201 });
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : "Erro ao salvar cliente." }, { status: 500 });
+  }
 }

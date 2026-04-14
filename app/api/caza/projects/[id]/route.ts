@@ -36,28 +36,36 @@ export async function PUT(
 
   if (!sql) return NextResponse.json({ error: "DB not available" }, { status: 503 });
   await initCazaDB();
-  const body = await req.json() as Record<string, unknown>;
 
-  const updated = await updateProject(params.id, {
-    titulo:      body.titulo      != null ? String(body.titulo)      : undefined,
-    cliente:     body.cliente     != null ? String(body.cliente)     : undefined,
-    tipo:        body.tipo        != null ? String(body.tipo)        : undefined,
-    status:      body.status      != null ? String(body.status)      : undefined,
-    prioridade:  body.prioridade  != null ? String(body.prioridade)  : undefined,
-    diretor:     body.diretor     != null ? String(body.diretor)     : undefined,
-    prazo:       body.prazo       != null ? String(body.prazo)       : undefined,
-    inicio:      body.inicio      != null ? String(body.inicio)      : undefined,
-    valor:       body.valor       != null ? Number(body.valor)       : undefined,
-    alimentacao: body.alimentacao != null ? Number(body.alimentacao) : undefined,
-    gasolina:    body.gasolina    != null ? Number(body.gasolina)    : undefined,
-    despesas:    body.despesas    != null ? Number(body.despesas)    : undefined,
-    lucro:       body.lucro       != null ? Number(body.lucro)       : undefined,
-    recebido:    body.recebido    != null ? Boolean(body.recebido)   : undefined,
-    recebimento: body.recebimento != null ? String(body.recebimento) : undefined,
-  });
+  let body: Record<string, unknown>;
+  try { body = await req.json() as Record<string, unknown>; }
+  catch { return NextResponse.json({ error: "JSON inválido." }, { status: 400 }); }
 
-  if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json(updated);
+  const toNum = (v: unknown) => { const n = Number(v); return isNaN(n) ? undefined : n; };
+
+  try {
+    const updated = await updateProject(params.id, {
+      titulo:      body.titulo      != null ? String(body.titulo)      : undefined,
+      cliente:     body.cliente     != null ? String(body.cliente)     : undefined,
+      tipo:        body.tipo        != null ? String(body.tipo)        : undefined,
+      status:      body.status      != null ? String(body.status)      : undefined,
+      prioridade:  body.prioridade  != null ? String(body.prioridade)  : undefined,
+      diretor:     body.diretor     != null ? String(body.diretor)     : undefined,
+      prazo:       body.prazo       != null ? String(body.prazo)       : undefined,
+      inicio:      body.inicio      != null ? String(body.inicio)      : undefined,
+      valor:       body.valor       != null ? toNum(body.valor)        : undefined,
+      alimentacao: body.alimentacao != null ? toNum(body.alimentacao)  : undefined,
+      gasolina:    body.gasolina    != null ? toNum(body.gasolina)     : undefined,
+      despesas:    body.despesas    != null ? toNum(body.despesas)     : undefined,
+      lucro:       body.lucro       != null ? toNum(body.lucro)        : undefined,
+      recebido:    body.recebido    != null ? Boolean(body.recebido)   : undefined,
+      recebimento: body.recebimento != null ? String(body.recebimento) : undefined,
+    });
+    if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json(updated);
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : "Erro ao atualizar projeto." }, { status: 500 });
+  }
 }
 
 export async function DELETE(
@@ -69,6 +77,10 @@ export async function DELETE(
 
   if (!sql) return NextResponse.json({ error: "DB not available" }, { status: 503 });
   await initCazaDB();
-  await deleteProject(params.id);
-  return NextResponse.json({ ok: true });
+  try {
+    await deleteProject(params.id);
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : "Erro ao excluir projeto." }, { status: 500 });
+  }
 }

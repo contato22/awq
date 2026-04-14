@@ -19,10 +19,16 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const limitParam = req.nextUrl.searchParams.get("limit");
   const limit = Math.min(Math.max(Number(limitParam) || 50, 1), 200);
 
-  const [events, stats] = await Promise.all([
-    getRecentAuditEvents(limit),
-    getAuditStats(),
-  ]);
+  let events: Awaited<ReturnType<typeof getRecentAuditEvents>>;
+  let stats: Awaited<ReturnType<typeof getAuditStats>>;
+  try {
+    [events, stats] = await Promise.all([getRecentAuditEvents(limit), getAuditStats()]);
+  } catch (err) {
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Erro ao consultar audit log." },
+      { status: 500 }
+    );
+  }
 
   return NextResponse.json({
     enforcement_mode: SECURITY_ENFORCEMENT_MODE,

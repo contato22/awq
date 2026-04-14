@@ -103,21 +103,31 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     );
   }
 
-  const buffer = Buffer.from(await file.arrayBuffer());
+  let buffer: Buffer;
+  try {
+    buffer = Buffer.from(await file.arrayBuffer());
+  } catch {
+    return NextResponse.json({ error: "Falha ao ler o arquivo." }, { status: 400 });
+  }
+
   const fileHash = hashBuffer(buffer);
 
   // ── Deduplication ──
-  const existing = await findDuplicateDocument(fileHash);
-  if (existing) {
-    return NextResponse.json(
-      {
-        duplicate: true,
-        documentId: existing.id,
-        message: `Este arquivo já foi enviado (${existing.filename}, ${existing.uploadedAt.slice(0, 10)}).`,
-        document: existing,
-      },
-      { status: 200 }
-    );
+  try {
+    const existing = await findDuplicateDocument(fileHash);
+    if (existing) {
+      return NextResponse.json(
+        {
+          duplicate: true,
+          documentId: existing.id,
+          message: `Este arquivo já foi enviado (${existing.filename}, ${existing.uploadedAt.slice(0, 10)}).`,
+          document: existing,
+        },
+        { status: 200 }
+      );
+    }
+  } catch {
+    // Dedup check failed — proceed with upload rather than blocking the user
   }
 
   // ── Infer entity ──
@@ -131,18 +141,25 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   // ── Store PDF: Vercel Blob or filesystem ──
   let blobUrl: string | null = null;
 
-  if (USE_BLOB) {
-    // Vercel Blob — persistent across deployments
-    const { put } = await import("@vercel/blob");
-    const result = await put(`financial-pdfs/${safeFilename}`, buffer, {
-      access: "private",
-      contentType: "application/pdf",
-    });
-    blobUrl = result.url;
-  } else {
-    // Local filesystem (development or single-instance deploy)
-    ensurePDFDir();
-    fs.writeFileSync(path.join(PDF_DIR, safeFilename), buffer);
+  try {
+    if (USE_BLOB) {
+      // Vercel Blob — persistent across deployments
+      const { put } = await import("@vercel/blob");
+      const result = await put(`financial-pdfs/${safeFilename}`, buffer, {
+        access: "private",
+        contentType: "application/pdf",
+      });
+      blobUrl = result.url;
+    } else {
+      // Local filesystem (development or single-instance deploy)
+      ensurePDFDir();
+      fs.writeFileSync(path.join(PDF_DIR, safeFilename), buffer);
+    }
+  } catch (err) {
+    return NextResponse.json(
+      { error: `Falha ao armazenar o arquivo: ${err instanceof Error ? err.message : "erro desconhecido"}` },
+      { status: 500 }
+    );
   }
 
   // ── Save document record ──
@@ -167,7 +184,15 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     extractionNotes: null,
     blobUrl,
   };
-  await saveDocument(doc);
+
+  try {
+    await saveDocument(doc);
+  } catch (err) {
+    return NextResponse.json(
+      { error: `Falha ao registrar documento: ${err instanceof Error ? err.message : "erro desconhecido"}` },
+      { status: 500 }
+    );
+  }
 
   return NextResponse.json({ documentId: docId, document: doc }, { status: 201 });
 }

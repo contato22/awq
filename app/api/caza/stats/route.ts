@@ -24,7 +24,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
   const activeProjects    = projects.filter(p => !p.recebido).length;
   const deliveredProjects = projects.filter(p => p.recebido).length;
-  const receitaYtd        = projects.filter(p => p.prazo.startsWith(String(currentYear))).reduce((s, p) => s + p.valor, 0);
+  const receitaYtd        = projects.filter(p => p.prazo?.startsWith(String(currentYear))).reduce((s, p) => s + p.valor, 0);
   const receitaTotal      = projects.reduce((s, p) => s + p.valor, 0);
   const totalDespesas     = projects.reduce((s, p) => s + p.despesas, 0);
   const totalLucro        = projects.reduce((s, p) => s + p.lucro, 0);
@@ -33,7 +33,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const taxaEntrega       = projects.length > 0 ? parseFloat(((deliveredProjects / projects.length) * 100).toFixed(1)) : 0;
   const clientesAtivos    = clients.filter(c => c.status === "Ativo").length;
   const today             = new Date().toISOString().slice(0, 10);
-  const projetosProximos  = projects.filter(p => !p.recebido && p.prazo >= today).length;
+  const projetosProximos  = projects.filter(p => !p.recebido && p.prazo && p.prazo >= today).length;
 
   const MONTH_NAMES = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
   const monthMap = new Map<string, { month: string; receita: number; expenses: number; profit: number; orcamento: number }>();

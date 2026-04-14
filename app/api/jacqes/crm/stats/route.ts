@@ -14,10 +14,24 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const denied = await apiGuard(req, "view", "jacqes", "CRM JACQES — Stats");
   if (denied) return denied;
 
-  const [leads, opps, clients, tasks, interactions, expansion, health] = await Promise.all([
-    listLeads(), listOpportunities(), listCrmClients(),
-    listTasks(), listInteractions(), listExpansion(), listHealth(),
-  ]);
+  let leads: Awaited<ReturnType<typeof listLeads>>;
+  let opps: Awaited<ReturnType<typeof listOpportunities>>;
+  let clients: Awaited<ReturnType<typeof listCrmClients>>;
+  let tasks: Awaited<ReturnType<typeof listTasks>>;
+  let interactions: Awaited<ReturnType<typeof listInteractions>>;
+  let expansion: Awaited<ReturnType<typeof listExpansion>>;
+  let health: Awaited<ReturnType<typeof listHealth>>;
+  try {
+    [leads, opps, clients, tasks, interactions, expansion, health] = await Promise.all([
+      listLeads(), listOpportunities(), listCrmClients(),
+      listTasks(), listInteractions(), listExpansion(), listHealth(),
+    ]);
+  } catch (err) {
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Erro ao carregar dados do CRM." },
+      { status: 500 }
+    );
+  }
 
   const today = new Date().toISOString().slice(0, 10);
   const thisMonth = today.slice(0, 7);
