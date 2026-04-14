@@ -9,24 +9,8 @@
 
 import Header from "@/components/Header";
 import { Users, DollarSign, Star, BarChart3, Database } from "lucide-react";
-import advisorClientsRaw from "@/public/data/advisor-clients.json";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface AdvisorClientRow {
-  id:            string;
-  name:          string;
-  segmento:      string;
-  tipo_servico:  string;
-  aum:           number;
-  fee_mensal:    number;
-  status:        string;
-  since:         string;
-  responsavel:   string;
-  contato_email: string;
-  contato_phone: string;
-  nps:           number | null;
-}
+import { advisorClients } from "@/lib/advisor-clients-data";
+import type { AdvisorClientSeed as AdvisorClientRow } from "@/lib/advisor-clients-data";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -46,7 +30,7 @@ const statusBadge: Record<string, string> = {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AdvisorCustomersPage() {
-  const clients = advisorClientsRaw as AdvisorClientRow[];
+  const clients = advisorClients;
 
   const ativos   = clients.filter((c) => c.status === "Ativo").length;
   const totalAum = clients.reduce((s, c) => s + (c.aum ?? 0), 0);
