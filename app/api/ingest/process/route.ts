@@ -123,7 +123,7 @@ export async function POST(req: NextRequest): Promise<Response> {
           if (!fs.existsSync(PDF_DIR)) {
             throw new Error(`Diretório de PDFs não encontrado (${PDF_DIR}). Nenhum arquivo foi enviado ainda ou o servidor foi reiniciado.`);
           }
-          const pdfFiles = fs.readdirSync(PDF_DIR).filter((f) => f.startsWith(docId));
+          const pdfFiles = fs.readdirSync(PDF_DIR).filter((f: string) => f.startsWith(docId));
           if (pdfFiles.length === 0) {
             throw new Error(`PDF não encontrado em disco para documentId ${docId}. O arquivo pode ter sido perdido.`);
           }

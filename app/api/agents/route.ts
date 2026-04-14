@@ -140,7 +140,7 @@ export async function POST(req: NextRequest) {
             // Handle tool calls
             if (response.stop_reason === "tool_use") {
               const toolUseBlocks = response.content.filter(
-                (b): b is Anthropic.ToolUseBlock => b.type === "tool_use"
+                (b: { type: string }): b is Anthropic.ToolUseBlock => b.type === "tool_use"
               );
 
               // Append assistant message with tool_use blocks

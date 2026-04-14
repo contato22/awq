@@ -62,7 +62,7 @@ export async function GET(): Promise<NextResponse> {
         WHERE table_schema = 'public'
           AND table_name IN ('financial_documents', 'bank_transactions')
       `;
-      const tableNames = new Set(tableCheck.map((r) => r.table_name as string));
+      const tableNames = new Set(tableCheck.map((r: { table_name: string }) => r.table_name));
       tablesExist = {
         documents:    tableNames.has("financial_documents"),
         transactions: tableNames.has("bank_transactions"),
