@@ -3,6 +3,11 @@
   "buildCommand": "next build",
   "outputDirectory": ".next",
   "regions": ["gru1"],
+  "functions": {
+    "app/api/supervisor/route.ts": { "maxDuration": 300 },
+    "app/api/agents/route.ts": { "maxDuration": 300 },
+    "app/api/ingest/process/route.ts": { "maxDuration": 300 }
+  },
   "git": {
     "deploymentEnabled": {
       "gh-pages": false

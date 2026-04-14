@@ -120,6 +120,14 @@ export async function POST(req: NextRequest) {
     const client = new Anthropic({ apiKey });
     const encoder = new TextEncoder();
 
+    // Sends SSE comment pings to prevent the proxy from closing an idle stream.
+    const startKeepAlive = (controller: ReadableStreamDefaultController, intervalMs = 15_000) => {
+      const id = setInterval(() => {
+        try { controller.enqueue(encoder.encode(": ping\n\n")); } catch { /* stream already closed */ }
+      }, intervalMs);
+      return () => clearInterval(id);
+    };
+
     const readable = new ReadableStream({
       async start(controller) {
         const send = (obj: object) =>
@@ -133,6 +141,7 @@ export async function POST(req: NextRequest) {
           while (iterations < MAX_ITER) {
             iterations++;
 
+            const stopPing = startKeepAlive(controller);
             const response = await client.messages.create({
               model: "claude-opus-4-6",
               max_tokens: 1024,
@@ -142,6 +151,7 @@ export async function POST(req: NextRequest) {
               ),
               messages: allMessages,
             });
+            stopPing();
 
             // Stream text blocks
             for (const block of response.content) {
@@ -170,7 +180,9 @@ export async function POST(req: NextRequest) {
                 send({ type: "tool_call", name: tb.name, label });
 
                 type TInput = Parameters<typeof executeTool>[1];
+                const stopToolPing = startKeepAlive(controller);
                 const result = await executeTool(tb.name, tb.input as TInput, notionEnv);
+                stopToolPing();
 
                 let summary = "";
                 try {
