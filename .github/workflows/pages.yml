@@ -74,6 +74,22 @@ jobs:
           # publicly visible to anyone who inspects the static output.
           # AI features on GitHub Pages require the user to supply their own key.
 
+      - name: Verify build output
+        run: |
+          echo "=== Build output check ==="
+          if [ ! -d "./out" ]; then
+            echo "ERROR: ./out directory not found — build likely failed silently"
+            exit 1
+          fi
+          HTML_COUNT=$(find ./out -name "*.html" | wc -l)
+          echo "HTML pages generated: $HTML_COUNT"
+          if [ "$HTML_COUNT" -eq "0" ]; then
+            echo "ERROR: no HTML pages found in ./out"
+            exit 1
+          fi
+          echo "OK: build output verified"
+          du -sh ./out
+
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
