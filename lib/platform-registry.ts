@@ -105,7 +105,7 @@ export const PLATFORM_ROUTES: PlatformRoute[] = [
   // ── JACQES — Agência ─────────────────────────────────────────────────────
   { href: "/jacqes",                label: "Visão Geral",    bu: "jacqes", layer: "bu-overview",   status: "active", dataSource: "lib/data.ts",                                             inSidebar: true,  inTabNav: false },
   { href: "/jacqes/fpa",            label: "FP&A",           bu: "jacqes", layer: "bu-financial",  status: "active", dataSource: "lib/awq-group-data.ts (hub canônico — 11 seções)",        inSidebar: true,  inTabNav: false },
-  { href: "/jacqes/reports",        label: "Relatórios",     bu: "jacqes", layer: "bu-operations", status: "active", dataSource: "lib/data.ts (mocked)",                                    inSidebar: true,  inTabNav: false },
+  { href: "/jacqes/reports",        label: "Relatórios",     bu: "jacqes", layer: "bu-operations", status: "active", dataSource: "stub UI — 5 report cards hardcoded in page (sem lib/data.ts import); botões Export não funcionais; sem dados reais", inSidebar: true,  inTabNav: false },
 
   // ── JACQES CRM — 12 módulos ativos em Neon Postgres ──────────────────────
   // IMPORTANTE: todas estas rotas já existiam no sidebar (crmNav) e no código.

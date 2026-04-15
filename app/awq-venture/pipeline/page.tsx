@@ -25,7 +25,13 @@ function fmtR(n: number) {
 }
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
-
+//
+// ⚠ SNAPSHOT / PLANEJAMENTO INTERNO — dados hardcoded, sem fonte externa.
+// ticket: 5_000_000 é uma avaliação interna de ticket potencial de mercado.
+// Nenhum investimento, aquisição, ou term sheet foi executado (2026-04-15).
+// O único contrato operacional confirmado é o advisory R$2K/mês (Grupo Energdy).
+// Migration: quando um pipeline real existir (Notion/CRM), substituir este array.
+//
 // Apenas deals reais confirmados. Dados fictícios removidos.
 const deals = [
   {
@@ -72,6 +78,17 @@ export default function AwqVenturePipelinePage() {
         subtitle={`${deals.length} deals em avaliação · ${fmtR(totalTicket)} em ticket potencial`}
       />
       <div className="page-container">
+
+        {/* ── Source Metadata Aviso ─────────────────────────────────────────── */}
+        <div className="flex items-start gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3">
+          <AlertTriangle size={14} className="text-amber-400 mt-0.5 shrink-0" />
+          <p className="text-xs text-amber-300/80 leading-relaxed">
+            <span className="font-semibold text-amber-300">Snapshot · Planejamento interno</span>
+            {" "}— Ticket potencial (R$5M) é uma avaliação interna de mercado, não um investimento confirmado.
+            Nenhum term sheet, aquisição ou participação acionária foi executado (referência: 15 abr 2026).
+            O único contrato operacional confirmado da AWQ Venture é o advisory R$2K/mês com Grupo Energdy.
+          </p>
+        </div>
 
         {/* ── Summary ──────────────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

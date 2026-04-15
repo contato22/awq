@@ -30,7 +30,13 @@ function roic(returned: number, invested: number) {
 }
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
-
+//
+// ⚠ SNAPSHOT / PLANEJAMENTO INTERNO — dados hardcoded, sem fonte externa.
+// currentVal: 72_000 = valor total do contrato advisory (R$2K/mês × 36 meses),
+// não é participação acionária nem valuation de equity.
+// invested: 0, irr: 0, ownership: 0 — AWQ Venture não aportou capital em Energdy.
+// Migration: quando equity/participação real existir, migrar para fonte live.
+//
 // Apenas empresas reais do portfólio. Dados fictícios removidos.
 const portfolio = [
   {
@@ -86,6 +92,17 @@ export default function AwqVenturePortfolioPage() {
         subtitle={`${portfolio.length} empresas · ${ativos.length} ativas · ${exitados.length} exits · ${monitor.length} em monitoramento`}
       />
       <div className="px-8 py-6 space-y-4">
+
+        {/* ── Source Metadata Aviso ─────────────────────────────────────────── */}
+        <div className="flex items-start gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3">
+          <AlertTriangle size={14} className="text-amber-400 mt-0.5 shrink-0" />
+          <p className="text-xs text-amber-300/80 leading-relaxed">
+            <span className="font-semibold text-amber-300">Snapshot · Contrato de advisory</span>
+            {" "}— "Valor Atual" (R$72K) reflete o contrato total de advisory (R$2K/mês × 36 meses),
+            não uma participação acionária. AWQ Venture não aportou capital em Energdy (invested=R$0, ownership=0%).
+            Dados hardcoded — sem integração com fonte externa (referência: 15 abr 2026).
+          </p>
+        </div>
 
         {/* ── Summary strip ─────────────────────────────────────────────────── */}
         <div className="grid grid-cols-3 gap-4">
