@@ -5,6 +5,7 @@ import {
   DollarSign, TrendingUp, BarChart3, Zap, ArrowUpRight, ArrowDownRight,
   ChevronRight, ShieldAlert, Activity, Wallet, Target, Building2,
   Scale, CheckCircle, AlertTriangle, Database, Clock, GitMerge,
+  ClipboardList, Grid3X3,
 } from "lucide-react";
 import { riskSignals, buData, allocFlags, flagConfig } from "@/lib/awq-derived-metrics";
 import { MetricSourceBadge } from "@/components/MetricSourceBadge";
@@ -558,14 +559,16 @@ export default async function AwqGroupPage() {
         <section>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {[
-              { label: "Financial",    sub: "Visão de caixa",            href: "/awq/financial",   icon: DollarSign,    color: "text-emerald-600", bg: "bg-emerald-50" },
-              { label: "Cash Flow",    sub: "Fluxo de caixa",            href: "/awq/cashflow",    icon: Zap,           color: "text-cyan-700",    bg: "bg-cyan-50"    },
-              { label: "Investimentos",sub: "Aplicações / resgates",     href: "/awq/investments", icon: Target,        color: "text-violet-600",  bg: "bg-violet-50"  },
-              { label: "Ingestão",     sub: "Importar extratos PDF",      href: "/awq/ingest",      icon: Database,      color: "text-brand-600",   bg: "bg-brand-50"   },
-              { label: "Base de Dados",sub: "Gestão da camada de dados",  href: "/awq/data",        icon: CheckCircle,   color: "text-emerald-600", bg: "bg-emerald-50" },
-              { label: "Budget",       sub: "Budget vs Actual",          href: "/awq/budget",      icon: Scale,         color: "text-violet-600",  bg: "bg-violet-50"  },
-              { label: "Forecast",     sub: "Cenários 2026",             href: "/awq/forecast",    icon: TrendingUp,    color: "text-amber-700",   bg: "bg-amber-50"   },
-              { label: "Risk",         sub: "Risk signals",              href: "/awq/risk",        icon: AlertTriangle, color: "text-red-500",     bg: "bg-red-50"     },
+              { label: "Financial",     sub: "Visão de caixa",            href: "/awq/financial",      icon: DollarSign,    color: "text-emerald-600", bg: "bg-emerald-50" },
+              { label: "Cash Flow",    sub: "Fluxo de caixa",            href: "/awq/cashflow",       icon: Zap,           color: "text-cyan-700",    bg: "bg-cyan-50"    },
+              { label: "Conciliação",  sub: "Fila de conciliação",        href: "/awq/reconciliation", icon: ClipboardList, color: "text-violet-700",  bg: "bg-violet-50"  },
+              { label: "Categorias",   sub: "Matriz DFC / DRE",           href: "/awq/categories",     icon: Grid3X3,       color: "text-brand-600",   bg: "bg-brand-50"   },
+              { label: "Investimentos",sub: "Aplicações / resgates",      href: "/awq/investments",    icon: Target,        color: "text-violet-600",  bg: "bg-violet-50"  },
+              { label: "Ingestão",     sub: "Importar extratos PDF",      href: "/awq/ingest",         icon: Database,      color: "text-brand-600",   bg: "bg-brand-50"   },
+              { label: "Base de Dados",sub: "Gestão da camada de dados",  href: "/awq/data",           icon: CheckCircle,   color: "text-emerald-600", bg: "bg-emerald-50" },
+              { label: "Budget",       sub: "Budget vs Actual",           href: "/awq/budget",         icon: Scale,         color: "text-violet-600",  bg: "bg-violet-50"  },
+              { label: "Forecast",     sub: "Cenários 2026",              href: "/awq/forecast",       icon: TrendingUp,    color: "text-amber-700",   bg: "bg-amber-50"   },
+              { label: "Risk",         sub: "Risk signals",               href: "/awq/risk",           icon: AlertTriangle, color: "text-red-500",     bg: "bg-red-50"     },
             ].map((item) => {
               const Icon = item.icon;
               return (

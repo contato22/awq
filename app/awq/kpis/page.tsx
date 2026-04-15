@@ -26,6 +26,9 @@ import {
   ArrowUpRight,
   AlertCircle,
   CheckCircle2,
+  ClipboardList,
+  Grid3X3,
+  Scale,
 } from "lucide-react";
 import {
   getAWQGroupKPIs,
@@ -435,9 +438,12 @@ export default async function AwqKpisPage() {
         {/* ── Quick links ───────────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
           {[
-            { label: "Financial (Real)",  href: "/awq/financial",    icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
-            { label: "Cash Flow (Real)",  href: "/awq/cashflow",     icon: Zap,        color: "text-brand-600",   bg: "bg-brand-50"   },
-            { label: "Gestão de Base",    href: "/awq/management",   icon: Target,     color: "text-violet-700",  bg: "bg-violet-50"  },
+            { label: "Financial (Real)",   href: "/awq/financial",       icon: DollarSign,   color: "text-emerald-600", bg: "bg-emerald-50" },
+            { label: "Cash Flow (Real)",   href: "/awq/cashflow",        icon: Zap,          color: "text-brand-600",   bg: "bg-brand-50"   },
+            { label: "Conciliação",        href: "/awq/reconciliation",  icon: ClipboardList,color: "text-violet-700",  bg: "bg-violet-50"  },
+            { label: "Categorias",         href: "/awq/categories",      icon: Grid3X3,      color: "text-cyan-700",    bg: "bg-cyan-50"    },
+            { label: "Budget vs Actual",   href: "/awq/budget",          icon: Scale,        color: "text-amber-700",   bg: "bg-amber-50"   },
+            { label: "Gestão de Base",     href: "/awq/management",      icon: Target,       color: "text-gray-700",    bg: "bg-gray-100"   },
           ].map((item) => {
             const Icon = item.icon;
             return (

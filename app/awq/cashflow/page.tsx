@@ -680,6 +680,7 @@ export default async function AwqCashflowPage() {
                   <tr className="border-b border-gray-200">
                     <th className="text-left py-1.5 px-2 text-[10px] font-semibold text-gray-500">Categoria</th>
                     <th className="text-left py-1.5 px-2 text-[10px] font-semibold text-gray-500">Linha DRE</th>
+                    <th className="text-left py-1.5 px-2 text-[10px] font-semibold text-gray-500">Entidade</th>
                     <th className="text-right py-1.5 px-2 text-[10px] font-semibold text-gray-500">Contribuição</th>
                     <th className="text-right py-1.5 px-2 text-[10px] font-semibold text-gray-500">Txns</th>
                   </tr>
@@ -698,6 +699,12 @@ export default async function AwqCashflowPage() {
                         }`}>
                           {line.dreEffect}
                         </span>
+                      </td>
+                      <td className="py-1.5 px-2 text-gray-400 text-[9px]">
+                        {line.entity === "multi"
+                          ? <span className="bg-gray-100 text-gray-500 px-1 rounded">multi</span>
+                          : <span>{ENTITY_LABELS[line.entity as EntityLayer] ?? line.entity}</span>
+                        }
                       </td>
                       <td className={`py-1.5 px-2 text-right font-bold ${line.total >= 0 ? "text-emerald-700" : "text-red-700"}`}>
                         {line.total >= 0 ? "+" : ""}{fmtBRL(line.total)}
