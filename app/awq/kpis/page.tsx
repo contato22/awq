@@ -40,6 +40,9 @@ import { buData, operatingBus } from "@/lib/awq-derived-metrics";
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+// Force dynamic rendering so reconciliation edits propagate on every request.
+export const dynamic = "force-dynamic";
+
 export default async function AwqKpisPage() {
   const kpis    = await getAWQGroupKPIs();
   const entities = await getEntityCashMetrics();

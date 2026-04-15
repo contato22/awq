@@ -185,6 +185,11 @@ function MonthlyBridgeChart({ entries }: { entries: MonthlyEntry[] }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+// Force dynamic rendering so that edits made via /awq/reconciliation (which
+// mutate `public/data/financial/transactions.json` via PATCH /api/transactions/[id])
+// are reflected on every navigation — no stale static snapshot.
+export const dynamic = "force-dynamic";
+
 export default async function AwqCashflowPage() {
   const q   = await buildFinancialQuery();
   const c   = q.consolidated;

@@ -205,6 +205,7 @@ const AWQ_TESOURARIA_ITEMS = [
 
 // Financeiro Corporativo — Controladoria & Contábil
 const AWQ_CONTROLADORIA_ITEMS = [
+    { label: "Conciliação",   href: "/awq/reconciliation", icon: CheckCircle2 },
     { label: "Controladoria", href: "/awq/management",    icon: ShieldCheck },
     { label: "Contabilidade", href: "/awq/contabilidade", icon: BookOpen    },
     { label: "Fiscal",        href: "/awq/fiscal",        icon: Receipt     },

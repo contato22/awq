@@ -216,6 +216,9 @@ function RevenueByCounterparty({ q }: { q: FinancialQueryResult }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+// Force dynamic rendering so reconciliation edits propagate on every request.
+export const dynamic = "force-dynamic";
+
 export default async function AwqFinancialPage() {
   const q          = await buildFinancialQuery();
 
