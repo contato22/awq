@@ -40,8 +40,8 @@ import { buData, operatingBus } from "@/lib/awq-derived-metrics";
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-// Force dynamic rendering so reconciliation edits propagate on every request.
-export const dynamic = "force-dynamic";
+// revalidate = 0 → SSR: re-render every request. Static export: rendered at build time.
+export const revalidate = 0;
 
 export default async function AwqKpisPage() {
   const kpis    = await getAWQGroupKPIs();

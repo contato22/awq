@@ -53,12 +53,16 @@ interface BankTransaction {
   descriptionOriginal: string;
   amount: number;
   direction: "credit" | "debit";
+  runningBalance: number | null;
   counterpartyName: string | null;
   managerialCategory: string;
   classificationConfidence: "confirmed" | "probable" | "ambiguous" | "unclassifiable";
   classificationNote: string | null;
   isIntercompany: boolean;
   excludedFromConsolidated: boolean;
+  reconciliationStatus: "pendente" | "em_revisao" | "conciliado" | "descartado";
+  extractedAt: string;
+  classifiedAt: string | null;
 }
 
 interface PipelineEvent {
@@ -175,6 +179,381 @@ function ConfidenceBadge({ confidence }: { confidence: "high" | "medium" | "low"
     <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium ${cfg.color} ${cfg.bg}`}>
       {cfg.label}
     </span>
+  );
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function generateId(): string {
+  return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+}
+
+const MAIN_CATEGORIES = [
+  "receita_recorrente", "receita_projeto", "receita_consultoria", "receita_eventual",
+  "fornecedor_operacional", "freelancer_terceiro", "folha_remuneracao", "prolabore_retirada",
+  "imposto_tributo", "software_assinatura", "marketing_midia", "tarifa_bancaria",
+  "aluguel_locacao", "servicos_contabeis_juridicos", "transferencia_interna_enviada",
+  "transferencia_interna_recebida", "aplicacao_financeira", "resgate_financeiro",
+  "despesa_ambigua", "recebimento_ambiguo", "unclassified",
+];
+
+const LS_MANUAL = "awq_manual_transactions";
+
+function lsGetTransactions(): BankTransaction[] {
+  try { return JSON.parse(localStorage.getItem(LS_MANUAL) ?? "[]") as BankTransaction[]; }
+  catch { return []; }
+}
+function lsSetTransactions(txns: BankTransaction[]) {
+  try { localStorage.setItem(LS_MANUAL, JSON.stringify(txns)); } catch { /* ignore */ }
+}
+
+// ─── GitHub Pages: manual / CSV entry form ───────────────────────────────────
+
+function StaticIngestForm() {
+  const [tab, setTab] = useState<"csv" | "manual" | "list">("csv");
+  const [csvText, setCsvText] = useState("");
+  const [csvError, setCsvError] = useState<string | null>(null);
+  const [transactions, setTransactions] = useState<BankTransaction[]>([]);
+  const [toast, setToast] = useState<string | null>(null);
+
+  // Manual form fields
+  const [mDate,     setMDate]     = useState("");
+  const [mDesc,     setMDesc]     = useState("");
+  const [mAmount,   setMAmount]   = useState("");
+  const [mBank,     setMBank]     = useState<BankName>("Cora");
+  const [mAccount,  setMAccount]  = useState("");
+  const [mEntity,   setMEntity]   = useState<EntityLayer>("Unknown");
+  const [mCategory, setMCategory] = useState("unclassified");
+
+  useEffect(() => { setTransactions(lsGetTransactions()); }, []);
+
+  function showToast(msg: string) {
+    setToast(msg);
+    setTimeout(() => setToast(null), 3500);
+  }
+
+  function persist(updated: BankTransaction[]) {
+    lsSetTransactions(updated);
+    setTransactions(updated);
+  }
+
+  // Parse CSV: each line = "YYYY-MM-DD,descrição,valor"
+  // valor positivo = crédito, negativo = débito
+  function importCSV() {
+    setCsvError(null);
+    const lines = csvText.trim().split("\n").map(l => l.trim()).filter(Boolean);
+    if (lines.length === 0) { setCsvError("Cole ao menos uma linha."); return; }
+
+    // Skip header if present
+    const dataLines = lines[0].toLowerCase().startsWith("data") ? lines.slice(1) : lines;
+    if (dataLines.length === 0) { setCsvError("Nenhuma linha de dados encontrada."); return; }
+
+    const newTxns: BankTransaction[] = [];
+    for (let i = 0; i < dataLines.length; i++) {
+      const parts = dataLines[i].split(",");
+      if (parts.length < 3) { setCsvError(`Linha ${i + 1}: esperado data,descrição,valor`); return; }
+      const [rawDate, rawDesc, rawVal, ...rest] = parts.map(p => p.trim().replace(/^"|"$/g, ""));
+      const amount = parseFloat(rawVal.replace(",", "."));
+      if (isNaN(amount)) { setCsvError(`Linha ${i + 1}: valor inválido "${rawVal}"`); return; }
+      const cat = (rest[0] ?? "").trim() || "unclassified";
+      newTxns.push({
+        id:                       generateId(),
+        documentId:               "manual_input",
+        bank:                     mBank,
+        accountName:              mAccount.trim() || "Conta Manual",
+        entity:                   mEntity,
+        transactionDate:          rawDate,
+        descriptionOriginal:      rawDesc,
+        amount:                   Math.abs(amount),
+        direction:                amount >= 0 ? "credit" : "debit",
+        runningBalance:           null,
+        counterpartyName:         null,
+        managerialCategory:       MAIN_CATEGORIES.includes(cat) ? cat : "unclassified",
+        classificationConfidence: "ambiguous",
+        classificationNote:       "Entrada manual via CSV — requer revisão",
+        isIntercompany:           false,
+        excludedFromConsolidated: false,
+        reconciliationStatus:     "em_revisao",
+        extractedAt:              new Date().toISOString(),
+        classifiedAt:             null,
+      } as BankTransaction);
+    }
+
+    persist([...transactions, ...newTxns]);
+    setCsvText("");
+    showToast(`✓ ${newTxns.length} transação(ões) importada(s). Acesse Conciliação para revisar.`);
+    setTab("list");
+  }
+
+  function addManualRow() {
+    if (!mDate || !mDesc || !mAmount) return;
+    const amount = parseFloat(mAmount.replace(",", "."));
+    if (isNaN(amount)) return;
+    const txn: BankTransaction = {
+      id:                       generateId(),
+      documentId:               "manual_input",
+      bank:                     mBank,
+      accountName:              mAccount.trim() || "Conta Manual",
+      entity:                   mEntity,
+      transactionDate:          mDate,
+      descriptionOriginal:      mDesc,
+      amount:                   Math.abs(amount),
+      direction:                amount >= 0 ? "credit" : "debit",
+      runningBalance:           null,
+      counterpartyName:         null,
+      managerialCategory:       mCategory,
+      classificationConfidence: "ambiguous",
+      classificationNote:       "Entrada manual",
+      isIntercompany:           false,
+      excludedFromConsolidated: false,
+      reconciliationStatus:     "em_revisao",
+      extractedAt:              new Date().toISOString(),
+      classifiedAt:             null,
+    } as BankTransaction;
+    persist([...transactions, txn]);
+    setMDate(""); setMDesc(""); setMAmount("");
+    showToast("✓ Transação adicionada.");
+  }
+
+  function removeAll() {
+    persist([]);
+    showToast("Todas as transações manuais removidas.");
+  }
+
+  const tabClass = (t: typeof tab) =>
+    "px-4 py-2 rounded-lg text-xs font-semibold border transition-colors " +
+    (tab === t ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-600 border-gray-200 hover:border-gray-400");
+
+  return (
+    <>
+      <Header
+        title="Integração Bancária"
+        subtitle="GitHub Pages · Modo Manual — CSV ou entrada linha a linha"
+      />
+      <div className="px-6 py-6 max-w-4xl space-y-5">
+
+        {/* ── Mode disclaimer ─────────────────────────────────────────── */}
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 flex items-start gap-3">
+          <AlertTriangle size={16} className="text-amber-600 shrink-0 mt-0.5" />
+          <div className="text-xs text-amber-800 space-y-1">
+            <p className="font-semibold">PDF automático indisponível no GitHub Pages</p>
+            <p>
+              Upload de PDF + extração via Claude requer servidor Node.js.
+              Neste ambiente você pode <strong>colar um CSV</strong> ou <strong>inserir transações manualmente</strong>.
+              As transações ficam salvas no <strong>localStorage do navegador</strong> e aparecem automaticamente em{" "}
+              <a href="reconciliation" className="underline font-medium">Conciliação</a>.
+            </p>
+            <p className="text-amber-600 text-[10px]">
+              Para o pipeline PDF completo: clone o repo e rode <code className="bg-amber-100 px-1 rounded">npm run dev</code> localmente, ou faça deploy no Vercel.
+            </p>
+          </div>
+        </div>
+
+        {/* ── Toast ───────────────────────────────────────────────────── */}
+        {toast && (
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 px-4 py-2 text-sm">
+            {toast}
+          </div>
+        )}
+
+        {/* ── Tabs ────────────────────────────────────────────────────── */}
+        <div className="flex gap-2">
+          <button onClick={() => setTab("csv")}    className={tabClass("csv")}>Colar CSV</button>
+          <button onClick={() => setTab("manual")} className={tabClass("manual")}>Entrada Manual</button>
+          <button onClick={() => setTab("list")}   className={tabClass("list")}>
+            Transações salvas ({transactions.length})
+          </button>
+        </div>
+
+        {/* ── Account selector (shared) ────────────────────────────────── */}
+        <div className="grid grid-cols-3 gap-3 bg-gray-50 border border-gray-200 rounded-xl p-4">
+          <div>
+            <label className="block text-[11px] font-semibold text-gray-500 mb-1 uppercase tracking-wide">Banco</label>
+            <select value={mBank} onChange={(e) => setMBank(e.target.value as BankName)}
+              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-brand-500">
+              {BANK_GROUPS.map((group) => (
+                <optgroup key={group.label} label={group.label}>
+                  {group.banks.map((b) => <option key={b} value={b}>{b}</option>)}
+                </optgroup>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-[11px] font-semibold text-gray-500 mb-1 uppercase tracking-wide">Nome da Conta</label>
+            <input
+              type="text" placeholder="ex: Conta PJ AWQ"
+              value={mAccount} onChange={(e) => setMAccount(e.target.value)}
+              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white placeholder:text-gray-400 focus:outline-none focus:border-brand-500"
+            />
+          </div>
+          <div>
+            <label className="block text-[11px] font-semibold text-gray-500 mb-1 uppercase tracking-wide">Entidade</label>
+            <select value={mEntity} onChange={(e) => setMEntity(e.target.value as EntityLayer)}
+              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-brand-500">
+              {ENTITY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {/* ── CSV Tab ──────────────────────────────────────────────────── */}
+        {tab === "csv" && (
+          <div className="card p-5 space-y-4">
+            <div>
+              <div className="text-sm font-semibold text-gray-900 mb-1">Colar CSV</div>
+              <p className="text-xs text-gray-500 mb-3">
+                Formato: <code className="bg-gray-100 px-1 rounded">data,descrição,valor</code>
+                {" "}— valor positivo = crédito, negativo = débito.
+                Coluna opcional de categoria no 4.º campo.<br />
+                Exemplo:{" "}
+                <code className="bg-gray-100 px-1 rounded text-[10px]">
+                  2026-01-03,CLIENTE A,12000,receita_recorrente
+                </code>
+              </p>
+              <textarea
+                rows={8}
+                placeholder={"data,descricao,valor,categoria\n2026-01-03,CLIENTE A,12000,receita_recorrente\n2026-01-08,FORNECEDOR B,-3500,fornecedor_operacional\n2026-01-15,BOLETO SIMPLES,-1200"}
+                value={csvText}
+                onChange={(e) => setCsvText(e.target.value)}
+                className="w-full text-xs font-mono border border-gray-200 rounded-xl p-3 bg-white placeholder:text-gray-300 focus:outline-none focus:border-brand-400 resize-y"
+              />
+              {csvError && (
+                <div className="flex items-start gap-2 mt-2 text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg p-2">
+                  <AlertCircle size={12} className="mt-0.5 shrink-0" /> {csvError}
+                </div>
+              )}
+            </div>
+            <button
+              onClick={importCSV}
+              disabled={!csvText.trim()}
+              className="flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-40 text-white rounded-xl text-sm font-semibold transition-colors"
+            >
+              <Upload size={14} /> Importar CSV
+            </button>
+          </div>
+        )}
+
+        {/* ── Manual Tab ───────────────────────────────────────────────── */}
+        {tab === "manual" && (
+          <div className="card p-5 space-y-4">
+            <div className="text-sm font-semibold text-gray-900">Adicionar transação</div>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Data</label>
+                <input type="date" value={mDate} onChange={(e) => setMDate(e.target.value)}
+                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-brand-500" />
+              </div>
+              <div className="col-span-2">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Descrição</label>
+                <input type="text" placeholder="ex: BOLETO CLIENTE A"
+                  value={mDesc} onChange={(e) => setMDesc(e.target.value)}
+                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white placeholder:text-gray-400 focus:outline-none focus:border-brand-500" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Valor <span className="text-gray-400">(+ crédito / − débito)</span>
+                </label>
+                <input type="number" step="0.01" placeholder="ex: 5000 ou -2000"
+                  value={mAmount} onChange={(e) => setMAmount(e.target.value)}
+                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white placeholder:text-gray-400 focus:outline-none focus:border-brand-500" />
+              </div>
+              <div className="col-span-2">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Categoria</label>
+                <select value={mCategory} onChange={(e) => setMCategory(e.target.value)}
+                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-brand-500">
+                  {MAIN_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+            </div>
+            <button
+              onClick={addManualRow}
+              disabled={!mDate || !mDesc || !mAmount}
+              className="flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-40 text-white rounded-xl text-sm font-semibold transition-colors"
+            >
+              <CheckCircle2 size={14} /> Adicionar Transação
+            </button>
+          </div>
+        )}
+
+        {/* ── List Tab ─────────────────────────────────────────────────── */}
+        {tab === "list" && (
+          <div className="card overflow-hidden">
+            {transactions.length === 0 ? (
+              <div className="p-10 text-center text-sm text-gray-400">
+                <FileText size={32} className="mx-auto mb-2 text-gray-200" />
+                Nenhuma transação manual adicionada ainda.
+              </div>
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-xs">
+                    <thead className="bg-gray-50 text-[10px] uppercase tracking-wide text-gray-500">
+                      <tr>
+                        <th className="px-3 py-2 text-left">Data</th>
+                        <th className="px-3 py-2 text-left">Descrição</th>
+                        <th className="px-3 py-2 text-right">Valor</th>
+                        <th className="px-3 py-2 text-left">Conta</th>
+                        <th className="px-3 py-2 text-left">Categoria</th>
+                        <th className="px-3 py-2 text-left">Status</th>
+                        <th className="px-3 py-2 text-right">
+                          <button onClick={removeAll} className="text-red-500 hover:text-red-700 text-[10px] font-medium">
+                            Limpar tudo
+                          </button>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {transactions.map((t) => (
+                        <tr key={t.id} className="hover:bg-gray-50">
+                          <td className="px-3 py-2 text-gray-500 tabular-nums">
+                            {fmtDate(t.transactionDate)}
+                          </td>
+                          <td className="px-3 py-2 text-gray-800 max-w-xs truncate">{t.descriptionOriginal}</td>
+                          <td className={"px-3 py-2 text-right tabular-nums font-mono " + (t.direction === "credit" ? "text-emerald-700" : "text-rose-700")}>
+                            {t.direction === "credit" ? "+" : "−"}{Math.abs(t.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                          </td>
+                          <td className="px-3 py-2 text-gray-500">{t.accountName}</td>
+                          <td className="px-3 py-2">
+                            <span className="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded text-[10px]">
+                              {t.managerialCategory}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2">
+                            <span className="bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded text-[10px]">
+                              Em Revisão
+                            </span>
+                          </td>
+                          <td className="px-3 py-2 text-right">
+                            <button
+                              onClick={() => persist(transactions.filter(x => x.id !== t.id))}
+                              className="text-gray-300 hover:text-red-500 text-[10px]"
+                            >
+                              ✕
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ── CTA ─────────────────────────────────────────────────────── */}
+        {transactions.length > 0 && (
+          <a
+            href="reconciliation"
+            className="flex items-center gap-2 px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors w-fit"
+          >
+            <CheckCircle2 size={16} />
+            Ir para Conciliação →{" "}
+            <span className="bg-white/20 px-1.5 py-0.5 rounded text-xs">{transactions.length} transações</span>
+          </a>
+        )}
+
+      </div>
+    </>
   );
 }
 
@@ -352,75 +731,13 @@ export default function IngestPage() {
   const intercompanyCount = transactions.filter((t) => t.isIntercompany).length;
   const ambiguousCount    = transactions.filter((t) => t.classificationConfidence === "ambiguous").length;
 
-  // ── Static environment blocker ────────────────────────────────────────────
-  // In GitHub Pages (NEXT_PUBLIC_STATIC_DATA=1) the API routes do not exist.
-  // Rendering the upload form would silently fail — show an honest notice instead.
+  // ── Static environment — manual / CSV entry mode ─────────────────────────
+  // In GitHub Pages (NEXT_PUBLIC_STATIC_DATA=1) there is no server, no API
+  // routes, and no filesystem writes. Instead we provide a functional
+  // CSV / manual entry form that saves transactions to localStorage.
+  // Those transactions then appear in /awq/reconciliation automatically.
   if (IS_STATIC) {
-    return (
-      <>
-        <Header
-          title="Ingestão Financeira"
-          subtitle="Upload de extratos PDF · Extração · Classificação · Reconciliação"
-        />
-        <div className="px-8 py-10 max-w-2xl">
-          <div className="rounded-xl border-2 border-amber-200 bg-amber-50 p-6 space-y-4">
-            <div className="flex items-start gap-3">
-              <AlertTriangle size={20} className="text-amber-600 shrink-0 mt-0.5" />
-              <div>
-                <h2 className="text-sm font-bold text-amber-900">
-                  Pipeline de ingestão não disponível neste ambiente
-                </h2>
-                <p className="text-xs text-amber-700 mt-1 leading-relaxed">
-                  Este site está publicado como exportação estática (GitHub Pages).
-                  Ambientes estáticos não suportam execução de servidor, gravação em
-                  sistema de arquivos ou chamadas à API Claude — todas operações
-                  obrigatórias para o pipeline de ingestão bancária.
-                </p>
-              </div>
-            </div>
-
-            <div className="border-t border-amber-200 pt-4 space-y-3">
-              <p className="text-xs font-semibold text-amber-900">O que não está disponível aqui:</p>
-              <ul className="text-xs text-amber-700 space-y-1 ml-3">
-                <li>✗ Upload de PDF de extrato bancário</li>
-                <li>✗ Extração de transações (Claude API — requer servidor)</li>
-                <li>✗ Classificação e reconciliação (requer Node.js + fs)</li>
-                <li>✗ Persistência de <code className="font-mono bg-amber-100 px-1 rounded">documents.json</code> / <code className="font-mono bg-amber-100 px-1 rounded">transactions.json</code></li>
-                <li>✗ Streaming SSE do pipeline (<code className="font-mono bg-amber-100 px-1 rounded">/api/ingest/process</code>)</li>
-              </ul>
-            </div>
-
-            <div className="border-t border-amber-200 pt-4 space-y-3">
-              <p className="text-xs font-semibold text-amber-900">Para usar o pipeline real:</p>
-              <div className="bg-gray-900 text-green-400 text-xs font-mono rounded-lg p-3 space-y-1">
-                <div>git clone https://github.com/contato22/awq</div>
-                <div>npm install</div>
-                <div>npm run dev  <span className="text-gray-500"># ingestão disponível em localhost:3000</span></div>
-              </div>
-              <p className="text-[11px] text-amber-600">
-                Para produção persistente: migre para Vercel + Vercel Blob (storage externo).
-                O filesystem do GitHub Pages é somente leitura e sem execução server-side.
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-6 flex gap-3">
-            <a
-              href="../management"
-              className="text-xs px-4 py-2 bg-gray-100 border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-200 transition-colors font-medium"
-            >
-              → Ver Gestão da Base
-            </a>
-            <a
-              href="../data"
-              className="text-xs px-4 py-2 bg-gray-100 border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-200 transition-colors font-medium"
-            >
-              → Base de Dados
-            </a>
-          </div>
-        </div>
-      </>
-    );
+    return <StaticIngestForm />;
   }
 
   return (

@@ -1,18 +1,19 @@
 // ─── GET /api/transactions ────────────────────────────────────────────────────
 // Returns all bank transactions from the canonical store (JSON or Postgres).
-// Used by client components (ReconciliationReviewTable) to load the full list.
+// Used by ReconciliationReviewTable to refresh data after edits.
 
-import { NextResponse } from "next/server";
+import type { NextApiRequest, NextApiResponse } from "next";
 import { getAllTransactions } from "@/lib/financial-db";
 
-export const dynamic = "force-dynamic";
-
-export async function GET() {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== "GET") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
   try {
     const transactions = await getAllTransactions();
-    return NextResponse.json(transactions);
+    res.json(transactions);
   } catch (err) {
     console.error("[GET /api/transactions]", err);
-    return NextResponse.json({ error: "Falha ao carregar transações" }, { status: 500 });
+    res.status(500).json({ error: "Falha ao carregar transações" });
   }
 }

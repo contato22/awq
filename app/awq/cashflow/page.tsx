@@ -185,10 +185,11 @@ function MonthlyBridgeChart({ entries }: { entries: MonthlyEntry[] }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-// Force dynamic rendering so that edits made via /awq/reconciliation (which
-// mutate `public/data/financial/transactions.json` via PATCH /api/transactions/[id])
-// are reflected on every navigation — no stale static snapshot.
-export const dynamic = "force-dynamic";
+// revalidate = 0 → on Vercel/SSR: re-render on every request (no stale cache).
+// In static export (GitHub Pages): rendered once at build time — correct behaviour
+// since the static build freezes data at deploy time.
+// NOTE: force-dynamic would break `output: "export"` (GitHub Pages CI).
+export const revalidate = 0;
 
 export default async function AwqCashflowPage() {
   const q   = await buildFinancialQuery();

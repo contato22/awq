@@ -2,14 +2,22 @@
 
 // ─── ReconciliationReviewTable ────────────────────────────────────────────────
 // Interactive table for reviewing and editing bank transactions.
+//
+// TWO PERSISTENCE MODES (controlled by `isStatic` prop):
+//   isStatic=false (Vercel/SSR): edits sent via PATCH /api/transactions/[id]
+//   isStatic=true  (GitHub Pages): edits saved to localStorage; manual
+//                  transactions added via /awq/ingest also loaded from localStorage
+//
+// localStorage keys:
+//   awq_reconciliation_overrides  — { [txId]: Partial<BankTransaction> }
+//   awq_manual_transactions       — BankTransaction[] (added manually in ingest)
+//
 // Editable fields: managerialCategory, classificationNote, counterpartyName,
 //                  reconciliationStatus, isIntercompany, excludedFromConsolidated.
 // Immutable fields (shown only): amount, transactionDate, descriptionOriginal,
 //                                accountName, bank, entity, documentId, direction.
-//
-// Persists via PATCH /api/transactions/[id].
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import type {
   BankTransaction,
   ManagerialCategory,
@@ -71,7 +79,7 @@ const STATUS_COLORS: Record<ReconciliationStatus, string> = {
   descartado: "bg-gray-100 text-gray-700 border-gray-200",
 };
 
-// ─── Derived classifications (read-only badges) ──────────────────────────────
+// ─── Derived DFC / DRE badges ─────────────────────────────────────────────────
 
 function cashflowClassOf(cat: ManagerialCategory): { label: string; color: string } {
   if (cat.startsWith("receita_")) return { label: "FCO — Entrada", color: "bg-emerald-50 text-emerald-700" };
@@ -120,31 +128,75 @@ function fmtDate(s: string): string {
   return `${d}/${m}/${y}`;
 }
 
+// ─── localStorage helpers (static mode only) ─────────────────────────────────
+
+const LS_OVERRIDES = "awq_reconciliation_overrides";
+const LS_MANUAL    = "awq_manual_transactions";
+
+function lsGet<T>(key: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : fallback;
+  } catch { return fallback; }
+}
+
+function lsSet(key: string, value: unknown): void {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* ignore */ }
+}
+
+function applyOverrides(
+  transactions: BankTransaction[],
+  overrides: Record<string, Partial<BankTransaction>>
+): BankTransaction[] {
+  return transactions.map((t) =>
+    overrides[t.id] ? { ...t, ...overrides[t.id] } : t
+  );
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
-type Filter = "todos" | "pendente" | "em_revisao" | "conciliado" | "descartado";
+type Filter = "todos" | ReconciliationStatus;
 
 export default function ReconciliationReviewTable({
   initialTransactions,
+  isStatic = false,
 }: {
   initialTransactions: BankTransaction[];
+  isStatic?: boolean;
 }) {
   const [transactions, setTransactions] = useState<BankTransaction[]>(initialTransactions);
   const [filter, setFilter] = useState<Filter>("pendente");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Partial<BankTransaction>>({});
-  const [toast, setToast] = useState<{ kind: "ok" | "err"; msg: string } | null>(null);
+  const [toast, setToast] = useState<{ kind: "ok" | "err" | "info"; msg: string } | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
+  // ── On mount (static mode): merge build-time data + localStorage ──────────
+  useEffect(() => {
+    if (!isStatic) return;
+    const overrides = lsGet<Record<string, Partial<BankTransaction>>>(LS_OVERRIDES, {});
+    const manual    = lsGet<BankTransaction[]>(LS_MANUAL, []);
+
+    // Apply overrides to existing, then append manual transactions
+    const withOverrides = applyOverrides(initialTransactions, overrides);
+    const existingIds = new Set(withOverrides.map((t) => t.id));
+    const newManual = manual.filter((t) => !existingIds.has(t.id));
+    setTransactions([...withOverrides, ...newManual]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isStatic]);
+
   const counts = useMemo(() => {
-    const c = { todos: transactions.length, pendente: 0, em_revisao: 0, conciliado: 0, descartado: 0 };
-    for (const t of transactions) c[t.reconciliationStatus] += 1;
+    const c: Record<string, number> = { todos: transactions.length, pendente: 0, em_revisao: 0, conciliado: 0, descartado: 0 };
+    for (const t of transactions) {
+      const s = t.reconciliationStatus ?? "pendente";
+      c[s] = (c[s] ?? 0) + 1;
+    }
     return c;
   }, [transactions]);
 
   const filtered = useMemo(() => {
-    const base = filter === "todos" ? transactions : transactions.filter((t) => t.reconciliationStatus === filter);
+    const base = filter === "todos" ? transactions : transactions.filter((t) => (t.reconciliationStatus ?? "pendente") === filter);
     return [...base].sort((a, b) => b.transactionDate.localeCompare(a.transactionDate));
   }, [transactions, filter]);
 
@@ -154,18 +206,35 @@ export default function ReconciliationReviewTable({
       managerialCategory:       t.managerialCategory,
       classificationNote:       t.classificationNote,
       counterpartyName:         t.counterpartyName,
-      reconciliationStatus:     t.reconciliationStatus,
+      reconciliationStatus:     t.reconciliationStatus ?? "pendente",
       isIntercompany:           t.isIntercompany,
       excludedFromConsolidated: t.excludedFromConsolidated,
     });
   }
 
-  function cancelEdit() {
-    setEditingId(null);
-    setDraft({});
+  function cancelEdit() { setEditingId(null); setDraft({}); }
+
+  function showToast(kind: "ok" | "err" | "info", msg: string) {
+    setToast({ kind, msg });
+    setTimeout(() => setToast(null), 4000);
   }
 
-  async function save(id: string) {
+  // ── Save — static (localStorage) ─────────────────────────────────────────
+  function saveToLocalStorage(id: string, patch: Partial<BankTransaction>) {
+    const overrides = lsGet<Record<string, Partial<BankTransaction>>>(LS_OVERRIDES, {});
+    overrides[id] = { ...(overrides[id] ?? {}), ...patch, classifiedAt: new Date().toISOString() };
+    lsSet(LS_OVERRIDES, overrides);
+
+    startTransition(() => {
+      setTransactions((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
+    });
+    setEditingId(null);
+    setDraft({});
+    showToast("info", "Salvo localmente (GitHub Pages). Alterações persistem no navegador.");
+  }
+
+  // ── Save — SSR (PATCH API) ───────────────────────────────────────────────
+  async function saveToApi(id: string) {
     setSavingId(id);
     setToast(null);
     try {
@@ -176,7 +245,7 @@ export default function ReconciliationReviewTable({
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({ error: "Erro desconhecido" }));
-        throw new Error(body.error ?? "Falha ao salvar");
+        throw new Error((body as { error?: string }).error ?? "Falha ao salvar");
       }
       const updated = (await res.json()) as BankTransaction;
       startTransition(() => {
@@ -184,60 +253,68 @@ export default function ReconciliationReviewTable({
       });
       setEditingId(null);
       setDraft({});
-      setToast({ kind: "ok", msg: "Transação salva com sucesso. DFC e DRE recalculados." });
+      showToast("ok", "Transação salva. DFC e DRE recalculam no próximo acesso.");
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Falha ao salvar";
-      setToast({ kind: "err", msg });
+      showToast("err", e instanceof Error ? e.message : "Falha ao salvar");
     } finally {
       setSavingId(null);
-      setTimeout(() => setToast(null), 4000);
     }
   }
 
+  function save(id: string) {
+    if (isStatic) {
+      saveToLocalStorage(id, draft);
+    } else {
+      void saveToApi(id);
+    }
+  }
+
+  // ── Quick conciliar ──────────────────────────────────────────────────────
   async function quickConciliar(t: BankTransaction) {
+    const patch = { reconciliationStatus: "conciliado" as ReconciliationStatus };
+    if (isStatic) {
+      saveToLocalStorage(t.id, patch);
+      showToast("info", "Marcada como conciliada (localStorage).");
+      return;
+    }
+
     setSavingId(t.id);
-    setToast(null);
     try {
       const res = await fetch(`/api/transactions/${t.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reconciliationStatus: "conciliado" }),
+        body: JSON.stringify(patch),
       });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({ error: "Erro desconhecido" }));
-        throw new Error(body.error ?? "Falha ao salvar");
-      }
+      if (!res.ok) throw new Error("Falha ao salvar");
       const updated = (await res.json()) as BankTransaction;
       startTransition(() => {
         setTransactions((prev) => prev.map((x) => (x.id === t.id ? updated : x)));
       });
-      setToast({ kind: "ok", msg: "Marcada como conciliada." });
+      showToast("ok", "Marcada como conciliada.");
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Falha ao salvar";
-      setToast({ kind: "err", msg });
+      showToast("err", e instanceof Error ? e.message : "Falha ao salvar");
     } finally {
       setSavingId(null);
-      setTimeout(() => setToast(null), 3000);
     }
   }
 
   return (
     <div className="space-y-4">
-      {/* ─── Toast ───────────────────────────────────────────────────── */}
+      {/* ─── Toast ────────────────────────────────────────────────────── */}
       {toast && (
         <div
           role="status"
           className={
-            toast.kind === "ok"
-              ? "rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 px-4 py-2 text-sm"
-              : "rounded-lg border border-red-200 bg-red-50 text-red-800 px-4 py-2 text-sm"
+            toast.kind === "ok"   ? "rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 px-4 py-2 text-sm" :
+            toast.kind === "info" ? "rounded-lg border border-blue-200 bg-blue-50 text-blue-800 px-4 py-2 text-sm" :
+                                    "rounded-lg border border-red-200 bg-red-50 text-red-800 px-4 py-2 text-sm"
           }
         >
           {toast.msg}
         </div>
       )}
 
-      {/* ─── Filter tabs ─────────────────────────────────────────────── */}
+      {/* ─── Filter tabs ──────────────────────────────────────────────── */}
       <div className="flex flex-wrap gap-2">
         {(["pendente", "em_revisao", "conciliado", "descartado", "todos"] as Filter[]).map((f) => (
           <button
@@ -251,16 +328,23 @@ export default function ReconciliationReviewTable({
             }
           >
             {f === "todos" ? "Todos" : STATUS_LABELS[f as ReconciliationStatus]}{" "}
-            <span className="ml-1 opacity-70">({counts[f]})</span>
+            <span className="ml-1 opacity-70">({counts[f] ?? 0})</span>
           </button>
         ))}
+        {isStatic && (
+          <span className="ml-auto self-center text-[10px] text-blue-600 bg-blue-50 px-2 py-1 rounded border border-blue-200">
+            GitHub Pages · edições no localStorage
+          </span>
+        )}
       </div>
 
-      {/* ─── Table ───────────────────────────────────────────────────── */}
+      {/* ─── Table ────────────────────────────────────────────────────── */}
       <div className="card overflow-x-auto">
         {filtered.length === 0 ? (
           <div className="p-8 text-center text-sm text-gray-500">
-            Nenhuma transação neste filtro.
+            {filter === "pendente" && isStatic
+              ? "Nenhuma transação pendente. Adicione transações em Integração Bancária ou mude o filtro."
+              : "Nenhuma transação neste filtro."}
           </div>
         ) : (
           <table className="min-w-full text-sm">
@@ -285,15 +369,16 @@ export default function ReconciliationReviewTable({
                 const dfc = cashflowClassOf(cat);
                 const dre = dreEffectOf(cat);
                 const isCredit = t.direction === "credit";
+                const status = t.reconciliationStatus ?? "pendente";
 
                 return (
                   <tr key={t.id} className={isEditing ? "bg-amber-50/60" : "hover:bg-gray-50"}>
                     {/* Date — IMMUTABLE */}
-                    <td className="px-3 py-2 whitespace-nowrap text-gray-700">{fmtDate(t.transactionDate)}</td>
+                    <td className="px-3 py-2 whitespace-nowrap text-gray-700 text-xs">{fmtDate(t.transactionDate)}</td>
 
-                    {/* Description + counterparty editable */}
+                    {/* Description + counterparty */}
                     <td className="px-3 py-2 max-w-xs">
-                      <div className="font-medium text-gray-900 truncate" title={t.descriptionOriginal}>
+                      <div className="font-medium text-gray-900 text-xs truncate" title={t.descriptionOriginal}>
                         {t.descriptionOriginal}
                       </div>
                       {isEditing ? (
@@ -302,9 +387,7 @@ export default function ReconciliationReviewTable({
                           placeholder="Contraparte (opcional)"
                           className="mt-1 w-full text-[11px] border border-gray-300 rounded px-1.5 py-1"
                           value={draft.counterpartyName ?? ""}
-                          onChange={(e) =>
-                            setDraft((d) => ({ ...d, counterpartyName: e.target.value || null }))
-                          }
+                          onChange={(e) => setDraft((d) => ({ ...d, counterpartyName: e.target.value || null }))}
                         />
                       ) : t.counterpartyName ? (
                         <div className="text-[11px] text-gray-500">{t.counterpartyName}</div>
@@ -312,8 +395,8 @@ export default function ReconciliationReviewTable({
                     </td>
 
                     {/* Amount — IMMUTABLE */}
-                    <td className={"px-3 py-2 text-right whitespace-nowrap font-mono " + (isCredit ? "text-emerald-700" : "text-rose-700")}>
-                      {isCredit ? "+" : ""}{fmtBRL(t.amount)}
+                    <td className={"px-3 py-2 text-right whitespace-nowrap font-mono text-xs " + (isCredit ? "text-emerald-700" : "text-rose-700")}>
+                      {isCredit ? "+" : ""}{fmtBRL(Math.abs(t.amount))}
                     </td>
 
                     {/* Account / BU — IMMUTABLE */}
@@ -327,10 +410,8 @@ export default function ReconciliationReviewTable({
                       {isEditing ? (
                         <select
                           value={draft.managerialCategory ?? t.managerialCategory}
-                          onChange={(e) =>
-                            setDraft((d) => ({ ...d, managerialCategory: e.target.value as ManagerialCategory }))
-                          }
-                          className="text-xs border border-gray-300 rounded px-1.5 py-1 w-full min-w-[200px]"
+                          onChange={(e) => setDraft((d) => ({ ...d, managerialCategory: e.target.value as ManagerialCategory }))}
+                          className="text-xs border border-gray-300 rounded px-1.5 py-1 w-full min-w-[190px]"
                         >
                           {ALL_CATEGORIES.map((c) => (
                             <option key={c} value={c}>{c}</option>
@@ -341,12 +422,12 @@ export default function ReconciliationReviewTable({
                       )}
                     </td>
 
-                    {/* DFC — derived */}
+                    {/* DFC — derived badge */}
                     <td className="px-3 py-2">
                       <span className={"text-[10px] px-1.5 py-0.5 rounded " + dfc.color}>{dfc.label}</span>
                     </td>
 
-                    {/* DRE — derived */}
+                    {/* DRE — derived badge */}
                     <td className="px-3 py-2">
                       <span className={"text-[10px] px-1.5 py-0.5 rounded " + dre.color}>{dre.label}</span>
                     </td>
@@ -355,10 +436,8 @@ export default function ReconciliationReviewTable({
                     <td className="px-3 py-2">
                       {isEditing ? (
                         <select
-                          value={draft.reconciliationStatus ?? t.reconciliationStatus}
-                          onChange={(e) =>
-                            setDraft((d) => ({ ...d, reconciliationStatus: e.target.value as ReconciliationStatus }))
-                          }
+                          value={draft.reconciliationStatus ?? status}
+                          onChange={(e) => setDraft((d) => ({ ...d, reconciliationStatus: e.target.value as ReconciliationStatus }))}
                           className="text-xs border border-gray-300 rounded px-1.5 py-1"
                         >
                           {(Object.keys(STATUS_LABELS) as ReconciliationStatus[]).map((s) => (
@@ -366,13 +445,13 @@ export default function ReconciliationReviewTable({
                           ))}
                         </select>
                       ) : (
-                        <span className={"text-[11px] px-2 py-0.5 rounded border " + STATUS_COLORS[t.reconciliationStatus]}>
-                          {STATUS_LABELS[t.reconciliationStatus]}
+                        <span className={"text-[11px] px-2 py-0.5 rounded border " + STATUS_COLORS[status]}>
+                          {STATUS_LABELS[status]}
                         </span>
                       )}
                     </td>
 
-                    {/* Note — EDITABLE */}
+                    {/* Note + flags — EDITABLE */}
                     <td className="px-3 py-2 max-w-[180px]">
                       {isEditing ? (
                         <>
@@ -381,17 +460,13 @@ export default function ReconciliationReviewTable({
                             placeholder="Nota de conciliação"
                             className="w-full text-[11px] border border-gray-300 rounded px-1.5 py-1"
                             value={draft.classificationNote ?? ""}
-                            onChange={(e) =>
-                              setDraft((d) => ({ ...d, classificationNote: e.target.value || null }))
-                            }
+                            onChange={(e) => setDraft((d) => ({ ...d, classificationNote: e.target.value || null }))}
                           />
                           <label className="flex items-center gap-1 mt-1 text-[10px] text-gray-600">
                             <input
                               type="checkbox"
                               checked={Boolean(draft.excludedFromConsolidated)}
-                              onChange={(e) =>
-                                setDraft((d) => ({ ...d, excludedFromConsolidated: e.target.checked }))
-                              }
+                              onChange={(e) => setDraft((d) => ({ ...d, excludedFromConsolidated: e.target.checked }))}
                             />
                             Excluir do consolidado
                           </label>
@@ -399,9 +474,7 @@ export default function ReconciliationReviewTable({
                             <input
                               type="checkbox"
                               checked={Boolean(draft.isIntercompany)}
-                              onChange={(e) =>
-                                setDraft((d) => ({ ...d, isIntercompany: e.target.checked }))
-                              }
+                              onChange={(e) => setDraft((d) => ({ ...d, isIntercompany: e.target.checked }))}
                             />
                             Intercompany
                           </label>
@@ -419,7 +492,7 @@ export default function ReconciliationReviewTable({
                         <div className="flex gap-1 justify-end">
                           <button
                             disabled={savingId === t.id}
-                            onClick={() => void save(t.id)}
+                            onClick={() => save(t.id)}
                             className="text-xs px-2 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
                           >
                             {savingId === t.id ? "Salvando…" : "Salvar"}
@@ -440,14 +513,14 @@ export default function ReconciliationReviewTable({
                           >
                             Editar
                           </button>
-                          {t.reconciliationStatus !== "conciliado" && (
+                          {status !== "conciliado" && (
                             <button
                               disabled={savingId === t.id}
                               onClick={() => void quickConciliar(t)}
                               className="text-xs px-2 py-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 disabled:opacity-50"
                               title="Marcar como conciliado"
                             >
-                              ✓ Conciliar
+                              ✓
                             </button>
                           )}
                         </div>

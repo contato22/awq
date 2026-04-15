@@ -197,15 +197,16 @@ const AWQ_FPA_ITEMS = [
 ] as const;
 
 // Financeiro Corporativo — Tesouraria (caixa, contas, aplicações)
+// Conciliação aparece PRIMEIRO — é o passo operacional que alimenta tudo.
 const AWQ_TESOURARIA_ITEMS = [
-    { label: "Cash Flow",     href: "/awq/cashflow",    icon: Zap        },
-    { label: "Contas Banco",  href: "/awq/bank",        icon: CreditCard },
-    { label: "Investimentos", href: "/awq/investments", icon: Landmark   },
+    { label: "Conciliação",  href: "/awq/reconciliation", icon: CheckCircle2 },
+    { label: "Cash Flow",    href: "/awq/cashflow",    icon: Zap        },
+    { label: "Contas Banco", href: "/awq/bank",        icon: CreditCard },
+    { label: "Investimentos",href: "/awq/investments", icon: Landmark   },
 ] as const;
 
 // Financeiro Corporativo — Controladoria & Contábil
 const AWQ_CONTROLADORIA_ITEMS = [
-    { label: "Conciliação",   href: "/awq/reconciliation", icon: CheckCircle2 },
     { label: "Controladoria", href: "/awq/management",    icon: ShieldCheck },
     { label: "Contabilidade", href: "/awq/contabilidade", icon: BookOpen    },
     { label: "Fiscal",        href: "/awq/fiscal",        icon: Receipt     },
