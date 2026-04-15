@@ -397,49 +397,44 @@ export interface ForecastPoint {
   actual?: number;
 }
 
-// ⚠  CORRECTED 2026-04-15 — Jan–Mar actuals now DERIVED from monthlyRevenue (single source of truth).
+// ⚠  CORRECTED 2026-04-15 (final) — campo `actual` REMOVIDO de todos os meses.
 //
-// PREVIOUS BUG (2026-04-08 correction was incomplete):
-//   The 2026-04-08 correction removed Advisor (~508K/month) from old totals
-//   (2.640K → 2.132K / 2.838K → 2.310K / 3.332K → 2.796K) but left Caza at the old scale
-//   (~1.7M/month) instead of the corrected buData scale (~712K–908K/month from _monthlyRaw).
-//   Result: actuals (2.132K/2.310K/2.796K) were 3× larger than monthlyRevenue totals
-//   (718K/804K/914K), creating an internal inconsistency within the snapshot layer.
+// REGRA: realizado só pode vir de financial-query.ts (transações conciliadas).
+// monthlyRevenue (e toda a camada de planejamento) é snapshot criado manualmente —
+// NÃO é dado real. Usar monthlyRevenue como `actual` viola a regra canônica.
 //
-// CORRECTION:
-//   Jan–Mar actuals now derived from monthlyRevenue[*].total (no drift possible).
-//   monthlyRevenue is the canonical monthly P&L snapshot: jacqes + caza + advisor.
-//   base/bull/bear for Jan–Mar also updated to match actuals (months already realized).
-//   Apr–Dec projections kept as planning model targets.
+// HISTÓRICO DE CORREÇÕES:
+//   2026-04-08: Subtrai Advisor (~508K/mês). Resultado ainda errado (Caza em escala antiga).
+//   2026-04-15a: Deriva actuals de monthlyRevenue. Mas monthlyRevenue também é snapshot.
+//   2026-04-15b (este): Remove `actual` completamente. Nenhum mês tem dado real confirmado.
 //
-// NUMBERS REMOVED:
-//   Jan actual 2_132_000 → replaced by monthlyRevenue[0].total = 718_490
-//   Fev actual 2_310_000 → replaced by monthlyRevenue[1].total = 804_490
-//   Mar actual 2_796_000 → replaced by monthlyRevenue[2].total = 914_490
+// CRITÉRIO PARA RE-INTRODUZIR `actual`:
+//   Somente quando financial-query.ts retornar hasData=true para o mês correspondente.
+//   A coluna "Realizado" na UI é bloqueada enquanto não houver extrato ingerido.
+//
+// Todos os 12 meses são projeções de planejamento (base/bull/bear).
+// Para Jan–Mar, base=bull=bear derivado de monthlyRevenue (ordem de magnitude do plano).
 export const revenueForecasts: ForecastPoint[] = [
-  // Jan–Mar: actuals derived from monthlyRevenue (single source, no drift)
+  // Jan–Mar: sem `actual` — monthlyRevenue é snapshot, não extrato bancário
   {
     month: "Jan/26",
-    base:   monthlyRevenue[0].total,
-    bull:   monthlyRevenue[0].total,
-    bear:   monthlyRevenue[0].total,
-    actual: monthlyRevenue[0].total,
+    base: monthlyRevenue[0].total,
+    bull: monthlyRevenue[0].total,
+    bear: monthlyRevenue[0].total,
   },
   {
     month: "Fev/26",
-    base:   monthlyRevenue[1].total,
-    bull:   monthlyRevenue[1].total,
-    bear:   monthlyRevenue[1].total,
-    actual: monthlyRevenue[1].total,
+    base: monthlyRevenue[1].total,
+    bull: monthlyRevenue[1].total,
+    bear: monthlyRevenue[1].total,
   },
   {
     month: "Mar/26",
-    base:   monthlyRevenue[2].total,
-    bull:   monthlyRevenue[2].total,
-    bear:   monthlyRevenue[2].total,
-    actual: monthlyRevenue[2].total,
+    base: monthlyRevenue[2].total,
+    bull: monthlyRevenue[2].total,
+    bear: monthlyRevenue[2].total,
   },
-  // Apr–Dez: planning model projections (forward-looking targets)
+  // Abr–Dez: projeções do modelo de planejamento (forward-looking targets)
   { month: "Abr/26", base: 3_600_000, bull: 3_960_000, bear: 3_060_000 },
   { month: "Mai/26", base: 3_850_000, bull: 4_235_000, bear: 3_080_000 },
   { month: "Jun/26", base: 4_100_000, bull: 4_510_000, bear: 3_280_000 },

@@ -33,7 +33,6 @@ import {
 } from "lucide-react";
 import { buildFinancialQuery } from "@/lib/financial-query";
 import {
-  consolidated,
   revenueForecasts,
   forecastAccuracyHistory,
   buForecastScenarios,
@@ -135,7 +134,8 @@ export default async function AwqForecastPage() {
                 Regime: competência (accrual) · Período: YTD Jan–Abr 2026 + projeção anual.
               </p>
               <p className="text-[11px] text-amber-600 mt-0.5">
-                Coluna &ldquo;Realiz. (snapshot)&rdquo; contém estimativas do modelo de planejamento — <strong>não transações conciliadas</strong>.
+                <strong>Não há coluna &ldquo;Realizado&rdquo;</strong> nesta página — nenhum mês tem dado real confirmado.
+                Todos os valores são projeções de planejamento.
                 Para caixa real, acesse{" "}
                 <a href="/awq/cashflow" className="underline font-medium">/awq/cashflow</a>.
               </p>
@@ -262,10 +262,10 @@ export default async function AwqForecastPage() {
                 Lacunas de Dados — O que falta para um forecast confiável
               </p>
               <ul className="text-[11px] text-gray-500 space-y-0.5 list-none">
-                <li>• <strong>Extratos bancários ingeridos</strong>: nenhum documento com status=done. Ingira via <a href="/awq/ingest" className="underline text-brand-600">/awq/ingest</a> para substituir snapshot por caixa real.</li>
+                <li>• <strong>Extratos bancários ingeridos</strong>: nenhum documento com status=done. Ingira via <a href="/awq/ingest" className="underline text-brand-600">/awq/ingest</a> para que realizados reais apareçam nesta página.</li>
                 <li>• <strong>Pipeline de notas fiscais (NF-e)</strong>: não implementado. Necessário para receita accrual real (vs planejamento).</li>
-                <li>• <strong>Realizados mensais verificados</strong>: os valores na coluna &quot;Realiz. (snapshot)&quot; são estimativas de planejamento, não confirmados contra extrato.</li>
-                <li>• <strong>Forecast Accuracy real</strong>: o indicador de acurácia compara dois conjuntos de dados de planejamento — não é uma medida válida até que haja realizados reais.</li>
+                <li>• <strong>Coluna &quot;Realizado&quot; bloqueada</strong>: removida da tabela. Só será exibida quando financial-query.ts retornar hasData=true para o mês correspondente.</li>
+                <li>• <strong>Forecast Accuracy</strong>: vazio. Só faz sentido quando houver realizados reais de extrato bancário para comparar com os forecasts emitidos.</li>
               </ul>
             </div>
           </div>
@@ -277,20 +277,17 @@ export default async function AwqForecastPage() {
           <div className="xl:col-span-2 card p-5">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-semibold text-gray-900">
-                Receita Mensal — Planejamento + Forecast 2026
+                Receita Mensal — Cenários de Forecast 2026
               </h2>
-              <div className="flex items-center gap-1.5">
-                <SourceBadge variant="snapshot" label="JAN–MAR" title="Estimativas de planejamento (awq-group-data.ts) — não verificadas vs extrato bancário" />
-                <SourceBadge variant="forecast" label="ABR–DEZ" title="Projeções do modelo de planejamento (awq-group-data.ts)" />
-              </div>
+              <SourceBadge variant="forecast" label="FORECAST" title="Todos os valores são projeções de planejamento · awq-group-data.ts revenueForecasts" />
             </div>
 
             {/* Source metadata row */}
             <div className="rounded-lg border border-amber-100 bg-amber-50/60 px-3 py-2 mb-3 text-[10px] text-amber-700">
               <span className="font-semibold">Fonte:</span>{" "}
               <code className="font-mono bg-amber-100 rounded px-0.5">lib/awq-group-data.ts → revenueForecasts[]</code>
-              {" "}· regime: accrual planejamento · confiança: probable (não reconciliado vs banco)
-              {" "}· <span className="font-semibold text-amber-800">Coluna &ldquo;Realiz.&rdquo; = snapshot, não extrato bancário.</span>
+              {" "}· regime: accrual planejamento · confiança: probable
+              {" "}· <span className="font-semibold text-amber-800">Sem coluna de realizados — nenhum extrato bancário ingerido.</span>
             </div>
 
             <div className="table-scroll">
@@ -301,35 +298,29 @@ export default async function AwqForecastPage() {
                     <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Base</th>
                     <th className="text-right py-2 px-3 text-xs font-semibold text-emerald-600">Bull</th>
                     <th className="text-right py-2 px-3 text-xs font-semibold text-red-600">Bear</th>
-                    <th className="text-right py-2 px-3 text-xs font-semibold text-amber-700">Realiz. (snapshot)</th>
+                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-300">Realizado</th>
                     <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Tipo</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {revenueForecasts.map((row) => {
-                    const isActual = row.actual !== undefined;
-                    return (
-                      <tr
-                        key={row.month}
-                        className={`border-b border-gray-100 hover:bg-gray-50/80 transition-colors ${!isActual ? "opacity-80" : ""}`}
-                      >
-                        <td className="py-2.5 px-3 text-xs font-medium text-gray-500">{row.month}</td>
-                        <td className="py-2.5 px-3 text-right text-xs text-gray-500">{fmtR(row.base)}</td>
-                        <td className="py-2.5 px-3 text-right text-xs text-emerald-600">{fmtR(row.bull)}</td>
-                        <td className="py-2.5 px-3 text-right text-xs text-red-600">{fmtR(row.bear)}</td>
-                        <td className="py-2.5 px-3 text-right text-xs font-semibold text-amber-800">
-                          {isActual
-                            ? fmtR(row.actual!)
-                            : <span className="text-gray-300">—</span>}
-                        </td>
-                        <td className="py-2.5 px-3">
-                          {isActual
-                            ? <SourceBadge variant="snapshot" label="SNAPSHOT" title="Estimativa de planejamento — não verificada vs extrato bancário" />
-                            : <SourceBadge variant="forecast" label="FORECAST" title="Projeção do modelo de planejamento" />}
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {revenueForecasts.map((row) => (
+                    <tr
+                      key={row.month}
+                      className="border-b border-gray-100 hover:bg-gray-50/80 transition-colors"
+                    >
+                      <td className="py-2.5 px-3 text-xs font-medium text-gray-500">{row.month}</td>
+                      <td className="py-2.5 px-3 text-right text-xs text-gray-600">{fmtR(row.base)}</td>
+                      <td className="py-2.5 px-3 text-right text-xs text-emerald-600">{fmtR(row.bull)}</td>
+                      <td className="py-2.5 px-3 text-right text-xs text-red-600">{fmtR(row.bear)}</td>
+                      {/* Realized column: always empty — blocked until financial-query returns real data */}
+                      <td className="py-2.5 px-3 text-right">
+                        <span className="text-gray-300 text-xs" title="Aguardando extrato bancário ingerido">—</span>
+                      </td>
+                      <td className="py-2.5 px-3">
+                        <SourceBadge variant="forecast" label="FORECAST" title="Projeção de planejamento · awq-group-data.ts" />
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
                 <tfoot>
                   <tr className="border-t border-gray-300">
@@ -337,12 +328,7 @@ export default async function AwqForecastPage() {
                     <td className="py-2.5 px-3 text-right text-xs font-bold text-gray-900">{fmtR(fullYearBase)}</td>
                     <td className="py-2.5 px-3 text-right text-xs font-bold text-emerald-600">{fmtR(fullYearBull)}</td>
                     <td className="py-2.5 px-3 text-right text-xs font-bold text-red-600">{fmtR(fullYearBear)}</td>
-                    <td className="py-2.5 px-3 text-right text-xs font-bold text-amber-700">
-                      <span title={`YTD snapshot (accrual) — awq-group-data.ts consolidated.revenue = ${fmtR(consolidated.revenue)}`}>
-                        {fmtR(consolidated.revenue)}
-                        <span className="ml-1"><SourceBadge variant="snapshot" label="YTD snap" /></span>
-                      </span>
-                    </td>
+                    <td className="py-2.5 px-3 text-right text-xs text-gray-300">—</td>
                     <td />
                   </tr>
                 </tfoot>
