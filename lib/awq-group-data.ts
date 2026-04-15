@@ -134,6 +134,32 @@ export const buData: BuData[] = [
     hrefBudget:       "/jacqes/fpa",
   },
   {
+    // ⚠  CORRECTED 2026-04-15 — all previous Caza P&L and cash values were fabricated.
+    //
+    // PREVIOUS (invented planning data — no empirical basis):
+    //   revenue:2,418,000 · grossProfit:1,730,000 · ebitda:653,000 · netIncome:420,000
+    //   cashGenerated:580,000 · cashBalance:920,000 · capitalAllocated:1,200,000
+    //   customers:8 · budgetRevenue:2,148,000 · roic:35.0%
+    //   Monthly (fabricated): Jan=712K · Fev=798K · Mar=908K
+    //
+    // SOURCE OF CORRECTION: public/data/caza-financial.json + public/data/caza-stats.json
+    //   Origin: Notion (project management / invoice tracking). Confirmed via API route.
+    //   Caza Vision is project-based; revenue recognized per project delivery.
+    //
+    // REAL REVENUE — confirmed from Notion (caza-financial.json / caza-stats.json):
+    //   Jan/26: R$0          (no projects closed)
+    //   Fev/26: R$12.400     (confirmed)
+    //   Mar/26: R$33.900     (confirmed)
+    //   Abr/26: R$27.900     (confirmed — caza-stats.json revenueData)
+    //   YTD Jan–Abr 2026: R$74.200
+    //   All-time (Apr/25–Mai/26): R$115.000
+    //
+    // EXPENSES: not tracked in Notion. grossProfit / ebitda / netIncome = 0
+    //   until cost data is entered. ROIC = 0.
+    // CASH BALANCE: Caza Itaú account statements NOT yet ingested → 0.
+    // CAPITAL ALLOCATED: unverified without Itaú statement → 0.
+    // CUSTOMERS: 6 confirmed active clients (caza-stats.json: clientes_ativos=6).
+    // BUDGET: old budget (2,148,000) was based on fabricated scale → 0 until reset.
     id:               "caza",
     name:             "Caza Vision",
     sub:              "Produtora · AWQ Group",
@@ -141,17 +167,17 @@ export const buData: BuData[] = [
     accentColor:      "text-emerald-400",
     status:           "Ativo",
     economicType:     "operational",
-    revenue:          2_418_000,
-    grossProfit:      1_730_000,
-    ebitda:           653_000,
-    netIncome:        420_000,
-    cashGenerated:    580_000,
-    cashBalance:      920_000,
-    customers:        8,
-    ftes:             15,
-    capitalAllocated: 1_200_000,
-    roic:             35.0,
-    budgetRevenue:    2_148_000,
+    revenue:          74_200,    // YTD Jan–Abr: 0+12,400+33,900+27,900 — source: Notion
+    grossProfit:      0,         // expenses not tracked in Notion yet
+    ebitda:           0,         // idem
+    netIncome:        0,         // idem
+    cashGenerated:    0,         // awaiting Itaú statement ingestion
+    cashBalance:      0,         // awaiting Itaú statement ingestion
+    customers:        6,         // confirmed active clients — caza-stats.json
+    ftes:             15,        // no contradicting evidence
+    capitalAllocated: 0,         // unverified without Itaú statement
+    roic:             0,         // netIncome=0
+    budgetRevenue:    0,         // old budget was based on fabricated scale
     hrefOverview:     "/caza-vision",
     hrefFinancial:    "/caza-vision/financial",
     hrefCustomers:    "/caza-vision/clientes",
@@ -255,17 +281,23 @@ export const consolidated = {
   budgetRevenue:    operatingBus.reduce((s, b) => s + b.budgetRevenue,    0),
 };
 
+// Guards: after Caza correction, consolidated values may be zero; avoid NaN/Infinity.
 export const consolidatedMargins = {
-  grossMargin:  consolidated.grossProfit / consolidated.revenue,
-  ebitdaMargin: consolidated.ebitda      / consolidated.revenue,
-  netMargin:    consolidated.netIncome   / consolidated.revenue,
+  grossMargin:  consolidated.revenue > 0 ? consolidated.grossProfit / consolidated.revenue : 0,
+  ebitdaMargin: consolidated.revenue > 0 ? consolidated.ebitda      / consolidated.revenue : 0,
+  netMargin:    consolidated.revenue > 0 ? consolidated.netIncome   / consolidated.revenue : 0,
 };
 
 export const consolidatedRoic =
-  (consolidated.netIncome / consolidated.capitalAllocated) * 100;
+  consolidated.capitalAllocated > 0
+    ? (consolidated.netIncome / consolidated.capitalAllocated) * 100
+    : 0;
 
+// Guard: budgetRevenue may be 0 after zeroing stale Caza budget.
 export const budgetVsActual =
-  ((consolidated.revenue - consolidated.budgetRevenue) / consolidated.budgetRevenue) * 100;
+  consolidated.budgetRevenue > 0
+    ? ((consolidated.revenue - consolidated.budgetRevenue) / consolidated.budgetRevenue) * 100
+    : 0;
 
 // ─── Monthly consolidated revenue (Jan–Mar 2026 per BU) ──────────────────────
 export interface MonthlyPoint {
@@ -281,16 +313,21 @@ export interface MonthlyPoint {
 // ⚠  CORRECTED 2026-04-08 — Advisor is pre_revenue (revenue = 0). Previous entries
 // showed advisor R$508K / R$528K / R$536K / month (total R$1.572M) which contradicted
 // buData.advisor.revenue = 0. Zeroed here. total = jacqes + caza only.
+//
+// ⚠  CORRECTED 2026-04-15 — Caza monthly values replaced with REAL project revenue
+// from Notion (caza-financial.json / caza-stats.json). Previous values were fabricated:
+//   OLD: Jan=712.000 · Fev=798.000 · Mar=908.000 (INVENTED planning data, 52× real scale)
+//   NEW: Jan=0 · Fev=12.400 · Mar=33.900 · Abr=27.900 (confirmed from Notion)
+//
 // Jan/Fev/Mar: JACQES_MRR_Q1 = 6.490 (3 clientes, sem Tati)
-// Abr: JACQES_MRR = 8.280 (Tati entrou início de Abr, já paga)
+// Abr: JACQES_MRR = 8.280 (Tati entrou início Abr, já paga — confirmed)
+// Caza Abr/26: R$27.900 confirmed from Notion (caza-stats.json revenueData)
 type MonthlyRaw = Omit<MonthlyPoint, "total">;
 const _monthlyRaw: MonthlyRaw[] = [
-  { month: "Jan/26", jacqes: JACQES_MRR_Q1, caza:  712_000, advisor: 0 },
-  { month: "Fev/26", jacqes: JACQES_MRR_Q1, caza:  798_000, advisor: 0 },
-  { month: "Mar/26", jacqes: JACQES_MRR_Q1, caza:  908_000, advisor: 0 },
-  // is_forecast: true — Caza Abr/26 ainda não fechado (caza=0 = estimativa, não zero real).
-  // JACQES Abr confirmado (Tati Simões entrou início Abr, já paga = JACQES_MRR = 8.280).
-  { month: "Abr/26", jacqes: JACQES_MRR,    caza:        0, advisor: 0, is_forecast: true },
+  { month: "Jan/26", jacqes: JACQES_MRR_Q1, caza:       0, advisor: 0 },  // Caza: no project closed Jan
+  { month: "Fev/26", jacqes: JACQES_MRR_Q1, caza:  12_400, advisor: 0 },  // Caza: confirmed Notion
+  { month: "Mar/26", jacqes: JACQES_MRR_Q1, caza:  33_900, advisor: 0 },  // Caza: confirmed Notion
+  { month: "Abr/26", jacqes: JACQES_MRR,    caza:  27_900, advisor: 0 },  // Both confirmed — no is_forecast
 ];
 
 export const monthlyRevenue: MonthlyPoint[] = _monthlyRaw.map(m => ({
@@ -305,8 +342,13 @@ const _operationalBUs = buData.filter(
   (b) => b.economicType === "operational" && b.revenue > 0
 );
 const _operationalRevTotal = _operationalBUs.reduce((s, b) => s + b.revenue, 0);
-const _jacqesRevPct = _operationalRevTotal > 0
-  ? Math.round((buData.find((b) => b.id === "jacqes")!.revenue / _operationalRevTotal) * 100)
+// Identify the highest-concentration BU dynamically.
+// After 2026-04-15 correction: Caza=74,200 (73%) > JACQES=27,750 (27%).
+const _highestRevBU = _operationalBUs.length > 0
+  ? _operationalBUs.reduce((max, b) => b.revenue > max.revenue ? b : max)
+  : null;
+const _highestRevPct = _highestRevBU && _operationalRevTotal > 0
+  ? Math.round((_highestRevBU.revenue / _operationalRevTotal) * 100)
   : 0;
 
 // BU dependency risk details — computed from buData, never hardcoded
@@ -330,12 +372,18 @@ export interface RiskSignal {
 
 export const riskSignals: RiskSignal[] = [
   {
+    // ⚠  CORRECTED 2026-04-15 — After Caza revenue correction (74,200 vs JACQES 27,750),
+    //    Caza Vision is now the highest-concentration BU at ~73%.
+    //    Previously JACQES was incorrectly identified as high-concentration because
+    //    Caza was inflated 52× (2,418,000 fabricated). Severity now derived dynamically.
     id: "R2",
     title:       "Concentração de BU — Receita",
-    description: `JACQES representa ${_jacqesRevPct}% da receita operacional do grupo.`,
-    severity:    "high",
+    description: _highestRevBU
+      ? `${_highestRevBU.name} representa ${_highestRevPct}% da receita operacional do grupo.`
+      : "Nenhuma BU com receita operacional confirmada.",
+    severity:    _highestRevPct > 50 ? "high" : _highestRevPct > 30 ? "medium" : "low",
     bu:          "AWQ Group",
-    metric:      `JACQES share: ${_jacqesRevPct}%`,
+    metric:      _highestRevBU ? `${_highestRevBU.name} share: ${_highestRevPct}%` : "—",
     threshold:   "Limite: 50%",
   },
   {
@@ -467,16 +515,31 @@ export interface CashFlowRow {
 // ⚠  CORRECTED 2026-04-08 — Advisor column zeroed (was non-zero: R$479K net income,
 // R$510K FCO, R$498K FCF). Advisor is pre_revenue (economicType) with netIncome=0
 // and cashGenerated=0 in buData. Cash flow rows must be consistent with buData.
+// ⚠  ZEROED 2026-04-15 — cashFlowRows values were never empirically verified.
+//
+// JACQES (previously 518K lucro / 720K FCO / 672K FCF):
+//   These were old planning data from when JACQES had revenue=4.82M.
+//   After correction: buData.jacqes.netIncome=0, cashGenerated=0.
+//   cashFlowRows must be consistent with buData. Zeroed.
+//
+// CAZA (previously 420K lucro / 580K FCO / 548K FCF):
+//   These were based on fabricated revenue=2,418,000. After correction:
+//   buData.caza.netIncome=0 (expenses not tracked in Notion), cashGenerated=0.
+//   Caza Itaú account not yet ingested. Zeroed.
+//
+// NOTE: cashFlowRows is not currently consumed by any live page.
+// /awq/cashflow uses financial-query.ts (real pipeline) — not these rows.
+// Kept for future use; must be re-populated from real data when available.
 export const cashFlowRows: CashFlowRow[] = [
-  { label: "Lucro Líquido",              jacqes:   518_000, caza:  420_000, advisor: 0, venture: 0, indent: 1, bold: false },
-  { label: "(+) D&A",                    jacqes:    43_000, caza:   18_000, advisor: 0, venture: 0, indent: 1, bold: false },
-  { label: "(+/-) Cap. de Giro",         jacqes:   159_000, caza:  142_000, advisor: 0, venture: 0, indent: 1, bold: false },
-  { label: "= FCO (Caixa Operacional)",  jacqes:   720_000, caza:  580_000, advisor: 0, venture: 0, indent: 0, bold: true  },
-  { label: "(-) Capex",                  jacqes:   -48_000, caza:  -32_000, advisor: 0, venture: 0, indent: 1, bold: false },
-  { label: "(-) Novos Investimentos",    jacqes:         0, caza:        0, advisor: 0, venture: 0, indent: 1, bold: false },
-  { label: "= FCO Livre (FCF)",          jacqes:   672_000, caza:  548_000, advisor: 0, venture: 0, indent: 0, bold: true  },
-  { label: "(-) Distribuições/Divid.",   jacqes:  -200_000, caza:  -80_000, advisor: 0, venture: 0, indent: 1, bold: false },
-  { label: "= Var. de Caixa",            jacqes:   472_000, caza:  468_000, advisor: 0, venture: 0, indent: 0, bold: true  },
+  { label: "Lucro Líquido",              jacqes: 0, caza: 0, advisor: 0, venture: 0, indent: 1, bold: false },
+  { label: "(+) D&A",                    jacqes: 0, caza: 0, advisor: 0, venture: 0, indent: 1, bold: false },
+  { label: "(+/-) Cap. de Giro",         jacqes: 0, caza: 0, advisor: 0, venture: 0, indent: 1, bold: false },
+  { label: "= FCO (Caixa Operacional)",  jacqes: 0, caza: 0, advisor: 0, venture: 0, indent: 0, bold: true  },
+  { label: "(-) Capex",                  jacqes: 0, caza: 0, advisor: 0, venture: 0, indent: 1, bold: false },
+  { label: "(-) Novos Investimentos",    jacqes: 0, caza: 0, advisor: 0, venture: 0, indent: 1, bold: false },
+  { label: "= FCO Livre (FCF)",          jacqes: 0, caza: 0, advisor: 0, venture: 0, indent: 0, bold: true  },
+  { label: "(-) Distribuições/Divid.",   jacqes: 0, caza: 0, advisor: 0, venture: 0, indent: 1, bold: false },
+  { label: "= Var. de Caixa",            jacqes: 0, caza: 0, advisor: 0, venture: 0, indent: 0, bold: true  },
 ];
 
 // ─── Budget targets by P&L line (complement to buData.budgetRevenue) ──────────
@@ -493,9 +556,19 @@ export interface BuBudgetTargets {
 }
 
 // ⚠  Advisor removed — pre_revenue BU has no budget targets.
+//
+// ⚠  ZEROED 2026-04-15 — all budget targets were based on fabricated revenue scales.
+//
+// JACQES: targets (2.664M grossProfit / 976K EBITDA / 489K netIncome) assumed
+//   revenue ≈ 4.82M. Real confirmed YTD revenue = R$27,750. Targets meaningless.
+//
+// CAZA: targets (1.546M grossProfit / 515K EBITDA / 386K netIncome) assumed
+//   revenue ≈ 2.418M. Real confirmed YTD revenue = R$74,200. Targets meaningless.
+//
+// Re-populate when real budget planning is done against confirmed revenue scale.
 export const buBudgetTargets: Record<string, BuBudgetTargets> = {
-  jacqes:  { budgGrossProfit: 2_664_000, budgEbitda:  976_800, budgNetIncome: 489_000, budgCash: 630_000 },
-  caza:    { budgGrossProfit: 1_546_000, budgEbitda:  515_520, budgNetIncome: 386_640, budgCash: 450_000 },
+  jacqes:  { budgGrossProfit: 0, budgEbitda: 0, budgNetIncome: 0, budgCash: 0 },
+  caza:    { budgGrossProfit: 0, budgEbitda: 0, budgNetIncome: 0, budgCash: 0 },
 };
 
 // ─── Expense category budgets (consolidated AWQ Group) ────────────────────────
@@ -656,17 +729,17 @@ export const riskCategories: RiskCategory[] = [
   },
   {
     // ⚠  CORRECTED 2026-04-08 — details now computed from buDependencyDetails (derived from buData).
-    // Previous: hardcoded shares (JACQES 55%, Caza 28%, Advisor 18%) — all based on old advisor revenue.
-    // Now auto-updates when buData changes: JACQES ~67%, Caza ~33%, Advisor removed (pre_revenue=0).
+    // ⚠  CORRECTED 2026-04-15 — after Caza revenue fix, highest BU is now Caza (~73%).
+    //    _jacqesRevPct removed; use _highestRevPct (dynamic) throughout.
     id: "buDependency",
     title:    "Dependência de BU Única",
     iconKey:  "building",
-    colorKey: _jacqesRevPct > 50 ? "red" : "amber",
-    severity: _jacqesRevPct > 50 ? "high" : "medium",
+    colorKey: _highestRevPct > 50 ? "red" : "amber",
+    severity: _highestRevPct > 50 ? "high" : "medium",
     details:  buDependencyDetails,
     threshold: "Limite: nenhuma BU > 50%",
-    current:   `JACQES = ${_jacqesRevPct}% da receita`,
-    action:    "Acelerar Caza Vision para reequilibrar. Advisor: pré-receita (sem meta de revenue).",
+    current:   _highestRevBU ? `${_highestRevBU.name} = ${_highestRevPct}% da receita` : "—",
+    action:    "Distribuir receita entre BUs para reduzir dependência. JACQES: crescer carteira. Caza: diversificar clientes.",
   },
   {
     // ⚠  SNAPSHOT — EBITDA ainda não confirmado contabilmente para JACQES.
