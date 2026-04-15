@@ -85,6 +85,40 @@ export type ClassificationConfidence =
   | "ambiguous"
   | "unclassifiable";
 
+// ─── Conciliação Bancária — DFC / DRE explicit classification ─────────────────
+//
+// cashflowClass: DFC activity per CPC 03 / IFRS IAS 7.
+//   Stored per-transaction so DFC can be generated from raw data without
+//   relying on implicit category-set membership in financial-query.ts.
+//
+// dreEffect: Managerial DRE line assignment (gerencial, cash-basis approximation).
+//   Not GAAP accrual DRE — a cash-basis DRE proxy until invoice/NF pipeline exists.
+//
+// reconciliationStatus: per-transaction conciliation lifecycle.
+//   Set by financial-classifier (initial) and financial-reconciler (intercompany).
+//   Drives the reconciliation review queue (em_revisao / pendente items).
+
+export type CashflowClass =
+  | "operacional"        // FCO — operating cash flows
+  | "investimento"       // FCInv — investing activities
+  | "financiamento"      // FCFin — financing activities
+  | "exclusao";          // eliminated from consolidated (intercompany, reserves)
+
+export type DREEffect =
+  | "receita"            // top-line revenue
+  | "custo"              // direct cost of services (COGS)
+  | "opex"               // operating expenses (SG&A, overhead)
+  | "financeiro"         // financial income/expense (yield, interest, IOF)
+  | "imposto"            // taxes and levies
+  | "nao_aplicavel";     // not a P&L item (equity movements, patrimonial, intercompany)
+
+export type ReconciliationStatus =
+  | "pendente"           // awaiting classification or manual review
+  | "classificado"       // classified by rule engine (confirmed or probable confidence)
+  | "conciliado"         // reconciled — intercompany match or full confirmation
+  | "em_revisao"         // requires human review (ambiguous classification)
+  | "rejeitado";         // rejected / excluded from all reporting
+
 // Gerencial category taxonomy — every transaction must resolve to one of these.
 // "unclassified" is only acceptable if confidence = "unclassifiable".
 // ─── Taxonomia DRE Gerencial (completa) ───────────────────────────────────────
@@ -212,6 +246,10 @@ export interface BankTransaction {
   isIntercompany: boolean;
   intercompanyMatchId: string | null;
   excludedFromConsolidated: boolean;
+  // ── DFC / DRE / Conciliação Bancária classification
+  cashflowClass:         CashflowClass | null;    // DFC activity (CPC 03)
+  dreEffect:             DREEffect | null;         // DRE gerencial line
+  reconciliationStatus:  ReconciliationStatus;     // per-transaction lifecycle status
   // ── Metadata
   extractedAt: string;
   classifiedAt: string | null;
@@ -266,6 +304,9 @@ function rowToTransaction(r: Row): BankTransaction {
     isIntercompany:            Boolean(r.is_intercompany),
     intercompanyMatchId:       sn(r.intercompany_match_id),
     excludedFromConsolidated:  Boolean(r.excluded_from_consolidated),
+    cashflowClass:             sn(r.cashflow_class) as CashflowClass | null,
+    dreEffect:                 sn(r.dre_effect) as DREEffect | null,
+    reconciliationStatus:      (sn(r.reconciliation_status) as ReconciliationStatus | null) ?? "pendente",
     extractedAt:               s(r.extracted_at),
     classifiedAt:              sn(r.classified_at),
   };
@@ -414,6 +455,13 @@ export async function saveTransactions(transactions: BankTransaction[]): Promise
     for (const docId of docIds) {
       await sql`DELETE FROM bank_transactions WHERE document_id = ${docId}`;
     }
+    // SCHEMA NOTE: bank_transactions table must have columns:
+    //   cashflow_class TEXT, dre_effect TEXT,
+    //   reconciliation_status TEXT NOT NULL DEFAULT 'pendente'
+    // Migration: ALTER TABLE bank_transactions
+    //   ADD COLUMN IF NOT EXISTS cashflow_class TEXT,
+    //   ADD COLUMN IF NOT EXISTS dre_effect TEXT,
+    //   ADD COLUMN IF NOT EXISTS reconciliation_status TEXT NOT NULL DEFAULT 'pendente';
     for (const t of transactions) {
       await sql`
         INSERT INTO bank_transactions (
@@ -421,14 +469,17 @@ export async function saveTransactions(transactions: BankTransaction[]): Promise
           description_original, amount, direction, running_balance,
           counterparty_name, managerial_category, classification_confidence,
           classification_note, is_intercompany, intercompany_match_id,
-          excluded_from_consolidated, extracted_at, classified_at
+          excluded_from_consolidated, cashflow_class, dre_effect,
+          reconciliation_status, extracted_at, classified_at
         ) VALUES (
           ${t.id}, ${t.documentId}, ${t.bank}, ${t.accountName}, ${t.entity},
           ${t.transactionDate}, ${t.descriptionOriginal}, ${t.amount},
           ${t.direction}, ${t.runningBalance}, ${t.counterpartyName},
           ${t.managerialCategory}, ${t.classificationConfidence},
           ${t.classificationNote}, ${t.isIntercompany}, ${t.intercompanyMatchId},
-          ${t.excludedFromConsolidated}, ${t.extractedAt}, ${t.classifiedAt}
+          ${t.excludedFromConsolidated}, ${t.cashflowClass ?? null},
+          ${t.dreEffect ?? null}, ${t.reconciliationStatus},
+          ${t.extractedAt}, ${t.classifiedAt}
         )
       `;
     }
@@ -456,6 +507,9 @@ export async function updateTransaction(
         is_intercompany            = COALESCE(${p.isIntercompany ?? null}, is_intercompany),
         intercompany_match_id      = COALESCE(${p.intercompanyMatchId ?? null}, intercompany_match_id),
         excluded_from_consolidated = COALESCE(${p.excludedFromConsolidated ?? null}, excluded_from_consolidated),
+        cashflow_class             = COALESCE(${p.cashflowClass ?? null}, cashflow_class),
+        dre_effect                 = COALESCE(${p.dreEffect ?? null}, dre_effect),
+        reconciliation_status      = COALESCE(${p.reconciliationStatus ?? null}, reconciliation_status),
         classified_at              = COALESCE(${p.classifiedAt ?? null}, classified_at)
       WHERE id = ${id}
     `;

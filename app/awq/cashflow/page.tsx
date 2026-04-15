@@ -431,6 +431,111 @@ export default async function AwqCashflowPage() {
           </div>
         )}
 
+        {/* ── DFC Classification — Atividades Operacional / Investimento / Financiamento ── */}
+        {q.hasData && (
+          <div className="card p-5">
+            <h2 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
+              <TrendingUp size={15} className="text-brand-500" />
+              Demonstrativo do Fluxo de Caixa — Classificação por Atividade
+            </h2>
+            <p className="text-[11px] text-gray-400 mb-4">
+              Mapeamento CPC 03 / IFRS IAS 7 a partir dos lançamentos conciliados.
+              Cada transação carrega <code className="text-[10px] bg-gray-100 px-1 rounded">cashflowClass</code> e{" "}
+              <code className="text-[10px] bg-gray-100 px-1 rounded">dreEffect</code> explícitos.
+            </p>
+            <div className="space-y-4">
+              {/* Atividades Operacionais */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700">
+                    Operacional
+                  </span>
+                  <span className="text-[10px] text-gray-400">FCO — receitas e despesas do negócio</span>
+                </div>
+                <div className="grid grid-cols-3 gap-3 pl-2">
+                  <div className="bg-emerald-50/60 rounded-lg px-3 py-2">
+                    <div className="text-[10px] text-gray-500">Entradas Operacionais</div>
+                    <div className="text-sm font-bold text-emerald-700">+{fmtBRL(c.totalRevenue)}</div>
+                  </div>
+                  <div className="bg-red-50/60 rounded-lg px-3 py-2">
+                    <div className="text-[10px] text-gray-500">Saídas Operacionais</div>
+                    <div className="text-sm font-bold text-red-700">−{fmtBRL(c.totalExpenses)}</div>
+                  </div>
+                  <div className={`rounded-lg px-3 py-2 ${c.operationalNetCash >= 0 ? "bg-brand-50/60" : "bg-red-50/60"}`}>
+                    <div className="text-[10px] text-gray-500">FCO Líquido</div>
+                    <div className={`text-sm font-bold ${c.operationalNetCash >= 0 ? "text-brand-700" : "text-red-700"}`}>
+                      {c.operationalNetCash >= 0 ? "+" : ""}{fmtBRL(c.operationalNetCash)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Atividades de Investimento */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-violet-100 text-violet-700">
+                    Investimento
+                  </span>
+                  <span className="text-[10px] text-gray-400">Aplicações, resgates, rendimentos financeiros</span>
+                </div>
+                <div className="pl-2">
+                  <div className={`rounded-lg px-3 py-2 inline-block ${c.financialMovements >= 0 ? "bg-violet-50/60" : "bg-red-50/60"}`}>
+                    <div className="text-[10px] text-gray-500">Fluxo Líquido de Investimento</div>
+                    <div className={`text-sm font-bold ${c.financialMovements >= 0 ? "text-violet-700" : "text-red-700"}`}>
+                      {c.financialMovements >= 0 ? "+" : ""}{fmtBRL(c.financialMovements)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Atividades de Financiamento */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700">
+                    Financiamento
+                  </span>
+                  <span className="text-[10px] text-gray-400">Pró-labore, retiradas, aportes de sócios</span>
+                </div>
+                <div className="pl-2">
+                  <div className="bg-amber-50/60 rounded-lg px-3 py-2 inline-block">
+                    <div className="text-[10px] text-gray-500">Pró-labore / Retiradas</div>
+                    <div className="text-sm font-bold text-amber-700">−{fmtBRL(c.partnerWithdrawals + c.personalExpenses)}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Exclusões */}
+              {c.intercompanyEliminated > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-600">
+                      Exclusão
+                    </span>
+                    <span className="text-[10px] text-gray-400">Transferências intercompany eliminadas do consolidado</span>
+                  </div>
+                  <div className="pl-2">
+                    <div className="bg-gray-50 rounded-lg px-3 py-2 inline-block">
+                      <div className="text-[10px] text-gray-500">Intercompany Eliminado</div>
+                      <div className="text-sm font-bold text-gray-600">±{fmtBRL(c.intercompanyEliminated)}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Ambíguo */}
+              {c.ambiguousAmount > 0 && (
+                <div className="pt-2 border-t border-gray-100">
+                  <span className="text-[11px] text-amber-600 flex items-center gap-1.5">
+                    <AlertCircle size={11} />
+                    {fmtBRL(c.ambiguousAmount)} em lançamentos ambíguos aguardando revisão —
+                    cashflowClass e dreEffect classificados como <code className="text-[10px] bg-amber-50 px-1 rounded">null</code> até confirmação.
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* ── Cash Position per Account ────────────────────────────────────── */}
         <div className="card p-5">
           <h2 className="text-sm font-semibold text-gray-900 mb-4">

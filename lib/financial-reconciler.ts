@@ -153,11 +153,14 @@ export function reconcileIntercompany(
       if (di >= 0) {
         updated[di] = {
           ...updated[di],
-          isIntercompany:          true,
-          intercompanyMatchId:     matchId,
+          isIntercompany:           true,
+          intercompanyMatchId:      matchId,
           excludedFromConsolidated: true,
-          managerialCategory:      "transferencia_interna_enviada",
-          classificationNote:      note,
+          managerialCategory:       "transferencia_interna_enviada",
+          classificationNote:       note,
+          cashflowClass:            "exclusao",     // intercompany excluded from DFC
+          dreEffect:                "nao_aplicavel", // not a P&L item
+          reconciliationStatus:     "conciliado",   // intercompany match = conciliado
         };
       }
 
@@ -171,6 +174,9 @@ export function reconcileIntercompany(
           excludedFromConsolidated: true,
           managerialCategory:       "transferencia_interna_recebida",
           classificationNote:       note,
+          cashflowClass:            "exclusao",     // intercompany excluded from DFC
+          dreEffect:                "nao_aplicavel", // not a P&L item
+          reconciliationStatus:     "conciliado",   // intercompany match = conciliado
         };
       }
 

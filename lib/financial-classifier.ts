@@ -17,16 +17,25 @@ import type {
   EntityLayer,
   ManagerialCategory,
   ClassificationConfidence,
+  CashflowClass,
+  DREEffect,
+  ReconciliationStatus,
 } from "./financial-db";
 
 // ─── Classification result ────────────────────────────────────────────────────
 
 export interface ClassificationResult {
-  entity: EntityLayer;
-  category: ManagerialCategory;
-  confidence: ClassificationConfidence;
-  note: string | null;
+  entity:           EntityLayer;
+  category:         ManagerialCategory;
+  confidence:       ClassificationConfidence;
+  note:             string | null;
   counterpartyName: string | null;
+  // ── Conciliação Bancária — DFC / DRE explicit classification ─────────────
+  // Derived deterministically from category at classification time.
+  // Eliminates the need for financial-query.ts to re-derive DFC class from
+  // implicit category-set membership — makes the chain explicit per transaction.
+  cashflowClass: CashflowClass | null;   // null = ambiguous/unclassified
+  dreEffect:     DREEffect | null;       // null = ambiguous/unclassified
 }
 
 // ─── Counterparty dictionary ──────────────────────────────────────────────────
@@ -527,6 +536,156 @@ const PATTERN_RULES: PatternRule[] = [
   },
 ];
 
+// ─── DFC / DRE derivation ─────────────────────────────────────────────────────
+//
+// Makes EXPLICIT the DFC/DRE classification that financial-query.ts applies
+// IMPLICITLY via REVENUE_CATS / OPERATIONAL_EXPENSE_CATS membership checks.
+//
+// Storing these fields per-transaction enables:
+//   1. DFC statement generation (CPC 03 / IFRS IAS 7) from raw transaction data
+//   2. DRE gerencial approximation (cash-basis proxy until accrual pipeline exists)
+//   3. Per-transaction reconciliation audit trail for the review queue
+//
+// Architecture: holding bank account → classified transaction →
+//   cashflowClass (DFC) + dreEffect (DRE) → indicators
+
+export function deriveCashflowClass(cat: ManagerialCategory): CashflowClass | null {
+  switch (cat) {
+    // ── Atividades Operacionais — entradas ──────────────────────────────────
+    case "receita_recorrente":
+    case "receita_projeto":
+    case "receita_consultoria":
+    case "receita_producao":
+    case "receita_social_media":
+    case "receita_revenue_share":
+    case "receita_fee_venture":
+    case "receita_eventual":
+    case "ajuste_bancario_credito":
+    // ── Atividades Operacionais — saídas ────────────────────────────────────
+    case "fornecedor_operacional":
+    case "freelancer_terceiro":
+    case "folha_remuneracao":
+    case "imposto_tributo":
+    case "juros_multa_iof":
+    case "tarifa_bancaria":
+    case "software_assinatura":
+    case "marketing_midia":
+    case "deslocamento_combustivel":
+    case "alimentacao_representacao":
+    case "viagem_hospedagem":
+    case "aluguel_locacao":
+    case "energia_agua_internet":
+    case "servicos_contabeis_juridicos":
+    case "cartao_compra_operacional":
+      return "operacional";
+
+    // ── Atividades de Investimento ──────────────────────────────────────────
+    case "aplicacao_financeira":
+    case "resgate_financeiro":
+    case "rendimento_financeiro":
+      return "investimento";
+
+    // ── Atividades de Financiamento ─────────────────────────────────────────
+    case "prolabore_retirada":
+    case "aporte_socio":
+    case "despesa_pessoal_misturada":   // owner expense in PJ account
+      return "financiamento";
+
+    // ── Exclusão do consolidado ─────────────────────────────────────────────
+    case "transferencia_interna_enviada":
+    case "transferencia_interna_recebida":
+    case "reserva_limite_cartao":
+      return "exclusao";
+
+    // ── Ambíguo / não classificado — DFC class TBD após revisão manual ──────
+    case "despesa_ambigua":
+    case "recebimento_ambiguo":
+    case "unclassified":
+      return null;
+
+    default:
+      return null;
+  }
+}
+
+export function deriveDREEffect(cat: ManagerialCategory): DREEffect | null {
+  switch (cat) {
+    // ── Receita (top line) ──────────────────────────────────────────────────
+    case "receita_recorrente":
+    case "receita_projeto":
+    case "receita_consultoria":
+    case "receita_producao":
+    case "receita_social_media":
+    case "receita_revenue_share":
+    case "receita_fee_venture":
+    case "receita_eventual":
+    case "ajuste_bancario_credito":
+      return "receita";
+
+    // ── Custo (COGS / custo direto de serviços) ─────────────────────────────
+    case "freelancer_terceiro":
+    case "folha_remuneracao":
+      return "custo";
+
+    // ── OpEx (SG&A, overhead operacional) ──────────────────────────────────
+    case "fornecedor_operacional":
+    case "tarifa_bancaria":
+    case "software_assinatura":
+    case "marketing_midia":
+    case "deslocamento_combustivel":
+    case "alimentacao_representacao":
+    case "viagem_hospedagem":
+    case "aluguel_locacao":
+    case "energia_agua_internet":
+    case "servicos_contabeis_juridicos":
+    case "cartao_compra_operacional":
+      return "opex";
+
+    // ── Resultado Financeiro ────────────────────────────────────────────────
+    case "juros_multa_iof":
+    case "rendimento_financeiro":
+      return "financeiro";
+
+    // ── Impostos e tributos ─────────────────────────────────────────────────
+    case "imposto_tributo":
+      return "imposto";
+
+    // ── Não entra na DRE (patrimonial, equity, intercompany, pessoal) ───────
+    case "prolabore_retirada":
+    case "aporte_socio":
+    case "despesa_pessoal_misturada":
+    case "aplicacao_financeira":
+    case "resgate_financeiro":
+    case "transferencia_interna_enviada":
+    case "transferencia_interna_recebida":
+    case "reserva_limite_cartao":
+      return "nao_aplicavel";
+
+    // ── Ambíguo / não classificado — DRE effect TBD ─────────────────────────
+    case "despesa_ambigua":
+    case "recebimento_ambiguo":
+    case "unclassified":
+      return null;
+
+    default:
+      return null;
+  }
+}
+
+// Maps classificationConfidence → initial reconciliationStatus.
+// Called during ingest; updated by financial-reconciler on intercompany match.
+export function deriveReconciliationStatus(
+  confidence: ClassificationConfidence
+): ReconciliationStatus {
+  switch (confidence) {
+    case "confirmed":      return "classificado";
+    case "probable":       return "classificado";
+    case "ambiguous":      return "em_revisao";
+    case "unclassifiable": return "pendente";
+    default:               return "pendente";
+  }
+}
+
 // ─── Entity inference from account ───────────────────────────────────────────
 //
 // Delegates to lib/bank-account-registry.ts for full account topology.
@@ -552,12 +711,15 @@ export function classifyTransaction(
   for (const rule of COUNTERPARTY_RULES) {
     for (const pattern of rule.patterns) {
       if (d.includes(pattern.toLowerCase())) {
+        const cat = rule.category;
         return {
-          entity: rule.entity ?? accountEntity,
-          category: rule.category,
-          confidence: rule.confidence,
-          note: null,
+          entity:           rule.entity ?? accountEntity,
+          category:         cat,
+          confidence:       rule.confidence,
+          note:             null,
           counterpartyName: rule.name,
+          cashflowClass:    deriveCashflowClass(cat),
+          dreEffect:        deriveDREEffect(cat),
         };
       }
     }
@@ -566,23 +728,28 @@ export function classifyTransaction(
   // 2. Try structural pattern rules
   for (const rule of PATTERN_RULES) {
     if (rule.test(d, amount, direction)) {
+      const cat = rule.category;
       return {
-        entity: rule.entity ?? accountEntity,
-        category: rule.category,
-        confidence: rule.confidence,
-        note: rule.note,
+        entity:           rule.entity ?? accountEntity,
+        category:         cat,
+        confidence:       rule.confidence,
+        note:             rule.note,
         counterpartyName: null,
+        cashflowClass:    deriveCashflowClass(cat),
+        dreEffect:        deriveDREEffect(cat),
       };
     }
   }
 
   // 3. Final fallback — should not reach here given the catch-all rules above
   return {
-    entity: accountEntity,
-    category: "unclassified",
-    confidence: "unclassifiable",
-    note: "Lançamento não classificável pelas regras atuais — revisão manual necessária.",
+    entity:           accountEntity,
+    category:         "unclassified",
+    confidence:       "unclassifiable",
+    note:             "Lançamento não classificável pelas regras atuais — revisão manual necessária.",
     counterpartyName: null,
+    cashflowClass:    null,
+    dreEffect:        null,
   };
 }
 

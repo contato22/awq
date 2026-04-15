@@ -30,7 +30,11 @@ import {
 } from "@/lib/financial-db";
 import type { BankTransaction, EntityLayer } from "@/lib/financial-db";
 import { parsePDF } from "@/lib/bank-parsers";
-import { classifyTransaction, inferEntityFromAccount } from "@/lib/financial-classifier";
+import {
+  classifyTransaction,
+  inferEntityFromAccount,
+  deriveReconciliationStatus,
+} from "@/lib/financial-classifier";
 import { reconcileIntercompany, buildConsolidationSummary } from "@/lib/financial-reconciler";
 
 export const runtime = "nodejs";
@@ -179,25 +183,29 @@ export async function POST(req: NextRequest): Promise<Response> {
           );
 
           return {
-            id: newId(),
-            documentId: docId,
-            bank: parsed.bank || doc.bank,
-            accountName: doc.accountName,
-            entity: classification.entity,
-            transactionDate: t.transactionDate,
-            descriptionOriginal: t.descriptionOriginal,
-            amount: t.amount,
-            direction: t.direction,
-            runningBalance: t.runningBalance,
-            counterpartyName: classification.counterpartyName,
-            managerialCategory: classification.category,
+            id:                       newId(),
+            documentId:               docId,
+            bank:                     parsed.bank || doc.bank,
+            accountName:              doc.accountName,
+            entity:                   classification.entity,
+            transactionDate:          t.transactionDate,
+            descriptionOriginal:      t.descriptionOriginal,
+            amount:                   t.amount,
+            direction:                t.direction,
+            runningBalance:           t.runningBalance,
+            counterpartyName:         classification.counterpartyName,
+            managerialCategory:       classification.category,
             classificationConfidence: classification.confidence,
-            classificationNote: classification.note ?? t.extractionNote,
-            isIntercompany: false,
-            intercompanyMatchId: null,
+            classificationNote:       classification.note ?? t.extractionNote,
+            isIntercompany:           false,
+            intercompanyMatchId:      null,
             excludedFromConsolidated: false,
-            extractedAt: now,
-            classifiedAt: now,
+            // ── Conciliação Bancária — DFC / DRE explicit fields ────────────
+            cashflowClass:            classification.cashflowClass,
+            dreEffect:                classification.dreEffect,
+            reconciliationStatus:     deriveReconciliationStatus(classification.confidence),
+            extractedAt:              now,
+            classifiedAt:             now,
           };
         });
 
