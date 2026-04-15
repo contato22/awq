@@ -523,10 +523,15 @@ export interface BuForecastScenario {
 // ⚠  CORRECTED 2026-04-08 — Advisor entry removed. Advisor is pre_revenue with
 // revenue=0 in buData. A revenue forecast scenario for a pre_revenue BU is
 // meaningless and contradicts buData. Removed entirely.
+//
+// ⚠  CORRECTED 2026-04-15 — JACQES ytd was 4_820_000 (pre-correction leftover from
+// when JACQES had inflated revenue figures). Corrected to match buData.jacqes.revenue
+// = 27_750 (YTD Jan–Abr: 6.490×3 + 8.280, source: Notion CRM confirmed).
+// fullYearBase/Bull/Bear remain as planning model targets (forward-looking scenarios).
 export const buForecastScenarios: BuForecastScenario[] = [
   {
     bu: "JACQES",      color: "bg-brand-500",   accent: "text-brand-600",
-    ytd: 4_820_000, fullYearBase: 19_800_000, fullYearBull: 21_780_000, fullYearBear: 16_830_000, growth: 12.4,
+    ytd: 27_750, fullYearBase: 19_800_000, fullYearBull: 21_780_000, fullYearBear: 16_830_000, growth: 12.4,
   },
   {
     bu: "Caza Vision", color: "bg-emerald-500", accent: "text-emerald-600",
