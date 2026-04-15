@@ -29,7 +29,11 @@ import {
   type FinancialQueryResult,
   ENTITY_LABELS,
   type EntitySummary,
+  type DFCStatement,
+  type DREStatement,
 } from "./financial-query";
+
+export type { DFCStatement, DREStatement };
 
 import {
   consolidated,
@@ -65,12 +69,17 @@ export type { FinancialQueryResult, EntitySummary };
 
 export interface AWQGroupKPIs {
   // ── Real (from bank statement pipeline) ─────────────────────────────────
-  cashInflows:         FinancialMetric<number | null>;
-  cashOutflows:        FinancialMetric<number | null>;
-  operationalNetCash:  FinancialMetric<number | null>;
-  totalCashBalance:    FinancialMetric<number | null>;
+  cashInflows:          FinancialMetric<number | null>;
+  cashOutflows:         FinancialMetric<number | null>;
+  operationalNetCash:   FinancialMetric<number | null>;
+  totalCashBalance:     FinancialMetric<number | null>;
+  // ── Real — DFC / DRE cash-basis (from dfcStatement / dreStatement) ───────
+  dfcVariacaoCaixa:     FinancialMetric<number | null>;  // variacaoCaixa (CPC 03)
+  dreEbitdaCaixa:       FinancialMetric<number | null>;  // EBITDA proxy cash-basis
+  dreMargemEbitdaCaixa: FinancialMetric<number | null>;  // margem EBITDA proxy (0-1)
+  dreReceitaCaixa:      FinancialMetric<number | null>;  // receita top-line (cash)
   // ── Snapshot / planning (from awq-group-data) ────────────────────────────
-  totalRevenue:        FinancialMetric<number>;
+  totalRevenue:         FinancialMetric<number>;
   ebitda:              FinancialMetric<number>;
   ebitdaMargin:        FinancialMetric<number>;
   netIncome:           FinancialMetric<number>;
@@ -149,6 +158,49 @@ export async function getAWQGroupKPIs(): Promise<AWQGroupKPIs> {
             : undefined,
         })
       : emptyMetric("SUM(closingBalance por conta ingerida)", "AWQ Group"),
+
+    // ── Real — DFC / DRE cash-basis ────────────────────────────────────────
+    dfcVariacaoCaixa: has
+      ? realMetric(q.dfcStatement.variacaoCaixa, {
+          entity:           "AWQ Group (consolidado)",
+          period:           realPeriod,
+          calculation_rule: "FCO.liquido + FCInv.liquido + FCFin.liquido (CPC 03 / IAS 7)",
+          reconciliation_status: recon,
+          coverage_status:  covStatus,
+        })
+      : emptyMetric("variacaoCaixa = FCO + FCInv + FCFin", "AWQ Group"),
+
+    dreEbitdaCaixa: has
+      ? realMetric(q.dreStatement.ebitda, {
+          entity:           "AWQ Group (consolidado)",
+          period:           realPeriod,
+          calculation_rule: "receita(cash) − custo(cash) − opex(cash) — proxy, não accrual",
+          reconciliation_status: recon,
+          coverage_status:  covStatus,
+          note:             "Cash-basis proxy — não é EBITDA accrual GAAP",
+        })
+      : emptyMetric("EBITDA proxy cash-basis", "AWQ Group"),
+
+    dreMargemEbitdaCaixa: has
+      ? realMetric(q.dreStatement.ebitdaMargin, {
+          entity:           "AWQ Group (consolidado)",
+          period:           realPeriod,
+          calculation_rule: "dreEbitdaCaixa / dreReceitaCaixa",
+          reconciliation_status: recon,
+          coverage_status:  covStatus,
+          note:             "Cash-basis proxy — não é margem EBITDA GAAP",
+        })
+      : emptyMetric("Margem EBITDA proxy cash-basis", "AWQ Group"),
+
+    dreReceitaCaixa: has
+      ? realMetric(q.dreStatement.receita, {
+          entity:           "AWQ Group (consolidado)",
+          period:           realPeriod,
+          calculation_rule: "SUM(transactions WHERE dreEffect=receita AND direction=credit)",
+          reconciliation_status: recon,
+          coverage_status:  covStatus,
+        })
+      : emptyMetric("Receita top-line (cash-basis, dreEffect=receita)", "AWQ Group"),
 
     // ── Snapshot metrics ──────────────────────────────────────────────────
     totalRevenue: snapshotMetric(consolidated.revenue, {

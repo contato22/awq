@@ -6,6 +6,7 @@
 // When hasData === false, render honest empty state.
 
 import Header from "@/components/Header";
+import ReconciliationReviewTable, { type ReviewItem } from "@/components/ReconciliationReviewTable";
 import {
   Zap,
   DollarSign,
@@ -614,66 +615,44 @@ export default async function AwqCashflowPage() {
           </div>
         )}
 
-        {/* ── Fila de Revisão — reconciliationStatus ───────────────────────── */}
-        {q.hasData && (q.reconciliationQueue.em_revisao > 0 || q.reconciliationQueue.pendente > 0) && (
-          <div className="card p-5">
-            <h2 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
-              <AlertCircle size={15} className="text-amber-500" />
-              Fila de Revisão — Conciliação Bancária
-            </h2>
-            <div className="flex flex-wrap gap-4 mb-4">
-              {[
-                { label: "Pendente",     value: q.reconciliationQueue.pendente,     color: "text-amber-600",  bg: "bg-amber-50"   },
-                { label: "Em Revisão",   value: q.reconciliationQueue.em_revisao,   color: "text-orange-600", bg: "bg-orange-50"  },
-                { label: "Classificado", value: q.reconciliationQueue.classificado, color: "text-emerald-600",bg: "bg-emerald-50" },
-                { label: "Conciliado",   value: q.reconciliationQueue.conciliado,   color: "text-brand-600",  bg: "bg-brand-50"   },
-              ].map((s) => (
-                <div key={s.label} className={`${s.bg} rounded-lg px-3 py-2 text-center min-w-[80px]`}>
-                  <div className={`text-lg font-bold ${s.color}`}>{s.value.toLocaleString("pt-BR")}</div>
-                  <div className="text-[10px] text-gray-500">{s.label}</div>
-                </div>
-              ))}
-            </div>
-            {q.reconciliationQueue.topItems.length > 0 && (
-              <div className="table-scroll">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="text-left py-1.5 px-2 text-[10px] font-semibold text-gray-500">Data</th>
-                      <th className="text-left py-1.5 px-2 text-[10px] font-semibold text-gray-500">Descrição</th>
-                      <th className="text-left py-1.5 px-2 text-[10px] font-semibold text-gray-500">Entidade</th>
-                      <th className="text-left py-1.5 px-2 text-[10px] font-semibold text-gray-500">Categoria</th>
-                      <th className="text-right py-1.5 px-2 text-[10px] font-semibold text-gray-500">Valor</th>
-                      <th className="text-left py-1.5 px-2 text-[10px] font-semibold text-gray-500">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {q.reconciliationQueue.topItems.map((item) => (
-                      <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50/80">
-                        <td className="py-1.5 px-2 text-gray-500">{fmtDate(item.date)}</td>
-                        <td className="py-1.5 px-2 text-gray-700 max-w-[200px] truncate" title={item.description}>
-                          {item.description}
-                        </td>
-                        <td className="py-1.5 px-2 text-gray-500">{ENTITY_LABELS[item.entity]}</td>
-                        <td className="py-1.5 px-2 text-gray-500">{CATEGORY_LABELS[item.category]}</td>
-                        <td className={`py-1.5 px-2 text-right font-semibold ${item.direction === "credit" ? "text-emerald-600" : "text-red-600"}`}>
-                          {item.direction === "credit" ? "+" : "−"}{fmtBRL(item.amount)}
-                        </td>
-                        <td className="py-1.5 px-2">
-                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold ${
-                            item.status === "em_revisao" ? "bg-orange-100 text-orange-700" : "bg-amber-100 text-amber-700"
-                          }`}>
-                            {item.status === "em_revisao" ? "Em Revisão" : "Pendente"}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+        {/* ── Fila de Revisão — conciliação manual interativa ──────────────── */}
+        {q.hasData && (() => {
+          const reviewItems: ReviewItem[] = q.reconciliationQueue.topItems.map((item) => ({
+            id:            item.id,
+            date:          item.date,
+            description:   item.description,
+            amount:        item.amount,
+            direction:     item.direction,
+            entityLabel:   ENTITY_LABELS[item.entity] ?? item.entity,
+            categoryLabel: CATEGORY_LABELS[item.category] ?? item.category,
+            status:        item.status,
+            note:          item.note,
+            cashflowClass: item.cashflowClass,
+            dreEffect:     item.dreEffect,
+          }));
+          return (
+            <div className="card p-5">
+              <h2 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
+                <AlertCircle size={15} className="text-amber-500" />
+                Fila de Revisão — Conciliação Bancária
+              </h2>
+              <div className="flex flex-wrap gap-4 mb-4">
+                {[
+                  { label: "Pendente",     value: q.reconciliationQueue.pendente,     color: "text-amber-600",  bg: "bg-amber-50"   },
+                  { label: "Em Revisão",   value: q.reconciliationQueue.em_revisao,   color: "text-orange-600", bg: "bg-orange-50"  },
+                  { label: "Classificado", value: q.reconciliationQueue.classificado, color: "text-emerald-600",bg: "bg-emerald-50" },
+                  { label: "Conciliado",   value: q.reconciliationQueue.conciliado,   color: "text-brand-600",  bg: "bg-brand-50"   },
+                ].map((s) => (
+                  <div key={s.label} className={`${s.bg} rounded-lg px-3 py-2 text-center min-w-[80px]`}>
+                    <div className={`text-lg font-bold ${s.color}`}>{s.value.toLocaleString("pt-BR")}</div>
+                    <div className="text-[10px] text-gray-500">{s.label}</div>
+                  </div>
+                ))}
               </div>
-            )}
-          </div>
-        )}
+              <ReconciliationReviewTable items={reviewItems} />
+            </div>
+          );
+        })()}
 
         {/* ── Cash Position per Account ────────────────────────────────────── */}
         <div className="card p-5">

@@ -47,12 +47,20 @@ export default async function AwqKpisPage() {
   // ── Real KPI cards (cash-basis, from bank pipeline) ─────────────────────────
   const realCards = [
     {
-      label:   "Entradas Ops.",
-      metric:  kpis.cashInflows,
-      display: kpis.cashInflows.value !== null ? fmtBRL(kpis.cashInflows.value) : "—",
-      icon:    Zap,
+      label:   "Receita (Cash)",
+      metric:  kpis.dreReceitaCaixa,
+      display: kpis.dreReceitaCaixa.value !== null ? fmtBRL(kpis.dreReceitaCaixa.value) : "—",
+      icon:    ArrowUpRight,
       color:   "text-emerald-600",
       bg:      "bg-emerald-50",
+    },
+    {
+      label:   "EBITDA Proxy (Cash)",
+      metric:  kpis.dreEbitdaCaixa,
+      display: kpis.dreEbitdaCaixa.value !== null ? fmtBRL(kpis.dreEbitdaCaixa.value) : "—",
+      icon:    BarChart3,
+      color:   kpis.dreEbitdaCaixa.value !== null && (kpis.dreEbitdaCaixa.value as number) >= 0 ? "text-brand-600" : "text-red-600",
+      bg:      kpis.dreEbitdaCaixa.value !== null && (kpis.dreEbitdaCaixa.value as number) >= 0 ? "bg-brand-50"    : "bg-red-50",
     },
     {
       label:   "FCO Líquido",
@@ -61,6 +69,14 @@ export default async function AwqKpisPage() {
       icon:    TrendingUp,
       color:   kpis.operationalNetCash.value !== null && (kpis.operationalNetCash.value as number) >= 0 ? "text-emerald-600" : "text-red-600",
       bg:      kpis.operationalNetCash.value !== null && (kpis.operationalNetCash.value as number) >= 0 ? "bg-emerald-50" : "bg-red-50",
+    },
+    {
+      label:   "Variação de Caixa (DFC)",
+      metric:  kpis.dfcVariacaoCaixa,
+      display: kpis.dfcVariacaoCaixa.value !== null ? fmtBRL(kpis.dfcVariacaoCaixa.value) : "—",
+      icon:    Zap,
+      color:   kpis.dfcVariacaoCaixa.value !== null && (kpis.dfcVariacaoCaixa.value as number) >= 0 ? "text-violet-700" : "text-red-600",
+      bg:      kpis.dfcVariacaoCaixa.value !== null && (kpis.dfcVariacaoCaixa.value as number) >= 0 ? "bg-violet-50"    : "bg-red-50",
     },
     {
       label:   "Caixa Total",

@@ -29,6 +29,8 @@ import {
   type EntityLayer,
   type ManagerialCategory,
   type ReconciliationStatus,
+  type CashflowClass,
+  type DREEffect,
 } from "./financial-db";
 
 import {
@@ -290,15 +292,17 @@ export interface DREStatement {
 }
 
 export interface ReconciliationReviewItem {
-  id:          string;
-  date:        string;
-  description: string;
-  amount:      number;
-  direction:   "credit" | "debit";
-  entity:      EntityLayer;
-  category:    ManagerialCategory;
-  status:      ReconciliationStatus;
-  note:        string | null;
+  id:            string;
+  date:          string;
+  description:   string;
+  amount:        number;
+  direction:     "credit" | "debit";
+  entity:        EntityLayer;
+  category:      ManagerialCategory;
+  status:        ReconciliationStatus;
+  note:          string | null;
+  cashflowClass: CashflowClass | null;
+  dreEffect:     DREEffect | null;
 }
 
 /** Per-status counts + top 10 items needing human review. */
@@ -782,15 +786,17 @@ export async function buildFinancialQuery(): Promise<FinancialQueryResult> {
     .sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount))
     .slice(0, 10)
     .map((t) => ({
-      id:          t.id,
-      date:        t.transactionDate,
-      description: t.descriptionOriginal,
-      amount:      Math.abs(t.amount),
-      direction:   t.direction,
-      entity:      t.entity,
-      category:    t.managerialCategory,
-      status:      t.reconciliationStatus,
-      note:        t.classificationNote,
+      id:            t.id,
+      date:          t.transactionDate,
+      description:   t.descriptionOriginal,
+      amount:        Math.abs(t.amount),
+      direction:     t.direction,
+      entity:        t.entity,
+      category:      t.managerialCategory,
+      status:        t.reconciliationStatus,
+      note:          t.classificationNote,
+      cashflowClass: t.cashflowClass ?? null,
+      dreEffect:     t.dreEffect ?? null,
     }));
   const reconciliationQueue: ReconciliationQueue = {
     ...rqCounts,
