@@ -397,7 +397,7 @@ export interface ForecastPoint {
   actual?: number;
 }
 
-// ⚠  CORRECTED 2026-04-15 (final) — campo `actual` REMOVIDO de todos os meses.
+// ⚠  CORRECTED 2026-04-15 (final v2) — Abr–Dez removidos. Somente Jan–Mar permanecem.
 //
 // REGRA: realizado só pode vir de financial-query.ts (transações conciliadas).
 // monthlyRevenue (e toda a camada de planejamento) é snapshot criado manualmente —
@@ -406,16 +406,25 @@ export interface ForecastPoint {
 // HISTÓRICO DE CORREÇÕES:
 //   2026-04-08: Subtrai Advisor (~508K/mês). Resultado ainda errado (Caza em escala antiga).
 //   2026-04-15a: Deriva actuals de monthlyRevenue. Mas monthlyRevenue também é snapshot.
-//   2026-04-15b (este): Remove `actual` completamente. Nenhum mês tem dado real confirmado.
+//   2026-04-15b: Remove `actual` completamente.
+//   2026-04-15c (este): Remove Abr–Dez. Aquelas projeções (3.6M–5.1M/mês) não têm:
+//     - base histórica documentada (run rate real é 718K–914K/mês)
+//     - metodologia de crescimento
+//     - premissas explícitas
+//     - regime declarado
+//     - confidence_status
+//     Mantivê-las como "forecast" viola o contrato de dados. REMOVIDAS.
 //
-// CRITÉRIO PARA RE-INTRODUZIR `actual`:
-//   Somente quando financial-query.ts retornar hasData=true para o mês correspondente.
-//   A coluna "Realizado" na UI é bloqueada enquanto não houver extrato ingerido.
+// CRITÉRIO PARA RE-INTRODUZIR projeções futuras:
+//   Modelo de forecast deve declarar: base histórica, período, premissas, método,
+//   fonte, regime, confidence_status, última atualização.
+//   Enquanto não houver, o frontend exibe estado vazio honesto (Option C).
 //
-// Todos os 12 meses são projeções de planejamento (base/bull/bear).
-// Para Jan–Mar, base=bull=bear derivado de monthlyRevenue (ordem de magnitude do plano).
+// Somente Jan–Mar permanecem — são referências de snapshot de planejamento,
+// não forecasts. base=bull=bear (sem modelo de cenários rodado).
 export const revenueForecasts: ForecastPoint[] = [
-  // Jan–Mar: sem `actual` — monthlyRevenue é snapshot, não extrato bancário
+  // Jan–Mar: referência snapshot — monthlyRevenue é planejamento, não extrato bancário
+  // base=bull=bear porque nenhum modelo de cenários foi rodado para este período
   {
     month: "Jan/26",
     base: monthlyRevenue[0].total,
@@ -434,16 +443,9 @@ export const revenueForecasts: ForecastPoint[] = [
     bull: monthlyRevenue[2].total,
     bear: monthlyRevenue[2].total,
   },
-  // Abr–Dez: projeções do modelo de planejamento (forward-looking targets)
-  { month: "Abr/26", base: 3_600_000, bull: 3_960_000, bear: 3_060_000 },
-  { month: "Mai/26", base: 3_850_000, bull: 4_235_000, bear: 3_080_000 },
-  { month: "Jun/26", base: 4_100_000, bull: 4_510_000, bear: 3_280_000 },
-  { month: "Jul/26", base: 4_300_000, bull: 4_730_000, bear: 3_440_000 },
-  { month: "Ago/26", base: 4_450_000, bull: 4_895_000, bear: 3_560_000 },
-  { month: "Set/26", base: 4_600_000, bull: 5_060_000, bear: 3_680_000 },
-  { month: "Out/26", base: 4_750_000, bull: 5_225_000, bear: 3_800_000 },
-  { month: "Nov/26", base: 4_900_000, bull: 5_390_000, bear: 3_920_000 },
-  { month: "Dez/26", base: 5_100_000, bull: 5_610_000, bear: 4_080_000 },
+  // Abr–Dez: REMOVIDOS 2026-04-15c — sem base histórica, sem metodologia, sem premissas.
+  // Discrepância comprovada: run rate atual ~800K/mês vs projeção 3.6M–5.1M/mês (4–6× inflado).
+  // Serão re-adicionados quando um modelo de forecast documentado for construído.
 ];
 
 // ─── Cash Flow ────────────────────────────────────────────────────────────────
@@ -555,24 +557,29 @@ export interface BuForecastScenario {
   growth:       number; // % YoY growth in base scenario
 }
 
-// ⚠  CORRECTED 2026-04-08 — Advisor entry removed. Advisor is pre_revenue with
-// revenue=0 in buData. A revenue forecast scenario for a pre_revenue BU is
-// meaningless and contradicts buData. Removed entirely.
+// ⚠  CLEARED 2026-04-15c — fullYearBase/Bull/Bear projections removed.
 //
-// ⚠  CORRECTED 2026-04-15 — JACQES ytd was 4_820_000 (pre-correction leftover from
-// when JACQES had inflated revenue figures). Corrected to match buData.jacqes.revenue
-// = 27_750 (YTD Jan–Abr: 6.490×3 + 8.280, source: Notion CRM confirmed).
-// fullYearBase/Bull/Bear remain as planning model targets (forward-looking scenarios).
-export const buForecastScenarios: BuForecastScenario[] = [
-  {
-    bu: "JACQES",      color: "bg-brand-500",   accent: "text-brand-600",
-    ytd: 27_750, fullYearBase: 19_800_000, fullYearBull: 21_780_000, fullYearBear: 16_830_000, growth: 12.4,
-  },
-  {
-    bu: "Caza Vision", color: "bg-emerald-500", accent: "text-emerald-600",
-    ytd: 2_418_000, fullYearBase: 12_100_000, fullYearBull: 13_310_000, fullYearBear:  9_680_000, growth: 28.3,
-  },
-];
+// WHY CLEARED:
+//   JACQES: annualized run rate = 83.250/ano (MRR 6.490 × 12).
+//           fullYearBase was 19.800.000 — 238× the actual run rate. No methodology.
+//   Caza:   annualized run rate ≈ 7.254.000/ano (monthlyRevenue ~804K × 9 remaining months).
+//           fullYearBase was 12.100.000 — 67% premium with no documented basis.
+//   growth: "+12.4%/+28.3% vs 2025" — no verifiable 2025 baseline in the data store.
+//
+// A forecast scenario MUST declare:
+//   - base histórica (período e fonte verificável)
+//   - metodologia de crescimento
+//   - premissas explícitas
+//   - regime (cash vs accrual)
+//   - confidence_status
+//   - última atualização
+// None of the removed values met these criteria. Displaying them as "forecast" was dishonest.
+//
+// RE-POPULATION CRITERIA:
+//   When a documented forecast model is built with real historical baseline,
+//   re-add entries here with all required metadata fields.
+export const buForecastScenarios: BuForecastScenario[] = [];
+// CLEARED — see comment above. UI shows honest empty state (Option C).
 
 // ─── Risk Categories (qualitative risk signals with quantified exposure) ──────
 //

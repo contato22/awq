@@ -65,7 +65,7 @@ export const SNAPSHOT_REGISTRY: SnapshotSource[] = [
       // awq-derived-metrics is the canonical derivation layer (P2 — implemented).
       "lib/awq-derived-metrics.ts (canonical derivation layer — all pages route through here)",
       // Forecast page consumers (via awq-derived-metrics):
-      "app/awq/forecast/page.tsx (revenueForecasts, forecastAccuracyHistory, buForecastScenarios, consolidated — ALL labeled SNAPSHOT in UI)",
+      "app/awq/forecast/page.tsx (revenueForecasts Q1-only, forecastAccuracyHistory=[], buForecastScenarios=[] — OPÇÃO C estado vazio honesto)",
     ],
     migratesTo: "lib/financial-query.ts (cash-basis) for FCO/caixa; " +
                 "accrual P&L pipeline (not yet built) for revenue/EBITDA/margins",
@@ -79,14 +79,16 @@ export const SNAPSHOT_REGISTRY: SnapshotSource[] = [
       "BUDGET_LINES derived from buData (no drift). PAYBACK_ESTIMATES derived from buData. " +
       "Do NOT add new hardcoded revenue/expense/EBITDA values to awq-group-data. " +
       "All pages show explicit SNAPSHOT banners in UI. " +
-      "AUDIT 2026-04-15: /awq/forecast page fully audited. " +
-      "Issues found and corrected: (1) buForecastScenarios.JACQES.ytd was 4_820_000 (pre-correction leftover) — corrected to 27_750 (buData.jacqes.revenue). " +
-      "(2) revenueForecasts[Jan-Mar].actual shown as green 'Realizado' badge — corrected to amber 'SNAPSHOT' badge. " +
-      "(3) forecastAccuracyHistory accuracy metric compared snapshot vs snapshot — now labeled explicitly. " +
-      "(4) consolidated.revenue in tfoot shown as bold 'actual' — now labeled SNAPSHOT. " +
-      "(5) Bear scenario used ArrowUpRight — corrected to ArrowDownRight. " +
-      "(6) '+375% vs ritmo atual' delta calculation (fullYearBase / consolidated.revenue * 4) was meaningless (snapshot/snapshot cross) — removed and replaced with honest bull/bear range. " +
-      "Source metadata (source_type, source_name, regime, period, confidence_status, reconciliation_status) now displayed in UI footer of /awq/forecast.",
+      "AUDIT 2026-04-15: /awq/forecast page fully audited (multiple rounds). " +
+      "FINAL STATE (2026-04-15c — Opção C): " +
+      "(1) buForecastScenarios cleared to [] — fullYearBase/Bull/Bear projections had no methodology; JACQES 238× run rate discrepancy, Caza 67% premium without basis. " +
+      "(2) revenueForecasts Abr–Dez removed — 3.6M–5.1M/mês projections with no historical base, no growth methodology, no premises; run rate actual ~800K/mês. " +
+      "(3) revenueForecasts retains Jan–Mar only as SNAPSHOT reference (base=bull=bear, no scenario model). " +
+      "(4) forecastAccuracyHistory cleared to [] — historical model incompatible with current scale. " +
+      "(5) actual field removed from all revenueForecasts entries — monthlyRevenue is planning data, not real transactions. " +
+      "(6) Summary cards (fullYearBase/Bull/Bear/Accuracy) replaced with Q1 reference card + forecast requirements checklist. " +
+      "UI shows honest empty state with 8-item requirements checklist for activating real forecast. " +
+      "Non-contamination confirmed: revenueForecasts/buForecastScenarios/forecastAccuracyHistory consumed ONLY by /awq/forecast page.",
   },
   {
     file:     "lib/data.ts",
