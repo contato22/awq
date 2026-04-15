@@ -397,22 +397,58 @@ export interface ForecastPoint {
   actual?: number;
 }
 
-// ⚠  CORRECTED 2026-04-08 — Jan–Mar actuals updated to exclude Advisor (pre_revenue).
-// Previous: 2,640,000 / 2,838,000 / 3,332,000 — those totals included advisor R$508K/528K/536K.
-// Corrected actuals = jacqes + caza only (from _monthlyRaw). base/bull/bear kept as issued.
+// ⚠  CORRECTED 2026-04-15 — Jan–Mar actuals now DERIVED from monthlyRevenue (single source of truth).
+//
+// PREVIOUS BUG (2026-04-08 correction was incomplete):
+//   The 2026-04-08 correction removed Advisor (~508K/month) from old totals
+//   (2.640K → 2.132K / 2.838K → 2.310K / 3.332K → 2.796K) but left Caza at the old scale
+//   (~1.7M/month) instead of the corrected buData scale (~712K–908K/month from _monthlyRaw).
+//   Result: actuals (2.132K/2.310K/2.796K) were 3× larger than monthlyRevenue totals
+//   (718K/804K/914K), creating an internal inconsistency within the snapshot layer.
+//
+// CORRECTION:
+//   Jan–Mar actuals now derived from monthlyRevenue[*].total (no drift possible).
+//   monthlyRevenue is the canonical monthly P&L snapshot: jacqes + caza + advisor.
+//   base/bull/bear for Jan–Mar also updated to match actuals (months already realized).
+//   Apr–Dec projections kept as planning model targets.
+//
+// NUMBERS REMOVED:
+//   Jan actual 2_132_000 → replaced by monthlyRevenue[0].total = 718_490
+//   Fev actual 2_310_000 → replaced by monthlyRevenue[1].total = 804_490
+//   Mar actual 2_796_000 → replaced by monthlyRevenue[2].total = 914_490
 export const revenueForecasts: ForecastPoint[] = [
-  { month: "Jan/26", base: 2_132_000, bull: 2_132_000, bear: 2_132_000, actual: 2_132_000 },
-  { month: "Fev/26", base: 2_310_000, bull: 2_310_000, bear: 2_310_000, actual: 2_310_000 },
-  { month: "Mar/26", base: 2_796_000, bull: 2_796_000, bear: 2_796_000, actual: 2_796_000 },
-  { month: "Abr/26", base: 3_600_000, bull: 3_960_000, bear: 3_060_000  },
-  { month: "Mai/26", base: 3_850_000, bull: 4_235_000, bear: 3_080_000  },
-  { month: "Jun/26", base: 4_100_000, bull: 4_510_000, bear: 3_280_000  },
-  { month: "Jul/26", base: 4_300_000, bull: 4_730_000, bear: 3_440_000  },
-  { month: "Ago/26", base: 4_450_000, bull: 4_895_000, bear: 3_560_000  },
-  { month: "Set/26", base: 4_600_000, bull: 5_060_000, bear: 3_680_000  },
-  { month: "Out/26", base: 4_750_000, bull: 5_225_000, bear: 3_800_000  },
-  { month: "Nov/26", base: 4_900_000, bull: 5_390_000, bear: 3_920_000  },
-  { month: "Dez/26", base: 5_100_000, bull: 5_610_000, bear: 4_080_000  },
+  // Jan–Mar: actuals derived from monthlyRevenue (single source, no drift)
+  {
+    month: "Jan/26",
+    base:   monthlyRevenue[0].total,
+    bull:   monthlyRevenue[0].total,
+    bear:   monthlyRevenue[0].total,
+    actual: monthlyRevenue[0].total,
+  },
+  {
+    month: "Fev/26",
+    base:   monthlyRevenue[1].total,
+    bull:   monthlyRevenue[1].total,
+    bear:   monthlyRevenue[1].total,
+    actual: monthlyRevenue[1].total,
+  },
+  {
+    month: "Mar/26",
+    base:   monthlyRevenue[2].total,
+    bull:   monthlyRevenue[2].total,
+    bear:   monthlyRevenue[2].total,
+    actual: monthlyRevenue[2].total,
+  },
+  // Apr–Dez: planning model projections (forward-looking targets)
+  { month: "Abr/26", base: 3_600_000, bull: 3_960_000, bear: 3_060_000 },
+  { month: "Mai/26", base: 3_850_000, bull: 4_235_000, bear: 3_080_000 },
+  { month: "Jun/26", base: 4_100_000, bull: 4_510_000, bear: 3_280_000 },
+  { month: "Jul/26", base: 4_300_000, bull: 4_730_000, bear: 3_440_000 },
+  { month: "Ago/26", base: 4_450_000, bull: 4_895_000, bear: 3_560_000 },
+  { month: "Set/26", base: 4_600_000, bull: 5_060_000, bear: 3_680_000 },
+  { month: "Out/26", base: 4_750_000, bull: 5_225_000, bear: 3_800_000 },
+  { month: "Nov/26", base: 4_900_000, bull: 5_390_000, bear: 3_920_000 },
+  { month: "Dez/26", base: 5_100_000, bull: 5_610_000, bear: 4_080_000 },
 ];
 
 // ─── Cash Flow ────────────────────────────────────────────────────────────────
@@ -495,17 +531,21 @@ export interface ForecastAccuracyPoint {
   error:    number;   // % error: positive = underestimated, negative = overestimated
 }
 
-// ⚠  CORRECTED 2026-04-08 — actuals updated to exclude Advisor (pre_revenue, revenue=0).
-// Previous actuals (2,640K / 2,838K / 3,332K) matched old monthlyRevenue totals (incl. advisor).
-// Corrected actuals = jacqes + caza only (from _monthlyRaw).
-// Forecasts adjusted proportionally (original forecasts included advisor projections):
-//   Jan: 2,580K → 2,084K  |  Fev: 2,900K → 2,361K  |  Mar: 3,280K → 2,752K
-// Relative forecast accuracy (error %) preserved at ~2.3% / -2.1% / 1.6%.
-export const forecastAccuracyHistory: ForecastAccuracyPoint[] = [
-  { month: "Jan/26", forecast: 2_084_000, actual: 2_132_000, error:  2.3 },
-  { month: "Fev/26", forecast: 2_361_000, actual: 2_310_000, error: -2.1 },
-  { month: "Mar/26", forecast: 2_752_000, actual: 2_796_000, error:  1.6 },
-];
+// ⚠  CLEARED 2026-04-15 — historical forecast accuracy data was invalid and has been removed.
+//
+// WHY CLEARED:
+//   Historical forecasts (Jan: 2.084K / Fev: 2.361K / Mar: 2.752K) were issued when
+//   the business model assumed Caza Vision generating ~1.7M/month. Current corrected
+//   actuals (718K / 804K / 914K from monthlyRevenue) reflect a different Caza scale (~800K/month).
+//   Comparing the old forecasts to the new actuals produces ~-65% errors that measure the
+//   MODEL CORRECTION, not forecasting quality. Displaying this as "Forecast Accuracy" is
+//   misleading and has been removed.
+//
+// RE-POPULATION CRITERIA:
+//   - New forecasts must be issued based on the CURRENT data model (monthlyRevenue scale)
+//   - Actual values must come from financial-query.ts (real bank transactions) — NOT snapshot
+//   - Until then, forecastAccuracyHistory remains empty and UI shows empty state
+export const forecastAccuracyHistory: ForecastAccuracyPoint[] = [];
 
 // ─── Per-BU full-year forecast scenarios ─────────────────────────────────────
 

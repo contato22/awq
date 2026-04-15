@@ -90,8 +90,13 @@ function SourceBadge({
 
 // ─── Derived from canonical stores ───────────────────────────────────────────
 
-const avgError    = forecastAccuracyHistory.reduce((s, r) => s + Math.abs(r.error), 0) / forecastAccuracyHistory.length;
-const avgAccuracy = 100 - avgError;
+// Guard: forecastAccuracyHistory may be empty (cleared when historical data was invalid).
+// If empty, accuracy metrics are unavailable — show empty state, do not divide by zero.
+const hasAccuracyHistory = forecastAccuracyHistory.length > 0;
+const avgError    = hasAccuracyHistory
+  ? forecastAccuracyHistory.reduce((s, r) => s + Math.abs(r.error), 0) / forecastAccuracyHistory.length
+  : null;
+const avgAccuracy = avgError !== null ? 100 - avgError : null;
 
 const fullYearBase = revenueForecasts.reduce((s, r) => s + r.base, 0);
 const fullYearBull = revenueForecasts.reduce((s, r) => s + r.bull, 0);
@@ -209,14 +214,16 @@ export default async function AwqForecastPage() {
             },
             {
               label:   "Forecast Accuracy",
-              value:   `${avgAccuracy.toFixed(1)}%`,
-              sub:     "SNAPSHOT vs SNAPSHOT",
-              delta:   `Erro médio: ±${avgError.toFixed(1)}% (base: planejamento, não real)`,
+              value:   avgAccuracy !== null ? `${avgAccuracy.toFixed(1)}%` : "—",
+              sub:     avgAccuracy !== null ? "SNAPSHOT vs SNAPSHOT" : "Sem histórico válido",
+              delta:   avgAccuracy !== null
+                ? `Erro médio: ±${avgError!.toFixed(1)}% (base: planejamento, não real)`
+                : "Histórico limpo — modelo anterior incompatível com dados atuais",
               icon:    Info,
-              color:   "text-amber-700",
-              bg:      "bg-amber-50",
-              variant: "snapshot" as BadgeVariant,
-              badgeTitle: "Comparação entre forecast de planejamento e realizados de planejamento — sem transações reais",
+              color:   "text-gray-500",
+              bg:      "bg-gray-50",
+              variant: avgAccuracy !== null ? ("snapshot" as BadgeVariant) : ("empty" as BadgeVariant),
+              badgeTitle: "forecastAccuracyHistory[] — vazio: dados históricos baseados em escala de negócio anterior, removidos em 2026-04-15",
               isNegative: false,
             },
           ].map((card) => {
@@ -350,40 +357,62 @@ export default async function AwqForecastPage() {
             <div className="card p-5">
               <div className="flex items-center justify-between mb-1">
                 <h2 className="text-sm font-semibold text-gray-900">Forecast Accuracy</h2>
-                <SourceBadge variant="snapshot" title="Ambos os lados (forecast e realizado) são dados de planejamento" />
+                <SourceBadge
+                  variant={hasAccuracyHistory ? "snapshot" : "empty"}
+                  title="forecastAccuracyHistory[] · awq-group-data.ts"
+                />
               </div>
-              <p className="text-[10px] text-amber-700 bg-amber-50 border border-amber-100 rounded px-2 py-1 mb-3">
-                <strong>Atenção:</strong> Esta métrica compara forecast de planejamento vs realizados de planejamento.
-                Não é uma medida de acurácia real até que existam realizados de extrato bancário.
-                Fonte: <code className="font-mono text-[9px]">forecastAccuracyHistory[]</code> (awq-group-data.ts).
-              </p>
-              <div className="space-y-3">
-                {forecastAccuracyHistory.map((row) => {
-                  const acc   = 100 - Math.abs(row.error);
-                  const isPos = row.error >= 0;
-                  return (
-                    <div key={row.month}>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs text-gray-500">{row.month}</span>
-                        <div className="flex items-center gap-2 text-[11px]">
-                          <span className="text-gray-400">Plan: {fmtR(row.forecast)}</span>
-                          <span className={`font-bold ${isPos ? "text-emerald-600" : "text-red-600"}`}>
-                            {row.error >= 0 ? "+" : ""}{row.error}%
-                          </span>
-                        </div>
-                      </div>
-                      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-amber-400 rounded-full" style={{ width: `${acc}%` }} />
-                      </div>
-                      <div className="text-[10px] text-gray-400 text-right mt-0.5">{acc.toFixed(1)}% acurácia (planejamento)</div>
-                    </div>
-                  );
-                })}
-                <div className="pt-2 border-t border-gray-200 flex items-center justify-between">
-                  <span className="text-xs text-gray-500">Média (snapshot vs snapshot)</span>
-                  <span className="text-xs font-bold text-amber-600">{avgAccuracy.toFixed(1)}%</span>
+
+              {!hasAccuracyHistory ? (
+                /* Empty state: history was cleared because it was based on an incompatible model */
+                <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-4 text-center">
+                  <p className="text-xs font-semibold text-gray-500 mb-1">Sem histórico de acurácia disponível</p>
+                  <p className="text-[10px] text-gray-400 leading-relaxed">
+                    Os forecasts históricos foram emitidos com base em um modelo de negócio anterior
+                    (escala Caza ~1.7M/mês) incompatível com os dados atuais (~800K/mês).
+                    Comparar os dois produziria erros de ~−65% que medem a correção de modelo, não a qualidade do forecast.
+                  </p>
+                  <p className="text-[10px] text-gray-400 mt-1.5">
+                    Este campo será populado quando novos forecasts forem emitidos com base no modelo atual
+                    e realizados virem de <code className="font-mono">financial-query.ts</code>.
+                  </p>
                 </div>
-              </div>
+              ) : (
+                /* Has history: show with disclaimer */
+                <>
+                  <p className="text-[10px] text-amber-700 bg-amber-50 border border-amber-100 rounded px-2 py-1 mb-3">
+                    <strong>Atenção:</strong> Esta métrica compara forecast de planejamento vs realizados de planejamento.
+                    Não é uma medida de acurácia real até que existam realizados de extrato bancário.
+                  </p>
+                  <div className="space-y-3">
+                    {forecastAccuracyHistory.map((row) => {
+                      const acc   = 100 - Math.abs(row.error);
+                      const isPos = row.error >= 0;
+                      return (
+                        <div key={row.month}>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs text-gray-500">{row.month}</span>
+                            <div className="flex items-center gap-2 text-[11px]">
+                              <span className="text-gray-400">Plan: {fmtR(row.forecast)}</span>
+                              <span className={`font-bold ${isPos ? "text-emerald-600" : "text-red-600"}`}>
+                                {row.error >= 0 ? "+" : ""}{row.error}%
+                              </span>
+                            </div>
+                          </div>
+                          <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                            <div className="h-full bg-amber-400 rounded-full" style={{ width: `${acc}%` }} />
+                          </div>
+                          <div className="text-[10px] text-gray-400 text-right mt-0.5">{acc.toFixed(1)}% acurácia (planejamento)</div>
+                        </div>
+                      );
+                    })}
+                    <div className="pt-2 border-t border-gray-200 flex items-center justify-between">
+                      <span className="text-xs text-gray-500">Média (snapshot vs snapshot)</span>
+                      <span className="text-xs font-bold text-amber-600">{avgAccuracy!.toFixed(1)}%</span>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Per-BU Forecast Scenarios */}
