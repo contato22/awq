@@ -123,7 +123,11 @@ export default function PoCPage() {
   const meta          = 120000;
   const om            = venture?.byCategoria["O&M"] ?? 40411.97;
   const seguro        = venture?.byCategoria["Seguro"] ?? 2095.02;
-  const faturamento   = Object.values(venture?.byCategoria ?? {}).reduce((s, v) => s + v, 0) || 433687.08;
+  // ⚠ CORRECTED 2026-04-15 — removed || 433687.08 magic fallback (untraceable, no verified source).
+  // When venture=null (loading), faturamento=0 (pending). Once data loads, sum = O&M+Seguro+Integração.
+  const faturamento: number = venture
+    ? (Object.values(venture.byCategoria) as number[]).reduce((s, v) => s + v, 0)
+    : 0;
   const canais        = (venture?.byCanal ?? [
     { canal: "Não informado", leads: 354, pct: 74, valor: 1189409.49 },
     { canal: "Indicação",     leads: 29,  pct: 6,  valor: 469598.96  },
@@ -145,7 +149,8 @@ export default function PoCPage() {
         {/* LTV:CAC Gauge */}
         <div className="card p-5 flex flex-col items-start">
           <div className="text-sm font-semibold text-gray-900 mb-1">LTV : CAC</div>
-          <div className="text-[11px] text-gray-400 font-medium mb-2">Tempo real</div>
+          {/* ⚠ SNAPSHOT: 38.3x — origin unverified. YoY 2025 page shows 10.8x for that period. */}
+          <div className="text-[11px] text-gray-400 font-medium mb-2">Snapshot · est.</div>
           <div className="flex-1 flex items-center justify-center w-full">
             <Gauge value={38.3} />
           </div>
@@ -260,15 +265,19 @@ export default function PoCPage() {
           <div className="grid grid-cols-3 gap-2 mb-4 text-center">
             <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
               <div className="text-[11px] text-gray-500 flex items-center justify-center gap-1 mb-1 font-medium"><BarChart2 size={11} />Canais</div>
-              <div className="text-xl font-bold text-gray-900 tabular-nums">12</div>
+              <div className="text-xl font-bold text-gray-900 tabular-nums">{canais.length}</div>
             </div>
             <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
               <div className="text-[11px] text-gray-500 mb-1 font-medium">Leads</div>
-              <div className="text-xl font-bold text-gray-900 tabular-nums">481</div>
+              <div className="text-xl font-bold text-gray-900 tabular-nums">
+                {venture?.totalLeads ?? canais.reduce((s, c) => s + c.leads, 0)}
+              </div>
             </div>
             <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
               <div className="text-[11px] text-gray-500 mb-1 font-medium">Valor Total</div>
-              <div className="text-sm font-bold text-gray-900 tabular-nums">R$ 3.546.375</div>
+              <div className="text-sm font-bold text-gray-900 tabular-nums">
+                R$ {fmtBRL(canais.reduce((s, c) => s + c.valor, 0))}
+              </div>
             </div>
           </div>
 

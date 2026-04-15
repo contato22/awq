@@ -10,6 +10,9 @@
     { "id": "AV-008", "nome": "Integração Solar #3", "valor": 46189.00, "categoria": "Integração", "canal": "Site/ADS",      "status": "Fechado", "data": "2026-03-18" }
   ],
   "totalFechado": 42506.99,
+  "_totalFechado_note": "O&M + Seguro only (R$40,411.97 + R$2,095.02). Integração (R$201,189.00) excluded — vesting contract tracks O&M/Seguro separately.",
+  "totalFaturamentoAll": 243696.99,
+  "_totalFaturamentoAll_note": "O&M + Seguro + Integração combined (R$40,411.97 + R$2,095.02 + R$201,189.00). Full gross revenue across all categories.",
   "totalLeads": 481,
   "byCategoria": {
     "O&M":        40411.97,

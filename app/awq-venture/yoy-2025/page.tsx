@@ -45,7 +45,13 @@ function CircleProgress({ pct, size = 48, stroke = 4, color = "#2563eb" }: {
 }
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
-
+//
+// ⚠ SNAPSHOT — All arrays below are hardcoded 2025 historical data.
+// Source: Kommo CRM + internal reconciliation (manually extracted, Apr 2026).
+// 2025 quarterly breakdowns (Q1–Q4) are the "prev" comparison row in each card.
+// 2026 Q1 values (e.g. quarters[0].valor=42506.99) mirror venture-sales.json totalFechado.
+// Migration: when a Notion historical-2025 database is available, replace with live fetch.
+//
 const quarters = [
   {
     q: "Q1", year: 2026, valor: 42506.99, meta: 30000, pct: 142, registros: 481,
@@ -149,7 +155,16 @@ export default function YoY2025Page() {
       {/* Header */}
       <div className="text-xl font-bold text-gray-900">CAC &amp; LTV — 2025</div>
 
-      {/* KPI Row */}
+      {/* KPI Row
+        ⚠ SNAPSHOT 2025 — All values below are hardcoded historical data for full-year 2025.
+        Source: internal CRM export / Kommo pipeline (manual reconciliation, Apr 2026).
+        CAC = R$40.000 marketing spend ÷ 79 closed clients = R$506,33.
+        LTV = R$433.687,08 total revenue ÷ 79 clients = R$5.489,71.
+        LTV:CAC = R$5.489,71 ÷ R$506,33 = 10.8x.
+        Receita total R$433.687,08 = sum of all 2025 closed contracts across O&M + Seguro + Integração.
+        These values have no live override — no fetchVentureSales() override here.
+        Migration: when a Notion 2025-archive database exists, replace with live fetch.
+      */}
       <div className="grid grid-cols-4 gap-4">
         {[
           { label: "CAC", value: "R$ 506,33", icon: "📉", sub: "Gasto: R$ 40.000,00 · 79 clientes" },

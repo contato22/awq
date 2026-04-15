@@ -434,16 +434,25 @@ export interface CashFlowRow {
 // ⚠  CORRECTED 2026-04-08 — Advisor column zeroed (was non-zero: R$479K net income,
 // R$510K FCO, R$498K FCF). Advisor is pre_revenue (economicType) with netIncome=0
 // and cashGenerated=0 in buData. Cash flow rows must be consistent with buData.
+//
+// ⚠  CORRECTED 2026-04-15 — JACQES column zeroed (was: 518K Lucro Líquido, 720K FCO,
+// 672K FCF, etc.). These were stale planning estimates from before the JACQES
+// revenue correction. buData.jacqes.netIncome = 0 (aguardando confirmação contábil)
+// and buData.jacqes.revenue = 27_750 (confirmed Notion CRM — YTD Jan–Abr).
+// P&L derivation (COGS, EBITDA, net income) for JACQES is NOT confirmed.
+// Rows left at 0 until accounting confirmation is available.
+// NOTE: This array is not consumed by any page — /awq/cashflow uses
+//       buildFinancialQuery() (real bank data). This is a planning reference only.
 export const cashFlowRows: CashFlowRow[] = [
-  { label: "Lucro Líquido",              jacqes:   518_000, caza:  420_000, advisor: 0, venture: 0, indent: 1, bold: false },
-  { label: "(+) D&A",                    jacqes:    43_000, caza:   18_000, advisor: 0, venture: 0, indent: 1, bold: false },
-  { label: "(+/-) Cap. de Giro",         jacqes:   159_000, caza:  142_000, advisor: 0, venture: 0, indent: 1, bold: false },
-  { label: "= FCO (Caixa Operacional)",  jacqes:   720_000, caza:  580_000, advisor: 0, venture: 0, indent: 0, bold: true  },
-  { label: "(-) Capex",                  jacqes:   -48_000, caza:  -32_000, advisor: 0, venture: 0, indent: 1, bold: false },
-  { label: "(-) Novos Investimentos",    jacqes:         0, caza:        0, advisor: 0, venture: 0, indent: 1, bold: false },
-  { label: "= FCO Livre (FCF)",          jacqes:   672_000, caza:  548_000, advisor: 0, venture: 0, indent: 0, bold: true  },
-  { label: "(-) Distribuições/Divid.",   jacqes:  -200_000, caza:  -80_000, advisor: 0, venture: 0, indent: 1, bold: false },
-  { label: "= Var. de Caixa",            jacqes:   472_000, caza:  468_000, advisor: 0, venture: 0, indent: 0, bold: true  },
+  { label: "Lucro Líquido",              jacqes:       0, caza:  420_000, advisor: 0, venture: 0, indent: 1, bold: false },
+  { label: "(+) D&A",                    jacqes:       0, caza:   18_000, advisor: 0, venture: 0, indent: 1, bold: false },
+  { label: "(+/-) Cap. de Giro",         jacqes:       0, caza:  142_000, advisor: 0, venture: 0, indent: 1, bold: false },
+  { label: "= FCO (Caixa Operacional)",  jacqes:       0, caza:  580_000, advisor: 0, venture: 0, indent: 0, bold: true  },
+  { label: "(-) Capex",                  jacqes:       0, caza:  -32_000, advisor: 0, venture: 0, indent: 1, bold: false },
+  { label: "(-) Novos Investimentos",    jacqes:       0, caza:        0, advisor: 0, venture: 0, indent: 1, bold: false },
+  { label: "= FCO Livre (FCF)",          jacqes:       0, caza:  548_000, advisor: 0, venture: 0, indent: 0, bold: true  },
+  { label: "(-) Distribuições/Divid.",   jacqes:       0, caza:  -80_000, advisor: 0, venture: 0, indent: 1, bold: false },
+  { label: "= Var. de Caixa",            jacqes:       0, caza:  468_000, advisor: 0, venture: 0, indent: 0, bold: true  },
 ];
 
 // ─── Budget targets by P&L line (complement to buData.budgetRevenue) ──────────
@@ -523,10 +532,14 @@ export interface BuForecastScenario {
 // ⚠  CORRECTED 2026-04-08 — Advisor entry removed. Advisor is pre_revenue with
 // revenue=0 in buData. A revenue forecast scenario for a pre_revenue BU is
 // meaningless and contradicts buData. Removed entirely.
+// ⚠  CORRECTED 2026-04-15 — JACQES ytd updated from 4_820_000 → 27_750.
+// Previous value (4.82M) was a stale planning estimate from before the JACQES
+// revenue correction (buData.jacqes.revenue = 27_750 confirmed, Notion CRM YTD Jan–Abr).
+// NOTE: ytd is not rendered by any page today — but must stay consistent with buData.
 export const buForecastScenarios: BuForecastScenario[] = [
   {
     bu: "JACQES",      color: "bg-brand-500",   accent: "text-brand-600",
-    ytd: 4_820_000, fullYearBase: 19_800_000, fullYearBull: 21_780_000, fullYearBear: 16_830_000, growth: 12.4,
+    ytd: 27_750,    fullYearBase: 19_800_000, fullYearBull: 21_780_000, fullYearBear: 16_830_000, growth: 12.4,
   },
   {
     bu: "Caza Vision", color: "bg-emerald-500", accent: "text-emerald-600",

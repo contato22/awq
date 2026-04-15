@@ -120,12 +120,12 @@ export const SECURITY_LAYER = {
 // Zero grep matches for: FEM, financial engine, financial model, forecast engine.
 //
 // WHAT EXISTS INSTEAD (financial data layer):
-//   lib/awq-group-data.ts  → Hardcoded P&L, EBITDA, forecast, cash flow rows
-//   app/awq/financial/     → Financial page that renders awq-group-data
+//   lib/awq-group-data.ts  → Hardcoded P&L, EBITDA, forecast, cash flow rows (planning reference)
+//   app/awq/financial/     → Financial page using buildFinancialQuery() (real bank data)
 //   app/awq/forecast/      → Forecast page (renders revenueForecasts from awq-group-data)
-//   app/awq/cashflow/      → Cash flow page (renders cashFlowRows from awq-group-data)
-//   app/jacqes/financial/  → JACQES financial page (hardcoded BRL data)
-//   app/caza-vision/financial/ → Caza financial page (from lib/caza-data.ts)
+//   app/awq/cashflow/      → Cash flow page using buildFinancialQuery() (real bank data — NOT cashFlowRows)
+//   app/jacqes/financial/  → JACQES FP&A page (snapshot — lib/awq-group-data.ts)
+//   app/caza-vision/financial/ → Caza financial page (Notion API or caza-financial.json fallback)
 //
 // These are data-display pages, not a financial calculation engine.
 // The data is pre-computed and hardcoded, not dynamically modelled.

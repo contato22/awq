@@ -119,6 +119,55 @@ export const SNAPSHOT_REGISTRY: SnapshotSource[] = [
       "Financial KPIs in caza-data.ts align with awq-group-data.ts buData[caza]. " +
       "Keep in sync during snapshot phase.",
   },
+  {
+    file:     "app/awq-venture/page.tsx (PoCPage)",
+    scope:    "Venture commercial pipeline overview — receitaAnual2026 monthly actuals (Jan–Mar 2026), " +
+              "Vesting progress (Ano 1 actual=R$42,506.99 vs meta=R$120k), " +
+              "LTV:CAC gauge (hardcoded 38.3x — estimate, origin unverified), " +
+              "canais fallback array (Notion /api/notion?database=venture-sales is primary source)",
+    status:   "active",
+    period:   "Q1 2026 actuals for chart/vesting; LTV:CAC estimate unverified",
+    consumers: [
+      "app/awq-venture/page.tsx",
+    ],
+    migratesTo:
+      "lib/notion-fetch.ts fetchVentureSales() (already primary source for byCategoria, byCanal, totalLeads). " +
+      "receitaAnual2026 array to be replaced by live Notion monthly aggregation when available. " +
+      "LTV:CAC to be derived from real client/revenue data once 2026 cohort matures.",
+    migrationBlocker:
+      "Notion venture-sales database provides byCanal/byCategoria/totalLeads live. " +
+      "Monthly breakdown (receitaAnual2026) and LTV:CAC require additional Notion properties or separate calculation. " +
+      "LTV:CAC 38.3x origin is unverified — needs derivation from confirmed client LTV and CAC spend.",
+    notes:
+      "CORRECTED 2026-04-15: removed || 433687.08 magic fallback from faturamento computation. " +
+      "LTV:CAC label changed from 'Tempo real' to 'Snapshot · est.' to reflect actual status. " +
+      "Canal count, leads, and valor total now computed from live canais data (not hardcoded). " +
+      "canais fallback values (Não informado/Indicação/Cliente Ativo/Site ADS) mirror venture-sales.json byCanal.",
+  },
+  {
+    file:     "app/awq-venture/yoy-2025/page.tsx (YoY2025Page)",
+    scope:    "Full-year 2025 historical KPIs — CAC=R$506,33, LTV=R$5.489,71, LTV:CAC=10.8x, " +
+              "Clientes=79, Receita total=R$433.687,08. " +
+              "Quarterly 2025 breakdowns (Q1=R$9,440.56, Q2=R$3,152, Q3=R$14,963.23, Q4=R$16,851.74). " +
+              "Monthly sub-breakdowns per quarter.",
+    status:   "active",
+    period:   "Full year 2025 (historical, manually reconciled Apr 2026)",
+    consumers: [
+      "app/awq-venture/yoy-2025/page.tsx",
+    ],
+    migratesTo:
+      "Notion 2025-archive database (not yet created). " +
+      "Bar chart data (receitaBarData/catBarData) already has live override via fetchVentureSales() for 2026.",
+    migrationBlocker:
+      "2025 historical data lives only in Kommo CRM + internal spreadsheets. " +
+      "No Notion 2025-archive database exists. Manual re-ingestion required to replace hardcodes.",
+    notes:
+      "Source: Kommo CRM + internal reconciliation (manual extraction, Apr 2026). " +
+      "Receita total R$433.687,08 = confirmed 2025 gross revenue across all categories. " +
+      "CAC computed as R$40.000 ÷ 79 clients. LTV = R$433.687,08 ÷ 79 clients. " +
+      "2026 bar chart already overridden by fetchVentureSales() live data. " +
+      "All 2025 KPI cards and quarterly cards are hardcoded — no live override.",
+  },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
