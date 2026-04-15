@@ -28,7 +28,13 @@ import {
   type FinancialDocument,
   type EntityLayer,
   type ManagerialCategory,
+  type ReconciliationStatus,
 } from "./financial-db";
+
+import {
+  deriveCashflowClass,
+  deriveDREEffect,
+} from "./financial-classifier";
 
 import {
   REQUIRED_COVERAGE_ENTITIES,
@@ -253,6 +259,58 @@ export interface CategoryExpense {
   isAmbiguous:              boolean;
 }
 
+// ─── DFC / DRE / Reconciliation output types ─────────────────────────────────
+
+/** CPC 03 / IFRS IAS 7 — DFC aggregated by activity class.
+ *  Computed from per-transaction cashflowClass (explicit) or deriveCashflowClass
+ *  fallback for legacy rows that lack the field. */
+export interface DFCStatement {
+  operacional:   { entradas: number; saidas: number; liquido: number };
+  investimento:  { entradas: number; saidas: number; liquido: number };
+  financiamento: { entradas: number; saidas: number; liquido: number };
+  exclusao:      number;   // intercompany + internal reserves, not in DFC totals
+  pendente:      number;   // null cashflowClass — awaiting classification
+  variacaoCaixa: number;   // operacional.liquido + investimento.liquido + financiamento.liquido
+}
+
+/** DRE Gerencial — cash-basis proxy (não GAAP accrual).
+ *  Computed from per-transaction dreEffect (explicit) or deriveDREEffect fallback. */
+export interface DREStatement {
+  receita:      number;
+  custo:        number;
+  grossProfit:  number;
+  grossMargin:  number;   // 0–1 ratio
+  opex:         number;
+  ebitda:       number;
+  ebitdaMargin: number;   // 0–1 ratio
+  financeiro:   number;   // net: rendimentos (credit) − juros/IOF (debit)
+  imposto:      number;
+  lucroLiquido: number;   // ebitda + financeiro − imposto
+  pendente:     number;   // null dreEffect — awaiting classification
+}
+
+export interface ReconciliationReviewItem {
+  id:          string;
+  date:        string;
+  description: string;
+  amount:      number;
+  direction:   "credit" | "debit";
+  entity:      EntityLayer;
+  category:    ManagerialCategory;
+  status:      ReconciliationStatus;
+  note:        string | null;
+}
+
+/** Per-status counts + top 10 items needing human review. */
+export interface ReconciliationQueue {
+  pendente:     number;
+  em_revisao:   number;
+  classificado: number;
+  conciliado:   number;
+  total:        number;
+  topItems:     ReconciliationReviewItem[];
+}
+
 export interface FinancialQueryResult {
   hasData:               boolean;   // false = no "done" documents, render empty state
   accounts:              CashAccount[];
@@ -261,6 +319,9 @@ export interface FinancialQueryResult {
   monthlyBridge:         MonthlyEntry[];
   revenueByCounterparty: CounterpartyRevenue[];
   expensesByCategory:    CategoryExpense[];
+  dfcStatement:          DFCStatement;
+  dreStatement:          DREStatement;
+  reconciliationQueue:   ReconciliationQueue;
   dataQuality: {
     totalDocuments:      number;
     doneDocuments:       number;
@@ -445,6 +506,22 @@ export async function buildFinancialQuery(): Promise<FinancialQueryResult> {
   const doneDocs = allDocs.filter((d) => d.status === "done");
   const allTxns  = await getAllTransactions();
 
+  const emptyDFC: DFCStatement = {
+    operacional:   { entradas: 0, saidas: 0, liquido: 0 },
+    investimento:  { entradas: 0, saidas: 0, liquido: 0 },
+    financiamento: { entradas: 0, saidas: 0, liquido: 0 },
+    exclusao: 0, pendente: 0, variacaoCaixa: 0,
+  };
+  const emptyDRE: DREStatement = {
+    receita: 0, custo: 0, grossProfit: 0, grossMargin: 0,
+    opex: 0, ebitda: 0, ebitdaMargin: 0, financeiro: 0,
+    imposto: 0, lucroLiquido: 0, pendente: 0,
+  };
+  const emptyQueue: ReconciliationQueue = {
+    pendente: 0, em_revisao: 0, classificado: 0, conciliado: 0,
+    total: 0, topItems: [],
+  };
+
   const empty: FinancialQueryResult = {
     hasData: false,
     accounts: [],
@@ -460,6 +537,9 @@ export async function buildFinancialQuery(): Promise<FinancialQueryResult> {
     monthlyBridge: [],
     revenueByCounterparty: [],
     expensesByCategory: [],
+    dfcStatement:        emptyDFC,
+    dreStatement:        emptyDRE,
+    reconciliationQueue: emptyQueue,
     dataQuality: {
       totalDocuments: allDocs.length,
       doneDocuments: 0,
@@ -631,6 +711,93 @@ export async function buildFinancialQuery(): Promise<FinancialQueryResult> {
   const expensesByCategory = Array.from(catExpMap.values())
     .sort((a, b) => b.amount - a.amount);
 
+  // ── DFC Statement — explicit cashflowClass per transaction ───────────────
+  const dfc: DFCStatement = {
+    operacional:   { entradas: 0, saidas: 0, liquido: 0 },
+    investimento:  { entradas: 0, saidas: 0, liquido: 0 },
+    financiamento: { entradas: 0, saidas: 0, liquido: 0 },
+    exclusao: 0, pendente: 0, variacaoCaixa: 0,
+  };
+  for (const t of allTxns) {
+    const amt = Math.abs(t.amount);
+    // Prefer stored cashflowClass; fall back to derivation for legacy rows
+    const cls = t.cashflowClass ?? deriveCashflowClass(t.managerialCategory);
+    if (cls === null)        { dfc.pendente  += amt; continue; }
+    if (cls === "exclusao")  { dfc.exclusao  += amt; continue; }
+    const grp = dfc[cls];
+    if (t.direction === "credit") grp.entradas += amt;
+    else                          grp.saidas   += amt;
+  }
+  dfc.operacional.liquido   = dfc.operacional.entradas   - dfc.operacional.saidas;
+  dfc.investimento.liquido  = dfc.investimento.entradas  - dfc.investimento.saidas;
+  dfc.financiamento.liquido = dfc.financiamento.entradas - dfc.financiamento.saidas;
+  dfc.variacaoCaixa = dfc.operacional.liquido + dfc.investimento.liquido + dfc.financiamento.liquido;
+
+  // ── DRE Statement — cash-basis proxy, per-transaction dreEffect ───────────
+  let dreReceita   = 0;
+  let dreCusto     = 0;
+  let dreOpex      = 0;
+  let dreFinNet    = 0;  // net: credit dreEffect="financeiro" minus debit
+  let dreImposto   = 0;
+  let drePendente  = 0;
+  for (const t of allTxns) {
+    const eff = t.dreEffect ?? deriveDREEffect(t.managerialCategory);
+    const amt = Math.abs(t.amount);
+    if (eff === null)            { drePendente += amt; continue; }
+    if (eff === "nao_aplicavel") continue; // equity, intercompany, patrimonial
+    switch (eff) {
+      case "receita":    if (t.direction === "credit") dreReceita  += amt; break;
+      case "custo":      if (t.direction === "debit")  dreCusto    += amt; break;
+      case "opex":       if (t.direction === "debit")  dreOpex     += amt; break;
+      case "financeiro": dreFinNet += t.direction === "credit" ? amt : -amt; break;
+      case "imposto":    if (t.direction === "debit")  dreImposto  += amt; break;
+    }
+  }
+  const dreGrossProfit  = dreReceita - dreCusto;
+  const dreGrossMargin  = dreReceita > 0 ? dreGrossProfit / dreReceita : 0;
+  const dreEbitda       = dreGrossProfit - dreOpex;
+  const dreEbitdaMargin = dreReceita > 0 ? dreEbitda / dreReceita : 0;
+  const dreStatement: DREStatement = {
+    receita:      dreReceita,
+    custo:        dreCusto,
+    grossProfit:  dreGrossProfit,
+    grossMargin:  dreGrossMargin,
+    opex:         dreOpex,
+    ebitda:       dreEbitda,
+    ebitdaMargin: dreEbitdaMargin,
+    financeiro:   dreFinNet,
+    imposto:      dreImposto,
+    lucroLiquido: dreEbitda + dreFinNet - dreImposto,
+    pendente:     drePendente,
+  };
+
+  // ── Reconciliation queue ──────────────────────────────────────────────────
+  const rqCounts = { pendente: 0, em_revisao: 0, classificado: 0, conciliado: 0 };
+  for (const t of allTxns) {
+    const s = t.reconciliationStatus ?? "pendente";
+    if (s in rqCounts) rqCounts[s as keyof typeof rqCounts]++;
+  }
+  const topItems: ReconciliationReviewItem[] = allTxns
+    .filter((t) => t.reconciliationStatus === "em_revisao" || t.reconciliationStatus === "pendente")
+    .sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount))
+    .slice(0, 10)
+    .map((t) => ({
+      id:          t.id,
+      date:        t.transactionDate,
+      description: t.descriptionOriginal,
+      amount:      Math.abs(t.amount),
+      direction:   t.direction,
+      entity:      t.entity,
+      category:    t.managerialCategory,
+      status:      t.reconciliationStatus,
+      note:        t.classificationNote,
+    }));
+  const reconciliationQueue: ReconciliationQueue = {
+    ...rqCounts,
+    total:    allTxns.length,
+    topItems,
+  };
+
   // ── Data quality report ───────────────────────────────────────────────────
   const confirmedCount    = allTxns.filter((t) =>
     t.classificationConfidence === "confirmed" || t.classificationConfidence === "probable"
@@ -667,6 +834,9 @@ export async function buildFinancialQuery(): Promise<FinancialQueryResult> {
     monthlyBridge,
     revenueByCounterparty,
     expensesByCategory,
+    dfcStatement:        dfc,
+    dreStatement,
+    reconciliationQueue,
     dataQuality: {
       totalDocuments: allDocs.length,
       doneDocuments:  doneDocs.length,

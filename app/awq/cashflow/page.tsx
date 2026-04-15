@@ -21,8 +21,12 @@ import {
   fmtBRL,
   fmtDate,
   ENTITY_LABELS,
+  CATEGORY_LABELS,
   type MonthlyEntry,
   type EntityLayer,
+  type DFCStatement,
+  type DREStatement,
+  type ReconciliationQueue,
 } from "@/lib/financial-query";
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -431,20 +435,24 @@ export default async function AwqCashflowPage() {
           </div>
         )}
 
-        {/* ── DFC Classification — Atividades Operacional / Investimento / Financiamento ── */}
+        {/* ── DFC — Atividades por cashflowClass explícito ─────────────────── */}
         {q.hasData && (
           <div className="card p-5">
             <h2 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
               <TrendingUp size={15} className="text-brand-500" />
-              Demonstrativo do Fluxo de Caixa — Classificação por Atividade
+              DFC — Demonstrativo do Fluxo de Caixa por Atividade
             </h2>
             <p className="text-[11px] text-gray-400 mb-4">
-              Mapeamento CPC 03 / IFRS IAS 7 a partir dos lançamentos conciliados.
-              Cada transação carrega <code className="text-[10px] bg-gray-100 px-1 rounded">cashflowClass</code> e{" "}
-              <code className="text-[10px] bg-gray-100 px-1 rounded">dreEffect</code> explícitos.
+              CPC 03 / IFRS IAS 7 — agregado a partir de{" "}
+              <code className="text-[10px] bg-gray-100 px-1 rounded">cashflowClass</code>{" "}
+              explícito por transação. Variação de caixa:{" "}
+              <span className={`font-semibold ${q.dfcStatement.variacaoCaixa >= 0 ? "text-emerald-700" : "text-red-600"}`}>
+                {q.dfcStatement.variacaoCaixa >= 0 ? "+" : ""}{fmtBRL(q.dfcStatement.variacaoCaixa)}
+              </span>
             </p>
             <div className="space-y-4">
-              {/* Atividades Operacionais */}
+
+              {/* Operacional */}
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700">
@@ -454,23 +462,23 @@ export default async function AwqCashflowPage() {
                 </div>
                 <div className="grid grid-cols-3 gap-3 pl-2">
                   <div className="bg-emerald-50/60 rounded-lg px-3 py-2">
-                    <div className="text-[10px] text-gray-500">Entradas Operacionais</div>
-                    <div className="text-sm font-bold text-emerald-700">+{fmtBRL(c.totalRevenue)}</div>
+                    <div className="text-[10px] text-gray-500">Entradas</div>
+                    <div className="text-sm font-bold text-emerald-700">+{fmtBRL(q.dfcStatement.operacional.entradas)}</div>
                   </div>
                   <div className="bg-red-50/60 rounded-lg px-3 py-2">
-                    <div className="text-[10px] text-gray-500">Saídas Operacionais</div>
-                    <div className="text-sm font-bold text-red-700">−{fmtBRL(c.totalExpenses)}</div>
+                    <div className="text-[10px] text-gray-500">Saídas</div>
+                    <div className="text-sm font-bold text-red-700">−{fmtBRL(q.dfcStatement.operacional.saidas)}</div>
                   </div>
-                  <div className={`rounded-lg px-3 py-2 ${c.operationalNetCash >= 0 ? "bg-brand-50/60" : "bg-red-50/60"}`}>
+                  <div className={`rounded-lg px-3 py-2 ${q.dfcStatement.operacional.liquido >= 0 ? "bg-brand-50/60" : "bg-red-50/60"}`}>
                     <div className="text-[10px] text-gray-500">FCO Líquido</div>
-                    <div className={`text-sm font-bold ${c.operationalNetCash >= 0 ? "text-brand-700" : "text-red-700"}`}>
-                      {c.operationalNetCash >= 0 ? "+" : ""}{fmtBRL(c.operationalNetCash)}
+                    <div className={`text-sm font-bold ${q.dfcStatement.operacional.liquido >= 0 ? "text-brand-700" : "text-red-700"}`}>
+                      {q.dfcStatement.operacional.liquido >= 0 ? "+" : ""}{fmtBRL(q.dfcStatement.operacional.liquido)}
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Atividades de Investimento */}
+              {/* Investimento */}
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-violet-100 text-violet-700">
@@ -478,17 +486,25 @@ export default async function AwqCashflowPage() {
                   </span>
                   <span className="text-[10px] text-gray-400">Aplicações, resgates, rendimentos financeiros</span>
                 </div>
-                <div className="pl-2">
-                  <div className={`rounded-lg px-3 py-2 inline-block ${c.financialMovements >= 0 ? "bg-violet-50/60" : "bg-red-50/60"}`}>
-                    <div className="text-[10px] text-gray-500">Fluxo Líquido de Investimento</div>
-                    <div className={`text-sm font-bold ${c.financialMovements >= 0 ? "text-violet-700" : "text-red-700"}`}>
-                      {c.financialMovements >= 0 ? "+" : ""}{fmtBRL(c.financialMovements)}
+                <div className="grid grid-cols-3 gap-3 pl-2">
+                  <div className="bg-violet-50/40 rounded-lg px-3 py-2">
+                    <div className="text-[10px] text-gray-500">Entradas</div>
+                    <div className="text-sm font-bold text-violet-700">+{fmtBRL(q.dfcStatement.investimento.entradas)}</div>
+                  </div>
+                  <div className="bg-violet-50/40 rounded-lg px-3 py-2">
+                    <div className="text-[10px] text-gray-500">Saídas</div>
+                    <div className="text-sm font-bold text-violet-600">−{fmtBRL(q.dfcStatement.investimento.saidas)}</div>
+                  </div>
+                  <div className={`rounded-lg px-3 py-2 ${q.dfcStatement.investimento.liquido >= 0 ? "bg-violet-50/60" : "bg-red-50/60"}`}>
+                    <div className="text-[10px] text-gray-500">FCInv Líquido</div>
+                    <div className={`text-sm font-bold ${q.dfcStatement.investimento.liquido >= 0 ? "text-violet-700" : "text-red-700"}`}>
+                      {q.dfcStatement.investimento.liquido >= 0 ? "+" : ""}{fmtBRL(q.dfcStatement.investimento.liquido)}
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Atividades de Financiamento */}
+              {/* Financiamento */}
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700">
@@ -496,43 +512,166 @@ export default async function AwqCashflowPage() {
                   </span>
                   <span className="text-[10px] text-gray-400">Pró-labore, retiradas, aportes de sócios</span>
                 </div>
-                <div className="pl-2">
-                  <div className="bg-amber-50/60 rounded-lg px-3 py-2 inline-block">
-                    <div className="text-[10px] text-gray-500">Pró-labore / Retiradas</div>
-                    <div className="text-sm font-bold text-amber-700">−{fmtBRL(c.partnerWithdrawals + c.personalExpenses)}</div>
+                <div className="grid grid-cols-3 gap-3 pl-2">
+                  <div className="bg-amber-50/40 rounded-lg px-3 py-2">
+                    <div className="text-[10px] text-gray-500">Entradas (aportes)</div>
+                    <div className="text-sm font-bold text-amber-700">+{fmtBRL(q.dfcStatement.financiamento.entradas)}</div>
+                  </div>
+                  <div className="bg-amber-50/40 rounded-lg px-3 py-2">
+                    <div className="text-[10px] text-gray-500">Saídas (retiradas)</div>
+                    <div className="text-sm font-bold text-amber-600">−{fmtBRL(q.dfcStatement.financiamento.saidas)}</div>
+                  </div>
+                  <div className={`rounded-lg px-3 py-2 ${q.dfcStatement.financiamento.liquido >= 0 ? "bg-amber-50/60" : "bg-red-50/60"}`}>
+                    <div className="text-[10px] text-gray-500">FCFin Líquido</div>
+                    <div className={`text-sm font-bold ${q.dfcStatement.financiamento.liquido >= 0 ? "text-amber-700" : "text-red-700"}`}>
+                      {q.dfcStatement.financiamento.liquido >= 0 ? "+" : ""}{fmtBRL(q.dfcStatement.financiamento.liquido)}
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Exclusões */}
-              {c.intercompanyEliminated > 0 && (
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-600">
-                      Exclusão
-                    </span>
-                    <span className="text-[10px] text-gray-400">Transferências intercompany eliminadas do consolidado</span>
+              {/* Exclusão + Pendente */}
+              <div className="flex flex-wrap gap-3 pt-2 border-t border-gray-100">
+                {q.dfcStatement.exclusao > 0 && (
+                  <div className="bg-gray-50 rounded-lg px-3 py-2">
+                    <div className="text-[10px] text-gray-500">Exclusão (intercompany)</div>
+                    <div className="text-sm font-bold text-gray-600">±{fmtBRL(q.dfcStatement.exclusao)}</div>
                   </div>
-                  <div className="pl-2">
-                    <div className="bg-gray-50 rounded-lg px-3 py-2 inline-block">
-                      <div className="text-[10px] text-gray-500">Intercompany Eliminado</div>
-                      <div className="text-sm font-bold text-gray-600">±{fmtBRL(c.intercompanyEliminated)}</div>
+                )}
+                {q.dfcStatement.pendente > 0 && (
+                  <div className="bg-amber-50/60 rounded-lg px-3 py-2 flex items-center gap-2">
+                    <AlertCircle size={11} className="text-amber-500 shrink-0" />
+                    <div>
+                      <div className="text-[10px] text-gray-500">Pendente / Ambíguo</div>
+                      <div className="text-sm font-bold text-amber-600">{fmtBRL(q.dfcStatement.pendente)}</div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
-              {/* Ambíguo */}
-              {c.ambiguousAmount > 0 && (
-                <div className="pt-2 border-t border-gray-100">
-                  <span className="text-[11px] text-amber-600 flex items-center gap-1.5">
-                    <AlertCircle size={11} />
-                    {fmtBRL(c.ambiguousAmount)} em lançamentos ambíguos aguardando revisão —
-                    cashflowClass e dreEffect classificados como <code className="text-[10px] bg-amber-50 px-1 rounded">null</code> até confirmação.
+        {/* ── DRE Gerencial — cash-basis proxy ─────────────────────────────── */}
+        {q.hasData && (
+          <div className="card p-5">
+            <h2 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
+              <Activity size={15} className="text-brand-500" />
+              DRE Gerencial — Visão de Caixa (proxy)
+            </h2>
+            <p className="text-[11px] text-gray-400 mb-4">
+              Proxy de DRE cash-basis a partir de{" "}
+              <code className="text-[10px] bg-gray-100 px-1 rounded">dreEffect</code>{" "}
+              por transação — não é DRE accrual / competência.
+              Lucro Líquido:{" "}
+              <span className={`font-semibold ${q.dreStatement.lucroLiquido >= 0 ? "text-emerald-700" : "text-red-600"}`}>
+                {q.dreStatement.lucroLiquido >= 0 ? "+" : ""}{fmtBRL(q.dreStatement.lucroLiquido)}
+              </span>
+              {q.dreStatement.receita > 0 && (
+                <span className="ml-2 text-gray-500">
+                  · Margem EBITDA:{" "}
+                  <span className={q.dreStatement.ebitdaMargin >= 0 ? "text-emerald-700" : "text-red-600"}>
+                    {(q.dreStatement.ebitdaMargin * 100).toFixed(1)}%
                   </span>
+                </span>
+              )}
+            </p>
+            <div className="space-y-1">
+              {[
+                { label: "Receita Bruta",         value:  q.dreStatement.receita,      indent: 0, bold: false, color: "text-emerald-600" },
+                { label: "(−) Custo Direto",       value: -q.dreStatement.custo,        indent: 1, bold: false, color: "text-red-600"     },
+                { label: "= Lucro Bruto",          value:  q.dreStatement.grossProfit,  indent: 0, bold: true,  color: q.dreStatement.grossProfit >= 0 ? "text-emerald-700" : "text-red-600" },
+                { label: "(−) Despesas Operacionais (OpEx)", value: -q.dreStatement.opex, indent: 1, bold: false, color: "text-red-600" },
+                { label: "= EBITDA",               value:  q.dreStatement.ebitda,       indent: 0, bold: true,  color: q.dreStatement.ebitda >= 0 ? "text-brand-700" : "text-red-600" },
+                { label: "± Resultado Financeiro", value:  q.dreStatement.financeiro,   indent: 1, bold: false, color: q.dreStatement.financeiro >= 0 ? "text-violet-600" : "text-red-600" },
+                { label: "(−) Impostos e Tributos",value: -q.dreStatement.imposto,      indent: 1, bold: false, color: "text-red-600"     },
+                { label: "= Lucro Líquido",        value:  q.dreStatement.lucroLiquido, indent: 0, bold: true,  color: q.dreStatement.lucroLiquido >= 0 ? "text-gray-900" : "text-red-700" },
+              ].map((row, i) => (
+                <div
+                  key={i}
+                  className={`flex items-center justify-between ${row.bold ? "py-1 px-2 bg-gray-50 rounded-lg" : "px-2 py-0.5"}`}
+                >
+                  <span
+                    className={`text-xs ${row.bold ? "font-bold text-gray-900" : "text-gray-500"}`}
+                    style={{ paddingLeft: `${row.indent * 12}px` }}
+                  >
+                    {row.label}
+                  </span>
+                  <span className={`text-xs font-semibold ${row.color}`}>
+                    {row.value >= 0 ? "+" : ""}{fmtBRL(row.value)}
+                  </span>
+                </div>
+              ))}
+              {q.dreStatement.pendente > 0 && (
+                <div className="pt-2 flex items-center gap-1.5 text-[11px] text-amber-600">
+                  <AlertCircle size={11} />
+                  {fmtBRL(q.dreStatement.pendente)} com{" "}
+                  <code className="text-[10px] bg-amber-50 px-1 rounded">dreEffect=null</code>{" "}
+                  — não incluído nas linhas acima
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {/* ── Fila de Revisão — reconciliationStatus ───────────────────────── */}
+        {q.hasData && (q.reconciliationQueue.em_revisao > 0 || q.reconciliationQueue.pendente > 0) && (
+          <div className="card p-5">
+            <h2 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
+              <AlertCircle size={15} className="text-amber-500" />
+              Fila de Revisão — Conciliação Bancária
+            </h2>
+            <div className="flex flex-wrap gap-4 mb-4">
+              {[
+                { label: "Pendente",     value: q.reconciliationQueue.pendente,     color: "text-amber-600",  bg: "bg-amber-50"   },
+                { label: "Em Revisão",   value: q.reconciliationQueue.em_revisao,   color: "text-orange-600", bg: "bg-orange-50"  },
+                { label: "Classificado", value: q.reconciliationQueue.classificado, color: "text-emerald-600",bg: "bg-emerald-50" },
+                { label: "Conciliado",   value: q.reconciliationQueue.conciliado,   color: "text-brand-600",  bg: "bg-brand-50"   },
+              ].map((s) => (
+                <div key={s.label} className={`${s.bg} rounded-lg px-3 py-2 text-center min-w-[80px]`}>
+                  <div className={`text-lg font-bold ${s.color}`}>{s.value.toLocaleString("pt-BR")}</div>
+                  <div className="text-[10px] text-gray-500">{s.label}</div>
+                </div>
+              ))}
+            </div>
+            {q.reconciliationQueue.topItems.length > 0 && (
+              <div className="table-scroll">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left py-1.5 px-2 text-[10px] font-semibold text-gray-500">Data</th>
+                      <th className="text-left py-1.5 px-2 text-[10px] font-semibold text-gray-500">Descrição</th>
+                      <th className="text-left py-1.5 px-2 text-[10px] font-semibold text-gray-500">Entidade</th>
+                      <th className="text-left py-1.5 px-2 text-[10px] font-semibold text-gray-500">Categoria</th>
+                      <th className="text-right py-1.5 px-2 text-[10px] font-semibold text-gray-500">Valor</th>
+                      <th className="text-left py-1.5 px-2 text-[10px] font-semibold text-gray-500">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {q.reconciliationQueue.topItems.map((item) => (
+                      <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50/80">
+                        <td className="py-1.5 px-2 text-gray-500">{fmtDate(item.date)}</td>
+                        <td className="py-1.5 px-2 text-gray-700 max-w-[200px] truncate" title={item.description}>
+                          {item.description}
+                        </td>
+                        <td className="py-1.5 px-2 text-gray-500">{ENTITY_LABELS[item.entity]}</td>
+                        <td className="py-1.5 px-2 text-gray-500">{CATEGORY_LABELS[item.category]}</td>
+                        <td className={`py-1.5 px-2 text-right font-semibold ${item.direction === "credit" ? "text-emerald-600" : "text-red-600"}`}>
+                          {item.direction === "credit" ? "+" : "−"}{fmtBRL(item.amount)}
+                        </td>
+                        <td className="py-1.5 px-2">
+                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold ${
+                            item.status === "em_revisao" ? "bg-orange-100 text-orange-700" : "bg-amber-100 text-amber-700"
+                          }`}>
+                            {item.status === "em_revisao" ? "Em Revisão" : "Pendente"}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 

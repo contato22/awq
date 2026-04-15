@@ -606,6 +606,23 @@ export async function getCashPositionByEntity(): Promise<ConsolidatedCashPositio
   return Array.from(entityMap.values());
 }
 
+// ─── Schema migration ─────────────────────────────────────────────────────────
+//
+// Idempotent: ADD COLUMN IF NOT EXISTS — safe to call on every ingest run.
+// No-op in filesystem mode (DATABASE_URL not set / USE_DB = false).
+// Called by /api/ingest/process before the first INSERT to guarantee the 3
+// conciliação fields exist in the Neon table before any row is written.
+
+export async function migrateSchema(): Promise<void> {
+  if (!USE_DB || !sql) return;
+  await sql`
+    ALTER TABLE bank_transactions
+      ADD COLUMN IF NOT EXISTS cashflow_class TEXT,
+      ADD COLUMN IF NOT EXISTS dre_effect TEXT,
+      ADD COLUMN IF NOT EXISTS reconciliation_status TEXT NOT NULL DEFAULT 'pendente'
+  `;
+}
+
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
 export function hashBuffer(buf: Buffer): string {

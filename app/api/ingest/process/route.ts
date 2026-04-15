@@ -27,6 +27,7 @@ import {
   updateDocumentStatus,
   saveTransactions,
   newId,
+  migrateSchema,
 } from "@/lib/financial-db";
 import type { BankTransaction, EntityLayer } from "@/lib/financial-db";
 import { parsePDF } from "@/lib/bank-parsers";
@@ -99,6 +100,9 @@ export async function POST(req: NextRequest): Promise<Response> {
       };
 
       try {
+        // ── Schema migration (idempotent — adds 3 conciliação columns if absent) ──
+        await migrateSchema();
+
         // ── Stage 1: Extract ──────────────────────────────────────────────────
         send({ stage: "extracting", message: "Enviando PDF para Claude para extração..." });
         await updateDocumentStatus(docId, "extracting");
