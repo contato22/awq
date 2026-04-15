@@ -602,6 +602,144 @@ export default async function AwqCashflowPage() {
           </div>
         )}
 
+        {/* ── DFC Final — Base Conciliada ──────────────────────────────────── */}
+        {q.hasData && q.dfcStatement.conciliado.txCount > 0 && (
+          <div className="card p-5 border-brand-200 bg-brand-50/20">
+            <h2 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
+              <TrendingUp size={15} className="text-brand-500" />
+              DFC Final — Base Conciliada
+              <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold bg-brand-100 text-brand-700">conciliado</span>
+            </h2>
+            <p className="text-[11px] text-gray-400 mb-3">
+              Apenas transações com{" "}
+              <code className="text-[10px] bg-gray-100 px-1 rounded">reconciliationStatus=conciliado</code>.
+              Esta é a base que alimenta os KPIs finais.{" "}
+              <span className="font-medium text-brand-700">{q.dfcStatement.conciliado.txCount} transações</span>.
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+              {[
+                { label: "FCO Líquido",   value: q.dfcStatement.conciliado.operacional.liquido,   color: "text-emerald-700" },
+                { label: "FCInv Líquido", value: q.dfcStatement.conciliado.investimento.liquido,  color: "text-violet-700"  },
+                { label: "FCFin Líquido", value: q.dfcStatement.conciliado.financiamento.liquido, color: "text-amber-700"   },
+                { label: "Variação de Caixa", value: q.dfcStatement.conciliado.variacaoCaixa, color: q.dfcStatement.conciliado.variacaoCaixa >= 0 ? "text-brand-700" : "text-red-700" },
+              ].map((item) => (
+                <div key={item.label} className="bg-white rounded-lg px-3 py-2 border border-brand-100">
+                  <div className="text-[10px] text-gray-400">{item.label}</div>
+                  <div className={`text-sm font-bold ${item.color}`}>
+                    {item.value >= 0 ? "+" : ""}{fmtBRL(item.value)}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {q.dfcStatement.conciliado.byCategory.length > 0 && (
+              <div className="table-scroll">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-brand-100">
+                      <th className="text-left py-1.5 px-2 text-[10px] font-semibold text-gray-500">Categoria</th>
+                      <th className="text-left py-1.5 px-2 text-[10px] font-semibold text-gray-500">Classe</th>
+                      <th className="text-right py-1.5 px-2 text-[10px] font-semibold text-gray-500">Entradas</th>
+                      <th className="text-right py-1.5 px-2 text-[10px] font-semibold text-gray-500">Saídas</th>
+                      <th className="text-right py-1.5 px-2 text-[10px] font-semibold text-gray-500">Líquido</th>
+                      <th className="text-right py-1.5 px-2 text-[10px] font-semibold text-gray-500">Txns</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {q.dfcStatement.conciliado.byCategory.map((line) => (
+                      <tr key={`c__${line.category}__${line.cashflowClass}`} className="border-b border-brand-50 hover:bg-brand-50/40">
+                        <td className="py-1.5 px-2 text-gray-700 font-medium">{line.categoryLabel}</td>
+                        <td className="py-1.5 px-2">
+                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold ${
+                            line.cashflowClass === "operacional"   ? "bg-emerald-100 text-emerald-700" :
+                            line.cashflowClass === "investimento"  ? "bg-violet-100 text-violet-700" :
+                            line.cashflowClass === "financiamento" ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-600"
+                          }`}>{line.cashflowClass}</span>
+                        </td>
+                        <td className="py-1.5 px-2 text-right text-emerald-700">{line.entradas > 0 ? `+${fmtBRL(line.entradas)}` : "—"}</td>
+                        <td className="py-1.5 px-2 text-right text-red-600">{line.saidas > 0 ? `−${fmtBRL(line.saidas)}` : "—"}</td>
+                        <td className={`py-1.5 px-2 text-right font-bold ${line.liquido >= 0 ? "text-brand-700" : "text-red-700"}`}>
+                          {line.liquido >= 0 ? "+" : ""}{fmtBRL(line.liquido)}
+                        </td>
+                        <td className="py-1.5 px-2 text-right text-gray-400">{line.txCount}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Impacto Pendente — Classificado Aguardando Conciliação ────────── */}
+        {q.hasData && q.dfcStatement.classificadoPendente.txCount > 0 && (
+          <div className="card p-5 border-amber-200 bg-amber-50/20">
+            <h2 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
+              <AlertCircle size={15} className="text-amber-500" />
+              Impacto Pendente — Classificado Aguardando Conciliação
+              <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold bg-amber-100 text-amber-700">classificado</span>
+            </h2>
+            <p className="text-[11px] text-gray-400 mb-3">
+              Transações com{" "}
+              <code className="text-[10px] bg-gray-100 px-1 rounded">reconciliationStatus=classificado</code>{" "}
+              — classificadas por regra mas aguardando revisão manual.{" "}
+              <span className="font-medium text-amber-700">{q.dfcStatement.classificadoPendente.txCount} transações</span>{" "}
+              <strong>não entram</strong> nos KPIs finais até conciliadas.{" "}
+              <a href="/awq/reconciliation" className="underline text-brand-600 hover:text-brand-700">Revisar →</a>
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+              {[
+                { label: "FCO Líquido",   value: q.dfcStatement.classificadoPendente.operacional.liquido,   color: "text-emerald-700" },
+                { label: "FCInv Líquido", value: q.dfcStatement.classificadoPendente.investimento.liquido,  color: "text-violet-700"  },
+                { label: "FCFin Líquido", value: q.dfcStatement.classificadoPendente.financiamento.liquido, color: "text-amber-700"   },
+                { label: "Impacto Total", value: q.dfcStatement.classificadoPendente.variacaoCaixa, color: "text-amber-700" },
+              ].map((item) => (
+                <div key={item.label} className="bg-white rounded-lg px-3 py-2 border border-amber-100">
+                  <div className="text-[10px] text-gray-400">{item.label}</div>
+                  <div className={`text-sm font-bold ${item.color}`}>
+                    {item.value >= 0 ? "+" : ""}{fmtBRL(item.value)}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {q.dfcStatement.classificadoPendente.byCategory.length > 0 && (
+              <div className="table-scroll">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-amber-100">
+                      <th className="text-left py-1.5 px-2 text-[10px] font-semibold text-gray-500">Categoria</th>
+                      <th className="text-left py-1.5 px-2 text-[10px] font-semibold text-gray-500">Classe</th>
+                      <th className="text-right py-1.5 px-2 text-[10px] font-semibold text-gray-500">Entradas</th>
+                      <th className="text-right py-1.5 px-2 text-[10px] font-semibold text-gray-500">Saídas</th>
+                      <th className="text-right py-1.5 px-2 text-[10px] font-semibold text-gray-500">Líquido</th>
+                      <th className="text-right py-1.5 px-2 text-[10px] font-semibold text-gray-500">Txns</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {q.dfcStatement.classificadoPendente.byCategory.map((line) => (
+                      <tr key={`p__${line.category}__${line.cashflowClass}`} className="border-b border-amber-50 hover:bg-amber-50/40">
+                        <td className="py-1.5 px-2 text-gray-700 font-medium">{line.categoryLabel}</td>
+                        <td className="py-1.5 px-2">
+                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold ${
+                            line.cashflowClass === "operacional"   ? "bg-emerald-100 text-emerald-700" :
+                            line.cashflowClass === "investimento"  ? "bg-violet-100 text-violet-700" :
+                            line.cashflowClass === "financiamento" ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-600"
+                          }`}>{line.cashflowClass}</span>
+                        </td>
+                        <td className="py-1.5 px-2 text-right text-emerald-700">{line.entradas > 0 ? `+${fmtBRL(line.entradas)}` : "—"}</td>
+                        <td className="py-1.5 px-2 text-right text-red-600">{line.saidas > 0 ? `−${fmtBRL(line.saidas)}` : "—"}</td>
+                        <td className={`py-1.5 px-2 text-right font-bold ${line.liquido >= 0 ? "text-amber-700" : "text-red-700"}`}>
+                          {line.liquido >= 0 ? "+" : ""}{fmtBRL(line.liquido)}
+                        </td>
+                        <td className="py-1.5 px-2 text-right text-gray-400">{line.txCount}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ── DRE Gerencial — cash-basis proxy ─────────────────────────────── */}
         {q.hasData && (
           <div className="card p-5">

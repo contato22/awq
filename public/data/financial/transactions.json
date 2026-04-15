@@ -477,7 +477,7 @@
     "classifiedAt": "2026-04-04T12:00:00.000Z",
     "cashflowClass": "exclusao",
     "dreEffect": "nao_aplicavel",
-    "reconciliationStatus": "classificado"
+    "reconciliationStatus": "conciliado"
   },
   {
     "id": "cora_awq_t11",
@@ -501,7 +501,7 @@
     "classifiedAt": "2026-04-04T12:00:00.000Z",
     "cashflowClass": "exclusao",
     "dreEffect": "nao_aplicavel",
-    "reconciliationStatus": "classificado"
+    "reconciliationStatus": "conciliado"
   },
   {
     "id": "itau_awq_t01",
@@ -549,7 +549,7 @@
     "classifiedAt": "2026-04-04T12:00:00.000Z",
     "cashflowClass": "operacional",
     "dreEffect": "opex",
-    "reconciliationStatus": "classificado"
+    "reconciliationStatus": "conciliado"
   },
   {
     "id": "itau_awq_t03",
@@ -573,7 +573,7 @@
     "classifiedAt": "2026-04-04T12:00:00.000Z",
     "cashflowClass": "operacional",
     "dreEffect": "opex",
-    "reconciliationStatus": "classificado"
+    "reconciliationStatus": "conciliado"
   },
   {
     "id": "cora_awq_t12",
@@ -597,7 +597,7 @@
     "classifiedAt": "2026-04-08T12:00:00.000Z",
     "cashflowClass": "operacional",
     "dreEffect": "receita",
-    "reconciliationStatus": "classificado"
+    "reconciliationStatus": "conciliado"
   },
   {
     "id": "cora_awq_t13",

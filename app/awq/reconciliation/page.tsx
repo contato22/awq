@@ -289,88 +289,136 @@ export default async function ReconciliationPage() {
           )}
         </div>
 
-        {/* ── DFC / DRE impact block ────────────────────────────────────────── */}
+        {/* ── DFC / DRE tier summary — conciliado vs pending ───────────────── */}
         {q.hasData && (
           <div className="card p-5">
-            <h2 className="text-sm font-semibold text-gray-900 mb-3">Impacto nas Demonstrações</h2>
+            <h2 className="text-sm font-semibold text-gray-900 mb-1">Impacto nas Demonstrações — por Tier</h2>
+            <p className="text-[11px] text-gray-400 mb-4">
+              <span className="font-medium text-emerald-700">Conciliado</span> = base que alimenta KPIs finais.{" "}
+              <span className="font-medium text-amber-700">Classificado (pendente)</span> = impacto potencial aguardando revisão.
+            </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
-              {/* DFC summary */}
+              {/* DFC Final — Conciliado */}
               <div className="rounded-lg bg-emerald-50/60 border border-emerald-100 p-4 space-y-2">
-                <div className="text-xs font-semibold text-emerald-800 mb-2">DFC — Fluxo de Caixa</div>
+                <div className="flex items-center gap-1.5 mb-2">
+                  <ShieldCheck size={12} className="text-emerald-600" />
+                  <div className="text-xs font-semibold text-emerald-800">DFC Final — Base Conciliada</div>
+                  <span className="ml-auto text-[9px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-semibold">
+                    {dfc.conciliado.txCount} txns
+                  </span>
+                </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-gray-600">FCO Operacional</span>
-                  <span className="font-semibold text-emerald-700">{fmtBRL(dfc.operacional.liquido)}</span>
+                  <span className="font-semibold text-emerald-700">{fmtBRL(dfc.conciliado.operacional.liquido)}</span>
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-gray-600">FCInv Investimento</span>
-                  <span className="font-semibold text-violet-700">{fmtBRL(dfc.investimento.liquido)}</span>
+                  <span className="font-semibold text-violet-700">{fmtBRL(dfc.conciliado.investimento.liquido)}</span>
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-gray-600">FCFin Financiamento</span>
-                  <span className="font-semibold text-amber-700">{fmtBRL(dfc.financiamento.liquido)}</span>
+                  <span className="font-semibold text-amber-700">{fmtBRL(dfc.conciliado.financiamento.liquido)}</span>
                 </div>
                 <div className="border-t border-emerald-200 pt-2 flex justify-between text-xs font-bold">
                   <span className="text-gray-700">Variação de Caixa</span>
-                  <span className={dfc.variacaoCaixa >= 0 ? "text-emerald-700" : "text-red-600"}>
-                    {fmtBRL(dfc.variacaoCaixa)}
+                  <span className={dfc.conciliado.variacaoCaixa >= 0 ? "text-emerald-700" : "text-red-600"}>
+                    {fmtBRL(dfc.conciliado.variacaoCaixa)}
                   </span>
                 </div>
-                {dfc.pendente > 0 && (
-                  <p className="text-[10px] text-amber-600 mt-1">
-                    {fmtBRL(dfc.pendente)} não classificados (pendentes)
-                  </p>
-                )}
-                <Link
-                  href="/awq/cashflow"
-                  className="inline-flex items-center gap-1 text-[10px] text-emerald-700 hover:underline mt-1"
-                >
+                <Link href="/awq/cashflow" className="inline-flex items-center gap-1 text-[10px] text-emerald-700 hover:underline mt-1">
                   Ver DFC detalhado <ArrowRight size={10} />
                 </Link>
               </div>
 
-              {/* DRE summary */}
-              <div className="rounded-lg bg-violet-50/60 border border-violet-100 p-4 space-y-2">
-                <div className="text-xs font-semibold text-violet-800 mb-2">DRE — Resultado Gerencial</div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-gray-600">Receita Bruta</span>
-                  <span className="font-semibold text-emerald-700">{fmtBRL(dre.receita)}</span>
+              {/* DFC Pendente — Classificado */}
+              <div className="rounded-lg bg-amber-50/60 border border-amber-100 p-4 space-y-2">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <AlertCircle size={12} className="text-amber-500" />
+                  <div className="text-xs font-semibold text-amber-800">DFC Impacto Pendente</div>
+                  <span className="ml-auto text-[9px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-semibold">
+                    {dfc.classificadoPendente.txCount} txns
+                  </span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-gray-600">Custos</span>
-                  <span className="font-semibold text-red-600">{fmtBRL(dre.custo)}</span>
+                  <span className="text-gray-600">FCO Operacional</span>
+                  <span className="font-semibold text-emerald-700">{fmtBRL(dfc.classificadoPendente.operacional.liquido)}</span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-gray-600">Opex</span>
-                  <span className="font-semibold text-orange-600">{fmtBRL(dre.opex)}</span>
+                  <span className="text-gray-600">FCInv Investimento</span>
+                  <span className="font-semibold text-violet-700">{fmtBRL(dfc.classificadoPendente.investimento.liquido)}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-600">FCFin Financiamento</span>
+                  <span className="font-semibold text-amber-700">{fmtBRL(dfc.classificadoPendente.financiamento.liquido)}</span>
+                </div>
+                <div className="border-t border-amber-200 pt-2 flex justify-between text-xs font-bold">
+                  <span className="text-gray-700">Impacto Total</span>
+                  <span className="text-amber-700">
+                    {fmtBRL(dfc.classificadoPendente.variacaoCaixa)}
+                  </span>
+                </div>
+                <p className="text-[10px] text-amber-600">
+                  Concilie para absorver no DFC Final
+                </p>
+              </div>
+            </div>
+
+            {/* DRE tier summary row */}
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="rounded-lg bg-violet-50/60 border border-violet-100 p-4 space-y-1.5">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <ShieldCheck size={12} className="text-violet-600" />
+                  <div className="text-xs font-semibold text-violet-800">DRE Final — Base Conciliada</div>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-600">Receita</span>
+                  <span className="font-semibold text-emerald-700">{fmtBRL(dre.conciliado.receita)}</span>
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-gray-600">EBITDA</span>
-                  <span className={`font-semibold ${dre.ebitda >= 0 ? "text-emerald-700" : "text-red-600"}`}>
-                    {fmtBRL(dre.ebitda)}
+                  <span className={`font-semibold ${dre.conciliado.ebitda >= 0 ? "text-emerald-700" : "text-red-600"}`}>
+                    {fmtBRL(dre.conciliado.ebitda)}
                   </span>
                 </div>
-                {dre.pendente > 0 && (
-                  <p className="text-[10px] text-amber-600 mt-1">
-                    {fmtBRL(dre.pendente)} não classificados (pendentes)
-                  </p>
-                )}
-                <Link
-                  href="/awq/financial"
-                  className="inline-flex items-center gap-1 text-[10px] text-violet-700 hover:underline mt-1"
-                >
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-600">Margem EBITDA</span>
+                  <span className="font-semibold text-violet-700">
+                    {dre.conciliado.receita > 0 ? (dre.conciliado.ebitdaMargin * 100).toFixed(1) + "%" : "—"}
+                  </span>
+                </div>
+                <Link href="/awq/cashflow" className="inline-flex items-center gap-1 text-[10px] text-violet-700 hover:underline mt-1">
                   Ver DRE detalhada <ArrowRight size={10} />
                 </Link>
+              </div>
+              <div className="rounded-lg bg-amber-50/40 border border-amber-100 p-4 space-y-1.5">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <AlertCircle size={12} className="text-amber-500" />
+                  <div className="text-xs font-semibold text-amber-800">DRE Impacto Pendente</div>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-600">Receita potencial</span>
+                  <span className="font-semibold text-emerald-600">{fmtBRL(dre.classificadoPendente.receita)}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-600">EBITDA potencial</span>
+                  <span className={`font-semibold ${dre.classificadoPendente.ebitda >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                    {fmtBRL(dre.classificadoPendente.ebitda)}
+                  </span>
+                </div>
+                <p className="text-[10px] text-amber-600">
+                  {dre.classificadoPendente.txCount} txns classificadas aguardando conciliação
+                </p>
               </div>
             </div>
 
             {/* Drill-down links */}
             <div className="mt-4 flex flex-wrap gap-3">
               <Link href="/awq/cashflow" className="text-[10px] text-gray-500 hover:text-brand-600 hover:underline flex items-center gap-1">
-                <ArrowRight size={9} /> DFC por categoria
+                <ArrowRight size={9} /> DFC split (conciliado vs pendente)
               </Link>
               <Link href="/awq/kpis" className="text-[10px] text-gray-500 hover:text-brand-600 hover:underline flex items-center gap-1">
-                <ArrowRight size={9} /> KPIs
+                <ArrowRight size={9} /> KPIs (base conciliada)
               </Link>
               <Link href="/awq/categories" className="text-[10px] text-gray-500 hover:text-brand-600 hover:underline flex items-center gap-1">
                 <ArrowRight size={9} /> Matriz de categorias

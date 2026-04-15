@@ -285,22 +285,65 @@ export interface DRECategoryLine {
   entity:        EntityLayer | "multi";
 }
 
+// ─── DFC tier sub-type ───────────────────────────────────────────────────────
+export interface DFCTier {
+  operacional:   { entradas: number; saidas: number; liquido: number };
+  investimento:  { entradas: number; saidas: number; liquido: number };
+  financiamento: { entradas: number; saidas: number; liquido: number };
+  variacaoCaixa: number;
+  txCount:       number;
+  byCategory:    DFCCategoryLine[];
+}
+
 /** CPC 03 / IFRS IAS 7 — DFC aggregated by activity class.
  *  Computed from per-transaction cashflowClass (explicit) or deriveCashflowClass
- *  fallback for legacy rows that lack the field. */
+ *  fallback for legacy rows that lack the field.
+ *
+ *  TIERS:
+ *    conciliado          — reconciliationStatus === "conciliado"  → feeds KPIs
+ *    classificadoPendente— reconciliationStatus === "classificado" → pending review
+ *    (full top-level)    — conciliado + classificadoPendente union → audit view
+ */
 export interface DFCStatement {
+  // ── Full view (conciliado + classificado) — backward compat ──────────────
   operacional:   { entradas: number; saidas: number; liquido: number };
   investimento:  { entradas: number; saidas: number; liquido: number };
   financiamento: { entradas: number; saidas: number; liquido: number };
   exclusao:      number;   // intercompany + internal reserves, not in DFC totals
   pendente:      number;   // null cashflowClass — awaiting classification
-  variacaoCaixa: number;   // operacional.liquido + investimento.liquido + financiamento.liquido
+  variacaoCaixa: number;   // sum of liquido across all classes
   byCategory:    DFCCategoryLine[];  // auditable per-category detail
+  // ── Conciliado tier — reconciliationStatus === "conciliado" only ──────────
+  conciliado:            DFCTier;   // FEEDS KPIs — single source of truth for finals
+  // ── Classified pending conciliation ──────────────────────────────────────
+  classificadoPendente:  DFCTier;   // classified but not yet conciliated
+}
+
+// ─── DRE tier sub-type ───────────────────────────────────────────────────────
+export interface DRETier {
+  receita:      number;
+  custo:        number;
+  grossProfit:  number;
+  grossMargin:  number;
+  opex:         number;
+  ebitda:       number;
+  ebitdaMargin: number;
+  financeiro:   number;
+  imposto:      number;
+  lucroLiquido: number;
+  txCount:      number;
+  byCategory:   DRECategoryLine[];
 }
 
 /** DRE Gerencial — cash-basis proxy (não GAAP accrual).
- *  Computed from per-transaction dreEffect (explicit) or deriveDREEffect fallback. */
+ *  Computed from per-transaction dreEffect (explicit) or deriveDREEffect fallback.
+ *
+ *  TIERS:
+ *    conciliado          — reconciliationStatus === "conciliado"  → feeds KPIs
+ *    classificadoPendente— reconciliationStatus === "classificado" → pending review
+ */
 export interface DREStatement {
+  // ── Full view (backward compat) ───────────────────────────────────────────
   receita:      number;
   custo:        number;
   grossProfit:  number;
@@ -313,6 +356,10 @@ export interface DREStatement {
   lucroLiquido: number;   // ebitda + financeiro − imposto
   pendente:     number;   // null dreEffect — awaiting classification
   byCategory:   DRECategoryLine[];  // auditable per-category detail
+  // ── Conciliado tier — reconciliationStatus === "conciliado" only ──────────
+  conciliado:            DRETier;   // FEEDS KPIs — single source of truth for finals
+  // ── Classified pending conciliation ──────────────────────────────────────
+  classificadoPendente:  DRETier;   // classified but not yet conciliated
 }
 
 export interface ReconciliationReviewItem {
@@ -527,6 +574,96 @@ function buildEntitySummary(entity: EntityLayer, accounts: CashAccount[]): Entit
   };
 }
 
+// ─── Tier helpers ─────────────────────────────────────────────────────────────
+
+/** Build a DFCTier from a filtered transaction list. Excludes cashflowClass=exclusao. */
+function buildDFCTier(txns: BankTransaction[]): DFCTier {
+  const tier: DFCTier = {
+    operacional:   { entradas: 0, saidas: 0, liquido: 0 },
+    investimento:  { entradas: 0, saidas: 0, liquido: 0 },
+    financiamento: { entradas: 0, saidas: 0, liquido: 0 },
+    variacaoCaixa: 0, txCount: 0, byCategory: [],
+  };
+  const catMap = new Map<string, DFCCategoryLine>();
+  for (const t of txns) {
+    const amt = Math.abs(t.amount);
+    const cls = t.cashflowClass ?? deriveCashflowClass(t.managerialCategory);
+    if (cls === null || cls === "exclusao") continue;
+    const grp = tier[cls];
+    if (t.direction === "credit") grp.entradas += amt; else grp.saidas += amt;
+    tier.txCount++;
+    const catKey = `${t.managerialCategory}__${cls}`;
+    if (!catMap.has(catKey)) {
+      catMap.set(catKey, {
+        category:      t.managerialCategory,
+        categoryLabel: CATEGORY_LABELS[t.managerialCategory],
+        cashflowClass: cls,
+        entradas: 0, saidas: 0, liquido: 0, txCount: 0,
+        entity: t.entity,
+      });
+    }
+    const cl = catMap.get(catKey)!;
+    if (t.direction === "credit") cl.entradas += amt; else cl.saidas += amt;
+    cl.txCount++;
+    if (cl.entity !== t.entity) cl.entity = "multi";
+  }
+  tier.operacional.liquido   = tier.operacional.entradas   - tier.operacional.saidas;
+  tier.investimento.liquido  = tier.investimento.entradas  - tier.investimento.saidas;
+  tier.financiamento.liquido = tier.financiamento.entradas - tier.financiamento.saidas;
+  tier.variacaoCaixa = tier.operacional.liquido + tier.investimento.liquido + tier.financiamento.liquido;
+  for (const line of catMap.values()) line.liquido = line.entradas - line.saidas;
+  tier.byCategory = Array.from(catMap.values()).sort((a, b) => Math.abs(b.liquido) - Math.abs(a.liquido));
+  return tier;
+}
+
+/** Build a DRETier from a filtered transaction list. Excludes dreEffect=nao_aplicavel. */
+function buildDRETier(txns: BankTransaction[]): DRETier {
+  let receita = 0, custo = 0, opex = 0, finNet = 0, imposto = 0, txCount = 0;
+  const catMap = new Map<string, DRECategoryLine>();
+  for (const t of txns) {
+    const eff = t.dreEffect ?? deriveDREEffect(t.managerialCategory);
+    if (eff === null || eff === "nao_aplicavel") continue;
+    const amt = Math.abs(t.amount);
+    let contribution = 0;
+    switch (eff) {
+      case "receita":    if (t.direction === "credit") { receita  += amt; contribution =  amt; } break;
+      case "custo":      if (t.direction === "debit")  { custo    += amt; contribution = -amt; } break;
+      case "opex":       if (t.direction === "debit")  { opex     += amt; contribution = -amt; } break;
+      case "financeiro": { const d = t.direction === "credit" ? amt : -amt; finNet += d; contribution = d; break; }
+      case "imposto":    if (t.direction === "debit")  { imposto  += amt; contribution = -amt; } break;
+    }
+    if (contribution !== 0) {
+      txCount++;
+      const catKey = `${t.managerialCategory}__${eff}`;
+      if (!catMap.has(catKey)) {
+        catMap.set(catKey, {
+          category:      t.managerialCategory,
+          categoryLabel: CATEGORY_LABELS[t.managerialCategory],
+          dreEffect:     eff as DRECategoryLine["dreEffect"],
+          total: 0, txCount: 0, entity: t.entity,
+        });
+      }
+      const cl = catMap.get(catKey)!;
+      cl.total += contribution; cl.txCount++;
+      if (cl.entity !== t.entity) cl.entity = "multi";
+    }
+  }
+  const gp     = receita - custo;
+  const ebitda = gp - opex;
+  return {
+    receita, custo,
+    grossProfit:  gp,
+    grossMargin:  receita > 0 ? gp / receita : 0,
+    opex, ebitda,
+    ebitdaMargin: receita > 0 ? ebitda / receita : 0,
+    financeiro:   finNet,
+    imposto,
+    lucroLiquido: ebitda + finNet - imposto,
+    txCount,
+    byCategory: Array.from(catMap.values()).sort((a, b) => Math.abs(b.total) - Math.abs(a.total)),
+  };
+}
+
 // ─── Main export ──────────────────────────────────────────────────────────────
 
 export async function buildFinancialQuery(): Promise<FinancialQueryResult> {
@@ -534,18 +671,33 @@ export async function buildFinancialQuery(): Promise<FinancialQueryResult> {
   const doneDocs = allDocs.filter((d) => d.status === "done");
   const allTxns  = await getAllTransactions();
 
+  const emptyDFCTier: DFCTier = {
+    operacional:   { entradas: 0, saidas: 0, liquido: 0 },
+    investimento:  { entradas: 0, saidas: 0, liquido: 0 },
+    financiamento: { entradas: 0, saidas: 0, liquido: 0 },
+    variacaoCaixa: 0, txCount: 0, byCategory: [],
+  };
+  const emptyDRETier: DRETier = {
+    receita: 0, custo: 0, grossProfit: 0, grossMargin: 0,
+    opex: 0, ebitda: 0, ebitdaMargin: 0, financeiro: 0,
+    imposto: 0, lucroLiquido: 0, txCount: 0, byCategory: [],
+  };
   const emptyDFC: DFCStatement = {
     operacional:   { entradas: 0, saidas: 0, liquido: 0 },
     investimento:  { entradas: 0, saidas: 0, liquido: 0 },
     financiamento: { entradas: 0, saidas: 0, liquido: 0 },
     exclusao: 0, pendente: 0, variacaoCaixa: 0,
     byCategory: [],
+    conciliado:           { ...emptyDFCTier },
+    classificadoPendente: { ...emptyDFCTier },
   };
   const emptyDRE: DREStatement = {
     receita: 0, custo: 0, grossProfit: 0, grossMargin: 0,
     opex: 0, ebitda: 0, ebitdaMargin: 0, financeiro: 0,
     imposto: 0, lucroLiquido: 0, pendente: 0,
     byCategory: [],
+    conciliado:           { ...emptyDRETier },
+    classificadoPendente: { ...emptyDRETier },
   };
   const emptyQueue: ReconciliationQueue = {
     pendente: 0, em_revisao: 0, classificado: 0, conciliado: 0,
@@ -748,6 +900,8 @@ export async function buildFinancialQuery(): Promise<FinancialQueryResult> {
     financiamento: { entradas: 0, saidas: 0, liquido: 0 },
     exclusao: 0, pendente: 0, variacaoCaixa: 0,
     byCategory: [],
+    conciliado:           { ...emptyDFCTier },
+    classificadoPendente: { ...emptyDFCTier },
   };
   // Per-category DFC accumulator: key = `${category}__${cls}__${entity}`
   const dfcCatMap = new Map<string, DFCCategoryLine>();
@@ -840,7 +994,19 @@ export async function buildFinancialQuery(): Promise<FinancialQueryResult> {
     lucroLiquido: dreEbitda + dreFinNet - dreImposto,
     pendente:     drePendente,
     byCategory:   Array.from(dreCatMap.values()).sort((a, b) => Math.abs(b.total) - Math.abs(a.total)),
+    conciliado:           { ...emptyDRETier },
+    classificadoPendente: { ...emptyDRETier },
   };
+
+  // ── DFC / DRE tier split by reconciliationStatus ──────────────────────────
+  // conciliado   = human-verified (or rule-confirmed) → feeds KPIs as DFC Final
+  // classificado = rule-classified, pending manual review → pending impact
+  const txsConciliado = allTxns.filter((t) => t.reconciliationStatus === "conciliado");
+  const txsClassif    = allTxns.filter((t) => t.reconciliationStatus === "classificado");
+  dfc.conciliado           = buildDFCTier(txsConciliado);
+  dfc.classificadoPendente = buildDFCTier(txsClassif);
+  dreStatement.conciliado           = buildDRETier(txsConciliado);
+  dreStatement.classificadoPendente = buildDRETier(txsClassif);
 
   // ── Reconciliation queue ──────────────────────────────────────────────────
   const rqCounts = { pendente: 0, em_revisao: 0, classificado: 0, conciliado: 0 };
