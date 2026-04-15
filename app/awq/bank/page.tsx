@@ -1,19 +1,22 @@
 "use client";
 
-// ─── /awq/bank — Contas de Banco ─────────────────────────────────────────────
+// ─── /awq/bank — Hub Operacional de Tesouraria ───────────────────────────────
 //
-// ROLE: Local cash position tracker — accounts, balances, manual transaction history.
-//       Data lives in localStorage (browser-local, not server-persistent).
+// ROLE: Entry point for the treasury operational flow.
+//       Explains and links: Integração → Conciliação → DFC/DRE/KPIs.
+//       Also maintains a local scratchpad for quick account/balance tracking
+//       (localStorage only — not connected to financial-db.ts canonical store).
 //
 // SCOPE: This page is NOT the document ingestion pipeline.
 //        For PDF-based bank statement import with full traceability, use /awq/ingest.
 //
 // ARCHITECTURE:
-//   • Accounts and transactions: localStorage ("awq_bank_accounts")
-//   • No server API calls for data storage — intentionally local/scratchpad
-//   • No AI parsing — that responsibility moved to /api/ingest/process (server-only)
-//   • Complements /awq/ingest: provides quick manual balance tracking; ingest provides
-//     the canonical document-backed financial database
+//   • Accounts and transactions: localStorage ("awq_bank_accounts") — scratchpad
+//   • Canonical pipeline: /awq/ingest → /api/ingest/process → financial-db.ts
+//   • No AI parsing here — that responsibility lives in /api/ingest/process (server-only)
+
+// NEXT_PUBLIC_STATIC_DATA=1 is injected at build time by the GitHub Pages workflow.
+const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
@@ -22,6 +25,7 @@ import {
   Building2, Plus, Trash2, Search, X, Wallet,
   TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight,
   CreditCard, ChevronDown, ChevronUp, BarChart3, FileUp,
+  CheckCircle2, Zap, AlertTriangle, ArrowRight, HardDrive, LineChart,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -202,25 +206,137 @@ export default function BankAccountsPage() {
   return (
     <>
       <Header
-        title="Contas de Banco"
-        subtitle="Saldos manuais · Visão de caixa local · Dados em localStorage"
+        title="Integração Bancária & Contas — AWQ Group"
+        subtitle="Importe dados → concilie → valide DFC, DRE e KPIs"
       />
       <div className="px-8 py-6 space-y-5">
 
-        {/* ── Ingest callout ────────────────────────────────────────────────── */}
-        <div className="flex items-center justify-between p-3 bg-brand-50 border border-brand-200 rounded-xl">
-          <div className="flex items-center gap-2 text-sm text-brand-800">
-            <FileUp size={14} className="text-brand-600 shrink-0" />
-            <span>
-              Para importar extratos PDF com rastreabilidade, classificação e reconciliação:
-            </span>
+        {/* ── GitHub Pages warning ─────────────────────────────────────────── */}
+        {IS_STATIC && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 flex items-start gap-3">
+            <HardDrive size={16} className="text-amber-600 shrink-0 mt-0.5" />
+            <div className="text-xs text-amber-800 space-y-1">
+              <p className="font-semibold">GitHub Pages — processamento automático de PDF indisponível</p>
+              <p>
+                Upload de PDF + extração via IA requer servidor Node.js.
+                Neste ambiente use <strong>CSV/colagem</strong> ou <strong>entrada manual</strong> em{" "}
+                <Link href="/awq/ingest" className="underline font-medium">Integração Bancária</Link>.
+                Para o pipeline PDF completo, faça deploy no Vercel ou rode <code className="bg-amber-100 px-1 rounded">npm run dev</code> localmente.
+              </p>
+            </div>
           </div>
-          <Link
-            href="/awq/ingest"
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-semibold transition-colors shrink-0"
-          >
-            <FileUp size={12} /> Ingestão de Extratos
-          </Link>
+        )}
+
+        {/* ── Operational flow hub ─────────────────────────────────────────── */}
+        <div className="rounded-xl border border-gray-200 bg-white p-5 space-y-4">
+          <div>
+            <h2 className="text-sm font-bold text-gray-900">Fluxo Operacional de Tesouraria</h2>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Siga esta sequência para que DFC, DRE e KPIs reflitam os dados reais.
+            </p>
+          </div>
+
+          {/* Step arrows */}
+          <div className="flex items-stretch gap-0 overflow-x-auto">
+            {[
+              {
+                step: "1",
+                label: "Importar dados",
+                sub: IS_STATIC ? "CSV ou entrada manual" : "Upload PDF ou CSV",
+                color: "bg-brand-50 border-brand-200",
+                icon: FileUp,
+                iconColor: "text-brand-600",
+              },
+              {
+                step: "2",
+                label: "Conciliar",
+                sub: "Revisar categoria, status e flags",
+                color: "bg-amber-50 border-amber-200",
+                icon: CheckCircle2,
+                iconColor: "text-amber-600",
+              },
+              {
+                step: "3",
+                label: "Validar DFC",
+                sub: "Fluxo de caixa atualizado",
+                color: "bg-emerald-50 border-emerald-200",
+                icon: Zap,
+                iconColor: "text-emerald-600",
+              },
+              {
+                step: "4",
+                label: "Validar DRE/KPIs",
+                sub: "P&L e indicadores recalculados",
+                color: "bg-indigo-50 border-indigo-200",
+                icon: LineChart,
+                iconColor: "text-indigo-600",
+              },
+            ].map((item, idx, arr) => {
+              const Icon = item.icon;
+              return (
+                <div key={item.step} className="flex items-center shrink-0">
+                  <div className={`rounded-xl border ${item.color} px-4 py-3 flex items-center gap-3 min-w-[160px]`}>
+                    <div className="w-7 h-7 rounded-full bg-white border border-gray-200 flex items-center justify-center shrink-0">
+                      <span className="text-[10px] font-bold text-gray-600">{item.step}</span>
+                    </div>
+                    <Icon size={15} className={`${item.iconColor} shrink-0`} />
+                    <div>
+                      <div className="text-xs font-semibold text-gray-900">{item.label}</div>
+                      <div className="text-[10px] text-gray-500">{item.sub}</div>
+                    </div>
+                  </div>
+                  {idx < arr.length - 1 && (
+                    <ArrowRight size={14} className="text-gray-300 mx-1 shrink-0" />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* CTAs */}
+          <div className="flex flex-wrap gap-3 pt-1">
+            <Link
+              href="/awq/ingest"
+              className="flex items-center gap-2 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-colors"
+            >
+              <FileUp size={14} />
+              {IS_STATIC ? "Importar CSV / Manual" : "Integrar extrato / CSV"}
+            </Link>
+            <Link
+              href="/awq/reconciliation"
+              className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 hover:border-brand-300 hover:bg-brand-50 text-gray-800 rounded-xl text-sm font-semibold transition-colors"
+            >
+              <CheckCircle2 size={14} className="text-amber-600" />
+              Ir para Conciliação
+            </Link>
+            <Link
+              href="/awq/cashflow"
+              className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 hover:border-emerald-300 hover:bg-emerald-50 text-gray-800 rounded-xl text-sm font-semibold transition-colors"
+            >
+              <Zap size={14} className="text-emerald-600" />
+              Ver Cash Flow
+            </Link>
+          </div>
+
+          {!IS_STATIC && (
+            <p className="text-[10px] text-gray-400 border-t border-gray-100 pt-3">
+              <AlertTriangle size={10} className="inline mr-1 text-amber-500" />
+              Em GitHub Pages / static export: PDF automático não roda. Use CSV ou entrada manual em{" "}
+              <Link href="/awq/ingest" className="underline">Integração Bancária</Link>.
+              PDF automático exige ambiente server / Vercel.
+            </p>
+          )}
+        </div>
+
+        {/* ── Scratchpad section label ─────────────────────────────────────── */}
+        <div className="flex items-center gap-2">
+          <CreditCard size={14} className="text-gray-400" />
+          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+            Contas Bancárias — Rascunho Local
+          </span>
+          <span className="text-[10px] text-gray-400 font-normal normal-case tracking-normal">
+            (localStorage · não conectado ao pipeline canônico)
+          </span>
         </div>
 
         {/* ── Summary cards ────────────────────────────────────────────────── */}
