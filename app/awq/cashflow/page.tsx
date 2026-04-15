@@ -553,6 +553,55 @@ export default async function AwqCashflowPage() {
           </div>
         )}
 
+        {/* ── DFC por Categoria — detalhe auditável ─────────────────────────── */}
+        {q.hasData && q.dfcStatement.byCategory.length > 0 && (
+          <div className="card p-5">
+            <h2 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
+              <TrendingUp size={15} className="text-violet-500" />
+              DFC por Categoria — Detalhe Auditável
+            </h2>
+            <p className="text-[11px] text-gray-400 mb-3">
+              Cada categoria com cashflowClass ≠ exclusão. Fonte: por transação.
+            </p>
+            <div className="table-scroll">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left py-1.5 px-2 text-[10px] font-semibold text-gray-500">Categoria</th>
+                    <th className="text-left py-1.5 px-2 text-[10px] font-semibold text-gray-500">Classe DFC</th>
+                    <th className="text-right py-1.5 px-2 text-[10px] font-semibold text-gray-500">Entradas</th>
+                    <th className="text-right py-1.5 px-2 text-[10px] font-semibold text-gray-500">Saídas</th>
+                    <th className="text-right py-1.5 px-2 text-[10px] font-semibold text-gray-500">Líquido</th>
+                    <th className="text-right py-1.5 px-2 text-[10px] font-semibold text-gray-500">Txns</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {q.dfcStatement.byCategory.map((line) => (
+                    <tr key={`${line.category}__${line.cashflowClass}`} className="border-b border-gray-100 hover:bg-gray-50/80">
+                      <td className="py-1.5 px-2 text-gray-700 font-medium">{line.categoryLabel}</td>
+                      <td className="py-1.5 px-2">
+                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold ${
+                          line.cashflowClass === "operacional"   ? "bg-emerald-100 text-emerald-700" :
+                          line.cashflowClass === "investimento"  ? "bg-violet-100 text-violet-700" :
+                          line.cashflowClass === "financiamento" ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-600"
+                        }`}>
+                          {line.cashflowClass}
+                        </span>
+                      </td>
+                      <td className="py-1.5 px-2 text-right text-emerald-700 font-medium">{line.entradas > 0 ? `+${fmtBRL(line.entradas)}` : "—"}</td>
+                      <td className="py-1.5 px-2 text-right text-red-600 font-medium">{line.saidas > 0 ? `−${fmtBRL(line.saidas)}` : "—"}</td>
+                      <td className={`py-1.5 px-2 text-right font-bold ${line.liquido >= 0 ? "text-brand-700" : "text-red-700"}`}>
+                        {line.liquido >= 0 ? "+" : ""}{fmtBRL(line.liquido)}
+                      </td>
+                      <td className="py-1.5 px-2 text-right text-gray-400">{line.txCount}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
         {/* ── DRE Gerencial — cash-basis proxy ─────────────────────────────── */}
         {q.hasData && (
           <div className="card p-5">
@@ -615,6 +664,53 @@ export default async function AwqCashflowPage() {
           </div>
         )}
 
+        {/* ── DRE por Categoria — detalhe auditável ─────────────────────────── */}
+        {q.hasData && q.dreStatement.byCategory.length > 0 && (
+          <div className="card p-5">
+            <h2 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
+              <Activity size={15} className="text-brand-500" />
+              DRE por Categoria — Detalhe Auditável
+            </h2>
+            <p className="text-[11px] text-gray-400 mb-3">
+              Cada categoria com dreEffect ≠ nao_aplicavel. Positivo = receita/rendimento; negativo = custo/despesa.
+            </p>
+            <div className="table-scroll">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left py-1.5 px-2 text-[10px] font-semibold text-gray-500">Categoria</th>
+                    <th className="text-left py-1.5 px-2 text-[10px] font-semibold text-gray-500">Linha DRE</th>
+                    <th className="text-right py-1.5 px-2 text-[10px] font-semibold text-gray-500">Contribuição</th>
+                    <th className="text-right py-1.5 px-2 text-[10px] font-semibold text-gray-500">Txns</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {q.dreStatement.byCategory.map((line) => (
+                    <tr key={`${line.category}__${line.dreEffect}`} className="border-b border-gray-100 hover:bg-gray-50/80">
+                      <td className="py-1.5 px-2 text-gray-700 font-medium">{line.categoryLabel}</td>
+                      <td className="py-1.5 px-2">
+                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold ${
+                          line.dreEffect === "receita"    ? "bg-emerald-100 text-emerald-700" :
+                          line.dreEffect === "custo"      ? "bg-red-100 text-red-700"         :
+                          line.dreEffect === "opex"       ? "bg-orange-100 text-orange-700"   :
+                          line.dreEffect === "financeiro" ? "bg-violet-100 text-violet-700"   :
+                          line.dreEffect === "imposto"    ? "bg-amber-100 text-amber-700"     : "bg-gray-100 text-gray-600"
+                        }`}>
+                          {line.dreEffect}
+                        </span>
+                      </td>
+                      <td className={`py-1.5 px-2 text-right font-bold ${line.total >= 0 ? "text-emerald-700" : "text-red-700"}`}>
+                        {line.total >= 0 ? "+" : ""}{fmtBRL(line.total)}
+                      </td>
+                      <td className="py-1.5 px-2 text-right text-gray-400">{line.txCount}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
         {/* ── Fila de Revisão — conciliação manual interativa ──────────────── */}
         {q.hasData && (() => {
           const reviewItems: ReviewItem[] = q.reconciliationQueue.topItems.map((item) => ({
@@ -624,6 +720,7 @@ export default async function AwqCashflowPage() {
             amount:        item.amount,
             direction:     item.direction,
             entityLabel:   ENTITY_LABELS[item.entity] ?? item.entity,
+            categoryId:    item.category,
             categoryLabel: CATEGORY_LABELS[item.category] ?? item.category,
             status:        item.status,
             note:          item.note,

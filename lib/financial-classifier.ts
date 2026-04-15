@@ -850,3 +850,75 @@ export const CONSOLIDATION_EXCLUDED_CATEGORIES: ManagerialCategory[] = [
   "aplicacao_financeira",
   "resgate_financeiro",
 ];
+
+// ─── Category Registry ────────────────────────────────────────────────────────
+//
+// Static, auditable registry of all ManagerialCategory values.
+// Each entry states the default DFC class and DRE effect (derived from
+// deriveCashflowClass / deriveDREEffect above) plus control flags.
+//
+// This is the canonical source of truth for:
+//   • category matrix UI (/awq/categories)
+//   • default_cashflow_class / default_dre_effect per category
+//   • affects_dfc / affects_dre flags (whether a category feeds those statements)
+//   • requires_review flag (ambiguous categories → always enter reconciliation queue)
+//   • is_intercompany flag (excluded from consolidated DFC/DRE totals)
+
+export interface CategoryMeta {
+  category_id:           ManagerialCategory;
+  category_label:        string;
+  default_cashflow_class: CashflowClass | null;
+  default_dre_effect:    DREEffect | null;
+  affects_dfc:           boolean;  // false = excluded from DFC aggregation
+  affects_dre:           boolean;  // false = patrimonial / equity / excluded
+  requires_review:       boolean;  // true = always enters em_revisao
+  is_intercompany:       boolean;  // true = excluded from consolidated totals
+}
+
+export const CATEGORY_REGISTRY: CategoryMeta[] = [
+  // ── Receitas operacionais ──────────────────────────────────────────────────
+  { category_id: "receita_recorrente",            category_label: "Receita Recorrente",              default_cashflow_class: "operacional",   default_dre_effect: "receita",       affects_dfc: true,  affects_dre: true,  requires_review: false, is_intercompany: false },
+  { category_id: "receita_projeto",               category_label: "Receita de Projeto",              default_cashflow_class: "operacional",   default_dre_effect: "receita",       affects_dfc: true,  affects_dre: true,  requires_review: false, is_intercompany: false },
+  { category_id: "receita_consultoria",           category_label: "Receita de Consultoria",          default_cashflow_class: "operacional",   default_dre_effect: "receita",       affects_dfc: true,  affects_dre: true,  requires_review: false, is_intercompany: false },
+  { category_id: "receita_producao",              category_label: "Receita de Produção",             default_cashflow_class: "operacional",   default_dre_effect: "receita",       affects_dfc: true,  affects_dre: true,  requires_review: false, is_intercompany: false },
+  { category_id: "receita_social_media",          category_label: "Receita Social Media",            default_cashflow_class: "operacional",   default_dre_effect: "receita",       affects_dfc: true,  affects_dre: true,  requires_review: false, is_intercompany: false },
+  { category_id: "receita_revenue_share",         category_label: "Revenue Share",                   default_cashflow_class: "operacional",   default_dre_effect: "receita",       affects_dfc: true,  affects_dre: true,  requires_review: false, is_intercompany: false },
+  { category_id: "receita_fee_venture",           category_label: "Fee Recorrente Venture",          default_cashflow_class: "operacional",   default_dre_effect: "receita",       affects_dfc: true,  affects_dre: true,  requires_review: false, is_intercompany: false },
+  { category_id: "receita_eventual",              category_label: "Receita Eventual",                default_cashflow_class: "operacional",   default_dre_effect: "receita",       affects_dfc: true,  affects_dre: true,  requires_review: false, is_intercompany: false },
+  { category_id: "ajuste_bancario_credito",       category_label: "Ajuste / Crédito Bancário",       default_cashflow_class: "operacional",   default_dre_effect: "receita",       affects_dfc: true,  affects_dre: true,  requires_review: false, is_intercompany: false },
+  // ── Resultados financeiros ──────────────────────────────────────────────────
+  { category_id: "rendimento_financeiro",         category_label: "Rendimento Financeiro",           default_cashflow_class: "investimento",  default_dre_effect: "financeiro",    affects_dfc: true,  affects_dre: true,  requires_review: false, is_intercompany: false },
+  { category_id: "juros_multa_iof",               category_label: "Juros / Multa / IOF",             default_cashflow_class: "operacional",   default_dre_effect: "financeiro",    affects_dfc: true,  affects_dre: true,  requires_review: false, is_intercompany: false },
+  // ── Custos diretos ──────────────────────────────────────────────────────────
+  { category_id: "freelancer_terceiro",           category_label: "Freelancer / Terceiro",           default_cashflow_class: "operacional",   default_dre_effect: "custo",         affects_dfc: true,  affects_dre: true,  requires_review: false, is_intercompany: false },
+  { category_id: "folha_remuneracao",             category_label: "Folha / Remuneração",             default_cashflow_class: "operacional",   default_dre_effect: "custo",         affects_dfc: true,  affects_dre: true,  requires_review: false, is_intercompany: false },
+  // ── OpEx ────────────────────────────────────────────────────────────────────
+  { category_id: "fornecedor_operacional",        category_label: "Fornecedor Operacional",          default_cashflow_class: "operacional",   default_dre_effect: "opex",          affects_dfc: true,  affects_dre: true,  requires_review: false, is_intercompany: false },
+  { category_id: "tarifa_bancaria",               category_label: "Tarifa Bancária",                 default_cashflow_class: "operacional",   default_dre_effect: "opex",          affects_dfc: true,  affects_dre: true,  requires_review: false, is_intercompany: false },
+  { category_id: "software_assinatura",           category_label: "Software / Assinatura",           default_cashflow_class: "operacional",   default_dre_effect: "opex",          affects_dfc: true,  affects_dre: true,  requires_review: false, is_intercompany: false },
+  { category_id: "marketing_midia",               category_label: "Marketing / Mídia Paga",          default_cashflow_class: "operacional",   default_dre_effect: "opex",          affects_dfc: true,  affects_dre: true,  requires_review: false, is_intercompany: false },
+  { category_id: "deslocamento_combustivel",      category_label: "Deslocamento / Combustível",      default_cashflow_class: "operacional",   default_dre_effect: "opex",          affects_dfc: true,  affects_dre: true,  requires_review: false, is_intercompany: false },
+  { category_id: "alimentacao_representacao",     category_label: "Alimentação / Representação",     default_cashflow_class: "operacional",   default_dre_effect: "opex",          affects_dfc: true,  affects_dre: true,  requires_review: false, is_intercompany: false },
+  { category_id: "viagem_hospedagem",             category_label: "Viagem / Hospedagem",             default_cashflow_class: "operacional",   default_dre_effect: "opex",          affects_dfc: true,  affects_dre: true,  requires_review: false, is_intercompany: false },
+  { category_id: "aluguel_locacao",               category_label: "Aluguel / Locação",               default_cashflow_class: "operacional",   default_dre_effect: "opex",          affects_dfc: true,  affects_dre: true,  requires_review: false, is_intercompany: false },
+  { category_id: "energia_agua_internet",         category_label: "Energia / Água / Internet",       default_cashflow_class: "operacional",   default_dre_effect: "opex",          affects_dfc: true,  affects_dre: true,  requires_review: false, is_intercompany: false },
+  { category_id: "servicos_contabeis_juridicos",  category_label: "Serviços Contábeis / Jurídicos",  default_cashflow_class: "operacional",   default_dre_effect: "opex",          affects_dfc: true,  affects_dre: true,  requires_review: false, is_intercompany: false },
+  { category_id: "cartao_compra_operacional",     category_label: "Compra via Cartão Corporativo",   default_cashflow_class: "operacional",   default_dre_effect: "opex",          affects_dfc: true,  affects_dre: true,  requires_review: false, is_intercompany: false },
+  // ── Impostos ────────────────────────────────────────────────────────────────
+  { category_id: "imposto_tributo",               category_label: "Imposto / Tributo",               default_cashflow_class: "operacional",   default_dre_effect: "imposto",       affects_dfc: true,  affects_dre: true,  requires_review: false, is_intercompany: false },
+  // ── Financiamento / equity ──────────────────────────────────────────────────
+  { category_id: "prolabore_retirada",            category_label: "Pró-labore / Retirada",           default_cashflow_class: "financiamento", default_dre_effect: "nao_aplicavel", affects_dfc: true,  affects_dre: false, requires_review: false, is_intercompany: false },
+  { category_id: "aporte_socio",                  category_label: "Aporte do Sócio",                 default_cashflow_class: "financiamento", default_dre_effect: "nao_aplicavel", affects_dfc: true,  affects_dre: false, requires_review: false, is_intercompany: false },
+  { category_id: "despesa_pessoal_misturada",     category_label: "Despesa Pessoal Misturada",       default_cashflow_class: "financiamento", default_dre_effect: "nao_aplicavel", affects_dfc: true,  affects_dre: false, requires_review: true,  is_intercompany: false },
+  // ── Investimento ────────────────────────────────────────────────────────────
+  { category_id: "aplicacao_financeira",          category_label: "Aplicação Financeira",            default_cashflow_class: "investimento",  default_dre_effect: "nao_aplicavel", affects_dfc: false, affects_dre: false, requires_review: false, is_intercompany: true  },
+  { category_id: "resgate_financeiro",            category_label: "Resgate Financeiro",              default_cashflow_class: "investimento",  default_dre_effect: "nao_aplicavel", affects_dfc: false, affects_dre: false, requires_review: false, is_intercompany: true  },
+  // ── Intercompany / exclusão ──────────────────────────────────────────────────
+  { category_id: "transferencia_interna_enviada",  category_label: "Transf. Intercompany (enviada)",  default_cashflow_class: "exclusao",      default_dre_effect: "nao_aplicavel", affects_dfc: false, affects_dre: false, requires_review: false, is_intercompany: true  },
+  { category_id: "transferencia_interna_recebida", category_label: "Transf. Intercompany (recebida)", default_cashflow_class: "exclusao",      default_dre_effect: "nao_aplicavel", affects_dfc: false, affects_dre: false, requires_review: false, is_intercompany: true  },
+  { category_id: "reserva_limite_cartao",          category_label: "Reserva Limite Cartão",           default_cashflow_class: "exclusao",      default_dre_effect: "nao_aplicavel", affects_dfc: false, affects_dre: false, requires_review: false, is_intercompany: true  },
+  // ── Ambíguos / revisão obrigatória ──────────────────────────────────────────
+  { category_id: "recebimento_ambiguo",           category_label: "Recebimento Ambíguo",             default_cashflow_class: null,            default_dre_effect: null,            affects_dfc: false, affects_dre: false, requires_review: true,  is_intercompany: false },
+  { category_id: "despesa_ambigua",               category_label: "Despesa Ambígua",                 default_cashflow_class: null,            default_dre_effect: null,            affects_dfc: false, affects_dre: false, requires_review: true,  is_intercompany: false },
+  { category_id: "unclassified",                  category_label: "Não Classificado",                default_cashflow_class: null,            default_dre_effect: null,            affects_dfc: false, affects_dre: false, requires_review: true,  is_intercompany: false },
+];

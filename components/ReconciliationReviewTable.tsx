@@ -18,6 +18,19 @@ type CashflowClass = "operacional" | "investimento" | "financiamento" | "exclusa
 type DREEffect = "receita" | "custo" | "opex" | "financeiro" | "imposto" | "nao_aplicavel";
 type ReconciliationStatus = "pendente" | "classificado" | "conciliado" | "em_revisao" | "rejeitado";
 type Direction = "credit" | "debit";
+// Client-safe copy of ManagerialCategory — must stay in sync with financial-db.ts
+type ManagerialCategory =
+  | "receita_recorrente" | "receita_projeto" | "receita_consultoria" | "receita_producao"
+  | "receita_social_media" | "receita_revenue_share" | "receita_fee_venture" | "receita_eventual"
+  | "rendimento_financeiro" | "aporte_socio" | "transferencia_interna_recebida"
+  | "ajuste_bancario_credito" | "recebimento_ambiguo"
+  | "fornecedor_operacional" | "freelancer_terceiro" | "folha_remuneracao" | "prolabore_retirada"
+  | "imposto_tributo" | "juros_multa_iof" | "tarifa_bancaria" | "software_assinatura"
+  | "marketing_midia" | "deslocamento_combustivel" | "alimentacao_representacao"
+  | "viagem_hospedagem" | "aluguel_locacao" | "energia_agua_internet"
+  | "servicos_contabeis_juridicos" | "cartao_compra_operacional" | "despesa_pessoal_misturada"
+  | "aplicacao_financeira" | "resgate_financeiro" | "transferencia_interna_enviada"
+  | "reserva_limite_cartao" | "despesa_ambigua" | "unclassified";
 
 export interface ReviewItem {
   id:            string;
@@ -26,7 +39,8 @@ export interface ReviewItem {
   amount:        number;
   direction:     Direction;
   entityLabel:   string;         // already translated (e.g. "AWQ Holding")
-  categoryLabel: string;         // already translated
+  categoryId:    ManagerialCategory;  // raw ID for dropdown
+  categoryLabel: string;         // already translated (display)
   status:        ReconciliationStatus;
   note:          string | null;
   cashflowClass: CashflowClass | null;
@@ -34,6 +48,45 @@ export interface ReviewItem {
 }
 
 // ─── Select options ───────────────────────────────────────────────────────────
+
+const CATEGORY_OPTIONS: { value: ManagerialCategory; label: string }[] = [
+  { value: "receita_recorrente",            label: "Receita Recorrente"              },
+  { value: "receita_projeto",               label: "Receita de Projeto"              },
+  { value: "receita_consultoria",           label: "Receita de Consultoria"          },
+  { value: "receita_producao",              label: "Receita de Produção"             },
+  { value: "receita_social_media",          label: "Receita Social Media"            },
+  { value: "receita_revenue_share",         label: "Revenue Share"                   },
+  { value: "receita_fee_venture",           label: "Fee Recorrente Venture"          },
+  { value: "receita_eventual",              label: "Receita Eventual"                },
+  { value: "rendimento_financeiro",         label: "Rendimento Financeiro"           },
+  { value: "ajuste_bancario_credito",       label: "Ajuste / Crédito Bancário"       },
+  { value: "aporte_socio",                  label: "Aporte do Sócio"                 },
+  { value: "transferencia_interna_recebida",label: "Transf. Intercompany (recebida)" },
+  { value: "recebimento_ambiguo",           label: "Recebimento Ambíguo"             },
+  { value: "fornecedor_operacional",        label: "Fornecedor Operacional"          },
+  { value: "freelancer_terceiro",           label: "Freelancer / Terceiro"           },
+  { value: "folha_remuneracao",             label: "Folha / Remuneração"             },
+  { value: "prolabore_retirada",            label: "Pró-labore / Retirada"           },
+  { value: "imposto_tributo",               label: "Imposto / Tributo"               },
+  { value: "juros_multa_iof",               label: "Juros / Multa / IOF"             },
+  { value: "tarifa_bancaria",               label: "Tarifa Bancária"                 },
+  { value: "software_assinatura",           label: "Software / Assinatura"           },
+  { value: "marketing_midia",               label: "Marketing / Mídia Paga"          },
+  { value: "deslocamento_combustivel",      label: "Deslocamento / Combustível"      },
+  { value: "alimentacao_representacao",     label: "Alimentação / Representação"     },
+  { value: "viagem_hospedagem",             label: "Viagem / Hospedagem"             },
+  { value: "aluguel_locacao",               label: "Aluguel / Locação"               },
+  { value: "energia_agua_internet",         label: "Energia / Água / Internet"       },
+  { value: "servicos_contabeis_juridicos",  label: "Serviços Contábeis / Jurídicos"  },
+  { value: "cartao_compra_operacional",     label: "Compra via Cartão Corporativo"   },
+  { value: "despesa_pessoal_misturada",     label: "Despesa Pessoal Misturada"       },
+  { value: "aplicacao_financeira",          label: "Aplicação Financeira"            },
+  { value: "resgate_financeiro",            label: "Resgate Financeiro"              },
+  { value: "transferencia_interna_enviada", label: "Transf. Intercompany (enviada)"  },
+  { value: "reserva_limite_cartao",         label: "Reserva Limite Cartão"           },
+  { value: "despesa_ambigua",               label: "Despesa Ambígua"                 },
+  { value: "unclassified",                  label: "Não Classificado"                },
+];
 
 const CFC_OPTIONS: { value: CashflowClass; label: string }[] = [
   { value: "operacional",   label: "Operacional (FCO)"        },
@@ -74,8 +127,10 @@ export default function ReconciliationReviewTable({ items }: { items: ReviewItem
   const [saving,     setSaving]      = useState<string | null>(null);
   const [errors,     setErrors]      = useState<Record<string, string>>({});
   const [edits,      setEdits]       = useState<Record<string, {
-    cashflowClass?: CashflowClass | null;
-    dreEffect?:     DREEffect | null;
+    cashflowClass?:      CashflowClass | null;
+    dreEffect?:          DREEffect | null;
+    managerialCategory?: ManagerialCategory;
+    classificationNote?: string | null;
   }>>({});
 
   // Static export — no API available
@@ -100,8 +155,8 @@ export default function ReconciliationReviewTable({ items }: { items: ReviewItem
 
   function setEdit(
     id: string,
-    field: "cashflowClass" | "dreEffect",
-    value: CashflowClass | DREEffect | null
+    field: "cashflowClass" | "dreEffect" | "managerialCategory" | "classificationNote",
+    value: CashflowClass | DREEffect | ManagerialCategory | string | null
   ) {
     setEdits((prev) => ({
       ...prev,
@@ -115,8 +170,10 @@ export default function ReconciliationReviewTable({ items }: { items: ReviewItem
 
     const itemEdits = edits[item.id] ?? {};
     const patch: Record<string, unknown> = { reconciliationStatus: action };
-    if (itemEdits.cashflowClass !== undefined) patch.cashflowClass = itemEdits.cashflowClass;
-    if (itemEdits.dreEffect      !== undefined) patch.dreEffect     = itemEdits.dreEffect;
+    if (itemEdits.cashflowClass      !== undefined) patch.cashflowClass      = itemEdits.cashflowClass;
+    if (itemEdits.dreEffect          !== undefined) patch.dreEffect           = itemEdits.dreEffect;
+    if (itemEdits.managerialCategory !== undefined) patch.managerialCategory  = itemEdits.managerialCategory;
+    if (itemEdits.classificationNote !== undefined) patch.classificationNote  = itemEdits.classificationNote;
 
     try {
       const res = await fetch(`/api/transactions/${encodeURIComponent(item.id)}`, {
@@ -139,9 +196,14 @@ export default function ReconciliationReviewTable({ items }: { items: ReviewItem
           i.id === item.id
             ? {
                 ...i,
-                status: action,
-                cashflowClass: itemEdits.cashflowClass !== undefined ? itemEdits.cashflowClass : i.cashflowClass,
-                dreEffect:     itemEdits.dreEffect     !== undefined ? itemEdits.dreEffect     : i.dreEffect,
+                status:        action,
+                cashflowClass: itemEdits.cashflowClass      !== undefined ? itemEdits.cashflowClass      : i.cashflowClass,
+                dreEffect:     itemEdits.dreEffect          !== undefined ? itemEdits.dreEffect          : i.dreEffect,
+                categoryLabel: itemEdits.managerialCategory !== undefined
+                  ? (CATEGORY_OPTIONS.find((o) => o.value === itemEdits.managerialCategory)?.label ?? i.categoryLabel)
+                  : i.categoryLabel,
+                categoryId:    itemEdits.managerialCategory !== undefined ? itemEdits.managerialCategory : i.categoryId,
+                note:          itemEdits.classificationNote !== undefined ? itemEdits.classificationNote : i.note,
               }
             : i
         ));
@@ -164,8 +226,10 @@ export default function ReconciliationReviewTable({ items }: { items: ReviewItem
       <div className="space-y-3">
         {localItems.map((item) => {
           const itemEdits    = edits[item.id] ?? {};
-          const currentCfc   = itemEdits.cashflowClass !== undefined ? itemEdits.cashflowClass : item.cashflowClass;
-          const currentDre   = itemEdits.dreEffect     !== undefined ? itemEdits.dreEffect     : item.dreEffect;
+          const currentCfc   = itemEdits.cashflowClass      !== undefined ? itemEdits.cashflowClass      : item.cashflowClass;
+          const currentDre   = itemEdits.dreEffect          !== undefined ? itemEdits.dreEffect          : item.dreEffect;
+          const currentCat   = itemEdits.managerialCategory !== undefined ? itemEdits.managerialCategory : item.categoryId;
+          const currentNote  = itemEdits.classificationNote !== undefined ? itemEdits.classificationNote : (item.note ?? "");
           const isSaving     = saving === item.id;
           const hasNullField = currentCfc === null || currentDre === null;
 
@@ -212,11 +276,28 @@ export default function ReconciliationReviewTable({ items }: { items: ReviewItem
                 </span>
               </div>
 
-              {/* ── Classification dropdowns ────────────────────────────────── */}
-              <div className="grid grid-cols-2 gap-2 mb-3">
+              {/* ── Classification fields ────────────────────────────────── */}
+              <div className="grid grid-cols-2 gap-2 mb-2">
+                {/* Category */}
+                <div className="col-span-2">
+                  <label className="text-[10px] text-gray-500 block mb-1">Categoria</label>
+                  <select
+                    className="w-full text-[11px] border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-brand-400 disabled:opacity-50"
+                    value={currentCat}
+                    onChange={(e) =>
+                      setEdit(item.id, "managerialCategory", e.target.value as ManagerialCategory)
+                    }
+                    disabled={isSaving}
+                  >
+                    {CATEGORY_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
+                  </select>
+                </div>
+                {/* cashflowClass */}
                 <div>
                   <label className="text-[10px] text-gray-500 block mb-1">
-                    cashflowClass
+                    DFC (cashflowClass)
                     {currentCfc === null && (
                       <span className="ml-1 text-amber-500 font-semibold">⚠ nulo</span>
                     )}
@@ -235,9 +316,10 @@ export default function ReconciliationReviewTable({ items }: { items: ReviewItem
                     ))}
                   </select>
                 </div>
+                {/* dreEffect */}
                 <div>
                   <label className="text-[10px] text-gray-500 block mb-1">
-                    dreEffect
+                    DRE (dreEffect)
                     {currentDre === null && (
                       <span className="ml-1 text-amber-500 font-semibold">⚠ nulo</span>
                     )}
@@ -256,6 +338,18 @@ export default function ReconciliationReviewTable({ items }: { items: ReviewItem
                     ))}
                   </select>
                 </div>
+              </div>
+              {/* Note */}
+              <div className="mb-3">
+                <label className="text-[10px] text-gray-500 block mb-1">Observação</label>
+                <input
+                  type="text"
+                  className="w-full text-[11px] border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-brand-400 disabled:opacity-50"
+                  placeholder="Nota de classificação (opcional)"
+                  value={currentNote}
+                  onChange={(e) => setEdit(item.id, "classificationNote", e.target.value || null)}
+                  disabled={isSaving}
+                />
               </div>
 
               {/* ── Action buttons ──────────────────────────────────────────── */}

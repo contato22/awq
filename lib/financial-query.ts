@@ -263,6 +263,28 @@ export interface CategoryExpense {
 
 // ─── DFC / DRE / Reconciliation output types ─────────────────────────────────
 
+/** Auditable line in the DFC breakdown by category. */
+export interface DFCCategoryLine {
+  category:      ManagerialCategory;
+  categoryLabel: string;
+  cashflowClass: "operacional" | "investimento" | "financiamento";
+  entradas:      number;
+  saidas:        number;
+  liquido:       number;
+  txCount:       number;
+  entity:        EntityLayer | "multi";
+}
+
+/** Auditable line in the DRE breakdown by category. */
+export interface DRECategoryLine {
+  category:      ManagerialCategory;
+  categoryLabel: string;
+  dreEffect:     "receita" | "custo" | "opex" | "financeiro" | "imposto";
+  total:         number;   // net contribution to the DRE line (positive = income, negative = expense)
+  txCount:       number;
+  entity:        EntityLayer | "multi";
+}
+
 /** CPC 03 / IFRS IAS 7 — DFC aggregated by activity class.
  *  Computed from per-transaction cashflowClass (explicit) or deriveCashflowClass
  *  fallback for legacy rows that lack the field. */
@@ -273,6 +295,7 @@ export interface DFCStatement {
   exclusao:      number;   // intercompany + internal reserves, not in DFC totals
   pendente:      number;   // null cashflowClass — awaiting classification
   variacaoCaixa: number;   // operacional.liquido + investimento.liquido + financiamento.liquido
+  byCategory:    DFCCategoryLine[];  // auditable per-category detail
 }
 
 /** DRE Gerencial — cash-basis proxy (não GAAP accrual).
@@ -289,6 +312,7 @@ export interface DREStatement {
   imposto:      number;
   lucroLiquido: number;   // ebitda + financeiro − imposto
   pendente:     number;   // null dreEffect — awaiting classification
+  byCategory:   DRECategoryLine[];  // auditable per-category detail
 }
 
 export interface ReconciliationReviewItem {
@@ -515,11 +539,13 @@ export async function buildFinancialQuery(): Promise<FinancialQueryResult> {
     investimento:  { entradas: 0, saidas: 0, liquido: 0 },
     financiamento: { entradas: 0, saidas: 0, liquido: 0 },
     exclusao: 0, pendente: 0, variacaoCaixa: 0,
+    byCategory: [],
   };
   const emptyDRE: DREStatement = {
     receita: 0, custo: 0, grossProfit: 0, grossMargin: 0,
     opex: 0, ebitda: 0, ebitdaMargin: 0, financeiro: 0,
     imposto: 0, lucroLiquido: 0, pendente: 0,
+    byCategory: [],
   };
   const emptyQueue: ReconciliationQueue = {
     pendente: 0, em_revisao: 0, classificado: 0, conciliado: 0,
@@ -721,7 +747,10 @@ export async function buildFinancialQuery(): Promise<FinancialQueryResult> {
     investimento:  { entradas: 0, saidas: 0, liquido: 0 },
     financiamento: { entradas: 0, saidas: 0, liquido: 0 },
     exclusao: 0, pendente: 0, variacaoCaixa: 0,
+    byCategory: [],
   };
+  // Per-category DFC accumulator: key = `${category}__${cls}__${entity}`
+  const dfcCatMap = new Map<string, DFCCategoryLine>();
   for (const t of allTxns) {
     const amt = Math.abs(t.amount);
     // Prefer stored cashflowClass; fall back to derivation for legacy rows
@@ -731,11 +760,29 @@ export async function buildFinancialQuery(): Promise<FinancialQueryResult> {
     const grp = dfc[cls];
     if (t.direction === "credit") grp.entradas += amt;
     else                          grp.saidas   += amt;
+    // Per-category accumulation (skip exclusao)
+    const catKey = `${t.managerialCategory}__${cls}`;
+    if (!dfcCatMap.has(catKey)) {
+      dfcCatMap.set(catKey, {
+        category:      t.managerialCategory,
+        categoryLabel: CATEGORY_LABELS[t.managerialCategory],
+        cashflowClass: cls,
+        entradas: 0, saidas: 0, liquido: 0, txCount: 0,
+        entity: t.entity,
+      });
+    }
+    const catLine = dfcCatMap.get(catKey)!;
+    if (t.direction === "credit") catLine.entradas += amt;
+    else                          catLine.saidas   += amt;
+    catLine.txCount++;
+    if (catLine.entity !== t.entity) catLine.entity = "multi";
   }
   dfc.operacional.liquido   = dfc.operacional.entradas   - dfc.operacional.saidas;
   dfc.investimento.liquido  = dfc.investimento.entradas  - dfc.investimento.saidas;
   dfc.financiamento.liquido = dfc.financiamento.entradas - dfc.financiamento.saidas;
   dfc.variacaoCaixa = dfc.operacional.liquido + dfc.investimento.liquido + dfc.financiamento.liquido;
+  for (const line of dfcCatMap.values()) line.liquido = line.entradas - line.saidas;
+  dfc.byCategory = Array.from(dfcCatMap.values()).sort((a, b) => Math.abs(b.liquido) - Math.abs(a.liquido));
 
   // ── DRE Statement — cash-basis proxy, per-transaction dreEffect ───────────
   let dreReceita   = 0;
@@ -744,17 +791,36 @@ export async function buildFinancialQuery(): Promise<FinancialQueryResult> {
   let dreFinNet    = 0;  // net: credit dreEffect="financeiro" minus debit
   let dreImposto   = 0;
   let drePendente  = 0;
+  // Per-category DRE accumulator
+  const dreCatMap = new Map<string, DRECategoryLine>();
   for (const t of allTxns) {
     const eff = t.dreEffect ?? deriveDREEffect(t.managerialCategory);
     const amt = Math.abs(t.amount);
     if (eff === null)            { drePendente += amt; continue; }
     if (eff === "nao_aplicavel") continue; // equity, intercompany, patrimonial
+    let contribution = 0;
     switch (eff) {
-      case "receita":    if (t.direction === "credit") dreReceita  += amt; break;
-      case "custo":      if (t.direction === "debit")  dreCusto    += amt; break;
-      case "opex":       if (t.direction === "debit")  dreOpex     += amt; break;
-      case "financeiro": dreFinNet += t.direction === "credit" ? amt : -amt; break;
-      case "imposto":    if (t.direction === "debit")  dreImposto  += amt; break;
+      case "receita":    if (t.direction === "credit") { dreReceita  += amt; contribution =  amt; } break;
+      case "custo":      if (t.direction === "debit")  { dreCusto    += amt; contribution = -amt; } break;
+      case "opex":       if (t.direction === "debit")  { dreOpex     += amt; contribution = -amt; } break;
+      case "financeiro": { const delta = t.direction === "credit" ? amt : -amt; dreFinNet += delta; contribution = delta; break; }
+      case "imposto":    if (t.direction === "debit")  { dreImposto  += amt; contribution = -amt; } break;
+    }
+    if (contribution !== 0) {
+      const catKey = `${t.managerialCategory}__${eff}`;
+      if (!dreCatMap.has(catKey)) {
+        dreCatMap.set(catKey, {
+          category:      t.managerialCategory,
+          categoryLabel: CATEGORY_LABELS[t.managerialCategory],
+          dreEffect:     eff as DRECategoryLine["dreEffect"],
+          total: 0, txCount: 0,
+          entity: t.entity,
+        });
+      }
+      const catLine = dreCatMap.get(catKey)!;
+      catLine.total   += contribution;
+      catLine.txCount++;
+      if (catLine.entity !== t.entity) catLine.entity = "multi";
     }
   }
   const dreGrossProfit  = dreReceita - dreCusto;
@@ -773,6 +839,7 @@ export async function buildFinancialQuery(): Promise<FinancialQueryResult> {
     imposto:      dreImposto,
     lucroLiquido: dreEbitda + dreFinNet - dreImposto,
     pendente:     drePendente,
+    byCategory:   Array.from(dreCatMap.values()).sort((a, b) => Math.abs(b.total) - Math.abs(a.total)),
   };
 
   // ── Reconciliation queue ──────────────────────────────────────────────────
