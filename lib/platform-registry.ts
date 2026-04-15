@@ -99,9 +99,10 @@ export const PLATFORM_ROUTES: PlatformRoute[] = [
   { href: "/awq/compliance", label: "Compliance", bu: "awq", layer: "corporate-legal", status: "stub", dataSource: "pending — políticas LGPD, confidencialidade, aceites, controles de acesso, obrigações regulatórias", inSidebar: true, inTabNav: false },
 
   // ── AWQ Group — Dados & Infra ─────────────────────────────────────────────
-  { href: "/awq/ingest",    label: "Ingestão",      bu: "awq", layer: "data-infra", status: "active", dataSource: "public/data/financial/ (documento-backed, server-side — fluxo canônico)", inSidebar: true, inTabNav: false },
-  { href: "/awq/data",      label: "Base de Dados", bu: "awq", layer: "data-infra", status: "active", dataSource: "lib/financial-ingest-status.ts + lib/platform-registry.ts + financial-db.ts (gestão real da camada de storage)", inSidebar: true, inTabNav: false },
-  { href: "/awq/security",  label: "Segurança",     bu: "awq", layer: "data-infra", status: "active", dataSource: "lib/security-types.ts + lib/security-access.ts + lib/security-registry.ts + lib/security-audit.ts + lib/security-guard.ts (RBAC matrix, sensitive routes/APIs, audit log in-memory)", inSidebar: true, inTabNav: false },
+  { href: "/awq/integrations", label: "Integrações",   bu: "awq", layer: "data-infra", status: "active", dataSource: "lib/integration-registry.ts (registry estático — fonte canônica de rastreabilidade KPI→integração)", inSidebar: true, inTabNav: false },
+  { href: "/awq/ingest",       label: "Ingestão",      bu: "awq", layer: "data-infra", status: "active", dataSource: "public/data/financial/ (documento-backed, server-side — fluxo canônico)", inSidebar: true, inTabNav: false },
+  { href: "/awq/data",         label: "Base de Dados", bu: "awq", layer: "data-infra", status: "active", dataSource: "lib/financial-ingest-status.ts + lib/platform-registry.ts + financial-db.ts (gestão real da camada de storage)", inSidebar: true, inTabNav: false },
+  { href: "/awq/security",     label: "Segurança",     bu: "awq", layer: "data-infra", status: "active", dataSource: "lib/security-types.ts + lib/security-access.ts + lib/security-registry.ts + lib/security-audit.ts + lib/security-guard.ts (RBAC matrix, sensitive routes/APIs, audit log in-memory)", inSidebar: true, inTabNav: false },
 
   // ── JACQES — Agência ─────────────────────────────────────────────────────
   { href: "/jacqes",                label: "Visão Geral",    bu: "jacqes", layer: "bu-overview",   status: "active", dataSource: "lib/data.ts",                                             inSidebar: true,  inTabNav: false },

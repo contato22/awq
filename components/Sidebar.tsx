@@ -44,6 +44,7 @@ import {
     Building,
     AlertTriangle,
     Lock,
+    Network,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -220,9 +221,10 @@ const AWQ_JURIDICO_ITEMS = [
 
 // Dados & Infra
 const AWQ_DADOS_ITEMS = [
-    { label: "Ingestão",      href: "/awq/ingest",    icon: FileUp      },
-    { label: "Base de Dados", href: "/awq/data",      icon: Database    },
-    { label: "Segurança",     href: "/awq/security",  icon: ShieldAlert },
+    { label: "Integrações",   href: "/awq/integrations", icon: Network     },
+    { label: "Ingestão",      href: "/awq/ingest",       icon: FileUp      },
+    { label: "Base de Dados", href: "/awq/data",         icon: Database    },
+    { label: "Segurança",     href: "/awq/security",     icon: ShieldAlert },
 ] as const;
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
