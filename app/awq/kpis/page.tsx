@@ -47,44 +47,54 @@ export default async function AwqKpisPage() {
   // ── Real KPI cards (cash-basis, from bank pipeline) ─────────────────────────
   const realCards = [
     {
-      label:   "Receita (Cash)",
-      metric:  kpis.dreReceitaCaixa,
-      display: kpis.dreReceitaCaixa.value !== null ? fmtBRL(kpis.dreReceitaCaixa.value) : "—",
-      icon:    ArrowUpRight,
-      color:   "text-emerald-600",
-      bg:      "bg-emerald-50",
+      label:        "Receita (Cash)",
+      metric:       kpis.dreReceitaCaixa,
+      display:      kpis.dreReceitaCaixa.value !== null ? fmtBRL(kpis.dreReceitaCaixa.value) : "—",
+      icon:         ArrowUpRight,
+      color:        "text-emerald-600",
+      bg:           "bg-emerald-50",
+      drillHref:    "/awq/cashflow",
+      drillLabel:   "→ DRE Gerencial",
     },
     {
-      label:   "EBITDA Proxy (Cash)",
-      metric:  kpis.dreEbitdaCaixa,
-      display: kpis.dreEbitdaCaixa.value !== null ? fmtBRL(kpis.dreEbitdaCaixa.value) : "—",
-      icon:    BarChart3,
-      color:   kpis.dreEbitdaCaixa.value !== null && (kpis.dreEbitdaCaixa.value as number) >= 0 ? "text-brand-600" : "text-red-600",
-      bg:      kpis.dreEbitdaCaixa.value !== null && (kpis.dreEbitdaCaixa.value as number) >= 0 ? "bg-brand-50"    : "bg-red-50",
+      label:        "EBITDA Proxy (Cash)",
+      metric:       kpis.dreEbitdaCaixa,
+      display:      kpis.dreEbitdaCaixa.value !== null ? fmtBRL(kpis.dreEbitdaCaixa.value) : "—",
+      icon:         BarChart3,
+      color:        kpis.dreEbitdaCaixa.value !== null && (kpis.dreEbitdaCaixa.value as number) >= 0 ? "text-brand-600" : "text-red-600",
+      bg:           kpis.dreEbitdaCaixa.value !== null && (kpis.dreEbitdaCaixa.value as number) >= 0 ? "bg-brand-50"    : "bg-red-50",
+      drillHref:    "/awq/cashflow",
+      drillLabel:   "→ DRE Gerencial",
     },
     {
-      label:   "FCO Líquido",
-      metric:  kpis.operationalNetCash,
-      display: kpis.operationalNetCash.value !== null ? fmtBRL(kpis.operationalNetCash.value) : "—",
-      icon:    TrendingUp,
-      color:   kpis.operationalNetCash.value !== null && (kpis.operationalNetCash.value as number) >= 0 ? "text-emerald-600" : "text-red-600",
-      bg:      kpis.operationalNetCash.value !== null && (kpis.operationalNetCash.value as number) >= 0 ? "bg-emerald-50" : "bg-red-50",
+      label:        "FCO Líquido",
+      metric:       kpis.operationalNetCash,
+      display:      kpis.operationalNetCash.value !== null ? fmtBRL(kpis.operationalNetCash.value) : "—",
+      icon:         TrendingUp,
+      color:        kpis.operationalNetCash.value !== null && (kpis.operationalNetCash.value as number) >= 0 ? "text-emerald-600" : "text-red-600",
+      bg:           kpis.operationalNetCash.value !== null && (kpis.operationalNetCash.value as number) >= 0 ? "bg-emerald-50" : "bg-red-50",
+      drillHref:    "/awq/cashflow",
+      drillLabel:   "→ DFC Operacional",
     },
     {
-      label:   "Variação de Caixa (DFC)",
-      metric:  kpis.dfcVariacaoCaixa,
-      display: kpis.dfcVariacaoCaixa.value !== null ? fmtBRL(kpis.dfcVariacaoCaixa.value) : "—",
-      icon:    Zap,
-      color:   kpis.dfcVariacaoCaixa.value !== null && (kpis.dfcVariacaoCaixa.value as number) >= 0 ? "text-violet-700" : "text-red-600",
-      bg:      kpis.dfcVariacaoCaixa.value !== null && (kpis.dfcVariacaoCaixa.value as number) >= 0 ? "bg-violet-50"    : "bg-red-50",
+      label:        "Variação de Caixa (DFC)",
+      metric:       kpis.dfcVariacaoCaixa,
+      display:      kpis.dfcVariacaoCaixa.value !== null ? fmtBRL(kpis.dfcVariacaoCaixa.value) : "—",
+      icon:         Zap,
+      color:        kpis.dfcVariacaoCaixa.value !== null && (kpis.dfcVariacaoCaixa.value as number) >= 0 ? "text-violet-700" : "text-red-600",
+      bg:           kpis.dfcVariacaoCaixa.value !== null && (kpis.dfcVariacaoCaixa.value as number) >= 0 ? "bg-violet-50"    : "bg-red-50",
+      drillHref:    "/awq/cashflow",
+      drillLabel:   "→ DFC completo",
     },
     {
-      label:   "Caixa Total",
-      metric:  kpis.totalCashBalance,
-      display: kpis.totalCashBalance.value !== null ? fmtBRL(kpis.totalCashBalance.value) : "—",
-      icon:    DollarSign,
-      color:   "text-brand-600",
-      bg:      "bg-brand-50",
+      label:        "Caixa Total",
+      metric:       kpis.totalCashBalance,
+      display:      kpis.totalCashBalance.value !== null ? fmtBRL(kpis.totalCashBalance.value) : "—",
+      icon:         DollarSign,
+      color:        "text-brand-600",
+      bg:           "bg-brand-50",
+      drillHref:    "/awq/financial",
+      drillLabel:   "→ Posição por Conta",
     },
   ];
 
@@ -159,6 +169,15 @@ export default async function AwqKpisPage() {
                       <MetricSourceBadge sourceType={card.metric.source_type} />
                     </div>
                     <MetricDetail metric={card.metric} compact />
+                    {kpis.hasRealData && (
+                      <Link
+                        href={card.drillHref}
+                        className="mt-1 text-[10px] text-brand-500 hover:text-brand-400 flex items-center gap-0.5"
+                      >
+                        <ChevronRight size={9} />
+                        {card.drillLabel}
+                      </Link>
+                    )}
                   </div>
                 </div>
               );

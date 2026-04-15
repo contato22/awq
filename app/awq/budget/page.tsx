@@ -8,6 +8,9 @@ import {
   ArrowDownRight,
   CheckCircle2,
   AlertTriangle,
+  Inbox,
+  Send,
+  Zap,
 } from "lucide-react";
 import {
   buData,
@@ -17,6 +20,8 @@ import {
   categoryBudget,
   BUDGET_LINES,
 } from "@/lib/awq-derived-metrics";
+import { buildFinancialQuery, fmtBRL } from "@/lib/financial-query";
+import { getPayables, getReceivables } from "@/lib/financial-db";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -33,7 +38,13 @@ function varPct(actual: number, budget: number) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function AwqBudgetPage() {
+export default async function AwqBudgetPage() {
+  const [q, payables, receivables] = await Promise.all([
+    buildFinancialQuery(),
+    getPayables(),
+    getReceivables(),
+  ]);
+
   const totalBudget = consolidated.budgetRevenue;
   const totalActual = consolidated.revenue;
   const var_        = budgetVsActual;
@@ -194,6 +205,67 @@ export default function AwqBudgetPage() {
           </div>
         </div>
 
+        {/* ── Orçamento Operacional por Categoria (real conciliado vs snapshot budget) */}
+        {q.hasData && q.dreStatement.byCategory.length > 0 && (
+          <div className="card p-5 border-l-4 border-emerald-400">
+            <h2 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
+              <DollarSign size={15} className="text-emerald-500" />
+              Orçamento Operacional por Categoria — Real Conciliado
+            </h2>
+            <p className="text-[11px] text-gray-400 mb-4">
+              Actual = realizado conciliado (DRE por transação) ·
+              Regime caixa. Budget anual não está parametrizado por categoria gerencial — use a seção abaixo para budget snapshot.
+            </p>
+            <div className="table-scroll">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left py-1.5 px-2 text-[10px] font-semibold text-gray-500">Categoria</th>
+                    <th className="text-left py-1.5 px-2 text-[10px] font-semibold text-gray-500">Linha DRE</th>
+                    <th className="text-right py-1.5 px-2 text-[10px] font-semibold text-gray-500">Actual (Cash)</th>
+                    <th className="text-right py-1.5 px-2 text-[10px] font-semibold text-gray-500">Txns</th>
+                    <th className="text-left py-1.5 px-2 text-[10px] font-semibold text-gray-500">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {q.dreStatement.byCategory.map((line) => {
+                    const isRevenue = line.total > 0;
+                    return (
+                      <tr key={`${line.category}__${line.dreEffect}`} className="border-b border-gray-100 hover:bg-gray-50/80">
+                        <td className="py-1.5 px-2 text-gray-700 font-medium">{line.categoryLabel}</td>
+                        <td className="py-1.5 px-2">
+                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold ${
+                            line.dreEffect === "receita"    ? "bg-emerald-100 text-emerald-700" :
+                            line.dreEffect === "custo"      ? "bg-red-100 text-red-700"         :
+                            line.dreEffect === "opex"       ? "bg-orange-100 text-orange-700"   :
+                            line.dreEffect === "financeiro" ? "bg-violet-100 text-violet-700"   :
+                                                              "bg-amber-100 text-amber-700"
+                          }`}>{line.dreEffect}</span>
+                        </td>
+                        <td className={`py-1.5 px-2 text-right font-bold ${isRevenue ? "text-emerald-700" : "text-red-700"}`}>
+                          {line.total >= 0 ? "+" : ""}{fmtBRL(Math.abs(line.total))}
+                        </td>
+                        <td className="py-1.5 px-2 text-right text-gray-400">{line.txCount}</td>
+                        <td className="py-1.5 px-2">
+                          <span className="inline-flex items-center gap-0.5 text-[9px] bg-emerald-50 text-emerald-700 px-1 py-0.5 rounded font-semibold">
+                            <CheckCircle2 size={7} /> conciliado
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            {q.dreStatement.pendente > 0 && (
+              <p className="text-[10px] text-amber-600 mt-2 flex items-center gap-1">
+                <AlertTriangle size={10} />
+                {fmtBRL(q.dreStatement.pendente)} com dreEffect=null — aguardando classificação, não incluído acima.
+              </p>
+            )}
+          </div>
+        )}
+
         {/* ── Category Budget ───────────────────────────────────────────────── */}
         <div className="card p-5">
           <h2 className="text-sm font-semibold text-gray-900 mb-4">Budget por Categoria — Consolidado YTD</h2>
@@ -274,6 +346,205 @@ export default function AwqBudgetPage() {
               );
             })}
           </div>
+        </div>
+
+        {/* ── Caixa Real vs Orçamento Snapshot ─────────────────────────────── */}
+        {q.hasData && (
+          <div className="card p-5 border-l-4 border-brand-400">
+            <h2 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
+              <Zap size={15} className="text-brand-500" />
+              Caixa Real vs Orçamento — Comparativo
+            </h2>
+            <p className="text-[11px] text-gray-400 mb-4">
+              Orçamento = snapshot accrual (planejamento) ·
+              Realizado = caixa real conciliado de extratos bancários.
+              Regimes diferentes — use para referência, não como Budget vs Actual GAAP.
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[
+                {
+                  label:   "Receita Real (Cash)",
+                  value:   q.dreStatement.receita,
+                  budg:    consolidated.budgetRevenue,
+                  color:   "text-emerald-700",
+                  regime:  "caixa",
+                },
+                {
+                  label:   "FCO Real Líquido",
+                  value:   q.dfcStatement.operacional.liquido,
+                  budg:    null,
+                  color:   q.dfcStatement.operacional.liquido >= 0 ? "text-brand-700" : "text-red-700",
+                  regime:  "caixa",
+                },
+                {
+                  label:   "EBITDA Proxy (Cash)",
+                  value:   q.dreStatement.ebitda,
+                  budg:    null,
+                  color:   q.dreStatement.ebitda >= 0 ? "text-brand-700" : "text-red-700",
+                  regime:  "caixa",
+                },
+                {
+                  label:   "Receita Budget (Snapshot)",
+                  value:   consolidated.budgetRevenue,
+                  budg:    null,
+                  color:   "text-amber-600",
+                  regime:  "accrual snapshot",
+                },
+              ].map((row) => (
+                <div key={row.label} className="bg-gray-50 rounded-xl p-3">
+                  <div className={`text-base font-bold ${row.color}`}>
+                    {row.value >= 0 ? "" : "−"}{fmtBRL(Math.abs(row.value))}
+                  </div>
+                  <div className="text-[10px] text-gray-500 mt-0.5">{row.label}</div>
+                  <div className="text-[9px] text-gray-400 mt-0.5 uppercase tracking-wide">{row.regime}</div>
+                  {row.budg !== null && (
+                    <div className="text-[10px] mt-1 text-gray-400">
+                      Budget:{" "}
+                      <span className="text-amber-600 font-semibold">{fmtBRL(row.budg)}</span>
+                      {" "}
+                      <span className={`font-semibold ${row.value >= row.budg ? "text-emerald-600" : "text-red-600"}`}>
+                        ({row.value >= row.budg ? "+" : ""}{row.budg > 0 ? ((row.value - row.budg) / row.budg * 100).toFixed(1) + "%" : "—"})
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            {q.dfcStatement.pendente > 0 && (
+              <p className="text-[10px] text-amber-600 mt-2 flex items-center gap-1">
+                <AlertTriangle size={10} />
+                {fmtBRL(q.dfcStatement.pendente)} pendente de classificação — não incluído no FCO acima.
+              </p>
+            )}
+          </div>
+        )}
+        {!q.hasData && (
+          <div className="card p-5 border border-dashed border-gray-200">
+            <p className="text-xs text-gray-400 flex items-center gap-2">
+              <Zap size={13} className="text-gray-300" />
+              Comparativo Caixa Real vs Orçamento disponível após ingerir extratos bancários em{" "}
+              <a href="/awq/ingest" className="underline text-brand-500">/awq/ingest</a>.
+            </p>
+          </div>
+        )}
+
+        {/* ── Contas a Receber ──────────────────────────────────────────────── */}
+        <div className="card p-5">
+          <h2 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
+            <Inbox size={15} className="text-emerald-500" />
+            Contas a Receber
+          </h2>
+          <p className="text-[11px] text-gray-400 mb-4">
+            Compromissos a receber (previsto, faturado, atrasado).
+            Não entram no DFC realizado até marcados como <code className="bg-gray-100 px-1 rounded">recebido</code> com vínculo à transação bancária.
+          </p>
+          {receivables.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-emerald-200 bg-emerald-50/30 p-6 text-center">
+              <Inbox size={20} className="text-emerald-300 mx-auto mb-2" />
+              <p className="text-xs text-emerald-600 font-medium">Nenhuma conta a receber registrada</p>
+              <p className="text-[10px] text-emerald-500 mt-1">
+                Use a API <code className="bg-emerald-100 px-1 rounded">PATCH /api/transactions/[id]</code> ou futura UI de AR para cadastrar.
+              </p>
+            </div>
+          ) : (
+            <div className="table-scroll">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left py-1.5 px-2 text-[10px] font-semibold text-gray-500">Cliente</th>
+                    <th className="text-left py-1.5 px-2 text-[10px] font-semibold text-gray-500">Projeto</th>
+                    <th className="text-left py-1.5 px-2 text-[10px] font-semibold text-gray-500">BU</th>
+                    <th className="text-left py-1.5 px-2 text-[10px] font-semibold text-gray-500">Vencimento</th>
+                    <th className="text-right py-1.5 px-2 text-[10px] font-semibold text-gray-500">Valor</th>
+                    <th className="text-left py-1.5 px-2 text-[10px] font-semibold text-gray-500">Status</th>
+                    <th className="text-left py-1.5 px-2 text-[10px] font-semibold text-gray-500">DFC/DRE</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {receivables.map((r) => (
+                    <tr key={r.id} className="border-b border-gray-100 hover:bg-gray-50/80">
+                      <td className="py-1.5 px-2 font-medium text-gray-800">{r.client}</td>
+                      <td className="py-1.5 px-2 text-gray-500">{r.contractProject ?? "—"}</td>
+                      <td className="py-1.5 px-2 text-gray-500">{r.entity}</td>
+                      <td className="py-1.5 px-2 text-gray-500">{r.dueDate}</td>
+                      <td className="py-1.5 px-2 text-right font-semibold text-emerald-700">+{fmtBRL(r.amount)}</td>
+                      <td className="py-1.5 px-2">
+                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold ${
+                          r.status === "recebido"  ? "bg-emerald-100 text-emerald-700" :
+                          r.status === "atrasado"  ? "bg-red-100 text-red-700"         :
+                          r.status === "faturado"  ? "bg-brand-100 text-brand-700"     :
+                          r.status === "cancelado" ? "bg-gray-100 text-gray-500"       :
+                                                     "bg-amber-100 text-amber-700"
+                        }`}>{r.status}</span>
+                      </td>
+                      <td className="py-1.5 px-2 text-gray-400 text-[10px]">
+                        {r.cashflowClass ?? "—"} · {r.dreEffect ?? "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* ── Contas a Pagar ────────────────────────────────────────────────── */}
+        <div className="card p-5">
+          <h2 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
+            <Send size={15} className="text-red-500" />
+            Contas a Pagar
+          </h2>
+          <p className="text-[11px] text-gray-400 mb-4">
+            Compromissos a pagar (aberto, atrasado).
+            Não entram no DFC realizado até marcados como <code className="bg-gray-100 px-1 rounded">pago</code> com vínculo à transação bancária.
+          </p>
+          {payables.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-red-200 bg-red-50/20 p-6 text-center">
+              <Send size={20} className="text-red-200 mx-auto mb-2" />
+              <p className="text-xs text-red-500 font-medium">Nenhuma conta a pagar registrada</p>
+              <p className="text-[10px] text-red-400 mt-1">
+                Use a API <code className="bg-red-50 px-1 rounded">POST /api/payables</code> (a implementar) para cadastrar compromissos futuros.
+              </p>
+            </div>
+          ) : (
+            <div className="table-scroll">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left py-1.5 px-2 text-[10px] font-semibold text-gray-500">Fornecedor</th>
+                    <th className="text-left py-1.5 px-2 text-[10px] font-semibold text-gray-500">BU</th>
+                    <th className="text-left py-1.5 px-2 text-[10px] font-semibold text-gray-500">Categoria</th>
+                    <th className="text-left py-1.5 px-2 text-[10px] font-semibold text-gray-500">Vencimento</th>
+                    <th className="text-right py-1.5 px-2 text-[10px] font-semibold text-gray-500">Valor</th>
+                    <th className="text-left py-1.5 px-2 text-[10px] font-semibold text-gray-500">Status</th>
+                    <th className="text-left py-1.5 px-2 text-[10px] font-semibold text-gray-500">DFC/DRE</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {payables.map((p) => (
+                    <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-50/80">
+                      <td className="py-1.5 px-2 font-medium text-gray-800">{p.supplier}</td>
+                      <td className="py-1.5 px-2 text-gray-500">{p.entity}</td>
+                      <td className="py-1.5 px-2 text-gray-500">{p.managerialCategory}</td>
+                      <td className="py-1.5 px-2 text-gray-500">{p.dueDate}</td>
+                      <td className="py-1.5 px-2 text-right font-semibold text-red-700">−{fmtBRL(p.amount)}</td>
+                      <td className="py-1.5 px-2">
+                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold ${
+                          p.status === "pago"      ? "bg-emerald-100 text-emerald-700" :
+                          p.status === "atrasado"  ? "bg-red-100 text-red-700"         :
+                          p.status === "cancelado" ? "bg-gray-100 text-gray-500"       :
+                                                     "bg-amber-100 text-amber-700"
+                        }`}>{p.status}</span>
+                      </td>
+                      <td className="py-1.5 px-2 text-gray-400 text-[10px]">
+                        {p.cashflowClass ?? "—"} · {p.dreEffect ?? "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
       </div>

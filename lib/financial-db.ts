@@ -623,6 +623,88 @@ export async function migrateSchema(): Promise<void> {
   `;
 }
 
+// ─── AP / AR — Contas a Pagar e Contas a Receber ─────────────────────────────
+//
+// Source of truth: JSON files in public/data/financial/
+// (payables.json, receivables.json) — OR Neon when USE_DB=true.
+//
+// IMMUTABILITY RULE: raw bank transactions are never altered by AP/AR.
+// paymentTransactionId / receivedTransactionId create a read-only link.
+//
+// STATUS LIFECYCLE:
+//   Payable:    aberto → pago (when paymentTransactionId is set) | atrasado | cancelado
+//   Receivable: previsto → faturado → recebido (when receivedTransactionId is set)
+//               | atrasado | cancelado
+
+export type PayableStatus    = "aberto" | "pago" | "atrasado" | "cancelado";
+export type ReceivableStatus = "previsto" | "faturado" | "recebido" | "atrasado" | "cancelado";
+
+export interface Payable {
+  id:                      string;
+  supplier:                string;
+  description:             string;
+  entity:                  EntityLayer;
+  managerialCategory:      ManagerialCategory;
+  dreEffect:               DREEffect | null;
+  cashflowClass:           CashflowClass | null;
+  dueDate:                 string;        // YYYY-MM-DD
+  amount:                  number;        // always positive
+  status:                  PayableStatus;
+  recurring:               boolean;
+  competencia:             string;        // YYYY-MM (competência mensal)
+  paymentTransactionId:    string | null; // links to BankTransaction.id when paid
+  notes:                   string | null;
+  createdAt:               string;
+}
+
+export interface Receivable {
+  id:                      string;
+  client:                  string;
+  entity:                  EntityLayer;
+  contractProject:         string | null;
+  managerialCategory:      ManagerialCategory;
+  dreEffect:               DREEffect | null;
+  cashflowClass:           CashflowClass | null;
+  dueDate:                 string;        // YYYY-MM-DD
+  amount:                  number;        // always positive
+  status:                  ReceivableStatus;
+  probability:             number | null; // 0–1, null if contracted/certain
+  receivedTransactionId:   string | null; // links to BankTransaction.id when received
+  notes:                   string | null;
+  createdAt:               string;
+}
+
+const PAYABLES_FILE     = path.join(DATA_DIR, "payables.json");
+const RECEIVABLES_FILE  = path.join(DATA_DIR, "receivables.json");
+
+export async function getPayables(): Promise<Payable[]> {
+  // DB adapter: not yet implemented — falls through to filesystem
+  return readJSON<Payable[]>(PAYABLES_FILE, []);
+}
+
+export async function getReceivables(): Promise<Receivable[]> {
+  // DB adapter: not yet implemented — falls through to filesystem
+  return readJSON<Receivable[]>(RECEIVABLES_FILE, []);
+}
+
+export async function upsertPayable(payable: Payable): Promise<void> {
+  ensureDir();
+  const all = readJSON<Payable[]>(PAYABLES_FILE, []);
+  const idx = all.findIndex((p) => p.id === payable.id);
+  if (idx >= 0) all[idx] = payable;
+  else all.push(payable);
+  writeJSON(PAYABLES_FILE, all);
+}
+
+export async function upsertReceivable(receivable: Receivable): Promise<void> {
+  ensureDir();
+  const all = readJSON<Receivable[]>(RECEIVABLES_FILE, []);
+  const idx = all.findIndex((r) => r.id === receivable.id);
+  if (idx >= 0) all[idx] = receivable;
+  else all.push(receivable);
+  writeJSON(RECEIVABLES_FILE, all);
+}
+
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
 export function hashBuffer(buf: Buffer): string {
