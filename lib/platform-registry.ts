@@ -83,6 +83,7 @@ export const PLATFORM_ROUTES: PlatformRoute[] = [
   { href: "/awq/forecast",  label: "Forecast",        bu: "awq", layer: "corporate-fpa", status: "active", dataSource: "lib/awq-group-data.ts (snapshot accrual — aviso explícito na página)", inSidebar: true, inTabNav: false },
 
   // ── AWQ Group — Financeiro Corporativo / Tesouraria ───────────────────────
+  { href: "/awq/reconciliation", label: "Conciliação",  bu: "awq", layer: "corporate-treasury", status: "active", dataSource: "lib/financial-db.ts (pipeline canônico — source único, getAllTransactions())", inSidebar: true, inTabNav: false },
   { href: "/awq/cashflow",    label: "Cash Flow",     bu: "awq", layer: "corporate-treasury", status: "active", dataSource: "lib/financial-query.ts (pipeline canônico — sem snapshot)", inSidebar: true, inTabNav: false },
   { href: "/awq/bank",        label: "Contas Banco",  bu: "awq", layer: "corporate-treasury", status: "active", dataSource: "localStorage (saldos locais — não persistido no servidor — dívida técnica)", inSidebar: true, inTabNav: false },
   { href: "/awq/investments", label: "Investimentos", bu: "awq", layer: "corporate-treasury", status: "active", dataSource: "lib/investment-query.ts (aplicacao/resgate financeiro — pipeline canônico)", inSidebar: true, inTabNav: false },
