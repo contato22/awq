@@ -151,12 +151,21 @@ export const PLATFORM_ROUTES: PlatformRoute[] = [
   { href: "/financial",  label: "Financial",   bu: "jacqes", layer: "bu-financial",  status: "redirect", dataSource: "n/a", inSidebar: false, inTabNav: false, canonical: "/jacqes/financial"  },
 
   // ── Caza Vision — Produtora ───────────────────────────────────────────────
-  { href: "/caza-vision",                label: "Visão Geral",    bu: "caza", layer: "bu-overview",   status: "active", dataSource: "lib/caza-data.ts",                                                         inSidebar: true,  inTabNav: false },
-  { href: "/caza-vision/imoveis",        label: "Projetos",       bu: "caza", layer: "bu-operations", status: "active", dataSource: "lib/caza-data.ts",                                                         inSidebar: true,  inTabNav: false },
-  { href: "/caza-vision/clientes",       label: "Clientes",       bu: "caza", layer: "bu-operations", status: "active", dataSource: "lib/caza-data.ts + Notion",                                                inSidebar: true,  inTabNav: false },
-  { href: "/caza-vision/financial",      label: "Financial",      bu: "caza", layer: "bu-financial",  status: "active", dataSource: "Notion API (receita projetos, accrual) — aviso bancário na página",        inSidebar: true,  inTabNav: false },
-  { href: "/caza-vision/unit-economics", label: "Unit Economics", bu: "caza", layer: "bu-operations", status: "active", dataSource: "lib/caza-data.ts",                                                         inSidebar: true,  inTabNav: false },
-  { href: "/caza-vision/import",         label: "Importar",       bu: "caza", layer: "bu-operations", status: "active", dataSource: "lib/notion-import.ts + Notion API — importação de projetos/clientes",      inSidebar: true,  inTabNav: false },
+  //
+  // ⚠ ISOLATION STATUS: Caza Vision está isolada da holding.
+  //   Páginas /caza-vision/* NÃO alimentam /awq, /awq/kpis, /business-units.
+  //   Holding contamination provém de awq-group-data.ts buData[caza] (snapshot).
+  //   Extrato Itaú NÃO ingerido → rota Conciliação → DFC → DRE → KPIs indisponível.
+  //
+  // ⚠ CORREÇÃO: lib/caza-data.ts é um shell vazio (apenas types + arrays vazios).
+  //   Dados reais das páginas vêm de public/data/caza-*.json via API /api/caza/*.
+  //
+  { href: "/caza-vision",                label: "Visão Geral",    bu: "caza", layer: "bu-overview",   status: "active", dataSource: "public/data/caza-stats.json (snapshot BI operacional) + /api/caza/stats fallback — NÃO consolidado na holding — aguardando conciliação bancária Itaú",     inSidebar: true,  inTabNav: false },
+  { href: "/caza-vision/imoveis",        label: "Projetos",       bu: "caza", layer: "bu-operations", status: "active", dataSource: "public/data/caza-properties.json (snapshot operacional) — NÃO consolidado na holding",                                                                       inSidebar: true,  inTabNav: false },
+  { href: "/caza-vision/clientes",       label: "Clientes",       bu: "caza", layer: "bu-operations", status: "active", dataSource: "public/data/caza-clients.json (snapshot operacional) + Notion API fallback — NÃO consolidado na holding",                                                    inSidebar: true,  inTabNav: false },
+  { href: "/caza-vision/financial",      label: "Financial",      bu: "caza", layer: "bu-financial",  status: "active", dataSource: "public/data/caza-financial.json (snapshot BI accrual) + /api/caza/financial fallback — NÃO pipeline canônico — aguardando extrato Itaú e conciliação bancária", inSidebar: true,  inTabNav: false },
+  { href: "/caza-vision/unit-economics", label: "Unit Economics", bu: "caza", layer: "bu-operations", status: "active", dataSource: "public/data/caza-properties.json (snapshot operacional) — NÃO consolidado na holding",                                                                       inSidebar: true,  inTabNav: false },
+  { href: "/caza-vision/import",         label: "Importar",       bu: "caza", layer: "bu-operations", status: "active", dataSource: "lib/notion-import.ts + Notion API — importação de projetos/clientes (operacional Caza apenas, não alimenta holding)",                                         inSidebar: true,  inTabNav: false },
   // Not yet implemented — add to sidebar only after page is created
   // { href: "/caza-vision/pipeline",    label: "Pipeline",        status: "stub", inSidebar: false }
   // { href: "/caza-vision/relatorios",  label: "Relatórios",      status: "stub", inSidebar: false }

@@ -1,7 +1,7 @@
 import Header from "@/components/Header";
 import Link from "next/link";
 import { BarChart3, Building2, TrendingUp, ChevronRight, Users, DollarSign, Briefcase, Zap, CheckCircle2 } from "lucide-react";
-import { buData, consolidated, ventureFeeMRR, ventureFeeARR } from "@/lib/awq-derived-metrics";
+import { buData, consolidated, ventureFeeMRR, ventureFeeARR, UNRECONCILED_BU_IDS } from "@/lib/awq-derived-metrics";
 import { getAWQGroupKPIs, fmtBRL } from "@/lib/financial-metric-query";
 
 // ── Formatters ──────────────────────────────────────────────────────────────
@@ -160,7 +160,16 @@ export default async function BusinessUnitsPage() {
                     </div>
                   ))}
                 </div>
-                <div className="text-[9px] text-amber-500 font-semibold tracking-wide">⚠ snapshot accrual</div>
+                {UNRECONCILED_BU_IDS.includes(bu.id) ? (
+                  <div className="flex flex-col gap-1">
+                    <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-amber-50 border border-amber-200 text-amber-700">
+                      ⚠ Caza: sem dado conciliado
+                    </span>
+                    <span className="text-[9px] text-gray-400">source: snapshot · confidence: unverified</span>
+                  </div>
+                ) : (
+                  <div className="text-[9px] text-amber-500 font-semibold tracking-wide">⚠ snapshot accrual</div>
+                )}
 
                 {/* CTA */}
                 <div className="flex items-center justify-between pt-1">

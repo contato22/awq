@@ -165,6 +165,19 @@ export default function CazaFinancialPage() {
       />
       <div className="page-container">
 
+        {/* Isolation badges — always visible */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-xs text-emerald-700 font-semibold">
+            <BarChart3 size={11} /> Operacional Caza
+          </span>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 border border-gray-300 text-xs text-gray-600 font-medium">
+            Não consolidado na holding
+          </span>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-xs text-amber-700 font-medium">
+            <AlertCircle size={11} /> Aguardando conciliação bancária
+          </span>
+        </div>
+
         {/* Source badge */}
         <div className="flex items-center gap-2">
           {source === "loading" && (
@@ -174,12 +187,12 @@ export default function CazaFinancialPage() {
           )}
           {source === "internal" && (
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-xs text-emerald-600">
-              <Database size={11} /> Base interna AWQ
+              <Database size={11} /> Base interna AWQ · BI operacional apenas
             </span>
           )}
           {source === "static" && (
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-xs text-blue-600">
-              <Database size={11} /> Snapshot estático
+              <Database size={11} /> Snapshot estático · BI operacional apenas
             </span>
           )}
           {source === "empty" && (

@@ -134,6 +134,26 @@ export const buData: BuData[] = [
     hrefBudget:       "/jacqes/fpa",
   },
   {
+    // ⚠  CAZA VISION — SNAPSHOT/BI SEM CONCILIAÇÃO BANCÁRIA
+    //
+    // SOURCE: planning snapshot (BI/Notion — não conciliado bancariamente).
+    //   Os valores abaixo (receita, EBITDA, margem, ROIC) são estimativas de
+    //   planejamento Q1 2026. NÃO derivam de transações bancárias conciliadas.
+    //
+    // STATUS: extrato Itaú da Caza Vision NÃO ingerido.
+    //   Rota canônica ausente: Conciliação → DFC → DRE → KPIs.
+    //   Enquanto não ingerido: source_type = "snapshot", confidence_status = "unverified".
+    //
+    // CONTAMINAÇÃO NA HOLDING:
+    //   Estes valores alimentam consolidated.revenue, consolidated.ebitda, etc.
+    //   via operatingBus (buData filtrado). Como Caza responde por ~99% da receita
+    //   operacional do grupo, os KPIs consolidados de receita/EBITDA/margem/ROIC
+    //   são dominados por dados não verificados. As páginas da holding devem
+    //   exibir badge "Caza: sem dado conciliado" sempre que exibirem esses valores.
+    //
+    // MIGRAÇÃO: quando o extrato Itaú for ingerido via /awq/ingest,
+    //   buildFinancialQuery() retornará entity=Caza_Vision com dados reais.
+    //   Então estes valores podem ser zerados/depreciados aqui.
     id:               "caza",
     name:             "Caza Vision",
     sub:              "Produtora · AWQ Group",
@@ -240,6 +260,16 @@ export const holdingCash = 25_000;
 
 // ─── Operating BUs only (exclude Venture for P&L aggregation) ─────────────────
 export const operatingBus = buData.filter((b) => b.id !== "venture");
+
+// ─── BUs sem conciliação bancária ─────────────────────────────────────────────
+//
+// IDs de BUs cujos extratos bancários NÃO foram ingeridos ainda.
+// Páginas da holding devem usar este set para exibir badge
+// "sem dado conciliado" ao mostrar KPIs desses BUs.
+//
+// Atualizar este array quando um extrato for ingerido via /awq/ingest
+// e buildFinancialQuery() retornar dados reais para a entidade.
+export const UNRECONCILED_BU_IDS: readonly string[] = ["caza"] as const;
 
 // ─── Consolidated operating P&L ───────────────────────────────────────────────
 export const consolidated = {

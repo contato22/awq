@@ -269,11 +269,21 @@ export default async function AwqKpisPage() {
         </div>
 
         {/* ── Snapshot sections (accrual) ──────────────────────────────────── */}
-        <div className="rounded-xl border border-amber-100 bg-amber-50/40 px-4 pt-3 pb-1">
-          <p className="text-[11px] text-amber-700 flex items-center gap-1.5 mb-3">
+        <div className="rounded-xl border border-amber-100 bg-amber-50/40 px-4 pt-3 pb-3 space-y-2">
+          <p className="text-[11px] text-amber-700 flex items-center gap-1.5">
             <AlertCircle size={12} />
             As seções abaixo usam dados accrual (snapshot) — não verificadas pela base bancária.
             Receita, EBITDA, margem e ROIC requerem pipeline contábil ainda não disponível.
+          </p>
+          <p className="text-[11px] text-amber-800 font-semibold flex items-start gap-1.5 bg-amber-100/60 border border-amber-200 rounded-lg px-3 py-2">
+            <AlertCircle size={12} className="mt-0.5 shrink-0" />
+            <span>
+              <strong>Caza Vision: sem dado conciliado.</strong>{" "}
+              Extrato Itaú não ingerido — rota Conciliação → DFC → DRE → KPIs indisponível.
+              Valores de receita/EBITDA/margem da Caza (~99% do consolidado) são BI/snapshot
+              com <code className="text-[10px] bg-amber-200 rounded px-1">confidence_status: unverified</code>.
+              Estes KPIs <em>não</em> devem ser usados como dados reais.
+            </span>
           </p>
         </div>
 
@@ -342,8 +352,12 @@ export default async function AwqKpisPage() {
             Comparativo por BU
             <MetricSourceBadge sourceType="snapshot" />
           </h2>
-          <p className="text-[11px] text-amber-600 mb-4">
+          <p className="text-[11px] text-amber-600 mb-2">
             Receita, margens e ROIC são accrual (snapshot). Caixa real disponível acima.
+          </p>
+          <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 mb-4 flex items-center gap-1.5">
+            <AlertCircle size={11} className="shrink-0" />
+            <span><strong>Caza Vision:</strong> sem extrato bancário conciliado — valores são BI/snapshot (source: awq-group-data.ts · confidence: unverified). Caza representa ~99% da receita consolidada snapshot.</span>
           </p>
           <div className="table-scroll">
             <table className="w-full text-xs">
@@ -365,12 +379,16 @@ export default async function AwqKpisPage() {
                   const gm = bu.revenue > 0 ? ((bu.grossProfit / bu.revenue) * 100).toFixed(0) + "%" : "—";
                   const em = bu.revenue > 0 ? ((bu.ebitda      / bu.revenue) * 100).toFixed(0) + "%" : "—";
                   const nm = bu.revenue > 0 ? ((bu.netIncome   / bu.revenue) * 100).toFixed(0) + "%" : "—";
+                  const unreconciled = ["caza"].includes(bu.id);
                   return (
-                    <tr key={bu.id} className="border-b border-gray-100 hover:bg-gray-50/80 transition-colors group">
+                    <tr key={bu.id} className={`border-b border-gray-100 hover:bg-gray-50/80 transition-colors group ${unreconciled ? "bg-amber-50/30" : ""}`}>
                       <td className="py-2.5 px-3">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <div className={`w-2 h-2 rounded-full ${bu.color}`} />
                           <span className="text-xs font-bold text-gray-700">{bu.name}</span>
+                          {unreconciled && (
+                            <span className="text-[9px] font-semibold px-1 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-200">sem conciliação</span>
+                          )}
                         </div>
                       </td>
                       <td className="py-2.5 px-3 text-right font-semibold text-gray-700">

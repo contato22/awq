@@ -76,7 +76,14 @@ export const SNAPSHOT_REGISTRY: SnapshotSource[] = [
       "All planning data flows through lib/awq-derived-metrics.ts. " +
       "BUDGET_LINES derived from buData (no drift). PAYBACK_ESTIMATES derived from buData. " +
       "Do NOT add new hardcoded revenue/expense/EBITDA values to awq-group-data. " +
-      "All pages show explicit SNAPSHOT banners in UI.",
+      "All pages show explicit SNAPSHOT banners in UI. " +
+      "⚠ CAZA CONTAMINATION: buData[caza] (revenue R$2.418M, EBITDA R$653K, ROIC 35%) " +
+      "is BI/planning snapshot with NO bank reconciliation (extrato Itaú não ingerido). " +
+      "It flows into consolidated.revenue/ebitda/margins via operatingBus and represents " +
+      "~99% of the holding snapshot revenue. " +
+      "Pages MUST display 'Caza: sem dado conciliado' badge when showing these consolidated KPIs. " +
+      "Source_type: snapshot, confidence_status: unverified. " +
+      "UNRECONCILED_BU_IDS=[\"caza\"] exported from awq-group-data for UI consumption.",
   },
   {
     file:     "lib/data.ts",
@@ -100,24 +107,37 @@ export const SNAPSHOT_REGISTRY: SnapshotSource[] = [
   },
   {
     file:     "lib/caza-data.ts",
-    scope:    "Caza Vision projects, clients, KPI scorecard, revenue by project type",
+    scope:    "Caza Vision — type definitions only (KPI, RevenuePoint, Projeto, Client, Alert). " +
+              "All exported arrays are EMPTY (cazaKpis=[], projetos=[], cazaClients=[], etc.). " +
+              "Actual Caza BI data lives in public/data/caza-*.json (static snapshots) and " +
+              "in awq-group-data.ts buData[caza] (holding consolidation).",
     status:   "active",
     period:   "Q1 2026 snapshot",
     consumers: [
-      "app/caza/page.tsx",
-      "app/caza/customers/page.tsx",
-      "app/caza/portfolio/page.tsx",
+      // ⚠ CORRECTED paths — previous entry had wrong directory (caza/ instead of caza-vision/)
+      "app/caza-vision/page.tsx (via /api/caza/stats → public/data/caza-stats.json)",
+      "app/caza-vision/clientes/page.tsx (via public/data/caza-clients.json)",
+      "app/caza-vision/unit-economics/page.tsx (via public/data/caza-properties.json)",
+      "app/caza-vision/financial/page.tsx (via /api/caza/financial → public/data/caza-financial.json)",
     ],
     migratesTo:
       "lib/financial-query.ts filtered by entity=Caza_Vision (cash-basis); " +
       "project management store (not built) for project-level data",
     migrationBlocker:
       "Caza Vision Itaú account statements not yet ingested. " +
+      "Rota canônica Conciliação → DFC → DRE → KPIs indisponível. " +
       "Project-level data (milestones, project health) has no real alternative — " +
-      "would require a separate project management module.",
+      "would require a separate project management module. " +
+      "ISOLATION STATUS: Caza BI pages (/caza-vision/*) are isolated — they do NOT feed " +
+      "into holding pages directly. Holding contamination comes only from awq-group-data.ts " +
+      "buData[caza] (registered in the awq-group-data entry above).",
     notes:
-      "Financial KPIs in caza-data.ts align with awq-group-data.ts buData[caza]. " +
-      "Keep in sync during snapshot phase.",
+      "lib/caza-data.ts is an EMPTY SHELL — it exports only type definitions and empty arrays. " +
+      "It does NOT cause holding contamination by itself. " +
+      "Holding contamination source: awq-group-data.ts buData[caza] (see entry above). " +
+      "Pages /caza-vision/* correctly show 'Operacional Caza / Não consolidado na holding / " +
+      "Aguardando conciliação bancária' isolation badges. " +
+      "DO NOT import lib/caza-data.ts or public/data/caza-*.json in holding pages (/awq/*, /business-units).",
   },
 ];
 
