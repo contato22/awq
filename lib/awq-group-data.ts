@@ -475,12 +475,8 @@ export interface CategoryBudgetItem {
 }
 
 export const categoryBudget: CategoryBudgetItem[] = [
-  { category: "Marketing & Growth",    budget: 1_440_000, actual: 1_238_000, bu: "Grupo" },
-  { category: "Salários & Benefícios", budget: 3_720_000, actual: 3_540_000, bu: "Grupo" },
-  { category: "Tecnologia & Infra",    budget:   540_000, actual:   462_000, bu: "Grupo" },
-  { category: "Vendas & Comissões",    budget:   960_000, actual: 1_044_000, bu: "Grupo" },
-  { category: "G&A Consolidado",       budget:   720_000, actual:   684_000, bu: "Grupo" },
-  { category: "Desp. Operacionais",    budget:   360_000, actual:   396_000, bu: "Grupo" },
+  // Dados de budget por categoria devem ser inseridos via pipeline verificável.
+  // Nenhum valor fictício é aceito aqui.
 ];
 
 // ─── Forecast accuracy history ────────────────────────────────────────────────
