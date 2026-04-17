@@ -185,6 +185,12 @@ function MonthlyBridgeChart({ entries }: { entries: MonthlyEntry[] }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+// revalidate = 0 → on Vercel/SSR: re-render on every request (no stale cache).
+// In static export (GitHub Pages): rendered once at build time — correct behaviour
+// since the static build freezes data at deploy time.
+// NOTE: force-dynamic would break `output: "export"` (GitHub Pages CI).
+export const revalidate = 0;
+
 export default async function AwqCashflowPage() {
   const q   = await buildFinancialQuery();
   const c   = q.consolidated;

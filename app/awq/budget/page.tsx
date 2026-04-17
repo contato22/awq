@@ -197,40 +197,54 @@ export default function AwqBudgetPage() {
         {/* ── Category Budget ───────────────────────────────────────────────── */}
         <div className="card p-5">
           <h2 className="text-sm font-semibold text-gray-900 mb-4">Budget por Categoria — Consolidado YTD</h2>
-          <div className="space-y-3">
-            {categoryBudget.map((cat) => {
-              const v          = varPct(cat.actual, cat.budget);
-              const overBudget = cat.actual > cat.budget;
-              const usedPct    = Math.min((cat.actual / cat.budget) * 100, 100);
-              return (
-                <div key={cat.category}>
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-2">
-                      {overBudget
-                        ? <AlertTriangle size={11} className="text-red-600" />
-                        : <CheckCircle2 size={11} className="text-emerald-600" />}
-                      <span className="text-xs text-gray-500">{cat.category}</span>
+          {categoryBudget.length === 0 ? (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 flex items-start gap-3">
+              <AlertTriangle size={15} className="text-amber-600 shrink-0 mt-0.5" />
+              <div className="text-xs text-amber-800 space-y-1">
+                <p className="font-semibold">Nenhum dado de budget por categoria configurado</p>
+                <p>
+                  Os valores de budget por categoria precisam ser inseridos via pipeline verificável —
+                  não são aceitos dados fictícios ou estimados sem aprovação.
+                  Configure as metas em <code className="bg-amber-100 px-1 rounded">lib/awq-group-data.ts</code> após validação com o time financeiro.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {categoryBudget.map((cat) => {
+                const v          = varPct(cat.actual, cat.budget);
+                const overBudget = cat.actual > cat.budget;
+                const usedPct    = Math.min((cat.actual / cat.budget) * 100, 100);
+                return (
+                  <div key={cat.category}>
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-2">
+                        {overBudget
+                          ? <AlertTriangle size={11} className="text-red-600" />
+                          : <CheckCircle2 size={11} className="text-emerald-600" />}
+                        <span className="text-xs text-gray-500">{cat.category}</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-[11px]">
+                        <span className="text-gray-500">Budget: {fmtR(cat.budget)}</span>
+                        <span className={`font-semibold ${overBudget ? "text-red-600" : "text-emerald-600"}`}>
+                          Real: {fmtR(cat.actual)}
+                        </span>
+                        <span className={`font-bold ${overBudget ? "text-red-600" : "text-emerald-600"}`}>
+                          {v >= 0 ? "+" : ""}{v.toFixed(1)}%
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3 text-[11px]">
-                      <span className="text-gray-500">Budget: {fmtR(cat.budget)}</span>
-                      <span className={`font-semibold ${overBudget ? "text-red-600" : "text-emerald-600"}`}>
-                        Real: {fmtR(cat.actual)}
-                      </span>
-                      <span className={`font-bold ${overBudget ? "text-red-600" : "text-emerald-600"}`}>
-                        {v >= 0 ? "+" : ""}{v.toFixed(1)}%
-                      </span>
+                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${overBudget ? "bg-red-500" : "bg-emerald-500"}`}
+                        style={{ width: `${usedPct}%` }}
+                      />
                     </div>
                   </div>
-                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full ${overBudget ? "bg-red-500" : "bg-emerald-500"}`}
-                      style={{ width: `${usedPct}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* ── BU Budget Summary ─────────────────────────────────────────────── */}

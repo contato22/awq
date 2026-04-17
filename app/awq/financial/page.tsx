@@ -216,6 +216,9 @@ function RevenueByCounterparty({ q }: { q: FinancialQueryResult }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+// revalidate = 0 → SSR: re-render every request. Static export: rendered at build time.
+export const revalidate = 0;
+
 export default async function AwqFinancialPage() {
   const q          = await buildFinancialQuery();
 

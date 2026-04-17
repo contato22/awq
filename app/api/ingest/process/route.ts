@@ -196,6 +196,12 @@ export async function POST(req: NextRequest): Promise<Response> {
             isIntercompany: false,
             intercompanyMatchId: null,
             excludedFromConsolidated: false,
+            // New transactions enter the reconciliation queue by default.
+            // Reviewers flip to "conciliado" via /awq/reconciliation after validating.
+            reconciliationStatus:
+              classification.confidence === "confirmed" ? "pendente" :
+              classification.confidence === "probable"  ? "em_revisao" :
+              "pendente",
             extractedAt: now,
             classifiedAt: now,
           };

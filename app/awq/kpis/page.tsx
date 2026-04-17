@@ -40,6 +40,9 @@ import { buData, operatingBus } from "@/lib/awq-derived-metrics";
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+// revalidate = 0 → SSR: re-render every request. Static export: rendered at build time.
+export const revalidate = 0;
+
 export default async function AwqKpisPage() {
   const kpis    = await getAWQGroupKPIs();
   const entities = await getEntityCashMetrics();

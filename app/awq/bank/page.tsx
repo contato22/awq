@@ -1,19 +1,22 @@
 "use client";
 
-// ─── /awq/bank — Contas de Banco ─────────────────────────────────────────────
+// ─── /awq/bank — Hub Operacional de Tesouraria ───────────────────────────────
 //
-// ROLE: Local cash position tracker — accounts, balances, manual transaction history.
-//       Data lives in localStorage (browser-local, not server-persistent).
+// ROLE: Entry point for the treasury operational flow.
+//       Explains and links: Integração → Conciliação → DFC/DRE/KPIs.
+//       Also maintains a local scratchpad for quick account/balance tracking
+//       (localStorage only — not connected to financial-db.ts canonical store).
 //
 // SCOPE: This page is NOT the document ingestion pipeline.
 //        For PDF-based bank statement import with full traceability, use /awq/ingest.
 //
 // ARCHITECTURE:
-//   • Accounts and transactions: localStorage ("awq_bank_accounts")
-//   • No server API calls for data storage — intentionally local/scratchpad
-//   • No AI parsing — that responsibility moved to /api/ingest/process (server-only)
-//   • Complements /awq/ingest: provides quick manual balance tracking; ingest provides
-//     the canonical document-backed financial database
+//   • Accounts and transactions: localStorage ("awq_bank_accounts") — scratchpad
+//   • Canonical pipeline: /awq/ingest → /api/ingest/process → financial-db.ts
+//   • No AI parsing here — that responsibility lives in /api/ingest/process (server-only)
+
+// NEXT_PUBLIC_STATIC_DATA=1 is injected at build time by the GitHub Pages workflow.
+const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
@@ -22,6 +25,7 @@ import {
   Building2, Plus, Trash2, Search, X, Wallet,
   TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight,
   CreditCard, ChevronDown, ChevronUp, BarChart3, FileUp,
+  CheckCircle2, Zap, AlertTriangle, ArrowRight, HardDrive, LineChart,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -51,6 +55,24 @@ interface BankAccount {
 // localStorage key for this page's local account data.
 // This is intentionally separate from public/data/financial/* (the canonical store).
 const LS_KEY = "awq_bank_accounts";
+
+// Canonical reconciliation queue — shared with ReconciliationReviewTable.
+const LS_MANUAL = "awq_manual_transactions";
+
+// Maps /awq/bank scratchpad categories → canonical ManagerialCategory (financial-db.ts)
+const CAT_TO_CANONICAL: Record<string, string> = {
+  salario:       "folha_remuneracao",
+  aluguel:       "aluguel_locacao",
+  servicos:      "fornecedor_operacional",
+  transferencia: "unclassified",
+  imposto:       "imposto_tributo",
+  investimento:  "aplicacao_financeira",
+  saque:         "prolabore_retirada",
+  deposito:      "receita_eventual",
+  cartao:        "cartao_compra_operacional",
+  tarifas:       "tarifa_bancaria",
+  outros:        "unclassified",
+};
 
 const BANK_GROUPS: { label: string; banks: string[] }[] = [
   {
@@ -123,17 +145,63 @@ function uid() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
+// ─── Reconciliation bridge helpers ───────────────────────────────────────────
+
+type AnyRecord = Record<string, unknown>;
+
+function lsManualGet(): AnyRecord[] {
+  try { return JSON.parse(localStorage.getItem(LS_MANUAL) ?? "[]") as AnyRecord[]; }
+  catch { return []; }
+}
+function lsManualSet(items: AnyRecord[]) {
+  try { localStorage.setItem(LS_MANUAL, JSON.stringify(items)); } catch { /* ignore */ }
+}
+
+// Converts a bank-scratchpad transaction into canonical BankTransaction shape
+// expected by ReconciliationReviewTable (awq_manual_transactions key).
+function toCanonical(acct: BankAccount, tx: BankTransaction): AnyRecord {
+  return {
+    id:                       `bank_${acct.id}_${tx.id}`,
+    documentId:               "bank_scratchpad",
+    bank:                     acct.bank,
+    accountName:              acct.name,
+    entity:                   "Unknown",
+    transactionDate:          tx.date,
+    descriptionOriginal:      tx.description,
+    amount:                   Math.abs(tx.amount),
+    direction:                tx.amount >= 0 ? "credit" : "debit",
+    runningBalance:           tx.balance ?? null,
+    counterpartyName:         null,
+    managerialCategory:       CAT_TO_CANONICAL[tx.category] ?? "unclassified",
+    classificationConfidence: "ambiguous",
+    classificationNote:       "Importado de /awq/bank — requer revisão",
+    isIntercompany:           false,
+    excludedFromConsolidated: false,
+    reconciliationStatus:     "em_revisao",
+    extractedAt:              new Date().toISOString(),
+    classifiedAt:             null,
+  };
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function BankAccountsPage() {
-  const [accounts, setAccounts]     = useState<BankAccount[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [search, setSearch]         = useState("");
-  const [sortAsc, setSortAsc]       = useState(false);
-  const [newBank, setNewBank]       = useState("Cora");
-  const [newName, setNewName]       = useState("");
-  const [newBalance, setNewBalance] = useState("");
+  const [accounts, setAccounts]         = useState<BankAccount[]>([]);
+  const [selectedId, setSelectedId]     = useState<string | null>(null);
+  const [showAddForm, setShowAddForm]   = useState(false);
+  const [search, setSearch]             = useState("");
+  const [sortAsc, setSortAsc]           = useState(false);
+  const [newBank, setNewBank]           = useState("Cora");
+  const [newName, setNewName]           = useState("");
+  const [newBalance, setNewBalance]     = useState("");
+  const [toast, setToast]               = useState<string | null>(null);
+  // IDs already exported to awq_manual_transactions
+  const [exportedIds, setExportedIds]   = useState<Set<string>>(new Set());
+
+  function showToast(msg: string) {
+    setToast(msg);
+    setTimeout(() => setToast(null), 4000);
+  }
 
   // ── Load from localStorage ───────────────────────────────────────────────
   useEffect(() => {
@@ -145,7 +213,42 @@ export default function BankAccountsPage() {
         if (parsed.length > 0) setSelectedId(parsed[0].id);
       }
     } catch { /* ignore */ }
+    // Seed exportedIds from existing awq_manual_transactions
+    try {
+      const manual = lsManualGet();
+      setExportedIds(new Set(manual.map((t) => t.id as string)));
+    } catch { /* ignore */ }
   }, []);
+
+  // ── Export to reconciliation queue ──────────────────────────────────────
+  function exportOne(tx: BankTransaction) {
+    if (!selected) return;
+    const canon = toCanonical(selected, tx);
+    const existing = lsManualGet();
+    if (existing.some((e) => e.id === canon.id)) {
+      showToast("Transação já está na fila de Conciliação.");
+      return;
+    }
+    lsManualSet([...existing, canon]);
+    setExportedIds((prev) => new Set([...prev, canon.id as string]));
+    showToast("✓ Transação enviada para Conciliação.");
+  }
+
+  function exportAll() {
+    if (!selected || selected.transactions.length === 0) return;
+    const existing = lsManualGet();
+    const existingIds = new Set(existing.map((e) => e.id as string));
+    const toAdd = selected.transactions
+      .map((tx) => toCanonical(selected, tx))
+      .filter((c) => !existingIds.has(c.id as string));
+    if (toAdd.length === 0) {
+      showToast("Todas as transações desta conta já estão na fila de Conciliação.");
+      return;
+    }
+    lsManualSet([...existing, ...toAdd]);
+    setExportedIds((prev) => new Set([...prev, ...toAdd.map((c) => c.id as string)]));
+    showToast(`✓ ${toAdd.length} transação(ões) enviadas para Conciliação.`);
+  }
 
   // ── Persist to localStorage ──────────────────────────────────────────────
   const save = useCallback((updated: BankAccount[]) => {
@@ -202,25 +305,137 @@ export default function BankAccountsPage() {
   return (
     <>
       <Header
-        title="Contas de Banco"
-        subtitle="Saldos manuais · Visão de caixa local · Dados em localStorage"
+        title="Integração Bancária & Contas — AWQ Group"
+        subtitle="Importe dados → concilie → valide DFC, DRE e KPIs"
       />
       <div className="px-8 py-6 space-y-5">
 
-        {/* ── Ingest callout ────────────────────────────────────────────────── */}
-        <div className="flex items-center justify-between p-3 bg-brand-50 border border-brand-200 rounded-xl">
-          <div className="flex items-center gap-2 text-sm text-brand-800">
-            <FileUp size={14} className="text-brand-600 shrink-0" />
-            <span>
-              Para importar extratos PDF com rastreabilidade, classificação e reconciliação:
-            </span>
+        {/* ── GitHub Pages warning ─────────────────────────────────────────── */}
+        {IS_STATIC && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 flex items-start gap-3">
+            <HardDrive size={16} className="text-amber-600 shrink-0 mt-0.5" />
+            <div className="text-xs text-amber-800 space-y-1">
+              <p className="font-semibold">GitHub Pages — processamento automático de PDF indisponível</p>
+              <p>
+                Upload de PDF + extração via IA requer servidor Node.js.
+                Neste ambiente use <strong>CSV/colagem</strong> ou <strong>entrada manual</strong> em{" "}
+                <Link href="/awq/ingest" className="underline font-medium">Integração Bancária</Link>.
+                Para o pipeline PDF completo, faça deploy no Vercel ou rode <code className="bg-amber-100 px-1 rounded">npm run dev</code> localmente.
+              </p>
+            </div>
           </div>
-          <Link
-            href="/awq/ingest"
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-semibold transition-colors shrink-0"
-          >
-            <FileUp size={12} /> Ingestão de Extratos
-          </Link>
+        )}
+
+        {/* ── Operational flow hub ─────────────────────────────────────────── */}
+        <div className="rounded-xl border border-gray-200 bg-white p-5 space-y-4">
+          <div>
+            <h2 className="text-sm font-bold text-gray-900">Fluxo Operacional de Tesouraria</h2>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Siga esta sequência para que DFC, DRE e KPIs reflitam os dados reais.
+            </p>
+          </div>
+
+          {/* Step arrows */}
+          <div className="flex items-stretch gap-0 overflow-x-auto">
+            {[
+              {
+                step: "1",
+                label: "Importar dados",
+                sub: IS_STATIC ? "CSV ou entrada manual" : "Upload PDF ou CSV",
+                color: "bg-brand-50 border-brand-200",
+                icon: FileUp,
+                iconColor: "text-brand-600",
+              },
+              {
+                step: "2",
+                label: "Conciliar",
+                sub: "Revisar categoria, status e flags",
+                color: "bg-amber-50 border-amber-200",
+                icon: CheckCircle2,
+                iconColor: "text-amber-600",
+              },
+              {
+                step: "3",
+                label: "Validar DFC",
+                sub: "Fluxo de caixa atualizado",
+                color: "bg-emerald-50 border-emerald-200",
+                icon: Zap,
+                iconColor: "text-emerald-600",
+              },
+              {
+                step: "4",
+                label: "Validar DRE/KPIs",
+                sub: "P&L e indicadores recalculados",
+                color: "bg-indigo-50 border-indigo-200",
+                icon: LineChart,
+                iconColor: "text-indigo-600",
+              },
+            ].map((item, idx, arr) => {
+              const Icon = item.icon;
+              return (
+                <div key={item.step} className="flex items-center shrink-0">
+                  <div className={`rounded-xl border ${item.color} px-4 py-3 flex items-center gap-3 min-w-[160px]`}>
+                    <div className="w-7 h-7 rounded-full bg-white border border-gray-200 flex items-center justify-center shrink-0">
+                      <span className="text-[10px] font-bold text-gray-600">{item.step}</span>
+                    </div>
+                    <Icon size={15} className={`${item.iconColor} shrink-0`} />
+                    <div>
+                      <div className="text-xs font-semibold text-gray-900">{item.label}</div>
+                      <div className="text-[10px] text-gray-500">{item.sub}</div>
+                    </div>
+                  </div>
+                  {idx < arr.length - 1 && (
+                    <ArrowRight size={14} className="text-gray-300 mx-1 shrink-0" />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* CTAs */}
+          <div className="flex flex-wrap gap-3 pt-1">
+            <Link
+              href="/awq/ingest"
+              className="flex items-center gap-2 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-colors"
+            >
+              <FileUp size={14} />
+              {IS_STATIC ? "Importar CSV / Manual" : "Integrar extrato / CSV"}
+            </Link>
+            <Link
+              href="/awq/reconciliation"
+              className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 hover:border-brand-300 hover:bg-brand-50 text-gray-800 rounded-xl text-sm font-semibold transition-colors"
+            >
+              <CheckCircle2 size={14} className="text-amber-600" />
+              Ir para Conciliação
+            </Link>
+            <Link
+              href="/awq/cashflow"
+              className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 hover:border-emerald-300 hover:bg-emerald-50 text-gray-800 rounded-xl text-sm font-semibold transition-colors"
+            >
+              <Zap size={14} className="text-emerald-600" />
+              Ver Cash Flow
+            </Link>
+          </div>
+
+          {!IS_STATIC && (
+            <p className="text-[10px] text-gray-400 border-t border-gray-100 pt-3">
+              <AlertTriangle size={10} className="inline mr-1 text-amber-500" />
+              Em GitHub Pages / static export: PDF automático não roda. Use CSV ou entrada manual em{" "}
+              <Link href="/awq/ingest" className="underline">Integração Bancária</Link>.
+              PDF automático exige ambiente server / Vercel.
+            </p>
+          )}
+        </div>
+
+        {/* ── Scratchpad section label ─────────────────────────────────────── */}
+        <div className="flex items-center gap-2">
+          <CreditCard size={14} className="text-gray-400" />
+          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+            Contas Bancárias — Rascunho Local
+          </span>
+          <span className="text-[10px] text-gray-400 font-normal normal-case tracking-normal">
+            (localStorage · não conectado ao pipeline canônico)
+          </span>
         </div>
 
         {/* ── Summary cards ────────────────────────────────────────────────── */}
@@ -348,6 +563,17 @@ export default function BankAccountsPage() {
 
           {/* ── Main area ────────────────────────────────────────────────────── */}
           <div className="flex-1 min-w-0 space-y-4">
+
+            {/* ── Toast ─────────────────────────────────────────────────────── */}
+            {toast && (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 px-4 py-2.5 text-sm flex items-center justify-between">
+                <span>{toast}</span>
+                <Link href="/awq/reconciliation" className="ml-4 text-xs font-semibold text-emerald-700 underline shrink-0">
+                  Ir para Conciliação →
+                </Link>
+              </div>
+            )}
+
             {!selected ? (
               <div className="card p-16 text-center">
                 <Wallet size={40} className="text-gray-300 mx-auto mb-3" />
@@ -369,6 +595,15 @@ export default function BankAccountsPage() {
                     <div className="text-2xl font-bold text-gray-900">{fmtR(selected.currentBalance)}</div>
                     <div className="text-xs text-gray-500">saldo atual</div>
                   </div>
+                  <button
+                    onClick={exportAll}
+                    disabled={selected.transactions.length === 0}
+                    title="Enviar todas as transações desta conta para a fila de Conciliação"
+                    className="flex items-center gap-1.5 px-3 py-2 bg-amber-50 border border-amber-200 hover:bg-amber-100 text-amber-800 rounded-xl text-xs font-semibold transition-colors disabled:opacity-40"
+                  >
+                    <CheckCircle2 size={13} />
+                    Conciliar tudo
+                  </button>
                   <div className="flex gap-3 text-xs">
                     <div className="text-center">
                       <div className="font-bold text-emerald-600">{fmtR(acctCredits)}</div>
@@ -471,6 +706,7 @@ export default function BankAccountsPage() {
                             <th className="text-left py-2 px-3 text-xs font-semibold">Categoria</th>
                             <th className="text-right py-2 px-3 text-xs font-semibold">Valor</th>
                             <th className="text-right py-2 px-3 text-xs font-semibold">Saldo</th>
+                            <th className="text-center py-2 px-3 text-xs font-semibold text-amber-600">Conciliar</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -490,6 +726,20 @@ export default function BankAccountsPage() {
                               </td>
                               <td className="py-2.5 px-3 text-right text-xs text-gray-500">
                                 {tx.balance != null ? fmtR(tx.balance) : "—"}
+                              </td>
+                              <td className="py-2.5 px-3 text-center">
+                                {exportedIds.has(`bank_${selected.id}_${tx.id}`) ? (
+                                  <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 font-medium">
+                                    <CheckCircle2 size={11} /> Enviada
+                                  </span>
+                                ) : (
+                                  <button
+                                    onClick={() => exportOne(tx)}
+                                    className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors"
+                                  >
+                                    → Conciliar
+                                  </button>
+                                )}
                               </td>
                             </tr>
                           ))}

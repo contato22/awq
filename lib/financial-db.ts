@@ -85,6 +85,17 @@ export type ClassificationConfidence =
   | "ambiguous"
   | "unclassifiable";
 
+// Reconciliation workflow status — set manually by the finance team.
+// "pendente"   : not yet reviewed (default for new ingested transactions)
+// "em_revisao" : flagged for review (ambiguous or needs manual check)
+// "conciliado" : reviewed and accepted — exits the reconciliation queue
+// "descartado" : excluded / rejected (e.g. duplicate, internal test)
+export type ReconciliationStatus =
+  | "pendente"
+  | "em_revisao"
+  | "conciliado"
+  | "descartado";
+
 // Gerencial category taxonomy — every transaction must resolve to one of these.
 // "unclassified" is only acceptable if confidence = "unclassifiable".
 // ─── Taxonomia DRE Gerencial (completa) ───────────────────────────────────────
@@ -212,6 +223,7 @@ export interface BankTransaction {
   isIntercompany: boolean;
   intercompanyMatchId: string | null;
   excludedFromConsolidated: boolean;
+  reconciliationStatus: ReconciliationStatus;
   // ── Metadata
   extractedAt: string;
   classifiedAt: string | null;
@@ -266,6 +278,7 @@ function rowToTransaction(r: Row): BankTransaction {
     isIntercompany:            Boolean(r.is_intercompany),
     intercompanyMatchId:       sn(r.intercompany_match_id),
     excludedFromConsolidated:  Boolean(r.excluded_from_consolidated),
+    reconciliationStatus:      (sn(r.reconciliation_status) ?? "pendente") as ReconciliationStatus,
     extractedAt:               s(r.extracted_at),
     classifiedAt:              sn(r.classified_at),
   };
@@ -388,7 +401,15 @@ export async function getAllTransactions(): Promise<BankTransaction[]> {
     const rows = await sql`SELECT * FROM bank_transactions ORDER BY transaction_date DESC`;
     return rows.map(rowToTransaction);
   }
-  return readJSON<BankTransaction[]>(TXN_FILE, []);
+  // Backfill reconciliationStatus for legacy records that don't have it yet.
+  return readJSON<BankTransaction[]>(TXN_FILE, []).map((t) => ({
+    ...t,
+    reconciliationStatus: t.reconciliationStatus ?? (
+      t.classificationConfidence === "confirmed" ? "pendente" :
+      t.classificationConfidence === "probable"  ? "em_revisao" :
+      "pendente"
+    ),
+  }));
 }
 
 export async function getTransactionsByDocument(documentId: string): Promise<BankTransaction[]> {
@@ -456,6 +477,7 @@ export async function updateTransaction(
         is_intercompany            = COALESCE(${p.isIntercompany ?? null}, is_intercompany),
         intercompany_match_id      = COALESCE(${p.intercompanyMatchId ?? null}, intercompany_match_id),
         excluded_from_consolidated = COALESCE(${p.excludedFromConsolidated ?? null}, excluded_from_consolidated),
+        reconciliation_status      = COALESCE(${p.reconciliationStatus ?? null}, reconciliation_status),
         classified_at              = COALESCE(${p.classifiedAt ?? null}, classified_at)
       WHERE id = ${id}
     `;
