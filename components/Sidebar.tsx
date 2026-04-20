@@ -198,9 +198,10 @@ const AWQ_FPA_ITEMS = [
 
 // Financeiro Corporativo — Tesouraria (caixa, contas, aplicações)
 const AWQ_TESOURARIA_ITEMS = [
-    { label: "Cash Flow",     href: "/awq/cashflow",    icon: Zap        },
-    { label: "Contas Banco",  href: "/awq/bank",        icon: CreditCard },
-    { label: "Investimentos", href: "/awq/investments", icon: Landmark   },
+    { label: "Cash Flow",     href: "/awq/cashflow",      icon: Zap          },
+    { label: "Contas Banco",  href: "/awq/bank",          icon: CreditCard   },
+    { label: "Investimentos", href: "/awq/investments",   icon: Landmark     },
+    { label: "Conciliação",   href: "/awq/conciliacao",   icon: CheckCircle2 },
 ] as const;
 
 // Financeiro Corporativo — Controladoria & Contábil
