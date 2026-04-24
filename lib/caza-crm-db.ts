@@ -126,7 +126,9 @@ export async function initCazaCrmDB(): Promise<void> {
     CREATE TABLE IF NOT EXISTS caza_crm_leads (
       id                TEXT PRIMARY KEY,
       nome              TEXT NOT NULL DEFAULT '',
+      cargo             TEXT NOT NULL DEFAULT '',
       empresa           TEXT NOT NULL DEFAULT '',
+      cnpj              TEXT NOT NULL DEFAULT '',
       contato_principal TEXT NOT NULL DEFAULT '',
       telefone          TEXT NOT NULL DEFAULT '',
       email             TEXT NOT NULL DEFAULT '',
@@ -140,6 +142,8 @@ export async function initCazaCrmDB(): Promise<void> {
       created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `;
+  await sql`ALTER TABLE caza_crm_leads ADD COLUMN IF NOT EXISTS cargo TEXT NOT NULL DEFAULT ''`;
+  await sql`ALTER TABLE caza_crm_leads ADD COLUMN IF NOT EXISTS cnpj  TEXT NOT NULL DEFAULT ''`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS caza_crm_opportunities (
@@ -212,7 +216,7 @@ export const newInteractionId = () => `CV-INT-${randomUUID().slice(0, 6).toUpper
 export async function listLeads(): Promise<CazaCrmLead[]> {
   if (!sql) return [];
   const rows = await sql`
-    SELECT id, nome, empresa, contato_principal, telefone, email,
+    SELECT id, nome, cargo, empresa, cnpj, contato_principal, telefone, email,
            origem, tipo_servico, interesse, status, owner,
            data_entrada, observacoes
     FROM caza_crm_leads ORDER BY created_at DESC
@@ -225,13 +229,13 @@ export async function createLead(l: Omit<CazaCrmLead, "id">): Promise<CazaCrmLea
   const id = newLeadId();
   const rows = await sql`
     INSERT INTO caza_crm_leads (
-      id, nome, empresa, contato_principal, telefone, email,
+      id, nome, cargo, empresa, cnpj, contato_principal, telefone, email,
       origem, tipo_servico, interesse, status, owner, data_entrada, observacoes
     ) VALUES (
-      ${id}, ${l.nome}, ${l.empresa}, ${l.contato_principal}, ${l.telefone},
-      ${l.email}, ${l.origem}, ${l.tipo_servico}, ${l.interesse},
+      ${id}, ${l.nome}, ${l.cargo}, ${l.empresa}, ${l.cnpj}, ${l.contato_principal},
+      ${l.telefone}, ${l.email}, ${l.origem}, ${l.tipo_servico}, ${l.interesse},
       ${l.status}, ${l.owner}, ${l.data_entrada}, ${l.observacoes}
-    ) RETURNING id, nome, empresa, contato_principal, telefone, email,
+    ) RETURNING id, nome, cargo, empresa, cnpj, contato_principal, telefone, email,
                 origem, tipo_servico, interesse, status, owner, data_entrada, observacoes
   `;
   return coerceLead(rows[0]);
@@ -243,7 +247,7 @@ export async function updateLead(
 ): Promise<CazaCrmLead | null> {
   if (!sql) return null;
   const rows = await sql`
-    SELECT id, nome, empresa, contato_principal, telefone, email,
+    SELECT id, nome, cargo, empresa, cnpj, contato_principal, telefone, email,
            origem, tipo_servico, interesse, status, owner, data_entrada, observacoes
     FROM caza_crm_leads WHERE id = ${id}
   `;
@@ -251,13 +255,13 @@ export async function updateLead(
   const m = { ...coerceLead(rows[0]), ...updates };
   const updated = await sql`
     UPDATE caza_crm_leads SET
-      nome = ${m.nome}, empresa = ${m.empresa},
+      nome = ${m.nome}, cargo = ${m.cargo}, empresa = ${m.empresa}, cnpj = ${m.cnpj},
       contato_principal = ${m.contato_principal}, telefone = ${m.telefone},
       email = ${m.email}, origem = ${m.origem}, tipo_servico = ${m.tipo_servico},
       interesse = ${m.interesse}, status = ${m.status},
       owner = ${m.owner}, observacoes = ${m.observacoes}
     WHERE id = ${id}
-    RETURNING id, nome, empresa, contato_principal, telefone, email,
+    RETURNING id, nome, cargo, empresa, cnpj, contato_principal, telefone, email,
               origem, tipo_servico, interesse, status, owner, data_entrada, observacoes
   `;
   return updated[0] ? coerceLead(updated[0]) : null;

@@ -33,7 +33,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const today = new Date().toISOString().slice(0, 10);
     const lead = await createLead({
       nome:              String(body.nome ?? "").trim(),
+      cargo:             String(body.cargo ?? "").trim(),
       empresa:           String(body.empresa ?? "").trim(),
+      cnpj:              String(body.cnpj ?? "").trim(),
       contato_principal: String(body.contato_principal ?? "").trim(),
       telefone:          String(body.telefone ?? "").trim(),
       email:             String(body.email ?? "").trim(),

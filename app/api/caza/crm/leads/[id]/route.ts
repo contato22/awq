@@ -25,7 +25,9 @@ export async function PATCH(
   const body = await req.json() as Record<string, unknown>;
   const updated = await updateLead(params.id, {
     nome:              body.nome              != null ? String(body.nome).trim()              : undefined,
+    cargo:             body.cargo             != null ? String(body.cargo).trim()             : undefined,
     empresa:           body.empresa           != null ? String(body.empresa).trim()           : undefined,
+    cnpj:              body.cnpj              != null ? String(body.cnpj).trim()              : undefined,
     contato_principal: body.contato_principal != null ? String(body.contato_principal).trim() : undefined,
     telefone:          body.telefone          != null ? String(body.telefone).trim()          : undefined,
     email:             body.email             != null ? String(body.email).trim()             : undefined,
