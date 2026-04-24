@@ -6,14 +6,9 @@ import SectionHeader from "@/components/SectionHeader";
 import EmptyState from "@/components/EmptyState";
 import { fetchCazaCRM } from "@/lib/caza-crm-query";
 import type { CazaCrmLead } from "@/lib/caza-crm-db";
-import {
-  CAZA_LEAD_ORIGENS, CAZA_LEAD_STATUSES, CAZA_SERVICE_TYPES,
-} from "@/lib/caza-crm-db";
-import {
-  Users, Plus, X, Filter, Database, CloudOff, Pencil, Trash2,
-} from "lucide-react";
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+import { CAZA_LEAD_ORIGENS, CAZA_LEAD_STATUSES, CAZA_SERVICE_TYPES } from "@/lib/caza-crm-db";
+import { lsGet, lsSet, lsLocalId } from "@/lib/caza-crm-local";
+import { Users, Plus, X, Filter, Database, CloudOff, HardDrive, Pencil, Trash2 } from "lucide-react";
 
 function fmtDate(iso: string) {
   if (!iso) return "—";
@@ -32,29 +27,19 @@ function statusCls(s: string) {
   }
 }
 
-// ─── Form defaults ────────────────────────────────────────────────────────────
-
 const EMPTY_FORM = {
   nome: "", empresa: "", contato_principal: "", telefone: "", email: "",
   origem: "Indicação" as string, tipo_servico: "" as string,
   interesse: "", status: "Novo" as string, owner: "", observacoes: "",
 };
-
 type LeadForm = typeof EMPTY_FORM;
 
 const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
+const LS_KEY = "crm_leads";
 
-// ─── Shared form fields component ─────────────────────────────────────────────
-
-function LeadFormFields({
-  values,
-  onChange,
-}: {
-  values: LeadForm;
-  onChange: (k: string, v: string) => void;
-}) {
-  const inputCls = "mt-1 w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300 bg-white";
-  const labelCls = "text-[11px] font-semibold text-gray-500 uppercase tracking-wide";
+function LeadFormFields({ values, onChange }: { values: LeadForm; onChange: (k: string, v: string) => void }) {
+  const cls = "mt-1 w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300 bg-white";
+  const lbl = "text-[11px] font-semibold text-gray-500 uppercase tracking-wide";
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
       {([
@@ -66,51 +51,48 @@ function LeadFormFields({
         { key: "owner",             label: "Responsável",       type: "text"  },
       ] as const).map(({ key, label, type }) => (
         <div key={key}>
-          <label className={labelCls}>{label}</label>
+          <label className={lbl}>{label}</label>
           <input type={type} value={values[key as keyof LeadForm] as string}
-            onChange={(e) => onChange(key, e.target.value)}
-            className={inputCls} />
+            onChange={(e) => onChange(key, e.target.value)} className={cls} />
         </div>
       ))}
       <div>
-        <label className={labelCls}>Origem</label>
-        <select value={values.origem} onChange={(e) => onChange("origem", e.target.value)} className={inputCls}>
+        <label className={lbl}>Origem</label>
+        <select value={values.origem} onChange={(e) => onChange("origem", e.target.value)} className={cls}>
           {CAZA_LEAD_ORIGENS.map((o) => <option key={o}>{o}</option>)}
         </select>
       </div>
       <div>
-        <label className={labelCls}>Tipo de Serviço</label>
-        <select value={values.tipo_servico} onChange={(e) => onChange("tipo_servico", e.target.value)} className={inputCls}>
+        <label className={lbl}>Tipo de Serviço</label>
+        <select value={values.tipo_servico} onChange={(e) => onChange("tipo_servico", e.target.value)} className={cls}>
           <option value="">— selecione —</option>
           {CAZA_SERVICE_TYPES.map((t) => <option key={t}>{t}</option>)}
         </select>
       </div>
       <div>
-        <label className={labelCls}>Status</label>
-        <select value={values.status} onChange={(e) => onChange("status", e.target.value)} className={inputCls}>
+        <label className={lbl}>Status</label>
+        <select value={values.status} onChange={(e) => onChange("status", e.target.value)} className={cls}>
           {CAZA_LEAD_STATUSES.map((s) => <option key={s}>{s}</option>)}
         </select>
       </div>
       <div className="sm:col-span-2 lg:col-span-3">
-        <label className={labelCls}>Interesse / Briefing Inicial</label>
+        <label className={lbl}>Interesse / Briefing</label>
         <textarea rows={2} value={values.interesse} onChange={(e) => onChange("interesse", e.target.value)}
-          className={`${inputCls} resize-none`} />
+          className={`${cls} resize-none`} />
       </div>
       <div className="sm:col-span-2 lg:col-span-3">
-        <label className={labelCls}>Observações</label>
+        <label className={lbl}>Observações</label>
         <textarea rows={2} value={values.observacoes} onChange={(e) => onChange("observacoes", e.target.value)}
-          className={`${inputCls} resize-none`} />
+          className={`${cls} resize-none`} />
       </div>
     </div>
   );
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
-
 export default function CazaCrmLeads() {
   const [leads,      setLeads]      = useState<CazaCrmLead[]>([]);
-  const [source,     setSource]     = useState<"loading" | "internal" | "static" | "empty">("loading");
-  const [filter,     setFilter]     = useState<string>("Todos");
+  const [source,     setSource]     = useState<"loading" | "internal" | "static" | "local" | "empty">("loading");
+  const [filter,     setFilter]     = useState("Todos");
   const [showForm,   setShowForm]   = useState(false);
   const [form,       setForm]       = useState({ ...EMPTY_FORM });
   const [saving,     setSaving]     = useState(false);
@@ -120,17 +102,42 @@ export default function CazaCrmLeads() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchCazaCRM<CazaCrmLead>("leads").then((data) => {
-      setLeads(data);
-      setSource(data.length > 0 ? (IS_STATIC ? "static" : "internal") : "empty");
+    fetchCazaCRM<CazaCrmLead>("leads").then((staticData) => {
+      if (IS_STATIC) {
+        const local = lsGet<CazaCrmLead>(LS_KEY);
+        if (local !== null) {
+          setLeads(local);
+          setSource(local.length > 0 ? "local" : "empty");
+        } else {
+          lsSet(LS_KEY, staticData);
+          setLeads(staticData);
+          setSource(staticData.length > 0 ? "static" : "empty");
+        }
+      } else {
+        setLeads(staticData);
+        setSource(staticData.length > 0 ? "internal" : "empty");
+      }
     });
   }, []);
 
   const filtered = filter === "Todos" ? leads : leads.filter((l) => l.status === filter);
 
   async function handleSave() {
-    if (IS_STATIC) { setError("Operação não disponível no modo estático."); return; }
     if (!form.nome.trim()) { setError("Nome é obrigatório."); return; }
+    if (IS_STATIC) {
+      const newLead: CazaCrmLead = {
+        id: lsLocalId("CV-LEAD"),
+        ...form,
+        data_entrada: new Date().toISOString().slice(0, 10),
+      };
+      const updated = [newLead, ...leads];
+      lsSet(LS_KEY, updated);
+      setLeads(updated);
+      setSource("local");
+      setShowForm(false);
+      setForm({ ...EMPTY_FORM });
+      return;
+    }
     setSaving(true); setError(null);
     try {
       const res = await fetch("/api/caza/crm/leads", {
@@ -160,12 +167,18 @@ export default function CazaCrmLeads() {
       tipo_servico: l.tipo_servico, interesse: l.interesse,
       status: l.status, owner: l.owner, observacoes: l.observacoes,
     });
-    setShowForm(false);
-    setError(null);
+    setShowForm(false); setError(null);
   }
 
   async function handleUpdate() {
     if (!editingId) return;
+    if (IS_STATIC) {
+      const updated = leads.map((l) => l.id === editingId ? { ...l, ...editForm } : l);
+      lsSet(LS_KEY, updated);
+      setLeads(updated);
+      setEditingId(null);
+      return;
+    }
     setSaving(true); setError(null);
     try {
       const res = await fetch(`/api/caza/crm/leads/${editingId}`, {
@@ -186,6 +199,14 @@ export default function CazaCrmLeads() {
   }
 
   async function handleDelete(id: string) {
+    if (IS_STATIC) {
+      const updated = leads.filter((l) => l.id !== id);
+      lsSet(LS_KEY, updated);
+      setLeads(updated);
+      setDeletingId(null);
+      if (editingId === id) setEditingId(null);
+      return;
+    }
     try {
       await fetch(`/api/caza/crm/leads/${id}`, { method: "DELETE" });
       setLeads((prev) => prev.filter((l) => l.id !== id));
@@ -199,54 +220,29 @@ export default function CazaCrmLeads() {
       <Header title="Leads" subtitle="Prospecção Comercial · Caza Vision" />
       <div className="page-container">
 
-        {/* Source badge + action */}
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-2">
-            {source === "loading" && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-50 border border-gray-200 text-xs text-gray-500">
-                <Database size={11} /> Carregando…
-              </span>
-            )}
-            {source === "internal" && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-xs text-emerald-600">
-                <Database size={11} /> Base interna AWQ
-              </span>
-            )}
-            {source === "static" && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-xs text-blue-600">
-                <Database size={11} /> Snapshot estático
-              </span>
-            )}
-            {source === "empty" && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-xs text-amber-700">
-                <CloudOff size={11} /> Sem leads — cadastre o primeiro
-              </span>
-            )}
+            {source === "loading"  && <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-50 border border-gray-200 text-xs text-gray-500"><Database size={11} />Carregando…</span>}
+            {source === "internal" && <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-xs text-emerald-600"><Database size={11} />Base interna AWQ</span>}
+            {source === "static"   && <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-xs text-blue-600"><Database size={11} />Snapshot estático</span>}
+            {source === "local"    && <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-violet-50 border border-violet-200 text-xs text-violet-600"><HardDrive size={11} />Armazenamento local</span>}
+            {source === "empty"    && <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-xs text-amber-700"><CloudOff size={11} />Sem leads</span>}
           </div>
-          {!IS_STATIC && (
-            <button
-              onClick={() => { setShowForm((v) => !v); setEditingId(null); setError(null); }}
-              className="btn-primary flex items-center gap-1.5 px-3 py-1.5 text-xs"
-            >
-              {showForm ? <X size={13} /> : <Plus size={13} />}
-              {showForm ? "Cancelar" : "Novo Lead"}
-            </button>
-          )}
+          <button onClick={() => { setShowForm((v) => !v); setEditingId(null); setError(null); }}
+            className="btn-primary flex items-center gap-1.5 px-3 py-1.5 text-xs">
+            {showForm ? <X size={13} /> : <Plus size={13} />}
+            {showForm ? "Cancelar" : "Novo Lead"}
+          </button>
         </div>
 
-        {/* Create form */}
         {showForm && (
           <div className="card p-5 border border-brand-200 bg-brand-50/30">
             <SectionHeader title="Cadastrar Novo Lead" />
-            {error && (
-              <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-3">{error}</div>
-            )}
+            {error && <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-3">{error}</div>}
             <LeadFormFields values={form} onChange={(k, v) => setForm((f) => ({ ...f, [k]: v }))} />
             <div className="flex justify-end gap-2 mt-4">
               <button onClick={() => { setShowForm(false); setError(null); setForm({ ...EMPTY_FORM }); }}
-                className="px-4 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg hover:bg-gray-50">
-                Cancelar
-              </button>
+                className="px-4 py-1.5 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50">Cancelar</button>
               <button onClick={handleSave} disabled={saving}
                 className="btn-primary px-5 py-1.5 text-sm disabled:opacity-60">
                 {saving ? "Salvando…" : "Salvar Lead"}
@@ -255,19 +251,14 @@ export default function CazaCrmLeads() {
           </div>
         )}
 
-        {/* Edit form */}
         {editingId && (
           <div className="card p-5 border border-emerald-200 bg-emerald-50/20">
             <SectionHeader title="Editar Lead" />
-            {error && (
-              <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-3">{error}</div>
-            )}
+            {error && <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-3">{error}</div>}
             <LeadFormFields values={editForm} onChange={(k, v) => setEditForm((f) => ({ ...f, [k]: v }))} />
             <div className="flex justify-end gap-2 mt-4">
               <button onClick={() => { setEditingId(null); setError(null); }}
-                className="px-4 py-1.5 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50">
-                Cancelar
-              </button>
+                className="px-4 py-1.5 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50">Cancelar</button>
               <button onClick={handleUpdate} disabled={saving}
                 className="btn-primary px-5 py-1.5 text-sm disabled:opacity-60">
                 {saving ? "Salvando…" : "Salvar Alterações"}
@@ -276,7 +267,6 @@ export default function CazaCrmLeads() {
           </div>
         )}
 
-        {/* Summary strip */}
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           {["Todos", ...CAZA_LEAD_STATUSES].map((s) => {
             const count = s === "Todos" ? leads.length : leads.filter((l) => l.status === s).length;
@@ -290,7 +280,6 @@ export default function CazaCrmLeads() {
           })}
         </div>
 
-        {/* Filter indicator */}
         {filter !== "Todos" && (
           <div className="flex items-center gap-2">
             <Filter size={12} className="text-gray-400" />
@@ -299,15 +288,14 @@ export default function CazaCrmLeads() {
           </div>
         )}
 
-        {/* Leads table */}
         <div className="card p-5">
           <SectionHeader icon={<Users size={15} className="text-blue-500" />}
-            title={`Leads ${filter !== "Todos" ? `— ${filter}` : ""}`} />
+            title={`Leads${filter !== "Todos" ? ` — ${filter}` : ""}`} />
           {source === "loading" ? (
             <div className="py-12 text-center text-sm text-gray-400">Carregando…</div>
           ) : filtered.length === 0 ? (
             <EmptyState compact title="Sem leads"
-              description={filter !== "Todos" ? `Nenhum lead com status "${filter}".` : "Cadastre o primeiro lead usando o botão acima."} />
+              description={filter !== "Todos" ? `Nenhum lead com status "${filter}".` : "Cadastre o primeiro lead."} />
           ) : (
             <div className="table-scroll mt-3">
               <table className="w-full text-sm">
@@ -320,7 +308,7 @@ export default function CazaCrmLeads() {
                     <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400">Owner</th>
                     <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400">Entrada</th>
                     <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400">Status</th>
-                    {!IS_STATIC && <th className="py-2 px-3 w-20" />}
+                    <th className="py-2 px-3 w-20" />
                   </tr>
                 </thead>
                 <tbody>
@@ -340,35 +328,29 @@ export default function CazaCrmLeads() {
                         <td className="py-2.5 px-3 text-xs text-gray-500">{l.origem || "—"}</td>
                         <td className="py-2.5 px-3 text-xs text-gray-500">{l.owner || "—"}</td>
                         <td className="py-2.5 px-3 text-[11px] text-gray-400">{fmtDate(l.data_entrada)}</td>
-                        <td className="py-2.5 px-3">
-                          <span className={statusCls(l.status)}>{l.status}</span>
+                        <td className="py-2.5 px-3"><span className={statusCls(l.status)}>{l.status}</span></td>
+                        <td className="py-2.5 px-3 text-right">
+                          {isDeleting ? (
+                            <div className="flex items-center gap-1 justify-end">
+                              <span className="text-[10px] text-red-600 font-medium">Excluir?</span>
+                              <button onClick={() => handleDelete(l.id)}
+                                className="text-[10px] font-semibold text-white bg-red-500 hover:bg-red-600 px-2 py-0.5 rounded">Sim</button>
+                              <button onClick={() => setDeletingId(null)}
+                                className="text-[10px] font-semibold text-gray-500 px-1.5 py-0.5 rounded border border-gray-200">Não</button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1 justify-end">
+                              <button onClick={() => startEdit(l)}
+                                className="p-1.5 rounded hover:bg-emerald-50 text-gray-400 hover:text-emerald-600 transition-colors" title="Editar">
+                                <Pencil size={13} />
+                              </button>
+                              <button onClick={() => setDeletingId(l.id)}
+                                className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors" title="Excluir">
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          )}
                         </td>
-                        {!IS_STATIC && (
-                          <td className="py-2.5 px-3 text-right">
-                            {isDeleting ? (
-                              <div className="flex items-center gap-1 justify-end">
-                                <span className="text-[10px] text-red-600 font-medium">Excluir?</span>
-                                <button onClick={() => handleDelete(l.id)}
-                                  className="text-[10px] font-semibold text-white bg-red-500 hover:bg-red-600 px-2 py-0.5 rounded">Sim</button>
-                                <button onClick={() => setDeletingId(null)}
-                                  className="text-[10px] font-semibold text-gray-500 px-1.5 py-0.5 rounded border border-gray-200">Não</button>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-1 justify-end">
-                                <button onClick={() => startEdit(l)}
-                                  className="p-1.5 rounded hover:bg-emerald-50 text-gray-400 hover:text-emerald-600 transition-colors"
-                                  title="Editar">
-                                  <Pencil size={13} />
-                                </button>
-                                <button onClick={() => setDeletingId(l.id)}
-                                  className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
-                                  title="Excluir">
-                                  <Trash2 size={13} />
-                                </button>
-                              </div>
-                            )}
-                          </td>
-                        )}
                       </tr>
                     );
                   })}
