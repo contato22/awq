@@ -53,7 +53,7 @@ export function crmCreate<T extends Record<string, unknown>>(
   idPrefix = "local"
 ): T {
   const existing = crmRead<T>(entity) ?? [];
-  const withId = { ...record, id: genId(idPrefix) } as T;
+  const withId = { ...record, id: genId(idPrefix) } as unknown as T;
   crmWrite<T>(entity, [withId, ...existing]);
   return withId;
 }
