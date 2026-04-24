@@ -48,6 +48,11 @@ next-env.d.ts
 !/public/data/jacqes-crm-expansion.json
 !/public/data/jacqes-crm-health.json
 !/public/data/advisor-clients.json
+!/public/data/caza-crm-leads.json
+!/public/data/caza-crm-oportunidades.json
+!/public/data/caza-crm-propostas.json
+!/public/data/caza-crm-interacoes.json
+!/public/data/caza-crm-stats.json
 
 # Uploaded PDFs (filesystem adapter — ephemeral, not versioned)
 /public/data/financial/pdfs/*.pdf
