@@ -1,1 +1,90 @@
-[]
+[
+  {
+    "id": "CV-PROP-FARRA1",
+    "opportunity_id": "CV-OPP-FARRA1",
+    "versao": 1,
+    "valor_proposto": 35500,
+    "escopo": "Produção audiovisual completa — 5 projetos (vídeos publicitários e institucionais)",
+    "status": "Aprovada",
+    "data_envio": "2024-01-05",
+    "data_resposta": "2024-01-15",
+    "observacoes": "Contrato fechado. 2 projetos em produção ativa."
+  },
+  {
+    "id": "CV-PROP-LIVE01",
+    "opportunity_id": "CV-OPP-LIVE01",
+    "versao": 1,
+    "valor_proposto": 22300,
+    "escopo": "Cobertura e produção de 4 eventos ao vivo — captação, edição e entrega",
+    "status": "Aprovada",
+    "data_envio": "2024-01-05",
+    "data_resposta": "2024-01-12",
+    "observacoes": "Contrato fechado. 1 evento em produção ativa."
+  },
+  {
+    "id": "CV-PROP-ATFIL1",
+    "opportunity_id": "CV-OPP-ATFIL1",
+    "versao": 1,
+    "valor_proposto": 15300,
+    "escopo": "Coprodução audiovisual — 2 filmes institucionais em parceria",
+    "status": "Aprovada",
+    "data_envio": "2024-01-05",
+    "data_resposta": "2024-01-18",
+    "observacoes": "Contrato fechado. 1 projeto em produção ativa."
+  },
+  {
+    "id": "CV-PROP-ESOP01",
+    "opportunity_id": "CV-OPP-ESOP01",
+    "versao": 1,
+    "valor_proposto": 8000,
+    "escopo": "Filme institucional — documentação audiovisual de projeto cultural",
+    "status": "Aprovada",
+    "data_envio": "2024-02-10",
+    "data_resposta": "2024-02-20",
+    "observacoes": "Entregue."
+  },
+  {
+    "id": "CV-PROP-VBARB1",
+    "opportunity_id": "CV-OPP-VBARB1",
+    "versao": 1,
+    "valor_proposto": 6900,
+    "escopo": "Vídeo publicitário — produção completa",
+    "status": "Aprovada",
+    "data_envio": "2024-03-01",
+    "data_resposta": "2024-03-08",
+    "observacoes": "Entregue."
+  },
+  {
+    "id": "CV-PROP-OTHON1",
+    "opportunity_id": "CV-OPP-OTHON1",
+    "versao": 1,
+    "valor_proposto": 6000,
+    "escopo": "Vídeo publicitário — captação, edição e motion",
+    "status": "Aprovada",
+    "data_envio": "2024-02-15",
+    "data_resposta": "2024-02-22",
+    "observacoes": "Em produção ativa."
+  },
+  {
+    "id": "CV-PROP-PATRI1",
+    "opportunity_id": "CV-OPP-PATRI1",
+    "versao": 1,
+    "valor_proposto": 5000,
+    "escopo": "Fotografia de casamento — cobertura completa do dia",
+    "status": "Aprovada",
+    "data_envio": "2023-11-10",
+    "data_resposta": "2023-11-15",
+    "observacoes": "Entregue."
+  },
+  {
+    "id": "CV-PROP-MARI01",
+    "opportunity_id": "CV-OPP-MARI01",
+    "versao": 1,
+    "valor_proposto": 4000,
+    "escopo": "Fotografia de casamento — cobertura completa do dia",
+    "status": "Aprovada",
+    "data_envio": "2023-12-01",
+    "data_resposta": "2023-12-05",
+    "observacoes": "Entregue."
+  }
+]
