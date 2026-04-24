@@ -100,6 +100,7 @@ export default function ConciliacaoPage() {
   const [newBank, setNewBank]        = useState("");
   const [newInternal, setNewInternal]= useState("");
   const [showAddRow, setShowAddRow]  = useState(false);
+  const [importMsg, setImportMsg]    = useState<string | null>(null);
 
   // ── File import ─────────────────────────────────────────────────────────
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -355,7 +356,10 @@ export default function ConciliacaoPage() {
             </button>
             {importedFile ? (
               <button
-                onClick={() => alert("Pipeline de importação ainda não implementado.")}
+                onClick={() => {
+                  setImportMsg("Pipeline de importação disponível em /awq/ingest. Use a Ingestão Bancária para processar extratos.");
+                  setTimeout(() => setImportMsg(null), 5000);
+                }}
                 className="flex items-center gap-2 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-semibold transition-colors"
               >
                 <Upload size={14} /> Importar
@@ -370,6 +374,19 @@ export default function ConciliacaoPage() {
             )}
           </div>
         </div>
+
+        {/* Import feedback message */}
+        {importMsg && (
+          <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-xs text-blue-800 flex items-start gap-2">
+            <ArrowRight size={13} className="text-blue-500 shrink-0 mt-0.5" />
+            <span>
+              {importMsg}{" "}
+              <Link href="/awq/ingest" className="font-semibold underline">
+                Ir para Ingestão Bancária →
+              </Link>
+            </span>
+          </div>
+        )}
 
         {/* ── Módulos planejados ─────────────────────────────────────────── */}
         <div>

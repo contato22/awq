@@ -196,6 +196,8 @@ export async function POST(req: NextRequest): Promise<Response> {
             isIntercompany: false,
             intercompanyMatchId: null,
             excludedFromConsolidated: false,
+            reconciliationStatus:
+              classification.confidence === "probable" ? "em_revisao" : "pendente",
             extractedAt: now,
             classifiedAt: now,
           };
