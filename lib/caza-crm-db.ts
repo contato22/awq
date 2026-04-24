@@ -382,6 +382,21 @@ export async function updateProposal(
   return updated[0] ? coerceProposal(updated[0]) : null;
 }
 
+export async function deleteLead(id: string): Promise<void> {
+  if (!sql) return;
+  await sql`DELETE FROM caza_crm_leads WHERE id = ${id}`;
+}
+
+export async function deleteOpportunity(id: string): Promise<void> {
+  if (!sql) return;
+  await sql`DELETE FROM caza_crm_opportunities WHERE id = ${id}`;
+}
+
+export async function deleteProposal(id: string): Promise<void> {
+  if (!sql) return;
+  await sql`DELETE FROM caza_crm_proposals WHERE id = ${id}`;
+}
+
 // ─── Interactions ─────────────────────────────────────────────────────────────
 
 export async function listInteractions(entidade_id?: string): Promise<CazaCrmInteraction[]> {

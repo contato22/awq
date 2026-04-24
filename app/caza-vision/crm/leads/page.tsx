@@ -10,7 +10,7 @@ import {
   CAZA_LEAD_ORIGENS, CAZA_LEAD_STATUSES, CAZA_SERVICE_TYPES,
 } from "@/lib/caza-crm-db";
 import {
-  Users, Plus, X, Filter, Database, CloudOff,
+  Users, Plus, X, Filter, Database, CloudOff, Pencil, Trash2,
 } from "lucide-react";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -32,7 +32,7 @@ function statusCls(s: string) {
   }
 }
 
-// ─── Form default ─────────────────────────────────────────────────────────────
+// ─── Form defaults ────────────────────────────────────────────────────────────
 
 const EMPTY_FORM = {
   nome: "", empresa: "", contato_principal: "", telefone: "", email: "",
@@ -40,18 +40,84 @@ const EMPTY_FORM = {
   interesse: "", status: "Novo" as string, owner: "", observacoes: "",
 };
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+type LeadForm = typeof EMPTY_FORM;
 
 const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 
+// ─── Shared form fields component ─────────────────────────────────────────────
+
+function LeadFormFields({
+  values,
+  onChange,
+}: {
+  values: LeadForm;
+  onChange: (k: string, v: string) => void;
+}) {
+  const inputCls = "mt-1 w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300 bg-white";
+  const labelCls = "text-[11px] font-semibold text-gray-500 uppercase tracking-wide";
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
+      {([
+        { key: "nome",              label: "Nome *",            type: "text"  },
+        { key: "empresa",           label: "Empresa",           type: "text"  },
+        { key: "contato_principal", label: "Contato Principal", type: "text"  },
+        { key: "telefone",          label: "Telefone",          type: "text"  },
+        { key: "email",             label: "E-mail",            type: "email" },
+        { key: "owner",             label: "Responsável",       type: "text"  },
+      ] as const).map(({ key, label, type }) => (
+        <div key={key}>
+          <label className={labelCls}>{label}</label>
+          <input type={type} value={values[key as keyof LeadForm] as string}
+            onChange={(e) => onChange(key, e.target.value)}
+            className={inputCls} />
+        </div>
+      ))}
+      <div>
+        <label className={labelCls}>Origem</label>
+        <select value={values.origem} onChange={(e) => onChange("origem", e.target.value)} className={inputCls}>
+          {CAZA_LEAD_ORIGENS.map((o) => <option key={o}>{o}</option>)}
+        </select>
+      </div>
+      <div>
+        <label className={labelCls}>Tipo de Serviço</label>
+        <select value={values.tipo_servico} onChange={(e) => onChange("tipo_servico", e.target.value)} className={inputCls}>
+          <option value="">— selecione —</option>
+          {CAZA_SERVICE_TYPES.map((t) => <option key={t}>{t}</option>)}
+        </select>
+      </div>
+      <div>
+        <label className={labelCls}>Status</label>
+        <select value={values.status} onChange={(e) => onChange("status", e.target.value)} className={inputCls}>
+          {CAZA_LEAD_STATUSES.map((s) => <option key={s}>{s}</option>)}
+        </select>
+      </div>
+      <div className="sm:col-span-2 lg:col-span-3">
+        <label className={labelCls}>Interesse / Briefing Inicial</label>
+        <textarea rows={2} value={values.interesse} onChange={(e) => onChange("interesse", e.target.value)}
+          className={`${inputCls} resize-none`} />
+      </div>
+      <div className="sm:col-span-2 lg:col-span-3">
+        <label className={labelCls}>Observações</label>
+        <textarea rows={2} value={values.observacoes} onChange={(e) => onChange("observacoes", e.target.value)}
+          className={`${inputCls} resize-none`} />
+      </div>
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 export default function CazaCrmLeads() {
-  const [leads,   setLeads]   = useState<CazaCrmLead[]>([]);
-  const [source,  setSource]  = useState<"loading" | "internal" | "static" | "empty">("loading");
-  const [filter,  setFilter]  = useState<string>("Todos");
-  const [showForm, setShowForm] = useState(false);
-  const [form,    setForm]    = useState({ ...EMPTY_FORM });
-  const [saving,  setSaving]  = useState(false);
-  const [error,   setError]   = useState<string | null>(null);
+  const [leads,      setLeads]      = useState<CazaCrmLead[]>([]);
+  const [source,     setSource]     = useState<"loading" | "internal" | "static" | "empty">("loading");
+  const [filter,     setFilter]     = useState<string>("Todos");
+  const [showForm,   setShowForm]   = useState(false);
+  const [form,       setForm]       = useState({ ...EMPTY_FORM });
+  const [saving,     setSaving]     = useState(false);
+  const [error,      setError]      = useState<string | null>(null);
+  const [editingId,  setEditingId]  = useState<string | null>(null);
+  const [editForm,   setEditForm]   = useState({ ...EMPTY_FORM });
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCazaCRM<CazaCrmLead>("leads").then((data) => {
@@ -86,16 +152,46 @@ export default function CazaCrmLeads() {
     finally { setSaving(false); }
   }
 
-  async function handleStatusUpdate(id: string, newStatus: string) {
-    if (IS_STATIC) return;
+  function startEdit(l: CazaCrmLead) {
+    setEditingId(l.id);
+    setEditForm({
+      nome: l.nome, empresa: l.empresa, contato_principal: l.contato_principal,
+      telefone: l.telefone, email: l.email, origem: l.origem,
+      tipo_servico: l.tipo_servico, interesse: l.interesse,
+      status: l.status, owner: l.owner, observacoes: l.observacoes,
+    });
+    setShowForm(false);
+    setError(null);
+  }
+
+  async function handleUpdate() {
+    if (!editingId) return;
+    setSaving(true); setError(null);
     try {
-      await fetch("/api/caza/crm/leads", {
+      const res = await fetch(`/api/caza/crm/leads/${editingId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, status: newStatus }),
+        body: JSON.stringify(editForm),
       });
-      setLeads((prev) => prev.map((l) => l.id === id ? { ...l, status: newStatus } : l));
-    } catch { /* silent */ }
+      if (!res.ok) {
+        const e = await res.json() as { error?: string };
+        setError(e.error ?? "Erro ao salvar.");
+      } else {
+        const updated = await res.json() as CazaCrmLead;
+        setLeads((prev) => prev.map((l) => l.id === editingId ? updated : l));
+        setEditingId(null);
+      }
+    } catch { setError("Erro de rede."); }
+    finally { setSaving(false); }
+  }
+
+  async function handleDelete(id: string) {
+    try {
+      await fetch(`/api/caza/crm/leads/${id}`, { method: "DELETE" });
+      setLeads((prev) => prev.filter((l) => l.id !== id));
+      setDeletingId(null);
+      if (editingId === id) setEditingId(null);
+    } catch { /* ignore */ }
   }
 
   return (
@@ -103,7 +199,7 @@ export default function CazaCrmLeads() {
       <Header title="Leads" subtitle="Prospecção Comercial · Caza Vision" />
       <div className="page-container">
 
-        {/* Source badge */}
+        {/* Source badge + action */}
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-2">
             {source === "loading" && (
@@ -129,7 +225,7 @@ export default function CazaCrmLeads() {
           </div>
           {!IS_STATIC && (
             <button
-              onClick={() => { setShowForm((v) => !v); setError(null); }}
+              onClick={() => { setShowForm((v) => !v); setEditingId(null); setError(null); }}
               className="btn-primary flex items-center gap-1.5 px-3 py-1.5 text-xs"
             >
               {showForm ? <X size={13} /> : <Plus size={13} />}
@@ -138,95 +234,43 @@ export default function CazaCrmLeads() {
           )}
         </div>
 
-        {/* Add form */}
+        {/* Create form */}
         {showForm && (
           <div className="card p-5 border border-brand-200 bg-brand-50/30">
             <SectionHeader title="Cadastrar Novo Lead" />
             {error && (
               <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-3">{error}</div>
             )}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
-              {[
-                { key: "nome",              label: "Nome *",            type: "text"  },
-                { key: "empresa",           label: "Empresa",           type: "text"  },
-                { key: "contato_principal", label: "Contato Principal", type: "text"  },
-                { key: "telefone",          label: "Telefone",          type: "text"  },
-                { key: "email",             label: "E-mail",            type: "email" },
-                { key: "owner",             label: "Responsável",       type: "text"  },
-              ].map(({ key, label, type }) => (
-                <div key={key}>
-                  <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">{label}</label>
-                  <input
-                    type={type}
-                    value={(form as Record<string, string>)[key]}
-                    onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
-                    className="mt-1 w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300 bg-white"
-                  />
-                </div>
-              ))}
-              <div>
-                <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Origem</label>
-                <select
-                  value={form.origem}
-                  onChange={(e) => setForm((f) => ({ ...f, origem: e.target.value }))}
-                  className="mt-1 w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300 bg-white"
-                >
-                  {CAZA_LEAD_ORIGENS.map((o) => <option key={o}>{o}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Tipo de Serviço</label>
-                <select
-                  value={form.tipo_servico}
-                  onChange={(e) => setForm((f) => ({ ...f, tipo_servico: e.target.value }))}
-                  className="mt-1 w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300 bg-white"
-                >
-                  <option value="">— selecione —</option>
-                  {CAZA_SERVICE_TYPES.map((t) => <option key={t}>{t}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Status</label>
-                <select
-                  value={form.status}
-                  onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
-                  className="mt-1 w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300 bg-white"
-                >
-                  {CAZA_LEAD_STATUSES.map((s) => <option key={s}>{s}</option>)}
-                </select>
-              </div>
-              <div className="sm:col-span-2 lg:col-span-3">
-                <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Interesse / Briefing Inicial</label>
-                <textarea
-                  rows={2}
-                  value={form.interesse}
-                  onChange={(e) => setForm((f) => ({ ...f, interesse: e.target.value }))}
-                  className="mt-1 w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300 bg-white resize-none"
-                />
-              </div>
-              <div className="sm:col-span-2 lg:col-span-3">
-                <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Observações</label>
-                <textarea
-                  rows={2}
-                  value={form.observacoes}
-                  onChange={(e) => setForm((f) => ({ ...f, observacoes: e.target.value }))}
-                  className="mt-1 w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300 bg-white resize-none"
-                />
-              </div>
-            </div>
+            <LeadFormFields values={form} onChange={(k, v) => setForm((f) => ({ ...f, [k]: v }))} />
             <div className="flex justify-end gap-2 mt-4">
-              <button
-                onClick={() => { setShowForm(false); setError(null); setForm({ ...EMPTY_FORM }); }}
-                className="px-4 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg hover:bg-gray-50"
-              >
+              <button onClick={() => { setShowForm(false); setError(null); setForm({ ...EMPTY_FORM }); }}
+                className="px-4 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg hover:bg-gray-50">
                 Cancelar
               </button>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="btn-primary px-5 py-1.5 text-sm disabled:opacity-60"
-              >
+              <button onClick={handleSave} disabled={saving}
+                className="btn-primary px-5 py-1.5 text-sm disabled:opacity-60">
                 {saving ? "Salvando…" : "Salvar Lead"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Edit form */}
+        {editingId && (
+          <div className="card p-5 border border-emerald-200 bg-emerald-50/20">
+            <SectionHeader title="Editar Lead" />
+            {error && (
+              <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-3">{error}</div>
+            )}
+            <LeadFormFields values={editForm} onChange={(k, v) => setEditForm((f) => ({ ...f, [k]: v }))} />
+            <div className="flex justify-end gap-2 mt-4">
+              <button onClick={() => { setEditingId(null); setError(null); }}
+                className="px-4 py-1.5 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50">
+                Cancelar
+              </button>
+              <button onClick={handleUpdate} disabled={saving}
+                className="btn-primary px-5 py-1.5 text-sm disabled:opacity-60">
+                {saving ? "Salvando…" : "Salvar Alterações"}
               </button>
             </div>
           </div>
@@ -237,11 +281,8 @@ export default function CazaCrmLeads() {
           {["Todos", ...CAZA_LEAD_STATUSES].map((s) => {
             const count = s === "Todos" ? leads.length : leads.filter((l) => l.status === s).length;
             return (
-              <button
-                key={s}
-                onClick={() => setFilter(s)}
-                className={`card p-3 text-center transition-all ${filter === s ? "border-brand-300 bg-brand-50 shadow-sm" : "hover:border-gray-300"}`}
-              >
+              <button key={s} onClick={() => setFilter(s)}
+                className={`card p-3 text-center transition-all ${filter === s ? "border-brand-300 bg-brand-50 shadow-sm" : "hover:border-gray-300"}`}>
                 <div className={`text-xl font-bold tabular-nums ${filter === s ? "text-brand-700" : "text-gray-900"}`}>{count}</div>
                 <div className={`text-[11px] font-medium mt-0.5 ${filter === s ? "text-brand-600" : "text-gray-400"}`}>{s}</div>
               </button>
@@ -260,11 +301,13 @@ export default function CazaCrmLeads() {
 
         {/* Leads table */}
         <div className="card p-5">
-          <SectionHeader icon={<Users size={15} className="text-blue-500" />} title={`Leads ${filter !== "Todos" ? `— ${filter}` : ""}`} />
+          <SectionHeader icon={<Users size={15} className="text-blue-500" />}
+            title={`Leads ${filter !== "Todos" ? `— ${filter}` : ""}`} />
           {source === "loading" ? (
             <div className="py-12 text-center text-sm text-gray-400">Carregando…</div>
           ) : filtered.length === 0 ? (
-            <EmptyState compact title="Sem leads" description={filter !== "Todos" ? `Nenhum lead com status "${filter}".` : "Cadastre o primeiro lead usando o botão acima."} />
+            <EmptyState compact title="Sem leads"
+              description={filter !== "Todos" ? `Nenhum lead com status "${filter}".` : "Cadastre o primeiro lead usando o botão acima."} />
           ) : (
             <div className="table-scroll mt-3">
               <table className="w-full text-sm">
@@ -277,36 +320,58 @@ export default function CazaCrmLeads() {
                     <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400">Owner</th>
                     <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400">Entrada</th>
                     <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400">Status</th>
+                    {!IS_STATIC && <th className="py-2 px-3 w-20" />}
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((l) => (
-                    <tr key={l.id} className="border-b border-gray-50 hover:bg-gray-50/80 transition-colors">
-                      <td className="py-2.5 px-3">
-                        <div className="text-xs font-medium text-gray-800">{l.nome}</div>
-                        {l.email && <div className="text-[10px] text-gray-400">{l.email}</div>}
-                        {l.telefone && <div className="text-[10px] text-gray-400">{l.telefone}</div>}
-                      </td>
-                      <td className="py-2.5 px-3 text-xs text-gray-600">{l.empresa || "—"}</td>
-                      <td className="py-2.5 px-3 text-xs text-gray-500">{l.tipo_servico || "—"}</td>
-                      <td className="py-2.5 px-3 text-xs text-gray-500">{l.origem || "—"}</td>
-                      <td className="py-2.5 px-3 text-xs text-gray-500">{l.owner || "—"}</td>
-                      <td className="py-2.5 px-3 text-[11px] text-gray-400">{fmtDate(l.data_entrada)}</td>
-                      <td className="py-2.5 px-3">
-                        {!IS_STATIC ? (
-                          <select
-                            value={l.status}
-                            onChange={(e) => handleStatusUpdate(l.id, e.target.value)}
-                            className={`${statusCls(l.status)} cursor-pointer border-0 bg-transparent focus:outline-none text-[11px] font-semibold`}
-                          >
-                            {CAZA_LEAD_STATUSES.map((s) => <option key={s}>{s}</option>)}
-                          </select>
-                        ) : (
+                  {filtered.map((l) => {
+                    const isEditing  = editingId === l.id;
+                    const isDeleting = deletingId === l.id;
+                    return (
+                      <tr key={l.id}
+                        className={`border-b border-gray-50 transition-colors ${isEditing ? "bg-emerald-50/40" : "hover:bg-gray-50/80"}`}>
+                        <td className="py-2.5 px-3">
+                          <div className="text-xs font-medium text-gray-800">{l.nome}</div>
+                          {l.email && <div className="text-[10px] text-gray-400">{l.email}</div>}
+                          {l.telefone && <div className="text-[10px] text-gray-400">{l.telefone}</div>}
+                        </td>
+                        <td className="py-2.5 px-3 text-xs text-gray-600">{l.empresa || "—"}</td>
+                        <td className="py-2.5 px-3 text-xs text-gray-500">{l.tipo_servico || "—"}</td>
+                        <td className="py-2.5 px-3 text-xs text-gray-500">{l.origem || "—"}</td>
+                        <td className="py-2.5 px-3 text-xs text-gray-500">{l.owner || "—"}</td>
+                        <td className="py-2.5 px-3 text-[11px] text-gray-400">{fmtDate(l.data_entrada)}</td>
+                        <td className="py-2.5 px-3">
                           <span className={statusCls(l.status)}>{l.status}</span>
+                        </td>
+                        {!IS_STATIC && (
+                          <td className="py-2.5 px-3 text-right">
+                            {isDeleting ? (
+                              <div className="flex items-center gap-1 justify-end">
+                                <span className="text-[10px] text-red-600 font-medium">Excluir?</span>
+                                <button onClick={() => handleDelete(l.id)}
+                                  className="text-[10px] font-semibold text-white bg-red-500 hover:bg-red-600 px-2 py-0.5 rounded">Sim</button>
+                                <button onClick={() => setDeletingId(null)}
+                                  className="text-[10px] font-semibold text-gray-500 px-1.5 py-0.5 rounded border border-gray-200">Não</button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1 justify-end">
+                                <button onClick={() => startEdit(l)}
+                                  className="p-1.5 rounded hover:bg-emerald-50 text-gray-400 hover:text-emerald-600 transition-colors"
+                                  title="Editar">
+                                  <Pencil size={13} />
+                                </button>
+                                <button onClick={() => setDeletingId(l.id)}
+                                  className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                                  title="Excluir">
+                                  <Trash2 size={13} />
+                                </button>
+                              </div>
+                            )}
+                          </td>
                         )}
-                      </td>
-                    </tr>
-                  ))}
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

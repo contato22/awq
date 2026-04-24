@@ -7,11 +7,11 @@ import EmptyState from "@/components/EmptyState";
 import { fetchCazaCRM } from "@/lib/caza-crm-query";
 import type { CazaCrmProposal, CazaCrmOpportunity } from "@/lib/caza-crm-db";
 import {
-  CAZA_PROPOSAL_STATUSES, CAZA_SERVICE_TYPES,
+  CAZA_PROPOSAL_STATUSES,
 } from "@/lib/caza-crm-db";
 import {
   FileText, Plus, X, Database, CloudOff, DollarSign,
-  CheckCircle2, Clock, XCircle,
+  CheckCircle2, Clock, XCircle, Pencil, Trash2,
 } from "lucide-react";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -47,22 +47,90 @@ function ProposalStatusBadge({ status }: { status: string }) {
 
 const EMPTY_FORM = {
   opportunity_id: "", versao: "1", valor_proposto: "", escopo: "",
-  status: "Em Elaboração" as string, data_envio: "", observacoes: "",
+  status: "Em Elaboração" as string, data_envio: "", data_resposta: "", observacoes: "",
 };
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+type PropostaForm = typeof EMPTY_FORM;
 
 const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 
+// ─── Shared form fields ────────────────────────────────────────────────────────
+
+function PropostaFormFields({
+  values, onChange, opps, isEdit = false,
+}: {
+  values: PropostaForm;
+  onChange: (k: string, v: string) => void;
+  opps: CazaCrmOpportunity[];
+  isEdit?: boolean;
+}) {
+  const inputCls = "mt-1 w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-300 bg-white";
+  const labelCls = "text-[11px] font-semibold text-gray-500 uppercase tracking-wide";
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
+      {!isEdit && (
+        <div>
+          <label className={labelCls}>Oportunidade Vinculada *</label>
+          <select value={values.opportunity_id} onChange={(e) => onChange("opportunity_id", e.target.value)} className={inputCls}>
+            <option value="">— selecione —</option>
+            {opps.filter((o) => o.stage !== "Fechado Perdido").map((o) => (
+              <option key={o.id} value={o.id}>{o.nome_oportunidade} ({o.empresa || o.id})</option>
+            ))}
+          </select>
+        </div>
+      )}
+      <div>
+        <label className={labelCls}>Versão</label>
+        <input type="number" min={1} value={values.versao} onChange={(e) => onChange("versao", e.target.value)} className={inputCls} />
+      </div>
+      <div>
+        <label className={labelCls}>Valor Proposto (R$)</label>
+        <input type="number" min={0} value={values.valor_proposto} onChange={(e) => onChange("valor_proposto", e.target.value)} className={inputCls} />
+      </div>
+      <div>
+        <label className={labelCls}>Status</label>
+        <select value={values.status} onChange={(e) => onChange("status", e.target.value)} className={inputCls}>
+          {CAZA_PROPOSAL_STATUSES.map((s) => <option key={s}>{s}</option>)}
+        </select>
+      </div>
+      <div>
+        <label className={labelCls}>Data de Envio</label>
+        <input type="date" value={values.data_envio} onChange={(e) => onChange("data_envio", e.target.value)} className={inputCls} />
+      </div>
+      {isEdit && (
+        <div>
+          <label className={labelCls}>Data de Resposta</label>
+          <input type="date" value={values.data_resposta} onChange={(e) => onChange("data_resposta", e.target.value)} className={inputCls} />
+        </div>
+      )}
+      <div className="sm:col-span-2 lg:col-span-3">
+        <label className={labelCls}>Escopo / Descrição</label>
+        <textarea rows={2} value={values.escopo} onChange={(e) => onChange("escopo", e.target.value)}
+          className={`${inputCls} resize-none`} />
+      </div>
+      <div className="sm:col-span-2 lg:col-span-3">
+        <label className={labelCls}>Observações</label>
+        <textarea rows={2} value={values.observacoes} onChange={(e) => onChange("observacoes", e.target.value)}
+          className={`${inputCls} resize-none`} />
+      </div>
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 export default function CazaCrmPropostas() {
-  const [proposals, setProposals] = useState<CazaCrmProposal[]>([]);
-  const [opps,      setOpps]      = useState<CazaCrmOpportunity[]>([]);
-  const [source,    setSource]    = useState<"loading" | "internal" | "static" | "empty">("loading");
-  const [showForm,  setShowForm]  = useState(false);
-  const [form,      setForm]      = useState({ ...EMPTY_FORM });
-  const [saving,    setSaving]    = useState(false);
-  const [error,     setError]     = useState<string | null>(null);
-  const [filter,    setFilter]    = useState("Todas");
+  const [proposals,  setProposals]  = useState<CazaCrmProposal[]>([]);
+  const [opps,       setOpps]       = useState<CazaCrmOpportunity[]>([]);
+  const [source,     setSource]     = useState<"loading" | "internal" | "static" | "empty">("loading");
+  const [showForm,   setShowForm]   = useState(false);
+  const [form,       setForm]       = useState({ ...EMPTY_FORM });
+  const [saving,     setSaving]     = useState(false);
+  const [error,      setError]      = useState<string | null>(null);
+  const [filter,     setFilter]     = useState("Todas");
+  const [editingId,  setEditingId]  = useState<string | null>(null);
+  const [editForm,   setEditForm]   = useState({ ...EMPTY_FORM });
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -78,8 +146,7 @@ export default function CazaCrmPropostas() {
   const filtered   = filter === "Todas" ? proposals : proposals.filter((p) => p.status === filter);
   const totalValue = proposals.filter((p) => p.status !== "Rejeitada").reduce((s, p) => s + p.valor_proposto, 0);
   const approved   = proposals.filter((p) => p.status === "Aprovada").reduce((s, p) => s + p.valor_proposto, 0);
-
-  const oppMap = new Map(opps.map((o) => [o.id, o]));
+  const oppMap     = new Map(opps.map((o) => [o.id, o]));
 
   async function handleSave() {
     if (IS_STATIC) { setError("Não disponível no modo estático."); return; }
@@ -113,20 +180,58 @@ export default function CazaCrmPropostas() {
     finally { setSaving(false); }
   }
 
-  async function handleStatusChange(id: string, newStatus: string) {
-    if (IS_STATIC) return;
-    const body: Record<string, unknown> = { id, status: newStatus };
-    if (newStatus === "Aprovada" || newStatus === "Rejeitada") {
-      body.data_resposta = new Date().toISOString().slice(0, 10);
-    }
+  function startEdit(p: CazaCrmProposal) {
+    setEditingId(p.id);
+    setEditForm({
+      opportunity_id: p.opportunity_id,
+      versao:         String(p.versao),
+      valor_proposto: String(p.valor_proposto),
+      escopo:         p.escopo,
+      status:         p.status,
+      data_envio:     p.data_envio ?? "",
+      data_resposta:  p.data_resposta ?? "",
+      observacoes:    p.observacoes,
+    });
+    setShowForm(false);
+    setError(null);
+  }
+
+  async function handleUpdate() {
+    if (!editingId) return;
+    setSaving(true); setError(null);
     try {
-      await fetch("/api/caza/crm/propostas", {
+      const res = await fetch(`/api/caza/crm/propostas/${editingId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          versao:         Number(editForm.versao) || 1,
+          valor_proposto: Number(editForm.valor_proposto) || 0,
+          escopo:         editForm.escopo,
+          status:         editForm.status,
+          data_envio:     editForm.data_envio || null,
+          data_resposta:  editForm.data_resposta || null,
+          observacoes:    editForm.observacoes,
+        }),
       });
-      setProposals((prev) => prev.map((p) => p.id === id ? { ...p, status: newStatus } : p));
-    } catch { /* silent */ }
+      if (!res.ok) {
+        const e = await res.json() as { error?: string };
+        setError(e.error ?? "Erro ao salvar.");
+      } else {
+        const updated = await res.json() as CazaCrmProposal;
+        setProposals((prev) => prev.map((p) => p.id === editingId ? updated : p));
+        setEditingId(null);
+      }
+    } catch { setError("Erro de rede."); }
+    finally { setSaving(false); }
+  }
+
+  async function handleDelete(id: string) {
+    try {
+      await fetch(`/api/caza/crm/propostas/${id}`, { method: "DELETE" });
+      setProposals((prev) => prev.filter((p) => p.id !== id));
+      setDeletingId(null);
+      if (editingId === id) setEditingId(null);
+    } catch { /* ignore */ }
   }
 
   return (
@@ -143,7 +248,7 @@ export default function CazaCrmPropostas() {
             {source === "empty" && <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-xs text-amber-700"><CloudOff size={11} />Sem propostas</span>}
           </div>
           {!IS_STATIC && (
-            <button onClick={() => { setShowForm((v) => !v); setError(null); }}
+            <button onClick={() => { setShowForm((v) => !v); setEditingId(null); setError(null); }}
               className="btn-primary flex items-center gap-1.5 px-3 py-1.5 text-xs">
               {showForm ? <X size={13} /> : <Plus size={13} />}
               {showForm ? "Cancelar" : "Nova Proposta"}
@@ -154,10 +259,10 @@ export default function CazaCrmPropostas() {
         {/* KPI strip */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[
-            { label: "Total Propostas",   value: proposals.length,                                   icon: FileText,    color: "text-gray-700"    },
-            { label: "Em Aberto",         value: proposals.filter((p) => p.status === "Enviada").length, icon: Clock,    color: "text-blue-600"    },
+            { label: "Total Propostas",   value: proposals.length,                                        icon: FileText,    color: "text-gray-700"    },
+            { label: "Em Aberto",         value: proposals.filter((p) => p.status === "Enviada").length,  icon: Clock,       color: "text-blue-600"    },
             { label: "Aprovadas",         value: proposals.filter((p) => p.status === "Aprovada").length, icon: CheckCircle2, color: "text-emerald-600" },
-            { label: "Valor Aprovado",    value: fmtR(approved),                                      icon: DollarSign, color: "text-emerald-600" },
+            { label: "Valor Aprovado",    value: fmtR(approved),                                          icon: DollarSign,  color: "text-emerald-600" },
           ].map((k) => {
             const Icon = k.icon;
             return (
@@ -172,61 +277,35 @@ export default function CazaCrmPropostas() {
           })}
         </div>
 
-        {/* Add form */}
+        {/* Create form */}
         {showForm && (
           <div className="card p-5 border border-amber-200 bg-amber-50/20">
             <SectionHeader title="Nova Proposta" />
             {error && <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-3">{error}</div>}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
-              <div>
-                <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Oportunidade Vinculada *</label>
-                <select value={form.opportunity_id} onChange={(e) => setForm((f) => ({ ...f, opportunity_id: e.target.value }))}
-                  className="mt-1 w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-300 bg-white">
-                  <option value="">— selecione —</option>
-                  {opps.filter((o) => o.stage !== "Fechado Perdido").map((o) => (
-                    <option key={o.id} value={o.id}>{o.nome_oportunidade} ({o.empresa || o.id})</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Versão</label>
-                <input type="number" min={1} value={form.versao} onChange={(e) => setForm((f) => ({ ...f, versao: e.target.value }))}
-                  className="mt-1 w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-300 bg-white" />
-              </div>
-              <div>
-                <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Valor Proposto (R$)</label>
-                <input type="number" min={0} value={form.valor_proposto} onChange={(e) => setForm((f) => ({ ...f, valor_proposto: e.target.value }))}
-                  className="mt-1 w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-300 bg-white" />
-              </div>
-              <div>
-                <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Status</label>
-                <select value={form.status} onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
-                  className="mt-1 w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-300 bg-white">
-                  {CAZA_PROPOSAL_STATUSES.map((s) => <option key={s}>{s}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Data de Envio</label>
-                <input type="date" value={form.data_envio} onChange={(e) => setForm((f) => ({ ...f, data_envio: e.target.value }))}
-                  className="mt-1 w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-300 bg-white" />
-              </div>
-              <div className="sm:col-span-2 lg:col-span-3">
-                <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Escopo / Descrição</label>
-                <textarea rows={2} value={form.escopo} onChange={(e) => setForm((f) => ({ ...f, escopo: e.target.value }))}
-                  className="mt-1 w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-300 bg-white resize-none" />
-              </div>
-              <div className="sm:col-span-2 lg:col-span-3">
-                <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Observações</label>
-                <textarea rows={2} value={form.observacoes} onChange={(e) => setForm((f) => ({ ...f, observacoes: e.target.value }))}
-                  className="mt-1 w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-300 bg-white resize-none" />
-              </div>
-            </div>
+            <PropostaFormFields values={form} onChange={(k, v) => setForm((f) => ({ ...f, [k]: v }))} opps={opps} />
             <div className="flex justify-end gap-2 mt-4">
               <button onClick={() => { setShowForm(false); setError(null); setForm({ ...EMPTY_FORM }); }}
                 className="px-4 py-1.5 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50">Cancelar</button>
               <button onClick={handleSave} disabled={saving}
                 className="btn-primary px-5 py-1.5 text-sm disabled:opacity-60">
                 {saving ? "Salvando…" : "Salvar Proposta"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Edit form */}
+        {editingId && (
+          <div className="card p-5 border border-emerald-200 bg-emerald-50/20">
+            <SectionHeader title="Editar Proposta" />
+            {error && <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-3">{error}</div>}
+            <PropostaFormFields values={editForm} onChange={(k, v) => setEditForm((f) => ({ ...f, [k]: v }))} opps={opps} isEdit />
+            <div className="flex justify-end gap-2 mt-4">
+              <button onClick={() => { setEditingId(null); setError(null); }}
+                className="px-4 py-1.5 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50">Cancelar</button>
+              <button onClick={handleUpdate} disabled={saving}
+                className="btn-primary px-5 py-1.5 text-sm disabled:opacity-60">
+                {saving ? "Salvando…" : "Salvar Alterações"}
               </button>
             </div>
           </div>
@@ -265,13 +344,17 @@ export default function CazaCrmPropostas() {
                     <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400">Enviada</th>
                     <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400">Resposta</th>
                     <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400">Status</th>
+                    {!IS_STATIC && <th className="py-2 px-3 w-20" />}
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.map((p) => {
-                    const opp = oppMap.get(p.opportunity_id);
+                    const opp        = oppMap.get(p.opportunity_id);
+                    const isEditing  = editingId === p.id;
+                    const isDeleting = deletingId === p.id;
                     return (
-                      <tr key={p.id} className="border-b border-gray-50 hover:bg-gray-50/80 transition-colors">
+                      <tr key={p.id}
+                        className={`border-b border-gray-50 transition-colors ${isEditing ? "bg-emerald-50/40" : "hover:bg-gray-50/80"}`}>
                         <td className="py-2.5 px-3 text-[10px] text-gray-400 font-mono">{p.id}</td>
                         <td className="py-2.5 px-3">
                           <div className="text-xs font-medium text-gray-700">{opp?.nome_oportunidade ?? p.opportunity_id}</div>
@@ -284,14 +367,33 @@ export default function CazaCrmPropostas() {
                         <td className="py-2.5 px-3 text-xs text-center text-gray-500">v{p.versao}</td>
                         <td className="py-2.5 px-3 text-[11px] text-gray-400">{fmtDate(p.data_envio)}</td>
                         <td className="py-2.5 px-3 text-[11px] text-gray-400">{fmtDate(p.data_resposta)}</td>
-                        <td className="py-2.5 px-3">
-                          {!IS_STATIC ? (
-                            <select value={p.status} onChange={(e) => handleStatusChange(p.id, e.target.value)}
-                              className="text-[10px] font-semibold border-0 bg-transparent focus:outline-none cursor-pointer">
-                              {CAZA_PROPOSAL_STATUSES.map((s) => <option key={s}>{s}</option>)}
-                            </select>
-                          ) : <ProposalStatusBadge status={p.status} />}
-                        </td>
+                        <td className="py-2.5 px-3"><ProposalStatusBadge status={p.status} /></td>
+                        {!IS_STATIC && (
+                          <td className="py-2.5 px-3 text-right">
+                            {isDeleting ? (
+                              <div className="flex items-center gap-1 justify-end">
+                                <span className="text-[10px] text-red-600 font-medium">Excluir?</span>
+                                <button onClick={() => handleDelete(p.id)}
+                                  className="text-[10px] font-semibold text-white bg-red-500 hover:bg-red-600 px-2 py-0.5 rounded">Sim</button>
+                                <button onClick={() => setDeletingId(null)}
+                                  className="text-[10px] font-semibold text-gray-500 px-1.5 py-0.5 rounded border border-gray-200">Não</button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1 justify-end">
+                                <button onClick={() => startEdit(p)}
+                                  className="p-1.5 rounded hover:bg-emerald-50 text-gray-400 hover:text-emerald-600 transition-colors"
+                                  title="Editar">
+                                  <Pencil size={13} />
+                                </button>
+                                <button onClick={() => setDeletingId(p.id)}
+                                  className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                                  title="Excluir">
+                                  <Trash2 size={13} />
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                        )}
                       </tr>
                     );
                   })}
