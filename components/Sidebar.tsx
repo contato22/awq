@@ -412,10 +412,13 @@ function AwqSidebar({ pathname }: { pathname: string }) {
     const tesourariaActive   = isGroupActive(AWQ_TESOURARIA_ITEMS);
     const controladoriaActive= isGroupActive(AWQ_CONTROLADORIA_ITEMS);
 
-    const [ctOpen,            setCtOpen]           = useState(ctActive);
-    const [fpaOpen,           setFpaOpen]          = useState(fpaActive);
-    const [tesourariaOpen,    setTesourariaOpen]   = useState(tesourariaActive);
-    const [controladoriaOpen, setControladoriaOpen]= useState(controladoriaActive);
+    // Initialize all sections closed to avoid SSR/client hydration mismatch
+    // (usePathname() returns different values during static export vs. browser).
+    // useEffect opens the correct section after mount.
+    const [ctOpen,            setCtOpen]           = useState(false);
+    const [fpaOpen,           setFpaOpen]          = useState(false);
+    const [tesourariaOpen,    setTesourariaOpen]   = useState(false);
+    const [controladoriaOpen, setControladoriaOpen]= useState(false);
 
     useEffect(() => { if (ctActive)           setCtOpen(true);           }, [ctActive]);
     useEffect(() => { if (fpaActive)          setFpaOpen(true);          }, [fpaActive]);
@@ -572,7 +575,7 @@ function JacqesSidebar({ pathname }: { pathname: string }) {
             : pathname === href || pathname.startsWith(href + "/");
 
     const isCrmActive = pathname === "/jacqes/crm" || pathname.startsWith("/jacqes/crm/");
-    const [crmOpen, setCrmOpen] = useState(isCrmActive);
+    const [crmOpen, setCrmOpen] = useState(false);
 
     useEffect(() => {
         if (isCrmActive) setCrmOpen(true);
