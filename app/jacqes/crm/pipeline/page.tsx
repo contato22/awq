@@ -2,11 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Header from "@/components/Header";
-import SectionHeader from "@/components/SectionHeader";
-import EmptyState from "@/components/EmptyState";
 import {
   Target, DollarSign, TrendingUp, BarChart3,
-  AlertTriangle, Clock, ArrowLeftRight, X, UserPlus,
+  AlertTriangle, UserPlus, X,
 } from "lucide-react";
 import type { CrmOpportunity, CrmClient } from "@/lib/jacqes-crm-db";
 import { fetchCRM } from "@/lib/jacqes-crm-query";
@@ -19,54 +17,30 @@ const PIPELINE_STAGES = [
   "Negociação", "Fechado Ganho", "Fechado Perdido",
 ] as const;
 
-type Stage = (typeof PIPELINE_STAGES)[number] | "Todas";
+type Stage = (typeof PIPELINE_STAGES)[number];
+
+const STAGE_CFG: Record<string, {
+  label: string; text: string; bg: string; border: string;
+  headerBg: string; countBg: string;
+}> = {
+  "Novo Lead":       { label: "Novo Lead",       text: "text-gray-300",    bg: "bg-gray-500/10",     border: "border-gray-700/60",    headerBg: "bg-gray-800/80",     countBg: "bg-gray-700"        },
+  "Qualificação":    { label: "Qualificação",    text: "text-blue-300",    bg: "bg-blue-500/10",     border: "border-blue-800/50",    headerBg: "bg-blue-900/30",     countBg: "bg-blue-900/60"     },
+  "Diagnóstico":     { label: "Diagnóstico",     text: "text-violet-300",  bg: "bg-violet-500/10",   border: "border-violet-800/50",  headerBg: "bg-violet-900/30",   countBg: "bg-violet-900/60"   },
+  "Proposta":        { label: "Proposta",        text: "text-amber-300",   bg: "bg-amber-500/10",    border: "border-amber-800/50",   headerBg: "bg-amber-900/30",    countBg: "bg-amber-900/60"    },
+  "Negociação":      { label: "Negociação",      text: "text-orange-300",  bg: "bg-orange-500/10",   border: "border-orange-800/50",  headerBg: "bg-orange-900/30",   countBg: "bg-orange-900/60"   },
+  "Fechado Ganho":   { label: "Fechado Ganho",   text: "text-emerald-300", bg: "bg-emerald-500/10",  border: "border-emerald-800/50", headerBg: "bg-emerald-900/30",  countBg: "bg-emerald-900/60"  },
+  "Fechado Perdido": { label: "Fechado Perdido", text: "text-red-300",     bg: "bg-red-500/10",      border: "border-red-900/50",     headerBg: "bg-red-950/40",      countBg: "bg-red-900/60"      },
+};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function fmtCurrency(n: number): string {
   if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  if (n >= 1_000) return "R$" + (n / 1_000).toFixed(0) + "K";
+  if (n >= 1_000)     return "R$" + (n / 1_000).toFixed(0) + "K";
   return "R$" + n.toLocaleString("pt-BR");
 }
 
-function fmtDate(d: string | null | undefined): string {
-  if (!d) return "—";
-  const [y, m, day] = d.split("-");
-  return `${day}/${m}/${y}`;
-}
-
 const TODAY = new Date().toISOString().slice(0, 10);
-
-// ─── Stage badge ──────────────────────────────────────────────────────────────
-
-const STAGE_CFG: Record<string, { text: string; bg: string }> = {
-  "Novo Lead":       { text: "text-gray-300",    bg: "bg-gray-500/15"    },
-  "Qualificação":    { text: "text-blue-300",    bg: "bg-blue-500/15"    },
-  "Diagnóstico":     { text: "text-violet-300",  bg: "bg-violet-500/15"  },
-  "Proposta":        { text: "text-amber-300",   bg: "bg-amber-500/15"   },
-  "Negociação":      { text: "text-orange-300",  bg: "bg-orange-500/15"  },
-  "Fechado Ganho":   { text: "text-emerald-300", bg: "bg-emerald-500/15" },
-  "Fechado Perdido": { text: "text-red-300",     bg: "bg-red-500/15"     },
-};
-
-function StageBadge({ stage }: { stage: string }) {
-  const cfg = STAGE_CFG[stage] ?? { text: "text-gray-300", bg: "bg-gray-500/15" };
-  return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${cfg.text} ${cfg.bg}`}>
-      {stage}
-    </span>
-  );
-}
-
-// ─── Risk badge ───────────────────────────────────────────────────────────────
-
-function RiskBadge({ risco }: { risco: string }) {
-  if (risco === "Alto")  return <span className="badge badge-red text-[10px]">Alto</span>;
-  if (risco === "Médio") return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold text-amber-700 bg-amber-100 border border-amber-200">Médio</span>;
-  return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold text-emerald-700 bg-emerald-100 border border-emerald-200">Baixo</span>;
-}
-
-// ─── Probability bar ──────────────────────────────────────────────────────────
 
 function ProbBar({ pct }: { pct: number }) {
   const color =
@@ -76,33 +50,38 @@ function ProbBar({ pct }: { pct: number }) {
     "bg-red-400";
   return (
     <div className="flex items-center gap-1.5">
-      <div className="w-16 h-1.5 bg-gray-700 rounded-full overflow-hidden">
+      <div className="flex-1 h-1 bg-gray-700 rounded-full overflow-hidden">
         <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
       </div>
-      <span className="text-[10px] font-semibold text-gray-400">{pct}%</span>
+      <span className="text-[10px] font-semibold text-gray-500">{pct}%</span>
     </div>
   );
 }
 
-// ─── Aging pill ───────────────────────────────────────────────────────────────
-
 function AgingPill({ dataAbertura }: { dataAbertura: string }) {
-  const days = Math.floor((Date.now() - new Date(dataAbertura).getTime()) / 86400000);
+  const days = Math.floor((Date.now() - new Date(dataAbertura).getTime()) / 86_400_000);
   return (
-    <span className={`text-[10px] font-semibold ${days > 30 ? "text-red-400" : "text-gray-500"}`}>
+    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${
+      days > 30 ? "bg-red-900/40 text-red-400" : "bg-gray-800 text-gray-600"
+    }`}>
       {days}d
     </span>
   );
 }
 
+function RiskDot({ risco }: { risco: string }) {
+  const color =
+    risco === "Alto"  ? "bg-red-400" :
+    risco === "Médio" ? "bg-amber-400" :
+    "bg-emerald-400";
+  return <span className={`inline-block w-1.5 h-1.5 rounded-full ${color}`} title={`Risco ${risco}`} />;
+}
+
 // ─── Summary card ─────────────────────────────────────────────────────────────
 
 interface SumCardProps {
-  label: string;
-  value: React.ReactNode;
-  icon: React.ElementType;
-  iconColor: string;
-  iconBg: string;
+  label: string; value: React.ReactNode;
+  icon: React.ElementType; iconColor: string; iconBg: string;
 }
 
 function SumCard({ label, value, icon: Icon, iconColor, iconBg }: SumCardProps) {
@@ -119,16 +98,151 @@ function SumCard({ label, value, icon: Icon, iconColor, iconBg }: SumCardProps) 
   );
 }
 
+// ─── Kanban Card ──────────────────────────────────────────────────────────────
+
+interface KanbanCardProps {
+  opp: CrmOpportunity;
+  onClientClick: () => void;
+}
+
+function KanbanCard({ opp, onClientClick }: KanbanCardProps) {
+  const actionPast = opp.data_proxima_acao && opp.data_proxima_acao < TODAY;
+
+  return (
+    <div
+      draggable
+      onDragStart={e => {
+        e.dataTransfer.setData("oppId", opp.id);
+        e.dataTransfer.effectAllowed = "move";
+      }}
+      className="bg-gray-900 border border-gray-700/60 rounded-xl p-3 shadow-sm
+                 hover:border-gray-500/60 hover:shadow-md transition-all
+                 cursor-grab active:cursor-grabbing active:opacity-60 active:scale-95 group"
+    >
+      {/* Header row */}
+      <div className="flex items-start justify-between gap-1.5 mb-2">
+        <div className="min-w-0">
+          <div className="text-[11px] font-bold text-gray-100 leading-tight line-clamp-2">
+            {opp.empresa}
+          </div>
+          <div className="text-[9px] text-gray-600 truncate mt-0.5">
+            {opp.nome_oportunidade}
+          </div>
+        </div>
+        <AgingPill dataAbertura={opp.data_abertura} />
+      </div>
+
+      {/* Value */}
+      <div className="text-[13px] font-bold text-amber-400 mb-2">
+        {fmtCurrency(opp.valor_potencial)}
+      </div>
+
+      {/* Probability */}
+      <ProbBar pct={opp.probabilidade} />
+
+      {/* Next action */}
+      {opp.proxima_acao && (
+        <div className={`mt-1.5 text-[9px] truncate ${actionPast ? "text-red-400" : "text-gray-600"}`}>
+          {opp.proxima_acao}
+        </div>
+      )}
+
+      {/* Footer */}
+      <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-800">
+        <div className="flex items-center gap-1.5">
+          <RiskDot risco={opp.risco} />
+          <span className="text-[9px] text-gray-600 truncate max-w-[90px]">{opp.owner}</span>
+        </div>
+        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+          {opp.stage === "Fechado Ganho" && (
+            <button
+              onClick={e => { e.stopPropagation(); onClientClick(); }}
+              title="Converter em Cliente"
+              className="p-1 rounded hover:bg-emerald-900/40 text-gray-600 hover:text-emerald-400 transition-colors"
+            >
+              <UserPlus size={11} />
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Kanban Column ────────────────────────────────────────────────────────────
+
+interface KanbanColumnProps {
+  stage: Stage;
+  opps: CrmOpportunity[];
+  onDrop: (oppId: string, stage: Stage) => void;
+  onClientClick: (opp: CrmOpportunity) => void;
+}
+
+function KanbanColumn({ stage, opps, onDrop, onClientClick }: KanbanColumnProps) {
+  const [dragOver, setDragOver] = useState(false);
+  const cfg = STAGE_CFG[stage];
+  const stageTotal = opps.reduce((s, o) => s + o.valor_potencial, 0);
+
+  return (
+    <div
+      className={`flex-shrink-0 w-[210px] flex flex-col rounded-xl border ${cfg.border} transition-all duration-150
+                  ${dragOver ? "ring-2 ring-brand-500/70 border-brand-500/50 scale-[1.01]" : ""}`}
+      onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOver(true); }}
+      onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOver(false); }}
+      onDrop={e => {
+        e.preventDefault();
+        setDragOver(false);
+        const id = e.dataTransfer.getData("oppId");
+        if (id) onDrop(id, stage);
+      }}
+    >
+      {/* Column header */}
+      <div className={`px-3 py-2.5 rounded-t-xl ${cfg.headerBg} border-b ${cfg.border} shrink-0`}>
+        <div className="flex items-center justify-between gap-2">
+          <span className={`text-[11px] font-bold ${cfg.text} truncate`}>{stage}</span>
+          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${cfg.countBg} ${cfg.text} shrink-0`}>
+            {opps.length}
+          </span>
+        </div>
+        <div className="text-[10px] text-gray-600 mt-0.5 font-medium">
+          {stageTotal > 0 ? fmtCurrency(stageTotal) : "—"}
+        </div>
+      </div>
+
+      {/* Cards list */}
+      <div className="flex-1 p-2 space-y-2 overflow-y-auto" style={{ maxHeight: "calc(100vh - 300px)", minHeight: 80 }}>
+        {opps.map(opp => (
+          <KanbanCard
+            key={opp.id}
+            opp={opp}
+            onClientClick={() => onClientClick(opp)}
+          />
+        ))}
+        {dragOver && opps.length === 0 && (
+          <div className="h-14 rounded-lg border-2 border-dashed border-brand-500/50 flex items-center justify-center">
+            <span className="text-[10px] text-brand-400">Soltar aqui</span>
+          </div>
+        )}
+        {!dragOver && opps.length === 0 && (
+          <div className="h-14 flex items-center justify-center">
+            <span className="text-[10px] text-gray-700">Sem cards</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function JacqesCrmPipelinePage() {
   const [opps, setOpps] = useState<CrmOpportunity[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [activeStage, setActiveStage] = useState<Stage>("Todas");
-  const [stageModal, setStageModal] = useState<{ open: boolean; opp: CrmOpportunity | null }>({ open: false, opp: null });
   const [clientModal, setClientModal] = useState<CrmOpportunity | null>(null);
-  const [clientForm, setClientForm] = useState({ nome: "", razao_social: "", segmento: "", produto_ativo: "", ticket_mensal: "", owner: "", observacoes: "" });
+  const [clientForm, setClientForm] = useState({
+    nome: "", razao_social: "", segmento: "",
+    produto_ativo: "", ticket_mensal: "", owner: "", observacoes: "",
+  });
   const [savingClient, setSavingClient] = useState(false);
 
   useEffect(() => {
@@ -137,31 +251,16 @@ export default function JacqesCrmPipelinePage() {
       .catch(() => setLoading(false));
   }, []);
 
-  // Derived summary metrics
-  const totalOpps = opps.length;
-  const pipelineTotal = opps.reduce((s, o) => s + o.valor_potencial, 0);
-  const receitaPonderada = opps.reduce((s, o) => s + (o.valor_potencial * o.probabilidade / 100), 0);
-  const ticketMedio = totalOpps > 0 ? pipelineTotal / totalOpps : 0;
+  // Summary metrics
+  const pipelineTotal      = opps.reduce((s, o) => s + o.valor_potencial, 0);
+  const receitaPonderada   = opps.reduce((s, o) => s + (o.valor_potencial * o.probabilidade / 100), 0);
+  const ticketMedio        = opps.length > 0 ? pipelineTotal / opps.length : 0;
 
-  const filtered = activeStage === "Todas"
-    ? opps
-    : opps.filter((o) => o.stage === activeStage);
-
-  const allStages: Stage[] = ["Todas", ...PIPELINE_STAGES];
-
-  const stageCount = (s: Stage) =>
-    s === "Todas" ? opps.length : opps.filter((o) => o.stage === s).length;
-
-  function openStageModal(opp: CrmOpportunity) {
-    setStageModal({ open: true, opp });
-  }
-
-  function moveStage(newStage: string) {
-    const opp = stageModal.opp;
-    if (!opp) return;
-    crmUpdate<CrmOpportunity>("opportunities", opp.id, { stage: newStage });
-    setOpps(prev => prev.map(o => o.id === opp.id ? { ...o, stage: newStage } : o));
-    setStageModal({ open: false, opp: null });
+  function handleDrop(oppId: string, newStage: Stage) {
+    const opp = opps.find(o => o.id === oppId);
+    if (!opp || opp.stage === newStage) return;
+    crmUpdate<CrmOpportunity>("opportunities", oppId, { stage: newStage });
+    setOpps(prev => prev.map(o => o.id === oppId ? { ...o, stage: newStage } : o));
   }
 
   function openClientModal(opp: CrmOpportunity) {
@@ -170,7 +269,7 @@ export default function JacqesCrmPipelinePage() {
       nome:          opp.empresa,
       razao_social:  opp.empresa,
       segmento:      opp.segmento || "",
-      produto_ativo: opp.produto || "",
+      produto_ativo: opp.produto  || "",
       ticket_mensal: String(opp.ticket_estimado || ""),
       owner:         opp.owner,
       observacoes:   `Convertido de oportunidade: ${opp.nome_oportunidade}`,
@@ -196,10 +295,6 @@ export default function JacqesCrmPipelinePage() {
       observacoes:        clientForm.observacoes.trim(),
     };
     crmCreate<CrmClient>("clients", payload, "cli");
-    if (clientModal) {
-      crmUpdate<CrmOpportunity>("opportunities", clientModal.id, { stage: "Fechado Ganho" });
-      setOpps(prev => prev.map(o => o.id === clientModal.id ? { ...o, stage: "Fechado Ganho" } : o));
-    }
     setSavingClient(false);
     setClientModal(null);
     alert("Cliente criado! Acesse Clientes para ver e editar.");
@@ -208,7 +303,7 @@ export default function JacqesCrmPipelinePage() {
   if (loading) {
     return (
       <>
-        <Header title="Pipeline — JACQES CRM" subtitle="Carregando..." />
+        <Header title="Pipeline — JACQES CRM" subtitle="Carregando…" />
         <div className="page-container">
           <div className="card p-8 flex items-center justify-center">
             <div className="flex items-center gap-3 text-gray-500">
@@ -221,256 +316,40 @@ export default function JacqesCrmPipelinePage() {
     );
   }
 
-  if (error) {
-    return (
-      <>
-        <Header title="Pipeline — JACQES CRM" subtitle="Erro ao carregar dados" />
-        <div className="page-container">
-          <EmptyState
-            icon={<AlertTriangle size={20} className="text-red-400" />}
-            title="Erro ao carregar pipeline"
-            description={error}
-          />
-        </div>
-      </>
-    );
-  }
-
   return (
     <>
-      <Header
-        title="Pipeline — JACQES CRM"
-        subtitle="Sistema operacional comercial"
-      />
+      <Header title="Pipeline — JACQES CRM" subtitle="Arraste os cards para mover entre etapas" />
+
       <div className="page-container">
 
         {/* ── Summary ──────────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <SumCard
-            label="Total de Oportunidades"
-            value={totalOpps}
-            icon={Target}
-            iconColor="text-violet-400"
-            iconBg="bg-violet-500/10"
-          />
-          <SumCard
-            label="Pipeline Total"
-            value={fmtCurrency(pipelineTotal)}
-            icon={BarChart3}
-            iconColor="text-amber-400"
-            iconBg="bg-amber-500/10"
-          />
-          <SumCard
-            label="Receita Ponderada"
-            value={fmtCurrency(receitaPonderada)}
-            icon={DollarSign}
-            iconColor="text-emerald-400"
-            iconBg="bg-emerald-500/10"
-          />
-          <SumCard
-            label="Ticket Médio"
-            value={fmtCurrency(ticketMedio)}
-            icon={TrendingUp}
-            iconColor="text-brand-400"
-            iconBg="bg-brand-500/10"
-          />
+          <SumCard label="Total de Oportunidades" value={opps.length}
+            icon={Target}   iconColor="text-violet-400" iconBg="bg-violet-500/10" />
+          <SumCard label="Pipeline Total" value={fmtCurrency(pipelineTotal)}
+            icon={BarChart3} iconColor="text-amber-400"  iconBg="bg-amber-500/10"  />
+          <SumCard label="Receita Ponderada" value={fmtCurrency(receitaPonderada)}
+            icon={DollarSign} iconColor="text-emerald-400" iconBg="bg-emerald-500/10" />
+          <SumCard label="Ticket Médio" value={fmtCurrency(ticketMedio)}
+            icon={TrendingUp} iconColor="text-brand-400" iconBg="bg-brand-500/10" />
         </div>
 
-        {/* ── Stage filter tabs ─────────────────────────────────────────────── */}
-        <div className="flex flex-wrap gap-2">
-          {allStages.map((s) => {
-            const active = activeStage === s;
-            const count = stageCount(s);
-            return (
-              <button
-                key={s}
-                onClick={() => setActiveStage(s)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors
-                  ${active
-                    ? "bg-brand-500 text-white shadow-sm"
-                    : "bg-gray-800 text-gray-400 hover:text-gray-200 hover:bg-gray-700"
-                  }`}
-              >
-                {s}
-                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${active ? "bg-white/20 text-white" : "bg-gray-700 text-gray-500"}`}>
-                  {count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* ── Table ────────────────────────────────────────────────────────── */}
-        <div className="card p-5">
-          <SectionHeader
-            icon={<Target size={15} />}
-            title={activeStage === "Todas" ? "Todas as Oportunidades" : activeStage}
-            badge={
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-800 text-gray-400">
-                {filtered.length}
-              </span>
-            }
-          />
-
-          {filtered.length === 0 ? (
-            <EmptyState
-              compact
-              icon={<Clock size={16} className="text-gray-400" />}
-              title="Nenhuma oportunidade neste estágio"
-              description="Ajuste o filtro ou adicione uma nova oportunidade."
-            />
-          ) : (
-            <div className="table-scroll">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-800">
-                    <th className="text-left  py-2.5 px-3 text-[10px] font-semibold text-gray-500 whitespace-nowrap">Oportunidade</th>
-                    <th className="text-left  py-2.5 px-3 text-[10px] font-semibold text-gray-500 whitespace-nowrap">Stage</th>
-                    <th className="text-right py-2.5 px-3 text-[10px] font-semibold text-gray-500 whitespace-nowrap">Valor Potencial</th>
-                    <th className="text-right py-2.5 px-3 text-[10px] font-semibold text-gray-500 whitespace-nowrap">Ticket Est.</th>
-                    <th className="text-left  py-2.5 px-3 text-[10px] font-semibold text-gray-500 whitespace-nowrap">Probabilidade</th>
-                    <th className="text-left  py-2.5 px-3 text-[10px] font-semibold text-gray-500 whitespace-nowrap">Próxima Ação</th>
-                    <th className="text-left  py-2.5 px-3 text-[10px] font-semibold text-gray-500 whitespace-nowrap">Risco</th>
-                    <th className="text-left  py-2.5 px-3 text-[10px] font-semibold text-gray-500 whitespace-nowrap">Owner</th>
-                    <th className="text-right py-2.5 px-3 text-[10px] font-semibold text-gray-500 whitespace-nowrap">Aging</th>
-                    <th className="py-2.5 px-3 w-8"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((o) => {
-                    const actionPast = o.data_proxima_acao && o.data_proxima_acao < TODAY;
-                    return (
-                      <tr
-                        key={o.id}
-                        className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors group"
-                      >
-                        {/* Oportunidade */}
-                        <td className="py-2.5 px-3">
-                          <div className="text-[11px] font-semibold text-gray-200 truncate max-w-[200px]">
-                            {o.nome_oportunidade}
-                          </div>
-                          <div className="text-[10px] text-gray-600 truncate max-w-[200px]">
-                            {o.empresa}
-                          </div>
-                        </td>
-
-                        {/* Stage */}
-                        <td className="py-2.5 px-3 whitespace-nowrap">
-                          <StageBadge stage={o.stage} />
-                        </td>
-
-                        {/* Valor Potencial */}
-                        <td className="py-2.5 px-3 text-right whitespace-nowrap">
-                          <span className="text-[11px] font-bold text-amber-400">
-                            {fmtCurrency(o.valor_potencial)}
-                          </span>
-                        </td>
-
-                        {/* Ticket Estimado */}
-                        <td className="py-2.5 px-3 text-right whitespace-nowrap">
-                          <span className="text-[11px] text-gray-400">
-                            {fmtCurrency(o.ticket_estimado)}
-                          </span>
-                        </td>
-
-                        {/* Probabilidade */}
-                        <td className="py-2.5 px-3">
-                          <ProbBar pct={o.probabilidade} />
-                        </td>
-
-                        {/* Próxima Ação */}
-                        <td className="py-2.5 px-3">
-                          <div className="text-[10px] text-gray-400 truncate max-w-[160px]">{o.proxima_acao}</div>
-                          <div className={`text-[10px] font-medium mt-0.5 ${actionPast ? "text-red-400" : "text-gray-600"}`}>
-                            {fmtDate(o.data_proxima_acao)}
-                          </div>
-                        </td>
-
-                        {/* Risco */}
-                        <td className="py-2.5 px-3 whitespace-nowrap">
-                          <RiskBadge risco={o.risco} />
-                        </td>
-
-                        {/* Owner */}
-                        <td className="py-2.5 px-3 text-[11px] text-gray-500 whitespace-nowrap">
-                          {o.owner}
-                        </td>
-
-                        {/* Aging */}
-                        <td className="py-2.5 px-3 text-right whitespace-nowrap">
-                          <AgingPill dataAbertura={o.data_abertura} />
-                        </td>
-
-                        {/* Actions */}
-                        <td className="py-2.5 px-3">
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                            <button
-                              onClick={() => openStageModal(o)}
-                              title="Mover de stage"
-                              className="p-1 rounded hover:bg-gray-700 text-gray-600 hover:text-gray-300 transition-colors"
-                            >
-                              <ArrowLeftRight size={12} />
-                            </button>
-                            {o.stage === "Fechado Ganho" && (
-                              <button
-                                onClick={() => openClientModal(o)}
-                                title="Converter em Cliente"
-                                className="p-1 rounded hover:bg-emerald-900/40 text-gray-600 hover:text-emerald-400 transition-colors"
-                              >
-                                <UserPlus size={12} />
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+        {/* ── Kanban Board ─────────────────────────────────────────────────── */}
+        <div className="overflow-x-auto pb-4 -mx-4 px-4">
+          <div className="flex gap-3 min-w-max">
+            {PIPELINE_STAGES.map(stage => (
+              <KanbanColumn
+                key={stage}
+                stage={stage}
+                opps={opps.filter(o => o.stage === stage)}
+                onDrop={handleDrop}
+                onClientClick={openClientModal}
+              />
+            ))}
+          </div>
         </div>
 
       </div>
-
-      {/* ── Stage Move Modal ──────────────────────────────────────────────────── */}
-      {stageModal.open && stageModal.opp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl w-full max-w-sm p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="text-sm font-bold text-gray-100">Mover Stage</h3>
-                <p className="text-[11px] text-gray-500 mt-0.5 truncate max-w-[220px]">
-                  {stageModal.opp.nome_oportunidade}
-                </p>
-              </div>
-              <button onClick={() => setStageModal({ open: false, opp: null })} className="text-gray-500 hover:text-gray-300">
-                <X size={16} />
-              </button>
-            </div>
-            <div className="space-y-1.5">
-              {PIPELINE_STAGES.map(stage => {
-                const isCurrent = stageModal.opp!.stage === stage;
-                const cfg = STAGE_CFG[stage];
-                return (
-                  <button
-                    key={stage}
-                    onClick={() => moveStage(stage)}
-                    disabled={isCurrent}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold transition-colors border ${
-                      isCurrent
-                        ? `${cfg.bg} ${cfg.text} border-transparent opacity-60 cursor-default`
-                        : "bg-gray-800 text-gray-300 border-gray-700 hover:bg-gray-700 hover:text-gray-100"
-                    }`}
-                  >
-                    {isCurrent ? `✓ ${stage} (atual)` : stage}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ── Converter em Cliente Modal ────────────────────────────────────────── */}
       {clientModal && (
@@ -479,7 +358,9 @@ export default function JacqesCrmPipelinePage() {
             <div className="flex items-center justify-between mb-5">
               <div>
                 <h3 className="text-sm font-bold text-gray-900">Converter em Cliente</h3>
-                <p className="text-[11px] text-gray-400 mt-0.5 truncate max-w-[260px]">{clientModal.nome_oportunidade}</p>
+                <p className="text-[11px] text-gray-400 mt-0.5 truncate max-w-[260px]">
+                  {clientModal.nome_oportunidade}
+                </p>
               </div>
               <button onClick={() => setClientModal(null)} className="text-gray-400 hover:text-gray-600">
                 <X size={16} />
