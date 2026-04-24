@@ -29,20 +29,6 @@ const MONTH_NAMES = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out"
 
 // --- Notion helpers ---
 
-async function queryDatabase(dbId) {
-    const res = await fetch(`https://api.notion.com/v1/databases/${dbId}/query`, {
-          method: "POST",
-          headers: {
-                  Authorization: `Bearer ${API_KEY}`,
-                  "Notion-Version": NOTION_VERSION,
-                  "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ page_size: 100 }),
-    });
-    if (!res.ok) throw new Error(`Notion ${res.status}: ${await res.text()}`);
-    return (await res.json()).results;
-}
-
 function getProp(props, keys, type) {
     for (const key of keys) {
           const p = props[key];
@@ -622,7 +608,7 @@ async function main() {
     // Properties / Projects — isolated catch: one DB failure doesn't kill others
     if (DB_PROPS) {
         try {
-            const pages  = await queryDatabase(DB_PROPS);
+            const pages  = await queryAllPages(DB_PROPS);
             cazaProjects = pages.map(mapProjeto);
             write("caza-properties.json", cazaProjects);
             console.log(`  OK caza-properties: ${cazaProjects.length} records`);
@@ -645,7 +631,7 @@ async function main() {
                 console.log(`  OK caza-financial: aggregated from ${cazaProjects.length} projects`);
             } else {
                 // Separate pre-aggregated Financeiro DB: Mês, Receita, Orçamento, Lucro, Despesas
-                const pages = await queryDatabase(DB_FIN);
+                const pages = await queryAllPages(DB_FIN);
                 const finRows = pages.map(mapFinanceiro)
                     .filter(r => r.month)
                     .sort((a, b) => monthIndex(a.month) - monthIndex(b.month));
@@ -664,7 +650,7 @@ async function main() {
     // Clients — isolated catch
     if (DB_CLI) {
         try {
-            const pages = await queryDatabase(DB_CLI);
+            const pages = await queryAllPages(DB_CLI);
             cazaClients = pages.map(mapClient);
             write("caza-clients.json", cazaClients);
             console.log(`  OK caza-clients: ${cazaClients.length} records`);
