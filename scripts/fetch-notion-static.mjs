@@ -14,9 +14,9 @@ const OUT_DIR = join(__dirname, "..", "public", "data");
 
 const NOTION_VERSION = "2022-06-28";
 const API_KEY        = process.env.NOTION_TOKEN ?? process.env.NOTION_API_KEY;
-// DB IDs read exclusively from env — no hardcoded fallbacks.
+// DB IDs read from env with hardcoded fallbacks for local runs.
 // Set secrets in GitHub → Settings → Secrets → Actions to activate each source.
-const DB_PROPS       = process.env.NOTION_DATABASE_ID_CAZA_PROPERTIES ?? "308e2d13-dfa9-433e-a0f6-8439b5181845";
+const DB_PROPS       = process.env.NOTION_DATABASE_ID_CAZA_PROPERTIES ?? "3358b3e6-fc37-80f4-87c3-d19e17e1a74f";
 const DB_FIN         = process.env.NOTION_DATABASE_ID_CAZA_FINANCIAL  ?? "9a8329e9-6d19-4bdc-8e80-2d59a2658be7";
 // DB_CLI has NO hardcoded fallback: prevents the script from auto-pulling a
 // stale/demo clients database when the secret is not explicitly configured.
