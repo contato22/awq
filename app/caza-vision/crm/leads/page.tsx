@@ -28,7 +28,7 @@ function statusCls(s: string) {
 }
 
 const EMPTY_FORM = {
-  nome: "", empresa: "", contato_principal: "", telefone: "", email: "",
+  nome: "", cargo: "", empresa: "", cnpj: "", contato_principal: "", telefone: "", email: "",
   origem: "Indicação" as string, tipo_servico: "" as string,
   interesse: "", status: "Novo" as string, owner: "", observacoes: "",
 };
@@ -44,9 +44,11 @@ function LeadFormFields({ values, onChange }: { values: LeadForm; onChange: (k: 
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
       {([
         { key: "nome",              label: "Nome *",            type: "text"  },
+        { key: "cargo",             label: "Cargo",             type: "text"  },
         { key: "empresa",           label: "Empresa",           type: "text"  },
+        { key: "cnpj",              label: "CNPJ",              type: "text"  },
         { key: "contato_principal", label: "Contato Principal", type: "text"  },
-        { key: "telefone",          label: "Telefone",          type: "text"  },
+        { key: "telefone",          label: "Telefone",          type: "tel"   },
         { key: "email",             label: "E-mail",            type: "email" },
         { key: "owner",             label: "Responsável",       type: "text"  },
       ] as const).map(({ key, label, type }) => (
@@ -162,10 +164,10 @@ export default function CazaCrmLeads() {
   function startEdit(l: CazaCrmLead) {
     setEditingId(l.id);
     setEditForm({
-      nome: l.nome, empresa: l.empresa, contato_principal: l.contato_principal,
-      telefone: l.telefone, email: l.email, origem: l.origem,
-      tipo_servico: l.tipo_servico, interesse: l.interesse,
-      status: l.status, owner: l.owner, observacoes: l.observacoes,
+      nome: l.nome, cargo: l.cargo, empresa: l.empresa, cnpj: l.cnpj,
+      contato_principal: l.contato_principal, telefone: l.telefone,
+      email: l.email, origem: l.origem, tipo_servico: l.tipo_servico,
+      interesse: l.interesse, status: l.status, owner: l.owner, observacoes: l.observacoes,
     });
     setShowForm(false); setError(null);
   }
@@ -302,7 +304,8 @@ export default function CazaCrmLeads() {
                 <thead>
                   <tr className="border-b border-gray-100">
                     <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400">Lead</th>
-                    <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400">Empresa</th>
+                    <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400">Cargo</th>
+                    <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400">Empresa / CNPJ</th>
                     <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400">Serviço</th>
                     <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400">Origem</th>
                     <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400">Owner</th>
@@ -323,7 +326,11 @@ export default function CazaCrmLeads() {
                           {l.email && <div className="text-[10px] text-gray-400">{l.email}</div>}
                           {l.telefone && <div className="text-[10px] text-gray-400">{l.telefone}</div>}
                         </td>
-                        <td className="py-2.5 px-3 text-xs text-gray-600">{l.empresa || "—"}</td>
+                        <td className="py-2.5 px-3 text-xs text-gray-500">{l.cargo || "—"}</td>
+                        <td className="py-2.5 px-3 text-xs text-gray-600">
+                          <div>{l.empresa || "—"}</div>
+                          {l.cnpj && <div className="text-[10px] text-gray-400">{l.cnpj}</div>}
+                        </td>
                         <td className="py-2.5 px-3 text-xs text-gray-500">{l.tipo_servico || "—"}</td>
                         <td className="py-2.5 px-3 text-xs text-gray-500">{l.origem || "—"}</td>
                         <td className="py-2.5 px-3 text-xs text-gray-500">{l.owner || "—"}</td>

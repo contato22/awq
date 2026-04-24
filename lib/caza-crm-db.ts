@@ -60,7 +60,9 @@ export const CAZA_RISK_LEVELS = ["Baixo", "Médio", "Alto"] as const;
 export type CazaCrmLead = {
   id: string;
   nome: string;
+  cargo: string;
   empresa: string;
+  cnpj: string;
   contato_principal: string;
   telefone: string;
   email: string;
@@ -438,7 +440,9 @@ function coerceLead(r: Record<string, unknown>): CazaCrmLead {
   return {
     id:                String(r.id ?? ""),
     nome:              String(r.nome ?? ""),
+    cargo:             String(r.cargo ?? ""),
     empresa:           String(r.empresa ?? ""),
+    cnpj:              String(r.cnpj ?? ""),
     contato_principal: String(r.contato_principal ?? ""),
     telefone:          String(r.telefone ?? ""),
     email:             String(r.email ?? ""),
