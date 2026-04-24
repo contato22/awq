@@ -105,6 +105,17 @@ const cazaNav = [
     { label: "Importar",       href: "/caza-vision/import",            icon: FileUp          },
 ];
 
+// CRM sub-navigation da Caza Vision — isolado do CRM JACQES
+const cazaCrmNav = [
+    { label: "Visão Geral",   href: "/caza-vision/crm",                icon: LayoutDashboard },
+    { label: "Pipeline",      href: "/caza-vision/crm/pipeline",       icon: TrendingUp      },
+    { label: "Leads",         href: "/caza-vision/crm/leads",          icon: UserPlus        },
+    { label: "Oportunidades", href: "/caza-vision/crm/oportunidades",  icon: CheckCircle2    },
+    { label: "Propostas",     href: "/caza-vision/crm/propostas",      icon: FileText        },
+    { label: "Carteira",      href: "/caza-vision/clientes",           icon: Wallet          },
+    { label: "Relatórios CRM",href: "/caza-vision/crm/relatorios",     icon: BarChart3       },
+];
+
 const advisorNav = [
     { label: "Visão Geral", href: "/advisor",              icon: LayoutDashboard },
     { label: "Financial",   href: "/advisor/financial",    icon: DollarSign      },
@@ -697,6 +708,13 @@ function JacqesSidebar({ pathname }: { pathname: string }) {
 function CazaSidebar({ pathname }: { pathname: string }) {
     const isActive = (href: string) =>
         href === "/caza-vision" ? pathname === href : pathname.startsWith(href);
+
+    const isCazaCrmActive = pathname === "/caza-vision/crm" || pathname.startsWith("/caza-vision/crm/");
+    const [crmOpen, setCrmOpen] = useState(false);
+
+    useEffect(() => {
+        if (isCazaCrmActive) setCrmOpen(true);
+    }, [isCazaCrmActive]);
     return (
         <>
             <AwqHeader />
@@ -735,6 +753,53 @@ function CazaSidebar({ pathname }: { pathname: string }) {
                         <NavItem key={item.href} {...item} active={isActive(item.href)} />
                     ))}
                 </div>
+
+                {/* CRM — collapsible group, isolado do CRM JACQES */}
+                <div className="mt-0.5">
+                    <button
+                        onClick={() => setCrmOpen((o) => !o)}
+                        className={cn(
+                            "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 focus-visible:ring-offset-1",
+                            isCazaCrmActive
+                                ? "bg-emerald-50 text-emerald-700 shadow-sm"
+                                : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                        )}
+                    >
+                        <Users
+                            size={16}
+                            className={cn(
+                                "shrink-0 transition-colors",
+                                isCazaCrmActive ? "text-emerald-600" : "text-gray-400"
+                            )}
+                        />
+                        <span className="flex-1 text-left truncate">CRM</span>
+                        {crmOpen ? (
+                            <ChevronDown size={13} className="shrink-0 text-gray-400" />
+                        ) : (
+                            <ChevronRight size={13} className="shrink-0 text-gray-400" />
+                        )}
+                    </button>
+
+                    {crmOpen && (
+                        <div className="ml-3 mt-0.5 pl-3 border-l border-gray-100 space-y-0.5">
+                            {cazaCrmNav.map((item) => (
+                                <NavItem
+                                    key={item.href}
+                                    href={item.href}
+                                    icon={item.icon}
+                                    label={item.label}
+                                    active={
+                                        item.href === "/caza-vision/crm"
+                                            ? pathname === "/caza-vision/crm"
+                                            : pathname === item.href || pathname.startsWith(item.href + "/")
+                                    }
+                                />
+                            ))}
+                        </div>
+                    )}
+                </div>
+
                 <SectionLabel>IA & Agentes</SectionLabel>
                 <div className="space-y-0.5">
                     {aiNav.map((item) => (
