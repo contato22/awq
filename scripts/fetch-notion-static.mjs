@@ -14,9 +14,9 @@ const OUT_DIR = join(__dirname, "..", "public", "data");
 
 const NOTION_VERSION = "2022-06-28";
 const API_KEY        = process.env.NOTION_TOKEN ?? process.env.NOTION_API_KEY;
-// DB IDs read exclusively from env — no hardcoded fallbacks.
+// DB IDs read from env with hardcoded fallbacks for local runs.
 // Set secrets in GitHub → Settings → Secrets → Actions to activate each source.
-const DB_PROPS       = process.env.NOTION_DATABASE_ID_CAZA_PROPERTIES ?? "308e2d13-dfa9-433e-a0f6-8439b5181845";
+const DB_PROPS       = process.env.NOTION_DATABASE_ID_CAZA_PROPERTIES ?? "3358b3e6-fc37-80f4-87c3-d19e17e1a74f";
 const DB_FIN         = process.env.NOTION_DATABASE_ID_CAZA_FINANCIAL  ?? "9a8329e9-6d19-4bdc-8e80-2d59a2658be7";
 // DB_CLI has NO hardcoded fallback: prevents the script from auto-pulling a
 // stale/demo clients database when the secret is not explicitly configured.
@@ -28,20 +28,6 @@ const DATABASE_URL   = process.env.DATABASE_URL;
 const MONTH_NAMES = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 
 // --- Notion helpers ---
-
-async function queryDatabase(dbId) {
-    const res = await fetch(`https://api.notion.com/v1/databases/${dbId}/query`, {
-          method: "POST",
-          headers: {
-                  Authorization: `Bearer ${API_KEY}`,
-                  "Notion-Version": NOTION_VERSION,
-                  "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ page_size: 100 }),
-    });
-    if (!res.ok) throw new Error(`Notion ${res.status}: ${await res.text()}`);
-    return (await res.json()).results;
-}
 
 function getProp(props, keys, type) {
     for (const key of keys) {
@@ -622,7 +608,7 @@ async function main() {
     // Properties / Projects — isolated catch: one DB failure doesn't kill others
     if (DB_PROPS) {
         try {
-            const pages  = await queryDatabase(DB_PROPS);
+            const pages  = await queryAllPages(DB_PROPS);
             cazaProjects = pages.map(mapProjeto);
             write("caza-properties.json", cazaProjects);
             console.log(`  OK caza-properties: ${cazaProjects.length} records`);
@@ -645,7 +631,7 @@ async function main() {
                 console.log(`  OK caza-financial: aggregated from ${cazaProjects.length} projects`);
             } else {
                 // Separate pre-aggregated Financeiro DB: Mês, Receita, Orçamento, Lucro, Despesas
-                const pages = await queryDatabase(DB_FIN);
+                const pages = await queryAllPages(DB_FIN);
                 const finRows = pages.map(mapFinanceiro)
                     .filter(r => r.month)
                     .sort((a, b) => monthIndex(a.month) - monthIndex(b.month));
@@ -664,7 +650,7 @@ async function main() {
     // Clients — isolated catch
     if (DB_CLI) {
         try {
-            const pages = await queryDatabase(DB_CLI);
+            const pages = await queryAllPages(DB_CLI);
             cazaClients = pages.map(mapClient);
             write("caza-clients.json", cazaClients);
             console.log(`  OK caza-clients: ${cazaClients.length} records`);
