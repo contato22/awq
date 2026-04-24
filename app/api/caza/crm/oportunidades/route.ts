@@ -55,7 +55,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 }
 
 export async function PATCH(req: NextRequest): Promise<NextResponse> {
-  const denied = await apiGuard(req, "edit", "caza_vision", "CRM Oportunidades Caza Vision");
+  const denied = await apiGuard(req, "update", "caza_vision", "CRM Oportunidades Caza Vision");
   if (denied) return denied;
 
   if (!sql) return NextResponse.json({ error: "DB not available" }, { status: 503 });
