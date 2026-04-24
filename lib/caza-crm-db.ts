@@ -53,14 +53,23 @@ export const CAZA_INTERACTION_TYPES = [
   "Follow-up", "Proposta Enviada", "Alinhamento", "Observação",
 ] as const;
 
-export const CAZA_RISK_LEVELS = ["Baixo", "Médio", "Alto"] as const;
+export const CAZA_RISK_LEVELS        = ["Baixo", "Médio", "Alto"] as const;
+export const CAZA_ICP_LEVELS         = ["Alto", "Médio", "Baixo"] as const;
+export const CAZA_URGENCIA_LEVELS    = ["Alta", "Média", "Baixa"] as const;
+export const CAZA_CONSCIENCIA_LEVELS = [
+  "Sem Problema", "Com Problema", "Buscando Solução", "Comparando", "Pronto para Comprar",
+] as const;
+export const CAZA_TIPO_NEGOCIO = ["Recorrente", "Projeto", "Avulso"] as const;
+export const CAZA_SAUDE_CONTA  = ["Saudável", "Atenção", "Risco"] as const;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type CazaCrmLead = {
   id: string;
   nome: string;
+  cargo: string;
   empresa: string;
+  cnpj: string;
   contato_principal: string;
   telefone: string;
   email: string;
@@ -71,6 +80,16 @@ export type CazaCrmLead = {
   owner: string;
   data_entrada: string;
   observacoes: string;
+  // Qualificação SQL
+  fit_icp: string;
+  decisor: string;
+  urgencia: string;
+  dor_principal: string;
+  cidade: string;
+  estagio_consciencia: string;
+  data_ultima_interacao: string | null;
+  data_proxima_acao_crm: string | null;
+  tipo_negocio: string;
 };
 
 export type CazaCrmOpportunity = {
@@ -90,6 +109,8 @@ export type CazaCrmOpportunity = {
   risco: string;
   motivo_perda: string;
   observacoes: string;
+  data_ultima_interacao: string | null;
+  tipo_negocio: string;
 };
 
 export type CazaCrmProposal = {
@@ -101,8 +122,59 @@ export type CazaCrmProposal = {
   status: string;
   data_envio: string | null;
   data_resposta: string | null;
+  validade: string | null;
+  objecoes: string;
   observacoes: string;
 };
+
+// ─── SQL Score ─────────────────────────────────────────────────────────────────
+
+export type SqlScoreLabel = "Frio" | "Aquecendo" | "MQL" | "SQL";
+
+export function daysSince(iso: string | null | undefined): number | null {
+  if (!iso) return null;
+  return Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000));
+}
+
+export function calcSqlScore(l: Pick<CazaCrmLead,
+  "fit_icp" | "decisor" | "urgencia" | "dor_principal" | "tipo_servico" |
+  "data_ultima_interacao" | "estagio_consciencia">
+): { score: number; label: SqlScoreLabel } {
+  let pts = 0;
+  // Fit ICP (25)
+  if      (l.fit_icp === "Alto")  pts += 25;
+  else if (l.fit_icp === "Médio") pts += 12;
+  else if (l.fit_icp === "Baixo") pts += 4;
+  // Decisor identificado (15)
+  if (l.decisor?.trim()) pts += 15;
+  // Urgência (20)
+  if      (l.urgencia === "Alta")  pts += 20;
+  else if (l.urgencia === "Média") pts += 10;
+  else if (l.urgencia === "Baixa") pts += 3;
+  // Dor principal definida (10)
+  if (l.dor_principal?.trim()) pts += 10;
+  // Serviço de interesse (10)
+  if (l.tipo_servico?.trim()) pts += 10;
+  // Engajamento recente (15)
+  const ds = daysSince(l.data_ultima_interacao);
+  if      (ds !== null && ds <= 7)  pts += 15;
+  else if (ds !== null && ds <= 30) pts += 8;
+  else if (ds !== null && ds <= 60) pts += 3;
+  // Estágio de consciência (15)
+  const cm: Record<string, number> = {
+    "Pronto para Comprar": 15, "Comparando": 12, "Buscando Solução": 8,
+    "Com Problema": 4, "Sem Problema": 0,
+  };
+  pts += cm[l.estagio_consciencia] ?? 0;
+  // Max teórico: 110 → normaliza p/ 100
+  const score = Math.min(100, Math.round((pts / 110) * 100));
+  let label: SqlScoreLabel;
+  if      (score >= 70) label = "SQL";
+  else if (score >= 45) label = "MQL";
+  else if (score >= 20) label = "Aquecendo";
+  else                  label = "Frio";
+  return { score, label };
+}
 
 export type CazaCrmInteraction = {
   id: string;
@@ -122,42 +194,66 @@ export async function initCazaCrmDB(): Promise<void> {
 
   await sql`
     CREATE TABLE IF NOT EXISTS caza_crm_leads (
-      id                TEXT PRIMARY KEY,
-      nome              TEXT NOT NULL DEFAULT '',
-      empresa           TEXT NOT NULL DEFAULT '',
-      contato_principal TEXT NOT NULL DEFAULT '',
-      telefone          TEXT NOT NULL DEFAULT '',
-      email             TEXT NOT NULL DEFAULT '',
-      origem            TEXT NOT NULL DEFAULT '',
-      tipo_servico      TEXT NOT NULL DEFAULT '',
-      interesse         TEXT NOT NULL DEFAULT '',
-      status            TEXT NOT NULL DEFAULT 'Novo',
-      owner             TEXT NOT NULL DEFAULT '',
-      data_entrada      TEXT NOT NULL DEFAULT '',
-      observacoes       TEXT NOT NULL DEFAULT '',
-      created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      id                    TEXT PRIMARY KEY,
+      nome                  TEXT NOT NULL DEFAULT '',
+      cargo                 TEXT NOT NULL DEFAULT '',
+      empresa               TEXT NOT NULL DEFAULT '',
+      cnpj                  TEXT NOT NULL DEFAULT '',
+      contato_principal     TEXT NOT NULL DEFAULT '',
+      telefone              TEXT NOT NULL DEFAULT '',
+      email                 TEXT NOT NULL DEFAULT '',
+      origem                TEXT NOT NULL DEFAULT '',
+      tipo_servico          TEXT NOT NULL DEFAULT '',
+      interesse             TEXT NOT NULL DEFAULT '',
+      status                TEXT NOT NULL DEFAULT 'Novo',
+      owner                 TEXT NOT NULL DEFAULT '',
+      data_entrada          TEXT NOT NULL DEFAULT '',
+      observacoes           TEXT NOT NULL DEFAULT '',
+      fit_icp               TEXT NOT NULL DEFAULT '',
+      decisor               TEXT NOT NULL DEFAULT '',
+      urgencia              TEXT NOT NULL DEFAULT '',
+      dor_principal         TEXT NOT NULL DEFAULT '',
+      cidade                TEXT NOT NULL DEFAULT '',
+      estagio_consciencia   TEXT NOT NULL DEFAULT '',
+      data_ultima_interacao TEXT,
+      data_proxima_acao_crm TEXT,
+      tipo_negocio          TEXT NOT NULL DEFAULT '',
+      created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `;
+  await sql`ALTER TABLE caza_crm_leads ADD COLUMN IF NOT EXISTS cargo                 TEXT NOT NULL DEFAULT ''`;
+  await sql`ALTER TABLE caza_crm_leads ADD COLUMN IF NOT EXISTS cnpj                  TEXT NOT NULL DEFAULT ''`;
+  await sql`ALTER TABLE caza_crm_leads ADD COLUMN IF NOT EXISTS fit_icp               TEXT NOT NULL DEFAULT ''`;
+  await sql`ALTER TABLE caza_crm_leads ADD COLUMN IF NOT EXISTS decisor               TEXT NOT NULL DEFAULT ''`;
+  await sql`ALTER TABLE caza_crm_leads ADD COLUMN IF NOT EXISTS urgencia              TEXT NOT NULL DEFAULT ''`;
+  await sql`ALTER TABLE caza_crm_leads ADD COLUMN IF NOT EXISTS dor_principal         TEXT NOT NULL DEFAULT ''`;
+  await sql`ALTER TABLE caza_crm_leads ADD COLUMN IF NOT EXISTS cidade                TEXT NOT NULL DEFAULT ''`;
+  await sql`ALTER TABLE caza_crm_leads ADD COLUMN IF NOT EXISTS estagio_consciencia   TEXT NOT NULL DEFAULT ''`;
+  await sql`ALTER TABLE caza_crm_leads ADD COLUMN IF NOT EXISTS data_ultima_interacao TEXT`;
+  await sql`ALTER TABLE caza_crm_leads ADD COLUMN IF NOT EXISTS data_proxima_acao_crm TEXT`;
+  await sql`ALTER TABLE caza_crm_leads ADD COLUMN IF NOT EXISTS tipo_negocio          TEXT NOT NULL DEFAULT ''`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS caza_crm_opportunities (
-      id                 TEXT PRIMARY KEY,
-      lead_id            TEXT,
-      nome_oportunidade  TEXT NOT NULL DEFAULT '',
-      empresa            TEXT NOT NULL DEFAULT '',
-      tipo_servico       TEXT NOT NULL DEFAULT '',
-      valor_estimado     NUMERIC NOT NULL DEFAULT 0,
-      stage              TEXT NOT NULL DEFAULT 'Lead Captado',
-      probabilidade      NUMERIC NOT NULL DEFAULT 0,
-      owner              TEXT NOT NULL DEFAULT '',
-      data_abertura      TEXT NOT NULL DEFAULT '',
-      prazo_estimado     TEXT,
-      proxima_acao       TEXT NOT NULL DEFAULT '',
-      data_proxima_acao  TEXT,
-      risco              TEXT NOT NULL DEFAULT 'Baixo',
-      motivo_perda       TEXT NOT NULL DEFAULT '',
-      observacoes        TEXT NOT NULL DEFAULT '',
-      created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      id                    TEXT PRIMARY KEY,
+      lead_id               TEXT,
+      nome_oportunidade     TEXT NOT NULL DEFAULT '',
+      empresa               TEXT NOT NULL DEFAULT '',
+      tipo_servico          TEXT NOT NULL DEFAULT '',
+      valor_estimado        NUMERIC NOT NULL DEFAULT 0,
+      stage                 TEXT NOT NULL DEFAULT 'Lead Captado',
+      probabilidade         NUMERIC NOT NULL DEFAULT 0,
+      owner                 TEXT NOT NULL DEFAULT '',
+      data_abertura         TEXT NOT NULL DEFAULT '',
+      prazo_estimado        TEXT,
+      proxima_acao          TEXT NOT NULL DEFAULT '',
+      data_proxima_acao     TEXT,
+      risco                 TEXT NOT NULL DEFAULT 'Baixo',
+      motivo_perda          TEXT NOT NULL DEFAULT '',
+      observacoes           TEXT NOT NULL DEFAULT '',
+      data_ultima_interacao TEXT,
+      tipo_negocio          TEXT NOT NULL DEFAULT '',
+      created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `;
 
@@ -171,6 +267,8 @@ export async function initCazaCrmDB(): Promise<void> {
       status          TEXT NOT NULL DEFAULT 'Em Elaboração',
       data_envio      TEXT,
       data_resposta   TEXT,
+      validade        TEXT,
+      objecoes        TEXT NOT NULL DEFAULT '',
       observacoes     TEXT NOT NULL DEFAULT '',
       created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
@@ -190,6 +288,11 @@ export async function initCazaCrmDB(): Promise<void> {
     )
   `;
 
+  await sql`ALTER TABLE caza_crm_opportunities ADD COLUMN IF NOT EXISTS data_ultima_interacao TEXT`;
+  await sql`ALTER TABLE caza_crm_opportunities ADD COLUMN IF NOT EXISTS tipo_negocio TEXT NOT NULL DEFAULT ''`;
+  await sql`ALTER TABLE caza_crm_proposals ADD COLUMN IF NOT EXISTS validade  TEXT`;
+  await sql`ALTER TABLE caza_crm_proposals ADD COLUMN IF NOT EXISTS objecoes  TEXT NOT NULL DEFAULT ''`;
+
   await sql`CREATE INDEX IF NOT EXISTS idx_caza_crm_leads_status ON caza_crm_leads(status)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_caza_crm_leads_created ON caza_crm_leads(created_at DESC)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_caza_crm_opps_stage ON caza_crm_opportunities(stage)`;
@@ -207,14 +310,14 @@ export const newInteractionId = () => `CV-INT-${randomUUID().slice(0, 6).toUpper
 
 // ─── Leads ────────────────────────────────────────────────────────────────────
 
+const LEAD_COLS = `id, nome, cargo, empresa, cnpj, contato_principal, telefone, email,
+  origem, tipo_servico, interesse, status, owner, data_entrada, observacoes,
+  fit_icp, decisor, urgencia, dor_principal, cidade, estagio_consciencia,
+  data_ultima_interacao, data_proxima_acao_crm, tipo_negocio`;
+
 export async function listLeads(): Promise<CazaCrmLead[]> {
   if (!sql) return [];
-  const rows = await sql`
-    SELECT id, nome, empresa, contato_principal, telefone, email,
-           origem, tipo_servico, interesse, status, owner,
-           data_entrada, observacoes
-    FROM caza_crm_leads ORDER BY created_at DESC
-  `;
+  const rows = await sql`SELECT ${sql.unsafe(LEAD_COLS)} FROM caza_crm_leads ORDER BY created_at DESC`;
   return rows.map(coerceLead);
 }
 
@@ -223,14 +326,18 @@ export async function createLead(l: Omit<CazaCrmLead, "id">): Promise<CazaCrmLea
   const id = newLeadId();
   const rows = await sql`
     INSERT INTO caza_crm_leads (
-      id, nome, empresa, contato_principal, telefone, email,
-      origem, tipo_servico, interesse, status, owner, data_entrada, observacoes
+      id, nome, cargo, empresa, cnpj, contato_principal, telefone, email,
+      origem, tipo_servico, interesse, status, owner, data_entrada, observacoes,
+      fit_icp, decisor, urgencia, dor_principal, cidade, estagio_consciencia,
+      data_ultima_interacao, data_proxima_acao_crm, tipo_negocio
     ) VALUES (
-      ${id}, ${l.nome}, ${l.empresa}, ${l.contato_principal}, ${l.telefone},
-      ${l.email}, ${l.origem}, ${l.tipo_servico}, ${l.interesse},
-      ${l.status}, ${l.owner}, ${l.data_entrada}, ${l.observacoes}
-    ) RETURNING id, nome, empresa, contato_principal, telefone, email,
-                origem, tipo_servico, interesse, status, owner, data_entrada, observacoes
+      ${id}, ${l.nome}, ${l.cargo}, ${l.empresa}, ${l.cnpj}, ${l.contato_principal},
+      ${l.telefone}, ${l.email}, ${l.origem}, ${l.tipo_servico}, ${l.interesse},
+      ${l.status}, ${l.owner}, ${l.data_entrada}, ${l.observacoes},
+      ${l.fit_icp}, ${l.decisor}, ${l.urgencia}, ${l.dor_principal}, ${l.cidade},
+      ${l.estagio_consciencia}, ${l.data_ultima_interacao ?? null},
+      ${l.data_proxima_acao_crm ?? null}, ${l.tipo_negocio}
+    ) RETURNING ${sql.unsafe(LEAD_COLS)}
   `;
   return coerceLead(rows[0]);
 }
@@ -240,23 +347,23 @@ export async function updateLead(
   updates: Partial<Omit<CazaCrmLead, "id">>
 ): Promise<CazaCrmLead | null> {
   if (!sql) return null;
-  const rows = await sql`
-    SELECT id, nome, empresa, contato_principal, telefone, email,
-           origem, tipo_servico, interesse, status, owner, data_entrada, observacoes
-    FROM caza_crm_leads WHERE id = ${id}
-  `;
+  const rows = await sql`SELECT ${sql.unsafe(LEAD_COLS)} FROM caza_crm_leads WHERE id = ${id}`;
   if (!rows[0]) return null;
   const m = { ...coerceLead(rows[0]), ...updates };
   const updated = await sql`
     UPDATE caza_crm_leads SET
-      nome = ${m.nome}, empresa = ${m.empresa},
+      nome = ${m.nome}, cargo = ${m.cargo}, empresa = ${m.empresa}, cnpj = ${m.cnpj},
       contato_principal = ${m.contato_principal}, telefone = ${m.telefone},
       email = ${m.email}, origem = ${m.origem}, tipo_servico = ${m.tipo_servico},
-      interesse = ${m.interesse}, status = ${m.status},
-      owner = ${m.owner}, observacoes = ${m.observacoes}
+      interesse = ${m.interesse}, status = ${m.status}, owner = ${m.owner},
+      observacoes = ${m.observacoes}, fit_icp = ${m.fit_icp}, decisor = ${m.decisor},
+      urgencia = ${m.urgencia}, dor_principal = ${m.dor_principal}, cidade = ${m.cidade},
+      estagio_consciencia = ${m.estagio_consciencia},
+      data_ultima_interacao = ${m.data_ultima_interacao ?? null},
+      data_proxima_acao_crm = ${m.data_proxima_acao_crm ?? null},
+      tipo_negocio = ${m.tipo_negocio}
     WHERE id = ${id}
-    RETURNING id, nome, empresa, contato_principal, telefone, email,
-              origem, tipo_servico, interesse, status, owner, data_entrada, observacoes
+    RETURNING ${sql.unsafe(LEAD_COLS)}
   `;
   return updated[0] ? coerceLead(updated[0]) : null;
 }
@@ -436,40 +543,53 @@ export async function createInteraction(
 
 function coerceLead(r: Record<string, unknown>): CazaCrmLead {
   return {
-    id:                String(r.id ?? ""),
-    nome:              String(r.nome ?? ""),
-    empresa:           String(r.empresa ?? ""),
-    contato_principal: String(r.contato_principal ?? ""),
-    telefone:          String(r.telefone ?? ""),
-    email:             String(r.email ?? ""),
-    origem:            String(r.origem ?? ""),
-    tipo_servico:      String(r.tipo_servico ?? ""),
-    interesse:         String(r.interesse ?? ""),
-    status:            String(r.status ?? "Novo"),
-    owner:             String(r.owner ?? ""),
-    data_entrada:      String(r.data_entrada ?? ""),
-    observacoes:       String(r.observacoes ?? ""),
+    id:                    String(r.id ?? ""),
+    nome:                  String(r.nome ?? ""),
+    cargo:                 String(r.cargo ?? ""),
+    empresa:               String(r.empresa ?? ""),
+    cnpj:                  String(r.cnpj ?? ""),
+    contato_principal:     String(r.contato_principal ?? ""),
+    telefone:              String(r.telefone ?? ""),
+    email:                 String(r.email ?? ""),
+    origem:                String(r.origem ?? ""),
+    tipo_servico:          String(r.tipo_servico ?? ""),
+    interesse:             String(r.interesse ?? ""),
+    status:                String(r.status ?? "Novo"),
+    owner:                 String(r.owner ?? ""),
+    data_entrada:          String(r.data_entrada ?? ""),
+    observacoes:           String(r.observacoes ?? ""),
+    fit_icp:               String(r.fit_icp ?? ""),
+    decisor:               String(r.decisor ?? ""),
+    urgencia:              String(r.urgencia ?? ""),
+    dor_principal:         String(r.dor_principal ?? ""),
+    cidade:                String(r.cidade ?? ""),
+    estagio_consciencia:   String(r.estagio_consciencia ?? ""),
+    data_ultima_interacao: r.data_ultima_interacao != null ? String(r.data_ultima_interacao) : null,
+    data_proxima_acao_crm: r.data_proxima_acao_crm != null ? String(r.data_proxima_acao_crm) : null,
+    tipo_negocio:          String(r.tipo_negocio ?? ""),
   };
 }
 
 function coerceOpportunity(r: Record<string, unknown>): CazaCrmOpportunity {
   return {
-    id:                String(r.id ?? ""),
-    lead_id:           r.lead_id != null ? String(r.lead_id) : null,
-    nome_oportunidade: String(r.nome_oportunidade ?? ""),
-    empresa:           String(r.empresa ?? ""),
-    tipo_servico:      String(r.tipo_servico ?? ""),
-    valor_estimado:    Number(r.valor_estimado ?? 0),
-    stage:             String(r.stage ?? "Lead Captado"),
-    probabilidade:     Number(r.probabilidade ?? 0),
-    owner:             String(r.owner ?? ""),
-    data_abertura:     String(r.data_abertura ?? ""),
-    prazo_estimado:    r.prazo_estimado != null ? String(r.prazo_estimado) : null,
-    proxima_acao:      String(r.proxima_acao ?? ""),
-    data_proxima_acao: r.data_proxima_acao != null ? String(r.data_proxima_acao) : null,
-    risco:             String(r.risco ?? "Baixo"),
-    motivo_perda:      String(r.motivo_perda ?? ""),
-    observacoes:       String(r.observacoes ?? ""),
+    id:                    String(r.id ?? ""),
+    lead_id:               r.lead_id != null ? String(r.lead_id) : null,
+    nome_oportunidade:     String(r.nome_oportunidade ?? ""),
+    empresa:               String(r.empresa ?? ""),
+    tipo_servico:          String(r.tipo_servico ?? ""),
+    valor_estimado:        Number(r.valor_estimado ?? 0),
+    stage:                 String(r.stage ?? "Lead Captado"),
+    probabilidade:         Number(r.probabilidade ?? 0),
+    owner:                 String(r.owner ?? ""),
+    data_abertura:         String(r.data_abertura ?? ""),
+    prazo_estimado:        r.prazo_estimado != null ? String(r.prazo_estimado) : null,
+    proxima_acao:          String(r.proxima_acao ?? ""),
+    data_proxima_acao:     r.data_proxima_acao != null ? String(r.data_proxima_acao) : null,
+    risco:                 String(r.risco ?? "Baixo"),
+    motivo_perda:          String(r.motivo_perda ?? ""),
+    observacoes:           String(r.observacoes ?? ""),
+    data_ultima_interacao: r.data_ultima_interacao != null ? String(r.data_ultima_interacao) : null,
+    tipo_negocio:          String(r.tipo_negocio ?? ""),
   };
 }
 
@@ -481,8 +601,10 @@ function coerceProposal(r: Record<string, unknown>): CazaCrmProposal {
     valor_proposto: Number(r.valor_proposto ?? 0),
     escopo:         String(r.escopo ?? ""),
     status:         String(r.status ?? "Em Elaboração"),
-    data_envio:     r.data_envio != null ? String(r.data_envio) : null,
-    data_resposta:  r.data_resposta != null ? String(r.data_resposta) : null,
+    data_envio:     r.data_envio     != null ? String(r.data_envio)     : null,
+    data_resposta:  r.data_resposta  != null ? String(r.data_resposta)  : null,
+    validade:       r.validade       != null ? String(r.validade)       : null,
+    objecoes:       String(r.objecoes ?? ""),
     observacoes:    String(r.observacoes ?? ""),
   };
 }

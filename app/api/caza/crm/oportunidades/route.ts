@@ -32,21 +32,23 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     await initCazaCrmDB();
     const today = new Date().toISOString().slice(0, 10);
     const opp = await createOpportunity({
-      lead_id:           String(body.lead_id ?? "") || null,
-      nome_oportunidade: String(body.nome_oportunidade ?? "").trim(),
-      empresa:           String(body.empresa ?? "").trim(),
-      tipo_servico:      String(body.tipo_servico ?? ""),
-      valor_estimado:    Number(body.valor_estimado ?? 0),
-      stage:             String(body.stage ?? "Lead Captado"),
-      probabilidade:     Number(body.probabilidade ?? 10),
-      owner:             String(body.owner ?? "").trim(),
-      data_abertura:     String(body.data_abertura ?? today),
-      prazo_estimado:    String(body.prazo_estimado ?? "") || null,
-      proxima_acao:      String(body.proxima_acao ?? "").trim(),
-      data_proxima_acao: String(body.data_proxima_acao ?? "") || null,
-      risco:             String(body.risco ?? "Baixo"),
-      motivo_perda:      String(body.motivo_perda ?? "").trim(),
-      observacoes:       String(body.observacoes ?? "").trim(),
+      lead_id:               String(body.lead_id ?? "") || null,
+      nome_oportunidade:     String(body.nome_oportunidade ?? "").trim(),
+      empresa:               String(body.empresa ?? "").trim(),
+      tipo_servico:          String(body.tipo_servico ?? ""),
+      valor_estimado:        Number(body.valor_estimado ?? 0),
+      stage:                 String(body.stage ?? "Lead Captado"),
+      probabilidade:         Number(body.probabilidade ?? 10),
+      owner:                 String(body.owner ?? "").trim(),
+      data_abertura:         String(body.data_abertura ?? today),
+      prazo_estimado:        String(body.prazo_estimado ?? "") || null,
+      proxima_acao:          String(body.proxima_acao ?? "").trim(),
+      data_proxima_acao:     String(body.data_proxima_acao ?? "") || null,
+      risco:                 String(body.risco ?? "Baixo"),
+      motivo_perda:          String(body.motivo_perda ?? "").trim(),
+      observacoes:           String(body.observacoes ?? "").trim(),
+      data_ultima_interacao: String(body.data_ultima_interacao ?? "") || null,
+      tipo_negocio:          String(body.tipo_negocio ?? ""),
     });
     return NextResponse.json(opp, { status: 201 });
   } catch (err) {
@@ -55,7 +57,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 }
 
 export async function PATCH(req: NextRequest): Promise<NextResponse> {
-  const denied = await apiGuard(req, "edit", "caza_vision", "CRM Oportunidades Caza Vision");
+  const denied = await apiGuard(req, "update", "caza_vision", "CRM Oportunidades Caza Vision");
   if (denied) return denied;
 
   if (!sql) return NextResponse.json({ error: "DB not available" }, { status: 503 });
@@ -67,13 +69,15 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
 
     await initCazaCrmDB();
     const updated = await updateOpportunity(id, {
-      stage:             body.stage != null ? String(body.stage) : undefined,
-      probabilidade:     body.probabilidade != null ? Number(body.probabilidade) : undefined,
-      risco:             body.risco != null ? String(body.risco) : undefined,
-      proxima_acao:      body.proxima_acao != null ? String(body.proxima_acao) : undefined,
-      data_proxima_acao: body.data_proxima_acao != null ? (String(body.data_proxima_acao) || null) : undefined,
-      motivo_perda:      body.motivo_perda != null ? String(body.motivo_perda) : undefined,
-      observacoes:       body.observacoes != null ? String(body.observacoes) : undefined,
+      stage:                 body.stage != null ? String(body.stage) : undefined,
+      probabilidade:         body.probabilidade != null ? Number(body.probabilidade) : undefined,
+      risco:                 body.risco != null ? String(body.risco) : undefined,
+      proxima_acao:          body.proxima_acao != null ? String(body.proxima_acao) : undefined,
+      data_proxima_acao:     body.data_proxima_acao != null ? (String(body.data_proxima_acao) || null) : undefined,
+      motivo_perda:          body.motivo_perda != null ? String(body.motivo_perda) : undefined,
+      observacoes:           body.observacoes != null ? String(body.observacoes) : undefined,
+      data_ultima_interacao: body.data_ultima_interacao != null ? (String(body.data_ultima_interacao) || null) : undefined,
+      tipo_negocio:          body.tipo_negocio != null ? String(body.tipo_negocio) : undefined,
     });
     if (!updated) return NextResponse.json({ error: "not found" }, { status: 404 });
     return NextResponse.json(updated);

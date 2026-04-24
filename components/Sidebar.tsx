@@ -105,15 +105,23 @@ const cazaNav = [
     { label: "Importar",       href: "/caza-vision/import",            icon: FileUp          },
 ];
 
-// CRM sub-navigation da Caza Vision — isolado do CRM JACQES
-const cazaCrmNav = [
-    { label: "Visão Geral",   href: "/caza-vision/crm",                icon: LayoutDashboard },
-    { label: "Pipeline",      href: "/caza-vision/crm/pipeline",       icon: TrendingUp      },
-    { label: "Leads",         href: "/caza-vision/crm/leads",          icon: UserPlus        },
-    { label: "Oportunidades", href: "/caza-vision/crm/oportunidades",  icon: CheckCircle2    },
-    { label: "Propostas",     href: "/caza-vision/crm/propostas",      icon: FileText        },
-    { label: "Carteira",      href: "/caza-vision/clientes",           icon: Wallet          },
-    { label: "Relatórios CRM",href: "/caza-vision/crm/relatorios",     icon: BarChart3       },
+// CRM sub-navigation da Caza Vision — estruturado em seções comerciais
+type CazaCrmNavEntry =
+  | { type: "divider"; label: string }
+  | { type: "item"; label: string; href: string; icon: React.ElementType };
+
+const cazaCrmNav: CazaCrmNavEntry[] = [
+    { type: "divider", label: "Comercial"                                                              },
+    { type: "item", label: "Visão Geral",   href: "/caza-vision/crm",               icon: LayoutDashboard },
+    { type: "item", label: "Pipeline",      href: "/caza-vision/crm/pipeline",      icon: TrendingUp      },
+    { type: "item", label: "Leads",         href: "/caza-vision/crm/leads",         icon: UserPlus        },
+    { type: "item", label: "Oportunidades", href: "/caza-vision/crm/oportunidades", icon: CheckCircle2    },
+    { type: "item", label: "Propostas",     href: "/caza-vision/crm/propostas",     icon: FileText        },
+    { type: "divider", label: "Base Ativa"                                                             },
+    { type: "item", label: "Base Recorrente", href: "/caza-vision/crm/base-recorrente", icon: HeartPulse  },
+    { type: "item", label: "Carteira",      href: "/caza-vision/clientes",          icon: Wallet          },
+    { type: "divider", label: "Análise"                                                                },
+    { type: "item", label: "Relatórios",    href: "/caza-vision/crm/relatorios",    icon: BarChart3       },
 ];
 
 const advisorNav = [
@@ -782,20 +790,26 @@ function CazaSidebar({ pathname }: { pathname: string }) {
                     </button>
 
                     {crmOpen && (
-                        <div className="ml-3 mt-0.5 pl-3 border-l border-gray-100 space-y-0.5">
-                            {cazaCrmNav.map((item) => (
-                                <NavItem
-                                    key={item.href}
-                                    href={item.href}
-                                    icon={item.icon}
-                                    label={item.label}
-                                    active={
-                                        item.href === "/caza-vision/crm"
-                                            ? pathname === "/caza-vision/crm"
-                                            : pathname === item.href || pathname.startsWith(item.href + "/")
-                                    }
-                                />
-                            ))}
+                        <div className="ml-3 mt-0.5 pl-3 border-l border-gray-100">
+                            {cazaCrmNav.map((entry, i) =>
+                                entry.type === "divider" ? (
+                                    <div key={`div-${i}`} className="px-1 pt-3 pb-1 first:pt-1">
+                                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-[0.08em]">{entry.label}</span>
+                                    </div>
+                                ) : (
+                                    <NavItem
+                                        key={entry.href}
+                                        href={entry.href}
+                                        icon={entry.icon}
+                                        label={entry.label}
+                                        active={
+                                            entry.href === "/caza-vision/crm"
+                                                ? pathname === "/caza-vision/crm"
+                                                : pathname === entry.href || pathname.startsWith(entry.href + "/")
+                                        }
+                                    />
+                                )
+                            )}
                         </div>
                     )}
                 </div>

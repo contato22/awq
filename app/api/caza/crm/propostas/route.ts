@@ -38,6 +38,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       status:         String(body.status ?? "Em Elaboração"),
       data_envio:     String(body.data_envio ?? "") || null,
       data_resposta:  String(body.data_resposta ?? "") || null,
+      validade:       String(body.validade ?? "") || null,
+      objecoes:       String(body.objecoes ?? "").trim(),
       observacoes:    String(body.observacoes ?? "").trim(),
     });
     return NextResponse.json(proposal, { status: 201 });
@@ -47,7 +49,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 }
 
 export async function PATCH(req: NextRequest): Promise<NextResponse> {
-  const denied = await apiGuard(req, "edit", "caza_vision", "CRM Propostas Caza Vision");
+  const denied = await apiGuard(req, "update", "caza_vision", "CRM Propostas Caza Vision");
   if (denied) return denied;
 
   if (!sql) return NextResponse.json({ error: "DB not available" }, { status: 503 });
@@ -63,6 +65,8 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
       valor_proposto: body.valor_proposto != null ? Number(body.valor_proposto) : undefined,
       data_envio:    body.data_envio != null ? (String(body.data_envio) || null) : undefined,
       data_resposta: body.data_resposta != null ? (String(body.data_resposta) || null) : undefined,
+      validade:      body.validade != null ? (String(body.validade) || null) : undefined,
+      objecoes:      body.objecoes != null ? String(body.objecoes) : undefined,
       observacoes:   body.observacoes != null ? String(body.observacoes) : undefined,
     });
     if (!updated) return NextResponse.json({ error: "not found" }, { status: 404 });
