@@ -7,9 +7,10 @@ import EmptyState from "@/components/EmptyState";
 import { fetchCazaCRM } from "@/lib/caza-crm-query";
 import type { CazaCrmLead, CazaCrmOpportunity, CazaCrmProposal } from "@/lib/caza-crm-db";
 import { CAZA_PIPELINE_STAGES, CAZA_SERVICE_TYPES } from "@/lib/caza-crm-db";
+import { lsGet } from "@/lib/caza-crm-local";
 import {
   BarChart3, TrendingUp, Target, DollarSign,
-  CheckCircle2, XCircle, Users, FileText, Database, CloudOff,
+  CheckCircle2, XCircle, Users, FileText, Database, CloudOff, HardDrive,
 } from "lucide-react";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -33,16 +34,29 @@ export default function CazaCrmRelatorios() {
   const [leads,     setLeads]     = useState<CazaCrmLead[]>([]);
   const [opps,      setOpps]      = useState<CazaCrmOpportunity[]>([]);
   const [proposals, setProposals] = useState<CazaCrmProposal[]>([]);
-  const [source,    setSource]    = useState<"loading" | "data" | "empty">("loading");
+  const [source,    setSource]    = useState<"loading" | "internal" | "static" | "local" | "empty">("loading");
 
   useEffect(() => {
     Promise.all([
       fetchCazaCRM<CazaCrmLead>("leads"),
       fetchCazaCRM<CazaCrmOpportunity>("oportunidades"),
       fetchCazaCRM<CazaCrmProposal>("propostas"),
-    ]).then(([l, o, p]) => {
+    ]).then(([sl, so, sp]) => {
+      let l: CazaCrmLead[]        = sl;
+      let o: CazaCrmOpportunity[] = so;
+      let p: CazaCrmProposal[]    = sp;
+      let usedLocal = false;
+      if (IS_STATIC) {
+        const ll = lsGet<CazaCrmLead>("crm_leads");
+        const lo = lsGet<CazaCrmOpportunity>("crm_oportunidades");
+        const lp = lsGet<CazaCrmProposal>("crm_propostas");
+        if (ll !== null) { l = ll; usedLocal = true; }
+        if (lo !== null) { o = lo; usedLocal = true; }
+        if (lp !== null) { p = lp; usedLocal = true; }
+      }
       setLeads(l); setOpps(o); setProposals(p);
-      setSource(l.length + o.length + p.length > 0 ? "data" : "empty");
+      const hasData = l.length + o.length + p.length > 0;
+      setSource(!hasData ? "empty" : IS_STATIC ? (usedLocal ? "local" : "static") : "internal");
     });
   }, []);
 
@@ -121,11 +135,9 @@ export default function CazaCrmRelatorios() {
               <Database size={11} /> Carregando…
             </span>
           )}
-          {source === "data" && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-xs text-emerald-600">
-              <Database size={11} /> {IS_STATIC ? "Snapshot estático" : "Base interna AWQ"}
-            </span>
-          )}
+          {source === "internal" && <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-xs text-emerald-600"><Database size={11} />Base interna AWQ</span>}
+          {source === "static"   && <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-xs text-blue-600"><Database size={11} />Snapshot estático</span>}
+          {source === "local"    && <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-violet-50 border border-violet-200 text-xs text-violet-600"><HardDrive size={11} />Armazenamento local</span>}
           {source === "empty" && (
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-xs text-amber-700">
               <CloudOff size={11} /> Sem dados — os relatórios exigem dados operacionais
@@ -133,12 +145,16 @@ export default function CazaCrmRelatorios() {
           )}
         </div>
 
-        {source === "empty" ? (
+        {source === "loading" && (
+          <div className="py-16 text-center text-sm text-gray-400">Carregando relatórios…</div>
+        )}
+        {source === "empty" && (
           <EmptyState
             title="Sem dados para relatório"
             description="Cadastre leads, abra oportunidades e registre propostas para visualizar as métricas comerciais da Caza Vision."
           />
-        ) : (
+        )}
+        {(source === "internal" || source === "static" || source === "local") && (
           <>
             {/* KPI summary */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -296,6 +312,7 @@ export default function CazaCrmRelatorios() {
         )}
 
       </div>
+
     </>
   );
 }
