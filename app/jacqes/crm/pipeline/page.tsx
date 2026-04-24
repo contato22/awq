@@ -6,11 +6,11 @@ import SectionHeader from "@/components/SectionHeader";
 import EmptyState from "@/components/EmptyState";
 import {
   Target, DollarSign, TrendingUp, BarChart3,
-  AlertTriangle, Clock, ArrowLeftRight, X,
+  AlertTriangle, Clock, ArrowLeftRight, X, UserPlus,
 } from "lucide-react";
-import type { CrmOpportunity } from "@/lib/jacqes-crm-db";
+import type { CrmOpportunity, CrmClient } from "@/lib/jacqes-crm-db";
 import { fetchCRM } from "@/lib/jacqes-crm-query";
-import { crmUpdate } from "@/lib/jacqes-crm-store";
+import { crmUpdate, crmCreate } from "@/lib/jacqes-crm-store";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -127,6 +127,9 @@ export default function JacqesCrmPipelinePage() {
   const [error, setError] = useState<string | null>(null);
   const [activeStage, setActiveStage] = useState<Stage>("Todas");
   const [stageModal, setStageModal] = useState<{ open: boolean; opp: CrmOpportunity | null }>({ open: false, opp: null });
+  const [clientModal, setClientModal] = useState<CrmOpportunity | null>(null);
+  const [clientForm, setClientForm] = useState({ nome: "", razao_social: "", segmento: "", produto_ativo: "", ticket_mensal: "", owner: "", observacoes: "" });
+  const [savingClient, setSavingClient] = useState(false);
 
   useEffect(() => {
     fetchCRM<CrmOpportunity>("opportunities")
@@ -159,6 +162,47 @@ export default function JacqesCrmPipelinePage() {
     crmUpdate<CrmOpportunity>("opportunities", opp.id, { stage: newStage });
     setOpps(prev => prev.map(o => o.id === opp.id ? { ...o, stage: newStage } : o));
     setStageModal({ open: false, opp: null });
+  }
+
+  function openClientModal(opp: CrmOpportunity) {
+    setClientModal(opp);
+    setClientForm({
+      nome:          opp.empresa,
+      razao_social:  opp.empresa,
+      segmento:      opp.segmento || "",
+      produto_ativo: opp.produto || "",
+      ticket_mensal: String(opp.ticket_estimado || ""),
+      owner:         opp.owner,
+      observacoes:   `Convertido de oportunidade: ${opp.nome_oportunidade}`,
+    });
+  }
+
+  function saveClient() {
+    if (!clientForm.nome.trim()) return;
+    setSavingClient(true);
+    const payload: Omit<CrmClient, "id"> = {
+      nome:               clientForm.nome.trim(),
+      razao_social:       clientForm.razao_social.trim() || clientForm.nome.trim(),
+      cnpj:               "",
+      segmento:           clientForm.segmento.trim(),
+      produto_ativo:      clientForm.produto_ativo.trim(),
+      ticket_mensal:      parseFloat(clientForm.ticket_mensal) || 0,
+      inicio_relacao:     new Date().toISOString().slice(0, 10),
+      owner:              clientForm.owner.trim(),
+      status_conta:       "Ativo",
+      health_score:       80,
+      churn_risk:         "Baixo",
+      potencial_expansao: 0,
+      observacoes:        clientForm.observacoes.trim(),
+    };
+    crmCreate<CrmClient>("clients", payload, "cli");
+    if (clientModal) {
+      crmUpdate<CrmOpportunity>("opportunities", clientModal.id, { stage: "Fechado Ganho" });
+      setOpps(prev => prev.map(o => o.id === clientModal.id ? { ...o, stage: "Fechado Ganho" } : o));
+    }
+    setSavingClient(false);
+    setClientModal(null);
+    alert("Cliente criado! Acesse Clientes para ver e editar.");
   }
 
   if (loading) {
@@ -357,15 +401,26 @@ export default function JacqesCrmPipelinePage() {
                           <AgingPill dataAbertura={o.data_abertura} />
                         </td>
 
-                        {/* Move stage button */}
+                        {/* Actions */}
                         <td className="py-2.5 px-3">
-                          <button
-                            onClick={() => openStageModal(o)}
-                            title="Mover de stage"
-                            className="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-gray-700 text-gray-600 hover:text-gray-300 transition-all"
-                          >
-                            <ArrowLeftRight size={12} />
-                          </button>
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                            <button
+                              onClick={() => openStageModal(o)}
+                              title="Mover de stage"
+                              className="p-1 rounded hover:bg-gray-700 text-gray-600 hover:text-gray-300 transition-colors"
+                            >
+                              <ArrowLeftRight size={12} />
+                            </button>
+                            {o.stage === "Fechado Ganho" && (
+                              <button
+                                onClick={() => openClientModal(o)}
+                                title="Converter em Cliente"
+                                className="p-1 rounded hover:bg-emerald-900/40 text-gray-600 hover:text-emerald-400 transition-colors"
+                              >
+                                <UserPlus size={12} />
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );
@@ -412,6 +467,77 @@ export default function JacqesCrmPipelinePage() {
                   </button>
                 );
               })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Converter em Cliente Modal ────────────────────────────────────────── */}
+      {clientModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto p-6">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h3 className="text-sm font-bold text-gray-900">Converter em Cliente</h3>
+                <p className="text-[11px] text-gray-400 mt-0.5 truncate max-w-[260px]">{clientModal.nome_oportunidade}</p>
+              </div>
+              <button onClick={() => setClientModal(null)} className="text-gray-400 hover:text-gray-600">
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-semibold text-gray-600 block mb-1">Nome do Cliente *</label>
+                <input type="text" value={clientForm.nome}
+                  onChange={e => setClientForm(f => ({ ...f, nome: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 block mb-1">Segmento</label>
+                  <input type="text" value={clientForm.segmento}
+                    onChange={e => setClientForm(f => ({ ...f, segmento: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 block mb-1">Produto Ativo</label>
+                  <input type="text" value={clientForm.produto_ativo}
+                    onChange={e => setClientForm(f => ({ ...f, produto_ativo: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 block mb-1">Ticket Mensal (R$)</label>
+                  <input type="number" min="0" value={clientForm.ticket_mensal}
+                    onChange={e => setClientForm(f => ({ ...f, ticket_mensal: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 block mb-1">Owner</label>
+                  <input type="text" value={clientForm.owner}
+                    onChange={e => setClientForm(f => ({ ...f, owner: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-600 block mb-1">Observações</label>
+                <textarea rows={2} value={clientForm.observacoes}
+                  onChange={e => setClientForm(f => ({ ...f, observacoes: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none" />
+              </div>
+
+              <div className="flex gap-3 pt-1">
+                <button onClick={() => setClientModal(null)}
+                  className="flex-1 py-2 rounded-lg text-xs font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
+                  Cancelar
+                </button>
+                <button onClick={saveClient} disabled={savingClient || !clientForm.nome.trim()}
+                  className="flex-1 py-2 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors disabled:opacity-50">
+                  {savingClient ? "Criando…" : "Criar Cliente"}
+                </button>
+              </div>
             </div>
           </div>
         </div>

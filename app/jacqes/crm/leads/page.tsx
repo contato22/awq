@@ -5,7 +5,7 @@ import Header from "@/components/Header";
 import SectionHeader from "@/components/SectionHeader";
 import EmptyState from "@/components/EmptyState";
 import {
-  Users, Star, Clock, Leaf, Plus, X, Filter, Pencil, Trash2,
+  Users, Star, Clock, Leaf, Plus, X, Filter, Pencil, Trash2, ArrowRightLeft,
 } from "lucide-react";
 import { fetchCRM } from "@/lib/jacqes-crm-query";
 import { IS_STATIC, crmCreate, crmUpdate, crmDelete } from "@/lib/jacqes-crm-store";
@@ -72,6 +72,7 @@ export default function LeadsPage() {
   const [form, setForm]           = useState({ ...EMPTY_FORM });
   const [saving, setSaving]       = useState(false);
   const [formError, setFormError] = useState("");
+  const [converting, setConverting] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
@@ -179,6 +180,36 @@ export default function LeadsPage() {
     if (!confirm("Remover este lead?")) return;
     crmDelete("leads", id);
     setLeads(prev => prev.filter(l => l.id !== id));
+  }
+
+  function convertToOpp(lead: CrmLead) {
+    if (!confirm(`Converter "${lead.nome}" em Oportunidade?\nO lead será marcado como Convertido.`)) return;
+    setConverting(lead.id);
+    const opp = {
+      lead_id:                  lead.id,
+      cliente_id:               null,
+      nome_oportunidade:        `${lead.nome}${lead.interesse ? " — " + lead.interesse : ""}`,
+      empresa:                  lead.empresa || lead.nome,
+      segmento:                 lead.segmento || "",
+      produto:                  lead.interesse || "",
+      ticket_estimado:          0,
+      valor_potencial:          0,
+      stage:                    "Qualificação",
+      probabilidade:            30,
+      owner:                    lead.owner,
+      data_abertura:            new Date().toISOString().slice(0, 10),
+      proxima_acao:             "Agendar call de diagnóstico",
+      data_proxima_acao:        null,
+      risco:                    "Baixo",
+      motivo_perda:             "",
+      data_fechamento_prevista: null,
+      observacoes:              `Lead convertido: ${lead.observacoes || ""}`.trim(),
+    };
+    crmCreate("opportunities", opp, "opp");
+    crmUpdate<CrmLead>("leads", lead.id, { status: "Convertido" });
+    setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, status: "Convertido" } : l));
+    setConverting(null);
+    alert(`Oportunidade criada! Acesse Oportunidades para editar os detalhes comerciais.`);
   }
 
   // ─── Render ───────────────────────────────────────────────────────────────
@@ -292,6 +323,16 @@ export default function LeadsPage() {
                       <td className="py-3 pr-4 text-[13px] text-gray-600">{fmtDate(lead.data_entrada)}</td>
                       <td className="py-3">
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {lead.status !== "Convertido" && lead.status !== "Perdido" && (
+                            <button
+                              onClick={() => convertToOpp(lead)}
+                              disabled={converting === lead.id}
+                              title="Converter em Oportunidade"
+                              className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors disabled:opacity-40"
+                            >
+                              <ArrowRightLeft size={13} />
+                            </button>
+                          )}
                           <button
                             onClick={() => openEdit(lead)}
                             title="Editar"
