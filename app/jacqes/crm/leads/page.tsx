@@ -5,9 +5,10 @@ import Header from "@/components/Header";
 import SectionHeader from "@/components/SectionHeader";
 import EmptyState from "@/components/EmptyState";
 import {
-  Users, Star, Clock, Leaf, Plus, X, Filter, PlusCircle,
+  Users, Star, Clock, Leaf, Plus, X, Filter, Pencil, Trash2, ArrowRightLeft,
 } from "lucide-react";
 import { fetchCRM } from "@/lib/jacqes-crm-query";
+import { IS_STATIC, crmCreate, crmUpdate, crmDelete } from "@/lib/jacqes-crm-store";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -31,9 +32,14 @@ type CrmLead = {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const STATUS_FILTERS = ["Todos", "Novo", "Qualificando", "Convertido", "Perdido", "Nurturing"] as const;
-
 const ORIGENS = ["Indicação", "Instagram", "LinkedIn", "WhatsApp", "Site", "Evento", "Outro"] as const;
-const STATUS_OPTIONS = ["Novo", "Qualificando", "Nurturing"] as const;
+const STATUS_OPTIONS = ["Novo", "Qualificando", "Convertido", "Perdido", "Nurturing"] as const;
+
+const EMPTY_FORM = {
+  nome: "", empresa: "", telefone: "", email: "",
+  origem: "Indicação", segmento: "", canal: "",
+  interesse: "", status: "Novo", owner: "", observacoes: "",
+};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -45,36 +51,14 @@ function fmtDate(iso: string) {
 
 function statusBadge(status: string) {
   switch (status) {
-    case "Novo":
-      return "inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200";
-    case "Qualificando":
-      return "inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-brand-50 text-brand-700 border border-brand-200";
-    case "Convertido":
-      return "inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200";
-    case "Perdido":
-      return "inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-red-50 text-red-700 border border-red-200";
-    case "Nurturing":
-      return "inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200";
-    default:
-      return "inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-gray-100 text-gray-600 border border-gray-200";
+    case "Novo":        return "inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200";
+    case "Qualificando":return "inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-brand-50 text-brand-700 border border-brand-200";
+    case "Convertido":  return "inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200";
+    case "Perdido":     return "inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-red-50 text-red-700 border border-red-200";
+    case "Nurturing":   return "inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200";
+    default:            return "inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-gray-100 text-gray-600 border border-gray-200";
   }
 }
-
-// ─── Default form state ───────────────────────────────────────────────────────
-
-const EMPTY_FORM = {
-  nome: "",
-  empresa: "",
-  telefone: "",
-  email: "",
-  origem: "Indicação",
-  segmento: "",
-  canal: "",
-  interesse: "",
-  status: "Novo",
-  owner: "",
-  observacoes: "",
-};
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -84,47 +68,62 @@ export default function LeadsPage() {
   const [error, setError]         = useState<string | null>(null);
   const [filter, setFilter]       = useState<string>("Todos");
   const [modal, setModal]         = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm]           = useState({ ...EMPTY_FORM });
   const [saving, setSaving]       = useState(false);
   const [formError, setFormError] = useState("");
+  const [converting, setConverting] = useState<string | null>(null);
 
-  // ── Fetch ────────────────────────────────────────────────────────────────────
-  async function fetchLeads() {
+  async function load() {
     setLoading(true);
     setError(null);
-    fetchCRM<CrmLead>("leads")
-      .then(d => { setLeads(d); setLoading(false); })
-      .catch(() => { setError("Erro ao carregar leads."); setLoading(false); });
+    try {
+      const d = await fetchCRM<CrmLead>("leads");
+      setLeads(d);
+    } catch {
+      setError("Erro ao carregar leads.");
+    } finally {
+      setLoading(false);
+    }
   }
 
-  useEffect(() => { fetchLeads(); }, []);
+  useEffect(() => { load(); }, []);
 
-  // ── Derived KPIs ──────────────────────────────────────────────────────────────
-  const total       = leads.length;
-  const qualif      = leads.filter(l => l.status === "Qualificando").length;
-  const sevenDays   = leads.filter(l => {
+  // ── KPIs ──────────────────────────────────────────────────────────────────
+  const total     = leads.length;
+  const qualif    = leads.filter(l => l.status === "Qualificando").length;
+  const sevenDays = leads.filter(l => {
     if (!l.data_entrada) return false;
-    const diff = (Date.now() - new Date(l.data_entrada + "T00:00:00").getTime()) / 86400000;
-    return diff <= 7;
+    return (Date.now() - new Date(l.data_entrada + "T00:00:00").getTime()) / 86400000 <= 7;
   }).length;
-  const nurturing   = leads.filter(l => l.status === "Nurturing").length;
+  const nurturing = leads.filter(l => l.status === "Nurturing").length;
 
   const filtered = filter === "Todos" ? leads : leads.filter(l => l.status === filter);
 
-  // ── Modal helpers ─────────────────────────────────────────────────────────────
-  function openModal() {
+  // ── Modal helpers ─────────────────────────────────────────────────────────
+  function openCreate() {
+    setEditingId(null);
     setForm({ ...EMPTY_FORM });
     setFormError("");
     setModal(true);
   }
 
-  function closeModal() {
-    setModal(false);
+  function openEdit(lead: CrmLead) {
+    setEditingId(lead.id);
+    setForm({
+      nome: lead.nome, empresa: lead.empresa, telefone: lead.telefone,
+      email: lead.email, origem: lead.origem, segmento: lead.segmento,
+      canal: lead.canal, interesse: lead.interesse, status: lead.status,
+      owner: lead.owner, observacoes: lead.observacoes,
+    });
     setFormError("");
+    setModal(true);
   }
 
-  function field(key: keyof typeof EMPTY_FORM, value: string) {
-    setForm(f => ({ ...f, [key]: value }));
+  function closeModal() { setModal(false); setFormError(""); }
+
+  function field(k: keyof typeof EMPTY_FORM, v: string) {
+    setForm(f => ({ ...f, [k]: v }));
   }
 
   async function handleSave() {
@@ -132,36 +131,95 @@ export default function LeadsPage() {
     if (!form.owner.trim()) { setFormError("Owner é obrigatório."); return; }
     setSaving(true);
     setFormError("");
-    try {
-      const res = await fetch("/api/jacqes/crm/leads", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error ?? `HTTP ${res.status}`);
+
+    if (IS_STATIC) {
+      if (editingId) {
+        crmUpdate<CrmLead>("leads", editingId, form);
+        setLeads(prev => prev.map(l => l.id === editingId ? { ...l, ...form } : l));
+      } else {
+        const novo = crmCreate<CrmLead>(
+          "leads",
+          { ...form, contato_principal: form.nome, data_entrada: new Date().toISOString().slice(0, 10) },
+          "lead"
+        );
+        setLeads(prev => [novo, ...prev]);
       }
+      setSaving(false);
       closeModal();
-      await fetchLeads();
+      return;
+    }
+
+    // Vercel: try API (create only; edit falls back to localStorage)
+    try {
+      if (editingId) {
+        crmUpdate<CrmLead>("leads", editingId, form);
+        setLeads(prev => prev.map(l => l.id === editingId ? { ...l, ...form } : l));
+      } else {
+        const res = await fetch("/api/jacqes/crm/leads", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...form, contato_principal: form.nome }),
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body.error ?? `HTTP ${res.status}`);
+        }
+        closeModal();
+        await load();
+        return;
+      }
     } catch (e: unknown) {
       setFormError(e instanceof Error ? e.message : "Erro ao salvar lead.");
     } finally {
       setSaving(false);
     }
+    closeModal();
   }
 
-  // ─── Render ───────────────────────────────────────────────────────────────────
+  function handleDelete(id: string) {
+    if (!confirm("Remover este lead?")) return;
+    crmDelete("leads", id);
+    setLeads(prev => prev.filter(l => l.id !== id));
+  }
+
+  function convertToOpp(lead: CrmLead) {
+    if (!confirm(`Converter "${lead.nome}" em Oportunidade?\nO lead será marcado como Convertido.`)) return;
+    setConverting(lead.id);
+    const opp = {
+      lead_id:                  lead.id,
+      cliente_id:               null,
+      nome_oportunidade:        `${lead.nome}${lead.interesse ? " — " + lead.interesse : ""}`,
+      empresa:                  lead.empresa || lead.nome,
+      segmento:                 lead.segmento || "",
+      produto:                  lead.interesse || "",
+      ticket_estimado:          0,
+      valor_potencial:          0,
+      stage:                    "Qualificação",
+      probabilidade:            30,
+      owner:                    lead.owner,
+      data_abertura:            new Date().toISOString().slice(0, 10),
+      proxima_acao:             "Agendar call de diagnóstico",
+      data_proxima_acao:        null,
+      risco:                    "Baixo",
+      motivo_perda:             "",
+      data_fechamento_prevista: null,
+      observacoes:              `Lead convertido: ${lead.observacoes || ""}`.trim(),
+    };
+    crmCreate("opportunities", opp, "opp");
+    crmUpdate<CrmLead>("leads", lead.id, { status: "Convertido" });
+    setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, status: "Convertido" } : l));
+    setConverting(null);
+    alert(`Oportunidade criada! Acesse Oportunidades para editar os detalhes comerciais.`);
+  }
+
+  // ─── Render ───────────────────────────────────────────────────────────────
   return (
     <>
-      <Header
-        title="Leads — JACQES CRM"
-        subtitle="Prospecção ativa"
-      />
+      <Header title="Leads — JACQES CRM" subtitle="Prospecção ativa" />
 
       <div className="page-container">
 
-        {/* ── KPI Strip ────────────────────────────────────────────────────────── */}
+        {/* ── KPI Strip ────────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             { label: "Total Leads",    value: total,     icon: Users,  color: "text-brand-600",   bg: "bg-brand-50"   },
@@ -181,9 +239,8 @@ export default function LeadsPage() {
           ))}
         </div>
 
-        {/* ── Main card ────────────────────────────────────────────────────────── */}
+        {/* ── Main card ────────────────────────────────────────────────────── */}
         <div className="card p-5">
-          {/* Header row */}
           <div className="flex items-center justify-between mb-5 gap-4 flex-wrap">
             <SectionHeader
               icon={<Filter size={14} />}
@@ -196,7 +253,7 @@ export default function LeadsPage() {
               className="mb-0"
             />
             <button
-              onClick={openModal}
+              onClick={openCreate}
               className="flex items-center gap-1.5 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-700 px-3 py-1.5 rounded-lg transition-colors shrink-0"
             >
               <Plus size={13} /> Novo Lead
@@ -220,7 +277,6 @@ export default function LeadsPage() {
             ))}
           </div>
 
-          {/* Table */}
           {loading ? (
             <div className="py-12 text-center text-sm text-gray-400">Carregando leads…</div>
           ) : error ? (
@@ -245,43 +301,53 @@ export default function LeadsPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {filtered.map(lead => (
-                    <tr key={lead.id} className="card-hover group">
+                    <tr key={lead.id} className="hover:bg-gray-50/60 group">
                       <td className="py-3 pr-4">
                         <div className="font-semibold text-gray-900 text-[13px]">{lead.nome}</div>
-                        {lead.empresa && (
-                          <div className="text-[11px] text-gray-400 mt-0.5">{lead.empresa}</div>
-                        )}
+                        {lead.empresa && <div className="text-[11px] text-gray-400 mt-0.5">{lead.empresa}</div>}
                       </td>
                       <td className="py-3 pr-4">
                         <span className={statusBadge(lead.status)}>{lead.status}</span>
                       </td>
                       <td className="py-3 pr-4">
                         <div className="text-[13px] text-gray-700">{lead.origem}</div>
-                        {lead.canal && (
-                          <div className="text-[11px] text-gray-400 mt-0.5">{lead.canal}</div>
-                        )}
+                        {lead.canal && <div className="text-[11px] text-gray-400 mt-0.5">{lead.canal}</div>}
                       </td>
-                      <td className="py-3 pr-4">
-                        <span className="text-[13px] text-gray-700">{lead.segmento || "—"}</span>
-                      </td>
+                      <td className="py-3 pr-4 text-[13px] text-gray-700">{lead.segmento || "—"}</td>
                       <td className="py-3 pr-4 max-w-[180px]">
                         <span className="text-[13px] text-gray-700 truncate block" title={lead.interesse}>
                           {lead.interesse || "—"}
                         </span>
                       </td>
-                      <td className="py-3 pr-4">
-                        <span className="text-[13px] text-gray-700">{lead.owner}</span>
-                      </td>
-                      <td className="py-3 pr-4">
-                        <span className="text-[13px] text-gray-600">{fmtDate(lead.data_entrada)}</span>
-                      </td>
+                      <td className="py-3 pr-4 text-[13px] text-gray-700">{lead.owner}</td>
+                      <td className="py-3 pr-4 text-[13px] text-gray-600">{fmtDate(lead.data_entrada)}</td>
                       <td className="py-3">
-                        <button
-                          title="Adicionar tarefa"
-                          className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-colors opacity-0 group-hover:opacity-100"
-                        >
-                          <PlusCircle size={15} />
-                        </button>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {lead.status !== "Convertido" && lead.status !== "Perdido" && (
+                            <button
+                              onClick={() => convertToOpp(lead)}
+                              disabled={converting === lead.id}
+                              title="Converter em Oportunidade"
+                              className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors disabled:opacity-40"
+                            >
+                              <ArrowRightLeft size={13} />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => openEdit(lead)}
+                            title="Editar"
+                            className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"
+                          >
+                            <Pencil size={13} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(lead.id)}
+                            title="Remover"
+                            className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -293,170 +359,108 @@ export default function LeadsPage() {
 
       </div>
 
-      {/* ── Modal: Novo Lead ────────────────────────────────────────────────────── */}
+      {/* ── Modal ─────────────────────────────────────────────────────────────── */}
       {modal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6">
-            <div className="flex items-center justify-between mb-5 sticky top-0 bg-white pb-1">
-              <h3 className="text-sm font-bold text-gray-900">Novo Lead</h3>
-              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600">
-                <X size={16} />
-              </button>
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-sm font-bold text-gray-900">{editingId ? "Editar Lead" : "Novo Lead"}</h3>
+              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600"><X size={16} /></button>
             </div>
 
             <div className="space-y-4">
-              {/* Nome */}
               <div>
                 <label className="text-xs font-semibold text-gray-600 block mb-1">Nome *</label>
-                <input
-                  type="text"
-                  placeholder="Nome do contato"
-                  value={form.nome}
+                <input type="text" placeholder="Nome do contato" value={form.nome}
                   onChange={e => field("nome", e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                />
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500" />
               </div>
 
-              {/* Empresa */}
               <div>
                 <label className="text-xs font-semibold text-gray-600 block mb-1">Empresa</label>
-                <input
-                  type="text"
-                  placeholder="Nome da empresa"
-                  value={form.empresa}
+                <input type="text" placeholder="Nome da empresa" value={form.empresa}
                   onChange={e => field("empresa", e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                />
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500" />
               </div>
 
-              {/* Telefone + Email */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-gray-600 block mb-1">Telefone</label>
-                  <input
-                    type="text"
-                    placeholder="+55 11 9..."
-                    value={form.telefone}
+                  <input type="text" placeholder="+55 11 9..." value={form.telefone}
                     onChange={e => field("telefone", e.target.value)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                  />
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-600 block mb-1">Email</label>
-                  <input
-                    type="email"
-                    placeholder="email@empresa.com"
-                    value={form.email}
+                  <input type="email" placeholder="email@empresa.com" value={form.email}
                     onChange={e => field("email", e.target.value)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                  />
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500" />
                 </div>
               </div>
 
-              {/* Origem */}
               <div>
                 <label className="text-xs font-semibold text-gray-600 block mb-1">Origem</label>
-                <select
-                  value={form.origem}
-                  onChange={e => field("origem", e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                >
-                  {ORIGENS.map(o => <option key={o} value={o}>{o}</option>)}
+                <select value={form.origem} onChange={e => field("origem", e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                  {ORIGENS.map(o => <option key={o}>{o}</option>)}
                 </select>
               </div>
 
-              {/* Segmento + Canal */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-gray-600 block mb-1">Segmento</label>
-                  <input
-                    type="text"
-                    placeholder="Ex: Marketing Digital"
-                    value={form.segmento}
+                  <input type="text" placeholder="Ex: Marketing Digital" value={form.segmento}
                     onChange={e => field("segmento", e.target.value)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                  />
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-600 block mb-1">Canal</label>
-                  <input
-                    type="text"
-                    placeholder="Ex: WhatsApp"
-                    value={form.canal}
+                  <input type="text" placeholder="Ex: WhatsApp" value={form.canal}
                     onChange={e => field("canal", e.target.value)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                  />
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500" />
                 </div>
               </div>
 
-              {/* Interesse */}
               <div>
                 <label className="text-xs font-semibold text-gray-600 block mb-1">Interesse</label>
-                <input
-                  type="text"
-                  placeholder="Produto ou serviço de interesse"
-                  value={form.interesse}
+                <input type="text" placeholder="Produto ou serviço de interesse" value={form.interesse}
                   onChange={e => field("interesse", e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                />
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500" />
               </div>
 
-              {/* Status */}
-              <div>
-                <label className="text-xs font-semibold text-gray-600 block mb-1">Status</label>
-                <select
-                  value={form.status}
-                  onChange={e => field("status", e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                >
-                  {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 block mb-1">Status</label>
+                  <select value={form.status} onChange={e => field("status", e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    {STATUS_OPTIONS.map(s => <option key={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 block mb-1">Owner *</label>
+                  <input type="text" placeholder="Responsável" value={form.owner}
+                    onChange={e => field("owner", e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                </div>
               </div>
 
-              {/* Owner */}
-              <div>
-                <label className="text-xs font-semibold text-gray-600 block mb-1">Owner *</label>
-                <input
-                  type="text"
-                  placeholder="Responsável"
-                  value={form.owner}
-                  onChange={e => field("owner", e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                />
-              </div>
-
-              {/* Observações */}
               <div>
                 <label className="text-xs font-semibold text-gray-600 block mb-1">Observações</label>
-                <textarea
-                  rows={3}
-                  placeholder="Notas adicionais"
-                  value={form.observacoes}
+                <textarea rows={3} placeholder="Notas adicionais" value={form.observacoes}
                   onChange={e => field("observacoes", e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
-                />
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none" />
               </div>
 
-              {/* Error */}
-              {formError && (
-                <p className="text-xs text-red-600 font-medium">{formError}</p>
-              )}
+              {formError && <p className="text-xs text-red-600 font-medium">{formError}</p>}
 
-              {/* Actions */}
               <div className="flex gap-3 pt-1">
-                <button
-                  onClick={closeModal}
-                  disabled={saving}
-                  className="flex-1 py-2 rounded-lg text-xs font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
-                >
+                <button onClick={closeModal} disabled={saving}
+                  className="flex-1 py-2 rounded-lg text-xs font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50">
                   Cancelar
                 </button>
-                <button
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="flex-1 py-2 rounded-lg text-xs font-semibold bg-brand-600 hover:bg-brand-700 text-white transition-colors disabled:opacity-60"
-                >
-                  {saving ? "Salvando…" : "Salvar Lead"}
+                <button onClick={handleSave} disabled={saving}
+                  className="flex-1 py-2 rounded-lg text-xs font-semibold bg-brand-600 hover:bg-brand-700 text-white transition-colors disabled:opacity-60">
+                  {saving ? "Salvando…" : editingId ? "Salvar Alterações" : "Salvar Lead"}
                 </button>
               </div>
             </div>

@@ -7,17 +7,13 @@ import EmptyState from "@/components/EmptyState";
 import {
   MessageCircle, Phone, Users, Mail, Send, RefreshCw,
   AlertTriangle, Plus, X, ChevronDown, Clock, Layers,
+  Pencil, Trash2,
 } from "lucide-react";
 import type { CrmInteraction } from "@/lib/jacqes-crm-db";
 import { fetchCRM } from "@/lib/jacqes-crm-query";
+import { IS_STATIC, crmCreate, crmUpdate, crmDelete } from "@/lib/jacqes-crm-store";
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
-
-function fmtCurrency(n: number): string {
-  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  if (n >= 1_000)     return "R$" + Math.round(n / 1_000) + "K";
-  return "R$" + n;
-}
 
 function fmtDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString("pt-BR", {
@@ -117,6 +113,7 @@ export default function InteracoesPage() {
   const [loading, setLoading]       = useState(true);
   const [tipoF, setTipoF]           = useState<TipoFilter>("Todos");
   const [modal, setModal]           = useState(false);
+  const [editingId, setEditingId]   = useState<string | null>(null);
   const [form, setForm]             = useState<FormState>(EMPTY_FORM);
   const [erro, setErro]             = useState("");
   const [saving, setSaving]         = useState(false);
@@ -136,30 +133,87 @@ export default function InteracoesPage() {
     ? interacoes
     : interacoes.filter(i => i.tipo === tipoF);
 
-  // Sort by date desc
   const sorted = [...filtered].sort((a, b) => b.data.localeCompare(a.data));
+
+  function openEdit(i: CrmInteraction) {
+    setEditingId(i.id);
+    setForm({
+      tipo:                  i.tipo,
+      canal:                 i.canal ?? "",
+      data:                  i.data,
+      resumo:                i.resumo,
+      proximo_passo:         i.proximo_passo ?? "",
+      responsavel:           i.responsavel,
+      satisfacao_percebida:  i.satisfacao_percebida ?? "Neutro",
+      risco_percebido:       i.risco_percebido ?? "Baixo",
+    });
+    setErro("");
+    setModal(true);
+  }
+
+  function openCreate() {
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+    setErro("");
+    setModal(true);
+  }
 
   async function salvar() {
     if (!form.resumo.trim()) { setErro("Resumo é obrigatório."); return; }
     if (!form.data)          { setErro("Data é obrigatória."); return; }
     setSaving(true);
+
+    const payload = {
+      tipo:                  form.tipo,
+      canal:                 form.canal.trim() || null,
+      data:                  form.data,
+      resumo:                form.resumo.trim(),
+      proximo_passo:         form.proximo_passo.trim() || null,
+      responsavel:           form.responsavel.trim(),
+      satisfacao_percebida:  form.satisfacao_percebida,
+      risco_percebido:       form.risco_percebido,
+    };
+
     try {
-      const res = await fetch("/api/jacqes/crm/interacoes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      if (!res.ok) throw new Error("Erro ao salvar");
-      const nova = await res.json();
-      setInteracoes(prev => [nova.interacao ?? nova, ...prev]);
+      if (IS_STATIC) {
+        if (editingId) {
+          crmUpdate<CrmInteraction>("interactions", editingId, payload);
+          setInteracoes(prev => prev.map(i => i.id === editingId ? { ...i, ...payload } : i));
+        } else {
+          const nova = crmCreate<CrmInteraction>("interactions", payload as Omit<CrmInteraction, "id">, "int");
+          setInteracoes(prev => [nova, ...prev]);
+        }
+      } else if (editingId) {
+        crmUpdate<CrmInteraction>("interactions", editingId, payload);
+        setInteracoes(prev => prev.map(i => i.id === editingId ? { ...i, ...payload } : i));
+      } else {
+        const res = await fetch("/api/jacqes/crm/interacoes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (res.ok) {
+          const nova = await res.json();
+          setInteracoes(prev => [nova.interacao ?? nova, ...prev]);
+        } else {
+          throw new Error("API error");
+        }
+      }
       setModal(false);
       setForm(EMPTY_FORM);
+      setEditingId(null);
       setErro("");
     } catch {
-      setErro("Falha ao criar interação. Tente novamente.");
+      setErro("Falha ao salvar. Tente novamente.");
     } finally {
       setSaving(false);
     }
+  }
+
+  function handleDelete(id: string) {
+    if (!confirm("Remover esta interação?")) return;
+    crmDelete("interactions", id);
+    setInteracoes(prev => prev.filter(i => i.id !== id));
   }
 
   return (
@@ -206,7 +260,7 @@ export default function InteracoesPage() {
               className="mb-0 flex-1"
             />
             <button
-              onClick={() => { setModal(true); setErro(""); }}
+              onClick={openCreate}
               className="flex items-center gap-1.5 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-700 px-3 py-1.5 rounded-lg transition-colors shrink-0"
             >
               <Plus size={13} /> Nova Interação
@@ -242,13 +296,13 @@ export default function InteracoesPage() {
               <div className="absolute left-4 top-0 bottom-0 w-px bg-gray-100" />
 
               <div className="space-y-6 ml-10">
-                {sorted.map((i, idx) => {
+                {sorted.map((i) => {
                   const dotColor    = TIPO_DOT[i.tipo]    ?? "bg-gray-300";
                   const borderColor = TIPO_BORDER[i.tipo] ?? "border-gray-200";
                   const icon        = TIPO_ICONS[i.tipo]  ?? <MessageCircle size={13} />;
 
                   return (
-                    <div key={i.id} className="relative">
+                    <div key={i.id} className="relative group">
                       {/* Dot on line */}
                       <div className={`absolute -left-[2.35rem] top-3 w-4 h-4 rounded-full ${dotColor} flex items-center justify-center ring-2 ring-white text-white`}>
                         {icon}
@@ -262,6 +316,19 @@ export default function InteracoesPage() {
                             <span className="text-[11px] text-gray-400 font-medium">· {i.canal}</span>
                           )}
                           <span className="text-[11px] text-gray-400 ml-auto">{fmtDate(i.data)}</span>
+                          {/* Action buttons */}
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onClick={() => openEdit(i)}
+                              title="Editar"
+                              className="p-1 rounded hover:bg-blue-50 text-gray-300 hover:text-blue-600 transition-colors">
+                              <Pencil size={12} />
+                            </button>
+                            <button onClick={() => handleDelete(i.id)}
+                              title="Remover"
+                              className="p-1 rounded hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors">
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
                         </div>
 
                         {/* Resumo */}
@@ -301,19 +368,18 @@ export default function InteracoesPage() {
 
       </div>
 
-      {/* ── Modal: Nova Interação ──────────────────────────────────────────────── */}
+      {/* ── Modal: Nova / Editar Interação ────────────────────────────────────── */}
       {modal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
-              <h3 className="text-sm font-bold text-gray-900">Nova Interação</h3>
-              <button onClick={() => { setModal(false); setErro(""); }} className="text-gray-400 hover:text-gray-600">
+              <h3 className="text-sm font-bold text-gray-900">{editingId ? "Editar Interação" : "Nova Interação"}</h3>
+              <button onClick={() => { setModal(false); setErro(""); setEditingId(null); }} className="text-gray-400 hover:text-gray-600">
                 <X size={16} />
               </button>
             </div>
 
             <div className="space-y-3">
-              {/* Tipo + Canal */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-gray-600 block mb-1">Tipo *</label>
@@ -335,7 +401,6 @@ export default function InteracoesPage() {
                 </div>
               </div>
 
-              {/* Data + Responsável */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-gray-600 block mb-1">Data</label>
@@ -349,7 +414,6 @@ export default function InteracoesPage() {
                 </div>
               </div>
 
-              {/* Resumo */}
               <div>
                 <label className="text-xs font-semibold text-gray-600 block mb-1">Resumo *</label>
                 <textarea value={form.resumo} onChange={e => setForm(f => ({ ...f, resumo: e.target.value }))}
@@ -357,14 +421,12 @@ export default function InteracoesPage() {
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none" />
               </div>
 
-              {/* Próximo Passo */}
               <div>
                 <label className="text-xs font-semibold text-gray-600 block mb-1">Próximo Passo</label>
                 <input type="text" value={form.proximo_passo} onChange={e => setForm(f => ({ ...f, proximo_passo: e.target.value }))}
                   placeholder="Ex: Enviar proposta até 15/04" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
               </div>
 
-              {/* Satisfação + Risco */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-gray-600 block mb-1">Satisfação Percebida</label>
@@ -391,13 +453,13 @@ export default function InteracoesPage() {
               {erro && <p className="text-xs text-red-600 font-medium">{erro}</p>}
 
               <div className="flex gap-3 pt-1">
-                <button onClick={() => { setModal(false); setErro(""); }}
+                <button onClick={() => { setModal(false); setErro(""); setEditingId(null); }}
                   className="flex-1 py-2 rounded-lg text-xs font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
                   Cancelar
                 </button>
                 <button onClick={salvar} disabled={saving}
                   className="flex-1 py-2 rounded-lg text-xs font-semibold bg-brand-600 hover:bg-brand-700 text-white transition-colors disabled:opacity-60">
-                  {saving ? "Salvando…" : "Registrar"}
+                  {saving ? "Salvando…" : editingId ? "Salvar Alterações" : "Registrar"}
                 </button>
               </div>
             </div>
