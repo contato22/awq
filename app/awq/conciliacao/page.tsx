@@ -2,7 +2,7 @@
 
 // ─── /awq/conciliacao — Conciliação Bancária ─────────────────────────────────
 // CAMADA: corporate-treasury (ERP AWQ)
-// SCOPE:  Verificação manual de conciliação + importação de extratos
+// SCOPE:  Verificação manual de conciliação
 
 import { useState, useRef } from "react";
 import Header from "@/components/Header";
@@ -10,10 +10,8 @@ import Link from "next/link";
 import {
   CheckCircle2, FileText, GitMerge, AlertCircle, ArrowRight,
   FileUp, Upload, X, Plus, Trash2, Check, Circle,
-  ChevronDown, Search,
+  Search,
 } from "lucide-react";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 type Status = "conciliado" | "pendente" | "divergente";
 
@@ -26,12 +24,10 @@ interface ReconciliationEntry {
   status: Status;
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
 function fmtBRL(n: number) {
   const abs = Math.abs(n);
   const sign = n < 0 ? "-" : "";
-  return sign + "R$ " + abs.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return sign + "R$ " + abs.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function fmtDate(s: string) {
@@ -63,62 +59,43 @@ const STATUS_ICON: Record<Status, React.ElementType> = {
 };
 
 const PLANNED_MODULES = [
-  {
-    title: "Matching Automático",
-    desc: "Cruzamento automático de lançamentos internos com movimentos do extrato bancário.",
-    icon: GitMerge,
-  },
-  {
-    title: "Fila de Divergências",
-    desc: "Gestão de pendências: lançamentos sem extrato correspondente e vice-versa.",
-    icon: AlertCircle,
-  },
-  {
-    title: "Relatório de Conciliação",
-    desc: "Saldo conciliado por conta bancária e período, com rastreabilidade completa.",
-    icon: FileText,
-  },
+  { title: "Matching Automático", desc: "Cruzamento automático de lançamentos internos com movimentos do extrato bancário.", icon: GitMerge },
+  { title: "Fila de Divergências", desc: "Gestão de pendências: lançamentos sem extrato correspondente e vice-versa.", icon: AlertCircle },
+  { title: "Relatório de Conciliação", desc: "Saldo conciliado por conta bancária e período, com rastreabilidade completa.", icon: FileText },
 ];
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ConciliacaoPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importedFile, setImportedFile] = useState<File | null>(null);
+  const [importMsg, setImportMsg] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [entries, setEntries] = useState<ReconciliationEntry[]>([
-    { id: uid(), date: "2026-04-01", description: "Pagamento fornecedor X",  bankValue: -3200.00, internalValue: -3200.00, status: "conciliado"  },
-    { id: uid(), date: "2026-04-03", description: "Receita serviços JACQES", bankValue:  8750.00, internalValue:  8750.00, status: "conciliado"  },
-    { id: uid(), date: "2026-04-07", description: "Transferência interna",   bankValue: -1500.00, internalValue: -1500.00, status: "conciliado"  },
-    { id: uid(), date: "2026-04-10", description: "Tarifa bancária",         bankValue:   -42.90, internalValue:     0.00, status: "divergente"  },
-    { id: uid(), date: "2026-04-15", description: "Pagamento consultoria",   bankValue: -5000.00, internalValue: -5000.00, status: "pendente"    },
-    { id: uid(), date: "2026-04-18", description: "Recebimento cliente A",   bankValue:  12400.00, internalValue: 12400.00, status: "conciliado" },
+    { id: uid(), date: "2026-04-01", description: "Pagamento fornecedor X",  bankValue: -3200.00, internalValue: -3200.00, status: "conciliado" },
+    { id: uid(), date: "2026-04-03", description: "Receita serviços JACQES", bankValue:  8750.00, internalValue:  8750.00, status: "conciliado" },
+    { id: uid(), date: "2026-04-07", description: "Transferência interna",   bankValue: -1500.00, internalValue: -1500.00, status: "conciliado" },
+    { id: uid(), date: "2026-04-10", description: "Tarifa bancária",         bankValue:   -42.90, internalValue:     0.00, status: "divergente" },
+    { id: uid(), date: "2026-04-15", description: "Pagamento consultoria",   bankValue: -5000.00, internalValue: -5000.00, status: "pendente"   },
+    { id: uid(), date: "2026-04-18", description: "Recebimento cliente A",   bankValue: 12400.00, internalValue: 12400.00, status: "conciliado" },
   ]);
 
-  const [newDate, setNewDate]        = useState("");
-  const [newDesc, setNewDesc]        = useState("");
-  const [newBank, setNewBank]        = useState("");
-  const [newInternal, setNewInternal]= useState("");
-  const [showAddRow, setShowAddRow]  = useState(false);
-  const [importMsg, setImportMsg]    = useState<string | null>(null);
+  const [newDate, setNewDate]         = useState("");
+  const [newDesc, setNewDesc]         = useState("");
+  const [newBank, setNewBank]         = useState("");
+  const [newInternal, setNewInternal] = useState("");
+  const [showAddRow, setShowAddRow]   = useState(false);
 
-  // ── File import ─────────────────────────────────────────────────────────
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0] ?? null;
     setImportedFile(f);
     if (e.target) e.target.value = "";
   }
 
-  // ── Add entry ───────────────────────────────────────────────────────────
   function handleAddEntry() {
     if (!newDate || !newDesc) return;
     const bv = parseFloat(newBank) || 0;
     const iv = parseFloat(newInternal) || 0;
     const status: Status = bv === iv ? "conciliado" : bv === 0 || iv === 0 ? "pendente" : "divergente";
-    setEntries((prev) => [
-      ...prev,
-      { id: uid(), date: newDate, description: newDesc, bankValue: bv, internalValue: iv, status },
-    ]);
+    setEntries((prev) => [...prev, { id: uid(), date: newDate, description: newDesc, bankValue: bv, internalValue: iv, status }]);
     setNewDate(""); setNewDesc(""); setNewBank(""); setNewInternal("");
     setShowAddRow(false);
   }
@@ -130,38 +107,34 @@ export default function ConciliacaoPage() {
   function cycleStatus(id: string) {
     const cycle: Status[] = ["pendente", "conciliado", "divergente"];
     setEntries((prev) =>
-      prev.map((e) =>
-        e.id === id ? { ...e, status: cycle[(cycle.indexOf(e.status) + 1) % cycle.length] } : e
-      )
+      prev.map((e) => e.id === id ? { ...e, status: cycle[(cycle.indexOf(e.status) + 1) % cycle.length] } : e)
     );
   }
 
-  // ── Derived ─────────────────────────────────────────────────────────────
   const filtered = entries.filter(
     (e) =>
       e.description.toLowerCase().includes(search.toLowerCase()) ||
       STATUS_LABEL[e.status].toLowerCase().includes(search.toLowerCase())
   );
 
-  const conciliados  = entries.filter((e) => e.status === "conciliado").length;
-  const pendentes    = entries.filter((e) => e.status === "pendente").length;
-  const divergentes  = entries.filter((e) => e.status === "divergente").length;
+  const conciliados = entries.filter((e) => e.status === "conciliado").length;
+  const pendentes   = entries.filter((e) => e.status === "pendente").length;
+  const divergentes = entries.filter((e) => e.status === "divergente").length;
   const totalBanco   = entries.reduce((s, e) => s + e.bankValue, 0);
   const totalInterno = entries.reduce((s, e) => s + e.internalValue, 0);
-  const diff         = totalBanco - totalInterno;
+  const diff = totalBanco - totalInterno;
 
   return (
     <>
       <Header title="Conciliação" subtitle="Tesouraria · AWQ Group" />
       <div className="page-container">
 
-        {/* ── Resumo ─────────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
-            { label: "Conciliados",  value: conciliados,  color: "text-emerald-600", bg: "bg-emerald-50", icon: Check       },
-            { label: "Pendentes",    value: pendentes,    color: "text-amber-600",   bg: "bg-amber-50",   icon: Circle      },
-            { label: "Divergentes",  value: divergentes,  color: "text-red-600",     bg: "bg-red-50",     icon: AlertCircle },
-            { label: "Diferença",    value: fmtBRL(diff), color: diff === 0 ? "text-emerald-600" : "text-red-600", bg: diff === 0 ? "bg-emerald-50" : "bg-red-50", icon: CheckCircle2 },
+            { label: "Conciliados", value: conciliados, color: "text-emerald-600", bg: "bg-emerald-50", icon: Check       },
+            { label: "Pendentes",   value: pendentes,   color: "text-amber-600",   bg: "bg-amber-50",   icon: Circle      },
+            { label: "Divergentes", value: divergentes, color: "text-red-600",     bg: "bg-red-50",     icon: AlertCircle },
+            { label: "Diferença",   value: fmtBRL(diff), color: diff === 0 ? "text-emerald-600" : "text-red-600", bg: diff === 0 ? "bg-emerald-50" : "bg-red-50", icon: CheckCircle2 },
           ].map((c) => {
             const Icon = c.icon;
             return (
@@ -178,7 +151,6 @@ export default function ConciliacaoPage() {
           })}
         </div>
 
-        {/* ── Verificação de Conciliação Manual ─────────────────────────── */}
         <div className="card p-6">
           <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
             <div>
@@ -210,49 +182,19 @@ export default function ConciliacaoPage() {
             </div>
           </div>
 
-          {/* Add row form */}
           {showAddRow && (
             <div className="mb-4 p-4 bg-gray-50 rounded-xl border border-gray-200 grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <input
-                type="date"
-                value={newDate}
-                onChange={(e) => setNewDate(e.target.value)}
-                className="text-xs border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-brand-400"
-              />
-              <input
-                type="text"
-                placeholder="Descrição"
-                value={newDesc}
-                onChange={(e) => setNewDesc(e.target.value)}
-                className="text-xs border border-gray-200 rounded-lg px-3 py-2 bg-white placeholder:text-gray-400 focus:outline-none focus:border-brand-400 sm:col-span-1"
-              />
-              <input
-                type="number"
-                placeholder="Valor Banco"
-                value={newBank}
-                onChange={(e) => setNewBank(e.target.value)}
-                className="text-xs border border-gray-200 rounded-lg px-3 py-2 bg-white placeholder:text-gray-400 focus:outline-none focus:border-brand-400"
-              />
+              <input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} className="text-xs border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-brand-400" />
+              <input type="text" placeholder="Descrição" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} className="text-xs border border-gray-200 rounded-lg px-3 py-2 bg-white placeholder:text-gray-400 focus:outline-none focus:border-brand-400" />
+              <input type="number" placeholder="Valor Banco" value={newBank} onChange={(e) => setNewBank(e.target.value)} className="text-xs border border-gray-200 rounded-lg px-3 py-2 bg-white placeholder:text-gray-400 focus:outline-none focus:border-brand-400" />
               <div className="flex gap-2">
-                <input
-                  type="number"
-                  placeholder="Valor Interno"
-                  value={newInternal}
-                  onChange={(e) => setNewInternal(e.target.value)}
-                  className="flex-1 text-xs border border-gray-200 rounded-lg px-3 py-2 bg-white placeholder:text-gray-400 focus:outline-none focus:border-brand-400"
-                  onKeyDown={(e) => e.key === "Enter" && handleAddEntry()}
-                />
-                <button onClick={handleAddEntry} className="px-3 py-2 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 transition-colors">
-                  <Check size={12} />
-                </button>
-                <button onClick={() => setShowAddRow(false)} className="px-3 py-2 bg-gray-200 text-gray-600 rounded-lg text-xs hover:bg-gray-300 transition-colors">
-                  <X size={12} />
-                </button>
+                <input type="number" placeholder="Valor Interno" value={newInternal} onChange={(e) => setNewInternal(e.target.value)} className="flex-1 text-xs border border-gray-200 rounded-lg px-3 py-2 bg-white placeholder:text-gray-400 focus:outline-none focus:border-brand-400" onKeyDown={(e) => e.key === "Enter" && handleAddEntry()} />
+                <button onClick={handleAddEntry} className="px-3 py-2 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700"><Check size={12} /></button>
+                <button onClick={() => setShowAddRow(false)} className="px-3 py-2 bg-gray-200 text-gray-600 rounded-lg text-xs hover:bg-gray-300"><X size={12} /></button>
               </div>
             </div>
           )}
 
-          {/* Table */}
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -273,52 +215,29 @@ export default function ConciliacaoPage() {
                   return (
                     <tr key={entry.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                       <td className="py-2.5 px-3 text-xs text-gray-500 whitespace-nowrap">{fmtDate(entry.date)}</td>
-                      <td className="py-2.5 px-3 text-xs text-gray-900 max-w-xs">
-                        <div className="truncate">{entry.description}</div>
-                      </td>
-                      <td className={`py-2.5 px-3 text-right text-xs font-medium ${entry.bankValue >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-                        {fmtBRL(entry.bankValue)}
-                      </td>
-                      <td className={`py-2.5 px-3 text-right text-xs font-medium ${entry.internalValue >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-                        {fmtBRL(entry.internalValue)}
-                      </td>
-                      <td className={`py-2.5 px-3 text-right text-xs font-semibold ${dif === 0 ? "text-gray-400" : "text-red-600"}`}>
-                        {dif === 0 ? "—" : fmtBRL(dif)}
-                      </td>
+                      <td className="py-2.5 px-3 text-xs text-gray-900 max-w-xs"><div className="truncate">{entry.description}</div></td>
+                      <td className={`py-2.5 px-3 text-right text-xs font-medium ${entry.bankValue >= 0 ? "text-emerald-600" : "text-red-600"}`}>{fmtBRL(entry.bankValue)}</td>
+                      <td className={`py-2.5 px-3 text-right text-xs font-medium ${entry.internalValue >= 0 ? "text-emerald-600" : "text-red-600"}`}>{fmtBRL(entry.internalValue)}</td>
+                      <td className={`py-2.5 px-3 text-right text-xs font-semibold ${dif === 0 ? "text-gray-400" : "text-red-600"}`}>{dif === 0 ? "—" : fmtBRL(dif)}</td>
                       <td className="py-2.5 px-3 text-center">
-                        <button
-                          onClick={() => cycleStatus(entry.id)}
-                          className={`inline-flex items-center gap-1 text-[10px] font-semibold border rounded px-1.5 py-0.5 transition-opacity hover:opacity-70 ${STATUS_COLOR[entry.status]}`}
-                          title="Clique para alterar status"
-                        >
-                          <Icon size={9} />
-                          {STATUS_LABEL[entry.status]}
+                        <button onClick={() => cycleStatus(entry.id)} className={`inline-flex items-center gap-1 text-[10px] font-semibold border rounded px-1.5 py-0.5 transition-opacity hover:opacity-70 ${STATUS_COLOR[entry.status]}`} title="Clique para alterar status">
+                          <Icon size={9} />{STATUS_LABEL[entry.status]}
                         </button>
                       </td>
                       <td className="py-2.5 px-2">
-                        <button
-                          onClick={() => handleDelete(entry.id)}
-                          className="p-1 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
-                        >
-                          <Trash2 size={12} />
-                        </button>
+                        <button onClick={() => handleDelete(entry.id)} className="p-1 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded transition-colors"><Trash2 size={12} /></button>
                       </td>
                     </tr>
                   );
                 })}
                 {filtered.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="py-10 text-center text-xs text-gray-400">
-                      Nenhum lançamento encontrado
-                    </td>
-                  </tr>
+                  <tr><td colSpan={7} className="py-10 text-center text-xs text-gray-400">Nenhum lançamento encontrado</td></tr>
                 )}
               </tbody>
             </table>
           </div>
         </div>
 
-        {/* ── Botão de Importação ────────────────────────────────────────── */}
         <div className="card p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <div className="w-10 h-10 rounded-xl bg-brand-50 flex items-center justify-center shrink-0">
             <Upload size={18} className="text-brand-600" />
@@ -332,22 +251,13 @@ export default function ConciliacaoPage() {
             </div>
             {importedFile && (
               <div className="mt-2 flex items-center gap-1.5 text-xs text-emerald-700 font-medium">
-                <Check size={12} />
-                {importedFile.name} selecionado
-                <button onClick={() => setImportedFile(null)} className="ml-1 text-gray-400 hover:text-red-500">
-                  <X size={10} />
-                </button>
+                <Check size={12} />{importedFile.name} selecionado
+                <button onClick={() => setImportedFile(null)} className="ml-1 text-gray-400 hover:text-red-500"><X size={10} /></button>
               </div>
             )}
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".ofx,.csv,.pdf"
-              onChange={handleFileChange}
-              className="hidden"
-            />
+            <input ref={fileInputRef} type="file" accept=".ofx,.csv,.pdf" onChange={handleFileChange} className="hidden" />
             <button
               onClick={() => fileInputRef.current?.click()}
               className="flex items-center gap-2 px-4 py-2.5 border-2 border-dashed border-brand-300 hover:border-brand-500 hover:bg-brand-50 text-brand-700 rounded-xl text-xs font-semibold transition-all"
@@ -357,7 +267,7 @@ export default function ConciliacaoPage() {
             {importedFile ? (
               <button
                 onClick={() => {
-                  setImportMsg("Pipeline de importação disponível em /awq/ingest. Use a Ingestão Bancária para processar extratos.");
+                  setImportMsg("Para importar extratos com processamento completo, use a Ingestão Bancária.");
                   setTimeout(() => setImportMsg(null), 5000);
                 }}
                 className="flex items-center gap-2 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-semibold transition-colors"
@@ -365,34 +275,25 @@ export default function ConciliacaoPage() {
                 <Upload size={14} /> Importar
               </button>
             ) : (
-              <Link
-                href="/awq/ingest"
-                className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-semibold transition-colors"
-              >
+              <Link href="/awq/ingest" className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-semibold transition-colors">
                 <ArrowRight size={14} /> Ver Ingestão completa
               </Link>
             )}
           </div>
         </div>
 
-        {/* Import feedback message */}
         {importMsg && (
           <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-xs text-blue-800 flex items-start gap-2">
             <ArrowRight size={13} className="text-blue-500 shrink-0 mt-0.5" />
             <span>
               {importMsg}{" "}
-              <Link href="/awq/ingest" className="font-semibold underline">
-                Ir para Ingestão Bancária →
-              </Link>
+              <Link href="/awq/ingest" className="font-semibold underline">Ir para Ingestão Bancária →</Link>
             </span>
           </div>
         )}
 
-        {/* ── Módulos planejados ─────────────────────────────────────────── */}
         <div>
-          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-            Em desenvolvimento
-          </div>
+          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Em desenvolvimento</div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {PLANNED_MODULES.map((m) => (
               <div key={m.title} className="card p-5 flex items-start gap-4 opacity-50">
