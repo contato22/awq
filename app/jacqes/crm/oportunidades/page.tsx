@@ -5,9 +5,11 @@ import Header from "@/components/Header";
 import SectionHeader from "@/components/SectionHeader";
 import EmptyState from "@/components/EmptyState";
 import {
-  TrendingUp, DollarSign, BarChart2, Target, Hash, Plus, X, AlertTriangle,
+  TrendingUp, DollarSign, BarChart2, Target, Hash, Plus, X,
+  AlertTriangle, Pencil, Trash2, ArrowLeftRight,
 } from "lucide-react";
 import { fetchCRM } from "@/lib/jacqes-crm-query";
+import { IS_STATIC, crmCreate, crmUpdate, crmDelete } from "@/lib/jacqes-crm-store";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -41,6 +43,14 @@ const PIPELINE_STAGES = [
 ] as const;
 
 const RISK_LEVELS = ["Baixo", "Médio", "Alto"] as const;
+
+const EMPTY_FORM = {
+  nome_oportunidade: "", empresa: "", produto: "",
+  ticket_estimado: "", valor_potencial: "",
+  stage: "Novo Lead", probabilidade: "50",
+  owner: "", proxima_acao: "", data_proxima_acao: "",
+  risco: "Baixo", data_fechamento_prevista: "", observacoes: "",
+};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -88,140 +98,172 @@ function riskBadgeClass(risco: string) {
   }
 }
 
-// ─── Default form state ───────────────────────────────────────────────────────
-
-const EMPTY_FORM = {
-  nome_oportunidade: "",
-  empresa: "",
-  produto: "",
-  ticket_estimado: "",
-  valor_potencial: "",
-  stage: "Novo Lead",
-  probabilidade: "50",
-  owner: "",
-  proxima_acao: "",
-  data_proxima_acao: "",
-  risco: "Baixo",
-  data_fechamento_prevista: "",
-  observacoes: "",
-};
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function OportunidadesPage() {
-  const [opps, setOpps]           = useState<CrmOpportunity[]>([]);
-  const [loading, setLoading]     = useState(true);
-  const [error, setError]         = useState<string | null>(null);
+  const [opps, setOpps]               = useState<CrmOpportunity[]>([]);
+  const [loading, setLoading]         = useState(true);
+  const [error, setError]             = useState<string | null>(null);
   const [stageFilter, setStageFilter] = useState<string>("Todos");
-  const [modal, setModal]         = useState(false);
-  const [form, setForm]           = useState({ ...EMPTY_FORM });
-  const [saving, setSaving]       = useState(false);
-  const [formError, setFormError] = useState("");
+  const [modal, setModal]             = useState(false);
+  const [editingId, setEditingId]     = useState<string | null>(null);
+  const [stageModal, setStageModal]   = useState<CrmOpportunity | null>(null);
+  const [form, setForm]               = useState({ ...EMPTY_FORM });
+  const [saving, setSaving]           = useState(false);
+  const [formError, setFormError]     = useState("");
 
-  // ── Fetch ────────────────────────────────────────────────────────────────────
-  async function fetchOpps() {
+  async function load() {
     setLoading(true);
     setError(null);
-    fetchCRM<CrmOpportunity>("opportunities")
-      .then(d => { setOpps(d); setLoading(false); })
-      .catch(() => { setError("Erro ao carregar oportunidades."); setLoading(false); });
+    try {
+      const d = await fetchCRM<CrmOpportunity>("opportunities");
+      setOpps(d);
+    } catch {
+      setError("Erro ao carregar oportunidades.");
+    } finally {
+      setLoading(false);
+    }
   }
 
-  useEffect(() => { fetchOpps(); }, []);
+  useEffect(() => { load(); }, []);
 
-  // ── Derived KPIs ──────────────────────────────────────────────────────────────
-  const total      = opps.length;
-  const abertas    = opps.filter(o => o.stage !== "Fechado Ganho" && o.stage !== "Fechado Perdido").length;
-  const pipeline   = opps
-    .filter(o => o.stage !== "Fechado Perdido")
-    .reduce((s, o) => s + (o.valor_potencial || 0), 0);
-  const recPond    = opps
-    .filter(o => o.stage !== "Fechado Perdido")
-    .reduce((s, o) => s + (o.valor_potencial || 0) * ((o.probabilidade || 0) / 100), 0);
-  const ticketMed  = abertas > 0
+  // ── KPIs ──────────────────────────────────────────────────────────────────
+  const total    = opps.length;
+  const abertas  = opps.filter(o => o.stage !== "Fechado Ganho" && o.stage !== "Fechado Perdido").length;
+  const pipeline = opps.filter(o => o.stage !== "Fechado Perdido").reduce((s, o) => s + (o.valor_potencial || 0), 0);
+  const recPond  = opps.filter(o => o.stage !== "Fechado Perdido").reduce((s, o) => s + (o.valor_potencial || 0) * ((o.probabilidade || 0) / 100), 0);
+  const ticketMed = abertas > 0
     ? opps.filter(o => o.stage !== "Fechado Ganho" && o.stage !== "Fechado Perdido")
         .reduce((s, o) => s + (o.ticket_estimado || 0), 0) / abertas
     : 0;
 
-  // Stage filter counts
   const stageCounts: Record<string, number> = { Todos: opps.length };
-  PIPELINE_STAGES.forEach(s => {
-    stageCounts[s] = opps.filter(o => o.stage === s).length;
-  });
+  PIPELINE_STAGES.forEach(s => { stageCounts[s] = opps.filter(o => o.stage === s).length; });
 
-  const filtered = stageFilter === "Todos"
-    ? opps
-    : opps.filter(o => o.stage === stageFilter);
+  const filtered = stageFilter === "Todos" ? opps : opps.filter(o => o.stage === stageFilter);
 
-  // ── Modal helpers ─────────────────────────────────────────────────────────────
-  function openModal() {
+  // ── Modal helpers ─────────────────────────────────────────────────────────
+  function openCreate() {
+    setEditingId(null);
     setForm({ ...EMPTY_FORM });
     setFormError("");
     setModal(true);
   }
 
-  function closeModal() {
-    setModal(false);
+  function openEdit(opp: CrmOpportunity) {
+    setEditingId(opp.id);
+    setForm({
+      nome_oportunidade: opp.nome_oportunidade, empresa: opp.empresa,
+      produto: opp.produto,
+      ticket_estimado: String(opp.ticket_estimado || ""),
+      valor_potencial: String(opp.valor_potencial || ""),
+      stage: opp.stage, probabilidade: String(opp.probabilidade),
+      owner: opp.owner, proxima_acao: opp.proxima_acao,
+      data_proxima_acao: opp.data_proxima_acao ?? "",
+      risco: opp.risco,
+      data_fechamento_prevista: opp.data_fechamento_prevista ?? "",
+      observacoes: opp.observacoes,
+    });
     setFormError("");
+    setModal(true);
   }
 
-  function field(key: keyof typeof EMPTY_FORM, value: string) {
-    setForm(f => ({ ...f, [key]: value }));
+  function closeModal() { setModal(false); setFormError(""); }
+
+  function field(k: keyof typeof EMPTY_FORM, v: string) {
+    setForm(f => ({ ...f, [k]: v }));
   }
 
   async function handleSave() {
     if (!form.nome_oportunidade.trim()) { setFormError("Nome da oportunidade é obrigatório."); return; }
     if (!form.empresa.trim())           { setFormError("Empresa é obrigatória."); return; }
     if (!form.owner.trim())             { setFormError("Owner é obrigatório."); return; }
-    if (!form.proxima_acao.trim())      { setFormError("Próxima Ação é obrigatória."); return; }
-    if (!form.data_proxima_acao)        { setFormError("Data da Próxima Ação é obrigatória."); return; }
-
     setSaving(true);
     setFormError("");
-    try {
-      const payload = {
-        ...form,
-        ticket_estimado:         form.ticket_estimado ? parseFloat(form.ticket_estimado) : 0,
-        valor_potencial:         form.valor_potencial ? parseFloat(form.valor_potencial) : 0,
-        probabilidade:           parseInt(form.probabilidade, 10) || 50,
-        data_fechamento_prevista: form.data_fechamento_prevista || null,
-      };
-      const res = await fetch("/api/jacqes/crm/oportunidades", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error ?? `HTTP ${res.status}`);
+
+    const payload: Omit<CrmOpportunity, "id"> = {
+      lead_id: null, cliente_id: null,
+      nome_oportunidade: form.nome_oportunidade.trim(),
+      empresa: form.empresa.trim(),
+      segmento: "", produto: form.produto.trim(),
+      ticket_estimado: parseFloat(form.ticket_estimado) || 0,
+      valor_potencial: parseFloat(form.valor_potencial) || 0,
+      stage: form.stage, probabilidade: parseInt(form.probabilidade) || 50,
+      owner: form.owner.trim(),
+      data_abertura: new Date().toISOString().slice(0, 10),
+      proxima_acao: form.proxima_acao.trim(),
+      data_proxima_acao: form.data_proxima_acao || null,
+      risco: form.risco, motivo_perda: "",
+      data_fechamento_prevista: form.data_fechamento_prevista || null,
+      observacoes: form.observacoes.trim(),
+    };
+
+    if (IS_STATIC) {
+      if (editingId) {
+        crmUpdate<CrmOpportunity>("opportunities", editingId, payload);
+        setOpps(prev => prev.map(o => o.id === editingId ? { ...o, ...payload } : o));
+      } else {
+        const novo = crmCreate<CrmOpportunity>("opportunities", payload, "opp");
+        setOpps(prev => [novo, ...prev]);
       }
+      setSaving(false);
       closeModal();
-      await fetchOpps();
+      return;
+    }
+
+    try {
+      if (editingId) {
+        crmUpdate<CrmOpportunity>("opportunities", editingId, payload);
+        setOpps(prev => prev.map(o => o.id === editingId ? { ...o, ...payload } : o));
+      } else {
+        const res = await fetch("/api/jacqes/crm/oportunidades", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body.error ?? `HTTP ${res.status}`);
+        }
+        closeModal();
+        await load();
+        return;
+      }
     } catch (e: unknown) {
-      setFormError(e instanceof Error ? e.message : "Erro ao salvar oportunidade.");
+      setFormError(e instanceof Error ? e.message : "Erro ao salvar.");
     } finally {
       setSaving(false);
     }
+    closeModal();
   }
 
-  // ─── Render ───────────────────────────────────────────────────────────────────
+  function handleDelete(id: string) {
+    if (!confirm("Remover esta oportunidade?")) return;
+    crmDelete("opportunities", id);
+    setOpps(prev => prev.filter(o => o.id !== id));
+  }
+
+  function moveStage(opp: CrmOpportunity, newStage: string) {
+    crmUpdate<CrmOpportunity>("opportunities", opp.id, { stage: newStage });
+    setOpps(prev => prev.map(o => o.id === opp.id ? { ...o, stage: newStage } : o));
+    setStageModal(null);
+  }
+
+  // ─── Render ───────────────────────────────────────────────────────────────
   return (
     <>
-      <Header
-        title="Oportunidades — JACQES CRM"
-        subtitle="Pipeline comercial"
-      />
+      <Header title="Oportunidades — JACQES CRM" subtitle="Pipeline comercial" />
 
       <div className="page-container">
 
-        {/* ── KPI Strip ────────────────────────────────────────────────────────── */}
+        {/* ── KPIs ─────────────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
           {[
-            { label: "Total",           value: String(total),       icon: Hash,       color: "text-gray-600",    bg: "bg-gray-100"   },
-            { label: "Abertas",         value: String(abertas),     icon: Target,     color: "text-brand-600",   bg: "bg-brand-50"   },
-            { label: "Pipeline Total",  value: fmtCurrency(pipeline), icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
-            { label: "Rec. Ponderada",  value: fmtCurrency(recPond),  icon: BarChart2,  color: "text-blue-600",    bg: "bg-blue-50"    },
-            { label: "Ticket Médio",    value: fmtCurrency(ticketMed), icon: TrendingUp, color: "text-amber-600",  bg: "bg-amber-50"   },
+            { label: "Total",          value: String(total),          icon: Hash,       color: "text-gray-600",    bg: "bg-gray-100"   },
+            { label: "Abertas",        value: String(abertas),        icon: Target,     color: "text-brand-600",   bg: "bg-brand-50"   },
+            { label: "Pipeline Total", value: fmtCurrency(pipeline),  icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
+            { label: "Rec. Ponderada", value: fmtCurrency(recPond),   icon: BarChart2,  color: "text-blue-600",    bg: "bg-blue-50"    },
+            { label: "Ticket Médio",   value: fmtCurrency(ticketMed), icon: TrendingUp, color: "text-amber-600",   bg: "bg-amber-50"   },
           ].map(({ label, value, icon: Icon, color, bg }) => (
             <div key={label} className="card p-5 flex items-start gap-3">
               <div className={`w-9 h-9 rounded-xl ${bg} flex items-center justify-center shrink-0`}>
@@ -235,9 +277,8 @@ export default function OportunidadesPage() {
           ))}
         </div>
 
-        {/* ── Main card ────────────────────────────────────────────────────────── */}
+        {/* ── Main card ────────────────────────────────────────────────────── */}
         <div className="card p-5">
-          {/* Header row */}
           <div className="flex items-center justify-between mb-5 gap-4 flex-wrap">
             <SectionHeader
               icon={<TrendingUp size={14} />}
@@ -250,7 +291,7 @@ export default function OportunidadesPage() {
               className="mb-0"
             />
             <button
-              onClick={openModal}
+              onClick={openCreate}
               className="flex items-center gap-1.5 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-700 px-3 py-1.5 rounded-lg transition-colors shrink-0"
             >
               <Plus size={13} /> Nova Oportunidade
@@ -279,7 +320,6 @@ export default function OportunidadesPage() {
             ))}
           </div>
 
-          {/* Table */}
           {loading ? (
             <div className="py-12 text-center text-sm text-gray-400">Carregando oportunidades…</div>
           ) : error ? (
@@ -295,7 +335,7 @@ export default function OportunidadesPage() {
               <table className="w-full text-sm min-w-[1000px]">
                 <thead>
                   <tr className="border-b border-gray-100">
-                    {["Oportunidade", "Stage", "Valor Potencial", "Prob.", "Próxima Ação", "Risco", "Owner", "Aging"].map(h => (
+                    {["Oportunidade", "Stage", "Valor Potencial", "Prob.", "Próxima Ação", "Risco", "Owner", "Aging", ""].map(h => (
                       <th key={h} className="text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wide pb-2 pr-4 last:pr-0">
                         {h}
                       </th>
@@ -307,14 +347,10 @@ export default function OportunidadesPage() {
                     const aging = agingDays(opp.data_abertura);
                     const actionPast = isDatePast(opp.data_proxima_acao);
                     return (
-                      <tr key={opp.id} className="card-hover">
+                      <tr key={opp.id} className="hover:bg-gray-50/60 group">
                         <td className="py-3 pr-4">
-                          <div className="font-semibold text-gray-900 text-[13px] leading-snug">
-                            {opp.nome_oportunidade}
-                          </div>
-                          {opp.empresa && (
-                            <div className="text-[11px] text-gray-400 mt-0.5">{opp.empresa}</div>
-                          )}
+                          <div className="font-semibold text-gray-900 text-[13px] leading-snug">{opp.nome_oportunidade}</div>
+                          {opp.empresa && <div className="text-[11px] text-gray-400 mt-0.5">{opp.empresa}</div>}
                         </td>
                         <td className="py-3 pr-4">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border ${stageBadgeClass(opp.stage)}`}>
@@ -322,47 +358,48 @@ export default function OportunidadesPage() {
                           </span>
                         </td>
                         <td className="py-3 pr-4">
-                          <span className="text-[13px] font-bold text-gray-900">
-                            {fmtCurrency(opp.valor_potencial)}
-                          </span>
+                          <span className="text-[13px] font-bold text-gray-900">{fmtCurrency(opp.valor_potencial)}</span>
                         </td>
                         <td className="py-3 pr-4 min-w-[90px]">
                           <div className="flex items-center gap-1.5">
-                            <span className="text-[12px] font-semibold text-gray-700 w-8 shrink-0">
-                              {opp.probabilidade}%
-                            </span>
+                            <span className="text-[12px] font-semibold text-gray-700 w-8 shrink-0">{opp.probabilidade}%</span>
                             <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden min-w-[48px]">
-                              <div
-                                className="h-full rounded-full bg-brand-500"
-                                style={{ width: `${Math.min(100, Math.max(0, opp.probabilidade))}%` }}
-                              />
+                              <div className="h-full rounded-full bg-brand-500" style={{ width: `${Math.min(100, Math.max(0, opp.probabilidade))}%` }} />
                             </div>
                           </div>
                         </td>
                         <td className="py-3 pr-4 max-w-[200px]">
-                          <div className="text-[13px] text-gray-700 truncate" title={opp.proxima_acao}>
-                            {opp.proxima_acao || "—"}
-                          </div>
+                          <div className="text-[13px] text-gray-700 truncate" title={opp.proxima_acao}>{opp.proxima_acao || "—"}</div>
                           {opp.data_proxima_acao && (
                             <div className={`text-[11px] mt-0.5 ${actionPast ? "text-red-500 font-semibold" : "text-gray-400"}`}>
-                              {fmtDate(opp.data_proxima_acao)}
-                              {actionPast && <span className="ml-1">!</span>}
+                              {fmtDate(opp.data_proxima_acao)}{actionPast && " !"}
                             </div>
                           )}
                         </td>
                         <td className="py-3 pr-4">
                           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border ${riskBadgeClass(opp.risco)}`}>
-                            {opp.risco === "Alto" && <AlertTriangle size={9} />}
-                            {opp.risco}
+                            {opp.risco === "Alto" && <AlertTriangle size={9} />}{opp.risco}
                           </span>
                         </td>
+                        <td className="py-3 pr-4 text-[13px] text-gray-700">{opp.owner}</td>
                         <td className="py-3 pr-4">
-                          <span className="text-[13px] text-gray-700">{opp.owner}</span>
+                          <span className={`text-[13px] font-semibold ${aging > 30 ? "text-red-500" : "text-gray-600"}`}>{aging}d</span>
                         </td>
                         <td className="py-3">
-                          <span className={`text-[13px] font-semibold ${aging > 30 ? "text-red-500" : "text-gray-600"}`}>
-                            {aging}d
-                          </span>
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onClick={() => setStageModal(opp)} title="Mover stage"
+                              className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-violet-600 hover:bg-violet-50 transition-colors">
+                              <ArrowLeftRight size={13} />
+                            </button>
+                            <button onClick={() => openEdit(opp)} title="Editar"
+                              className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-colors">
+                              <Pencil size={13} />
+                            </button>
+                            <button onClick={() => handleDelete(opp.id)} title="Remover"
+                              className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -372,203 +409,141 @@ export default function OportunidadesPage() {
             </div>
           )}
         </div>
-
       </div>
 
-      {/* ── Modal: Nova Oportunidade ─────────────────────────────────────────────── */}
+      {/* ── Stage Move Modal ──────────────────────────────────────────────────── */}
+      {stageModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-bold text-gray-900">Mover Stage</h3>
+              <button onClick={() => setStageModal(null)} className="text-gray-400 hover:text-gray-600"><X size={16} /></button>
+            </div>
+            <p className="text-xs text-gray-500 mb-4 truncate">{stageModal.nome_oportunidade}</p>
+            <div className="space-y-2">
+              {PIPELINE_STAGES.map(s => (
+                <button key={s} onClick={() => moveStage(stageModal, s)}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${
+                    stageModal.stage === s
+                      ? "bg-brand-600 text-white border-brand-600"
+                      : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100"
+                  }`}>
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Create/Edit Modal ─────────────────────────────────────────────────── */}
       {modal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6">
-            <div className="flex items-center justify-between mb-5 sticky top-0 bg-white pb-1">
-              <h3 className="text-sm font-bold text-gray-900">Nova Oportunidade</h3>
-              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600">
-                <X size={16} />
-              </button>
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-sm font-bold text-gray-900">{editingId ? "Editar Oportunidade" : "Nova Oportunidade"}</h3>
+              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600"><X size={16} /></button>
             </div>
 
             <div className="space-y-4">
-              {/* Nome Oportunidade */}
               <div>
                 <label className="text-xs font-semibold text-gray-600 block mb-1">Nome Oportunidade *</label>
-                <input
-                  type="text"
-                  placeholder="Ex: Cliente X — FEE Mensal"
-                  value={form.nome_oportunidade}
+                <input type="text" placeholder="Ex: Cliente X — FEE Mensal" value={form.nome_oportunidade}
                   onChange={e => field("nome_oportunidade", e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                />
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500" />
               </div>
-
-              {/* Empresa */}
-              <div>
-                <label className="text-xs font-semibold text-gray-600 block mb-1">Empresa *</label>
-                <input
-                  type="text"
-                  placeholder="Nome da empresa"
-                  value={form.empresa}
-                  onChange={e => field("empresa", e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 block mb-1">Empresa *</label>
+                  <input type="text" placeholder="Nome da empresa" value={form.empresa}
+                    onChange={e => field("empresa", e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 block mb-1">Produto / Serviço</label>
+                  <input type="text" placeholder="Ex: FEE Mensal" value={form.produto}
+                    onChange={e => field("produto", e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                </div>
               </div>
-
-              {/* Produto / Serviço */}
-              <div>
-                <label className="text-xs font-semibold text-gray-600 block mb-1">Produto / Serviço</label>
-                <input
-                  type="text"
-                  placeholder="Ex: FEE Mensal, Tráfego Pago"
-                  value={form.produto}
-                  onChange={e => field("produto", e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                />
-              </div>
-
-              {/* Ticket + Valor Potencial */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-gray-600 block mb-1">Ticket Estimado (R$)</label>
-                  <input
-                    type="number"
-                    placeholder="Ex: 3000"
-                    value={form.ticket_estimado}
-                    onChange={e => field("ticket_estimado", e.target.value)}
-                    min="0"
-                    step="0.01"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                  />
+                  <input type="number" placeholder="Ex: 3000" value={form.ticket_estimado}
+                    onChange={e => field("ticket_estimado", e.target.value)} min="0"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-600 block mb-1">Valor Potencial (R$)</label>
-                  <input
-                    type="number"
-                    placeholder="Ex: 36000"
-                    value={form.valor_potencial}
-                    onChange={e => field("valor_potencial", e.target.value)}
-                    min="0"
-                    step="0.01"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                  />
+                  <input type="number" placeholder="Ex: 36000" value={form.valor_potencial}
+                    onChange={e => field("valor_potencial", e.target.value)} min="0"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500" />
                 </div>
               </div>
-
-              {/* Stage */}
-              <div>
-                <label className="text-xs font-semibold text-gray-600 block mb-1">Stage *</label>
-                <select
-                  value={form.stage}
-                  onChange={e => field("stage", e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                >
-                  {PIPELINE_STAGES.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-              </div>
-
-              {/* Probabilidade */}
-              <div>
-                <label className="text-xs font-semibold text-gray-600 block mb-1">
-                  Probabilidade — {form.probabilidade}%
-                </label>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  step="5"
-                  value={form.probabilidade}
-                  onChange={e => field("probabilidade", e.target.value)}
-                  className="w-full accent-brand-600"
-                />
-              </div>
-
-              {/* Owner */}
-              <div>
-                <label className="text-xs font-semibold text-gray-600 block mb-1">Owner *</label>
-                <input
-                  type="text"
-                  placeholder="Responsável"
-                  value={form.owner}
-                  onChange={e => field("owner", e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                />
-              </div>
-
-              {/* Próxima Ação */}
-              <div>
-                <label className="text-xs font-semibold text-gray-600 block mb-1">Próxima Ação *</label>
-                <input
-                  type="text"
-                  placeholder="Descreva a próxima ação"
-                  value={form.proxima_acao}
-                  onChange={e => field("proxima_acao", e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                />
-              </div>
-
-              {/* Data Próxima Ação + Risco */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-gray-600 block mb-1">Data Próxima Ação *</label>
-                  <input
-                    type="date"
-                    value={form.data_proxima_acao}
-                    onChange={e => field("data_proxima_acao", e.target.value)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                  />
+                  <label className="text-xs font-semibold text-gray-600 block mb-1">Stage</label>
+                  <select value={form.stage} onChange={e => field("stage", e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    {PIPELINE_STAGES.map(s => <option key={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 block mb-1">Probabilidade — {form.probabilidade}%</label>
+                  <input type="range" min="0" max="100" step="5" value={form.probabilidade}
+                    onChange={e => field("probabilidade", e.target.value)} className="w-full accent-brand-600 mt-2" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 block mb-1">Owner *</label>
+                  <input type="text" placeholder="Responsável" value={form.owner}
+                    onChange={e => field("owner", e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-600 block mb-1">Risco</label>
-                  <select
-                    value={form.risco}
-                    onChange={e => field("risco", e.target.value)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                  >
-                    {RISK_LEVELS.map(r => <option key={r} value={r}>{r}</option>)}
+                  <select value={form.risco} onChange={e => field("risco", e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    {RISK_LEVELS.map(r => <option key={r}>{r}</option>)}
                   </select>
                 </div>
               </div>
-
-              {/* Data Fechamento Prevista */}
               <div>
-                <label className="text-xs font-semibold text-gray-600 block mb-1">Data Fechamento Prevista</label>
-                <input
-                  type="date"
-                  value={form.data_fechamento_prevista}
-                  onChange={e => field("data_fechamento_prevista", e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                />
+                <label className="text-xs font-semibold text-gray-600 block mb-1">Próxima Ação</label>
+                <input type="text" placeholder="Descreva a próxima ação" value={form.proxima_acao}
+                  onChange={e => field("proxima_acao", e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500" />
               </div>
-
-              {/* Observações */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 block mb-1">Data Próxima Ação</label>
+                  <input type="date" value={form.data_proxima_acao} onChange={e => field("data_proxima_acao", e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 block mb-1">Fechamento Previsto</label>
+                  <input type="date" value={form.data_fechamento_prevista} onChange={e => field("data_fechamento_prevista", e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                </div>
+              </div>
               <div>
                 <label className="text-xs font-semibold text-gray-600 block mb-1">Observações</label>
-                <textarea
-                  rows={3}
-                  placeholder="Notas adicionais"
-                  value={form.observacoes}
+                <textarea rows={3} placeholder="Notas adicionais" value={form.observacoes}
                   onChange={e => field("observacoes", e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
-                />
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none" />
               </div>
 
-              {/* Error */}
-              {formError && (
-                <p className="text-xs text-red-600 font-medium">{formError}</p>
-              )}
+              {formError && <p className="text-xs text-red-600 font-medium">{formError}</p>}
 
-              {/* Actions */}
               <div className="flex gap-3 pt-1">
-                <button
-                  onClick={closeModal}
-                  disabled={saving}
-                  className="flex-1 py-2 rounded-lg text-xs font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
-                >
+                <button onClick={closeModal} disabled={saving}
+                  className="flex-1 py-2 rounded-lg text-xs font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50">
                   Cancelar
                 </button>
-                <button
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="flex-1 py-2 rounded-lg text-xs font-semibold bg-brand-600 hover:bg-brand-700 text-white transition-colors disabled:opacity-60"
-                >
-                  {saving ? "Salvando…" : "Salvar Oportunidade"}
+                <button onClick={handleSave} disabled={saving}
+                  className="flex-1 py-2 rounded-lg text-xs font-semibold bg-brand-600 hover:bg-brand-700 text-white transition-colors disabled:opacity-60">
+                  {saving ? "Salvando…" : editingId ? "Salvar Alterações" : "Salvar Oportunidade"}
                 </button>
               </div>
             </div>

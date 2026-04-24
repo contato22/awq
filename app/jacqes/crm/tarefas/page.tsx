@@ -2,21 +2,16 @@
 
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
-import SectionHeader from "@/components/SectionHeader";
 import EmptyState from "@/components/EmptyState";
 import {
   CheckSquare, AlertTriangle, Clock, Flame, BarChart2, Plus, X, ChevronDown,
+  Pencil, Trash2, CheckCircle2,
 } from "lucide-react";
 import type { CrmTask } from "@/lib/jacqes-crm-db";
 import { fetchCRM } from "@/lib/jacqes-crm-query";
+import { IS_STATIC, crmCreate, crmUpdate, crmDelete } from "@/lib/jacqes-crm-store";
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
-
-function fmtCurrency(n: number): string {
-  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  if (n >= 1_000)     return "R$" + Math.round(n / 1_000) + "K";
-  return "R$" + n;
-}
 
 function isPast(dateStr: string | null): boolean {
   if (!dateStr) return false;
@@ -38,14 +33,13 @@ const PRIO_BADGE: Record<string, string> = {
 };
 
 const STATUS_BADGE: Record<string, string> = {
-  Aberta:       "bg-blue-100 text-blue-700 border-blue-200",
-  "Em Andamento":"bg-amber-100 text-amber-700 border-amber-200",
-  Concluída:    "bg-emerald-100 text-emerald-700 border-emerald-200",
-  Bloqueada:    "bg-red-100 text-red-700 border-red-200",
-  Vencida:      "bg-red-100 text-red-700 border-red-200 badge-red",
+  Aberta:          "bg-blue-100 text-blue-700 border-blue-200",
+  "Em Andamento":  "bg-amber-100 text-amber-700 border-amber-200",
+  Concluída:       "bg-emerald-100 text-emerald-700 border-emerald-200",
+  Bloqueada:       "bg-red-100 text-red-700 border-red-200",
+  Vencida:         "bg-red-100 text-red-700 border-red-200",
 };
 
-// Static name lookup for linked entities
 const ENTITY_NAMES: Record<string, string> = {
   "cli-001": "CEM",
   "cli-002": "Carol Bertolini",
@@ -71,17 +65,20 @@ const CATEGORIAS = [
   "Follow-up Financeiro", "Reunião", "Outros",
 ];
 
+const STATUS_OPTIONS = ["Aberta", "Em Andamento", "Concluída", "Bloqueada"];
+
 type FormState = {
   titulo: string;
   categoria: string;
   prioridade: string;
+  status: string;
   responsavel: string;
   prazo: string;
   sla_horas: string;
 };
 
 const EMPTY_FORM: FormState = {
-  titulo: "", categoria: "Follow-up", prioridade: "Média",
+  titulo: "", categoria: "Follow-up", prioridade: "Média", status: "Aberta",
   responsavel: "", prazo: "", sla_horas: "24",
 };
 
@@ -93,6 +90,7 @@ export default function TarefasPage() {
   const [statusF, setStatusF]   = useState<StatusFilter>("Todos");
   const [prioF, setPrioF]       = useState<PrioFilter>("Todas");
   const [modal, setModal]       = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm]         = useState<FormState>(EMPTY_FORM);
   const [erro, setErro]         = useState("");
   const [saving, setSaving]     = useState(false);
@@ -117,31 +115,90 @@ export default function TarefasPage() {
     return matchStatus && matchPrio;
   });
 
+  function openEdit(t: CrmTask) {
+    setEditingId(t.id);
+    setForm({
+      titulo:      t.titulo,
+      categoria:   t.categoria,
+      prioridade:  t.prioridade,
+      status:      t.status,
+      responsavel: t.responsavel,
+      prazo:       t.prazo ?? "",
+      sla_horas:   String(t.sla_horas),
+    });
+    setErro("");
+    setModal(true);
+  }
+
+  function openCreate() {
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+    setErro("");
+    setModal(true);
+  }
+
   async function salvar() {
     if (!form.titulo.trim()) { setErro("Título é obrigatório."); return; }
     if (!form.prazo)         { setErro("Prazo é obrigatório."); return; }
-    if (!form.prioridade)    { setErro("Prioridade é obrigatória."); return; }
     setSaving(true);
+
+    const payload = {
+      titulo:      form.titulo.trim(),
+      categoria:   form.categoria,
+      prioridade:  form.prioridade,
+      status:      form.status,
+      responsavel: form.responsavel.trim(),
+      prazo:       form.prazo,
+      sla_horas:   parseInt(form.sla_horas) || 24,
+      data_criacao: new Date().toISOString().slice(0, 10),
+    };
+
     try {
-      const res = await fetch("/api/jacqes/crm/tarefas", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...form,
-          sla_horas: parseInt(form.sla_horas) || 24,
-        }),
-      });
-      if (!res.ok) throw new Error("Erro ao salvar");
-      const nova = await res.json();
-      setTarefas(prev => [nova.tarefa ?? nova, ...prev]);
+      if (IS_STATIC) {
+        if (editingId) {
+          crmUpdate<CrmTask>("tasks", editingId, payload);
+          setTarefas(prev => prev.map(t => t.id === editingId ? { ...t, ...payload } : t));
+        } else {
+          const nova = crmCreate<CrmTask>("tasks", payload as Omit<CrmTask, "id">, "task");
+          setTarefas(prev => [nova, ...prev]);
+        }
+      } else if (editingId) {
+        crmUpdate<CrmTask>("tasks", editingId, payload);
+        setTarefas(prev => prev.map(t => t.id === editingId ? { ...t, ...payload } : t));
+      } else {
+        const res = await fetch("/api/jacqes/crm/tarefas", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (res.ok) {
+          const nova = await res.json();
+          setTarefas(prev => [nova.tarefa ?? nova, ...prev]);
+        } else {
+          throw new Error("API error");
+        }
+      }
       setModal(false);
       setForm(EMPTY_FORM);
+      setEditingId(null);
       setErro("");
     } catch {
-      setErro("Falha ao criar tarefa. Tente novamente.");
+      setErro("Falha ao salvar. Tente novamente.");
     } finally {
       setSaving(false);
     }
+  }
+
+  function handleDelete(id: string) {
+    if (!confirm("Remover esta tarefa?")) return;
+    crmDelete("tasks", id);
+    setTarefas(prev => prev.filter(t => t.id !== id));
+  }
+
+  function concluirRapido(t: CrmTask) {
+    if (t.status === "Concluída") return;
+    crmUpdate<CrmTask>("tasks", t.id, { status: "Concluída" });
+    setTarefas(prev => prev.map(x => x.id === t.id ? { ...x, status: "Concluída" } : x));
   }
 
   const STATUS_TABS: StatusFilter[] = ["Todos", "Aberta", "Em Andamento", "Concluída", "Bloqueada", "Vencida"];
@@ -158,11 +215,11 @@ export default function TarefasPage() {
         {/* ── KPIs ───────────────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
           {[
-            { label: "Total Abertas",          value: String(abertas.length),      icon: CheckSquare,   color: "text-brand-600",   bg: "bg-brand-50"   },
-            { label: "Vencidas",               value: String(vencidas.length),     icon: AlertTriangle, color: "text-red-600",     bg: "bg-red-50"     },
-            { label: "No Prazo",               value: String(noPrazo.length),      icon: Clock,         color: "text-emerald-600", bg: "bg-emerald-50" },
-            { label: "Alta / Crítica",         value: String(altaCritica.length),  icon: Flame,         color: "text-amber-600",   bg: "bg-amber-50"   },
-            { label: "% Concluídas",           value: pctConcluidas + "%",         icon: BarChart2,     color: "text-teal-600",    bg: "bg-teal-50"    },
+            { label: "Total Abertas",  value: String(abertas.length),      icon: CheckSquare,   color: "text-brand-600",   bg: "bg-brand-50"   },
+            { label: "Vencidas",       value: String(vencidas.length),     icon: AlertTriangle, color: "text-red-600",     bg: "bg-red-50"     },
+            { label: "No Prazo",       value: String(noPrazo.length),      icon: Clock,         color: "text-emerald-600", bg: "bg-emerald-50" },
+            { label: "Alta / Crítica", value: String(altaCritica.length),  icon: Flame,         color: "text-amber-600",   bg: "bg-amber-50"   },
+            { label: "% Concluídas",   value: pctConcluidas + "%",         icon: BarChart2,     color: "text-teal-600",    bg: "bg-teal-50"    },
           ].map(card => {
             const Icon = card.icon;
             return (
@@ -183,7 +240,6 @@ export default function TarefasPage() {
         <div className="card p-5">
           <div className="flex flex-col gap-3 mb-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              {/* Status tabs */}
               <div className="flex gap-1.5 flex-wrap">
                 {STATUS_TABS.map(s => (
                   <button key={s} onClick={() => setStatusF(s)}
@@ -194,12 +250,11 @@ export default function TarefasPage() {
                   </button>
                 ))}
               </div>
-              <button onClick={() => { setModal(true); setErro(""); }}
+              <button onClick={openCreate}
                 className="flex items-center gap-1.5 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-700 px-3 py-1.5 rounded-lg transition-colors shrink-0">
                 <Plus size={13} /> Nova Tarefa
               </button>
             </div>
-            {/* Prioridade filter */}
             <div className="flex gap-1.5 flex-wrap">
               {PRIO_TABS.map(p => (
                 <button key={p} onClick={() => setPrioF(p)}
@@ -223,10 +278,10 @@ export default function TarefasPage() {
             />
           ) : (
             <div className="overflow-x-auto -mx-1">
-              <table className="w-full text-sm min-w-[900px]">
+              <table className="w-full text-sm min-w-[1000px]">
                 <thead>
                   <tr className="border-b border-gray-100">
-                    {["Título", "Vinculado a", "Categoria", "Prioridade", "Status", "Responsável", "Prazo", "SLA (h)", "Aging"].map(h => (
+                    {["Título", "Vinculado a", "Categoria", "Prioridade", "Status", "Responsável", "Prazo", "SLA (h)", "Aging", ""].map(h => (
                       <th key={h} className="px-3 py-2.5 text-left text-[11px] font-semibold text-gray-400 whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
@@ -236,39 +291,51 @@ export default function TarefasPage() {
                     const pastPrazo = isPast(t.prazo);
                     const aging     = daysSince(t.data_criacao);
                     return (
-                      <tr key={t.id} className="hover:bg-gray-50/60 transition-colors">
-                        {/* Título */}
+                      <tr key={t.id} className="hover:bg-gray-50/60 transition-colors group">
                         <td className="px-3 py-3">
                           <span className="font-medium text-gray-900 text-xs">{t.titulo}</span>
                         </td>
-                        {/* Vinculado a */}
                         <td className="px-3 py-3 text-xs text-gray-500">{vinculadoA(t)}</td>
-                        {/* Categoria */}
                         <td className="px-3 py-3 text-xs text-gray-500">{t.categoria}</td>
-                        {/* Prioridade */}
                         <td className="px-3 py-3">
                           <span className={`inline-flex text-[11px] font-semibold px-2 py-0.5 rounded-full border ${PRIO_BADGE[t.prioridade] ?? "bg-gray-100 text-gray-500 border-gray-200"}`}>
                             {t.prioridade}
                           </span>
                         </td>
-                        {/* Status */}
                         <td className="px-3 py-3">
                           <span className={`inline-flex text-[11px] font-semibold px-2 py-0.5 rounded-full border ${STATUS_BADGE[t.status] ?? "bg-gray-100 text-gray-500 border-gray-200"}`}>
                             {t.status}
                           </span>
                         </td>
-                        {/* Responsável */}
                         <td className="px-3 py-3 text-xs text-gray-600">{t.responsavel}</td>
-                        {/* Prazo */}
                         <td className="px-3 py-3">
                           <span className={`text-xs font-medium ${pastPrazo && t.status !== "Concluída" ? "text-red-600 font-semibold" : "text-gray-600"}`}>
                             {t.prazo ?? "—"}
                           </span>
                         </td>
-                        {/* SLA */}
                         <td className="px-3 py-3 text-xs text-gray-500">{t.sla_horas}h</td>
-                        {/* Aging */}
                         <td className="px-3 py-3 text-xs text-gray-400">{aging}d</td>
+                        <td className="px-3 py-3">
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {t.status !== "Concluída" && (
+                              <button onClick={() => concluirRapido(t)}
+                                title="Marcar como concluída"
+                                className="p-1 rounded hover:bg-emerald-50 text-gray-300 hover:text-emerald-600 transition-colors">
+                                <CheckCircle2 size={13} />
+                              </button>
+                            )}
+                            <button onClick={() => openEdit(t)}
+                              title="Editar"
+                              className="p-1 rounded hover:bg-blue-50 text-gray-300 hover:text-blue-600 transition-colors">
+                              <Pencil size={13} />
+                            </button>
+                            <button onClick={() => handleDelete(t.id)}
+                              title="Remover"
+                              className="p-1 rounded hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors">
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </td>
                       </tr>
                     );
                   })}
@@ -280,26 +347,24 @@ export default function TarefasPage() {
 
       </div>
 
-      {/* ── Modal: Nova Tarefa ─────────────────────────────────────────────────── */}
+      {/* ── Modal: Nova / Editar Tarefa ───────────────────────────────────────── */}
       {modal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
-              <h3 className="text-sm font-bold text-gray-900">Nova Tarefa</h3>
-              <button onClick={() => { setModal(false); setErro(""); }} className="text-gray-400 hover:text-gray-600">
+              <h3 className="text-sm font-bold text-gray-900">{editingId ? "Editar Tarefa" : "Nova Tarefa"}</h3>
+              <button onClick={() => { setModal(false); setErro(""); setEditingId(null); }} className="text-gray-400 hover:text-gray-600">
                 <X size={16} />
               </button>
             </div>
 
             <div className="space-y-3">
-              {/* Título */}
               <div>
                 <label className="text-xs font-semibold text-gray-600 block mb-1">Título *</label>
                 <input type="text" value={form.titulo} onChange={e => setForm(f => ({ ...f, titulo: e.target.value }))}
                   placeholder="Ex: Follow-up pagamento Carol" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
               </div>
 
-              {/* Categoria + Prioridade */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-gray-600 block mb-1">Categoria</label>
@@ -323,7 +388,24 @@ export default function TarefasPage() {
                 </div>
               </div>
 
-              {/* Responsável + SLA */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 block mb-1">Status</label>
+                  <div className="relative">
+                    <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
+                      className="w-full appearance-none border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 pr-8">
+                      {STATUS_OPTIONS.map(s => <option key={s}>{s}</option>)}
+                    </select>
+                    <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 block mb-1">SLA (horas)</label>
+                  <input type="number" value={form.sla_horas} onChange={e => setForm(f => ({ ...f, sla_horas: e.target.value }))}
+                    min="1" placeholder="24" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-gray-600 block mb-1">Responsável</label>
@@ -331,29 +413,22 @@ export default function TarefasPage() {
                     placeholder="Ex: Danilo" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-600 block mb-1">SLA (horas)</label>
-                  <input type="number" value={form.sla_horas} onChange={e => setForm(f => ({ ...f, sla_horas: e.target.value }))}
-                    min="1" placeholder="Ex: 24" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                  <label className="text-xs font-semibold text-gray-600 block mb-1">Prazo *</label>
+                  <input type="date" value={form.prazo} onChange={e => setForm(f => ({ ...f, prazo: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
                 </div>
-              </div>
-
-              {/* Prazo */}
-              <div>
-                <label className="text-xs font-semibold text-gray-600 block mb-1">Prazo *</label>
-                <input type="date" value={form.prazo} onChange={e => setForm(f => ({ ...f, prazo: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
               </div>
 
               {erro && <p className="text-xs text-red-600 font-medium">{erro}</p>}
 
               <div className="flex gap-3 pt-1">
-                <button onClick={() => { setModal(false); setErro(""); }}
+                <button onClick={() => { setModal(false); setErro(""); setEditingId(null); }}
                   className="flex-1 py-2 rounded-lg text-xs font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
                   Cancelar
                 </button>
                 <button onClick={salvar} disabled={saving}
                   className="flex-1 py-2 rounded-lg text-xs font-semibold bg-brand-600 hover:bg-brand-700 text-white transition-colors disabled:opacity-60">
-                  {saving ? "Salvando…" : "Criar Tarefa"}
+                  {saving ? "Salvando…" : editingId ? "Salvar Alterações" : "Criar Tarefa"}
                 </button>
               </div>
             </div>

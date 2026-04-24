@@ -6,13 +6,15 @@ import SectionHeader from "@/components/SectionHeader";
 import EmptyState from "@/components/EmptyState";
 import {
   TrendingUp, ArrowUpRight, RefreshCw, Layers, Plus,
-  User, Zap, Target, CheckCircle2,
+  User, Zap, Target, CheckCircle2, X, ChevronDown,
+  Pencil, Trash2,
 } from "lucide-react";
 import {
   type CrmExpansion,
   type CrmClient,
 } from "@/lib/jacqes-crm-db";
 import { fetchCRM } from "@/lib/jacqes-crm-query";
+import { IS_STATIC, crmCreate, crmUpdate, crmDelete } from "@/lib/jacqes-crm-store";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -24,6 +26,9 @@ function fmtCurrency(n: number): string {
 
 const TIPO_FILTERS = ["Todos", "Upsell", "Cross-sell", "Upgrade", "Projeto Extra", "Reativação"] as const;
 type TipoFilter = (typeof TIPO_FILTERS)[number];
+
+const TIPOS    = ["Upsell", "Cross-sell", "Upgrade", "Projeto Extra", "Reativação"];
+const STATUSES = ["Identificada", "Em Diagnóstico", "Proposta", "Fechado"];
 
 function statusColor(status: string): string {
   switch (status) {
@@ -46,20 +51,28 @@ function tipoColor(tipo: string): string {
   }
 }
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type FormState = {
+  tipo: string;
+  status: string;
+  valor_potencial: string;
+  owner: string;
+  proxima_acao: string;
+  observacoes: string;
+};
+
+const EMPTY_FORM: FormState = {
+  tipo: "Upsell", status: "Identificada", valor_potencial: "",
+  owner: "", proxima_acao: "", observacoes: "",
+};
+
 // ─── Components ───────────────────────────────────────────────────────────────
 
 function KpiCard({
-  label,
-  value,
-  sub,
-  icon: Icon,
-  color,
+  label, value, sub, icon: Icon, color,
 }: {
-  label: string;
-  value: string;
-  sub?: string;
-  icon: React.ElementType;
-  color: string;
+  label: string; value: string; sub?: string; icon: React.ElementType; color: string;
 }) {
   return (
     <div className="card p-4 flex items-start gap-3">
@@ -76,28 +89,41 @@ function KpiCard({
 }
 
 function ExpansionCard({
-  expansion,
-  client,
+  expansion, client, onEdit, onDelete,
 }: {
   expansion: CrmExpansion;
   client: CrmClient | undefined;
+  onEdit: () => void;
+  onDelete: () => void;
 }) {
   return (
-    <div className="card card-hover p-5 flex flex-col gap-3">
+    <div className="card card-hover p-5 flex flex-col gap-3 group">
       <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="text-sm font-semibold text-gray-900 truncate">
             {client?.nome ?? expansion.cliente_id}
           </div>
           <div className="text-xs text-gray-500 mt-0.5">{client?.segmento ?? "—"}</div>
         </div>
-        <div className="flex gap-1.5 shrink-0 flex-wrap justify-end">
-          <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${tipoColor(expansion.tipo)}`}>
-            {expansion.tipo}
-          </span>
-          <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${statusColor(expansion.status)}`}>
-            {expansion.status}
-          </span>
+        <div className="flex items-center gap-1 ml-2">
+          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button onClick={onEdit} title="Editar"
+              className="p-1 rounded hover:bg-blue-50 text-gray-300 hover:text-blue-600 transition-colors">
+              <Pencil size={13} />
+            </button>
+            <button onClick={onDelete} title="Remover"
+              className="p-1 rounded hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors">
+              <Trash2 size={13} />
+            </button>
+          </div>
+          <div className="flex gap-1.5 flex-wrap justify-end">
+            <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${tipoColor(expansion.tipo)}`}>
+              {expansion.tipo}
+            </span>
+            <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${statusColor(expansion.status)}`}>
+              {expansion.status}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -139,6 +165,11 @@ export default function ExpansaoPage() {
   const [clients, setClients] = useState<CrmClient[]>([]);
   const [tipoFilter, setTipoFilter] = useState<TipoFilter>("Todos");
   const [loading, setLoading] = useState(true);
+  const [modal, setModal] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [erro, setErro] = useState("");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -158,6 +189,80 @@ export default function ExpansaoPage() {
 
   const totalMrr = clients.reduce((s, c) => s + c.ticket_mensal, 0);
   const expansaoRatio = totalMrr > 0 ? ((totalPotencial / totalMrr) * 100).toFixed(0) : "0";
+
+  function openCreate() {
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+    setErro("");
+    setModal(true);
+  }
+
+  function openEdit(exp: CrmExpansion) {
+    setEditingId(exp.id);
+    setForm({
+      tipo:            exp.tipo,
+      status:          exp.status,
+      valor_potencial: String(exp.valor_potencial),
+      owner:           exp.owner,
+      proxima_acao:    exp.proxima_acao,
+      observacoes:     exp.observacoes ?? "",
+    });
+    setErro("");
+    setModal(true);
+  }
+
+  async function salvar() {
+    if (!form.owner.trim())        { setErro("Owner é obrigatório."); return; }
+    if (!form.proxima_acao.trim()) { setErro("Próxima ação é obrigatória."); return; }
+    const valor = parseFloat(form.valor_potencial);
+    if (isNaN(valor) || valor <= 0) { setErro("Valor potencial deve ser um número positivo."); return; }
+    setSaving(true);
+
+    const payload = {
+      tipo:            form.tipo,
+      status:          form.status,
+      valor_potencial: valor,
+      owner:           form.owner.trim(),
+      proxima_acao:    form.proxima_acao.trim(),
+      observacoes:     form.observacoes.trim() || null,
+      data_criacao:    new Date().toISOString().slice(0, 10),
+      cliente_id:      "cli-001",
+    };
+
+    try {
+      if (IS_STATIC) {
+        if (editingId) {
+          crmUpdate<CrmExpansion>("expansion", editingId, payload);
+          setExpansions(prev => prev.map(e => e.id === editingId ? { ...e, ...payload } : e));
+        } else {
+          const nova = crmCreate<CrmExpansion>("expansion", payload as Omit<CrmExpansion, "id">, "exp");
+          setExpansions(prev => [nova, ...prev]);
+        }
+      } else {
+        if (editingId) {
+          crmUpdate<CrmExpansion>("expansion", editingId, payload);
+          setExpansions(prev => prev.map(e => e.id === editingId ? { ...e, ...payload } : e));
+        } else {
+          const nova = crmCreate<CrmExpansion>("expansion", payload as Omit<CrmExpansion, "id">, "exp");
+          setExpansions(prev => [nova, ...prev]);
+        }
+      }
+      setModal(false);
+      setForm(EMPTY_FORM);
+      setEditingId(null);
+      setErro("");
+    } catch {
+      setErro("Falha ao salvar. Tente novamente.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function handleDelete(id: string) {
+    if (!confirm("Remover esta oportunidade de expansão?")) return;
+    crmDelete("expansion", id);
+    setExpansions(prev => prev.filter(e => e.id !== id));
+  }
 
   return (
     <>
@@ -199,7 +304,7 @@ export default function ExpansaoPage() {
           />
         </div>
 
-        {/* Filter bar */}
+        {/* Filter bar + New button */}
         <div className="card p-4 flex items-center gap-2 flex-wrap">
           <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mr-1">
             Filtrar por tipo:
@@ -217,6 +322,12 @@ export default function ExpansaoPage() {
               {t}
             </button>
           ))}
+          <div className="ml-auto">
+            <button onClick={openCreate}
+              className="flex items-center gap-1.5 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-700 px-3 py-1.5 rounded-lg transition-colors">
+              <Plus size={13} /> Nova Expansão
+            </button>
+          </div>
         </div>
 
         {/* Cards grid */}
@@ -239,7 +350,7 @@ export default function ExpansaoPage() {
             <EmptyState
               icon={<Layers size={20} className="text-gray-400" />}
               title="Nenhuma expansão encontrada"
-              description="Não há oportunidades de expansão para o filtro selecionado."
+              description="Crie uma nova oportunidade de expansão ou ajuste o filtro."
               compact
             />
           ) : (
@@ -249,6 +360,8 @@ export default function ExpansaoPage() {
                   key={exp.id}
                   expansion={exp}
                   client={clients.find((c) => c.id === exp.cliente_id)}
+                  onEdit={() => openEdit(exp)}
+                  onDelete={() => handleDelete(exp.id)}
                 />
               ))}
             </div>
@@ -285,6 +398,87 @@ export default function ExpansaoPage() {
           </div>
         </div>
       </div>
+
+      {/* ── Modal: Nova / Editar Expansão ─────────────────────────────────────── */}
+      {modal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-sm font-bold text-gray-900">{editingId ? "Editar Expansão" : "Nova Expansão"}</h3>
+              <button onClick={() => { setModal(false); setErro(""); setEditingId(null); }} className="text-gray-400 hover:text-gray-600">
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 block mb-1">Tipo</label>
+                  <div className="relative">
+                    <select value={form.tipo} onChange={e => setForm(f => ({ ...f, tipo: e.target.value }))}
+                      className="w-full appearance-none border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 pr-8">
+                      {TIPOS.map(t => <option key={t}>{t}</option>)}
+                    </select>
+                    <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 block mb-1">Status</label>
+                  <div className="relative">
+                    <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
+                      className="w-full appearance-none border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 pr-8">
+                      {STATUSES.map(s => <option key={s}>{s}</option>)}
+                    </select>
+                    <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 block mb-1">Valor Potencial (R$) *</label>
+                  <input type="number" value={form.valor_potencial} onChange={e => setForm(f => ({ ...f, valor_potencial: e.target.value }))}
+                    placeholder="Ex: 2500" min="0"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 block mb-1">Owner *</label>
+                  <input type="text" value={form.owner} onChange={e => setForm(f => ({ ...f, owner: e.target.value }))}
+                    placeholder="Ex: Danilo"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-gray-600 block mb-1">Próxima Ação *</label>
+                <input type="text" value={form.proxima_acao} onChange={e => setForm(f => ({ ...f, proxima_acao: e.target.value }))}
+                  placeholder="Ex: Apresentar proposta de upsell"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-gray-600 block mb-1">Observações</label>
+                <textarea value={form.observacoes} onChange={e => setForm(f => ({ ...f, observacoes: e.target.value }))}
+                  rows={2} placeholder="Contexto adicional..."
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none" />
+              </div>
+
+              {erro && <p className="text-xs text-red-600 font-medium">{erro}</p>}
+
+              <div className="flex gap-3 pt-1">
+                <button onClick={() => { setModal(false); setErro(""); setEditingId(null); }}
+                  className="flex-1 py-2 rounded-lg text-xs font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
+                  Cancelar
+                </button>
+                <button onClick={salvar} disabled={saving}
+                  className="flex-1 py-2 rounded-lg text-xs font-semibold bg-brand-600 hover:bg-brand-700 text-white transition-colors disabled:opacity-60">
+                  {saving ? "Salvando…" : editingId ? "Salvar Alterações" : "Criar Expansão"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
