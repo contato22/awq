@@ -3,9 +3,16 @@
 import { useState, useRef } from "react";
 import Link from "next/link";
 import {
-  AlertCircle, ArrowRight, Check, Circle,
-  FileUp, Plus, Search, Trash2, Upload, X,
+  AlertCircle, ArrowRight, Check, ChevronDown, ChevronUp, Circle,
+  FileUp, Loader2, Plus, Search, Trash2, Upload, X,
 } from "lucide-react";
+import {
+  importFinancialFile,
+  type ImportedTransaction,
+  type ImportResult,
+} from "@/lib/financial/importers";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type Status = "conciliado" | "pendente" | "divergente";
 
@@ -18,10 +25,17 @@ interface ReconciliationEntry {
   status: Status;
 }
 
+type ImportState =
+  | { kind: "idle" }
+  | { kind: "loading" }
+  | { kind: "done"; result: ImportResult }
+  | { kind: "error"; message: string };
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
 function fmtBRL(n: number) {
   const abs = Math.abs(n);
-  const sign = n < 0 ? "-" : "";
-  return sign + "R$ " + abs.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return (n < 0 ? "-" : "") + "R$ " + abs.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function fmtDate(s: string) {
@@ -33,6 +47,19 @@ function fmtDate(s: string) {
 function uid() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
+
+function txnToEntry(t: ImportedTransaction): ReconciliationEntry {
+  return {
+    id: uid(),
+    date: t.date,
+    description: t.description,
+    bankValue: t.amount,
+    internalValue: 0,
+    status: "pendente",
+  };
+}
+
+// ─── Status labels / colors ───────────────────────────────────────────────────
 
 const STATUS_LABEL: Record<Status, string> = {
   conciliado: "Conciliado",
@@ -52,6 +79,8 @@ const STATUS_ICON: Record<Status, React.ElementType> = {
   divergente: AlertCircle,
 };
 
+// ─── Seed rows ────────────────────────────────────────────────────────────────
+
 const SEED: ReconciliationEntry[] = [
   { id: uid(), date: "2026-04-01", description: "Pagamento fornecedor X",  bankValue: -3200.00, internalValue: -3200.00, status: "conciliado" },
   { id: uid(), date: "2026-04-03", description: "Receita serviços JACQES", bankValue:  8750.00, internalValue:  8750.00, status: "conciliado" },
@@ -61,10 +90,14 @@ const SEED: ReconciliationEntry[] = [
   { id: uid(), date: "2026-04-18", description: "Recebimento cliente A",   bankValue: 12400.00, internalValue: 12400.00, status: "conciliado" },
 ];
 
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export default function ConciliacaoManualSection() {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [importedFile, setImportedFile] = useState<File | null>(null);
-  const [importMsg, setImportMsg] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [importState, setImportState] = useState<ImportState>({ kind: "idle" });
+  const [showRejected, setShowRejected] = useState(false);
+
   const [search, setSearch] = useState("");
   const [entries, setEntries] = useState<ReconciliationEntry[]>(SEED);
   const [newDate, setNewDate] = useState("");
@@ -73,11 +106,48 @@ export default function ConciliacaoManualSection() {
   const [newInternal, setNewInternal] = useState("");
   const [showAddRow, setShowAddRow] = useState(false);
 
+  // ── File selection ──────────────────────────────────────────────────────────
+
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0] ?? null;
-    setImportedFile(f);
+    setSelectedFile(f);
+    setImportState({ kind: "idle" });
+    setShowRejected(false);
     if (e.target) e.target.value = "";
   }
+
+  function clearFile() {
+    setSelectedFile(null);
+    setImportState({ kind: "idle" });
+    setShowRejected(false);
+  }
+
+  // ── Import ──────────────────────────────────────────────────────────────────
+
+  async function handleImport() {
+    if (!selectedFile) return;
+    setImportState({ kind: "loading" });
+    setShowRejected(false);
+    try {
+      const result = await importFinancialFile(selectedFile);
+      setImportState({ kind: "done", result });
+    } catch (err) {
+      setImportState({
+        kind: "error",
+        message: err instanceof Error ? err.message : "Erro desconhecido ao processar o arquivo.",
+      });
+    }
+  }
+
+  function confirmImport(transactions: ImportedTransaction[]) {
+    const newEntries = transactions.map(txnToEntry);
+    setEntries((prev) => [...newEntries, ...prev]);
+    setSelectedFile(null);
+    setImportState({ kind: "idle" });
+    setShowRejected(false);
+  }
+
+  // ── Manual table ────────────────────────────────────────────────────────────
 
   function handleAddEntry() {
     if (!newDate || !newDesc) return;
@@ -100,6 +170,8 @@ export default function ConciliacaoManualSection() {
     );
   }
 
+  // ── Derived ─────────────────────────────────────────────────────────────────
+
   const filtered = entries.filter(
     (e) =>
       e.description.toLowerCase().includes(search.toLowerCase()) ||
@@ -113,15 +185,17 @@ export default function ConciliacaoManualSection() {
   const totalInterno = entries.reduce((s, e) => s + e.internalValue, 0);
   const diff = totalBanco - totalInterno;
 
+  // ─── Render ───────────────────────────────────────────────────────────────
+
   return (
     <div className="space-y-4">
 
       {/* KPIs resumo */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
-          { label: "Conciliados", value: conciliados, color: "text-emerald-600", bg: "bg-emerald-50", icon: Check       },
-          { label: "Pendentes",   value: pendentes,   color: "text-amber-600",   bg: "bg-amber-50",   icon: Circle      },
-          { label: "Divergentes", value: divergentes, color: "text-red-600",     bg: "bg-red-50",     icon: AlertCircle },
+          { label: "Conciliados", value: conciliados,  color: "text-emerald-600", bg: "bg-emerald-50", icon: Check       },
+          { label: "Pendentes",   value: pendentes,    color: "text-amber-600",   bg: "bg-amber-50",   icon: Circle      },
+          { label: "Divergentes", value: divergentes,  color: "text-red-600",     bg: "bg-red-50",     icon: AlertCircle },
           { label: "Diferença",   value: fmtBRL(diff), color: diff === 0 ? "text-emerald-600" : "text-red-600", bg: diff === 0 ? "bg-emerald-50" : "bg-red-50", icon: Check },
         ].map((c) => {
           const Icon = c.icon;
@@ -139,7 +213,74 @@ export default function ConciliacaoManualSection() {
         })}
       </div>
 
-      {/* Tabela de verificação */}
+      {/* ── Importar extrato ─────────────────────────────────────────────────── */}
+      <div className="card p-5 space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-brand-50 flex items-center justify-center shrink-0">
+            <Upload size={18} className="text-brand-600" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-semibold text-gray-900">Importar Extrato Bancário</div>
+            <div className="text-xs text-gray-500 mt-0.5">
+              Importe extratos nos formatos <span className="font-medium text-gray-700">CSV</span> ou{" "}
+              <span className="font-medium text-gray-700">PDF</span> (com texto selecionável) para popular a tabela de verificação
+            </div>
+            {selectedFile && (
+              <div className="mt-1.5 flex items-center gap-1.5 text-xs text-emerald-700 font-medium">
+                <Check size={12} />
+                {selectedFile.name}
+                <button onClick={clearFile} className="ml-1 text-gray-400 hover:text-red-500"><X size={10} /></button>
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,.pdf,.ofx"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-2 px-4 py-2.5 border-2 border-dashed border-brand-300 hover:border-brand-500 hover:bg-brand-50 text-brand-700 rounded-xl text-xs font-semibold transition-all"
+            >
+              <FileUp size={14} /> Selecionar arquivo
+            </button>
+            <button
+              onClick={() => void handleImport()}
+              disabled={!selectedFile || importState.kind === "loading"}
+              className="flex items-center gap-2 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-white rounded-xl text-xs font-semibold transition-colors"
+            >
+              {importState.kind === "loading" ? (
+                <><Loader2 size={14} className="animate-spin" /> Lendo arquivo…</>
+              ) : (
+                <><Upload size={14} /> Importar</>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* ── Import result feedback ─────────────────────────────────────────── */}
+        {importState.kind === "error" && (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-800 flex items-start gap-2">
+            <AlertCircle size={13} className="shrink-0 mt-0.5 text-red-500" />
+            <span>Não foi possível importar este arquivo. {importState.message}</span>
+          </div>
+        )}
+
+        {importState.kind === "done" && (
+          <ImportResultPanel
+            result={importState.result}
+            showRejected={showRejected}
+            onToggleRejected={() => setShowRejected((v) => !v)}
+            onConfirm={() => confirmImport(importState.result.transactions)}
+            onDiscard={clearFile}
+          />
+        )}
+      </div>
+
+      {/* ── Tabela de verificação manual ─────────────────────────────────────── */}
       <div className="card p-6">
         <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
           <div>
@@ -227,58 +368,133 @@ export default function ConciliacaoManualSection() {
         </div>
       </div>
 
-      {/* Importar extrato */}
-      <div className="card p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-        <div className="w-10 h-10 rounded-xl bg-brand-50 flex items-center justify-center shrink-0">
-          <Upload size={18} className="text-brand-600" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="text-sm font-semibold text-gray-900">Importar Extrato Bancário</div>
-          <div className="text-xs text-gray-500 mt-0.5">
-            Importe extratos nos formatos <span className="font-medium text-gray-700">OFX</span>,{" "}
-            <span className="font-medium text-gray-700">CSV</span> ou{" "}
-            <span className="font-medium text-gray-700">PDF</span> para conciliar automaticamente
+      {/* Link para ingestão completa */}
+      <div className="flex items-center gap-2 text-xs text-gray-500 px-1">
+        <ArrowRight size={12} className="text-gray-400 shrink-0" />
+        <span>
+          Para importação com processamento automatizado (OCR, classificação e reconciliação com DB),{" "}
+          <Link href="/awq/ingest" className="font-semibold text-brand-600 underline">use a Ingestão Bancária →</Link>
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Import result panel ───────────────────────────────────────────────────────
+
+function ImportResultPanel({
+  result,
+  showRejected,
+  onToggleRejected,
+  onConfirm,
+  onDiscard,
+}: {
+  result: ImportResult;
+  showRejected: boolean;
+  onToggleRejected: () => void;
+  onConfirm: () => void;
+  onDiscard: () => void;
+}) {
+  const ok  = result.transactions.length;
+  const bad = result.rejectedRows.length;
+  const hasWarnings = result.warnings.length > 0;
+
+  if (ok === 0 && hasWarnings) {
+    return (
+      <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800 space-y-2">
+        <div className="flex items-start gap-2">
+          <AlertCircle size={13} className="shrink-0 mt-0.5 text-amber-500" />
+          <div className="space-y-1">
+            {result.warnings.map((w, i) => <p key={i}>{w}</p>)}
           </div>
-          {importedFile && (
-            <div className="mt-2 flex items-center gap-1.5 text-xs text-emerald-700 font-medium">
-              <Check size={12} />{importedFile.name} selecionado
-              <button onClick={() => setImportedFile(null)} className="ml-1 text-gray-400 hover:text-red-500"><X size={10} /></button>
-            </div>
-          )}
+        </div>
+        <button onClick={onDiscard} className="text-xs text-amber-700 underline">Fechar</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 space-y-3">
+      {/* Summary */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="text-xs text-emerald-800 space-y-0.5">
+          <p className="font-semibold">
+            {ok > 0
+              ? `${ok} transaç${ok === 1 ? "ão" : "ões"} importada${ok === 1 ? "" : "s"} com sucesso`
+              : "Nenhuma transação reconhecida"}
+            {bad > 0 && `, ${bad} linha${bad === 1 ? "" : "s"} não reconhecida${bad === 1 ? "" : "s"}`}
+          </p>
+          <p className="text-emerald-700 opacity-80">{result.fileName} · {result.fileType.toUpperCase()}</p>
+          {result.warnings.map((w, i) => (
+            <p key={i} className="text-amber-700">{w}</p>
+          ))}
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <input ref={fileInputRef} type="file" accept=".ofx,.csv,.pdf" onChange={handleFileChange} className="hidden" />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-2 px-4 py-2.5 border-2 border-dashed border-brand-300 hover:border-brand-500 hover:bg-brand-50 text-brand-700 rounded-xl text-xs font-semibold transition-all"
-          >
-            <FileUp size={14} /> Selecionar arquivo
-          </button>
-          {importedFile ? (
+          {ok > 0 && (
             <button
-              onClick={() => {
-                setImportMsg("Para importar extratos com processamento completo, use a Ingestão Bancária.");
-                setTimeout(() => setImportMsg(null), 5000);
-              }}
-              className="flex items-center gap-2 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-semibold transition-colors"
+              onClick={onConfirm}
+              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-colors"
             >
-              <Upload size={14} /> Importar
+              Adicionar {ok} à tabela
             </button>
-          ) : (
-            <Link href="/awq/ingest" className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-semibold transition-colors">
-              <ArrowRight size={14} /> Ver Ingestão completa
-            </Link>
           )}
+          <button
+            onClick={onDiscard}
+            className="px-3 py-1.5 border border-gray-300 text-gray-600 hover:bg-gray-100 rounded-lg text-xs transition-colors"
+          >
+            Cancelar
+          </button>
         </div>
       </div>
 
-      {importMsg && (
-        <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-xs text-blue-800 flex items-start gap-2">
-          <ArrowRight size={13} className="text-blue-500 shrink-0 mt-0.5" />
-          <span>
-            {importMsg}{" "}
-            <Link href="/awq/ingest" className="font-semibold underline">Ir para Ingestão Bancária →</Link>
-          </span>
+      {/* Preview of first 5 transactions */}
+      {ok > 0 && (
+        <div className="overflow-x-auto rounded border border-emerald-200 bg-white text-xs">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-emerald-100 text-[10px] uppercase tracking-wide text-gray-500">
+                <th className="px-3 py-1.5 text-left">Data</th>
+                <th className="px-3 py-1.5 text-left">Descrição</th>
+                <th className="px-3 py-1.5 text-right">Valor Banco</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {result.transactions.slice(0, 5).map((t) => (
+                <tr key={t.id}>
+                  <td className="px-3 py-1.5 text-gray-500 whitespace-nowrap">{t.date}</td>
+                  <td className="px-3 py-1.5 text-gray-800 max-w-xs truncate">{t.description}</td>
+                  <td className={`px-3 py-1.5 text-right font-mono font-medium ${t.amount >= 0 ? "text-emerald-700" : "text-red-600"}`}>
+                    {t.amount >= 0 ? "+" : ""}{t.amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {ok > 5 && (
+            <div className="px-3 py-1.5 text-[10px] text-gray-400 border-t border-gray-100">
+              … e mais {ok - 5} transaç{ok - 5 === 1 ? "ão" : "ões"}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Rejected rows (collapsible) */}
+      {bad > 0 && (
+        <div>
+          <button
+            onClick={onToggleRejected}
+            className="flex items-center gap-1 text-[11px] text-amber-700 hover:text-amber-900"
+          >
+            {showRejected ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+            {bad} linha{bad === 1 ? "" : "s"} não reconhecida{bad === 1 ? "" : "s"}
+          </button>
+          {showRejected && (
+            <div className="mt-2 max-h-32 overflow-y-auto rounded bg-amber-100 border border-amber-200 px-3 py-2 space-y-0.5">
+              {result.rejectedRows.map((r, i) => (
+                <p key={i} className="text-[10px] font-mono text-amber-900 truncate">{r}</p>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
