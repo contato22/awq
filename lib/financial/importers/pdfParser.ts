@@ -6,11 +6,14 @@ function uid() {
 }
 
 // ─── Coordinate-based line reconstruction ─────────────────────────────────────
-// pdfjs returns text items with 2D transform matrices; transform[4] = X, transform[5] = Y.
-// Items on the same visual line share roughly the same Y. We group by Y (with tolerance),
-// sort each group left-to-right by X, then join — giving us actual readable lines.
+// pdfjs returns text items with 2D transform matrices; transform[4]=X, transform[5]=Y.
+// We group items by Y position (with tolerance for same-row items in multi-column tables),
+// sort each group left-to-right by X, then join into readable lines.
+//
+// Y_TOLERANCE=10 handles Bradesco/Itaú tables where cells have 2-8pt vertical variation
+// within the same row but rows are ≥14pt apart.
 
-const Y_TOLERANCE = 4; // pixels; items within this range are on the same line
+const Y_TOLERANCE = 10;
 
 interface TextItem {
   str: string;
@@ -18,22 +21,33 @@ interface TextItem {
 }
 
 function reconstructLines(items: TextItem[]): string[] {
-  const buckets = new Map<number, { str: string; x: number }[]>();
+  if (items.length === 0) return [];
 
-  for (const item of items) {
-    const raw = item.str;
-    if (!raw.trim()) continue;
-    const y = Math.round(item.transform[5] / Y_TOLERANCE) * Y_TOLERANCE;
-    const x = item.transform[4];
-    if (!buckets.has(y)) buckets.set(y, []);
-    buckets.get(y)!.push({ str: raw, x });
+  // Sort by Y descending then X ascending
+  const valid = items
+    .filter((i) => i.str.trim())
+    .sort((a, b) => b.transform[5] - a.transform[5] || a.transform[4] - b.transform[4]);
+
+  const lines: { str: string; x: number }[][] = [];
+  let curLine: { str: string; x: number }[] = [];
+  let lineY = valid[0].transform[5];
+
+  for (const item of valid) {
+    const y = item.transform[5];
+    if (Math.abs(y - lineY) <= Y_TOLERANCE) {
+      curLine.push({ str: item.str, x: item.transform[4] });
+    } else {
+      if (curLine.length) lines.push(curLine);
+      curLine = [{ str: item.str, x: item.transform[4] }];
+      lineY = y;
+    }
   }
+  if (curLine.length) lines.push(curLine);
 
-  return Array.from(buckets.entries())
-    .sort(([a], [b]) => b - a) // descending Y = top of page first
-    .map(([, group]) =>
+  return lines
+    .map((group) =>
       group
-        .sort((a, b) => a.x - b.x) // left to right
+        .sort((a, b) => a.x - b.x)
         .map((g) => g.str)
         .join(" ")
         .trim()
@@ -41,32 +55,48 @@ function reconstructLines(items: TextItem[]): string[] {
     .filter((line) => line.length > 2);
 }
 
+// ─── Non-transaction line filter ──────────────────────────────────────────────
+// Skip summary, header, and balance rows that are not actual transactions.
+const SKIP_LINE = new RegExp(
+  "^\\s*(?:" +
+  "saldo\\s+do\\s+dia|saldo\\s+anterior|saldo\\s+inicial|saldo\\s+final|saldo\\s+dispon[ií]vel|" +
+  "total\\s+de\\s+(?:entradas|sa[ií]das|movimenta[çc][oõ]es|d[ée]bitos|cr[ée]ditos)|" +
+  "extrato\\s+do\\s+per[ií]odo|per[ií]odo\\s+de|" +
+  "data\\s+hist[oó]rico|hist[oó]rico\\s+doc|" +
+  "ag[eê]ncia|conta\\s+corrente|conta\\s+poupan[çc]a|banco\\s+bradesco|banco\\s+btg|" +
+  "cnpj|cpf|nome\\s+do\\s+correntista|endere[çc]o|" +
+  "p[áa]gina\\s+\\d|folha\\s+\\d|impresso\\s+em|emitido\\s+em|" +
+  "(?:jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)\\.?\\s+\\d{4}" +
+  ")", "i"
+);
+
 // ─── Transaction line patterns ────────────────────────────────────────────────
-// Covers common Brazilian bank statement formats:
-//   DD/MM/AAAA description amount               (full date, Itaú, Bradesco)
-//   DD/MM description amount                    (short date — Cora, Inter, Nubank)
-//   AAAA-MM-DD description amount               (ISO date)
-//   DD/MM description amount C                  (Cora: trailing C/D indicator)
-//   DD/MM description amount saldo              (with running balance column)
-//   DD/MM description amount C saldo            (Cora with both)
+// Handles:
+//   DD/MM/AAAA  [doc#]  description  amount  [C|D]  [balance]   (Bradesco, Itaú)
+//   DD/MM       [doc#]  description  amount  [C|D]  [balance]   (Cora, Inter, Nubank)
+//   AAAA-MM-DD          description  amount  [C|D]  [balance]   (ISO date)
+//   any line starting with a date and containing at least one amount
 
 const DATE_FULL  = /\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/;
 const DATE_SHORT = /\d{1,2}[\/\-]\d{1,2}/;
 const DATE_ISO   = /\d{4}-\d{2}-\d{2}/;
-// Matches amounts like: 1.234,56  1234,56  1.234.567,89  R$ 1.234,56  -1.234,56
-const AMOUNT_PAT = /(?:R\$\s*)?[-+]?(?:\d{1,3}\.)*\d{1,3}[.,]\d{2}/;
-// Trailing noise after the amount: C D Cr Db crédito débito + optional running balance
-const TRAIL = /(?:\s+(?:[CcDd][Rr]?[ée]?(?:dito|bito)?|Entrada|Saída))?(?:\s+(?:R\$\s*)?[-+]?(?:\d{1,3}\.)*\d{1,3}[.,]\d{2})*\s*$/;
+const DATE_ANY   = new RegExp(`(${DATE_FULL.source}|${DATE_ISO.source}|${DATE_SHORT.source})`);
+const AMOUNT_RE  = /(?:R\$\s*)?[-+]?(?:\d{1,3}\.)*\d{1,3}[.,]\d{2}/g;
 
-// Build a single regex that captures date | description | amount and ignores trailing columns
-function makeTxnRe(datePat: RegExp): RegExp {
-  return new RegExp(
-    `^(${datePat.source})\\s+(.+?)\\s+(${AMOUNT_PAT.source})${TRAIL.source}`
-  );
+// Credit/debit indicator immediately after last transaction amount
+const CD_INDICATOR = /\s+([CcDd])[^a-zA-Z0-9,.]|^\s*([CcDd])$/;
+
+function extractCDSign(tail: string): "credit" | "debit" | null {
+  // Tail is the text after the transaction amount
+  const m = /^\s*([CcDd])(?:\s|$|[^a-zA-Z])/.exec(tail)
+         ?? /^\s*(?:créd(?:ito)?|entr(?:ada)?)$/i.exec(tail)
+         ?? /^\s*(?:déb(?:ito)?|saíd(?:a)?)$/i.exec(tail);
+  if (!m) return null;
+  const c = (m[1] ?? m[0]).trim().toLowerCase();
+  if (c === "c" || c.startsWith("cr") || c.startsWith("en")) return "credit";
+  if (c === "d" || c.startsWith("dé") || c.startsWith("sa")) return "debit";
+  return null;
 }
-
-const TXN_FULL  = makeTxnRe(new RegExp(`${DATE_FULL.source}|${DATE_ISO.source}`));
-const TXN_SHORT = makeTxnRe(DATE_SHORT);
 
 function parseLines(lines: string[]): Pick<ImportResult, "transactions" | "rejectedRows" | "warnings"> {
   const transactions: ImportedTransaction[] = [];
@@ -77,26 +107,48 @@ function parseLines(lines: string[]): Pick<ImportResult, "transactions" | "rejec
     const t = raw.trim();
     if (t.length < 8) continue;
 
-    let m = TXN_FULL.exec(t) ?? TXN_SHORT.exec(t);
-    if (!m) {
+    // Skip non-transaction content (headers, summaries, balance rows)
+    if (SKIP_LINE.test(t)) continue;
+
+    // Must start with a date
+    const dateMatch = DATE_ANY.exec(t);
+    if (!dateMatch || dateMatch.index > 2) {
       if (t.length > 6) rejectedRows.push(t);
       continue;
     }
 
-    let rawDate = m[1];
-    // Inject year for short dates like "01/04"
+    let rawDate = dateMatch[1];
     if (/^\d{1,2}[\/\-]\d{1,2}$/.test(rawDate)) {
       rawDate = `${rawDate}/${currentYear}`;
     }
-
     const date = parseDate(rawDate);
     if (!date) { rejectedRows.push(t); continue; }
 
-    const desc = m[2].trim();
-    // Strip R$ prefix before parsing amount
-    const rawAmt = m[3].replace(/^R\$\s*/, "");
-    const amount = parseAmount(rawAmt);
+    // Find all amounts in the rest of the line
+    const rest = t.slice(dateMatch.index + dateMatch[0].length).trim();
+    const amounts = [...rest.matchAll(AMOUNT_RE)];
+    if (amounts.length === 0) { rejectedRows.push(t); continue; }
+
+    // Heuristic: if there are ≥2 amounts, the last one is likely the running balance.
+    // Use the second-to-last as the transaction amount, otherwise use the only/last one.
+    const txnAmtMatch = amounts.length >= 2 ? amounts[amounts.length - 2] : amounts[amounts.length - 1];
+    const txnAmtRaw   = txnAmtMatch[0].replace(/^R\$\s*/, "");
+    let amount = parseAmount(txnAmtRaw);
     if (amount === null) { rejectedRows.push(t); continue; }
+
+    // Determine credit/debit from C/D indicator after the transaction amount
+    const txnAmtEnd = rest.indexOf(txnAmtMatch[0]) + txnAmtMatch[0].length;
+    const tail = rest.slice(txnAmtEnd);
+    const cdSign = extractCDSign(tail);
+    if (cdSign === "debit" && amount > 0) amount = -amount;
+    else if (cdSign === "credit" && amount < 0) amount = Math.abs(amount);
+
+    // Extract description: everything between date and first amount, minus doc numbers
+    const firstAmtIdx = rest.indexOf(amounts[0][0]);
+    let desc = rest.slice(0, firstAmtIdx).trim();
+    // Remove leading doc# (pure digit sequences ≤12 chars)
+    desc = desc.replace(/^\d{1,12}\s+/, "").trim();
+    if (!desc) desc = rest.slice(0, Math.max(firstAmtIdx, 4)).trim() || t;
 
     transactions.push({
       id: uid(),
