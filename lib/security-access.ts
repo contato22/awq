@@ -100,7 +100,7 @@ export const PERMISSION_MATRIX: Record<SecurityRole, Partial<Record<SecurityLaye
   operator: {
     holding:     [],
     jacqes:      ["view","create","update"],
-    caza_vision: ["view"],
+    caza_vision: ["view","create","update","delete"],
     awq_venture: [],
     advisor:     [],
     financeiro:  [],
