@@ -151,29 +151,37 @@ function FunnelBar({
   count,
   maxCount,
   value,
+  totalOpps,
 }: {
   stage: string;
   count: number;
   maxCount: number;
   value: number;
+  totalOpps: number;
 }) {
-  const pct = maxCount > 0 ? (count / maxCount) * 100 : 0;
-  const isLost = stage === "Fechado Perdido";
-  const isWon  = stage === "Fechado Ganho";
+  const widthPct  = maxCount > 0 ? (count / maxCount) * 100 : 0;
+  const sharePct  = totalOpps > 0 ? Math.round((count / totalOpps) * 100) : 0;
+  const isLost    = stage === "Fechado Perdido";
+  const isWon     = stage === "Fechado Ganho";
 
   return (
-    <div className="flex items-center gap-3 py-1.5">
+    <div className="flex items-center gap-3 py-2 group">
       <div className="w-36 text-xs text-gray-600 font-medium shrink-0 truncate">{stage}</div>
-      <div className="flex-1 h-5 bg-gray-100 rounded overflow-hidden relative">
+      <div className="flex-1 h-6 bg-gray-100 rounded-lg overflow-hidden relative">
         <div
-          className={`h-full rounded transition-all ${
+          className={`h-full rounded-lg transition-all ${
             isWon ? "bg-emerald-400" : isLost ? "bg-red-300" : "bg-brand-400"
           }`}
-          style={{ width: `${pct}%` }}
+          style={{ width: `${widthPct}%` }}
         />
+        {count > 0 && (
+          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-white mix-blend-difference pointer-events-none">
+            {sharePct}%
+          </span>
+        )}
       </div>
       <div className="w-6 text-xs font-bold text-gray-700 text-right shrink-0">{count}</div>
-      <div className="w-16 text-xs text-gray-400 text-right shrink-0">{fmtCurrency(value)}</div>
+      <div className="w-20 text-xs text-gray-400 text-right shrink-0">{value > 0 ? fmtCurrency(value) : "—"}</div>
     </div>
   );
 }
@@ -296,7 +304,7 @@ export default function RelatoriosPage() {
               compact
             />
           ) : (
-            <div className="space-y-0.5">
+            <div className="space-y-0">
               {stageData.map(({ stage, count, value }) => (
                 <FunnelBar
                   key={stage}
@@ -304,6 +312,7 @@ export default function RelatoriosPage() {
                   count={count}
                   maxCount={maxCount}
                   value={value}
+                  totalOpps={opps.length}
                 />
               ))}
             </div>
@@ -328,14 +337,17 @@ export default function RelatoriosPage() {
           <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mr-1">
             Exportar:
           </span>
-          {["Pipeline CSV", "Health Score", "Conversão", "Relatório Completo"].map((label) => (
+          {["Pipeline CSV", "Health Score", "Conversão"].map((label) => (
             <button
               key={label}
-              className={label === "Relatório Completo" ? "btn-primary" : "btn-secondary"}
+              className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
             >
               {label}
             </button>
           ))}
+          <button className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white transition-colors">
+            Relatório Completo
+          </button>
         </div>
       </div>
     </>

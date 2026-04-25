@@ -6,7 +6,7 @@ import SectionHeader from "@/components/SectionHeader";
 import EmptyState from "@/components/EmptyState";
 import {
   Users, DollarSign, CheckCircle2, TrendingUp, ArrowUpRight,
-  Percent, AlertTriangle,
+  Percent, AlertTriangle, Search,
 } from "lucide-react";
 import type { CrmClient, CrmExpansion } from "@/lib/jacqes-crm-db";
 import { fetchCRM } from "@/lib/jacqes-crm-query";
@@ -59,6 +59,7 @@ export default function CarteiraActivaPage() {
   const [clientes,  setClientes]  = useState<CrmClient[]>([]);
   const [expansion, setExpansion] = useState<CrmExpansion[]>([]);
   const [loading,   setLoading]   = useState(true);
+  const [search,    setSearch]    = useState("");
 
   useEffect(() => {
     Promise.all([
@@ -68,6 +69,13 @@ export default function CarteiraActivaPage() {
       .catch(() => setLoading(false));
   }, []);
 
+  const clientesFiltrados = search.trim()
+    ? clientes.filter(c =>
+        c.nome.toLowerCase().includes(search.toLowerCase()) ||
+        c.produto_ativo.toLowerCase().includes(search.toLowerCase()) ||
+        c.segmento.toLowerCase().includes(search.toLowerCase())
+      )
+    : clientes;
   const ativos         = clientes.filter(c => c.status_conta === "Ativo");
   const emAtencao      = clientes.filter(c => c.status_conta === "Em Atenção");
   const emRisco        = clientes.filter(c => c.status_conta === "Em Risco");
@@ -137,15 +145,28 @@ export default function CarteiraActivaPage() {
 
         {/* ── Client Cards ───────────────────────────────────────────────────── */}
         <div>
-          <SectionHeader
-            icon={<Users size={15} />}
-            title="Contratos Ativos"
-            badge={
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-brand-50 text-brand-700 border border-brand-200">
-                {clientes.length} clientes
-              </span>
-            }
-          />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <SectionHeader
+              icon={<Users size={15} />}
+              title="Contratos Ativos"
+              badge={
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-brand-50 text-brand-700 border border-brand-200">
+                  {clientesFiltrados.length} clientes
+                </span>
+              }
+              className="mb-0"
+            />
+            <div className="relative max-w-xs">
+              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Buscar cliente ou produto…"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 text-gray-800 placeholder:text-gray-400"
+              />
+            </div>
+          </div>
 
           {loading ? (
             <div className="text-sm text-gray-400 py-12 text-center">Carregando carteira…</div>
@@ -157,7 +178,7 @@ export default function CarteiraActivaPage() {
             />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-4">
-              {clientes.map(c => {
+              {clientesFiltrados.map(c => {
                 const exp = expansion.find(e => e.cliente_id === c.id && e.status !== "Fechado");
                 const barColor = STATUS_BAR[c.status_conta] ?? "bg-gray-300";
                 const avatarColor = STATUS_AVATAR[c.status_conta] ?? "bg-gray-100 text-gray-500";

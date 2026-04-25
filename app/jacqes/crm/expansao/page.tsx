@@ -187,6 +187,11 @@ export default function ExpansaoPage() {
       ? expansions
       : expansions.filter((e) => e.tipo === tipoFilter);
 
+  const countsByTipo = TIPO_FILTERS.reduce((acc, t) => {
+    acc[t] = t === "Todos" ? expansions.length : expansions.filter(e => e.tipo === t).length;
+    return acc;
+  }, {} as Record<string, number>);
+
   const totalMrr = clients.reduce((s, c) => s + c.ticket_mensal, 0);
   const expansaoRatio = totalMrr > 0 ? ((totalPotencial / totalMrr) * 100).toFixed(0) : "0";
 
@@ -313,13 +318,18 @@ export default function ExpansaoPage() {
             <button
               key={t}
               onClick={() => setTipoFilter(t)}
-              className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors border ${
+              className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-semibold transition-colors border ${
                 tipoFilter === t
                   ? "bg-brand-600 text-white border-brand-600"
                   : "bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50"
               }`}
             >
               {t}
+              <span className={`text-[10px] font-bold px-1 py-0.5 rounded ${
+                tipoFilter === t ? "bg-white/20 text-white" : "bg-gray-200 text-gray-500"
+              }`}>
+                {countsByTipo[t] ?? 0}
+              </span>
             </button>
           ))}
           <div className="ml-auto">

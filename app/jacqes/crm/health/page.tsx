@@ -180,10 +180,14 @@ function HealthCard({
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+const RISK_TABS = ["Todos", "Baixo", "Médio", "Alto"] as const;
+type RiskFilter = (typeof RISK_TABS)[number];
+
 export default function HealthPage() {
   const [snapshots, setSnapshots] = useState<CrmHealthSnapshot[]>([]);
   const [clients,   setClients]   = useState<CrmClient[]>([]);
   const [loading,   setLoading]   = useState(true);
+  const [riskFilter, setRiskFilter] = useState<RiskFilter>("Todos");
 
   useEffect(() => {
     Promise.all([
@@ -191,6 +195,15 @@ export default function HealthPage() {
       fetchCRM<CrmClient>("clients"),
     ]).then(([h, c]) => { setSnapshots(h); setClients(c); setLoading(false); });
   }, []);
+
+  const filteredSnapshots = riskFilter === "Todos"
+    ? snapshots
+    : snapshots.filter(h => h.churn_risk === riskFilter);
+
+  const countsByRisk = RISK_TABS.reduce((acc, r) => {
+    acc[r] = r === "Todos" ? snapshots.length : snapshots.filter(h => h.churn_risk === r).length;
+    return acc;
+  }, {} as Record<string, number>);
 
   const avgHealth    = snapshots.length
     ? Math.round(snapshots.reduce((s, h) => s + h.health_score, 0) / snapshots.length)
@@ -251,13 +264,36 @@ export default function HealthPage() {
 
         {/* Health Matrix */}
         <div>
-          <SectionHeader
-            icon={<HeartPulse size={15} />}
-            title="Health Matrix — Carteira de Clientes"
-            badge={
-              <span className="badge badge-blue ml-1">{snapshots.length}</span>
-            }
-          />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <SectionHeader
+              icon={<HeartPulse size={15} />}
+              title="Health Matrix — Carteira de Clientes"
+              badge={
+                <span className="badge badge-blue ml-1">{filteredSnapshots.length}</span>
+              }
+              className="mb-0"
+            />
+            <div className="flex gap-1.5 flex-wrap">
+              {RISK_TABS.map(r => (
+                <button key={r} onClick={() => setRiskFilter(r)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+                    riskFilter === r
+                      ? r === "Alto" ? "bg-red-600 text-white border-red-600"
+                        : r === "Médio" ? "bg-amber-500 text-white border-amber-500"
+                        : r === "Baixo" ? "bg-emerald-600 text-white border-emerald-600"
+                        : "bg-brand-600 text-white border-brand-600"
+                      : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+                  }`}>
+                  {r}
+                  <span className={`text-[10px] font-bold px-1 py-0.5 rounded ${
+                    riskFilter === r ? "bg-white/20 text-white" : "bg-gray-200 text-gray-500"
+                  }`}>
+                    {countsByRisk[r] ?? 0}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
 
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -274,7 +310,7 @@ export default function HealthPage() {
             />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-              {snapshots.map((snap) => (
+              {filteredSnapshots.map((snap) => (
                 <HealthCard
                   key={snap.id}
                   snapshot={snap}
