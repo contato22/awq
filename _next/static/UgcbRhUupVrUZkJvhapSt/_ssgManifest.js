@@ -1,0 +1,1 @@
+self.__SSG_MANIFEST=new Set(["\u002Fawq-venture\u002Fdeals\u002F[id]","\u002Fawq-venture\u002Fdeals\u002F[id]\u002Fhistory","\u002Fawq-venture\u002Fdeals\u002F[id]\u002Fnegotiation","\u002Fawq-venture\u002Fdeals\u002F[id]\u002Fpdf","\u002Fawq-venture\u002Fdeals\u002F[id]\u002Fshare"]);self.__SSG_MANIFEST_CB&&self.__SSG_MANIFEST_CB()
