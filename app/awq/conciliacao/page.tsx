@@ -15,7 +15,6 @@
 import Link from "next/link";
 import Header from "@/components/Header";
 import ReconciliationReviewTable from "@/components/ReconciliationReviewTable";
-import ConciliacaoManualSection from "@/components/ConciliacaoManualSection";
 import { getAllTransactions, getAllDocuments } from "@/lib/financial-db";
 import {
   AlertCircle,
@@ -205,18 +204,7 @@ export default async function ConciliacaoPage() {
           </div>
         </section>
 
-        {/* ── Seção 2: Verificação Manual ── */}
-        <section className="space-y-4">
-          <div>
-            <h2 className="text-sm font-bold text-gray-900">Verificação Manual</h2>
-            <p className="text-xs text-gray-500 mt-0.5">
-              Compare lançamentos internos com o extrato bancário linha a linha e importe arquivos OFX/CSV/PDF
-            </p>
-          </div>
-          <ConciliacaoManualSection />
-        </section>
-
-        {/* ── Seção 3: Impacto da Conciliação ── */}
+        {/* ── Seção 2: Impacto da Conciliação ── */}
         <section className="rounded-xl border border-gray-200 bg-white p-5">
           <div className="flex items-start gap-3 mb-3">
             <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0">

@@ -16,12 +16,14 @@
 // Immutable fields: amount, transactionDate, descriptionOriginal,
 //                   accountName, bank, entity, documentId, direction.
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import type {
   BankTransaction,
   ManagerialCategory,
   ReconciliationStatus,
 } from "@/lib/financial-db";
+import type { ImportResult } from "@/lib/financial/importers/types";
+import { AlertTriangle, ChevronDown, ChevronUp, Upload, X } from "lucide-react";
 
 // ─── Taxonomies & labels ──────────────────────────────────────────────────────
 
@@ -152,6 +154,34 @@ function applyOverrides(
   );
 }
 
+// ─── Importer helper ─────────────────────────────────────────────────────────
+
+function importedToBankTx(t: import("@/lib/financial/importers/types").ImportedTransaction): BankTransaction {
+  const direction = t.amount >= 0 ? "credit" : "debit";
+  return {
+    id: t.id,
+    documentId: "manual-import",
+    bank: "Manual",
+    accountName: "Importado",
+    entity: "Unknown",
+    transactionDate: t.date,
+    descriptionOriginal: t.description,
+    amount: Math.abs(t.amount),
+    direction,
+    runningBalance: null,
+    counterpartyName: null,
+    managerialCategory: direction === "credit" ? "recebimento_ambiguo" : "despesa_ambigua",
+    classificationConfidence: "ambiguous",
+    classificationNote: `Importado via ${t.source.toUpperCase()}`,
+    isIntercompany: false,
+    intercompanyMatchId: null,
+    excludedFromConsolidated: false,
+    reconciliationStatus: "pendente",
+    extractedAt: new Date().toISOString(),
+    classifiedAt: null,
+  };
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 type Filter = "todos" | ReconciliationStatus;
@@ -170,6 +200,12 @@ export default function ReconciliationReviewTable({
   const [toast, setToast] = useState<{ kind: "ok" | "err" | "info"; msg: string } | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [, startTransition] = useTransition();
+
+  // Import state
+  const [importResult, setImportResult] = useState<ImportResult | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [showRejected, setShowRejected] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // On mount (static mode): merge build-time data + localStorage
   useEffect(() => {
@@ -289,6 +325,46 @@ export default function ReconciliationReviewTable({
     }
   }
 
+  async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    setIsImporting(true);
+    setImportResult(null);
+    setShowRejected(false);
+    try {
+      const { importFinancialFile } = await import("@/lib/financial/importers");
+      const result = await importFinancialFile(file);
+      setImportResult(result);
+    } catch {
+      showToast("err", "Falha ao processar o arquivo. Verifique o formato e tente novamente.");
+    } finally {
+      setIsImporting(false);
+    }
+  }
+
+  function confirmImport() {
+    if (!importResult) return;
+    const newTxs = importResult.transactions.map(importedToBankTx);
+    const existingIds = new Set(transactions.map((t) => t.id));
+    const fresh = newTxs.filter((t) => !existingIds.has(t.id));
+    if (fresh.length === 0) {
+      showToast("info", "Todas as transações do arquivo já estão na lista.");
+      setImportResult(null);
+      return;
+    }
+    if (isStatic) {
+      const stored = lsGet<BankTransaction[]>(LS_MANUAL, []);
+      const storedIds = new Set(stored.map((t) => t.id));
+      const toStore = fresh.filter((t) => !storedIds.has(t.id));
+      lsSet(LS_MANUAL, [...stored, ...toStore]);
+    }
+    startTransition(() => setTransactions((prev) => [...prev, ...fresh]));
+    setImportResult(null);
+    setFilter("pendente");
+    showToast("ok", `${fresh.length} transação(ões) importada(s) com sucesso.`);
+  }
+
   return (
     <div className="space-y-4">
       {/* Toast */}
@@ -305,8 +381,8 @@ export default function ReconciliationReviewTable({
         </div>
       )}
 
-      {/* Filter tabs */}
-      <div className="flex flex-wrap gap-2">
+      {/* Filter tabs + Import button */}
+      <div className="flex flex-wrap gap-2 items-center">
         {(["pendente", "em_revisao", "conciliado", "descartado", "todos"] as Filter[]).map((f) => (
           <button
             key={f}
@@ -322,12 +398,127 @@ export default function ReconciliationReviewTable({
             <span className="ml-1 opacity-70">({counts[f] ?? 0})</span>
           </button>
         ))}
-        {isStatic && (
-          <span className="ml-auto self-center text-[10px] text-blue-600 bg-blue-50 px-2 py-1 rounded border border-blue-200">
-            GitHub Pages · edições no localStorage
-          </span>
-        )}
+
+        <div className="ml-auto flex items-center gap-2">
+          {isStatic && (
+            <span className="text-[10px] text-blue-600 bg-blue-50 px-2 py-1 rounded border border-blue-200">
+              GitHub Pages · edições no localStorage
+            </span>
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,.ofx,.txt,.pdf"
+            className="hidden"
+            onChange={(e) => void handleFileSelect(e)}
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isImporting}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 disabled:opacity-50 transition-colors"
+          >
+            <Upload size={12} />
+            {isImporting ? "Processando…" : "Importar CSV / PDF"}
+          </button>
+        </div>
       </div>
+
+      {/* Import preview panel */}
+      {importResult && (
+        <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4 space-y-3">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-indigo-900">
+                {importResult.transactions.length} transação(ões) encontrada(s)
+                <span className="ml-2 font-normal text-indigo-700 text-xs">— {importResult.fileName}</span>
+              </p>
+              {importResult.warnings.length > 0 && (
+                <div className="mt-1 space-y-0.5">
+                  {importResult.warnings.map((w, i) => (
+                    <p key={i} className="text-xs text-amber-800 flex items-start gap-1">
+                      <AlertTriangle size={12} className="shrink-0 mt-0.5" />
+                      {w}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button onClick={() => setImportResult(null)} className="text-indigo-400 hover:text-indigo-600">
+              <X size={16} />
+            </button>
+          </div>
+
+          {/* Preview of first 5 rows */}
+          {importResult.transactions.length > 0 && (
+            <div className="overflow-x-auto rounded-lg border border-indigo-200 bg-white">
+              <table className="min-w-full text-xs">
+                <thead className="bg-indigo-50 text-[10px] uppercase tracking-wide text-indigo-600">
+                  <tr>
+                    <th className="px-3 py-1.5 text-left">Data</th>
+                    <th className="px-3 py-1.5 text-left">Descrição</th>
+                    <th className="px-3 py-1.5 text-right">Valor</th>
+                    <th className="px-3 py-1.5 text-left">Tipo</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-indigo-50">
+                  {importResult.transactions.slice(0, 5).map((t) => (
+                    <tr key={t.id}>
+                      <td className="px-3 py-1.5 whitespace-nowrap text-gray-700">{t.date}</td>
+                      <td className="px-3 py-1.5 max-w-xs truncate text-gray-900" title={t.description}>{t.description}</td>
+                      <td className={"px-3 py-1.5 text-right font-mono whitespace-nowrap " + (t.amount >= 0 ? "text-emerald-700" : "text-rose-700")}>
+                        {fmtBRL(Math.abs(t.amount))}
+                      </td>
+                      <td className="px-3 py-1.5 text-gray-500 capitalize">{t.type}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {importResult.transactions.length > 5 && (
+                <p className="px-3 py-1.5 text-[10px] text-gray-500 border-t border-indigo-100">
+                  + {importResult.transactions.length - 5} linha(s) adicionais
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Rejected rows (collapsible) */}
+          {importResult.rejectedRows.length > 0 && (
+            <div>
+              <button
+                onClick={() => setShowRejected((v) => !v)}
+                className="flex items-center gap-1 text-[11px] text-amber-700 hover:underline"
+              >
+                {showRejected ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                {importResult.rejectedRows.length} linha(s) não reconhecida(s)
+              </button>
+              {showRejected && (
+                <ul className="mt-1 max-h-24 overflow-y-auto text-[10px] text-gray-600 space-y-0.5">
+                  {importResult.rejectedRows.map((r, i) => (
+                    <li key={i} className="font-mono truncate" title={r}>{r}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+
+          {/* Confirm / cancel */}
+          <div className="flex gap-2 pt-1">
+            <button
+              onClick={confirmImport}
+              disabled={importResult.transactions.length === 0}
+              className="px-4 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-medium hover:bg-indigo-700 disabled:opacity-40 transition-colors"
+            >
+              Confirmar importação
+            </button>
+            <button
+              onClick={() => setImportResult(null)}
+              className="px-4 py-1.5 rounded-lg border border-gray-300 text-gray-700 text-xs font-medium hover:bg-gray-50 transition-colors"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Table */}
       <div className="card overflow-x-auto">
