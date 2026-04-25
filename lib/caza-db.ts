@@ -47,6 +47,15 @@ export interface CazaClient {
   status: string;
   segmento: string;
   since: string;
+  // Account management (post-purchase)
+  cnpj?: string;
+  contato_nome?: string;
+  contato_cargo?: string;
+  modelo_contrato?: string;
+  owner?: string;
+  health_score?: number;
+  nps?: number | null;
+  observacoes?: string;
   // Origin metadata
   imported_from_notion: boolean;
   notion_page_id: string | null;
@@ -108,6 +117,14 @@ export async function initCazaDB(): Promise<void> {
       status                TEXT NOT NULL DEFAULT 'Ativo',
       segmento              TEXT NOT NULL DEFAULT '',
       since                 TEXT NOT NULL DEFAULT '',
+      cnpj                  TEXT NOT NULL DEFAULT '',
+      contato_nome          TEXT NOT NULL DEFAULT '',
+      contato_cargo         TEXT NOT NULL DEFAULT '',
+      modelo_contrato       TEXT NOT NULL DEFAULT '',
+      owner                 TEXT NOT NULL DEFAULT '',
+      health_score          NUMERIC NOT NULL DEFAULT 80,
+      nps                   NUMERIC,
+      observacoes           TEXT NOT NULL DEFAULT '',
       imported_from_notion  BOOLEAN NOT NULL DEFAULT false,
       notion_page_id        TEXT,
       imported_at           TEXT,
@@ -115,6 +132,16 @@ export async function initCazaDB(): Promise<void> {
       sync_status           TEXT NOT NULL DEFAULT 'internal'
     )
   `;
+
+  // Additive migration — safe on existing tables
+  await sql`ALTER TABLE caza_clients ADD COLUMN IF NOT EXISTS cnpj TEXT NOT NULL DEFAULT ''`;
+  await sql`ALTER TABLE caza_clients ADD COLUMN IF NOT EXISTS contato_nome TEXT NOT NULL DEFAULT ''`;
+  await sql`ALTER TABLE caza_clients ADD COLUMN IF NOT EXISTS contato_cargo TEXT NOT NULL DEFAULT ''`;
+  await sql`ALTER TABLE caza_clients ADD COLUMN IF NOT EXISTS modelo_contrato TEXT NOT NULL DEFAULT ''`;
+  await sql`ALTER TABLE caza_clients ADD COLUMN IF NOT EXISTS owner TEXT NOT NULL DEFAULT ''`;
+  await sql`ALTER TABLE caza_clients ADD COLUMN IF NOT EXISTS health_score NUMERIC NOT NULL DEFAULT 80`;
+  await sql`ALTER TABLE caza_clients ADD COLUMN IF NOT EXISTS nps NUMERIC`;
+  await sql`ALTER TABLE caza_clients ADD COLUMN IF NOT EXISTS observacoes TEXT NOT NULL DEFAULT ''`;
 
   await sql`CREATE INDEX IF NOT EXISTS idx_caza_proj_recebido ON caza_projects(recebido)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_caza_proj_prazo    ON caza_projects(prazo)`;
@@ -254,11 +281,16 @@ export async function upsertClient(
   const rows = await sql`
     INSERT INTO caza_clients (
       id, name, email, phone, type, budget_anual, status, segmento, since,
+      cnpj, contato_nome, contato_cargo, modelo_contrato, owner,
+      health_score, nps, observacoes,
       imported_from_notion, notion_page_id, imported_at,
       last_internal_update, sync_status
     ) VALUES (
       ${c.id}, ${c.name}, ${c.email}, ${c.phone}, ${c.type},
       ${c.budget_anual}, ${c.status}, ${c.segmento}, ${c.since},
+      ${c.cnpj ?? ""}, ${c.contato_nome ?? ""}, ${c.contato_cargo ?? ""},
+      ${c.modelo_contrato ?? ""}, ${c.owner ?? ""},
+      ${c.health_score ?? 80}, ${c.nps ?? null}, ${c.observacoes ?? ""},
       ${c.imported_from_notion}, ${c.notion_page_id ?? null}, ${c.imported_at ?? null},
       ${now}, ${c.sync_status}
     )
@@ -271,6 +303,14 @@ export async function upsertClient(
       status               = EXCLUDED.status,
       segmento             = EXCLUDED.segmento,
       since                = EXCLUDED.since,
+      cnpj                 = EXCLUDED.cnpj,
+      contato_nome         = EXCLUDED.contato_nome,
+      contato_cargo        = EXCLUDED.contato_cargo,
+      modelo_contrato      = EXCLUDED.modelo_contrato,
+      owner                = EXCLUDED.owner,
+      health_score         = EXCLUDED.health_score,
+      nps                  = EXCLUDED.nps,
+      observacoes          = EXCLUDED.observacoes,
       last_internal_update = ${now},
       sync_status          = EXCLUDED.sync_status
     RETURNING *
@@ -297,6 +337,14 @@ export async function updateClient(
       status               = ${m.status},
       segmento             = ${m.segmento},
       since                = ${m.since},
+      cnpj                 = ${m.cnpj ?? ""},
+      contato_nome         = ${m.contato_nome ?? ""},
+      contato_cargo        = ${m.contato_cargo ?? ""},
+      modelo_contrato      = ${m.modelo_contrato ?? ""},
+      owner                = ${m.owner ?? ""},
+      health_score         = ${m.health_score ?? 80},
+      nps                  = ${m.nps ?? null},
+      observacoes          = ${m.observacoes ?? ""},
       last_internal_update = ${now},
       sync_status          = 'modified'
     WHERE id = ${id}
@@ -350,6 +398,14 @@ function coerceClient(r: Record<string, unknown>): CazaClient {
     status:               String(r.status ?? "Ativo"),
     segmento:             String(r.segmento ?? ""),
     since:                String(r.since ?? ""),
+    cnpj:                 String(r.cnpj ?? ""),
+    contato_nome:         String(r.contato_nome ?? ""),
+    contato_cargo:        String(r.contato_cargo ?? ""),
+    modelo_contrato:      String(r.modelo_contrato ?? ""),
+    owner:                String(r.owner ?? ""),
+    health_score:         Number(r.health_score ?? 80),
+    nps:                  r.nps != null ? Number(r.nps) : null,
+    observacoes:          String(r.observacoes ?? ""),
     imported_from_notion: Boolean(r.imported_from_notion),
     notion_page_id:       r.notion_page_id != null ? String(r.notion_page_id) : null,
     imported_at:          r.imported_at != null ? String(r.imported_at) : null,
