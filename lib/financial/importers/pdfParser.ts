@@ -43,24 +43,30 @@ function reconstructLines(items: TextItem[]): string[] {
 
 // ─── Transaction line patterns ────────────────────────────────────────────────
 // Covers common Brazilian bank statement formats:
-//   DD/MM/AAAA description amount       (full date)
-//   DD/MM description amount            (no year — Cora, Inter, Nubank, etc.)
-//   AAAA-MM-DD description amount       (ISO date)
+//   DD/MM/AAAA description amount               (full date, Itaú, Bradesco)
+//   DD/MM description amount                    (short date — Cora, Inter, Nubank)
+//   AAAA-MM-DD description amount               (ISO date)
+//   DD/MM description amount C                  (Cora: trailing C/D indicator)
+//   DD/MM description amount saldo              (with running balance column)
+//   DD/MM description amount C saldo            (Cora with both)
 
 const DATE_FULL  = /\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/;
 const DATE_SHORT = /\d{1,2}[\/\-]\d{1,2}/;
 const DATE_ISO   = /\d{4}-\d{2}-\d{2}/;
+// Matches amounts like: 1.234,56  1234,56  1.234.567,89  R$ 1.234,56  -1.234,56
 const AMOUNT_PAT = /(?:R\$\s*)?[-+]?(?:\d{1,3}\.)*\d{1,3}[.,]\d{2}/;
+// Trailing noise after the amount: C D Cr Db crédito débito + optional running balance
+const TRAIL = /(?:\s+(?:[CcDd][Rr]?[ée]?(?:dito|bito)?|Entrada|Saída))?(?:\s+(?:R\$\s*)?[-+]?(?:\d{1,3}\.)*\d{1,3}[.,]\d{2})*\s*$/;
 
-// Primary: full/ISO date
-const TXN_FULL = new RegExp(
-  `^(${DATE_FULL.source}|${DATE_ISO.source})\\s+(.+?)\\s+(${AMOUNT_PAT.source})(?:\\s+${AMOUNT_PAT.source})?\\s*$`
-);
+// Build a single regex that captures date | description | amount and ignores trailing columns
+function makeTxnRe(datePat: RegExp): RegExp {
+  return new RegExp(
+    `^(${datePat.source})\\s+(.+?)\\s+(${AMOUNT_PAT.source})${TRAIL.source}`
+  );
+}
 
-// Fallback: short date DD/MM (will inject current year)
-const TXN_SHORT = new RegExp(
-  `^(${DATE_SHORT.source})\\s+(.+?)\\s+(${AMOUNT_PAT.source})(?:\\s+${AMOUNT_PAT.source})?\\s*$`
-);
+const TXN_FULL  = makeTxnRe(new RegExp(`${DATE_FULL.source}|${DATE_ISO.source}`));
+const TXN_SHORT = makeTxnRe(DATE_SHORT);
 
 function parseLines(lines: string[]): Pick<ImportResult, "transactions" | "rejectedRows" | "warnings"> {
   const transactions: ImportedTransaction[] = [];
