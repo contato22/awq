@@ -5,7 +5,7 @@ import Header from "@/components/Header";
 import SectionHeader from "@/components/SectionHeader";
 import EmptyState from "@/components/EmptyState";
 import {
-  Users, DollarSign, Heart, TrendingUp, Plus, X, ChevronDown, Pencil, Trash2, Search,
+  Users, DollarSign, Heart, TrendingUp, Plus, X, ChevronDown, Pencil, Trash2,
 } from "lucide-react";
 import type { CrmClient } from "@/lib/jacqes-crm-db";
 import { fetchCRM } from "@/lib/jacqes-crm-query";
@@ -73,7 +73,6 @@ export default function ClientesPage() {
   const [erro, setErro]         = useState("");
   const [saving, setSaving]     = useState(false);
   const [tooltip, setTooltip]   = useState<string | null>(null);
-  const [search, setSearch]     = useState("");
 
   useEffect(() => {
     fetchCRM<CrmClient>("clients")
@@ -87,19 +86,7 @@ export default function ClientesPage() {
     ? Math.round(clientes.reduce((s, c) => s + c.health_score, 0) / clientes.length) : 0;
   const expansao    = clientes.reduce((s, c) => s + (c.potencial_expansao ?? 0), 0);
 
-  const statusFiltered = filter === "Todos" ? clientes : clientes.filter(c => c.status_conta === filter);
-  const filtered = search.trim()
-    ? statusFiltered.filter(c =>
-        c.nome.toLowerCase().includes(search.toLowerCase()) ||
-        c.produto_ativo.toLowerCase().includes(search.toLowerCase()) ||
-        c.segmento.toLowerCase().includes(search.toLowerCase())
-      )
-    : statusFiltered;
-
-  const countsByStatus = STATUS_TABS.reduce((acc, s) => {
-    acc[s] = s === "Todos" ? clientes.length : clientes.filter(c => c.status_conta === s).length;
-    return acc;
-  }, {} as Record<string, number>);
+  const filtered = filter === "Todos" ? clientes : clientes.filter(c => c.status_conta === filter);
 
   function openCreate() {
     setEditingId(null);
@@ -211,38 +198,21 @@ export default function ClientesPage() {
 
         {/* Table */}
         <div className="card p-5">
-          <div className="flex flex-col gap-3 mb-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="relative max-w-xs">
-                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                <input
-                  type="text"
-                  placeholder="Buscar cliente, produto, segmento…"
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 text-gray-800 placeholder:text-gray-400"
-                />
-              </div>
-              <button onClick={openCreate}
-                className="flex items-center gap-1.5 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-700 px-3 py-1.5 rounded-lg transition-colors shrink-0">
-                <Plus size={13} /> Novo Cliente
-              </button>
-            </div>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
             <div className="flex gap-1.5 flex-wrap">
               {STATUS_TABS.map(s => (
                 <button key={s} onClick={() => setFilter(s)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
                     filter === s ? "bg-brand-600 text-white border-brand-600" : "bg-white text-gray-500 border-gray-200 hover:bg-gray-50"
                   }`}>
                   {s}
-                  <span className={`text-[10px] font-bold px-1 py-0.5 rounded ${
-                    filter === s ? "bg-white/20 text-white" : "bg-gray-200 text-gray-500"
-                  }`}>
-                    {countsByStatus[s] ?? 0}
-                  </span>
                 </button>
               ))}
             </div>
+            <button onClick={openCreate}
+              className="flex items-center gap-1.5 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-700 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+              <Plus size={13} /> Novo Cliente
+            </button>
           </div>
 
           {loading ? (
@@ -275,12 +245,10 @@ export default function ClientesPage() {
                           {c.status_conta}
                         </span>
                       </td>
-                      <td className="px-3 py-3 min-w-[80px]">
+                      <td className="px-3 py-3">
                         <div className="flex items-center gap-1.5">
-                          <span className={`text-xs font-bold w-7 shrink-0 ${healthText(c.health_score)}`}>{c.health_score}</span>
-                          <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                            <div className={`h-full rounded-full ${healthDot(c.health_score)}`} style={{ width: `${c.health_score}%` }} />
-                          </div>
+                          <span className={`w-2 h-2 rounded-full shrink-0 ${healthDot(c.health_score)}`} />
+                          <span className={`text-xs font-semibold ${healthText(c.health_score)}`}>{c.health_score}</span>
                         </div>
                       </td>
                       <td className="px-3 py-3">

@@ -135,11 +135,6 @@ export default function InteracoesPage() {
 
   const sorted = [...filtered].sort((a, b) => b.data.localeCompare(a.data));
 
-  const countsByTipo = ALL_TIPOS.reduce((acc, t) => {
-    acc[t] = t === "Todos" ? interacoes.length : interacoes.filter(i => i.tipo === t).length;
-    return acc;
-  }, {} as Record<string, number>);
-
   function openEdit(i: CrmInteraction) {
     setEditingId(i.id);
     setForm({
@@ -276,19 +271,12 @@ export default function InteracoesPage() {
           <div className="flex gap-1.5 flex-wrap mb-6">
             {ALL_TIPOS.map(t => (
               <button key={t} onClick={() => setTipoF(t)}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-colors ${
+                className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-colors ${
                   tipoF === t
                     ? "bg-brand-600 text-white border-brand-600"
                     : "bg-white text-gray-500 border-gray-200 hover:bg-gray-50"
                 }`}>
                 {t}
-                {(countsByTipo[t] ?? 0) > 0 && (
-                  <span className={`text-[9px] font-bold px-1 py-0.5 rounded-full ${
-                    tipoF === t ? "bg-white/20 text-white" : "bg-gray-200 text-gray-500"
-                  }`}>
-                    {countsByTipo[t]}
-                  </span>
-                )}
               </button>
             ))}
           </div>

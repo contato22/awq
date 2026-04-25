@@ -204,13 +204,6 @@ export default function TarefasPage() {
   const STATUS_TABS: StatusFilter[] = ["Todos", "Aberta", "Em Andamento", "Concluída", "Bloqueada", "Vencida"];
   const PRIO_TABS: PrioFilter[]     = ["Todas", "Baixa", "Média", "Alta", "Crítica"];
 
-  const countsByStatus = STATUS_TABS.reduce((acc, s) => {
-    if (s === "Todos")   acc[s] = tarefas.length;
-    else if (s === "Vencida") acc[s] = tarefas.filter(t => t.status !== "Concluída" && isPast(t.prazo)).length;
-    else acc[s] = tarefas.filter(t => t.status === s).length;
-    return acc;
-  }, {} as Record<string, number>);
-
   return (
     <>
       <Header
@@ -250,15 +243,10 @@ export default function TarefasPage() {
               <div className="flex gap-1.5 flex-wrap">
                 {STATUS_TABS.map(s => (
                   <button key={s} onClick={() => setStatusF(s)}
-                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors ${
+                    className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors ${
                       statusF === s ? "bg-brand-600 text-white border-brand-600" : "bg-white text-gray-500 border-gray-200 hover:bg-gray-50"
                     }`}>
                     {s}
-                    <span className={`text-[10px] font-bold px-1 py-0.5 rounded ${
-                      statusF === s ? "bg-white/20 text-white" : "bg-gray-200 text-gray-500"
-                    }`}>
-                      {countsByStatus[s] ?? 0}
-                    </span>
                   </button>
                 ))}
               </div>
@@ -302,9 +290,8 @@ export default function TarefasPage() {
                   {filtered.map(t => {
                     const pastPrazo = isPast(t.prazo);
                     const aging     = daysSince(t.data_criacao);
-                    const isOverdue = pastPrazo && t.status !== "Concluída";
                     return (
-                      <tr key={t.id} className={`transition-colors group ${isOverdue ? "bg-red-50/40 hover:bg-red-50/60" : "hover:bg-gray-50/60"}`}>
+                      <tr key={t.id} className="hover:bg-gray-50/60 transition-colors group">
                         <td className="px-3 py-3">
                           <span className="font-medium text-gray-900 text-xs">{t.titulo}</span>
                         </td>

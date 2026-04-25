@@ -6,7 +6,7 @@ import SectionHeader from "@/components/SectionHeader";
 import EmptyState from "@/components/EmptyState";
 import {
   TrendingUp, DollarSign, BarChart2, Target, Hash, Plus, X,
-  AlertTriangle, Pencil, Trash2, ArrowLeftRight, Search,
+  AlertTriangle, Pencil, Trash2, ArrowLeftRight,
 } from "lucide-react";
 import { fetchCRM } from "@/lib/jacqes-crm-query";
 import { IS_STATIC, crmCreate, crmUpdate, crmDelete } from "@/lib/jacqes-crm-store";
@@ -105,7 +105,6 @@ export default function OportunidadesPage() {
   const [loading, setLoading]         = useState(true);
   const [error, setError]             = useState<string | null>(null);
   const [stageFilter, setStageFilter] = useState<string>("Todos");
-  const [search, setSearch]           = useState("");
   const [modal, setModal]             = useState(false);
   const [editingId, setEditingId]     = useState<string | null>(null);
   const [stageModal, setStageModal]   = useState<CrmOpportunity | null>(null);
@@ -141,14 +140,7 @@ export default function OportunidadesPage() {
   const stageCounts: Record<string, number> = { Todos: opps.length };
   PIPELINE_STAGES.forEach(s => { stageCounts[s] = opps.filter(o => o.stage === s).length; });
 
-  const stageFiltered = stageFilter === "Todos" ? opps : opps.filter(o => o.stage === stageFilter);
-  const filtered = search.trim()
-    ? stageFiltered.filter(o =>
-        o.nome_oportunidade.toLowerCase().includes(search.toLowerCase()) ||
-        o.empresa.toLowerCase().includes(search.toLowerCase()) ||
-        o.owner.toLowerCase().includes(search.toLowerCase())
-      )
-    : stageFiltered;
+  const filtered = stageFilter === "Todos" ? opps : opps.filter(o => o.stage === stageFilter);
 
   // ── Modal helpers ─────────────────────────────────────────────────────────
   function openCreate() {
@@ -304,18 +296,6 @@ export default function OportunidadesPage() {
             >
               <Plus size={13} /> Nova Oportunidade
             </button>
-          </div>
-
-          {/* Search */}
-          <div className="relative max-w-xs mb-4">
-            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-            <input
-              type="text"
-              placeholder="Buscar oportunidade, empresa…"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 text-gray-800 placeholder:text-gray-400"
-            />
           </div>
 
           {/* Stage filter tabs */}

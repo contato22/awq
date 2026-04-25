@@ -5,7 +5,7 @@ import Header from "@/components/Header";
 import SectionHeader from "@/components/SectionHeader";
 import EmptyState from "@/components/EmptyState";
 import {
-  Users, Star, Clock, Leaf, Plus, X, Filter, Pencil, Trash2, ArrowRightLeft, Search,
+  Users, Star, Clock, Leaf, Plus, X, Filter, Pencil, Trash2, ArrowRightLeft,
 } from "lucide-react";
 import { fetchCRM } from "@/lib/jacqes-crm-query";
 import { IS_STATIC, crmCreate, crmUpdate, crmDelete } from "@/lib/jacqes-crm-store";
@@ -73,7 +73,6 @@ export default function LeadsPage() {
   const [saving, setSaving]       = useState(false);
   const [formError, setFormError] = useState("");
   const [converting, setConverting] = useState<string | null>(null);
-  const [search, setSearch]       = useState("");
 
   async function load() {
     setLoading(true);
@@ -99,19 +98,7 @@ export default function LeadsPage() {
   }).length;
   const nurturing = leads.filter(l => l.status === "Nurturing").length;
 
-  const statusFiltered = filter === "Todos" ? leads : leads.filter(l => l.status === filter);
-  const filtered = search.trim()
-    ? statusFiltered.filter(l =>
-        l.nome.toLowerCase().includes(search.toLowerCase()) ||
-        l.empresa.toLowerCase().includes(search.toLowerCase()) ||
-        l.email.toLowerCase().includes(search.toLowerCase())
-      )
-    : statusFiltered;
-
-  const countsByStatus = STATUS_FILTERS.reduce((acc, s) => {
-    acc[s] = s === "Todos" ? leads.length : leads.filter(l => l.status === s).length;
-    return acc;
-  }, {} as Record<string, number>);
+  const filtered = filter === "Todos" ? leads : leads.filter(l => l.status === filter);
 
   // ── Modal helpers ─────────────────────────────────────────────────────────
   function openCreate() {
@@ -273,38 +260,21 @@ export default function LeadsPage() {
             </button>
           </div>
 
-          {/* Search + Filter bar */}
-          <div className="flex flex-col sm:flex-row gap-3 mb-5">
-            <div className="relative flex-1 max-w-xs">
-              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-              <input
-                type="text"
-                placeholder="Buscar por nome, empresa, email…"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 text-gray-800 placeholder:text-gray-400"
-              />
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {STATUS_FILTERS.map(s => (
-                <button
-                  key={s}
-                  onClick={() => setFilter(s)}
-                  className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${
-                    filter === s
-                      ? "bg-brand-600 text-white border-brand-600"
-                      : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
-                  }`}
-                >
-                  {s}
-                  <span className={`text-[10px] font-bold px-1 py-0.5 rounded ${
-                    filter === s ? "bg-white/20 text-white" : "bg-gray-200 text-gray-500"
-                  }`}>
-                    {countsByStatus[s] ?? 0}
-                  </span>
-                </button>
-              ))}
-            </div>
+          {/* Filter bar */}
+          <div className="flex flex-wrap gap-2 mb-5">
+            {STATUS_FILTERS.map(s => (
+              <button
+                key={s}
+                onClick={() => setFilter(s)}
+                className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${
+                  filter === s
+                    ? "bg-brand-600 text-white border-brand-600"
+                    : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
+                }`}
+              >
+                {s}
+              </button>
+            ))}
           </div>
 
           {loading ? (

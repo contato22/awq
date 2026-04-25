@@ -6,7 +6,7 @@ import SectionHeader from "@/components/SectionHeader";
 import EmptyState from "@/components/EmptyState";
 import {
   FileText, Send, CheckCircle2, DollarSign, CalendarDays,
-  Plus, X, Eye, Pencil, Trash2, Printer, ChevronDown, ArrowRightLeft, Search,
+  Plus, X, Eye, Pencil, Trash2, Printer, ChevronDown, ArrowRightLeft,
 } from "lucide-react";
 import type { CrmProposal, CrmOpportunity } from "@/lib/jacqes-crm-db";
 import { fetchCRM } from "@/lib/jacqes-crm-query";
@@ -206,8 +206,6 @@ export default function PropostasPage() {
   const [loading,       setLoading]       = useState(true);
   const [detail,        setDetail]        = useState<CrmProposal | null>(null);
   const [modal,         setModal]         = useState(false);
-  const [statusFilter,  setStatusFilter]  = useState<string>("Todas");
-  const [search,        setSearch]        = useState("");
   const [editingId,     setEditingId]     = useState<string | null>(null);
   const [form,          setForm]          = useState<FormState>({ ...EMPTY_FORM });
   const [saving,        setSaving]        = useState(false);
@@ -230,24 +228,6 @@ export default function PropostasPage() {
   function getOpp(id: string): CrmOpportunity | undefined {
     return opportunities.find(o => o.id === id);
   }
-
-  const STATUS_TABS = ["Todas", ...STATUS_OPTIONS] as const;
-  const countsByStatus = STATUS_TABS.reduce((acc, s) => {
-    acc[s] = s === "Todas" ? proposals.length : proposals.filter(p => p.status === s).length;
-    return acc;
-  }, {} as Record<string, number>);
-
-  const statusFiltered = statusFilter === "Todas" ? proposals : proposals.filter(p => p.status === statusFilter);
-  const displayed = search.trim()
-    ? statusFiltered.filter(p => {
-        const opp = getOpp(p.opportunity_id);
-        return (
-          p.escopo.toLowerCase().includes(search.toLowerCase()) ||
-          (opp?.empresa ?? "").toLowerCase().includes(search.toLowerCase()) ||
-          (opp?.nome_oportunidade ?? "").toLowerCase().includes(search.toLowerCase())
-        );
-      })
-    : statusFiltered;
 
   // ── Modal helpers ──────────────────────────────────────────────────────────
 
@@ -340,50 +320,19 @@ export default function PropostasPage() {
 
         {/* Table */}
         <div className="card overflow-hidden">
-          <div className="p-5 border-b border-gray-100">
-            <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
-              <SectionHeader
-                icon={<FileText size={15} />}
-                title="Propostas Comerciais"
-                badge={<span className="badge badge-blue ml-1">{displayed.length}</span>}
-                className="mb-0"
-              />
-              <button
-                onClick={openCreate}
-                className="flex items-center gap-1.5 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-700 px-3 py-1.5 rounded-lg transition-colors shrink-0"
-              >
-                <Plus size={13} /> Nova Proposta
-              </button>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="relative flex-1 max-w-xs">
-                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                <input
-                  type="text"
-                  placeholder="Buscar proposta, empresa…"
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 text-gray-800 placeholder:text-gray-400"
-                />
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {STATUS_TABS.map(s => (
-                  <button key={s} onClick={() => setStatusFilter(s)}
-                    className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${
-                      statusFilter === s
-                        ? "bg-brand-600 text-white border-brand-600"
-                        : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
-                    }`}>
-                    {s}
-                    <span className={`text-[10px] font-bold px-1 py-0.5 rounded ${
-                      statusFilter === s ? "bg-white/20 text-white" : "bg-gray-200 text-gray-500"
-                    }`}>
-                      {countsByStatus[s] ?? 0}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
+          <div className="p-5 border-b border-gray-100 flex items-center justify-between gap-3 flex-wrap">
+            <SectionHeader
+              icon={<FileText size={15} />}
+              title="Propostas Comerciais"
+              badge={<span className="badge badge-blue ml-1">{proposals.length}</span>}
+              className="mb-0"
+            />
+            <button
+              onClick={openCreate}
+              className="flex items-center gap-1.5 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-700 px-3 py-1.5 rounded-lg transition-colors shrink-0"
+            >
+              <Plus size={13} /> Nova Proposta
+            </button>
           </div>
 
           {loading ? (
@@ -411,7 +360,7 @@ export default function PropostasPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {displayed.map(p => {
+                  {proposals.map(p => {
                     const opp = getOpp(p.opportunity_id);
                     return (
                       <tr
