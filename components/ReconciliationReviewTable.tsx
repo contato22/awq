@@ -215,7 +215,10 @@ export default function ReconciliationReviewTable({
     const withOverrides = applyOverrides(initialTransactions, overrides);
     const existingIds = new Set(withOverrides.map((t) => t.id));
     const newManual = manual.filter((t) => !existingIds.has(t.id));
-    setTransactions([...withOverrides, ...newManual]);
+    // Apply overrides to imported transactions too — without this, edits to
+    // PDF/CSV-imported transactions are lost on page reload.
+    const newManualWithOverrides = applyOverrides(newManual, overrides);
+    setTransactions([...withOverrides, ...newManualWithOverrides]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isStatic]);
 
@@ -255,15 +258,27 @@ export default function ReconciliationReviewTable({
   }
 
   function saveToLocalStorage(id: string, patch: Partial<BankTransaction>) {
+    const now = new Date().toISOString();
+
+    // 1. Save override (covers server-side transactions and acts as a catch-all)
     const overrides = lsGet<Record<string, Partial<BankTransaction>>>(LS_OVERRIDES, {});
-    overrides[id] = { ...(overrides[id] ?? {}), ...patch, classifiedAt: new Date().toISOString() };
+    overrides[id] = { ...(overrides[id] ?? {}), ...patch, classifiedAt: now };
     lsSet(LS_OVERRIDES, overrides);
+
+    // 2. Also patch LS_MANUAL directly so imported transactions survive reload
+    //    without needing overrides to be re-applied (both paths persist the edit).
+    const manual = lsGet<BankTransaction[]>(LS_MANUAL, []);
+    const updatedManual = manual.map((t) =>
+      t.id === id ? { ...t, ...patch, classifiedAt: now } : t
+    );
+    lsSet(LS_MANUAL, updatedManual);
+
     startTransition(() => {
-      setTransactions((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
+      setTransactions((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch, classifiedAt: now } : t)));
     });
     setEditingId(null);
     setDraft({});
-    showToast("info", "Salvo localmente (GitHub Pages). Alterações persistem no navegador.");
+    showToast("info", "Salvo localmente. Alterações persistem no navegador.");
   }
 
   async function saveToApi(id: string) {
