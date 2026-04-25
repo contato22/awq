@@ -5,31 +5,91 @@ function uid() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
-// Heuristic patterns for common Brazilian bank statement lines:
-// "01/04/2026 PIX RECEBIDO NOME 1.234,56"
-// "10/04/2026 Tarifa bancária -42,90"
-// "2026-04-01 Pagamento fornecedor -3200.00"
-const TXN_LINE = /(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}|\d{4}-\d{2}-\d{2})\s+(.+?)\s+([-+]?(?:\d{1,3}\.){0,4}\d{1,3}(?:[.,]\d{2})?)\s*$/;
+// ─── Coordinate-based line reconstruction ─────────────────────────────────────
+// pdfjs returns text items with 2D transform matrices; transform[4] = X, transform[5] = Y.
+// Items on the same visual line share roughly the same Y. We group by Y (with tolerance),
+// sort each group left-to-right by X, then join — giving us actual readable lines.
+
+const Y_TOLERANCE = 4; // pixels; items within this range are on the same line
+
+interface TextItem {
+  str: string;
+  transform: number[];
+}
+
+function reconstructLines(items: TextItem[]): string[] {
+  const buckets = new Map<number, { str: string; x: number }[]>();
+
+  for (const item of items) {
+    const raw = item.str;
+    if (!raw.trim()) continue;
+    const y = Math.round(item.transform[5] / Y_TOLERANCE) * Y_TOLERANCE;
+    const x = item.transform[4];
+    if (!buckets.has(y)) buckets.set(y, []);
+    buckets.get(y)!.push({ str: raw, x });
+  }
+
+  return Array.from(buckets.entries())
+    .sort(([a], [b]) => b - a) // descending Y = top of page first
+    .map(([, group]) =>
+      group
+        .sort((a, b) => a.x - b.x) // left to right
+        .map((g) => g.str)
+        .join(" ")
+        .trim()
+    )
+    .filter((line) => line.length > 2);
+}
+
+// ─── Transaction line patterns ────────────────────────────────────────────────
+// Covers common Brazilian bank statement formats:
+//   DD/MM/AAAA description amount       (full date)
+//   DD/MM description amount            (no year — Cora, Inter, Nubank, etc.)
+//   AAAA-MM-DD description amount       (ISO date)
+
+const DATE_FULL  = /\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/;
+const DATE_SHORT = /\d{1,2}[\/\-]\d{1,2}/;
+const DATE_ISO   = /\d{4}-\d{2}-\d{2}/;
+const AMOUNT_PAT = /(?:R\$\s*)?[-+]?(?:\d{1,3}\.)*\d{1,3}[.,]\d{2}/;
+
+// Primary: full/ISO date
+const TXN_FULL = new RegExp(
+  `^(${DATE_FULL.source}|${DATE_ISO.source})\\s+(.+?)\\s+(${AMOUNT_PAT.source})(?:\\s+${AMOUNT_PAT.source})?\\s*$`
+);
+
+// Fallback: short date DD/MM (will inject current year)
+const TXN_SHORT = new RegExp(
+  `^(${DATE_SHORT.source})\\s+(.+?)\\s+(${AMOUNT_PAT.source})(?:\\s+${AMOUNT_PAT.source})?\\s*$`
+);
 
 function parseLines(lines: string[]): Pick<ImportResult, "transactions" | "rejectedRows" | "warnings"> {
   const transactions: ImportedTransaction[] = [];
   const rejectedRows: string[] = [];
+  const currentYear = new Date().getFullYear();
 
   for (const raw of lines) {
     const t = raw.trim();
-    if (t.length < 12) continue; // too short to be a transaction
+    if (t.length < 8) continue;
 
-    const m = TXN_LINE.exec(t);
+    let m = TXN_FULL.exec(t) ?? TXN_SHORT.exec(t);
     if (!m) {
-      if (t.length > 8) rejectedRows.push(t);
+      if (t.length > 6) rejectedRows.push(t);
       continue;
     }
 
-    const date = parseDate(m[1]);
+    let rawDate = m[1];
+    // Inject year for short dates like "01/04"
+    if (/^\d{1,2}[\/\-]\d{1,2}$/.test(rawDate)) {
+      rawDate = `${rawDate}/${currentYear}`;
+    }
+
+    const date = parseDate(rawDate);
     if (!date) { rejectedRows.push(t); continue; }
 
     const desc = m[2].trim();
-    const amount = parseAmount(m[3]);
+    // Strip R$ prefix before parsing amount
+    const rawAmt = m[3].replace(/^R\$\s*/, "");
+    const amount = parseAmount(rawAmt);
     if (amount === null) { rejectedRows.push(t); continue; }
 
     transactions.push({
@@ -46,8 +106,8 @@ function parseLines(lines: string[]): Pick<ImportResult, "transactions" | "rejec
   const warnings: string[] = [];
   if (transactions.length === 0) {
     warnings.push(
-      "Nenhuma transação encontrada. O PDF pode estar escaneado (imagem sem texto selecionável) " +
-      "ou ter um formato não reconhecido. Exporte o extrato como CSV e tente novamente."
+      "Nenhuma transação reconhecida. O PDF pode estar escaneado (imagem sem texto selecionável) " +
+      "ou ter um layout fora do padrão. Tente exportar o extrato como CSV/OFX."
     );
   }
 
@@ -55,13 +115,10 @@ function parseLines(lines: string[]): Pick<ImportResult, "transactions" | "rejec
 }
 
 export async function parsePDF(file: File): Promise<ImportResult> {
-  // Dynamic import keeps pdfjs-dist out of the server bundle
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let pdfjsLib: any;
   try {
     pdfjsLib = await import("pdfjs-dist");
-    // Use unpkg CDN for the worker — works in any browser environment
-    // including GitHub Pages (requires internet access, which GH Pages has).
     pdfjsLib.GlobalWorkerOptions.workerSrc =
       `https://unpkg.com/pdfjs-dist@${pdfjsLib.version as string}/build/pdf.worker.min.mjs`;
   } catch {
@@ -79,7 +136,6 @@ export async function parsePDF(file: File): Promise<ImportResult> {
     const loadingTask = pdfjsLib.getDocument({ data: buffer }) as { promise: Promise<unknown> };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const doc = await loadingTask.promise as any;
-    const pageLines: string[] = [];
 
     for (let p = 1; p <= (doc.numPages as number); p++) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -87,22 +143,15 @@ export async function parsePDF(file: File): Promise<ImportResult> {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const content = await (page.getTextContent() as Promise<any>);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const pageText: string = content.items
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .filter((item: any) => typeof item.str === "string")
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .map((item: any) => item.str as string)
-        .join(" ");
-      pageLines.push(...pageText.split(/\n/));
+      const items = content.items.filter((i: any) => typeof i.str === "string") as TextItem[];
+      allLines.push(...reconstructLines(items));
     }
-
-    allLines = pageLines;
   } catch {
     return {
       transactions: [], rejectedRows: [],
       warnings: [
-        "PDF ilegível ou protegido. Verifique se o arquivo não está escaneado (imagem) " +
-        "e não possui senha. Exporte o extrato como CSV e tente novamente.",
+        "PDF ilegível ou protegido por senha. Verifique se o arquivo não está escaneado (imagem) " +
+        "e não possui senha. Tente exportar o extrato como CSV/OFX.",
       ],
       fileName: file.name, fileType: "pdf",
     };
