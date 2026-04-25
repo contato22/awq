@@ -31,8 +31,6 @@ import {
   Zap,
 } from "lucide-react";
 
-export const revalidate = 0;
-
 const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 
 function KpiCard({
