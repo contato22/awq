@@ -1,37 +1,9 @@
 {
-  "rows": [
-    { "id": "AV-001", "nome": "Cliente O&M #1",  "valor": 12092.00, "categoria": "O&M",        "canal": "Cliente Ativo", "status": "Fechado", "data": "2026-01-15" },
-    { "id": "AV-002", "nome": "Cliente O&M #2",  "valor": 12092.00, "categoria": "O&M",        "canal": "Indicação",     "status": "Fechado", "data": "2026-02-10" },
-    { "id": "AV-003", "nome": "Cliente O&M #3",  "valor": 12092.00, "categoria": "O&M",        "canal": "Não informado", "status": "Fechado", "data": "2026-02-20" },
-    { "id": "AV-004", "nome": "Cliente O&M #4",  "valor": 4135.97, "categoria": "O&M",         "canal": "Não informado", "status": "Fechado", "data": "2026-03-05" },
-    { "id": "AV-005", "nome": "Seguro Residencial #1", "valor": 2095.02, "categoria": "Seguro", "canal": "Cliente Ativo", "status": "Fechado", "data": "2026-03-12" },
-    { "id": "AV-006", "nome": "Integração Solar #1", "valor": 80000.00, "categoria": "Integração", "canal": "Não informado", "status": "Fechado", "data": "2026-01-08" },
-    { "id": "AV-007", "nome": "Integração Solar #2", "valor": 75000.00, "categoria": "Integração", "canal": "Não informado", "status": "Fechado", "data": "2026-01-22" },
-    { "id": "AV-008", "nome": "Integração Solar #3", "valor": 46189.00, "categoria": "Integração", "canal": "Site/ADS",      "status": "Fechado", "data": "2026-03-18" }
-  ],
-  "totalFechado": 42506.99,
-  "totalLeads": 481,
-  "byCategoria": {
-    "O&M":        40411.97,
-    "Seguro":     2095.02,
-    "Integração": 201189.00
-  },
-  "byCanal": [
-    { "canal": "Não informado", "leads": 354, "valor": 1189409.49, "pct": 74 },
-    { "canal": "Indicação",     "leads": 29,  "valor": 469598.96,  "pct": 6  },
-    { "canal": "Cliente Ativo", "leads": 21,  "valor": 498506.14,  "pct": 4  },
-    { "canal": "Site/ADS",      "leads": 17,  "valor": 192101.32,  "pct": 4  }
-  ],
-  "byQuarter": {
-    "Q1": 42506.99,
-    "Q2": 0,
-    "Q3": 0,
-    "Q4": 0
-  },
-  "byQCat": {
-    "Q1": { "O&M": 40411.97, "Seguro": 2095.02, "Integração": 201189.00 },
-    "Q2": {},
-    "Q3": {},
-    "Q4": {}
-  }
+  "rows": [],
+  "totalFechado": 0,
+  "totalLeads": 0,
+  "byCategoria": {},
+  "byCanal": [],
+  "byQuarter": { "Q1": 0, "Q2": 0, "Q3": 0, "Q4": 0 },
+  "byQCat": { "Q1": {}, "Q2": {}, "Q3": {}, "Q4": {} }
 }

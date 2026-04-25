@@ -181,205 +181,21 @@ function dAgo(n: number) { return new Date(Date.now() - n * 86400000).toISOStrin
 function dAhd(n: number) { return new Date(Date.now() + n * 86400000).toISOString().slice(0, 10); }
 const TODAY = new Date().toISOString().slice(0, 10);
 
-export const SEED_CLIENTS: CrmClient[] = [
-  {
-    id: "cli-001", nome: "CEM", razao_social: "CEM Comunicação Ltda", cnpj: "",
-    segmento: "Comunicação", produto_ativo: "FEE Mensal", ticket_mensal: 3200,
-    inicio_relacao: "2025-01-01", owner: "Danilo", status_conta: "Ativo",
-    health_score: 92, churn_risk: "Baixo", potencial_expansao: 8000,
-    observacoes: "Cliente âncora. Alta satisfação. Expansão para tráfego pago em andamento.",
-  },
-  {
-    id: "cli-002", nome: "CAROL BERTOLINI", razao_social: "Carol Bertolini ME", cnpj: "",
-    segmento: "Influenciadora", produto_ativo: "FEE Mensal", ticket_mensal: 1790,
-    inicio_relacao: "2025-03-01", owner: "Danilo", status_conta: "Em Atenção",
-    health_score: 65, churn_risk: "Médio", potencial_expansao: 3000,
-    observacoes: "Pagamento Abr/26 pendente. Acompanhar com prioridade.",
-  },
-  {
-    id: "cli-003", nome: "ANDRÉ VIEIRA", razao_social: "André Vieira ME", cnpj: "",
-    segmento: "Prestador de Serviços", produto_ativo: "FEE Mensal", ticket_mensal: 1500,
-    inicio_relacao: "2025-02-01", owner: "Danilo", status_conta: "Em Atenção",
-    health_score: 58, churn_risk: "Médio", potencial_expansao: 2000,
-    observacoes: "Pagamento Abr/26 pendente. Revisão de contrato em curso.",
-  },
-  {
-    id: "cli-004", nome: "TATI SIMÕES", razao_social: "Tati Simões Comunicação", cnpj: "",
-    segmento: "Influenciadora", produto_ativo: "FEE Mensal", ticket_mensal: 1790,
-    inicio_relacao: "2025-04-01", owner: "Danilo", status_conta: "Ativo",
-    health_score: 88, churn_risk: "Baixo", potencial_expansao: 5000,
-    observacoes: "Novo cliente Abr/26. Onboarding concluído. Interesse em conteúdo adicional.",
-  },
-];
+export const SEED_CLIENTS: CrmClient[] = [];
 
-export const SEED_LEADS: CrmLead[] = [
-  {
-    id: "lead-001", nome: "Marcos Oliveira", empresa: "Studio MKT",
-    contato_principal: "Marcos Oliveira", telefone: "+55 11 98888-0001",
-    email: "marcos@studiomkt.com.br", origem: "Indicação", segmento: "Marketing Digital",
-    canal: "WhatsApp", interesse: "Gestão de redes + tráfego pago",
-    status: "Qualificando", owner: "Danilo", data_entrada: dAgo(8),
-    observacoes: "Indicado pela CEM. Orçamento estimado ~R$3.000/mês.",
-  },
-  {
-    id: "lead-002", nome: "Fernanda Ribeiro", empresa: "Fernanda Ribeiro ME",
-    contato_principal: "Fernanda Ribeiro", telefone: "+55 21 97777-0002",
-    email: "fernanda@fernrib.com", origem: "Instagram", segmento: "Moda / Influência",
-    canal: "DM Instagram", interesse: "FEE Mensal + Conteúdo",
-    status: "Novo", owner: "Danilo", data_entrada: dAgo(2),
-    observacoes: "Chegou pelo perfil da JACQES. Primeiro contato feito.",
-  },
-  {
-    id: "lead-003", nome: "Roberto Nascimento", empresa: "Grupo Nasc",
-    contato_principal: "Roberto Nascimento", telefone: "+55 31 96666-0003",
-    email: "roberto@gruponasc.com", origem: "LinkedIn", segmento: "Varejo",
-    canal: "LinkedIn", interesse: "Estratégia + Branding",
-    status: "Nurturing", owner: "Danilo", data_entrada: dAgo(21),
-    observacoes: "Bom potencial mas timing não ideal. Nutrir até Q3/26.",
-  },
-];
+export const SEED_LEADS: CrmLead[] = [];
 
-export const SEED_OPPORTUNITIES: CrmOpportunity[] = [
-  {
-    id: "opp-001", lead_id: "lead-001", cliente_id: null,
-    nome_oportunidade: "Studio MKT — FEE Gestão Digital", empresa: "Studio MKT",
-    segmento: "Marketing Digital", produto: "FEE Mensal", ticket_estimado: 3000,
-    valor_potencial: 36000, stage: "Proposta", probabilidade: 70, owner: "Danilo",
-    data_abertura: dAgo(8), proxima_acao: "Aguardar retorno da proposta enviada",
-    data_proxima_acao: dAhd(3), risco: "Baixo", motivo_perda: "",
-    data_fechamento_prevista: dAhd(14),
-    observacoes: "Proposta de R$3.000/mês enviada em " + dAgo(3) + ".",
-  },
-  {
-    id: "opp-002", lead_id: "lead-002", cliente_id: null,
-    nome_oportunidade: "Fernanda Ribeiro — Pacote Conteúdo", empresa: "Fernanda Ribeiro ME",
-    segmento: "Moda / Influência", produto: "Projeto + FEE", ticket_estimado: 2200,
-    valor_potencial: 26400, stage: "Qualificação", probabilidade: 40, owner: "Danilo",
-    data_abertura: dAgo(2), proxima_acao: "Agendar call de diagnóstico",
-    data_proxima_acao: dAhd(2), risco: "Médio", motivo_perda: "",
-    data_fechamento_prevista: dAhd(30),
-    observacoes: "Primeiro contato realizado. Interesse confirmado. Próximo: diagnóstico.",
-  },
-  {
-    id: "opp-003", lead_id: null, cliente_id: "cli-001",
-    nome_oportunidade: "CEM — Expansão Tráfego Pago", empresa: "CEM",
-    segmento: "Comunicação", produto: "Tráfego Pago", ticket_estimado: 4800,
-    valor_potencial: 57600, stage: "Diagnóstico", probabilidade: 55, owner: "Danilo",
-    data_abertura: dAgo(5), proxima_acao: "Apresentar auditoria de mídia paga",
-    data_proxima_acao: dAhd(7), risco: "Baixo", motivo_perda: "",
-    data_fechamento_prevista: dAhd(21),
-    observacoes: "Cliente ativo pedindo expansão. Upsell confirmado, falta precificação final.",
-  },
-];
+export const SEED_OPPORTUNITIES: CrmOpportunity[] = [];
 
-export const SEED_PROPOSALS: CrmProposal[] = [
-  {
-    id: "prop-001", opportunity_id: "opp-001", versao: 1, valor_proposto: 3000,
-    escopo: "Gestão completa de redes sociais (3 canais) + tráfego pago Meta Ads",
-    status: "Enviada", data_envio: dAgo(3), data_resposta: null,
-    contraproposta: null, observacoes: "Aguardando feedback do cliente.",
-  },
-];
+export const SEED_PROPOSALS: CrmProposal[] = [];
 
-export const SEED_TASKS: CrmTask[] = [
-  {
-    id: "task-001", cliente_id: "cli-002", opportunity_id: null, lead_id: null,
-    titulo: "Follow-up pagamento Carol Bertolini — Abr/26",
-    categoria: "Follow-up Financeiro", prioridade: "Alta", status: "Aberta",
-    responsavel: "Danilo", data_criacao: dAgo(1), prazo: dAhd(1),
-    sla_horas: 24, data_conclusao: null, bloqueio: "", retrabalho: false,
-  },
-  {
-    id: "task-002", cliente_id: "cli-003", opportunity_id: null, lead_id: null,
-    titulo: "Retorno André Vieira — revisão de contrato",
-    categoria: "Gestão de Conta", prioridade: "Alta", status: "Aberta",
-    responsavel: "Danilo", data_criacao: dAgo(3), prazo: TODAY,
-    sla_horas: 48, data_conclusao: null, bloqueio: "", retrabalho: false,
-  },
-  {
-    id: "task-003", cliente_id: null, opportunity_id: "opp-002", lead_id: "lead-002",
-    titulo: "Agendar call de diagnóstico com Fernanda Ribeiro",
-    categoria: "Qualificação", prioridade: "Média", status: "Aberta",
-    responsavel: "Danilo", data_criacao: dAgo(2), prazo: dAhd(2),
-    sla_horas: 48, data_conclusao: null, bloqueio: "", retrabalho: false,
-  },
-  {
-    id: "task-004", cliente_id: null, opportunity_id: "opp-001", lead_id: null,
-    titulo: "Responder dúvidas da proposta — Studio MKT",
-    categoria: "Proposta", prioridade: "Alta", status: "Aberta",
-    responsavel: "Danilo", data_criacao: dAgo(3), prazo: dAhd(3),
-    sla_horas: 24, data_conclusao: null, bloqueio: "", retrabalho: false,
-  },
-];
+export const SEED_TASKS: CrmTask[] = [];
 
-export const SEED_INTERACTIONS: CrmInteraction[] = [
-  {
-    id: "int-001", cliente_id: "cli-001", opportunity_id: null, lead_id: null,
-    tipo: "Reunião", canal: "Presencial", data: dAgo(5),
-    resumo: "Reunião de alinhamento Q2. CEM confirmou interesse em tráfego pago.",
-    proximo_passo: "Apresentar auditoria de mídia paga até " + dAhd(7),
-    responsavel: "Danilo", satisfacao_percebida: "Alta", risco_percebido: "Baixo",
-  },
-  {
-    id: "int-002", cliente_id: "cli-002", opportunity_id: null, lead_id: null,
-    tipo: "WhatsApp", canal: "WhatsApp", data: dAgo(2),
-    resumo: "Lembrete de pagamento enviado. Cliente leu mas não respondeu.",
-    proximo_passo: "Follow-up por ligação se não houver retorno até " + dAhd(1),
-    responsavel: "Danilo", satisfacao_percebida: "Neutro", risco_percebido: "Médio",
-  },
-  {
-    id: "int-003", cliente_id: null, opportunity_id: "opp-001", lead_id: "lead-001",
-    tipo: "E-mail", canal: "E-mail", data: dAgo(3),
-    resumo: "Proposta formal de R$3.000/mês enviada por e-mail.",
-    proximo_passo: "Aguardar retorno em até 5 dias úteis.",
-    responsavel: "Danilo", satisfacao_percebida: "Neutro", risco_percebido: "Baixo",
-  },
-  {
-    id: "int-004", cliente_id: "cli-004", opportunity_id: null, lead_id: null,
-    tipo: "Ligação", canal: "Telefone", data: dAgo(7),
-    resumo: "Call de onboarding Tati Simões. Apresentação da metodologia e calendário editorial.",
-    proximo_passo: "Enviar primeiro relatório de desempenho em " + dAhd(7),
-    responsavel: "Danilo", satisfacao_percebida: "Alta", risco_percebido: "Baixo",
-  },
-];
+export const SEED_INTERACTIONS: CrmInteraction[] = [];
 
-export const SEED_EXPANSION: CrmExpansion[] = [
-  {
-    id: "exp-001", cliente_id: "cli-001", tipo: "Upsell", valor_potencial: 4800,
-    status: "Em Diagnóstico", owner: "Danilo",
-    proxima_acao: "Apresentar auditoria de mídia paga",
-    observacoes: "CEM — entrada em tráfego pago. MRR potencial: R$4.800/mês.",
-  },
-  {
-    id: "exp-002", cliente_id: "cli-004", tipo: "Cross-sell", valor_potencial: 2500,
-    status: "Identificada", owner: "Danilo",
-    proxima_acao: "Agendar conversa sobre produção de conteúdo",
-    observacoes: "Tati — interesse em criação de conteúdo além do FEE.",
-  },
-];
+export const SEED_EXPANSION: CrmExpansion[] = [];
 
-export const SEED_HEALTH: CrmHealthSnapshot[] = [
-  {
-    id: "health-001", cliente_id: "cli-001", periodo: "Abr/26", health_score: 92,
-    churn_risk: "Baixo", ultima_interacao: dAgo(5), followups_em_dia: true,
-    pendencias: 0, expansao_aberta: true,
-  },
-  {
-    id: "health-002", cliente_id: "cli-002", periodo: "Abr/26", health_score: 65,
-    churn_risk: "Médio", ultima_interacao: dAgo(2), followups_em_dia: false,
-    pendencias: 1, expansao_aberta: false,
-  },
-  {
-    id: "health-003", cliente_id: "cli-003", periodo: "Abr/26", health_score: 58,
-    churn_risk: "Médio", ultima_interacao: dAgo(10), followups_em_dia: false,
-    pendencias: 2, expansao_aberta: false,
-  },
-  {
-    id: "health-004", cliente_id: "cli-004", periodo: "Abr/26", health_score: 88,
-    churn_risk: "Baixo", ultima_interacao: dAgo(7), followups_em_dia: true,
-    pendencias: 0, expansao_aberta: true,
-  },
-];
+export const SEED_HEALTH: CrmHealthSnapshot[] = [];
 
 // ─── DB Init (idempotente) ────────────────────────────────────────────────────
 
