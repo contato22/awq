@@ -28,6 +28,77 @@ function fmtDate(iso: string | null | undefined) {
 
 const TODAY = new Date().toISOString().slice(0, 10);
 
+// ─── Quick filters ────────────────────────────────────────────────────────────
+
+type QuickFilter = "Todos" | "Atacar" | "Parado7d" | "Vencendo" | "AltoRisco" | "SFollowup" | "Recorrente";
+
+const QUICK_FILTERS: Array<{ id: QuickFilter; label: string; on: string; off: string }> = [
+  {
+    id: "Todos", label: "Todos",
+    on:  "bg-gray-800 text-white border-gray-800",
+    off: "bg-white text-gray-600 border-gray-200 hover:border-gray-400",
+  },
+  {
+    id: "Atacar", label: "⚡ Atacar hoje",
+    on:  "bg-amber-500 text-white border-amber-500",
+    off: "bg-white text-amber-700 border-amber-200 hover:border-amber-400",
+  },
+  {
+    id: "Parado7d", label: "🕐 Parado > 7d",
+    on:  "bg-orange-500 text-white border-orange-500",
+    off: "bg-white text-orange-700 border-orange-200 hover:border-orange-400",
+  },
+  {
+    id: "Vencendo", label: "📅 Vencendo",
+    on:  "bg-red-500 text-white border-red-500",
+    off: "bg-white text-red-600 border-red-200 hover:border-red-400",
+  },
+  {
+    id: "AltoRisco", label: "🔴 Alto Risco",
+    on:  "bg-red-700 text-white border-red-700",
+    off: "bg-white text-red-700 border-red-200 hover:border-red-400",
+  },
+  {
+    id: "SFollowup", label: "📨 Prop. S/ Follow-up",
+    on:  "bg-violet-600 text-white border-violet-600",
+    off: "bg-white text-violet-700 border-violet-200 hover:border-violet-400",
+  },
+  {
+    id: "Recorrente", label: "♻ Recorrente",
+    on:  "bg-emerald-600 text-white border-emerald-600",
+    off: "bg-white text-emerald-700 border-emerald-200 hover:border-emerald-400",
+  },
+];
+
+function matchesQuickFilter(o: CazaCrmOpportunity, f: QuickFilter): boolean {
+  if (f === "Todos") return true;
+  const active = o.stage !== "Fechado Ganho" && o.stage !== "Fechado Perdido";
+  if (f === "Atacar") {
+    const ds = daysSince(o.data_ultima_interacao);
+    return active && (
+      (ds !== null && ds > 5) ||
+      o.risco === "Alto" ||
+      (!!o.prazo_estimado && o.prazo_estimado <= TODAY)
+    );
+  }
+  if (f === "Parado7d") {
+    const ds = daysSince(o.data_ultima_interacao);
+    return active && ds !== null && ds > 7;
+  }
+  if (f === "Vencendo") {
+    return active && !!o.prazo_estimado && o.prazo_estimado < TODAY;
+  }
+  if (f === "AltoRisco") return o.risco === "Alto";
+  if (f === "SFollowup") {
+    const ds = daysSince(o.data_ultima_interacao);
+    return o.stage === "Proposta Enviada" && (ds === null || ds > 3);
+  }
+  if (f === "Recorrente") return o.tipo_negocio === "Recorrente";
+  return true;
+}
+
+// ─── Kanban config ────────────────────────────────────────────────────────────
+
 const STAGE_CFG: Record<string, { label: string; text: string; bg: string; border: string; colBg: string; head: string }> = {
   "Lead Captado":    { label: "Lead Captado",    text: "text-gray-700",    bg: "bg-gray-50",    border: "border-gray-200",   colBg: "bg-gray-50",    head: "bg-gray-100"    },
   "Qualificação":    { label: "Qualificação",    text: "text-blue-700",   bg: "bg-blue-50",    border: "border-blue-200",   colBg: "bg-blue-50/40", head: "bg-blue-100"    },
@@ -35,7 +106,7 @@ const STAGE_CFG: Record<string, { label: string; text: string; bg: string; borde
   "Proposta Enviada":{ label: "Proposta Enviada",text: "text-amber-700",  bg: "bg-amber-50",   border: "border-amber-200",  colBg: "bg-amber-50/40",head: "bg-amber-100"   },
   "Negociação":      { label: "Negociação",      text: "text-orange-700", bg: "bg-orange-50",  border: "border-orange-200", colBg: "bg-orange-50/40",head: "bg-orange-100"  },
   "Fechado Ganho":   { label: "Fechado Ganho",   text: "text-emerald-700",bg: "bg-emerald-50", border: "border-emerald-200",colBg: "bg-emerald-50/40",head: "bg-emerald-100" },
-  "Fechado Perdido": { label: "Fechado Perdido", text: "text-red-700",   bg: "bg-red-50",     border: "border-red-200",    colBg: "bg-red-50/30",   head: "bg-red-100"     },
+  "Fechado Perdido": { label: "Fechado Perdido", text: "text-red-700",   bg: "bg-red-50",     border: "border-red-200",    colBg: "bg-red-50/30",  head: "bg-red-100"     },
 };
 
 const STAGE_NEXT: Record<string, string | null> = {
@@ -73,13 +144,14 @@ function ProbBar({ pct }: { pct: number }) {
 }
 
 export default function CazaCrmPipeline() {
-  const [opps,       setOpps]       = useState<CazaCrmOpportunity[]>([]);
-  const [source,     setSource]     = useState<"loading" | "internal" | "static" | "local" | "empty">("loading");
-  const [editingId,  setEditingId]  = useState<string | null>(null);
-  const [editForm,   setEditForm]   = useState({ ...EMPTY_EDIT });
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [saving,     setSaving]     = useState(false);
-  const [error,      setError]      = useState<string | null>(null);
+  const [opps,        setOpps]        = useState<CazaCrmOpportunity[]>([]);
+  const [source,      setSource]      = useState<"loading" | "internal" | "static" | "local" | "empty">("loading");
+  const [editingId,   setEditingId]   = useState<string | null>(null);
+  const [editForm,    setEditForm]    = useState({ ...EMPTY_EDIT });
+  const [deletingId,  setDeletingId]  = useState<string | null>(null);
+  const [saving,      setSaving]      = useState(false);
+  const [error,       setError]       = useState<string | null>(null);
+  const [quickFilter, setQuickFilter] = useState<QuickFilter>("Todos");
 
   useEffect(() => {
     fetchCazaCRM<CazaCrmOpportunity>("oportunidades").then((staticData) => {
@@ -143,6 +215,7 @@ export default function CazaCrmPipeline() {
           valor_estimado: Number(editForm.valor_estimado) || 0,
           probabilidade:  Number(editForm.probabilidade)  || 0,
           prazo_estimado: String(editForm.prazo_estimado) || null,
+          data_ultima_interacao: String(editForm.data_ultima_interacao) || null,
         }),
       });
       if (!res.ok) { const e = await res.json() as { error?: string }; setError(e.error ?? "Erro."); }
@@ -172,6 +245,9 @@ export default function CazaCrmPipeline() {
   const cls = "mt-1 w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-300 bg-white";
   const lbl = "text-[11px] font-semibold text-gray-500 uppercase tracking-wide";
 
+  const filterCount = (f: QuickFilter) =>
+    f === "Todos" ? opps.length : opps.filter((o) => matchesQuickFilter(o, f)).length;
+
   return (
     <>
       <Header title="Pipeline Comercial" subtitle="Kanban de Oportunidades · Caza Vision" />
@@ -192,7 +268,7 @@ export default function CazaCrmPipeline() {
           </Link>
         </div>
 
-        {/* Summary cards */}
+        {/* Summary KPIs */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[
             { label: "Pipeline Aberto",    value: fmtR(valorTotal),    icon: DollarSign,  color: "text-brand-600"   },
@@ -209,6 +285,21 @@ export default function CazaCrmPipeline() {
                   <div className="text-[11px] text-gray-400 font-medium">{k.label}</div>
                 </div>
               </div>
+            );
+          })}
+        </div>
+
+        {/* Quick filter chips */}
+        <div className="flex gap-2 flex-wrap">
+          {QUICK_FILTERS.map((f) => {
+            const count   = filterCount(f.id);
+            const isActive = quickFilter === f.id;
+            return (
+              <button key={f.id} onClick={() => setQuickFilter(f.id)}
+                className={`px-3 py-1.5 rounded-full text-[11px] font-semibold border transition-all ${isActive ? f.on : f.off}`}>
+                {f.label}
+                {count > 0 && <span className={`ml-1 ${isActive ? "opacity-80" : "opacity-60"}`}>({count})</span>}
+              </button>
             );
           })}
         </div>
@@ -293,6 +384,7 @@ export default function CazaCrmPipeline() {
               {CAZA_PIPELINE_STAGES.map((stage) => {
                 const cfg   = STAGE_CFG[stage];
                 const cards = opps.filter((o) => o.stage === stage);
+                const visibleCount = cards.filter((o) => matchesQuickFilter(o, quickFilter)).length;
                 const total = cards.reduce((s, o) => s + o.valor_estimado, 0);
                 const next  = STAGE_NEXT[stage];
                 return (
@@ -301,7 +393,9 @@ export default function CazaCrmPipeline() {
                     <div className={`rounded-xl px-3 py-2.5 ${cfg.head} border ${cfg.border}`}>
                       <div className="flex items-center justify-between">
                         <span className={`text-[11px] font-bold ${cfg.text}`}>{cfg.label}</span>
-                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${cfg.bg} ${cfg.text} border ${cfg.border}`}>{cards.length}</span>
+                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${cfg.bg} ${cfg.text} border ${cfg.border}`}>
+                          {quickFilter === "Todos" ? cards.length : `${visibleCount}/${cards.length}`}
+                        </span>
                       </div>
                       {total > 0 && <div className={`text-[10px] font-semibold mt-0.5 ${cfg.text} opacity-70`}>{fmtR(total)}</div>}
                     </div>
@@ -318,11 +412,13 @@ export default function CazaCrmPipeline() {
                           stage !== "Fechado Ganho" && stage !== "Fechado Perdido";
                         const isEditing  = editingId  === o.id;
                         const isDeleting = deletingId === o.id;
+                        const matches    = matchesQuickFilter(o, quickFilter);
                         return (
                           <div key={o.id}
-                            className={`rounded-xl border p-3 bg-white shadow-sm transition-shadow hover:shadow-md
+                            className={`rounded-xl border p-3 bg-white shadow-sm transition-all hover:shadow-md
                               ${isEditing ? "border-emerald-300 ring-1 ring-emerald-200" : cfg.border}
-                              ${isOverdue ? "border-red-300" : ""}`}>
+                              ${isOverdue ? "border-red-300" : ""}
+                              ${!matches  ? "opacity-25 pointer-events-none select-none" : ""}`}>
 
                             {/* Card header */}
                             <div className="flex items-start justify-between gap-1 mb-1.5">
@@ -359,8 +455,8 @@ export default function CazaCrmPipeline() {
                               {o.tipo_negocio && (
                                 <span className={`text-[9px] font-semibold px-1 py-0.5 rounded border ${
                                   o.tipo_negocio === "Recorrente" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
-                                  o.tipo_negocio === "Projeto" ? "bg-blue-50 text-blue-700 border-blue-200" :
-                                  "bg-gray-50 text-gray-500 border-gray-200"}`}>
+                                  o.tipo_negocio === "Projeto"    ? "bg-blue-50 text-blue-700 border-blue-200" :
+                                                                    "bg-gray-50 text-gray-500 border-gray-200"}`}>
                                   {o.tipo_negocio}
                                 </span>
                               )}
@@ -369,7 +465,8 @@ export default function CazaCrmPipeline() {
                                 if (ds === null) return null;
                                 const stale = ds > 14;
                                 return (
-                                  <span className={`inline-flex items-center gap-0.5 text-[9px] font-medium px-1 py-0.5 rounded border ${stale ? "bg-red-50 text-red-600 border-red-200" : "bg-gray-50 text-gray-400 border-gray-200"}`}>
+                                  <span className={`inline-flex items-center gap-0.5 text-[9px] font-medium px-1 py-0.5 rounded border ${
+                                    stale ? "bg-red-50 text-red-600 border-red-200" : "bg-gray-50 text-gray-400 border-gray-200"}`}>
                                     <Timer size={8} />{ds}d
                                   </span>
                                 );

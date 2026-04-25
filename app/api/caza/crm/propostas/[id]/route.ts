@@ -24,13 +24,15 @@ export async function PATCH(
 
   const body = await req.json() as Record<string, unknown>;
   const updated = await updateProposal(params.id, {
+    versao:         body.versao         != null ? Number(body.versao)                   : undefined,
     valor_proposto: body.valor_proposto != null ? Number(body.valor_proposto)           : undefined,
     escopo:         body.escopo         != null ? String(body.escopo).trim()            : undefined,
     status:         body.status         != null ? String(body.status)                   : undefined,
     data_envio:     body.data_envio     != null ? (String(body.data_envio) || null)     : undefined,
     data_resposta:  body.data_resposta  != null ? (String(body.data_resposta) || null)  : undefined,
+    validade:       body.validade       != null ? (String(body.validade) || null)       : undefined,
+    objecoes:       body.objecoes       != null ? String(body.objecoes).trim()          : undefined,
     observacoes:    body.observacoes    != null ? String(body.observacoes).trim()       : undefined,
-    versao:         body.versao         != null ? Number(body.versao)                   : undefined,
   });
 
   if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });

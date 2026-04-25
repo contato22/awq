@@ -34,9 +34,11 @@ export async function PATCH(
     prazo_estimado:    body.prazo_estimado    != null ? (String(body.prazo_estimado) || null) : undefined,
     proxima_acao:      body.proxima_acao      != null ? String(body.proxima_acao).trim()      : undefined,
     data_proxima_acao: body.data_proxima_acao != null ? (String(body.data_proxima_acao) || null) : undefined,
-    risco:             body.risco             != null ? String(body.risco)                    : undefined,
-    motivo_perda:      body.motivo_perda      != null ? String(body.motivo_perda).trim()      : undefined,
-    observacoes:       body.observacoes       != null ? String(body.observacoes).trim()       : undefined,
+    risco:                 body.risco                 != null ? String(body.risco)                                : undefined,
+    motivo_perda:          body.motivo_perda          != null ? String(body.motivo_perda).trim()                  : undefined,
+    observacoes:           body.observacoes           != null ? String(body.observacoes).trim()                   : undefined,
+    data_ultima_interacao: body.data_ultima_interacao != null ? (String(body.data_ultima_interacao) || null)      : undefined,
+    tipo_negocio:          body.tipo_negocio          != null ? String(body.tipo_negocio)                        : undefined,
   });
 
   if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });

@@ -1,1 +1,106 @@
-[]
+[
+  {
+    "id": "CV-PROP-FARRA1",
+    "opportunity_id": "CV-OPP-FARRA1",
+    "versao": 1,
+    "valor_proposto": 35500,
+    "escopo": "Pacote de produção audiovisual recorrente — 5 vídeos publicitários de alto impacto para a marca FARRA, com pré-produção, filmagem, edição e entrega em formatos multi-plataforma.",
+    "status": "Aprovada",
+    "data_envio": "2024-01-05",
+    "data_resposta": "2024-01-10",
+    "validade": null,
+    "objecoes": "",
+    "observacoes": "Contrato recorrente aprovado. 2 projetos em produção ativa. Relacionamento consolidado."
+  },
+  {
+    "id": "CV-PROP-LIVE01",
+    "opportunity_id": "CV-OPP-LIVE01",
+    "versao": 1,
+    "valor_proposto": 22300,
+    "escopo": "Cobertura audiovisual de 4 eventos ao vivo — equipe completa, transmissão ao vivo e edição de highlights pós-evento para a LIVE!",
+    "status": "Aprovada",
+    "data_envio": "2024-01-08",
+    "data_resposta": "2024-01-12",
+    "validade": null,
+    "objecoes": "",
+    "observacoes": "4 eventos contratados — 1 em produção ativa."
+  },
+  {
+    "id": "CV-PROP-ATFIL1",
+    "opportunity_id": "CV-OPP-ATFIL1",
+    "versao": 2,
+    "valor_proposto": 15300,
+    "escopo": "Coprodução de 2 filmes institucionais — parceria técnica com AT Films, incluindo direção de fotografia, edição e finalização.",
+    "status": "Aprovada",
+    "data_envio": "2024-01-15",
+    "data_resposta": "2024-01-22",
+    "validade": null,
+    "objecoes": "Prazo de entrega inicialmente mais apertado. Ajustado na v2.",
+    "observacoes": "2ª versão aprovada após ajuste de prazo. 1 projeto em produção."
+  },
+  {
+    "id": "CV-PROP-ESOP01",
+    "opportunity_id": "CV-OPP-ESOP01",
+    "versao": 1,
+    "valor_proposto": 8000,
+    "escopo": "Produção de filme institucional para documentação de projeto cultural do ESO ProArte — roteiro, filmagem e edição final.",
+    "status": "Aprovada",
+    "data_envio": "2024-01-18",
+    "data_resposta": "2024-01-25",
+    "validade": null,
+    "objecoes": "",
+    "observacoes": "Projeto entregue e aprovado pelo cliente."
+  },
+  {
+    "id": "CV-PROP-VBARB1",
+    "opportunity_id": "CV-OPP-VBARB1",
+    "versao": 1,
+    "valor_proposto": 6900,
+    "escopo": "Vídeo publicitário de alto impacto para marca pessoal da Vanessa Barbosa — direção criativa, filmagem e edição com entrega em formato Stories e Feed.",
+    "status": "Aprovada",
+    "data_envio": "2024-01-10",
+    "data_resposta": "2024-01-14",
+    "validade": null,
+    "objecoes": "Solicitou desconto de 10% — não concedido, manteve proposta original.",
+    "observacoes": "Projeto entregue. Cliente satisfeita."
+  },
+  {
+    "id": "CV-PROP-OTHON1",
+    "opportunity_id": "CV-OPP-OTHON1",
+    "versao": 1,
+    "valor_proposto": 6000,
+    "escopo": "Vídeo publicitário para campanha de alta temporada do OTHON — filmagem em 1 dia, edição completa e variações para digital e TV.",
+    "status": "Aprovada",
+    "data_envio": "2024-03-28",
+    "data_resposta": "2024-04-02",
+    "validade": null,
+    "objecoes": "",
+    "observacoes": "Projeto em produção ativa."
+  },
+  {
+    "id": "CV-PROP-PATRI1",
+    "opportunity_id": "CV-OPP-PATRI1",
+    "versao": 1,
+    "valor_proposto": 5000,
+    "escopo": "Cobertura fotográfica completa de casamento — cerimônia e festa, com álbum digital editado em até 15 dias após o evento.",
+    "status": "Aprovada",
+    "data_envio": "2023-12-01",
+    "data_resposta": "2023-12-05",
+    "validade": null,
+    "objecoes": "",
+    "observacoes": "Casamento entregue com sucesso."
+  },
+  {
+    "id": "CV-PROP-MARI01",
+    "opportunity_id": "CV-OPP-MARI01",
+    "versao": 1,
+    "valor_proposto": 4000,
+    "escopo": "Cobertura fotográfica de casamento — cerimônia civil e recepção, álbum digital com 200 imagens editadas.",
+    "status": "Aprovada",
+    "data_envio": "2024-01-02",
+    "data_resposta": "2024-01-04",
+    "validade": null,
+    "objecoes": "",
+    "observacoes": "Casamento entregue. Cliente satisfeita."
+  }
+]

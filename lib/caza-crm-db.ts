@@ -375,7 +375,8 @@ export async function listOpportunities(): Promise<CazaCrmOpportunity[]> {
   const rows = await sql`
     SELECT id, lead_id, nome_oportunidade, empresa, tipo_servico, valor_estimado,
            stage, probabilidade, owner, data_abertura, prazo_estimado,
-           proxima_acao, data_proxima_acao, risco, motivo_perda, observacoes
+           proxima_acao, data_proxima_acao, risco, motivo_perda, observacoes,
+           data_ultima_interacao, tipo_negocio
     FROM caza_crm_opportunities ORDER BY created_at DESC
   `;
   return rows.map(coerceOpportunity);
@@ -390,16 +391,19 @@ export async function createOpportunity(
     INSERT INTO caza_crm_opportunities (
       id, lead_id, nome_oportunidade, empresa, tipo_servico, valor_estimado,
       stage, probabilidade, owner, data_abertura, prazo_estimado,
-      proxima_acao, data_proxima_acao, risco, motivo_perda, observacoes
+      proxima_acao, data_proxima_acao, risco, motivo_perda, observacoes,
+      data_ultima_interacao, tipo_negocio
     ) VALUES (
       ${id}, ${o.lead_id ?? null}, ${o.nome_oportunidade}, ${o.empresa},
       ${o.tipo_servico}, ${o.valor_estimado}, ${o.stage}, ${o.probabilidade},
       ${o.owner}, ${o.data_abertura}, ${o.prazo_estimado ?? null},
       ${o.proxima_acao}, ${o.data_proxima_acao ?? null}, ${o.risco},
-      ${o.motivo_perda}, ${o.observacoes}
+      ${o.motivo_perda}, ${o.observacoes},
+      ${o.data_ultima_interacao ?? null}, ${o.tipo_negocio}
     ) RETURNING id, lead_id, nome_oportunidade, empresa, tipo_servico, valor_estimado,
                 stage, probabilidade, owner, data_abertura, prazo_estimado,
-                proxima_acao, data_proxima_acao, risco, motivo_perda, observacoes
+                proxima_acao, data_proxima_acao, risco, motivo_perda, observacoes,
+                data_ultima_interacao, tipo_negocio
   `;
   return coerceOpportunity(rows[0]);
 }
@@ -412,7 +416,8 @@ export async function updateOpportunity(
   const rows = await sql`
     SELECT id, lead_id, nome_oportunidade, empresa, tipo_servico, valor_estimado,
            stage, probabilidade, owner, data_abertura, prazo_estimado,
-           proxima_acao, data_proxima_acao, risco, motivo_perda, observacoes
+           proxima_acao, data_proxima_acao, risco, motivo_perda, observacoes,
+           data_ultima_interacao, tipo_negocio
     FROM caza_crm_opportunities WHERE id = ${id}
   `;
   if (!rows[0]) return null;
@@ -425,11 +430,14 @@ export async function updateOpportunity(
       probabilidade = ${m.probabilidade}, owner = ${m.owner},
       prazo_estimado = ${m.prazo_estimado ?? null}, proxima_acao = ${m.proxima_acao},
       data_proxima_acao = ${m.data_proxima_acao ?? null}, risco = ${m.risco},
-      motivo_perda = ${m.motivo_perda}, observacoes = ${m.observacoes}
+      motivo_perda = ${m.motivo_perda}, observacoes = ${m.observacoes},
+      data_ultima_interacao = ${m.data_ultima_interacao ?? null},
+      tipo_negocio = ${m.tipo_negocio}
     WHERE id = ${id}
     RETURNING id, lead_id, nome_oportunidade, empresa, tipo_servico, valor_estimado,
               stage, probabilidade, owner, data_abertura, prazo_estimado,
-              proxima_acao, data_proxima_acao, risco, motivo_perda, observacoes
+              proxima_acao, data_proxima_acao, risco, motivo_perda, observacoes,
+              data_ultima_interacao, tipo_negocio
   `;
   return updated[0] ? coerceOpportunity(updated[0]) : null;
 }
@@ -440,7 +448,7 @@ export async function listProposals(): Promise<CazaCrmProposal[]> {
   if (!sql) return [];
   const rows = await sql`
     SELECT id, opportunity_id, versao, valor_proposto, escopo,
-           status, data_envio, data_resposta, observacoes
+           status, data_envio, data_resposta, validade, objecoes, observacoes
     FROM caza_crm_proposals ORDER BY created_at DESC
   `;
   return rows.map(coerceProposal);
@@ -454,13 +462,13 @@ export async function createProposal(
   const rows = await sql`
     INSERT INTO caza_crm_proposals (
       id, opportunity_id, versao, valor_proposto, escopo,
-      status, data_envio, data_resposta, observacoes
+      status, data_envio, data_resposta, validade, objecoes, observacoes
     ) VALUES (
       ${id}, ${p.opportunity_id}, ${p.versao}, ${p.valor_proposto},
       ${p.escopo}, ${p.status}, ${p.data_envio ?? null},
-      ${p.data_resposta ?? null}, ${p.observacoes}
+      ${p.data_resposta ?? null}, ${p.validade ?? null}, ${p.objecoes}, ${p.observacoes}
     ) RETURNING id, opportunity_id, versao, valor_proposto, escopo,
-                status, data_envio, data_resposta, observacoes
+                status, data_envio, data_resposta, validade, objecoes, observacoes
   `;
   return coerceProposal(rows[0]);
 }
@@ -472,19 +480,21 @@ export async function updateProposal(
   if (!sql) return null;
   const rows = await sql`
     SELECT id, opportunity_id, versao, valor_proposto, escopo,
-           status, data_envio, data_resposta, observacoes
+           status, data_envio, data_resposta, validade, objecoes, observacoes
     FROM caza_crm_proposals WHERE id = ${id}
   `;
   if (!rows[0]) return null;
   const m = { ...coerceProposal(rows[0]), ...updates };
   const updated = await sql`
     UPDATE caza_crm_proposals SET
-      valor_proposto = ${m.valor_proposto}, escopo = ${m.escopo},
-      status = ${m.status}, data_envio = ${m.data_envio ?? null},
-      data_resposta = ${m.data_resposta ?? null}, observacoes = ${m.observacoes}
+      versao = ${m.versao}, valor_proposto = ${m.valor_proposto},
+      escopo = ${m.escopo}, status = ${m.status},
+      data_envio = ${m.data_envio ?? null}, data_resposta = ${m.data_resposta ?? null},
+      validade = ${m.validade ?? null}, objecoes = ${m.objecoes},
+      observacoes = ${m.observacoes}
     WHERE id = ${id}
     RETURNING id, opportunity_id, versao, valor_proposto, escopo,
-              status, data_envio, data_resposta, observacoes
+              status, data_envio, data_resposta, validade, objecoes, observacoes
   `;
   return updated[0] ? coerceProposal(updated[0]) : null;
 }
