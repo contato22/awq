@@ -163,8 +163,19 @@ export default function TarefasPage() {
           setTarefas(prev => [nova, ...prev]);
         }
       } else if (editingId) {
-        crmUpdate<CrmTask>("tasks", editingId, payload);
-        setTarefas(prev => prev.map(t => t.id === editingId ? { ...t, ...payload } : t));
+        const res = await fetch(`/api/jacqes/crm/tarefas/${editingId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (res.ok) {
+          const updated = await res.json();
+          setTarefas(prev => prev.map(t => t.id === editingId ? updated : t));
+        } else {
+          // fallback: update localStorage only
+          crmUpdate<CrmTask>("tasks", editingId, payload);
+          setTarefas(prev => prev.map(t => t.id === editingId ? { ...t, ...payload } : t));
+        }
       } else {
         const res = await fetch("/api/jacqes/crm/tarefas", {
           method: "POST",
@@ -189,14 +200,33 @@ export default function TarefasPage() {
     }
   }
 
-  function handleDelete(id: string) {
+  async function handleDelete(id: string) {
     if (!confirm("Remover esta tarefa?")) return;
+    if (!IS_STATIC) {
+      const res = await fetch(`/api/jacqes/crm/tarefas/${id}`, { method: "DELETE" });
+      if (!res.ok && res.status !== 404) {
+        alert("Falha ao remover. Tente novamente.");
+        return;
+      }
+    }
     crmDelete("tasks", id);
     setTarefas(prev => prev.filter(t => t.id !== id));
   }
 
-  function concluirRapido(t: CrmTask) {
+  async function concluirRapido(t: CrmTask) {
     if (t.status === "Concluída") return;
+    if (!IS_STATIC) {
+      const res = await fetch(`/api/jacqes/crm/tarefas/${t.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "Concluída" }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setTarefas(prev => prev.map(x => x.id === t.id ? updated : x));
+        return;
+      }
+    }
     crmUpdate<CrmTask>("tasks", t.id, { status: "Concluída" });
     setTarefas(prev => prev.map(x => x.id === t.id ? { ...x, status: "Concluída" } : x));
   }

@@ -99,7 +99,7 @@ export const PERMISSION_MATRIX: Record<SecurityRole, Partial<Record<SecurityLaye
   // operator: operações/CRM — ex-cs-ops. Sem acesso financeiro, infra ou security.
   operator: {
     holding:     [],
-    jacqes:      ["view","create","update"],
+    jacqes:      ["view","create","update","delete"],
     caza_vision: ["view"],
     awq_venture: [],
     advisor:     [],
