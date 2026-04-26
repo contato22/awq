@@ -234,16 +234,19 @@ export default async function AwqCashflowPage() {
   ];
 
   // ── FCO waterfall rows (real data only) ─────────────────────────────────────
+  // Note: partnerWithdrawals and personalExpenses are already contained in
+  // totalExpenses and therefore in operationalNetCash. They are shown as
+  // sub-lines for visibility but must NOT be subtracted again from the FCO total.
+  const otherExpenses = c.totalExpenses - c.partnerWithdrawals - c.personalExpenses;
   const waterfallRows: { label: string; value: number; indent: number; bold: boolean }[] = [
     { label: "Entradas Operacionais",          value:  c.totalRevenue,          indent: 0, bold: false },
-    { label: "  (−) Saídas Operacionais",      value: -c.totalExpenses,         indent: 1, bold: false },
-    { label: "= FCO Caixa",                    value:  c.operationalNetCash,     indent: 0, bold: true  },
-    { label: "  (−) Pró-labore / Retiradas",   value: -c.partnerWithdrawals,     indent: 1, bold: false },
-    { label: "  (−) Despesas Pessoais",        value: -c.personalExpenses,       indent: 1, bold: false },
-    { label: "= Fluxo Ajustado",               value:  c.operationalNetCash - c.partnerWithdrawals - c.personalExpenses, indent: 0, bold: true },
-    { label: "  Elim. Intercompany",           value: -c.intercompanyEliminated, indent: 1, bold: false },
-    { label: "  Movimentos Financeiros (net)", value:  c.financialMovements,     indent: 1, bold: false },
-    { label: "  Ambíguo (revisão pendente)",   value:  c.ambiguousAmount,        indent: 1, bold: false },
+    { label: "  (−) Outras Saídas",           value: -otherExpenses,            indent: 1, bold: false },
+    { label: "  (−) Pró-labore / Retiradas",  value: -c.partnerWithdrawals,     indent: 1, bold: false },
+    { label: "  (−) Despesas Pessoais",       value: -c.personalExpenses,       indent: 1, bold: false },
+    { label: "= FCO Caixa",                   value:  c.operationalNetCash,      indent: 0, bold: true  },
+    { label: "  Elim. Intercompany",          value: -c.intercompanyEliminated,  indent: 1, bold: false },
+    { label: "  Movimentos Financeiros (net)",value:  c.financialMovements,      indent: 1, bold: false },
+    { label: "  Ambíguo (revisão pendente)",  value:  c.ambiguousAmount,         indent: 1, bold: false },
   ];
 
   const maxWaterfallVal = Math.max(...waterfallRows.map((r) => Math.abs(r.value)), 1);

@@ -50,7 +50,7 @@ export type { EntityLayer, ManagerialCategory };
 //   (those are in CONSOLIDATION_EXCLUDED via excludedFromConsolidated flag).
 //   Includes prolabore_retirada (below-the-line, shown separately in FCO).
 
-const REVENUE_CATS = new Set<ManagerialCategory>([
+export const REVENUE_CATS = new Set<ManagerialCategory>([
   "receita_recorrente",
   "receita_projeto",
   "receita_consultoria",
@@ -63,7 +63,7 @@ const REVENUE_CATS = new Set<ManagerialCategory>([
   "ajuste_bancario_credito",
 ]);
 
-const OPERATIONAL_EXPENSE_CATS = new Set<ManagerialCategory>([
+export const OPERATIONAL_EXPENSE_CATS = new Set<ManagerialCategory>([
   "fornecedor_operacional",
   "freelancer_terceiro",
   "folha_remuneracao",
@@ -81,7 +81,8 @@ const OPERATIONAL_EXPENSE_CATS = new Set<ManagerialCategory>([
   "servicos_contabeis_juridicos",
   "cartao_compra_operacional",
   "despesa_pessoal_misturada",
-  "despesa_ambigua",
+  // despesa_ambigua belongs in AMBIGUOUS_CATS only — keeping it here caused monthly
+  // bridge to count ambiguous debits in expenses while buildCashAccount kept them separate.
 ]);
 
 const AMBIGUOUS_CATS = new Set<ManagerialCategory>([

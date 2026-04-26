@@ -36,7 +36,13 @@ import {
   type ManagerialCategory,
   type ClassificationConfidence,
 } from "./financial-db";
-import { ENTITY_LABELS, fmtBRL, fmtDate } from "./financial-query";
+import {
+  ENTITY_LABELS,
+  REVENUE_CATS,
+  OPERATIONAL_EXPENSE_CATS,
+  fmtBRL,
+  fmtDate,
+} from "./financial-query";
 
 export type { EntityLayer, ManagerialCategory, ClassificationConfidence };
 export { fmtBRL, fmtDate, ENTITY_LABELS };
@@ -217,23 +223,13 @@ export async function buildInvestmentQuery(): Promise<InvestmentQueryResult> {
   const doneDocs = allDocs.filter((d) => d.status === "done");
   const allTxns  = await getAllTransactions();
 
-  // Compute operational reference for separation display
-  // (lightweight — avoid importing buildFinancialQuery to prevent circular deps)
-  const REVENUE_CATS = new Set<ManagerialCategory>([
-    "receita_recorrente", "receita_projeto", "receita_eventual",
-  ]);
-  const EXPENSE_CATS = new Set<ManagerialCategory>([
-    "fornecedor_operacional", "freelancer_terceiro", "folha_remuneracao",
-    "prolabore_retirada", "imposto_tributo", "tarifa_bancaria",
-    "software_assinatura", "marketing_midia", "deslocamento_combustivel",
-    "alimentacao_representacao", "despesa_pessoal_misturada", "despesa_ambigua",
-  ]);
+  // Compute operational reference for separation display using canonical category sets.
   let opRevenue = 0, opExpenses = 0;
   for (const t of allTxns) {
     if (t.excludedFromConsolidated) continue;
     const amt = Math.abs(t.amount);
     if (REVENUE_CATS.has(t.managerialCategory) && t.direction === "credit") opRevenue += amt;
-    if (EXPENSE_CATS.has(t.managerialCategory) && t.direction === "debit")  opExpenses += amt;
+    if (OPERATIONAL_EXPENSE_CATS.has(t.managerialCategory) && t.direction === "debit") opExpenses += amt;
   }
 
   const empty: InvestmentQueryResult = {
@@ -265,8 +261,9 @@ export async function buildInvestmentQuery(): Promise<InvestmentQueryResult> {
       confirmedInvestment.push(t);
     } else if (
       POSSIBLE_INVESTMENT_CATS.has(t.managerialCategory) &&
-      t.excludedFromConsolidated &&
-      !t.isIntercompany   // not a matched intercompany pair — could be investment
+      !t.isIntercompany   // not a matched intercompany pair — could be investment routing
+      // Note: excludedFromConsolidated NOT required here — unmatched internal transfers
+      // may still have excludedFromConsolidated=false and still warrant review.
     ) {
       reviewCandidates.push(t);
     }
