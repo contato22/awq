@@ -39,8 +39,8 @@ export default function AdvisorFinancialPage() {
               A BU Advisor não possui receita operacional confirmada, clientes ativos
               ou capital alocado registrado. Dados financeiros serão exibidos aqui
               após o primeiro contrato assinado e extrato bancário ingerido via{" "}
-              <a href="/awq/ingest" className="underline font-medium text-violet-700">
-                /awq/ingest
+              <a href="/awq/conciliacao" className="underline font-medium text-violet-700">
+                /awq/conciliacao
               </a>.
             </p>
           </div>

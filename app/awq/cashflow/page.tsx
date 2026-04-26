@@ -37,8 +37,8 @@ function NoDataBanner({ gaps }: { gaps: string[] }) {
           <p className="text-xs text-amber-700 mt-1">
             Nenhum extrato processado ainda. Os dados abaixo mostram zero enquanto os
             PDFs não forem ingeridos via{" "}
-            <a href="/awq/ingest" className="underline font-medium">
-              /awq/ingest
+            <a href="/awq/conciliacao" className="underline font-medium">
+              /awq/conciliacao
             </a>
             .
           </p>

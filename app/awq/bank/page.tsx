@@ -6,13 +6,13 @@
 //       Data lives in localStorage (browser-local, not server-persistent).
 //
 // SCOPE: This page is NOT the document ingestion pipeline.
-//        For PDF-based bank statement import with full traceability, use /awq/ingest.
+//        For PDF-based bank statement import with full traceability, use /awq/conciliacao.
 //
 // ARCHITECTURE:
 //   • Accounts and transactions: localStorage ("awq_bank_accounts")
 //   • No server API calls for data storage — intentionally local/scratchpad
 //   • No AI parsing — that responsibility moved to /api/ingest/process (server-only)
-//   • Complements /awq/ingest: provides quick manual balance tracking; ingest provides
+//   • Complements /awq/conciliacao: provides quick manual balance tracking; ingest provides
 //     the canonical document-backed financial database
 
 import { useState, useEffect, useCallback } from "react";
@@ -216,7 +216,7 @@ export default function BankAccountsPage() {
             </span>
           </div>
           <Link
-            href="/awq/ingest"
+            href="/awq/conciliacao"
             className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-semibold transition-colors shrink-0"
           >
             <FileUp size={12} /> Ingestão de Extratos
@@ -455,7 +455,7 @@ export default function BankAccountsPage() {
                       {selected.transactions.length === 0 && (
                         <div className="text-xs text-gray-400 mt-1">
                           Para importar extratos PDF com rastreabilidade completa, acesse{" "}
-                          <Link href="/awq/ingest" className="text-brand-600 hover:underline font-medium">
+                          <Link href="/awq/conciliacao" className="text-brand-600 hover:underline font-medium">
                             Ingestão de Extratos
                           </Link>
                         </div>

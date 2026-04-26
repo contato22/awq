@@ -312,7 +312,7 @@ export default async function AwqFinancialPage() {
               (Caza Vision) para ver a visão de caixa por entidade.
             </div>
             <Link
-              href="/awq/ingest"
+              href="/awq/conciliacao"
               className="flex items-center gap-1.5 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-sm font-semibold transition-colors"
             >
               <Database size={14} /> Ingerir Extratos
@@ -362,7 +362,7 @@ export default async function AwqFinancialPage() {
             </ul>
             <div className="mt-3">
               <Link
-                href="/awq/ingest"
+                href="/awq/conciliacao"
                 className="flex items-center gap-1 text-xs text-brand-600 hover:underline font-medium"
               >
                 <ChevronRight size={11} /> Ingerir mais extratos

@@ -87,7 +87,7 @@ export default function FiscalPage() {
               <div className="flex items-center gap-1.5 text-xs text-gray-400">
                 <ArrowRight size={13} />
                 <span>Ingestão de extratos disponível em{" "}
-                  <a href="/awq/ingest" className="underline">Ingestão</a>
+                  <a href="/awq/conciliacao" className="underline">Ingestão</a>
                   {" "}(extratos bancários — não NFs)
                 </span>
               </div>

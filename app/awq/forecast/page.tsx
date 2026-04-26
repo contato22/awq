@@ -110,7 +110,7 @@ const FORECAST_REQUIREMENTS = [
 
 export default async function AwqForecastPage() {
   // Real pipeline — queried only for status display. No real numbers available
-  // until bank statements are ingested via /awq/ingest.
+  // until bank statements are ingested via /awq/conciliacao.
   const q = await buildFinancialQuery();
   const hasRealData = q.hasData;
 
@@ -166,7 +166,7 @@ export default async function AwqForecastPage() {
                   ? `Extratos ingeridos: ${q.dataQuality.doneDocuments} documento(s) · ${q.dataQuality.totalTransactions} transação(ões) · Período: ${q.consolidated.periodStart ?? "—"} → ${q.consolidated.periodEnd ?? "—"}`
                   : "Nenhum extrato bancário com status=done encontrado. Os valores abaixo são inteiramente de planejamento (snapshot)."}
                 {" "}
-                <a href="/awq/ingest" className="underline text-brand-600 font-medium">Ingerir extratos →</a>
+                <a href="/awq/conciliacao" className="underline text-brand-600 font-medium">Ingerir extratos →</a>
               </p>
             </div>
           </div>
@@ -234,7 +234,7 @@ export default async function AwqForecastPage() {
                 Lacunas de Dados — O que falta para um forecast confiável
               </p>
               <ul className="text-[11px] text-gray-500 space-y-0.5 list-none">
-                <li>• <strong>Extratos bancários ingeridos</strong>: nenhum documento com status=done. Ingira via <a href="/awq/ingest" className="underline text-brand-600">/awq/ingest</a> para que realizados reais apareçam nesta página.</li>
+                <li>• <strong>Extratos bancários ingeridos</strong>: nenhum documento com status=done. Ingira via <a href="/awq/conciliacao" className="underline text-brand-600">/awq/conciliacao</a> para que realizados reais apareçam nesta página.</li>
                 <li>• <strong>Pipeline de notas fiscais (NF-e)</strong>: não implementado. Necessário para receita accrual real (vs planejamento).</li>
                 <li>• <strong>Modelo de forecast</strong>: não configurado. Projeções Abr–Dez removidas (sem metodologia, sem base histórica). Run rate atual: ~800K/mês.</li>
                 <li>• <strong>Forecast Accuracy</strong>: vazio. Só faz sentido quando houver realizados reais de extrato bancário para comparar com forecasts emitidos.</li>
@@ -425,7 +425,7 @@ export default async function AwqForecastPage() {
                   <p className="text-[10px] text-gray-400">
                     Para ativar: construir modelo de forecast documentado com base histórica real
                     (≥ 6 meses de extratos ingeridos via{" "}
-                    <a href="/awq/ingest" className="underline text-brand-600">/awq/ingest</a>).
+                    <a href="/awq/conciliacao" className="underline text-brand-600">/awq/conciliacao</a>).
                   </p>
                 </div>
               ) : (
