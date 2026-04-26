@@ -2,6 +2,8 @@
 // Cadastro mestre de clientes e fornecedores.
 // Usado por AP/AR (FK), conciliação e KPIs de tesouraria.
 
+import type { BU } from "./bu-config";
+
 export type ContraprteTipo    = "pj" | "pf" | "mei" | "estrangeiro";
 export type ContraprtePapel   = "cliente" | "fornecedor" | "ambos";
 export type ContraparteRegime = "simples" | "presumido" | "real" | "mei" | "isento" | "estrangeiro";
@@ -30,7 +32,7 @@ export interface Contraparte {
   agencia?:       string;
   conta?:         string;
   pix?:           string;
-  bu:             string;
+  bu:             BU;
   status:         ContraparteStatus;
   observacoes?:   string;
   createdAt:      string;          // ISO-8601

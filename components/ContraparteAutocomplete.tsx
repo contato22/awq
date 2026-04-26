@@ -21,6 +21,7 @@ import type { Contraparte, ContraprtePapel } from "@/lib/contraparte-types";
 import {
   PAPEL_CONFIG, TIPO_CONFIG, REGIME_LABELS, UF_LIST,
 } from "@/lib/contraparte-types";
+import { BU_OPTIONS } from "@/lib/bu-config";
 import { formatDoc, docPlaceholder, validateDoc } from "@/lib/cnpj-cpf";
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -43,14 +44,6 @@ const EMPTY_QUICK: {
   tipo: "pj", papel: "fornecedor", razaoSocial: "",
   cnpjCpf: "", regime: "simples", emailFinanceiro: "", bu: "awq",
 };
-
-const BU_OPTIONS = [
-  { id: "awq",     label: "AWQ Holding"  },
-  { id: "jacqes",  label: "JACQES"       },
-  { id: "caza",    label: "Caza Vision"  },
-  { id: "venture", label: "AWQ Venture"  },
-  { id: "advisor", label: "Advisor"      },
-];
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
