@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import type { ElementType, ReactNode, RefObject } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getDealById } from "@/lib/deal-data";
@@ -66,7 +67,7 @@ const confLabel: Record<string, string> = {
 function SectionCard({
   id, icon: Icon, title, children,
 }: {
-  id: string; icon: React.ElementType; title: string; children: React.ReactNode;
+  id: string; icon: ElementType; title: string; children: ReactNode;
 }) {
   return (
     <div id={id} className="card scroll-mt-28">
@@ -81,7 +82,7 @@ function SectionCard({
   );
 }
 
-function FieldRow({ label, value }: { label: string; value: React.ReactNode }) {
+function FieldRow({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div>
       <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-0.5">{label}</div>
@@ -485,7 +486,7 @@ function EditableText({
     <div className="space-y-1.5">
       {multiline ? (
         <textarea
-          ref={ref as React.RefObject<HTMLTextAreaElement>}
+          ref={ref as RefObject<HTMLTextAreaElement>}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           rows={4}
@@ -494,7 +495,7 @@ function EditableText({
         />
       ) : (
         <input
-          ref={ref as React.RefObject<HTMLInputElement>}
+          ref={ref as RefObject<HTMLInputElement>}
           type="text"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
@@ -661,7 +662,7 @@ function EditableStringArray({
   fieldKey: string;
   overrideArrays: Record<string, string[]>;
   onSave: (key: string, arr: string[]) => void;
-  icon?: React.ElementType;
+  icon?: ElementType;
   iconClass?: string;
   emptyText?: string;
 }) {

@@ -123,8 +123,8 @@ export default function APARPage() {
       if (raw) {
         const parsed = JSON.parse(raw) as APARItem[];
         const refreshed = parsed.map((item) => ({
-          bu: "awq" as BU,  // backfill legacy items without bu field
           ...item,
+          bu: (item.bu ?? "awq") as BU,
           status: computeStatus(item.dueDate, item.status),
         }));
         setItems(refreshed);
