@@ -113,10 +113,10 @@ export type CrmInteraction = {
   opportunity_id: string | null;
   lead_id: string | null;
   tipo: string;
-  canal: string;
+  canal: string | null;
   data: string;
   resumo: string;
-  proximo_passo: string;
+  proximo_passo: string | null;
   responsavel: string;
   satisfacao_percebida: string;
   risco_percebido: string;
@@ -158,7 +158,7 @@ export type CrmExpansion = {
   status: string;
   owner: string;
   proxima_acao: string;
-  observacoes: string;
+  observacoes: string | null;
 };
 
 export type CrmHealthSnapshot = {

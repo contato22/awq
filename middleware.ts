@@ -45,6 +45,8 @@ export default withAuth(
 
 export const config = {
   matcher: [
-    "/((?!login|api/auth|api/health|_next/static|_next/image|favicon\\.ico).*)",
+    // Exclude: login, next-auth, health check, transactions API (public PATCH),
+    // ingest upload/process (own RBAC guard), and Next.js static assets.
+    "/((?!login|api/auth|api/health|api/transactions|api/ingest|_next/static|_next/image|favicon\\.ico).*)",
   ],
 };
