@@ -6,6 +6,7 @@
 // VISÃO CLIENTE: acessar via /awq-venture/deals/[id]/share (separado)
 
 import { useState } from "react";
+import type { ElementType } from "react";
 import Header from "@/components/Header";
 import Link from "next/link";
 import {
@@ -258,7 +259,7 @@ export default function ComercialPage() {
   const activeContracts = getActiveCommercialContracts();
   const oppsWithProposals = getOpportunitiesWithProposals();
 
-  const sectionTabs: { key: Section; label: string; icon: React.ElementType }[] = [
+  const sectionTabs: { key: Section; label: string; icon: ElementType }[] = [
     { key: "overview",  label: "Visão Executiva", icon: BarChart3   },
     { key: "pipeline",  label: "Pipeline",        icon: Activity    },
     { key: "propostas", label: "Propostas",       icon: FileText    },

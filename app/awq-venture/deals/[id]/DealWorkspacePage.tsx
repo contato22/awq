@@ -962,7 +962,8 @@ export default function DealWorkspacePage({
 }) {
   const maybeDeal = getDealById(params.id);
   if (!maybeDeal) notFound();
-  const deal = maybeDeal;
+  // notFound() throws — TypeScript doesn't narrow through it, so assert non-null
+  const deal = maybeDeal!;
 
   const [preview,           setPreview]          = useState<"interno" | "cliente" | null>(null);
   const [override,          setOverride]          = useState<DealOverride>({});
@@ -1027,8 +1028,8 @@ export default function DealWorkspacePage({
     }, 50);
   }
 
-  const rs = riskStyle[effectiveDeal.riskLevel] ?? riskStyle["Médio"];
-  const readiness = ((effectiveDeal.assetDiagnosis.operationalMaturity + effectiveDeal.assetDiagnosis.commercialMaturity) / 2);
+  const rs = riskStyle[effectiveDeal.riskLevel ?? "Médio"] ?? riskStyle["Médio"];
+  const readiness = (((effectiveDeal.assetDiagnosis?.operationalMaturity ?? 0) + (effectiveDeal.assetDiagnosis?.commercialMaturity ?? 0)) / 2);
 
   const anchors = [
     { href: "#indicadores",  label: "Indicadores"  },
