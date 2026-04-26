@@ -534,34 +534,34 @@ export async function createTask(data: Omit<CrmTask, "id">): Promise<CrmTask> {
   return row as unknown as CrmTask;
 }
 
-const TASK_UPDATABLE_COLS = new Set([
-  "cliente_id", "opportunity_id", "lead_id", "titulo", "categoria",
-  "prioridade", "status", "responsavel", "data_criacao", "prazo",
-  "sla_horas", "data_conclusao", "bloqueio", "retrabalho",
-]);
-
 export async function updateTask(id: string, patch: Partial<Omit<CrmTask, "id">>): Promise<CrmTask | null> {
   if (!sql) throw new Error("DB unavailable");
   await initCrmDB();
-  const fields = Object.entries(patch).filter(
-    ([col, v]) => TASK_UPDATABLE_COLS.has(col) && v !== undefined
-  );
-  if (fields.length === 0) return null;
-
-  const values = fields.map(([, v]) => v);
-
-  // Column names are whitelisted above — safe to interpolate
-  let query = "UPDATE jacqes_crm_tasks SET ";
-  query += fields.map(([col], i) => `${col} = $${i + 1}`).join(", ");
-  query += ` WHERE id = $${fields.length + 1}`;
-  query += ` RETURNING id, cliente_id, opportunity_id, lead_id, titulo, categoria,
-             prioridade, status, responsavel,
-             data_criacao::text AS data_criacao,
-             prazo::text AS prazo, sla_horas,
-             data_conclusao::text AS data_conclusao, bloqueio, retrabalho`;
-
-  const rows = await sql.unsafe(query, [...values, id]);
-  return (rows[0] as unknown as CrmTask) ?? null;
+  const rows = await sql`
+    UPDATE jacqes_crm_tasks SET
+      titulo         = COALESCE(${patch.titulo         ?? null}, titulo),
+      categoria      = COALESCE(${patch.categoria      ?? null}, categoria),
+      prioridade     = COALESCE(${patch.prioridade     ?? null}, prioridade),
+      status         = COALESCE(${patch.status         ?? null}, status),
+      responsavel    = COALESCE(${patch.responsavel    ?? null}, responsavel),
+      sla_horas      = COALESCE(${patch.sla_horas      ?? null}, sla_horas),
+      bloqueio       = COALESCE(${patch.bloqueio       ?? null}, bloqueio),
+      retrabalho     = COALESCE(${patch.retrabalho     ?? null}, retrabalho),
+      cliente_id     = COALESCE(${patch.cliente_id     ?? null}, cliente_id),
+      opportunity_id = COALESCE(${patch.opportunity_id ?? null}, opportunity_id),
+      lead_id        = COALESCE(${patch.lead_id        ?? null}, lead_id),
+      prazo          = COALESCE(${patch.prazo          ?? null}::date, prazo),
+      data_conclusao = COALESCE(${patch.data_conclusao ?? null}::date, data_conclusao)
+    WHERE id = ${id}
+    RETURNING id, cliente_id, opportunity_id, lead_id, titulo, categoria,
+              prioridade, status, responsavel,
+              data_criacao::text AS data_criacao,
+              prazo::text        AS prazo,
+              sla_horas,
+              data_conclusao::text AS data_conclusao,
+              bloqueio, retrabalho
+  `;
+  return rows.length ? (rows[0] as unknown as CrmTask) : null;
 }
 
 export async function deleteTask(id: string): Promise<boolean> {
