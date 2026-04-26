@@ -112,9 +112,8 @@ export default function APARPage() {
   const [items, setItems]         = useState<APARItem[]>([]);
   const [activeTab, setActiveTab] = useState<ItemType>("ap");
   const [activeBU, setActiveBU]   = useState<BU | "all">("all");
-  const [showForm, setShowForm]   = useState(false);
+  const [showForm, setShowForm]   = useState(true);
   const [form, setForm]           = useState(EMPTY_FORM);
-  const [formType, setFormType]   = useState<ItemType>("ap");
 
   // ── Load from localStorage ───────────────────────────────────────────────
   useEffect(() => {
@@ -142,19 +141,18 @@ export default function APARPage() {
     if (!form.description.trim() || !form.amount || !form.dueDate) return;
     const item: APARItem = {
       id: uid(),
-      type: formType,
+      type: activeTab,
       bu: form.bu,
       description: form.description.trim(),
       entity: form.entity.trim(),
       amount: parseFloat(form.amount) || 0,
       dueDate: form.dueDate,
       status: computeStatus(form.dueDate, "pending"),
-      category: form.category || (formType === "ap" ? AP_CATEGORIES[0] : AR_CATEGORIES[0]),
+      category: form.category || (activeTab === "ap" ? AP_CATEGORIES[0] : AR_CATEGORIES[0]),
       createdAt: today(),
     };
     save([...items, item]);
-    setForm(EMPTY_FORM);
-    setShowForm(false);
+    setForm({ ...EMPTY_FORM, bu: form.bu });
   }
 
   function handleToggleSettle(id: string) {
@@ -165,12 +163,6 @@ export default function APARPage() {
   }
 
   function handleDelete(id: string) { save(items.filter((i) => i.id !== id)); }
-
-  function openForm(type: ItemType) {
-    setFormType(type);
-    setForm({ ...EMPTY_FORM, category: type === "ap" ? AP_CATEGORIES[0] : AR_CATEGORIES[0], bu: activeBU === "all" ? "awq" : activeBU });
-    setShowForm(true);
-  }
 
   // ── Derived — scoped to current BU filter ────────────────────────────────
   const buFilter = (i: APARItem) => activeBU === "all" || i.bu === activeBU;
@@ -282,7 +274,7 @@ export default function APARPage() {
           </div>
         )}
 
-        {/* ── Tabs + add button ─────────────────────────────────────────────── */}
+        {/* ── Tabs ─────────────────────────────────────────────────────────── */}
         <div className="flex items-center gap-2 border-b border-gray-200">
           {(["ap", "ar"] as ItemType[]).map((tab) => {
             const isAP = tab === "ap";
@@ -309,27 +301,22 @@ export default function APARPage() {
           })}
           <div className="flex-1" />
           <button
-            onClick={() => openForm(activeTab)}
-            className={`flex items-center gap-2 px-4 py-2 mb-1.5 rounded-lg text-sm font-semibold transition-colors text-white ${
-              activeTab === "ap" ? "bg-red-600 hover:bg-red-700" : "bg-emerald-600 hover:bg-emerald-700"
-            }`}
+            onClick={() => setShowForm((v) => !v)}
+            className="flex items-center gap-1.5 px-3 py-1.5 mb-1.5 rounded-lg text-xs font-semibold text-gray-500 hover:bg-gray-100 transition-colors"
           >
-            <Plus size={14} />
-            {activeTab === "ap" ? "Nova Obrigação" : "Novo Recebível"}
+            {showForm ? <X size={13} /> : <Plus size={13} />}
+            {showForm ? "Ocultar" : "Novo cadastro"}
           </button>
         </div>
 
-        {/* ── Add form ─────────────────────────────────────────────────────── */}
+        {/* ── Add form (visible by default) ────────────────────────────────── */}
         {showForm && (
-          <div className="card p-5">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                {formType === "ap" ? <ArrowDownLeft size={16} className="text-red-600" /> : <ArrowUpRight size={16} className="text-emerald-600" />}
-                <span className="text-sm font-semibold text-gray-800">
-                  {formType === "ap" ? "Nova Conta a Pagar" : "Novo Recebível"}
-                </span>
-              </div>
-              <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600"><X size={16} /></button>
+          <div className={`card p-5 border-l-4 ${activeTab === "ap" ? "border-l-red-400" : "border-l-emerald-400"}`}>
+            <div className="flex items-center gap-2 mb-4">
+              {activeTab === "ap" ? <ArrowDownLeft size={16} className="text-red-600" /> : <ArrowUpRight size={16} className="text-emerald-600" />}
+              <span className="text-sm font-semibold text-gray-800">
+                {activeTab === "ap" ? "Registrar Conta a Pagar (AP)" : "Registrar Recebível (AR)"}
+              </span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <input
@@ -343,7 +330,7 @@ export default function APARPage() {
                 className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-500"
               />
               <input
-                type="number" placeholder="Valor (R$) *" value={form.amount}
+                type="number" placeholder="Valor (R$) *" value={form.amount} min="0" step="0.01"
                 onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
                 className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-500"
               />
@@ -355,32 +342,42 @@ export default function APARPage() {
                   className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none focus:border-brand-500"
                 />
               </div>
-              <select
-                value={form.category}
-                onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-                className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none focus:border-brand-500"
-              >
-                {categories.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
-              <select
-                value={form.bu}
-                onChange={(e) => setForm((f) => ({ ...f, bu: e.target.value as BU }))}
-                className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none focus:border-brand-500"
-              >
-                {BUS.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
-              </select>
-              <div className="flex items-center gap-2 lg:col-span-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide pl-1">Categoria</label>
+                <select
+                  value={form.category}
+                  onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none focus:border-brand-500"
+                >
+                  {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide pl-1">Business Unit</label>
+                <select
+                  value={form.bu}
+                  onChange={(e) => setForm((f) => ({ ...f, bu: e.target.value as BU }))}
+                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none focus:border-brand-500"
+                >
+                  {BUS.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
+                </select>
+              </div>
+              <div className="flex items-center gap-2 lg:col-span-3 pt-1">
                 <button
                   onClick={handleAdd}
                   disabled={!form.description.trim() || !form.amount || !form.dueDate}
-                  className={`px-6 py-2 rounded-lg text-sm font-semibold transition-colors text-white disabled:opacity-40 disabled:cursor-not-allowed ${
-                    formType === "ap" ? "bg-red-600 hover:bg-red-700" : "bg-emerald-600 hover:bg-emerald-700"
+                  className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-semibold transition-colors text-white disabled:opacity-40 disabled:cursor-not-allowed ${
+                    activeTab === "ap" ? "bg-red-600 hover:bg-red-700" : "bg-emerald-600 hover:bg-emerald-700"
                   }`}
                 >
-                  Adicionar
+                  <Plus size={14} />
+                  {activeTab === "ap" ? "Adicionar Obrigação" : "Adicionar Recebível"}
                 </button>
-                <button onClick={() => setShowForm(false)} className="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm font-semibold hover:bg-gray-200 transition-colors">
-                  Cancelar
+                <button
+                  onClick={() => setForm(EMPTY_FORM)}
+                  className="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm font-semibold hover:bg-gray-200 transition-colors"
+                >
+                  Limpar
                 </button>
               </div>
             </div>
@@ -397,7 +394,7 @@ export default function APARPage() {
                 {activeBU !== "all" ? ` para ${BU_MAP[activeBU].label}` : " registrado"}
               </div>
               <div className="text-xs text-gray-400">
-                Clique em &ldquo;{activeTab === "ap" ? "Nova Obrigação" : "Novo Recebível"}&rdquo; para adicionar
+                Preencha o formulário acima para adicionar
               </div>
             </div>
           ) : (
