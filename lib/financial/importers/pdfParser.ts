@@ -185,7 +185,6 @@ function parseLines(lines: string[]): Pick<ImportResult, "transactions" | "rejec
 
     const txn: Omit<ImportedTransaction, "date"> = {
       id: uid(),
-      date: "", // filled in below
       description: desc,
       amount: amt.amount,
       type: amt.amount >= 0 ? "credit" : "debit",

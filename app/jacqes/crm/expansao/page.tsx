@@ -224,8 +224,7 @@ export default function ExpansaoPage() {
       valor_potencial: valor,
       owner:           form.owner.trim(),
       proxima_acao:    form.proxima_acao.trim(),
-      observacoes:     form.observacoes.trim() || null,
-      data_criacao:    new Date().toISOString().slice(0, 10),
+      observacoes:     form.observacoes.trim() || "",
       cliente_id:      "cli-001",
     };
 
