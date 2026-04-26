@@ -185,8 +185,9 @@ const businessUnits = [
 
 // ── AWQ primary nav (always visible, top of sidebar) ─────────────────────────
 const awqPrimaryNav = [
-    { label: "Visão Geral",    href: "/awq",           icon: LayoutDashboard },
-    { label: "Business Units", href: "/business-units", icon: Building2       },
+    { label: "Visão Geral",    href: "/awq",              icon: LayoutDashboard },
+    { label: "Business Units", href: "/business-units",    icon: Building2       },
+    { label: "Novidades",      href: "/awq/novidades",     icon: Sparkles        },
 ] as const;
 
 // ── GOVERNANCE REGISTRY: AWQ holding routes by ERP layer ─────────────────────

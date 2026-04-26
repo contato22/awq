@@ -85,6 +85,7 @@ const STATUS_CONFIG: Record<ItemStatus, { label: string; color: string; icon: El
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function fmtR(n: number) {
+  if (!isFinite(n) || isNaN(n)) return "R$0,00";
   const abs = Math.abs(n);
   const sign = n < 0 ? "-" : "";
   if (abs >= 1_000_000) return sign + "R$" + (abs / 1_000_000).toFixed(2) + "M";
@@ -94,7 +95,9 @@ function fmtR(n: number) {
 
 function fmtDate(s: string) {
   if (!s) return "—";
-  const [y, m, d] = s.split("-");
+  const parts = s.split("-");
+  if (parts.length !== 3 || !parts[0] || !parts[1] || !parts[2]) return "—";
+  const [y, m, d] = parts;
   return `${d}/${m}/${y}`;
 }
 
@@ -131,9 +134,10 @@ export default function APARPage() {
       const raw = localStorage.getItem(LS_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as APARItem[];
+        const validBUs = new Set(BUS.map((b) => b.id));
         const refreshed = parsed.map((item) => ({
           ...item,
-          bu: (item.bu ?? "awq") as BU,
+          bu: (validBUs.has(item.bu) ? item.bu : "awq") as BU,
           status: computeStatus(item.dueDate, item.status),
         }));
         setItems(refreshed);
@@ -234,10 +238,9 @@ export default function APARPage() {
   const overdueAP = apAll.filter((i) => buFilter(i) && i.status === "overdue").reduce((s, i) => s + i.amount, 0);
   const overdueAR = arAll.filter((i) => buFilter(i) && i.status === "overdue").reduce((s, i) => s + i.amount, 0);
 
-  const categories      = activeTab === "ap" ? AP_CATEGORIES : AR_CATEGORIES;
-  const customIsActive  = periodFilter === "custom" && (customFrom !== "" || customTo !== "");
-  const hasFilters      = search.trim() !== "" || catFilter !== "all"
-    || (periodFilter !== "all" && periodFilter !== "custom") || customIsActive;
+  const categories     = activeTab === "ap" ? AP_CATEGORIES : AR_CATEGORIES;
+  const customIsActive = periodFilter === "custom" && (customFrom !== "" || customTo !== "");
+  const hasFilters     = search.trim() !== "" || catFilter !== "all" || periodFilter !== "all";
 
   function matchesSearch(i: APARItem) {
     if (!search.trim()) return true;
@@ -247,16 +250,14 @@ export default function APARPage() {
 
   function matchesCat(i: APARItem) { return catFilter === "all" || i.category === catFilter; }
 
-  function matchesPeriod(i: APARItem) {
-    if (periodFilter === "all") return true;
+  function matchesPeriod(i: APARItem): boolean {
+    if (periodFilter === "all")        return true;
     const t = today();
     if (periodFilter === "overdue")    return i.dueDate < t;
     if (periodFilter === "this_month") return i.dueDate.slice(0, 7) === t.slice(0, 7);
-    if (periodFilter === "custom") {
-      if (customFrom && i.dueDate < customFrom) return false;
-      if (customTo   && i.dueDate > customTo)   return false;
-      return true;
-    }
+    // "custom"
+    if (customFrom && i.dueDate < customFrom) return false;
+    if (customTo   && i.dueDate > customTo)   return false;
     return true;
   }
 
