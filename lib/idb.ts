@@ -2,17 +2,17 @@
 // Thin wrapper around native IDB API via the `idb` library.
 // Must only be called client-side (useEffect / event handlers).
 
-import type { IDBPDatabase } from "idb";
+import type { IDBPDatabase, DBSchema } from "idb";
 import type { Contraparte } from "./contraparte-types";
+import type { APARItem } from "./ap-ar-types";
 
 const DB_NAME    = "awq-treasury";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let _db: IDBPDatabase<AWQSchema> | null = null;
 let _promise: Promise<IDBPDatabase<AWQSchema>> | null = null;
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
-import type { DBSchema } from "idb";
 
 interface AWQSchema extends DBSchema {
   contrapartes: {
@@ -22,6 +22,14 @@ interface AWQSchema extends DBSchema {
       "by-papel":  string;
       "by-bu":     string;
       "by-status": string;
+    };
+  };
+  ap_ar_items: {
+    key:     string;
+    value:   APARItem;
+    indexes: {
+      "by-type": string;
+      "by-bu":   string;
     };
   };
 }
@@ -40,6 +48,11 @@ export async function getIDB(): Promise<IDBPDatabase<AWQSchema>> {
         s.createIndex("by-papel",  "papel",  { unique: false });
         s.createIndex("by-bu",     "bu",     { unique: false });
         s.createIndex("by-status", "status", { unique: false });
+      }
+      if (!db.objectStoreNames.contains("ap_ar_items")) {
+        const s = db.createObjectStore("ap_ar_items", { keyPath: "id" });
+        s.createIndex("by-type", "type", { unique: false });
+        s.createIndex("by-bu",   "bu",   { unique: false });
       }
     },
   }).then((db) => {

@@ -3,17 +3,18 @@
 // ─── /awq/ap-ar — Contas a Pagar (AP) & Contas a Receber (AR) ────────────────
 //
 // ROLE: Gestão de obrigações a pagar e direitos a receber da tesouraria.
-//       Dados em localStorage — rastreio manual de AP/AR por BU.
+//       Dados persistidos em IndexedDB (awq-treasury / ap_ar_items).
 //
 // ARCHITECTURE:
 //   • AP (Accounts Payable)  — obrigações: fornecedores, impostos, folha, etc.
 //   • AR (Accounts Receivable) — direitos: clientes, adiantamentos, reembolsos.
 //   • Campo "bu" por item — filtragem e agrupamento por Business Unit.
-//   • localStorage("awq_ap_items") — não persistido no servidor (dívida técnica)
 
 import { useState, useEffect, useCallback } from "react";
 import type { ElementType } from "react";
 import Header from "@/components/Header";
+import { getAllAPARItems, replaceAllAPARItems } from "@/lib/ap-ar-repo";
+import type { APARItem, ItemType, ItemStatus, BU } from "@/lib/ap-ar-types";
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -30,28 +31,7 @@ import {
   Building2,
 } from "lucide-react";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-type ItemType   = "ap" | "ar";
-type ItemStatus = "pending" | "overdue" | "settled";
-type BU         = "awq" | "jacqes" | "caza" | "venture" | "advisor";
-
-interface APARItem {
-  id: string;
-  type: ItemType;
-  bu: BU;
-  description: string;
-  entity: string;
-  amount: number;
-  dueDate: string;
-  status: ItemStatus;
-  category: string;
-  createdAt: string;
-}
-
 // ─── Constants ────────────────────────────────────────────────────────────────
-
-const LS_KEY = "awq_ap_items";
 
 const BUS: { id: BU; label: string; short: string; color: string; bg: string; dot: string }[] = [
   { id: "awq",     label: "AWQ Holding",  short: "Holding",  color: "text-amber-700",   bg: "bg-amber-50",   dot: "bg-amber-500"   },
@@ -115,25 +95,34 @@ export default function APARPage() {
   const [showForm, setShowForm]   = useState(true);
   const [form, setForm]           = useState(EMPTY_FORM);
 
-  // ── Load from localStorage ───────────────────────────────────────────────
+  // ── Load from IndexedDB (migrates from localStorage if needed) ───────────
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(LS_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as APARItem[];
-        const refreshed = parsed.map((item) => ({
+    (async () => {
+      try {
+        let loaded = await getAllAPARItems();
+        // One-time migration from legacy localStorage
+        if (loaded.length === 0) {
+          const raw = localStorage.getItem("awq_ap_items");
+          if (raw) {
+            const parsed = JSON.parse(raw) as APARItem[];
+            await replaceAllAPARItems(parsed);
+            localStorage.removeItem("awq_ap_items");
+            loaded = parsed;
+          }
+        }
+        const refreshed = loaded.map((item) => ({
           ...item,
           bu: (item.bu ?? "awq") as BU,
           status: computeStatus(item.dueDate, item.status),
         }));
         setItems(refreshed);
-      }
-    } catch { /* ignore */ }
+      } catch { /* ignore */ }
+    })();
   }, []);
 
   const save = useCallback((updated: APARItem[]) => {
     setItems(updated);
-    try { localStorage.setItem(LS_KEY, JSON.stringify(updated)); } catch { /* ignore */ }
+    replaceAllAPARItems(updated).catch(() => {});
   }, []);
 
   // ── Add item ─────────────────────────────────────────────────────────────
