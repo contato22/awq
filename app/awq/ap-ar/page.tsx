@@ -121,7 +121,9 @@ export default function APARPage() {
   const [editForm, setEditForm]       = useState(EMPTY_FORM);
   const [search, setSearch]             = useState("");
   const [catFilter, setCatFilter]       = useState("all");
-  const [periodFilter, setPeriodFilter] = useState<"all" | "overdue" | "this_month" | "next_30">("all");
+  const [periodFilter, setPeriodFilter] = useState<"all" | "overdue" | "this_month" | "custom">("all");
+  const [customFrom, setCustomFrom]     = useState("");
+  const [customTo, setCustomTo]         = useState("");
 
   // ── Load from localStorage ───────────────────────────────────────────────
   useEffect(() => {
@@ -143,6 +145,8 @@ export default function APARPage() {
     setSearch("");
     setCatFilter("all");
     setPeriodFilter("all");
+    setCustomFrom("");
+    setCustomTo("");
   }
 
   function handleTabChange(tab: ItemType) {
@@ -230,8 +234,10 @@ export default function APARPage() {
   const overdueAP = apAll.filter((i) => buFilter(i) && i.status === "overdue").reduce((s, i) => s + i.amount, 0);
   const overdueAR = arAll.filter((i) => buFilter(i) && i.status === "overdue").reduce((s, i) => s + i.amount, 0);
 
-  const categories = activeTab === "ap" ? AP_CATEGORIES : AR_CATEGORIES;
-  const hasFilters = search.trim() !== "" || catFilter !== "all" || periodFilter !== "all";
+  const categories      = activeTab === "ap" ? AP_CATEGORIES : AR_CATEGORIES;
+  const customIsActive  = periodFilter === "custom" && (customFrom !== "" || customTo !== "");
+  const hasFilters      = search.trim() !== "" || catFilter !== "all"
+    || (periodFilter !== "all" && periodFilter !== "custom") || customIsActive;
 
   function matchesSearch(i: APARItem) {
     if (!search.trim()) return true;
@@ -246,9 +252,10 @@ export default function APARPage() {
     const t = today();
     if (periodFilter === "overdue")    return i.dueDate < t;
     if (periodFilter === "this_month") return i.dueDate.slice(0, 7) === t.slice(0, 7);
-    if (periodFilter === "next_30") {
-      const next30 = new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10);
-      return i.dueDate >= t && i.dueDate <= next30;
+    if (periodFilter === "custom") {
+      if (customFrom && i.dueDate < customFrom) return false;
+      if (customTo   && i.dueDate > customTo)   return false;
+      return true;
     }
     return true;
   }
@@ -419,10 +426,9 @@ export default function APARPage() {
           </select>
           <div role="group" aria-label="Filtrar por período de vencimento" className="flex items-center gap-1 flex-wrap">
             {([
-              { id: "all",        label: "Todos"     },
-              { id: "overdue",    label: "Vencidos"  },
-              { id: "this_month", label: "Este mês"  },
-              { id: "next_30",    label: "Próx. 30d" },
+              { id: "all",        label: "Todos"    },
+              { id: "overdue",    label: "Vencidos" },
+              { id: "this_month", label: "Este mês" },
             ] as const).map((p) => (
               <button
                 key={p.id}
@@ -439,6 +445,42 @@ export default function APARPage() {
                 {p.label}
               </button>
             ))}
+            <button
+              aria-pressed={periodFilter === "custom"}
+              aria-label="Período personalizado"
+              onClick={() => setPeriodFilter(periodFilter === "custom" ? "all" : "custom")}
+              title="Período personalizado"
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-colors ${
+                periodFilter === "custom"
+                  ? "bg-blue-100 text-blue-700"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              <CalendarDays size={12} />
+              {customIsActive
+                ? `${customFrom ? customFrom.split("-").reverse().join("/") : "início"} → ${customTo ? customTo.split("-").reverse().join("/") : "fim"}`
+                : "Personalizado"}
+            </button>
+            {periodFilter === "custom" && (
+              <div className="flex items-center gap-1.5 ml-1 flex-wrap">
+                <input
+                  type="date"
+                  value={customFrom}
+                  onChange={(e) => setCustomFrom(e.target.value)}
+                  aria-label="Data inicial do filtro"
+                  className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white text-gray-700 focus:outline-none focus:border-blue-400"
+                />
+                <span className="text-xs text-gray-400">→</span>
+                <input
+                  type="date"
+                  value={customTo}
+                  min={customFrom || undefined}
+                  onChange={(e) => setCustomTo(e.target.value)}
+                  aria-label="Data final do filtro"
+                  className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white text-gray-700 focus:outline-none focus:border-blue-400"
+                />
+              </div>
+            )}
           </div>
           {hasFilters && (
             <button
