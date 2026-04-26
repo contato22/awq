@@ -28,6 +28,7 @@ import {
   TrendingUp,
   CalendarDays,
   Building2,
+  Pencil,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -114,6 +115,8 @@ export default function APARPage() {
   const [activeBU, setActiveBU]   = useState<BU | "all">("all");
   const [showForm, setShowForm]   = useState(true);
   const [form, setForm]           = useState(EMPTY_FORM);
+  const [editingItem, setEditingItem] = useState<APARItem | null>(null);
+  const [editForm, setEditForm]       = useState(EMPTY_FORM);
 
   // ── Load from localStorage ───────────────────────────────────────────────
   useEffect(() => {
@@ -163,6 +166,37 @@ export default function APARPage() {
   }
 
   function handleDelete(id: string) { save(items.filter((i) => i.id !== id)); }
+
+  function handleOpenEdit(item: APARItem) {
+    setEditingItem(item);
+    setEditForm({
+      description: item.description,
+      entity: item.entity,
+      amount: String(item.amount),
+      dueDate: item.dueDate,
+      category: item.category,
+      bu: item.bu,
+    });
+  }
+
+  function handleSaveEdit() {
+    if (!editingItem) return;
+    if (!editForm.description.trim() || !editForm.amount || !editForm.dueDate) return;
+    save(items.map((i) => {
+      if (i.id !== editingItem.id) return i;
+      return {
+        ...i,
+        description: editForm.description.trim(),
+        entity: editForm.entity.trim(),
+        amount: parseFloat(editForm.amount) || 0,
+        dueDate: editForm.dueDate,
+        category: editForm.category,
+        bu: editForm.bu,
+        status: computeStatus(editForm.dueDate, i.status),
+      };
+    }));
+    setEditingItem(null);
+  }
 
   // ── Derived — scoped to current BU filter ────────────────────────────────
   const buFilter = (i: APARItem) => activeBU === "all" || i.bu === activeBU;
@@ -452,6 +486,9 @@ export default function APARPage() {
                                 </td>
                                 <td className="py-2.5 px-3">
                                   <div className="flex items-center gap-1 justify-end">
+                                    <button onClick={() => handleOpenEdit(item)} title="Editar" className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                                      <Pencil size={13} />
+                                    </button>
                                     <button onClick={() => handleToggleSettle(item.id)} title="Marcar como liquidado" className="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors">
                                       <CheckCircle2 size={13} />
                                     </button>
@@ -513,6 +550,9 @@ export default function APARPage() {
                                 <td className="py-2 px-3 text-right text-xs font-medium text-gray-400">{fmtR(item.amount)}</td>
                                 <td className="py-2 px-3">
                                   <div className="flex items-center gap-1 justify-end">
+                                    <button onClick={() => handleOpenEdit(item)} title="Editar" className="p-1.5 text-gray-300 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors">
+                                      <Pencil size={13} />
+                                    </button>
                                     <button onClick={() => handleToggleSettle(item.id)} title="Reabrir" className="p-1.5 text-gray-300 hover:text-amber-500 hover:bg-amber-50 rounded-lg transition-colors">
                                       <Clock size={13} />
                                     </button>
@@ -533,6 +573,94 @@ export default function APARPage() {
           )}
         </div>
       </div>
+
+      {/* ── Edit modal ───────────────────────────────────────────────────────── */}
+      {editingItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 space-y-5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {editingItem.type === "ap"
+                  ? <ArrowDownLeft size={16} className="text-red-600" />
+                  : <ArrowUpRight size={16} className="text-emerald-600" />}
+                <span className="text-sm font-semibold text-gray-800">
+                  Editar {editingItem.type === "ap" ? "Conta a Pagar" : "Recebível"}
+                </span>
+              </div>
+              <button
+                onClick={() => setEditingItem(null)}
+                className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <input
+                type="text" placeholder="Descrição *" value={editForm.description}
+                onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
+                className="sm:col-span-2 text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-500"
+              />
+              <input
+                type="text" placeholder="Contraparte (fornecedor / cliente)" value={editForm.entity}
+                onChange={(e) => setEditForm((f) => ({ ...f, entity: e.target.value }))}
+                className="sm:col-span-2 text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-500"
+              />
+              <input
+                type="number" placeholder="Valor (R$) *" value={editForm.amount} min="0" step="0.01"
+                onChange={(e) => setEditForm((f) => ({ ...f, amount: e.target.value }))}
+                className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-500"
+              />
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide pl-1">Vencimento *</label>
+                <input
+                  type="date" value={editForm.dueDate}
+                  onChange={(e) => setEditForm((f) => ({ ...f, dueDate: e.target.value }))}
+                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none focus:border-blue-500"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide pl-1">Categoria</label>
+                <select
+                  value={editForm.category}
+                  onChange={(e) => setEditForm((f) => ({ ...f, category: e.target.value }))}
+                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none focus:border-blue-500"
+                >
+                  {(editingItem.type === "ap" ? AP_CATEGORIES : AR_CATEGORIES).map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide pl-1">Business Unit</label>
+                <select
+                  value={editForm.bu}
+                  onChange={(e) => setEditForm((f) => ({ ...f, bu: e.target.value as BU }))}
+                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none focus:border-blue-500"
+                >
+                  {BUS.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                onClick={handleSaveEdit}
+                disabled={!editForm.description.trim() || !editForm.amount || !editForm.dueDate}
+                className="flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Salvar alterações
+              </button>
+              <button
+                onClick={() => setEditingItem(null)}
+                className="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm font-semibold hover:bg-gray-200 transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
