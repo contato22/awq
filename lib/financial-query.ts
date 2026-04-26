@@ -232,7 +232,8 @@ export interface MonthlyEntry {
   revenue:                  number;
   expenses:                 number;
   netCash:                  number;
-  intercompanyEliminated:   number;
+  intercompanyEliminated:   number;   // transfers between AWQ-owned accounts (double-counted, then halved)
+  investmentFlows:          number;   // aplicacao_financeira + resgate_financeiro (patrimonial, not P&L)
 }
 
 export interface CounterpartyRevenue {
@@ -550,6 +551,7 @@ export async function buildFinancialQuery(): Promise<FinancialQueryResult> {
         expenses:                0,
         netCash:                 0,
         intercompanyEliminated:  0,
+        investmentFlows:         0,
       });
     }
     const entry = monthlyMap.get(key)!;
@@ -557,6 +559,12 @@ export async function buildFinancialQuery(): Promise<FinancialQueryResult> {
 
     if (t.excludedFromConsolidated && t.isIntercompany) {
       entry.intercompanyEliminated += amt;
+    } else if (
+      t.excludedFromConsolidated &&
+      (t.managerialCategory === "aplicacao_financeira" ||
+       t.managerialCategory === "resgate_financeiro")
+    ) {
+      entry.investmentFlows += amt;
     } else if (!t.excludedFromConsolidated) {
       if (REVENUE_CATS.has(t.managerialCategory) && t.direction === "credit") {
         entry.revenue += amt;
@@ -608,7 +616,7 @@ export async function buildFinancialQuery(): Promise<FinancialQueryResult> {
 
   for (const t of allTxns) {
     if (t.direction !== "debit") continue;
-    if (t.excludedFromConsolidated && t.isIntercompany) continue;
+    if (t.excludedFromConsolidated) continue;   // skip intercompany AND investment flows
     if (!OPERATIONAL_EXPENSE_CATS.has(t.managerialCategory) &&
         !AMBIGUOUS_CATS.has(t.managerialCategory)) continue;
 
@@ -637,6 +645,7 @@ export async function buildFinancialQuery(): Promise<FinancialQueryResult> {
   ).length;
   const ambiguousCount    = allTxns.length - confirmedCount;
   const intercompanyPairs = allTxns.filter((t) => t.isIntercompany && t.intercompanyMatchId).length / 2;
+  const orphanedIntercompany = allTxns.filter((t) => t.isIntercompany && !t.intercompanyMatchId).length;
 
   const coverageGaps: string[] = [];
   const entityCoverage = new Set(doneDocs.map((d) => d.entity));
@@ -658,6 +667,7 @@ export async function buildFinancialQuery(): Promise<FinancialQueryResult> {
     }
   }
   if (ambiguousCount > 0) coverageGaps.push(`${ambiguousCount} transações ambíguas pendentes de revisão`);
+  if (orphanedIntercompany > 0) coverageGaps.push(`${orphanedIntercompany} transação(ões) marcada(s) como intercompany sem par reconciliado (intercompanyMatchId ausente)`);
 
   return {
     hasData: true,

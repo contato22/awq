@@ -180,16 +180,20 @@ export function reconcileIntercompany(
     }
   }
 
-  // Also auto-exclude financial applications and redemptions
-  for (const txn of updated) {
+  // Auto-exclude financial applications and redemptions — patrimonial, not operational P&L.
+  for (let i = 0; i < updated.length; i++) {
+    const txn = updated[i];
     if (
       txn.managerialCategory === "aplicacao_financeira" ||
       txn.managerialCategory === "resgate_financeiro"
     ) {
-      const idx = updated.findIndex((t) => t.id === txn.id);
-      if (idx >= 0) {
-        updated[idx] = { ...updated[idx], excludedFromConsolidated: true };
-      }
+      updated[i] = {
+        ...txn,
+        excludedFromConsolidated: true,
+        classificationNote:
+          (txn.classificationNote ? txn.classificationNote + " | " : "") +
+          "Auto-excluído do consolidado: movimento patrimonial (não FCO operacional).",
+      };
     }
   }
 

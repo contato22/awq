@@ -398,11 +398,10 @@ export async function getAllTransactions(): Promise<BankTransaction[]> {
     return rows.map(rowToTransaction);
   }
   // Backfill reconciliationStatus for legacy records that don't have it yet.
+  // Always defaults to "pendente" — only a human reviewer may promote to em_revisao.
   return readJSON<BankTransaction[]>(TXN_FILE, []).map((t) => ({
     ...t,
-    reconciliationStatus: t.reconciliationStatus ?? (
-      t.classificationConfidence === "probable" ? "em_revisao" : "pendente"
-    ),
+    reconciliationStatus: t.reconciliationStatus ?? "pendente",
   }));
 }
 

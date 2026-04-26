@@ -239,8 +239,7 @@ export function inferEntityFromRegistry(bank: string, accountName: string): Enti
     // Distinguish by account name keywords.
     if (aLower.includes("caza") || aLower.includes("vision")) return "Caza_Vision";
     if (aLower.includes("awq") || aLower.includes("holding") || aLower.includes("empresas")) return "AWQ_Holding";
-    // Ambiguous Itaú account — default to Caza_Vision for backwards compatibility
-    // but emit Unknown so the ingest pipeline surfaces the gap.
+    // Ambiguous Itaú account — return Unknown to surface the gap in coverage reports.
     return "Unknown";
   }
   if (bLower.includes("btg")) return "AWQ_Holding";  // BTG used by Venture (held under AWQ Holding)
