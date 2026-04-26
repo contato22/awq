@@ -165,10 +165,10 @@ export default function InteracoesPage() {
 
     const payload = {
       tipo:                  form.tipo,
-      canal:                 form.canal.trim() || "",
+      canal:                 form.canal.trim(),
       data:                  form.data,
       resumo:                form.resumo.trim(),
-      proximo_passo:         form.proximo_passo.trim() || "",
+      proximo_passo:         form.proximo_passo.trim(),
       responsavel:           form.responsavel.trim(),
       satisfacao_percebida:  form.satisfacao_percebida,
       risco_percebido:       form.risco_percebido,

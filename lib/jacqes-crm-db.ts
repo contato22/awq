@@ -534,6 +534,45 @@ export async function createTask(data: Omit<CrmTask, "id">): Promise<CrmTask> {
   return row as unknown as CrmTask;
 }
 
+export async function updateTask(id: string, patch: Partial<Omit<CrmTask, "id">>): Promise<CrmTask | null> {
+  if (!sql) throw new Error("DB unavailable");
+  await initCrmDB();
+  const rows = await sql`
+    UPDATE jacqes_crm_tasks SET
+      titulo         = COALESCE(${patch.titulo         ?? null}, titulo),
+      categoria      = COALESCE(${patch.categoria      ?? null}, categoria),
+      prioridade     = COALESCE(${patch.prioridade     ?? null}, prioridade),
+      status         = COALESCE(${patch.status         ?? null}, status),
+      responsavel    = COALESCE(${patch.responsavel    ?? null}, responsavel),
+      sla_horas      = COALESCE(${patch.sla_horas      ?? null}, sla_horas),
+      bloqueio       = COALESCE(${patch.bloqueio       ?? null}, bloqueio),
+      retrabalho     = COALESCE(${patch.retrabalho     ?? null}, retrabalho),
+      cliente_id     = COALESCE(${patch.cliente_id     ?? null}, cliente_id),
+      opportunity_id = COALESCE(${patch.opportunity_id ?? null}, opportunity_id),
+      lead_id        = COALESCE(${patch.lead_id        ?? null}, lead_id),
+      prazo          = COALESCE(${patch.prazo          ?? null}::date, prazo),
+      data_conclusao = COALESCE(${patch.data_conclusao ?? null}::date, data_conclusao)
+    WHERE id = ${id}
+    RETURNING id, cliente_id, opportunity_id, lead_id, titulo, categoria,
+              prioridade, status, responsavel,
+              data_criacao::text AS data_criacao,
+              prazo::text        AS prazo,
+              sla_horas,
+              data_conclusao::text AS data_conclusao,
+              bloqueio, retrabalho
+  `;
+  return rows.length ? (rows[0] as unknown as CrmTask) : null;
+}
+
+export async function deleteTask(id: string): Promise<boolean> {
+  if (!sql) throw new Error("DB unavailable");
+  await initCrmDB();
+  const rows = await sql`
+    DELETE FROM jacqes_crm_tasks WHERE id = ${id} RETURNING id
+  `;
+  return rows.length > 0;
+}
+
 // ─── CRUD — Expansion ─────────────────────────────────────────────────────────
 
 export async function listExpansion(): Promise<CrmExpansion[]> {
