@@ -117,13 +117,19 @@ export async function POST(req: NextRequest) {
           content: m.content,
         }));
 
-    const client = new Anthropic({ apiKey });
+    const client = new Anthropic({ apiKey, timeout: 300_000 });
     const encoder = new TextEncoder();
 
     const readable = new ReadableStream({
       async start(controller) {
         const send = (obj: object) =>
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(obj)}\n\n`));
+
+        // Sends SSE comment every 15 s to prevent proxy/Vercel idle-timeout
+        const keepalive = () =>
+          setInterval(() => {
+            try { controller.enqueue(encoder.encode(": keepalive\n\n")); } catch { /* stream closed */ }
+          }, 15_000);
 
         try {
           const allMessages: Anthropic.MessageParam[] = [...userMessages];
@@ -133,6 +139,7 @@ export async function POST(req: NextRequest) {
           while (iterations < MAX_ITER) {
             iterations++;
 
+            const ka = keepalive();
             const response = await client.messages.create({
               model: "claude-opus-4-6",
               max_tokens: 1024,
@@ -141,7 +148,7 @@ export async function POST(req: NextRequest) {
                 ["read_file", "write_file", "list_directory"].includes(t.name)
               ),
               messages: allMessages,
-            });
+            }).finally(() => clearInterval(ka));
 
             // Stream text blocks
             for (const block of response.content) {

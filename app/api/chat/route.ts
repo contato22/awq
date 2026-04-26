@@ -129,7 +129,7 @@ export async function POST(req: NextRequest) {
 
     const systemPrompt = SYSTEM_PROMPTS[buContext as string] ?? SYSTEM_PROMPTS.jacqes;
 
-    const client = new Anthropic({ apiKey });
+    const client = new Anthropic({ apiKey, timeout: 300_000 });
 
     const stream = client.messages.stream({
       model: "claude-opus-4-6",

@@ -110,67 +110,86 @@ export default function OpenClaw() {
 
     if (textareaRef.current) textareaRef.current.style.height = "auto";
 
-    try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-anthropic-key": apiKey,
-        },
-        body: JSON.stringify({ messages: newMessages, buContext: BU_CONTEXT }),
-      });
+    const MAX_RETRIES = 2;
+    let attempt = 0;
 
-      if (!res.ok) {
-        let errorMsg = `HTTP ${res.status}`;
-        try {
-          const data = await res.json();
-          if (data.error === "API_KEY_REQUIRED") {
-            setApiKey(null);
-            localStorage.removeItem(LS_KEY);
-          }
-          errorMsg = data.error || errorMsg;
-        } catch { /* response was HTML, not JSON */ }
-        throw new Error(errorMsg);
-      }
+    while (attempt <= MAX_RETRIES) {
+      try {
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-anthropic-key": apiKey,
+          },
+          body: JSON.stringify({ messages: newMessages, buContext: BU_CONTEXT }),
+        });
 
-      const reader = res.body!.getReader();
-      const decoder = new TextDecoder();
-      let assistantText = "";
+        if (!res.ok) {
+          let errorMsg = `HTTP ${res.status}`;
+          try {
+            const data = await res.json();
+            if (data.error === "API_KEY_REQUIRED") {
+              setApiKey(null);
+              localStorage.removeItem(LS_KEY);
+            }
+            errorMsg = data.error || errorMsg;
+          } catch { /* response was HTML, not JSON */ }
+          throw new Error(errorMsg);
+        }
 
-      setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
+        const reader = res.body!.getReader();
+        const decoder = new TextDecoder();
+        let assistantText = "";
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+        setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
 
-        for (const line of decoder.decode(value, { stream: true }).split("\n")) {
-          if (!line.startsWith("data: ")) continue;
-          const d = line.slice(6).trim();
-          if (d === "[DONE]") break;
-          let parsed: { text?: string; error?: string } | null = null;
-          try { parsed = JSON.parse(d); } catch { /* malformed SSE line, skip */ }
-          if (!parsed) continue;
-          if (parsed.error) throw new Error(parsed.error);
-          if (parsed.text) {
-            assistantText += parsed.text;
-            setMessages((prev) => {
-              const updated = [...prev];
-              updated[updated.length - 1] = { role: "assistant", content: assistantText };
-              return updated;
-            });
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          for (const line of decoder.decode(value, { stream: true }).split("\n")) {
+            if (!line.startsWith("data: ")) continue;
+            const d = line.slice(6).trim();
+            if (d === "[DONE]") break;
+            let parsed: { text?: string; error?: string } | null = null;
+            try { parsed = JSON.parse(d); } catch { /* malformed SSE line, skip */ }
+            if (!parsed) continue;
+            if (parsed.error) throw new Error(parsed.error);
+            if (parsed.text) {
+              assistantText += parsed.text;
+              setMessages((prev) => {
+                const updated = [...prev];
+                updated[updated.length - 1] = { role: "assistant", content: assistantText };
+                return updated;
+              });
+            }
           }
         }
+
+        // Success — exit retry loop
+        break;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Algo deu errado";
+        const isIdleTimeout = msg.toLowerCase().includes("idle timeout") || msg.toLowerCase().includes("partial response");
+
+        // Remove empty assistant placeholder before potential retry
+        setMessages((prev) => {
+          const last = prev[prev.length - 1];
+          return last?.role === "assistant" && !last.content ? prev.slice(0, -1) : prev;
+        });
+
+        if (isIdleTimeout && attempt < MAX_RETRIES) {
+          attempt++;
+          await new Promise((r) => setTimeout(r, 1_000 * attempt));
+          continue;
+        }
+
+        setError(msg);
+        break;
       }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Algo deu errado";
-      setError(msg);
-      setMessages((prev) => {
-        const last = prev[prev.length - 1];
-        return last?.role === "assistant" && !last.content ? prev.slice(0, -1) : prev;
-      });
-    } finally {
-      setLoading(false);
     }
+
+    setLoading(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {

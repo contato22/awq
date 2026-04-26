@@ -79,13 +79,19 @@ export async function POST(req: NextRequest) {
       ? AGENT_TOOLS.filter((t) => agent.tools.includes(t.name))
       : [];
 
-    const client = new Anthropic({ apiKey });
+    const client = new Anthropic({ apiKey, timeout: 300_000 });
     const encoder = new TextEncoder();
 
     const readable = new ReadableStream({
       async start(controller) {
         const send = (obj: object) =>
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(obj)}\n\n`));
+
+        // Sends SSE comment every 15 s to prevent proxy/Vercel idle-timeout
+        const keepalive = () =>
+          setInterval(() => {
+            try { controller.enqueue(encoder.encode(": keepalive\n\n")); } catch { /* stream closed */ }
+          }, 15_000);
 
         try {
           // ── Agentic loop ────────────────────────────────────────────────────
@@ -98,13 +104,14 @@ export async function POST(req: NextRequest) {
           while (iterations < MAX_ITERATIONS) {
             iterations++;
 
+            const ka = keepalive();
             const response = await client.messages.create({
               model: "claude-opus-4-6",
               max_tokens: 2048,
               system: agent.system,
               tools: agentTools.length > 0 ? agentTools : undefined,
               messages,
-            });
+            }).finally(() => clearInterval(ka));
 
             // Stream any text blocks
             for (const block of response.content) {

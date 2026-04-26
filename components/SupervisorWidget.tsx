@@ -318,6 +318,10 @@ export default function SupervisorWidget() {
     setLoading(true);
     if (textareaRef.current) textareaRef.current.style.height = "auto";
 
+    const MAX_RETRIES = 2;
+    let attempt = 0;
+
+    while (attempt <= MAX_RETRIES) {
     try {
       let assistantText = "";
       const toolEventsBuffer: ToolEvent[] = [];
@@ -397,18 +401,36 @@ export default function SupervisorWidget() {
       if (newAlerts.length >= 2) {
         setAlerts((prev) => [...newAlerts, ...prev].slice(0, 20));
       }
+
+      break; // success — exit retry loop
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Erro ao processar";
+      const isIdleTimeout = msg.toLowerCase().includes("idle timeout") || msg.toLowerCase().includes("partial response");
+
+      // Remove empty assistant placeholder before potential retry
+      setMessages((prev) => {
+        const last = prev[prev.length - 1];
+        return last?.role === "assistant" && !last.content ? prev.slice(0, -1) : prev;
+      });
+
+      if (isIdleTimeout && attempt < MAX_RETRIES) {
+        attempt++;
+        await new Promise((r) => setTimeout(r, 1_000 * attempt));
+        continue;
+      }
+
       setMessages((prev) => {
         const last = prev[prev.length - 1];
         if (last?.role === "assistant" && !last.content) {
           return [...prev.slice(0, -1), { role: "assistant", content: `⚠️ ${msg}` }];
         }
-        return prev;
+        return [...prev, { role: "assistant", content: `⚠️ ${msg}` }];
       });
-    } finally {
-      setLoading(false);
+      break;
     }
+    } // end while
+
+    setLoading(false);
   }, [messages, loading, apiKey, buContext]);
 
   const markAllRead = () => setAlerts((prev) => prev.map((a) => ({ ...a, read: true })));

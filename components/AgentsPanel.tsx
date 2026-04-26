@@ -199,8 +199,12 @@ export default function AgentsPanel() {
       )
     );
 
-    try {
-      let text = "";
+    const MAX_RETRIES = 2;
+    let attempt = 0;
+
+    while (attempt <= MAX_RETRIES) {
+      try {
+        let text = "";
 
       if (detectStaticMode()) {
         const agent = AGENTS.find((a) => a.id === agentId)!;
@@ -295,12 +299,27 @@ export default function AgentsPanel() {
             : a
         )
       );
+      break; // success — exit retry loop
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Erro desconhecido";
+      const isIdleTimeout = msg.toLowerCase().includes("idle timeout") || msg.toLowerCase().includes("partial response");
+
+      if (isIdleTimeout && attempt < MAX_RETRIES) {
+        attempt++;
+        // Reset content so the card shows "Analisando..." again during retry
+        setAgents((prev) =>
+          prev.map((a) => (a.id === agentId ? { ...a, content: "", errorMsg: undefined } : a))
+        );
+        await new Promise((r) => setTimeout(r, 1_000 * attempt));
+        continue;
+      }
+
       setAgents((prev) =>
         prev.map((a) => (a.id === agentId ? { ...a, status: "error", errorMsg: msg } : a))
       );
+      break;
     }
+    } // end while
   }, [apiKey]);
 
   const runAllAgents = async () => {
