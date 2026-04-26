@@ -6,6 +6,10 @@ import { updateTask, deleteTask } from "@/lib/jacqes-crm-db";
 
 export const runtime = "nodejs";
 
+export async function generateStaticParams() {
+  return [{ id: "_" }];
+}
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } }
