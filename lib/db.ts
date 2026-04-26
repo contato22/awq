@@ -82,4 +82,8 @@ export async function initDB(): Promise<void> {
   // ─── Caza Vision tables ──────────────────────────────────────────────────────
   const { initCazaDB } = await import("@/lib/caza-db");
   await initCazaDB();
+
+  // ─── AP / AR table ───────────────────────────────────────────────────────────
+  const { initAPARDB } = await import("@/lib/ap-ar-db");
+  await initAPARDB();
 }

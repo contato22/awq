@@ -86,7 +86,7 @@ export const PLATFORM_ROUTES: PlatformRoute[] = [
   { href: "/awq/cashflow",    label: "Cash Flow",     bu: "awq", layer: "corporate-treasury", status: "active", dataSource: "lib/financial-query.ts (pipeline canônico — sem snapshot)", inSidebar: true, inTabNav: false },
   { href: "/awq/bank",        label: "Contas Banco",  bu: "awq", layer: "corporate-treasury", status: "active", dataSource: "localStorage (saldos locais — não persistido no servidor — dívida técnica)", inSidebar: true, inTabNav: false },
   { href: "/awq/investments",  label: "Investimentos", bu: "awq", layer: "corporate-treasury", status: "active", dataSource: "lib/investment-query.ts (aplicacao/resgate financeiro — pipeline canônico)", inSidebar: true, inTabNav: false },
-  { href: "/awq/ap-ar",       label: "AP & AR",       bu: "awq", layer: "corporate-treasury", status: "active", dataSource: "localStorage (contas a pagar/receber — não persistido no servidor — dívida técnica)", inSidebar: true, inTabNav: false },
+  { href: "/awq/ap-ar",       label: "AP & AR",       bu: "awq", layer: "corporate-treasury", status: "active", dataSource: "API /api/ap-ar → lib/ap-ar-db.ts (Postgres em produção, JSON em dev) — consolidado grupo", inSidebar: true, inTabNav: false },
   { href: "/awq/conciliacao", label: "Conciliação",   bu: "awq", layer: "corporate-treasury", status: "stub",   dataSource: "pending — conciliação bancária, conferência de extratos e lançamentos", inSidebar: true, inTabNav: false },
 
   // ── AWQ Group — Financeiro Corporativo / Controladoria ───────────────────
@@ -108,6 +108,7 @@ export const PLATFORM_ROUTES: PlatformRoute[] = [
   { href: "/jacqes",                label: "Visão Geral",    bu: "jacqes", layer: "bu-overview",   status: "active", dataSource: "lib/data.ts",                                             inSidebar: true,  inTabNav: false },
   { href: "/jacqes/fpa",            label: "FP&A",           bu: "jacqes", layer: "bu-financial",  status: "active", dataSource: "lib/awq-group-data.ts (hub canônico — 11 seções)",        inSidebar: true,  inTabNav: false },
   { href: "/jacqes/reports",        label: "Relatórios",     bu: "jacqes", layer: "bu-operations", status: "active", dataSource: "lib/data.ts (mocked)",                                    inSidebar: true,  inTabNav: false },
+  { href: "/jacqes/ap-ar",          label: "AP & AR",        bu: "jacqes", layer: "bu-financial",  status: "active", dataSource: "API /api/ap-ar?bu=jacqes → lib/ap-ar-db.ts (isolado JACQES)", inSidebar: true,  inTabNav: false },
 
   // ── JACQES CRM — 12 módulos ativos em Neon Postgres ──────────────────────
   // IMPORTANTE: todas estas rotas já existiam no sidebar (crmNav) e no código.
@@ -158,6 +159,7 @@ export const PLATFORM_ROUTES: PlatformRoute[] = [
   { href: "/caza-vision/clientes",       label: "Clientes",       bu: "caza", layer: "bu-operations", status: "active", dataSource: "lib/caza-data.ts + Notion",                                                inSidebar: true,  inTabNav: false },
   { href: "/caza-vision/financial",      label: "Financial",      bu: "caza", layer: "bu-financial",  status: "active", dataSource: "Notion API (receita projetos, accrual) — aviso bancário na página",        inSidebar: true,  inTabNav: false },
   { href: "/caza-vision/unit-economics", label: "Unit Economics", bu: "caza", layer: "bu-operations", status: "active", dataSource: "lib/caza-data.ts",                                                         inSidebar: true,  inTabNav: false },
+  { href: "/caza-vision/ap-ar",          label: "AP & AR",        bu: "caza", layer: "bu-financial",  status: "active", dataSource: "API /api/ap-ar?bu=caza → lib/ap-ar-db.ts (isolado Caza Vision)",       inSidebar: true,  inTabNav: false },
   { href: "/caza-vision/import",         label: "Importar",       bu: "caza", layer: "bu-operations", status: "active", dataSource: "lib/notion-import.ts + Notion API — importação de projetos/clientes",      inSidebar: true,  inTabNav: false },
   // Not yet implemented — add to sidebar only after page is created
   // { href: "/caza-vision/pipeline",    label: "Pipeline",        status: "stub", inSidebar: false }
@@ -175,6 +177,7 @@ export const PLATFORM_ROUTES: PlatformRoute[] = [
   { href: "/awq-venture/deals/[id]/history",       label: "Deal Histórico",     bu: "venture", layer: "bu-operations", status: "active", dataSource: "lib/deal-data.ts getDealById() — histórico de alterações do deal",              inSidebar: false, inTabNav: false },
   { href: "/awq-venture/deals/[id]/pdf",           label: "Deal PDF",           bu: "venture", layer: "bu-operations", status: "active", dataSource: "lib/deal-data.ts getDealById() — geração de PDF da proposta",                  inSidebar: false, inTabNav: false },
   { href: "/awq-venture/deals/[id]/share",         label: "Deal Share",         bu: "venture", layer: "bu-operations", status: "active", dataSource: "lib/deal-data.ts getDealById() — visão cliente, sem dados internos AWQ",       inSidebar: false, inTabNav: false },
+  { href: "/awq-venture/ap-ar",             label: "AP & AR",       bu: "venture", layer: "bu-financial",  status: "active", dataSource: "API /api/ap-ar?bu=venture → lib/ap-ar-db.ts (isolado AWQ Venture)",   inSidebar: true,  inTabNav: false },
   { href: "/awq-venture/financial",         label: "Financial",     bu: "venture", layer: "bu-financial",  status: "active", dataSource: "lib/awq-group-data.ts",                                                             inSidebar: true,  inTabNav: true  },
   { href: "/awq-venture/yoy-2025",          label: "YoY 2025",      bu: "venture", layer: "bu-operations", status: "active", dataSource: "hardcoded — registrar em snapshot-registry",                                        inSidebar: true,  inTabNav: true  },
   { href: "/awq-venture/sales",             label: "Sales",         bu: "venture", layer: "bu-operations", status: "active", dataSource: "public/data/venture-sales.json + lib/notion-fetch.ts fetchVentureSales()",          inSidebar: true,  inTabNav: true  },
@@ -189,6 +192,7 @@ export const PLATFORM_ROUTES: PlatformRoute[] = [
   { href: "/advisor",           label: "Visão Geral", bu: "advisor", layer: "bu-overview",   status: "active", dataSource: "dados próprios — pre_revenue, sem extrato ou contrato ativo", inSidebar: true, inTabNav: false },
   { href: "/advisor/financial", label: "Financial",   bu: "advisor", layer: "bu-financial",  status: "active", dataSource: "dados próprios — pre_revenue, estado vazio explícito",         inSidebar: true, inTabNav: false },
   { href: "/advisor/customers", label: "Customers",   bu: "advisor", layer: "bu-operations", status: "active", dataSource: "dados próprios — pre_revenue, carteira vazia",                 inSidebar: true, inTabNav: false },
+  { href: "/advisor/ap-ar",    label: "AP & AR",     bu: "advisor", layer: "bu-financial",  status: "active", dataSource: "API /api/ap-ar?bu=advisor → lib/ap-ar-db.ts (isolado Advisor)",  inSidebar: true, inTabNav: false },
   // Not yet implemented — add to sidebar only after page is created
   // { href: "/advisor/mandatos",   label: "Mandatos",    status: "stub", inSidebar: false }
   // { href: "/advisor/pipeline",   label: "Pipeline",    status: "stub", inSidebar: false }

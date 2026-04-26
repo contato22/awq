@@ -37,6 +37,7 @@ import {
     ClipboardList,
     MessageSquare,
     ArrowUpRight,
+    ArrowDownLeft,
     CheckCircle2,
     Scale,
     BookOpen,
@@ -78,6 +79,7 @@ const jacqesNav = [
     { label: "Visão Geral",    href: "/jacqes",             icon: LayoutDashboard },
     { label: "FP&A",           href: "/jacqes/fpa",         icon: BarChart3       },
     { label: "Relatórios",     href: "/jacqes/reports",     icon: BarChart3       },
+    { label: "AP & AR",        href: "/jacqes/ap-ar",       icon: ArrowDownLeft   },
 ];
 
 // CRM sub-navigation — todos os módulos do CRM JACQES
@@ -103,6 +105,7 @@ const cazaNav = [
     { label: "Contas",         href: "/caza-vision/contas",            icon: Briefcase       },
     { label: "Financial",      href: "/caza-vision/financial",         icon: DollarSign      },
     { label: "Unit Economics", href: "/caza-vision/unit-economics",    icon: Calculator      },
+    { label: "AP & AR",        href: "/caza-vision/ap-ar",             icon: ArrowDownLeft   },
     { label: "Importar",       href: "/caza-vision/import",            icon: FileUp          },
 ];
 
@@ -121,6 +124,7 @@ const advisorNav = [
     { label: "Visão Geral", href: "/advisor",              icon: LayoutDashboard },
     { label: "Financial",   href: "/advisor/financial",    icon: DollarSign      },
     { label: "Customers",   href: "/advisor/customers",    icon: Users           },
+    { label: "AP & AR",     href: "/advisor/ap-ar",        icon: ArrowDownLeft   },
 ];
 
 const ventureNav = [
@@ -130,6 +134,7 @@ const ventureNav = [
     { label: "Pipeline",    href: "/awq-venture/pipeline",     icon: Activity        },
     { label: "Portfólio",   href: "/awq-venture/portfolio",    icon: Briefcase       },
     { label: "Financial",   href: "/awq-venture/financial",    icon: DollarSign      },
+    { label: "AP & AR",     href: "/awq-venture/ap-ar",        icon: ArrowDownLeft   },
     { label: "YoY 2025",    href: "/awq-venture/yoy-2025",     icon: LineChart       },
     { label: "Sales",       href: "/awq-venture/sales",        icon: DollarSign      },
 ];
