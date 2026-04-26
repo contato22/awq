@@ -20,7 +20,18 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   }
 
   await initCazaDB();
-  const [projects, clients] = await Promise.all([listProjects(), listClients()]);
+
+  let projects: Awaited<ReturnType<typeof listProjects>>,
+      clients: Awaited<ReturnType<typeof listClients>>;
+
+  try {
+    [projects, clients] = await Promise.all([listProjects(), listClients()]);
+  } catch (err) {
+    return NextResponse.json(
+      { error: "Erro ao carregar dados Caza Vision", detail: String(err) },
+      { status: 500 }
+    );
+  }
 
   const activeProjects    = projects.filter(p => !p.recebido).length;
   const deliveredProjects = projects.filter(p => p.recebido).length;
@@ -40,7 +51,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   for (const p of projects) {
     if (!p.prazo) continue;
     const parts = p.prazo.split("-");
-    const m     = parseInt(parts[1], 10) - 1;
+    if (parts.length < 2) continue;
+    const m = parseInt(parts[1], 10) - 1;
+    if (m < 0 || m > 11 || isNaN(m)) continue;
     const label = `${MONTH_NAMES[m]}/${parts[0].slice(2)}`;
     const acc   = monthMap.get(label) ?? { month: label, receita: 0, expenses: 0, profit: 0, orcamento: 0 };
     acc.receita   += p.valor;

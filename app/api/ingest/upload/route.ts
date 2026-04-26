@@ -116,7 +116,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         message: `Este arquivo já foi enviado (${existing.filename}, ${existing.uploadedAt.slice(0, 10)}).`,
         document: existing,
       },
-      { status: 200 }
+      { status: 409 }
     );
   }
 
@@ -141,8 +141,15 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     blobUrl = result.url;
   } else {
     // Local filesystem (development or single-instance deploy)
-    ensurePDFDir();
-    fs.writeFileSync(path.join(PDF_DIR, safeFilename), buffer);
+    try {
+      ensurePDFDir();
+      fs.writeFileSync(path.join(PDF_DIR, safeFilename), buffer);
+    } catch (fsErr) {
+      return NextResponse.json(
+        { error: "Falha ao salvar o arquivo em disco. Verifique permissões de escrita.", detail: String(fsErr) },
+        { status: 500 }
+      );
+    }
   }
 
   // ── Save document record ──

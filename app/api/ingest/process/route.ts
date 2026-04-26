@@ -86,6 +86,13 @@ export async function POST(req: NextRequest): Promise<Response> {
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
 
+  if (!apiKey) {
+    return new Response(
+      sse({ error: "ANTHROPIC_API_KEY não configurada. Defina a variável de ambiente no servidor antes de processar extratos." }),
+      { status: 503, headers: { "Content-Type": "text/event-stream" } }
+    );
+  }
+
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({

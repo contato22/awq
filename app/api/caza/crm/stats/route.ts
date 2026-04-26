@@ -31,12 +31,25 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   }
 
   await initCazaCrmDB();
-  const [leads, opps, proposals, interactions] = await Promise.all([
-    listLeads(),
-    listOpportunities(),
-    listProposals(),
-    listInteractions(),
-  ]);
+
+  let leads: Awaited<ReturnType<typeof listLeads>>,
+      opps: Awaited<ReturnType<typeof listOpportunities>>,
+      proposals: Awaited<ReturnType<typeof listProposals>>,
+      interactions: Awaited<ReturnType<typeof listInteractions>>;
+
+  try {
+    [leads, opps, proposals, interactions] = await Promise.all([
+      listLeads(),
+      listOpportunities(),
+      listProposals(),
+      listInteractions(),
+    ]);
+  } catch (err) {
+    return NextResponse.json(
+      { error: "Erro ao carregar dados CRM Caza Vision", detail: String(err) },
+      { status: 500 }
+    );
+  }
 
   const leadsAtivos    = leads.filter((l) => l.status !== "Perdido" && l.status !== "Convertido").length;
   const oppsAbertas    = opps.filter((o) => o.stage !== "Fechado Ganho" && o.stage !== "Fechado Perdido").length;
