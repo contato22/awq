@@ -139,11 +139,21 @@ export default function APARPage() {
     } catch { /* ignore */ }
   }, []);
 
-  useEffect(() => {
+  function clearFilters() {
+    setSearch("");
     setCatFilter("all");
     setPeriodFilter("all");
-    setSearch("");
-  }, [activeTab]);
+  }
+
+  function handleTabChange(tab: ItemType) {
+    setActiveTab(tab);
+    clearFilters();
+  }
+
+  function handleBUChange(bu: BU | "all") {
+    setActiveBU(bu);
+    clearFilters();
+  }
 
   const save = useCallback((updated: APARItem[]) => {
     setItems(updated);
@@ -289,7 +299,7 @@ export default function APARPage() {
           <Building2 size={13} className="text-gray-400 shrink-0" />
           <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mr-1">BU</span>
           <button
-            onClick={() => setActiveBU("all")}
+            onClick={() => handleBUChange("all")}
             className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
               activeBU === "all"
                 ? "bg-gray-800 text-white"
@@ -301,7 +311,7 @@ export default function APARPage() {
           {BUS.map((bu) => (
             <button
               key={bu.id}
-              onClick={() => setActiveBU(bu.id)}
+              onClick={() => handleBUChange(bu.id)}
               className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
                 activeBU === bu.id
                   ? `${bu.bg} ${bu.color} ring-1 ring-current/30`
@@ -327,7 +337,7 @@ export default function APARPage() {
               {buBreakdown.map((bu) => (
                 <button
                   key={bu.id}
-                  onClick={() => setActiveBU(bu.id)}
+                  onClick={() => handleBUChange(bu.id)}
                   className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-left hover:shadow-sm transition-all ${bu.bg} border-transparent`}
                 >
                   <span className={`w-2 h-2 rounded-full ${bu.dot} shrink-0`} />
@@ -344,11 +354,15 @@ export default function APARPage() {
         <div className="flex items-center gap-2 border-b border-gray-200">
           {(["ap", "ar"] as ItemType[]).map((tab) => {
             const isAP = tab === "ap";
-            const count = items.filter((i) => i.type === tab && buFilter(i) && i.status !== "settled").length;
+            // active tab: mirrors exactly what the table shows (respects filters)
+            // inactive tab: raw total so the user sees pending work across tabs
+            const count = tab === activeTab
+              ? openItems.length
+              : items.filter((i) => i.type === tab && buFilter(i) && i.status !== "settled").length;
             return (
               <button
                 key={tab}
-                onClick={() => setActiveTab(tab)}
+                onClick={() => handleTabChange(tab)}
                 className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors -mb-px ${
                   activeTab === tab
                     ? isAP ? "border-red-500 text-red-700" : "border-emerald-500 text-emerald-700"
@@ -383,12 +397,13 @@ export default function APARPage() {
             <input
               type="text"
               placeholder="Buscar descrição ou contraparte…"
+              aria-label="Buscar por descrição ou contraparte"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full text-sm border border-gray-200 rounded-lg pl-8 pr-8 py-1.5 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-500"
             />
             {search && (
-              <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              <button onClick={() => setSearch("")} aria-label="Limpar busca" className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                 <X size={12} />
               </button>
             )}
@@ -396,12 +411,13 @@ export default function APARPage() {
           <select
             value={catFilter}
             onChange={(e) => setCatFilter(e.target.value)}
+            aria-label="Filtrar por categoria"
             className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white text-gray-700 focus:outline-none focus:border-brand-500"
           >
             <option value="all">Todas as categorias</option>
             {categories.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
-          <div className="flex items-center gap-1 flex-wrap">
+          <div role="group" aria-label="Filtrar por período de vencimento" className="flex items-center gap-1 flex-wrap">
             {([
               { id: "all",        label: "Todos"     },
               { id: "overdue",    label: "Vencidos"  },
@@ -410,6 +426,7 @@ export default function APARPage() {
             ] as const).map((p) => (
               <button
                 key={p.id}
+                aria-pressed={periodFilter === p.id}
                 onClick={() => setPeriodFilter(p.id)}
                 className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-colors ${
                   periodFilter === p.id
@@ -425,7 +442,8 @@ export default function APARPage() {
           </div>
           {hasFilters && (
             <button
-              onClick={() => { setSearch(""); setCatFilter("all"); setPeriodFilter("all"); }}
+              onClick={clearFilters}
+              aria-label="Limpar todos os filtros"
               className="ml-auto flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors"
             >
               <X size={11} /> Limpar filtros
