@@ -1,0 +1,44 @@
+# ── Supabase Project Config ─────────────────────────────────────────────────────
+# AWQ EPM Platform
+# Docs: https://supabase.com/docs/guides/cli/config
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+
+[ingest]
+enabled = true
+port = 54324
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[auth]
+enabled = true
+port = 54325
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["https://contato22.github.io/awq"]
+jwt_expiry = 3600
+enable_signup = false
+
+[functions.get-cashflow]
+verify_jwt = false
+
+[functions.add-transaction]
+verify_jwt = false
+
+[functions.get-accounts]
+verify_jwt = false

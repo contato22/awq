@@ -87,7 +87,8 @@ export const PLATFORM_ROUTES: PlatformRoute[] = [
   { href: "/awq/bank",        label: "Contas Banco",  bu: "awq", layer: "corporate-treasury", status: "active", dataSource: "localStorage (saldos locais — não persistido no servidor — dívida técnica)", inSidebar: true, inTabNav: false },
   { href: "/awq/investments",  label: "Investimentos", bu: "awq", layer: "corporate-treasury", status: "active", dataSource: "lib/investment-query.ts (aplicacao/resgate financeiro — pipeline canônico)", inSidebar: true, inTabNav: false },
   { href: "/awq/ap-ar",       label: "AP & AR",       bu: "awq", layer: "corporate-treasury", status: "active", dataSource: "localStorage (contas a pagar/receber — não persistido no servidor — dívida técnica)", inSidebar: true, inTabNav: false },
-  { href: "/awq/conciliacao", label: "Conciliação",   bu: "awq", layer: "corporate-treasury", status: "stub",   dataSource: "pending — conciliação bancária, conferência de extratos e lançamentos", inSidebar: true, inTabNav: false },
+  { href: "/awq/conciliacao",        label: "Conciliação",          bu: "awq", layer: "corporate-treasury", status: "stub",   dataSource: "pending — conciliação bancária, conferência de extratos e lançamentos", inSidebar: true, inTabNav: false },
+  { href: "/awq/transactions/add",   label: "Lançamento Manual",    bu: "awq", layer: "corporate-treasury", status: "active", dataSource: "app/api/awq/transactions (POST) → financial-db.ts (Supabase → Neon → JSON)", inSidebar: true, inTabNav: false },
 
   // ── AWQ Group — Financeiro Corporativo / Controladoria ───────────────────
   { href: "/awq/management",    label: "Controladoria",  bu: "awq", layer: "corporate-control", status: "active", dataSource: "lib/financial-metric-query.ts (diagnostics) + lib/snapshot-registry.ts + lib/platform-registry.ts", inSidebar: true, inTabNav: false },

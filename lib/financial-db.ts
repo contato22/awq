@@ -14,6 +14,7 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 import { sql, USE_DB } from "./db";
+import { supabaseAdmin, USE_SUPABASE } from "./supabase-client";
 
 // ─── Directory (filesystem adapter only) ─────────────────────────────────────
 
@@ -283,6 +284,14 @@ function rowToTransaction(r: Row): BankTransaction {
 // ─── Documents CRUD ───────────────────────────────────────────────────────────
 
 export async function getAllDocuments(): Promise<FinancialDocument[]> {
+  if (USE_SUPABASE && supabaseAdmin) {
+    const { data, error } = await supabaseAdmin
+      .from("financial_documents")
+      .select("*")
+      .order("uploaded_at", { ascending: false });
+    if (error) throw new Error(`Supabase getAllDocuments: ${error.message}`);
+    return (data ?? []).map(rowToDocument);
+  }
   if (USE_DB && sql) {
     const rows = await sql`SELECT * FROM financial_documents ORDER BY uploaded_at DESC`;
     return rows.map(rowToDocument);
@@ -294,6 +303,15 @@ export async function getAllDocuments(): Promise<FinancialDocument[]> {
 }
 
 export async function getDocument(id: string): Promise<FinancialDocument | null> {
+  if (USE_SUPABASE && supabaseAdmin) {
+    const { data, error } = await supabaseAdmin
+      .from("financial_documents")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+    if (error) throw new Error(`Supabase getDocument: ${error.message}`);
+    return data ? rowToDocument(data) : null;
+  }
   if (USE_DB && sql) {
     const rows = await sql`SELECT * FROM financial_documents WHERE id = ${id} LIMIT 1`;
     return rows.length > 0 ? rowToDocument(rows[0]) : null;
@@ -304,6 +322,20 @@ export async function getDocument(id: string): Promise<FinancialDocument | null>
 }
 
 export async function saveDocument(doc: FinancialDocument): Promise<void> {
+  if (USE_SUPABASE && supabaseAdmin) {
+    const { error } = await supabaseAdmin.from("financial_documents").upsert({
+      id: doc.id, filename: doc.filename, file_hash: doc.fileHash,
+      bank: doc.bank, account_name: doc.accountName, account_number: doc.accountNumber,
+      entity: doc.entity, period_start: doc.periodStart, period_end: doc.periodEnd,
+      opening_balance: doc.openingBalance, closing_balance: doc.closingBalance,
+      uploaded_at: doc.uploadedAt, uploaded_by: doc.uploadedBy, status: doc.status,
+      error_message: doc.errorMessage, transaction_count: doc.transactionCount,
+      parser_confidence: doc.parserConfidence, extraction_notes: doc.extractionNotes,
+      blob_url: doc.blobUrl,
+    }, { onConflict: "id" });
+    if (error) throw new Error(`Supabase saveDocument: ${error.message}`);
+    return;
+  }
   if (USE_DB && sql) {
     await sql`
       INSERT INTO financial_documents (
@@ -354,6 +386,23 @@ export async function updateDocumentStatus(
   status: DocumentStatus,
   patch?: Partial<FinancialDocument>
 ): Promise<void> {
+  if (USE_SUPABASE && supabaseAdmin) {
+    const p = patch ?? {};
+    const update: Record<string, unknown> = { status };
+    if (p.errorMessage   !== undefined) update.error_message      = p.errorMessage;
+    if (p.periodStart    !== undefined) update.period_start       = p.periodStart;
+    if (p.periodEnd      !== undefined) update.period_end         = p.periodEnd;
+    if (p.openingBalance !== undefined) update.opening_balance    = p.openingBalance;
+    if (p.closingBalance !== undefined) update.closing_balance    = p.closingBalance;
+    if (p.accountNumber  !== undefined) update.account_number     = p.accountNumber;
+    if (p.parserConfidence !== undefined) update.parser_confidence = p.parserConfidence;
+    if (p.extractionNotes  !== undefined) update.extraction_notes = p.extractionNotes;
+    if (p.transactionCount !== undefined) update.transaction_count = p.transactionCount;
+    if (p.blobUrl          !== undefined) update.blob_url         = p.blobUrl;
+    const { error } = await supabaseAdmin.from("financial_documents").update(update).eq("id", id);
+    if (error) throw new Error(`Supabase updateDocumentStatus: ${error.message}`);
+    return;
+  }
   if (USE_DB && sql) {
     const p = patch ?? {};
     await sql`
@@ -381,6 +430,15 @@ export async function updateDocumentStatus(
 }
 
 export async function findDuplicateDocument(fileHash: string): Promise<FinancialDocument | null> {
+  if (USE_SUPABASE && supabaseAdmin) {
+    const { data, error } = await supabaseAdmin
+      .from("financial_documents")
+      .select("*")
+      .eq("file_hash", fileHash)
+      .maybeSingle();
+    if (error) throw new Error(`Supabase findDuplicateDocument: ${error.message}`);
+    return data ? rowToDocument(data) : null;
+  }
   if (USE_DB && sql) {
     const rows = await sql`SELECT * FROM financial_documents WHERE file_hash = ${fileHash} LIMIT 1`;
     return rows.length > 0 ? rowToDocument(rows[0]) : null;
@@ -393,6 +451,14 @@ export async function findDuplicateDocument(fileHash: string): Promise<Financial
 // ─── Transactions CRUD ────────────────────────────────────────────────────────
 
 export async function getAllTransactions(): Promise<BankTransaction[]> {
+  if (USE_SUPABASE && supabaseAdmin) {
+    const { data, error } = await supabaseAdmin
+      .from("bank_transactions")
+      .select("*")
+      .order("transaction_date", { ascending: false });
+    if (error) throw new Error(`Supabase getAllTransactions: ${error.message}`);
+    return (data ?? []).map(rowToTransaction);
+  }
   if (USE_DB && sql) {
     const rows = await sql`SELECT * FROM bank_transactions ORDER BY transaction_date DESC`;
     return rows.map(rowToTransaction);
@@ -423,6 +489,29 @@ export async function getTransactionsByEntity(entity: EntityLayer): Promise<Bank
 }
 
 export async function saveTransactions(transactions: BankTransaction[]): Promise<void> {
+  if (USE_SUPABASE && supabaseAdmin) {
+    if (transactions.length === 0) return;
+    const docIds = Array.from(new Set(transactions.map((t) => t.documentId)));
+    for (const docId of docIds) {
+      await supabaseAdmin.from("bank_transactions").delete().eq("document_id", docId);
+    }
+    const rows = transactions.map((t) => ({
+      id: t.id, document_id: t.documentId, bank: t.bank, account_name: t.accountName,
+      entity: t.entity, transaction_date: t.transactionDate,
+      description_original: t.descriptionOriginal, amount: t.amount,
+      direction: t.direction, running_balance: t.runningBalance,
+      counterparty_name: t.counterpartyName, managerial_category: t.managerialCategory,
+      classification_confidence: t.classificationConfidence,
+      classification_note: t.classificationNote, is_intercompany: t.isIntercompany,
+      intercompany_match_id: t.intercompanyMatchId,
+      excluded_from_consolidated: t.excludedFromConsolidated,
+      reconciliation_status: t.reconciliationStatus,
+      extracted_at: t.extractedAt, classified_at: t.classifiedAt,
+    }));
+    const { error } = await supabaseAdmin.from("bank_transactions").insert(rows);
+    if (error) throw new Error(`Supabase saveTransactions: ${error.message}`);
+    return;
+  }
   if (USE_DB && sql) {
     if (transactions.length === 0) return;
     const docIds = Array.from(new Set(transactions.map((t) => t.documentId)));
@@ -460,6 +549,22 @@ export async function updateTransaction(
   id: string,
   patch: Partial<BankTransaction>
 ): Promise<void> {
+  if (USE_SUPABASE && supabaseAdmin) {
+    const p = patch;
+    const update: Record<string, unknown> = {};
+    if (p.managerialCategory        !== undefined) update.managerial_category         = p.managerialCategory;
+    if (p.classificationConfidence  !== undefined) update.classification_confidence   = p.classificationConfidence;
+    if (p.classificationNote        !== undefined) update.classification_note         = p.classificationNote;
+    if (p.counterpartyName          !== undefined) update.counterparty_name           = p.counterpartyName;
+    if (p.isIntercompany            !== undefined) update.is_intercompany             = p.isIntercompany;
+    if (p.intercompanyMatchId       !== undefined) update.intercompany_match_id       = p.intercompanyMatchId;
+    if (p.excludedFromConsolidated  !== undefined) update.excluded_from_consolidated  = p.excludedFromConsolidated;
+    if (p.reconciliationStatus      !== undefined) update.reconciliation_status       = p.reconciliationStatus;
+    if (p.classifiedAt              !== undefined) update.classified_at               = p.classifiedAt;
+    const { error } = await supabaseAdmin.from("bank_transactions").update(update).eq("id", id);
+    if (error) throw new Error(`Supabase updateTransaction: ${error.message}`);
+    return;
+  }
   if (USE_DB && sql) {
     const p = patch;
     await sql`

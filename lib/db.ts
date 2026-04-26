@@ -19,8 +19,10 @@ import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
 export const sql: NeonQueryFunction<false, false> | null =
   process.env.DATABASE_URL ? neon(process.env.DATABASE_URL) : null;
 
-export const USE_DB = !!process.env.DATABASE_URL;
+export const USE_DB   = !!process.env.DATABASE_URL;
 export const USE_BLOB = !!process.env.BLOB_READ_WRITE_TOKEN;
+// Re-export for convenience — actual client lives in lib/supabase-client.ts
+export { USE_SUPABASE } from "./supabase-client";
 
 // ─── Schema bootstrap ─────────────────────────────────────────────────────────
 // Idempotent — safe to call on every cold start.
