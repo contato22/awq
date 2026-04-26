@@ -86,6 +86,7 @@ export const PLATFORM_ROUTES: PlatformRoute[] = [
   { href: "/awq/cashflow",    label: "Cash Flow",     bu: "awq", layer: "corporate-treasury", status: "active", dataSource: "lib/financial-query.ts (pipeline canônico — sem snapshot)", inSidebar: true, inTabNav: false },
   { href: "/awq/bank",        label: "Contas Banco",  bu: "awq", layer: "corporate-treasury", status: "active", dataSource: "localStorage (saldos locais — não persistido no servidor — dívida técnica)", inSidebar: true, inTabNav: false },
   { href: "/awq/investments",  label: "Investimentos", bu: "awq", layer: "corporate-treasury", status: "active", dataSource: "lib/investment-query.ts (aplicacao/resgate financeiro — pipeline canônico)", inSidebar: true, inTabNav: false },
+  { href: "/awq/ap-ar",       label: "AP & AR",       bu: "awq", layer: "corporate-treasury", status: "active", dataSource: "localStorage (contas a pagar/receber — não persistido no servidor — dívida técnica)", inSidebar: true, inTabNav: false },
   { href: "/awq/conciliacao", label: "Conciliação",   bu: "awq", layer: "corporate-treasury", status: "stub",   dataSource: "pending — conciliação bancária, conferência de extratos e lançamentos", inSidebar: true, inTabNav: false },
 
   // ── AWQ Group — Financeiro Corporativo / Controladoria ───────────────────

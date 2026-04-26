@@ -215,6 +215,7 @@ const AWQ_TESOURARIA_ITEMS = [
     { label: "Cash Flow",     href: "/awq/cashflow",       icon: Zap          },
     { label: "Contas Banco",  href: "/awq/bank",           icon: CreditCard   },
     { label: "Investimentos", href: "/awq/investments",    icon: Landmark     },
+    { label: "AP & AR",       href: "/awq/ap-ar",          icon: FileText     },
 ] as const;
 
 // Financeiro Corporativo — Controladoria & Contábil
