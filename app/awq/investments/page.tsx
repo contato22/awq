@@ -95,7 +95,7 @@ function EmpiricalInvestmentPanel() {
           </p>
           <p className="text-[11px] text-amber-600 mt-0.5">
             Esta posição será substituída automaticamente após ingesta do extrato PDF em{" "}
-            <a href="/awq/ingest" className="underline font-medium">/awq/ingest</a>.
+            <a href="/awq/conciliacao" className="underline font-medium">/awq/conciliacao</a>.
           </p>
         </div>
       </div>
@@ -205,7 +205,7 @@ function NoDataBanner({ message, gaps }: { message: string; gaps: string[] }) {
           )}
           <p className="text-xs text-amber-700 mt-2">
             Ingira extratos bancários em{" "}
-            <a href="/awq/ingest" className="underline font-medium">/awq/ingest</a>{" "}
+            <a href="/awq/conciliacao" className="underline font-medium">/awq/conciliacao</a>{" "}
             e classifique transações como <code className="font-mono bg-amber-100 px-1 rounded">aplicacao_financeira</code> ou{" "}
             <code className="font-mono bg-amber-100 px-1 rounded">resgate_financeiro</code>.
           </p>

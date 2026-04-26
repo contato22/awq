@@ -15,7 +15,6 @@
 import Link from "next/link";
 import Header from "@/components/Header";
 import ReconciliationReviewTable from "@/components/ReconciliationReviewTable";
-import ConciliacaoManualSection from "@/components/ConciliacaoManualSection";
 import { getAllTransactions, getAllDocuments } from "@/lib/financial-db";
 import {
   AlertCircle,
@@ -26,7 +25,6 @@ import {
   ClipboardList,
   ExternalLink,
   FileText,
-  HardDrive,
   LineChart,
   Zap,
 } from "lucide-react";
@@ -97,30 +95,12 @@ export default async function ConciliacaoPage() {
       />
       <div className="p-6 space-y-8">
 
-        {/* GitHub Pages mode banner */}
-        {IS_STATIC && (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-            <div className="flex items-start gap-3">
-              <HardDrive size={16} className="text-amber-600 shrink-0 mt-0.5" />
-              <div className="text-xs text-amber-800 space-y-1">
-                <p className="font-semibold">Modo GitHub Pages — persistência local</p>
-                <p>
-                  Edições feitas aqui são salvas no <strong>localStorage do seu navegador</strong> (sem servidor).
-                  As transações abaixo são os dados do último deploy. Adicione transações manuais em{" "}
-                  <Link href="/awq/ingest" className="underline font-medium">Integração Bancária</Link>.
-                  Para persistência permanente, use o ambiente Vercel/SSR.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* ── Seção 1: KPIs de conciliação (transações importadas) ── */}
         <section className="space-y-4">
           <div>
             <h2 className="text-sm font-bold text-gray-900">Transações Importadas</h2>
             <p className="text-xs text-gray-500 mt-0.5">
-              Progresso de conciliação das transações ingeridas via extrato bancário
+              Progresso de conciliação das transações importadas via extrato bancário
             </p>
           </div>
 
@@ -131,11 +111,7 @@ export default async function ConciliacaoPage() {
                 <div>
                   <p className="text-sm font-semibold text-amber-800">Nenhuma transação para conciliar</p>
                   <p className="text-xs text-amber-700 mt-1">
-                    {IS_STATIC ? (
-                      <>Use <Link href="/awq/ingest" className="underline font-medium">Integração Bancária</Link> para adicionar transações manualmente.</>
-                    ) : (
-                      <>Ingira extratos bancários via <Link href="/awq/ingest" className="underline font-medium">/awq/ingest</Link> para começar.</>
-                    )}
+                    Use o botão <strong>Importar CSV / PDF</strong> acima para carregar um extrato bancário.
                   </p>
                 </div>
               </div>
@@ -205,18 +181,7 @@ export default async function ConciliacaoPage() {
           </div>
         </section>
 
-        {/* ── Seção 2: Verificação Manual ── */}
-        <section className="space-y-4">
-          <div>
-            <h2 className="text-sm font-bold text-gray-900">Verificação Manual</h2>
-            <p className="text-xs text-gray-500 mt-0.5">
-              Compare lançamentos internos com o extrato bancário linha a linha e importe arquivos OFX/CSV/PDF
-            </p>
-          </div>
-          <ConciliacaoManualSection />
-        </section>
-
-        {/* ── Seção 3: Impacto da Conciliação ── */}
+        {/* ── Seção 2: Impacto da Conciliação ── */}
         <section className="rounded-xl border border-gray-200 bg-white p-5">
           <div className="flex items-start gap-3 mb-3">
             <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0">

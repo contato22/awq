@@ -218,7 +218,7 @@ export default async function AwqRiskPage() {
             <div className="text-xs text-amber-600 flex items-center gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200">
               <AlertTriangle size={12} />
               Aguardando extratos bancários —{" "}
-              <Link href="/awq/ingest" className="underline">ingerir via /awq/ingest</Link>
+              <Link href="/awq/conciliacao" className="underline">ingerir via /awq/conciliacao</Link>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">

@@ -134,7 +134,7 @@ export default async function ManagementPage() {
           Visibilidade completa da arquitetura de dados financeiros — pipeline real, snapshots de planejamento, cobertura e regras de bloqueio.
         </p>
         <div className="flex gap-3 mt-4 flex-wrap">
-          <Link href="/awq/ingest" className="text-xs px-3 py-1.5 bg-brand-50 border border-brand-200 text-brand-700 rounded-lg hover:bg-brand-100 transition-colors font-medium">
+          <Link href="/awq/conciliacao" className="text-xs px-3 py-1.5 bg-brand-50 border border-brand-200 text-brand-700 rounded-lg hover:bg-brand-100 transition-colors font-medium">
             → Ingestão
           </Link>
           <Link href="/awq/data" className="text-xs px-3 py-1.5 bg-gray-100 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors font-medium">
@@ -317,7 +317,7 @@ export default async function ManagementPage() {
                 ) : (
                   <div className="text-[10px] text-amber-700 font-medium">
                     ⚠ Sem extrato ingerido —{" "}
-                    <Link href="/awq/ingest" className="underline">ingerir agora</Link>
+                    <Link href="/awq/conciliacao" className="underline">ingerir agora</Link>
                     {" · "}parser esperado: <span className="font-mono">{cov.account.parserFormat}</span>
                   </div>
                 )}
@@ -409,7 +409,7 @@ export default async function ManagementPage() {
             <div className="text-sm font-semibold text-red-700">Pipeline sem dados reais</div>
             <div className="text-xs text-red-600 mt-0.5">
               Nenhum documento com status=done. Acesse{" "}
-              <Link href="/awq/ingest" className="underline font-medium">/awq/ingest</Link>{" "}
+              <Link href="/awq/conciliacao" className="underline font-medium">/awq/conciliacao</Link>{" "}
               para fazer upload de extratos bancários em PDF. As páginas KPIs, Financial e Risk
               operam com dados de snapshot enquanto o pipeline está vazio.
             </div>
@@ -655,7 +655,7 @@ export default async function ManagementPage() {
           <div className="mt-4 pt-4 border-t border-gray-100">
             <div className="text-xs text-gray-500">
               Para iniciar o pipeline: acesse{" "}
-              <Link href="/awq/ingest" className="text-brand-600 underline font-medium">/awq/ingest</Link>
+              <Link href="/awq/conciliacao" className="text-brand-600 underline font-medium">/awq/conciliacao</Link>
               {" "}→ selecione banco → faça upload do extrato em PDF → aguarde status=done.
             </div>
           </div>

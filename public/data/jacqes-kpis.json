@@ -1,10 +1,10 @@
 {
-  "revenue": 4820000,
-  "customers": 10,
-  "margin": 60,
-  "receita_fmt": "R$ 4.820.000",
-  "clientes_fmt": "10",
-  "margem_fmt": "60.0%",
-  "periodo": "Mar/2026",
-  "lastUpdated": "2026-04-11T20:25:35.997Z"
+  "revenue": 0,
+  "customers": 0,
+  "margin": 0,
+  "receita_fmt": "—",
+  "clientes_fmt": "0",
+  "margem_fmt": "0%",
+  "periodo": "—",
+  "lastUpdated": "2026-01-01T00:00:00.000Z"
 }

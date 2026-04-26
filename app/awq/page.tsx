@@ -78,7 +78,7 @@ function NoDataBanner() {
         </div>
       </div>
       <Link
-        href="/awq/ingest"
+        href="/awq/conciliacao"
         className="flex items-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold transition-colors shrink-0 ml-4"
       >
         <Database size={12} /> Ingerir Extratos
@@ -290,7 +290,7 @@ export default async function AwqGroupPage() {
               icon={<Building2 size={15} />}
               title="Consolidação por Entidade — Base Bancária"
             />
-            <Link href="/awq/ingest" className="text-xs text-brand-600 hover:underline font-medium">
+            <Link href="/awq/conciliacao" className="text-xs text-brand-600 hover:underline font-medium">
               Ingerir extratos →
             </Link>
           </div>
@@ -561,7 +561,7 @@ export default async function AwqGroupPage() {
               { label: "Financial",    sub: "Visão de caixa",            href: "/awq/financial",   icon: DollarSign,    color: "text-emerald-600", bg: "bg-emerald-50" },
               { label: "Cash Flow",    sub: "Fluxo de caixa",            href: "/awq/cashflow",    icon: Zap,           color: "text-cyan-700",    bg: "bg-cyan-50"    },
               { label: "Investimentos",sub: "Aplicações / resgates",     href: "/awq/investments", icon: Target,        color: "text-violet-600",  bg: "bg-violet-50"  },
-              { label: "Ingestão",     sub: "Importar extratos PDF",      href: "/awq/ingest",      icon: Database,      color: "text-brand-600",   bg: "bg-brand-50"   },
+              { label: "Ingestão",     sub: "Importar extratos PDF",      href: "/awq/conciliacao",      icon: Database,      color: "text-brand-600",   bg: "bg-brand-50"   },
               { label: "Base de Dados",sub: "Gestão da camada de dados",  href: "/awq/data",        icon: CheckCircle,   color: "text-emerald-600", bg: "bg-emerald-50" },
               { label: "Budget",       sub: "Budget vs Actual",          href: "/awq/budget",      icon: Scale,         color: "text-violet-600",  bg: "bg-violet-50"  },
               { label: "Forecast",     sub: "Cenários 2026",             href: "/awq/forecast",    icon: TrendingUp,    color: "text-amber-700",   bg: "bg-amber-50"   },

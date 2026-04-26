@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useRef } from "react";
-import Link from "next/link";
 import {
-  AlertCircle, ArrowRight, Check, ChevronDown, ChevronUp, Circle,
+  AlertCircle, Check, ChevronDown, ChevronUp, Circle,
   FileUp, Loader2, Plus, Search, Trash2, Upload, X,
 } from "lucide-react";
 import {
@@ -368,14 +367,6 @@ export default function ConciliacaoManualSection() {
         </div>
       </div>
 
-      {/* Link para ingestão completa */}
-      <div className="flex items-center gap-2 text-xs text-gray-500 px-1">
-        <ArrowRight size={12} className="text-gray-400 shrink-0" />
-        <span>
-          Para importação com processamento automatizado (OCR, classificação e reconciliação com DB),{" "}
-          <Link href="/awq/ingest" className="font-semibold text-brand-600 underline">use a Ingestão Bancária →</Link>
-        </span>
-      </div>
     </div>
   );
 }

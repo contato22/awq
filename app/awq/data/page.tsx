@@ -60,8 +60,8 @@ const DATA_SOURCES: DataSourceEntry[] = [
 
 const ACTION_QUEUE: ActionItem[] = [
   { id: "A1", priority: "critico", title: "Persistent storage (Vercel Blob / Neon)",         description: "public/data/financial/ é efêmero em Vercel serverless. PDFs e JSON perdem entre cold starts. Bloqueia produção.",                                                             owner: "Infra",       impact: "Pipeline inutilizável em produção sem isso." },
-  { id: "A2", priority: "alto",    title: "Ingerir extratos reais (Cora + Itaú)",            description: "Nenhum PDF real processado ainda. Sem dados reais o pipeline nunca pode ser validado. Ir em /awq/ingest e fazer upload.",                                                     owner: "Operação",    impact: "Todos os dashboards com financial-query passam a ter dados reais." },
-  { id: "A3", priority: "alto",    title: "Ingerir extratos e validar pipeline end-to-end",  description: "awq/financial, awq/cashflow, awq/kpis, awq/portfolio, awq/risk já consomem financial-query. Budget/forecast/allocations são accrual — ficam em snapshot com aviso. Próximo gate: ingerir PDF real em /awq/ingest.",                                                                          owner: "Operação",    impact: "Valida toda a cadeia de ingestão com dados reais." },
+  { id: "A2", priority: "alto",    title: "Ingerir extratos reais (Cora + Itaú)",            description: "Nenhum PDF real processado ainda. Sem dados reais o pipeline nunca pode ser validado. Ir em /awq/conciliacao e fazer upload.",                                                     owner: "Operação",    impact: "Todos os dashboards com financial-query passam a ter dados reais." },
+  { id: "A3", priority: "alto",    title: "Ingerir extratos e validar pipeline end-to-end",  description: "awq/financial, awq/cashflow, awq/kpis, awq/portfolio, awq/risk já consomem financial-query. Budget/forecast/allocations são accrual — ficam em snapshot com aviso. Próximo gate: ingerir PDF real em /awq/conciliacao.",                                                                          owner: "Operação",    impact: "Valida toda a cadeia de ingestão com dados reais." },
   { id: "A4", priority: "medio",   title: "Enforçar RBAC no middleware",                     description: "auth-users.ts define roles (owner, admin, analyst, cs-ops) mas ROLE_ALLOWED_PREFIXES está aberto para todos. Sem restrição real no middleware.",                             owner: "Segurança",   impact: "cs-ops e analyst sem acesso a dados AWQ Group." },
   { id: "A5", priority: "baixo",   title: "Migrar awq/page.tsx para consumir menos snapshot", description: "Control tower ainda usa buData[] de awq-group-data para métricas de BU. Após ingestão real, substituir por q.entities[] agregado.",                                          owner: "Engenharia",  impact: "Control tower mostrando dados reais em vez de snapshot." },
 ];
@@ -569,7 +569,7 @@ export default async function AwqDataPage() {
             <span className="flex items-center gap-1"><Shield size={10} /> Store: <code>lib/financial-db.ts</code></span>
             <span className="ml-auto flex items-center gap-1">
               <ArrowRight size={10} />
-              <Link href="/awq/ingest" className="underline hover:text-gray-700">Ingestao</Link>
+              <Link href="/awq/conciliacao" className="underline hover:text-gray-700">Ingestao</Link>
               <span className="mx-1">·</span>
               <Link href="/awq/financial" className="underline hover:text-gray-700">Financial</Link>
               <span className="mx-1">·</span>

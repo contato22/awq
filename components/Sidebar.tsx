@@ -100,6 +100,7 @@ const cazaNav = [
     { label: "Visão Geral",    href: "/caza-vision",                   icon: LayoutDashboard },
     { label: "Projetos",       href: "/caza-vision/imoveis",           icon: Film            },
     { label: "Clientes",       href: "/caza-vision/clientes",          icon: Users           },
+    { label: "Contas",         href: "/caza-vision/contas",            icon: Briefcase       },
     { label: "Financial",      href: "/caza-vision/financial",         icon: DollarSign      },
     { label: "Unit Economics", href: "/caza-vision/unit-economics",    icon: Calculator      },
     { label: "Importar",       href: "/caza-vision/import",            icon: FileUp          },
@@ -232,7 +233,6 @@ const AWQ_JURIDICO_ITEMS = [
 
 // Dados & Infra
 const AWQ_DADOS_ITEMS = [
-    { label: "Ingestão",      href: "/awq/ingest",    icon: FileUp      },
     { label: "Base de Dados", href: "/awq/data",      icon: Database    },
     { label: "Segurança",     href: "/awq/security",  icon: ShieldAlert },
 ] as const;
