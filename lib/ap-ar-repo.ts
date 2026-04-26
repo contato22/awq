@@ -9,7 +9,7 @@ export async function getAllAPARItems(): Promise<APARItem[]> {
 export async function replaceAllAPARItems(items: APARItem[]): Promise<void> {
   const db = await getIDB();
   const tx = db.transaction("ap_ar_items", "readwrite");
-  await tx.store.clear();
-  await Promise.all(items.map((item) => tx.store.put(item)));
+  tx.store.clear();
+  items.forEach((item) => tx.store.put(item));
   await tx.done;
 }
