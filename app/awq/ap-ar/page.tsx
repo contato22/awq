@@ -41,7 +41,8 @@ const BUS: { id: BU; label: string; short: string; color: string; bg: string; do
   { id: "advisor", label: "Advisor",      short: "Advisor",  color: "text-violet-700",  bg: "bg-violet-50",  dot: "bg-violet-500"  },
 ];
 
-const BU_MAP = Object.fromEntries(BUS.map((b) => [b.id, b])) as Record<BU, typeof BUS[0]>;
+const BU_MAP      = Object.fromEntries(BUS.map((b) => [b.id, b])) as Record<BU, typeof BUS[0]>;
+const VALID_BU_SET = new Set<string>(BUS.map((b) => b.id));
 
 const AP_CATEGORIES = [
   "Fornecedor", "Folha / Pró-labore", "Imposto / Tributo",
@@ -112,7 +113,7 @@ export default function APARPage() {
         }
         const refreshed = loaded.map((item) => ({
           ...item,
-          bu: (item.bu ?? "awq") as BU,
+          bu: (VALID_BU_SET.has(item.bu) ? item.bu : "awq") as BU,
           status: computeStatus(item.dueDate, item.status),
         }));
         setItems(refreshed);

@@ -17,11 +17,12 @@ import {
   searchContrapartes,
   createContraparte,
 } from "@/lib/contrapartes-repo";
-import type { Contraparte, ContraprtePapel } from "@/lib/contraparte-types";
+import type { Contraparte, ContraprtePapel, ContraprteTipo, ContraparteRegime } from "@/lib/contraparte-types";
 import {
   PAPEL_CONFIG, TIPO_CONFIG, REGIME_LABELS, UF_LIST,
 } from "@/lib/contraparte-types";
 import { BU_OPTIONS } from "@/lib/bu-config";
+import type { BU } from "@/lib/bu-config";
 import { formatDoc, docPlaceholder, validateDoc } from "@/lib/cnpj-cpf";
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -38,8 +39,8 @@ interface Props {
 // ─── Quick-create form state ──────────────────────────────────────────────────
 
 const EMPTY_QUICK: {
-  tipo: string; papel: ContraprtePapel; razaoSocial: string;
-  cnpjCpf: string; regime: string; emailFinanceiro: string; bu: string;
+  tipo: ContraprteTipo; papel: ContraprtePapel; razaoSocial: string;
+  cnpjCpf: string; regime: ContraparteRegime; emailFinanceiro: string; bu: BU;
 } = {
   tipo: "pj", papel: "fornecedor", razaoSocial: "",
   cnpjCpf: "", regime: "simples", emailFinanceiro: "", bu: "awq",
@@ -132,14 +133,14 @@ export default function ContraparteAutocomplete({
     setQuickErr(null);
     try {
       const c = await createContraparte({
-        tipo:          quick.tipo as Contraparte["tipo"],
-        papel:         quick.papel,
-        razaoSocial:   quick.razaoSocial.trim(),
-        cnpjCpf:       quick.cnpjCpf.replace(/\D/g, ""),
-        regime:        quick.regime as Contraparte["regime"],
+        tipo:            quick.tipo,
+        papel:           quick.papel,
+        razaoSocial:     quick.razaoSocial.trim(),
+        cnpjCpf:         quick.cnpjCpf.replace(/\D/g, ""),
+        regime:          quick.regime,
         emailFinanceiro: quick.emailFinanceiro.trim() || undefined,
-        bu:            quick.bu,
-        status:        "ativo",
+        bu:              quick.bu,
+        status:          "ativo",
       });
       handleSelect(c);
       setShowQuick(false);

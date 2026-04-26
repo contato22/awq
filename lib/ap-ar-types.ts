@@ -1,9 +1,8 @@
-export type { BU } from "./bu-config";
+import type { BU } from "./bu-config";
 
+export type { BU };
 export type ItemType   = "ap" | "ar";
 export type ItemStatus = "pending" | "overdue" | "settled";
-
-import type { BU } from "./bu-config";
 
 export interface APARItem {
   id:          string;
