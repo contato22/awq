@@ -398,99 +398,118 @@ export default function APARPage() {
         </div>
 
         {/* ── Filter bar ────────────────────────────────────────────────────── */}
-        <div className="card px-4 py-3 flex flex-wrap items-center gap-3">
-          <SlidersHorizontal size={13} className="text-gray-400 shrink-0" />
-          <div className="relative flex-1 min-w-[180px]">
-            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-            <input
-              type="text"
-              placeholder="Buscar descrição ou contraparte…"
-              aria-label="Buscar por descrição ou contraparte"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full text-sm border border-gray-200 rounded-lg pl-8 pr-8 py-1.5 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-500"
-            />
-            {search && (
-              <button onClick={() => setSearch("")} aria-label="Limpar busca" className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                <X size={12} />
-              </button>
-            )}
-          </div>
-          <select
-            value={catFilter}
-            onChange={(e) => setCatFilter(e.target.value)}
-            aria-label="Filtrar por categoria"
-            className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white text-gray-700 focus:outline-none focus:border-brand-500"
-          >
-            <option value="all">Todas as categorias</option>
-            {categories.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <div role="group" aria-label="Filtrar por período de vencimento" className="flex items-center gap-1 flex-wrap">
-            {([
-              { id: "all",        label: "Todos"    },
-              { id: "overdue",    label: "Vencidos" },
-              { id: "this_month", label: "Este mês" },
-            ] as const).map((p) => (
+        <div className="card overflow-hidden">
+          <div className="px-4 py-3 flex flex-wrap items-center gap-3">
+            <SlidersHorizontal size={13} className="text-gray-400 shrink-0" />
+            <div className="relative flex-1 min-w-[180px]">
+              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Buscar descrição ou contraparte…"
+                aria-label="Buscar por descrição ou contraparte"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full text-sm border border-gray-200 rounded-lg pl-8 pr-8 py-1.5 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-500"
+              />
+              {search && (
+                <button onClick={() => setSearch("")} aria-label="Limpar busca" className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+            <select
+              value={catFilter}
+              onChange={(e) => setCatFilter(e.target.value)}
+              aria-label="Filtrar por categoria"
+              className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white text-gray-700 focus:outline-none focus:border-brand-500"
+            >
+              <option value="all">Todas as categorias</option>
+              {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <div role="group" aria-label="Filtrar por período de vencimento" className="flex items-center gap-1 flex-wrap">
+              {([
+                { id: "all",        label: "Todos"    },
+                { id: "overdue",    label: "Vencidos" },
+                { id: "this_month", label: "Este mês" },
+              ] as const).map((p) => (
+                <button
+                  key={p.id}
+                  aria-pressed={periodFilter === p.id}
+                  onClick={() => setPeriodFilter(p.id)}
+                  className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-colors ${
+                    periodFilter === p.id
+                      ? p.id === "overdue"
+                        ? "bg-red-100 text-red-700"
+                        : "bg-blue-100 text-blue-700"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
               <button
-                key={p.id}
-                aria-pressed={periodFilter === p.id}
-                onClick={() => setPeriodFilter(p.id)}
-                className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-colors ${
-                  periodFilter === p.id
-                    ? p.id === "overdue"
-                      ? "bg-red-100 text-red-700"
-                      : "bg-blue-100 text-blue-700"
+                aria-pressed={periodFilter === "custom"}
+                aria-label="Período personalizado"
+                onClick={() => setPeriodFilter(periodFilter === "custom" ? "all" : "custom")}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-colors ${
+                  periodFilter === "custom"
+                    ? "bg-blue-100 text-blue-700"
                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
               >
-                {p.label}
+                <CalendarDays size={12} />
+                {customIsActive
+                  ? `${customFrom ? customFrom.split("-").reverse().join("/") : "início"} → ${customTo ? customTo.split("-").reverse().join("/") : "fim"}`
+                  : "Personalizado"}
               </button>
-            ))}
-            <button
-              aria-pressed={periodFilter === "custom"}
-              aria-label="Período personalizado"
-              onClick={() => setPeriodFilter(periodFilter === "custom" ? "all" : "custom")}
-              title="Período personalizado"
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-colors ${
-                periodFilter === "custom"
-                  ? "bg-blue-100 text-blue-700"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
-            >
-              <CalendarDays size={12} />
-              {customIsActive
-                ? `${customFrom ? customFrom.split("-").reverse().join("/") : "início"} → ${customTo ? customTo.split("-").reverse().join("/") : "fim"}`
-                : "Personalizado"}
-            </button>
-            {periodFilter === "custom" && (
-              <div className="flex items-center gap-1.5 ml-1 flex-wrap">
+            </div>
+            {hasFilters && (
+              <button
+                onClick={clearFilters}
+                aria-label="Limpar todos os filtros"
+                className="ml-auto flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X size={11} /> Limpar filtros
+              </button>
+            )}
+          </div>
+
+          {/* Date picker sub-row — only when Personalizado is active */}
+          {periodFilter === "custom" && (
+            <div className="px-4 py-2.5 border-t border-blue-100 bg-blue-50/50 flex items-center gap-3 flex-wrap">
+              <CalendarDays size={12} className="text-blue-500 shrink-0" />
+              <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wide">Período</span>
+              <div className="flex items-center gap-2">
+                <label className="text-[10px] text-blue-500 font-semibold">De</label>
                 <input
                   type="date"
                   value={customFrom}
                   onChange={(e) => setCustomFrom(e.target.value)}
                   aria-label="Data inicial do filtro"
-                  className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white text-gray-700 focus:outline-none focus:border-blue-400"
+                  className="text-xs border border-blue-200 rounded-lg px-2.5 py-1.5 bg-white text-gray-700 focus:outline-none focus:border-blue-400"
                 />
-                <span className="text-xs text-gray-400">→</span>
+              </div>
+              <span className="text-xs text-blue-300">→</span>
+              <div className="flex items-center gap-2">
+                <label className="text-[10px] text-blue-500 font-semibold">Até</label>
                 <input
                   type="date"
                   value={customTo}
                   min={customFrom || undefined}
                   onChange={(e) => setCustomTo(e.target.value)}
                   aria-label="Data final do filtro"
-                  className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white text-gray-700 focus:outline-none focus:border-blue-400"
+                  className="text-xs border border-blue-200 rounded-lg px-2.5 py-1.5 bg-white text-gray-700 focus:outline-none focus:border-blue-400"
                 />
               </div>
-            )}
-          </div>
-          {hasFilters && (
-            <button
-              onClick={clearFilters}
-              aria-label="Limpar todos os filtros"
-              className="ml-auto flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <X size={11} /> Limpar filtros
-            </button>
+              {customIsActive && (
+                <button
+                  onClick={() => { setCustomFrom(""); setCustomTo(""); }}
+                  className="ml-1 text-[10px] text-blue-400 hover:text-blue-600 transition-colors flex items-center gap-1"
+                >
+                  <X size={10} /> Limpar datas
+                </button>
+              )}
+            </div>
           )}
         </div>
 
