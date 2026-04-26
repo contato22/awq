@@ -29,6 +29,8 @@ import {
   CalendarDays,
   Building2,
   Pencil,
+  Search,
+  SlidersHorizontal,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -117,6 +119,9 @@ export default function APARPage() {
   const [form, setForm]           = useState(EMPTY_FORM);
   const [editingItem, setEditingItem] = useState<APARItem | null>(null);
   const [editForm, setEditForm]       = useState(EMPTY_FORM);
+  const [search, setSearch]             = useState("");
+  const [catFilter, setCatFilter]       = useState("all");
+  const [periodFilter, setPeriodFilter] = useState<"all" | "overdue" | "this_month" | "next_30">("all");
 
   // ── Load from localStorage ───────────────────────────────────────────────
   useEffect(() => {
@@ -133,6 +138,12 @@ export default function APARPage() {
       }
     } catch { /* ignore */ }
   }, []);
+
+  useEffect(() => {
+    setCatFilter("all");
+    setPeriodFilter("all");
+    setSearch("");
+  }, [activeTab]);
 
   const save = useCallback((updated: APARItem[]) => {
     setItems(updated);
@@ -209,11 +220,32 @@ export default function APARPage() {
   const overdueAP = apAll.filter((i) => buFilter(i) && i.status === "overdue").reduce((s, i) => s + i.amount, 0);
   const overdueAR = arAll.filter((i) => buFilter(i) && i.status === "overdue").reduce((s, i) => s + i.amount, 0);
 
-  const visible     = items.filter((i) => i.type === activeTab && buFilter(i));
-  const openItems   = visible.filter((i) => i.status !== "settled");
-  const settledItems= visible.filter((i) => i.status === "settled");
+  const categories = activeTab === "ap" ? AP_CATEGORIES : AR_CATEGORIES;
+  const hasFilters = search.trim() !== "" || catFilter !== "all" || periodFilter !== "all";
 
-  const categories  = activeTab === "ap" ? AP_CATEGORIES : AR_CATEGORIES;
+  function matchesSearch(i: APARItem) {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return i.description.toLowerCase().includes(q) || i.entity.toLowerCase().includes(q);
+  }
+
+  function matchesCat(i: APARItem) { return catFilter === "all" || i.category === catFilter; }
+
+  function matchesPeriod(i: APARItem) {
+    if (periodFilter === "all") return true;
+    const t = today();
+    if (periodFilter === "overdue")    return i.dueDate < t;
+    if (periodFilter === "this_month") return i.dueDate.slice(0, 7) === t.slice(0, 7);
+    if (periodFilter === "next_30") {
+      const next30 = new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10);
+      return i.dueDate >= t && i.dueDate <= next30;
+    }
+    return true;
+  }
+
+  const visible      = items.filter((i) => i.type === activeTab && buFilter(i) && matchesSearch(i) && matchesCat(i));
+  const openItems    = visible.filter((i) => i.status !== "settled" && matchesPeriod(i));
+  const settledItems = visible.filter((i) => i.status === "settled");
 
   // ── Per-BU breakdown (for summary row) ───────────────────────────────────
   const buBreakdown = BUS.map((bu) => {
@@ -343,6 +375,64 @@ export default function APARPage() {
           </button>
         </div>
 
+        {/* ── Filter bar ────────────────────────────────────────────────────── */}
+        <div className="card px-4 py-3 flex flex-wrap items-center gap-3">
+          <SlidersHorizontal size={13} className="text-gray-400 shrink-0" />
+          <div className="relative flex-1 min-w-[180px]">
+            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Buscar descrição ou contraparte…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full text-sm border border-gray-200 rounded-lg pl-8 pr-8 py-1.5 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-500"
+            />
+            {search && (
+              <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                <X size={12} />
+              </button>
+            )}
+          </div>
+          <select
+            value={catFilter}
+            onChange={(e) => setCatFilter(e.target.value)}
+            className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white text-gray-700 focus:outline-none focus:border-brand-500"
+          >
+            <option value="all">Todas as categorias</option>
+            {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <div className="flex items-center gap-1 flex-wrap">
+            {([
+              { id: "all",        label: "Todos"     },
+              { id: "overdue",    label: "Vencidos"  },
+              { id: "this_month", label: "Este mês"  },
+              { id: "next_30",    label: "Próx. 30d" },
+            ] as const).map((p) => (
+              <button
+                key={p.id}
+                onClick={() => setPeriodFilter(p.id)}
+                className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-colors ${
+                  periodFilter === p.id
+                    ? p.id === "overdue"
+                      ? "bg-red-100 text-red-700"
+                      : "bg-blue-100 text-blue-700"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+          {hasFilters && (
+            <button
+              onClick={() => { setSearch(""); setCatFilter("all"); setPeriodFilter("all"); }}
+              className="ml-auto flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X size={11} /> Limpar filtros
+            </button>
+          )}
+        </div>
+
         {/* ── Add form (visible by default) ────────────────────────────────── */}
         {showForm && (
           <div className={`card p-5 border-l-4 ${activeTab === "ap" ? "border-l-red-400" : "border-l-emerald-400"}`}>
@@ -424,11 +514,13 @@ export default function APARPage() {
             <div className="text-center py-16 space-y-2">
               <FileText size={32} className="text-gray-200 mx-auto" />
               <div className="text-sm font-semibold text-gray-400">
-                {activeTab === "ap" ? "Nenhuma conta a pagar" : "Nenhum recebível"}
-                {activeBU !== "all" ? ` para ${BU_MAP[activeBU].label}` : " registrado"}
+                {hasFilters
+                  ? "Nenhum resultado para os filtros aplicados"
+                  : activeTab === "ap" ? "Nenhuma conta a pagar" : "Nenhum recebível"}
+                {!hasFilters && (activeBU !== "all" ? ` para ${BU_MAP[activeBU].label}` : " registrado")}
               </div>
               <div className="text-xs text-gray-400">
-                Preencha o formulário acima para adicionar
+                {hasFilters ? "Tente ajustar ou limpar os filtros acima" : "Preencha o formulário acima para adicionar"}
               </div>
             </div>
           ) : (
