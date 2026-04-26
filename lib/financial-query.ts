@@ -266,6 +266,7 @@ export interface FinancialQueryResult {
   dataQuality: {
     totalDocuments:      number;
     doneDocuments:       number;
+    errorDocuments:      number;   // documents with status="error" (distinct from still-processing)
     totalTransactions:   number;
     confirmedCount:      number;
     ambiguousCount:      number;
@@ -465,6 +466,7 @@ export async function buildFinancialQuery(): Promise<FinancialQueryResult> {
     dataQuality: {
       totalDocuments: allDocs.length,
       doneDocuments: 0,
+      errorDocuments: allDocs.filter((d) => d.status === "error").length,
       totalTransactions: allTxns.length,
       confirmedCount: 0,
       ambiguousCount: 0,
@@ -681,6 +683,7 @@ export async function buildFinancialQuery(): Promise<FinancialQueryResult> {
     dataQuality: {
       totalDocuments: allDocs.length,
       doneDocuments:  doneDocs.length,
+      errorDocuments: allDocs.filter((d) => d.status === "error").length,
       totalTransactions: allTxns.length,
       confirmedCount,
       ambiguousCount,

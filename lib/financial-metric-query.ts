@@ -408,7 +408,7 @@ export async function getManagementDiagnostics(): Promise<ManagementDiagnostics>
   return {
     totalDocumentsIngested: dq.totalDocuments,
     doneDocuments:          dq.doneDocuments,
-    errorDocuments:         dq.totalDocuments - dq.doneDocuments,
+    errorDocuments:         dq.errorDocuments,
     totalTransactions:      dq.totalTransactions,
     confirmedTransactions:  dq.confirmedCount,
     ambiguousTransactions:  dq.ambiguousCount,

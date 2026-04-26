@@ -76,6 +76,8 @@ const COGS_CATS = new Set<ManagerialCategory>([
 /**
  * Operating expenses — below gross profit, above EBITDA.
  * These reduce EBITDA but are not direct cost of service delivery.
+ * despesa_ambigua is NOT here — it goes to NON_DRE_CATS so EBITDA stays clean.
+ * Consistent with financial-query.ts OPERATIONAL_EXPENSE_CATS.
  */
 const OPEX_CATS = new Set<ManagerialCategory>([
   "folha_remuneracao",
@@ -92,7 +94,6 @@ const OPEX_CATS = new Set<ManagerialCategory>([
   "servicos_contabeis_juridicos",
   "cartao_compra_operacional",
   "despesa_pessoal_misturada",
-  "despesa_ambigua",
 ]);
 
 /** Financial expenses — below EBITDA. */
@@ -100,7 +101,7 @@ const FINANCIAL_EXPENSE_CATS = new Set<ManagerialCategory>([
   "juros_multa_iof",
 ]);
 
-/** Categories explicitly excluded from all DRE lines (balance sheet / flow items). */
+/** Categories explicitly excluded from all DRE lines (balance sheet / flow items / ambiguous). */
 const NON_DRE_CATS = new Set<ManagerialCategory>([
   "aplicacao_financeira",
   "resgate_financeiro",
@@ -109,6 +110,7 @@ const NON_DRE_CATS = new Set<ManagerialCategory>([
   "reserva_limite_cartao",
   "aporte_socio",
   "recebimento_ambiguo",
+  "despesa_ambigua",    // ambiguous debits — excluded so EBITDA stays clean; tracked separately
   "unclassified",
 ]);
 
@@ -399,8 +401,11 @@ export async function buildDreQuery(
   for (const t of txns) {
     periodStart = minDate(periodStart, t.transactionDate);
     periodEnd   = maxDate(periodEnd,   t.transactionDate);
-    if (t.classificationConfidence === "confirmed") confirmedCount++;
-    if (t.classificationConfidence === "ambiguous") ambiguousCount++;
+    if (t.classificationConfidence === "confirmed" || t.classificationConfidence === "probable") {
+      confirmedCount++;
+    } else {
+      ambiguousCount++;  // captures "ambiguous" and "unclassifiable"
+    }
   }
 
   return {
