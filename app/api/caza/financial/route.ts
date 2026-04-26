@@ -16,22 +16,26 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   if (denied) return denied;
 
   if (!sql) return NextResponse.json([]);
-  await initCazaDB();
-  const projects = await listProjects();
+  try {
+    await initCazaDB();
+    const projects = await listProjects();
 
-  const map = new Map<string, {
-    month: string; receita: number; alimentacao: number;
-    gasolina: number; expenses: number; profit: number; orcamento: number;
-  }>();
-  for (const p of projects) {
-    if (!p.prazo) continue;
-    const label = monthLabel(p.prazo);
-    const acc = map.get(label) ?? { month: label, receita: 0, alimentacao: 0, gasolina: 0, expenses: 0, profit: 0, orcamento: 0 };
-    acc.receita += p.valor; acc.alimentacao += p.alimentacao; acc.gasolina += p.gasolina;
-    acc.expenses += p.despesas; acc.profit += p.lucro; acc.orcamento += p.valor;
-    map.set(label, acc);
+    const map = new Map<string, {
+      month: string; receita: number; alimentacao: number;
+      gasolina: number; expenses: number; profit: number; orcamento: number;
+    }>();
+    for (const p of projects) {
+      if (!p.prazo) continue;
+      const label = monthLabel(p.prazo);
+      const acc = map.get(label) ?? { month: label, receita: 0, alimentacao: 0, gasolina: 0, expenses: 0, profit: 0, orcamento: 0 };
+      acc.receita += p.valor; acc.alimentacao += p.alimentacao; acc.gasolina += p.gasolina;
+      acc.expenses += p.despesas; acc.profit += p.lucro; acc.orcamento += p.valor;
+      map.set(label, acc);
+    }
+
+    const rows = Array.from(map.entries()).sort(([a], [b]) => monthIndex(a) - monthIndex(b)).map(([, row]) => row);
+    return NextResponse.json(rows);
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 500 });
   }
-
-  const rows = Array.from(map.entries()).sort(([a], [b]) => monthIndex(a) - monthIndex(b)).map(([, row]) => row);
-  return NextResponse.json(rows);
 }

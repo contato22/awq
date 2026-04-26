@@ -20,21 +20,28 @@ export async function PATCH(
   if (denied) return denied;
 
   if (!sql) return NextResponse.json({ error: "DB not available" }, { status: 503 });
-  await initCazaCrmDB();
 
-  const body = await req.json() as Record<string, unknown>;
-  const updated = await updateProposal(params.id, {
-    valor_proposto: body.valor_proposto != null ? Number(body.valor_proposto)           : undefined,
-    escopo:         body.escopo         != null ? String(body.escopo).trim()            : undefined,
-    status:         body.status         != null ? String(body.status)                   : undefined,
-    data_envio:     body.data_envio     != null ? (String(body.data_envio) || null)     : undefined,
-    data_resposta:  body.data_resposta  != null ? (String(body.data_resposta) || null)  : undefined,
-    observacoes:    body.observacoes    != null ? String(body.observacoes).trim()       : undefined,
-    versao:         body.versao         != null ? Number(body.versao)                   : undefined,
-  });
+  let body: Record<string, unknown>;
+  try { body = await req.json(); } catch {
+    return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
+  }
 
-  if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json(updated);
+  try {
+    await initCazaCrmDB();
+    const updated = await updateProposal(params.id, {
+      valor_proposto: body.valor_proposto != null ? Number(body.valor_proposto)           : undefined,
+      escopo:         body.escopo         != null ? String(body.escopo).trim()            : undefined,
+      status:         body.status         != null ? String(body.status)                   : undefined,
+      data_envio:     body.data_envio     != null ? (String(body.data_envio) || null)     : undefined,
+      data_resposta:  body.data_resposta  != null ? (String(body.data_resposta) || null)  : undefined,
+      observacoes:    body.observacoes    != null ? String(body.observacoes).trim()       : undefined,
+      versao:         body.versao         != null ? Number(body.versao)                   : undefined,
+    });
+    if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json(updated);
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
 }
 
 export async function DELETE(
@@ -45,7 +52,11 @@ export async function DELETE(
   if (denied) return denied;
 
   if (!sql) return NextResponse.json({ error: "DB not available" }, { status: 503 });
-  await initCazaCrmDB();
-  await deleteProposal(params.id);
-  return NextResponse.json({ ok: true });
+  try {
+    await initCazaCrmDB();
+    await deleteProposal(params.id);
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
 }

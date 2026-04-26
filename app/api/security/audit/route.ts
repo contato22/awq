@@ -24,22 +24,26 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const limitParam = req.nextUrl.searchParams.get("limit");
   const limit = Math.min(Math.max(Number(limitParam) || 50, 1), 200);
 
-  const [events, stats] = await Promise.all([
-    getRecentAuditEvents(limit),
-    getAuditStats(),
-  ]);
+  try {
+    const [events, stats] = await Promise.all([
+      getRecentAuditEvents(limit),
+      getAuditStats(),
+    ]);
 
-  return NextResponse.json({
-    enforcement_mode: SECURITY_ENFORCEMENT_MODE,
-    stats,
-    events,
-    meta: {
-      limit,
-      returned: events.length,
-      persistent: stats.persistent,
-      note: stats.persistent
-        ? "Eventos persistidos em awq_security_audit_log (Neon)"
-        : "Fallback in-memory: máximo 100 eventos, reset no cold start",
-    },
-  });
+    return NextResponse.json({
+      enforcement_mode: SECURITY_ENFORCEMENT_MODE,
+      stats,
+      events,
+      meta: {
+        limit,
+        returned: events.length,
+        persistent: stats.persistent,
+        note: stats.persistent
+          ? "Eventos persistidos em awq_security_audit_log (Neon)"
+          : "Fallback in-memory: máximo 100 eventos, reset no cold start",
+      },
+    });
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
 }

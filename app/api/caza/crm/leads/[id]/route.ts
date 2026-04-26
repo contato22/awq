@@ -20,27 +20,34 @@ export async function PATCH(
   if (denied) return denied;
 
   if (!sql) return NextResponse.json({ error: "DB not available" }, { status: 503 });
-  await initCazaCrmDB();
 
-  const body = await req.json() as Record<string, unknown>;
-  const updated = await updateLead(params.id, {
-    nome:              body.nome              != null ? String(body.nome).trim()              : undefined,
-    cargo:             body.cargo             != null ? String(body.cargo).trim()             : undefined,
-    empresa:           body.empresa           != null ? String(body.empresa).trim()           : undefined,
-    cnpj:              body.cnpj              != null ? String(body.cnpj).trim()              : undefined,
-    contato_principal: body.contato_principal != null ? String(body.contato_principal).trim() : undefined,
-    telefone:          body.telefone          != null ? String(body.telefone).trim()          : undefined,
-    email:             body.email             != null ? String(body.email).trim()             : undefined,
-    origem:            body.origem            != null ? String(body.origem)                   : undefined,
-    tipo_servico:      body.tipo_servico      != null ? String(body.tipo_servico)             : undefined,
-    interesse:         body.interesse         != null ? String(body.interesse).trim()         : undefined,
-    status:            body.status            != null ? String(body.status)                   : undefined,
-    owner:             body.owner             != null ? String(body.owner).trim()             : undefined,
-    observacoes:       body.observacoes       != null ? String(body.observacoes).trim()       : undefined,
-  });
+  let body: Record<string, unknown>;
+  try { body = await req.json(); } catch {
+    return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
+  }
 
-  if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json(updated);
+  try {
+    await initCazaCrmDB();
+    const updated = await updateLead(params.id, {
+      nome:              body.nome              != null ? String(body.nome).trim()              : undefined,
+      cargo:             body.cargo             != null ? String(body.cargo).trim()             : undefined,
+      empresa:           body.empresa           != null ? String(body.empresa).trim()           : undefined,
+      cnpj:              body.cnpj              != null ? String(body.cnpj).trim()              : undefined,
+      contato_principal: body.contato_principal != null ? String(body.contato_principal).trim() : undefined,
+      telefone:          body.telefone          != null ? String(body.telefone).trim()          : undefined,
+      email:             body.email             != null ? String(body.email).trim()             : undefined,
+      origem:            body.origem            != null ? String(body.origem)                   : undefined,
+      tipo_servico:      body.tipo_servico      != null ? String(body.tipo_servico)             : undefined,
+      interesse:         body.interesse         != null ? String(body.interesse).trim()         : undefined,
+      status:            body.status            != null ? String(body.status)                   : undefined,
+      owner:             body.owner             != null ? String(body.owner).trim()             : undefined,
+      observacoes:       body.observacoes       != null ? String(body.observacoes).trim()       : undefined,
+    });
+    if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json(updated);
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
 }
 
 export async function DELETE(
@@ -51,7 +58,11 @@ export async function DELETE(
   if (denied) return denied;
 
   if (!sql) return NextResponse.json({ error: "DB not available" }, { status: 503 });
-  await initCazaCrmDB();
-  await deleteLead(params.id);
-  return NextResponse.json({ ok: true });
+  try {
+    await initCazaCrmDB();
+    await deleteLead(params.id);
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
 }

@@ -21,10 +21,14 @@ export async function GET(
   if (denied) return denied;
 
   if (!sql) return NextResponse.json({ error: "DB not available" }, { status: 503 });
-  await initCazaDB();
-  const client = await getClient(params.id);
-  if (!client) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json(client);
+  try {
+    await initCazaDB();
+    const client = await getClient(params.id);
+    if (!client) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json(client);
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
 }
 
 export async function PUT(
@@ -35,22 +39,29 @@ export async function PUT(
   if (denied) return denied;
 
   if (!sql) return NextResponse.json({ error: "DB not available" }, { status: 503 });
-  await initCazaDB();
-  const body = await req.json() as Record<string, unknown>;
 
-  const updated = await updateClient(params.id, {
-    name:         body.name         != null ? String(body.name)         : undefined,
-    email:        body.email        != null ? String(body.email)        : undefined,
-    phone:        body.phone        != null ? String(body.phone)        : undefined,
-    type:         body.type         != null ? String(body.type)         : undefined,
-    budget_anual: body.budget_anual != null ? Number(body.budget_anual) : undefined,
-    status:       body.status       != null ? String(body.status)       : undefined,
-    segmento:     body.segmento     != null ? String(body.segmento)     : undefined,
-    since:        body.since        != null ? String(body.since)        : undefined,
-  });
+  let body: Record<string, unknown>;
+  try { body = await req.json(); } catch {
+    return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
+  }
 
-  if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json(updated);
+  try {
+    await initCazaDB();
+    const updated = await updateClient(params.id, {
+      name:         body.name         != null ? String(body.name)         : undefined,
+      email:        body.email        != null ? String(body.email)        : undefined,
+      phone:        body.phone        != null ? String(body.phone)        : undefined,
+      type:         body.type         != null ? String(body.type)         : undefined,
+      budget_anual: body.budget_anual != null ? Number(body.budget_anual) : undefined,
+      status:       body.status       != null ? String(body.status)       : undefined,
+      segmento:     body.segmento     != null ? String(body.segmento)     : undefined,
+      since:        body.since        != null ? String(body.since)        : undefined,
+    });
+    if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json(updated);
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
 }
 
 export async function DELETE(
@@ -61,7 +72,11 @@ export async function DELETE(
   if (denied) return denied;
 
   if (!sql) return NextResponse.json({ error: "DB not available" }, { status: 503 });
-  await initCazaDB();
-  await deleteClient(params.id);
-  return NextResponse.json({ ok: true });
+  try {
+    await initCazaDB();
+    await deleteClient(params.id);
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
 }

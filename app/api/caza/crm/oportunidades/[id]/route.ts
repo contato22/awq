@@ -20,27 +20,34 @@ export async function PATCH(
   if (denied) return denied;
 
   if (!sql) return NextResponse.json({ error: "DB not available" }, { status: 503 });
-  await initCazaCrmDB();
 
-  const body = await req.json() as Record<string, unknown>;
-  const updated = await updateOpportunity(params.id, {
-    nome_oportunidade: body.nome_oportunidade != null ? String(body.nome_oportunidade).trim() : undefined,
-    empresa:           body.empresa           != null ? String(body.empresa).trim()           : undefined,
-    tipo_servico:      body.tipo_servico      != null ? String(body.tipo_servico)             : undefined,
-    valor_estimado:    body.valor_estimado    != null ? Number(body.valor_estimado)           : undefined,
-    stage:             body.stage             != null ? String(body.stage)                    : undefined,
-    probabilidade:     body.probabilidade     != null ? Number(body.probabilidade)            : undefined,
-    owner:             body.owner             != null ? String(body.owner).trim()             : undefined,
-    prazo_estimado:    body.prazo_estimado    != null ? (String(body.prazo_estimado) || null) : undefined,
-    proxima_acao:      body.proxima_acao      != null ? String(body.proxima_acao).trim()      : undefined,
-    data_proxima_acao: body.data_proxima_acao != null ? (String(body.data_proxima_acao) || null) : undefined,
-    risco:             body.risco             != null ? String(body.risco)                    : undefined,
-    motivo_perda:      body.motivo_perda      != null ? String(body.motivo_perda).trim()      : undefined,
-    observacoes:       body.observacoes       != null ? String(body.observacoes).trim()       : undefined,
-  });
+  let body: Record<string, unknown>;
+  try { body = await req.json(); } catch {
+    return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
+  }
 
-  if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json(updated);
+  try {
+    await initCazaCrmDB();
+    const updated = await updateOpportunity(params.id, {
+      nome_oportunidade: body.nome_oportunidade != null ? String(body.nome_oportunidade).trim() : undefined,
+      empresa:           body.empresa           != null ? String(body.empresa).trim()           : undefined,
+      tipo_servico:      body.tipo_servico      != null ? String(body.tipo_servico)             : undefined,
+      valor_estimado:    body.valor_estimado    != null ? Number(body.valor_estimado)           : undefined,
+      stage:             body.stage             != null ? String(body.stage)                    : undefined,
+      probabilidade:     body.probabilidade     != null ? Number(body.probabilidade)            : undefined,
+      owner:             body.owner             != null ? String(body.owner).trim()             : undefined,
+      prazo_estimado:    body.prazo_estimado    != null ? (String(body.prazo_estimado) || null) : undefined,
+      proxima_acao:      body.proxima_acao      != null ? String(body.proxima_acao).trim()      : undefined,
+      data_proxima_acao: body.data_proxima_acao != null ? (String(body.data_proxima_acao) || null) : undefined,
+      risco:             body.risco             != null ? String(body.risco)                    : undefined,
+      motivo_perda:      body.motivo_perda      != null ? String(body.motivo_perda).trim()      : undefined,
+      observacoes:       body.observacoes       != null ? String(body.observacoes).trim()       : undefined,
+    });
+    if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json(updated);
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
 }
 
 export async function DELETE(
@@ -51,7 +58,11 @@ export async function DELETE(
   if (denied) return denied;
 
   if (!sql) return NextResponse.json({ error: "DB not available" }, { status: 503 });
-  await initCazaCrmDB();
-  await deleteOpportunity(params.id);
-  return NextResponse.json({ ok: true });
+  try {
+    await initCazaCrmDB();
+    await deleteOpportunity(params.id);
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
 }

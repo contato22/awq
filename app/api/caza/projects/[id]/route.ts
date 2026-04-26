@@ -21,10 +21,14 @@ export async function GET(
   if (denied) return denied;
 
   if (!sql) return NextResponse.json({ error: "DB not available" }, { status: 503 });
-  await initCazaDB();
-  const project = await getProject(params.id);
-  if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json(project);
+  try {
+    await initCazaDB();
+    const project = await getProject(params.id);
+    if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json(project);
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
 }
 
 export async function PUT(
@@ -35,29 +39,36 @@ export async function PUT(
   if (denied) return denied;
 
   if (!sql) return NextResponse.json({ error: "DB not available" }, { status: 503 });
-  await initCazaDB();
-  const body = await req.json() as Record<string, unknown>;
 
-  const updated = await updateProject(params.id, {
-    titulo:      body.titulo      != null ? String(body.titulo)      : undefined,
-    cliente:     body.cliente     != null ? String(body.cliente)     : undefined,
-    tipo:        body.tipo        != null ? String(body.tipo)        : undefined,
-    status:      body.status      != null ? String(body.status)      : undefined,
-    prioridade:  body.prioridade  != null ? String(body.prioridade)  : undefined,
-    diretor:     body.diretor     != null ? String(body.diretor)     : undefined,
-    prazo:       body.prazo       != null ? String(body.prazo)       : undefined,
-    inicio:      body.inicio      != null ? String(body.inicio)      : undefined,
-    valor:       body.valor       != null ? Number(body.valor)       : undefined,
-    alimentacao: body.alimentacao != null ? Number(body.alimentacao) : undefined,
-    gasolina:    body.gasolina    != null ? Number(body.gasolina)    : undefined,
-    despesas:    body.despesas    != null ? Number(body.despesas)    : undefined,
-    lucro:       body.lucro       != null ? Number(body.lucro)       : undefined,
-    recebido:    body.recebido    != null ? Boolean(body.recebido)   : undefined,
-    recebimento: body.recebimento != null ? String(body.recebimento) : undefined,
-  });
+  let body: Record<string, unknown>;
+  try { body = await req.json(); } catch {
+    return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
+  }
 
-  if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json(updated);
+  try {
+    await initCazaDB();
+    const updated = await updateProject(params.id, {
+      titulo:      body.titulo      != null ? String(body.titulo)      : undefined,
+      cliente:     body.cliente     != null ? String(body.cliente)     : undefined,
+      tipo:        body.tipo        != null ? String(body.tipo)        : undefined,
+      status:      body.status      != null ? String(body.status)      : undefined,
+      prioridade:  body.prioridade  != null ? String(body.prioridade)  : undefined,
+      diretor:     body.diretor     != null ? String(body.diretor)     : undefined,
+      prazo:       body.prazo       != null ? String(body.prazo)       : undefined,
+      inicio:      body.inicio      != null ? String(body.inicio)      : undefined,
+      valor:       body.valor       != null ? Number(body.valor)       : undefined,
+      alimentacao: body.alimentacao != null ? Number(body.alimentacao) : undefined,
+      gasolina:    body.gasolina    != null ? Number(body.gasolina)    : undefined,
+      despesas:    body.despesas    != null ? Number(body.despesas)    : undefined,
+      lucro:       body.lucro       != null ? Number(body.lucro)       : undefined,
+      recebido:    body.recebido    != null ? Boolean(body.recebido)   : undefined,
+      recebimento: body.recebimento != null ? String(body.recebimento) : undefined,
+    });
+    if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json(updated);
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
 }
 
 export async function DELETE(
@@ -68,7 +79,11 @@ export async function DELETE(
   if (denied) return denied;
 
   if (!sql) return NextResponse.json({ error: "DB not available" }, { status: 503 });
-  await initCazaDB();
-  await deleteProject(params.id);
-  return NextResponse.json({ ok: true });
+  try {
+    await initCazaDB();
+    await deleteProject(params.id);
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
 }

@@ -9,6 +9,10 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const denied = await apiGuard(req, "view", "jacqes", "CRM JACQES — Health");
   if (denied) return denied;
 
-  const data = await listHealth();
-  return NextResponse.json(data);
+  try {
+    const data = await listHealth();
+    return NextResponse.json(data);
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
 }
