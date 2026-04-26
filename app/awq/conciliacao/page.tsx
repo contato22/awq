@@ -14,7 +14,7 @@
 
 import Link from "next/link";
 import Header from "@/components/Header";
-import ReconciliationReviewTable from "@/components/ReconciliationReviewTable";
+import BankReconciliationPanel from "@/components/BankReconciliationPanel";
 import { getAllTransactions, getAllDocuments } from "@/lib/financial-db";
 import {
   AlertCircle,
@@ -162,23 +162,8 @@ export default async function ConciliacaoPage() {
             </div>
           )}
 
-          {/* Tabela interativa de revisão */}
-          <ReconciliationReviewTable
-            initialTransactions={transactions}
-            isStatic={IS_STATIC}
-          />
-
-          <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
-            <p className="text-[11px] text-gray-500">
-              <span className="font-semibold text-gray-700">Campos protegidos</span> — valor, data, descrição
-              original, documentId, conta e BU não podem ser alterados. Editáveis: categoria, nota,
-              status de conciliação, flags de consolidado/intercompany.
-              {IS_STATIC
-                ? " Neste ambiente, edições são salvas no localStorage do navegador."
-                : " Alterações persistidas na fonte canônica que alimenta DFC/DRE/KPIs."
-              }
-            </p>
-          </div>
+          {/* Painel de conciliação bancária estilo side-by-side */}
+          <BankReconciliationPanel />
         </section>
 
         {/* ── Seção 2: Impacto da Conciliação ── */}
