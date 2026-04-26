@@ -534,18 +534,25 @@ export async function createTask(data: Omit<CrmTask, "id">): Promise<CrmTask> {
   return row as unknown as CrmTask;
 }
 
+const TASK_UPDATABLE_COLS = new Set([
+  "cliente_id", "opportunity_id", "lead_id", "titulo", "categoria",
+  "prioridade", "status", "responsavel", "data_criacao", "prazo",
+  "sla_horas", "data_conclusao", "bloqueio", "retrabalho",
+]);
+
 export async function updateTask(id: string, patch: Partial<Omit<CrmTask, "id">>): Promise<CrmTask | null> {
   if (!sql) throw new Error("DB unavailable");
   await initCrmDB();
-  const fields = Object.entries(patch).filter(([, v]) => v !== undefined);
+  const fields = Object.entries(patch).filter(
+    ([col, v]) => TASK_UPDATABLE_COLS.has(col) && v !== undefined
+  );
   if (fields.length === 0) return null;
 
-  const setClauses = fields.map(([col]) => col);
-  const values     = fields.map(([, v]) => v);
+  const values = fields.map(([, v]) => v);
 
-  // Build parameterised SET clause dynamically
+  // Column names are whitelisted above — safe to interpolate
   let query = "UPDATE jacqes_crm_tasks SET ";
-  query += setClauses.map((col, i) => `${col} = $${i + 1}`).join(", ");
+  query += fields.map(([col], i) => `${col} = $${i + 1}`).join(", ");
   query += ` WHERE id = $${fields.length + 1}`;
   query += ` RETURNING id, cliente_id, opportunity_id, lead_id, titulo, categoria,
              prioridade, status, responsavel,
