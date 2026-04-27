@@ -4,6 +4,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { apiGuard } from "@/lib/api-guard";
+import { ownerOnly } from "@/lib/owner-only";
 import { initSuppliersDB, getSupplier, updateSupplier, softDeleteSupplier } from "@/lib/suppliers-db";
 import { sql } from "@/lib/db";
 
@@ -12,7 +13,7 @@ export const runtime = "nodejs";
 type Ctx = { params: Promise<{ id: string }> };
 
 export async function GET(req: NextRequest, ctx: Ctx): Promise<NextResponse> {
-  const denied = await apiGuard(req, "view", "financeiro", "Fornecedores");
+  const denied = (await apiGuard(req, "view", "financeiro", "Fornecedores")) ?? (await ownerOnly(req));
   if (denied) return denied;
   if (!sql) return NextResponse.json({ error: "DB not available" }, { status: 503 });
 
@@ -24,7 +25,7 @@ export async function GET(req: NextRequest, ctx: Ctx): Promise<NextResponse> {
 }
 
 export async function PUT(req: NextRequest, ctx: Ctx): Promise<NextResponse> {
-  const denied = await apiGuard(req, "update", "financeiro", "Fornecedores");
+  const denied = (await apiGuard(req, "update", "financeiro", "Fornecedores")) ?? (await ownerOnly(req));
   if (denied) return denied;
   if (!sql) return NextResponse.json({ error: "DB not available" }, { status: 503 });
 
@@ -62,7 +63,7 @@ export async function PUT(req: NextRequest, ctx: Ctx): Promise<NextResponse> {
 }
 
 export async function DELETE(req: NextRequest, ctx: Ctx): Promise<NextResponse> {
-  const denied = await apiGuard(req, "delete", "financeiro", "Fornecedores");
+  const denied = (await apiGuard(req, "delete", "financeiro", "Fornecedores")) ?? (await ownerOnly(req));
   if (denied) return denied;
   if (!sql) return NextResponse.json({ error: "DB not available" }, { status: 503 });
 

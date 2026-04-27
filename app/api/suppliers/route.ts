@@ -3,13 +3,14 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { apiGuard } from "@/lib/api-guard";
+import { ownerOnly } from "@/lib/owner-only";
 import { initSuppliersDB, listSuppliers, createSupplier, nextSupplierCode } from "@/lib/suppliers-db";
 import { sql } from "@/lib/db";
 
 export const runtime = "nodejs";
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
-  const denied = await apiGuard(req, "view", "financeiro", "Fornecedores");
+  const denied = (await apiGuard(req, "view", "financeiro", "Fornecedores")) ?? (await ownerOnly(req));
   if (denied) return denied;
   if (!sql) return NextResponse.json([], { status: 200 });
 
@@ -25,7 +26,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  const denied = await apiGuard(req, "create", "financeiro", "Fornecedores");
+  const denied = (await apiGuard(req, "create", "financeiro", "Fornecedores")) ?? (await ownerOnly(req));
   if (denied) return denied;
   if (!sql) return NextResponse.json({ error: "DB not available" }, { status: 503 });
 

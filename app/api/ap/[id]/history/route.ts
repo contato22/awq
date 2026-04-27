@@ -2,6 +2,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { apiGuard } from "@/lib/api-guard";
+import { ownerOnly } from "@/lib/owner-only";
 import { initAPDB, getAPHistory } from "@/lib/ap-db";
 import { initSuppliersDB } from "@/lib/suppliers-db";
 import { sql } from "@/lib/db";
@@ -11,7 +12,7 @@ export const runtime = "nodejs";
 type Ctx = { params: Promise<{ id: string }> };
 
 export async function GET(req: NextRequest, ctx: Ctx): Promise<NextResponse> {
-  const denied = await apiGuard(req, "view", "financeiro", "Contas a Pagar");
+  const denied = (await apiGuard(req, "view", "financeiro", "Contas a Pagar")) ?? (await ownerOnly(req));
   if (denied) return denied;
   if (!sql) return NextResponse.json([], { status: 200 });
 
