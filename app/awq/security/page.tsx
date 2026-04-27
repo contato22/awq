@@ -6,7 +6,7 @@ import type { SecurityLayer, SecurityRole, SecurityAction } from "@/lib/security
 
 export const metadata = { title: "Segurança | AWQ" };
 
-const LAYER_LABELS: Record<SecurityLayer, string> = { holding: "Holding", jacqes: "JACQES", caza_vision: "Caza Vision", awq_venture: "AWQ Venture", advisor: "Advisor", financeiro: "Financeiro", juridico: "Jurídico", dados_infra: "Dados & Infra", security: "Segurança", system: "Sistema", ai: "IA" };
+const LAYER_LABELS: Record<SecurityLayer, string> = { holding: "Holding", jacqes: "JACQES", caza_vision: "Caza Vision", awq_venture: "AWQ Venture", advisor: "Advisor", financeiro: "Financeiro", juridico: "Jurídico", dados_infra: "Dados & Infra", security: "Segurança", system: "Sistema", ai: "IA", ar_module: "AR — Clientes & Recebíveis" };
 const ACTION_SHORT: Record<SecurityAction, string> = { view: "view", create: "create", update: "update", delete: "delete", export: "export", import: "import", approve: "approve", manage_security: "mgmt_sec" };
 const SENSITIVITY_COLOR: Record<string, string> = { high: "bg-red-100 text-red-700", medium: "bg-amber-100 text-amber-700", low: "bg-emerald-100 text-emerald-700" };
 const AUTH_COLOR: Record<string, string> = { "middleware-jwt": "bg-emerald-100 text-emerald-700", "internal-token-check": "bg-blue-100 text-blue-700", "middleware-only": "bg-amber-100 text-amber-700", "none": "bg-red-100 text-red-700" };
