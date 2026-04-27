@@ -129,6 +129,7 @@ export default function APARPage() {
   const [customTo, setCustomTo]         = useState("");
   const [formTouched, setFormTouched]   = useState(false);
   const [addedFlash, setAddedFlash]     = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   // ── Load from localStorage ───────────────────────────────────────────────
   useEffect(() => {
@@ -173,9 +174,17 @@ export default function APARPage() {
     try { localStorage.setItem(LS_KEY, JSON.stringify(updated)); } catch { /* ignore */ }
   }, []);
 
+  // ── Amount helpers ───────────────────────────────────────────────────────
+  function parseAmount(s: string): number { return parseFloat(s.replace(",", ".")); }
+  function amountValid(s: string): boolean {
+    const n = parseAmount(s);
+    return s.trim() !== "" && !isNaN(n) && n > 0;
+  }
+  function sanitizeAmount(s: string): string { return s.replace(/[^0-9.,]/g, ""); }
+
   // ── Add item ─────────────────────────────────────────────────────────────
   function handleAdd() {
-    if (!form.description.trim() || !form.amount || !form.dueDate) {
+    if (!form.description.trim() || !amountValid(form.amount) || !form.dueDate) {
       setFormTouched(true);
       return;
     }
@@ -185,7 +194,7 @@ export default function APARPage() {
       bu: form.bu,
       description: form.description.trim(),
       entity: form.entity.trim(),
-      amount: parseFloat(form.amount) || 0,
+      amount: parseAmount(form.amount),
       dueDate: form.dueDate,
       status: computeStatus(form.dueDate, "pending"),
       category: form.category || (activeTab === "ap" ? AP_CATEGORIES[0] : AR_CATEGORIES[0]),
@@ -221,14 +230,14 @@ export default function APARPage() {
 
   function handleSaveEdit() {
     if (!editingItem) return;
-    if (!editForm.description.trim() || !editForm.amount || !editForm.dueDate) return;
+    if (!editForm.description.trim() || !amountValid(editForm.amount) || !editForm.dueDate) return;
     save(items.map((i) => {
       if (i.id !== editingItem.id) return i;
       return {
         ...i,
         description: editForm.description.trim(),
         entity: editForm.entity.trim(),
-        amount: parseFloat(editForm.amount) || 0,
+        amount: parseAmount(editForm.amount),
         dueDate: editForm.dueDate,
         category: editForm.category,
         bu: editForm.bu,
@@ -593,22 +602,22 @@ export default function APARPage() {
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-semibold pointer-events-none select-none">R$</span>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="decimal"
                     placeholder="0,00"
                     value={form.amount}
-                    min="0"
-                    step="0.01"
-                    onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
+                    onChange={(e) => setForm((f) => ({ ...f, amount: sanitizeAmount(e.target.value) }))}
                     className={`w-full text-sm border rounded-lg pl-9 pr-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none transition-colors ${
-                      formTouched && !form.amount
+                      formTouched && !amountValid(form.amount)
                         ? "border-red-300 focus:border-red-400"
                         : "border-gray-200 focus:border-brand-500"
                     }`}
                   />
                 </div>
-                {formTouched && !form.amount && (
+                {formTouched && !amountValid(form.amount) && (
                   <span className="text-[10px] text-red-400 flex items-center gap-1">
-                    <AlertTriangle size={9} /> Informe o valor
+                    <AlertTriangle size={9} />
+                    {form.amount.trim() === "" ? "Informe o valor" : "Valor inválido (ex: 1.500,00)"}
                   </span>
                 )}
               </div>
@@ -647,20 +656,30 @@ export default function APARPage() {
                 </select>
               </div>
 
-              {/* BU */}
-              <div className="flex flex-col gap-1">
+              {/* BU — full row of visual chips */}
+              <div className="flex flex-col gap-2 lg:col-span-3">
                 <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Business Unit</label>
-                <select
-                  value={form.bu}
-                  onChange={(e) => setForm((f) => ({ ...f, bu: e.target.value as BU }))}
-                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none focus:border-brand-500 transition-colors"
-                >
-                  {BUS.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
-                </select>
+                <div className="flex flex-wrap gap-1.5">
+                  {BUS.map((b) => (
+                    <button
+                      key={b.id}
+                      type="button"
+                      onClick={() => setForm((f) => ({ ...f, bu: b.id as BU }))}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                        form.bu === b.id
+                          ? `${b.bg} ${b.color} border-transparent ring-2 ring-current/20`
+                          : "bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                      }`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${b.dot}`} />
+                      {b.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Actions */}
-              <div className="flex items-center gap-2 lg:col-span-2 pt-1">
+              <div className="flex items-center gap-2 lg:col-span-3 pt-1">
                 <button
                   type="submit"
                   className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-semibold transition-all duration-200 text-white active:scale-95 ${
@@ -765,9 +784,27 @@ export default function APARPage() {
                                     <button onClick={() => handleToggleSettle(item.id)} title="Marcar como liquidado" className="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors">
                                       <CheckCircle2 size={13} />
                                     </button>
-                                    <button onClick={() => handleDelete(item.id)} title="Excluir" className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
-                                      <Trash2 size={13} />
-                                    </button>
+                                    {confirmDelete === item.id ? (
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-[10px] text-red-500 font-semibold whitespace-nowrap">Excluir?</span>
+                                        <button
+                                          onClick={() => { handleDelete(item.id); setConfirmDelete(null); }}
+                                          className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-500 text-white hover:bg-red-600 transition-colors"
+                                        >
+                                          Sim
+                                        </button>
+                                        <button
+                                          onClick={() => setConfirmDelete(null)}
+                                          className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
+                                        >
+                                          Não
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <button onClick={() => setConfirmDelete(item.id)} title="Excluir" className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                                        <Trash2 size={13} />
+                                      </button>
+                                    )}
                                   </div>
                                 </td>
                               </tr>
@@ -829,9 +866,27 @@ export default function APARPage() {
                                     <button onClick={() => handleToggleSettle(item.id)} title="Reabrir" className="p-1.5 text-gray-300 hover:text-amber-500 hover:bg-amber-50 rounded-lg transition-colors">
                                       <Clock size={13} />
                                     </button>
-                                    <button onClick={() => handleDelete(item.id)} className="p-1.5 text-gray-300 hover:text-red-400 hover:bg-red-50 rounded-lg transition-colors">
-                                      <Trash2 size={13} />
-                                    </button>
+                                    {confirmDelete === item.id ? (
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-[10px] text-red-400 font-semibold whitespace-nowrap">Excluir?</span>
+                                        <button
+                                          onClick={() => { handleDelete(item.id); setConfirmDelete(null); }}
+                                          className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-400 text-white hover:bg-red-500 transition-colors"
+                                        >
+                                          Sim
+                                        </button>
+                                        <button
+                                          onClick={() => setConfirmDelete(null)}
+                                          className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
+                                        >
+                                          Não
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <button onClick={() => setConfirmDelete(item.id)} className="p-1.5 text-gray-300 hover:text-red-400 hover:bg-red-50 rounded-lg transition-colors">
+                                        <Trash2 size={13} />
+                                      </button>
+                                    )}
                                   </div>
                                 </td>
                               </tr>
@@ -918,12 +973,11 @@ export default function APARPage() {
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-semibold pointer-events-none select-none">R$</span>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="decimal"
                     placeholder="0,00"
                     value={editForm.amount}
-                    min="0"
-                    step="0.01"
-                    onChange={(e) => setEditForm((f) => ({ ...f, amount: e.target.value }))}
+                    onChange={(e) => setEditForm((f) => ({ ...f, amount: sanitizeAmount(e.target.value) }))}
                     className="w-full text-sm border border-gray-200 rounded-lg pl-9 pr-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-500 transition-colors"
                   />
                 </div>
@@ -954,15 +1008,25 @@ export default function APARPage() {
                 </select>
               </div>
 
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-2 sm:col-span-2">
                 <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Business Unit</label>
-                <select
-                  value={editForm.bu}
-                  onChange={(e) => setEditForm((f) => ({ ...f, bu: e.target.value as BU }))}
-                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none focus:border-blue-500 transition-colors"
-                >
-                  {BUS.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
-                </select>
+                <div className="flex flex-wrap gap-1.5">
+                  {BUS.map((b) => (
+                    <button
+                      key={b.id}
+                      type="button"
+                      onClick={() => setEditForm((f) => ({ ...f, bu: b.id as BU }))}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                        editForm.bu === b.id
+                          ? `${b.bg} ${b.color} border-transparent ring-2 ring-current/20`
+                          : "bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                      }`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${b.dot}`} />
+                      {b.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
             </div>
@@ -971,7 +1035,7 @@ export default function APARPage() {
             <div className="flex items-center gap-2 pt-1 border-t border-gray-100">
               <button
                 type="submit"
-                disabled={!editForm.description.trim() || !editForm.amount || !editForm.dueDate}
+                disabled={!editForm.description.trim() || !amountValid(editForm.amount) || !editForm.dueDate}
                 className="flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-semibold bg-blue-600 hover:bg-blue-700 active:scale-95 text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <CheckCircle2 size={14} /> Salvar alterações
