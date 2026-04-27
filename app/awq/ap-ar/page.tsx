@@ -698,7 +698,7 @@ export default function APARPage() {
                 {hasFilters
                   ? "Nenhum resultado para os filtros aplicados"
                   : activeTab === "ap" ? "Nenhuma conta a pagar" : "Nenhum recebível"}
-                {!hasFilters && (activeBU !== "all" ? ` para ${BU_MAP[activeBU].label}` : " registrado")}
+                {!hasFilters && (activeBU !== "all" ? ` para ${BU_MAP[activeBU].label}` : activeTab === "ap" ? " registrada" : " registrado")}
               </div>
               <div className="text-xs text-gray-400">
                 {hasFilters ? "Tente ajustar ou limpar os filtros acima" : "Preencha o formulário acima para adicionar"}
@@ -892,6 +892,7 @@ export default function APARPage() {
                 </label>
                 <input
                   type="text"
+                  autoFocus
                   value={editForm.description}
                   onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
                   className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-500 transition-colors"
