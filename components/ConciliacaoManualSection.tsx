@@ -109,6 +109,11 @@ export default function ConciliacaoManualSection() {
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0] ?? null;
+    if (f && f.size > 50 * 1024 * 1024) {
+      setImportState({ kind: "error", message: "Arquivo muito grande — máximo 50 MB." });
+      if (e.target) e.target.value = "";
+      return;
+    }
     setSelectedFile(f);
     setImportState({ kind: "idle" });
     setShowRejected(false);

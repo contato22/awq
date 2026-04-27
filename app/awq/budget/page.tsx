@@ -112,7 +112,7 @@ export default function AwqBudgetPage() {
             },
             {
               label: "% Budget Executado",
-              value: ((totalActual / (totalBudget * 4)) * 100).toFixed(0) + "%",
+              value: totalBudget > 0 ? ((totalActual / (totalBudget * 4)) * 100).toFixed(0) + "%" : "—",
               sub:   "3 de 12 meses",
               delta: "Ritmo adequado",
               up:    true,

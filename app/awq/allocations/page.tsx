@@ -34,7 +34,11 @@ export default function AwqAllocationsPage() {
   const totalCap = buData.reduce((s, b) => s + b.capitalAllocated, 0);
 
   // Rankings
-  const byMargin  = [...operatingBus].sort((a, b) => (b.grossProfit / b.revenue) - (a.grossProfit / a.revenue));
+  const byMargin  = [...operatingBus].sort((a, b) => {
+    const ratioB = b.revenue > 0 ? b.grossProfit / b.revenue : 0;
+    const ratioA = a.revenue > 0 ? a.grossProfit / a.revenue : 0;
+    return ratioB - ratioA;
+  });
   const byCash    = [...buData].sort((a, b) => b.cashGenerated - a.cashGenerated);
   const byRoic    = [...buData].sort((a, b) => b.roic - a.roic);
 
@@ -67,7 +71,7 @@ export default function AwqAllocationsPage() {
         {/* ── Summary Cards ─────────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {(() => {
-            const roicMedio     = operatingBus.reduce((s, b) => s + b.roic, 0) / operatingBus.length;
+            const roicMedio     = operatingBus.length > 0 ? operatingBus.reduce((s, b) => s + b.roic, 0) / operatingBus.length : 0;
             const bestRoicBU    = buData.reduce((a, b) => a.roic > b.roic ? a : b);
             const expandBUs     = buData.filter((b) => allocFlags[b.id] === "expand");
             const expandNames   = expandBUs.map((b) => b.name).join(" + ");

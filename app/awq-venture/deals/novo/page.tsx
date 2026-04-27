@@ -70,18 +70,25 @@ export default function NovoDealPage() {
 
   function handleSave() {
     if (!form.companyName.trim()) return;
-    const all = loadCustomDeals();
-    const idx = all.findIndex((d) => d.id === form.id);
-    const updated = { ...form, updatedAt: new Date().toISOString() };
-    if (idx >= 0) all[idx] = updated; else all.unshift(updated);
-    saveCustomDeals(all);
-    setSaved(true);
-    setTimeout(() => { router.push("/awq-venture/deals"); }, 1000);
+    try {
+      const all = loadCustomDeals();
+      const idx = all.findIndex((d) => d.id === form.id);
+      const updated = { ...form, updatedAt: new Date().toISOString() };
+      if (idx >= 0) all[idx] = updated; else all.unshift(updated);
+      saveCustomDeals(all);
+      setSaved(true);
+      setTimeout(() => { router.push("/awq-venture/deals"); }, 1000);
+    } catch {
+      // localStorage quota exceeded or unavailable — inform user
+      alert("Erro ao salvar: armazenamento local indisponível ou cheio.");
+    }
   }
 
   function handleDelete() {
-    const all = loadCustomDeals().filter((d) => d.id !== form.id);
-    saveCustomDeals(all);
+    try {
+      const all = loadCustomDeals().filter((d) => d.id !== form.id);
+      saveCustomDeals(all);
+    } catch { /* ignore */ }
     router.push("/awq-venture/deals");
   }
 
