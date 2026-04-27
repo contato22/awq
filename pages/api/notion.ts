@@ -197,7 +197,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const apiKey = process.env.NOTION_TOKEN ?? process.env.NOTION_API_KEY;
   if (!apiKey) {
-    return res.status(200).json({ source: "mock", data: null, error: "NOTION_API_KEY não configurada" });
+    return res.status(503).json({ source: "mock", data: null, error: "NOTION_API_KEY não configurada" });
   }
 
   // "financial" reuses the same projects DB — aggregated view of the same data
@@ -213,7 +213,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const envVar = database === "financial"
       ? "NOTION_DATABASE_ID_CAZA_PROPERTIES"
       : `NOTION_DATABASE_ID_CAZA_${database.toUpperCase()}`;
-    return res.status(200).json({
+    return res.status(503).json({
       source: "mock",
       data: null,
       error: `${envVar} não configurada`,
@@ -242,6 +242,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({ source: "notion", data, total: data.length });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro desconhecido";
-    return res.status(200).json({ source: "mock", data: null, error: message });
+    return res.status(502).json({ source: "mock", data: null, error: message });
   }
 }

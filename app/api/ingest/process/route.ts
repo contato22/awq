@@ -257,11 +257,13 @@ export async function POST(req: NextRequest): Promise<Response> {
         });
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        await updateDocumentStatus(docId, "error", { errorMessage: msg });
+        try {
+          await updateDocumentStatus(docId, "error", { errorMessage: msg });
+        } catch { /* best-effort — don't mask the original error */ }
         send({ stage: "error", error: msg, done: true, success: false });
+      } finally {
+        controller.close();
       }
-
-      controller.close();
     },
   });
 
