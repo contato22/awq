@@ -344,6 +344,10 @@ export default function ReconciliationReviewTable({
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = "";
+    if (file.size > 50 * 1024 * 1024) {
+      showToast("err", "Arquivo muito grande — máximo 50 MB.");
+      return;
+    }
     setIsImporting(true);
     setImportResult(null);
     setShowRejected(false);

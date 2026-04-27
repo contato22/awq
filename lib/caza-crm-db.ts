@@ -238,6 +238,7 @@ export async function createLead(l: Omit<CazaCrmLead, "id">): Promise<CazaCrmLea
     ) RETURNING id, nome, cargo, empresa, cnpj, contato_principal, telefone, email,
                 origem, tipo_servico, interesse, status, owner, data_entrada, observacoes
   `;
+  if (!rows[0]) throw new Error("createLead: no row returned");
   return coerceLead(rows[0]);
 }
 
@@ -300,6 +301,7 @@ export async function createOpportunity(
                 stage, probabilidade, owner, data_abertura, prazo_estimado,
                 proxima_acao, data_proxima_acao, risco, motivo_perda, observacoes
   `;
+  if (!rows[0]) throw new Error("createOpportunity: no row returned");
   return coerceOpportunity(rows[0]);
 }
 
@@ -361,6 +363,7 @@ export async function createProposal(
     ) RETURNING id, opportunity_id, versao, valor_proposto, escopo,
                 status, data_envio, data_resposta, observacoes
   `;
+  if (!rows[0]) throw new Error("createProposal: no row returned");
   return coerceProposal(rows[0]);
 }
 
@@ -435,6 +438,7 @@ export async function createInteraction(
       ${i.descricao}, ${i.owner}, ${i.data}, ${i.observacoes}
     ) RETURNING id, entidade_tipo, entidade_id, tipo, descricao, owner, data, observacoes
   `;
+  if (!rows[0]) throw new Error("createInteraction: no row returned");
   return coerceInteraction(rows[0]);
 }
 

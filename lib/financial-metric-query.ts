@@ -202,7 +202,7 @@ export async function getAWQGroupKPIs(): Promise<AWQGroupKPIs> {
     }),
 
     revenuePerClient: snapshotMetric(
-      Math.round(consolidated.revenue / consolidated.customers),
+      consolidated.customers > 0 ? Math.round(consolidated.revenue / consolidated.customers) : 0,
       {
         entity:           "AWQ Group",
         calculation_rule: "consolidated.revenue / consolidated.customers",
@@ -210,7 +210,7 @@ export async function getAWQGroupKPIs(): Promise<AWQGroupKPIs> {
     ),
 
     revenuePerFTE: snapshotMetric(
-      Math.round(consolidated.revenue / consolidated.ftes),
+      consolidated.ftes > 0 ? Math.round(consolidated.revenue / consolidated.ftes) : 0,
       {
         entity:           "AWQ Group",
         calculation_rule: "consolidated.revenue / consolidated.ftes",

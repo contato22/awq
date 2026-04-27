@@ -119,6 +119,7 @@ export async function upsertAdvisorClient(
       sync_status          = EXCLUDED.sync_status
     RETURNING *
   `;
+  if (!rows[0]) throw new Error("upsertAdvisorClient: no row returned");
   return coerceClient(rows[0]);
 }
 
