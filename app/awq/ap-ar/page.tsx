@@ -127,6 +127,8 @@ export default function APARPage() {
   const [periodFilter, setPeriodFilter] = useState<"all" | "overdue" | "this_month" | "custom">("all");
   const [customFrom, setCustomFrom]     = useState("");
   const [customTo, setCustomTo]         = useState("");
+  const [formTouched, setFormTouched]   = useState(false);
+  const [addedFlash, setAddedFlash]     = useState(false);
 
   // ── Load from localStorage ───────────────────────────────────────────────
   useEffect(() => {
@@ -156,11 +158,14 @@ export default function APARPage() {
   function handleTabChange(tab: ItemType) {
     setActiveTab(tab);
     clearFilters();
+    setFormTouched(false);
+    setForm((f) => ({ ...f, category: "" }));
   }
 
   function handleBUChange(bu: BU | "all") {
     setActiveBU(bu);
     clearFilters();
+    if (bu !== "all") setForm((f) => ({ ...f, bu }));
   }
 
   const save = useCallback((updated: APARItem[]) => {
@@ -170,7 +175,10 @@ export default function APARPage() {
 
   // ── Add item ─────────────────────────────────────────────────────────────
   function handleAdd() {
-    if (!form.description.trim() || !form.amount || !form.dueDate) return;
+    if (!form.description.trim() || !form.amount || !form.dueDate) {
+      setFormTouched(true);
+      return;
+    }
     const item: APARItem = {
       id: uid(),
       type: activeTab,
@@ -184,7 +192,10 @@ export default function APARPage() {
       createdAt: today(),
     };
     save([...items, item]);
-    setForm({ ...EMPTY_FORM, bu: form.bu });
+    setForm((f) => ({ ...EMPTY_FORM, bu: f.bu }));
+    setFormTouched(false);
+    setAddedFlash(true);
+    setTimeout(() => setAddedFlash(false), 1800);
   }
 
   function handleToggleSettle(id: string) {
@@ -515,77 +526,167 @@ export default function APARPage() {
 
         {/* ── Add form (visible by default) ────────────────────────────────── */}
         {showForm && (
-          <div className={`card p-5 border-l-4 ${activeTab === "ap" ? "border-l-red-400" : "border-l-emerald-400"}`}>
-            <div className="flex items-center gap-2 mb-4">
-              {activeTab === "ap" ? <ArrowDownLeft size={16} className="text-red-600" /> : <ArrowUpRight size={16} className="text-emerald-600" />}
-              <span className="text-sm font-semibold text-gray-800">
-                {activeTab === "ap" ? "Registrar Conta a Pagar (AP)" : "Registrar Recebível (AR)"}
+          <form
+            onSubmit={(e) => { e.preventDefault(); handleAdd(); }}
+            noValidate
+            className={`card p-5 border-l-4 ${activeTab === "ap" ? "border-l-red-400" : "border-l-emerald-400"}`}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-2">
+                {activeTab === "ap"
+                  ? <ArrowDownLeft size={16} className="text-red-600" />
+                  : <ArrowUpRight size={16} className="text-emerald-600" />}
+                <span className="text-sm font-semibold text-gray-800">
+                  {activeTab === "ap" ? "Registrar Conta a Pagar" : "Registrar Recebível"}
+                </span>
+              </div>
+              <span className="text-[10px] text-gray-400">
+                <span className="text-red-400 font-semibold">*</span> campo obrigatório
               </span>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              <input
-                type="text" placeholder="Descrição *" value={form.description}
-                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-500"
-              />
-              <input
-                type="text" placeholder="Contraparte (fornecedor / cliente)" value={form.entity}
-                onChange={(e) => setForm((f) => ({ ...f, entity: e.target.value }))}
-                className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-500"
-              />
-              <input
-                type="number" placeholder="Valor (R$) *" value={form.amount} min="0" step="0.01"
-                onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
-                className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-500"
-              />
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide pl-1">Vencimento *</label>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-4">
+
+              {/* Descrição — spans 2 cols */}
+              <div className="flex flex-col gap-1 lg:col-span-2">
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">
+                  Descrição <span className="text-red-400">*</span>
+                </label>
                 <input
-                  type="date" value={form.dueDate}
-                  onChange={(e) => setForm((f) => ({ ...f, dueDate: e.target.value }))}
-                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none focus:border-brand-500"
+                  type="text"
+                  placeholder={activeTab === "ap" ? "ex: Aluguel sede Jan/26, NF Fornecedor XYZ…" : "ex: NF emitida Cliente ABC, Adiantamento…"}
+                  value={form.description}
+                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                  className={`text-sm border rounded-lg px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none transition-colors ${
+                    formTouched && !form.description.trim()
+                      ? "border-red-300 focus:border-red-400"
+                      : "border-gray-200 focus:border-brand-500"
+                  }`}
+                />
+                {formTouched && !form.description.trim() && (
+                  <span className="text-[10px] text-red-400 flex items-center gap-1">
+                    <AlertTriangle size={9} /> Informe uma descrição
+                  </span>
+                )}
+              </div>
+
+              {/* Contraparte */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">
+                  {activeTab === "ap" ? "Fornecedor" : "Cliente"}
+                </label>
+                <input
+                  type="text"
+                  placeholder={activeTab === "ap" ? "ex: Empresa XYZ Ltda" : "ex: Cliente ABC S.A."}
+                  value={form.entity}
+                  onChange={(e) => setForm((f) => ({ ...f, entity: e.target.value }))}
+                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-500 transition-colors"
                 />
               </div>
+
+              {/* Valor */}
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide pl-1">Categoria</label>
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">
+                  Valor <span className="text-red-400">*</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-semibold pointer-events-none select-none">R$</span>
+                  <input
+                    type="number"
+                    placeholder="0,00"
+                    value={form.amount}
+                    min="0"
+                    step="0.01"
+                    onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
+                    className={`w-full text-sm border rounded-lg pl-9 pr-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none transition-colors ${
+                      formTouched && !form.amount
+                        ? "border-red-300 focus:border-red-400"
+                        : "border-gray-200 focus:border-brand-500"
+                    }`}
+                  />
+                </div>
+                {formTouched && !form.amount && (
+                  <span className="text-[10px] text-red-400 flex items-center gap-1">
+                    <AlertTriangle size={9} /> Informe o valor
+                  </span>
+                )}
+              </div>
+
+              {/* Vencimento */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">
+                  Vencimento <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={form.dueDate}
+                  onChange={(e) => setForm((f) => ({ ...f, dueDate: e.target.value }))}
+                  className={`text-sm border rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none transition-colors ${
+                    formTouched && !form.dueDate
+                      ? "border-red-300 focus:border-red-400"
+                      : "border-gray-200 focus:border-brand-500"
+                  }`}
+                />
+                {formTouched && !form.dueDate && (
+                  <span className="text-[10px] text-red-400 flex items-center gap-1">
+                    <AlertTriangle size={9} /> Informe a data
+                  </span>
+                )}
+              </div>
+
+              {/* Categoria */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Categoria</label>
                 <select
-                  value={form.category}
+                  value={form.category || categories[0]}
                   onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none focus:border-brand-500"
+                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none focus:border-brand-500 transition-colors"
                 >
                   {categories.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
+
+              {/* BU */}
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide pl-1">Business Unit</label>
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Business Unit</label>
                 <select
                   value={form.bu}
                   onChange={(e) => setForm((f) => ({ ...f, bu: e.target.value as BU }))}
-                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none focus:border-brand-500"
+                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none focus:border-brand-500 transition-colors"
                 >
                   {BUS.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
                 </select>
               </div>
-              <div className="flex items-center gap-2 lg:col-span-3 pt-1">
+
+              {/* Actions */}
+              <div className="flex items-center gap-2 lg:col-span-2 pt-1">
                 <button
-                  onClick={handleAdd}
-                  disabled={!form.description.trim() || !form.amount || !form.dueDate}
-                  className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-semibold transition-colors text-white disabled:opacity-40 disabled:cursor-not-allowed ${
-                    activeTab === "ap" ? "bg-red-600 hover:bg-red-700" : "bg-emerald-600 hover:bg-emerald-700"
+                  type="submit"
+                  className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-semibold transition-all duration-200 text-white active:scale-95 ${
+                    addedFlash
+                      ? "bg-emerald-500"
+                      : activeTab === "ap"
+                      ? "bg-red-600 hover:bg-red-700"
+                      : "bg-emerald-600 hover:bg-emerald-700"
                   }`}
                 >
-                  <Plus size={14} />
-                  {activeTab === "ap" ? "Adicionar Obrigação" : "Adicionar Recebível"}
+                  {addedFlash ? <CheckCircle2 size={14} /> : <Plus size={14} />}
+                  {addedFlash
+                    ? "Adicionado!"
+                    : activeTab === "ap" ? "Adicionar Obrigação" : "Adicionar Recebível"}
                 </button>
                 <button
-                  onClick={() => setForm(EMPTY_FORM)}
+                  type="button"
+                  onClick={() => { setForm((f) => ({ ...EMPTY_FORM, bu: f.bu })); setFormTouched(false); }}
                   className="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm font-semibold hover:bg-gray-200 transition-colors"
                 >
                   Limpar
                 </button>
               </div>
+
             </div>
-          </div>
+          </form>
         )}
 
         {/* ── Items table ───────────────────────────────────────────────────── */}
@@ -748,8 +849,21 @@ export default function APARPage() {
 
       {/* ── Edit modal ───────────────────────────────────────────────────────── */}
       {editingItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 space-y-5">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+          onClick={(e) => { if (e.target === e.currentTarget) setEditingItem(null); }}
+          onKeyDown={(e) => { if (e.key === "Escape") setEditingItem(null); }}
+          role="dialog"
+          aria-modal="true"
+          tabIndex={-1}
+        >
+          <form
+            onSubmit={(e) => { e.preventDefault(); handleSaveEdit(); }}
+            noValidate
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 space-y-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal header */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 {editingItem.type === "ap"
@@ -760,77 +874,116 @@ export default function APARPage() {
                 </span>
               </div>
               <button
+                type="button"
                 onClick={() => setEditingItem(null)}
+                aria-label="Fechar"
                 className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-colors"
               >
                 <X size={16} />
               </button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <input
-                type="text" placeholder="Descrição *" value={editForm.description}
-                onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
-                className="sm:col-span-2 text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-500"
-              />
-              <input
-                type="text" placeholder="Contraparte (fornecedor / cliente)" value={editForm.entity}
-                onChange={(e) => setEditForm((f) => ({ ...f, entity: e.target.value }))}
-                className="sm:col-span-2 text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-500"
-              />
-              <input
-                type="number" placeholder="Valor (R$) *" value={editForm.amount} min="0" step="0.01"
-                onChange={(e) => setEditForm((f) => ({ ...f, amount: e.target.value }))}
-                className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-500"
-              />
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide pl-1">Vencimento *</label>
+            {/* Fields */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-4">
+
+              <div className="flex flex-col gap-1 sm:col-span-2">
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">
+                  Descrição <span className="text-red-400">*</span>
+                </label>
                 <input
-                  type="date" value={editForm.dueDate}
-                  onChange={(e) => setEditForm((f) => ({ ...f, dueDate: e.target.value }))}
-                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none focus:border-blue-500"
+                  type="text"
+                  value={editForm.description}
+                  onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
+                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-500 transition-colors"
                 />
               </div>
+
+              <div className="flex flex-col gap-1 sm:col-span-2">
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">
+                  {editingItem.type === "ap" ? "Fornecedor" : "Cliente"}
+                </label>
+                <input
+                  type="text"
+                  value={editForm.entity}
+                  onChange={(e) => setEditForm((f) => ({ ...f, entity: e.target.value }))}
+                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-500 transition-colors"
+                />
+              </div>
+
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide pl-1">Categoria</label>
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">
+                  Valor <span className="text-red-400">*</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-semibold pointer-events-none select-none">R$</span>
+                  <input
+                    type="number"
+                    placeholder="0,00"
+                    value={editForm.amount}
+                    min="0"
+                    step="0.01"
+                    onChange={(e) => setEditForm((f) => ({ ...f, amount: e.target.value }))}
+                    className="w-full text-sm border border-gray-200 rounded-lg pl-9 pr-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-500 transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">
+                  Vencimento <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={editForm.dueDate}
+                  onChange={(e) => setEditForm((f) => ({ ...f, dueDate: e.target.value }))}
+                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none focus:border-blue-500 transition-colors"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Categoria</label>
                 <select
                   value={editForm.category}
                   onChange={(e) => setEditForm((f) => ({ ...f, category: e.target.value }))}
-                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none focus:border-blue-500"
+                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none focus:border-blue-500 transition-colors"
                 >
                   {(editingItem.type === "ap" ? AP_CATEGORIES : AR_CATEGORIES).map((c) => (
                     <option key={c} value={c}>{c}</option>
                   ))}
                 </select>
               </div>
+
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide pl-1">Business Unit</label>
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Business Unit</label>
                 <select
                   value={editForm.bu}
                   onChange={(e) => setEditForm((f) => ({ ...f, bu: e.target.value as BU }))}
-                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none focus:border-blue-500"
+                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none focus:border-blue-500 transition-colors"
                 >
                   {BUS.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
                 </select>
               </div>
+
             </div>
 
-            <div className="flex items-center gap-2 pt-1">
+            {/* Actions */}
+            <div className="flex items-center gap-2 pt-1 border-t border-gray-100">
               <button
-                onClick={handleSaveEdit}
+                type="submit"
                 disabled={!editForm.description.trim() || !editForm.amount || !editForm.dueDate}
-                className="flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-semibold bg-blue-600 hover:bg-blue-700 active:scale-95 text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                Salvar alterações
+                <CheckCircle2 size={14} /> Salvar alterações
               </button>
               <button
+                type="button"
                 onClick={() => setEditingItem(null)}
                 className="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm font-semibold hover:bg-gray-200 transition-colors"
               >
                 Cancelar
               </button>
             </div>
-          </div>
+          </form>
         </div>
       )}
     </>
