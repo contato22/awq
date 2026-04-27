@@ -64,6 +64,7 @@ export const PERMISSION_MATRIX: Record<SecurityRole, Partial<Record<SecurityLaye
     security:    ["view","create","update","delete","export","import","approve","manage_security"],
     system:      ["view","create","update","delete","export","import","approve","manage_security"],
     ai:          ["view","create","update","delete","export","import","approve","manage_security"],
+    ar_module:   ["view","create","update","delete","export","import","approve","manage_security"],
   },
 
   // admin: gestão plena; approve em system para acesso ao supervisor; sem manage_security

@@ -15,7 +15,7 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
 ): Promise<NextResponse> {
-  const denied = await apiGuard(req, "view", "holding", "AR — Cliente");
+  const denied = await apiGuard(req, "view", "ar_module", "AR — Cliente");
   if (denied) return denied;
   if (!sql) return NextResponse.json({ error: "DB não disponível" }, { status: 503 });
 
@@ -28,7 +28,7 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } }
 ): Promise<NextResponse> {
-  const denied = await apiGuard(req, "update", "holding", "AR — Cliente");
+  const denied = await apiGuard(req, "update", "ar_module", "AR — Cliente");
   if (denied) return denied;
   if (!sql) return NextResponse.json({ error: "DB não disponível" }, { status: 503 });
 
@@ -46,7 +46,7 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: { id: string } }
 ): Promise<NextResponse> {
-  const denied = await apiGuard(req, "delete", "holding", "AR — Cliente");
+  const denied = await apiGuard(req, "delete", "ar_module", "AR — Cliente");
   if (denied) return denied;
   if (!sql) return NextResponse.json({ error: "DB não disponível" }, { status: 503 });
 

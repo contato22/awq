@@ -10,7 +10,7 @@ import { sql } from "@/lib/db";
 export const runtime = "nodejs";
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
-  const denied = await apiGuard(req, "view", "holding", "AR — Clientes");
+  const denied = await apiGuard(req, "view", "ar_module", "AR — Clientes");
   if (denied) return denied;
 
   const { searchParams } = new URL(req.url);
@@ -22,7 +22,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  const denied = await apiGuard(req, "create", "holding", "AR — Clientes");
+  const denied = await apiGuard(req, "create", "ar_module", "AR — Clientes");
   if (denied) return denied;
 
   if (!sql) return NextResponse.json({ error: "DB não disponível" }, { status: 503 });

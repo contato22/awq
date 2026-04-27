@@ -55,7 +55,8 @@ export type SecurityLayer =
   | "dados_infra"  // Dados & Infra (ingestão, base, qualidade)
   | "security"     // Segurança de Dados (esta camada)
   | "system"       // Sistema (auth, settings, supervisor autônomo)
-  | "ai";          // IA & Agentes (chat, agents, supervisor)
+  | "ai"           // IA & Agentes (chat, agents, supervisor)
+  | "ar_module";   // AR — Clientes & Contas a Receber (owner-only)
 
 // Resultado de uma verificação de acesso ou evento de auditoria
 export type AuditResult = "allowed" | "blocked";
