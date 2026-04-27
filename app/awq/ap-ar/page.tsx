@@ -10,7 +10,7 @@ import {
   ArrowDownLeft, ArrowUpRight, Plus, Trash2, AlertTriangle,
   CheckCircle2, Clock, X, FileText, TrendingDown, TrendingUp,
   CalendarDays, Building2, Pencil, DollarSign, RefreshCw, Ban, Timer,
-  ThumbsUp, ThumbsDown, History, XCircle,
+  ThumbsUp, ThumbsDown, History, XCircle, Search,
 } from "lucide-react";
 import type { AccountsPayable, APStatus, APPaymentHistory } from "@/lib/ap-types";
 import { AP_STATUS_CONFIG, AP_DOCUMENT_TYPE_LABELS, AP_PAYMENT_METHOD_LABELS, AP_ACTION_LABELS } from "@/lib/ap-types";
@@ -82,6 +82,7 @@ export default function APARPage() {
   // ── AP state (server) ──────────────────────────────────────────────────────
   const [apItems, setApItems]       = useState<AccountsPayable[]>([]);
   const [apLoading, setApLoading]   = useState(false);
+  const [apSearch, setApSearch]     = useState("");
   const [payingItem, setPayingItem] = useState<AccountsPayable | null>(null);
   const [editingAP, setEditingAP]   = useState<AccountsPayable | null>(null);
   const [historyAP, setHistoryAP]   = useState<AccountsPayable | null>(null);
@@ -206,7 +207,14 @@ export default function APARPage() {
 
   // ── Derived totals ─────────────────────────────────────────────────────────
   const apByBU     = activeBU === "all" ? apItems : apItems.filter((i: AccountsPayable) => i.bu === activeBU);
-  const apFiltered = apStatusFilter === "all" ? apByBU : apByBU.filter((i: AccountsPayable) => i.status === apStatusFilter);
+  const apByStatus = apStatusFilter === "all" ? apByBU : apByBU.filter((i: AccountsPayable) => i.status === apStatusFilter);
+  const apSearch_lc = apSearch.toLowerCase();
+  const apFiltered = !apSearch_lc ? apByStatus : apByStatus.filter((i: AccountsPayable) => {
+    const name = (i.supplier?.trade_name || i.supplier?.legal_name || "").toLowerCase();
+    const doc  = (i.document_number ?? "").toLowerCase();
+    const desc = (i.description ?? "").toLowerCase();
+    return name.includes(apSearch_lc) || doc.includes(apSearch_lc) || desc.includes(apSearch_lc);
+  });
   const arFiltered = activeBU === "all" ? arItems : arItems.filter((i: ARItem) => i.bu === activeBU);
 
   const apTotal   = apByBU.filter((i: AccountsPayable) => i.status !== "cancelled").reduce((s: number, i: AccountsPayable) => s + i.net_amount, 0);
@@ -298,7 +306,21 @@ export default function APARPage() {
                   );
                 })}
               </div>
-              <div className="flex gap-2 shrink-0">
+              <div className="flex gap-2 shrink-0 flex-wrap">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                  <input
+                    value={apSearch}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => setApSearch(e.target.value)}
+                    placeholder="Buscar fornecedor, doc…"
+                    className="pl-8 pr-7 py-2 text-sm border border-gray-200 rounded-lg bg-white w-48 focus:outline-none focus:border-amber-400"
+                  />
+                  {apSearch && (
+                    <button onClick={() => setApSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
                 <button onClick={fetchAP} className="flex items-center gap-1 px-3 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50">
                   <RefreshCw className={`w-4 h-4 ${apLoading ? "animate-spin" : ""}`} /> Atualizar
                 </button>
@@ -347,7 +369,7 @@ export default function APARPage() {
                       const buStyle = BU_STYLES[ap.bu as BU];
                       const docLabel = ap.document_type ? (AP_DOCUMENT_TYPE_LABELS[ap.document_type] ?? ap.document_type) : "—";
                       return (
-                        <tr key={ap.ap_id} className="hover:bg-gray-50">
+                        <tr key={ap.ap_id} className={`hover:bg-gray-50 ${ap.status === "overdue" ? "bg-red-50/40" : ""}`}>
                           <td className="px-4 py-3">
                             {buStyle ? (
                               <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${buStyle.bg} ${buStyle.color}`}>
@@ -356,24 +378,35 @@ export default function APARPage() {
                             ) : <span className="text-gray-500">{ap.bu}</span>}
                           </td>
                           <td className="px-4 py-3">
-                            <div className="font-medium text-gray-900 truncate max-w-[160px]">{(ap as AccountsPayable & { supplier_name?: string }).supplier_name ?? `#${ap.supplier_id}`}</div>
+                            <div className="font-medium text-gray-900 truncate max-w-[160px]">{ap.supplier?.trade_name || ap.supplier?.legal_name || `#${ap.supplier_id}`}</div>
                             {ap.description && <div className="text-xs text-gray-400 truncate max-w-[160px]">{ap.description}</div>}
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-1 text-gray-600">
                               <FileText className="w-3.5 h-3.5 shrink-0" />{docLabel}
+                              {ap.installment_total && ap.installment_total > 1 && (
+                                <span className="ml-1 px-1.5 py-0.5 text-[10px] font-semibold bg-blue-50 text-blue-600 rounded">
+                                  {ap.installment_number ?? "?"}/{ap.installment_total}
+                                </span>
+                              )}
                             </div>
                             {ap.document_number && <div className="text-xs text-gray-400">{ap.document_number}</div>}
                           </td>
                           <td className="px-4 py-3">
-                            <div className="flex items-center gap-1 text-gray-700">
+                            <div className={`flex items-center gap-1 ${ap.status === "overdue" ? "text-red-600 font-medium" : "text-gray-700"}`}>
                               <CalendarDays className="w-3.5 h-3.5 shrink-0" />{fmtDate(ap.due_date)}
                             </div>
+                            {ap.status === "paid" && ap.payment_date && (
+                              <div className="text-[10px] text-emerald-600">Pago {fmtDate(ap.payment_date)}</div>
+                            )}
                           </td>
                           <td className="px-4 py-3">
                             <div className="font-semibold text-gray-900">{fmtR(ap.net_amount)}</div>
                             {ap.gross_amount !== ap.net_amount && (
                               <div className="text-xs text-gray-400">Bruto: {fmtR(ap.gross_amount)}</div>
+                            )}
+                            {ap.payment_method && (
+                              <div className="text-[10px] text-gray-400">{AP_PAYMENT_METHOD_LABELS[ap.payment_method] ?? ap.payment_method}</div>
                             )}
                           </td>
                           <td className="px-4 py-3">
@@ -620,7 +653,7 @@ export default function APARPage() {
                   <History className="w-4 h-4 text-gray-500" /> Histórico AP #{historyAP.ap_id}
                 </div>
                 <div className="text-xs text-gray-400 mt-0.5">
-                  {(historyAP as AccountsPayable & { supplier_name?: string }).supplier_name ?? historyAP.supplier?.legal_name ?? `Fornecedor #${historyAP.supplier_id}`}
+                  {historyAP.supplier?.trade_name || historyAP.supplier?.legal_name || `Fornecedor #${historyAP.supplier_id}`}
                 </div>
               </div>
               <button onClick={() => setHistoryAP(null)} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100">

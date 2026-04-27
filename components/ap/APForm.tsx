@@ -57,12 +57,19 @@ const EMPTY = {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
+function addMonths(dateStr: string, n: number): string {
+  const d = new Date(dateStr + "T12:00:00");
+  d.setMonth(d.getMonth() + n);
+  return d.toISOString().slice(0, 10);
+}
+
 export default function APForm({ defaultBU = "awq", editing, onSuccess, onCancel }: Props) {
   const [form, setForm]           = useState({ ...EMPTY, bu: defaultBU });
   const [supplier, setSupplier]   = useState<Supplier | null>(null);
   const [saving, setSaving]       = useState(false);
   const [err, setErr]             = useState<string | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [generateAll, setGenerateAll]   = useState(false);
 
   // populate form when editing an existing AP
   useEffect(() => {
@@ -128,16 +135,49 @@ export default function APForm({ defaultBU = "awq", editing, onSuccess, onCancel
     if (!form.gross_amount || gross <= 0) { setErr("Valor bruto obrigatório."); return; }
     if (!form.due_date) { setErr("Data de vencimento obrigatória."); return; }
 
+    const total = form.installment_total ? Number(form.installment_total) : 1;
+    const doGenAll = !editing && generateAll && total > 1;
+
     setSaving(true);
     setErr(null);
     try {
-      const url    = editing ? `/api/ap/${editing.ap_id}` : "/api/ap";
-      const method = editing ? "PUT" : "POST";
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          supplier_id:              form.supplierId || (editing?.supplier_id),
+      if (editing) {
+        // PUT — update existing AP
+        const res = await fetch(`/api/ap/${editing.ap_id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            supplier_id:              form.supplierId || editing.supplier_id,
+            bu:                       form.bu,
+            document_type:            form.document_type   || null,
+            document_number:          form.document_number || null,
+            document_series:          form.document_series || null,
+            document_date:            form.document_date   || null,
+            nf_key:                   form.nf_key          || null,
+            gross_amount:             gross,
+            discount_amount:          discount,
+            irrf_withheld:            irrf,
+            iss_withheld:             iss,
+            inss_withheld:            inss,
+            pis_cofins_csll_withheld: pisCsll,
+            net_amount:               net,
+            due_date:                 form.due_date,
+            installment_number:       form.installment_number ? Number(form.installment_number) : null,
+            installment_total:        form.installment_total  ? Number(form.installment_total)  : null,
+            payment_method:           form.payment_method || null,
+            cost_center:              form.cost_center    || null,
+            description:              form.description    || null,
+            notes:                    form.notes          || null,
+          }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({})) as Record<string, unknown>;
+          setErr(String(data.error ?? "Erro ao salvar.")); return;
+        }
+      } else {
+        // POST — create one or all installments
+        const basePayload = {
+          supplier_id:              form.supplierId,
           bu:                       form.bu,
           document_type:            form.document_type   || null,
           document_number:          form.document_number || null,
@@ -151,23 +191,35 @@ export default function APForm({ defaultBU = "awq", editing, onSuccess, onCancel
           inss_withheld:            inss,
           pis_cofins_csll_withheld: pisCsll,
           net_amount:               net,
-          due_date:                 form.due_date,
-          installment_number:       form.installment_number ? Number(form.installment_number) : null,
-          installment_total:        form.installment_total  ? Number(form.installment_total)  : null,
+          installment_total:        total > 1 ? total : null,
           payment_method:           form.payment_method || null,
           cost_center:              form.cost_center    || null,
           description:              form.description    || null,
           notes:                    form.notes          || null,
-        }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({})) as Record<string, unknown>;
-        setErr(String(data.error ?? "Erro ao salvar."));
-        return;
+        };
+
+        const count = doGenAll ? total : 1;
+        for (let i = 0; i < count; i++) {
+          const res = await fetch("/api/ap", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              ...basePayload,
+              due_date:           doGenAll ? addMonths(form.due_date, i) : form.due_date,
+              installment_number: doGenAll ? (i + 1) : (form.installment_number ? Number(form.installment_number) : null),
+            }),
+          });
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({})) as Record<string, unknown>;
+            setErr(String(data.error ?? `Erro ao criar parcela ${i + 1}.`)); return;
+          }
+        }
       }
+
       onSuccess();
       setForm({ ...EMPTY, bu: form.bu });
       setSupplier(null);
+      setGenerateAll(false);
     } catch {
       setErr("Erro de rede.");
     } finally {
@@ -423,15 +475,36 @@ export default function APForm({ defaultBU = "awq", editing, onSuccess, onCancel
         </div>
       </div>
 
+      {/* Installment auto-generation toggle */}
+      {!editing && Number(form.installment_total) > 1 && (
+        <label className="flex items-center gap-2 cursor-pointer select-none px-1">
+          <input
+            type="checkbox"
+            checked={generateAll}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setGenerateAll(e.target.checked)}
+            className="w-4 h-4 accent-red-600"
+          />
+          <span className="text-xs text-gray-700">
+            Gerar todas as {form.installment_total} parcelas automaticamente (vencimentos mensais)
+          </span>
+        </label>
+      )}
+
       {/* Actions */}
       <div className="flex items-center gap-2 pt-1 flex-wrap">
         <button
           onClick={handleSubmit}
-          disabled={saving || !form.supplierId || !form.gross_amount || !form.due_date}
+          disabled={saving || (!editing && !form.supplierId) || !form.gross_amount || !form.due_date}
           className="flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-semibold bg-red-600 hover:bg-red-700 text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <Plus size={14} />
-          {saving ? "Salvando…" : editing ? "Salvar Alterações" : "Adicionar Obrigação"}
+          {saving
+            ? "Salvando…"
+            : editing
+              ? "Salvar Alterações"
+              : generateAll && Number(form.installment_total) > 1
+                ? `Gerar ${form.installment_total} Parcelas`
+                : "Adicionar Obrigação"}
         </button>
         <button
           onClick={() => setShowAdvanced((v: boolean) => !v)}
