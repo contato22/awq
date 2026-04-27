@@ -14,6 +14,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { guard } from "@/lib/security-guard";
+import { normalizeRole } from "@/lib/security-access";
 
 // ─── Input types ──────────────────────────────────────────────────────────────
 
@@ -124,15 +125,16 @@ export async function POST(req: NextRequest) {
   const user_id = (token?.email as string | undefined) ?? "anonymous";
   const rawRole = (token?.role  as string | undefined) ?? "anonymous";
 
-  const { result: guardResult } = guard(
+  // Endpoint restrito ao proprietário — outros roles mantêm suas permissões nas demais rotas
+  if (normalizeRole(rawRole) !== "owner") {
+    return Response.json({ error: "Acesso negado — exclusivo para o proprietário" }, { status: 403 });
+  }
+
+  guard(
     user_id, rawRole,
     "/api/financial-link", "financeiro", "view",
     "Verificação de Vínculo Financeiro AP/AR"
   );
-
-  if (guardResult === "blocked") {
-    return Response.json({ error: "Acesso negado" }, { status: 403 });
-  }
 
   let body: { items: ItemInput[]; transactions: TxInput[] };
   try {
