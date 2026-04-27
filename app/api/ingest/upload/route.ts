@@ -141,8 +141,16 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     blobUrl = result.url;
   } else {
     // Local filesystem (development or single-instance deploy)
-    ensurePDFDir();
-    fs.writeFileSync(path.join(PDF_DIR, safeFilename), buffer);
+    try {
+      ensurePDFDir();
+      fs.writeFileSync(path.join(PDF_DIR, safeFilename), buffer);
+    } catch (fsErr) {
+      console.error("[ingest/upload] filesystem write failed:", fsErr);
+      return NextResponse.json(
+        { error: "Falha ao salvar arquivo no servidor. Verifique permissões do diretório." },
+        { status: 500 }
+      );
+    }
   }
 
   // ── Save document record ──

@@ -4,6 +4,10 @@ import { guard } from "@/lib/security-guard";
 import { getAllDocuments } from "@/lib/financial-db";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== "GET") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
   // ── RBAC guard: view em dados_infra — owner/admin/finance ──
   const token   = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   const user_id = (token?.email as string | undefined) ?? "anonymous";

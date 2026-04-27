@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
       notionKey: process.env.NOTION_API_KEY ?? "",
       dbProperties: process.env.NOTION_DATABASE_ID_CAZA_PROPERTIES ?? "",
       dbClients: process.env.NOTION_DATABASE_ID_CAZA_CLIENTS ?? "",
-      dbFinancial: process.env.NOTION_DATABASE_ID_CAZA_PROPERTIES ?? "",
+      dbFinancial: process.env.NOTION_DATABASE_ID_CAZA_FINANCIAL ?? "",
     };
     const hasNotion = !!notionEnv.notionKey;
 
