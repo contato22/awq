@@ -9,9 +9,9 @@ import type { AccountsPayable } from "@/lib/ap-types";
 import { AP_PAYMENT_METHOD_LABELS } from "@/lib/ap-types";
 
 interface Props {
-  item:     AccountsPayable;
-  onClose:  () => void;
-  onPaid:   (updated: AccountsPayable) => void;
+  ap:        AccountsPayable;
+  onClose:   () => void;
+  onSuccess: () => void;
 }
 
 function fmtR(n: number) {
@@ -24,7 +24,8 @@ type FormState = {
   payment_bank_branch: string; payment_bank_account: string; notes: string;
 };
 
-export default function PayModal({ item, onClose, onPaid }: Props) {
+export default function PayModal({ ap, onClose, onSuccess }: Props) {
+  const item = ap;
   const [form, setForm] = useState<FormState>({
     payment_date:        new Date().toISOString().slice(0, 10),
     paid_amount:         String(item.net_amount),
@@ -65,8 +66,7 @@ export default function PayModal({ item, onClose, onPaid }: Props) {
         setErr(String(data.error ?? "Erro ao registrar pagamento."));
         return;
       }
-      const updated = await res.json() as AccountsPayable;
-      onPaid(updated);
+      onSuccess();
     } catch {
       setErr("Erro de rede.");
     } finally {

@@ -7,7 +7,7 @@
 import React, { useState, useEffect, useRef, useCallback, type ChangeEvent } from "react";
 import { Search, X, Plus, Building2, User, AlertCircle, CheckCircle2 } from "lucide-react";
 import type { Supplier } from "@/lib/supplier-types";
-import { SUPPLIER_STATUS_CONFIG, PAYMENT_TERMS_LABELS, PAYMENT_METHOD_LABELS } from "@/lib/supplier-types";
+import { SUPPLIER_STATUS_CONFIG, PAYMENT_TERMS_LABELS, PAYMENT_METHOD_LABELS, PIX_KEY_TYPE_LABELS, BANK_ACCOUNT_TYPE_LABELS } from "@/lib/supplier-types";
 import { formatDoc, docPlaceholder, validateDoc } from "@/lib/cnpj-cpf";
 
 // ── Props ─────────────────────────────────────────────────────────────────────
@@ -23,19 +23,27 @@ interface Props {
 // ── Quick-create defaults ─────────────────────────────────────────────────────
 
 const EMPTY_QUICK = {
-  document_type:          "cnpj" as "cpf" | "cnpj",
-  document_number:        "",
-  legal_name:             "",
-  trade_name:             "",
-  supplier_type:          "" as string,
-  primary_contact_email:  "",
-  primary_contact_phone:  "",
-  default_payment_terms:  "" as string,
-  default_payment_method: "" as string,
-  requires_nf:            true,
-  withhold_irrf:          false,
-  withhold_iss:           false,
-  withhold_inss:          false,
+  document_type:           "cnpj" as "cpf" | "cnpj",
+  document_number:         "",
+  legal_name:              "",
+  trade_name:              "",
+  supplier_type:           "" as string,
+  primary_contact_email:   "",
+  primary_contact_phone:   "",
+  default_payment_terms:   "" as string,
+  default_payment_method:  "" as string,
+  pix_key_type:            "" as string,
+  pix_key:                 "",
+  bank_code:               "",
+  bank_name:               "",
+  bank_branch:             "",
+  bank_account:            "",
+  bank_account_type:       "" as string,
+  bank_account_holder:     "",
+  requires_nf:             true,
+  withhold_irrf:           false,
+  withhold_iss:            false,
+  withhold_inss:           false,
   withhold_pis_cofins_csll: false,
 };
 
@@ -363,9 +371,92 @@ export default function SupplierSelect({ value, supplierId, onChange, placeholde
                 </select>
               </div>
 
+              {/* PIX */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide pl-1">Tipo Chave PIX</label>
+                <select
+                  value={quick.pix_key_type}
+                  onChange={(e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setQuick((q: typeof EMPTY_QUICK) => ({ ...q, pix_key_type: e.target.value }))}
+                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none focus:border-brand-500"
+                >
+                  <option value="">— Selecionar —</option>
+                  {Object.entries(PIX_KEY_TYPE_LABELS).map(([k, v]) => (
+                    <option key={k} value={k}>{v}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide pl-1">Chave PIX</label>
+                <input
+                  type="text"
+                  value={quick.pix_key}
+                  placeholder={quick.pix_key_type === "cpf" ? "000.000.000-00" : quick.pix_key_type === "cnpj" ? "00.000.000/0001-00" : quick.pix_key_type === "phone" ? "+55 11 99999-9999" : quick.pix_key_type === "email" ? "email@exemplo.com" : "Chave aleatória"}
+                  onChange={(e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setQuick((q: typeof EMPTY_QUICK) => ({ ...q, pix_key: e.target.value }))}
+                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-500"
+                />
+              </div>
+
+              {/* Dados Bancários */}
+              <div className="col-span-2">
+                <div className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-2">Dados Bancários (TED/DOC)</div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide pl-1">Banco</label>
+                    <input
+                      type="text" placeholder="Ex: 341 — Itaú" value={quick.bank_name}
+                      onChange={(e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setQuick((q: typeof EMPTY_QUICK) => ({ ...q, bank_name: e.target.value }))}
+                      className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-500"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide pl-1">Código</label>
+                    <input
+                      type="text" placeholder="341" value={quick.bank_code} maxLength={10}
+                      onChange={(e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setQuick((q: typeof EMPTY_QUICK) => ({ ...q, bank_code: e.target.value }))}
+                      className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-500 font-mono"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide pl-1">Agência</label>
+                    <input
+                      type="text" placeholder="0001" value={quick.bank_branch} maxLength={10}
+                      onChange={(e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setQuick((q: typeof EMPTY_QUICK) => ({ ...q, bank_branch: e.target.value }))}
+                      className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-500 font-mono"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide pl-1">Conta</label>
+                    <input
+                      type="text" placeholder="12345-6" value={quick.bank_account} maxLength={20}
+                      onChange={(e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setQuick((q: typeof EMPTY_QUICK) => ({ ...q, bank_account: e.target.value }))}
+                      className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-500 font-mono"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide pl-1">Tipo</label>
+                    <select value={quick.bank_account_type}
+                      onChange={(e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setQuick((q: typeof EMPTY_QUICK) => ({ ...q, bank_account_type: e.target.value }))}
+                      className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none focus:border-brand-500">
+                      <option value="">— Tipo —</option>
+                      {Object.entries(BANK_ACCOUNT_TYPE_LABELS).map(([k, v]) => (
+                        <option key={k} value={k}>{v}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide pl-1">Titular</label>
+                    <input
+                      type="text" placeholder="Nome do titular" value={quick.bank_account_holder}
+                      onChange={(e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setQuick((q: typeof EMPTY_QUICK) => ({ ...q, bank_account_holder: e.target.value }))}
+                      className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
               {/* Retenções */}
               <div className="col-span-2">
-                <div className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-2">Retenções</div>
+                <div className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-2">Compliance Fiscal</div>
                 <div className="grid grid-cols-2 gap-2">
                   {[
                     { key: "requires_nf",            label: "Requer NF" },
@@ -378,7 +469,7 @@ export default function SupplierSelect({ value, supplierId, onChange, placeholde
                       <input
                         type="checkbox"
                         checked={Boolean(quick[key as keyof typeof quick])}
-                        onChange={(e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setQuick((q: typeof EMPTY_QUICK) => ({ ...q, [key]: e.target.checked }))}
+                        onChange={(e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setQuick((q: typeof EMPTY_QUICK) => ({ ...q, [key]: (e as ChangeEvent<HTMLInputElement>).target.checked }))}
                         className="w-3.5 h-3.5 accent-brand-600"
                       />
                       <span className="text-xs text-gray-700">{label}</span>

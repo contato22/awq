@@ -7,7 +7,7 @@ import { useState, useEffect, type ChangeEvent } from "react";
 import { Plus, X, AlertCircle, Info } from "lucide-react";
 import SupplierSelect from "./SupplierSelect";
 import type { Supplier } from "@/lib/supplier-types";
-import type { AccountsPayable, APDocumentType, APPaymentMethod } from "@/lib/ap-types";
+import type { APDocumentType, APPaymentMethod } from "@/lib/ap-types";
 import { AP_DOCUMENT_TYPE_LABELS, AP_PAYMENT_METHOD_LABELS } from "@/lib/ap-types";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -24,7 +24,7 @@ export const BUS: { id: BU; label: string }[] = [
 
 interface Props {
   defaultBU?: BU;
-  onCreated:  (item: AccountsPayable) => void;
+  onSuccess:  () => void;
   onCancel?:  () => void;
 }
 
@@ -56,7 +56,7 @@ const EMPTY = {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function APForm({ defaultBU = "awq", onCreated, onCancel }: Props) {
+export default function APForm({ defaultBU = "awq", onSuccess, onCancel }: Props) {
   const [form, setForm]           = useState({ ...EMPTY, bu: defaultBU });
   const [supplier, setSupplier]   = useState<Supplier | null>(null);
   const [saving, setSaving]       = useState(false);
@@ -133,8 +133,7 @@ export default function APForm({ defaultBU = "awq", onCreated, onCancel }: Props
         setErr(String(data.error ?? "Erro ao salvar."));
         return;
       }
-      const item = await res.json() as AccountsPayable;
-      onCreated(item);
+      onSuccess();
       setForm({ ...EMPTY, bu: form.bu });
       setSupplier(null);
     } catch {

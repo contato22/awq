@@ -154,6 +154,13 @@
     @apply badge bg-gray-100 text-gray-600 ring-1 ring-gray-200/60;
   }
 
+  /* ── Form Input ────────────────────────────────────────────── */
+  .input {
+    @apply w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 outline-none transition-colors;
+    &:focus { @apply border-amber-400 ring-1 ring-amber-100; }
+    &:disabled { @apply bg-gray-50 text-gray-400 cursor-not-allowed; }
+  }
+
   /* ── Button System ─────────────────────────────────────────── */
   .btn-primary {
     @apply px-4 py-2 bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white rounded-lg text-sm font-medium transition-all duration-150;

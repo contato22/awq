@@ -2,17 +2,25 @@
 
 // ─── /awq/ap-ar — AP (server) + AR (localStorage) ────────────────────────────
 
-import { useState, useEffect, useCallback, type ElementType, type FormEvent } from "react";
+import { useState, useEffect, useCallback, type ElementType, type FormEvent, type ChangeEvent } from "react";
 import Header from "@/components/Header";
 import APForm, { BUS, type BU } from "@/components/ap/APForm";
 import PayModal from "@/components/ap/PayModal";
 import {
   ArrowDownLeft, ArrowUpRight, Plus, Trash2, AlertTriangle,
   CheckCircle2, Clock, X, FileText, TrendingDown, TrendingUp,
-  CalendarDays, Building2, Pencil, DollarSign, RefreshCw,
+  CalendarDays, Building2, Pencil, DollarSign, RefreshCw, Ban, Timer,
 } from "lucide-react";
-import type { AccountsPayable } from "@/lib/ap-types";
+import type { AccountsPayable, APStatus } from "@/lib/ap-types";
 import { AP_STATUS_CONFIG, AP_DOCUMENT_TYPE_LABELS, AP_PAYMENT_METHOD_LABELS } from "@/lib/ap-types";
+
+const AP_STATUS_ICONS: Record<APStatus, ElementType> = {
+  pending:   Clock,
+  scheduled: Timer,
+  paid:      CheckCircle2,
+  overdue:   AlertTriangle,
+  cancelled: Ban,
+};
 
 // ── AR types (localStorage, unchanged) ───────────────────────────────────────
 
@@ -85,6 +93,7 @@ export default function APARPage() {
   // ── Shared UI state ────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<"ap" | "ar">("ap");
   const [activeBU, setActiveBU] = useState<BU | "all">("all");
+  const [apStatusFilter, setApStatusFilter] = useState<APStatus | "all">("all");
 
   // ── AP: fetch from server ──────────────────────────────────────────────────
   const fetchAP = useCallback(async () => {
@@ -157,11 +166,12 @@ export default function APARPage() {
   }
 
   // ── Derived totals ─────────────────────────────────────────────────────────
-  const apFiltered = activeBU === "all" ? apItems : apItems.filter((i: AccountsPayable) => i.bu === activeBU);
+  const apByBU     = activeBU === "all" ? apItems : apItems.filter((i: AccountsPayable) => i.bu === activeBU);
+  const apFiltered = apStatusFilter === "all" ? apByBU : apByBU.filter((i: AccountsPayable) => i.status === apStatusFilter);
   const arFiltered = activeBU === "all" ? arItems : arItems.filter((i: ARItem) => i.bu === activeBU);
 
-  const apTotal   = apFiltered.filter((i: AccountsPayable) => i.status !== "cancelled").reduce((s: number, i: AccountsPayable) => s + i.net_amount, 0);
-  const apPending = apFiltered.filter((i: AccountsPayable) => i.status === "pending" || i.status === "overdue").reduce((s: number, i: AccountsPayable) => s + i.net_amount, 0);
+  const apTotal   = apByBU.filter((i: AccountsPayable) => i.status !== "cancelled").reduce((s: number, i: AccountsPayable) => s + i.net_amount, 0);
+  const apPending = apByBU.filter((i: AccountsPayable) => i.status === "pending" || i.status === "overdue").reduce((s: number, i: AccountsPayable) => s + i.net_amount, 0);
   const arTotal   = arFiltered.filter((i: ARItem) => i.status !== "settled").reduce((s: number, i: ARItem) => s + i.amount, 0);
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -229,14 +239,32 @@ export default function APARPage() {
         {/* ══════════════════════ AP TAB ══════════════════════ */}
         {activeTab === "ap" && (
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-sm text-gray-500">{apFiltered.length} lançamento(s)</p>
-              <div className="flex gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+              <div className="flex flex-wrap gap-1.5">
+                {(["all", "pending", "overdue", "scheduled", "paid", "cancelled"] as const).map((s) => {
+                  const cfg = s !== "all" ? AP_STATUS_CONFIG[s] : null;
+                  const Icon = s !== "all" ? AP_STATUS_ICONS[s] : null;
+                  const count = s === "all" ? apByBU.length : apByBU.filter((i: AccountsPayable) => i.status === s).length;
+                  return (
+                    <button key={s} onClick={() => setApStatusFilter(s)}
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border transition-all ${
+                        apStatusFilter === s
+                          ? s === "all" ? "bg-gray-800 text-white border-gray-800" : `${cfg!.bg} ${cfg!.color} border-current`
+                          : "bg-white text-gray-500 border-gray-200 hover:border-gray-400"
+                      }`}>
+                      {Icon && <Icon className="w-3 h-3" />}
+                      {s === "all" ? "Todos" : cfg!.label}
+                      <span className="ml-0.5 opacity-70">({count})</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="flex gap-2 shrink-0">
                 <button onClick={fetchAP} className="flex items-center gap-1 px-3 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50">
                   <RefreshCw className={`w-4 h-4 ${apLoading ? "animate-spin" : ""}`} /> Atualizar
                 </button>
                 <button onClick={() => setShowAPForm(true)} className="flex items-center gap-2 px-4 py-2 bg-amber-500 text-white text-sm font-semibold rounded-lg hover:bg-amber-600">
-                  <Plus className="w-4 h-4" /> Nova Conta a Pagar
+                  <Plus className="w-4 h-4" /> Nova AP
                 </button>
               </div>
             </div>
@@ -277,11 +305,11 @@ export default function APARPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {apFiltered.map((ap) => {
+                    {apFiltered.map((ap: AccountsPayable) => {
                       const cfg = AP_STATUS_CONFIG[ap.status];
-                      const StatusIcon = cfg.icon;
+                      const StatusIcon = AP_STATUS_ICONS[ap.status] ?? Clock;
                       const buStyle = BU_STYLES[ap.bu as BU];
-                      const docLabel = AP_DOCUMENT_TYPE_LABELS[ap.document_type] ?? ap.document_type;
+                      const docLabel = ap.document_type ? (AP_DOCUMENT_TYPE_LABELS[ap.document_type] ?? ap.document_type) : "—";
                       return (
                         <tr key={ap.ap_id} className="hover:bg-gray-50">
                           <td className="px-4 py-3">
@@ -313,7 +341,7 @@ export default function APARPage() {
                             )}
                           </td>
                           <td className="px-4 py-3">
-                            <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${cfg.color}`}>
+                            <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${cfg.bg} ${cfg.color}`}>
                               <StatusIcon className="w-3 h-3" />{cfg.label}
                             </span>
                           </td>
@@ -348,7 +376,7 @@ export default function APARPage() {
           <div>
             <div className="flex items-center justify-between mb-4">
               <p className="text-sm text-gray-500">{arFiltered.length} lançamento(s)</p>
-              <button onClick={() => { setArEditing(null); setArForm(EMPTY_AR); setShowARForm((v) => !v); }}
+              <button onClick={() => { setArEditing(null); setArForm(EMPTY_AR); setShowARForm((v: boolean) => !v); }}
                 className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white text-sm font-semibold rounded-lg hover:bg-emerald-600">
                 <Plus className="w-4 h-4" /> Nova Conta a Receber
               </button>
@@ -364,14 +392,14 @@ export default function APARPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">BU</label>
-                    <select value={arForm.bu} onChange={(e) => setArForm((f) => ({ ...f, bu: e.target.value as BU }))}
+                    <select value={arForm.bu} onChange={(e: ChangeEvent<HTMLSelectElement>) => setArForm((f: typeof EMPTY_AR) => ({ ...f, bu: e.target.value as BU }))}
                       className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
                       {BUS.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
                     </select>
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Categoria</label>
-                    <select value={arForm.category} onChange={(e) => setArForm((f) => ({ ...f, category: e.target.value }))}
+                    <select value={arForm.category} onChange={(e: ChangeEvent<HTMLSelectElement>) => setArForm((f: typeof EMPTY_AR) => ({ ...f, category: e.target.value }))}
                       className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" required>
                       <option value="">Selecione…</option>
                       {AR_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
@@ -379,22 +407,22 @@ export default function APARPage() {
                   </div>
                   <div className="sm:col-span-2">
                     <label className="block text-xs font-medium text-gray-600 mb-1">Descrição</label>
-                    <input value={arForm.description} onChange={(e) => setArForm((f) => ({ ...f, description: e.target.value }))}
+                    <input value={arForm.description} onChange={(e: ChangeEvent<HTMLInputElement>) => setArForm((f: typeof EMPTY_AR) => ({ ...f, description: e.target.value }))}
                       className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" required placeholder="Ex: NF 001/2025" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Entidade (Devedor)</label>
-                    <input value={arForm.entity} onChange={(e) => setArForm((f) => ({ ...f, entity: e.target.value }))}
+                    <input value={arForm.entity} onChange={(e: ChangeEvent<HTMLInputElement>) => setArForm((f: typeof EMPTY_AR) => ({ ...f, entity: e.target.value }))}
                       className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" required placeholder="Nome ou CNPJ" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Valor (R$)</label>
-                    <input type="number" step="0.01" min="0" value={arForm.amount} onChange={(e) => setArForm((f) => ({ ...f, amount: e.target.value }))}
+                    <input type="number" step="0.01" min="0" value={arForm.amount} onChange={(e: ChangeEvent<HTMLInputElement>) => setArForm((f: typeof EMPTY_AR) => ({ ...f, amount: e.target.value }))}
                       className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" required />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Vencimento</label>
-                    <input type="date" value={arForm.dueDate} onChange={(e) => setArForm((f) => ({ ...f, dueDate: e.target.value }))}
+                    <input type="date" value={arForm.dueDate} onChange={(e: ChangeEvent<HTMLInputElement>) => setArForm((f: typeof EMPTY_AR) => ({ ...f, dueDate: e.target.value }))}
                       className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" required />
                   </div>
                 </div>
@@ -425,7 +453,7 @@ export default function APARPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {arFiltered.map((ar) => {
+                    {arFiltered.map((ar: ARItem) => {
                       const live = { ...ar, status: arStatus(ar.dueDate, ar.status) };
                       const cfg  = AR_STATUS_CONFIG[live.status];
                       const StatusIcon = cfg.icon;
