@@ -1,44 +1,41 @@
-// GET  /api/awq/ar/clientes   — lista clientes AR
-// POST /api/awq/ar/clientes   — cria cliente AR
+// GET  /api/awq/ar/clientes
+// POST /api/awq/ar/clientes
 
 import { NextRequest, NextResponse } from "next/server";
 import { apiGuard } from "@/lib/api-guard";
 import { listARCustomers, createARCustomer } from "@/lib/ar-db";
+import type { ARCustomerType, PaymentTerms, PaymentMethod, RiskRating, ARCustomerStatus } from "@/lib/ar-db";
 import { sql } from "@/lib/db";
 
 export const runtime = "nodejs";
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
-  const denied = await apiGuard(req, "view", "awq_holding", "AR — Clientes");
+  const denied = await apiGuard(req, "view", "holding", "AR — Clientes");
   if (denied) return denied;
 
   const { searchParams } = new URL(req.url);
-  const bu     = searchParams.get("bu")     ?? undefined;
-  const status = searchParams.get("status") ?? undefined;
-
-  const customers = await listARCustomers({ bu, status });
+  const customers = await listARCustomers({
+    bu:     searchParams.get("bu")     ?? undefined,
+    status: searchParams.get("status") ?? undefined,
+  });
   return NextResponse.json(customers);
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  const denied = await apiGuard(req, "create", "awq_holding", "AR — Clientes");
+  const denied = await apiGuard(req, "create", "holding", "AR — Clientes");
   if (denied) return denied;
 
   if (!sql) return NextResponse.json({ error: "DB não disponível" }, { status: 503 });
 
   try {
     const body = await req.json() as Record<string, unknown>;
-
-    if (!String(body.legal_name ?? "").trim()) {
-      return NextResponse.json({ error: "legal_name é obrigatório" }, { status: 400 });
-    }
-    if (!String(body.document_number ?? "").trim()) {
-      return NextResponse.json({ error: "document_number é obrigatório" }, { status: 400 });
-    }
-
-    const str = (k: string, def = "") => String(body[k] ?? def).trim();
-    const num = (k: string, def = 0) => Number(body[k] ?? def) || def;
+    const str  = (k: string, def = "") => String(body[k] ?? def).trim();
+    const num  = (k: string, def = 0)  => Number(body[k] ?? def) || def;
     const bool = (k: string, def = false) => body[k] != null ? Boolean(body[k]) : def;
+    const nullable = (k: string) => str(k) || null;
+
+    if (!str("legal_name"))     return NextResponse.json({ error: "legal_name é obrigatório" },     { status: 400 });
+    if (!str("document_number")) return NextResponse.json({ error: "document_number é obrigatório" }, { status: 400 });
 
     const customer = await createARCustomer({
       legal_name:                   str("legal_name"),
@@ -47,7 +44,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       document_number:              str("document_number"),
       state_registration:           str("state_registration"),
       municipal_registration:       str("municipal_registration"),
-      customer_type:                (str("customer_type", "b2b")) as never,
+      customer_type:                str("customer_type", "b2b") as ARCustomerType,
       industry:                     str("industry"),
       segment:                      str("segment"),
       primary_contact_name:         str("primary_contact_name"),
@@ -72,8 +69,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       billing_address_city:         str("billing_address_city"),
       billing_address_state:        str("billing_address_state"),
       billing_address_zip_code:     str("billing_address_zip_code"),
-      default_payment_terms:        (str("default_payment_terms", "30_days")) as never,
-      default_payment_method:       (str("default_payment_method", "pix")) as never,
+      default_payment_terms:        str("default_payment_terms", "30_days") as PaymentTerms,
+      default_payment_method:       str("default_payment_method", "pix") as PaymentMethod,
       price_table:                  str("price_table"),
       discount_percentage:          num("discount_percentage"),
       banco:                        str("banco"),
@@ -83,17 +80,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       credit_limit:                 num("credit_limit"),
       current_receivable:           num("current_receivable"),
       credit_score:                 num("credit_score", 500),
-      credit_analysis_date:         str("credit_analysis_date") || null,
-      risk_rating:                  (str("risk_rating", "medium")) as never,
+      credit_analysis_date:         nullable("credit_analysis_date"),
+      risk_rating:                  str("risk_rating", "medium") as RiskRating,
       avg_days_to_pay:              num("avg_days_to_pay"),
       on_time_payment_rate:         num("on_time_payment_rate", 100),
       total_revenue_lifetime:       num("total_revenue_lifetime"),
-      last_purchase_date:           str("last_purchase_date") || null,
-      status:                       (str("status", "active")) as never,
+      last_purchase_date:           nullable("last_purchase_date"),
+      status:                       str("status", "active") as ARCustomerStatus,
       is_blocked:                   bool("is_blocked"),
       block_reason:                 str("block_reason"),
-      relationship_start_date:      str("relationship_start_date") || null,
-      relationship_end_date:        str("relationship_end_date") || null,
+      relationship_start_date:      nullable("relationship_start_date"),
+      relationship_end_date:        nullable("relationship_end_date"),
       bu:                           str("bu", "awq"),
       notes:                        str("notes"),
       created_by:                   str("created_by"),
