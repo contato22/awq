@@ -31,6 +31,9 @@ import {
   Pencil,
   Search,
   SlidersHorizontal,
+  Link2,
+  Unlink,
+  RefreshCw,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -38,6 +41,8 @@ import {
 type ItemType   = "ap" | "ar";
 type ItemStatus = "pending" | "overdue" | "settled";
 type BU         = "awq" | "jacqes" | "caza" | "venture" | "advisor";
+
+type FinancialLinkStatus = "linked" | "partial" | "unlinked";
 
 interface APARItem {
   id: string;
@@ -50,6 +55,19 @@ interface APARItem {
   status: ItemStatus;
   category: string;
   createdAt: string;
+  financialLinkStatus?: FinancialLinkStatus;
+  financialLinkNote?: string;
+  financialLinkSource?: "ai" | "heuristic";
+}
+
+// Minimal bank transaction snapshot for client-side matching
+interface BankTxSnap {
+  id: string;
+  direction: "credit" | "debit";
+  amount: number;
+  transactionDate: string;
+  descriptionOriginal: string;
+  counterpartyName: string | null;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -112,6 +130,82 @@ function computeStatus(dueDate: string, current: ItemStatus): ItemStatus {
 
 const EMPTY_FORM = { description: "", entity: "", amount: "", dueDate: "", category: "", bu: "awq" as BU };
 
+// ─── Financial-link helpers ───────────────────────────────────────────────────
+
+function loadBankSnapshots(): BankTxSnap[] {
+  try {
+    const manual   = JSON.parse(localStorage.getItem("awq_manual_transactions") ?? "[]") as BankTxSnap[];
+    const overrides = JSON.parse(localStorage.getItem("awq_reconciliation_overrides") ?? "{}") as Record<string, Partial<BankTxSnap>>;
+    return manual.map((tx) => ({ ...tx, ...(overrides[tx.id] ?? {}) }));
+  } catch { return []; }
+}
+
+function computeHeuristicLink(
+  item: APARItem,
+  txs: BankTxSnap[]
+): { status: FinancialLinkStatus; note: string } {
+  if (item.status === "settled") {
+    return { status: "linked", note: "Item liquidado pelo usuário." };
+  }
+  const expectedDir = item.type === "ap" ? "debit" : "credit";
+  const dueMs  = new Date(item.dueDate).getTime();
+  const ms15d  = 15 * 24 * 60 * 60 * 1000;
+  const entNorm = item.entity.toLowerCase().trim();
+
+  const candidates = txs.filter((tx) => {
+    if (tx.direction !== expectedDir) return false;
+    const amtDelta  = Math.abs(tx.amount - item.amount) / Math.max(item.amount, 1);
+    const dateDelta = Math.abs(new Date(tx.transactionDate).getTime() - dueMs);
+    return amtDelta <= 0.05 && dateDelta <= ms15d;
+  });
+
+  if (candidates.length === 0) {
+    return { status: "unlinked", note: "Nenhuma transação bancária com valor e data compatíveis." };
+  }
+
+  const hasEntity =
+    entNorm.length > 2 &&
+    candidates.some((tx) => {
+      const cp   = (tx.counterpartyName ?? "").toLowerCase();
+      const desc = tx.descriptionOriginal.toLowerCase();
+      return cp.includes(entNorm) || desc.includes(entNorm) || (cp.length > 2 && entNorm.includes(cp));
+    });
+
+  return hasEntity
+    ? { status: "linked",  note: "Transação correspondente por valor, data e contraparte." }
+    : { status: "partial", note: "Valor e data compatíveis; contraparte não confirmada." };
+}
+
+const LINK_CONFIG: Record<FinancialLinkStatus, { label: string; color: string; icon: ElementType }> = {
+  linked:   { label: "Vinculado",     color: "bg-emerald-100 text-emerald-700", icon: Link2    },
+  partial:  { label: "Provável",      color: "bg-amber-100  text-amber-700",    icon: Link2    },
+  unlinked: { label: "Não Vinculado", color: "bg-red-100    text-red-700",      icon: Unlink   },
+};
+
+function FinancialLinkBadge({
+  status,
+  note,
+  source,
+}: {
+  status?: FinancialLinkStatus;
+  note?: string;
+  source?: "ai" | "heuristic";
+}) {
+  if (!status) return <span className="text-[10px] text-gray-300">—</span>;
+  const cfg  = LINK_CONFIG[status];
+  const Icon = cfg.icon;
+  return (
+    <span
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${cfg.color}`}
+      title={note ?? ""}
+    >
+      <Icon size={9} />
+      {cfg.label}
+      {source === "ai" && <span className="opacity-60 ml-0.5">IA</span>}
+    </span>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function APARPage() {
@@ -127,20 +221,33 @@ export default function APARPage() {
   const [periodFilter, setPeriodFilter] = useState<"all" | "overdue" | "this_month" | "custom">("all");
   const [customFrom, setCustomFrom]     = useState("");
   const [customTo, setCustomTo]         = useState("");
+  const [bankTxSnaps, setBankTxSnaps]   = useState<BankTxSnap[]>([]);
+  const [linkChecking, setLinkChecking] = useState(false);
 
   // ── Load from localStorage ───────────────────────────────────────────────
   useEffect(() => {
+    const snaps = loadBankSnapshots();
+    setBankTxSnaps(snaps);
     try {
       const raw = localStorage.getItem(LS_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as APARItem[];
         const validBUs = new Set(BUS.map((b) => b.id));
-        const refreshed = parsed.map((item) => ({
-          ...item,
-          bu: (validBUs.has(item.bu) ? item.bu : "awq") as BU,
-          status: computeStatus(item.dueDate, item.status),
-        }));
+        const refreshed = parsed.map((item) => {
+          const base = {
+            ...item,
+            bu: (validBUs.has(item.bu) ? item.bu : "awq") as BU,
+            status: computeStatus(item.dueDate, item.status),
+          };
+          // Auto-compute heuristic link if not yet AI-verified
+          if (!base.financialLinkStatus || base.financialLinkSource === "heuristic") {
+            const link = computeHeuristicLink(base, snaps);
+            return { ...base, financialLinkStatus: link.status, financialLinkNote: link.note, financialLinkSource: "heuristic" as const };
+          }
+          return base;
+        });
         setItems(refreshed);
+        try { localStorage.setItem(LS_KEY, JSON.stringify(refreshed)); } catch { /* ignore */ }
       }
     } catch { /* ignore */ }
   }, []);
@@ -265,6 +372,60 @@ export default function APARPage() {
   const openItems    = visible.filter((i) => i.status !== "settled" && matchesPeriod(i));
   const settledItems = visible.filter((i) => i.status === "settled");
 
+  // ── Financial link verification (AI + heuristic) ─────────────────────────
+  async function handleVerifyLinks() {
+    setLinkChecking(true);
+    try {
+      const snaps = loadBankSnapshots();
+      const scopedItems = items.filter((i) => i.type === activeTab && buFilter(i));
+
+      const body = {
+        items: scopedItems.map(({ id, type, description, entity, amount, dueDate, status, category, bu }) => ({
+          id, type, description, entity, amount, dueDate, status, category, bu,
+        })),
+        transactions: snaps.map(({ id, direction, amount, transactionDate, descriptionOriginal, counterpartyName }) => ({
+          id, direction, amount, transactionDate, descriptionOriginal, counterpartyName,
+        })),
+      };
+
+      const res = await fetch("/api/financial-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) throw new Error("API error");
+
+      const data = await res.json() as {
+        results: Array<{ id: string; status: FinancialLinkStatus; note: string }>;
+        source: "ai" | "heuristic";
+      };
+
+      const linkMap = new Map(data.results.map((r) => [r.id, r]));
+      const updated = items.map((item) => {
+        const link = linkMap.get(item.id);
+        if (!link) return item;
+        return {
+          ...item,
+          financialLinkStatus: link.status,
+          financialLinkNote: link.note,
+          financialLinkSource: data.source,
+        };
+      });
+      save(updated);
+    } catch {
+      // Fallback: heuristic for all items
+      const snaps = loadBankSnapshots();
+      const updated = items.map((item) => {
+        const link = computeHeuristicLink(item, snaps);
+        return { ...item, financialLinkStatus: link.status, financialLinkNote: link.note, financialLinkSource: "heuristic" as const };
+      });
+      save(updated);
+    } finally {
+      setLinkChecking(false);
+    }
+  }
+
   // ── Per-BU breakdown (for summary row) ───────────────────────────────────
   const buBreakdown = BUS.map((bu) => {
     const buAP = apAll.filter((i) => i.bu === bu.id && i.status !== "settled").reduce((s, i) => s + i.amount, 0);
@@ -388,6 +549,15 @@ export default function APARPage() {
             );
           })}
           <div className="flex-1" />
+          <button
+            onClick={() => void handleVerifyLinks()}
+            disabled={linkChecking || items.filter((i) => i.type === activeTab).length === 0}
+            title="Verifica vínculos com transações bancárias (heurística + IA)"
+            className="flex items-center gap-1.5 px-3 py-1.5 mb-1.5 rounded-lg text-xs font-semibold text-indigo-600 hover:bg-indigo-50 border border-indigo-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            <RefreshCw size={13} className={linkChecking ? "animate-spin" : ""} />
+            {linkChecking ? "Verificando…" : "Verificar Vínculos"}
+          </button>
           <button
             onClick={() => setShowForm((v) => !v)}
             className="flex items-center gap-1.5 px-3 py-1.5 mb-1.5 rounded-lg text-xs font-semibold text-gray-500 hover:bg-gray-100 transition-colors"
@@ -620,6 +790,7 @@ export default function APARPage() {
                           <th className="text-left py-2 px-3 text-xs font-semibold">Categoria</th>
                           <th className="text-left py-2 px-3 text-xs font-semibold">Vencimento</th>
                           <th className="text-left py-2 px-3 text-xs font-semibold">Status</th>
+                          <th className="text-left py-2 px-3 text-xs font-semibold">Vínculo Fin.</th>
                           <th className="text-right py-2 px-3 text-xs font-semibold">Valor</th>
                           <th className="py-2 px-3" />
                         </tr>
@@ -653,6 +824,13 @@ export default function APARPage() {
                                     {st.label}
                                   </span>
                                 </td>
+                                <td className="py-2.5 px-3">
+                                  <FinancialLinkBadge
+                                    status={item.financialLinkStatus}
+                                    note={item.financialLinkNote}
+                                    source={item.financialLinkSource}
+                                  />
+                                </td>
                                 <td className={`py-2.5 px-3 text-right text-xs font-bold ${activeTab === "ap" ? "text-red-600" : "text-emerald-600"}`}>
                                   {activeTab === "ap" ? "-" : "+"}{fmtR(item.amount)}
                                 </td>
@@ -675,7 +853,7 @@ export default function APARPage() {
                       </tbody>
                       <tfoot>
                         <tr className="border-t-2 border-gray-200">
-                          <td colSpan={6} className="py-2.5 px-3 text-xs font-semibold text-gray-600">
+                          <td colSpan={7} className="py-2.5 px-3 text-xs font-semibold text-gray-600">
                             Total em aberto{activeBU !== "all" ? ` — ${BU_MAP[activeBU].label}` : ""}
                           </td>
                           <td className={`py-2.5 px-3 text-right text-sm font-bold ${activeTab === "ap" ? "text-red-600" : "text-emerald-600"}`}>
@@ -718,6 +896,13 @@ export default function APARPage() {
                                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700">
                                     <CheckCircle2 size={10} /> Liquidado
                                   </span>
+                                </td>
+                                <td className="py-2 px-3">
+                                  <FinancialLinkBadge
+                                    status={item.financialLinkStatus}
+                                    note={item.financialLinkNote}
+                                    source={item.financialLinkSource}
+                                  />
                                 </td>
                                 <td className="py-2 px-3 text-right text-xs font-medium text-gray-400">{fmtR(item.amount)}</td>
                                 <td className="py-2 px-3">

@@ -23,7 +23,7 @@ import type {
   ReconciliationStatus,
 } from "@/lib/financial-db";
 import type { ImportResult } from "@/lib/financial/importers/types";
-import { AlertTriangle, ChevronDown, ChevronUp, Upload, X } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronUp, Upload, X, Link2, Unlink } from "lucide-react";
 
 // ─── Taxonomies & labels ──────────────────────────────────────────────────────
 
@@ -154,6 +154,78 @@ function applyOverrides(
   );
 }
 
+// ─── AP/AR link helpers ───────────────────────────────────────────────────────
+
+interface ApArSnap {
+  id: string;
+  type: "ap" | "ar";
+  entity: string;
+  amount: number;
+  dueDate: string;
+  status: string;
+}
+
+type ApArLinkStatus = "linked" | "partial" | "unlinked";
+
+function loadApArSnaps(): ApArSnap[] {
+  try {
+    const raw = localStorage.getItem("awq_ap_items");
+    return raw ? (JSON.parse(raw) as ApArSnap[]) : [];
+  } catch { return []; }
+}
+
+function computeApArLink(
+  tx: BankTransaction,
+  apArItems: ApArSnap[]
+): { status: ApArLinkStatus; note: string } {
+  const expectedType = tx.direction === "debit" ? "ap" : "ar";
+  const txMs  = new Date(tx.transactionDate).getTime();
+  const ms15d = 15 * 24 * 60 * 60 * 1000;
+
+  const candidates = apArItems.filter((item) => {
+    if (item.type !== expectedType) return false;
+    const amtDelta  = Math.abs(item.amount - Math.abs(tx.amount)) / Math.max(Math.abs(tx.amount), 1);
+    const dateDelta = Math.abs(new Date(item.dueDate).getTime() - txMs);
+    return amtDelta <= 0.05 && dateDelta <= ms15d;
+  });
+
+  if (candidates.length === 0) {
+    return { status: "unlinked", note: "Sem AP/AR correspondente por valor e data." };
+  }
+
+  const cpName = (tx.counterpartyName ?? "").toLowerCase();
+  const desc   = tx.descriptionOriginal.toLowerCase();
+
+  const hasEntity = candidates.some((item) => {
+    const ent = item.entity.toLowerCase().trim();
+    return ent.length > 2 && (cpName.includes(ent) || desc.includes(ent) || (cpName.length > 2 && ent.includes(cpName)));
+  });
+
+  return hasEntity
+    ? { status: "linked",  note: "AP/AR correspondente por valor, data e entidade." }
+    : { status: "partial", note: "AP/AR correspondente por valor e data; entidade não confirmada." };
+}
+
+const APAR_LINK_CONFIG: Record<ApArLinkStatus, { label: string; color: string; icon: import("react").ElementType }> = {
+  linked:   { label: "AP/AR ✓",   color: "bg-emerald-50 text-emerald-700 border-emerald-200", icon: Link2  },
+  partial:  { label: "AP/AR ~",   color: "bg-amber-50  text-amber-700  border-amber-200",    icon: Link2  },
+  unlinked: { label: "Sem AP/AR", color: "bg-gray-50   text-gray-500   border-gray-200",     icon: Unlink },
+};
+
+function ApArLinkBadge({ status, note }: { status: ApArLinkStatus; note: string }) {
+  const cfg  = APAR_LINK_CONFIG[status];
+  const Icon = cfg.icon;
+  return (
+    <span
+      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px] font-medium ${cfg.color}`}
+      title={note}
+    >
+      <Icon size={9} />
+      {cfg.label}
+    </span>
+  );
+}
+
 // ─── Importer helper ─────────────────────────────────────────────────────────
 
 function importedToBankTx(t: import("@/lib/financial/importers/types").ImportedTransaction): BankTransaction {
@@ -200,6 +272,7 @@ export default function ReconciliationReviewTable({
   const [toast, setToast] = useState<{ kind: "ok" | "err" | "info"; msg: string } | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [, startTransition] = useTransition();
+  const [apArSnaps, setApArSnaps] = useState<ApArSnap[]>([]);
 
   // Import state
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
@@ -221,6 +294,11 @@ export default function ReconciliationReviewTable({
     setTransactions([...withOverrides, ...newManualWithOverrides]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isStatic]);
+
+  // Load AP/AR items for link column
+  useEffect(() => {
+    setApArSnaps(loadApArSnaps());
+  }, []);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { todos: transactions.length, pendente: 0, em_revisao: 0, conciliado: 0, descartado: 0 };
@@ -555,6 +633,7 @@ export default function ReconciliationReviewTable({
                 <th className="px-3 py-2 text-left">DFC</th>
                 <th className="px-3 py-2 text-left">DRE</th>
                 <th className="px-3 py-2 text-left">Status</th>
+                <th className="px-3 py-2 text-left">Vínculo AP/AR</th>
                 <th className="px-3 py-2 text-left">Nota</th>
                 <th className="px-3 py-2 text-right">Ações</th>
               </tr>
@@ -647,6 +726,16 @@ export default function ReconciliationReviewTable({
                         </span>
                       )}
                     </td>
+
+                    {/* AP/AR link — derived from localStorage awq_ap_items */}
+                    {(() => {
+                      const link = computeApArLink(t, apArSnaps);
+                      return (
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          <ApArLinkBadge status={link.status} note={link.note} />
+                        </td>
+                      );
+                    })()}
 
                     {/* Note + flags — EDITABLE */}
                     <td className="px-3 py-2 max-w-[180px]">
