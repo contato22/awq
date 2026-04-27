@@ -73,6 +73,7 @@ export async function initDB(): Promise<void> {
       is_intercompany             BOOLEAN NOT NULL DEFAULT false,
       intercompany_match_id       TEXT,
       excluded_from_consolidated  BOOLEAN NOT NULL DEFAULT false,
+      reconciliation_status       TEXT NOT NULL DEFAULT 'pendente',
       extracted_at                TEXT NOT NULL,
       classified_at               TEXT
     )

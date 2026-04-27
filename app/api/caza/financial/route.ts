@@ -8,8 +8,19 @@ import { sql } from "@/lib/db";
 export const runtime = "nodejs";
 
 const MONTH_NAMES = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
-function monthLabel(isoDate: string): string { const p = isoDate.split("-"); return `${MONTH_NAMES[parseInt(p[1],10)-1]}/${p[0].slice(2)}`; }
-function monthIndex(label: string): number { const [m, y] = label.split("/"); return parseInt("20" + y, 10) * 12 + MONTH_NAMES.indexOf(m); }
+function monthLabel(isoDate: string): string | null {
+  const p = isoDate.split("-");
+  if (p.length < 2) return null;
+  const m = parseInt(p[1], 10) - 1;
+  if (m < 0 || m > 11 || isNaN(m)) return null;
+  return `${MONTH_NAMES[m]}/${p[0].slice(2)}`;
+}
+function monthIndex(label: string): number {
+  const [m, y] = label.split("/");
+  const mi = MONTH_NAMES.indexOf(m);
+  if (mi === -1 || !y) return 0;
+  return parseInt("20" + y, 10) * 12 + mi;
+}
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   const denied = await apiGuard(req, "view", "caza_vision", "Financeiro Caza Vision");
@@ -27,6 +38,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     for (const p of projects) {
       if (!p.prazo) continue;
       const label = monthLabel(p.prazo);
+      if (!label) continue;
       const acc = map.get(label) ?? { month: label, receita: 0, alimentacao: 0, gasolina: 0, expenses: 0, profit: 0, orcamento: 0 };
       acc.receita += p.valor; acc.alimentacao += p.alimentacao; acc.gasolina += p.gasolina;
       acc.expenses += p.despesas; acc.profit += p.lucro; acc.orcamento += p.valor;

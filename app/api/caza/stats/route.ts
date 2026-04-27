@@ -35,7 +35,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
   const activeProjects    = projects.filter(p => !p.recebido).length;
   const deliveredProjects = projects.filter(p => p.recebido).length;
-  const receitaYtd        = projects.filter(p => p.prazo.startsWith(String(currentYear))).reduce((s, p) => s + p.valor, 0);
+  const receitaYtd        = projects.filter(p => p.prazo?.startsWith(String(currentYear))).reduce((s, p) => s + p.valor, 0);
   const receitaTotal      = projects.reduce((s, p) => s + p.valor, 0);
   const totalDespesas     = projects.reduce((s, p) => s + p.despesas, 0);
   const totalLucro        = projects.reduce((s, p) => s + p.lucro, 0);

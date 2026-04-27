@@ -31,11 +31,15 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-      { auth: { persistSession: false } }
-    );
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const serviceKey  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!supabaseUrl || !serviceKey) {
+      return Response.json(
+        { error: "SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not configured" },
+        { status: 503, headers: corsHeaders }
+      );
+    }
+    const supabase = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
     const url = new URL(req.url);
     const entityFilter = url.searchParams.get("entity");
