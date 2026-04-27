@@ -26,6 +26,7 @@ import type {
   ManagerialCategory,
   ReconciliationStatus,
 } from "@/lib/financial-db";
+import { batchAutoMatch, type AutoMatchResult } from "@/lib/auto-match";
 import {
   Building2,
   ChevronDown,
@@ -33,6 +34,7 @@ import {
   ChevronRight,
   CheckCircle2,
   Search,
+  Sparkles,
   X,
 } from "lucide-react";
 
@@ -317,6 +319,13 @@ export default function BankReconciliationBoard({
     pagamentos:   tabTxns.filter((t) => t.direction === "debit").length,
   }), [tabTxns]);
 
+  // ── Auto-match: find best historical match for each pending transaction ────
+  const autoMatchMap = useMemo(
+    () => batchAutoMatch(pendentes, transactions),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [pendentes.map((t) => t.id).join(","), transactions.length],
+  );
+
   // ── Toast ───────────────────────────────────────────────────────────────────
   function showToast(kind: "ok" | "err" | "info", msg: string) {
     setToast({ kind, msg });
@@ -374,6 +383,39 @@ export default function BankReconciliationBoard({
   function handleIgnore(id: string) {
     applyPatch(id, { reconciliationStatus: "descartado" as ReconciliationStatus });
     showToast("info", "Lançamento ignorado.");
+  }
+
+  // ── Aceitar sugestão automática ───────────────────────────────────────────────
+  async function handleAcceptSuggestion(id: string, match: AutoMatchResult) {
+    const patch: Partial<BankTransaction> = {
+      counterpartyName:         match.suggestedCounterparty ?? undefined,
+      managerialCategory:       match.suggestedCategory,
+      classificationNote:       match.suggestedNote ?? undefined,
+      classificationConfidence: "probable",
+    };
+    if (isStatic) {
+      applyPatch(id, patch);
+      showToast("ok", "Sugestão aceita.");
+      return;
+    }
+    setSavingId(id);
+    try {
+      const res = await fetch(`/api/transactions/${id}`, {
+        method:  "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify(patch),
+      });
+      if (!res.ok) throw new Error("Falha ao salvar");
+      const updated = (await res.json()) as BankTransaction;
+      startTransition(() =>
+        setTransactions((prev) => prev.map((t) => (t.id === id ? updated : t)))
+      );
+      showToast("ok", "Sugestão aceita.");
+    } catch (e) {
+      showToast("err", e instanceof Error ? e.message : "Falha ao salvar");
+    } finally {
+      setSavingId(null);
+    }
   }
 
   // ── Bulk conciliar ───────────────────────────────────────────────────────────
@@ -686,6 +728,28 @@ export default function BankReconciliationBoard({
           const isSaving   = savingId === tx.id;
           const catLabel   = CAT_LABEL[tx.managerialCategory] ?? tx.managerialCategory;
 
+          // Auto-match suggestion (only relevant for the pending tab)
+          const autoMatch  = activeTab === "pendentes" ? (autoMatchMap.get(tx.id) ?? null) : null;
+          // Show suggestion when classification is ambiguous/unclassified, or when
+          // auto-match is high-confidence and better than current classification.
+          const isAmbiguous =
+            tx.managerialCategory === "despesa_ambigua" ||
+            tx.managerialCategory === "recebimento_ambiguo" ||
+            tx.managerialCategory === "unclassified";
+          const showSuggestion =
+            autoMatch !== null &&
+            (isAmbiguous || autoMatch.confidence === "alta");
+
+          // Decide which values to display on the right (AWQ system) side
+          const displayCounterparty = showSuggestion
+            ? (autoMatch.suggestedCounterparty ?? tx.counterpartyName)
+            : tx.counterpartyName;
+          const displayCategory = showSuggestion
+            ? autoMatch.suggestedCategory
+            : tx.managerialCategory;
+          const displayCatLabel =
+            CAT_LABEL[displayCategory] ?? displayCategory;
+
           return (
             <div
               key={tx.id}
@@ -791,25 +855,128 @@ export default function BankReconciliationBoard({
                   {tx.descriptionOriginal}
                 </p>
 
-                {/* Meta grid */}
-                <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-[11px]">
-                  <div>
-                    <span className="text-gray-400">Cliente: </span>
-                    <span className="text-gray-700">{tx.counterpartyName ?? "Não informado"}</span>
+                {/* ── Auto-match suggestion banner ──────────────────────── */}
+                {showSuggestion && autoMatch && (
+                  <div className={
+                    "rounded-lg border px-3 py-2 space-y-1.5 " +
+                    (autoMatch.confidence === "alta"
+                      ? "bg-blue-50 border-blue-200"
+                      : autoMatch.confidence === "media"
+                      ? "bg-amber-50 border-amber-200"
+                      : "bg-gray-50 border-gray-200")
+                  }>
+                    {/* Header */}
+                    <div className="flex items-center gap-1.5">
+                      <Sparkles size={11} className={
+                        autoMatch.confidence === "alta"  ? "text-blue-500" :
+                        autoMatch.confidence === "media" ? "text-amber-500" :
+                                                           "text-gray-400"
+                      } />
+                      <span className={
+                        "text-[10px] font-bold uppercase tracking-wide " +
+                        (autoMatch.confidence === "alta"  ? "text-blue-600" :
+                         autoMatch.confidence === "media" ? "text-amber-600" :
+                                                            "text-gray-500")
+                      }>
+                        Sugestão automática · confiança {autoMatch.confidence}
+                      </span>
+                    </div>
+
+                    {/* Suggested values */}
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px]">
+                      <div>
+                        <span className="text-gray-400">Cliente: </span>
+                        <span className="font-medium text-gray-800">
+                          {autoMatch.suggestedCounterparty ?? "—"}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-400">Categoria: </span>
+                        <span className="font-medium text-gray-800">
+                          {CAT_LABEL[autoMatch.suggestedCategory] ?? autoMatch.suggestedCategory}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Match reasons */}
+                    {autoMatch.matchReasons.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {autoMatch.matchReasons.map((r, i) => (
+                          <span
+                            key={i}
+                            className={
+                              "text-[10px] rounded px-1.5 py-0.5 border " +
+                              (r.weight === "forte"
+                                ? "bg-blue-100 border-blue-200 text-blue-700"
+                                : r.weight === "moderado"
+                                ? "bg-gray-100 border-gray-200 text-gray-600"
+                                : "bg-gray-50 border-gray-200 text-gray-400")
+                            }
+                          >
+                            {r.label}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Accept button */}
+                    <button
+                      disabled={isSaving}
+                      onClick={() => void handleAcceptSuggestion(tx.id, autoMatch)}
+                      className={
+                        "w-full py-1 rounded-md text-[11px] font-semibold transition-colors disabled:opacity-50 " +
+                        (autoMatch.confidence === "alta"
+                          ? "bg-blue-600 hover:bg-blue-700 text-white"
+                          : "bg-white hover:bg-gray-50 text-gray-700 border border-gray-300")
+                      }
+                    >
+                      {isSaving ? "…" : "Aceitar sugestão"}
+                    </button>
                   </div>
-                  <div>
-                    <span className="text-gray-400">Categoria: </span>
-                    <span className="text-gray-700">{catLabel}</span>
+                )}
+
+                {/* ── Confirmed classification (no suggestion needed) ────── */}
+                {!showSuggestion && (
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-[11px]">
+                    <div>
+                      <span className="text-gray-400">Cliente: </span>
+                      <span className="text-gray-700">
+                        {displayCounterparty ?? "Não informado"}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-400">Categoria: </span>
+                      <span className="text-gray-700">{displayCatLabel}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-400">Juros/multa: </span>
+                      <span className="text-gray-700">{fmtBRL(0)}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-400">Desconto: </span>
+                      <span className="text-gray-700">{fmtBRL(0)}</span>
+                    </div>
                   </div>
+                )}
+
+                {/* Classification confidence badge */}
+                {!showSuggestion && tx.classificationConfidence && (
                   <div>
-                    <span className="text-gray-400">Juros/multa: </span>
-                    <span className="text-gray-700">{fmtBRL(0)}</span>
+                    <span className={
+                      "text-[10px] px-1.5 py-0.5 rounded border font-medium " +
+                      (tx.classificationConfidence === "confirmed"
+                        ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                        : tx.classificationConfidence === "probable"
+                        ? "bg-blue-50 border-blue-200 text-blue-600"
+                        : "bg-gray-50 border-gray-200 text-gray-500")
+                    }>
+                      {tx.classificationConfidence === "confirmed" ? "Confirmado" :
+                       tx.classificationConfidence === "probable"  ? "Provável" :
+                       tx.classificationConfidence === "ambiguous" ? "Revisar" :
+                                                                     "Não classificado"}
+                    </span>
                   </div>
-                  <div>
-                    <span className="text-gray-400">Desconto: </span>
-                    <span className="text-gray-700">{fmtBRL(0)}</span>
-                  </div>
-                </div>
+                )}
 
                 {/* Action buttons */}
                 <div className="flex items-center gap-2 mt-auto pt-1">
