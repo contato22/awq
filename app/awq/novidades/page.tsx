@@ -22,6 +22,81 @@ interface Novidade {
 
 const NOVIDADES: Novidade[] = [
   {
+    id: "ap-ar-cadastro-ux",
+    data: "2026-04-27",
+    modulo: "AP & AR",
+    titulo: "Cadastro com validação em tempo real e feedback visual",
+    descricao: "Reformulação completa do formulário de registro de AP e AR: campos com labels consistentes, validação visual ao tentar submeter incompleto, e confirmação instantânea após cada lançamento.",
+    tipo: "melhoria",
+    itens: [
+      "Labels em todos os campos — Descrição, Fornecedor/Cliente, Valor, Vencimento, Categoria, BU",
+      "Label contextual: 'Fornecedor' na aba AP e 'Cliente' na aba AR",
+      "R$ prefixo visual no campo de valor — nenhuma ambiguidade sobre moeda",
+      "Validação com toque: bordas vermelhas + mensagem por campo ao submeter incompleto",
+      "Flash de sucesso: botão vira verde 'Adicionado!' por 1.8s após cadastro",
+      "Enter em qualquer campo submete o formulário",
+      "BU inteligente: herda o filtro de BU ativo ao criar novos itens",
+      "Limpar mantém a BU selecionada (não reseta para AWQ Holding)",
+    ],
+  },
+  {
+    id: "ap-ar-cadastro-modal-ux",
+    data: "2026-04-27",
+    modulo: "AP & AR",
+    titulo: "Modal de edição com foco automático e atalho Escape",
+    descricao: "Ao abrir o modal de edição, o campo Descrição recebe foco automaticamente — Escape fecha imediatamente e clique fora do modal também cancela.",
+    tipo: "melhoria",
+    itens: [
+      "autoFocus no campo Descrição ao abrir — sem necessidade de clicar primeiro",
+      "Tecla Escape fecha o modal de qualquer campo",
+      "Clique no backdrop escuro cancela sem precisar do botão",
+      "Labels consistentes em todos os campos do modal",
+      "R$ prefixo visual no campo de valor",
+      "Botão Salvar com ícone de confirmação e divisor visual antes das ações",
+    ],
+  },
+  {
+    id: "ap-ar-cadastro-fixes",
+    data: "2026-04-27",
+    modulo: "AP & AR",
+    titulo: "Correções da análise criteriosa pós-entrega",
+    descricao: "Análise minuciosa do código identificou dois bugs antes do deploy.",
+    tipo: "fix",
+    itens: [
+      "Concordância gramatical: 'Nenhuma conta a pagar registrada' (era 'registrado' — feminino errado)",
+      "Modal de edição sem foco inicial — Escape não funcionava ao abrir antes de clicar",
+    ],
+  },
+  {
+    id: "novidades-redesign",
+    data: "2026-04-27",
+    modulo: "AP & AR",
+    titulo: "Date pickers de período em sub-linha dedicada",
+    descricao: "Ao ativar 'Personalizado', os campos De e Até aparecem em uma linha separada abaixo do filter bar, com fundo azul suave — a barra principal permanece compacta.",
+    tipo: "melhoria",
+    itens: [
+      "Sub-linha com label 'Período', inputs De / Até com bordas azuis",
+      "Botão 'Limpar datas' aparece apenas quando há datas preenchidas",
+      "Filter bar principal não se expande horizontalmente",
+    ],
+  },
+  {
+    id: "novidades-page-redesign",
+    data: "2026-04-27",
+    modulo: "Plataforma",
+    titulo: "Página Novidades redesenhada",
+    descricao: "A página de changelog ganhou filtros interativos por tipo, cards com identidade visual por categoria e timeline com datas legíveis.",
+    tipo: "melhoria",
+    itens: [
+      "Filtros: Tudo · Novo recurso · Melhoria · Correção com contadores",
+      "Cards com borda lateral colorida (azul / violeta / esmeralda por tipo)",
+      "Data em formato legível: '27 de abr. 2026' com badge HOJE quando atual",
+      "Badges de módulo com cores distintas por área (AP&AR, CRM, Tesouraria)",
+      "Ponto colorido em cada detalhe reflete o tipo do card",
+      "Estado vazio ao filtrar sem resultados",
+    ],
+  },
+  {
     id: "ap-ar-filtros-custom",
     data: "2026-04-26",
     modulo: "AP & AR",
@@ -129,9 +204,10 @@ const TIPO_CONFIG: Record<TipoNovidade, {
 };
 
 const MODULO_COLOR: Record<string, { color: string; bg: string }> = {
-  "AP & AR":    { color: "text-red-700",    bg: "bg-red-50"    },
-  "JACQES CRM": { color: "text-blue-700",   bg: "bg-blue-50"   },
-  "Tesouraria": { color: "text-cyan-700",   bg: "bg-cyan-50"   },
+  "AP & AR":    { color: "text-red-700",     bg: "bg-red-50"     },
+  "JACQES CRM": { color: "text-blue-700",    bg: "bg-blue-50"    },
+  "Tesouraria": { color: "text-cyan-700",    bg: "bg-cyan-50"    },
+  "Plataforma": { color: "text-indigo-700",  bg: "bg-indigo-50"  },
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
