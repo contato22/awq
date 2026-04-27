@@ -4,9 +4,8 @@
 //
 // SEÇÕES:
 //   1. KPIs de progresso (cálculo a partir da base canônica)
-//   2. ReconciliationReviewTable — revisão transação a transação, edição inline
-//   3. ConciliacaoManualSection  — verificação manual banco vs. interno + importar extrato
-//   4. Impacto da Conciliação    — links para DFC, DRE e KPIs
+//   2. BankReconciliationBoard — layout lado a lado banco vs. sistema (estilo Conta Azul)
+//   3. Impacto da Conciliação  — links para DFC, DRE e KPIs
 //
 // PERSISTÊNCIA:
 //   SSR/Vercel → PATCH /api/transactions/[id] → transactions.json ou Postgres
