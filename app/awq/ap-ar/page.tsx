@@ -10,9 +10,10 @@ import {
   ArrowDownLeft, ArrowUpRight, Plus, Trash2, AlertTriangle,
   CheckCircle2, Clock, X, FileText, TrendingDown, TrendingUp,
   CalendarDays, Building2, Pencil, DollarSign, RefreshCw, Ban, Timer,
+  ThumbsUp, ThumbsDown, History, XCircle,
 } from "lucide-react";
-import type { AccountsPayable, APStatus } from "@/lib/ap-types";
-import { AP_STATUS_CONFIG, AP_DOCUMENT_TYPE_LABELS, AP_PAYMENT_METHOD_LABELS } from "@/lib/ap-types";
+import type { AccountsPayable, APStatus, APPaymentHistory } from "@/lib/ap-types";
+import { AP_STATUS_CONFIG, AP_DOCUMENT_TYPE_LABELS, AP_PAYMENT_METHOD_LABELS, AP_ACTION_LABELS } from "@/lib/ap-types";
 
 const AP_STATUS_ICONS: Record<APStatus, ElementType> = {
   pending:   Clock,
@@ -79,10 +80,16 @@ const EMPTY_AR = { description: "", entity: "", amount: "", dueDate: "", categor
 
 export default function APARPage() {
   // ── AP state (server) ──────────────────────────────────────────────────────
-  const [apItems, setApItems] = useState<AccountsPayable[]>([]);
-  const [apLoading, setApLoading] = useState(false);
+  const [apItems, setApItems]       = useState<AccountsPayable[]>([]);
+  const [apLoading, setApLoading]   = useState(false);
   const [payingItem, setPayingItem] = useState<AccountsPayable | null>(null);
+  const [editingAP, setEditingAP]   = useState<AccountsPayable | null>(null);
+  const [historyAP, setHistoryAP]   = useState<AccountsPayable | null>(null);
+  const [historyItems, setHistoryItems] = useState<APPaymentHistory[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [showAPForm, setShowAPForm] = useState(false);
+  const [rejectModal, setRejectModal] = useState<{ id: number } | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
 
   // ── AR state (localStorage) ────────────────────────────────────────────────
   const [arItems, setArItems] = useState<ARItem[]>([]);
@@ -113,6 +120,38 @@ export default function APARPage() {
     if (!confirm("Cancelar esta conta a pagar?")) return;
     await fetch(`/api/ap/${id}`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ by: "user" }) });
     fetchAP();
+  }
+
+  async function handleApprove(id: number) {
+    await fetch(`/api/ap/${id}/approve`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "approve", approver: "owner", level: 1 }),
+    });
+    fetchAP();
+  }
+
+  async function handleRejectSubmit() {
+    if (!rejectModal || !rejectReason.trim()) return;
+    await fetch(`/api/ap/${rejectModal.id}/approve`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "reject", approver: "owner", reason: rejectReason, level: 1 }),
+    });
+    setRejectModal(null);
+    setRejectReason("");
+    fetchAP();
+  }
+
+  async function openHistory(ap: AccountsPayable) {
+    setHistoryAP(ap);
+    setHistoryLoading(true);
+    try {
+      const res = await fetch(`/api/ap/${ap.ap_id}/history`);
+      if (res.ok) setHistoryItems(await res.json());
+    } finally {
+      setHistoryLoading(false);
+    }
   }
 
   // ── AR: localStorage ───────────────────────────────────────────────────────
@@ -269,17 +308,14 @@ export default function APARPage() {
               </div>
             </div>
 
-            {/* AP Form (slide-down) */}
-            {showAPForm && (
+            {/* AP Form (create / edit slide-down) */}
+            {(showAPForm || editingAP) && (
               <div className="mb-6 bg-white border border-gray-200 rounded-xl p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="font-semibold text-gray-900">Nova Conta a Pagar</h2>
-                  <button onClick={() => setShowAPForm(false)} className="p-1 text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
-                </div>
                 <APForm
                   defaultBU={activeBU !== "all" ? activeBU : "awq"}
-                  onSuccess={() => { setShowAPForm(false); fetchAP(); }}
-                  onCancel={() => setShowAPForm(false)}
+                  editing={editingAP ?? undefined}
+                  onSuccess={() => { setShowAPForm(false); setEditingAP(null); fetchAP(); }}
+                  onCancel={() => { setShowAPForm(false); setEditingAP(null); }}
                 />
               </div>
             )}
@@ -346,17 +382,39 @@ export default function APARPage() {
                             </span>
                           </td>
                           <td className="px-4 py-3">
-                            <div className="flex items-center gap-1">
-                              {(ap.status === "pending" || ap.status === "overdue") && (
+                            <div className="flex items-center gap-1 flex-wrap">
+                              {ap.requires_approval && ap.status === "pending" && (
+                                <>
+                                  <button onClick={() => handleApprove(ap.ap_id)} title="Aprovar"
+                                    className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg">
+                                    <ThumbsUp className="w-4 h-4" />
+                                  </button>
+                                  <button onClick={() => { setRejectModal({ id: ap.ap_id }); setRejectReason(""); }} title="Rejeitar"
+                                    className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg">
+                                    <ThumbsDown className="w-4 h-4" />
+                                  </button>
+                                </>
+                              )}
+                              {(ap.status === "pending" || ap.status === "overdue" || ap.status === "scheduled") && (
                                 <button onClick={() => setPayingItem(ap)} title="Registrar pagamento"
                                   className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg">
                                   <DollarSign className="w-4 h-4" />
                                 </button>
                               )}
                               {ap.status !== "cancelled" && ap.status !== "paid" && (
+                                <button onClick={() => { setEditingAP(ap); setShowAPForm(false); }} title="Editar"
+                                  className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg">
+                                  <Pencil className="w-4 h-4" />
+                                </button>
+                              )}
+                              <button onClick={() => openHistory(ap)} title="Histórico"
+                                className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg">
+                                <History className="w-4 h-4" />
+                              </button>
+                              {ap.status !== "cancelled" && ap.status !== "paid" && (
                                 <button onClick={() => handleCancelAP(ap.ap_id)} title="Cancelar"
-                                  className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg">
-                                  <Trash2 className="w-4 h-4" />
+                                  className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg">
+                                  <XCircle className="w-4 h-4" />
                                 </button>
                               )}
                             </div>
@@ -517,6 +575,97 @@ export default function APARPage() {
           onClose={() => setPayingItem(null)}
           onSuccess={() => { setPayingItem(null); fetchAP(); }}
         />
+      )}
+
+      {/* ── Reject Modal ── */}
+      {rejectModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+            <div className="flex items-center gap-2">
+              <ThumbsDown className="w-5 h-5 text-red-500" />
+              <span className="font-semibold text-gray-900">Rejeitar Conta a Pagar</span>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-gray-600">Motivo da rejeição *</label>
+              <textarea
+                value={rejectReason}
+                onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setRejectReason(e.target.value)}
+                rows={3}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-red-400 resize-none"
+                placeholder="Ex: Documento incompleto, valor incorreto…"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button onClick={handleRejectSubmit} disabled={!rejectReason.trim()}
+                className="flex-1 py-2 text-sm font-semibold bg-red-500 hover:bg-red-600 text-white rounded-lg disabled:opacity-40">
+                Confirmar Rejeição
+              </button>
+              <button onClick={() => setRejectModal(null)}
+                className="flex-1 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50">
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── History Drawer ── */}
+      {historyAP && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          <div className="absolute inset-0 bg-black/30" onClick={() => setHistoryAP(null)} />
+          <div className="relative bg-white w-full max-w-md h-full flex flex-col shadow-2xl">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+              <div>
+                <div className="font-semibold text-gray-900 flex items-center gap-2">
+                  <History className="w-4 h-4 text-gray-500" /> Histórico AP #{historyAP.ap_id}
+                </div>
+                <div className="text-xs text-gray-400 mt-0.5">
+                  {(historyAP as AccountsPayable & { supplier_name?: string }).supplier_name ?? historyAP.supplier?.legal_name ?? `Fornecedor #${historyAP.supplier_id}`}
+                </div>
+              </div>
+              <button onClick={() => setHistoryAP(null)} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-5">
+              {historyLoading ? (
+                <div className="flex justify-center py-8 text-gray-400">
+                  <RefreshCw className="w-5 h-5 animate-spin mr-2" /> Carregando…
+                </div>
+              ) : historyItems.length === 0 ? (
+                <p className="text-center text-sm text-gray-400 py-8">Nenhum registro.</p>
+              ) : (
+                <ol className="relative border-l border-gray-200 ml-3 space-y-5">
+                  {historyItems.map((h: APPaymentHistory) => (
+                    <li key={h.history_id} className="ml-4">
+                      <div className="absolute w-2.5 h-2.5 bg-amber-400 rounded-full -left-1.5 border-2 border-white" />
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-gray-700">
+                          {AP_ACTION_LABELS[h.action] ?? h.action}
+                        </span>
+                        <span className="text-[10px] text-gray-400 font-mono">
+                          {new Date(h.action_date).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
+                        </span>
+                      </div>
+                      {h.action_by && <div className="text-[11px] text-gray-400 mt-0.5">por {h.action_by}</div>}
+                      {h.old_status && h.new_status && (
+                        <div className="text-[11px] text-gray-500 mt-0.5">
+                          {AP_STATUS_CONFIG[h.old_status as APStatus]?.label ?? h.old_status}
+                          {" → "}
+                          {AP_STATUS_CONFIG[h.new_status as APStatus]?.label ?? h.new_status}
+                        </div>
+                      )}
+                      {h.amount != null && (
+                        <div className="text-[11px] font-semibold text-emerald-600 mt-0.5">{fmtR(h.amount)}</div>
+                      )}
+                      {h.notes && <div className="text-[11px] text-gray-400 mt-0.5 italic">{h.notes}</div>}
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

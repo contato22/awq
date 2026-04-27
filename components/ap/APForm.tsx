@@ -4,10 +4,10 @@
 // Formulário de cadastro de Conta a Pagar com campos completos.
 
 import { useState, useEffect, type ChangeEvent } from "react";
-import { Plus, X, AlertCircle, Info } from "lucide-react";
+import { Plus, X, AlertCircle, Info, Pencil } from "lucide-react";
 import SupplierSelect from "./SupplierSelect";
 import type { Supplier } from "@/lib/supplier-types";
-import type { APDocumentType, APPaymentMethod } from "@/lib/ap-types";
+import type { AccountsPayable, APDocumentType, APPaymentMethod } from "@/lib/ap-types";
 import { AP_DOCUMENT_TYPE_LABELS, AP_PAYMENT_METHOD_LABELS } from "@/lib/ap-types";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -24,6 +24,7 @@ export const BUS: { id: BU; label: string }[] = [
 
 interface Props {
   defaultBU?: BU;
+  editing?:   AccountsPayable;
   onSuccess:  () => void;
   onCancel?:  () => void;
 }
@@ -56,12 +57,41 @@ const EMPTY = {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function APForm({ defaultBU = "awq", onSuccess, onCancel }: Props) {
+export default function APForm({ defaultBU = "awq", editing, onSuccess, onCancel }: Props) {
   const [form, setForm]           = useState({ ...EMPTY, bu: defaultBU });
   const [supplier, setSupplier]   = useState<Supplier | null>(null);
   const [saving, setSaving]       = useState(false);
   const [err, setErr]             = useState<string | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
+
+  // populate form when editing an existing AP
+  useEffect(() => {
+    if (!editing) return;
+    const sup = editing.supplier;
+    setForm({
+      supplierName:             sup?.trade_name || sup?.legal_name || String(editing.supplier_id),
+      supplierId:               editing.supplier_id,
+      bu:                       editing.bu as BU,
+      document_type:            editing.document_type ?? "",
+      document_number:          editing.document_number ?? "",
+      document_series:          editing.document_series ?? "",
+      document_date:            editing.document_date ?? "",
+      nf_key:                   editing.nf_key ?? "",
+      gross_amount:             String(editing.gross_amount),
+      discount_amount:          String(editing.discount_amount),
+      irrf_withheld:            String(editing.irrf_withheld),
+      iss_withheld:             String(editing.iss_withheld),
+      inss_withheld:            String(editing.inss_withheld),
+      pis_cofins_csll_withheld: String(editing.pis_cofins_csll_withheld),
+      due_date:                 editing.due_date,
+      installment_number:       editing.installment_number ? String(editing.installment_number) : "",
+      installment_total:        editing.installment_total  ? String(editing.installment_total)  : "",
+      payment_method:           editing.payment_method ?? "",
+      cost_center:              editing.cost_center ?? "",
+      description:              editing.description ?? "",
+      notes:                    editing.notes ?? "",
+    });
+  }, [editing]);
 
   // auto-fill withholdings from supplier compliance flags
   useEffect(() => {
@@ -94,18 +124,20 @@ export default function APForm({ defaultBU = "awq", onSuccess, onCancel }: Props
   }
 
   async function handleSubmit() {
-    if (!form.supplierId) { setErr("Selecione um fornecedor."); return; }
+    if (!editing && !form.supplierId) { setErr("Selecione um fornecedor."); return; }
     if (!form.gross_amount || gross <= 0) { setErr("Valor bruto obrigatório."); return; }
     if (!form.due_date) { setErr("Data de vencimento obrigatória."); return; }
 
     setSaving(true);
     setErr(null);
     try {
-      const res = await fetch("/api/ap", {
-        method: "POST",
+      const url    = editing ? `/api/ap/${editing.ap_id}` : "/api/ap";
+      const method = editing ? "PUT" : "POST";
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          supplier_id:              form.supplierId,
+          supplier_id:              form.supplierId || (editing?.supplier_id),
           bu:                       form.bu,
           document_type:            form.document_type   || null,
           document_number:          form.document_number || null,
@@ -151,8 +183,11 @@ export default function APForm({ defaultBU = "awq", onSuccess, onCancel }: Props
   return (
     <div className="card p-5 border-l-4 border-l-red-400 space-y-4">
       <div className="flex items-center gap-2 mb-1">
-        <Plus size={15} className="text-red-600" />
-        <span className="text-sm font-semibold text-gray-800">Nova Conta a Pagar</span>
+        {editing ? <Pencil size={15} className="text-blue-600" /> : <Plus size={15} className="text-red-600" />}
+        <span className="text-sm font-semibold text-gray-800">
+          {editing ? `Editar AP #${editing.ap_id}` : "Nova Conta a Pagar"}
+        </span>
+        {editing && <span className="ml-auto text-xs text-gray-400 font-mono">{editing.supplier?.trade_name || editing.supplier?.legal_name}</span>}
       </div>
 
       {err && (
@@ -396,7 +431,7 @@ export default function APForm({ defaultBU = "awq", onSuccess, onCancel }: Props
           className="flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-semibold bg-red-600 hover:bg-red-700 text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <Plus size={14} />
-          {saving ? "Salvando…" : "Adicionar Obrigação"}
+          {saving ? "Salvando…" : editing ? "Salvar Alterações" : "Adicionar Obrigação"}
         </button>
         <button
           onClick={() => setShowAdvanced((v: boolean) => !v)}

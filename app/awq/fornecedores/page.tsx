@@ -2,7 +2,7 @@
 
 // ─── /awq/fornecedores — Gestão de Fornecedores (AP) ──────────────────────────
 
-import { useState, useEffect, useCallback, type ChangeEvent, type FormEvent, type ReactNode } from "react";
+import { useState, useEffect, useCallback, type ChangeEvent, type FocusEvent, type FormEvent, type ReactNode } from "react";
 import Header from "@/components/Header";
 import {
   Plus, Search, X, Building2, User, AlertCircle, CheckCircle2,
@@ -148,6 +148,26 @@ export default function FornecedoresPage() {
     const t = setTimeout(fetchItems, 250);
     return () => clearTimeout(t);
   }, [fetchItems]);
+
+  // ── ViaCEP lookup ──────────────────────────────────────────────────────────
+  async function fetchCEP(cep: string) {
+    const raw = cep.replace(/\D/g, "");
+    if (raw.length !== 8) return;
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${raw}/json/`);
+      if (!res.ok) return;
+      const data = await res.json() as Record<string, string>;
+      if (data.erro) return;
+      setForm((prev: FormState) => ({
+        ...prev,
+        address_street:       data.logradouro  || prev.address_street,
+        address_neighborhood: data.bairro       || prev.address_neighborhood,
+        address_city:         data.localidade   || prev.address_city,
+        address_state:        data.uf           || prev.address_state,
+      }));
+      setOpenSections((prev: Record<Section, boolean>) => ({ ...prev, "Endereço": true }));
+    } catch { /* ignore network errors */ }
+  }
 
   // ── Form helpers ───────────────────────────────────────────────────────────
   function toggleSection(s: Section) {
@@ -535,7 +555,15 @@ export default function FornecedoresPage() {
                 open={openSections["Endereço"]} onToggle={() => toggleSection("Endereço")}>
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="CEP">
-                    <input type="text" placeholder="00000-000" maxLength={9} {...f("address_zip_code")} className="input font-mono" />
+                    <input type="text" placeholder="00000-000" maxLength={9}
+                      value={form.address_zip_code}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                        const v = e.target.value;
+                        setForm((prev: FormState) => ({ ...prev, address_zip_code: v }));
+                        if (v.replace(/\D/g, "").length === 8) fetchCEP(v);
+                      }}
+                      onBlur={(e: FocusEvent<HTMLInputElement>) => fetchCEP(e.target.value)}
+                      className="input font-mono" />
                   </Field>
                   <Field label="UF">
                     <select {...f("address_state")} className="input">
