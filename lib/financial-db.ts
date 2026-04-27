@@ -4,7 +4,7 @@
 //   This module is the canonical server-side store for all ingested financial data.
 //
 // STORAGE ADAPTERS (auto-selected at runtime):
-//   DATABASE_URL set  → Neon (Postgres) via @neondatabase/serverless
+//   DATABASE_URL set  → Postgres via pg (local or cloud)
 //   DATABASE_URL unset → JSON files in public/data/financial/ (local dev)
 //
 // DO NOT import this module in client components — it uses Node's `fs` module
