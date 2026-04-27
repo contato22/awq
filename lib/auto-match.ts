@@ -204,22 +204,25 @@ export function computeAutoMatch(
  * Compute auto-match for multiple transactions at once.
  * Returns a Map<txId, AutoMatchResult | null>.
  *
- * Uses confirmed/probable historical transactions as the knowledge base.
+ * Knowledge base: ALL confirmed/probable transactions (including other pending
+ * ones). Self-exclusion (hist.id === newTx.id) is handled inside
+ * computeAutoMatch, so pending transactions can serve as references for each
+ * other — critical when no reconciled history exists yet.
  * Caps the base at 300 most-recent entries for O(n) performance.
  */
 export function batchAutoMatch(
   pending: BankTransaction[],
   allTxs: BankTransaction[],
 ): Map<string, AutoMatchResult | null> {
-  const pendingIds = new Set(pending.map((t) => t.id));
-
-  // Knowledge base: classified transactions outside the pending set
+  // Knowledge base: every well-classified transaction in the ledger.
+  // Pending transactions are included so that, e.g., a "PIX recebido AT FILMS"
+  // that was auto-classified as receita_projeto can inform a similar sibling
+  // entry that fell through as recebimento_ambiguo.
   const base = allTxs
     .filter(
       (t) =>
-        !pendingIds.has(t.id) &&
-        (t.classificationConfidence === "confirmed" ||
-          t.classificationConfidence === "probable"),
+        t.classificationConfidence === "confirmed" ||
+        t.classificationConfidence === "probable",
     )
     .sort((a, b) => b.transactionDate.localeCompare(a.transactionDate))
     .slice(0, 300);
