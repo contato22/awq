@@ -18,17 +18,12 @@ major_version = 15
 enabled = true
 port = 54323
 
-[ingest]
-enabled = true
-port = 54324
-
 [storage]
 enabled = true
 file_size_limit = "50MiB"
 
 [auth]
 enabled = true
-port = 54325
 site_url = "http://localhost:3000"
 additional_redirect_urls = ["https://contato22.github.io/awq"]
 jwt_expiry = 3600
