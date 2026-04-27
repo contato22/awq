@@ -32,6 +32,47 @@ function findIdx(headers: string[], candidates: string[]): number {
   return -1;
 }
 
+// ─── Bank detection ───────────────────────────────────────────────────────────
+
+function detectBankFromCSV(fileName: string, headerLine: string): { bank: string; accountHints: string[] } | null {
+  const name = fileName.toLowerCase();
+  const header = headerLine.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+
+  // Filename-based detection (most reliable when banks export named files)
+  const fileBankMap: [RegExp, string][] = [
+    [/cora/, "Cora"],
+    [/itau|itaú/, "Itaú"],
+    [/btg/, "BTG Empresas"],
+    [/nubank/, "Nubank"],
+    [/inter/, "Inter"],
+    [/bradesco/, "Bradesco"],
+    [/santander/, "Santander"],
+    [/banco.?do.?brasil|bb\./, "Banco do Brasil"],
+  ];
+  for (const [re, bank] of fileBankMap) {
+    if (re.test(name)) {
+      const hints = extractAccountHints(name);
+      return { bank, accountHints: hints };
+    }
+  }
+
+  // Header-based detection (column names / encoding hints per bank)
+  if (header.includes("cora")) return { bank: "Cora", accountHints: extractAccountHints(header) };
+  if (header.includes("itau") || header.includes("itaú")) return { bank: "Itaú", accountHints: extractAccountHints(header) };
+  if (header.includes("btg")) return { bank: "BTG Empresas", accountHints: ["venture"] };
+  if (header.includes("nubank")) return { bank: "Nubank", accountHints: [] };
+
+  return null;
+}
+
+function extractAccountHints(text: string): string[] {
+  const hints: string[] = [];
+  if (/jacqes/.test(text)) hints.push("jacqes");
+  if (/holding|awq/.test(text)) hints.push("holding");
+  if (/caza|vision/.test(text)) hints.push("caza");
+  return hints;
+}
+
 export async function parseCSV(file: File): Promise<ImportResult> {
   const text = await file.text();
   const rawLines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
@@ -41,6 +82,7 @@ export async function parseCSV(file: File): Promise<ImportResult> {
       transactions: [], rejectedRows: [],
       warnings: ["Arquivo CSV vazio ou sem dados."],
       fileName: file.name, fileType: "csv",
+      detectedBank: null, detectedAccountHints: [],
     };
   }
 
@@ -91,5 +133,11 @@ export async function parseCSV(file: File): Promise<ImportResult> {
     warnings.push("Nenhuma transação reconhecida. Verifique se o CSV tem colunas de data e valor.");
   }
 
-  return { transactions, rejectedRows, warnings, fileName: file.name, fileType: "csv" };
+  const bankInfo = detectBankFromCSV(file.name, rawLines[0]);
+  return {
+    transactions, rejectedRows, warnings,
+    fileName: file.name, fileType: "csv",
+    detectedBank: bankInfo?.bank ?? null,
+    detectedAccountHints: bankInfo?.accountHints ?? [],
+  };
 }

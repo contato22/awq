@@ -16,6 +16,8 @@ export async function importFinancialFile(file: File): Promise<ImportResult> {
       `Formato não suportado: "${file.name}". Use arquivos CSV ou PDF com texto selecionável.`,
     ],
     fileName: file.name,
-    fileType: "csv", // fallback
+    fileType: "csv",
+    detectedBank: null,
+    detectedAccountHints: [],
   };
 }

@@ -3,13 +3,14 @@
 import { useState, useRef } from "react";
 import {
   AlertCircle, Check, ChevronDown, ChevronUp, Circle,
-  FileUp, Loader2, Plus, Search, Trash2, Upload, X,
+  FileUp, Loader2, Plus, Search, Trash2, Upload, X, Building2,
 } from "lucide-react";
 import {
   importFinancialFile,
   type ImportedTransaction,
   type ImportResult,
 } from "@/lib/financial/importers";
+import { KNOWN_ACCOUNTS, type KnownBankAccount } from "@/lib/bank-account-registry";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -22,12 +23,13 @@ interface ReconciliationEntry {
   bankValue: number;
   internalValue: number;
   status: Status;
+  bankAccountId?: string;
 }
 
 type ImportState =
   | { kind: "idle" }
   | { kind: "loading" }
-  | { kind: "done"; result: ImportResult }
+  | { kind: "done"; result: ImportResult; selectedAccountId: string | null }
   | { kind: "error"; message: string };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -47,7 +49,7 @@ function uid() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
-function txnToEntry(t: ImportedTransaction): ReconciliationEntry {
+function txnToEntry(t: ImportedTransaction, bankAccountId?: string): ReconciliationEntry {
   return {
     id: uid(),
     date: t.date,
@@ -55,7 +57,40 @@ function txnToEntry(t: ImportedTransaction): ReconciliationEntry {
     bankValue: t.amount,
     internalValue: 0,
     status: "pendente",
+    bankAccountId,
   };
+}
+
+/**
+ * Given detected bank and hints, returns the best matching account ID from
+ * the registry (or null if no match). Prefers exact keyword matches to handle
+ * cases where multiple accounts share the same bank (e.g. two Cora accounts).
+ */
+function autoMatchAccount(detectedBank: string | null, hints: string[]): string | null {
+  if (!detectedBank) return null;
+
+  const candidates = KNOWN_ACCOUNTS.filter(
+    (a) => a.bank.toLowerCase() === detectedBank.toLowerCase() && a.closedAt === null
+  );
+  if (candidates.length === 0) return null;
+  if (candidates.length === 1) return candidates[0].id;
+
+  // Multiple candidates — use hints to disambiguate
+  for (const hint of hints) {
+    const match = candidates.find(
+      (a) =>
+        a.accountName.toLowerCase().includes(hint) ||
+        a.entity.toLowerCase().replace("_", " ").includes(hint) ||
+        a.id.toLowerCase().includes(hint)
+    );
+    if (match) return match.id;
+  }
+
+  return candidates[0].id;
+}
+
+function accountLabel(a: KnownBankAccount): string {
+  return `${a.bank} — ${a.accountName}`;
 }
 
 // ─── Status labels / colors ───────────────────────────────────────────────────
@@ -81,12 +116,12 @@ const STATUS_ICON: Record<Status, React.ElementType> = {
 // ─── Seed rows ────────────────────────────────────────────────────────────────
 
 const SEED: ReconciliationEntry[] = [
-  { id: uid(), date: "2026-04-01", description: "Pagamento fornecedor X",  bankValue: -3200.00, internalValue: -3200.00, status: "conciliado" },
-  { id: uid(), date: "2026-04-03", description: "Receita serviços JACQES", bankValue:  8750.00, internalValue:  8750.00, status: "conciliado" },
-  { id: uid(), date: "2026-04-07", description: "Transferência interna",   bankValue: -1500.00, internalValue: -1500.00, status: "conciliado" },
-  { id: uid(), date: "2026-04-10", description: "Tarifa bancária",         bankValue:   -42.90, internalValue:     0.00, status: "divergente" },
-  { id: uid(), date: "2026-04-15", description: "Pagamento consultoria",   bankValue: -5000.00, internalValue: -5000.00, status: "pendente"   },
-  { id: uid(), date: "2026-04-18", description: "Recebimento cliente A",   bankValue: 12400.00, internalValue: 12400.00, status: "conciliado" },
+  { id: uid(), date: "2026-04-01", description: "Pagamento fornecedor X",  bankValue: -3200.00, internalValue: -3200.00, status: "conciliado", bankAccountId: "awq-cora-holding" },
+  { id: uid(), date: "2026-04-03", description: "Receita serviços JACQES", bankValue:  8750.00, internalValue:  8750.00, status: "conciliado", bankAccountId: "jacqes-cora-operating" },
+  { id: uid(), date: "2026-04-07", description: "Transferência interna",   bankValue: -1500.00, internalValue: -1500.00, status: "conciliado", bankAccountId: "awq-cora-holding" },
+  { id: uid(), date: "2026-04-10", description: "Tarifa bancária",         bankValue:   -42.90, internalValue:     0.00, status: "divergente", bankAccountId: "caza-itau-operating" },
+  { id: uid(), date: "2026-04-15", description: "Pagamento consultoria",   bankValue: -5000.00, internalValue: -5000.00, status: "pendente",   bankAccountId: "awq-cora-holding" },
+  { id: uid(), date: "2026-04-18", description: "Recebimento cliente A",   bankValue: 12400.00, internalValue: 12400.00, status: "conciliado", bankAccountId: "caza-itau-operating" },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -98,6 +133,7 @@ export default function ConciliacaoManualSection() {
   const [showRejected, setShowRejected] = useState(false);
 
   const [search, setSearch] = useState("");
+  const [filterAccountId, setFilterAccountId] = useState<string>("");
   const [entries, setEntries] = useState<ReconciliationEntry[]>(SEED);
   const [newDate, setNewDate] = useState("");
   const [newDesc, setNewDesc] = useState("");
@@ -129,7 +165,8 @@ export default function ConciliacaoManualSection() {
     setShowRejected(false);
     try {
       const result = await importFinancialFile(selectedFile);
-      setImportState({ kind: "done", result });
+      const selectedAccountId = autoMatchAccount(result.detectedBank, result.detectedAccountHints);
+      setImportState({ kind: "done", result, selectedAccountId });
     } catch (err) {
       setImportState({
         kind: "error",
@@ -138,8 +175,13 @@ export default function ConciliacaoManualSection() {
     }
   }
 
-  function confirmImport(transactions: ImportedTransaction[]) {
-    const newEntries = transactions.map(txnToEntry);
+  function handleAccountChange(accountId: string) {
+    if (importState.kind !== "done") return;
+    setImportState({ ...importState, selectedAccountId: accountId || null });
+  }
+
+  function confirmImport(transactions: ImportedTransaction[], bankAccountId: string | null) {
+    const newEntries = transactions.map((t) => txnToEntry(t, bankAccountId ?? undefined));
     setEntries((prev) => [...newEntries, ...prev]);
     setSelectedFile(null);
     setImportState({ kind: "idle" });
@@ -171,17 +213,22 @@ export default function ConciliacaoManualSection() {
 
   // ── Derived ─────────────────────────────────────────────────────────────────
 
-  const filtered = entries.filter(
-    (e) =>
+  // Accounts that appear in the current entries (for the filter dropdown)
+  const usedAccountIds = Array.from(new Set(entries.map((e) => e.bankAccountId).filter(Boolean))) as string[];
+
+  const filtered = entries.filter((e) => {
+    const matchSearch =
       e.description.toLowerCase().includes(search.toLowerCase()) ||
-      STATUS_LABEL[e.status].toLowerCase().includes(search.toLowerCase())
-  );
+      STATUS_LABEL[e.status].toLowerCase().includes(search.toLowerCase());
+    const matchAccount = !filterAccountId || e.bankAccountId === filterAccountId;
+    return matchSearch && matchAccount;
+  });
 
   const conciliados = entries.filter((e) => e.status === "conciliado").length;
   const pendentes   = entries.filter((e) => e.status === "pendente").length;
   const divergentes = entries.filter((e) => e.status === "divergente").length;
-  const totalBanco   = entries.reduce((s, e) => s + e.bankValue, 0);
-  const totalInterno = entries.reduce((s, e) => s + e.internalValue, 0);
+  const totalBanco   = filtered.reduce((s, e) => s + e.bankValue, 0);
+  const totalInterno = filtered.reduce((s, e) => s + e.internalValue, 0);
   const diff = totalBanco - totalInterno;
 
   // ─── Render ───────────────────────────────────────────────────────────────
@@ -271,9 +318,11 @@ export default function ConciliacaoManualSection() {
         {importState.kind === "done" && (
           <ImportResultPanel
             result={importState.result}
+            selectedAccountId={importState.selectedAccountId}
+            onAccountChange={handleAccountChange}
             showRejected={showRejected}
             onToggleRejected={() => setShowRejected((v) => !v)}
-            onConfirm={() => confirmImport(importState.result.transactions)}
+            onConfirm={() => confirmImport(importState.result.transactions, importState.selectedAccountId)}
             onDiscard={clearFile}
           />
         )}
@@ -286,7 +335,28 @@ export default function ConciliacaoManualSection() {
             <h2 className="text-sm font-bold text-gray-900">Verificação Manual</h2>
             <p className="text-xs text-gray-500 mt-0.5">Compare lançamentos internos com o extrato bancário</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Bank account filter */}
+            {usedAccountIds.length > 0 && (
+              <div className="relative">
+                <Building2 size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                <select
+                  value={filterAccountId}
+                  onChange={(e) => setFilterAccountId(e.target.value)}
+                  className="pl-8 pr-7 py-2 text-xs border border-gray-200 rounded-lg bg-white text-gray-900 focus:outline-none focus:border-brand-400 appearance-none cursor-pointer"
+                >
+                  <option value="">Todas as contas</option>
+                  {usedAccountIds.map((id) => {
+                    const acct = KNOWN_ACCOUNTS.find((a) => a.id === id);
+                    return (
+                      <option key={id} value={id}>
+                        {acct ? accountLabel(acct) : id}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+            )}
             <div className="relative">
               <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
               <input
@@ -330,6 +400,7 @@ export default function ConciliacaoManualSection() {
               <tr className="border-b border-gray-200">
                 <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Data</th>
                 <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Descrição</th>
+                <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Conta</th>
                 <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Extrato Banco</th>
                 <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Lançamento Interno</th>
                 <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Diferença</th>
@@ -341,10 +412,22 @@ export default function ConciliacaoManualSection() {
               {filtered.map((entry) => {
                 const dif = entry.bankValue - entry.internalValue;
                 const Icon = STATUS_ICON[entry.status];
+                const acct = entry.bankAccountId
+                  ? KNOWN_ACCOUNTS.find((a) => a.id === entry.bankAccountId)
+                  : null;
                 return (
                   <tr key={entry.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                     <td className="py-2.5 px-3 text-xs text-gray-500 whitespace-nowrap">{fmtDate(entry.date)}</td>
                     <td className="py-2.5 px-3 text-xs text-gray-900 max-w-xs"><div className="truncate">{entry.description}</div></td>
+                    <td className="py-2.5 px-3 text-xs text-gray-500 whitespace-nowrap">
+                      {acct ? (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 text-[10px] font-medium border border-gray-200">
+                          <Building2 size={9} />{acct.bank}
+                        </span>
+                      ) : (
+                        <span className="text-gray-300">—</span>
+                      )}
+                    </td>
                     <td className={`py-2.5 px-3 text-right text-xs font-medium ${entry.bankValue >= 0 ? "text-emerald-600" : "text-red-600"}`}>{fmtBRL(entry.bankValue)}</td>
                     <td className={`py-2.5 px-3 text-right text-xs font-medium ${entry.internalValue >= 0 ? "text-emerald-600" : "text-red-600"}`}>{fmtBRL(entry.internalValue)}</td>
                     <td className={`py-2.5 px-3 text-right text-xs font-semibold ${dif === 0 ? "text-gray-400" : "text-red-600"}`}>{dif === 0 ? "—" : fmtBRL(dif)}</td>
@@ -360,7 +443,7 @@ export default function ConciliacaoManualSection() {
                 );
               })}
               {filtered.length === 0 && (
-                <tr><td colSpan={7} className="py-10 text-center text-xs text-gray-400">Nenhum lançamento encontrado</td></tr>
+                <tr><td colSpan={8} className="py-10 text-center text-xs text-gray-400">Nenhum lançamento encontrado</td></tr>
               )}
             </tbody>
           </table>
@@ -375,12 +458,16 @@ export default function ConciliacaoManualSection() {
 
 function ImportResultPanel({
   result,
+  selectedAccountId,
+  onAccountChange,
   showRejected,
   onToggleRejected,
   onConfirm,
   onDiscard,
 }: {
   result: ImportResult;
+  selectedAccountId: string | null;
+  onAccountChange: (id: string) => void;
   showRejected: boolean;
   onToggleRejected: () => void;
   onConfirm: () => void;
@@ -389,6 +476,11 @@ function ImportResultPanel({
   const ok  = result.transactions.length;
   const bad = result.rejectedRows.length;
   const hasWarnings = result.warnings.length > 0;
+
+  const activeAccounts = KNOWN_ACCOUNTS.filter((a) => a.closedAt === null);
+  const detectedAccount = selectedAccountId
+    ? KNOWN_ACCOUNTS.find((a) => a.id === selectedAccountId)
+    : null;
 
   if (ok === 0 && hasWarnings) {
     return (
@@ -406,6 +498,38 @@ function ImportResultPanel({
 
   return (
     <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 space-y-3">
+      {/* Bank account selector */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-2 shrink-0">
+          <Building2 size={14} className="text-emerald-700 shrink-0" />
+          <span className="text-xs font-semibold text-emerald-900">Conta bancária:</span>
+        </div>
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <select
+            value={selectedAccountId ?? ""}
+            onChange={(e) => onAccountChange(e.target.value)}
+            className="flex-1 min-w-0 text-xs border border-emerald-300 rounded-lg px-3 py-1.5 bg-white text-gray-900 focus:outline-none focus:border-brand-400 cursor-pointer"
+          >
+            <option value="">Selecionar conta manualmente…</option>
+            {activeAccounts.map((a) => (
+              <option key={a.id} value={a.id}>
+                {accountLabel(a)}
+              </option>
+            ))}
+          </select>
+          {detectedAccount && (
+            <span className="shrink-0 text-[10px] font-semibold text-emerald-700 bg-emerald-100 border border-emerald-200 rounded px-1.5 py-0.5">
+              detectado automaticamente
+            </span>
+          )}
+          {!selectedAccountId && result.detectedBank && (
+            <span className="shrink-0 text-[10px] text-amber-700 bg-amber-100 border border-amber-200 rounded px-1.5 py-0.5">
+              banco {result.detectedBank} detectado — conta não cadastrada
+            </span>
+          )}
+        </div>
+      </div>
+
       {/* Summary */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="text-xs text-emerald-800 space-y-0.5">

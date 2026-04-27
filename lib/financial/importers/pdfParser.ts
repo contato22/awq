@@ -44,6 +44,43 @@ function reconstructLines(items: TextItem[]): string[] {
     .filter((l) => l.length > 2);
 }
 
+// ─── Bank detection ───────────────────────────────────────────────────────────
+// Scans the first lines of the PDF (typically the header) to detect the bank
+// and extract account-disambiguation hints.
+
+interface DetectedBankInfo {
+  bank: string;
+  accountHints: string[];
+}
+
+function detectBankFromLines(lines: string[]): DetectedBankInfo | null {
+  // Sample first 40 lines — that covers headers for all known bank formats
+  const sample = lines.slice(0, 40).join(" ").toLowerCase();
+
+  if (sample.includes("cora")) {
+    const hints: string[] = [];
+    if (sample.includes("jacqes")) hints.push("jacqes");
+    if (sample.includes("holding") || sample.includes("awq")) hints.push("holding");
+    return { bank: "Cora", accountHints: hints };
+  }
+  if (sample.includes("itaú") || sample.includes("itau")) {
+    const hints: string[] = [];
+    if (sample.includes("caza") || sample.includes("vision")) hints.push("caza");
+    if (sample.includes("awq") || sample.includes("holding") || sample.includes("empresas")) hints.push("holding");
+    return { bank: "Itaú", accountHints: hints };
+  }
+  if (sample.includes("btg")) return { bank: "BTG Empresas", accountHints: ["venture"] };
+  if (sample.includes("nubank")) return { bank: "Nubank", accountHints: [] };
+  if (sample.includes("banco inter") || sample.includes("bancointer")) {
+    return { bank: "Inter", accountHints: [] };
+  }
+  if (sample.includes("bradesco")) return { bank: "Bradesco", accountHints: [] };
+  if (sample.includes("santander")) return { bank: "Santander", accountHints: [] };
+  if (sample.includes("banco do brasil")) return { bank: "Banco do Brasil", accountHints: [] };
+
+  return null;
+}
+
 // ─── Non-transaction line patterns ───────────────────────────────────────────
 
 const SKIP_LINE = new RegExp(
@@ -237,6 +274,7 @@ export async function parsePDF(file: File): Promise<ImportResult> {
       transactions: [], rejectedRows: [],
       warnings: ["Não foi possível carregar o leitor de PDF. Verifique a conexão e tente novamente."],
       fileName: file.name, fileType: "pdf",
+      detectedBank: null, detectedAccountHints: [],
     };
   }
 
@@ -265,9 +303,16 @@ export async function parsePDF(file: File): Promise<ImportResult> {
         "e não possui senha. Tente exportar o extrato como CSV/OFX.",
       ],
       fileName: file.name, fileType: "pdf",
+      detectedBank: null, detectedAccountHints: [],
     };
   }
 
   const { transactions, rejectedRows, warnings } = parseLines(allLines);
-  return { transactions, rejectedRows, warnings, fileName: file.name, fileType: "pdf" };
+  const bankInfo = detectBankFromLines(allLines);
+  return {
+    transactions, rejectedRows, warnings,
+    fileName: file.name, fileType: "pdf",
+    detectedBank: bankInfo?.bank ?? null,
+    detectedAccountHints: bankInfo?.accountHints ?? [],
+  };
 }

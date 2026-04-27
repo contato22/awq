@@ -14,4 +14,8 @@ export interface ImportResult {
   warnings: string[];
   fileName: string;
   fileType: "csv" | "pdf";
+  /** Bank name detected from file content or filename (e.g. "Cora", "Itaú"). Null if not detected. */
+  detectedBank: string | null;
+  /** Lowercase keywords found in the statement that help disambiguate the specific account (e.g. ["jacqes"], ["holding"]). */
+  detectedAccountHints: string[];
 }
