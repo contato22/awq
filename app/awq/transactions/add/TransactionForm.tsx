@@ -73,7 +73,7 @@ const CATEGORIES_DEBIT = [
   { value: "cartao_compra_operacional",    label: "Compra via Cartão Corporativo" },
   { value: "despesa_pessoal_misturada",    label: "Despesa Pessoal Misturada" },
   { value: "aplicacao_financeira",         label: "Aplicação Financeira" },
-  { value: "transferencia_interna_enviada","label": "Transf. Intercompany (enviada)" },
+  { value: "transferencia_interna_enviada", label: "Transf. Intercompany (enviada)" },
   { value: "despesa_ambigua",              label: "Despesa Ambígua" },
   { value: "unclassified",                 label: "Não Classificado" },
 ];
@@ -208,11 +208,14 @@ export default function TransactionForm() {
         setResult({ ok: true, message: "Transação registrada com sucesso!" });
         setForm((f) => ({
           ...f,
-          transaction_date:     today(),
-          description_original: "",
-          amount:               "",
-          counterparty_name:    "",
-          classification_note:  "",
+          transaction_date:          today(),
+          description_original:      "",
+          amount:                    "",
+          counterparty_name:         "",
+          classification_note:       "",
+          managerial_category:       f.direction === "credit" ? "receita_recorrente" : "fornecedor_operacional",
+          classification_confidence: "confirmed",
+          is_intercompany:           false,
         }));
       }
     } catch (err) {

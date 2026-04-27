@@ -525,14 +525,16 @@ export async function saveTransactions(transactions: BankTransaction[]): Promise
           description_original, amount, direction, running_balance,
           counterparty_name, managerial_category, classification_confidence,
           classification_note, is_intercompany, intercompany_match_id,
-          excluded_from_consolidated, extracted_at, classified_at
+          excluded_from_consolidated, reconciliation_status,
+          extracted_at, classified_at
         ) VALUES (
           ${t.id}, ${t.documentId}, ${t.bank}, ${t.accountName}, ${t.entity},
           ${t.transactionDate}, ${t.descriptionOriginal}, ${t.amount},
           ${t.direction}, ${t.runningBalance}, ${t.counterpartyName},
           ${t.managerialCategory}, ${t.classificationConfidence},
           ${t.classificationNote}, ${t.isIntercompany}, ${t.intercompanyMatchId},
-          ${t.excludedFromConsolidated}, ${t.extractedAt}, ${t.classifiedAt}
+          ${t.excludedFromConsolidated}, ${t.reconciliationStatus ?? "pendente"},
+          ${t.extractedAt}, ${t.classifiedAt}
         )
       `;
     }
