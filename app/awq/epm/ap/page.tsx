@@ -1,197 +1,277 @@
 "use client";
 
-// ─── /awq/epm/ap — Contas a Pagar (Accounts Payable) ─────────────────────────
-//
-// Client component: AP management with aging, add, and status tracking.
-// Persists to localStorage (same pattern as /awq/ap-ar) — zero cost, instant.
+// ─── /awq/epm/ap — Contas a Pagar ────────────────────────────────────────────
+// API-backed AP management with Brazilian fiscal retention auto-calculation.
+// IRRF / INSS / ISS / PIS / COFINS computed client-side on form, stored server-side.
 
 import { useState, useEffect, useCallback } from "react";
 import Header from "@/components/Header";
 import Link from "next/link";
 import {
-  ArrowDownLeft, Plus, X, AlertTriangle, CheckCircle2, Clock, Trash2, Search,
+  ArrowDownLeft, Plus, X, CheckCircle2, Trash2, Search,
+  ChevronDown, ChevronUp, AlertTriangle, Receipt,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type APStatus = "PENDING" | "SCHEDULED" | "PAID" | "OVERDUE" | "CANCELLED";
-type BuCode   = "AWQ" | "JACQES" | "CAZA" | "ADVISOR" | "VENTURE";
+type BuCode        = "AWQ" | "JACQES" | "CAZA" | "ADVISOR" | "VENTURE";
+type APStatus      = "PENDING" | "SCHEDULED" | "PAID" | "OVERDUE" | "CANCELLED";
+type SupplierType  = "service_professional" | "service_cleaning" | "service_construction" | "goods" | "rent" | "other";
+type AgingBucket   = "CURRENT" | "1-30d" | "31-60d" | "61-90d" | "+90d";
 
 interface APItem {
-  id:           string;
-  bu_code:      BuCode;
-  supplier:     string;
-  description:  string;
-  amount:       number;
-  issue_date:   string;
-  due_date:     string;
-  status:       APStatus;
-  category:     string;
-  reference_doc?: string;
-  created_at:   string;
+  id:               string;
+  bu_code:          BuCode;
+  supplier_name:    string;
+  supplier_type:    SupplierType;
+  description:      string;
+  category:         string;
+  reference_doc?:   string;
+  issue_date:       string;
+  due_date:         string;
+  gross_amount:     number;
+  irrf_rate:        number;
+  irrf_amount:      number;
+  inss_rate:        number;
+  inss_amount:      number;
+  iss_rate:         number;
+  iss_amount:       number;
+  pis_rate:         number;
+  pis_amount:       number;
+  cofins_rate:      number;
+  cofins_amount:    number;
+  total_retentions: number;
+  net_amount:       number;
+  status:           APStatus;
+  paid_date?:       string;
+  paid_amount?:     number;
+  payment_ref?:     string;
+  created_at:       string;
 }
 
-type AgingBucket = "CURRENT" | "1-30d" | "31-60d" | "61-90d" | "+90d" | "PAID";
-
-function agingBucket(item: APItem): AgingBucket {
-  if (item.status === "PAID") return "PAID";
-  const today = new Date();
-  const due   = new Date(item.due_date);
-  const diff  = Math.floor((today.getTime() - due.getTime()) / 86_400_000);
-  if (diff <= 0)  return "CURRENT";
-  if (diff <= 30) return "1-30d";
-  if (diff <= 60) return "31-60d";
-  if (diff <= 90) return "61-90d";
-  return "+90d";
+interface APKPIs {
+  totalAPOutstanding: number;
+  totalAPOverdue:     number;
+  totalAPPaid:        number;
+  dpo:                number | null;
+  apAging:            Record<AgingBucket, number>;
 }
+
+// ─── Fiscal defaults (mirrors lib/ap-ar-db.ts — client-safe copy) ─────────────
+
+const FISCAL_DEFAULTS: Record<SupplierType, { irrf: number; inss: number; iss: number; pis: number; cofins: number }> = {
+  service_professional: { irrf: 0.015, inss: 0,    iss: 0.05, pis: 0.0065, cofins: 0.03 },
+  service_cleaning:     { irrf: 0.01,  inss: 0.11, iss: 0.05, pis: 0.0065, cofins: 0.03 },
+  service_construction: { irrf: 0.015, inss: 0.11, iss: 0.05, pis: 0.0065, cofins: 0.03 },
+  goods:                { irrf: 0,     inss: 0,    iss: 0,    pis: 0,      cofins: 0    },
+  rent:                 { irrf: 0.015, inss: 0,    iss: 0,    pis: 0,      cofins: 0    },
+  other:                { irrf: 0,     inss: 0,    iss: 0,    pis: 0,      cofins: 0    },
+};
+
+const SUPPLIER_TYPE_LABELS: Record<SupplierType, string> = {
+  service_professional: "Serv. Profissional (IRRF 1.5% + ISS 5% + PIS/COFINS)",
+  service_cleaning:     "Limpeza/Conservação (IRRF 1% + INSS 11% + ISS 5%)",
+  service_construction: "Construção/Obra (IRRF 1.5% + INSS 11% + ISS 5%)",
+  goods:                "Compra de Mercadoria (sem retenção)",
+  rent:                 "Aluguel (IRRF 1.5%)",
+  other:                "Outros (sem retenção padrão)",
+};
+
+function calcFiscal(gross: number, type: SupplierType) {
+  const r = FISCAL_DEFAULTS[type];
+  const irrf   = round2(gross * r.irrf);
+  const inss   = round2(gross * r.inss);
+  const iss    = round2(gross * r.iss);
+  const pis    = round2(gross * r.pis);
+  const cofins = round2(gross * r.cofins);
+  const total  = round2(irrf + inss + iss + pis + cofins);
+  return { irrf, inss, iss, pis, cofins, total, net: round2(gross - total) };
+}
+
+function round2(n: number) { return Math.round(n * 100) / 100; }
+
+// ─── Formatting ───────────────────────────────────────────────────────────────
 
 function fmtBRL(n: number) {
   return "R$" + n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
-
 function fmtDate(d: string) {
   const [y, m, day] = d.split("-");
   return `${day}/${m}/${y}`;
 }
+function pct(r: number) {
+  return r > 0 ? `${(r * 100).toFixed(1)}%` : "—";
+}
+
+// ─── Config ───────────────────────────────────────────────────────────────────
 
 const STATUS_CFG: Record<APStatus, { label: string; color: string; bg: string }> = {
-  PENDING:   { label: "Pendente",   color: "text-amber-700",   bg: "bg-amber-50"   },
-  SCHEDULED: { label: "Agendado",   color: "text-brand-700",   bg: "bg-brand-50"   },
-  PAID:      { label: "Pago",       color: "text-emerald-700", bg: "bg-emerald-50" },
-  OVERDUE:   { label: "Vencido",    color: "text-red-700",     bg: "bg-red-50"     },
-  CANCELLED: { label: "Cancelado",  color: "text-gray-500",    bg: "bg-gray-100"   },
+  PENDING:   { label: "Pendente",  color: "text-amber-700",   bg: "bg-amber-50"   },
+  SCHEDULED: { label: "Agendado",  color: "text-brand-700",   bg: "bg-brand-50"   },
+  PAID:      { label: "Pago",      color: "text-emerald-700", bg: "bg-emerald-50" },
+  OVERDUE:   { label: "Vencido",   color: "text-red-700",     bg: "bg-red-50"     },
+  CANCELLED: { label: "Cancelado", color: "text-gray-500",    bg: "bg-gray-100"   },
 };
 
 const AGING_CFG: Record<AgingBucket, { label: string; color: string }> = {
-  CURRENT: { label: "A vencer",  color: "text-emerald-600" },
-  "1-30d": { label: "1-30d",     color: "text-amber-600"   },
-  "31-60d":{ label: "31-60d",    color: "text-orange-600"  },
-  "61-90d":{ label: "61-90d",    color: "text-red-600"     },
-  "+90d":  { label: "+90 dias",  color: "text-red-800"     },
-  PAID:    { label: "Pago",      color: "text-gray-400"    },
+  "CURRENT": { label: "A vencer",  color: "text-emerald-600" },
+  "1-30d":   { label: "1–30 dias", color: "text-amber-600"   },
+  "31-60d":  { label: "31–60d",    color: "text-orange-600"  },
+  "61-90d":  { label: "61–90d",    color: "text-red-600"     },
+  "+90d":    { label: "+90 dias",  color: "text-red-800"     },
 };
 
-const STORAGE_KEY = "awq_epm_ap_items";
-const CATEGORIES = ["Freelancer","Fornecedor","Aluguel","Software","Marketing","Tributário","Folha","Outros"];
+const CATEGORIES = ["Freelancer", "Fornecedor", "Aluguel", "Software", "Marketing", "Tributário", "Folha", "Produção", "Outros"];
+const BUS: BuCode[] = ["AWQ", "JACQES", "CAZA", "ADVISOR", "VENTURE"];
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function APPage() {
-  const [items, setItems]       = useState<APItem[]>([]);
-  const [showForm, setShowForm] = useState(false);
-  const [search, setSearch]     = useState("");
-
   const today = new Date().toISOString().slice(0, 10);
 
+  const [items,    setItems]    = useState<APItem[]>([]);
+  const [kpis,     setKPIs]     = useState<APKPIs | null>(null);
+  const [loading,  setLoading]  = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [search,   setSearch]   = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
   const [form, setForm] = useState({
-    bu_code: "AWQ" as BuCode,
-    supplier: "", description: "", amount: "",
-    issue_date: today, due_date: "", status: "PENDING" as APStatus,
-    category: "Fornecedor", reference_doc: "",
+    bu_code:       "AWQ" as BuCode,
+    supplier_name: "",
+    supplier_type: "service_professional" as SupplierType,
+    description:   "",
+    category:      "Fornecedor",
+    reference_doc: "",
+    issue_date:    today,
+    due_date:      "",
+    gross_amount:  "",
   });
 
-  // Load + auto-overdue
-  useEffect(() => {
+  const fiscal = form.gross_amount
+    ? calcFiscal(parseFloat(form.gross_amount) || 0, form.supplier_type)
+    : null;
+
+  // ── Data loading ─────────────────────────────────────────────────────────────
+
+  const loadData = useCallback(async () => {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed: APItem[] = JSON.parse(raw);
-        const updated = parsed.map((item) => {
-          if (item.status === "PENDING" && new Date(item.due_date) < new Date()) {
-            return { ...item, status: "OVERDUE" as APStatus };
-          }
-          return item;
-        });
-        setItems(updated);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      const [listRes, kpisRes] = await Promise.all([
+        fetch("/api/epm/ap"),
+        fetch("/api/epm/ap?view=kpis"),
+      ]);
+      const listJson = await listRes.json() as { success: boolean; data: APItem[] };
+      const kpisJson = await kpisRes.json() as { success: boolean; data: APKPIs };
+      if (listJson.success) setItems(listJson.data);
+      if (kpisJson.success) setKPIs(kpisJson.data);
+    } catch { /* ignore network errors */ }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { loadData(); }, [loadData]);
+
+  // ── Actions ──────────────────────────────────────────────────────────────────
+
+  async function handleAdd(e: React.FormEvent) {
+    e.preventDefault();
+    const gross = parseFloat(form.gross_amount);
+    if (!gross || gross <= 0) return;
+    setSubmitting(true);
+    try {
+      const res  = await fetch("/api/epm/ap", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bu_code:       form.bu_code,
+          supplier_name: form.supplier_name,
+          supplier_type: form.supplier_type,
+          description:   form.description,
+          category:      form.category,
+          reference_doc: form.reference_doc || undefined,
+          issue_date:    form.issue_date,
+          due_date:      form.due_date,
+          gross_amount:  gross,
+        }),
+      });
+      const json = await res.json() as { success: boolean };
+      if (json.success) {
+        setShowForm(false);
+        setForm((f) => ({ ...f, supplier_name: "", description: "", reference_doc: "", due_date: "", gross_amount: "" }));
+        await loadData();
       }
-    } catch { /* ignore */ }
-  }, []);
-
-  const save = useCallback((next: APItem[]) => {
-    setItems(next);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-  }, []);
-
-  function addItem() {
-    if (!form.supplier || !form.description || !form.amount || !form.due_date) return;
-    const item: APItem = {
-      id:           crypto.randomUUID(),
-      bu_code:      form.bu_code,
-      supplier:     form.supplier,
-      description:  form.description,
-      amount:       parseFloat(form.amount),
-      issue_date:   form.issue_date,
-      due_date:     form.due_date,
-      status:       form.status,
-      category:     form.category,
-      reference_doc:form.reference_doc || undefined,
-      created_at:   new Date().toISOString(),
-    };
-    save([...items, item]);
-    setForm((f) => ({ ...f, supplier: "", description: "", amount: "", due_date: "", reference_doc: "" }));
-    setShowForm(false);
+    } finally { setSubmitting(false); }
   }
 
-  function markPaid(id: string) {
-    save(items.map((i) => i.id === id ? { ...i, status: "PAID" as APStatus } : i));
+  async function handlePay(id: string) {
+    const paid_date   = window.prompt("Data de pagamento (AAAA-MM-DD):", today);
+    if (!paid_date) return;
+    const item        = items.find((i) => i.id === id);
+    const paid_amount = parseFloat(window.prompt("Valor pago (líquido):", String(item?.net_amount ?? "")) ?? "");
+    if (!paid_amount) return;
+    const payment_ref = window.prompt("Referência (txid PIX, NSU, etc.) — opcional:") ?? undefined;
+
+    await fetch("/api/epm/ap", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, action: "pay", paid_date, paid_amount, payment_ref }),
+    });
+    await loadData();
   }
 
-  function deleteItem(id: string) {
-    save(items.filter((i) => i.id !== id));
+  async function handleDelete(id: string) {
+    await fetch("/api/epm/ap", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, action: "delete" }),
+    });
+    await loadData();
   }
 
-  // Filter
+  // ── Filter ───────────────────────────────────────────────────────────────────
+
   const filtered = items.filter((i) =>
     search === "" ||
-    i.supplier.toLowerCase().includes(search.toLowerCase()) ||
+    i.supplier_name.toLowerCase().includes(search.toLowerCase()) ||
     i.description.toLowerCase().includes(search.toLowerCase())
   );
 
-  // Aging buckets summary
   const outstanding = items.filter((i) => i.status !== "PAID" && i.status !== "CANCELLED");
-  const agingGroups: Partial<Record<AgingBucket, number>> = {};
-  for (const item of outstanding) {
-    const b = agingBucket(item);
-    agingGroups[b] = (agingGroups[b] ?? 0) + item.amount;
-  }
 
-  const totalOutstanding = outstanding.reduce((s, i) => s + i.amount, 0);
-  const totalOverdue     = items.filter((i) => i.status === "OVERDUE").reduce((s, i) => s + i.amount, 0);
-  const totalPaid        = items.filter((i) => i.status === "PAID").reduce((s, i) => s + i.amount, 0);
+  // ── Render ───────────────────────────────────────────────────────────────────
 
   return (
     <>
       <Header
         title="Contas a Pagar (AP)"
-        subtitle={`EPM · AWQ Group · ${outstanding.length} itens em aberto`}
+        subtitle={`EPM · AWQ Group · ${outstanding.length} em aberto · Retenções fiscais automáticas`}
       />
       <div className="page-container">
 
-        {/* ── Summary cards ─────────────────────────────────────────── */}
+        {/* ── KPI cards ─────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: "Total em Aberto",  value: fmtBRL(totalOutstanding), color: "text-amber-700",   bg: "bg-amber-50"   },
-            { label: "Vencido",          value: fmtBRL(totalOverdue),     color: "text-red-700",     bg: "bg-red-50"     },
-            { label: "Total Pago",       value: fmtBRL(totalPaid),        color: "text-emerald-700", bg: "bg-emerald-50" },
-            { label: "Qtd em Aberto",    value: String(outstanding.length),color: "text-brand-700",  bg: "bg-brand-50"   },
-          ].map((card) => (
-            <div key={card.label} className={`card p-4 text-center ${card.bg}`}>
-              <div className={`text-xl font-bold tabular-nums ${card.color}`}>{card.value}</div>
-              <div className="text-[11px] text-gray-500 mt-0.5">{card.label}</div>
+            { label: "Em Aberto",    value: fmtBRL(kpis?.totalAPOutstanding ?? 0), color: "text-amber-700",   bg: "bg-amber-50"   },
+            { label: "Vencido",      value: fmtBRL(kpis?.totalAPOverdue     ?? 0), color: "text-red-700",     bg: "bg-red-50"     },
+            { label: "Total Pago",   value: fmtBRL(kpis?.totalAPPaid        ?? 0), color: "text-emerald-700", bg: "bg-emerald-50" },
+            { label: "DPO estimado", value: kpis?.dpo != null ? `${kpis.dpo}d` : "—", color: "text-brand-700", bg: "bg-brand-50" },
+          ].map((c) => (
+            <div key={c.label} className={`card p-4 text-center ${c.bg}`}>
+              <div className={`text-xl font-bold tabular-nums ${c.color}`}>{c.value}</div>
+              <div className="text-[11px] text-gray-500 mt-0.5">{c.label}</div>
             </div>
           ))}
         </div>
 
-        {/* ── Aging summary ─────────────────────────────────────────── */}
-        {outstanding.length > 0 && (
+        {/* ── Aging report ──────────────────────────────────────────── */}
+        {kpis && outstanding.length > 0 && (
           <div className="card p-5">
-            <h2 className="text-sm font-semibold text-gray-900 mb-3">Aging Report — AP</h2>
-            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center text-xs">
-              {(["CURRENT","1-30d","31-60d","61-90d","+90d"] as AgingBucket[]).map((b) => (
+            <h2 className="text-sm font-semibold text-gray-900 mb-3">Aging Report — AP (valor líquido)</h2>
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 text-center text-xs">
+              {(Object.keys(AGING_CFG) as AgingBucket[]).map((b) => (
                 <div key={b} className="bg-gray-50 rounded-lg py-3">
                   <div className={`font-bold tabular-nums ${AGING_CFG[b].color}`}>
-                    {fmtBRL(agingGroups[b] ?? 0)}
+                    {fmtBRL(kpis.apAging[b] ?? 0)}
                   </div>
                   <div className="text-[10px] text-gray-400 mt-0.5">{AGING_CFG[b].label}</div>
                 </div>
@@ -216,89 +296,172 @@ export default function APPage() {
             className="flex items-center gap-1.5 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-semibold transition-colors"
           >
             {showForm ? <X size={13} /> : <Plus size={13} />}
-            {showForm ? "Cancelar" : "Adicionar AP"}
+            {showForm ? "Cancelar" : "Nova AP"}
           </button>
         </div>
 
         {/* ── Add form ──────────────────────────────────────────────── */}
         {showForm && (
-          <div className="card p-5 border-brand-200 border-2">
-            <h2 className="text-sm font-semibold text-gray-900 mb-4">Nova Conta a Pagar</h2>
+          <form onSubmit={handleAdd} className="card p-5 border-2 border-brand-200 space-y-4">
+            <h2 className="text-sm font-semibold text-gray-900">Nova Conta a Pagar</h2>
+
             <div className="grid grid-cols-2 gap-3 text-xs">
-              <div>
-                <label className="block font-semibold text-gray-600 mb-1">Fornecedor</label>
-                <input type="text" value={form.supplier}
-                  onChange={(e) => setForm((f) => ({ ...f, supplier: e.target.value }))}
-                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500"
-                  placeholder="Nome do fornecedor" />
-              </div>
+              {/* BU + Supplier name */}
               <div>
                 <label className="block font-semibold text-gray-600 mb-1">Business Unit</label>
-                <select value={form.bu_code}
+                <select
+                  value={form.bu_code}
                   onChange={(e) => setForm((f) => ({ ...f, bu_code: e.target.value as BuCode }))}
-                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-brand-500">
-                  {["AWQ","JACQES","CAZA","ADVISOR","VENTURE"].map((b) => (
-                    <option key={b} value={b}>{b}</option>
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-brand-500"
+                >
+                  {BUS.map((b) => <option key={b} value={b}>{b}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block font-semibold text-gray-600 mb-1">Fornecedor *</label>
+                <input
+                  required
+                  type="text"
+                  value={form.supplier_name}
+                  onChange={(e) => setForm((f) => ({ ...f, supplier_name: e.target.value }))}
+                  placeholder="Nome do fornecedor"
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500"
+                />
+              </div>
+
+              {/* Supplier type — triggers fiscal calc */}
+              <div className="col-span-2">
+                <label className="block font-semibold text-gray-600 mb-1">Tipo de Operação (define retenções)</label>
+                <select
+                  value={form.supplier_type}
+                  onChange={(e) => setForm((f) => ({ ...f, supplier_type: e.target.value as SupplierType }))}
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-brand-500"
+                >
+                  {(Object.keys(SUPPLIER_TYPE_LABELS) as SupplierType[]).map((k) => (
+                    <option key={k} value={k}>{SUPPLIER_TYPE_LABELS[k]}</option>
                   ))}
                 </select>
               </div>
+
+              {/* Description + Category */}
               <div className="col-span-2">
-                <label className="block font-semibold text-gray-600 mb-1">Descrição</label>
-                <input type="text" value={form.description}
+                <label className="block font-semibold text-gray-600 mb-1">Descrição *</label>
+                <input
+                  required
+                  type="text"
+                  value={form.description}
                   onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                  placeholder="Ex: Edição de vídeo — Projeto XP Q1/2026"
                   className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500"
-                  placeholder="Ex: Serviço de design — fev/2026" />
+                />
               </div>
-              <div>
-                <label className="block font-semibold text-gray-600 mb-1">Valor (R$)</label>
-                <input type="number" step="0.01" min="0.01" value={form.amount}
-                  onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
-                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500"
-                  placeholder="0,00" />
-              </div>
+
               <div>
                 <label className="block font-semibold text-gray-600 mb-1">Categoria</label>
-                <select value={form.category}
+                <select
+                  value={form.category}
                   onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-brand-500">
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-brand-500"
+                >
                   {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block font-semibold text-gray-600 mb-1">Emissão</label>
-                <input type="date" value={form.issue_date}
-                  onChange={(e) => setForm((f) => ({ ...f, issue_date: e.target.value }))}
-                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
-              </div>
-              <div>
-                <label className="block font-semibold text-gray-600 mb-1">Vencimento</label>
-                <input type="date" value={form.due_date}
-                  onChange={(e) => setForm((f) => ({ ...f, due_date: e.target.value }))}
-                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
-              </div>
-              <div>
                 <label className="block font-semibold text-gray-600 mb-1">Doc. referência</label>
-                <input type="text" value={form.reference_doc}
+                <input
+                  type="text"
+                  value={form.reference_doc}
                   onChange={(e) => setForm((f) => ({ ...f, reference_doc: e.target.value }))}
+                  placeholder="NF-e, boleto, contrato…"
                   className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500"
-                  placeholder="NF, boleto, contrato…" />
+                />
               </div>
+
+              <div>
+                <label className="block font-semibold text-gray-600 mb-1">Emissão</label>
+                <input
+                  type="date"
+                  value={form.issue_date}
+                  onChange={(e) => setForm((f) => ({ ...f, issue_date: e.target.value }))}
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold text-gray-600 mb-1">Vencimento *</label>
+                <input
+                  required
+                  type="date"
+                  value={form.due_date}
+                  onChange={(e) => setForm((f) => ({ ...f, due_date: e.target.value }))}
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500"
+                />
+              </div>
+
+              {/* Gross amount */}
               <div className="col-span-2">
-                <button onClick={addItem}
-                  className="w-full py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-semibold transition-colors">
-                  Adicionar Conta a Pagar
-                </button>
+                <label className="block font-semibold text-gray-600 mb-1">Valor Bruto (R$) *</label>
+                <input
+                  required
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  value={form.gross_amount}
+                  onChange={(e) => setForm((f) => ({ ...f, gross_amount: e.target.value }))}
+                  placeholder="0,00"
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500"
+                />
               </div>
             </div>
-          </div>
+
+            {/* ── Fiscal preview ───────────────────────────────────── */}
+            {fiscal && (parseFloat(form.gross_amount) > 0) && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs space-y-2">
+                <div className="flex items-center gap-1.5 font-semibold text-amber-800 mb-2">
+                  <Receipt size={12} />
+                  Retenções Fiscais — cálculo automático
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-center">
+                  {[
+                    { label: "IRRF",   rate: FISCAL_DEFAULTS[form.supplier_type].irrf,   amount: fiscal.irrf   },
+                    { label: "INSS",   rate: FISCAL_DEFAULTS[form.supplier_type].inss,   amount: fiscal.inss   },
+                    { label: "ISS",    rate: FISCAL_DEFAULTS[form.supplier_type].iss,    amount: fiscal.iss    },
+                    { label: "PIS",    rate: FISCAL_DEFAULTS[form.supplier_type].pis,    amount: fiscal.pis    },
+                    { label: "COFINS", rate: FISCAL_DEFAULTS[form.supplier_type].cofins, amount: fiscal.cofins },
+                  ].map((tax) => (
+                    <div key={tax.label} className="bg-white rounded-lg p-2 border border-amber-100">
+                      <div className="text-[10px] text-gray-500 font-medium">{tax.label}</div>
+                      <div className="text-amber-700 font-bold tabular-nums">{fmtBRL(tax.amount)}</div>
+                      <div className="text-[9px] text-gray-400">{pct(tax.rate)}</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center justify-between pt-1 border-t border-amber-200">
+                  <span className="text-gray-600">Total retido: <strong className="text-amber-800">{fmtBRL(fiscal.total)}</strong></span>
+                  <span className="text-gray-600">
+                    Líquido a pagar: <strong className="text-emerald-700 text-sm">{fmtBRL(fiscal.net)}</strong>
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full py-2.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white rounded-xl text-xs font-semibold transition-colors"
+            >
+              {submitting ? "Registrando…" : "Registrar Conta a Pagar"}
+            </button>
+          </form>
         )}
 
         {/* ── Items table ───────────────────────────────────────────── */}
-        {filtered.length === 0 ? (
+        {loading ? (
+          <div className="card p-12 text-center text-sm text-gray-400">Carregando…</div>
+        ) : filtered.length === 0 ? (
           <div className="card p-12 flex flex-col items-center gap-3 text-center">
             <ArrowDownLeft size={32} className="text-gray-200" />
             <div className="text-sm text-gray-400">
-              {items.length === 0 ? "Nenhuma conta a pagar registrada" : "Nenhum resultado para a busca"}
+              {items.length === 0 ? "Nenhuma conta a pagar registrada" : "Nenhum resultado"}
             </div>
           </div>
         ) : (
@@ -307,69 +470,106 @@ export default function APPage() {
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50 text-left">
-                    <th className="py-2.5 px-3 text-gray-500 font-semibold">Vencimento</th>
+                    <th className="py-2.5 px-3 text-gray-500 font-semibold">Venc.</th>
                     <th className="py-2.5 px-3 text-gray-500 font-semibold">Fornecedor</th>
                     <th className="py-2.5 px-3 text-gray-500 font-semibold">BU</th>
-                    <th className="py-2.5 px-3 text-gray-500 font-semibold">Categoria</th>
-                    <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Valor</th>
-                    <th className="py-2.5 px-3 text-gray-500 font-semibold text-center">Aging</th>
+                    <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Bruto</th>
+                    <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Retenções</th>
+                    <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Líquido</th>
                     <th className="py-2.5 px-3 text-gray-500 font-semibold text-center">Status</th>
                     <th className="py-2.5 px-3 text-gray-500 font-semibold text-center">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.sort((a, b) => a.due_date.localeCompare(b.due_date)).map((item) => {
-                    const sc  = STATUS_CFG[item.status];
-                    const bucket = agingBucket(item);
-                    const ac  = AGING_CFG[bucket];
-                    return (
-                      <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50">
+                    const sc       = STATUS_CFG[item.status];
+                    const expanded = expandedId === item.id;
+                    return [
+                      <tr
+                        key={item.id}
+                        className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
+                        onClick={() => setExpandedId(expanded ? null : item.id)}
+                      >
                         <td className="py-2.5 px-3 tabular-nums text-gray-500 whitespace-nowrap">
                           {fmtDate(item.due_date)}
                         </td>
                         <td className="py-2.5 px-3">
-                          <div className="font-medium text-gray-800">{item.supplier}</div>
-                          <div className="text-[10px] text-gray-400 truncate max-w-[140px]">{item.description}</div>
+                          <div className="font-medium text-gray-800">{item.supplier_name}</div>
+                          <div className="text-[10px] text-gray-400 truncate max-w-[160px]">{item.description}</div>
                         </td>
                         <td className="py-2.5 px-3">
                           <span className="px-1.5 py-0.5 bg-brand-50 text-brand-700 rounded text-[10px] font-bold">
                             {item.bu_code}
                           </span>
                         </td>
-                        <td className="py-2.5 px-3 text-gray-500">{item.category}</td>
-                        <td className="py-2.5 px-3 text-right font-semibold tabular-nums text-gray-900">
-                          {fmtBRL(item.amount)}
+                        <td className="py-2.5 px-3 text-right tabular-nums text-gray-500">
+                          {fmtBRL(item.gross_amount)}
                         </td>
-                        <td className="py-2.5 px-3 text-center">
-                          <span className={`font-semibold ${ac.color}`}>{ac.label}</span>
+                        <td className="py-2.5 px-3 text-right tabular-nums text-amber-700">
+                          {item.total_retentions > 0 ? `(${fmtBRL(item.total_retentions)})` : "—"}
+                        </td>
+                        <td className="py-2.5 px-3 text-right font-semibold tabular-nums text-gray-900">
+                          {fmtBRL(item.net_amount)}
                         </td>
                         <td className="py-2.5 px-3 text-center">
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${sc.color} ${sc.bg}`}>
                             {sc.label}
                           </span>
                         </td>
-                        <td className="py-2.5 px-3 text-center">
-                          <div className="flex items-center justify-center gap-2">
+                        <td className="py-2.5 px-3">
+                          <div className="flex items-center justify-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                             {item.status !== "PAID" && item.status !== "CANCELLED" && (
                               <button
-                                onClick={() => markPaid(item.id)}
-                                title="Marcar como pago"
+                                onClick={() => handlePay(item.id)}
+                                title="Registrar pagamento"
                                 className="p-1 text-emerald-600 hover:bg-emerald-50 rounded transition-colors"
                               >
                                 <CheckCircle2 size={13} />
                               </button>
                             )}
                             <button
-                              onClick={() => deleteItem(item.id)}
+                              onClick={() => handleDelete(item.id)}
                               title="Excluir"
-                              className="p-1 text-red-500 hover:bg-red-50 rounded transition-colors"
+                              className="p-1 text-red-400 hover:bg-red-50 rounded transition-colors"
                             >
                               <Trash2 size={13} />
                             </button>
+                            {expanded
+                              ? <ChevronUp size={13} className="text-gray-400" />
+                              : <ChevronDown size={13} className="text-gray-400" />
+                            }
                           </div>
                         </td>
-                      </tr>
-                    );
+                      </tr>,
+                      expanded && (
+                        <tr key={`${item.id}-detail`} className="bg-amber-50 border-b border-amber-100">
+                          <td colSpan={8} className="px-4 py-3">
+                            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-[11px]">
+                              {[
+                                { label: "IRRF",   rate: item.irrf_rate,   amount: item.irrf_amount   },
+                                { label: "INSS",   rate: item.inss_rate,   amount: item.inss_amount   },
+                                { label: "ISS",    rate: item.iss_rate,    amount: item.iss_amount    },
+                                { label: "PIS",    rate: item.pis_rate,    amount: item.pis_amount    },
+                                { label: "COFINS", rate: item.cofins_rate, amount: item.cofins_amount },
+                              ].map((t) => (
+                                <div key={t.label} className="bg-white rounded-lg px-3 py-2 border border-amber-100 text-center">
+                                  <div className="text-gray-500 font-medium">{t.label} ({pct(t.rate)})</div>
+                                  <div className={`font-bold tabular-nums ${t.amount > 0 ? "text-amber-700" : "text-gray-300"}`}>
+                                    {fmtBRL(t.amount)}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                            <div className="mt-2 flex flex-wrap gap-4 text-[11px] text-gray-500">
+                              <span>Emissão: <strong>{fmtDate(item.issue_date)}</strong></span>
+                              <span>Categoria: <strong>{item.category}</strong></span>
+                              {item.reference_doc && <span>Doc: <strong>{item.reference_doc}</strong></span>}
+                              {item.paid_date && <span>Pago em: <strong>{fmtDate(item.paid_date)}</strong> · {item.payment_ref}</span>}
+                            </div>
+                          </td>
+                        </tr>
+                      ),
+                    ];
                   })}
                 </tbody>
               </table>

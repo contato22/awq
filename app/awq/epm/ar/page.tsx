@@ -1,48 +1,62 @@
 "use client";
 
-// ─── /awq/epm/ar — Contas a Receber (Accounts Receivable) ────────────────────
-//
-// Client component: AR management with aging, DSO, add and status tracking.
-// Persists to localStorage — zero cost, instant.
+// ─── /awq/epm/ar — Contas a Receber ──────────────────────────────────────────
+// API-backed AR management with ISS auto-calculation, aging, and DSO tracking.
 
 import { useState, useEffect, useCallback } from "react";
 import Header from "@/components/Header";
 import Link from "next/link";
 import {
-  ArrowUpRight, Plus, X, CheckCircle2, Trash2, Search, AlertTriangle,
+  ArrowUpRight, Plus, X, CheckCircle2, Trash2, Search,
+  ChevronDown, ChevronUp, Receipt,
 } from "lucide-react";
 
-type ARStatus = "PENDING" | "PARTIAL" | "RECEIVED" | "OVERDUE" | "CANCELLED";
+// ─── Types ────────────────────────────────────────────────────────────────────
+
 type BuCode   = "AWQ" | "JACQES" | "CAZA" | "ADVISOR" | "VENTURE";
+type ARStatus = "PENDING" | "PARTIAL" | "RECEIVED" | "OVERDUE" | "CANCELLED";
+type AgingBucket = "CURRENT" | "1-30d" | "31-60d" | "61-90d" | "+90d";
 
 interface ARItem {
-  id:           string;
-  bu_code:      BuCode;
-  customer:     string;
-  description:  string;
-  amount:       number;
+  id:              string;
+  bu_code:         BuCode;
+  customer_name:   string;
+  description:     string;
+  category:        string;
+  reference_doc?:  string;
+  issue_date:      string;
+  due_date:        string;
+  gross_amount:    number;
+  iss_rate:        number;
+  iss_amount:      number;
+  net_amount:      number;
+  status:          ARStatus;
+  received_date?:  string;
   received_amount?: number;
-  issue_date:   string;
-  due_date:     string;
-  status:       ARStatus;
-  category:     string;
-  reference_doc?: string;
-  created_at:   string;
+  receipt_ref?:    string;
+  created_at:      string;
 }
 
-type AgingBucket = "CURRENT" | "1-30d" | "31-60d" | "61-90d" | "+90d" | "RECEIVED";
-
-function agingBucket(item: ARItem): AgingBucket {
-  if (item.status === "RECEIVED") return "RECEIVED";
-  const today = new Date();
-  const due   = new Date(item.due_date);
-  const diff  = Math.floor((today.getTime() - due.getTime()) / 86_400_000);
-  if (diff <= 0)  return "CURRENT";
-  if (diff <= 30) return "1-30d";
-  if (diff <= 60) return "31-60d";
-  if (diff <= 90) return "61-90d";
-  return "+90d";
+interface ARKPIs {
+  totalAROutstanding: number;
+  totalAROverdue:     number;
+  totalARReceived:    number;
+  dso:                number | null;
+  ccc:                number | null;
+  arAging:            Record<AgingBucket, number>;
 }
+
+// ─── ISS categories ───────────────────────────────────────────────────────────
+
+const ISS_SERVICE_CATEGORIES = new Set(["Serviço Recorrente", "Projeto", "Consultoria", "Produção"]);
+
+function calcISS(gross: number, category: string, issRate?: number): { iss_rate: number; iss_amount: number; net_amount: number } {
+  const rate = issRate ?? (ISS_SERVICE_CATEGORIES.has(category) ? 0.05 : 0);
+  const iss  = Math.round(gross * rate * 100) / 100;
+  return { iss_rate: rate, iss_amount: iss, net_amount: Math.round((gross - iss) * 100) / 100 };
+}
+
+// ─── Formatting ───────────────────────────────────────────────────────────────
 
 function fmtBRL(n: number) {
   return "R$" + n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -51,6 +65,8 @@ function fmtDate(d: string) {
   const [y, m, day] = d.split("-");
   return `${day}/${m}/${y}`;
 }
+
+// ─── Config ───────────────────────────────────────────────────────────────────
 
 const STATUS_CFG: Record<ARStatus, { label: string; color: string; bg: string }> = {
   PENDING:  { label: "Pendente",  color: "text-amber-700",   bg: "bg-amber-50"   },
@@ -61,134 +77,179 @@ const STATUS_CFG: Record<ARStatus, { label: string; color: string; bg: string }>
 };
 
 const AGING_CFG: Record<AgingBucket, { label: string; color: string }> = {
-  CURRENT:   { label: "A receber",  color: "text-emerald-600" },
-  "1-30d":   { label: "1-30d",      color: "text-amber-600"   },
-  "31-60d":  { label: "31-60d",     color: "text-orange-600"  },
-  "61-90d":  { label: "61-90d",     color: "text-red-600"     },
-  "+90d":    { label: "+90 dias",   color: "text-red-800"     },
-  RECEIVED:  { label: "Recebido",   color: "text-gray-400"    },
+  "CURRENT": { label: "A receber", color: "text-emerald-600" },
+  "1-30d":   { label: "1–30 dias", color: "text-amber-600"   },
+  "31-60d":  { label: "31–60d",    color: "text-orange-600"  },
+  "61-90d":  { label: "61–90d",    color: "text-red-600"     },
+  "+90d":    { label: "+90 dias",  color: "text-red-800"     },
 };
 
-const STORAGE_KEY = "awq_epm_ar_items";
-const CATEGORIES  = ["Serviço Recorrente","Projeto","Consultoria","Produção","Adiantamento","Reembolso","Outros"];
+const CATEGORIES  = ["Serviço Recorrente", "Projeto", "Consultoria", "Produção", "Adiantamento", "Reembolso", "Outros"];
+const BUS: BuCode[] = ["AWQ", "JACQES", "CAZA", "ADVISOR", "VENTURE"];
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ARPage() {
-  const [items, setItems]       = useState<ARItem[]>([]);
-  const [showForm, setShowForm] = useState(false);
-  const [search, setSearch]     = useState("");
-
   const today = new Date().toISOString().slice(0, 10);
+
+  const [items,     setItems]     = useState<ARItem[]>([]);
+  const [kpis,      setKPIs]      = useState<ARKPIs | null>(null);
+  const [loading,   setLoading]   = useState(true);
+  const [showForm,  setShowForm]  = useState(false);
+  const [search,    setSearch]    = useState("");
+  const [submitting,setSubmitting]= useState(false);
+  const [expandedId,setExpandedId]= useState<string | null>(null);
+
   const [form, setForm] = useState({
-    bu_code: "JACQES" as BuCode,
-    customer: "", description: "", amount: "",
-    issue_date: today, due_date: "", status: "PENDING" as ARStatus,
-    category: "Serviço Recorrente", reference_doc: "",
+    bu_code:       "JACQES" as BuCode,
+    customer_name: "",
+    description:   "",
+    category:      "Serviço Recorrente",
+    reference_doc: "",
+    issue_date:    today,
+    due_date:      "",
+    gross_amount:  "",
   });
 
-  useEffect(() => {
+  const gross = parseFloat(form.gross_amount) || 0;
+  const issPreview = gross > 0 ? calcISS(gross, form.category) : null;
+
+  // ── Load ─────────────────────────────────────────────────────────────────────
+
+  const loadData = useCallback(async () => {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed: ARItem[] = JSON.parse(raw);
-        const updated = parsed.map((item) => {
-          if (item.status === "PENDING" && new Date(item.due_date) < new Date()) {
-            return { ...item, status: "OVERDUE" as ARStatus };
-          }
-          return item;
-        });
-        setItems(updated);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      }
+      const [listRes, kpisRes] = await Promise.all([
+        fetch("/api/epm/ar"),
+        fetch("/api/epm/ar?view=kpis"),
+      ]);
+      const listJson = await listRes.json() as { success: boolean; data: ARItem[] };
+      const kpisJson = await kpisRes.json() as { success: boolean; data: ARKPIs };
+      if (listJson.success) setItems(listJson.data);
+      if (kpisJson.success) setKPIs(kpisJson.data);
     } catch { /* ignore */ }
+    finally { setLoading(false); }
   }, []);
 
-  const save = useCallback((next: ARItem[]) => {
-    setItems(next);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-  }, []);
+  useEffect(() => { loadData(); }, [loadData]);
 
-  function addItem() {
-    if (!form.customer || !form.description || !form.amount || !form.due_date) return;
-    const item: ARItem = {
-      id:           crypto.randomUUID(),
-      bu_code:      form.bu_code,
-      customer:     form.customer,
-      description:  form.description,
-      amount:       parseFloat(form.amount),
-      issue_date:   form.issue_date,
-      due_date:     form.due_date,
-      status:       form.status,
-      category:     form.category,
-      reference_doc:form.reference_doc || undefined,
-      created_at:   new Date().toISOString(),
-    };
-    save([...items, item]);
-    setForm((f) => ({ ...f, customer: "", description: "", amount: "", due_date: "", reference_doc: "" }));
-    setShowForm(false);
+  // ── Actions ──────────────────────────────────────────────────────────────────
+
+  async function handleAdd(e: React.FormEvent) {
+    e.preventDefault();
+    if (!gross || gross <= 0) return;
+    setSubmitting(true);
+    try {
+      const res  = await fetch("/api/epm/ar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bu_code:       form.bu_code,
+          customer_name: form.customer_name,
+          description:   form.description,
+          category:      form.category,
+          reference_doc: form.reference_doc || undefined,
+          issue_date:    form.issue_date,
+          due_date:      form.due_date,
+          gross_amount:  gross,
+        }),
+      });
+      const json = await res.json() as { success: boolean };
+      if (json.success) {
+        setShowForm(false);
+        setForm((f) => ({ ...f, customer_name: "", description: "", reference_doc: "", due_date: "", gross_amount: "" }));
+        await loadData();
+      }
+    } finally { setSubmitting(false); }
   }
 
-  function markReceived(id: string) {
-    save(items.map((i) => i.id === id ? { ...i, status: "RECEIVED" as ARStatus, received_amount: i.amount } : i));
+  async function handleReceive(id: string) {
+    const item             = items.find((i) => i.id === id);
+    const received_date    = window.prompt("Data de recebimento (AAAA-MM-DD):", today);
+    if (!received_date) return;
+    const received_amount  = parseFloat(window.prompt("Valor recebido:", String(item?.net_amount ?? "")) ?? "");
+    if (!received_amount)  return;
+    const receipt_ref      = window.prompt("Referência (txid PIX, etc.) — opcional:") ?? undefined;
+
+    await fetch("/api/epm/ar", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, action: "receive", received_date, received_amount, receipt_ref }),
+    });
+    await loadData();
   }
 
-  function deleteItem(id: string) {
-    save(items.filter((i) => i.id !== id));
+  async function handleDelete(id: string) {
+    await fetch("/api/epm/ar", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, action: "delete" }),
+    });
+    await loadData();
   }
 
-  const filtered = items.filter((i) =>
+  // ── Filter ───────────────────────────────────────────────────────────────────
+
+  const filtered    = items.filter((i) =>
     search === "" ||
-    i.customer.toLowerCase().includes(search.toLowerCase()) ||
+    i.customer_name.toLowerCase().includes(search.toLowerCase()) ||
     i.description.toLowerCase().includes(search.toLowerCase())
   );
+  const outstanding = items.filter((i) => i.status !== "RECEIVED" && i.status !== "CANCELLED");
 
-  const outstanding   = items.filter((i) => i.status !== "RECEIVED" && i.status !== "CANCELLED");
-  const agingGroups: Partial<Record<AgingBucket, number>> = {};
-  for (const item of outstanding) {
-    const b = agingBucket(item);
-    agingGroups[b] = (agingGroups[b] ?? 0) + item.amount;
-  }
-
-  const totalOutstanding = outstanding.reduce((s, i) => s + i.amount, 0);
-  const totalOverdue     = items.filter((i) => i.status === "OVERDUE").reduce((s, i) => s + i.amount, 0);
-  const totalReceived    = items.filter((i) => i.status === "RECEIVED").reduce((s, i) => s + i.amount, 0);
-
-  // DSO: AR / (Revenue / 30) — rough estimate using received as proxy for revenue
-  const dso = totalReceived > 0
-    ? (totalOutstanding / (totalReceived / 30)).toFixed(0)
-    : "—";
+  // ── Render ───────────────────────────────────────────────────────────────────
 
   return (
     <>
       <Header
         title="Contas a Receber (AR)"
-        subtitle={`EPM · AWQ Group · ${outstanding.length} itens em aberto · DSO ≈ ${dso} dias`}
+        subtitle={`EPM · AWQ Group · ${outstanding.length} em aberto${kpis?.dso != null ? ` · DSO ${kpis.dso}d` : ""}${kpis?.ccc != null ? ` · CCC ${kpis.ccc}d` : ""}`}
       />
       <div className="page-container">
 
-        {/* ── Summary cards ─────────────────────────────────────────── */}
+        {/* ── KPI cards ─────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: "Total a Receber", value: fmtBRL(totalOutstanding), color: "text-brand-700",   bg: "bg-brand-50"   },
-            { label: "Vencido",         value: fmtBRL(totalOverdue),     color: "text-red-700",     bg: "bg-red-50"     },
-            { label: "Total Recebido",  value: fmtBRL(totalReceived),    color: "text-emerald-700", bg: "bg-emerald-50" },
-            { label: "DSO (estimado)",  value: dso === "—" ? "—" : `${dso}d`, color: "text-amber-700", bg: "bg-amber-50" },
-          ].map((card) => (
-            <div key={card.label} className={`card p-4 text-center ${card.bg}`}>
-              <div className={`text-xl font-bold tabular-nums ${card.color}`}>{card.value}</div>
-              <div className="text-[11px] text-gray-500 mt-0.5">{card.label}</div>
+            { label: "A Receber",    value: fmtBRL(kpis?.totalAROutstanding ?? 0), color: "text-brand-700",   bg: "bg-brand-50"   },
+            { label: "Vencido",      value: fmtBRL(kpis?.totalAROverdue     ?? 0), color: "text-red-700",     bg: "bg-red-50"     },
+            { label: "Recebido",     value: fmtBRL(kpis?.totalARReceived    ?? 0), color: "text-emerald-700", bg: "bg-emerald-50" },
+            { label: "DSO estimado", value: kpis?.dso != null ? `${kpis.dso}d` : "—", color: "text-amber-700", bg: "bg-amber-50" },
+          ].map((c) => (
+            <div key={c.label} className={`card p-4 text-center ${c.bg}`}>
+              <div className={`text-xl font-bold tabular-nums ${c.color}`}>{c.value}</div>
+              <div className="text-[11px] text-gray-500 mt-0.5">{c.label}</div>
             </div>
           ))}
         </div>
 
-        {/* ── Aging ─────────────────────────────────────────────────── */}
-        {outstanding.length > 0 && (
+        {/* ── CCC note ──────────────────────────────────────────────── */}
+        {kpis?.ccc != null && (
+          <div className={`flex items-center gap-2 text-xs px-4 py-2.5 rounded-xl border ${
+            kpis.ccc > 0
+              ? "bg-amber-50 border-amber-200 text-amber-800"
+              : "bg-emerald-50 border-emerald-200 text-emerald-800"
+          }`}>
+            <span className="font-semibold">Cash Conversion Cycle (CCC):</span>
+            <span>{kpis.ccc}d</span>
+            <span className="text-gray-500">= DSO {kpis.dso}d − DPO {kpis.dso != null && kpis.ccc != null ? kpis.dso - kpis.ccc : "—"}d</span>
+            <span className="ml-auto">
+              {kpis.ccc > 30
+                ? "⚠️ Alto — você financia clientes por mais de um mês"
+                : kpis.ccc <= 0
+                ? "✓ Saudável — clientes pagam antes de fornecedores"
+                : "OK"}
+            </span>
+          </div>
+        )}
+
+        {/* ── Aging report ──────────────────────────────────────────── */}
+        {kpis && outstanding.length > 0 && (
           <div className="card p-5">
-            <h2 className="text-sm font-semibold text-gray-900 mb-3">Aging Report — AR</h2>
+            <h2 className="text-sm font-semibold text-gray-900 mb-3">Aging Report — AR (valor bruto)</h2>
             <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 text-center text-xs">
-              {(["CURRENT","1-30d","31-60d","61-90d","+90d"] as AgingBucket[]).map((b) => (
+              {(Object.keys(AGING_CFG) as AgingBucket[]).map((b) => (
                 <div key={b} className="bg-gray-50 rounded-lg py-3">
                   <div className={`font-bold tabular-nums ${AGING_CFG[b].color}`}>
-                    {fmtBRL(agingGroups[b] ?? 0)}
+                    {fmtBRL(kpis.arAging[b] ?? 0)}
                   </div>
                   <div className="text-[10px] text-gray-400 mt-0.5">{AGING_CFG[b].label}</div>
                 </div>
@@ -201,96 +262,168 @@ export default function ARPage() {
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 flex-1 max-w-xs">
             <Search size={13} className="text-gray-400 shrink-0" />
-            <input value={search} onChange={(e) => setSearch(e.target.value)}
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar cliente ou descrição…"
-              className="flex-1 text-xs py-2 border-b border-gray-200 focus:outline-none focus:border-brand-500 bg-transparent" />
+              className="flex-1 text-xs py-2 border-b border-gray-200 focus:outline-none focus:border-brand-500 bg-transparent"
+            />
           </div>
-          <button onClick={() => setShowForm((v) => !v)}
-            className="flex items-center gap-1.5 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-semibold transition-colors">
+          <button
+            onClick={() => setShowForm((v) => !v)}
+            className="flex items-center gap-1.5 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-semibold transition-colors"
+          >
             {showForm ? <X size={13} /> : <Plus size={13} />}
-            {showForm ? "Cancelar" : "Adicionar AR"}
+            {showForm ? "Cancelar" : "Nova AR"}
           </button>
         </div>
 
         {/* ── Add form ──────────────────────────────────────────────── */}
         {showForm && (
-          <div className="card p-5 border-brand-200 border-2">
-            <h2 className="text-sm font-semibold text-gray-900 mb-4">Nova Conta a Receber</h2>
+          <form onSubmit={handleAdd} className="card p-5 border-2 border-brand-200 space-y-4">
+            <h2 className="text-sm font-semibold text-gray-900">Nova Conta a Receber</h2>
+
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div>
-                <label className="block font-semibold text-gray-600 mb-1">Cliente</label>
-                <input type="text" value={form.customer}
-                  onChange={(e) => setForm((f) => ({ ...f, customer: e.target.value }))}
-                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500"
-                  placeholder="Nome do cliente" />
+                <label className="block font-semibold text-gray-600 mb-1">Business Unit</label>
+                <select
+                  value={form.bu_code}
+                  onChange={(e) => setForm((f) => ({ ...f, bu_code: e.target.value as BuCode }))}
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-brand-500"
+                >
+                  {BUS.map((b) => <option key={b} value={b}>{b}</option>)}
+                </select>
               </div>
               <div>
-                <label className="block font-semibold text-gray-600 mb-1">Business Unit</label>
-                <select value={form.bu_code}
-                  onChange={(e) => setForm((f) => ({ ...f, bu_code: e.target.value as BuCode }))}
-                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-brand-500">
-                  {["AWQ","JACQES","CAZA","ADVISOR","VENTURE"].map((b) => (
-                    <option key={b} value={b}>{b}</option>
+                <label className="block font-semibold text-gray-600 mb-1">Cliente *</label>
+                <input
+                  required
+                  type="text"
+                  value={form.customer_name}
+                  onChange={(e) => setForm((f) => ({ ...f, customer_name: e.target.value }))}
+                  placeholder="Nome do cliente"
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500"
+                />
+              </div>
+
+              <div className="col-span-2">
+                <label className="block font-semibold text-gray-600 mb-1">Descrição *</label>
+                <input
+                  required
+                  type="text"
+                  value={form.description}
+                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                  placeholder="Ex: Retainer mensal JACQES — abr/2026"
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-gray-600 mb-1">Categoria (define ISS)</label>
+                <select
+                  value={form.category}
+                  onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-brand-500"
+                >
+                  {CATEGORIES.map((c) => (
+                    <option key={c} value={c}>
+                      {c}{ISS_SERVICE_CATEGORIES.has(c) ? " (ISS 5%)" : ""}
+                    </option>
                   ))}
                 </select>
               </div>
-              <div className="col-span-2">
-                <label className="block font-semibold text-gray-600 mb-1">Descrição</label>
-                <input type="text" value={form.description}
-                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500"
-                  placeholder="Ex: Retainer mensal JACQES — mar/2026" />
-              </div>
-              <div>
-                <label className="block font-semibold text-gray-600 mb-1">Valor (R$)</label>
-                <input type="number" step="0.01" min="0.01" value={form.amount}
-                  onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
-                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500"
-                  placeholder="0,00" />
-              </div>
-              <div>
-                <label className="block font-semibold text-gray-600 mb-1">Categoria</label>
-                <select value={form.category}
-                  onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-brand-500">
-                  {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block font-semibold text-gray-600 mb-1">Emissão</label>
-                <input type="date" value={form.issue_date}
-                  onChange={(e) => setForm((f) => ({ ...f, issue_date: e.target.value }))}
-                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
-              </div>
-              <div>
-                <label className="block font-semibold text-gray-600 mb-1">Vencimento</label>
-                <input type="date" value={form.due_date}
-                  onChange={(e) => setForm((f) => ({ ...f, due_date: e.target.value }))}
-                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
-              </div>
               <div>
                 <label className="block font-semibold text-gray-600 mb-1">Referência</label>
-                <input type="text" value={form.reference_doc}
+                <input
+                  type="text"
+                  value={form.reference_doc}
                   onChange={(e) => setForm((f) => ({ ...f, reference_doc: e.target.value }))}
+                  placeholder="NF-e, proposta, contrato…"
                   className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500"
-                  placeholder="NF, contrato, proposta…" />
+                />
               </div>
+
+              <div>
+                <label className="block font-semibold text-gray-600 mb-1">Emissão</label>
+                <input
+                  type="date"
+                  value={form.issue_date}
+                  onChange={(e) => setForm((f) => ({ ...f, issue_date: e.target.value }))}
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold text-gray-600 mb-1">Vencimento *</label>
+                <input
+                  required
+                  type="date"
+                  value={form.due_date}
+                  onChange={(e) => setForm((f) => ({ ...f, due_date: e.target.value }))}
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500"
+                />
+              </div>
+
               <div className="col-span-2">
-                <button onClick={addItem}
-                  className="w-full py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-semibold transition-colors">
-                  Adicionar Conta a Receber
-                </button>
+                <label className="block font-semibold text-gray-600 mb-1">Valor do Serviço (R$) *</label>
+                <input
+                  required
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  value={form.gross_amount}
+                  onChange={(e) => setForm((f) => ({ ...f, gross_amount: e.target.value }))}
+                  placeholder="0,00"
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500"
+                />
               </div>
             </div>
-          </div>
+
+            {/* ── ISS preview ──────────────────────────────────────── */}
+            {issPreview && gross > 0 && (
+              <div className={`rounded-xl p-4 text-xs space-y-1 border ${
+                issPreview.iss_amount > 0
+                  ? "bg-violet-50 border-violet-200"
+                  : "bg-gray-50 border-gray-200"
+              }`}>
+                <div className="flex items-center gap-1.5 font-semibold text-violet-800 mb-2">
+                  <Receipt size={12} />
+                  {issPreview.iss_amount > 0 ? "ISS retido na fonte (5% — SP)" : "Categoria sem ISS"}
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Valor do serviço (bruto):</span>
+                  <span className="font-semibold tabular-nums">{fmtBRL(gross)}</span>
+                </div>
+                {issPreview.iss_amount > 0 && (
+                  <div className="flex items-center justify-between text-violet-700">
+                    <span>ISS 5% (retido pelo cliente):</span>
+                    <span className="font-semibold tabular-nums">({fmtBRL(issPreview.iss_amount)})</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between border-t border-violet-200 pt-1 font-bold">
+                  <span>Líquido a receber:</span>
+                  <span className="text-emerald-700 tabular-nums">{fmtBRL(issPreview.net_amount)}</span>
+                </div>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full py-2.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white rounded-xl text-xs font-semibold transition-colors"
+            >
+              {submitting ? "Registrando…" : "Registrar Conta a Receber"}
+            </button>
+          </form>
         )}
 
         {/* ── Items table ───────────────────────────────────────────── */}
-        {filtered.length === 0 ? (
+        {loading ? (
+          <div className="card p-12 text-center text-sm text-gray-400">Carregando…</div>
+        ) : filtered.length === 0 ? (
           <div className="card p-12 flex flex-col items-center gap-3 text-center">
             <ArrowUpRight size={32} className="text-gray-200" />
             <div className="text-sm text-gray-400">
-              {items.length === 0 ? "Nenhuma conta a receber registrada" : "Nenhum resultado para a busca"}
+              {items.length === 0 ? "Nenhuma conta a receber registrada" : "Nenhum resultado"}
             </div>
           </div>
         ) : (
@@ -299,63 +432,110 @@ export default function ARPage() {
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50 text-left">
-                    <th className="py-2.5 px-3 text-gray-500 font-semibold">Vencimento</th>
+                    <th className="py-2.5 px-3 text-gray-500 font-semibold">Venc.</th>
                     <th className="py-2.5 px-3 text-gray-500 font-semibold">Cliente</th>
                     <th className="py-2.5 px-3 text-gray-500 font-semibold">BU</th>
-                    <th className="py-2.5 px-3 text-gray-500 font-semibold">Categoria</th>
-                    <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Valor</th>
-                    <th className="py-2.5 px-3 text-gray-500 font-semibold text-center">Aging</th>
+                    <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Bruto</th>
+                    <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">ISS</th>
+                    <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Líquido</th>
                     <th className="py-2.5 px-3 text-gray-500 font-semibold text-center">Status</th>
                     <th className="py-2.5 px-3 text-gray-500 font-semibold text-center">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.sort((a, b) => a.due_date.localeCompare(b.due_date)).map((item) => {
-                    const sc     = STATUS_CFG[item.status];
-                    const bucket = agingBucket(item);
-                    const ac     = AGING_CFG[bucket];
-                    return (
-                      <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50">
+                    const sc       = STATUS_CFG[item.status];
+                    const expanded = expandedId === item.id;
+                    return [
+                      <tr
+                        key={item.id}
+                        className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
+                        onClick={() => setExpandedId(expanded ? null : item.id)}
+                      >
                         <td className="py-2.5 px-3 tabular-nums text-gray-500 whitespace-nowrap">
                           {fmtDate(item.due_date)}
                         </td>
                         <td className="py-2.5 px-3">
-                          <div className="font-medium text-gray-800">{item.customer}</div>
-                          <div className="text-[10px] text-gray-400 truncate max-w-[140px]">{item.description}</div>
+                          <div className="font-medium text-gray-800">{item.customer_name}</div>
+                          <div className="text-[10px] text-gray-400 truncate max-w-[160px]">{item.description}</div>
                         </td>
                         <td className="py-2.5 px-3">
                           <span className="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 rounded text-[10px] font-bold">
                             {item.bu_code}
                           </span>
                         </td>
-                        <td className="py-2.5 px-3 text-gray-500">{item.category}</td>
-                        <td className="py-2.5 px-3 text-right font-semibold tabular-nums text-gray-900">
-                          {fmtBRL(item.amount)}
+                        <td className="py-2.5 px-3 text-right tabular-nums text-gray-500">
+                          {fmtBRL(item.gross_amount)}
                         </td>
-                        <td className="py-2.5 px-3 text-center">
-                          <span className={`font-semibold ${ac.color}`}>{ac.label}</span>
+                        <td className="py-2.5 px-3 text-right tabular-nums text-violet-700">
+                          {item.iss_amount > 0 ? `(${fmtBRL(item.iss_amount)})` : "—"}
+                        </td>
+                        <td className="py-2.5 px-3 text-right font-semibold tabular-nums text-emerald-700">
+                          {fmtBRL(item.net_amount)}
                         </td>
                         <td className="py-2.5 px-3 text-center">
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${sc.color} ${sc.bg}`}>
                             {sc.label}
                           </span>
                         </td>
-                        <td className="py-2.5 px-3 text-center">
-                          <div className="flex items-center justify-center gap-2">
+                        <td className="py-2.5 px-3">
+                          <div className="flex items-center justify-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                             {item.status !== "RECEIVED" && item.status !== "CANCELLED" && (
-                              <button onClick={() => markReceived(item.id)} title="Marcar como recebido"
-                                className="p-1 text-emerald-600 hover:bg-emerald-50 rounded transition-colors">
+                              <button
+                                onClick={() => handleReceive(item.id)}
+                                title="Registrar recebimento"
+                                className="p-1 text-emerald-600 hover:bg-emerald-50 rounded transition-colors"
+                              >
                                 <CheckCircle2 size={13} />
                               </button>
                             )}
-                            <button onClick={() => deleteItem(item.id)} title="Excluir"
-                              className="p-1 text-red-500 hover:bg-red-50 rounded transition-colors">
+                            <button
+                              onClick={() => handleDelete(item.id)}
+                              title="Excluir"
+                              className="p-1 text-red-400 hover:bg-red-50 rounded transition-colors"
+                            >
                               <Trash2 size={13} />
                             </button>
+                            {expanded
+                              ? <ChevronUp size={13} className="text-gray-400" />
+                              : <ChevronDown size={13} className="text-gray-400" />
+                            }
                           </div>
                         </td>
-                      </tr>
-                    );
+                      </tr>,
+                      expanded && (
+                        <tr key={`${item.id}-detail`} className="bg-violet-50 border-b border-violet-100">
+                          <td colSpan={8} className="px-4 py-3">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-[11px]">
+                              <div className="bg-white rounded-lg px-3 py-2 border border-violet-100">
+                                <div className="text-gray-500">ISS ({(item.iss_rate * 100).toFixed(0)}% — retido pelo cliente)</div>
+                                <div className={`font-bold tabular-nums ${item.iss_amount > 0 ? "text-violet-700" : "text-gray-300"}`}>
+                                  {fmtBRL(item.iss_amount)}
+                                </div>
+                              </div>
+                              <div className="bg-white rounded-lg px-3 py-2 border border-violet-100">
+                                <div className="text-gray-500">Receita líquida reconhecida</div>
+                                <div className="font-bold tabular-nums text-emerald-700">{fmtBRL(item.net_amount)}</div>
+                              </div>
+                              <div className="bg-white rounded-lg px-3 py-2 border border-violet-100">
+                                <div className="text-gray-500">Categoria</div>
+                                <div className="font-bold text-gray-700">{item.category}</div>
+                              </div>
+                            </div>
+                            <div className="mt-2 flex flex-wrap gap-4 text-[11px] text-gray-500">
+                              <span>Emissão: <strong>{fmtDate(item.issue_date)}</strong></span>
+                              {item.reference_doc && <span>Doc: <strong>{item.reference_doc}</strong></span>}
+                              {item.received_date && (
+                                <span>Recebido em: <strong>{fmtDate(item.received_date)}</strong>
+                                  {item.received_amount && ` · ${fmtBRL(item.received_amount)}`}
+                                  {item.receipt_ref && ` · ${item.receipt_ref}`}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ),
+                    ];
                   })}
                 </tbody>
               </table>

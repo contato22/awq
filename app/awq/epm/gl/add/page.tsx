@@ -9,7 +9,7 @@ import { useState } from "react";
 import Header from "@/components/Header";
 import Link from "next/link";
 import { Plus, CheckCircle2, AlertTriangle, ChevronLeft } from "lucide-react";
-import { CHART_OF_ACCOUNTS } from "@/lib/epm-gl";
+import { CHART_OF_ACCOUNTS } from "@/lib/epm-gl-constants";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
