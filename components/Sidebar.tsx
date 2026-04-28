@@ -44,6 +44,11 @@ import {
     Building,
     AlertTriangle,
     Lock,
+    Layers,
+    PieChart,
+    ListOrdered,
+    ArrowDownLeft,
+    Target,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -239,6 +244,19 @@ const AWQ_DADOS_ITEMS = [
     { label: "Segurança",     href: "/awq/security",  icon: ShieldAlert },
 ] as const;
 
+// EPM — Enterprise Performance Management (módulos financeiros completos)
+const AWQ_EPM_ITEMS = [
+    { label: "Visão Geral EPM",   href: "/awq/epm",                 icon: Layers        },
+    { label: "P&L (DRE)",         href: "/awq/epm/pl",              icon: LineChart     },
+    { label: "Balanço Patrimonial",href: "/awq/epm/balance-sheet",  icon: Scale         },
+    { label: "Budget vs Actual",  href: "/awq/epm/budget",          icon: Target        },
+    { label: "KPI Dashboard",     href: "/awq/epm/kpis",            icon: PieChart      },
+    { label: "Contas a Pagar",    href: "/awq/epm/ap",              icon: ArrowDownLeft },
+    { label: "Contas a Receber",  href: "/awq/epm/ar",              icon: ArrowUpRight  },
+    { label: "Razão Geral (GL)",  href: "/awq/epm/gl",              icon: ListOrdered   },
+    { label: "Consolidação",      href: "/awq/epm/consolidation",   icon: Building2     },
+] as const;
+
 // ── Shared helpers ────────────────────────────────────────────────────────────
 function NavItem({
     href,
@@ -425,19 +443,20 @@ function AwqSidebar({ pathname }: { pathname: string }) {
     const fpaActive          = isGroupActive(AWQ_FPA_ITEMS);
     const tesourariaActive   = isGroupActive(AWQ_TESOURARIA_ITEMS);
     const controladoriaActive= isGroupActive(AWQ_CONTROLADORIA_ITEMS);
+    const epmActive          = isGroupActive(AWQ_EPM_ITEMS);
 
     // Initialize all sections closed to avoid SSR/client hydration mismatch
-    // (usePathname() returns different values during static export vs. browser).
-    // useEffect opens the correct section after mount.
     const [ctOpen,            setCtOpen]           = useState(false);
     const [fpaOpen,           setFpaOpen]          = useState(false);
     const [tesourariaOpen,    setTesourariaOpen]   = useState(false);
     const [controladoriaOpen, setControladoriaOpen]= useState(false);
+    const [epmOpen,           setEpmOpen]          = useState(false);
 
     useEffect(() => { if (ctActive)           setCtOpen(true);           }, [ctActive]);
     useEffect(() => { if (fpaActive)          setFpaOpen(true);          }, [fpaActive]);
     useEffect(() => { if (tesourariaActive)   setTesourariaOpen(true);   }, [tesourariaActive]);
     useEffect(() => { if (controladoriaActive)setControladoriaOpen(true);}, [controladoriaActive]);
+    useEffect(() => { if (epmActive)          setEpmOpen(true);          }, [epmActive]);
 
     return (
         <>
@@ -523,7 +542,27 @@ function AwqSidebar({ pathname }: { pathname: string }) {
                     ))}
                 </CollapsibleSection>
 
-                {/* ── 3. Governança & Jurídico ──────────────────────────── */}
+                {/* ── 3. EPM — Enterprise Performance Management ────────── */}
+                <SectionLabel>EPM</SectionLabel>
+                <CollapsibleSection
+                    label="EPM"
+                    icon={Layers}
+                    isAnyActive={epmActive}
+                    isOpen={epmOpen}
+                    onToggle={() => setEpmOpen((o) => !o)}
+                >
+                    {AWQ_EPM_ITEMS.map((item) => (
+                        <NavItem
+                            key={item.href}
+                            href={item.href}
+                            icon={item.icon}
+                            label={item.label}
+                            active={pathname === item.href || pathname.startsWith(item.href + "/")}
+                        />
+                    ))}
+                </CollapsibleSection>
+
+                {/* ── 4. Governança & Jurídico ──────────────────────────── */}
                 <SectionLabel>Governança & Jurídico</SectionLabel>
                 <div className="space-y-0.5">
                     {AWQ_JURIDICO_ITEMS.map((item) => (
