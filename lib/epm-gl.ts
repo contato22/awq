@@ -11,7 +11,8 @@
 import fs from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
-export { AccountType, BuCode, AccountRef, CHART_OF_ACCOUNTS } from "./epm-gl-constants";
+export type { AccountType, BuCode, AccountRef } from "./epm-gl-constants";
+export { CHART_OF_ACCOUNTS } from "./epm-gl-constants";
 import type { AccountType, BuCode, AccountRef } from "./epm-gl-constants";
 import { CHART_OF_ACCOUNTS } from "./epm-gl-constants";
 
