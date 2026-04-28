@@ -4,7 +4,7 @@ import Link from "next/link";
 import {
   DollarSign, TrendingUp, BarChart3, Zap, ArrowUpRight, ArrowDownRight,
   ChevronRight, ShieldAlert, Activity, Wallet, Target, Building2,
-  Scale, CheckCircle, AlertTriangle, Database, Clock, GitMerge,
+  Scale, CheckCircle, AlertTriangle, Database, Clock, GitMerge, Layers,
 } from "lucide-react";
 import { riskSignals, buData, allocFlags, flagConfig } from "@/lib/awq-derived-metrics";
 import { MetricSourceBadge } from "@/components/MetricSourceBadge";
@@ -558,6 +558,7 @@ export default async function AwqGroupPage() {
         <section>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {[
+              { label: "EPM",          sub: "P&L · Budget · KPIs · GL",  href: "/awq/epm",         icon: Layers,        color: "text-brand-600",   bg: "bg-brand-50"   },
               { label: "Financial",    sub: "Visão de caixa",            href: "/awq/financial",   icon: DollarSign,    color: "text-emerald-600", bg: "bg-emerald-50" },
               { label: "Cash Flow",    sub: "Fluxo de caixa",            href: "/awq/cashflow",    icon: Zap,           color: "text-cyan-700",    bg: "bg-cyan-50"    },
               { label: "Investimentos",sub: "Aplicações / resgates",     href: "/awq/investments", icon: Target,        color: "text-violet-600",  bg: "bg-violet-50"  },
