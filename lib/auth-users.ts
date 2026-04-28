@@ -46,7 +46,7 @@ export const USERS: AuthUser[] = [
   {
     id: "5",
     name: "Miguel",
-    email: "miguel",
+    email: "contato@awq.com.br",
     passwordHash: "$2b$10$2FbtWd3diTZ8Hp5BV5QqbONApQ7VcRBmwbN.JQKrjQNNaORBmwKOm",
     role: "owner",
     homeRoute: "/awq",
