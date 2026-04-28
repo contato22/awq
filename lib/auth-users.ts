@@ -43,6 +43,14 @@ export const USERS: AuthUser[] = [
     role: "cs-ops",
     homeRoute: "/jacqes/csops",  // canonical route — /csops redirects here
   },
+  {
+    id: "5",
+    name: "Miguel",
+    email: "contato@awq.com.br",
+    passwordHash: "$2b$10$2FbtWd3diTZ8Hp5BV5QqbONApQ7VcRBmwbN.JQKrjQNNaORBmwKOm",
+    role: "owner",
+    homeRoute: "/awq",
+  },
 ];
 
 // ── RBAC route prefixes ───────────────────────────────────────────────────────
