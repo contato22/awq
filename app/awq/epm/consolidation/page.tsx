@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { buildFinancialQuery, fmtBRL, ENTITY_LABELS } from "@/lib/financial-query";
 import { buildDreQuery } from "@/lib/dre-query";
-import { buData, consolidated } from "@/lib/awq-derived-metrics";
+import { buData, consolidated, consolidatedMargins } from "@/lib/awq-derived-metrics";
 
 function fmtR(n: number): string {
   const abs  = Math.abs(n);
@@ -69,7 +69,7 @@ export default async function ConsolidationPage() {
             { label: "Receita Consolidada",  value: dreAll.hasData ? dreAll.dreRevenue : snap.revenue,    color: "text-emerald-700" },
             { label: "Margem Bruta",         value: dreAll.hasData
                 ? (dreAll.dreRevenue > 0 ? `${(dreAll.dreGrossProfit / dreAll.dreRevenue * 100).toFixed(1)}%` : "—")
-                : `${snap.grossMarginPct.toFixed(1)}%`,
+                : `${(consolidatedMargins.grossMargin * 100).toFixed(1)}%`,
               color: "text-brand-700", isStr: true },
             { label: "EBITDA Consolidado",   value: dreAll.hasData ? dreAll.dreEBITDA : snap.ebitda,      color: dreAll.hasData ? (dreAll.dreEBITDA >= 0 ? "text-emerald-700" : "text-red-700") : "text-emerald-700" },
             { label: "Intercompany Elim.",   value: q.consolidated.intercompanyEliminated,                color: "text-violet-700" },
@@ -195,7 +195,9 @@ export default async function ConsolidationPage() {
                 </tr>
               </thead>
               <tbody>
-                {buData.filter((b) => b.economicType !== "holding").map((bu) => (
+                {buData.map((bu) => {
+                  const buEbitdaMargin = bu.revenue > 0 ? (bu.ebitda / bu.revenue) * 100 : 0;
+                  return (
                   <tr key={bu.id} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="py-2.5 px-3">
                       <div className="flex items-center gap-2">
@@ -213,8 +215,8 @@ export default async function ConsolidationPage() {
                     <td className={`py-2.5 px-3 text-right tabular-nums font-semibold ${bu.ebitda >= 0 ? "text-gray-800" : "text-red-600"}`}>
                       {fmtR(bu.ebitda)}
                     </td>
-                    <td className={`py-2.5 px-3 text-right ${bu.ebitdaMarginPct >= 15 ? "text-emerald-600" : bu.ebitdaMarginPct >= 0 ? "text-amber-600" : "text-red-600"}`}>
-                      {bu.economicType === "pre_revenue" ? "—" : `${bu.ebitdaMarginPct.toFixed(0)}%`}
+                    <td className={`py-2.5 px-3 text-right ${buEbitdaMargin >= 15 ? "text-emerald-600" : buEbitdaMargin >= 0 ? "text-amber-600" : "text-red-600"}`}>
+                      {bu.economicType === "pre_revenue" ? "—" : `${buEbitdaMargin.toFixed(0)}%`}
                     </td>
                     <td className={`py-2.5 px-3 text-right ${bu.roic >= 20 ? "text-emerald-600" : bu.roic > 0 ? "text-amber-600" : "text-gray-400"}`}>
                       {bu.roic > 0 ? `${bu.roic.toFixed(0)}%` : "—"}
@@ -223,12 +225,13 @@ export default async function ConsolidationPage() {
                       {fmtR(bu.capitalAllocated)}
                     </td>
                   </tr>
-                ))}
+                );
+                })}
                 <tr className="border-t-2 border-gray-300 bg-gray-50 font-bold">
                   <td className="py-2.5 px-3 text-gray-900">AWQ Consolidado</td>
                   <td className="py-2.5 px-3 text-right tabular-nums text-emerald-700">{fmtR(snap.revenue)}</td>
                   <td className="py-2.5 px-3 text-right tabular-nums text-gray-900">{fmtR(snap.ebitda)}</td>
-                  <td className="py-2.5 px-3 text-right text-gray-700">{snap.ebitdaMarginPct.toFixed(1)}%</td>
+                  <td className="py-2.5 px-3 text-right text-gray-700">{(consolidatedMargins.ebitdaMargin * 100).toFixed(1)}%</td>
                   <td className="py-2.5 px-3 text-right text-gray-700">—</td>
                   <td className="py-2.5 px-3 text-right tabular-nums text-gray-900">
                     {fmtR(buData.reduce((s, b) => s + b.capitalAllocated, 0))}
