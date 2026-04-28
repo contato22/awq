@@ -544,13 +544,7 @@ function AwqSidebar({ pathname }: { pathname: string }) {
 
                 {/* ── 3. EPM — Enterprise Performance Management ────────── */}
                 <SectionLabel>EPM</SectionLabel>
-                <CollapsibleSection
-                    label="EPM"
-                    icon={Layers}
-                    isAnyActive={epmActive}
-                    isOpen={epmOpen}
-                    onToggle={() => setEpmOpen((o) => !o)}
-                >
+                <div className="space-y-0.5">
                     {AWQ_EPM_ITEMS.map((item) => (
                         <NavItem
                             key={item.href}
@@ -560,7 +554,7 @@ function AwqSidebar({ pathname }: { pathname: string }) {
                             active={pathname === item.href || pathname.startsWith(item.href + "/")}
                         />
                     ))}
-                </CollapsibleSection>
+                </div>
 
                 {/* ── 4. Governança & Jurídico ──────────────────────────── */}
                 <SectionLabel>Governança & Jurídico</SectionLabel>
