@@ -1,6 +1,7 @@
 import Header from "@/components/Header";
 import SectionHeader from "@/components/SectionHeader";
 import Link from "next/link";
+import { ExpandableQuickNav } from "@/components/ExpandableQuickNav";
 import {
   DollarSign, TrendingUp, BarChart3, Zap, ArrowUpRight, ArrowDownRight,
   ChevronRight, ShieldAlert, Activity, Wallet, Target, Building2,
@@ -556,34 +557,7 @@ export default async function AwqGroupPage() {
 
         {/* ── Quick nav ─────────────────────────────────────────────────────── */}
         <section>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {[
-              { label: "EPM",          sub: "P&L · Budget · KPIs · GL",  href: "/awq/epm",         icon: Layers,        color: "text-brand-600",   bg: "bg-brand-50"   },
-              { label: "Financial",    sub: "Visão de caixa",            href: "/awq/financial",   icon: DollarSign,    color: "text-emerald-600", bg: "bg-emerald-50" },
-              { label: "Cash Flow",    sub: "Fluxo de caixa",            href: "/awq/cashflow",    icon: Zap,           color: "text-cyan-700",    bg: "bg-cyan-50"    },
-              { label: "Investimentos",sub: "Aplicações / resgates",     href: "/awq/investments", icon: Target,        color: "text-violet-600",  bg: "bg-violet-50"  },
-              { label: "Ingestão",     sub: "Importar extratos PDF",      href: "/awq/conciliacao",      icon: Database,      color: "text-brand-600",   bg: "bg-brand-50"   },
-              { label: "Base de Dados",sub: "Gestão da camada de dados",  href: "/awq/data",        icon: CheckCircle,   color: "text-emerald-600", bg: "bg-emerald-50" },
-              { label: "Budget",       sub: "Budget vs Actual",          href: "/awq/budget",      icon: Scale,         color: "text-violet-600",  bg: "bg-violet-50"  },
-              { label: "Forecast",     sub: "Cenários 2026",             href: "/awq/forecast",    icon: TrendingUp,    color: "text-amber-700",   bg: "bg-amber-50"   },
-              { label: "Risk",         sub: "Risk signals",              href: "/awq/risk",        icon: AlertTriangle, color: "text-red-500",     bg: "bg-red-50"     },
-            ].map((item) => {
-              const Icon = item.icon;
-              return (
-                <Link key={item.label} href={item.href}
-                  className="card-interactive p-4 flex items-center gap-3 group">
-                  <div className={`w-9 h-9 rounded-lg ${item.bg} flex items-center justify-center shrink-0`}>
-                    <Icon size={15} className={item.color} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs font-semibold text-gray-900 group-hover:text-brand-600 transition-colors">{item.label}</div>
-                    <div className="text-[11px] text-gray-400 mt-0.5 truncate">{item.sub}</div>
-                  </div>
-                  <ChevronRight size={13} className="text-gray-300 group-hover:text-brand-500 transition-colors shrink-0" />
-                </Link>
-              );
-            })}
-          </div>
+          <ExpandableQuickNav />
         </section>
 
       </div>
