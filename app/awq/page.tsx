@@ -520,41 +520,6 @@ export default async function AwqGroupPage() {
           </section>
         )}
 
-        {/* ── Drill-Down Navigation ──────────────────────────────────────── */}
-        <section className="card p-5 lg:p-6">
-          <SectionHeader icon={<Target size={15} className="text-brand-500" />} title="Drill-Down por BU" />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {buData.map((bu) => (
-              <div key={bu.id} className="rounded-xl border border-gray-200/80 p-4 hover:border-gray-300 transition-colors">
-                <div className="flex items-center gap-2.5 mb-3">
-                  <div className={`w-7 h-7 rounded-lg ${bu.color} flex items-center justify-center shrink-0`}>
-                    <Building2 size={12} className="text-white" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-gray-900">{bu.name}</div>
-                    <div className="text-[10px] text-gray-400">{bu.sub.split(" · ")[0]}</div>
-                  </div>
-                </div>
-                <div className="space-y-0.5">
-                  {[
-                    { label: "Visão Geral",   href: bu.hrefOverview  },
-                    { label: "Financial",      href: bu.hrefFinancial },
-                    { label: "Customers",      href: bu.hrefCustomers },
-                    { label: "Unit Economics", href: bu.hrefUnitEcon  },
-                    { label: "Budget",         href: bu.hrefBudget    },
-                  ].map((link) => (
-                    <Link key={link.label} href={link.href}
-                      className="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-gray-50 transition-colors group">
-                      <span className="text-[11px] text-gray-500 group-hover:text-gray-700 font-medium">{link.label}</span>
-                      <ChevronRight size={10} className="text-gray-300 group-hover:text-brand-600 transition-colors" />
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
         {/* ── Quick nav ─────────────────────────────────────────────────────── */}
         <section>
           <ExpandableQuickNav />
