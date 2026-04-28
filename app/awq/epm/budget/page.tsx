@@ -12,7 +12,6 @@ import {
   consolidated,
   BUDGET_LINES,
   categoryBudget,
-  buBudgetTargets,
   operatingBus,
 } from "@/lib/awq-derived-metrics";
 import { buildDreQuery } from "@/lib/dre-query";
@@ -198,8 +197,7 @@ export default async function EpmBudgetPage() {
           </div>
           <div className="space-y-3">
             {operatingBus.map((bu) => {
-              const target  = buBudgetTargets.find((t) => t.buId === bu.id);
-              const budgRev = target?.revenueTarget ?? 0;
+              const budgRev = bu.budgetRevenue;
               const actRev  = bu.revenue;
               const pct     = budgRev > 0 ? (actRev / budgRev) * 100 : 0;
               const varPct  = budgRev > 0 ? ((actRev - budgRev) / budgRev) * 100 : 0;
