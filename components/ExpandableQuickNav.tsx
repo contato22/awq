@@ -18,31 +18,24 @@ import type { LucideIcon } from "lucide-react";
 
 type Sub  = { label: string; href: string };
 type Item = {
-  label: string;
-  href:  string;
-  icon:  LucideIcon;
-  color: string;
-  bg:    string;
-  subs:  Sub[];
+  label:     string;
+  href:      string;
+  icon:      LucideIcon;
+  color:     string;
+  bg:        string;
+  subs:      Sub[];
+  iconOnly?: boolean; // render as plain icon-link, no dropdown
 };
 
 const ITEMS: Item[] = [
   {
-    label: "EPM",
-    href:  "/awq/epm",
-    icon:  Layers,
-    color: "text-brand-600",
-    bg:    "bg-brand-50",
-    subs: [
-      { label: "P&L (DRE)",           href: "/awq/epm/pl"            },
-      { label: "Balanço Patrimonial",  href: "/awq/epm/balance-sheet" },
-      { label: "Budget vs Actual",     href: "/awq/epm/budget"        },
-      { label: "KPI Dashboard",        href: "/awq/epm/kpis"          },
-      { label: "Contas a Pagar",       href: "/awq/epm/ap"            },
-      { label: "Contas a Receber",     href: "/awq/epm/ar"            },
-      { label: "Razão Geral (GL)",     href: "/awq/epm/gl"            },
-      { label: "Consolidação",         href: "/awq/epm/consolidation" },
-    ],
+    label:    "EPM",
+    href:     "/awq/epm",
+    icon:     Layers,
+    color:    "text-brand-600",
+    bg:       "bg-brand-50",
+    iconOnly: true,
+    subs:     [],
   },
   {
     label: "Financial",
@@ -142,13 +135,29 @@ function NavItem({ item }: { item: Item }) {
   const [open, setOpen] = useState(false);
   const Icon = item.icon;
 
+  if (item.iconOnly) {
+    return (
+      <Link
+        href={item.href}
+        title={item.label}
+        className={[
+          "flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-150",
+          item.bg,
+          "hover:brightness-95",
+        ].join(" ")}
+      >
+        <Icon size={17} className={item.color} />
+      </Link>
+    );
+  }
+
   return (
     <div
       className="relative"
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
     >
-      {/* Icon pill — collapsed state */}
+      {/* Icon pill */}
       <Link
         href={item.href}
         title={item.label}
@@ -174,7 +183,6 @@ function NavItem({ item }: { item: Item }) {
         onMouseEnter={() => setOpen(true)}
         onMouseLeave={() => setOpen(false)}
       >
-        {/* Header link */}
         <Link
           href={item.href}
           className="flex items-center justify-between px-3 py-2.5 border-b border-gray-50 hover:bg-gray-50 rounded-t-xl transition-colors"
@@ -182,8 +190,6 @@ function NavItem({ item }: { item: Item }) {
           <span className="text-xs font-semibold text-gray-900">{item.label}</span>
           <ChevronRight size={11} className="text-gray-400" />
         </Link>
-
-        {/* Sub-links */}
         <div className="p-1.5 flex flex-col gap-0.5">
           {item.subs.map((sub) => (
             <Link
