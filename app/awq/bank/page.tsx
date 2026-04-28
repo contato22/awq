@@ -15,14 +15,16 @@
 //   • Complements /awq/conciliacao: provides quick manual balance tracking; ingest provides
 //     the canonical document-backed financial database
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
 import {
-  Building2, Plus, Trash2, Search, X, Wallet,
-  TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight,
-  CreditCard, ChevronDown, ChevronUp, BarChart3, FileUp,
+  Plus, Trash2, FileText, Star, BarChart3, CreditCard, Wallet,
 } from "lucide-react";
+import {
+  ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip, Legend, ResponsiveContainer,
+} from "recharts";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -33,7 +35,6 @@ interface BankTransaction {
   amount: number;
   category: string;
   balance?: number;
-  original?: string;
 }
 
 interface BankAccount {
@@ -48,8 +49,6 @@ interface BankAccount {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-// localStorage key for this page's local account data.
-// This is intentionally separate from public/data/financial/* (the canonical store).
 const LS_KEY = "awq_bank_accounts";
 
 const BANK_GROUPS: { label: string; banks: string[] }[] = [
@@ -65,7 +64,7 @@ const BANK_GROUPS: { label: string; banks: string[] }[] = [
 ];
 
 const BANK_COLOR: Record<string, string> = {
-  "Cora":            "bg-brand-600",
+  "Cora":            "bg-red-500",
   "Nubank":          "bg-purple-600",
   "Inter":           "bg-orange-500",
   "C6 Bank":         "bg-gray-800",
@@ -75,42 +74,53 @@ const BANK_COLOR: Record<string, string> = {
   "Mercado Pago":    "bg-sky-500",
   "Itaú":            "bg-orange-600",
   "Bradesco":        "bg-red-600",
-  "Banco do Brasil": "bg-yellow-600",
+  "Banco do Brasil": "bg-yellow-500",
   "Santander":       "bg-red-700",
   "Sicoob":          "bg-green-700",
   "Sicredi":         "bg-green-800",
   "Outro":           "bg-gray-500",
 };
 
-const CATEGORY_LABEL: Record<string, string> = {
-  salario: "Salário", aluguel: "Aluguel", servicos: "Serviços",
-  transferencia: "Transferência", imposto: "Imposto",
-  investimento: "Investimento", saque: "Saque", deposito: "Depósito",
-  cartao: "Cartão", tarifas: "Tarifas", outros: "Outros",
+const BANK_INITIALS: Record<string, string> = {
+  "Cora":            "C",
+  "Nubank":          "N",
+  "Inter":           "I",
+  "C6 Bank":         "C6",
+  "PagBank":         "P",
+  "BTG Empresas":    "B",
+  "XP":              "XP",
+  "Mercado Pago":    "MP",
+  "Itaú":            "I",
+  "Bradesco":        "B",
+  "Banco do Brasil": "BB",
+  "Santander":       "S",
+  "Sicoob":          "SC",
+  "Sicredi":         "SR",
+  "Outro":           "?",
 };
 
-const CATEGORY_COLOR: Record<string, string> = {
-  salario: "bg-emerald-100 text-emerald-700",
-  aluguel: "bg-violet-100 text-violet-700",
-  servicos: "bg-blue-100 text-blue-700",
-  transferencia: "bg-cyan-100 text-cyan-700",
-  imposto: "bg-red-100 text-red-700",
-  investimento: "bg-brand-100 text-brand-700",
-  saque: "bg-orange-100 text-orange-700",
-  deposito: "bg-emerald-100 text-emerald-700",
-  cartao: "bg-pink-100 text-pink-700",
-  tarifas: "bg-yellow-100 text-yellow-700",
-  outros: "bg-gray-100 text-gray-600",
+const USAGE_LABEL: Record<string, string> = {
+  "Cora":            "Conta corrente",
+  "Nubank":          "Conta corrente",
+  "Inter":           "Conta corrente",
+  "C6 Bank":         "Conta corrente",
+  "PagBank":         "Conta de pagamento",
+  "BTG Empresas":    "Conta investimento",
+  "XP":              "Conta investimento",
+  "Mercado Pago":    "Conta de pagamento",
+  "Itaú":            "Conta corrente",
+  "Bradesco":        "Conta corrente",
+  "Banco do Brasil": "Conta corrente",
+  "Santander":       "Conta corrente",
+  "Sicoob":          "Conta corrente",
+  "Sicredi":         "Conta corrente",
+  "Outro":           "Conta",
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function fmtR(n: number) {
-  const abs = Math.abs(n);
-  const sign = n < 0 ? "-" : "";
-  if (abs >= 1_000_000) return sign + "R$" + (abs / 1_000_000).toFixed(2) + "M";
-  if (abs >= 1_000)     return sign + "R$" + (abs / 1_000).toFixed(1) + "K";
-  return sign + "R$" + abs.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
 function fmtDate(s: string) {
@@ -123,19 +133,26 @@ function uid() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function monthStartStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function BankAccountsPage() {
-  const [accounts, setAccounts]     = useState<BankAccount[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [accounts, setAccounts]       = useState<BankAccount[]>([]);
+  const [selectedId, setSelectedId]   = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [search, setSearch]         = useState("");
-  const [sortAsc, setSortAsc]       = useState(false);
-  const [newBank, setNewBank]       = useState("Cora");
-  const [newName, setNewName]       = useState("");
-  const [newBalance, setNewBalance] = useState("");
+  const [newBank, setNewBank]         = useState("Cora");
+  const [newName, setNewName]         = useState("");
+  const [newBalance, setNewBalance]   = useState("");
 
-  // ── Load from localStorage ───────────────────────────────────────────────
+  // ── Load ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     try {
       const raw = localStorage.getItem(LS_KEY);
@@ -147,7 +164,7 @@ export default function BankAccountsPage() {
     } catch { /* ignore */ }
   }, []);
 
-  // ── Persist to localStorage ──────────────────────────────────────────────
+  // ── Persist ───────────────────────────────────────────────────────────────
   const save = useCallback((updated: BankAccount[]) => {
     setAccounts(updated);
     try { localStorage.setItem(LS_KEY, JSON.stringify(updated)); } catch { /* ignore */ }
@@ -155,17 +172,17 @@ export default function BankAccountsPage() {
 
   const selected = accounts.find((a) => a.id === selectedId) ?? null;
 
-  // ── Add account ──────────────────────────────────────────────────────────
+  // ── Add account ───────────────────────────────────────────────────────────
   function handleAddAccount() {
     if (!newName.trim()) return;
     const acct: BankAccount = {
-      id: uid(),
-      bank: newBank,
-      name: newName.trim(),
-      color: BANK_COLOR[newBank] ?? "bg-gray-500",
-      currentBalance: parseFloat(newBalance) || 0,
-      lastUpdated: new Date().toISOString().slice(0, 10),
-      transactions: [],
+      id:             uid(),
+      bank:           newBank,
+      name:           newName.trim(),
+      color:          BANK_COLOR[newBank] ?? "bg-gray-500",
+      currentBalance: parseFloat(newBalance.replace(",", ".")) || 0,
+      lastUpdated:    todayStr(),
+      transactions:   [],
     };
     const updated = [...accounts, acct];
     save(updated);
@@ -176,28 +193,58 @@ export default function BankAccountsPage() {
     setShowAddForm(false);
   }
 
-  // ── Delete account ───────────────────────────────────────────────────────
-  function handleDelete(id: string) {
+  // ── Delete account ────────────────────────────────────────────────────────
+  function handleDelete(id: string, e: React.MouseEvent) {
+    e.stopPropagation();
     const updated = accounts.filter((a) => a.id !== id);
     save(updated);
     setSelectedId(updated[0]?.id ?? null);
   }
 
-  // ── Derived totals ───────────────────────────────────────────────────────
-  const totalBalance = accounts.reduce((s, a) => s + a.currentBalance, 0);
-  const allTx        = accounts.flatMap((a) => a.transactions);
-  const totalCredits = allTx.filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0);
-  const totalDebits  = allTx.filter((t) => t.amount < 0).reduce((s, t) => s + t.amount, 0);
+  // ── Aggregates ────────────────────────────────────────────────────────────
+  const today      = todayStr();
+  const monthStart = monthStartStr();
 
-  const filteredTx = (selected?.transactions ?? [])
-    .filter((t) =>
-      t.description.toLowerCase().includes(search.toLowerCase()) ||
-      (CATEGORY_LABEL[t.category] ?? "").toLowerCase().includes(search.toLowerCase())
-    )
-    .sort((a, b) => sortAsc ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date));
+  const allTx         = accounts.flatMap((a) => a.transactions);
+  const totalBalance  = accounts.reduce((s, a) => s + a.currentBalance, 0);
 
-  const acctCredits = (selected?.transactions ?? []).filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0);
-  const acctDebits  = (selected?.transactions ?? []).filter((t) => t.amount < 0).reduce((s, t) => s + t.amount, 0);
+  const todayCredits  = allTx.filter((t) => t.date === today && t.amount > 0).reduce((s, t) => s + t.amount, 0);
+  const todayDebits   = allTx.filter((t) => t.date === today && t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
+  const monthCredits  = allTx.filter((t) => t.date >= monthStart && t.amount > 0).reduce((s, t) => s + t.amount, 0);
+  const monthDebits   = allTx.filter((t) => t.date >= monthStart && t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
+
+  // ── Chart data ────────────────────────────────────────────────────────────
+  const chartData = useMemo(() => {
+    const txSource = selected ? selected.transactions : allTx;
+    if (txSource.length === 0) return [];
+
+    const byDate: Record<string, { credits: number; debits: number; balance: number }> = {};
+    txSource.forEach((tx) => {
+      if (!byDate[tx.date]) byDate[tx.date] = { credits: 0, debits: 0, balance: 0 };
+      if (tx.amount > 0) byDate[tx.date].credits += tx.amount;
+      else byDate[tx.date].debits += Math.abs(tx.amount);
+      if (tx.balance != null) byDate[tx.date].balance = tx.balance;
+    });
+
+    return Object.entries(byDate)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .slice(-14)
+      .map(([date, d]) => ({
+        date:          date.slice(8) + "/" + date.slice(5, 7),
+        Recebimentos:  Math.round(d.credits),
+        Pagamentos:    Math.round(d.debits),
+        Saldo:         Math.round(d.balance || totalBalance),
+      }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected, accounts]);
+
+  // ── Selected account's recent transactions ────────────────────────────────
+  const recentTx = useMemo(
+    () => [...(selected?.transactions ?? [])].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10),
+    [selected]
+  );
+
+  // ─────────────────────────────────────────────────────────────────────────
 
   return (
     <>
@@ -205,303 +252,312 @@ export default function BankAccountsPage() {
         title="Contas de Banco"
         subtitle="Saldos manuais · Visão de caixa local · Dados em localStorage"
       />
-      <div className="px-8 py-6 space-y-5">
 
-        {/* ── Ingest callout ────────────────────────────────────────────────── */}
-        <div className="flex items-center justify-between p-3 bg-brand-50 border border-brand-200 rounded-xl">
-          <div className="flex items-center gap-2 text-sm text-brand-800">
-            <FileUp size={14} className="text-brand-600 shrink-0" />
-            <span>
-              Para importar extratos PDF com rastreabilidade, classificação e reconciliação:
-            </span>
+      <div className="flex min-h-0 flex-1">
+
+        {/* ── Left sidebar ──────────────────────────────────────────────────── */}
+        <aside className="w-72 shrink-0 border-r border-gray-200 bg-white flex flex-col" style={{ minHeight: "calc(100vh - 64px)" }}>
+
+          {/* Support box */}
+          <div className="p-4 border-b border-gray-100">
+            <div className="rounded-xl bg-gray-50 p-3 text-center space-y-1">
+              <div className="text-xs font-semibold text-gray-700">Dúvidas?</div>
+              <div className="text-[11px] text-gray-500">Importe seus extratos bancários</div>
+              <Link
+                href="/awq/conciliacao"
+                className="block text-xs font-bold text-brand-600 hover:underline mt-1"
+              >
+                Ingestão de Extratos →
+              </Link>
+            </div>
           </div>
-          <Link
-            href="/awq/conciliacao"
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-semibold transition-colors shrink-0"
-          >
-            <FileUp size={12} /> Ingestão de Extratos
-          </Link>
-        </div>
 
-        {/* ── Summary cards ────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[
-            { label: "Saldo Total",    value: fmtR(totalBalance),        icon: Wallet,      color: "text-brand-600",   bg: "bg-brand-50",   delta: `${accounts.length} conta${accounts.length !== 1 ? "s" : ""}` },
-            { label: "Entradas (YTD)", value: fmtR(totalCredits),        icon: TrendingUp,  color: "text-emerald-600", bg: "bg-emerald-50", delta: `${allTx.filter(t => t.amount > 0).length} créditos` },
-            { label: "Saídas (YTD)",   value: fmtR(totalDebits),         icon: TrendingDown,color: "text-red-600",     bg: "bg-red-50",     delta: `${allTx.filter(t => t.amount < 0).length} débitos` },
-            { label: "Transações",     value: allTx.length.toString(),   icon: BarChart3,   color: "text-amber-700",   bg: "bg-amber-50",   delta: `em ${accounts.length} conta${accounts.length !== 1 ? "s" : ""}` },
-          ].map((c) => {
-            const Icon = c.icon;
-            return (
-              <div key={c.label} className="card p-5 flex items-start gap-4">
-                <div className={`w-10 h-10 rounded-xl ${c.bg} flex items-center justify-center shrink-0`}>
-                  <Icon size={18} className={c.color} />
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-gray-900">{c.value}</div>
-                  <div className="text-xs text-gray-500 mt-0.5">{c.label}</div>
-                  <div className="flex items-center gap-1 mt-1">
-                    <span className="text-[10px] text-gray-400">{c.delta}</span>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="flex gap-5">
-
-          {/* ── Account sidebar ──────────────────────────────────────────────── */}
-          <div className="w-72 shrink-0 space-y-2">
+          {/* Section header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+            <span className="text-sm font-semibold text-gray-800">Contas bancárias</span>
             <button
               onClick={() => setShowAddForm((v) => !v)}
-              className="w-full flex items-center gap-2 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-colors"
+              title="Nova conta"
+              className="w-6 h-6 flex items-center justify-center rounded-full bg-brand-600 hover:bg-brand-700 text-white transition-colors"
             >
-              <Plus size={15} /> Nova Conta
+              <Plus size={13} />
             </button>
-
-            {/* Add account form */}
-            {showAddForm && (
-              <div className="card p-4 space-y-3">
-                <div className="text-xs font-semibold text-gray-700 mb-1">Nova Conta</div>
-                <select
-                  value={newBank}
-                  onChange={(e) => setNewBank(e.target.value)}
-                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none focus:border-brand-500"
-                >
-                  {BANK_GROUPS.map((group) => (
-                    <optgroup key={group.label} label={group.label}>
-                      {group.banks.map((b) => <option key={b} value={b}>{b}</option>)}
-                    </optgroup>
-                  ))}
-                </select>
-                <input
-                  type="text"
-                  placeholder="Nome da conta (ex: Conta PJ)"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-500"
-                  onKeyDown={(e) => e.key === "Enter" && handleAddAccount()}
-                />
-                <input
-                  type="number"
-                  placeholder="Saldo inicial (opcional)"
-                  value={newBalance}
-                  onChange={(e) => setNewBalance(e.target.value)}
-                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-500"
-                />
-                <div className="flex gap-2">
-                  <button onClick={handleAddAccount} className="flex-1 px-3 py-2 bg-brand-600 text-white rounded-lg text-xs font-semibold hover:bg-brand-700 transition-colors">
-                    Adicionar
-                  </button>
-                  <button onClick={() => setShowAddForm(false)} className="px-3 py-2 bg-gray-100 text-gray-600 rounded-lg text-xs font-semibold hover:bg-gray-200 transition-colors">
-                    Cancelar
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Account list */}
-            {accounts.length === 0 && !showAddForm && (
-              <div className="card p-6 text-center">
-                <CreditCard size={28} className="text-gray-300 mx-auto mb-2" />
-                <div className="text-sm font-semibold text-gray-500">Nenhuma conta</div>
-                <div className="text-xs text-gray-400 mt-1">Clique em &quot;Nova Conta&quot; para começar</div>
-              </div>
-            )}
-
-            {accounts.map((acct) => {
-              const isSelected = acct.id === selectedId;
-              const credits = acct.transactions.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
-              const debits  = acct.transactions.filter(t => t.amount < 0).reduce((s, t) => s + t.amount, 0);
-              return (
-                <div
-                  key={acct.id}
-                  onClick={() => setSelectedId(acct.id)}
-                  className={`card p-4 cursor-pointer transition-all ${isSelected ? "border-brand-300 bg-brand-50" : "hover:border-gray-300"}`}
-                >
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className={`w-9 h-9 rounded-xl ${acct.color} flex items-center justify-center shrink-0`}>
-                      <Building2 size={15} className="text-white" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs font-bold text-gray-900 truncate">{acct.name}</div>
-                      <div className="text-[10px] text-gray-500">{acct.bank}</div>
-                    </div>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleDelete(acct.id); }}
-                      className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
-                    >
-                      <Trash2 size={12} />
-                    </button>
-                  </div>
-                  <div className="text-base font-bold text-gray-900">{fmtR(acct.currentBalance)}</div>
-                  <div className="flex gap-3 mt-1 text-[10px]">
-                    <span className="text-emerald-600">↑ {fmtR(credits)}</span>
-                    <span className="text-red-500">↓ {fmtR(debits)}</span>
-                    <span className="text-gray-400 ml-auto">{acct.transactions.length} tx</span>
-                  </div>
-                </div>
-              );
-            })}
           </div>
 
-          {/* ── Main area ────────────────────────────────────────────────────── */}
-          <div className="flex-1 min-w-0 space-y-4">
-            {!selected ? (
-              <div className="card p-16 text-center">
-                <Wallet size={40} className="text-gray-300 mx-auto mb-3" />
-                <div className="text-base font-semibold text-gray-500">Selecione uma conta</div>
-                <div className="text-sm text-gray-400 mt-1">ou adicione uma nova conta no painel esquerdo</div>
+          {/* Add account form */}
+          {showAddForm && (
+            <div className="p-3 border-b border-gray-100 bg-gray-50 space-y-2">
+              <select
+                value={newBank}
+                onChange={(e) => setNewBank(e.target.value)}
+                className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white text-gray-900 focus:outline-none focus:border-brand-400"
+              >
+                {BANK_GROUPS.map((g) => (
+                  <optgroup key={g.label} label={g.label}>
+                    {g.banks.map((b) => <option key={b} value={b}>{b}</option>)}
+                  </optgroup>
+                ))}
+              </select>
+              <input
+                type="text"
+                placeholder="Nome da conta (ex: Conta PJ)"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleAddAccount()}
+                className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-400"
+              />
+              <input
+                type="text"
+                placeholder="Saldo inicial (ex: 6.500,00)"
+                value={newBalance}
+                onChange={(e) => setNewBalance(e.target.value)}
+                className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-400"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={handleAddAccount}
+                  className="flex-1 py-1.5 bg-brand-600 text-white rounded-lg text-xs font-semibold hover:bg-brand-700 transition-colors"
+                >
+                  Adicionar
+                </button>
+                <button
+                  onClick={() => setShowAddForm(false)}
+                  className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded-lg text-xs hover:bg-gray-300 transition-colors"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Account list */}
+          <div className="flex-1 overflow-y-auto">
+            {accounts.length === 0 && !showAddForm ? (
+              <div className="p-8 text-center text-gray-400 space-y-2">
+                <CreditCard size={28} className="mx-auto text-gray-200" />
+                <div className="text-xs font-medium text-gray-500">Nenhuma conta cadastrada</div>
+                <div className="text-[11px] text-gray-400">
+                  Clique em <span className="font-semibold text-brand-500">+</span> para adicionar
+                </div>
               </div>
             ) : (
-              <>
-                {/* Account header */}
-                <div className="card p-5 flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-2xl ${selected.color} flex items-center justify-center shrink-0`}>
-                    <Building2 size={20} className="text-white" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-lg font-bold text-gray-900">{selected.name}</div>
-                    <div className="text-sm text-gray-500">{selected.bank} · Atualizado {fmtDate(selected.lastUpdated)}</div>
-                  </div>
-                  <div className="text-right mr-4">
-                    <div className="text-2xl font-bold text-gray-900">{fmtR(selected.currentBalance)}</div>
-                    <div className="text-xs text-gray-500">saldo atual</div>
-                  </div>
-                  <div className="flex gap-3 text-xs">
-                    <div className="text-center">
-                      <div className="font-bold text-emerald-600">{fmtR(acctCredits)}</div>
-                      <div className="text-gray-400">entradas</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="font-bold text-red-600">{fmtR(acctDebits)}</div>
-                      <div className="text-gray-400">saídas</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="font-bold text-gray-700">{selected.transactions.length}</div>
-                      <div className="text-gray-400">transações</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Reconciliation strip */}
-                <div className="card p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <BarChart3 size={13} className="text-gray-400" />
-                    <span className="text-xs font-semibold text-gray-700">Posição da Conta</span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-3">
-                    {[
-                      { label: "Saldo da Conta",   value: fmtR(selected.currentBalance), icon: Wallet,          color: "text-brand-600",   bg: "bg-brand-50"   },
-                      { label: "Entradas",          value: fmtR(acctCredits),             icon: ArrowUpRight,    color: "text-emerald-600", bg: "bg-emerald-50" },
-                      { label: "Saídas",            value: fmtR(Math.abs(acctDebits)),    icon: ArrowDownRight,  color: "text-red-600",     bg: "bg-red-50"     },
-                    ].map((item) => {
-                      const Icon = item.icon;
-                      return (
-                        <div key={item.label} className={`${item.bg} rounded-xl p-3 flex items-center gap-3`}>
-                          <Icon size={15} className={item.color} />
-                          <div>
-                            <div className={`text-sm font-bold ${item.color}`}>{item.value}</div>
-                            <div className="text-[10px] text-gray-500">{item.label}</div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Transactions table */}
-                <div className="card p-5">
-                  <div className="flex items-center justify-between mb-4 gap-3">
-                    <h3 className="text-sm font-semibold text-gray-900">
-                      Transações
-                      <span className="ml-2 text-xs font-normal text-gray-400">({filteredTx.length})</span>
-                    </h3>
-                    <div className="flex items-center gap-2 flex-1 max-w-xs">
-                      <div className="relative flex-1">
-                        <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                        <input
-                          type="text"
-                          value={search}
-                          onChange={(e) => setSearch(e.target.value)}
-                          placeholder="Buscar transações…"
-                          className="w-full pl-8 pr-3 py-2 text-xs border border-gray-200 rounded-lg bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-400"
-                        />
-                        {search && (
-                          <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                            <X size={11} />
-                          </button>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => setSortAsc((v) => !v)}
-                        className="flex items-center gap-1 px-3 py-2 text-xs border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"
+              accounts.map((acct, idx) => {
+                const isSelected = acct.id === selectedId;
+                const isPrimary  = idx === 0;
+                return (
+                  <div
+                    key={acct.id}
+                    onClick={() => setSelectedId(acct.id)}
+                    className={`border-b border-gray-100 px-4 py-3 cursor-pointer transition-colors ${
+                      isSelected ? "bg-blue-50" : "hover:bg-gray-50"
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      {/* Bank icon */}
+                      <div
+                        className={`w-9 h-9 rounded-lg ${acct.color} flex items-center justify-center shrink-0 text-white font-bold text-xs`}
                       >
-                        {sortAsc ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                        Data
+                        {BANK_INITIALS[acct.bank] ?? acct.bank[0]}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-semibold text-gray-900 truncate">
+                          {acct.name}
+                        </div>
+                        <div className="flex items-center gap-1 mt-0.5 text-[11px] text-gray-500">
+                          {isPrimary && (
+                            <Star size={9} className="fill-gray-400 text-gray-400 shrink-0" />
+                          )}
+                          <span className="truncate">
+                            {USAGE_LABEL[acct.bank] ?? "Conta"}&hellip;
+                          </span>
+                        </div>
+                        <Link
+                          href="/awq/conciliacao"
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-1 mt-1.5 text-[11px] text-blue-600 hover:underline"
+                        >
+                          <FileText size={10} />
+                          Importe seu extrato
+                        </Link>
+                      </div>
+
+                      <button
+                        onClick={(e) => handleDelete(acct.id, e)}
+                        className="p-1 text-gray-300 hover:text-red-400 hover:bg-red-50 rounded transition-colors mt-0.5 shrink-0"
+                        title="Remover conta"
+                      >
+                        <Trash2 size={12} />
                       </button>
                     </div>
-                  </div>
 
-                  {filteredTx.length === 0 ? (
-                    <div className="text-center py-12 space-y-2">
-                      <Wallet size={28} className="text-gray-200 mx-auto" />
-                      <div className="text-sm font-semibold text-gray-400">
-                        {selected.transactions.length === 0
-                          ? "Nenhuma transação nesta conta"
-                          : "Nenhuma transação com este filtro"}
-                      </div>
-                      {selected.transactions.length === 0 && (
-                        <div className="text-xs text-gray-400 mt-1">
-                          Para importar extratos PDF com rastreabilidade completa, acesse{" "}
-                          <Link href="/awq/conciliacao" className="text-brand-600 hover:underline font-medium">
-                            Ingestão de Extratos
-                          </Link>
-                        </div>
-                      )}
+                    {/* Balance */}
+                    <div className="text-right mt-2">
+                      <span className="text-sm font-bold text-gray-900">
+                        {fmtR(acct.currentBalance)}
+                      </span>
                     </div>
-                  ) : (
-                    <div className="table-scroll">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b border-gray-200 text-gray-500">
-                            <th className="text-left py-2 px-3 text-xs font-semibold">Data</th>
-                            <th className="text-left py-2 px-3 text-xs font-semibold">Descrição</th>
-                            <th className="text-left py-2 px-3 text-xs font-semibold">Categoria</th>
-                            <th className="text-right py-2 px-3 text-xs font-semibold">Valor</th>
-                            <th className="text-right py-2 px-3 text-xs font-semibold">Saldo</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {filteredTx.map((tx) => (
-                            <tr key={tx.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                              <td className="py-2.5 px-3 text-xs text-gray-500 whitespace-nowrap">{fmtDate(tx.date)}</td>
-                              <td className="py-2.5 px-3 text-xs text-gray-900 max-w-xs">
-                                <div className="truncate">{tx.description}</div>
-                              </td>
-                              <td className="py-2.5 px-3">
-                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${CATEGORY_COLOR[tx.category] ?? "bg-gray-100 text-gray-600"}`}>
-                                  {CATEGORY_LABEL[tx.category] ?? tx.category}
-                                </span>
-                              </td>
-                              <td className={`py-2.5 px-3 text-right text-xs font-bold ${tx.amount >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-                                {tx.amount >= 0 ? "+" : ""}{fmtR(tx.amount)}
-                              </td>
-                              <td className="py-2.5 px-3 text-right text-xs text-gray-500">
-                                {tx.balance != null ? fmtR(tx.balance) : "—"}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              </>
+                  </div>
+                );
+              })
             )}
           </div>
-        </div>
+        </aside>
+
+        {/* ── Main content ─────────────────────────────────────────────────── */}
+        <main className="flex-1 overflow-y-auto bg-[#f0f4f8] p-6 space-y-5">
+
+          {/* ── Summary cards ─────────────────────────────────────────────── */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+            {/* A receber hoje */}
+            <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-3">
+              <div className="text-sm font-semibold text-gray-700">A receber hoje</div>
+              {todayCredits > 0 ? (
+                <div className="text-3xl font-bold text-emerald-500">{fmtR(todayCredits)}</div>
+              ) : (
+                <div className="text-sm text-gray-500 leading-relaxed">
+                  Sem entradas registradas para hoje.
+                </div>
+              )}
+              <div className="flex items-center justify-between pt-2 border-t border-gray-100 text-xs text-gray-500">
+                <span>Recebimentos no mês</span>
+                <span className="font-semibold text-gray-700">{fmtR(monthCredits)}</span>
+              </div>
+            </div>
+
+            {/* A pagar hoje */}
+            <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-3">
+              <div className="text-sm font-semibold text-gray-700">A pagar hoje</div>
+              {todayDebits > 0 ? (
+                <div className="text-3xl font-bold text-red-500">{fmtR(todayDebits)}</div>
+              ) : (
+                <div className="text-sm text-gray-500 leading-relaxed">
+                  Parabéns, suas contas a pagar de hoje estão em dia.
+                </div>
+              )}
+              <div className="flex items-center justify-between pt-2 border-t border-gray-100 text-xs text-gray-500">
+                <span>Pagamentos no mês</span>
+                <span className="font-semibold text-gray-700">{fmtR(monthDebits)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Saldo total strip ─────────────────────────────────────────── */}
+          {accounts.length > 0 && (
+            <div className="bg-white rounded-2xl border border-gray-200 px-5 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Wallet size={15} className="text-brand-500" />
+                <span>Saldo consolidado — {accounts.length} conta{accounts.length !== 1 ? "s" : ""}</span>
+              </div>
+              <span className="text-lg font-bold text-gray-900">{fmtR(totalBalance)}</span>
+            </div>
+          )}
+
+          {/* ── Fluxo de Caixa diário ─────────────────────────────────────── */}
+          <div className="bg-white rounded-2xl border border-gray-200 p-5">
+            <div className="text-sm font-semibold text-gray-800 mb-4">Fluxo de Caixa diário</div>
+
+            {chartData.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-52 text-gray-400 space-y-2">
+                <BarChart3 size={36} className="text-gray-200" />
+                <div className="text-sm font-medium text-gray-500">Nenhuma transação registrada</div>
+                <div className="text-xs text-center text-gray-400 max-w-xs">
+                  Adicione uma conta e importe extratos para visualizar o fluxo de caixa diário.
+                </div>
+                <Link
+                  href="/awq/conciliacao"
+                  className="mt-1 px-4 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-semibold transition-colors"
+                >
+                  Ingestão de Extratos
+                </Link>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={240}>
+                <ComposedChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 11, fill: "#9ca3af" }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: "#9ca3af" }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)}
+                  />
+                  <Tooltip
+                    formatter={(v: number, name: string) => [fmtR(v), name]}
+                    contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e5e7eb" }}
+                  />
+                  <Legend iconSize={10} wrapperStyle={{ fontSize: 12 }} />
+                  <Bar dataKey="Recebimentos" fill="#22c55e" radius={[3, 3, 0, 0]} maxBarSize={22} />
+                  <Bar dataKey="Pagamentos"   fill="#ef4444" radius={[3, 3, 0, 0]} maxBarSize={22} />
+                  <Line
+                    dataKey="Saldo"
+                    stroke="#1e3a8a"
+                    strokeWidth={2}
+                    dot={{ r: 3, fill: "#1e3a8a", strokeWidth: 0 }}
+                    activeDot={{ r: 5 }}
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+
+          {/* ── Recent transactions for selected account ──────────────────── */}
+          {selected && recentTx.length > 0 && (
+            <div className="bg-white rounded-2xl border border-gray-200 p-5">
+              <div className="text-sm font-semibold text-gray-800 mb-4">
+                Movimentações recentes &mdash;{" "}
+                <span className="font-normal text-gray-500">{selected.name}</span>
+              </div>
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-100">
+                    <th className="text-left pb-2 px-2 text-xs font-semibold text-gray-500">Data</th>
+                    <th className="text-left pb-2 px-2 text-xs font-semibold text-gray-500">Descrição</th>
+                    <th className="text-right pb-2 px-2 text-xs font-semibold text-gray-500">Valor</th>
+                    <th className="text-right pb-2 px-2 text-xs font-semibold text-gray-500">Saldo</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentTx.map((tx) => (
+                    <tr key={tx.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                      <td className="py-2.5 px-2 text-xs text-gray-500 whitespace-nowrap">
+                        {fmtDate(tx.date)}
+                      </td>
+                      <td className="py-2.5 px-2 text-xs text-gray-900 max-w-xs">
+                        <div className="truncate">{tx.description}</div>
+                      </td>
+                      <td className={`py-2.5 px-2 text-right text-xs font-bold whitespace-nowrap ${tx.amount >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                        {tx.amount >= 0 ? "+" : ""}{fmtR(tx.amount)}
+                      </td>
+                      <td className="py-2.5 px-2 text-right text-xs text-gray-400">
+                        {tx.balance != null ? fmtR(tx.balance) : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* ── Empty state when no accounts ─────────────────────────────── */}
+          {accounts.length === 0 && (
+            <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center space-y-3">
+              <Wallet size={40} className="text-gray-200 mx-auto" />
+              <div className="text-base font-semibold text-gray-500">
+                Nenhuma conta bancária cadastrada
+              </div>
+              <div className="text-sm text-gray-400">
+                Clique em <span className="font-semibold text-brand-600">Contas bancárias +</span> no painel esquerdo para adicionar sua primeira conta.
+              </div>
+            </div>
+          )}
+        </main>
       </div>
     </>
   );
