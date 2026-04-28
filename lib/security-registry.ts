@@ -11,25 +11,25 @@
 //   ready_for_guard  = pronta para enforcement (testada com roles)
 //   not_ready        = requer teste adicional antes de enforcement
 //
-// SEPARAÇÃO: /awq/compliance → Governança & Jurídico | /awq/security → Dados & Infra
+// SEPARAÇÃO: /compliance → Governança & Jurídico | /security → Dados & Infra
 
 import type { SensitiveRoute, SensitiveApi } from "./security-types";
 
 // ── Rotas sensíveis da plataforma (v3 prep: routeGuardStatus) ─────────────────
 export const SENSITIVE_ROUTES: SensitiveRoute[] = [
-  { path: "/awq/financial",     layer: "financeiro",  sensitivity: "high",   requiredAction: "view",   description: "DRE gerencial consolidado (pipeline financeiro real)",     routeGuardStatus: "ready_for_guard" },
-  { path: "/awq/cashflow",      layer: "financeiro",  sensitivity: "high",   requiredAction: "view",   description: "Fluxo de caixa operacional (pipeline financeiro real)",   routeGuardStatus: "ready_for_guard" },
-  { path: "/awq/bank",          layer: "financeiro",  sensitivity: "high",   requiredAction: "view",   description: "Contas bancárias e saldos (localStorage)",               routeGuardStatus: "ready_for_guard" },
-  { path: "/awq/investments",   layer: "financeiro",  sensitivity: "high",   requiredAction: "view",   description: "Aplicações financeiras e resgates",                      routeGuardStatus: "ready_for_guard" },
-  { path: "/awq/management",    layer: "financeiro",  sensitivity: "high",   requiredAction: "view",   description: "Controladoria: qualidade, diagnósticos, fechamento",     routeGuardStatus: "ready_for_guard" },
-  { path: "/awq/ingest",        layer: "dados_infra", sensitivity: "high",   requiredAction: "import", description: "Importação de extratos bancários PDF",                   routeGuardStatus: "ready_for_guard" },
-  { path: "/awq/data",          layer: "dados_infra", sensitivity: "medium", requiredAction: "view",   description: "Base de dados canônica: sync, documentos, storage",      routeGuardStatus: "ready_for_guard" },
-  { path: "/awq/security",      layer: "security",    sensitivity: "high",   requiredAction: "view",   description: "Painel de segurança: RBAC, APIs, audit log",             routeGuardStatus: "ready_for_guard" },
-  { path: "/awq/juridico",      layer: "juridico",    sensitivity: "high",   requiredAction: "view",   description: "Jurídico operacional (stub)",                            routeGuardStatus: "not_ready"       },
-  { path: "/awq/societario",    layer: "juridico",    sensitivity: "high",   requiredAction: "view",   description: "Societário: quadro de sócios, cap table (stub)",         routeGuardStatus: "not_ready"       },
-  { path: "/awq/compliance",    layer: "juridico",    sensitivity: "medium", requiredAction: "view",   description: "Compliance: LGPD, aceites, obrigações (stub)",           routeGuardStatus: "not_ready"       },
-  { path: "/awq/contabilidade", layer: "financeiro",  sensitivity: "medium", requiredAction: "view",   description: "Contabilidade formal (stub)",                            routeGuardStatus: "not_ready"       },
-  { path: "/awq/fiscal",        layer: "financeiro",  sensitivity: "medium", requiredAction: "view",   description: "Fiscal e obrigações tributárias (stub)",                  routeGuardStatus: "not_ready"       },
+  { path: "/financial",     layer: "financeiro",  sensitivity: "high",   requiredAction: "view",   description: "DRE gerencial consolidado (pipeline financeiro real)",     routeGuardStatus: "ready_for_guard" },
+  { path: "/cashflow",      layer: "financeiro",  sensitivity: "high",   requiredAction: "view",   description: "Fluxo de caixa operacional (pipeline financeiro real)",   routeGuardStatus: "ready_for_guard" },
+  { path: "/bank",          layer: "financeiro",  sensitivity: "high",   requiredAction: "view",   description: "Contas bancárias e saldos (localStorage)",               routeGuardStatus: "ready_for_guard" },
+  { path: "/investments",   layer: "financeiro",  sensitivity: "high",   requiredAction: "view",   description: "Aplicações financeiras e resgates",                      routeGuardStatus: "ready_for_guard" },
+  { path: "/management",    layer: "financeiro",  sensitivity: "high",   requiredAction: "view",   description: "Controladoria: qualidade, diagnósticos, fechamento",     routeGuardStatus: "ready_for_guard" },
+  { path: "/ingest",        layer: "dados_infra", sensitivity: "high",   requiredAction: "import", description: "Importação de extratos bancários PDF",                   routeGuardStatus: "ready_for_guard" },
+  { path: "/data",          layer: "dados_infra", sensitivity: "medium", requiredAction: "view",   description: "Base de dados canônica: sync, documentos, storage",      routeGuardStatus: "ready_for_guard" },
+  { path: "/security",      layer: "security",    sensitivity: "high",   requiredAction: "view",   description: "Painel de segurança: RBAC, APIs, audit log",             routeGuardStatus: "ready_for_guard" },
+  { path: "/juridico",      layer: "juridico",    sensitivity: "high",   requiredAction: "view",   description: "Jurídico operacional (stub)",                            routeGuardStatus: "not_ready"       },
+  { path: "/societario",    layer: "juridico",    sensitivity: "high",   requiredAction: "view",   description: "Societário: quadro de sócios, cap table (stub)",         routeGuardStatus: "not_ready"       },
+  { path: "/compliance",    layer: "juridico",    sensitivity: "medium", requiredAction: "view",   description: "Compliance: LGPD, aceites, obrigações (stub)",           routeGuardStatus: "not_ready"       },
+  { path: "/contabilidade", layer: "financeiro",  sensitivity: "medium", requiredAction: "view",   description: "Contabilidade formal (stub)",                            routeGuardStatus: "not_ready"       },
+  { path: "/fiscal",        layer: "financeiro",  sensitivity: "medium", requiredAction: "view",   description: "Fiscal e obrigações tributárias (stub)",                  routeGuardStatus: "not_ready"       },
 ];
 
 // ── APIs sensíveis ────────────────────────────────────────────────────────────

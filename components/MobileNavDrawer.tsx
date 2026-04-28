@@ -48,15 +48,15 @@ function isVentureRoute(p: string) { return VENTURE_PREFIXES.some((x) => p.start
 
 // ── Nav configs ───────────────────────────────────────────────────────────
 const awqNav = [
-  { label: "Visão Geral",    href: "/awq",               icon: LayoutDashboard },
+  { label: "Visão Geral",    href: "/",               icon: LayoutDashboard },
   { label: "Business Units", href: "/business-units",    icon: Building2 },
-  { label: "Financial",      href: "/awq/financial",     icon: LineChart },
-  { label: "Cash Flow",      href: "/awq/cashflow",      icon: Zap },
-  { label: "Budget",         href: "/awq/budget",        icon: Wallet },
-  { label: "Forecast",       href: "/awq/forecast",      icon: TrendingUp },
-  { label: "Allocations",    href: "/awq/allocations",   icon: Wallet },
-  { label: "Risk",           href: "/awq/risk",          icon: Activity },
-  { label: "Contas Banco",   href: "/awq/bank",          icon: CreditCard },
+  { label: "Financial",      href: "/financial",     icon: LineChart },
+  { label: "Cash Flow",      href: "/cashflow",      icon: Zap },
+  { label: "Budget",         href: "/budget",        icon: Wallet },
+  { label: "Forecast",       href: "/forecast",      icon: TrendingUp },
+  { label: "Allocations",    href: "/allocations",   icon: Wallet },
+  { label: "Risk",           href: "/risk",          icon: Activity },
+  { label: "Contas Banco",   href: "/bank",          icon: CreditCard },
 ];
 
 const jacqesNav = [

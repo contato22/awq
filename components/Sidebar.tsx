@@ -190,71 +190,71 @@ const businessUnits = [
 
 // ── AWQ primary nav (always visible, top of sidebar) ─────────────────────────
 const awqPrimaryNav = [
-    { label: "Visão Geral",    href: "/awq",              icon: LayoutDashboard },
+    { label: "Visão Geral",    href: "/",              icon: LayoutDashboard },
     { label: "Business Units", href: "/business-units",    icon: Building2       },
-    { label: "Novidades",      href: "/awq/novidades",     icon: Sparkles        },
+    { label: "Novidades",      href: "/novidades",     icon: Sparkles        },
 ] as const;
 
 // ── GOVERNANCE REGISTRY: AWQ holding routes by ERP layer ─────────────────────
-// RULE: Every /awq/* page MUST appear here and ONLY here.
+// RULE: Every /* AWQ page MUST appear here and ONLY here.
 // To add a new page: append to the correct section array → never elsewhere.
 
 // Control Tower — visão executiva, KPIs, risco, portfolio
 const AWQ_CONTROL_TOWER_ITEMS = [
-    { label: "KPIs Consolidados", href: "/awq/kpis",        icon: BarChart3      },
-    { label: "Risk & Alertas",    href: "/awq/risk",         icon: AlertTriangle  },
-    { label: "Portfolio",         href: "/awq/portfolio",    icon: Briefcase      },
-    { label: "Allocations",       href: "/awq/allocations",  icon: Wallet         },
+    { label: "KPIs Consolidados", href: "/kpis",        icon: BarChart3      },
+    { label: "Risk & Alertas",    href: "/risk",         icon: AlertTriangle  },
+    { label: "Portfolio",         href: "/portfolio",    icon: Briefcase      },
+    { label: "Allocations",       href: "/allocations",  icon: Wallet         },
 ] as const;
 
 // Financeiro Corporativo — FP&A (DRE, planejamento, projeção)
 const AWQ_FPA_ITEMS = [
-    { label: "Financial (DRE)", href: "/awq/financial",   icon: LineChart  },
-    { label: "Budget",          href: "/awq/budget",      icon: BarChart3  },
-    { label: "Forecast",        href: "/awq/forecast",    icon: TrendingUp },
+    { label: "Financial (DRE)", href: "/financial",   icon: LineChart  },
+    { label: "Budget",          href: "/budget",      icon: BarChart3  },
+    { label: "Forecast",        href: "/forecast",    icon: TrendingUp },
 ] as const;
 
 // Financeiro Corporativo — Tesouraria (caixa, contas, aplicações)
 // Conciliação aparece PRIMEIRO — é o passo operacional que alimenta DFC/DRE/KPIs.
 const AWQ_TESOURARIA_ITEMS = [
-    { label: "Conciliação",   href: "/awq/conciliacao",    icon: CheckCircle2 },
-    { label: "Cash Flow",     href: "/awq/cashflow",       icon: Zap          },
-    { label: "Contas Banco",  href: "/awq/bank",           icon: CreditCard   },
-    { label: "Investimentos", href: "/awq/investments",    icon: Landmark     },
-    { label: "AP & AR",       href: "/awq/ap-ar",          icon: FileText     },
+    { label: "Conciliação",   href: "/conciliacao",    icon: CheckCircle2 },
+    { label: "Cash Flow",     href: "/cashflow",       icon: Zap          },
+    { label: "Contas Banco",  href: "/bank",           icon: CreditCard   },
+    { label: "Investimentos", href: "/investments",    icon: Landmark     },
+    { label: "AP & AR",       href: "/ap-ar",          icon: FileText     },
 ] as const;
 
 // Financeiro Corporativo — Controladoria & Contábil
 const AWQ_CONTROLADORIA_ITEMS = [
-    { label: "Controladoria", href: "/awq/management",    icon: ShieldCheck },
-    { label: "Contabilidade", href: "/awq/contabilidade", icon: BookOpen    },
-    { label: "Fiscal",        href: "/awq/fiscal",        icon: Receipt     },
+    { label: "Controladoria", href: "/management",    icon: ShieldCheck },
+    { label: "Contabilidade", href: "/contabilidade", icon: BookOpen    },
+    { label: "Fiscal",        href: "/fiscal",        icon: Receipt     },
 ] as const;
 
 // Governança & Jurídico
 const AWQ_JURIDICO_ITEMS = [
-    { label: "Jurídico",    href: "/awq/juridico",   icon: Scale    },
-    { label: "Societário",  href: "/awq/societario", icon: Building },
-    { label: "Compliance",  href: "/awq/compliance", icon: Lock     },
+    { label: "Jurídico",    href: "/juridico",   icon: Scale    },
+    { label: "Societário",  href: "/societario", icon: Building },
+    { label: "Compliance",  href: "/compliance", icon: Lock     },
 ] as const;
 
 // Dados & Infra
 const AWQ_DADOS_ITEMS = [
-    { label: "Base de Dados", href: "/awq/data",      icon: Database    },
-    { label: "Segurança",     href: "/awq/security",  icon: ShieldAlert },
+    { label: "Base de Dados", href: "/data",      icon: Database    },
+    { label: "Segurança",     href: "/security",  icon: ShieldAlert },
 ] as const;
 
 // EPM — Enterprise Performance Management (módulos financeiros completos)
 const AWQ_EPM_ITEMS = [
-    { label: "Visão Geral EPM",   href: "/awq/epm",                 icon: Layers        },
-    { label: "P&L (DRE)",         href: "/awq/epm/pl",              icon: LineChart     },
-    { label: "Balanço Patrimonial",href: "/awq/epm/balance-sheet",  icon: Scale         },
-    { label: "Budget vs Actual",  href: "/awq/epm/budget",          icon: Target        },
-    { label: "KPI Dashboard",     href: "/awq/epm/kpis",            icon: PieChart      },
-    { label: "Contas a Pagar",    href: "/awq/epm/ap",              icon: ArrowDownLeft },
-    { label: "Contas a Receber",  href: "/awq/epm/ar",              icon: ArrowUpRight  },
-    { label: "Razão Geral (GL)",  href: "/awq/epm/gl",              icon: ListOrdered   },
-    { label: "Consolidação",      href: "/awq/epm/consolidation",   icon: Building2     },
+    { label: "Visão Geral EPM",   href: "/epm",                 icon: Layers        },
+    { label: "P&L (DRE)",         href: "/epm/pl",              icon: LineChart     },
+    { label: "Balanço Patrimonial",href: "/epm/balance-sheet",  icon: Scale         },
+    { label: "Budget vs Actual",  href: "/epm/budget",          icon: Target        },
+    { label: "KPI Dashboard",     href: "/epm/kpis",            icon: PieChart      },
+    { label: "Contas a Pagar",    href: "/epm/ap",              icon: ArrowDownLeft },
+    { label: "Contas a Receber",  href: "/epm/ar",              icon: ArrowUpRight  },
+    { label: "Razão Geral (GL)",  href: "/epm/gl",              icon: ListOrdered   },
+    { label: "Consolidação",      href: "/epm/consolidation",   icon: Building2     },
 ] as const;
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
@@ -431,8 +431,8 @@ function CollapsibleSection({
 //   5. Business Units   — access cards to BU sidebars
 function AwqSidebar({ pathname }: { pathname: string }) {
     const isActive = (href: string) =>
-        href === "/awq"
-            ? pathname === "/awq"
+        href === "/"
+            ? pathname === "/"
             : pathname === href || pathname.startsWith(href + "/");
 
     const isGroupActive = (items: readonly { href: string }[]) =>

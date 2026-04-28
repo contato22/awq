@@ -92,7 +92,7 @@ export const STORE_LAYER = {
 //   - API routes skip RBAC entirely — each handler manages its own auth.
 //
 // FUTURE POLICY (not yet implemented):
-//   analyst: ["/jacqes", "/awq"] — JACQES BU + AWQ overview
+//   analyst: ["/jacqes", "/"] — JACQES BU + AWQ overview
 //   cs-ops:  ["/jacqes/csops", "/jacqes/customers", "/jacqes/carteira"]
 //
 // CLASSIFICATION: security layer = authentication real, authorization permissive.
@@ -104,8 +104,8 @@ export const SECURITY_LAYER = {
   authentication: "real — next-auth JWT + bcrypt + middleware route guard",
   authorization: "permissive by design — all roles have full access (MVP)",
   users: [
-    { email: "alex@awqgroup.com",  role: "owner",   homeRoute: "/awq" },
-    { email: "s.chen@jacqes.com",  role: "admin",   homeRoute: "/awq" },
+    { email: "alex@awqgroup.com",  role: "owner",   homeRoute: "/" },
+    { email: "s.chen@jacqes.com",  role: "admin",   homeRoute: "/" },
     { email: "p.nair@jacqes.com",  role: "analyst", homeRoute: "/jacqes" },
     { email: "danilo@jacqes.com",  role: "cs-ops",  homeRoute: "/jacqes/csops" },
   ],

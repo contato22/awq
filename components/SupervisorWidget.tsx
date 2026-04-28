@@ -86,10 +86,10 @@ interface ChatMessage {
 type Tab = "alerts" | "chat";
 
 function getBuContext(pathname: string): string {
-  if (pathname.startsWith("/awq") || pathname.startsWith("/business-units")) return "awq";
   if (pathname.startsWith("/caza-vision")) return "caza";
   if (pathname.startsWith("/awq-venture")) return "venture";
-  return "jacqes";
+  if (pathname.startsWith("/jacqes")) return "jacqes";
+  return "awq";
 }
 
 // ── Alert parsers ─────────────────────────────────────────────────────────────

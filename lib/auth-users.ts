@@ -17,7 +17,7 @@ export const USERS: AuthUser[] = [
     email: "alex@awqgroup.com",
     passwordHash: "$2b$10$3DCcHvoCK2b5jFkXLX1hvuE0b98RPVQjR8fUYa4z7A..AwbjW5YFC",
     role: "owner",
-    homeRoute: "/awq",
+    homeRoute: "/",
   },
   {
     id: "2",
@@ -25,7 +25,7 @@ export const USERS: AuthUser[] = [
     email: "s.chen@jacqes.com",
     passwordHash: "$2b$10$cPH8UGnkUGbDt84IeHvqTuLE.5ilSjFTjK8NZnHENQXEEMGLgD/M.",
     role: "admin",
-    homeRoute: "/awq",
+    homeRoute: "/",
   },
   {
     id: "3",
@@ -49,7 +49,7 @@ export const USERS: AuthUser[] = [
     email: "contato@awq.com.br",
     passwordHash: "$2b$10$2FbtWd3diTZ8Hp5BV5QqbONApQ7VcRBmwbN.JQKrjQNNaORBmwKOm",
     role: "owner",
-    homeRoute: "/awq",
+    homeRoute: "/",
   },
 ];
 
@@ -62,7 +62,7 @@ export const USERS: AuthUser[] = [
 // When role-based restrictions are needed, update to:
 //   owner:   ["/"]                           — all routes
 //   admin:   ["/"]                           — all routes
-//   analyst: ["/jacqes", "/awq"]             — JACQES BU + AWQ holding overview only
+//   analyst: ["/jacqes", "/"]             — JACQES BU + AWQ holding overview only
 //   cs-ops:  ["/jacqes/csops", "/jacqes/customers", "/jacqes/carteira"]
 //
 // CLASSIFICATION: Security layer = authentication REAL, authorization PERMISSIVE BY DESIGN.

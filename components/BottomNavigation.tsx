@@ -67,10 +67,10 @@ function getNavTabs(ctx: string): NavTab[] {
       ];
     default: // awq
       return [
-        { label: "Control",   href: "/awq",              icon: LayoutDashboard, match: (p) => p === "/awq" },
-        { label: "Financial", href: "/awq/financial",    icon: DollarSign,      match: (p) => p.startsWith("/awq/financial") || p.startsWith("/awq/cashflow") },
+        { label: "Control",   href: "/",              icon: LayoutDashboard, match: (p) => p === "/" },
+        { label: "Financial", href: "/financial",    icon: DollarSign,      match: (p) => p.startsWith("/financial") || p.startsWith("/cashflow") },
         { label: "BUs",       href: "/business-units",  icon: Building2,       match: (p) => p === "/business-units" },
-        { label: "Risk",      href: "/awq/risk",         icon: BarChart3,       match: (p) => p.startsWith("/awq/risk") || p.startsWith("/awq/budget") },
+        { label: "Risk",      href: "/risk",         icon: BarChart3,       match: (p) => p.startsWith("/risk") || p.startsWith("/budget") },
         { label: "AI",        href: "/agents",           icon: Bot,             match: (p) => p.startsWith("/agents") },
       ];
   }

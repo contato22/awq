@@ -17,10 +17,10 @@ type BuContext = "awq" | "jacqes" | "caza" | "venture";
 const LS_KEY = "openclaw_api_key";
 
 function getBuContext(pathname: string): BuContext {
-  if (pathname.startsWith("/awq") || pathname.startsWith("/business-units")) return "awq";
   if (pathname.startsWith("/caza-vision")) return "caza";
   if (pathname.startsWith("/awq-venture")) return "venture";
-  return "jacqes";
+  if (pathname.startsWith("/jacqes")) return "jacqes";
+  return "awq";
 }
 
 const BU_LABELS: Record<BuContext, string> = {

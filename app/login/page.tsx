@@ -22,9 +22,9 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
 
-    // Static/demo mode — no backend available. Skip auth and go straight to /awq.
+    // Static/demo mode — no backend available. Skip auth and go straight to /.
     if (IS_STATIC) {
-      router.push("/awq");
+      router.push("/");
       return;
     }
 
@@ -45,13 +45,13 @@ export default function LoginPage() {
     const role = session?.user?.role;
 
     const homeByRole: Record<string, string> = {
-      owner: "/awq",
-      admin: "/awq",
+      owner: "/",
+      admin: "/",
       analyst: "/jacqes",
       "cs-ops": "/csops",
     };
 
-    router.push(homeByRole[role] ?? "/awq");
+    router.push(homeByRole[role] ?? "/");
   };
 
   return (

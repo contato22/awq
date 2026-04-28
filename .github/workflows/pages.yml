@@ -68,7 +68,7 @@ jobs:
         env:
           STATIC_EXPORT: "1"
           NEXT_PUBLIC_STATIC_DATA: "1"
-          NEXT_PUBLIC_BASE_PATH: ""
+          NEXT_PUBLIC_BASE_PATH: "/awq"
           # NEXT_PUBLIC_ANTHROPIC_API_KEY deliberately omitted:
           # NEXT_PUBLIC_* vars are inlined into the client JS bundle and are
           # publicly visible to anyone who inspects the static output.
