@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useState, Suspense } from "react";
 import type { FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
+import { SEED_ACCOUNTS, SEED_CONTACTS, SEED_LEADS, SEED_OPPORTUNITIES } from "@/lib/crm-db";
 
 function AddActivityPageInner() {
   const router = useRouter();
@@ -28,7 +29,7 @@ function AddActivityPageInner() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!form.subject.trim()) { setError("Assunto é obrigatório"); return; }
-    if (!form.related_to_id.trim()) { setError("Vincule a uma entidade (ID obrigatório)"); return; }
+    if (!form.related_to_id.trim()) { setError("Selecione a entidade vinculada"); return; }
     setSaving(true); setError("");
     try {
       const res = await fetch("/api/crm/activities", {
@@ -82,13 +83,26 @@ function AddActivityPageInner() {
             <h2 className="text-sm font-semibold text-gray-900">Vinculação</h2>
             <div className="grid grid-cols-2 gap-4">
               <div><label className="block text-xs font-medium text-gray-700 mb-1">Tipo de entidade</label>
-                <select value={form.related_to_type} onChange={e=>set("related_to_type",e.target.value)}
+                <select value={form.related_to_type} onChange={e=>{set("related_to_type",e.target.value); set("related_to_id","");}}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30">
-                  {["lead","opportunity","account","contact"].map(t=><option key={t}>{t}</option>)}
+                  <option value="opportunity">Oportunidade</option>
+                  <option value="account">Conta</option>
+                  <option value="lead">Lead</option>
+                  <option value="contact">Contato</option>
                 </select></div>
-              <div><label className="block text-xs font-medium text-gray-700 mb-1">ID da entidade *</label>
-                <input value={form.related_to_id} onChange={e=>set("related_to_id",e.target.value)} placeholder="UUID"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 font-mono text-xs"/></div>
+              <div><label className="block text-xs font-medium text-gray-700 mb-1">Entidade *</label>
+                <select value={form.related_to_id} onChange={e=>set("related_to_id",e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30">
+                  <option value="">— Selecionar —</option>
+                  {form.related_to_type === "opportunity" && SEED_OPPORTUNITIES.map(o =>
+                    <option key={o.opportunity_id} value={o.opportunity_id}>{o.opportunity_name}</option>)}
+                  {form.related_to_type === "account" && SEED_ACCOUNTS.map(a =>
+                    <option key={a.account_id} value={a.account_id}>{a.trade_name ?? a.account_name}</option>)}
+                  {form.related_to_type === "lead" && SEED_LEADS.map(l =>
+                    <option key={l.lead_id} value={l.lead_id}>{l.contact_name} — {l.company_name}</option>)}
+                  {form.related_to_type === "contact" && SEED_CONTACTS.map(c =>
+                    <option key={c.contact_id} value={c.contact_id}>{c.full_name} ({c.account_name})</option>)}
+                </select></div>
             </div>
           </div>
 

@@ -11,13 +11,18 @@ export async function GET(req: NextRequest) {
     const id = p.get("id");
 
     if (id) {
-      const [account, contacts, opportunities, activities] = await Promise.all([
+      const [account, contacts, opportunities] = await Promise.all([
         getAccount(id),
         listContacts({ account_id: id }),
         listOpportunities({ account_id: id }),
-        listActivities({ related_to_type: "account", related_to_id: id }),
       ]);
       if (!account) return err("Not found", 404);
+      const [acctActivities, ...oppActivities] = await Promise.all([
+        listActivities({ related_to_type: "account", related_to_id: id }),
+        ...opportunities.map(o => listActivities({ related_to_type: "opportunity", related_to_id: o.opportunity_id })),
+      ]);
+      const activities = [...acctActivities, ...oppActivities.flat()]
+        .sort((a, b) => b.created_at.localeCompare(a.created_at));
       return ok({ account, contacts, opportunities, activities });
     }
 

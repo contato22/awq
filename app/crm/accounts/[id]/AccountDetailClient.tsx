@@ -52,17 +52,27 @@ export default function AccountDetailClient() {
           setOpps(res.data.opportunities ?? []);
           setActivities(res.data.activities ?? []);
         } else {
+          const seedOpps = SEED_OPPORTUNITIES.filter(o => o.account_id === id);
+          const oppIds   = new Set(seedOpps.map(o => o.opportunity_id));
           setAccount(SEED_ACCOUNTS.find(a => a.account_id === id) ?? null);
           setContacts(SEED_CONTACTS.filter(c => c.account_id === id));
-          setOpps(SEED_OPPORTUNITIES.filter(o => o.account_id === id));
-          setActivities(SEED_ACTIVITIES.filter(a => a.related_to_id === id));
+          setOpps(seedOpps);
+          setActivities(SEED_ACTIVITIES.filter(a =>
+            (a.related_to_type === "account"     && a.related_to_id === id) ||
+            (a.related_to_type === "opportunity" && oppIds.has(a.related_to_id))
+          ));
         }
       })
       .catch(() => {
+        const seedOpps = SEED_OPPORTUNITIES.filter(o => o.account_id === id);
+        const oppIds   = new Set(seedOpps.map(o => o.opportunity_id));
         setAccount(SEED_ACCOUNTS.find(a => a.account_id === id) ?? null);
         setContacts(SEED_CONTACTS.filter(c => c.account_id === id));
-        setOpps(SEED_OPPORTUNITIES.filter(o => o.account_id === id));
-        setActivities(SEED_ACTIVITIES.filter(a => a.related_to_id === id));
+        setOpps(seedOpps);
+        setActivities(SEED_ACTIVITIES.filter(a =>
+          (a.related_to_type === "account"     && a.related_to_id === id) ||
+          (a.related_to_type === "opportunity" && oppIds.has(a.related_to_id))
+        ));
       })
       .finally(() => setLoading(false));
   }, [id]);
