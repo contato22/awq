@@ -1,0 +1,44 @@
+import { NextRequest, NextResponse } from "next/server";
+import { initCrmDB, listLeads, createLead, updateLead, convertLead } from "@/lib/crm-db";
+
+function ok(data: unknown) { return NextResponse.json({ success: true, data }); }
+function err(msg: string, status = 500) { return NextResponse.json({ success: false, error: msg }, { status }); }
+
+export async function GET(req: NextRequest) {
+  try {
+    await initCrmDB();
+    const p = req.nextUrl.searchParams;
+    const rows = await listLeads({
+      status:      p.get("status")      ?? undefined,
+      bu:          p.get("bu")          ?? undefined,
+      assigned_to: p.get("assigned_to") ?? undefined,
+    });
+    return ok(rows);
+  } catch (e) { return err(String(e)); }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    await initCrmDB();
+    const body = await req.json();
+    const { action, ...data } = body;
+
+    if (action === "create") {
+      const row = await createLead(data);
+      return ok(row);
+    }
+    if (action === "update") {
+      const { lead_id, ...rest } = data;
+      if (!lead_id) return err("lead_id required", 400);
+      const row = await updateLead(lead_id, rest);
+      return ok(row);
+    }
+    if (action === "convert") {
+      const { lead_id, ...oppData } = data;
+      if (!lead_id) return err("lead_id required", 400);
+      const opp = await convertLead(lead_id, oppData);
+      return ok(opp);
+    }
+    return err("Unknown action", 400);
+  } catch (e) { return err(String(e)); }
+}
