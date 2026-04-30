@@ -15,6 +15,10 @@ import type { CrmAccount, CrmContact, CrmOpportunity, CrmActivity } from "@/lib/
 import { SEED_ACCOUNTS, SEED_CONTACTS, SEED_OPPORTUNITIES, SEED_ACTIVITIES } from "@/lib/crm-db";
 import { formatBRL, formatDateBR } from "@/lib/utils";
 
+export function generateStaticParams() {
+  return SEED_ACCOUNTS.map(a => ({ id: a.account_id }));
+}
+
 const STAGE_COLORS: Record<string, string> = {
   discovery:"bg-blue-100 text-blue-700", qualification:"bg-violet-100 text-violet-700",
   proposal:"bg-amber-100 text-amber-700", negotiation:"bg-orange-100 text-orange-700",

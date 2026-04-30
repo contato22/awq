@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import type { FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
@@ -10,7 +10,7 @@ import { SEED_ACCOUNTS } from "@/lib/crm-db";
 
 const ACTIVE_STAGES = ["discovery","qualification","proposal","negotiation","closed_won","closed_lost"] as const;
 
-export default function AddOpportunityPage() {
+function AddOpportunityPageInner() {
   const router = useRouter();
   const params = useSearchParams();
   const defaultStage = (params?.get("stage") ?? "discovery") as typeof ACTIVE_STAGES[number];
@@ -195,4 +195,8 @@ export default function AddOpportunityPage() {
       </div>
     </>
   );
+}
+
+export default function AddOpportunityPage() {
+  return <Suspense><AddOpportunityPageInner /></Suspense>;
 }

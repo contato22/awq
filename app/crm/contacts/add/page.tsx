@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import type { FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
 import type { CrmAccount } from "@/lib/crm-types";
 import { SEED_ACCOUNTS } from "@/lib/crm-db";
 
-export default function AddContactPage() {
+function AddContactPageInner() {
   const router = useRouter();
   const params = useSearchParams();
   const [accounts, setAccounts] = useState<CrmAccount[]>([]);
@@ -103,4 +103,8 @@ export default function AddContactPage() {
       </div>
     </>
   );
+}
+
+export default function AddContactPage() {
+  return <Suspense><AddContactPageInner /></Suspense>;
 }

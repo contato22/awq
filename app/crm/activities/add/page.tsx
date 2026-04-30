@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import type { FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
 
-export default function AddActivityPage() {
+function AddActivityPageInner() {
   const router = useRouter();
   const params = useSearchParams();
   const [saving, setSaving] = useState(false);
@@ -132,4 +132,8 @@ export default function AddActivityPage() {
       </div>
     </>
   );
+}
+
+export default function AddActivityPage() {
+  return <Suspense><AddActivityPageInner /></Suspense>;
 }
