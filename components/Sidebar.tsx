@@ -49,6 +49,7 @@ import {
     ListOrdered,
     ArrowDownLeft,
     Target,
+    LayoutGrid,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -246,15 +247,18 @@ const AWQ_DADOS_ITEMS = [
 
 // EPM — Enterprise Performance Management (módulos financeiros completos)
 const AWQ_EPM_ITEMS = [
-    { label: "Visão Geral EPM",   href: "/awq/epm",                 icon: Layers        },
-    { label: "P&L (DRE)",         href: "/awq/epm/pl",              icon: LineChart     },
-    { label: "Balanço Patrimonial",href: "/awq/epm/balance-sheet",  icon: Scale         },
-    { label: "Budget vs Actual",  href: "/awq/epm/budget",          icon: Target        },
-    { label: "KPI Dashboard",     href: "/awq/epm/kpis",            icon: PieChart      },
-    { label: "Contas a Pagar",    href: "/awq/epm/ap",              icon: ArrowDownLeft },
-    { label: "Contas a Receber",  href: "/awq/epm/ar",              icon: ArrowUpRight  },
-    { label: "Razão Geral (GL)",  href: "/awq/epm/gl",              icon: ListOrdered   },
-    { label: "Consolidação",      href: "/awq/epm/consolidation",   icon: Building2     },
+    { label: "Visão Geral EPM",    href: "/awq/epm",                         icon: Layers        },
+    { label: "P&L (DRE)",          href: "/awq/epm/pl",                      icon: LineChart     },
+    { label: "Balanço Patrimonial",href: "/awq/epm/balance-sheet",           icon: Scale         },
+    { label: "Budget vs Actual",   href: "/awq/epm/budget",                  icon: Target        },
+    { label: "KPI Dashboard",      href: "/awq/epm/kpis",                    icon: PieChart      },
+    { label: "Contas a Pagar",     href: "/awq/epm/ap",                      icon: ArrowDownLeft },
+    { label: "Contas a Receber",   href: "/awq/epm/ar",                      icon: ArrowUpRight  },
+    { label: "Razão Geral (GL)",   href: "/awq/epm/gl",                      icon: ListOrdered   },
+    { label: "Consolidação",       href: "/awq/epm/consolidation",           icon: Building2     },
+    { label: "Conciliação Bancária",href: "/awq/epm/bank-reconciliation",    icon: Landmark      },
+    { label: "Reconhec. de Receita",href: "/awq/epm/revenue-recognition",   icon: BookOpen      },
+    { label: "Centros de Custo",   href: "/awq/epm/cost-centers",            icon: LayoutGrid    },
 ] as const;
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
