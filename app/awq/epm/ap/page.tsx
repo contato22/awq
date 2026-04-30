@@ -142,6 +142,12 @@ export default function APPage() {
   const [search,    setSearch]    = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [filterBU,   setFilterBU]   = useState<BuCode | "">("");
+  const [statusFilter,setStatusFilter] = useState<APStatus | "ALL">("ALL");
+  const [payModal, setPayModal] = useState<{
+    open: boolean; id: string; item: APItem | null;
+    paid_date: string; paid_amount: string; payment_ref: string; saving: boolean;
+  }>({ open: false, id: "", item: null, paid_date: today, paid_amount: "", payment_ref: "", saving: false });
 
   const [form, setForm] = useState({
     bu_code:       "AWQ" as BuCode,
@@ -217,19 +223,19 @@ export default function APPage() {
     } finally { setSubmitting(false); }
   }
 
-  async function handlePay(id: string) {
-    const paid_date   = window.prompt("Data de pagamento (AAAA-MM-DD):", today);
-    if (!paid_date) return;
-    const item        = items.find((i) => i.id === id);
-    const paid_amount = parseFloat(window.prompt("Valor pago (líquido):", String(item?.net_amount ?? "")) ?? "");
-    if (!paid_amount) return;
-    const payment_ref = window.prompt("Referência (txid PIX, NSU, etc.) — opcional:") ?? undefined;
+  function openPayModal(item: APItem) {
+    setPayModal({ open: true, id: item.id, item, paid_date: today, paid_amount: String(item.net_amount), payment_ref: "", saving: false });
+  }
 
+  async function confirmPay() {
+    if (!payModal.paid_date || !payModal.paid_amount) return;
+    setPayModal((m) => ({ ...m, saving: true }));
     await fetch("/api/epm/ap", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, action: "pay", paid_date, paid_amount, payment_ref }),
+      body: JSON.stringify({ id: payModal.id, action: "pay", paid_date: payModal.paid_date, paid_amount: parseFloat(payModal.paid_amount), payment_ref: payModal.payment_ref || undefined }),
     });
+    setPayModal({ open: false, id: "", item: null, paid_date: today, paid_amount: "", payment_ref: "", saving: false });
     await loadData();
   }
 
@@ -244,11 +250,14 @@ export default function APPage() {
 
   // ── Filter ───────────────────────────────────────────────────────────────────
 
-  const filtered = items.filter((i) =>
-    search === "" ||
-    i.supplier_name.toLowerCase().includes(search.toLowerCase()) ||
-    i.description.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = items.filter((i) => {
+    if (filterBU && i.bu_code !== filterBU) return false;
+    if (statusFilter !== "ALL" && i.status !== statusFilter) return false;
+    if (search !== "" &&
+      !i.supplier_name.toLowerCase().includes(search.toLowerCase()) &&
+      !i.description.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
 
   const outstanding = items.filter((i) => i.status !== "PAID" && i.status !== "CANCELLED");
 
@@ -293,6 +302,30 @@ export default function APPage() {
             </div>
           </div>
         )}
+
+        {/* ── BU filter ─────────────────────────────────────────────── */}
+        <div className="flex gap-2 flex-wrap">
+          <button onClick={() => setFilterBU("")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${!filterBU ? "bg-brand-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+            Todas BUs
+          </button>
+          {BUS.map((b) => (
+            <button key={b} onClick={() => setFilterBU(b)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${filterBU === b ? "bg-brand-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+              {b}
+            </button>
+          ))}
+        </div>
+
+        {/* ── Status filter ─────────────────────────────────────────── */}
+        <div className="flex gap-2 flex-wrap">
+          {(["ALL", "PENDING", "OVERDUE", "SCHEDULED", "PAID", "CANCELLED"] as const).map((s) => (
+            <button key={s} onClick={() => setStatusFilter(s)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${statusFilter === s ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+              {s === "ALL" ? "Todos" : STATUS_CFG[s].label}
+            </button>
+          ))}
+        </div>
 
         {/* ── Toolbar ───────────────────────────────────────────────── */}
         <div className="flex items-center justify-between gap-3">
@@ -563,7 +596,7 @@ export default function APPage() {
                           <div className="flex items-center justify-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                             {item.status !== "PAID" && item.status !== "CANCELLED" && (
                               <button
-                                onClick={() => handlePay(item.id)}
+                                onClick={() => openPayModal(item)}
                                 title="Registrar pagamento"
                                 className="p-1 text-emerald-600 hover:bg-emerald-50 rounded transition-colors"
                               >
@@ -627,6 +660,57 @@ export default function APPage() {
         </div>
 
       </div>
+
+      {/* ── Payment modal ────────────────────────────────────────────── */}
+      {payModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-bold text-gray-900">Registrar Pagamento</h2>
+              <button onClick={() => setPayModal((m) => ({ ...m, open: false }))} className="p-1 text-gray-400 hover:text-gray-600">
+                <X size={16} />
+              </button>
+            </div>
+            {payModal.item && (
+              <div className="text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2">
+                <span className="font-semibold text-gray-700">{payModal.item.supplier_name}</span>
+                {" · "}{payModal.item.description}
+                <span className="ml-2 font-bold text-gray-800">{fmtBRL(payModal.item.net_amount)}</span>
+              </div>
+            )}
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block font-semibold text-gray-600 mb-1">Data de pagamento *</label>
+                <input type="date" value={payModal.paid_date}
+                  onChange={(e) => setPayModal((m) => ({ ...m, paid_date: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              </div>
+              <div>
+                <label className="block font-semibold text-gray-600 mb-1">Valor pago (líquido) *</label>
+                <input type="number" step="0.01" min="0.01" value={payModal.paid_amount}
+                  onChange={(e) => setPayModal((m) => ({ ...m, paid_amount: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              </div>
+              <div>
+                <label className="block font-semibold text-gray-600 mb-1">Referência (txid PIX, NSU…)</label>
+                <input type="text" value={payModal.payment_ref} placeholder="Opcional"
+                  onChange={(e) => setPayModal((m) => ({ ...m, payment_ref: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              </div>
+            </div>
+            <div className="flex gap-2 pt-1">
+              <button onClick={() => setPayModal((m) => ({ ...m, open: false }))}
+                className="flex-1 py-2 border border-gray-200 rounded-xl text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors">
+                Cancelar
+              </button>
+              <button onClick={confirmPay} disabled={payModal.saving || !payModal.paid_date || !payModal.paid_amount}
+                className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-semibold transition-colors">
+                {payModal.saving ? "Salvando…" : "Confirmar Pagamento"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

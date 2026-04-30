@@ -102,6 +102,12 @@ export default function ARPage() {
   const [search,    setSearch]    = useState("");
   const [submitting,setSubmitting]= useState(false);
   const [expandedId,setExpandedId]= useState<string | null>(null);
+  const [filterBU,  setFilterBU]  = useState<BuCode | "">("");
+  const [statusFilter,setStatusFilter] = useState<ARStatus | "ALL">("ALL");
+  const [recModal, setRecModal] = useState<{
+    open: boolean; id: string; item: ARItem | null;
+    received_date: string; received_amount: string; receipt_ref: string; saving: boolean;
+  }>({ open: false, id: "", item: null, received_date: today, received_amount: "", receipt_ref: "", saving: false });
 
   const [form, setForm] = useState({
     bu_code:       "JACQES" as BuCode,
@@ -173,19 +179,19 @@ export default function ARPage() {
     } finally { setSubmitting(false); }
   }
 
-  async function handleReceive(id: string) {
-    const item             = items.find((i) => i.id === id);
-    const received_date    = window.prompt("Data de recebimento (AAAA-MM-DD):", today);
-    if (!received_date) return;
-    const received_amount  = parseFloat(window.prompt("Valor recebido:", String(item?.net_amount ?? "")) ?? "");
-    if (!received_amount)  return;
-    const receipt_ref      = window.prompt("Referência (txid PIX, etc.) — opcional:") ?? undefined;
+  function openRecModal(item: ARItem) {
+    setRecModal({ open: true, id: item.id, item, received_date: today, received_amount: String(item.net_amount), receipt_ref: "", saving: false });
+  }
 
+  async function confirmReceive() {
+    if (!recModal.received_date || !recModal.received_amount) return;
+    setRecModal((m) => ({ ...m, saving: true }));
     await fetch("/api/epm/ar", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, action: "receive", received_date, received_amount, receipt_ref }),
+      body: JSON.stringify({ id: recModal.id, action: "receive", received_date: recModal.received_date, received_amount: parseFloat(recModal.received_amount), receipt_ref: recModal.receipt_ref || undefined }),
     });
+    setRecModal({ open: false, id: "", item: null, received_date: today, received_amount: "", receipt_ref: "", saving: false });
     await loadData();
   }
 
@@ -200,11 +206,14 @@ export default function ARPage() {
 
   // ── Filter ───────────────────────────────────────────────────────────────────
 
-  const filtered    = items.filter((i) =>
-    search === "" ||
-    i.customer_name.toLowerCase().includes(search.toLowerCase()) ||
-    i.description.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = items.filter((i) => {
+    if (filterBU && i.bu_code !== filterBU) return false;
+    if (statusFilter !== "ALL" && i.status !== statusFilter) return false;
+    if (search !== "" &&
+      !i.customer_name.toLowerCase().includes(search.toLowerCase()) &&
+      !i.description.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
   const outstanding = items.filter((i) => i.status !== "RECEIVED" && i.status !== "CANCELLED");
 
   // ── Render ───────────────────────────────────────────────────────────────────
@@ -268,6 +277,30 @@ export default function ARPage() {
             </div>
           </div>
         )}
+
+        {/* ── BU filter ─────────────────────────────────────────────── */}
+        <div className="flex gap-2 flex-wrap">
+          <button onClick={() => setFilterBU("")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${!filterBU ? "bg-brand-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+            Todas BUs
+          </button>
+          {BUS.map((b) => (
+            <button key={b} onClick={() => setFilterBU(b)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${filterBU === b ? "bg-brand-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+              {b}
+            </button>
+          ))}
+        </div>
+
+        {/* ── Status filter ─────────────────────────────────────────── */}
+        <div className="flex gap-2 flex-wrap">
+          {(["ALL", "PENDING", "OVERDUE", "PARTIAL", "RECEIVED", "CANCELLED"] as const).map((s) => (
+            <button key={s} onClick={() => setStatusFilter(s)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${statusFilter === s ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+              {s === "ALL" ? "Todos" : STATUS_CFG[s].label}
+            </button>
+          ))}
+        </div>
 
         {/* ── Toolbar ───────────────────────────────────────────────── */}
         <div className="flex items-center justify-between gap-3">
@@ -519,7 +552,7 @@ export default function ARPage() {
                           <div className="flex items-center justify-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                             {item.status !== "RECEIVED" && item.status !== "CANCELLED" && (
                               <button
-                                onClick={() => handleReceive(item.id)}
+                                onClick={() => openRecModal(item)}
                                 title="Registrar recebimento"
                                 className="p-1 text-emerald-600 hover:bg-emerald-50 rounded transition-colors"
                               >
@@ -587,6 +620,57 @@ export default function ARPage() {
         </div>
 
       </div>
+
+      {/* ── Receive modal ────────────────────────────────────────────── */}
+      {recModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-bold text-gray-900">Registrar Recebimento</h2>
+              <button onClick={() => setRecModal((m) => ({ ...m, open: false }))} className="p-1 text-gray-400 hover:text-gray-600">
+                <X size={16} />
+              </button>
+            </div>
+            {recModal.item && (
+              <div className="text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2">
+                <span className="font-semibold text-gray-700">{recModal.item.customer_name}</span>
+                {" · "}{recModal.item.description}
+                <span className="ml-2 font-bold text-emerald-700">{fmtBRL(recModal.item.net_amount)}</span>
+              </div>
+            )}
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block font-semibold text-gray-600 mb-1">Data de recebimento *</label>
+                <input type="date" value={recModal.received_date}
+                  onChange={(e) => setRecModal((m) => ({ ...m, received_date: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              </div>
+              <div>
+                <label className="block font-semibold text-gray-600 mb-1">Valor recebido *</label>
+                <input type="number" step="0.01" min="0.01" value={recModal.received_amount}
+                  onChange={(e) => setRecModal((m) => ({ ...m, received_amount: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              </div>
+              <div>
+                <label className="block font-semibold text-gray-600 mb-1">Referência (txid PIX, etc.)</label>
+                <input type="text" value={recModal.receipt_ref} placeholder="Opcional"
+                  onChange={(e) => setRecModal((m) => ({ ...m, receipt_ref: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              </div>
+            </div>
+            <div className="flex gap-2 pt-1">
+              <button onClick={() => setRecModal((m) => ({ ...m, open: false }))}
+                className="flex-1 py-2 border border-gray-200 rounded-xl text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors">
+                Cancelar
+              </button>
+              <button onClick={confirmReceive} disabled={recModal.saving || !recModal.received_date || !recModal.received_amount}
+                className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-semibold transition-colors">
+                {recModal.saving ? "Salvando…" : "Confirmar Recebimento"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
