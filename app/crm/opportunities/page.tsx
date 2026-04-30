@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import type { DragEvent } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
@@ -132,7 +132,6 @@ function KanbanColumn({
   onDragOver: (e: DragEvent, stage: string) => void;
   onDragLeave: () => void;
   isDragOver: boolean;
-  onDragStart: (e: DragEvent, id: string) => void;
 }) {
   const cfg = STAGE_CONFIG[stage]!;
   const total = opps.reduce((s, o) => s + o.deal_value, 0);
@@ -194,7 +193,6 @@ export default function PipelinePage() {
   const [filterOwner, setFilterOwner] = useState("Todos");
   const [dragOverStage, setDragOverStage] = useState<string | null>(null);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
-  const dragId = useRef<string | null>(null);
 
   useEffect(() => {
     fetch("/api/crm/pipeline")
@@ -339,9 +337,8 @@ export default function PipelinePage() {
                 key={stage}
                 stage={stage}
                 opps={filtered(stage)}
-                onDragStart={(e, id) => { dragId.current = id; e.dataTransfer.setData("text/plain", id); }}
                 onDrop={handleDrop}
-                onDragOver={(e, s) => { e.preventDefault(); setDragOverStage(s); }}
+                onDragOver={(e: DragEvent, s: string) => { e.preventDefault(); setDragOverStage(s); }}
                 onDragLeave={() => setDragOverStage(null)}
                 isDragOver={dragOverStage === stage}
               />

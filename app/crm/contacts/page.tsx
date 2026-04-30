@@ -70,7 +70,7 @@ export default function ContactsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200">
-                  {["Contato","Empresa","Cargo","Senioridade","Contato","Principal"].map(h=>(
+                  {["Contato","Empresa","Cargo","Senioridade","Canais","Principal"].map(h=>(
                     <th key={h} className="text-left py-3 px-4 text-[11px] font-semibold text-gray-500 whitespace-nowrap">{h}</th>
                   ))}
                 </tr>

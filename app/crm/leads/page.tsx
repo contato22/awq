@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import SectionHeader from "@/components/SectionHeader";
 import EmptyState from "@/components/EmptyState";
@@ -103,12 +104,14 @@ function BuBadge({ bu }: { bu: string }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function LeadsPage() {
+  const router = useRouter();
   const [leads, setLeads] = useState<CrmLead[]>([]);
   const [loading, setLoading] = useState(true);
   const [isStatic, setIsStatic] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [buFilter, setBuFilter] = useState<string>("Todos");
   const [search, setSearch] = useState("");
+  const [converting, setConverting] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -127,6 +130,32 @@ export default function LeadsPage() {
     }
     load();
   }, []);
+
+  async function handleConvert(lead: CrmLead) {
+    if (!confirm(`Converter "${lead.company_name}" em oportunidade?`)) return;
+    setConverting(lead.lead_id);
+    try {
+      const res = await fetch("/api/crm/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "convert",
+          lead_id: lead.lead_id,
+          opportunity_name: `${lead.company_name} — ${lead.bu}`,
+          bu: lead.bu,
+          owner: lead.assigned_to,
+          deal_value: lead.bant_budget ?? 0,
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setLeads(prev => prev.map(l => l.lead_id === lead.lead_id ? { ...l, status: "converted" as const } : l));
+        router.push("/crm/opportunities");
+      }
+    } finally {
+      setConverting(null);
+    }
+  }
 
   const filtered = useMemo(() => {
     return leads.filter((l) => {
@@ -358,14 +387,18 @@ export default function LeadsPage() {
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-1.5">
-                            <button className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">
+                            <Link href={`/crm/activities/add?related_to_type=lead&related_to_id=${lead.lead_id}`}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">
                               <ExternalLink size={10} />
-                              Ver
-                            </button>
+                              Atividade
+                            </Link>
                             {lead.status !== "converted" && lead.status !== "unqualified" && (
-                              <button className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-medium bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition-colors">
+                              <button
+                                onClick={() => handleConvert(lead)}
+                                disabled={converting === lead.lead_id}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-medium bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition-colors disabled:opacity-50">
                                 <ChevronRight size={10} />
-                                Converter
+                                {converting === lead.lead_id ? "…" : "Converter"}
                               </button>
                             )}
                           </div>
