@@ -11,6 +11,8 @@ import {
   ChevronDown, ChevronUp, Receipt,
 } from "lucide-react";
 
+interface EpmCustomer { id: string; name: string; doc?: string; }
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type BuCode   = "AWQ" | "JACQES" | "CAZA" | "ADVISOR" | "VENTURE";
@@ -94,6 +96,7 @@ export default function ARPage() {
 
   const [items,     setItems]     = useState<ARItem[]>([]);
   const [kpis,      setKPIs]      = useState<ARKPIs | null>(null);
+  const [customers, setCustomers] = useState<EpmCustomer[]>([]);
   const [loading,   setLoading]   = useState(true);
   const [showForm,  setShowForm]  = useState(false);
   const [search,    setSearch]    = useState("");
@@ -109,6 +112,7 @@ export default function ARPage() {
     issue_date:    today,
     due_date:      "",
     gross_amount:  "",
+    installments:  "1",
   });
 
   const gross = parseFloat(form.gross_amount) || 0;
@@ -118,14 +122,17 @@ export default function ARPage() {
 
   const loadData = useCallback(async () => {
     try {
-      const [listRes, kpisRes] = await Promise.all([
+      const [listRes, kpisRes, custRes] = await Promise.all([
         fetch("/api/epm/ar"),
         fetch("/api/epm/ar?view=kpis"),
+        fetch("/api/epm/customers"),
       ]);
       const listJson = await listRes.json() as { success: boolean; data: ARItem[] };
       const kpisJson = await kpisRes.json() as { success: boolean; data: ARKPIs };
+      const custJson = await custRes.json() as { success: boolean; data: EpmCustomer[] };
       if (listJson.success) setItems(listJson.data);
       if (kpisJson.success) setKPIs(kpisJson.data);
+      if (custJson.success) setCustomers(custJson.data);
     } catch { /* ignore */ }
     finally { setLoading(false); }
   }, []);
@@ -137,26 +144,30 @@ export default function ARPage() {
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     if (!gross || gross <= 0) return;
+    const n = parseInt(form.installments) || 1;
     setSubmitting(true);
     try {
-      const res  = await fetch("/api/epm/ar", {
+      const payload = {
+        bu_code:       form.bu_code,
+        customer_name: form.customer_name,
+        description:   form.description,
+        category:      form.category,
+        reference_doc: form.reference_doc || undefined,
+        issue_date:    form.issue_date,
+        due_date:      form.due_date,
+        gross_amount:  gross,
+      };
+      const endpoint = n > 1 ? "/api/epm/ar/installments" : "/api/epm/ar";
+      const body     = n > 1 ? { ...payload, total_installments: n } : payload;
+      const res      = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          bu_code:       form.bu_code,
-          customer_name: form.customer_name,
-          description:   form.description,
-          category:      form.category,
-          reference_doc: form.reference_doc || undefined,
-          issue_date:    form.issue_date,
-          due_date:      form.due_date,
-          gross_amount:  gross,
-        }),
+        body: JSON.stringify(body),
       });
       const json = await res.json() as { success: boolean };
       if (json.success) {
         setShowForm(false);
-        setForm((f) => ({ ...f, customer_name: "", description: "", reference_doc: "", due_date: "", gross_amount: "" }));
+        setForm((f) => ({ ...f, customer_name: "", description: "", reference_doc: "", due_date: "", gross_amount: "", installments: "1" }));
         await loadData();
       }
     } finally { setSubmitting(false); }
@@ -281,7 +292,12 @@ export default function ARPage() {
         {/* ── Add form ──────────────────────────────────────────────── */}
         {showForm && (
           <form onSubmit={handleAdd} className="card p-5 border-2 border-brand-200 space-y-4">
-            <h2 className="text-sm font-semibold text-gray-900">Nova Conta a Receber</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-gray-900">Nova Conta a Receber</h2>
+              <Link href="/awq/epm/ar/contracts" className="text-xs text-brand-600 hover:underline">
+                Usar contrato recorrente →
+              </Link>
+            </div>
 
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div>
@@ -298,12 +314,16 @@ export default function ARPage() {
                 <label className="block font-semibold text-gray-600 mb-1">Cliente *</label>
                 <input
                   required
+                  list="customer-list"
                   type="text"
                   value={form.customer_name}
                   onChange={(e) => setForm((f) => ({ ...f, customer_name: e.target.value }))}
                   placeholder="Nome do cliente"
                   className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500"
                 />
+                <datalist id="customer-list">
+                  {customers.map((c) => <option key={c.id} value={c.name}>{c.name}{c.doc ? ` — ${c.doc}` : ""}</option>)}
+                </datalist>
               </div>
 
               <div className="col-span-2">
@@ -363,7 +383,7 @@ export default function ARPage() {
                 />
               </div>
 
-              <div className="col-span-2">
+              <div>
                 <label className="block font-semibold text-gray-600 mb-1">Valor do Serviço (R$) *</label>
                 <input
                   required
@@ -375,6 +395,23 @@ export default function ARPage() {
                   placeholder="0,00"
                   className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500"
                 />
+              </div>
+              <div>
+                <label className="block font-semibold text-gray-600 mb-1">Parcelas</label>
+                <select
+                  value={form.installments}
+                  onChange={(e) => setForm((f) => ({ ...f, installments: e.target.value }))}
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-brand-500"
+                >
+                  {[1,2,3,4,5,6,7,8,9,10,11,12].map((n) => (
+                    <option key={n} value={n}>{n === 1 ? "À vista (1x)" : `${n}× mensais`}</option>
+                  ))}
+                </select>
+                {parseInt(form.installments) > 1 && form.gross_amount && (
+                  <div className="text-[10px] text-brand-600 mt-0.5">
+                    {parseInt(form.installments)}× de {fmtBRL(Math.round(parseFloat(form.gross_amount) / parseInt(form.installments) * 100) / 100)}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -411,7 +448,7 @@ export default function ARPage() {
               disabled={submitting}
               className="w-full py-2.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white rounded-xl text-xs font-semibold transition-colors"
             >
-              {submitting ? "Registrando…" : "Registrar Conta a Receber"}
+              {submitting ? "Registrando…" : parseInt(form.installments) > 1 ? `Parcelar em ${form.installments}×` : "Registrar Conta a Receber"}
             </button>
           </form>
         )}

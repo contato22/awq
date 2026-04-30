@@ -12,6 +12,11 @@ import {
   ChevronDown, ChevronUp, AlertTriangle, Receipt,
 } from "lucide-react";
 
+interface EpmSupplier {
+  id: string; name: string; doc?: string; supplier_type: SupplierType;
+  bank_info?: string; notes?: string;
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type BuCode        = "AWQ" | "JACQES" | "CAZA" | "ADVISOR" | "VENTURE";
@@ -129,11 +134,12 @@ const BUS: BuCode[] = ["AWQ", "JACQES", "CAZA", "ADVISOR", "VENTURE"];
 export default function APPage() {
   const today = new Date().toISOString().slice(0, 10);
 
-  const [items,    setItems]    = useState<APItem[]>([]);
-  const [kpis,     setKPIs]     = useState<APKPIs | null>(null);
-  const [loading,  setLoading]  = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [search,   setSearch]   = useState("");
+  const [items,     setItems]     = useState<APItem[]>([]);
+  const [kpis,      setKPIs]      = useState<APKPIs | null>(null);
+  const [suppliers, setSuppliers] = useState<EpmSupplier[]>([]);
+  const [loading,   setLoading]   = useState(true);
+  const [showForm,  setShowForm]  = useState(false);
+  const [search,    setSearch]    = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -147,6 +153,7 @@ export default function APPage() {
     issue_date:    today,
     due_date:      "",
     gross_amount:  "",
+    installments:  "1",
   });
 
   const fiscal = form.gross_amount
@@ -157,14 +164,17 @@ export default function APPage() {
 
   const loadData = useCallback(async () => {
     try {
-      const [listRes, kpisRes] = await Promise.all([
+      const [listRes, kpisRes, suppRes] = await Promise.all([
         fetch("/api/epm/ap"),
         fetch("/api/epm/ap?view=kpis"),
+        fetch("/api/epm/suppliers"),
       ]);
       const listJson = await listRes.json() as { success: boolean; data: APItem[] };
       const kpisJson = await kpisRes.json() as { success: boolean; data: APKPIs };
+      const suppJson = await suppRes.json() as { success: boolean; data: EpmSupplier[] };
       if (listJson.success) setItems(listJson.data);
       if (kpisJson.success) setKPIs(kpisJson.data);
+      if (suppJson.success) setSuppliers(suppJson.data);
     } catch { /* ignore network errors */ }
     finally { setLoading(false); }
   }, []);
@@ -176,28 +186,32 @@ export default function APPage() {
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     const gross = parseFloat(form.gross_amount);
+    const n     = parseInt(form.installments) || 1;
     if (!gross || gross <= 0) return;
     setSubmitting(true);
     try {
-      const res  = await fetch("/api/epm/ap", {
+      const payload = {
+        bu_code:       form.bu_code,
+        supplier_name: form.supplier_name,
+        supplier_type: form.supplier_type,
+        description:   form.description,
+        category:      form.category,
+        reference_doc: form.reference_doc || undefined,
+        issue_date:    form.issue_date,
+        due_date:      form.due_date,
+        gross_amount:  gross,
+      };
+      const endpoint = n > 1 ? "/api/epm/ap/installments" : "/api/epm/ap";
+      const body     = n > 1 ? { ...payload, total_installments: n } : payload;
+      const res      = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          bu_code:       form.bu_code,
-          supplier_name: form.supplier_name,
-          supplier_type: form.supplier_type,
-          description:   form.description,
-          category:      form.category,
-          reference_doc: form.reference_doc || undefined,
-          issue_date:    form.issue_date,
-          due_date:      form.due_date,
-          gross_amount:  gross,
-        }),
+        body: JSON.stringify(body),
       });
       const json = await res.json() as { success: boolean };
       if (json.success) {
         setShowForm(false);
-        setForm((f) => ({ ...f, supplier_name: "", description: "", reference_doc: "", due_date: "", gross_amount: "" }));
+        setForm((f) => ({ ...f, supplier_name: "", description: "", reference_doc: "", due_date: "", gross_amount: "", installments: "1" }));
         await loadData();
       }
     } finally { setSubmitting(false); }
@@ -321,12 +335,24 @@ export default function APPage() {
                 <label className="block font-semibold text-gray-600 mb-1">Fornecedor *</label>
                 <input
                   required
+                  list="supplier-list"
                   type="text"
                   value={form.supplier_name}
-                  onChange={(e) => setForm((f) => ({ ...f, supplier_name: e.target.value }))}
+                  onChange={(e) => {
+                    const val  = e.target.value;
+                    const supp = suppliers.find((s) => s.name === val);
+                    setForm((f) => ({
+                      ...f,
+                      supplier_name: val,
+                      supplier_type: supp ? supp.supplier_type : f.supplier_type,
+                    }));
+                  }}
                   placeholder="Nome do fornecedor"
                   className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500"
                 />
+                <datalist id="supplier-list">
+                  {suppliers.map((s) => <option key={s.id} value={s.name}>{s.name} — {s.doc ?? ""}</option>)}
+                </datalist>
               </div>
 
               {/* Supplier type — triggers fiscal calc */}
@@ -397,8 +423,8 @@ export default function APPage() {
                 />
               </div>
 
-              {/* Gross amount */}
-              <div className="col-span-2">
+              {/* Gross amount + Installments */}
+              <div>
                 <label className="block font-semibold text-gray-600 mb-1">Valor Bruto (R$) *</label>
                 <input
                   required
@@ -410,6 +436,23 @@ export default function APPage() {
                   placeholder="0,00"
                   className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500"
                 />
+              </div>
+              <div>
+                <label className="block font-semibold text-gray-600 mb-1">Parcelas</label>
+                <select
+                  value={form.installments}
+                  onChange={(e) => setForm((f) => ({ ...f, installments: e.target.value }))}
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-brand-500"
+                >
+                  {[1,2,3,4,5,6,7,8,9,10,11,12].map((n) => (
+                    <option key={n} value={n}>{n === 1 ? "À vista (1x)" : `${n}× mensais`}</option>
+                  ))}
+                </select>
+                {parseInt(form.installments) > 1 && form.gross_amount && (
+                  <div className="text-[10px] text-brand-600 mt-0.5">
+                    {parseInt(form.installments)}× de {fmtBRL(Math.round(parseFloat(form.gross_amount) / parseInt(form.installments) * 100) / 100)}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -449,7 +492,7 @@ export default function APPage() {
               disabled={submitting}
               className="w-full py-2.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white rounded-xl text-xs font-semibold transition-colors"
             >
-              {submitting ? "Registrando…" : "Registrar Conta a Pagar"}
+              {submitting ? "Registrando…" : parseInt(form.installments) > 1 ? `Parcelar em ${form.installments}×` : "Registrar Conta a Pagar"}
             </button>
           </form>
         )}

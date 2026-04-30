@@ -699,13 +699,15 @@ export async function getAPARKPIs(bu_code?: BuCode): Promise<APARKPIs> {
 // ─── Suppliers ────────────────────────────────────────────────────────────────
 
 export interface EpmSupplier {
-  id:           string;
-  name:         string;
-  doc?:         string;   // CNPJ/CPF
-  email?:       string;
-  phone?:       string;
+  id:            string;
+  name:          string;
+  doc?:          string;
+  email?:        string;
+  phone?:        string;
   supplier_type: SupplierType;
-  created_at:   string;
+  bank_info?:    string;
+  notes?:        string;
+  created_at:    string;
 }
 
 export async function initSuppliersDB(): Promise<void> {
@@ -718,9 +720,13 @@ export async function initSuppliersDB(): Promise<void> {
       email         TEXT,
       phone         TEXT,
       supplier_type TEXT NOT NULL DEFAULT 'other',
+      bank_info     TEXT,
+      notes         TEXT,
       created_at    TEXT NOT NULL
     )
   `;
+  await sql`ALTER TABLE epm_suppliers ADD COLUMN IF NOT EXISTS bank_info TEXT`;
+  await sql`ALTER TABLE epm_suppliers ADD COLUMN IF NOT EXISTS notes TEXT`;
 }
 
 export async function getSuppliers(): Promise<EpmSupplier[]> {
@@ -729,7 +735,10 @@ export async function getSuppliers(): Promise<EpmSupplier[]> {
     return rows.map((r) => ({
       id: String(r.id), name: String(r.name), doc: r.doc ? String(r.doc) : undefined,
       email: r.email ? String(r.email) : undefined, phone: r.phone ? String(r.phone) : undefined,
-      supplier_type: String(r.supplier_type) as SupplierType, created_at: String(r.created_at),
+      supplier_type: String(r.supplier_type) as SupplierType,
+      bank_info: r.bank_info ? String(r.bank_info) : undefined,
+      notes: r.notes ? String(r.notes) : undefined,
+      created_at: String(r.created_at),
     }));
   }
   return readJSONFile<{ items: EpmSupplier[] }>(
@@ -740,8 +749,8 @@ export async function getSuppliers(): Promise<EpmSupplier[]> {
 export async function addSupplier(input: Omit<EpmSupplier, "id" | "created_at">): Promise<EpmSupplier> {
   const item: EpmSupplier = { id: randomUUID(), ...input, created_at: new Date().toISOString() };
   if (sql) {
-    await sql`INSERT INTO epm_suppliers (id,name,doc,email,phone,supplier_type,created_at)
-      VALUES (${item.id},${item.name},${item.doc??null},${item.email??null},${item.phone??null},${item.supplier_type},${item.created_at})`;
+    await sql`INSERT INTO epm_suppliers (id,name,doc,email,phone,supplier_type,bank_info,notes,created_at)
+      VALUES (${item.id},${item.name},${item.doc??null},${item.email??null},${item.phone??null},${item.supplier_type},${item.bank_info??null},${item.notes??null},${item.created_at})`;
   } else {
     const store = readJSONFile<{ items: EpmSupplier[] }>(
       path.join(process.cwd(), "public", "data", "epm-suppliers.json"), { items: [] }
@@ -760,6 +769,8 @@ export interface EpmCustomer {
   doc?:       string;
   email?:     string;
   phone?:     string;
+  address?:   string;
+  notes?:     string;
   is_active:  boolean;
   created_at: string;
 }
@@ -773,10 +784,14 @@ export async function initCustomersDB(): Promise<void> {
       doc        TEXT,
       email      TEXT,
       phone      TEXT,
+      address    TEXT,
+      notes      TEXT,
       is_active  BOOLEAN NOT NULL DEFAULT true,
       created_at TEXT NOT NULL
     )
   `;
+  await sql`ALTER TABLE epm_customers ADD COLUMN IF NOT EXISTS address TEXT`;
+  await sql`ALTER TABLE epm_customers ADD COLUMN IF NOT EXISTS notes TEXT`;
 }
 
 export async function getCustomers(): Promise<EpmCustomer[]> {
@@ -785,6 +800,8 @@ export async function getCustomers(): Promise<EpmCustomer[]> {
     return rows.map((r) => ({
       id: String(r.id), name: String(r.name), doc: r.doc ? String(r.doc) : undefined,
       email: r.email ? String(r.email) : undefined, phone: r.phone ? String(r.phone) : undefined,
+      address: r.address ? String(r.address) : undefined,
+      notes: r.notes ? String(r.notes) : undefined,
       is_active: Boolean(r.is_active), created_at: String(r.created_at),
     }));
   }
@@ -796,8 +813,8 @@ export async function getCustomers(): Promise<EpmCustomer[]> {
 export async function addCustomer(input: Omit<EpmCustomer, "id" | "created_at" | "is_active">): Promise<EpmCustomer> {
   const item: EpmCustomer = { id: randomUUID(), ...input, is_active: true, created_at: new Date().toISOString() };
   if (sql) {
-    await sql`INSERT INTO epm_customers (id,name,doc,email,phone,is_active,created_at)
-      VALUES (${item.id},${item.name},${item.doc??null},${item.email??null},${item.phone??null},true,${item.created_at})`;
+    await sql`INSERT INTO epm_customers (id,name,doc,email,phone,address,notes,is_active,created_at)
+      VALUES (${item.id},${item.name},${item.doc??null},${item.email??null},${item.phone??null},${item.address??null},${item.notes??null},true,${item.created_at})`;
   } else {
     const store = readJSONFile<{ items: EpmCustomer[] }>(
       path.join(process.cwd(), "public", "data", "epm-customers.json"), { items: [] }
@@ -1139,7 +1156,291 @@ export async function getDFCByMonth(filters?: { bu_code?: BuCode }): Promise<DFC
   });
 }
 
-// ─── Extended initAPARDB ──────────────────────────────────────────────────────
+// ─── Cost Centers ─────────────────────────────────────────────────────────────
+
+export interface EpmCostCenter {
+  id:          string;
+  code:        string;
+  name:        string;
+  bu_code:     BuCode;
+  description?: string;
+  created_at:  string;
+}
+
+export async function initCostCentersDB(): Promise<void> {
+  if (!sql) return;
+  await sql`
+    CREATE TABLE IF NOT EXISTS epm_cost_centers (
+      id          TEXT PRIMARY KEY,
+      code        TEXT NOT NULL UNIQUE,
+      name        TEXT NOT NULL,
+      bu_code     TEXT NOT NULL,
+      description TEXT,
+      created_at  TEXT NOT NULL
+    )
+  `;
+}
+
+export async function getCostCenters(bu_code?: BuCode): Promise<EpmCostCenter[]> {
+  if (sql) {
+    const rows = bu_code
+      ? await sql`SELECT * FROM epm_cost_centers WHERE bu_code=${bu_code} ORDER BY code`
+      : await sql`SELECT * FROM epm_cost_centers ORDER BY bu_code, code`;
+    return rows.map((r) => ({
+      id: String(r.id), code: String(r.code), name: String(r.name),
+      bu_code: String(r.bu_code) as BuCode,
+      description: r.description ? String(r.description) : undefined,
+      created_at: String(r.created_at),
+    }));
+  }
+  const f = path.join(process.cwd(), "public", "data", "epm-cost-centers.json");
+  const store = readJSONFile<{ items: EpmCostCenter[] }>(f, { items: [] });
+  return bu_code ? store.items.filter((i) => i.bu_code === bu_code) : store.items;
+}
+
+export async function addCostCenter(input: Omit<EpmCostCenter, "id" | "created_at">): Promise<EpmCostCenter> {
+  const item: EpmCostCenter = { id: randomUUID(), ...input, created_at: new Date().toISOString() };
+  if (sql) {
+    await sql`INSERT INTO epm_cost_centers (id,code,name,bu_code,description,created_at)
+      VALUES (${item.id},${item.code},${item.name},${item.bu_code},${item.description??null},${item.created_at})`;
+  } else {
+    const f = path.join(process.cwd(), "public", "data", "epm-cost-centers.json");
+    const store = readJSONFile<{ items: EpmCostCenter[] }>(f, { items: [] });
+    store.items.push(item);
+    writeJSONFile(f, store);
+  }
+  return item;
+}
+
+// ─── Revenue Recognition ──────────────────────────────────────────────────────
+
+export interface RevenueRecognition {
+  id:                   string;
+  ar_id:                string;
+  period:               string;   // YYYY-MM
+  recognized_amount:    number;
+  recognition_method:   "cash" | "accrual" | "milestone";
+  notes?:               string;
+  created_at:           string;
+}
+
+export async function initRevenueRecognitionDB(): Promise<void> {
+  if (!sql) return;
+  await sql`
+    CREATE TABLE IF NOT EXISTS epm_revenue_recognition (
+      id                 TEXT PRIMARY KEY,
+      ar_id              TEXT NOT NULL,
+      period             TEXT NOT NULL,
+      recognized_amount  NUMERIC NOT NULL,
+      recognition_method TEXT NOT NULL DEFAULT 'accrual',
+      notes              TEXT,
+      created_at         TEXT NOT NULL
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_epm_rev_rec_ar_id ON epm_revenue_recognition(ar_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_epm_rev_rec_period ON epm_revenue_recognition(period)`;
+}
+
+export async function getRevenueRecognitions(filters?: { ar_id?: string; period?: string }): Promise<RevenueRecognition[]> {
+  if (sql) {
+    let rows;
+    if (filters?.ar_id && filters?.period) {
+      rows = await sql`SELECT * FROM epm_revenue_recognition WHERE ar_id=${filters.ar_id} AND period=${filters.period} ORDER BY created_at DESC`;
+    } else if (filters?.ar_id) {
+      rows = await sql`SELECT * FROM epm_revenue_recognition WHERE ar_id=${filters.ar_id} ORDER BY period DESC`;
+    } else if (filters?.period) {
+      rows = await sql`SELECT * FROM epm_revenue_recognition WHERE period=${filters.period} ORDER BY created_at DESC`;
+    } else {
+      rows = await sql`SELECT * FROM epm_revenue_recognition ORDER BY period DESC`;
+    }
+    return rows.map((r) => ({
+      id: String(r.id), ar_id: String(r.ar_id), period: String(r.period),
+      recognized_amount: Number(r.recognized_amount),
+      recognition_method: String(r.recognition_method) as RevenueRecognition["recognition_method"],
+      notes: r.notes ? String(r.notes) : undefined, created_at: String(r.created_at),
+    }));
+  }
+  const f = path.join(process.cwd(), "public", "data", "epm-revenue-recognition.json");
+  let items = readJSONFile<{ items: RevenueRecognition[] }>(f, { items: [] }).items;
+  if (filters?.ar_id) items = items.filter((i) => i.ar_id === filters.ar_id);
+  if (filters?.period) items = items.filter((i) => i.period === filters.period);
+  return items.sort((a, b) => b.period.localeCompare(a.period));
+}
+
+export async function recognizeRevenue(input: Omit<RevenueRecognition, "id" | "created_at">): Promise<RevenueRecognition> {
+  const item: RevenueRecognition = { id: randomUUID(), ...input, created_at: new Date().toISOString() };
+  if (sql) {
+    await sql`INSERT INTO epm_revenue_recognition (id,ar_id,period,recognized_amount,recognition_method,notes,created_at)
+      VALUES (${item.id},${item.ar_id},${item.period},${item.recognized_amount},${item.recognition_method},${item.notes??null},${item.created_at})`;
+  } else {
+    const f = path.join(process.cwd(), "public", "data", "epm-revenue-recognition.json");
+    const store = readJSONFile<{ items: RevenueRecognition[] }>(f, { items: [] });
+    store.items.push(item);
+    writeJSONFile(f, store);
+  }
+  return item;
+}
+
+// ─── Bank Transactions & Reconciliation ──────────────────────────────────────
+
+export type BankTxnStatus = "unmatched" | "matched" | "ignored";
+export type BankTxnType   = "credit" | "debit";
+
+export interface BankTransaction {
+  id:           string;
+  txn_date:     string;
+  description:  string;
+  amount:       number;
+  txn_type:     BankTxnType;
+  bank_ref?:    string;
+  status:       BankTxnStatus;
+  matched_id?:  string;
+  matched_type?: "AP" | "AR";
+  bu_code?:     BuCode;
+  created_at:   string;
+}
+
+export interface BankMatchCandidate {
+  type:       "AP" | "AR";
+  item:       APItem | ARItem;
+  amountDiff: number;
+  dateDiff:   number;
+  score:      number;
+}
+
+export async function initBankTransactionsDB(): Promise<void> {
+  if (!sql) return;
+  await sql`
+    CREATE TABLE IF NOT EXISTS epm_bank_transactions (
+      id           TEXT PRIMARY KEY,
+      txn_date     TEXT NOT NULL,
+      description  TEXT NOT NULL,
+      amount       NUMERIC NOT NULL,
+      txn_type     TEXT NOT NULL,
+      bank_ref     TEXT,
+      status       TEXT NOT NULL DEFAULT 'unmatched',
+      matched_id   TEXT,
+      matched_type TEXT,
+      bu_code      TEXT,
+      created_at   TEXT NOT NULL
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_epm_bank_txn_date ON epm_bank_transactions(txn_date)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_epm_bank_txn_status ON epm_bank_transactions(status)`;
+}
+
+export async function getBankTransactions(filters?: { status?: BankTxnStatus; bu_code?: BuCode }): Promise<BankTransaction[]> {
+  const mapRow = (r: Record<string, unknown>): BankTransaction => ({
+    id: String(r.id), txn_date: String(r.txn_date), description: String(r.description),
+    amount: Number(r.amount), txn_type: String(r.txn_type) as BankTxnType,
+    bank_ref: r.bank_ref ? String(r.bank_ref) : undefined,
+    status: String(r.status) as BankTxnStatus,
+    matched_id: r.matched_id ? String(r.matched_id) : undefined,
+    matched_type: r.matched_type ? (String(r.matched_type) as "AP" | "AR") : undefined,
+    bu_code: r.bu_code ? (String(r.bu_code) as BuCode) : undefined,
+    created_at: String(r.created_at),
+  });
+  if (sql) {
+    const rows = await sql`SELECT * FROM epm_bank_transactions ORDER BY txn_date DESC`;
+    let result = rows.map(mapRow);
+    if (filters?.status) result = result.filter((r) => r.status === filters.status);
+    if (filters?.bu_code) result = result.filter((r) => r.bu_code === filters.bu_code);
+    return result;
+  }
+  const f = path.join(process.cwd(), "public", "data", "epm-bank-transactions.json");
+  let items = readJSONFile<{ items: BankTransaction[] }>(f, { items: [] }).items;
+  if (filters?.status)  items = items.filter((i) => i.status === filters.status);
+  if (filters?.bu_code) items = items.filter((i) => i.bu_code === filters.bu_code);
+  return items.sort((a, b) => b.txn_date.localeCompare(a.txn_date));
+}
+
+export async function addBankTransaction(input: Omit<BankTransaction, "id" | "created_at" | "status" | "matched_id" | "matched_type">): Promise<BankTransaction> {
+  const item: BankTransaction = { id: randomUUID(), ...input, status: "unmatched", created_at: new Date().toISOString() };
+  if (sql) {
+    await sql`INSERT INTO epm_bank_transactions (id,txn_date,description,amount,txn_type,bank_ref,status,bu_code,created_at)
+      VALUES (${item.id},${item.txn_date},${item.description},${item.amount},${item.txn_type},${item.bank_ref??null},'unmatched',${item.bu_code??null},${item.created_at})`;
+  } else {
+    const f = path.join(process.cwd(), "public", "data", "epm-bank-transactions.json");
+    const store = readJSONFile<{ items: BankTransaction[] }>(f, { items: [] });
+    store.items.push(item);
+    writeJSONFile(f, store);
+  }
+  return item;
+}
+
+export async function matchBankTransaction(txn_id: string, matched_id: string, matched_type: "AP" | "AR"): Promise<BankTransaction | null> {
+  if (sql) {
+    await sql`UPDATE epm_bank_transactions SET status='matched', matched_id=${matched_id}, matched_type=${matched_type} WHERE id=${txn_id}`;
+    const rows = await sql`SELECT * FROM epm_bank_transactions WHERE id=${txn_id}`;
+    if (!rows[0]) return null;
+    const r = rows[0];
+    return {
+      id: String(r.id), txn_date: String(r.txn_date), description: String(r.description),
+      amount: Number(r.amount), txn_type: String(r.txn_type) as BankTxnType,
+      bank_ref: r.bank_ref ? String(r.bank_ref) : undefined,
+      status: "matched", matched_id, matched_type,
+      bu_code: r.bu_code ? (String(r.bu_code) as BuCode) : undefined,
+      created_at: String(r.created_at),
+    };
+  }
+  const f = path.join(process.cwd(), "public", "data", "epm-bank-transactions.json");
+  const store = readJSONFile<{ items: BankTransaction[] }>(f, { items: [] });
+  const idx = store.items.findIndex((i) => i.id === txn_id);
+  if (idx === -1) return null;
+  store.items[idx] = { ...store.items[idx], status: "matched", matched_id, matched_type };
+  writeJSONFile(f, store);
+  return store.items[idx];
+}
+
+export async function ignoreBankTransaction(txn_id: string): Promise<boolean> {
+  if (sql) {
+    await sql`UPDATE epm_bank_transactions SET status='ignored' WHERE id=${txn_id}`;
+    return true;
+  }
+  const f = path.join(process.cwd(), "public", "data", "epm-bank-transactions.json");
+  const store = readJSONFile<{ items: BankTransaction[] }>(f, { items: [] });
+  const idx = store.items.findIndex((i) => i.id === txn_id);
+  if (idx === -1) return false;
+  store.items[idx] = { ...store.items[idx], status: "ignored" };
+  writeJSONFile(f, store);
+  return true;
+}
+
+export async function findBankMatchCandidates(txn: BankTransaction): Promise<BankMatchCandidate[]> {
+  const AMOUNT_TOLERANCE = txn.amount * 0.005; // 0.5%
+  const DATE_TOLERANCE_DAYS = 3;
+  const txnDate = new Date(txn.txn_date + "T12:00:00").getTime();
+
+  const candidates: BankMatchCandidate[] = [];
+
+  if (txn.txn_type === "credit") {
+    const arItems = await getAllAR({ status: "PENDING" });
+    for (const item of arItems) {
+      const amountDiff = Math.abs(item.net_amount - txn.amount);
+      if (amountDiff > AMOUNT_TOLERANCE) continue;
+      const itemDate = new Date(item.due_date + "T12:00:00").getTime();
+      const dateDiff = Math.abs(txnDate - itemDate) / 86_400_000;
+      if (dateDiff > DATE_TOLERANCE_DAYS + 5) continue;
+      const score = 100 - (amountDiff / txn.amount) * 50 - dateDiff * 5;
+      candidates.push({ type: "AR", item, amountDiff, dateDiff, score });
+    }
+  } else {
+    const apItems = await getAllAP({ status: "PENDING" });
+    for (const item of apItems) {
+      const amountDiff = Math.abs(item.net_amount - txn.amount);
+      if (amountDiff > AMOUNT_TOLERANCE) continue;
+      const itemDate = new Date(item.due_date + "T12:00:00").getTime();
+      const dateDiff = Math.abs(txnDate - itemDate) / 86_400_000;
+      if (dateDiff > DATE_TOLERANCE_DAYS + 5) continue;
+      const score = 100 - (amountDiff / txn.amount) * 50 - dateDiff * 5;
+      candidates.push({ type: "AP", item, amountDiff, dateDiff, score });
+    }
+  }
+
+  return candidates.sort((a, b) => b.score - a.score).slice(0, 5);
+}
+
+// ─── initAllAPARTables ────────────────────────────────────────────────────────
 
 export async function initAllAPARTables(): Promise<void> {
   await initAPARDB();
@@ -1147,4 +1448,7 @@ export async function initAllAPARTables(): Promise<void> {
   await initCustomersDB();
   await initCollectionsDB();
   await initContractsDB();
+  await initCostCentersDB();
+  await initRevenueRecognitionDB();
+  await initBankTransactionsDB();
 }

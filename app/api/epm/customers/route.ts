@@ -24,9 +24,9 @@ export async function POST(req: NextRequest) {
   try {
     await ensureDB();
     const body = await req.json();
-    const { name, doc, email, phone } = body;
+    const { name, doc, email, phone, address, notes } = body;
     if (!name) return err("name is required");
-    const item = await addCustomer({ name, doc, email, phone });
+    const item = await addCustomer({ name, doc, email, phone, address, notes });
     return ok(item);
   } catch (e) { return err(String(e)); }
 }
