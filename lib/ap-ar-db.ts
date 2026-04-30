@@ -695,3 +695,456 @@ export async function getAPARKPIs(bu_code?: BuCode): Promise<APARKPIs> {
     arAging,
   };
 }
+
+// ─── Suppliers ────────────────────────────────────────────────────────────────
+
+export interface EpmSupplier {
+  id:           string;
+  name:         string;
+  doc?:         string;   // CNPJ/CPF
+  email?:       string;
+  phone?:       string;
+  supplier_type: SupplierType;
+  created_at:   string;
+}
+
+export async function initSuppliersDB(): Promise<void> {
+  if (!sql) return;
+  await sql`
+    CREATE TABLE IF NOT EXISTS epm_suppliers (
+      id            TEXT PRIMARY KEY,
+      name          TEXT NOT NULL,
+      doc           TEXT,
+      email         TEXT,
+      phone         TEXT,
+      supplier_type TEXT NOT NULL DEFAULT 'other',
+      created_at    TEXT NOT NULL
+    )
+  `;
+}
+
+export async function getSuppliers(): Promise<EpmSupplier[]> {
+  if (sql) {
+    const rows = await sql`SELECT * FROM epm_suppliers ORDER BY name`;
+    return rows.map((r) => ({
+      id: String(r.id), name: String(r.name), doc: r.doc ? String(r.doc) : undefined,
+      email: r.email ? String(r.email) : undefined, phone: r.phone ? String(r.phone) : undefined,
+      supplier_type: String(r.supplier_type) as SupplierType, created_at: String(r.created_at),
+    }));
+  }
+  return readJSONFile<{ items: EpmSupplier[] }>(
+    path.join(process.cwd(), "public", "data", "epm-suppliers.json"), { items: [] }
+  ).items;
+}
+
+export async function addSupplier(input: Omit<EpmSupplier, "id" | "created_at">): Promise<EpmSupplier> {
+  const item: EpmSupplier = { id: randomUUID(), ...input, created_at: new Date().toISOString() };
+  if (sql) {
+    await sql`INSERT INTO epm_suppliers (id,name,doc,email,phone,supplier_type,created_at)
+      VALUES (${item.id},${item.name},${item.doc??null},${item.email??null},${item.phone??null},${item.supplier_type},${item.created_at})`;
+  } else {
+    const store = readJSONFile<{ items: EpmSupplier[] }>(
+      path.join(process.cwd(), "public", "data", "epm-suppliers.json"), { items: [] }
+    );
+    store.items.push(item);
+    writeJSONFile(path.join(process.cwd(), "public", "data", "epm-suppliers.json"), store);
+  }
+  return item;
+}
+
+// ─── Customers ────────────────────────────────────────────────────────────────
+
+export interface EpmCustomer {
+  id:         string;
+  name:       string;
+  doc?:       string;
+  email?:     string;
+  phone?:     string;
+  is_active:  boolean;
+  created_at: string;
+}
+
+export async function initCustomersDB(): Promise<void> {
+  if (!sql) return;
+  await sql`
+    CREATE TABLE IF NOT EXISTS epm_customers (
+      id         TEXT PRIMARY KEY,
+      name       TEXT NOT NULL,
+      doc        TEXT,
+      email      TEXT,
+      phone      TEXT,
+      is_active  BOOLEAN NOT NULL DEFAULT true,
+      created_at TEXT NOT NULL
+    )
+  `;
+}
+
+export async function getCustomers(): Promise<EpmCustomer[]> {
+  if (sql) {
+    const rows = await sql`SELECT * FROM epm_customers WHERE is_active=true ORDER BY name`;
+    return rows.map((r) => ({
+      id: String(r.id), name: String(r.name), doc: r.doc ? String(r.doc) : undefined,
+      email: r.email ? String(r.email) : undefined, phone: r.phone ? String(r.phone) : undefined,
+      is_active: Boolean(r.is_active), created_at: String(r.created_at),
+    }));
+  }
+  return readJSONFile<{ items: EpmCustomer[] }>(
+    path.join(process.cwd(), "public", "data", "epm-customers.json"), { items: [] }
+  ).items;
+}
+
+export async function addCustomer(input: Omit<EpmCustomer, "id" | "created_at" | "is_active">): Promise<EpmCustomer> {
+  const item: EpmCustomer = { id: randomUUID(), ...input, is_active: true, created_at: new Date().toISOString() };
+  if (sql) {
+    await sql`INSERT INTO epm_customers (id,name,doc,email,phone,is_active,created_at)
+      VALUES (${item.id},${item.name},${item.doc??null},${item.email??null},${item.phone??null},true,${item.created_at})`;
+  } else {
+    const store = readJSONFile<{ items: EpmCustomer[] }>(
+      path.join(process.cwd(), "public", "data", "epm-customers.json"), { items: [] }
+    );
+    store.items.push(item);
+    writeJSONFile(path.join(process.cwd(), "public", "data", "epm-customers.json"), store);
+  }
+  return item;
+}
+
+// ─── AR Collections Log ───────────────────────────────────────────────────────
+
+export interface ARCollection {
+  id:              string;
+  ar_id:           string;
+  collection_date: string;
+  method:          "email" | "phone" | "whatsapp" | "other";
+  outcome:         "promised" | "no_answer" | "dispute" | "paid" | "other";
+  next_followup?:  string;
+  notes?:          string;
+  created_at:      string;
+}
+
+export async function initCollectionsDB(): Promise<void> {
+  if (!sql) return;
+  await sql`
+    CREATE TABLE IF NOT EXISTS epm_ar_collections (
+      id              TEXT PRIMARY KEY,
+      ar_id           TEXT NOT NULL REFERENCES epm_ar(id),
+      collection_date TEXT NOT NULL,
+      method          TEXT NOT NULL DEFAULT 'email',
+      outcome         TEXT NOT NULL DEFAULT 'other',
+      next_followup   TEXT,
+      notes           TEXT,
+      created_at      TEXT NOT NULL
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_epm_ar_coll_ar_id ON epm_ar_collections(ar_id)`;
+}
+
+export async function addCollectionLog(input: Omit<ARCollection, "id" | "created_at">): Promise<ARCollection> {
+  const item: ARCollection = { id: randomUUID(), ...input, created_at: new Date().toISOString() };
+  if (sql) {
+    await sql`INSERT INTO epm_ar_collections (id,ar_id,collection_date,method,outcome,next_followup,notes,created_at)
+      VALUES (${item.id},${item.ar_id},${item.collection_date},${item.method},${item.outcome},${item.next_followup??null},${item.notes??null},${item.created_at})`;
+  } else {
+    const f = path.join(process.cwd(), "public", "data", "epm-ar-collections.json");
+    const store = readJSONFile<{ items: ARCollection[] }>(f, { items: [] });
+    store.items.push(item);
+    writeJSONFile(f, store);
+  }
+  return item;
+}
+
+export async function getCollectionLog(ar_id: string): Promise<ARCollection[]> {
+  if (sql) {
+    const rows = await sql`SELECT * FROM epm_ar_collections WHERE ar_id=${ar_id} ORDER BY collection_date DESC`;
+    return rows.map((r) => ({
+      id: String(r.id), ar_id: String(r.ar_id), collection_date: String(r.collection_date),
+      method: String(r.method) as ARCollection["method"],
+      outcome: String(r.outcome) as ARCollection["outcome"],
+      next_followup: r.next_followup ? String(r.next_followup) : undefined,
+      notes: r.notes ? String(r.notes) : undefined, created_at: String(r.created_at),
+    }));
+  }
+  const f = path.join(process.cwd(), "public", "data", "epm-ar-collections.json");
+  const store = readJSONFile<{ items: ARCollection[] }>(f, { items: [] });
+  return store.items.filter((i) => i.ar_id === ar_id).sort((a, b) => b.collection_date.localeCompare(a.collection_date));
+}
+
+// ─── AP Installments ──────────────────────────────────────────────────────────
+
+export interface APInstallment {
+  id:                 string;
+  parent_id:          string;   // ap_id of the first installment (group key)
+  installment_number: number;
+  total_installments: number;
+  bu_code:            BuCode;
+  supplier_name:      string;
+  supplier_type:      SupplierType;
+  description:        string;
+  category:           string;
+  issue_date:         string;
+  due_date:           string;
+  gross_amount:       number;
+  net_amount:         number;
+  total_retentions:   number;
+  irrf_amount:        number;
+  inss_amount:        number;
+  iss_amount:         number;
+  pis_amount:         number;
+  cofins_amount:      number;
+  status:             APStatus;
+  created_at:         string;
+}
+
+export async function createAPInstallments(
+  base: NewAPInput & { total_installments: number }
+): Promise<APItem[]> {
+  const n = base.total_installments;
+  if (n < 2 || n > 60) throw new Error("total_installments must be 2–60");
+
+  const installmentGross = round2(base.gross_amount / n);
+  const items: APItem[] = [];
+
+  // Parse base due_date and generate monthly due dates
+  const [y, m, d] = base.due_date.split("-").map(Number);
+
+  for (let i = 0; i < n; i++) {
+    const dueDate = new Date(y, m - 1 + i, d);
+    const due = dueDate.toISOString().slice(0, 10);
+    const item = await addAP({ ...base, gross_amount: installmentGross, due_date: due });
+    items.push(item);
+  }
+  return items;
+}
+
+// ─── AR Installments ──────────────────────────────────────────────────────────
+
+export async function createARInstallments(
+  base: NewARInput & { total_installments: number }
+): Promise<ARItem[]> {
+  const n = base.total_installments;
+  if (n < 2 || n > 60) throw new Error("total_installments must be 2–60");
+
+  const installmentGross = round2(base.gross_amount / n);
+  const items: ARItem[] = [];
+  const [y, m, d] = base.due_date.split("-").map(Number);
+
+  for (let i = 0; i < n; i++) {
+    const dueDate = new Date(y, m - 1 + i, d);
+    const due = dueDate.toISOString().slice(0, 10);
+    const item = await addAR({ ...base, gross_amount: installmentGross, due_date: due });
+    items.push(item);
+  }
+  return items;
+}
+
+// ─── AR Recurring Contracts ───────────────────────────────────────────────────
+
+export interface ARContract {
+  id:             string;
+  customer_name:  string;
+  customer_doc?:  string;
+  description:    string;
+  bu_code:        BuCode;
+  category:       string;
+  monthly_amount: number;
+  billing_day:    number;   // 1–28
+  is_active:      boolean;
+  start_date:     string;
+  end_date?:      string;
+  iss_rate:       number;
+  next_invoice?:  string;
+  created_at:     string;
+}
+
+export async function initContractsDB(): Promise<void> {
+  if (!sql) return;
+  await sql`
+    CREATE TABLE IF NOT EXISTS epm_ar_contracts (
+      id             TEXT PRIMARY KEY,
+      customer_name  TEXT NOT NULL,
+      customer_doc   TEXT,
+      description    TEXT NOT NULL,
+      bu_code        TEXT NOT NULL,
+      category       TEXT NOT NULL DEFAULT 'Serviço Recorrente',
+      monthly_amount NUMERIC NOT NULL,
+      billing_day    INTEGER NOT NULL DEFAULT 5,
+      is_active      BOOLEAN NOT NULL DEFAULT true,
+      start_date     TEXT NOT NULL,
+      end_date       TEXT,
+      iss_rate       NUMERIC NOT NULL DEFAULT 0.05,
+      next_invoice   TEXT,
+      created_at     TEXT NOT NULL
+    )
+  `;
+}
+
+export async function getContracts(activeOnly = true): Promise<ARContract[]> {
+  if (sql) {
+    const rows = activeOnly
+      ? await sql`SELECT * FROM epm_ar_contracts WHERE is_active=true ORDER BY customer_name`
+      : await sql`SELECT * FROM epm_ar_contracts ORDER BY customer_name`;
+    return rows.map((r) => ({
+      id: String(r.id), customer_name: String(r.customer_name),
+      customer_doc: r.customer_doc ? String(r.customer_doc) : undefined,
+      description: String(r.description), bu_code: String(r.bu_code) as BuCode,
+      category: String(r.category), monthly_amount: Number(r.monthly_amount),
+      billing_day: Number(r.billing_day), is_active: Boolean(r.is_active),
+      start_date: String(r.start_date), end_date: r.end_date ? String(r.end_date) : undefined,
+      iss_rate: Number(r.iss_rate),
+      next_invoice: r.next_invoice ? String(r.next_invoice) : undefined,
+      created_at: String(r.created_at),
+    }));
+  }
+  const f = path.join(process.cwd(), "public", "data", "epm-ar-contracts.json");
+  const store = readJSONFile<{ items: ARContract[] }>(f, { items: [] });
+  return activeOnly ? store.items.filter((c) => c.is_active) : store.items;
+}
+
+export async function addContract(input: Omit<ARContract, "id" | "created_at">): Promise<ARContract> {
+  const item: ARContract = { id: randomUUID(), ...input, created_at: new Date().toISOString() };
+  if (sql) {
+    await sql`INSERT INTO epm_ar_contracts
+      (id,customer_name,customer_doc,description,bu_code,category,monthly_amount,billing_day,is_active,start_date,end_date,iss_rate,next_invoice,created_at)
+      VALUES (${item.id},${item.customer_name},${item.customer_doc??null},${item.description},${item.bu_code},
+        ${item.category},${item.monthly_amount},${item.billing_day},${item.is_active},${item.start_date},
+        ${item.end_date??null},${item.iss_rate},${item.next_invoice??null},${item.created_at})`;
+  } else {
+    const f = path.join(process.cwd(), "public", "data", "epm-ar-contracts.json");
+    const store = readJSONFile<{ items: ARContract[] }>(f, { items: [] });
+    store.items.push(item);
+    writeJSONFile(f, store);
+  }
+  return item;
+}
+
+export async function generateARFromContracts(): Promise<ARItem[]> {
+  const contracts = await getContracts(true);
+  const today = new Date();
+  const generated: ARItem[] = [];
+
+  for (const contract of contracts) {
+    // Check if end_date passed
+    if (contract.end_date && new Date(contract.end_date) < today) continue;
+
+    // Determine if this month's invoice is due
+    const dueDate = new Date(today.getFullYear(), today.getMonth(), contract.billing_day);
+    if (dueDate < today) {
+      // Check it hasn't been generated this month already
+      const existing = await getAllAR();
+      const monthKey = dueDate.toISOString().slice(0, 7);
+      const alreadyExists = existing.some(
+        (ar) => ar.customer_name === contract.customer_name &&
+                ar.description === contract.description &&
+                ar.issue_date.slice(0, 7) === monthKey
+      );
+      if (!alreadyExists) {
+        const ar = await addAR({
+          bu_code:       contract.bu_code,
+          customer_name: contract.customer_name,
+          customer_doc:  contract.customer_doc,
+          description:   `${contract.description} — ${monthKey}`,
+          category:      contract.category,
+          issue_date:    dueDate.toISOString().slice(0, 10),
+          due_date:      dueDate.toISOString().slice(0, 10),
+          gross_amount:  contract.monthly_amount,
+          iss_rate:      contract.iss_rate,
+          source_system: "recurring",
+        });
+        generated.push(ar);
+      }
+    }
+  }
+  return generated;
+}
+
+// ─── DRE from AP/AR (regime de competência) ───────────────────────────────────
+
+export interface DRELine {
+  month:        string;   // YYYY-MM
+  grossRevenue: number;
+  issDeductions:number;
+  netRevenue:   number;
+  cogs:         number;   // AP categories: Freelancer, Produção
+  grossProfit:  number;
+  opex:         number;   // AP categories: all others
+  ebitda:       number;
+  financials:   number;   // AP category: Tributário + juros
+  netResult:    number;
+}
+
+const COGS_CATEGORIES  = new Set(["Freelancer", "Produção"]);
+const FINANCIAL_CATEGORIES = new Set(["Tributário"]);
+
+export async function getDREByMonth(filters?: { bu_code?: BuCode }): Promise<DRELine[]> {
+  const [apItems, arItems] = await Promise.all([
+    getAllAP(filters?.bu_code ? { bu_code: filters.bu_code } : undefined),
+    getAllAR(filters?.bu_code ? { bu_code: filters.bu_code } : undefined),
+  ]);
+
+  const months = new Set([
+    ...arItems.map((i) => i.issue_date.slice(0, 7)),
+    ...apItems.map((i) => i.issue_date.slice(0, 7)),
+  ]);
+
+  return Array.from(months).sort().reverse().map((month) => {
+    const revItems = arItems.filter((i) => i.issue_date.slice(0, 7) === month && i.status !== "CANCELLED");
+    const expItems = apItems.filter((i) => i.issue_date.slice(0, 7) === month && i.status !== "CANCELLED");
+
+    const grossRevenue  = round2(revItems.reduce((s, i) => s + i.gross_amount, 0));
+    const issDeductions = round2(revItems.reduce((s, i) => s + i.iss_amount, 0));
+    const netRevenue    = round2(revItems.reduce((s, i) => s + i.net_amount, 0));
+
+    const cogs       = round2(expItems.filter((i) => COGS_CATEGORIES.has(i.category)).reduce((s, i) => s + i.net_amount, 0));
+    const financials = round2(expItems.filter((i) => FINANCIAL_CATEGORIES.has(i.category)).reduce((s, i) => s + i.net_amount, 0));
+    const opex       = round2(expItems.filter((i) => !COGS_CATEGORIES.has(i.category) && !FINANCIAL_CATEGORIES.has(i.category)).reduce((s, i) => s + i.net_amount, 0));
+
+    const grossProfit = round2(netRevenue - cogs);
+    const ebitda      = round2(grossProfit - opex);
+    const netResult   = round2(ebitda - financials);
+
+    return { month, grossRevenue, issDeductions, netRevenue, cogs, grossProfit, opex, ebitda, financials, netResult };
+  });
+}
+
+// ─── DFC from AP/AR (regime de caixa) ────────────────────────────────────────
+
+export interface DFCLine {
+  month:         string;
+  totalInflows:  number;
+  totalOutflows: number;
+  netCash:       number;
+  inflows:       ARItem[];
+  outflows:      APItem[];
+}
+
+export async function getDFCByMonth(filters?: { bu_code?: BuCode }): Promise<DFCLine[]> {
+  const [apItems, arItems] = await Promise.all([
+    getAllAP(filters?.bu_code ? { bu_code: filters.bu_code } : undefined),
+    getAllAR(filters?.bu_code ? { bu_code: filters.bu_code } : undefined),
+  ]);
+
+  const paidAP      = apItems.filter((i) => i.status === "PAID" && i.paid_date);
+  const receivedAR  = arItems.filter((i) => i.status === "RECEIVED" && i.received_date);
+
+  const months = new Set([
+    ...paidAP.map((i) => i.paid_date!.slice(0, 7)),
+    ...receivedAR.map((i) => i.received_date!.slice(0, 7)),
+  ]);
+
+  return Array.from(months).sort().reverse().map((month) => {
+    const inflows  = receivedAR.filter((i) => i.received_date!.slice(0, 7) === month);
+    const outflows = paidAP.filter((i) => i.paid_date!.slice(0, 7) === month);
+    const totalInflows  = round2(inflows.reduce((s, i) => s + (i.received_amount ?? i.net_amount), 0));
+    const totalOutflows = round2(outflows.reduce((s, i) => s + (i.paid_amount ?? i.net_amount), 0));
+    return { month, totalInflows, totalOutflows, netCash: round2(totalInflows - totalOutflows), inflows, outflows };
+  });
+}
+
+// ─── Extended initAPARDB ──────────────────────────────────────────────────────
+
+export async function initAllAPARTables(): Promise<void> {
+  await initAPARDB();
+  await initSuppliersDB();
+  await initCustomersDB();
+  await initCollectionsDB();
+  await initContractsDB();
+}
