@@ -58,8 +58,8 @@ export const SEED_ACTIVITIES: CrmActivity[] = [
   { activity_id:"act2", activity_type:"meeting", related_to_type:"opportunity", related_to_id:"o2", related_name:"Nubank — Vídeo Institucional", subject:"Reunião de qualificação Nubank", description:"Demo do portfólio de produção audiovisual", outcome:"successful", duration_minutes:90, scheduled_at:"2026-04-27T14:00:00Z", completed_at:"2026-04-27T15:30:00Z", status:"completed", created_by:"Danilo", created_at:"2026-04-27T14:00:00Z", updated_at:"2026-04-27T15:30:00Z" },
   { activity_id:"act3", activity_type:"email", related_to_type:"opportunity", related_to_id:"o3", related_name:"CEM — Produção Anual 2026", subject:"Proposta enviada — CEM Produção Anual", description:"Proposta completa com cronograma e valores enviada por e-mail", outcome:"successful", duration_minutes:null, scheduled_at:"2026-04-20T09:00:00Z", completed_at:"2026-04-20T09:00:00Z", status:"completed", created_by:"Miguel", created_at:"2026-04-20T09:00:00Z", updated_at:"2026-04-20T09:00:00Z" },
   { activity_id:"act4", activity_type:"call", related_to_type:"opportunity", related_to_id:"o4", related_name:"Reabilicor — Consultoria Estratégica", subject:"Negociação comercial Reabilicor", description:"Discussão de condições de pagamento e detalhamento do escopo", outcome:"successful", duration_minutes:60, scheduled_at:"2026-04-29T11:00:00Z", completed_at:"2026-04-29T12:00:00Z", status:"completed", created_by:"Danilo", created_at:"2026-04-29T11:00:00Z", updated_at:"2026-04-29T12:00:00Z" },
-  { activity_id:"act5", activity_type:"task", related_to_type:"lead", related_to_id:"l4", related_name:"Fintechx — Ana Rocha", subject:"Follow-up Fintechx — enviar cases JACQES", description:"Enviar material de cases e portfólio do JACQES para Ana Rocha", outcome:null, duration_minutes:null, scheduled_at:new Date().toISOString(), completed_at:null, status:"scheduled", created_by:"Miguel", created_at:"2026-04-28T10:00:00Z", updated_at:"2026-04-28T10:00:00Z" },
-  { activity_id:"act6", activity_type:"task", related_to_type:"opportunity", related_to_id:"o2", related_name:"Nubank — Vídeo Institucional", subject:"Preparar proposta Nubank — prazo 3 dias", description:"Elaborar proposta detalhada incluindo cronograma de produção e orçamento", outcome:null, duration_minutes:null, scheduled_at:new Date().toISOString(), completed_at:null, status:"scheduled", created_by:"Danilo", created_at:"2026-04-28T08:00:00Z", updated_at:"2026-04-28T08:00:00Z" },
+  { activity_id:"act5", activity_type:"task", related_to_type:"lead", related_to_id:"l4", related_name:"Fintechx — Ana Rocha", subject:"Follow-up Fintechx — enviar cases JACQES", description:"Enviar material de cases e portfólio do JACQES para Ana Rocha", outcome:null, duration_minutes:null, scheduled_at:"2026-05-02T14:00:00Z", completed_at:null, status:"scheduled", created_by:"Miguel", created_at:"2026-04-28T10:00:00Z", updated_at:"2026-04-28T10:00:00Z" },
+  { activity_id:"act6", activity_type:"task", related_to_type:"opportunity", related_to_id:"o2", related_name:"Nubank — Vídeo Institucional", subject:"Preparar proposta Nubank — prazo 3 dias", description:"Elaborar proposta detalhada incluindo cronograma de produção e orçamento", outcome:null, duration_minutes:null, scheduled_at:"2026-05-03T09:00:00Z", completed_at:null, status:"scheduled", created_by:"Danilo", created_at:"2026-04-28T08:00:00Z", updated_at:"2026-04-28T08:00:00Z" },
 ];
 
 // ─── Account CRUD ─────────────────────────────────────────────────────────────
@@ -240,8 +240,35 @@ export async function updateLead(id: string, data: Partial<CrmLead>): Promise<Cr
   return rows[0] as CrmLead;
 }
 
+export async function getContact(id: string): Promise<CrmContact | null> {
+  if (!sql) return SEED_CONTACTS.find(c => c.contact_id === id) ?? null;
+  const rows = await sql`
+    SELECT c.*, a.account_name FROM crm_contacts c
+    LEFT JOIN crm_accounts a ON a.account_id = c.account_id
+    WHERE c.contact_id = ${id}
+  `;
+  return (rows[0] as CrmContact) ?? null;
+}
+
 export async function convertLead(leadId: string, oppData: Partial<CrmOpportunity>): Promise<CrmOpportunity> {
-  if (!sql) throw new Error("DB not available");
+  if (!sql) {
+    const newOpp: CrmOpportunity = {
+      opportunity_id: `opp-${leadId}-${Date.now()}`,
+      opportunity_code: `OPP-${String(SEED_OPPORTUNITIES.length + 1).padStart(3, "0")}`,
+      opportunity_name: oppData.opportunity_name ?? "Nova Oportunidade",
+      account_id: null, account_name: undefined, contact_id: null, contact_name: null,
+      bu: oppData.bu ?? "JACQES",
+      stage: "discovery", deal_value: oppData.deal_value ?? 0, probability: 25,
+      expected_close_date: null, actual_close_date: null,
+      lost_reason: null, lost_to_competitor: null, win_reason: null,
+      owner: oppData.owner ?? "Miguel",
+      proposal_sent_date: null, proposal_viewed: false, proposal_accepted: false,
+      synced_to_epm: false, epm_customer_id: null, epm_ar_id: null,
+      created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+      created_by: oppData.owner ?? "Miguel",
+    };
+    return newOpp;
+  }
   const opp = await sql`
     INSERT INTO crm_opportunities (opportunity_name, bu, stage, deal_value, probability,
       expected_close_date, owner, created_by)

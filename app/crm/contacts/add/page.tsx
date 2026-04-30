@@ -17,7 +17,7 @@ export default function AddContactPage() {
     full_name: "", email: "", phone: "", mobile: "",
     job_title: "", department: "", seniority: "manager",
     linkedin_url: "", is_primary_contact: false,
-    account_id: params.get("account_id") ?? "",
+    account_id: params?.get("account_id") ?? "",
   });
 
   useEffect(() => {

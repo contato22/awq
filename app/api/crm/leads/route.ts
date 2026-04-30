@@ -24,6 +24,9 @@ export async function POST(req: NextRequest) {
     const { action, ...data } = body;
 
     if (action === "create") {
+      if (!data.company_name?.trim()) return err("company_name required", 400);
+      if (!data.contact_name?.trim()) return err("contact_name required", 400);
+      if (!data.bu) return err("bu required", 400);
       const row = await createLead(data);
       return ok(row);
     }

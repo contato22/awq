@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import SectionHeader from "@/components/SectionHeader";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import { TrendingUp, DollarSign, Target, Users } from "lucide-react";
+import { TrendingUp, DollarSign, Target, Users, BarChart3 } from "lucide-react";
 import type { CrmOpportunity } from "@/lib/crm-types";
 import { SEED_OPPORTUNITIES } from "@/lib/crm-db";
 
@@ -151,7 +151,7 @@ export default function AnalyticsPage() {
 
           {/* Pipeline por Stage */}
           <div className="card p-5">
-            <SectionHeader icon={<BarChart size={14} className="text-blue-500" />} title="Pipeline por Estágio (R$)" />
+            <SectionHeader icon={<BarChart3 size={14} className="text-blue-500" />} title="Pipeline por Estágio (R$)" />
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={stageData} margin={{ top:0, right:0, bottom:0, left:0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />

@@ -13,7 +13,7 @@ const ACTIVE_STAGES = ["discovery","qualification","proposal","negotiation","clo
 export default function AddOpportunityPage() {
   const router = useRouter();
   const params = useSearchParams();
-  const defaultStage = (params.get("stage") ?? "discovery") as typeof ACTIVE_STAGES[number];
+  const defaultStage = (params?.get("stage") ?? "discovery") as typeof ACTIVE_STAGES[number];
 
   const [accounts, setAccounts] = useState<CrmAccount[]>([]);
   const [saving, setSaving] = useState(false);

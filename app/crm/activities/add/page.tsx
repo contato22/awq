@@ -12,8 +12,8 @@ export default function AddActivityPage() {
   const [error, setError] = useState("");
   const [form, setForm] = useState({
     activity_type: "call",
-    related_to_type: params.get("related_to_type") ?? "opportunity",
-    related_to_id:   params.get("related_to_id")   ?? "",
+    related_to_type: params?.get("related_to_type") ?? "opportunity",
+    related_to_id:   params?.get("related_to_id")   ?? "",
     subject: "",
     description: "",
     outcome: "",

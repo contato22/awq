@@ -117,7 +117,7 @@ export type CrmOpportunity = {
   account_id: string | null;
   account_name?: string;
   contact_id: string | null;
-  contact_name?: string;
+  contact_name?: string | null;
   bu: string;
   stage: PipelineStage;
   deal_value: number;

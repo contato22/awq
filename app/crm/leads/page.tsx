@@ -151,7 +151,11 @@ export default function LeadsPage() {
       if (json.success) {
         setLeads(prev => prev.map(l => l.lead_id === lead.lead_id ? { ...l, status: "converted" as const } : l));
         router.push("/crm/opportunities");
+      } else {
+        alert(json.error ?? "Erro ao converter lead");
       }
+    } catch {
+      alert("Erro de rede — tente novamente");
     } finally {
       setConverting(null);
     }

@@ -43,7 +43,8 @@ const ACT_ICONS: Record<string, ReactNode> = {
 };
 
 export default function AccountDetailPage() {
-  const { id } = useParams<{ id: string }>();
+  const params = useParams<{ id: string }>();
+  const id = params?.id ?? "";
   const [account,      setAccount]      = useState<CrmAccount | null>(null);
   const [contacts,     setContacts]     = useState<CrmContact[]>([]);
   const [opportunities,setOpps]         = useState<CrmOpportunity[]>([]);
