@@ -31,6 +31,10 @@ export type BuCode = typeof BU_OPTIONS[number];
 export const OWNER_OPTIONS = ["Miguel", "Danilo"] as const;
 export type Owner = typeof OWNER_OPTIONS[number];
 
+export const CLOSED_STAGES = ["closed_won", "closed_lost"] as const satisfies PipelineStage[];
+export const isOpenStage  = (s: string): boolean => s !== "closed_won" && s !== "closed_lost";
+export const isClosedStage = (s: string): boolean => !isOpenStage(s);
+
 // ─── Account ─────────────────────────────────────────────────────────────────
 
 export type CrmAccount = {

@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { initCrmDB, getDashboardMetrics, listOpportunities } from "@/lib/crm-db";
+import { BU_OPTIONS } from "@/lib/crm-types";
+
+type Bucket = { count: number; value: number; weighted: number };
+const emptyBucket = (): Bucket => ({ count: 0, value: 0, weighted: 0 });
 
 export async function GET() {
   try {
@@ -9,28 +13,20 @@ export async function GET() {
       listOpportunities(),
     ]);
 
-    // Pipeline by BU
-    const buList = ["JACQES","CAZA","ADVISOR","VENTURE"];
-    const byBU: Record<string, { count: number; value: number; weighted: number }> = {};
-    for (const bu of buList) {
-      const opps = allOpps.filter(o => o.bu === bu && o.stage !== "closed_won" && o.stage !== "closed_lost");
-      byBU[bu] = {
-        count:    opps.length,
-        value:    opps.reduce((s, o) => s + o.deal_value, 0),
-        weighted: opps.reduce((s, o) => s + o.deal_value * o.probability / 100, 0),
-      };
-    }
+    const OPEN_STAGES = new Set(["discovery","qualification","proposal","negotiation"]);
+    const byBU: Record<string, Bucket> = Object.fromEntries(BU_OPTIONS.map(b => [b, emptyBucket()]));
+    const byStage: Record<string, Bucket> = Object.fromEntries([...OPEN_STAGES].map(s => [s, emptyBucket()]));
 
-    // Pipeline by stage
-    const stageList = ["discovery","qualification","proposal","negotiation"];
-    const byStage: Record<string, { count: number; value: number; weighted: number }> = {};
-    for (const stage of stageList) {
-      const opps = allOpps.filter(o => o.stage === stage);
-      byStage[stage] = {
-        count:    opps.length,
-        value:    opps.reduce((s, o) => s + o.deal_value, 0),
-        weighted: opps.reduce((s, o) => s + o.deal_value * o.probability / 100, 0),
-      };
+    for (const o of allOpps) {
+      const weighted = o.deal_value * o.probability / 100;
+      if (OPEN_STAGES.has(o.stage)) {
+        const sb = byStage[o.stage];
+        sb.count++;
+        sb.value += o.deal_value;
+        sb.weighted += weighted;
+        const bb = byBU[o.bu];
+        if (bb) { bb.count++; bb.value += o.deal_value; bb.weighted += weighted; }
+      }
     }
 
     return NextResponse.json({

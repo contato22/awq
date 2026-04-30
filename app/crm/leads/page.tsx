@@ -10,56 +10,9 @@ import {
   Users, Plus, Search, Target, TrendingUp,
   BarChart3, ExternalLink, RefreshCw, ChevronRight,
 } from "lucide-react";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-type CrmLead = {
-  lead_id: string;
-  lead_source: string;
-  company_name: string;
-  contact_name: string;
-  email: string | null;
-  phone: string | null;
-  job_title: string | null;
-  bu: string;
-  lead_score: number;
-  status: "new" | "contacted" | "qualified" | "unqualified" | "converted";
-  qualification_notes: string | null;
-  bant_budget: number | null;
-  bant_authority: boolean;
-  bant_need: string | null;
-  bant_timeline: string | null;
-  assigned_to: string;
-  converted_to_opportunity_id: string | null;
-  converted_at: string | null;
-  created_at: string;
-  updated_at: string;
-};
-
-// ─── Seed Data ────────────────────────────────────────────────────────────────
-
-const SEED_LEADS: CrmLead[] = [
-  { lead_id: "l1", lead_source: "inbound", company_name: "Tech Solutions BR", contact_name: "Rafael Moura", email: "rafael@techsolutions.com.br", phone: "11 9999-0001", job_title: "CEO", bu: "JACQES", lead_score: 75, status: "qualified", qualification_notes: "Grande interesse em gestão de mídias", bant_budget: 25000, bant_authority: true, bant_need: "high", bant_timeline: "2026-05-30", assigned_to: "Miguel", converted_to_opportunity_id: null, converted_at: null, created_at: "2026-04-01T10:00:00Z", updated_at: "2026-04-10T10:00:00Z" },
-  { lead_id: "l2", lead_source: "referral", company_name: "HealthFirst Clínicas", contact_name: "Dra. Sandra Lima", email: "sandra@healthfirst.com.br", phone: "21 9888-0002", job_title: "Sócia", bu: "ADVISOR", lead_score: 60, status: "contacted", qualification_notes: "Interesse em consultoria estratégica", bant_budget: 40000, bant_authority: true, bant_need: "medium", bant_timeline: "2026-06-15", assigned_to: "Danilo", converted_to_opportunity_id: null, converted_at: null, created_at: "2026-04-05T10:00:00Z", updated_at: "2026-04-12T10:00:00Z" },
-  { lead_id: "l3", lead_source: "organic", company_name: "Esporte Clube Nacional", contact_name: "Lucas Ferreira", email: "lucas@ecnacional.com.br", phone: "11 9777-0003", job_title: "Diretor de Marketing", bu: "CAZA", lead_score: 40, status: "new", qualification_notes: null, bant_budget: 15000, bant_authority: false, bant_need: "low", bant_timeline: null, assigned_to: "Miguel", converted_to_opportunity_id: null, converted_at: null, created_at: "2026-04-15T10:00:00Z", updated_at: "2026-04-15T10:00:00Z" },
-  { lead_id: "l4", lead_source: "manual", company_name: "Fintechx", contact_name: "Ana Rocha", email: "ana@fintechx.io", phone: "11 9666-0004", job_title: "CMO", bu: "JACQES", lead_score: 85, status: "qualified", qualification_notes: "Quer escalar social media para campanha de lançamento", bant_budget: 60000, bant_authority: true, bant_need: "high", bant_timeline: "2026-05-15", assigned_to: "Miguel", converted_to_opportunity_id: null, converted_at: null, created_at: "2026-04-18T10:00:00Z", updated_at: "2026-04-20T10:00:00Z" },
-  { lead_id: "l5", lead_source: "paid", company_name: "Construtora Viva", contact_name: "Pedro Andrade", email: "pedro@construtoraviva.com.br", phone: "31 9555-0005", job_title: "Gerente", bu: "CAZA", lead_score: 30, status: "unqualified", qualification_notes: "Orçamento muito baixo para o escopo desejado", bant_budget: 5000, bant_authority: false, bant_need: "low", bant_timeline: null, assigned_to: "Danilo", converted_to_opportunity_id: null, converted_at: null, created_at: "2026-04-10T10:00:00Z", updated_at: "2026-04-14T10:00:00Z" },
-];
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function fmtBRL(n: number | null): string {
-  if (n === null || n === undefined) return "—";
-  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(1) + "M";
-  if (n >= 1_000) return "R$" + (n / 1_000).toFixed(0) + "K";
-  return "R$" + n.toLocaleString("pt-BR");
-}
-
-function fmtDate(d: string | null): string {
-  if (!d) return "—";
-  const [y, m, day] = d.slice(0, 10).split("-");
-  return `${day}/${m}/${y}`;
-}
+import type { CrmLead } from "@/lib/crm-types";
+import { SEED_LEADS } from "@/lib/crm-db";
+import { formatBRL, formatDateBR } from "@/lib/utils";
 
 const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
   new:         { label: "Novo",           cls: "badge badge-blue" },
@@ -370,7 +323,7 @@ export default function LeadsPage() {
                           <ScoreBar score={lead.lead_score} />
                         </td>
                         <td className="py-3 px-3">
-                          <span className="text-[11px] font-medium text-gray-700">{fmtBRL(lead.bant_budget)}</span>
+                          <span className="text-[11px] font-medium text-gray-700">{formatBRL(lead.bant_budget)}</span>
                           {lead.bant_authority && (
                             <div className="text-[10px] text-emerald-600 font-medium mt-0.5">Decisor</div>
                           )}
@@ -387,7 +340,7 @@ export default function LeadsPage() {
                           </div>
                         </td>
                         <td className="py-3 px-3 text-[11px] text-gray-400">
-                          {fmtDate(lead.created_at)}
+                          {formatDateBR(lead.created_at)}
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-1.5">

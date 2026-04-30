@@ -11,6 +11,7 @@ import {
   Phone, Mail, CalendarClock, BarChart3, FileText,
   MessageSquare, Zap,
 } from "lucide-react";
+import { formatBRL, formatDateBR } from "@/lib/utils";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type CrmOpportunity = { opportunity_id: string; opportunity_code: string; opportunity_name: string; account_id: string | null; account_name?: string; contact_id: string | null; contact_name?: string | null; bu: string; stage: "discovery" | "qualification" | "proposal" | "negotiation" | "closed_won" | "closed_lost"; deal_value: number; probability: number; expected_close_date: string | null; actual_close_date: string | null; lost_reason: string | null; win_reason: string | null; owner: string; proposal_sent_date: string | null; synced_to_epm: boolean; epm_customer_id: string | null; epm_ar_id: string | null; created_at: string; updated_at: string; };
@@ -38,19 +39,6 @@ const SEED_ACTIVITIES: CrmActivity[] = [
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function fmtBRL(n: number): string {
-  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  if (n >= 1_000) return "R$" + (n / 1_000).toFixed(0) + "K";
-  return "R$" + n.toLocaleString("pt-BR");
-}
-
-function fmtDate(d: string | null | undefined): string {
-  if (!d) return "—";
-  const part = d.slice(0, 10);
-  const [y, m, day] = part.split("-");
-  return `${day}/${m}/${y}`;
-}
 
 function daysUntil(dateStr: string | null): number {
   if (!dateStr) return 999;
@@ -257,14 +245,14 @@ export default function CrmDashboardPage() {
           />
           <KpiCard
             label="Pipeline total"
-            value={fmtBRL(analytics.pipelineValue ?? 0)}
+            value={formatBRL(analytics.pipelineValue ?? 0)}
             icon={BarChart3}
             iconColor="text-amber-600"
             iconBg="bg-amber-50"
           />
           <KpiCard
             label="Forecast ponderado"
-            value={fmtBRL(analytics.weightedForecast ?? 0)}
+            value={formatBRL(analytics.weightedForecast ?? 0)}
             icon={DollarSign}
             iconColor="text-emerald-600"
             iconBg="bg-emerald-50"
@@ -272,7 +260,7 @@ export default function CrmDashboardPage() {
           />
           <KpiCard
             label="Fechado no mês"
-            value={fmtBRL(analytics.closedWonThisMonth ?? 0)}
+            value={formatBRL(analytics.closedWonThisMonth ?? 0)}
             icon={CheckCircle2}
             iconColor="text-green-600"
             iconBg="bg-green-50"
@@ -319,7 +307,7 @@ export default function CrmDashboardPage() {
                   </div>
                   <div className="w-24 shrink-0 text-right">
                     <span className={`text-[11px] font-semibold ${cfg.text}`}>
-                      {val > 0 ? fmtBRL(val) : "—"}
+                      {val > 0 ? formatBRL(val) : "—"}
                     </span>
                   </div>
                 </div>
@@ -358,9 +346,9 @@ export default function CrmDashboardPage() {
                         </div>
                       </div>
                       <div className="text-right shrink-0">
-                        <div className="text-[12px] font-bold text-gray-900">{fmtBRL(o.deal_value)}</div>
+                        <div className="text-[12px] font-bold text-gray-900">{formatBRL(o.deal_value)}</div>
                         <div className={`text-[10px] font-medium ${isUrgent ? "text-red-600" : "text-gray-400"}`}>
-                          {o.expected_close_date ? (isUrgent ? `${days}d restantes` : fmtDate(o.expected_close_date)) : "—"}
+                          {o.expected_close_date ? (isUrgent ? `${days}d restantes` : formatDateBR(o.expected_close_date)) : "—"}
                         </div>
                       </div>
                     </div>
@@ -438,7 +426,7 @@ export default function CrmDashboardPage() {
                     )}
                   </div>
                   <div className="shrink-0 text-right">
-                    <div className="text-[10px] text-gray-400">{fmtDate(a.completed_at)}</div>
+                    <div className="text-[10px] text-gray-400">{formatDateBR(a.completed_at)}</div>
                     <div className="text-[10px] text-gray-400 mt-0.5">{a.created_by}</div>
                   </div>
                 </div>

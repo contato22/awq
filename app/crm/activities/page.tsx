@@ -9,17 +9,13 @@ import EmptyState from "@/components/EmptyState";
 import { Activity, Phone, Mail, Users, CheckCircle2, FileText, Plus, Clock } from "lucide-react";
 import type { CrmActivity } from "@/lib/crm-types";
 import { SEED_ACTIVITIES } from "@/lib/crm-db";
+import { formatDateBR } from "@/lib/utils";
 
 function fmtDatetime(d: string | null | undefined) {
   if (!d) return "—";
   const dt = new Date(d);
   return dt.toLocaleDateString("pt-BR", { day:"2-digit", month:"short", year:"numeric" }) + " " +
     dt.toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" });
-}
-function fmtDate(d: string | null | undefined) {
-  if (!d) return "—";
-  const [y, m, day] = d.split("T")[0].split("-");
-  return `${day}/${m}/${y}`;
 }
 
 const TYPE_CONFIG: Record<string, { icon: ReactNode; label: string; bg: string }> = {
@@ -143,7 +139,7 @@ export default function ActivitiesPage() {
                 <div className="flex items-center gap-3 mb-3">
                   <div className="h-px flex-1 bg-gray-200" />
                   <span className={`text-xs font-semibold px-3 py-1 rounded-full ${date === todayKey ? "bg-brand-100 text-brand-700" : "bg-gray-100 text-gray-500"}`}>
-                    {date === todayKey ? "Hoje" : fmtDate(date)}
+                    {date === todayKey ? "Hoje" : formatDateBR(date)}
                   </span>
                   <div className="h-px flex-1 bg-gray-200" />
                 </div>
@@ -176,7 +172,7 @@ export default function ActivitiesPage() {
                           <div className="flex items-center gap-3 mt-2">
                             <span className="flex items-center gap-1 text-[10px] text-gray-400">
                               <Clock size={10} />
-                              {a.scheduled_at ? fmtDatetime(a.scheduled_at) : fmtDate(a.created_at)}
+                              {a.scheduled_at ? fmtDatetime(a.scheduled_at) : formatDateBR(a.created_at)}
                             </span>
                             <span className="text-[10px] text-gray-400">{a.created_by}</span>
                             {a.outcome && (

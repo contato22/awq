@@ -8,13 +8,7 @@ import EmptyState from "@/components/EmptyState";
 import { Building2, Plus, Search, HeartPulse, AlertTriangle, CheckCircle2 } from "lucide-react";
 import type { CrmAccount } from "@/lib/crm-types";
 import { SEED_ACCOUNTS } from "@/lib/crm-db";
-
-function fmtBRL(n: number | null | undefined) {
-  if (!n) return "—";
-  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(1) + "M";
-  if (n >= 1_000)     return "R$" + (n / 1_000).toFixed(0) + "K";
-  return "R$" + n.toLocaleString("pt-BR");
-}
+import { formatBRL } from "@/lib/utils";
 
 const TYPE_LABELS: Record<string, string> = {
   prospect:        "Prospect",

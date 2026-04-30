@@ -13,20 +13,7 @@ import {
 import type { CrmOpportunity } from "@/lib/crm-types";
 import { STAGE_LABELS, STAGE_PROBABILITY } from "@/lib/crm-types";
 import { SEED_OPPORTUNITIES } from "@/lib/crm-db";
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function fmtBRL(n: number) {
-  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(1) + "M";
-  if (n >= 1_000)     return "R$" + (n / 1_000).toFixed(0) + "K";
-  return "R$" + n.toLocaleString("pt-BR");
-}
-
-function fmtDate(d: string | null | undefined) {
-  if (!d) return null;
-  const [y, m, day] = d.split("-");
-  return `${day}/${m}/${y}`;
-}
+import { formatBRL, formatDateBR } from "@/lib/utils";
 
 function daysUntil(d: string | null | undefined): number | null {
   if (!d) return null;
@@ -93,7 +80,7 @@ function OppCard({
       )}
 
       {/* Value */}
-      <div className="text-sm font-bold text-gray-900 mb-2">{fmtBRL(opp.deal_value)}</div>
+      <div className="text-sm font-bold text-gray-900 mb-2">{formatBRL(opp.deal_value)}</div>
 
       {/* Footer */}
       <div className="flex items-center justify-between pt-2 border-t border-gray-100">
@@ -106,7 +93,7 @@ function OppCard({
         {opp.expected_close_date && (
           <div className={`flex items-center gap-0.5 text-[10px] font-medium ${isOverdue ? "text-red-500" : isUrgent ? "text-amber-600" : "text-gray-400"}`}>
             <Calendar size={9} />
-            {fmtDate(opp.expected_close_date)}
+            {formatDateBR(opp.expected_close_date)}
           </div>
         )}
       </div>
@@ -152,7 +139,7 @@ function KanbanColumn({
           <div className="text-[10px] text-white/80">{cfg.prob}% win rate</div>
         </div>
         <div className="text-right">
-          <div className="text-xs font-bold text-white">{fmtBRL(total)}</div>
+          <div className="text-xs font-bold text-white">{formatBRL(total)}</div>
           <div className="text-[10px] text-white/80">{opps.length} deals</div>
         </div>
       </div>
@@ -288,8 +275,8 @@ export default function PipelinePage() {
         {/* KPIs */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: "Pipeline Total", value: fmtBRL(totalPipeline), icon: DollarSign, color: "text-blue-600", bg: "bg-blue-50" },
-            { label: "Forecast Ponderado", value: fmtBRL(weightedForecast), icon: TrendingUp, color: "text-emerald-600", bg: "bg-emerald-50" },
+            { label: "Pipeline Total", value: formatBRL(totalPipeline), icon: DollarSign, color: "text-blue-600", bg: "bg-blue-50" },
+            { label: "Forecast Ponderado", value: formatBRL(weightedForecast), icon: TrendingUp, color: "text-emerald-600", bg: "bg-emerald-50" },
             { label: "Deals Abertos", value: openOpps.length.toString(), icon: Target, color: "text-violet-600", bg: "bg-violet-50" },
             { label: "Win Rate", value: `${winRate}%`, icon: TrendingUp, color: "text-amber-600", bg: "bg-amber-50" },
           ].map(kpi => (
@@ -359,14 +346,14 @@ export default function PipelinePage() {
                     <div key={o.opportunity_id} className="flex items-center justify-between py-1.5 border-b border-gray-100 last:border-0">
                       <div>
                         <p className="text-xs font-medium text-gray-900">{o.opportunity_name}</p>
-                        <p className="text-[10px] text-gray-500">{o.owner} · {fmtDate(o.actual_close_date)}</p>
+                        <p className="text-[10px] text-gray-500">{o.owner} · {formatDateBR(o.actual_close_date)}</p>
                       </div>
-                      <span className="text-sm font-bold text-emerald-600">{fmtBRL(o.deal_value)}</span>
+                      <span className="text-sm font-bold text-emerald-600">{formatBRL(o.deal_value)}</span>
                     </div>
                   ))}
                   <div className="pt-1 flex justify-between text-xs font-semibold text-gray-700">
                     <span>{wonThisMonth.length} deals ganhos</span>
-                    <span className="text-emerald-600">{fmtBRL(wonThisMonth.reduce((s,o)=>s+o.deal_value,0))}</span>
+                    <span className="text-emerald-600">{formatBRL(wonThisMonth.reduce((s,o)=>s+o.deal_value,0))}</span>
                   </div>
                 </div>
               )}
@@ -383,9 +370,9 @@ export default function PipelinePage() {
                     <div key={o.opportunity_id} className="flex items-center justify-between py-1.5 border-b border-gray-100 last:border-0">
                       <div>
                         <p className="text-xs font-medium text-gray-900">{o.opportunity_name}</p>
-                        <p className="text-[10px] text-gray-500">{o.lost_reason ?? "—"} · {fmtDate(o.actual_close_date)}</p>
+                        <p className="text-[10px] text-gray-500">{o.lost_reason ?? "—"} · {formatDateBR(o.actual_close_date)}</p>
                       </div>
-                      <span className="text-sm font-semibold text-red-500">{fmtBRL(o.deal_value)}</span>
+                      <span className="text-sm font-semibold text-red-500">{formatBRL(o.deal_value)}</span>
                     </div>
                   ))}
                 </div>

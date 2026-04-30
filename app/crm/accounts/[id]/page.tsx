@@ -13,17 +13,7 @@ import {
 } from "lucide-react";
 import type { CrmAccount, CrmContact, CrmOpportunity, CrmActivity } from "@/lib/crm-types";
 import { SEED_ACCOUNTS, SEED_CONTACTS, SEED_OPPORTUNITIES, SEED_ACTIVITIES } from "@/lib/crm-db";
-
-function fmtBRL(n: number) {
-  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(1) + "M";
-  if (n >= 1_000)     return "R$" + (n / 1_000).toFixed(0) + "K";
-  return "R$" + n.toLocaleString("pt-BR");
-}
-function fmtDate(d: string | null | undefined) {
-  if (!d) return "—";
-  const [y, m, day] = d.split("T")[0].split("-");
-  return `${day}/${m}/${y}`;
-}
+import { formatBRL, formatDateBR } from "@/lib/utils";
 
 const STAGE_COLORS: Record<string, string> = {
   discovery:"bg-blue-100 text-blue-700", qualification:"bg-violet-100 text-violet-700",
@@ -195,7 +185,7 @@ export default function AccountDetailPage() {
               </div>
               <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
                 <span>Churn Risk: <span className={`font-medium ${account.churn_risk === "high" ? "text-red-600" : account.churn_risk === "medium" ? "text-amber-600" : "text-emerald-600"}`}>{account.churn_risk}</span></span>
-                {account.renewal_date && <span>Renova: {fmtDate(account.renewal_date)}</span>}
+                {account.renewal_date && <span>Renova: {formatDateBR(account.renewal_date)}</span>}
               </div>
             </div>
           </div>
@@ -244,10 +234,10 @@ export default function AccountDetailPage() {
                       <div key={o.opportunity_id} className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100">
                         <div>
                           <p className="text-xs font-semibold text-gray-900">{o.opportunity_name}</p>
-                          <p className="text-[10px] text-gray-500">{o.owner} · {fmtDate(o.expected_close_date)}</p>
+                          <p className="text-[10px] text-gray-500">{o.owner} · {formatDateBR(o.expected_close_date)}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-bold text-gray-900">{fmtBRL(o.deal_value)}</p>
+                          <p className="text-sm font-bold text-gray-900">{formatBRL(o.deal_value)}</p>
                           <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${STAGE_COLORS[o.stage] ?? "bg-gray-100 text-gray-600"}`}>
                             {STAGE_PT[o.stage] ?? o.stage}
                           </span>
@@ -256,7 +246,7 @@ export default function AccountDetailPage() {
                     ))}
                     {openOpps.length > 0 && (
                       <div className="pt-1 text-xs text-gray-500 font-medium">
-                        Pipeline aberto: <span className="text-gray-900 font-bold">{fmtBRL(pipelineValue)}</span>
+                        Pipeline aberto: <span className="text-gray-900 font-bold">{formatBRL(pipelineValue)}</span>
                       </div>
                     )}
                   </div>
@@ -279,7 +269,7 @@ export default function AccountDetailPage() {
                           <p className="text-xs font-medium text-gray-900">{a.subject}</p>
                           {a.description && <p className="text-[11px] text-gray-500 line-clamp-1">{a.description}</p>}
                         </div>
-                        <span className="text-[10px] text-gray-400 shrink-0 whitespace-nowrap">{fmtDate(a.completed_at ?? a.created_at)}</span>
+                        <span className="text-[10px] text-gray-400 shrink-0 whitespace-nowrap">{formatDateBR(a.completed_at ?? a.created_at)}</span>
                       </div>
                     ))}
                   </div>
