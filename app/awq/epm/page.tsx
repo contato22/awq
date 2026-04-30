@@ -12,7 +12,7 @@ import {
   Layers, LineChart, Scale, Target, PieChart,
   ArrowDownLeft, ArrowUpRight, ListOrdered, Building2,
   ChevronRight, CheckCircle2, AlertTriangle, Database,
-  TrendingUp, DollarSign, BarChart3,
+  TrendingUp, DollarSign, BarChart3, Landmark, BookOpen, LayoutGrid,
 } from "lucide-react";
 import { buildDreQuery } from "@/lib/dre-query";
 import { getAllGLEntries, getBalanceSheet } from "@/lib/epm-gl";
@@ -49,10 +49,13 @@ const EPM_MODULES: ModuleCard[] = [
   { label: "Balanço Patrimonial", sub: "Activo = Passivo + PL",        href: "/awq/epm/balance-sheet",  icon: Scale,         color: "text-brand-600",   bg: "bg-brand-50",    status: "active" },
   { label: "Budget vs Actual",    sub: "Variance analysis",            href: "/awq/epm/budget",         icon: Target,        color: "text-violet-600",  bg: "bg-violet-50",   status: "active" },
   { label: "KPI Dashboard",       sub: "MRR, EBITDA, Runway…",         href: "/awq/epm/kpis",           icon: PieChart,      color: "text-cyan-700",    bg: "bg-cyan-50",     status: "active" },
-  { label: "Contas a Pagar",      sub: "AP · Aging · DPO",             href: "/awq/epm/ap",             icon: ArrowDownLeft, color: "text-red-600",     bg: "bg-red-50",      status: "active" },
-  { label: "Contas a Receber",    sub: "AR · Aging · DSO",             href: "/awq/epm/ar",             icon: ArrowUpRight,  color: "text-emerald-600", bg: "bg-emerald-50",  status: "active" },
-  { label: "Razão Geral (GL)",    sub: "Lançamentos contábeis",        href: "/awq/epm/gl",             icon: ListOrdered,   color: "text-amber-700",   bg: "bg-amber-50",    status: "active" },
-  { label: "Consolidação",        sub: "Multi-entidade · Holding",     href: "/awq/epm/consolidation",  icon: Building2,     color: "text-violet-600",  bg: "bg-violet-50",   status: "active" },
+  { label: "Contas a Pagar",      sub: "AP · Aging · DPO",             href: "/awq/epm/ap",                     icon: ArrowDownLeft, color: "text-red-600",     bg: "bg-red-50",      status: "active" },
+  { label: "Contas a Receber",    sub: "AR · Aging · DSO",             href: "/awq/epm/ar",                     icon: ArrowUpRight,  color: "text-emerald-600", bg: "bg-emerald-50",  status: "active" },
+  { label: "Razão Geral (GL)",    sub: "Lançamentos contábeis",        href: "/awq/epm/gl",                     icon: ListOrdered,   color: "text-amber-700",   bg: "bg-amber-50",    status: "active" },
+  { label: "Consolidação",        sub: "Multi-entidade · Holding",     href: "/awq/epm/consolidation",          icon: Building2,     color: "text-violet-600",  bg: "bg-violet-50",   status: "active" },
+  { label: "Conciliação Bancária",sub: "Auto-match transações × AP/AR",href: "/awq/epm/bank-reconciliation",    icon: Landmark,      color: "text-cyan-700",    bg: "bg-cyan-50",     status: "active" },
+  { label: "Reconhec. de Receita",sub: "Competência · Caixa · Marco",  href: "/awq/epm/revenue-recognition",   icon: BookOpen,      color: "text-indigo-600",  bg: "bg-indigo-50",   status: "active" },
+  { label: "Centros de Custo",    sub: "CC por BU e categoria",        href: "/awq/epm/cost-centers",          icon: LayoutGrid,    color: "text-orange-600",  bg: "bg-orange-50",   status: "active" },
 ];
 
 // ─── Page ─────────────────────────────────────────────────────────────────────

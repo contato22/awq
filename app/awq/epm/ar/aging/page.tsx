@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type { ARItem, AgingBucket } from "@/lib/ap-ar-db";
+import type { ARItem, AgingBucket, BuCode } from "@/lib/ap-ar-db";
 
 const BUCKETS: AgingBucket[] = ["CURRENT", "1-30d", "31-60d", "61-90d", "+90d"];
 const BUCKET_LABELS: Record<AgingBucket, string> = {
@@ -18,6 +18,7 @@ const BUCKET_COLOR: Record<AgingBucket, string> = {
   "61-90d": "bg-red-100 text-red-800",
   "+90d":   "bg-red-200 text-red-900",
 };
+const BUS: BuCode[] = ["AWQ", "JACQES", "CAZA", "ADVISOR", "VENTURE"];
 
 function fmt(v: number) { return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }); }
 
@@ -33,16 +34,19 @@ function getAgingBucket(due_date: string): AgingBucket {
 }
 
 export default function ARAgingPage() {
-  const [items,    setItems]    = useState<ARItem[]>([]);
-  const [loading,  setLoading]  = useState(true);
-  const [bucketFilter, setBucketFilter] = useState<AgingBucket | "ALL">("ALL");
+  const [items,       setItems]       = useState<ARItem[]>([]);
+  const [loading,     setLoading]     = useState(true);
+  const [bucketFilter,setBucketFilter]= useState<AgingBucket | "ALL">("ALL");
+  const [filterBU,    setFilterBU]    = useState<BuCode | "">("");
 
   useEffect(() => {
-    fetch("/api/epm/ar")
+    setLoading(true);
+    const qs = filterBU ? `?bu_code=${filterBU}` : "";
+    fetch(`/api/epm/ar${qs}`)
       .then((r) => r.json())
       .then((j) => { if (j.success) setItems(j.data); })
       .finally(() => setLoading(false));
-  }, []);
+  }, [filterBU]);
 
   const overdue = items.filter((i) => i.status === "OVERDUE" || i.status === "PENDING");
 
@@ -72,6 +76,19 @@ export default function ARAgingPage() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">AR Aging — Contas a Receber Vencidas</h1>
         <p className="text-sm text-gray-500 mt-1">Visão por faixa de vencimento e cliente</p>
+      </div>
+
+      <div className="flex gap-2 flex-wrap">
+        <button onClick={() => setFilterBU("")}
+          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${!filterBU ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+          Todas BUs
+        </button>
+        {BUS.map((b) => (
+          <button key={b} onClick={() => setFilterBU(b)}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${filterBU === b ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+            {b}
+          </button>
+        ))}
       </div>
 
       {/* Bucket summary */}

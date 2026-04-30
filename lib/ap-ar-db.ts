@@ -36,6 +36,7 @@ export interface FiscalRates {
 export interface APItem {
   id:               string;
   bu_code:          BuCode;
+  supplier_id?:     string;
   supplier_name:    string;
   supplier_doc?:    string;
   supplier_type:    SupplierType;
@@ -68,6 +69,7 @@ export interface APItem {
 
 export interface NewAPInput {
   bu_code:       BuCode;
+  supplier_id?:  string;
   supplier_name: string;
   supplier_doc?: string;
   supplier_type: SupplierType;
@@ -90,6 +92,7 @@ export interface NewAPInput {
 export interface ARItem {
   id:             string;
   bu_code:        BuCode;
+  customer_id?:   string;
   customer_name:  string;
   customer_doc?:  string;
   description:    string;
@@ -112,6 +115,7 @@ export interface ARItem {
 
 export interface NewARInput {
   bu_code:        BuCode;
+  customer_id?:   string;
   customer_name:  string;
   customer_doc?:  string;
   description:    string;
@@ -238,6 +242,7 @@ export async function initAPARDB(): Promise<void> {
     CREATE TABLE IF NOT EXISTS epm_ap (
       id                TEXT PRIMARY KEY,
       bu_code           TEXT NOT NULL,
+      supplier_id       TEXT,
       supplier_name     TEXT NOT NULL,
       supplier_doc      TEXT,
       supplier_type     TEXT NOT NULL DEFAULT 'other',
@@ -269,14 +274,16 @@ export async function initAPARDB(): Promise<void> {
     )
   `;
 
-  await sql`CREATE INDEX IF NOT EXISTS idx_epm_ap_bu_code  ON epm_ap(bu_code)`;
-  await sql`CREATE INDEX IF NOT EXISTS idx_epm_ap_status   ON epm_ap(status)`;
-  await sql`CREATE INDEX IF NOT EXISTS idx_epm_ap_due_date ON epm_ap(due_date)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_epm_ap_bu_code    ON epm_ap(bu_code)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_epm_ap_status     ON epm_ap(status)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_epm_ap_due_date   ON epm_ap(due_date)`;
+  await sql`ALTER TABLE epm_ap ADD COLUMN IF NOT EXISTS supplier_id TEXT`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS epm_ar (
       id                TEXT PRIMARY KEY,
       bu_code           TEXT NOT NULL,
+      customer_id       TEXT,
       customer_name     TEXT NOT NULL,
       customer_doc      TEXT,
       description       TEXT NOT NULL,
@@ -298,9 +305,10 @@ export async function initAPARDB(): Promise<void> {
     )
   `;
 
-  await sql`CREATE INDEX IF NOT EXISTS idx_epm_ar_bu_code  ON epm_ar(bu_code)`;
-  await sql`CREATE INDEX IF NOT EXISTS idx_epm_ar_status   ON epm_ar(status)`;
-  await sql`CREATE INDEX IF NOT EXISTS idx_epm_ar_due_date ON epm_ar(due_date)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_epm_ar_bu_code    ON epm_ar(bu_code)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_epm_ar_status     ON epm_ar(status)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_epm_ar_due_date   ON epm_ar(due_date)`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS customer_id TEXT`;
 }
 
 // ─── Aging helper ─────────────────────────────────────────────────────────────
@@ -322,6 +330,7 @@ function rowToAP(row: Record<string, unknown>): APItem {
   return {
     id:               String(row.id),
     bu_code:          String(row.bu_code) as BuCode,
+    supplier_id:      row.supplier_id ? String(row.supplier_id) : undefined,
     supplier_name:    String(row.supplier_name),
     supplier_doc:     row.supplier_doc ? String(row.supplier_doc) : undefined,
     supplier_type:    String(row.supplier_type) as SupplierType,
@@ -357,6 +366,7 @@ function rowToAR(row: Record<string, unknown>): ARItem {
   return {
     id:               String(row.id),
     bu_code:          String(row.bu_code) as BuCode,
+    customer_id:      row.customer_id ? String(row.customer_id) : undefined,
     customer_name:    String(row.customer_name),
     customer_doc:     row.customer_doc ? String(row.customer_doc) : undefined,
     description:      String(row.description),
@@ -415,6 +425,7 @@ export async function addAP(input: NewAPInput): Promise<APItem> {
   const item: APItem = {
     id:               randomUUID(),
     bu_code:          input.bu_code,
+    supplier_id:      input.supplier_id,
     supplier_name:    input.supplier_name,
     supplier_doc:     input.supplier_doc,
     supplier_type:    input.supplier_type,
@@ -445,15 +456,15 @@ export async function addAP(input: NewAPInput): Promise<APItem> {
   if (sql) {
     await sql`
       INSERT INTO epm_ap (
-        id, bu_code, supplier_name, supplier_doc, supplier_type,
+        id, bu_code, supplier_id, supplier_name, supplier_doc, supplier_type,
         description, category, reference_doc, issue_date, due_date,
         gross_amount, irrf_rate, irrf_amount, inss_rate, inss_amount,
         iss_rate, iss_amount, pis_rate, pis_amount, cofins_rate, cofins_amount,
         total_retentions, net_amount, status, source_system, created_at, created_by
       ) VALUES (
-        ${item.id}, ${item.bu_code}, ${item.supplier_name}, ${item.supplier_doc ?? null},
-        ${item.supplier_type}, ${item.description}, ${item.category},
-        ${item.reference_doc ?? null}, ${item.issue_date}, ${item.due_date},
+        ${item.id}, ${item.bu_code}, ${item.supplier_id ?? null}, ${item.supplier_name},
+        ${item.supplier_doc ?? null}, ${item.supplier_type}, ${item.description},
+        ${item.category}, ${item.reference_doc ?? null}, ${item.issue_date}, ${item.due_date},
         ${item.gross_amount}, ${item.irrf_rate}, ${item.irrf_amount},
         ${item.inss_rate}, ${item.inss_amount}, ${item.iss_rate}, ${item.iss_amount},
         ${item.pis_rate}, ${item.pis_amount}, ${item.cofins_rate}, ${item.cofins_amount},
@@ -549,6 +560,7 @@ export async function addAR(input: NewARInput): Promise<ARItem> {
   const item: ARItem = {
     id:             randomUUID(),
     bu_code:        input.bu_code,
+    customer_id:    input.customer_id,
     customer_name:  input.customer_name,
     customer_doc:   input.customer_doc,
     description:    input.description,
@@ -569,13 +581,13 @@ export async function addAR(input: NewARInput): Promise<ARItem> {
   if (sql) {
     await sql`
       INSERT INTO epm_ar (
-        id, bu_code, customer_name, customer_doc, description, category,
+        id, bu_code, customer_id, customer_name, customer_doc, description, category,
         reference_doc, issue_date, due_date, gross_amount,
         iss_rate, iss_amount, net_amount, status, source_system, created_at, created_by
       ) VALUES (
-        ${item.id}, ${item.bu_code}, ${item.customer_name}, ${item.customer_doc ?? null},
-        ${item.description}, ${item.category}, ${item.reference_doc ?? null},
-        ${item.issue_date}, ${item.due_date}, ${item.gross_amount},
+        ${item.id}, ${item.bu_code}, ${item.customer_id ?? null}, ${item.customer_name},
+        ${item.customer_doc ?? null}, ${item.description}, ${item.category},
+        ${item.reference_doc ?? null}, ${item.issue_date}, ${item.due_date}, ${item.gross_amount},
         ${item.iss_rate}, ${item.iss_amount}, ${item.net_amount},
         ${item.status}, ${item.source_system}, ${item.created_at}, ${item.created_by ?? null}
       )
@@ -1421,7 +1433,8 @@ export async function findBankMatchCandidates(txn: BankTransaction): Promise<Ban
       const itemDate = new Date(item.due_date + "T12:00:00").getTime();
       const dateDiff = Math.abs(txnDate - itemDate) / 86_400_000;
       if (dateDiff > DATE_TOLERANCE_DAYS + 5) continue;
-      const score = 100 - (amountDiff / txn.amount) * 50 - dateDiff * 5;
+      const amountScore = amountDiff === 0 ? 0 : 20 + (amountDiff / (txn.amount * 0.005)) * 10;
+      const score = 100 - amountScore - dateDiff * 5;
       candidates.push({ type: "AR", item, amountDiff, dateDiff, score });
     }
   } else {
@@ -1432,7 +1445,8 @@ export async function findBankMatchCandidates(txn: BankTransaction): Promise<Ban
       const itemDate = new Date(item.due_date + "T12:00:00").getTime();
       const dateDiff = Math.abs(txnDate - itemDate) / 86_400_000;
       if (dateDiff > DATE_TOLERANCE_DAYS + 5) continue;
-      const score = 100 - (amountDiff / txn.amount) * 50 - dateDiff * 5;
+      const amountScore = amountDiff === 0 ? 0 : 20 + (amountDiff / (txn.amount * 0.005)) * 10;
+      const score = 100 - amountScore - dateDiff * 5;
       candidates.push({ type: "AP", item, amountDiff, dateDiff, score });
     }
   }
