@@ -16,6 +16,7 @@ import {
   fmtBRL,
   fmtPct,
 } from "@/lib/financial-metric-query";
+import { initAllAPARTables, getAllAP, getAllAR } from "@/lib/ap-ar-db";
 import { MetricSourceBadge, MetricDetail } from "@/components/MetricSourceBadge";
 import { buildDreQuery } from "@/lib/dre-query";
 import { getBalanceSheet } from "@/lib/epm-gl";
@@ -111,6 +112,19 @@ export default async function EpmKpisPage() {
     buildDreQuery("all"),
     Promise.resolve(getBalanceSheet()),
   ]);
+
+  // AP/AR outstanding for DSO/DPO/CCC — best-effort (DB may be empty on first run)
+  let arOutstanding = 0, apOutstanding = 0;
+  try {
+    await initAllAPARTables();
+    const [apItems, arItems] = await Promise.all([getAllAP(), getAllAR()]);
+    arOutstanding = arItems
+      .filter((i) => i.status === "PENDING" || i.status === "OVERDUE")
+      .reduce((s, i) => s + i.net_amount, 0);
+    apOutstanding = apItems
+      .filter((i) => i.status === "PENDING" || i.status === "OVERDUE")
+      .reduce((s, i) => s + i.net_amount, 0);
+  } catch { /* DB unavailable — leave at 0 */ }
 
   const snap = consolidated;
 
@@ -238,6 +252,49 @@ export default async function EpmKpisPage() {
     },
   ];
 
+  // ── Working Capital — DSO / DPO / CCC ────────────────────────────────────
+  const monthlyRevenue  = dre.hasData && dre.dreRevenue > 0  ? dre.dreRevenue  : snap.revenue;
+  const monthlyExpenses = dre.hasData && dre.dreOperatingExpenses > 0
+    ? dre.dreOperatingExpenses : Math.max(snap.revenue - snap.ebitda, 1);
+  const DSO = monthlyRevenue  > 0 ? (arOutstanding / monthlyRevenue)  * 30 : 0;
+  const DPO = monthlyExpenses > 0 ? (apOutstanding / monthlyExpenses) * 30 : 0;
+  const CCC = DSO - DPO;
+  const hasAPARData = arOutstanding > 0 || apOutstanding > 0;
+
+  const wcKpis: KpiCard[] = [
+    {
+      label:      "DSO",
+      value:      hasAPARData ? `${DSO.toFixed(1)} d` : "—",
+      sub:        hasAPARData ? `AR: ${fmtR(arOutstanding)}` : "Sem lançamentos AR",
+      status:     !hasAPARData ? "neutral" : DSO <= 30 ? "good" : DSO <= 60 ? "warn" : "bad",
+      sourceType: hasAPARData ? "real" : "empty",
+      threshold:  "≤30 dias",
+    },
+    {
+      label:      "DPO",
+      value:      hasAPARData ? `${DPO.toFixed(1)} d` : "—",
+      sub:        hasAPARData ? `AP: ${fmtR(apOutstanding)}` : "Sem lançamentos AP",
+      status:     !hasAPARData ? "neutral" : DPO >= 30 ? "good" : DPO >= 15 ? "warn" : "bad",
+      sourceType: hasAPARData ? "real" : "empty",
+      threshold:  "≥30 dias",
+    },
+    {
+      label:      "CCC",
+      value:      hasAPARData ? `${CCC.toFixed(1)} d` : "—",
+      sub:        "Ciclo de Conversão de Caixa",
+      status:     !hasAPARData ? "neutral" : CCC <= 0 ? "good" : CCC <= 30 ? "warn" : "bad",
+      sourceType: hasAPARData ? "real" : "empty",
+      threshold:  "≤0 dias",
+    },
+    {
+      label:      "AR em Aberto",
+      value:      hasAPARData ? fmtR(arOutstanding) : "—",
+      sub:        "PENDING + OVERDUE",
+      status:     !hasAPARData ? "neutral" : arOutstanding > 0 ? "warn" : "good",
+      sourceType: hasAPARData ? "real" : "empty",
+    },
+  ];
+
   // ── Operational Efficiency ────────────────────────────────────────────────
   const efficiencyKpis: KpiCard[] = [
     {
@@ -313,6 +370,10 @@ export default async function EpmKpisPage() {
 
         <Section title="Caixa & Liquidez" icon={Activity}>
           {cashKpis.map((k) => <KpiTile key={k.label} kpi={k} />)}
+        </Section>
+
+        <Section title="Capital de Giro — DSO · DPO · CCC" icon={Target}>
+          {wcKpis.map((k) => <KpiTile key={k.label} kpi={k} />)}
         </Section>
 
         <Section title="Eficiência Operacional" icon={BarChart3}>
