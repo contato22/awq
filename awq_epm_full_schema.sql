@@ -441,7 +441,7 @@ CREATE TABLE IF NOT EXISTS accounts_payable (
   payment_date         DATE,
   payment_method       TEXT        CHECK (payment_method IN ('pix','ted','boleto','cash','card')),
   bank_account_id      UUID        REFERENCES bank_accounts(bank_account_id),
-  bank_transaction_id  UUID        REFERENCES bank_transactions_epm(bank_tx_id),
+  bank_transaction_id  UUID,                                            -- FK adicionada após bank_transactions_epm
   payment_reference    TEXT,                                            -- código PIX, NSU TED…
 
   -- ── Parcelamento ──────────────────────────────────────────────────────────
@@ -598,7 +598,7 @@ BEGIN
     -- Pagamento expandido
     ALTER TABLE accounts_payable ADD COLUMN IF NOT EXISTS payment_method     TEXT
       CHECK (payment_method IN ('pix','ted','boleto','cash','card'));
-    ALTER TABLE accounts_payable ADD COLUMN IF NOT EXISTS bank_transaction_id UUID REFERENCES bank_transactions_epm(bank_tx_id);
+    ALTER TABLE accounts_payable ADD COLUMN IF NOT EXISTS bank_transaction_id UUID;
     ALTER TABLE accounts_payable ADD COLUMN IF NOT EXISTS payment_reference   TEXT;
 
     -- Parcelamento
@@ -793,6 +793,22 @@ CREATE INDEX IF NOT EXISTS idx_bk_date     ON bank_transactions_epm(transaction_
 CREATE INDEX IF NOT EXISTS idx_bk_account  ON bank_transactions_epm(bank_account_id);
 CREATE INDEX IF NOT EXISTS idx_bk_reconcil ON bank_transactions_epm(is_reconciled);
 
+-- FK diferida: accounts_payable.bank_transaction_id → bank_transactions_epm
+-- (não pode estar no CREATE TABLE pois bank_transactions_epm ainda não existia)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints
+    WHERE constraint_name = 'fk_ap_bank_tx'
+      AND table_name = 'accounts_payable'
+  ) THEN
+    ALTER TABLE accounts_payable
+      ADD CONSTRAINT fk_ap_bank_tx
+      FOREIGN KEY (bank_transaction_id) REFERENCES bank_transactions_epm(bank_tx_id);
+  END IF;
+END;
+$$;
+
 -- ─── Fixed Assets ────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS fixed_assets (
@@ -974,8 +990,12 @@ SELECT
   a.account_code,
   a.account_name,
   a.level,
-  SUM(g.debit_amount - g.credit_amount) *
-    CASE WHEN a.normal_balance = 'DEBIT' THEN 1 ELSE -1 END AS balance
+  SUM(
+    CASE WHEN a.normal_balance = 'DEBIT'
+         THEN g.debit_amount - g.credit_amount
+         ELSE g.credit_amount - g.debit_amount
+    END
+  ) AS balance
 FROM general_ledger g
 JOIN accounts       a  ON a.account_id  = g.account_id
 JOIN business_units b  ON b.bu_id       = g.bu_id
@@ -1075,14 +1095,14 @@ JOIN business_units b_bu ON b_bu.bu_id   = bud.bu_id
 JOIN accounts         a  ON a.account_id = bud.account_id
 LEFT JOIN (
   SELECT
-    bu_id,
-    period_id,
-    account_id,
-    SUM(CASE WHEN a2.normal_balance = 'CREDIT' THEN credit_amount - debit_amount
-             ELSE debit_amount - credit_amount END) AS actual_amount
+    g2.bu_id,
+    g2.period_id,
+    g2.account_id,
+    SUM(CASE WHEN a2.normal_balance = 'CREDIT' THEN g2.credit_amount - g2.debit_amount
+             ELSE g2.debit_amount - g2.credit_amount END) AS actual_amount
   FROM general_ledger g2
   JOIN accounts a2 ON a2.account_id = g2.account_id
-  GROUP BY bu_id, period_id, account_id
+  GROUP BY g2.bu_id, g2.period_id, g2.account_id
 ) gl_agg ON gl_agg.bu_id      = bud.bu_id
          AND gl_agg.period_id  = bud.period_id
          AND gl_agg.account_id = bud.account_id;
