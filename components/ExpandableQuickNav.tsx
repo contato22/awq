@@ -13,6 +13,7 @@ import {
   Scale,
   TrendingUp,
   AlertTriangle,
+  Briefcase,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -28,6 +29,21 @@ type Item = {
 };
 
 const ITEMS: Item[] = [
+  {
+    label:    "PPM",
+    href:     "/awq/ppm",
+    icon:     Briefcase,
+    color:    "text-violet-600",
+    bg:       "bg-violet-50",
+    subs: [
+      { label: "Portfolio",     href: "/awq/ppm"               },
+      { label: "Tarefas",       href: "/awq/ppm/tasks"         },
+      { label: "Timesheets",    href: "/awq/ppm/timesheets"    },
+      { label: "Recursos",      href: "/awq/ppm/resources"     },
+      { label: "Rentabilidade", href: "/awq/ppm/profitability" },
+      { label: "Riscos",        href: "/awq/ppm/risks"         },
+    ],
+  },
   {
     label:    "EPM",
     href:     "/awq/epm",

@@ -4,8 +4,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { ArrowLeft, Users, AlertTriangle, CheckCircle2, Circle, Plus, RefreshCw } from "lucide-react";
-import type { PpmAllocation } from "@/lib/ppm-types";
+import { ArrowLeft, Users, AlertTriangle, CheckCircle2, Circle, Plus, RefreshCw, X, Save } from "lucide-react";
+import type { PpmAllocation, PpmProject } from "@/lib/ppm-types";
 
 type UtilRow = {
   user_id: string; user_name: string; email?: string;
@@ -65,26 +65,84 @@ function UtilCard({ row }: { row: UtilRow }) {
   );
 }
 
+const INPUT = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 bg-white";
+const USERS = ["miguel", "danilo"] as const;
+
 export default function ResourcesPage() {
   const [utilization,  setUtilization]  = useState<UtilRow[]>([]);
   const [allocations,  setAllocations]  = useState<PpmAllocation[]>([]);
+  const [projects,     setProjects]     = useState<PpmProject[]>([]);
   const [loading,      setLoading]      = useState(true);
+  const [showForm,     setShowForm]     = useState(false);
+  const [saving,       setSaving]       = useState(false);
+  const [formError,    setFormError]    = useState("");
   const [activeTab,    setActiveTab]    = useState<"utilization"|"allocations">("utilization");
+
+  const [form, setForm] = useState({
+    project_id:     "",
+    user_id:        "miguel",
+    role:           "Team Member",
+    allocation_pct: "50",
+    hours_per_week: "20",
+    start_date:     new Date().toISOString().slice(0, 10),
+    end_date:       "",
+    billable_rate:  "",
+    cost_rate:      "",
+    is_billable:    true,
+  });
+  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+    setForm(f => ({ ...f, [k]: e.target.value }));
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [uRes, aRes] = await Promise.all([
+      const [uRes, aRes, pRes] = await Promise.all([
         fetch("/api/ppm/resources?mode=utilization"),
         fetch("/api/ppm/resources"),
+        fetch("/api/ppm/projects"),
       ]);
-      const [uJson, aJson] = await Promise.all([uRes.json(), aRes.json()]);
+      const [uJson, aJson, pJson] = await Promise.all([uRes.json(), aRes.json(), pRes.json()]);
       if (uJson.success) setUtilization(uJson.data);
       if (aJson.success) setAllocations(aJson.data);
+      if (pJson.success) {
+        const projs: PpmProject[] = pJson.data.projects ?? [];
+        setProjects(projs);
+        setForm(f => ({ ...f, project_id: f.project_id || (projs[0]?.project_id ?? "") }));
+      }
     } finally {
       setLoading(false);
     }
   }, []);
+
+  async function submitAllocation(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.project_id) { setFormError("Selecione o projeto"); return; }
+    if (!form.allocation_pct || parseFloat(form.allocation_pct) <= 0) { setFormError("Informe o percentual de alocação"); return; }
+    setSaving(true); setFormError("");
+    try {
+      const res  = await fetch("/api/ppm/resources", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...form,
+          allocation_pct: parseFloat(form.allocation_pct),
+          hours_per_week: form.hours_per_week ? parseFloat(form.hours_per_week) : undefined,
+          billable_rate:  form.billable_rate  ? parseFloat(form.billable_rate)  : undefined,
+          cost_rate:      form.cost_rate      ? parseFloat(form.cost_rate)      : undefined,
+          end_date:       form.end_date || undefined,
+          status:         "active",
+        }),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error);
+      setShowForm(false);
+      void load();
+    } catch (err) {
+      setFormError((err as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  }
 
   useEffect(() => { void load(); }, [load]);
 
@@ -105,9 +163,16 @@ export default function ResourcesPage() {
               <p className="text-xs text-gray-500">Alocação e utilização do time</p>
             </div>
           </div>
-          <button onClick={() => void load()} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
-            <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
-          </button>
+          <div className="flex gap-2">
+            <button onClick={() => void load()} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
+              <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
+            </button>
+            <button onClick={() => setShowForm(s => !s)}
+              className="flex items-center gap-1.5 text-sm bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors shadow-sm"
+            >
+              <Plus size={14} /> Nova Alocação
+            </button>
+          </div>
         </div>
       </div>
 
@@ -127,6 +192,74 @@ export default function ResourcesPage() {
             </div>
           ))}
         </div>
+
+        {/* Add Allocation Form */}
+        {showForm && (
+          <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Users size={16} className="text-brand-600" />
+                <h2 className="text-sm font-bold text-gray-800">Nova Alocação</h2>
+              </div>
+              <button onClick={() => setShowForm(false)} className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
+                <X size={14} />
+              </button>
+            </div>
+            {formError && <div className="mb-3 text-sm text-red-600 bg-red-50 border border-red-200 px-3 py-2 rounded-lg">{formError}</div>}
+            <form onSubmit={e => void submitAllocation(e)} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">Projeto *</label>
+                <select value={form.project_id} onChange={set("project_id")} className={INPUT}>
+                  <option value="">Selecionar…</option>
+                  {projects.map(p => <option key={p.project_id} value={p.project_id}>{p.project_name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">Pessoa *</label>
+                <select value={form.user_id} onChange={set("user_id")} className={INPUT}>
+                  {USERS.map(u => <option key={u} value={u}>{u.charAt(0).toUpperCase() + u.slice(1)}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">Role no Projeto</label>
+                <input value={form.role} onChange={set("role")} placeholder="Ex.: Director, Consultant" className={INPUT} />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">Alocação % *</label>
+                <input type="number" min="1" max="200" value={form.allocation_pct} onChange={set("allocation_pct")} placeholder="50" className={INPUT} />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">Horas/semana</label>
+                <input type="number" min="0" value={form.hours_per_week} onChange={set("hours_per_week")} placeholder="20" className={INPUT} />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">Billable?</label>
+                <select value={form.is_billable ? "true" : "false"} onChange={e => setForm(f => ({ ...f, is_billable: e.target.value === "true" }))} className={INPUT}>
+                  <option value="true">Sim — Billable</option>
+                  <option value="false">Não — Non-billable</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">Início *</label>
+                <input type="date" value={form.start_date} onChange={set("start_date")} className={INPUT} />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">Término</label>
+                <input type="date" value={form.end_date} onChange={set("end_date")} className={INPUT} />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">Taxa Billable (R$/h)</label>
+                <input type="number" min="0" value={form.billable_rate} onChange={set("billable_rate")} placeholder="150" className={INPUT} />
+              </div>
+              <div className="sm:col-span-2 lg:col-span-3 flex justify-end gap-2">
+                <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancelar</button>
+                <button type="submit" disabled={saving} className="flex items-center gap-1.5 px-4 py-2 text-sm bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-60">
+                  <Save size={13} /> {saving ? "Salvando…" : "Alocar"}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="flex gap-1 bg-gray-100 rounded-xl p-1 w-fit">
