@@ -20,38 +20,62 @@ interface EpmSupplier {
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type BuCode        = "AWQ" | "JACQES" | "CAZA" | "ADVISOR" | "VENTURE";
-type APStatus      = "PENDING" | "SCHEDULED" | "PAID" | "OVERDUE" | "CANCELLED";
+type APStatus      = "PENDING" | "APPROVED" | "SCHEDULED" | "PAID" | "OVERDUE" | "CANCELLED";
+type ApprovalStatus = "PENDING" | "APPROVED" | "REJECTED";
 type SupplierType  = "service_professional" | "service_cleaning" | "service_construction" | "goods" | "rent" | "other";
+type PaymentMethod = "pix" | "ted" | "boleto" | "cash" | "card";
+type ExpenseType   = "operational" | "financial" | "tax" | "other";
 type AgingBucket   = "CURRENT" | "1-30d" | "31-60d" | "61-90d" | "+90d";
 
 interface APItem {
   id:               string;
+  ap_code?:         string;
   bu_code:          BuCode;
   supplier_name:    string;
   supplier_type:    SupplierType;
+  // NF-e
+  invoice_number?:  string;
+  invoice_series?:  string;
+  invoice_date?:    string;
   description:      string;
-  category:         string;
-  cost_center?:     string;
-  reference_doc?:   string;
-  issue_date:       string;
-  due_date:         string;
+  // Valores
   gross_amount:     number;
-  irrf_rate:        number;
-  irrf_amount:      number;
-  inss_rate:        number;
-  inss_amount:      number;
-  iss_rate:         number;
-  iss_amount:       number;
-  pis_rate:         number;
-  pis_amount:       number;
-  cofins_rate:      number;
-  cofins_amount:    number;
+  discount_amount:  number;
+  // Retenções
+  irrf_rate:        number;  irrf_amount:      number;
+  inss_rate:        number;  inss_amount:      number;
+  iss_rate:         number;  iss_amount:       number;
+  pis_rate:         number;  pis_amount:       number;
+  cofins_rate:      number;  cofins_amount:    number;
+  csll_rate:        number;  csll_amount:      number;
+  other_retentions: number;
   total_retentions: number;
   net_amount:       number;
+  // Classificação
+  expense_type?:    ExpenseType;
+  category:         string;
+  subcategory?:     string;
+  cost_center?:     string;
+  reference_doc?:   string;
+  // Competência
+  competence_date?: string;
+  accrual_month?:   string;
+  is_prepaid:       boolean;
+  prepaid_periods?: number;
+  // Datas
+  issue_date:       string;
+  due_date:         string;
+  // Pagamento
+  payment_method?:    PaymentMethod;
+  payment_reference?: string;
+  paid_date?:         string;
+  paid_amount?:       number;
+  payment_ref?:       string;
+  // Workflow
   status:           APStatus;
-  paid_date?:       string;
-  paid_amount?:     number;
-  payment_ref?:     string;
+  approval_status:  ApprovalStatus;
+  // Audit
+  tags:             string[];
   created_at:       string;
 }
 
@@ -65,13 +89,13 @@ interface APKPIs {
 
 // ─── Fiscal defaults (mirrors lib/ap-ar-db.ts — client-safe copy) ─────────────
 
-const FISCAL_DEFAULTS: Record<SupplierType, { irrf: number; inss: number; iss: number; pis: number; cofins: number }> = {
-  service_professional: { irrf: 0.015, inss: 0,    iss: 0.05, pis: 0.0065, cofins: 0.03 },
-  service_cleaning:     { irrf: 0.01,  inss: 0.11, iss: 0.05, pis: 0.0065, cofins: 0.03 },
-  service_construction: { irrf: 0.015, inss: 0.11, iss: 0.05, pis: 0.0065, cofins: 0.03 },
-  goods:                { irrf: 0,     inss: 0,    iss: 0,    pis: 0,      cofins: 0    },
-  rent:                 { irrf: 0.015, inss: 0,    iss: 0,    pis: 0,      cofins: 0    },
-  other:                { irrf: 0,     inss: 0,    iss: 0,    pis: 0,      cofins: 0    },
+const FISCAL_DEFAULTS: Record<SupplierType, { irrf: number; inss: number; iss: number; pis: number; cofins: number; csll: number }> = {
+  service_professional: { irrf: 0.015, inss: 0,    iss: 0.05, pis: 0.0065, cofins: 0.03, csll: 0 },
+  service_cleaning:     { irrf: 0.01,  inss: 0.11, iss: 0.05, pis: 0.0065, cofins: 0.03, csll: 0 },
+  service_construction: { irrf: 0.015, inss: 0.11, iss: 0.05, pis: 0.0065, cofins: 0.03, csll: 0 },
+  goods:                { irrf: 0,     inss: 0,    iss: 0,    pis: 0,      cofins: 0,    csll: 0 },
+  rent:                 { irrf: 0.015, inss: 0,    iss: 0,    pis: 0,      cofins: 0,    csll: 0 },
+  other:                { irrf: 0,     inss: 0,    iss: 0,    pis: 0,      cofins: 0,    csll: 0 },
 };
 
 const SUPPLIER_TYPE_LABELS: Record<SupplierType, string> = {
@@ -83,15 +107,16 @@ const SUPPLIER_TYPE_LABELS: Record<SupplierType, string> = {
   other:                "Outros (sem retenção padrão)",
 };
 
-function calcFiscal(gross: number, type: SupplierType) {
-  const r = FISCAL_DEFAULTS[type];
+function calcFiscal(gross: number, type: SupplierType, discount = 0, csllOverride = 0) {
+  const r      = FISCAL_DEFAULTS[type];
   const irrf   = round2(gross * r.irrf);
   const inss   = round2(gross * r.inss);
   const iss    = round2(gross * r.iss);
   const pis    = round2(gross * r.pis);
   const cofins = round2(gross * r.cofins);
-  const total  = round2(irrf + inss + iss + pis + cofins);
-  return { irrf, inss, iss, pis, cofins, total, net: round2(gross - total) };
+  const csll   = round2(gross * (csllOverride || r.csll));
+  const total  = round2(irrf + inss + iss + pis + cofins + csll);
+  return { irrf, inss, iss, pis, cofins, csll, total, net: round2(gross - discount - total) };
 }
 
 function round2(n: number) { return Math.round(n * 100) / 100; }
@@ -113,10 +138,26 @@ function pct(r: number) {
 
 const STATUS_CFG: Record<APStatus, { label: string; color: string; bg: string }> = {
   PENDING:   { label: "Pendente",  color: "text-amber-700",   bg: "bg-amber-50"   },
-  SCHEDULED: { label: "Agendado",  color: "text-brand-700",   bg: "bg-brand-50"   },
+  APPROVED:  { label: "Aprovado",  color: "text-brand-700",   bg: "bg-brand-50"   },
+  SCHEDULED: { label: "Agendado",  color: "text-violet-700",  bg: "bg-violet-50"  },
   PAID:      { label: "Pago",      color: "text-emerald-700", bg: "bg-emerald-50" },
   OVERDUE:   { label: "Vencido",   color: "text-red-700",     bg: "bg-red-50"     },
   CANCELLED: { label: "Cancelado", color: "text-gray-500",    bg: "bg-gray-100"   },
+};
+
+const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+  pix:    "PIX",
+  ted:    "TED",
+  boleto: "Boleto",
+  cash:   "Dinheiro",
+  card:   "Cartão",
+};
+
+const EXPENSE_TYPE_LABELS: Record<ExpenseType, string> = {
+  operational: "Operacional",
+  financial:   "Financeiro",
+  tax:         "Tributário",
+  other:       "Outros",
 };
 
 const AGING_CFG: Record<AgingBucket, { label: string; color: string }> = {
@@ -147,8 +188,9 @@ export default function APPage() {
   const [statusFilter,setStatusFilter] = useState<APStatus | "ALL">("ALL");
   const [payModal, setPayModal] = useState<{
     open: boolean; id: string; item: APItem | null;
-    paid_date: string; paid_amount: string; payment_ref: string; saving: boolean;
-  }>({ open: false, id: "", item: null, paid_date: today, paid_amount: "", payment_ref: "", saving: false });
+    paid_date: string; paid_amount: string; payment_ref: string;
+    payment_method: PaymentMethod | ""; payment_reference: string; saving: boolean;
+  }>({ open: false, id: "", item: null, paid_date: today, paid_amount: "", payment_ref: "", payment_method: "", payment_reference: "", saving: false });
   const [editModal, setEditModal] = useState<{
     open: boolean; item: APItem | null;
     supplier_name: string; description: string; category: string;
@@ -157,21 +199,36 @@ export default function APPage() {
   const [costCenters, setCostCenters] = useState<{ id: string; code: string; name: string }[]>([]);
 
   const [form, setForm] = useState({
-    bu_code:       "AWQ" as BuCode,
-    supplier_name: "",
-    supplier_type: "service_professional" as SupplierType,
-    description:   "",
-    category:      "Fornecedor",
-    cost_center:   "",
-    reference_doc: "",
-    issue_date:    today,
-    due_date:      "",
-    gross_amount:  "",
-    installments:  "1",
+    bu_code:              "AWQ" as BuCode,
+    supplier_name:        "",
+    supplier_type:        "service_professional" as SupplierType,
+    invoice_number:       "",
+    invoice_series:       "",
+    invoice_date:         "",
+    description:          "",
+    category:             "Fornecedor",
+    subcategory:          "",
+    cost_center:          "",
+    reference_doc:        "",
+    expense_type:         "" as ExpenseType | "",
+    competence_date:      "",
+    accrual_month:        "",
+    is_prepaid:           false,
+    prepaid_periods:      "",
+    issue_date:           today,
+    due_date:             "",
+    gross_amount:         "",
+    discount_amount:      "",
+    csll_override:        "",
+    payment_method:       "" as PaymentMethod | "",
+    installments:         "1",
   });
 
-  const fiscal = form.gross_amount
-    ? calcFiscal(parseFloat(form.gross_amount) || 0, form.supplier_type)
+  const gross   = parseFloat(form.gross_amount)    || 0;
+  const discount = parseFloat(form.discount_amount) || 0;
+  const csllOvr  = parseFloat(form.csll_override)   || 0;
+  const fiscal  = gross > 0
+    ? calcFiscal(gross, form.supplier_type, discount, csllOvr > 0 ? csllOvr / 100 : 0)
     : null;
 
   // ── Data loading ─────────────────────────────────────────────────────────────
@@ -218,22 +275,34 @@ export default function APPage() {
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
-    const gross = parseFloat(form.gross_amount);
-    const n     = parseInt(form.installments) || 1;
-    if (!gross || gross <= 0) return;
+    const grossVal = parseFloat(form.gross_amount);
+    const n        = parseInt(form.installments) || 1;
+    if (!grossVal || grossVal <= 0) return;
     setSubmitting(true);
     try {
       const payload = {
-        bu_code:       form.bu_code,
-        supplier_name: form.supplier_name,
-        supplier_type: form.supplier_type,
-        description:   form.description,
-        category:      form.category,
-        cost_center:   form.cost_center || undefined,
-        reference_doc: form.reference_doc || undefined,
-        issue_date:    form.issue_date,
-        due_date:      form.due_date,
-        gross_amount:  gross,
+        bu_code:              form.bu_code,
+        supplier_name:        form.supplier_name,
+        supplier_type:        form.supplier_type,
+        invoice_number:       form.invoice_number  || undefined,
+        invoice_series:       form.invoice_series  || undefined,
+        invoice_date:         form.invoice_date    || undefined,
+        description:          form.description,
+        category:             form.category,
+        subcategory:          form.subcategory     || undefined,
+        cost_center:          form.cost_center     || undefined,
+        reference_doc:        form.reference_doc   || undefined,
+        expense_type:         form.expense_type    || undefined,
+        competence_date:      form.competence_date || undefined,
+        accrual_month:        form.accrual_month   || undefined,
+        is_prepaid:           form.is_prepaid || undefined,
+        prepaid_periods:      form.prepaid_periods ? parseInt(form.prepaid_periods) : undefined,
+        issue_date:           form.issue_date,
+        due_date:             form.due_date,
+        gross_amount:         grossVal,
+        discount_amount:      parseFloat(form.discount_amount) || undefined,
+        csll_rate:            parseFloat(form.csll_override) > 0 ? parseFloat(form.csll_override) / 100 : undefined,
+        payment_method:       form.payment_method || undefined,
       };
       const endpoint = n > 1 ? "/api/epm/ap/installments" : "/api/epm/ap";
       const body     = n > 1 ? { ...payload, total_installments: n } : payload;
@@ -245,14 +314,14 @@ export default function APPage() {
       const json = await res.json() as { success: boolean };
       if (json.success) {
         setShowForm(false);
-        setForm((f) => ({ ...f, supplier_name: "", description: "", reference_doc: "", due_date: "", gross_amount: "", installments: "1" }));
+        setForm((f) => ({ ...f, supplier_name: "", description: "", reference_doc: "", invoice_number: "", invoice_series: "", invoice_date: "", competence_date: "", accrual_month: "", discount_amount: "", due_date: "", gross_amount: "", installments: "1", payment_method: "" }));
         await loadData();
       }
     } finally { setSubmitting(false); }
   }
 
   function openPayModal(item: APItem) {
-    setPayModal({ open: true, id: item.id, item, paid_date: today, paid_amount: String(item.net_amount), payment_ref: "", saving: false });
+    setPayModal({ open: true, id: item.id, item, paid_date: today, paid_amount: String(item.net_amount), payment_ref: "", payment_method: item.payment_method ?? "", payment_reference: "", saving: false });
   }
 
   async function confirmPay() {
@@ -261,9 +330,16 @@ export default function APPage() {
     await fetch("/api/epm/ap", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: payModal.id, action: "pay", paid_date: payModal.paid_date, paid_amount: parseFloat(payModal.paid_amount), payment_ref: payModal.payment_ref || undefined }),
+      body: JSON.stringify({
+        id: payModal.id, action: "pay",
+        paid_date: payModal.paid_date,
+        paid_amount: parseFloat(payModal.paid_amount),
+        payment_ref: payModal.payment_ref || undefined,
+        payment_method: payModal.payment_method || undefined,
+        payment_reference: payModal.payment_reference || undefined,
+      }),
     });
-    setPayModal({ open: false, id: "", item: null, paid_date: today, paid_amount: "", payment_ref: "", saving: false });
+    setPayModal({ open: false, id: "", item: null, paid_date: today, paid_amount: "", payment_ref: "", payment_method: "", payment_reference: "", saving: false });
     await loadData();
   }
 
@@ -347,7 +423,7 @@ export default function APPage() {
 
         {/* ── Status filter ─────────────────────────────────────────── */}
         <div className="flex gap-2 flex-wrap">
-          {(["ALL", "PENDING", "OVERDUE", "SCHEDULED", "PAID", "CANCELLED"] as const).map((s) => (
+          {(["ALL", "PENDING", "APPROVED", "OVERDUE", "SCHEDULED", "PAID", "CANCELLED"] as const).map((s) => (
             <button key={s} onClick={() => setStatusFilter(s)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${statusFilter === s ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
               {s === "ALL" ? "Todos" : STATUS_CFG[s].label}
@@ -465,14 +541,70 @@ export default function APPage() {
                 </select>
               </div>
               <div>
-                <label className="block font-semibold text-gray-600 mb-1">Doc. referência</label>
+                <label className="block font-semibold text-gray-600 mb-1">Doc. referência / Contrato</label>
                 <input
                   type="text"
                   value={form.reference_doc}
                   onChange={(e) => setForm((f) => ({ ...f, reference_doc: e.target.value }))}
-                  placeholder="NF-e, boleto, contrato…"
+                  placeholder="Boleto, contrato…"
                   className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500"
                 />
+              </div>
+
+              {/* NF-e */}
+              <div>
+                <label className="block font-semibold text-gray-600 mb-1">NF-e número</label>
+                <input type="text" value={form.invoice_number}
+                  onChange={(e) => setForm((f) => ({ ...f, invoice_number: e.target.value }))}
+                  placeholder="Ex: 000123"
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              </div>
+              <div>
+                <label className="block font-semibold text-gray-600 mb-1">Série NF-e</label>
+                <input type="text" value={form.invoice_series}
+                  onChange={(e) => setForm((f) => ({ ...f, invoice_series: e.target.value }))}
+                  placeholder="Ex: 001"
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              </div>
+              <div>
+                <label className="block font-semibold text-gray-600 mb-1">Data emissão NF-e</label>
+                <input type="date" value={form.invoice_date}
+                  onChange={(e) => setForm((f) => ({ ...f, invoice_date: e.target.value }))}
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              </div>
+
+              {/* Expense type + Subcategory */}
+              <div>
+                <label className="block font-semibold text-gray-600 mb-1">Tipo de despesa</label>
+                <select value={form.expense_type}
+                  onChange={(e) => setForm((f) => ({ ...f, expense_type: e.target.value as ExpenseType | "" }))}
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-brand-500">
+                  <option value="">— Selecione —</option>
+                  {(Object.keys(EXPENSE_TYPE_LABELS) as ExpenseType[]).map((k) => (
+                    <option key={k} value={k}>{EXPENSE_TYPE_LABELS[k]}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block font-semibold text-gray-600 mb-1">Subcategoria</label>
+                <input type="text" value={form.subcategory}
+                  onChange={(e) => setForm((f) => ({ ...f, subcategory: e.target.value }))}
+                  placeholder="Ex: freelancers, rent, utilities…"
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              </div>
+
+              {/* Competência */}
+              <div>
+                <label className="block font-semibold text-gray-600 mb-1">Data competência (DRE)</label>
+                <input type="date" value={form.competence_date}
+                  onChange={(e) => setForm((f) => ({ ...f, competence_date: e.target.value }))}
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              </div>
+              <div>
+                <label className="block font-semibold text-gray-600 mb-1">Mês competência</label>
+                <input type="month" value={form.accrual_month}
+                  onChange={(e) => setForm((f) => ({ ...f, accrual_month: e.target.value }))}
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
               </div>
 
               <div>
@@ -495,7 +627,7 @@ export default function APPage() {
                 />
               </div>
 
-              {/* Gross amount + Installments */}
+              {/* Valores */}
               <div>
                 <label className="block font-semibold text-gray-600 mb-1">Valor Bruto (R$) *</label>
                 <input
@@ -509,6 +641,34 @@ export default function APPage() {
                   className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500"
                 />
               </div>
+              <div>
+                <label className="block font-semibold text-gray-600 mb-1">Desconto (R$)</label>
+                <input type="number" step="0.01" min="0" value={form.discount_amount}
+                  onChange={(e) => setForm((f) => ({ ...f, discount_amount: e.target.value }))}
+                  placeholder="0,00"
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              </div>
+
+              {/* Método de pagamento + CSLL override */}
+              <div>
+                <label className="block font-semibold text-gray-600 mb-1">Método de pagamento</label>
+                <select value={form.payment_method}
+                  onChange={(e) => setForm((f) => ({ ...f, payment_method: e.target.value as PaymentMethod | "" }))}
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-brand-500">
+                  <option value="">— Selecione —</option>
+                  {(Object.keys(PAYMENT_METHOD_LABELS) as PaymentMethod[]).map((k) => (
+                    <option key={k} value={k}>{PAYMENT_METHOD_LABELS[k]}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block font-semibold text-gray-600 mb-1">CSLL % (se aplicável)</label>
+                <input type="number" step="0.01" min="0" max="5" value={form.csll_override}
+                  onChange={(e) => setForm((f) => ({ ...f, csll_override: e.target.value }))}
+                  placeholder="0 (não retém)"
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              </div>
+
               <div>
                 <label className="block font-semibold text-gray-600 mb-1">Parcelas</label>
                 <select
@@ -529,28 +689,30 @@ export default function APPage() {
             </div>
 
             {/* ── Fiscal preview ───────────────────────────────────── */}
-            {fiscal && (parseFloat(form.gross_amount) > 0) && (
+            {fiscal && gross > 0 && (
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs space-y-2">
                 <div className="flex items-center gap-1.5 font-semibold text-amber-800 mb-2">
                   <Receipt size={12} />
                   Retenções Fiscais — cálculo automático
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-center">
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center">
                   {[
                     { label: "IRRF",   rate: FISCAL_DEFAULTS[form.supplier_type].irrf,   amount: fiscal.irrf   },
                     { label: "INSS",   rate: FISCAL_DEFAULTS[form.supplier_type].inss,   amount: fiscal.inss   },
                     { label: "ISS",    rate: FISCAL_DEFAULTS[form.supplier_type].iss,    amount: fiscal.iss    },
                     { label: "PIS",    rate: FISCAL_DEFAULTS[form.supplier_type].pis,    amount: fiscal.pis    },
                     { label: "COFINS", rate: FISCAL_DEFAULTS[form.supplier_type].cofins, amount: fiscal.cofins },
+                    { label: "CSLL",   rate: csllOvr > 0 ? csllOvr / 100 : FISCAL_DEFAULTS[form.supplier_type].csll, amount: fiscal.csll },
                   ].map((tax) => (
                     <div key={tax.label} className="bg-white rounded-lg p-2 border border-amber-100">
                       <div className="text-[10px] text-gray-500 font-medium">{tax.label}</div>
-                      <div className="text-amber-700 font-bold tabular-nums">{fmtBRL(tax.amount)}</div>
+                      <div className={`font-bold tabular-nums ${tax.amount > 0 ? "text-amber-700" : "text-gray-300"}`}>{fmtBRL(tax.amount)}</div>
                       <div className="text-[9px] text-gray-400">{pct(tax.rate)}</div>
                     </div>
                   ))}
                 </div>
-                <div className="flex items-center justify-between pt-1 border-t border-amber-200">
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-amber-200">
+                  {discount > 0 && <span className="text-gray-500">Desconto: <strong className="text-emerald-700">−{fmtBRL(discount)}</strong></span>}
                   <span className="text-gray-600">Total retido: <strong className="text-amber-800">{fmtBRL(fiscal.total)}</strong></span>
                   <span className="text-gray-600">
                     Líquido a pagar: <strong className="text-emerald-700 text-sm">{fmtBRL(fiscal.net)}</strong>
@@ -665,14 +827,16 @@ export default function APPage() {
                       </tr>,
                       expanded && (
                         <tr key={`${item.id}-detail`} className="bg-amber-50 border-b border-amber-100">
-                          <td colSpan={8} className="px-4 py-3">
-                            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-[11px]">
+                          <td colSpan={8} className="px-4 py-3 space-y-3">
+                            {/* Retenções */}
+                            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-[11px]">
                               {[
                                 { label: "IRRF",   rate: item.irrf_rate,   amount: item.irrf_amount   },
                                 { label: "INSS",   rate: item.inss_rate,   amount: item.inss_amount   },
                                 { label: "ISS",    rate: item.iss_rate,    amount: item.iss_amount    },
                                 { label: "PIS",    rate: item.pis_rate,    amount: item.pis_amount    },
                                 { label: "COFINS", rate: item.cofins_rate, amount: item.cofins_amount },
+                                { label: "CSLL",   rate: item.csll_rate,  amount: item.csll_amount   },
                               ].map((t) => (
                                 <div key={t.label} className="bg-white rounded-lg px-3 py-2 border border-amber-100 text-center">
                                   <div className="text-gray-500 font-medium">{t.label} ({pct(t.rate)})</div>
@@ -682,12 +846,24 @@ export default function APPage() {
                                 </div>
                               ))}
                             </div>
-                            <div className="mt-2 flex flex-wrap gap-4 text-[11px] text-gray-500">
+                            {/* Metadados */}
+                            <div className="flex flex-wrap gap-4 text-[11px] text-gray-500">
                               <span>Emissão: <strong>{fmtDate(item.issue_date)}</strong></span>
                               <span>Categoria: <strong>{item.category}</strong></span>
+                              {item.subcategory && <span>Subcategoria: <strong>{item.subcategory}</strong></span>}
+                              {item.expense_type && <span>Tipo: <strong>{EXPENSE_TYPE_LABELS[item.expense_type]}</strong></span>}
                               {item.cost_center && <span>CC: <strong>{item.cost_center}</strong></span>}
                               {item.reference_doc && <span>Doc: <strong>{item.reference_doc}</strong></span>}
-                              {item.paid_date && <span>Pago em: <strong>{fmtDate(item.paid_date)}</strong> · {item.payment_ref}</span>}
+                              {item.invoice_number && <span>NF-e: <strong>{item.invoice_number}{item.invoice_series ? `·${item.invoice_series}` : ""}</strong></span>}
+                              {item.accrual_month && <span>Competência: <strong>{item.accrual_month}</strong></span>}
+                              {item.payment_method && <span>Pagamento: <strong>{PAYMENT_METHOD_LABELS[item.payment_method]}</strong></span>}
+                              {item.discount_amount > 0 && <span>Desconto: <strong className="text-emerald-700">−{fmtBRL(item.discount_amount)}</strong></span>}
+                              {item.other_retentions > 0 && <span>Outras retenções: <strong>{fmtBRL(item.other_retentions)}</strong></span>}
+                              {item.paid_date && <span>Pago em: <strong>{fmtDate(item.paid_date)}</strong>{item.payment_reference ? ` · ${item.payment_reference}` : item.payment_ref ? ` · ${item.payment_ref}` : ""}</span>}
+                              {item.approval_status !== "PENDING" && <span>Aprovação: <strong className={item.approval_status === "APPROVED" ? "text-emerald-700" : "text-red-600"}>{item.approval_status === "APPROVED" ? "Aprovado" : "Rejeitado"}</strong></span>}
+                              {item.tags && item.tags.length > 0 && (
+                                <span>Tags: {item.tags.map((t) => <span key={t} className="inline-block bg-gray-100 text-gray-600 px-1.5 rounded text-[10px] mr-1">{t}</span>)}</span>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -797,11 +973,24 @@ export default function APPage() {
               </div>
             )}
             <div className="space-y-3 text-xs">
-              <div>
-                <label className="block font-semibold text-gray-600 mb-1">Data de pagamento *</label>
-                <input type="date" value={payModal.paid_date}
-                  onChange={(e) => setPayModal((m) => ({ ...m, paid_date: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-gray-600 mb-1">Data de pagamento *</label>
+                  <input type="date" value={payModal.paid_date}
+                    onChange={(e) => setPayModal((m) => ({ ...m, paid_date: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                </div>
+                <div>
+                  <label className="block font-semibold text-gray-600 mb-1">Método *</label>
+                  <select value={payModal.payment_method}
+                    onChange={(e) => setPayModal((m) => ({ ...m, payment_method: e.target.value as PaymentMethod | "" }))}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-brand-500">
+                    <option value="">— Selecione —</option>
+                    {(Object.keys(PAYMENT_METHOD_LABELS) as PaymentMethod[]).map((k) => (
+                      <option key={k} value={k}>{PAYMENT_METHOD_LABELS[k]}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
               <div>
                 <label className="block font-semibold text-gray-600 mb-1">Valor pago (líquido) *</label>
@@ -810,9 +999,9 @@ export default function APPage() {
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
               </div>
               <div>
-                <label className="block font-semibold text-gray-600 mb-1">Referência (txid PIX, NSU…)</label>
-                <input type="text" value={payModal.payment_ref} placeholder="Opcional"
-                  onChange={(e) => setPayModal((m) => ({ ...m, payment_ref: e.target.value }))}
+                <label className="block font-semibold text-gray-600 mb-1">Referência (txid PIX, NSU TED…)</label>
+                <input type="text" value={payModal.payment_reference} placeholder="Opcional"
+                  onChange={(e) => setPayModal((m) => ({ ...m, payment_reference: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
               </div>
             </div>

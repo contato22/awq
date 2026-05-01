@@ -1,7 +1,7 @@
 // ─── AP/AR Data Access Layer ─────────────────────────────────────────────────
 //
 // Manages Accounts Payable and Accounts Receivable.
-// Includes Brazilian fiscal retention auto-calculation (IRRF, INSS, ISS, PIS, COFINS).
+// Includes Brazilian fiscal retention auto-calculation (IRRF, INSS, ISS, PIS, COFINS, CSLL).
 //
 // Storage: public/data/epm-ap.json + epm-ar.json (dev) or Neon PostgreSQL (prod).
 // DO NOT import in client components.
@@ -14,7 +14,7 @@ import { sql } from "./db";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type BuCode   = "AWQ" | "JACQES" | "CAZA" | "ADVISOR" | "VENTURE";
-export type APStatus = "PENDING" | "SCHEDULED" | "PAID" | "OVERDUE" | "CANCELLED";
+export type APStatus = "PENDING" | "APPROVED" | "SCHEDULED" | "PAID" | "OVERDUE" | "CANCELLED";
 export type ARStatus = "PENDING" | "PARTIAL" | "RECEIVED" | "OVERDUE" | "CANCELLED";
 
 export type SupplierType =
@@ -25,28 +25,37 @@ export type SupplierType =
   | "rent"                  // IRRF 1.5%
   | "other";                // no retentions
 
+export type PaymentMethod   = "pix" | "ted" | "boleto" | "cash" | "card";
+export type ExpenseType     = "operational" | "financial" | "tax" | "other";
+export type ApprovalStatus  = "PENDING" | "APPROVED" | "REJECTED";
+export type TaxRegime       = "simples" | "presumido" | "real";
+
 export interface FiscalRates {
   irrf_rate:   number;
   inss_rate:   number;
   iss_rate:    number;
   pis_rate:    number;
   cofins_rate: number;
+  csll_rate:   number;
 }
 
 export interface APItem {
   id:               string;
+  ap_code?:         string;                 // AP-2026-001
   bu_code:          BuCode;
   supplier_id?:     string;
   supplier_name:    string;
   supplier_doc?:    string;
   supplier_type:    SupplierType;
+  // ── NF-e ──────────────────────────────────────────────────────────────────
+  invoice_number?:  string;
+  invoice_series?:  string;
+  invoice_date?:    string;                 // YYYY-MM-DD
   description:      string;
-  category:         string;
-  cost_center?:     string;
-  reference_doc?:   string;
-  issue_date:       string;  // YYYY-MM-DD
-  due_date:         string;  // YYYY-MM-DD
+  // ── Valores ───────────────────────────────────────────────────────────────
   gross_amount:     number;
+  discount_amount:  number;
+  // ── Retenções fiscais ─────────────────────────────────────────────────────
   irrf_rate:        number;
   irrf_amount:      number;
   inss_rate:        number;
@@ -57,15 +66,54 @@ export interface APItem {
   pis_amount:       number;
   cofins_rate:      number;
   cofins_amount:    number;
+  csll_rate:        number;
+  csll_amount:      number;
+  other_retentions: number;
   total_retentions: number;
-  net_amount:       number;  // gross - retentions
-  status:           APStatus;
-  paid_date?:       string;
-  paid_amount?:     number;
-  payment_ref?:     string;
-  source_system:    string;
-  created_at:       string;
-  created_by?:      string;
+  net_amount:       number;                 // gross - discount - retentions
+  // ── Classificação contábil ────────────────────────────────────────────────
+  account_id?:           string;
+  expense_type?:         ExpenseType;
+  nature_of_operation?:  string;
+  // ── Classificação gerencial ───────────────────────────────────────────────
+  category:         string;
+  subcategory?:     string;
+  cost_center?:     string;
+  reference_doc?:   string;
+  // ── Regime de competência ─────────────────────────────────────────────────
+  competence_date?: string;                 // YYYY-MM-DD
+  accrual_month?:   string;                 // YYYY-MM
+  is_prepaid:       boolean;
+  prepaid_periods?: number;
+  // ── Datas ─────────────────────────────────────────────────────────────────
+  issue_date:       string;                 // YYYY-MM-DD (emissão)
+  due_date:         string;                 // YYYY-MM-DD
+  // ── Pagamento ─────────────────────────────────────────────────────────────
+  payment_method?:    PaymentMethod;
+  payment_reference?: string;
+  paid_date?:         string;
+  paid_amount?:       number;
+  payment_ref?:       string;               // legado — use payment_reference
+  // ── Status & Workflow ─────────────────────────────────────────────────────
+  status:            APStatus;
+  approval_status:   ApprovalStatus;
+  approved_by?:      string;
+  approved_at?:      string;
+  // ── Documentos ────────────────────────────────────────────────────────────
+  invoice_xml_url?:     string;
+  invoice_pdf_url?:     string;
+  payment_receipt_url?: string;
+  contract_url?:        string;
+  // ── Impostos sobre operação ───────────────────────────────────────────────
+  icms_amount:    number;
+  ipi_amount:     number;
+  tax_regime?:    TaxRegime;
+  // ── Audit ─────────────────────────────────────────────────────────────────
+  tags:           string[];
+  source_system:  string;
+  created_at:     string;
+  created_by?:    string;
+  updated_by?:    string;
 }
 
 export interface NewAPInput {
@@ -74,19 +122,37 @@ export interface NewAPInput {
   supplier_name: string;
   supplier_doc?: string;
   supplier_type: SupplierType;
+  invoice_number?:  string;
+  invoice_series?:  string;
+  invoice_date?:    string;
   description:   string;
   category:      string;
+  subcategory?:  string;
   cost_center?:  string;
   reference_doc?: string;
+  expense_type?:         ExpenseType;
+  nature_of_operation?:  string;
+  competence_date?: string;
+  accrual_month?:   string;
+  is_prepaid?:      boolean;
+  prepaid_periods?: number;
   issue_date:    string;
   due_date:      string;
   gross_amount:  number;
+  discount_amount?: number;
+  payment_method?: PaymentMethod;
   // Optional rate overrides (0–1 fractions)
   irrf_rate?:   number;
   inss_rate?:   number;
   iss_rate?:    number;
   pis_rate?:    number;
   cofins_rate?: number;
+  csll_rate?:   number;
+  other_retentions?: number;
+  icms_amount?: number;
+  ipi_amount?:  number;
+  tax_regime?:  TaxRegime;
+  tags?:        string[];
   source_system?: string;
   created_by?:   string;
 }
@@ -163,12 +229,12 @@ export type AgingBucket = "CURRENT" | "1-30d" | "31-60d" | "61-90d" | "+90d";
 // ─── Fiscal defaults ──────────────────────────────────────────────────────────
 
 const FISCAL_DEFAULTS: Record<SupplierType, FiscalRates> = {
-  service_professional: { irrf_rate: 0.015, inss_rate: 0,    iss_rate: 0.05, pis_rate: 0.0065, cofins_rate: 0.03 },
-  service_cleaning:     { irrf_rate: 0.01,  inss_rate: 0.11, iss_rate: 0.05, pis_rate: 0.0065, cofins_rate: 0.03 },
-  service_construction: { irrf_rate: 0.015, inss_rate: 0.11, iss_rate: 0.05, pis_rate: 0.0065, cofins_rate: 0.03 },
-  goods:                { irrf_rate: 0,     inss_rate: 0,    iss_rate: 0,    pis_rate: 0,      cofins_rate: 0    },
-  rent:                 { irrf_rate: 0.015, inss_rate: 0,    iss_rate: 0,    pis_rate: 0,      cofins_rate: 0    },
-  other:                { irrf_rate: 0,     inss_rate: 0,    iss_rate: 0,    pis_rate: 0,      cofins_rate: 0    },
+  service_professional: { irrf_rate: 0.015, inss_rate: 0,    iss_rate: 0.05, pis_rate: 0.0065, cofins_rate: 0.03, csll_rate: 0    },
+  service_cleaning:     { irrf_rate: 0.01,  inss_rate: 0.11, iss_rate: 0.05, pis_rate: 0.0065, cofins_rate: 0.03, csll_rate: 0    },
+  service_construction: { irrf_rate: 0.015, inss_rate: 0.11, iss_rate: 0.05, pis_rate: 0.0065, cofins_rate: 0.03, csll_rate: 0    },
+  goods:                { irrf_rate: 0,     inss_rate: 0,    iss_rate: 0,    pis_rate: 0,      cofins_rate: 0,    csll_rate: 0    },
+  rent:                 { irrf_rate: 0.015, inss_rate: 0,    iss_rate: 0,    pis_rate: 0,      cofins_rate: 0,    csll_rate: 0    },
+  other:                { irrf_rate: 0,     inss_rate: 0,    iss_rate: 0,    pis_rate: 0,      cofins_rate: 0,    csll_rate: 0    },
 };
 
 export function getDefaultFiscalRates(type: SupplierType): FiscalRates {
@@ -178,22 +244,27 @@ export function getDefaultFiscalRates(type: SupplierType): FiscalRates {
 export function calcAPFiscal(
   gross: number,
   type: SupplierType,
-  overrides?: Partial<FiscalRates>
+  overrides?: Partial<FiscalRates>,
+  discount?: number,
+  otherRetentions?: number,
 ): { rates: FiscalRates; amounts: Record<string, number>; total_retentions: number; net_amount: number } {
   const rates: FiscalRates = { ...FISCAL_DEFAULTS[type], ...overrides };
+  const disc = round2(discount ?? 0);
 
   const irrf   = round2(gross * rates.irrf_rate);
   const inss   = round2(gross * rates.inss_rate);
   const iss    = round2(gross * rates.iss_rate);
   const pis    = round2(gross * rates.pis_rate);
   const cofins = round2(gross * rates.cofins_rate);
+  const csll   = round2(gross * rates.csll_rate);
+  const other  = round2(otherRetentions ?? 0);
 
-  const total_retentions = round2(irrf + inss + iss + pis + cofins);
-  const net_amount       = round2(gross - total_retentions);
+  const total_retentions = round2(irrf + inss + iss + pis + cofins + csll + other);
+  const net_amount       = round2(gross - disc - total_retentions);
 
   return {
     rates,
-    amounts: { irrf, inss, iss, pis, cofins },
+    amounts: { irrf, inss, iss, pis, cofins, csll, other },
     total_retentions,
     net_amount,
   };
@@ -250,45 +321,108 @@ export async function initAPARDB(): Promise<void> {
 
   await sql`
     CREATE TABLE IF NOT EXISTS epm_ap (
-      id                TEXT PRIMARY KEY,
-      bu_code           TEXT NOT NULL,
-      supplier_id       TEXT,
-      supplier_name     TEXT NOT NULL,
-      supplier_doc      TEXT,
-      supplier_type     TEXT NOT NULL DEFAULT 'other',
-      description       TEXT NOT NULL,
-      category          TEXT NOT NULL DEFAULT 'Fornecedor',
-      reference_doc     TEXT,
-      issue_date        TEXT NOT NULL,
-      due_date          TEXT NOT NULL,
-      gross_amount      NUMERIC NOT NULL,
-      irrf_rate         NUMERIC NOT NULL DEFAULT 0,
-      irrf_amount       NUMERIC NOT NULL DEFAULT 0,
-      inss_rate         NUMERIC NOT NULL DEFAULT 0,
-      inss_amount       NUMERIC NOT NULL DEFAULT 0,
-      iss_rate          NUMERIC NOT NULL DEFAULT 0,
-      iss_amount        NUMERIC NOT NULL DEFAULT 0,
-      pis_rate          NUMERIC NOT NULL DEFAULT 0,
-      pis_amount        NUMERIC NOT NULL DEFAULT 0,
-      cofins_rate       NUMERIC NOT NULL DEFAULT 0,
-      cofins_amount     NUMERIC NOT NULL DEFAULT 0,
-      total_retentions  NUMERIC NOT NULL DEFAULT 0,
-      net_amount        NUMERIC NOT NULL,
-      status            TEXT NOT NULL DEFAULT 'PENDING',
-      paid_date         TEXT,
-      paid_amount       NUMERIC,
-      payment_ref       TEXT,
-      source_system     TEXT NOT NULL DEFAULT 'manual',
-      created_at        TEXT NOT NULL,
-      created_by        TEXT
+      id                   TEXT PRIMARY KEY,
+      ap_code              TEXT,
+      bu_code              TEXT NOT NULL,
+      supplier_id          TEXT,
+      supplier_name        TEXT NOT NULL,
+      supplier_doc         TEXT,
+      supplier_type        TEXT NOT NULL DEFAULT 'other',
+      invoice_number       TEXT,
+      invoice_series       TEXT,
+      invoice_date         TEXT,
+      description          TEXT NOT NULL,
+      category             TEXT NOT NULL DEFAULT 'Fornecedor',
+      subcategory          TEXT,
+      cost_center          TEXT,
+      reference_doc        TEXT,
+      expense_type         TEXT,
+      nature_of_operation  TEXT,
+      competence_date      TEXT,
+      accrual_month        TEXT,
+      is_prepaid           BOOLEAN NOT NULL DEFAULT FALSE,
+      prepaid_periods      INTEGER,
+      issue_date           TEXT NOT NULL,
+      due_date             TEXT NOT NULL,
+      gross_amount         NUMERIC NOT NULL,
+      discount_amount      NUMERIC NOT NULL DEFAULT 0,
+      irrf_rate            NUMERIC NOT NULL DEFAULT 0,
+      irrf_amount          NUMERIC NOT NULL DEFAULT 0,
+      inss_rate            NUMERIC NOT NULL DEFAULT 0,
+      inss_amount          NUMERIC NOT NULL DEFAULT 0,
+      iss_rate             NUMERIC NOT NULL DEFAULT 0,
+      iss_amount           NUMERIC NOT NULL DEFAULT 0,
+      pis_rate             NUMERIC NOT NULL DEFAULT 0,
+      pis_amount           NUMERIC NOT NULL DEFAULT 0,
+      cofins_rate          NUMERIC NOT NULL DEFAULT 0,
+      cofins_amount        NUMERIC NOT NULL DEFAULT 0,
+      csll_rate            NUMERIC NOT NULL DEFAULT 0,
+      csll_amount          NUMERIC NOT NULL DEFAULT 0,
+      other_retentions     NUMERIC NOT NULL DEFAULT 0,
+      total_retentions     NUMERIC NOT NULL DEFAULT 0,
+      net_amount           NUMERIC NOT NULL,
+      payment_method       TEXT,
+      payment_reference    TEXT,
+      status               TEXT NOT NULL DEFAULT 'PENDING',
+      approval_status      TEXT NOT NULL DEFAULT 'PENDING',
+      approved_by          TEXT,
+      approved_at          TEXT,
+      paid_date            TEXT,
+      paid_amount          NUMERIC,
+      payment_ref          TEXT,
+      invoice_xml_url      TEXT,
+      invoice_pdf_url      TEXT,
+      payment_receipt_url  TEXT,
+      contract_url         TEXT,
+      icms_amount          NUMERIC NOT NULL DEFAULT 0,
+      ipi_amount           NUMERIC NOT NULL DEFAULT 0,
+      tax_regime           TEXT,
+      tags                 TEXT NOT NULL DEFAULT '[]',
+      source_system        TEXT NOT NULL DEFAULT 'manual',
+      created_at           TEXT NOT NULL,
+      created_by           TEXT,
+      updated_by           TEXT
     )
   `;
 
-  await sql`CREATE INDEX IF NOT EXISTS idx_epm_ap_bu_code    ON epm_ap(bu_code)`;
-  await sql`CREATE INDEX IF NOT EXISTS idx_epm_ap_status     ON epm_ap(status)`;
-  await sql`CREATE INDEX IF NOT EXISTS idx_epm_ap_due_date   ON epm_ap(due_date)`;
-  await sql`ALTER TABLE epm_ap ADD COLUMN IF NOT EXISTS supplier_id TEXT`;
-  await sql`ALTER TABLE epm_ap ADD COLUMN IF NOT EXISTS cost_center TEXT`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_epm_ap_bu_code      ON epm_ap(bu_code)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_epm_ap_status       ON epm_ap(status)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_epm_ap_due_date     ON epm_ap(due_date)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_epm_ap_accrual      ON epm_ap(accrual_month)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_epm_ap_approval     ON epm_ap(approval_status)`;
+
+  // Migrations para bancos existentes com schema antigo
+  await sql`ALTER TABLE epm_ap ADD COLUMN IF NOT EXISTS ap_code             TEXT`;
+  await sql`ALTER TABLE epm_ap ADD COLUMN IF NOT EXISTS supplier_id         TEXT`;
+  await sql`ALTER TABLE epm_ap ADD COLUMN IF NOT EXISTS cost_center         TEXT`;
+  await sql`ALTER TABLE epm_ap ADD COLUMN IF NOT EXISTS invoice_number      TEXT`;
+  await sql`ALTER TABLE epm_ap ADD COLUMN IF NOT EXISTS invoice_series      TEXT`;
+  await sql`ALTER TABLE epm_ap ADD COLUMN IF NOT EXISTS invoice_date        TEXT`;
+  await sql`ALTER TABLE epm_ap ADD COLUMN IF NOT EXISTS subcategory         TEXT`;
+  await sql`ALTER TABLE epm_ap ADD COLUMN IF NOT EXISTS expense_type        TEXT`;
+  await sql`ALTER TABLE epm_ap ADD COLUMN IF NOT EXISTS nature_of_operation TEXT`;
+  await sql`ALTER TABLE epm_ap ADD COLUMN IF NOT EXISTS competence_date     TEXT`;
+  await sql`ALTER TABLE epm_ap ADD COLUMN IF NOT EXISTS accrual_month       TEXT`;
+  await sql`ALTER TABLE epm_ap ADD COLUMN IF NOT EXISTS is_prepaid          BOOLEAN NOT NULL DEFAULT FALSE`;
+  await sql`ALTER TABLE epm_ap ADD COLUMN IF NOT EXISTS prepaid_periods     INTEGER`;
+  await sql`ALTER TABLE epm_ap ADD COLUMN IF NOT EXISTS discount_amount     NUMERIC NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE epm_ap ADD COLUMN IF NOT EXISTS csll_rate           NUMERIC NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE epm_ap ADD COLUMN IF NOT EXISTS csll_amount         NUMERIC NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE epm_ap ADD COLUMN IF NOT EXISTS other_retentions    NUMERIC NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE epm_ap ADD COLUMN IF NOT EXISTS payment_method      TEXT`;
+  await sql`ALTER TABLE epm_ap ADD COLUMN IF NOT EXISTS payment_reference   TEXT`;
+  await sql`ALTER TABLE epm_ap ADD COLUMN IF NOT EXISTS approval_status     TEXT NOT NULL DEFAULT 'PENDING'`;
+  await sql`ALTER TABLE epm_ap ADD COLUMN IF NOT EXISTS approved_by         TEXT`;
+  await sql`ALTER TABLE epm_ap ADD COLUMN IF NOT EXISTS approved_at         TEXT`;
+  await sql`ALTER TABLE epm_ap ADD COLUMN IF NOT EXISTS invoice_xml_url     TEXT`;
+  await sql`ALTER TABLE epm_ap ADD COLUMN IF NOT EXISTS invoice_pdf_url     TEXT`;
+  await sql`ALTER TABLE epm_ap ADD COLUMN IF NOT EXISTS payment_receipt_url TEXT`;
+  await sql`ALTER TABLE epm_ap ADD COLUMN IF NOT EXISTS contract_url        TEXT`;
+  await sql`ALTER TABLE epm_ap ADD COLUMN IF NOT EXISTS icms_amount         NUMERIC NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE epm_ap ADD COLUMN IF NOT EXISTS ipi_amount          NUMERIC NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE epm_ap ADD COLUMN IF NOT EXISTS tax_regime          TEXT`;
+  await sql`ALTER TABLE epm_ap ADD COLUMN IF NOT EXISTS tags                TEXT NOT NULL DEFAULT '[]'`;
+  await sql`ALTER TABLE epm_ap ADD COLUMN IF NOT EXISTS updated_by          TEXT`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS epm_ar (
@@ -343,39 +477,70 @@ export function getAgingBucket(due_date: string): AgingBucket {
 // ─── AP API ───────────────────────────────────────────────────────────────────
 
 function rowToAP(row: Record<string, unknown>): APItem {
+  let tags: string[] = [];
+  try { tags = JSON.parse(String(row.tags ?? "[]")); } catch { tags = []; }
   return {
     id:               String(row.id),
+    ap_code:          row.ap_code ? String(row.ap_code) : undefined,
     bu_code:          String(row.bu_code) as BuCode,
     supplier_id:      row.supplier_id ? String(row.supplier_id) : undefined,
     supplier_name:    String(row.supplier_name),
     supplier_doc:     row.supplier_doc ? String(row.supplier_doc) : undefined,
     supplier_type:    String(row.supplier_type) as SupplierType,
+    invoice_number:   row.invoice_number ? String(row.invoice_number) : undefined,
+    invoice_series:   row.invoice_series ? String(row.invoice_series) : undefined,
+    invoice_date:     row.invoice_date   ? String(row.invoice_date)   : undefined,
     description:      String(row.description),
-    category:         String(row.category),
-    cost_center:      row.cost_center ? String(row.cost_center) : undefined,
+    gross_amount:     Number(row.gross_amount),
+    discount_amount:  Number(row.discount_amount ?? 0),
+    irrf_rate:        Number(row.irrf_rate    ?? 0),
+    irrf_amount:      Number(row.irrf_amount  ?? 0),
+    inss_rate:        Number(row.inss_rate    ?? 0),
+    inss_amount:      Number(row.inss_amount  ?? 0),
+    iss_rate:         Number(row.iss_rate     ?? 0),
+    iss_amount:       Number(row.iss_amount   ?? 0),
+    pis_rate:         Number(row.pis_rate     ?? 0),
+    pis_amount:       Number(row.pis_amount   ?? 0),
+    cofins_rate:      Number(row.cofins_rate  ?? 0),
+    cofins_amount:    Number(row.cofins_amount ?? 0),
+    csll_rate:        Number(row.csll_rate    ?? 0),
+    csll_amount:      Number(row.csll_amount  ?? 0),
+    other_retentions: Number(row.other_retentions ?? 0),
+    total_retentions: Number(row.total_retentions ?? 0),
+    net_amount:       Number(row.net_amount),
+    expense_type:         row.expense_type         ? String(row.expense_type)         as ExpenseType    : undefined,
+    nature_of_operation:  row.nature_of_operation  ? String(row.nature_of_operation)                   : undefined,
+    category:         String(row.category ?? "Fornecedor"),
+    subcategory:      row.subcategory  ? String(row.subcategory)  : undefined,
+    cost_center:      row.cost_center  ? String(row.cost_center)  : undefined,
     reference_doc:    row.reference_doc ? String(row.reference_doc) : undefined,
+    competence_date:  row.competence_date ? String(row.competence_date) : undefined,
+    accrual_month:    row.accrual_month   ? String(row.accrual_month)   : undefined,
+    is_prepaid:       Boolean(row.is_prepaid),
+    prepaid_periods:  row.prepaid_periods != null ? Number(row.prepaid_periods) : undefined,
     issue_date:       String(row.issue_date),
     due_date:         String(row.due_date),
-    gross_amount:     Number(row.gross_amount),
-    irrf_rate:        Number(row.irrf_rate),
-    irrf_amount:      Number(row.irrf_amount),
-    inss_rate:        Number(row.inss_rate),
-    inss_amount:      Number(row.inss_amount),
-    iss_rate:         Number(row.iss_rate),
-    iss_amount:       Number(row.iss_amount),
-    pis_rate:         Number(row.pis_rate),
-    pis_amount:       Number(row.pis_amount),
-    cofins_rate:      Number(row.cofins_rate),
-    cofins_amount:    Number(row.cofins_amount),
-    total_retentions: Number(row.total_retentions),
-    net_amount:       Number(row.net_amount),
+    payment_method:   row.payment_method   ? String(row.payment_method)   as PaymentMethod  : undefined,
+    payment_reference: row.payment_reference ? String(row.payment_reference) : undefined,
     status:           String(row.status) as APStatus,
-    paid_date:        row.paid_date ? String(row.paid_date) : undefined,
+    approval_status:  String(row.approval_status ?? "PENDING") as ApprovalStatus,
+    approved_by:      row.approved_by ? String(row.approved_by) : undefined,
+    approved_at:      row.approved_at ? String(row.approved_at) : undefined,
+    paid_date:        row.paid_date  ? String(row.paid_date)  : undefined,
     paid_amount:      row.paid_amount != null ? Number(row.paid_amount) : undefined,
     payment_ref:      row.payment_ref ? String(row.payment_ref) : undefined,
-    source_system:    String(row.source_system),
+    invoice_xml_url:     row.invoice_xml_url     ? String(row.invoice_xml_url)     : undefined,
+    invoice_pdf_url:     row.invoice_pdf_url     ? String(row.invoice_pdf_url)     : undefined,
+    payment_receipt_url: row.payment_receipt_url ? String(row.payment_receipt_url) : undefined,
+    contract_url:        row.contract_url        ? String(row.contract_url)        : undefined,
+    icms_amount:      Number(row.icms_amount ?? 0),
+    ipi_amount:       Number(row.ipi_amount  ?? 0),
+    tax_regime:       row.tax_regime ? String(row.tax_regime) as TaxRegime : undefined,
+    tags,
+    source_system:    String(row.source_system ?? "manual"),
     created_at:       String(row.created_at),
-    created_by:       row.created_by ? String(row.created_by) : undefined,
+    created_by:       row.created_by  ? String(row.created_by)  : undefined,
+    updated_by:       row.updated_by  ? String(row.updated_by)  : undefined,
   };
 }
 
@@ -441,7 +606,10 @@ export async function addAP(input: NewAPInput): Promise<APItem> {
       iss_rate:    input.iss_rate,
       pis_rate:    input.pis_rate,
       cofins_rate: input.cofins_rate,
-    }
+      csll_rate:   input.csll_rate,
+    },
+    input.discount_amount,
+    input.other_retentions,
   );
 
   const item: APItem = {
@@ -451,13 +619,12 @@ export async function addAP(input: NewAPInput): Promise<APItem> {
     supplier_name:    input.supplier_name,
     supplier_doc:     input.supplier_doc,
     supplier_type:    input.supplier_type,
+    invoice_number:   input.invoice_number,
+    invoice_series:   input.invoice_series,
+    invoice_date:     input.invoice_date,
     description:      input.description,
-    category:         input.category,
-    cost_center:      input.cost_center,
-    reference_doc:    input.reference_doc,
-    issue_date:       input.issue_date,
-    due_date:         input.due_date,
     gross_amount:     input.gross_amount,
+    discount_amount:  input.discount_amount ?? 0,
     irrf_rate:        fiscal.rates.irrf_rate,
     irrf_amount:      fiscal.amounts.irrf,
     inss_rate:        fiscal.rates.inss_rate,
@@ -468,9 +635,30 @@ export async function addAP(input: NewAPInput): Promise<APItem> {
     pis_amount:       fiscal.amounts.pis,
     cofins_rate:      fiscal.rates.cofins_rate,
     cofins_amount:    fiscal.amounts.cofins,
+    csll_rate:        fiscal.rates.csll_rate,
+    csll_amount:      fiscal.amounts.csll,
+    other_retentions: fiscal.amounts.other,
     total_retentions: fiscal.total_retentions,
     net_amount:       fiscal.net_amount,
+    expense_type:         input.expense_type,
+    nature_of_operation:  input.nature_of_operation,
+    category:         input.category,
+    subcategory:      input.subcategory,
+    cost_center:      input.cost_center,
+    reference_doc:    input.reference_doc,
+    competence_date:  input.competence_date,
+    accrual_month:    input.accrual_month,
+    is_prepaid:       input.is_prepaid ?? false,
+    prepaid_periods:  input.prepaid_periods,
+    issue_date:       input.issue_date,
+    due_date:         input.due_date,
+    payment_method:   input.payment_method,
+    icms_amount:      input.icms_amount ?? 0,
+    ipi_amount:       input.ipi_amount  ?? 0,
+    tax_regime:       input.tax_regime,
+    tags:             input.tags ?? [],
     status:           "PENDING",
+    approval_status:  "PENDING",
     source_system:    input.source_system ?? "manual",
     created_at:       new Date().toISOString(),
     created_by:       input.created_by,
@@ -480,18 +668,40 @@ export async function addAP(input: NewAPInput): Promise<APItem> {
     await sql`
       INSERT INTO epm_ap (
         id, bu_code, supplier_id, supplier_name, supplier_doc, supplier_type,
-        description, category, cost_center, reference_doc, issue_date, due_date,
-        gross_amount, irrf_rate, irrf_amount, inss_rate, inss_amount,
-        iss_rate, iss_amount, pis_rate, pis_amount, cofins_rate, cofins_amount,
-        total_retentions, net_amount, status, source_system, created_at, created_by
+        invoice_number, invoice_series, invoice_date,
+        description, category, subcategory, cost_center, reference_doc,
+        expense_type, nature_of_operation,
+        competence_date, accrual_month, is_prepaid, prepaid_periods,
+        issue_date, due_date,
+        gross_amount, discount_amount,
+        irrf_rate, irrf_amount, inss_rate, inss_amount,
+        iss_rate, iss_amount, pis_rate, pis_amount,
+        cofins_rate, cofins_amount, csll_rate, csll_amount,
+        other_retentions, total_retentions, net_amount,
+        payment_method,
+        icms_amount, ipi_amount, tax_regime,
+        tags, status, approval_status, source_system, created_at, created_by
       ) VALUES (
-        ${item.id}, ${item.bu_code}, ${item.supplier_id ?? null}, ${item.supplier_name},
-        ${item.supplier_doc ?? null}, ${item.supplier_type}, ${item.description},
-        ${item.category}, ${item.cost_center ?? null}, ${item.reference_doc ?? null}, ${item.issue_date}, ${item.due_date},
-        ${item.gross_amount}, ${item.irrf_rate}, ${item.irrf_amount},
-        ${item.inss_rate}, ${item.inss_amount}, ${item.iss_rate}, ${item.iss_amount},
-        ${item.pis_rate}, ${item.pis_amount}, ${item.cofins_rate}, ${item.cofins_amount},
-        ${item.total_retentions}, ${item.net_amount}, ${item.status},
+        ${item.id}, ${item.bu_code}, ${item.supplier_id ?? null},
+        ${item.supplier_name}, ${item.supplier_doc ?? null}, ${item.supplier_type},
+        ${item.invoice_number ?? null}, ${item.invoice_series ?? null}, ${item.invoice_date ?? null},
+        ${item.description}, ${item.category}, ${item.subcategory ?? null},
+        ${item.cost_center ?? null}, ${item.reference_doc ?? null},
+        ${item.expense_type ?? null}, ${item.nature_of_operation ?? null},
+        ${item.competence_date ?? null}, ${item.accrual_month ?? null},
+        ${item.is_prepaid}, ${item.prepaid_periods ?? null},
+        ${item.issue_date}, ${item.due_date},
+        ${item.gross_amount}, ${item.discount_amount},
+        ${item.irrf_rate}, ${item.irrf_amount},
+        ${item.inss_rate}, ${item.inss_amount},
+        ${item.iss_rate}, ${item.iss_amount},
+        ${item.pis_rate}, ${item.pis_amount},
+        ${item.cofins_rate}, ${item.cofins_amount},
+        ${item.csll_rate}, ${item.csll_amount},
+        ${item.other_retentions}, ${item.total_retentions}, ${item.net_amount},
+        ${item.payment_method ?? null},
+        ${item.icms_amount}, ${item.ipi_amount}, ${item.tax_regime ?? null},
+        ${JSON.stringify(item.tags)}, ${item.status}, ${item.approval_status},
         ${item.source_system}, ${item.created_at}, ${item.created_by ?? null}
       )
     `;
@@ -506,12 +716,17 @@ export async function addAP(input: NewAPInput): Promise<APItem> {
 
 export async function payAP(
   id: string,
-  data: { paid_date: string; paid_amount: number; payment_ref?: string }
+  data: { paid_date: string; paid_amount: number; payment_ref?: string; payment_method?: string; payment_reference?: string }
 ): Promise<APItem | null> {
   if (sql) {
     const rows = await sql`
-      UPDATE epm_ap SET status='PAID', paid_date=${data.paid_date},
-        paid_amount=${data.paid_amount}, payment_ref=${data.payment_ref ?? null}
+      UPDATE epm_ap
+      SET status='PAID',
+          paid_date=${data.paid_date},
+          paid_amount=${data.paid_amount},
+          payment_ref=${data.payment_ref ?? null},
+          payment_method=${data.payment_method ?? null},
+          payment_reference=${data.payment_reference ?? null}
       WHERE id=${id} RETURNING *
     `;
     return rows[0] ? rowToAP(rows[0] as Record<string, unknown>) : null;
@@ -519,7 +734,15 @@ export async function payAP(
   const store = readAPStore();
   const idx   = store.items.findIndex((i) => i.id === id);
   if (idx === -1) return null;
-  store.items[idx] = { ...store.items[idx], status: "PAID", ...data };
+  store.items[idx] = {
+    ...store.items[idx],
+    status:           "PAID",
+    paid_date:        data.paid_date,
+    paid_amount:      data.paid_amount,
+    payment_ref:      data.payment_ref,
+    payment_method:   data.payment_method as PaymentMethod | undefined,
+    payment_reference: data.payment_reference,
+  };
   writeAPStore(store);
   return store.items[idx];
 }
@@ -549,19 +772,50 @@ export async function deleteAP(id: string): Promise<boolean> {
   return store.items.length < before;
 }
 
+export type APUpdateInput = Partial<Pick<APItem,
+  | "supplier_name" | "description" | "category" | "subcategory"
+  | "cost_center"   | "reference_doc" | "due_date"
+  | "invoice_number" | "invoice_series" | "invoice_date"
+  | "expense_type"  | "nature_of_operation"
+  | "competence_date" | "accrual_month" | "is_prepaid" | "prepaid_periods"
+  | "payment_method" | "tax_regime" | "tags"
+  | "approval_status" | "approved_by" | "approved_at"
+  | "invoice_xml_url" | "invoice_pdf_url" | "payment_receipt_url" | "contract_url"
+>>;
+
 export async function updateAP(
   id: string,
-  updates: Partial<Pick<APItem, "supplier_name" | "description" | "category" | "cost_center" | "reference_doc" | "due_date">>
+  updates: APUpdateInput
 ): Promise<APItem | null> {
   if (sql) {
     const rows = await sql`
       UPDATE epm_ap SET
-        supplier_name = COALESCE(${updates.supplier_name ?? null}, supplier_name),
-        description   = COALESCE(${updates.description   ?? null}, description),
-        category      = COALESCE(${updates.category      ?? null}, category),
-        cost_center   = ${updates.cost_center ?? null},
-        reference_doc = ${updates.reference_doc ?? null},
-        due_date      = COALESCE(${updates.due_date      ?? null}, due_date)
+        supplier_name       = COALESCE(${updates.supplier_name       ?? null}, supplier_name),
+        description         = COALESCE(${updates.description         ?? null}, description),
+        category            = COALESCE(${updates.category            ?? null}, category),
+        subcategory         = ${updates.subcategory         ?? null},
+        cost_center         = ${updates.cost_center         ?? null},
+        reference_doc       = ${updates.reference_doc       ?? null},
+        due_date            = COALESCE(${updates.due_date            ?? null}, due_date),
+        invoice_number      = ${updates.invoice_number      ?? null},
+        invoice_series      = ${updates.invoice_series      ?? null},
+        invoice_date        = ${updates.invoice_date        ?? null},
+        expense_type        = ${updates.expense_type        ?? null},
+        nature_of_operation = ${updates.nature_of_operation ?? null},
+        competence_date     = ${updates.competence_date     ?? null},
+        accrual_month       = ${updates.accrual_month       ?? null},
+        is_prepaid          = COALESCE(${updates.is_prepaid ?? null}::boolean, is_prepaid),
+        prepaid_periods     = ${updates.prepaid_periods     ?? null},
+        payment_method      = ${updates.payment_method      ?? null},
+        tax_regime          = ${updates.tax_regime          ?? null},
+        tags                = COALESCE(${updates.tags != null ? JSON.stringify(updates.tags) : null}, tags),
+        approval_status     = COALESCE(${updates.approval_status ?? null}, approval_status),
+        approved_by         = ${updates.approved_by         ?? null},
+        approved_at         = ${updates.approved_at         ?? null},
+        invoice_xml_url     = ${updates.invoice_xml_url     ?? null},
+        invoice_pdf_url     = ${updates.invoice_pdf_url     ?? null},
+        payment_receipt_url = ${updates.payment_receipt_url ?? null},
+        contract_url        = ${updates.contract_url        ?? null}
       WHERE id = ${id} RETURNING *
     `;
     return rows[0] ? rowToAP(rows[0] as Record<string, unknown>) : null;
