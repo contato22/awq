@@ -298,13 +298,11 @@ export default function CurrencyPage() {
           </div>
         </div>
 
-        {unmatched.length > 0 && (
-          <div className="flex items-center gap-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-700">
-            <AlertTriangle size={13} className="shrink-0" />
-            Taxas de câmbio para efeitos de relatório devem ser atualizadas mensalmente via BCB PTAX.
-            Para exposições significativas, considere contratar hedge cambial (NDF ou opções de câmbio).
-          </div>
-        )}
+        <div className="flex items-center gap-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-700">
+          <AlertTriangle size={13} className="shrink-0" />
+          Taxas de câmbio para efeitos de relatório devem ser atualizadas mensalmente via BCB PTAX.
+          Para exposições significativas, considere contratar hedge cambial (NDF ou opções de câmbio).
+        </div>
 
         <div className="flex items-center gap-3 text-xs">
           <Link href="/awq/epm" className="text-brand-600 hover:underline">← EPM Overview</Link>
@@ -318,5 +316,3 @@ export default function CurrencyPage() {
   );
 }
 
-// Dummy reference to prevent unused import lint warning
-const unmatched: unknown[] = [];

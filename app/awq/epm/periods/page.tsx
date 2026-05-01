@@ -162,10 +162,10 @@ export default function PeriodsPage() {
         {/* ── Summary pills ──────────────────────────────────────────── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
-            { label: "Bloqueados", value: lockedCount,  ...STATUS_CFG.LOCKED   },
-            { label: "Fechados",   value: closedCount,  ...STATUS_CFG.CLOSED   },
-            { label: "Em revisão", value: reviewCount,  ...STATUS_CFG.REVIEWING },
-            { label: "Abertos",    value: openCount,    ...STATUS_CFG.OPEN     },
+            { ...STATUS_CFG.LOCKED,    label: "Bloqueados", value: lockedCount  },
+            { ...STATUS_CFG.CLOSED,    label: "Fechados",   value: closedCount  },
+            { ...STATUS_CFG.REVIEWING, label: "Em revisão", value: reviewCount  },
+            { ...STATUS_CFG.OPEN,      label: "Abertos",    value: openCount    },
           ].map((s) => {
             const Icon = s.icon;
             return (
