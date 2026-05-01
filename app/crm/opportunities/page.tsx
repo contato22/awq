@@ -269,6 +269,16 @@ function OppCard({
           {isOverdue ? `${Math.abs(days!)} dias atraso` : `${days} dias restantes`}
         </div>
       )}
+
+      {opp.stage === "closed_won" && (
+        <Link
+          href={`/awq/ppm/add?opportunity_id=${opp.opportunity_id}&customer=${encodeURIComponent(opp.account_name ?? "")}&revenue=${opp.deal_value}&bu=${opp.bu}`}
+          className="mt-2 flex items-center justify-center gap-1 w-full text-[10px] font-semibold text-brand-600 bg-brand-50 border border-brand-200 rounded-lg py-1 hover:bg-brand-100 transition-colors"
+          onClick={e => e.stopPropagation()}
+        >
+          🚀 Criar Projeto PPM
+        </Link>
+      )}
     </div>
   );
 }

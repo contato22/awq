@@ -164,6 +164,7 @@ export default function APPage() {
     category:      "Fornecedor",
     cost_center:   "",
     reference_doc: "",
+    project_id:    "",
     issue_date:    today,
     due_date:      "",
     gross_amount:  "",
@@ -229,8 +230,9 @@ export default function APPage() {
         supplier_type: form.supplier_type,
         description:   form.description,
         category:      form.category,
-        cost_center:   form.cost_center || undefined,
+        cost_center:   form.cost_center   || undefined,
         reference_doc: form.reference_doc || undefined,
+        project_id:    form.project_id    || undefined,
         issue_date:    form.issue_date,
         due_date:      form.due_date,
         gross_amount:  gross,
@@ -472,6 +474,16 @@ export default function APPage() {
                   onChange={(e) => setForm((f) => ({ ...f, reference_doc: e.target.value }))}
                   placeholder="NF-e, boleto, contrato…"
                   className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold text-gray-600 mb-1">Projeto PPM (opcional)</label>
+                <input
+                  type="text"
+                  value={form.project_id}
+                  onChange={(e) => setForm((f) => ({ ...f, project_id: e.target.value }))}
+                  placeholder="ID do projeto (ex: prj-001)"
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500 font-mono text-xs"
                 />
               </div>
 

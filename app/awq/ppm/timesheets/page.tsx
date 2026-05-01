@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { ArrowLeft, Plus, Clock, CheckCircle2, XCircle, Save, X } from "lucide-react";
+import { ArrowLeft, Plus, Clock, CheckCircle2, XCircle, Save, X, Download } from "lucide-react";
 import { formatDateBR, formatBRL } from "@/lib/utils";
 import type { PpmTimeEntry, PpmProject } from "@/lib/ppm-types";
 
@@ -103,6 +103,32 @@ export default function TimesheetsPage() {
     void load();
   }
 
+  function exportCSV() {
+    const headers = ["Data","Pessoa","Projeto","Tarefa","Horas","Billable","Taxa(R$/h)","Valor","Descrição","Status"];
+    const rows = [
+      headers.join(";"),
+      ...entries.map(e => [
+        e.entry_date,
+        e.user_name ?? e.user_id,
+        `"${e.project_name ?? e.project_id}"`,
+        `"${e.task_name ?? ""}"`,
+        e.hours.toString().replace(".", ","),
+        e.is_billable ? "Sim" : "Não",
+        e.billing_rate?.toString().replace(".", ",") ?? "",
+        (e.is_billable && e.billing_rate ? (e.hours * e.billing_rate) : 0).toFixed(2).replace(".", ","),
+        `"${e.description ?? ""}"`,
+        e.status,
+      ].join(";"))
+    ];
+    const blob = new Blob(["﻿" + rows.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href     = url;
+    a.download = `timesheets-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   // Summary
   const totalHours    = entries.reduce((s, e) => s + e.hours, 0);
   const billableHours = entries.filter(e => e.is_billable).reduce((s, e) => s + e.hours, 0);
@@ -123,12 +149,19 @@ export default function TimesheetsPage() {
               <p className="text-xs text-gray-500">Apontamento e aprovação de horas</p>
             </div>
           </div>
-          <button
-            onClick={() => setShowForm(s => !s)}
-            className="flex items-center gap-1.5 text-sm bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors shadow-sm"
-          >
-            <Plus size={14} /> Apontar Horas
-          </button>
+          <div className="flex gap-2">
+            <button onClick={exportCSV} title="Exportar CSV"
+              className="flex items-center gap-1.5 text-sm border border-gray-200 px-3 py-2 rounded-lg hover:bg-gray-50 text-gray-600 transition-colors"
+            >
+              <Download size={13} /> CSV
+            </button>
+            <button
+              onClick={() => setShowForm(s => !s)}
+              className="flex items-center gap-1.5 text-sm bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors shadow-sm"
+            >
+              <Plus size={14} /> Apontar Horas
+            </button>
+          </div>
         </div>
       </div>
 

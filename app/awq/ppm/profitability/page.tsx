@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { ArrowLeft, TrendingUp, TrendingDown, RefreshCw, DollarSign } from "lucide-react";
+import { ArrowLeft, TrendingUp, TrendingDown, RefreshCw, DollarSign, Download } from "lucide-react";
 import { formatBRL } from "@/lib/utils";
 
 interface ProfitRow {
@@ -41,6 +41,35 @@ export default function ProfitabilityPage() {
   const [loading, setLoading] = useState(true);
   const [sort,    setSort]    = useState<keyof ProfitRow>("budget_margin_pct");
   const [asc,     setAsc]     = useState(false);
+
+  function exportCSV() {
+    const headers = ["Projeto","Código","BU","Status","Rev.Budget","Rev.Real","Custo Budget","Custo Real","Margem%Budget","Margem%Real","CPI","SPI","EAC"];
+    const csvRows = [
+      headers.join(";"),
+      ...sorted.map(r => [
+        `"${r.project_name}"`,
+        r.project_code,
+        r.bu_code,
+        r.status,
+        r.budget_revenue.toFixed(2),
+        r.actual_revenue.toFixed(2),
+        r.budget_cost.toFixed(2),
+        r.actual_cost.toFixed(2),
+        r.budget_margin_pct.toFixed(1),
+        r.actual_margin_pct.toFixed(1),
+        r.cpi?.toFixed(2) ?? "",
+        r.spi?.toFixed(2) ?? "",
+        r.eac?.toFixed(2) ?? "",
+      ].join(";"))
+    ];
+    const blob = new Blob(["﻿" + csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href     = url;
+    a.download = `rentabilidade-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -96,9 +125,16 @@ export default function ProfitabilityPage() {
               <p className="text-xs text-gray-500">Budget vs Actual · EVM (CPI / SPI)</p>
             </div>
           </div>
-          <button onClick={() => void load()} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
-            <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
-          </button>
+          <div className="flex gap-2">
+            <button onClick={exportCSV} title="Exportar CSV"
+              className="flex items-center gap-1.5 text-sm border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 text-gray-600 transition-colors"
+            >
+              <Download size={13} /> CSV
+            </button>
+            <button onClick={() => void load()} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
+              <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
+            </button>
+          </div>
         </div>
       </div>
 

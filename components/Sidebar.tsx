@@ -249,12 +249,14 @@ const AWQ_DADOS_ITEMS = [
 
 // PPM — Project Portfolio Management
 const AWQ_PPM_ITEMS = [
-    { label: "Portfolio",       href: "/awq/ppm",               icon: Briefcase    },
-    { label: "Tarefas",         href: "/awq/ppm/tasks",         icon: ClipboardList},
-    { label: "Timesheets",      href: "/awq/ppm/timesheets",    icon: Clock        },
-    { label: "Recursos",        href: "/awq/ppm/resources",     icon: Users        },
-    { label: "Rentabilidade",   href: "/awq/ppm/profitability", icon: TrendingUp   },
-    { label: "Riscos",          href: "/awq/ppm/risks",         icon: AlertTriangle},
+    { label: "Portfolio",       href: "/awq/ppm",                icon: Briefcase    },
+    { label: "Gantt",           href: "/awq/ppm/gantt",          icon: GanttChart   },
+    { label: "Tarefas",         href: "/awq/ppm/tasks",          icon: ClipboardList},
+    { label: "Timesheets",      href: "/awq/ppm/timesheets",     icon: Clock        },
+    { label: "Recursos",        href: "/awq/ppm/resources",      icon: Users        },
+    { label: "Utilização",      href: "/awq/ppm/utilization",    icon: BarChart3    },
+    { label: "Rentabilidade",   href: "/awq/ppm/profitability",  icon: TrendingUp   },
+    { label: "Riscos",          href: "/awq/ppm/risks",          icon: AlertTriangle},
 ] as const;
 
 // CRM — Customer Relationship Management (pipeline unificado AWQ)

@@ -37,9 +37,11 @@ const ITEMS: Item[] = [
     bg:       "bg-violet-50",
     subs: [
       { label: "Portfolio",     href: "/awq/ppm"               },
+      { label: "Gantt",         href: "/awq/ppm/gantt"         },
       { label: "Tarefas",       href: "/awq/ppm/tasks"         },
       { label: "Timesheets",    href: "/awq/ppm/timesheets"    },
       { label: "Recursos",      href: "/awq/ppm/resources"     },
+      { label: "Utilização",    href: "/awq/ppm/utilization"   },
       { label: "Rentabilidade", href: "/awq/ppm/profitability" },
       { label: "Riscos",        href: "/awq/ppm/risks"         },
     ],
