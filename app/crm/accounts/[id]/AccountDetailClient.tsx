@@ -21,8 +21,8 @@ const STAGE_COLORS: Record<string, string> = {
   closed_won:"bg-emerald-100 text-emerald-700", closed_lost:"bg-red-100 text-red-700",
 };
 const STAGE_PT: Record<string, string> = {
-  discovery:"Discovery", qualification:"Qualification", proposal:"Proposal",
-  negotiation:"Negotiation", closed_won:"Ganho", closed_lost:"Perdido",
+  discovery:"Discovery", qualification:"Qualificação", proposal:"Proposta",
+  negotiation:"Negociação", closed_won:"Ganho", closed_lost:"Perdido",
 };
 const ACT_ICONS: Record<string, ReactNode> = {
   call:    <Phone    size={13} className="text-emerald-500" />,
@@ -103,7 +103,7 @@ export default function AccountDetailClient() {
 
   return (
     <>
-      <Header title={account.trade_name ?? account.account_name} subtitle={`${account.account_code} · ${account.account_type}`} />
+      <Header title={account.trade_name ?? account.account_name} subtitle={`${account.account_code} · ${{"customer":"Cliente","prospect":"Prospect","partner":"Parceiro","former_customer":"Ex-Cliente"}[account.account_type] ?? account.account_type}`} />
       <div className="page-container">
 
         <div className="flex items-center gap-2 text-xs text-gray-500 -mt-2">

@@ -126,7 +126,7 @@ export default function AnalyticsPage() {
           {[
             { label: "Pipeline Aberto",    value: formatBRL(metrics.pipelineValue),    icon: DollarSign, color:"text-blue-600",    bg:"bg-blue-50" },
             { label: "Forecast Ponderado", value: formatBRL(metrics.weightedForecast), icon: TrendingUp, color:"text-emerald-600", bg:"bg-emerald-50" },
-            { label: "Deals Abertos",      value: metrics.openOpportunities,        icon: Target,     color:"text-violet-600",  bg:"bg-violet-50" },
+            { label: "Negócios Abertos",    value: metrics.openOpportunities,        icon: Target,     color:"text-violet-600",  bg:"bg-violet-50" },
             { label: "Win Rate Geral",     value: `${metrics.winRate}%`,            icon: TrendingUp, color:"text-amber-600",   bg:"bg-amber-50" },
           ].map(k => (
             <div key={k.label} className="card p-4 flex items-center gap-3">
@@ -240,7 +240,7 @@ export default function AnalyticsPage() {
           <SectionHeader icon={<TrendingUp size={14} className="text-amber-500" />} title="Este Mês" />
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {[
-              { label: "Deals Ganhos",   value: metrics.closedWonThisMonth, color:"text-emerald-600" },
+              { label: "Negócios Ganhos", value: metrics.closedWonThisMonth, color:"text-emerald-600" },
               { label: "Receita Gerada", value: formatBRL(metrics.revenueThisMonth), color:"text-emerald-600" },
               { label: "Leads Novos",    value: metrics.leadsNew, color:"text-blue-600" },
               { label: "Win Rate",       value: `${metrics.winRate}%`, color:"text-amber-600" },

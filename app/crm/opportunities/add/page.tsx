@@ -170,11 +170,11 @@ function AddOpportunityPageInner() {
                 <select value={form.lost_reason} onChange={e => set("lost_reason", e.target.value)}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30">
                   <option value="">— Selecionar —</option>
-                  <option>Price too high</option>
-                  <option>Lost to competitor</option>
-                  <option>Timing not right</option>
-                  <option>Budget cut</option>
-                  <option>No decision made</option>
+                  <option>Preço elevado</option>
+                  <option>Perdido para concorrente</option>
+                  <option>Momento inadequado</option>
+                  <option>Corte de budget</option>
+                  <option>Sem decisão</option>
                 </select>
               </div>
             )}
