@@ -12,6 +12,7 @@ import {
   receiveAR,
   cancelAR,
   deleteAR,
+  updateAR,
   getAPARKPIs,
   initAPARDB,
   type BuCode,
@@ -54,7 +55,7 @@ export async function POST(req: NextRequest) {
     await ensureDB();
     const body = await req.json();
     const {
-      bu_code, customer_name, description, category,
+      bu_code, customer_name, description, category, cost_center,
       reference_doc, issue_date, due_date, gross_amount,
       customer_doc, iss_rate, source_system, created_by,
     } = body;
@@ -68,7 +69,7 @@ export async function POST(req: NextRequest) {
 
     const item = await addAR({
       bu_code, customer_name, customer_doc, description,
-      category: category ?? "Serviço Recorrente",
+      category: category ?? "Serviço Recorrente", cost_center,
       reference_doc, issue_date: issue_date ?? new Date().toISOString().slice(0, 10), due_date,
       gross_amount, iss_rate, source_system, created_by,
     });
@@ -106,6 +107,13 @@ export async function PATCH(req: NextRequest) {
       const ok2 = await deleteAR(id);
       if (!ok2) return err("AR item not found", 404);
       return ok({ id, deleted: true });
+    }
+
+    if (action === "update") {
+      const { customer_name, description, category, cost_center, reference_doc, due_date } = body;
+      const item = await updateAR(id, { customer_name, description, category, cost_center, reference_doc, due_date });
+      if (!item) return err("AR item not found", 404);
+      return ok(item);
     }
 
     return err(`Unknown action: ${action}`);

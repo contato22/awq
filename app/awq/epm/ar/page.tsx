@@ -8,7 +8,7 @@ import Header from "@/components/Header";
 import Link from "next/link";
 import {
   ArrowUpRight, Plus, X, CheckCircle2, Trash2, Search,
-  ChevronDown, ChevronUp, Receipt,
+  ChevronDown, ChevronUp, Receipt, Pencil,
 } from "lucide-react";
 
 interface EpmCustomer { id: string; name: string; doc?: string; }
@@ -25,6 +25,7 @@ interface ARItem {
   customer_name:   string;
   description:     string;
   category:        string;
+  cost_center?:    string;
   reference_doc?:  string;
   issue_date:      string;
   due_date:        string;
@@ -108,12 +109,19 @@ export default function ARPage() {
     open: boolean; id: string; item: ARItem | null;
     received_date: string; received_amount: string; receipt_ref: string; saving: boolean;
   }>({ open: false, id: "", item: null, received_date: today, received_amount: "", receipt_ref: "", saving: false });
+  const [editModal, setEditModal] = useState<{
+    open: boolean; item: ARItem | null;
+    customer_name: string; description: string; category: string;
+    cost_center: string; reference_doc: string; due_date: string; saving: boolean;
+  }>({ open: false, item: null, customer_name: "", description: "", category: "", cost_center: "", reference_doc: "", due_date: "", saving: false });
+  const [costCenters, setCostCenters] = useState<{ id: string; code: string; name: string }[]>([]);
 
   const [form, setForm] = useState({
     bu_code:       "JACQES" as BuCode,
     customer_name: "",
     description:   "",
     category:      "Serviço Recorrente",
+    cost_center:   "",
     reference_doc: "",
     issue_date:    today,
     due_date:      "",
@@ -128,17 +136,20 @@ export default function ARPage() {
 
   const loadData = useCallback(async () => {
     try {
-      const [listRes, kpisRes, custRes] = await Promise.all([
+      const [listRes, kpisRes, custRes, ccRes] = await Promise.all([
         fetch("/api/epm/ar"),
         fetch("/api/epm/ar?view=kpis"),
         fetch("/api/epm/customers"),
+        fetch("/api/epm/cost-centers"),
       ]);
       const listJson = await listRes.json() as { success: boolean; data: ARItem[] };
       const kpisJson = await kpisRes.json() as { success: boolean; data: ARKPIs };
       const custJson = await custRes.json() as { success: boolean; data: EpmCustomer[] };
+      const ccJson   = await ccRes.json()  as { success: boolean; data: { id: string; code: string; name: string }[] };
       if (listJson.success) setItems(listJson.data);
       if (kpisJson.success) setKPIs(kpisJson.data);
       if (custJson.success) setCustomers(custJson.data);
+      if (ccJson.success)   setCostCenters(ccJson.data);
     } catch { /* ignore */ }
     finally { setLoading(false); }
   }, []);
@@ -158,6 +169,7 @@ export default function ARPage() {
         customer_name: form.customer_name,
         description:   form.description,
         category:      form.category,
+        cost_center:   form.cost_center || undefined,
         reference_doc: form.reference_doc || undefined,
         issue_date:    form.issue_date,
         due_date:      form.due_date,
@@ -201,6 +213,22 @@ export default function ARPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, action: "delete" }),
     });
+    await loadData();
+  }
+
+  function openEditModal(item: ARItem) {
+    setEditModal({ open: true, item, customer_name: item.customer_name, description: item.description, category: item.category, cost_center: item.cost_center ?? "", reference_doc: item.reference_doc ?? "", due_date: item.due_date, saving: false });
+  }
+
+  async function confirmEdit() {
+    if (!editModal.item) return;
+    setEditModal((m) => ({ ...m, saving: true }));
+    await fetch("/api/epm/ar", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: editModal.item.id, action: "update", customer_name: editModal.customer_name, description: editModal.description, category: editModal.category, cost_center: editModal.cost_center || undefined, reference_doc: editModal.reference_doc || undefined, due_date: editModal.due_date }),
+    });
+    setEditModal({ open: false, item: null, customer_name: "", description: "", category: "", cost_center: "", reference_doc: "", due_date: "", saving: false });
     await loadData();
   }
 
@@ -386,6 +414,17 @@ export default function ARPage() {
                 </select>
               </div>
               <div>
+                <label className="block font-semibold text-gray-600 mb-1">Centro de Custo</label>
+                <select
+                  value={form.cost_center}
+                  onChange={(e) => setForm((f) => ({ ...f, cost_center: e.target.value }))}
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-brand-500"
+                >
+                  <option value="">— Nenhum —</option>
+                  {costCenters.map((cc) => <option key={cc.id} value={cc.code}>{cc.code} · {cc.name}</option>)}
+                </select>
+              </div>
+              <div>
                 <label className="block font-semibold text-gray-600 mb-1">Referência</label>
                 <input
                   type="text"
@@ -560,6 +599,13 @@ export default function ARPage() {
                               </button>
                             )}
                             <button
+                              onClick={() => openEditModal(item)}
+                              title="Editar"
+                              className="p-1 text-brand-500 hover:bg-brand-50 rounded transition-colors"
+                            >
+                              <Pencil size={13} />
+                            </button>
+                            <button
                               onClick={() => handleDelete(item.id)}
                               title="Excluir"
                               className="p-1 text-red-400 hover:bg-red-50 rounded transition-colors"
@@ -594,6 +640,7 @@ export default function ARPage() {
                             </div>
                             <div className="mt-2 flex flex-wrap gap-4 text-[11px] text-gray-500">
                               <span>Emissão: <strong>{fmtDate(item.issue_date)}</strong></span>
+                              {item.cost_center && <span>CC: <strong>{item.cost_center}</strong></span>}
                               {item.reference_doc && <span>Doc: <strong>{item.reference_doc}</strong></span>}
                               {item.received_date && (
                                 <span>Recebido em: <strong>{fmtDate(item.received_date)}</strong>
@@ -620,6 +667,77 @@ export default function ARPage() {
         </div>
 
       </div>
+
+      {/* ── Edit modal ───────────────────────────────────────────────── */}
+      {editModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-bold text-gray-900">Editar Conta a Receber</h2>
+              <button onClick={() => setEditModal((m) => ({ ...m, open: false }))} className="p-1 text-gray-400 hover:text-gray-600">
+                <X size={16} />
+              </button>
+            </div>
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block font-semibold text-gray-600 mb-1">Cliente</label>
+                <input type="text" value={editModal.customer_name}
+                  onChange={(e) => setEditModal((m) => ({ ...m, customer_name: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              </div>
+              <div>
+                <label className="block font-semibold text-gray-600 mb-1">Descrição</label>
+                <input type="text" value={editModal.description}
+                  onChange={(e) => setEditModal((m) => ({ ...m, description: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-gray-600 mb-1">Categoria</label>
+                  <select value={editModal.category}
+                    onChange={(e) => setEditModal((m) => ({ ...m, category: e.target.value }))}
+                    className="w-full px-2 py-2 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-brand-500">
+                    {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-semibold text-gray-600 mb-1">Centro de Custo</label>
+                  <select value={editModal.cost_center}
+                    onChange={(e) => setEditModal((m) => ({ ...m, cost_center: e.target.value }))}
+                    className="w-full px-2 py-2 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-brand-500">
+                    <option value="">— Nenhum —</option>
+                    {costCenters.map((cc) => <option key={cc.id} value={cc.code}>{cc.code} · {cc.name}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-gray-600 mb-1">Vencimento</label>
+                  <input type="date" value={editModal.due_date}
+                    onChange={(e) => setEditModal((m) => ({ ...m, due_date: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                </div>
+                <div>
+                  <label className="block font-semibold text-gray-600 mb-1">Referência</label>
+                  <input type="text" value={editModal.reference_doc}
+                    onChange={(e) => setEditModal((m) => ({ ...m, reference_doc: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-2 pt-1">
+              <button onClick={() => setEditModal((m) => ({ ...m, open: false }))}
+                className="flex-1 py-2 border border-gray-200 rounded-xl text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors">
+                Cancelar
+              </button>
+              <button onClick={confirmEdit} disabled={editModal.saving}
+                className="flex-1 py-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white rounded-xl text-xs font-semibold transition-colors">
+                {editModal.saving ? "Salvando…" : "Salvar Alterações"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Receive modal ────────────────────────────────────────────── */}
       {recModal.open && (

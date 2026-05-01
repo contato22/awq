@@ -42,6 +42,7 @@ export interface APItem {
   supplier_type:    SupplierType;
   description:      string;
   category:         string;
+  cost_center?:     string;
   reference_doc?:   string;
   issue_date:       string;  // YYYY-MM-DD
   due_date:         string;  // YYYY-MM-DD
@@ -75,6 +76,7 @@ export interface NewAPInput {
   supplier_type: SupplierType;
   description:   string;
   category:      string;
+  cost_center?:  string;
   reference_doc?: string;
   issue_date:    string;
   due_date:      string;
@@ -97,6 +99,7 @@ export interface ARItem {
   customer_doc?:  string;
   description:    string;
   category:       string;
+  cost_center?:   string;
   reference_doc?: string;
   issue_date:     string;
   due_date:       string;
@@ -120,6 +123,7 @@ export interface NewARInput {
   customer_doc?:  string;
   description:    string;
   category:       string;
+  cost_center?:   string;
   reference_doc?: string;
   issue_date:     string;
   due_date:       string;
@@ -278,6 +282,7 @@ export async function initAPARDB(): Promise<void> {
   await sql`CREATE INDEX IF NOT EXISTS idx_epm_ap_status     ON epm_ap(status)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_epm_ap_due_date   ON epm_ap(due_date)`;
   await sql`ALTER TABLE epm_ap ADD COLUMN IF NOT EXISTS supplier_id TEXT`;
+  await sql`ALTER TABLE epm_ap ADD COLUMN IF NOT EXISTS cost_center TEXT`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS epm_ar (
@@ -309,6 +314,7 @@ export async function initAPARDB(): Promise<void> {
   await sql`CREATE INDEX IF NOT EXISTS idx_epm_ar_status     ON epm_ar(status)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_epm_ar_due_date   ON epm_ar(due_date)`;
   await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS customer_id TEXT`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS cost_center TEXT`;
 }
 
 // ─── Aging helper ─────────────────────────────────────────────────────────────
@@ -336,6 +342,7 @@ function rowToAP(row: Record<string, unknown>): APItem {
     supplier_type:    String(row.supplier_type) as SupplierType,
     description:      String(row.description),
     category:         String(row.category),
+    cost_center:      row.cost_center ? String(row.cost_center) : undefined,
     reference_doc:    row.reference_doc ? String(row.reference_doc) : undefined,
     issue_date:       String(row.issue_date),
     due_date:         String(row.due_date),
@@ -371,6 +378,7 @@ function rowToAR(row: Record<string, unknown>): ARItem {
     customer_doc:     row.customer_doc ? String(row.customer_doc) : undefined,
     description:      String(row.description),
     category:         String(row.category),
+    cost_center:      row.cost_center ? String(row.cost_center) : undefined,
     reference_doc:    row.reference_doc ? String(row.reference_doc) : undefined,
     issue_date:       String(row.issue_date),
     due_date:         String(row.due_date),
@@ -431,6 +439,7 @@ export async function addAP(input: NewAPInput): Promise<APItem> {
     supplier_type:    input.supplier_type,
     description:      input.description,
     category:         input.category,
+    cost_center:      input.cost_center,
     reference_doc:    input.reference_doc,
     issue_date:       input.issue_date,
     due_date:         input.due_date,
@@ -457,14 +466,14 @@ export async function addAP(input: NewAPInput): Promise<APItem> {
     await sql`
       INSERT INTO epm_ap (
         id, bu_code, supplier_id, supplier_name, supplier_doc, supplier_type,
-        description, category, reference_doc, issue_date, due_date,
+        description, category, cost_center, reference_doc, issue_date, due_date,
         gross_amount, irrf_rate, irrf_amount, inss_rate, inss_amount,
         iss_rate, iss_amount, pis_rate, pis_amount, cofins_rate, cofins_amount,
         total_retentions, net_amount, status, source_system, created_at, created_by
       ) VALUES (
         ${item.id}, ${item.bu_code}, ${item.supplier_id ?? null}, ${item.supplier_name},
         ${item.supplier_doc ?? null}, ${item.supplier_type}, ${item.description},
-        ${item.category}, ${item.reference_doc ?? null}, ${item.issue_date}, ${item.due_date},
+        ${item.category}, ${item.cost_center ?? null}, ${item.reference_doc ?? null}, ${item.issue_date}, ${item.due_date},
         ${item.gross_amount}, ${item.irrf_rate}, ${item.irrf_amount},
         ${item.inss_rate}, ${item.inss_amount}, ${item.iss_rate}, ${item.iss_amount},
         ${item.pis_rate}, ${item.pis_amount}, ${item.cofins_rate}, ${item.cofins_amount},
@@ -526,6 +535,31 @@ export async function deleteAP(id: string): Promise<boolean> {
   return store.items.length < before;
 }
 
+export async function updateAP(
+  id: string,
+  updates: Partial<Pick<APItem, "supplier_name" | "description" | "category" | "cost_center" | "reference_doc" | "due_date">>
+): Promise<APItem | null> {
+  if (sql) {
+    const rows = await sql`
+      UPDATE epm_ap SET
+        supplier_name = COALESCE(${updates.supplier_name ?? null}, supplier_name),
+        description   = COALESCE(${updates.description   ?? null}, description),
+        category      = COALESCE(${updates.category      ?? null}, category),
+        cost_center   = ${updates.cost_center ?? null},
+        reference_doc = ${updates.reference_doc ?? null},
+        due_date      = COALESCE(${updates.due_date      ?? null}, due_date)
+      WHERE id = ${id} RETURNING *
+    `;
+    return rows[0] ? rowToAP(rows[0] as Record<string, unknown>) : null;
+  }
+  const store = readAPStore();
+  const idx   = store.items.findIndex((i) => i.id === id);
+  if (idx === -1) return null;
+  store.items[idx] = { ...store.items[idx], ...updates };
+  writeAPStore(store);
+  return store.items[idx];
+}
+
 // ─── AR API ───────────────────────────────────────────────────────────────────
 
 const AR_SERVICE_CATEGORIES = ["Serviço Recorrente","Projeto","Consultoria","Produção"];
@@ -565,6 +599,7 @@ export async function addAR(input: NewARInput): Promise<ARItem> {
     customer_doc:   input.customer_doc,
     description:    input.description,
     category:       input.category,
+    cost_center:    input.cost_center,
     reference_doc:  input.reference_doc,
     issue_date:     input.issue_date,
     due_date:       input.due_date,
@@ -582,12 +617,12 @@ export async function addAR(input: NewARInput): Promise<ARItem> {
     await sql`
       INSERT INTO epm_ar (
         id, bu_code, customer_id, customer_name, customer_doc, description, category,
-        reference_doc, issue_date, due_date, gross_amount,
+        cost_center, reference_doc, issue_date, due_date, gross_amount,
         iss_rate, iss_amount, net_amount, status, source_system, created_at, created_by
       ) VALUES (
         ${item.id}, ${item.bu_code}, ${item.customer_id ?? null}, ${item.customer_name},
         ${item.customer_doc ?? null}, ${item.description}, ${item.category},
-        ${item.reference_doc ?? null}, ${item.issue_date}, ${item.due_date}, ${item.gross_amount},
+        ${item.cost_center ?? null}, ${item.reference_doc ?? null}, ${item.issue_date}, ${item.due_date}, ${item.gross_amount},
         ${item.iss_rate}, ${item.iss_amount}, ${item.net_amount},
         ${item.status}, ${item.source_system}, ${item.created_at}, ${item.created_by ?? null}
       )
@@ -644,6 +679,31 @@ export async function deleteAR(id: string): Promise<boolean> {
   store.items = store.items.filter((i) => i.id !== id);
   writeARStore(store);
   return store.items.length < before;
+}
+
+export async function updateAR(
+  id: string,
+  updates: Partial<Pick<ARItem, "customer_name" | "description" | "category" | "cost_center" | "reference_doc" | "due_date">>
+): Promise<ARItem | null> {
+  if (sql) {
+    const rows = await sql`
+      UPDATE epm_ar SET
+        customer_name = COALESCE(${updates.customer_name ?? null}, customer_name),
+        description   = COALESCE(${updates.description   ?? null}, description),
+        category      = COALESCE(${updates.category      ?? null}, category),
+        cost_center   = ${updates.cost_center ?? null},
+        reference_doc = ${updates.reference_doc ?? null},
+        due_date      = COALESCE(${updates.due_date      ?? null}, due_date)
+      WHERE id = ${id} RETURNING *
+    `;
+    return rows[0] ? rowToAR(rows[0] as Record<string, unknown>) : null;
+  }
+  const store = readARStore();
+  const idx   = store.items.findIndex((i) => i.id === id);
+  if (idx === -1) return null;
+  store.items[idx] = { ...store.items[idx], ...updates };
+  writeARStore(store);
+  return store.items[idx];
 }
 
 // ─── KPIs ─────────────────────────────────────────────────────────────────────

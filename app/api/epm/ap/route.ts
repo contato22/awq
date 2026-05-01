@@ -12,6 +12,7 @@ import {
   payAP,
   cancelAP,
   deleteAP,
+  updateAP,
   getAPARKPIs,
   initAPARDB,
   type BuCode,
@@ -54,7 +55,7 @@ export async function POST(req: NextRequest) {
     await ensureDB();
     const body = await req.json();
     const {
-      bu_code, supplier_name, supplier_type, description, category,
+      bu_code, supplier_name, supplier_type, description, category, cost_center,
       reference_doc, issue_date, due_date, gross_amount,
       supplier_doc, irrf_rate, inss_rate, iss_rate, pis_rate, cofins_rate,
       source_system, created_by,
@@ -70,7 +71,7 @@ export async function POST(req: NextRequest) {
     const item = await addAP({
       bu_code, supplier_name, supplier_doc,
       supplier_type: supplier_type ?? "other",
-      description, category: category ?? "Fornecedor",
+      description, category: category ?? "Fornecedor", cost_center,
       reference_doc, issue_date: issue_date ?? new Date().toISOString().slice(0, 10), due_date,
       gross_amount,
       irrf_rate, inss_rate, iss_rate, pis_rate, cofins_rate,
@@ -110,6 +111,13 @@ export async function PATCH(req: NextRequest) {
       const ok2 = await deleteAP(id);
       if (!ok2) return err("AP item not found", 404);
       return ok({ id, deleted: true });
+    }
+
+    if (action === "update") {
+      const { supplier_name, description, category, cost_center, reference_doc, due_date } = body;
+      const item = await updateAP(id, { supplier_name, description, category, cost_center, reference_doc, due_date });
+      if (!item) return err("AP item not found", 404);
+      return ok(item);
     }
 
     return err(`Unknown action: ${action}`);
