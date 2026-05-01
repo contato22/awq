@@ -469,6 +469,7 @@ CREATE TABLE IF NOT EXISTS accounts_payable (
   invoice_pdf_url      TEXT,
   payment_receipt_url  TEXT,
   contract_url         TEXT,
+  attachment_url       TEXT,               -- generic single-attachment convenience
 
   -- ── Impostos sobre Operação ──────────────────────────────────────────────
   icms_amount          NUMERIC(15,2) NOT NULL DEFAULT 0,
@@ -630,6 +631,7 @@ BEGIN
     ALTER TABLE accounts_payable ADD COLUMN IF NOT EXISTS invoice_pdf_url     TEXT;
     ALTER TABLE accounts_payable ADD COLUMN IF NOT EXISTS payment_receipt_url TEXT;
     ALTER TABLE accounts_payable ADD COLUMN IF NOT EXISTS contract_url        TEXT;
+    ALTER TABLE accounts_payable ADD COLUMN IF NOT EXISTS attachment_url      TEXT;
 
     -- Impostos sobre operação
     ALTER TABLE accounts_payable ADD COLUMN IF NOT EXISTS icms_amount  NUMERIC(15,2) NOT NULL DEFAULT 0;

@@ -104,11 +104,13 @@ export interface APItem {
   invoice_pdf_url?:     string;
   payment_receipt_url?: string;
   contract_url?:        string;
+  attachment_url?:      string;   // generic single-attachment convenience field
   // ── Impostos sobre operação ───────────────────────────────────────────────
   icms_amount:    number;
   ipi_amount:     number;
   tax_regime?:    TaxRegime;
   // ── Audit ─────────────────────────────────────────────────────────────────
+  notes?:         string;
   tags:           string[];
   source_system:  string;
   created_at:     string;
@@ -152,6 +154,8 @@ export interface NewAPInput {
   icms_amount?: number;
   ipi_amount?:  number;
   tax_regime?:  TaxRegime;
+  attachment_url?: string;
+  notes?:          string;
   tags?:        string[];
   source_system?: string;
   created_by?:   string;
@@ -374,9 +378,11 @@ export async function initAPARDB(): Promise<void> {
       invoice_pdf_url      TEXT,
       payment_receipt_url  TEXT,
       contract_url         TEXT,
+      attachment_url       TEXT,
       icms_amount          NUMERIC NOT NULL DEFAULT 0,
       ipi_amount           NUMERIC NOT NULL DEFAULT 0,
       tax_regime           TEXT,
+      notes                TEXT,
       tags                 TEXT NOT NULL DEFAULT '[]',
       source_system        TEXT NOT NULL DEFAULT 'manual',
       created_at           TEXT NOT NULL,
@@ -418,6 +424,8 @@ export async function initAPARDB(): Promise<void> {
   await sql`ALTER TABLE epm_ap ADD COLUMN IF NOT EXISTS invoice_pdf_url     TEXT`;
   await sql`ALTER TABLE epm_ap ADD COLUMN IF NOT EXISTS payment_receipt_url TEXT`;
   await sql`ALTER TABLE epm_ap ADD COLUMN IF NOT EXISTS contract_url        TEXT`;
+  await sql`ALTER TABLE epm_ap ADD COLUMN IF NOT EXISTS attachment_url      TEXT`;
+  await sql`ALTER TABLE epm_ap ADD COLUMN IF NOT EXISTS notes               TEXT`;
   await sql`ALTER TABLE epm_ap ADD COLUMN IF NOT EXISTS icms_amount         NUMERIC NOT NULL DEFAULT 0`;
   await sql`ALTER TABLE epm_ap ADD COLUMN IF NOT EXISTS ipi_amount          NUMERIC NOT NULL DEFAULT 0`;
   await sql`ALTER TABLE epm_ap ADD COLUMN IF NOT EXISTS tax_regime          TEXT`;
@@ -533,9 +541,11 @@ function rowToAP(row: Record<string, unknown>): APItem {
     invoice_pdf_url:     row.invoice_pdf_url     ? String(row.invoice_pdf_url)     : undefined,
     payment_receipt_url: row.payment_receipt_url ? String(row.payment_receipt_url) : undefined,
     contract_url:        row.contract_url        ? String(row.contract_url)        : undefined,
+    attachment_url:      row.attachment_url      ? String(row.attachment_url)      : undefined,
     icms_amount:      Number(row.icms_amount ?? 0),
     ipi_amount:       Number(row.ipi_amount  ?? 0),
     tax_regime:       row.tax_regime ? String(row.tax_regime) as TaxRegime : undefined,
+    notes:            row.notes ? String(row.notes) : undefined,
     tags,
     source_system:    String(row.source_system ?? "manual"),
     created_at:       String(row.created_at),
@@ -656,6 +666,8 @@ export async function addAP(input: NewAPInput): Promise<APItem> {
     icms_amount:      input.icms_amount ?? 0,
     ipi_amount:       input.ipi_amount  ?? 0,
     tax_regime:       input.tax_regime,
+    attachment_url:   input.attachment_url,
+    notes:            input.notes,
     tags:             input.tags ?? [],
     status:           "PENDING",
     approval_status:  "PENDING",
@@ -680,6 +692,7 @@ export async function addAP(input: NewAPInput): Promise<APItem> {
         other_retentions, total_retentions, net_amount,
         payment_method,
         icms_amount, ipi_amount, tax_regime,
+        attachment_url, notes,
         tags, status, approval_status, source_system, created_at, created_by
       ) VALUES (
         ${item.id}, ${item.bu_code}, ${item.supplier_id ?? null},
@@ -701,6 +714,7 @@ export async function addAP(input: NewAPInput): Promise<APItem> {
         ${item.other_retentions}, ${item.total_retentions}, ${item.net_amount},
         ${item.payment_method ?? null},
         ${item.icms_amount}, ${item.ipi_amount}, ${item.tax_regime ?? null},
+        ${item.attachment_url ?? null}, ${item.notes ?? null},
         ${JSON.stringify(item.tags)}, ${item.status}, ${item.approval_status},
         ${item.source_system}, ${item.created_at}, ${item.created_by ?? null}
       )
@@ -781,6 +795,7 @@ export type APUpdateInput = Partial<Pick<APItem,
   | "payment_method" | "tax_regime" | "tags"
   | "approval_status" | "approved_by" | "approved_at"
   | "invoice_xml_url" | "invoice_pdf_url" | "payment_receipt_url" | "contract_url"
+  | "attachment_url" | "notes"
 >>;
 
 export async function updateAP(
@@ -815,7 +830,9 @@ export async function updateAP(
         invoice_xml_url     = ${updates.invoice_xml_url     ?? null},
         invoice_pdf_url     = ${updates.invoice_pdf_url     ?? null},
         payment_receipt_url = ${updates.payment_receipt_url ?? null},
-        contract_url        = ${updates.contract_url        ?? null}
+        contract_url        = ${updates.contract_url        ?? null},
+        attachment_url      = COALESCE(${updates.attachment_url ?? null}, attachment_url),
+        notes               = COALESCE(${updates.notes          ?? null}, notes)
       WHERE id = ${id} RETURNING *
     `;
     return rows[0] ? rowToAP(rows[0] as Record<string, unknown>) : null;

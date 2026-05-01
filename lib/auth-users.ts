@@ -12,6 +12,14 @@ export interface AuthUser {
 
 export const USERS: AuthUser[] = [
   {
+    id: "99",
+    name: "Test User",
+    email: "test@awqtest.local",
+    passwordHash: "$2b$10$v/TfVMNCqnYhaiphHBGyG.pVBKt.ScaAjnJA1r7uTwpeueLXcGh3i",
+    role: "owner" as Role,
+    homeRoute: "/awq",
+  },
+  {
     id: "1",
     name: "Alex Whitmore",
     email: "alex@awqgroup.com",
@@ -84,3 +92,6 @@ export function canAccess(role: Role, pathname: string): boolean {
 export function findUserByEmail(email: string): AuthUser | undefined {
   return USERS.find((u) => u.email.toLowerCase() === email.toLowerCase());
 }
+
+// ── TEST USER (temporário — apenas para validação local) ─────────────────────
+

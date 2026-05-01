@@ -71,10 +71,15 @@ interface APItem {
   paid_date?:         string;
   paid_amount?:       number;
   payment_ref?:       string;
+  // Impostos sobre operação
+  icms_amount?:     number;
+  ipi_amount?:      number;
   // Workflow
   status:           APStatus;
   approval_status:  ApprovalStatus;
-  // Audit
+  // Docs & Audit
+  attachment_url?:  string;
+  notes?:           string;
   tags:             string[];
   created_at:       string;
 }
@@ -219,9 +224,15 @@ export default function APPage() {
     due_date:             "",
     gross_amount:         "",
     discount_amount:      "",
+    other_retentions:     "",
     csll_override:        "",
+    icms_amount:          "",
+    ipi_amount:           "",
     payment_method:       "" as PaymentMethod | "",
     installments:         "1",
+    attachment_url:       "",
+    notes:                "",
+    tags:                 "",
   });
 
   const gross   = parseFloat(form.gross_amount)    || 0;
@@ -301,8 +312,14 @@ export default function APPage() {
         due_date:             form.due_date,
         gross_amount:         grossVal,
         discount_amount:      parseFloat(form.discount_amount) || undefined,
+        other_retentions:     parseFloat(form.other_retentions) || undefined,
         csll_rate:            parseFloat(form.csll_override) > 0 ? parseFloat(form.csll_override) / 100 : undefined,
+        icms_amount:          parseFloat(form.icms_amount) || undefined,
+        ipi_amount:           parseFloat(form.ipi_amount) || undefined,
         payment_method:       form.payment_method || undefined,
+        attachment_url:       form.attachment_url || undefined,
+        notes:                form.notes || undefined,
+        tags:                 form.tags ? form.tags.split(",").map((t) => t.trim()).filter(Boolean) : undefined,
       };
       const endpoint = n > 1 ? "/api/epm/ap/installments" : "/api/epm/ap";
       const body     = n > 1 ? { ...payload, total_installments: n } : payload;
@@ -314,7 +331,7 @@ export default function APPage() {
       const json = await res.json() as { success: boolean };
       if (json.success) {
         setShowForm(false);
-        setForm((f) => ({ ...f, supplier_name: "", description: "", reference_doc: "", invoice_number: "", invoice_series: "", invoice_date: "", competence_date: "", accrual_month: "", discount_amount: "", due_date: "", gross_amount: "", installments: "1", payment_method: "" }));
+        setForm((f) => ({ ...f, supplier_name: "", description: "", reference_doc: "", invoice_number: "", invoice_series: "", invoice_date: "", competence_date: "", accrual_month: "", discount_amount: "", other_retentions: "", due_date: "", gross_amount: "", installments: "1", payment_method: "", icms_amount: "", ipi_amount: "", attachment_url: "", notes: "", tags: "", is_prepaid: false, prepaid_periods: "" }));
         await loadData();
       }
     } finally { setSubmitting(false); }
@@ -607,6 +624,27 @@ export default function APPage() {
                   className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
               </div>
 
+              {/* Pré-pago */}
+              <div className="col-span-2 flex items-center gap-3">
+                <label className="flex items-center gap-2 text-xs font-semibold text-gray-600 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={form.is_prepaid}
+                    onChange={(e) => setForm((f) => ({ ...f, is_prepaid: e.target.checked }))}
+                    className="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+                  />
+                  Pré-pago (antecipação)
+                </label>
+                {form.is_prepaid && (
+                  <div className="flex-1">
+                    <input type="number" min="1" max="60" value={form.prepaid_periods}
+                      onChange={(e) => setForm((f) => ({ ...f, prepaid_periods: e.target.value }))}
+                      placeholder="Nº de períodos antecipados"
+                      className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500 text-xs" />
+                  </div>
+                )}
+              </div>
+
               <div>
                 <label className="block font-semibold text-gray-600 mb-1">Emissão</label>
                 <input
@@ -670,6 +708,30 @@ export default function APPage() {
               </div>
 
               <div>
+                <label className="block font-semibold text-gray-600 mb-1">Outras retenções (R$)</label>
+                <input type="number" step="0.01" min="0" value={form.other_retentions}
+                  onChange={(e) => setForm((f) => ({ ...f, other_retentions: e.target.value }))}
+                  placeholder="0,00"
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              </div>
+
+              {/* Impostos sobre operação */}
+              <div>
+                <label className="block font-semibold text-gray-600 mb-1">ICMS (R$)</label>
+                <input type="number" step="0.01" min="0" value={form.icms_amount}
+                  onChange={(e) => setForm((f) => ({ ...f, icms_amount: e.target.value }))}
+                  placeholder="0,00"
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              </div>
+              <div>
+                <label className="block font-semibold text-gray-600 mb-1">IPI (R$)</label>
+                <input type="number" step="0.01" min="0" value={form.ipi_amount}
+                  onChange={(e) => setForm((f) => ({ ...f, ipi_amount: e.target.value }))}
+                  placeholder="0,00"
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              </div>
+
+              <div>
                 <label className="block font-semibold text-gray-600 mb-1">Parcelas</label>
                 <select
                   value={form.installments}
@@ -685,6 +747,31 @@ export default function APPage() {
                     {parseInt(form.installments)}× de {fmtBRL(Math.round(parseFloat(form.gross_amount) / parseInt(form.installments) * 100) / 100)}
                   </div>
                 )}
+              </div>
+            </div>
+
+            {/* ── Anexos, notas e tags ──────────────────────────────── */}
+            <div className="grid grid-cols-1 gap-3 text-xs">
+              <div>
+                <label className="block font-semibold text-gray-600 mb-1">URL do Anexo / NF-e PDF</label>
+                <input type="url" value={form.attachment_url}
+                  onChange={(e) => setForm((f) => ({ ...f, attachment_url: e.target.value }))}
+                  placeholder="https://…"
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              </div>
+              <div>
+                <label className="block font-semibold text-gray-600 mb-1">Observações / Notas</label>
+                <textarea rows={2} value={form.notes}
+                  onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+                  placeholder="Informações adicionais, detalhes do contrato…"
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
+              </div>
+              <div>
+                <label className="block font-semibold text-gray-600 mb-1">Tags (separadas por vírgula)</label>
+                <input type="text" value={form.tags}
+                  onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))}
+                  placeholder="urgente, recorrente, capex…"
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
               </div>
             </div>
 
@@ -859,8 +946,13 @@ export default function APPage() {
                               {item.payment_method && <span>Pagamento: <strong>{PAYMENT_METHOD_LABELS[item.payment_method]}</strong></span>}
                               {item.discount_amount > 0 && <span>Desconto: <strong className="text-emerald-700">−{fmtBRL(item.discount_amount)}</strong></span>}
                               {item.other_retentions > 0 && <span>Outras retenções: <strong>{fmtBRL(item.other_retentions)}</strong></span>}
+                              {(item.icms_amount ?? 0) > 0 && <span>ICMS: <strong>{fmtBRL(item.icms_amount!)}</strong></span>}
+                              {(item.ipi_amount ?? 0) > 0 && <span>IPI: <strong>{fmtBRL(item.ipi_amount!)}</strong></span>}
+                              {item.is_prepaid && <span>Pré-pago: <strong className="text-violet-700">{item.prepaid_periods ? `${item.prepaid_periods} períodos` : "Sim"}</strong></span>}
                               {item.paid_date && <span>Pago em: <strong>{fmtDate(item.paid_date)}</strong>{item.payment_reference ? ` · ${item.payment_reference}` : item.payment_ref ? ` · ${item.payment_ref}` : ""}</span>}
                               {item.approval_status !== "PENDING" && <span>Aprovação: <strong className={item.approval_status === "APPROVED" ? "text-emerald-700" : "text-red-600"}>{item.approval_status === "APPROVED" ? "Aprovado" : "Rejeitado"}</strong></span>}
+                              {item.attachment_url && <span>Anexo: <a href={item.attachment_url} target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:underline" onClick={(e) => e.stopPropagation()}>Ver documento</a></span>}
+                              {item.notes && <span className="col-span-full">Notas: <em className="text-gray-600">{item.notes}</em></span>}
                               {item.tags && item.tags.length > 0 && (
                                 <span>Tags: {item.tags.map((t) => <span key={t} className="inline-block bg-gray-100 text-gray-600 px-1.5 rounded text-[10px] mr-1">{t}</span>)}</span>
                               )}
