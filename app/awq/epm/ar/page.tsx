@@ -21,26 +21,79 @@ type AgingBucket = "CURRENT" | "1-30d" | "31-60d" | "61-90d" | "+90d";
 
 interface ARItem {
   id:              string;
+  ar_code?:        string;
   bu_code:         BuCode;
   customer_name:   string;
+  customer_doc?:   string;
   description:     string;
   category:        string;
   cost_center?:    string;
   reference_doc?:  string;
   issue_date:      string;
   due_date:        string;
+  invoice_number?: string;
+  invoice_series?: string;
+  // Values
   gross_amount:    number;
+  discount_amount: number;
+  net_amount:      number;
+  // Retentions (withheld by customer)
+  irrf_withheld:        number;
+  irrf_withheld_rate:   number;
+  inss_withheld:        number;
+  inss_withheld_rate:   number;
+  iss_withheld:         number;
+  iss_withheld_rate:    number;
+  pis_withheld:         number;
+  pis_withheld_rate:    number;
+  cofins_withheld:      number;
+  cofins_withheld_rate: number;
+  csll_withheld:        number;
+  csll_withheld_rate:   number;
+  // Billing taxes (company remits)
   iss_rate:        number;
   iss_amount:      number;
   pis_rate:        number;
   pis_amount:      number;
   cofins_rate:     number;
   cofins_amount:   number;
-  net_amount:      number;
-  status:          ARStatus;
-  received_date?:  string;
+  irpj_amount:     number;
+  csll_amount:     number;
+  tax_regime?:     string;
+  simples_rate:    number;
+  // Managerial
+  project_id?:       string;
+  service_category?: string;
+  contract_type?:    string;
+  accrual_month?:    string;
+  is_deferred_revenue: boolean;
+  // Payment
+  payment_date?:    string;
+  received_date?:   string;
+  payment_method?:  string;
+  payment_reference?: string;
+  receipt_ref?:     string;
   received_amount?: number;
-  receipt_ref?:    string;
+  // Installments
+  is_installment:      boolean;
+  installment_number?: number;
+  total_installments?: number;
+  // Recurrence
+  is_recurring:   boolean;
+  mrr?:           number;
+  // Collection
+  status:          ARStatus;
+  collection_status?: string;
+  collection_attempts: number;
+  // Late fees
+  late_fee_amount: number;
+  interest_amount: number;
+  // CRM
+  opportunity_id?: string;
+  commission_amount: number;
+  // Misc
+  notes?:          string;
+  tags:            string[];
   created_at:      string;
 }
 
@@ -53,23 +106,57 @@ interface ARKPIs {
   arAging:            Record<AgingBucket, number>;
 }
 
-// ─── AR fiscal calculation (ISS + PIS + COFINS) ───────────────────────────────
+// ─── AR fiscal calculation (impostos sobre faturamento + retenções) ───────────
 
 const AR_SERVICE_CATEGORIES = new Set(["Serviço Recorrente", "Projeto", "Consultoria", "Produção"]);
 
 function r2(n: number) { return Math.round(n * 100) / 100; }
 function pct(r: number) { return r > 0 ? (r * 100).toFixed(2).replace(/\.?0+$/, "") + "%" : "—"; }
 
-function calcARFiscal(gross: number, category: string) {
-  const isSvc      = AR_SERVICE_CATEGORIES.has(category);
+interface FiscalPreview {
+  iss_rate: number; iss_amount: number;
+  pis_rate: number; pis_amount: number;
+  cofins_rate: number; cofins_amount: number;
+  billingTaxTotal: number;
+  irrf_withheld: number; inss_withheld: number;
+  iss_withheld: number; pis_withheld: number;
+  cofins_withheld: number; csll_withheld: number;
+  totalWithheld: number;
+  discount: number;
+  net: number;
+}
+
+function calcARFiscal(gross: number, category: string, opts?: {
+  discount?: number;
+  irrf_withheld_rate?: number; inss_withheld_rate?: number;
+  iss_withheld_rate?: number;  pis_withheld_rate?: number;
+  cofins_withheld_rate?: number; csll_withheld_rate?: number;
+}): FiscalPreview {
+  const isSvc       = AR_SERVICE_CATEGORIES.has(category);
   const iss_rate    = isSvc ? 0.05   : 0;
   const pis_rate    = isSvc ? 0.0065 : 0;
   const cofins_rate = isSvc ? 0.03   : 0;
   const iss_amount    = r2(gross * iss_rate);
   const pis_amount    = r2(gross * pis_rate);
   const cofins_amount = r2(gross * cofins_rate);
-  const total         = r2(iss_amount + pis_amount + cofins_amount);
-  return { iss_rate, iss_amount, pis_rate, pis_amount, cofins_rate, cofins_amount, total, net: r2(gross - total) };
+  const billingTaxTotal = r2(iss_amount + pis_amount + cofins_amount);
+
+  const o = opts ?? {};
+  const irrf_withheld   = r2(gross * (o.irrf_withheld_rate   ?? 0));
+  const inss_withheld   = r2(gross * (o.inss_withheld_rate   ?? 0));
+  const iss_withheld    = r2(gross * (o.iss_withheld_rate    ?? 0));
+  const pis_withheld    = r2(gross * (o.pis_withheld_rate    ?? 0));
+  const cofins_withheld = r2(gross * (o.cofins_withheld_rate ?? 0));
+  const csll_withheld   = r2(gross * (o.csll_withheld_rate   ?? 0));
+  const totalWithheld   = r2(irrf_withheld + inss_withheld + iss_withheld + pis_withheld + cofins_withheld + csll_withheld);
+  const discount        = o.discount ?? 0;
+
+  return {
+    iss_rate, iss_amount, pis_rate, pis_amount, cofins_rate, cofins_amount, billingTaxTotal,
+    irrf_withheld, inss_withheld, iss_withheld, pis_withheld, cofins_withheld, csll_withheld,
+    totalWithheld, discount,
+    net: r2(gross - discount - totalWithheld),
+  };
 }
 
 // ─── Formatting ───────────────────────────────────────────────────────────────
@@ -120,8 +207,9 @@ export default function ARPage() {
   const [statusFilter,setStatusFilter] = useState<ARStatus | "ALL">("ALL");
   const [recModal, setRecModal] = useState<{
     open: boolean; id: string; item: ARItem | null;
-    received_date: string; received_amount: string; receipt_ref: string; saving: boolean;
-  }>({ open: false, id: "", item: null, received_date: today, received_amount: "", receipt_ref: "", saving: false });
+    received_date: string; received_amount: string; receipt_ref: string;
+    payment_method: string; saving: boolean;
+  }>({ open: false, id: "", item: null, received_date: today, received_amount: "", receipt_ref: "", payment_method: "pix", saving: false });
   const [editModal, setEditModal] = useState<{
     open: boolean; item: ARItem | null;
     customer_name: string; description: string; category: string;
@@ -130,20 +218,39 @@ export default function ARPage() {
   const [costCenters, setCostCenters] = useState<{ id: string; code: string; name: string }[]>([]);
 
   const [form, setForm] = useState({
-    bu_code:       "JACQES" as BuCode,
-    customer_name: "",
-    description:   "",
-    category:      "Serviço Recorrente",
-    cost_center:   "",
-    reference_doc: "",
-    issue_date:    today,
-    due_date:      "",
-    gross_amount:  "",
-    installments:  "1",
+    bu_code:              "JACQES" as BuCode,
+    customer_name:        "",
+    description:          "",
+    category:             "Serviço Recorrente",
+    cost_center:          "",
+    reference_doc:        "",
+    invoice_number:       "",
+    accrual_month:        "",
+    issue_date:           today,
+    due_date:             "",
+    gross_amount:         "",
+    discount_amount:      "",
+    installments:         "1",
+    irrf_withheld_rate:   "",
+    inss_withheld_rate:   "",
+    iss_withheld_rate:    "",
+    pis_withheld_rate:    "",
+    cofins_withheld_rate: "",
+    csll_withheld_rate:   "",
+    service_category:     "",
+    contract_type:        "",
   });
 
-  const gross        = parseFloat(form.gross_amount) || 0;
-  const fiscalPreview = gross > 0 ? calcARFiscal(gross, form.category) : null;
+  const gross = parseFloat(form.gross_amount) || 0;
+  const fiscalPreview: FiscalPreview | null = gross > 0 ? calcARFiscal(gross, form.category, {
+    discount:             parseFloat(form.discount_amount)      || 0,
+    irrf_withheld_rate:   parseFloat(form.irrf_withheld_rate)   / 100 || 0,
+    inss_withheld_rate:   parseFloat(form.inss_withheld_rate)   / 100 || 0,
+    iss_withheld_rate:    parseFloat(form.iss_withheld_rate)    / 100 || 0,
+    pis_withheld_rate:    parseFloat(form.pis_withheld_rate)    / 100 || 0,
+    cofins_withheld_rate: parseFloat(form.cofins_withheld_rate) / 100 || 0,
+    csll_withheld_rate:   parseFloat(form.csll_withheld_rate)   / 100 || 0,
+  }) : null;
 
   // ── Load ─────────────────────────────────────────────────────────────────────
 
@@ -177,16 +284,27 @@ export default function ARPage() {
     const n = parseInt(form.installments) || 1;
     setSubmitting(true);
     try {
-      const payload = {
-        bu_code:       form.bu_code,
-        customer_name: form.customer_name,
-        description:   form.description,
-        category:      form.category,
-        cost_center:   form.cost_center || undefined,
-        reference_doc: form.reference_doc || undefined,
-        issue_date:    form.issue_date,
-        due_date:      form.due_date,
-        gross_amount:  gross,
+      const payload: Record<string, unknown> = {
+        bu_code:              form.bu_code,
+        customer_name:        form.customer_name,
+        description:          form.description,
+        category:             form.category,
+        cost_center:          form.cost_center   || undefined,
+        reference_doc:        form.reference_doc || undefined,
+        invoice_number:       form.invoice_number || undefined,
+        accrual_month:        form.accrual_month  || undefined,
+        service_category:     form.service_category || undefined,
+        contract_type:        form.contract_type  || undefined,
+        issue_date:           form.issue_date,
+        due_date:             form.due_date,
+        gross_amount:         gross,
+        discount_amount:      parseFloat(form.discount_amount) || undefined,
+        irrf_withheld_rate:   parseFloat(form.irrf_withheld_rate)   / 100 || undefined,
+        inss_withheld_rate:   parseFloat(form.inss_withheld_rate)   / 100 || undefined,
+        iss_withheld_rate:    parseFloat(form.iss_withheld_rate)    / 100 || undefined,
+        pis_withheld_rate:    parseFloat(form.pis_withheld_rate)    / 100 || undefined,
+        cofins_withheld_rate: parseFloat(form.cofins_withheld_rate) / 100 || undefined,
+        csll_withheld_rate:   parseFloat(form.csll_withheld_rate)   / 100 || undefined,
       };
       const endpoint = n > 1 ? "/api/epm/ar/installments" : "/api/epm/ar";
       const body     = n > 1 ? { ...payload, total_installments: n } : payload;
@@ -198,14 +316,28 @@ export default function ARPage() {
       const json = await res.json() as { success: boolean };
       if (json.success) {
         setShowForm(false);
-        setForm((f) => ({ ...f, customer_name: "", description: "", reference_doc: "", due_date: "", gross_amount: "", installments: "1" }));
+        setForm((f) => ({
+          ...f,
+          customer_name: "", description: "", reference_doc: "", invoice_number: "",
+          due_date: "", gross_amount: "", discount_amount: "", installments: "1",
+          irrf_withheld_rate: "", inss_withheld_rate: "", iss_withheld_rate: "",
+          pis_withheld_rate: "", cofins_withheld_rate: "", csll_withheld_rate: "",
+          accrual_month: "", service_category: "", contract_type: "",
+        }));
         await loadData();
       }
     } finally { setSubmitting(false); }
   }
 
   function openRecModal(item: ARItem) {
-    setRecModal({ open: true, id: item.id, item, received_date: today, received_amount: String(item.net_amount), receipt_ref: "", saving: false });
+    setRecModal({
+      open: true, id: item.id, item,
+      received_date: today,
+      received_amount: String(item.net_amount),
+      receipt_ref: "",
+      payment_method: item.payment_method ?? "pix",
+      saving: false,
+    });
   }
 
   async function confirmReceive() {
@@ -214,9 +346,16 @@ export default function ARPage() {
     await fetch("/api/epm/ar", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: recModal.id, action: "receive", received_date: recModal.received_date, received_amount: parseFloat(recModal.received_amount), receipt_ref: recModal.receipt_ref || undefined }),
+      body: JSON.stringify({
+        id: recModal.id,
+        action: "receive",
+        received_date:   recModal.received_date,
+        received_amount: parseFloat(recModal.received_amount),
+        receipt_ref:     recModal.receipt_ref || undefined,
+        payment_method:  recModal.payment_method || undefined,
+      }),
     });
-    setRecModal({ open: false, id: "", item: null, received_date: today, received_amount: "", receipt_ref: "", saving: false });
+    setRecModal({ open: false, id: "", item: null, received_date: today, received_amount: "", receipt_ref: "", payment_method: "pix", saving: false });
     await loadData();
   }
 
@@ -438,12 +577,22 @@ export default function ARPage() {
                 </select>
               </div>
               <div>
-                <label className="block font-semibold text-gray-600 mb-1">Referência</label>
+                <label className="block font-semibold text-gray-600 mb-1">Referência / NF-e</label>
                 <input
                   type="text"
                   value={form.reference_doc}
                   onChange={(e) => setForm((f) => ({ ...f, reference_doc: e.target.value }))}
-                  placeholder="NF-e, proposta, contrato…"
+                  placeholder="Proposta, contrato…"
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold text-gray-600 mb-1">Nº NF-e</label>
+                <input
+                  type="text"
+                  value={form.invoice_number}
+                  onChange={(e) => setForm((f) => ({ ...f, invoice_number: e.target.value }))}
+                  placeholder="000001"
                   className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500"
                 />
               </div>
@@ -469,7 +618,7 @@ export default function ARPage() {
               </div>
 
               <div>
-                <label className="block font-semibold text-gray-600 mb-1">Valor do Serviço (R$) *</label>
+                <label className="block font-semibold text-gray-600 mb-1">Valor Bruto (R$) *</label>
                 <input
                   required
                   type="number"
@@ -478,6 +627,28 @@ export default function ARPage() {
                   value={form.gross_amount}
                   onChange={(e) => setForm((f) => ({ ...f, gross_amount: e.target.value }))}
                   placeholder="0,00"
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold text-gray-600 mb-1">Desconto (R$)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={form.discount_amount}
+                  onChange={(e) => setForm((f) => ({ ...f, discount_amount: e.target.value }))}
+                  placeholder="0,00"
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-gray-600 mb-1">Mês Competência</label>
+                <input
+                  type="month"
+                  value={form.accrual_month}
+                  onChange={(e) => setForm((f) => ({ ...f, accrual_month: e.target.value }))}
                   className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500"
                 />
               </div>
@@ -500,34 +671,91 @@ export default function ARPage() {
               </div>
             </div>
 
-            {/* ── Fiscal preview (ISS + PIS + COFINS) ─────────────── */}
+            {/* ── Retenções sofridas (opcional) ───────────────────── */}
+            <details className="text-xs">
+              <summary className="cursor-pointer font-semibold text-gray-600 py-1 select-none">
+                Retenções sofridas (IRRF, INSS, CSLL…) — opcional
+              </summary>
+              <div className="grid grid-cols-3 gap-2 mt-2">
+                {[
+                  { label: "IRRF ret. %",   key: "irrf_withheld_rate"   },
+                  { label: "INSS ret. %",   key: "inss_withheld_rate"   },
+                  { label: "ISS ret. %",    key: "iss_withheld_rate"    },
+                  { label: "PIS ret. %",    key: "pis_withheld_rate"    },
+                  { label: "COFINS ret. %", key: "cofins_withheld_rate" },
+                  { label: "CSLL ret. %",   key: "csll_withheld_rate"   },
+                ].map(({ label, key }) => (
+                  <div key={key}>
+                    <label className="block font-semibold text-gray-500 mb-0.5">{label}</label>
+                    <input
+                      type="number" step="0.01" min="0" max="100"
+                      value={(form as Record<string, string>)[key]}
+                      onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
+                      placeholder="0"
+                      className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500"
+                    />
+                  </div>
+                ))}
+              </div>
+            </details>
+
+            {/* ── Fiscal preview ───────────────────────────────────── */}
             {fiscalPreview && gross > 0 && (
-              <div className={`rounded-xl p-4 text-xs space-y-2 border ${
-                fiscalPreview.total > 0
-                  ? "bg-violet-50 border-violet-200"
-                  : "bg-gray-50 border-gray-200"
-              }`}>
-                <div className="flex items-center gap-1.5 font-semibold text-violet-800 mb-2">
+              <div className="rounded-xl p-4 text-xs space-y-3 border bg-violet-50 border-violet-200">
+                <div className="flex items-center gap-1.5 font-semibold text-violet-800">
                   <Receipt size={12} />
-                  {fiscalPreview.total > 0 ? "Tributos sobre receita — cálculo automático" : "Categoria sem tributos"}
+                  Resumo fiscal — cálculo automático
                 </div>
-                <div className="grid grid-cols-3 gap-2 text-center">
-                  {[
-                    { label: "ISS",    rate: fiscalPreview.iss_rate,    amount: fiscalPreview.iss_amount    },
-                    { label: "PIS",    rate: fiscalPreview.pis_rate,    amount: fiscalPreview.pis_amount    },
-                    { label: "COFINS", rate: fiscalPreview.cofins_rate, amount: fiscalPreview.cofins_amount },
-                  ].map((tax) => (
-                    <div key={tax.label} className="bg-white rounded-lg p-2 border border-violet-100">
-                      <div className="text-[10px] text-gray-500 font-medium">{tax.label}</div>
-                      <div className="text-violet-700 font-bold tabular-nums">{fmtBRL(tax.amount)}</div>
-                      <div className="text-[9px] text-gray-400">{pct(tax.rate)}</div>
+
+                {/* Impostos sobre faturamento */}
+                {fiscalPreview.billingTaxTotal > 0 && (
+                  <div>
+                    <div className="text-[10px] text-violet-600 font-semibold mb-1">Tributos sobre faturamento (empresa recolhe)</div>
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      {[
+                        { label: "ISS",    rate: fiscalPreview.iss_rate,    amount: fiscalPreview.iss_amount    },
+                        { label: "PIS",    rate: fiscalPreview.pis_rate,    amount: fiscalPreview.pis_amount    },
+                        { label: "COFINS", rate: fiscalPreview.cofins_rate, amount: fiscalPreview.cofins_amount },
+                      ].map((tax) => (
+                        <div key={tax.label} className="bg-white rounded-lg p-2 border border-violet-100">
+                          <div className="text-[10px] text-gray-500 font-medium">{tax.label} {pct(tax.rate)}</div>
+                          <div className="text-violet-700 font-bold tabular-nums">{fmtBRL(tax.amount)}</div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </div>
+                )}
+
+                {/* Retenções sofridas */}
+                {fiscalPreview.totalWithheld > 0 && (
+                  <div>
+                    <div className="text-[10px] text-red-600 font-semibold mb-1">Retenções sofridas (cliente deduz)</div>
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      {[
+                        { label: "IRRF",   amount: fiscalPreview.irrf_withheld   },
+                        { label: "INSS",   amount: fiscalPreview.inss_withheld   },
+                        { label: "ISS r.", amount: fiscalPreview.iss_withheld    },
+                        { label: "PIS r.", amount: fiscalPreview.pis_withheld    },
+                        { label: "COFINS r.", amount: fiscalPreview.cofins_withheld },
+                        { label: "CSLL",   amount: fiscalPreview.csll_withheld   },
+                      ].filter((t) => t.amount > 0).map((t) => (
+                        <div key={t.label} className="bg-white rounded-lg p-2 border border-red-100">
+                          <div className="text-[10px] text-gray-500 font-medium">{t.label}</div>
+                          <div className="text-red-600 font-bold tabular-nums">({fmtBRL(t.amount)})</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between pt-1 border-t border-violet-200">
-                  <span className="text-gray-600">Total tributos: <strong className="text-violet-800">{fmtBRL(fiscalPreview.total)}</strong></span>
-                  <span className="text-gray-600">
-                    Líquido a receber: <strong className="text-emerald-700 text-sm">{fmtBRL(fiscalPreview.net)}</strong>
+                  <span className="text-gray-600 text-[11px]">
+                    Bruto: <strong>{fmtBRL(gross)}</strong>
+                    {fiscalPreview.discount > 0 && <> · Desc: <strong className="text-red-600">({fmtBRL(fiscalPreview.discount)})</strong></>}
+                    {fiscalPreview.totalWithheld > 0 && <> · Ret.: <strong className="text-red-600">({fmtBRL(fiscalPreview.totalWithheld)})</strong></>}
+                  </span>
+                  <span className="font-bold text-emerald-700">
+                    Líquido: {fmtBRL(fiscalPreview.net)}
                   </span>
                 </div>
               </div>
@@ -641,36 +869,93 @@ export default function ARPage() {
                       </tr>,
                       expanded && (
                         <tr key={`${item.id}-detail`} className="bg-violet-50 border-b border-violet-100">
-                          <td colSpan={8} className="px-4 py-3">
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[11px]">
+                          <td colSpan={8} className="px-4 py-3 space-y-2">
+
+                            {/* Impostos sobre faturamento */}
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
                               {[
                                 { label: "ISS",    rate: item.iss_rate,    amount: item.iss_amount    },
                                 { label: "PIS",    rate: item.pis_rate,    amount: item.pis_amount    },
                                 { label: "COFINS", rate: item.cofins_rate, amount: item.cofins_amount },
                               ].map((t) => (
                                 <div key={t.label} className="bg-white rounded-lg px-3 py-2 border border-violet-100 text-center">
-                                  <div className="text-gray-500 font-medium">{t.label} ({pct(t.rate)})</div>
+                                  <div className="text-gray-400 font-medium">{t.label} {pct(t.rate)}</div>
                                   <div className={`font-bold tabular-nums ${t.amount > 0 ? "text-violet-700" : "text-gray-300"}`}>
                                     {fmtBRL(t.amount)}
                                   </div>
                                 </div>
                               ))}
                               <div className="bg-white rounded-lg px-3 py-2 border border-violet-100 text-center">
-                                <div className="text-gray-500 font-medium">Líquido reconhecido</div>
+                                <div className="text-gray-400 font-medium">Líquido recebido</div>
                                 <div className="font-bold tabular-nums text-emerald-700">{fmtBRL(item.net_amount)}</div>
                               </div>
                             </div>
-                            <div className="mt-2 flex flex-wrap gap-4 text-[11px] text-gray-500">
+
+                            {/* Retenções sofridas */}
+                            {(() => {
+                              const rets = [
+                                { label: "IRRF ret.",   v: item.irrf_withheld,   r: item.irrf_withheld_rate   },
+                                { label: "INSS ret.",   v: item.inss_withheld,   r: item.inss_withheld_rate   },
+                                { label: "ISS ret.",    v: item.iss_withheld,    r: item.iss_withheld_rate    },
+                                { label: "PIS ret.",    v: item.pis_withheld,    r: item.pis_withheld_rate    },
+                                { label: "COFINS ret.", v: item.cofins_withheld, r: item.cofins_withheld_rate },
+                                { label: "CSLL ret.",   v: item.csll_withheld,   r: item.csll_withheld_rate   },
+                              ].filter((x) => x.v > 0);
+                              if (!rets.length) return null;
+                              return (
+                                <div>
+                                  <div className="text-[10px] font-semibold text-red-600 mb-1">Retenções sofridas (deduzidas pelo cliente)</div>
+                                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-[11px]">
+                                    {rets.map((t) => (
+                                      <div key={t.label} className="bg-white rounded-lg px-2 py-1.5 border border-red-100 text-center">
+                                        <div className="text-gray-400">{t.label} {pct(t.r)}</div>
+                                        <div className="font-bold text-red-600">({fmtBRL(t.v)})</div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              );
+                            })()}
+
+                            {/* Metadata */}
+                            <div className="flex flex-wrap gap-4 text-[11px] text-gray-500 pt-1">
                               <span>Emissão: <strong>{fmtDate(item.issue_date)}</strong></span>
-                              {item.cost_center && <span>CC: <strong>{item.cost_center}</strong></span>}
-                              {item.reference_doc && <span>Doc: <strong>{item.reference_doc}</strong></span>}
-                              {item.received_date && (
-                                <span>Recebido em: <strong>{fmtDate(item.received_date)}</strong>
+                              {item.invoice_number && <span>NF-e: <strong>{item.invoice_number}</strong></span>}
+                              {item.accrual_month  && <span>Competência: <strong>{item.accrual_month}</strong></span>}
+                              {item.cost_center    && <span>CC: <strong>{item.cost_center}</strong></span>}
+                              {item.reference_doc  && <span>Doc: <strong>{item.reference_doc}</strong></span>}
+                              {item.contract_type  && <span>Contrato: <strong>{item.contract_type}</strong></span>}
+                              {item.service_category && <span>Serviço: <strong>{item.service_category}</strong></span>}
+                              {item.is_installment && item.installment_number != null && (
+                                <span>Parcela: <strong>{item.installment_number}/{item.total_installments}</strong></span>
+                              )}
+                              {item.is_recurring && <span className="text-brand-600 font-semibold">Recorrente{item.mrr ? ` · MRR ${fmtBRL(item.mrr)}` : ""}</span>}
+                              {(item.late_fee_amount > 0 || item.interest_amount > 0) && (
+                                <span className="text-red-600">
+                                  Multa/Juros: <strong>{fmtBRL(item.late_fee_amount + item.interest_amount)}</strong>
+                                </span>
+                              )}
+                              {item.commission_amount > 0 && (
+                                <span>Comissão: <strong>{fmtBRL(item.commission_amount)}</strong></span>
+                              )}
+                              {(item.payment_date ?? item.received_date) && (
+                                <span>
+                                  Recebido em: <strong>{fmtDate((item.payment_date ?? item.received_date)!)}</strong>
+                                  {item.payment_method && ` · ${item.payment_method.toUpperCase()}`}
                                   {item.received_amount && ` · ${fmtBRL(item.received_amount)}`}
-                                  {item.receipt_ref && ` · ${item.receipt_ref}`}
+                                  {(item.payment_reference ?? item.receipt_ref) && ` · ${item.payment_reference ?? item.receipt_ref}`}
+                                </span>
+                              )}
+                              {item.notes && <span>Obs: <em>{item.notes}</em></span>}
+                              {item.tags?.length > 0 && (
+                                <span className="flex gap-1">
+                                  {item.tags.map((t) => (
+                                    <span key={t} className="px-1.5 py-0.5 bg-gray-100 rounded text-[10px]">{t}</span>
+                                  ))}
                                 </span>
                               )}
                             </div>
+
                           </td>
                         </tr>
                       ),
@@ -767,7 +1052,7 @@ export default function ARPage() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-bold text-gray-900">Registrar Recebimento</h2>
-              <button onClick={() => setRecModal((m) => ({ ...m, open: false }))} className="p-1 text-gray-400 hover:text-gray-600">
+              <button onClick={() => setRecModal((m) => ({ ...m, open: false, payment_method: "pix" }))} className="p-1 text-gray-400 hover:text-gray-600">
                 <X size={16} />
               </button>
             </div>
@@ -779,11 +1064,25 @@ export default function ARPage() {
               </div>
             )}
             <div className="space-y-3 text-xs">
-              <div>
-                <label className="block font-semibold text-gray-600 mb-1">Data de recebimento *</label>
-                <input type="date" value={recModal.received_date}
-                  onChange={(e) => setRecModal((m) => ({ ...m, received_date: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-gray-600 mb-1">Data de recebimento *</label>
+                  <input type="date" value={recModal.received_date}
+                    onChange={(e) => setRecModal((m) => ({ ...m, received_date: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                </div>
+                <div>
+                  <label className="block font-semibold text-gray-600 mb-1">Forma de pagamento</label>
+                  <select value={recModal.payment_method}
+                    onChange={(e) => setRecModal((m) => ({ ...m, payment_method: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-brand-500">
+                    <option value="pix">PIX</option>
+                    <option value="ted">TED</option>
+                    <option value="boleto">Boleto</option>
+                    <option value="card">Cartão</option>
+                    <option value="cash">Dinheiro</option>
+                  </select>
+                </div>
               </div>
               <div>
                 <label className="block font-semibold text-gray-600 mb-1">Valor recebido *</label>
@@ -792,7 +1091,7 @@ export default function ARPage() {
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
               </div>
               <div>
-                <label className="block font-semibold text-gray-600 mb-1">Referência (txid PIX, etc.)</label>
+                <label className="block font-semibold text-gray-600 mb-1">Referência (txid PIX, NSU, etc.)</label>
                 <input type="text" value={recModal.receipt_ref} placeholder="Opcional"
                   onChange={(e) => setRecModal((m) => ({ ...m, receipt_ref: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />

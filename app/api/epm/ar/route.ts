@@ -1,7 +1,7 @@
 // ─── API /api/epm/ar — Accounts Receivable CRUD ───────────────────────────────
 // GET  /api/epm/ar?bu_code=&status=&view=kpis
 // POST /api/epm/ar  { ...NewARInput }
-// PATCH /api/epm/ar { id, action: "receive"|"cancel"|"delete", ...receiptData }
+// PATCH /api/epm/ar { id, action: "receive"|"cancel"|"delete"|"update", ... }
 //
 // Response: { success: boolean, data: T, error?: string }
 
@@ -17,6 +17,7 @@ import {
   initAPARDB,
   type BuCode,
   type ARStatus,
+  type ARUpdateInput,
 } from "@/lib/ap-ar-db";
 
 let _dbReady = false;
@@ -55,9 +56,29 @@ export async function POST(req: NextRequest) {
     await ensureDB();
     const body = await req.json();
     const {
-      bu_code, customer_name, description, category, cost_center,
-      reference_doc, issue_date, due_date, gross_amount,
-      customer_doc, iss_rate, source_system, created_by,
+      bu_code, customer_id, customer_name, customer_doc,
+      description, category, cost_center, reference_doc,
+      issue_date, due_date, gross_amount,
+      ar_code, invoice_number, invoice_series, invoice_date,
+      discount_amount,
+      irrf_withheld_rate, inss_withheld_rate, iss_withheld_rate,
+      pis_withheld_rate, cofins_withheld_rate, csll_withheld_rate,
+      iss_rate, pis_rate, cofins_rate, irpj_amount, csll_amount,
+      tax_regime, simples_rate,
+      revenue_account_id, revenue_type, nature_of_operation,
+      project_id, service_category, contract_type,
+      revenue_recognition_date, service_period_start, service_period_end,
+      accrual_month, is_deferred_revenue, deferred_periods,
+      payment_method, bank_account_id, payment_reference,
+      is_installment, installment_number, total_installments, parent_ar_id,
+      is_recurring, recurrence_frequency, contract_value,
+      contract_start_date, contract_end_date, mrr, arr,
+      late_fee_rate, interest_rate,
+      invoice_xml_url, invoice_pdf_url, danfe_url, contract_url,
+      boleto_url, boleto_barcode,
+      opportunity_id, sales_rep_id, commission_rate, commission_amount,
+      notes, customer_notes, tags,
+      source_system, created_by,
     } = body;
 
     if (!bu_code || !customer_name || !description || !due_date || !gross_amount)
@@ -68,10 +89,31 @@ export async function POST(req: NextRequest) {
       return err("due_date must be YYYY-MM-DD");
 
     const item = await addAR({
-      bu_code, customer_name, customer_doc, description,
-      category: category ?? "Serviço Recorrente", cost_center,
-      reference_doc, issue_date: issue_date ?? new Date().toISOString().slice(0, 10), due_date,
-      gross_amount, iss_rate, source_system, created_by,
+      bu_code, customer_id, customer_name, customer_doc,
+      description, category: category ?? "Serviço Recorrente",
+      cost_center, reference_doc,
+      issue_date: issue_date ?? new Date().toISOString().slice(0, 10),
+      due_date, gross_amount,
+      ar_code, invoice_number, invoice_series, invoice_date,
+      discount_amount,
+      irrf_withheld_rate, inss_withheld_rate, iss_withheld_rate,
+      pis_withheld_rate, cofins_withheld_rate, csll_withheld_rate,
+      iss_rate, pis_rate, cofins_rate, irpj_amount, csll_amount,
+      tax_regime, simples_rate,
+      revenue_account_id, revenue_type, nature_of_operation,
+      project_id, service_category, contract_type,
+      revenue_recognition_date, service_period_start, service_period_end,
+      accrual_month, is_deferred_revenue, deferred_periods,
+      payment_method, bank_account_id, payment_reference,
+      is_installment, installment_number, total_installments, parent_ar_id,
+      is_recurring, recurrence_frequency, contract_value,
+      contract_start_date, contract_end_date, mrr, arr,
+      late_fee_rate, interest_rate,
+      invoice_xml_url, invoice_pdf_url, danfe_url, contract_url,
+      boleto_url, boleto_barcode,
+      opportunity_id, sales_rep_id, commission_rate, commission_amount,
+      notes, customer_notes, tags,
+      source_system, created_by,
     });
 
     return ok(item);
@@ -89,11 +131,22 @@ export async function PATCH(req: NextRequest) {
     if (!id || !action) return err("id and action are required");
 
     if (action === "receive") {
-      const { received_date, received_amount, receipt_ref } = body;
+      const {
+        received_date, received_amount, receipt_ref,
+        payment_method, payment_reference,
+      } = body;
       if (!received_date || !received_amount)
         return err("received_date and received_amount are required for action=receive");
-      const item = await receiveAR(id, { received_date, received_amount, receipt_ref });
+      const item = await receiveAR(id, {
+        received_date,
+        received_amount,
+        receipt_ref: receipt_ref ?? payment_reference,
+      });
       if (!item) return err("AR item not found", 404);
+      // Also persist payment_method if provided
+      if (payment_method) {
+        await updateAR(id, { payment_method, payment_reference: receipt_ref ?? payment_reference });
+      }
       return ok(item);
     }
 
@@ -110,8 +163,26 @@ export async function PATCH(req: NextRequest) {
     }
 
     if (action === "update") {
-      const { customer_name, description, category, cost_center, reference_doc, due_date } = body;
-      const item = await updateAR(id, { customer_name, description, category, cost_center, reference_doc, due_date });
+      const updates: ARUpdateInput = {};
+      const fields: (keyof ARUpdateInput)[] = [
+        "customer_name", "description", "category", "cost_center", "reference_doc", "due_date",
+        "invoice_number", "invoice_series", "invoice_date",
+        "revenue_account_id", "revenue_type", "nature_of_operation",
+        "project_id", "service_category", "contract_type",
+        "accrual_month", "service_period_start", "service_period_end",
+        "revenue_recognition_date", "is_deferred_revenue", "deferred_periods",
+        "payment_method", "bank_account_id", "payment_reference",
+        "collection_status", "collection_attempts", "last_collection_date",
+        "late_fee_rate", "late_fee_amount", "interest_rate", "interest_amount",
+        "invoice_xml_url", "invoice_pdf_url", "danfe_url", "contract_url",
+        "boleto_url", "boleto_barcode",
+        "opportunity_id", "sales_rep_id", "commission_rate", "commission_amount", "commission_paid",
+        "notes", "customer_notes", "tags", "updated_by",
+      ];
+      for (const f of fields) {
+        if (body[f] !== undefined) (updates as Record<string, unknown>)[f] = body[f];
+      }
+      const item = await updateAR(id, updates);
       if (!item) return err("AR item not found", 404);
       return ok(item);
     }
