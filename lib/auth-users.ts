@@ -51,6 +51,14 @@ export const USERS: AuthUser[] = [
     role: "owner",
     homeRoute: "/awq",
   },
+  {
+    id: "6",
+    name: "Daniel Chiappetta",
+    email: "danielcchiappetta@live.com",
+    passwordHash: "$2b$10$Y9gcPY4r6AbbIi5fz131GeSCmuu5nTiL7gZ4wTjJJQeb3KsdKsO92",
+    role: "caza",
+    homeRoute: "/caza-vision",
+  },
 ];
 
 // ── RBAC route prefixes ───────────────────────────────────────────────────────
