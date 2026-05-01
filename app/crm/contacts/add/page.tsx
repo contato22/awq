@@ -82,7 +82,7 @@ function AddContactPageInner() {
               <div><label className="block text-xs font-medium text-gray-700 mb-1">Senioridade</label>
                 <select value={form.seniority} onChange={e=>set("seniority",e.target.value)}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30">
-                  {[["c_level","C-Level"],["director","Director"],["manager","Manager"],["ic","Individual Contributor"]].map(([v,l])=><option key={v} value={v}>{l}</option>)}
+                  {[["c_level","C-Level"],["director","Diretor"],["manager","Gerente"],["ic","Analista/IC"]].map(([v,l])=><option key={v} value={v}>{l}</option>)}
                 </select></div>
             </div>
             <div className="flex items-center gap-2">

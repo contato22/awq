@@ -9,7 +9,7 @@ import type { CrmContact } from "@/lib/crm-types";
 import { SEED_CONTACTS } from "@/lib/crm-db";
 
 const SENIORITY_LABELS: Record<string, string> = {
-  c_level: "C-Level", director: "Director", manager: "Manager", ic: "Individual Contributor",
+  c_level: "C-Level", director: "Diretor", manager: "Gerente", ic: "Analista/IC",
 };
 const SENIORITY_COLORS: Record<string, string> = {
   c_level: "bg-violet-50 text-violet-700", director: "bg-blue-50 text-blue-700",
@@ -41,7 +41,7 @@ export default function ContactsPage() {
           {[
             { label: "Total Contatos", value: contacts.length },
             { label: "C-Level",        value: contacts.filter(c=>c.seniority==="c_level").length },
-            { label: "Directors",      value: contacts.filter(c=>c.seniority==="director").length },
+            { label: "Diretores",      value: contacts.filter(c=>c.seniority==="director").length },
             { label: "Primários",      value: contacts.filter(c=>c.is_primary_contact).length },
           ].map(k => (
             <div key={k.label} className="card p-4">

@@ -130,7 +130,7 @@ export default function AccountDetailClient() {
                     account.account_type === "customer" ? "bg-emerald-50 text-emerald-700" :
                     account.account_type === "prospect" ? "bg-blue-50 text-blue-700" : "bg-gray-100 text-gray-600"
                   }`}>
-                    {account.account_type}
+                    {{"customer":"Cliente","prospect":"Prospect","partner":"Parceiro","former_customer":"Ex-Cliente"}[account.account_type] ?? account.account_type}
                   </span>
                 </div>
               </div>
@@ -145,7 +145,7 @@ export default function AccountDetailClient() {
                 {account.industry && (
                   <div className="flex items-center gap-2 text-xs text-gray-600">
                     <span className="font-medium text-gray-500 w-14 shrink-0">Setor</span>
-                    {account.industry}
+                    {{"tech":"Tecnologia","finance":"Finanças","education":"Educação","health":"Saúde","media":"Mídia","retail":"Varejo","other":"Outro"}[account.industry] ?? account.industry}
                   </div>
                 )}
                 {account.company_size && (
@@ -177,7 +177,7 @@ export default function AccountDetailClient() {
 
             {/* Health */}
             <div className="card p-4">
-              <h3 className="text-xs font-semibold text-gray-700 mb-3">Account Health</h3>
+              <h3 className="text-xs font-semibold text-gray-700 mb-3">Saúde da Conta</h3>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-2xl font-bold text-gray-900">{account.health_score}</span>
                 <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
@@ -193,7 +193,7 @@ export default function AccountDetailClient() {
                 }`} style={{ width: `${account.health_score}%` }} />
               </div>
               <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
-                <span>Churn Risk: <span className={`font-medium ${account.churn_risk === "high" ? "text-red-600" : account.churn_risk === "medium" ? "text-amber-600" : "text-emerald-600"}`}>{account.churn_risk}</span></span>
+                <span>Churn Risk: <span className={`font-medium ${account.churn_risk === "high" ? "text-red-600" : account.churn_risk === "medium" ? "text-amber-600" : "text-emerald-600"}`}>{{"low":"Baixo","medium":"Médio","high":"Alto"}[account.churn_risk] ?? account.churn_risk}</span></span>
                 {account.renewal_date && <span>Renova: {formatDateBR(account.renewal_date)}</span>}
               </div>
             </div>

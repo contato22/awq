@@ -10,7 +10,7 @@ import { SEED_OPPORTUNITIES } from "@/lib/crm-db";
 import { formatBRL } from "@/lib/utils";
 
 const STAGE_PT: Record<string, string> = {
-  discovery:"Discovery", qualification:"Qual.", proposal:"Proposal", negotiation:"Negoc.", closed_won:"Won", closed_lost:"Lost",
+  discovery:"Discovery", qualification:"Qualif.", proposal:"Proposta", negotiation:"Negoc.", closed_won:"Ganho", closed_lost:"Perdido",
 };
 const STAGE_COLORS: Record<string, string> = {
   discovery:"#3b82f6", qualification:"#8b5cf6", proposal:"#f59e0b", negotiation:"#f97316", closed_won:"#10b981", closed_lost:"#ef4444",

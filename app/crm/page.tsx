@@ -49,8 +49,8 @@ function daysUntil(dateStr: string | null): number {
 // ─── Stage Config ─────────────────────────────────────────────────────────────
 
 const STAGE_CONFIG: Record<string, { label: string; bar: string; text: string; bg: string; border: string }> = {
-  discovery:     { label: "Discovery",     bar: "bg-blue-500",   text: "text-blue-700",   bg: "bg-blue-50",   border: "border-blue-200" },
-  qualification: { label: "Qualification", bar: "bg-violet-500", text: "text-violet-700", bg: "bg-violet-50", border: "border-violet-200" },
+  discovery:     { label: "Discovery",    bar: "bg-blue-500",   text: "text-blue-700",   bg: "bg-blue-50",   border: "border-blue-200" },
+  qualification: { label: "Qualificação", bar: "bg-violet-500", text: "text-violet-700", bg: "bg-violet-50", border: "border-violet-200" },
   proposal:      { label: "Proposta",      bar: "bg-amber-500",  text: "text-amber-700",  bg: "bg-amber-50",  border: "border-amber-200" },
   negotiation:   { label: "Negociação",    bar: "bg-orange-500", text: "text-orange-700", bg: "bg-orange-50", border: "border-orange-200" },
   closed_won:    { label: "Fechado Ganho", bar: "bg-emerald-500",text: "text-emerald-700",bg: "bg-emerald-50",border: "border-emerald-200" },

@@ -18,11 +18,11 @@ export const STAGE_PROBABILITY: Record<PipelineStage, number> = {
 
 export const STAGE_LABELS: Record<PipelineStage, string> = {
   discovery:     "Discovery",
-  qualification: "Qualification",
-  proposal:      "Proposal Sent",
-  negotiation:   "Negotiation",
-  closed_won:    "Closed Won",
-  closed_lost:   "Closed Lost",
+  qualification: "Qualificação",
+  proposal:      "Proposta",
+  negotiation:   "Negociação",
+  closed_won:    "Ganho",
+  closed_lost:   "Perdido",
 };
 
 export const BU_OPTIONS = ["JACQES", "CAZA", "ADVISOR", "VENTURE"] as const;

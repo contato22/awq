@@ -25,10 +25,10 @@ const STAGE_CONFIG: Record<string, {
   label: string; prob: number; bg: string; border: string;
   header: string; tag: string; bar: string;
 }> = {
-  discovery:     { label: "Discovery",      prob: 25,  bg: "bg-blue-50",   border: "border-blue-200",   header: "bg-blue-500",   tag: "bg-blue-100 text-blue-700",   bar: "bg-blue-500" },
-  qualification: { label: "Qualification",  prob: 40,  bg: "bg-violet-50", border: "border-violet-200", header: "bg-violet-500", tag: "bg-violet-100 text-violet-700", bar: "bg-violet-500" },
-  proposal:      { label: "Proposal Sent",  prob: 60,  bg: "bg-amber-50",  border: "border-amber-200",  header: "bg-amber-500",  tag: "bg-amber-100 text-amber-700",  bar: "bg-amber-500" },
-  negotiation:   { label: "Negotiation",    prob: 75,  bg: "bg-orange-50", border: "border-orange-200", header: "bg-orange-500", tag: "bg-orange-100 text-orange-700", bar: "bg-orange-500" },
+  discovery:     { label: "Discovery",     prob: 25,  bg: "bg-blue-50",   border: "border-blue-200",   header: "bg-blue-500",   tag: "bg-blue-100 text-blue-700",   bar: "bg-blue-500" },
+  qualification: { label: "Qualificação",  prob: 40,  bg: "bg-violet-50", border: "border-violet-200", header: "bg-violet-500", tag: "bg-violet-100 text-violet-700", bar: "bg-violet-500" },
+  proposal:      { label: "Proposta",      prob: 60,  bg: "bg-amber-50",  border: "border-amber-200",  header: "bg-amber-500",  tag: "bg-amber-100 text-amber-700",  bar: "bg-amber-500" },
+  negotiation:   { label: "Negociação",    prob: 75,  bg: "bg-orange-50", border: "border-orange-200", header: "bg-orange-500", tag: "bg-orange-100 text-orange-700", bar: "bg-orange-500" },
 };
 
 const BU_COLORS: Record<string, string> = {
@@ -337,7 +337,7 @@ export default function PipelinePage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Won */}
           <div className="card p-4">
-            <SectionHeader icon={<TrendingUp size={14} className="text-emerald-500" />} title="Closed Won" />
+            <SectionHeader icon={<TrendingUp size={14} className="text-emerald-500" />} title="Ganhos" />
             {wonThisMonth.length === 0
               ? <EmptyState compact title="Nenhum deal ganho ainda" />
               : (
@@ -361,7 +361,7 @@ export default function PipelinePage() {
 
           {/* Lost */}
           <div className="card p-4">
-            <SectionHeader icon={<AlertCircle size={14} className="text-red-500" />} title="Closed Lost" />
+            <SectionHeader icon={<AlertCircle size={14} className="text-red-500" />} title="Perdidos" />
             {opps.filter(o=>o.stage==="closed_lost").length === 0
               ? <EmptyState compact title="Nenhum deal perdido" />
               : (
