@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { buildDreQuery, type DreResult } from "@/lib/dre-query";
 import { consolidated, consolidatedMargins, BUDGET_LINES } from "@/lib/awq-derived-metrics";
+import { initAllAPARTables, getDREByMonth, type DRELine } from "@/lib/ap-ar-db";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -332,10 +333,95 @@ function BudgetComparison() {
   );
 }
 
+// ─── DRE Competência (AP/AR) table ───────────────────────────────────────────
+
+function fmtMonth(ym: string): string {
+  const [y, m] = ym.split("-");
+  const months = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+  return `${months[parseInt(m) - 1]} ${y}`;
+}
+
+function AccrualDRETable({ lines }: { lines: DRELine[] }) {
+  if (lines.length === 0) {
+    return (
+      <div className="card p-8 flex flex-col items-center gap-3 text-center">
+        <Database size={32} className="text-gray-200" />
+        <div className="text-sm text-gray-400">Sem lançamentos AP/AR ainda.</div>
+        <div className="text-xs text-gray-400 max-w-xs">
+          Registre receitas (AR) e despesas (AP) para gerar a DRE por competência.
+        </div>
+        <div className="flex items-center gap-3 mt-1">
+          <Link href="/awq/epm/ar" className="text-xs px-3 py-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-semibold transition-colors">
+            + AR (Receita)
+          </Link>
+          <Link href="/awq/epm/ap" className="text-xs px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold transition-colors">
+            + AP (Despesa)
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="card p-5">
+      <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
+        <span className="text-sm font-bold text-gray-900">DRE por Competência — AP/AR</span>
+        <span className="text-[10px] text-gray-400 uppercase tracking-widest">Accrual · issue_date</span>
+      </div>
+      <div className="table-scroll">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="border-b border-gray-200 text-left">
+              <th className="py-2 px-2 text-gray-500 font-semibold">Linha</th>
+              {lines.map((l) => (
+                <th key={l.month} className="py-2 px-2 text-gray-500 font-semibold text-right whitespace-nowrap">
+                  {fmtMonth(l.month)}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {([
+              { key: "grossRevenue",  label: "(+) Receita Bruta",             color: "text-emerald-700", bold: true  },
+              { key: "issDeductions", label: "(-) ISS / PIS / COFINS",        color: "text-red-500",     bold: false },
+              { key: "netRevenue",    label: "(=) Receita Líquida",            color: "text-emerald-600", bold: true  },
+              { key: "cogs",          label: "(-) Custo dos Serviços (COGS)",  color: "text-red-600",     bold: false, neg: true },
+              { key: "grossProfit",   label: "(=) Lucro Bruto",               color: "text-brand-700",   bold: true  },
+              { key: "opex",          label: "(-) Despesas Operacionais",     color: "text-red-600",     bold: false, neg: true },
+              { key: "ebitda",        label: "(=) EBITDA",                    color: "text-emerald-700", bold: true  },
+              { key: "financials",    label: "(-) Despesas Financeiras",      color: "text-red-600",     bold: false, neg: true },
+              { key: "netResult",     label: "(=) Resultado Líquido",         color: "text-emerald-800", bold: true  },
+            ] as { key: keyof DRELine; label: string; color: string; bold: boolean; neg?: boolean }[]).map(({ key, label, color, bold, neg }) => (
+              <tr key={key} className={`border-b ${bold ? "border-gray-200 bg-gray-50" : "border-gray-50"}`}>
+                <td className={`py-2 px-2 ${bold ? "font-bold text-gray-900" : "text-gray-600 pl-4"}`}>{label}</td>
+                {lines.map((l) => {
+                  const raw = l[key] as number;
+                  const val = neg ? -raw : raw;
+                  const display = raw === 0 ? "—" : (val < 0 ? `(${fmtBRL(Math.abs(val))})` : fmtBRL(val));
+                  const clr = typeof raw === "number" && raw < 0 ? "text-red-700" : color;
+                  return (
+                    <td key={l.month} className={`py-2 px-2 text-right tabular-nums ${bold ? "font-bold" : "font-semibold"} ${clr}`}>
+                      {display}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function EpmPLPage() {
-  const dre = await buildDreQuery("all");
+  await initAllAPARTables();
+  const [dre, dreLines] = await Promise.all([
+    buildDreQuery("all"),
+    getDREByMonth(),
+  ]);
 
   return (
     <>
@@ -378,6 +464,21 @@ export default async function EpmPLPage() {
         {/* ── DRE Waterfall ──────────────────────────────────────────── */}
         <DreWaterfall dre={dre} snapRevenue={consolidated.revenue} />
 
+        {/* ── DRE por Competência (AP/AR) ────────────────────────────── */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+              DRE Competência — Fonte: AP/AR (accrual por issue_date)
+            </div>
+            <div className="flex items-center gap-3">
+              <Link href="/awq/epm/dfc" className="text-xs text-brand-600 hover:underline font-medium">
+                Ver DFC (Fluxo de Caixa) →
+              </Link>
+            </div>
+          </div>
+          <AccrualDRETable lines={dreLines} />
+        </div>
+
         {/* ── Budget vs Actual ───────────────────────────────────────── */}
         <BudgetComparison />
 
@@ -404,6 +505,9 @@ export default async function EpmPLPage() {
             ← EPM Overview
           </Link>
           <span className="text-gray-300">|</span>
+          <Link href="/awq/epm/dfc" className="flex items-center gap-1 text-brand-600 hover:underline">
+            DFC <ChevronRight size={11} />
+          </Link>
           <Link href="/awq/epm/balance-sheet" className="flex items-center gap-1 text-brand-600 hover:underline">
             Balanço Patrimonial <ChevronRight size={11} />
           </Link>

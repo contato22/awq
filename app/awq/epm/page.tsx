@@ -13,7 +13,7 @@ import {
   ArrowDownLeft, ArrowUpRight, ListOrdered, Building2,
   ChevronRight, CheckCircle2, AlertTriangle, Database,
   TrendingUp, DollarSign, BarChart3, Landmark, BookOpen, LayoutGrid,
-  Users, Receipt,
+  Users, Receipt, Activity,
 } from "lucide-react";
 import { buildDreQuery } from "@/lib/dre-query";
 import { getAllGLEntries, getBalanceSheet } from "@/lib/epm-gl";
@@ -42,6 +42,7 @@ interface ModuleCard {
 
 const EPM_MODULES: ModuleCard[] = [
   { label: "P&L (DRE)",          sub: "Demonstração de Resultado",    href: "/awq/epm/pl",             icon: LineChart,     color: "text-emerald-600", bg: "bg-emerald-50",  status: "active" },
+  { label: "DFC",                sub: "Demonstração de Fluxo de Caixa",href: "/awq/epm/dfc",           icon: Activity,      color: "text-cyan-600",    bg: "bg-cyan-50",     status: "active" },
   { label: "Balanço Patrimonial", sub: "Activo = Passivo + PL",        href: "/awq/epm/balance-sheet",  icon: Scale,         color: "text-brand-600",   bg: "bg-brand-50",    status: "active" },
   { label: "Budget vs Actual",    sub: "Variance analysis",            href: "/awq/epm/budget",         icon: Target,        color: "text-violet-600",  bg: "bg-violet-50",   status: "active" },
   { label: "KPI Dashboard",       sub: "MRR, EBITDA, Runway…",         href: "/awq/epm/kpis",           icon: PieChart,      color: "text-cyan-700",    bg: "bg-cyan-50",     status: "active" },

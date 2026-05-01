@@ -8,8 +8,9 @@
 
 import Header from "@/components/Header";
 import Link from "next/link";
-import { Scale, AlertTriangle, CheckCircle2, Database, ListOrdered } from "lucide-react";
+import { Scale, AlertTriangle, CheckCircle2, Database, ListOrdered, ArrowUpRight, ArrowDownLeft } from "lucide-react";
 import { getBalanceSheet, getTrialBalance } from "@/lib/epm-gl";
+import { initAllAPARTables, getAllAP, getAllAR } from "@/lib/ap-ar-db";
 
 function fmtBRL(n: number): string {
   const abs  = Math.abs(n);
@@ -27,21 +28,85 @@ const GROUP_LABEL: Record<string, string> = {
 };
 const GROUP_ORDER = ["ASSET", "LIABILITY", "EQUITY"];
 
-export default function BalanceSheetPage() {
+export default async function BalanceSheetPage() {
+  await initAllAPARTables();
   const bs = getBalanceSheet();
   const tb = getTrialBalance();
+
+  // AP/AR outstanding for balance sheet position
+  const [apItems, arItems] = await Promise.all([getAllAP(), getAllAR()]);
+
+  const arOutstanding = arItems
+    .filter((i) => i.status === "PENDING" || i.status === "OVERDUE" || i.status === "PARTIAL")
+    .reduce((s, i) => s + i.net_amount, 0);
+  const arOverdueAmt = arItems
+    .filter((i) => i.status === "OVERDUE" || (i.status !== "RECEIVED" && i.status !== "CANCELLED" && new Date(i.due_date) < new Date()))
+    .reduce((s, i) => s + i.net_amount, 0);
+
+  const apOutstanding = apItems
+    .filter((i) => i.status === "PENDING" || i.status === "SCHEDULED" || i.status === "OVERDUE")
+    .reduce((s, i) => s + i.net_amount, 0);
+  const apOverdueAmt = apItems
+    .filter((i) => i.status === "OVERDUE" || (i.status !== "PAID" && i.status !== "CANCELLED" && new Date(i.due_date) < new Date()))
+    .reduce((s, i) => s + i.net_amount, 0);
+
+  const netWorkingCapital = arOutstanding - apOutstanding;
+  const hasAPARData = arItems.length > 0 || apItems.length > 0;
 
   if (!bs.hasData) {
     return (
       <>
         <Header title="Balanço Patrimonial" subtitle="EPM · AWQ Group" />
         <div className="page-container">
+          {/* AP/AR section even when no GL data */}
+          {hasAPARData && (
+            <div className="space-y-3">
+              <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+                Posição AP/AR — Circulante (fonte: lançamentos AP/AR)
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div className="card p-5 border-l-4 border-emerald-400">
+                  <div className="flex items-center gap-2 mb-3">
+                    <ArrowUpRight size={14} className="text-emerald-600" />
+                    <span className="text-xs font-semibold text-gray-700 uppercase tracking-widest">Contas a Receber</span>
+                    <span className="ml-auto text-[10px] text-gray-400">Ativo Circ. · 1.1.02</span>
+                  </div>
+                  <div className="text-2xl font-bold text-emerald-700 tabular-nums mb-1">{fmtBRL(arOutstanding)}</div>
+                  <div className="text-xs text-gray-500">PENDING + OVERDUE + PARTIAL</div>
+                  {arOverdueAmt > 0 && <div className="mt-2 text-xs text-red-600 font-semibold">Vencido: {fmtBRL(arOverdueAmt)}</div>}
+                  <Link href="/awq/epm/ar/aging" className="mt-2 block text-[11px] text-brand-600 hover:underline">Ver aging AR →</Link>
+                </div>
+                <div className="card p-5 border-l-4 border-red-400">
+                  <div className="flex items-center gap-2 mb-3">
+                    <ArrowDownLeft size={14} className="text-red-600" />
+                    <span className="text-xs font-semibold text-gray-700 uppercase tracking-widest">Contas a Pagar</span>
+                    <span className="ml-auto text-[10px] text-gray-400">Passivo Circ. · 2.1.01</span>
+                  </div>
+                  <div className="text-2xl font-bold text-red-700 tabular-nums mb-1">{fmtBRL(apOutstanding)}</div>
+                  <div className="text-xs text-gray-500">PENDING + SCHEDULED + OVERDUE</div>
+                  {apOverdueAmt > 0 && <div className="mt-2 text-xs text-red-600 font-semibold">Vencido: {fmtBRL(apOverdueAmt)}</div>}
+                  <Link href="/awq/epm/ap/aging" className="mt-2 block text-[11px] text-brand-600 hover:underline">Ver aging AP →</Link>
+                </div>
+                <div className={`card p-5 border-l-4 ${netWorkingCapital >= 0 ? "border-brand-400" : "border-amber-400"}`}>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Scale size={14} className={netWorkingCapital >= 0 ? "text-brand-600" : "text-amber-600"} />
+                    <span className="text-xs font-semibold text-gray-700 uppercase tracking-widest">Capital de Giro</span>
+                  </div>
+                  <div className={`text-2xl font-bold tabular-nums mb-1 ${netWorkingCapital >= 0 ? "text-brand-700" : "text-amber-700"}`}>
+                    {netWorkingCapital >= 0 ? "+" : ""}{fmtBRL(netWorkingCapital)}
+                  </div>
+                  <div className="text-xs text-gray-500">AR − AP (circulante)</div>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="card p-16 flex flex-col items-center gap-4 text-center">
             <Database size={40} className="text-gray-200" />
-            <div className="text-sm font-semibold text-gray-400">Sem lançamentos contábeis</div>
+            <div className="text-sm font-semibold text-gray-400">Sem lançamentos GL contábeis</div>
             <div className="text-xs text-gray-400 max-w-sm">
-              O Balanço Patrimonial é gerado a partir dos lançamentos do Razão Geral (GL).
-              Adicione lançamentos accrual para visualizar o balanço.
+              O Balanço completo (com dupla entrada) requer lançamentos do Razão Geral (GL).
+              Adicione lançamentos accrual para visualizar o balanço consolidado.
             </div>
             <div className="flex items-center gap-3 mt-2">
               <Link
@@ -198,6 +263,76 @@ export default function BalanceSheetPage() {
           </div>
         </div>
 
+        {/* ── AP/AR Position (Ativo Circulante / Passivo Circulante) ──────── */}
+        <div>
+          <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2">
+            Posição AP/AR — Circulante (fonte: lançamentos AP/AR)
+          </div>
+          {!hasAPARData ? (
+            <div className="card p-6 flex items-center gap-4 text-center justify-center">
+              <Database size={24} className="text-gray-200" />
+              <div className="text-xs text-gray-400">Sem lançamentos AP/AR. Registre receitas e despesas para ver a posição circulante.</div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              {/* Contas a Receber */}
+              <div className="card p-5 border-l-4 border-emerald-400">
+                <div className="flex items-center gap-2 mb-3">
+                  <ArrowUpRight size={14} className="text-emerald-600" />
+                  <span className="text-xs font-semibold text-gray-700 uppercase tracking-widest">Contas a Receber</span>
+                  <span className="ml-auto text-[10px] text-gray-400">Ativo Circulante · 1.1.02</span>
+                </div>
+                <div className="text-2xl font-bold text-emerald-700 tabular-nums mb-1">{fmtBRL(arOutstanding)}</div>
+                <div className="text-xs text-gray-500">PENDING + OVERDUE + PARTIAL</div>
+                {arOverdueAmt > 0 && (
+                  <div className="mt-2 text-xs text-red-600 font-semibold">
+                    Vencido: {fmtBRL(arOverdueAmt)}
+                  </div>
+                )}
+                <Link href="/awq/epm/ar/aging" className="mt-2 block text-[11px] text-brand-600 hover:underline">
+                  Ver aging AR →
+                </Link>
+              </div>
+
+              {/* Contas a Pagar */}
+              <div className="card p-5 border-l-4 border-red-400">
+                <div className="flex items-center gap-2 mb-3">
+                  <ArrowDownLeft size={14} className="text-red-600" />
+                  <span className="text-xs font-semibold text-gray-700 uppercase tracking-widest">Contas a Pagar</span>
+                  <span className="ml-auto text-[10px] text-gray-400">Passivo Circulante · 2.1.01</span>
+                </div>
+                <div className="text-2xl font-bold text-red-700 tabular-nums mb-1">{fmtBRL(apOutstanding)}</div>
+                <div className="text-xs text-gray-500">PENDING + SCHEDULED + OVERDUE</div>
+                {apOverdueAmt > 0 && (
+                  <div className="mt-2 text-xs text-red-600 font-semibold">
+                    Vencido: {fmtBRL(apOverdueAmt)}
+                  </div>
+                )}
+                <Link href="/awq/epm/ap/aging" className="mt-2 block text-[11px] text-brand-600 hover:underline">
+                  Ver aging AP →
+                </Link>
+              </div>
+
+              {/* Capital de Giro */}
+              <div className={`card p-5 border-l-4 ${netWorkingCapital >= 0 ? "border-brand-400" : "border-amber-400"}`}>
+                <div className="flex items-center gap-2 mb-3">
+                  <Scale size={14} className={netWorkingCapital >= 0 ? "text-brand-600" : "text-amber-600"} />
+                  <span className="text-xs font-semibold text-gray-700 uppercase tracking-widest">Capital de Giro</span>
+                </div>
+                <div className={`text-2xl font-bold tabular-nums mb-1 ${netWorkingCapital >= 0 ? "text-brand-700" : "text-amber-700"}`}>
+                  {netWorkingCapital >= 0 ? "+" : ""}{fmtBRL(netWorkingCapital)}
+                </div>
+                <div className="text-xs text-gray-500">AR − AP (circulante)</div>
+                <div className="mt-2 text-[11px] text-gray-400">
+                  {netWorkingCapital >= 0
+                    ? "Posição positiva — empresa financia clientes"
+                    : "Posição negativa — fornecedores financiam empresa"}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* ── Trial Balance ─────────────────────────────────────────────── */}
         <div className="card p-5">
           <h2 className="text-sm font-semibold text-gray-900 mb-4">Balancete Completo</h2>
@@ -247,8 +382,10 @@ export default function BalanceSheetPage() {
         <div className="flex items-center gap-3 text-xs">
           <Link href="/awq/epm" className="text-brand-600 hover:underline">← EPM Overview</Link>
           <span className="text-gray-300">|</span>
-          <Link href="/awq/epm/gl" className="text-brand-600 hover:underline">Ver lançamentos GL →</Link>
-          <Link href="/awq/epm/gl/add" className="text-brand-600 hover:underline">+ Novo lançamento →</Link>
+          <Link href="/awq/epm/pl" className="text-brand-600 hover:underline">DRE →</Link>
+          <Link href="/awq/epm/dfc" className="text-brand-600 hover:underline">DFC →</Link>
+          <Link href="/awq/epm/gl" className="text-brand-600 hover:underline">GL →</Link>
+          <Link href="/awq/epm/gl/add" className="text-brand-600 hover:underline">+ Lançamento →</Link>
         </div>
 
       </div>
