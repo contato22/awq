@@ -33,6 +33,7 @@ interface ARItem {
   due_date:        string;
   invoice_number?: string;
   invoice_series?: string;
+  invoice_date?:   string;
   // Values
   gross_amount:    number;
   discount_amount: number;
@@ -61,16 +62,26 @@ interface ARItem {
   csll_amount:     number;
   tax_regime?:     string;
   simples_rate:    number;
+  // Accounting
+  revenue_account_id?:  string;
+  revenue_type?:        string;
+  nature_of_operation?: string;
   // Managerial
   project_id?:       string;
   service_category?: string;
   contract_type?:    string;
-  accrual_month?:    string;
-  is_deferred_revenue: boolean;
+  // Accrual
+  accrual_month?:            string;
+  service_period_start?:     string;
+  service_period_end?:       string;
+  is_deferred_revenue:       boolean;
+  deferred_periods:          number;
+  revenue_recognition_date?: string;
   // Payment
   payment_date?:    string;
   received_date?:   string;
   payment_method?:  string;
+  bank_account_id?: string;
   payment_reference?: string;
   receipt_ref?:     string;
   received_amount?: number;
@@ -78,23 +89,44 @@ interface ARItem {
   is_installment:      boolean;
   installment_number?: number;
   total_installments?: number;
+  parent_ar_id?:       string;
   // Recurrence
-  is_recurring:   boolean;
-  mrr?:           number;
+  is_recurring:          boolean;
+  recurrence_frequency?: string;
+  contract_value?:       number;
+  contract_start_date?:  string;
+  contract_end_date?:    string;
+  mrr?:                  number;
+  arr?:                  number;
   // Collection
-  status:          ARStatus;
-  collection_status?: string;
-  collection_attempts: number;
+  status:                ARStatus;
+  collection_status?:    string;
+  collection_attempts:   number;
+  last_collection_date?: string;
   // Late fees
+  late_fee_rate:   number;
   late_fee_amount: number;
+  interest_rate:   number;
   interest_amount: number;
+  // Documents
+  invoice_pdf_url?: string;
+  invoice_xml_url?: string;
+  danfe_url?:       string;
+  contract_url?:    string;
+  boleto_url?:      string;
+  boleto_barcode?:  string;
   // CRM
-  opportunity_id?: string;
+  opportunity_id?:   string;
+  sales_rep_id?:     string;
+  commission_rate:   number;
   commission_amount: number;
+  commission_paid:   boolean;
   // Misc
   notes?:          string;
+  customer_notes?: string;
   tags:            string[];
   created_at:      string;
+  updated_at?:     string;
 }
 
 interface ARKPIs {
@@ -220,12 +252,17 @@ export default function ARPage() {
   const [form, setForm] = useState({
     bu_code:              "JACQES" as BuCode,
     customer_name:        "",
+    customer_doc:         "",
     description:          "",
     category:             "Serviço Recorrente",
     cost_center:          "",
     reference_doc:        "",
     invoice_number:       "",
     accrual_month:        "",
+    service_period_start: "",
+    service_period_end:   "",
+    is_deferred_revenue:  false,
+    deferred_periods:     "",
     issue_date:           today,
     due_date:             "",
     gross_amount:         "",
@@ -237,8 +274,28 @@ export default function ARPage() {
     pis_withheld_rate:    "",
     cofins_withheld_rate: "",
     csll_withheld_rate:   "",
+    tax_regime:           "",
+    simples_rate:         "",
     service_category:     "",
     contract_type:        "",
+    revenue_account_id:   "",
+    revenue_type:         "",
+    nature_of_operation:  "",
+    project_id:           "",
+    late_fee_rate:        "",
+    interest_rate:        "",
+    invoice_pdf_url:      "",
+    invoice_xml_url:      "",
+    danfe_url:            "",
+    boleto_url:           "",
+    boleto_barcode:       "",
+    contract_url:         "",
+    opportunity_id:       "",
+    sales_rep_id:         "",
+    commission_rate:      "",
+    notes:                "",
+    customer_notes:       "",
+    tags:                 "",
   });
 
   const gross = parseFloat(form.gross_amount) || 0;
@@ -287,14 +344,25 @@ export default function ARPage() {
       const payload: Record<string, unknown> = {
         bu_code:              form.bu_code,
         customer_name:        form.customer_name,
+        customer_doc:         form.customer_doc         || undefined,
         description:          form.description,
         category:             form.category,
-        cost_center:          form.cost_center   || undefined,
-        reference_doc:        form.reference_doc || undefined,
-        invoice_number:       form.invoice_number || undefined,
-        accrual_month:        form.accrual_month  || undefined,
-        service_category:     form.service_category || undefined,
-        contract_type:        form.contract_type  || undefined,
+        cost_center:          form.cost_center          || undefined,
+        reference_doc:        form.reference_doc        || undefined,
+        invoice_number:       form.invoice_number       || undefined,
+        accrual_month:        form.accrual_month        || undefined,
+        service_period_start: form.service_period_start || undefined,
+        service_period_end:   form.service_period_end   || undefined,
+        is_deferred_revenue:  form.is_deferred_revenue  || undefined,
+        deferred_periods:     parseInt(form.deferred_periods) || undefined,
+        service_category:     form.service_category     || undefined,
+        contract_type:        form.contract_type        || undefined,
+        tax_regime:           form.tax_regime           || undefined,
+        simples_rate:         parseFloat(form.simples_rate)    / 100 || undefined,
+        revenue_account_id:   form.revenue_account_id   || undefined,
+        revenue_type:         form.revenue_type         || undefined,
+        nature_of_operation:  form.nature_of_operation  || undefined,
+        project_id:           form.project_id           || undefined,
         issue_date:           form.issue_date,
         due_date:             form.due_date,
         gross_amount:         gross,
@@ -305,6 +373,20 @@ export default function ARPage() {
         pis_withheld_rate:    parseFloat(form.pis_withheld_rate)    / 100 || undefined,
         cofins_withheld_rate: parseFloat(form.cofins_withheld_rate) / 100 || undefined,
         csll_withheld_rate:   parseFloat(form.csll_withheld_rate)   / 100 || undefined,
+        late_fee_rate:        parseFloat(form.late_fee_rate)  / 100 || undefined,
+        interest_rate:        parseFloat(form.interest_rate)  / 100 || undefined,
+        invoice_pdf_url:      form.invoice_pdf_url      || undefined,
+        invoice_xml_url:      form.invoice_xml_url      || undefined,
+        danfe_url:            form.danfe_url             || undefined,
+        boleto_url:           form.boleto_url            || undefined,
+        boleto_barcode:       form.boleto_barcode        || undefined,
+        contract_url:         form.contract_url          || undefined,
+        opportunity_id:       form.opportunity_id        || undefined,
+        sales_rep_id:         form.sales_rep_id          || undefined,
+        commission_rate:      parseFloat(form.commission_rate) / 100 || undefined,
+        notes:                form.notes                 || undefined,
+        customer_notes:       form.customer_notes        || undefined,
+        tags:                 form.tags ? form.tags.split(",").map((t) => t.trim()).filter(Boolean) : undefined,
       };
       const endpoint = n > 1 ? "/api/epm/ar/installments" : "/api/epm/ar";
       const body     = n > 1 ? { ...payload, total_installments: n } : payload;
@@ -318,11 +400,19 @@ export default function ARPage() {
         setShowForm(false);
         setForm((f) => ({
           ...f,
-          customer_name: "", description: "", reference_doc: "", invoice_number: "",
+          customer_name: "", customer_doc: "", description: "", reference_doc: "", invoice_number: "",
           due_date: "", gross_amount: "", discount_amount: "", installments: "1",
           irrf_withheld_rate: "", inss_withheld_rate: "", iss_withheld_rate: "",
           pis_withheld_rate: "", cofins_withheld_rate: "", csll_withheld_rate: "",
-          accrual_month: "", service_category: "", contract_type: "",
+          accrual_month: "", service_period_start: "", service_period_end: "",
+          is_deferred_revenue: false, deferred_periods: "",
+          service_category: "", contract_type: "", tax_regime: "", simples_rate: "",
+          revenue_account_id: "", revenue_type: "", nature_of_operation: "", project_id: "",
+          late_fee_rate: "", interest_rate: "",
+          invoice_pdf_url: "", invoice_xml_url: "", danfe_url: "",
+          boleto_url: "", boleto_barcode: "", contract_url: "",
+          opportunity_id: "", sales_rep_id: "", commission_rate: "",
+          notes: "", customer_notes: "", tags: "",
         }));
         await loadData();
       }
@@ -539,6 +629,17 @@ export default function ARPage() {
                 </datalist>
               </div>
 
+              <div>
+                <label className="block font-semibold text-gray-600 mb-1">CPF / CNPJ cliente</label>
+                <input
+                  type="text"
+                  value={form.customer_doc}
+                  onChange={(e) => setForm((f) => ({ ...f, customer_doc: e.target.value }))}
+                  placeholder="00.000.000/0001-00"
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500"
+                />
+              </div>
+
               <div className="col-span-2">
                 <label className="block font-semibold text-gray-600 mb-1">Descrição *</label>
                 <input
@@ -653,6 +754,30 @@ export default function ARPage() {
                 />
               </div>
               <div>
+                <label className="block font-semibold text-gray-600 mb-1">Início do período</label>
+                <input type="date" value={form.service_period_start}
+                  onChange={(e) => setForm((f) => ({ ...f, service_period_start: e.target.value }))}
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              </div>
+              <div>
+                <label className="block font-semibold text-gray-600 mb-1">Fim do período</label>
+                <input type="date" value={form.service_period_end}
+                  onChange={(e) => setForm((f) => ({ ...f, service_period_end: e.target.value }))}
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              </div>
+              <div className="flex items-center gap-2 pt-3">
+                <input type="checkbox" id="deferred_rev" checked={form.is_deferred_revenue}
+                  onChange={(e) => setForm((f) => ({ ...f, is_deferred_revenue: e.target.checked }))}
+                  className="rounded" />
+                <label htmlFor="deferred_rev" className="font-semibold text-gray-600">Receita diferida</label>
+                {form.is_deferred_revenue && (
+                  <input type="number" min="1" max="60" value={form.deferred_periods}
+                    onChange={(e) => setForm((f) => ({ ...f, deferred_periods: e.target.value }))}
+                    placeholder="Nº períodos"
+                    className="ml-auto w-28 px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                )}
+              </div>
+              <div>
                 <label className="block font-semibold text-gray-600 mb-1">Parcelas</label>
                 <select
                   value={form.installments}
@@ -668,6 +793,166 @@ export default function ARPage() {
                     {parseInt(form.installments)}× de {fmtBRL(Math.round(parseFloat(form.gross_amount) / parseInt(form.installments) * 100) / 100)}
                   </div>
                 )}
+              </div>
+            </div>
+
+            {/* ── Fiscal avançado ──────────────────────────────── */}
+            <details className="text-xs">
+              <summary className="cursor-pointer font-semibold text-gray-600 py-1 select-none">
+                Fiscal avançado (regime, Simples, IRPJ…) — opcional
+              </summary>
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                <div>
+                  <label className="block font-semibold text-gray-500 mb-0.5">Regime tributário</label>
+                  <select value={form.tax_regime}
+                    onChange={(e) => setForm((f) => ({ ...f, tax_regime: e.target.value }))}
+                    className="w-full px-2 py-1.5 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-brand-500">
+                    <option value="">— Selecione —</option>
+                    <option value="simples_nacional">Simples Nacional</option>
+                    <option value="lucro_presumido">Lucro Presumido</option>
+                    <option value="lucro_real">Lucro Real</option>
+                    <option value="mei">MEI</option>
+                    <option value="isento">Isento</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-semibold text-gray-500 mb-0.5">Alíquota Simples %</label>
+                  <input type="number" step="0.01" min="0" max="20" value={form.simples_rate}
+                    onChange={(e) => setForm((f) => ({ ...f, simples_rate: e.target.value }))}
+                    placeholder="0"
+                    className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                </div>
+                <div>
+                  <label className="block font-semibold text-gray-500 mb-0.5">Multa padrão %</label>
+                  <input type="number" step="0.01" min="0" max="100" value={form.late_fee_rate}
+                    onChange={(e) => setForm((f) => ({ ...f, late_fee_rate: e.target.value }))}
+                    placeholder="2"
+                    className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                </div>
+                <div>
+                  <label className="block font-semibold text-gray-500 mb-0.5">Juros mora mensal %</label>
+                  <input type="number" step="0.01" min="0" max="100" value={form.interest_rate}
+                    onChange={(e) => setForm((f) => ({ ...f, interest_rate: e.target.value }))}
+                    placeholder="1"
+                    className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                </div>
+              </div>
+            </details>
+
+            {/* ── Classificação contábil / gerencial ───────────── */}
+            <details className="text-xs">
+              <summary className="cursor-pointer font-semibold text-gray-600 py-1 select-none">
+                Classificação contábil e gerencial — opcional
+              </summary>
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                <div>
+                  <label className="block font-semibold text-gray-500 mb-0.5">Conta de receita</label>
+                  <input type="text" value={form.revenue_account_id}
+                    onChange={(e) => setForm((f) => ({ ...f, revenue_account_id: e.target.value }))}
+                    placeholder="Ex: 3.1.1.01"
+                    className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                </div>
+                <div>
+                  <label className="block font-semibold text-gray-500 mb-0.5">Tipo de receita</label>
+                  <input type="text" value={form.revenue_type}
+                    onChange={(e) => setForm((f) => ({ ...f, revenue_type: e.target.value }))}
+                    placeholder="recorrente, pontual…"
+                    className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                </div>
+                <div>
+                  <label className="block font-semibold text-gray-500 mb-0.5">Natureza da operação</label>
+                  <input type="text" value={form.nature_of_operation}
+                    onChange={(e) => setForm((f) => ({ ...f, nature_of_operation: e.target.value }))}
+                    placeholder="Prestação de serviço…"
+                    className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                </div>
+                <div>
+                  <label className="block font-semibold text-gray-500 mb-0.5">ID do projeto</label>
+                  <input type="text" value={form.project_id}
+                    onChange={(e) => setForm((f) => ({ ...f, project_id: e.target.value }))}
+                    placeholder="PROJ-001"
+                    className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                </div>
+              </div>
+            </details>
+
+            {/* ── Documentos ───────────────────────────────────── */}
+            <details className="text-xs">
+              <summary className="cursor-pointer font-semibold text-gray-600 py-1 select-none">
+                Documentos (NF-e XML, PDF, Boleto…) — opcional
+              </summary>
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                {[
+                  { label: "URL PDF NF-e",   key: "invoice_pdf_url", ph: "https://…" },
+                  { label: "URL XML NF-e",   key: "invoice_xml_url", ph: "https://…" },
+                  { label: "URL DANFE",      key: "danfe_url",       ph: "https://…" },
+                  { label: "URL Boleto",     key: "boleto_url",      ph: "https://…" },
+                  { label: "Cód. barras",    key: "boleto_barcode",  ph: "00000…"    },
+                  { label: "URL Contrato",   key: "contract_url",    ph: "https://…" },
+                ].map(({ label, key, ph }) => (
+                  <div key={key}>
+                    <label className="block font-semibold text-gray-500 mb-0.5">{label}</label>
+                    <input type="text" value={(form as Record<string, unknown>)[key] as string}
+                      onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
+                      placeholder={ph}
+                      className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                  </div>
+                ))}
+              </div>
+            </details>
+
+            {/* ── CRM & Comissão ───────────────────────────────── */}
+            <details className="text-xs">
+              <summary className="cursor-pointer font-semibold text-gray-600 py-1 select-none">
+                CRM e comissão — opcional
+              </summary>
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                <div>
+                  <label className="block font-semibold text-gray-500 mb-0.5">ID Oportunidade</label>
+                  <input type="text" value={form.opportunity_id}
+                    onChange={(e) => setForm((f) => ({ ...f, opportunity_id: e.target.value }))}
+                    placeholder="OPP-001"
+                    className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                </div>
+                <div>
+                  <label className="block font-semibold text-gray-500 mb-0.5">ID Vendedor</label>
+                  <input type="text" value={form.sales_rep_id}
+                    onChange={(e) => setForm((f) => ({ ...f, sales_rep_id: e.target.value }))}
+                    placeholder="REP-001"
+                    className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                </div>
+                <div>
+                  <label className="block font-semibold text-gray-500 mb-0.5">Taxa comissão %</label>
+                  <input type="number" step="0.01" min="0" max="100" value={form.commission_rate}
+                    onChange={(e) => setForm((f) => ({ ...f, commission_rate: e.target.value }))}
+                    placeholder="0"
+                    className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                </div>
+              </div>
+            </details>
+
+            {/* ── Obs / Tags ───────────────────────────────────── */}
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div>
+                <label className="block font-semibold text-gray-600 mb-1">Observações internas</label>
+                <textarea rows={2} value={form.notes}
+                  onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+                  placeholder="Notas internas…"
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
+              </div>
+              <div>
+                <label className="block font-semibold text-gray-600 mb-1">Obs. para o cliente</label>
+                <textarea rows={2} value={form.customer_notes}
+                  onChange={(e) => setForm((f) => ({ ...f, customer_notes: e.target.value }))}
+                  placeholder="Mensagem ao cliente…"
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
+              </div>
+              <div className="col-span-2">
+                <label className="block font-semibold text-gray-600 mb-1">Tags (separadas por vírgula)</label>
+                <input type="text" value={form.tags}
+                  onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))}
+                  placeholder="retainer, contrato, prioritário…"
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
               </div>
             </div>
 
@@ -689,7 +974,7 @@ export default function ARPage() {
                     <label className="block font-semibold text-gray-500 mb-0.5">{label}</label>
                     <input
                       type="number" step="0.01" min="0" max="100"
-                      value={(form as Record<string, string>)[key]}
+                      value={(form as Record<string, unknown>)[key] as string}
                       onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
                       placeholder="0"
                       className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500"
@@ -922,21 +1207,37 @@ export default function ARPage() {
                               <span>Emissão: <strong>{fmtDate(item.issue_date)}</strong></span>
                               {item.invoice_number && <span>NF-e: <strong>{item.invoice_number}</strong></span>}
                               {item.accrual_month  && <span>Competência: <strong>{item.accrual_month}</strong></span>}
+                              {item.service_period_start && <span>Período: <strong>{fmtDate(item.service_period_start)}{item.service_period_end ? ` → ${fmtDate(item.service_period_end)}` : ""}</strong></span>}
+                              {item.is_deferred_revenue  && <span className="text-violet-600">Diferida{item.deferred_periods > 0 ? ` ${item.deferred_periods}p` : ""}</span>}
                               {item.cost_center    && <span>CC: <strong>{item.cost_center}</strong></span>}
                               {item.reference_doc  && <span>Doc: <strong>{item.reference_doc}</strong></span>}
                               {item.contract_type  && <span>Contrato: <strong>{item.contract_type}</strong></span>}
                               {item.service_category && <span>Serviço: <strong>{item.service_category}</strong></span>}
+                              {item.project_id     && <span>Projeto: <strong>{item.project_id}</strong></span>}
+                              {item.revenue_account_id && <span>Conta: <strong>{item.revenue_account_id}</strong></span>}
+                              {item.revenue_type   && <span>Tipo receita: <strong>{item.revenue_type}</strong></span>}
+                              {item.nature_of_operation && <span>Natureza: <strong>{item.nature_of_operation}</strong></span>}
+                              {item.tax_regime     && <span>Regime: <strong>{item.tax_regime}</strong></span>}
+                              {item.customer_doc   && <span>Doc. cliente: <strong>{item.customer_doc}</strong></span>}
                               {item.is_installment && item.installment_number != null && (
                                 <span>Parcela: <strong>{item.installment_number}/{item.total_installments}</strong></span>
                               )}
-                              {item.is_recurring && <span className="text-brand-600 font-semibold">Recorrente{item.mrr ? ` · MRR ${fmtBRL(item.mrr)}` : ""}</span>}
+                              {item.is_recurring && <span className="text-brand-600 font-semibold">Recorrente{item.mrr ? ` · MRR ${fmtBRL(item.mrr)}` : ""}{item.arr ? ` · ARR ${fmtBRL(item.arr)}` : ""}</span>}
+                              {(item.late_fee_rate > 0 || item.interest_rate > 0) && (
+                                <span>Multa: <strong>{pct(item.late_fee_rate)}</strong> · Juros: <strong>{pct(item.interest_rate)}/mês</strong></span>
+                              )}
                               {(item.late_fee_amount > 0 || item.interest_amount > 0) && (
                                 <span className="text-red-600">
-                                  Multa/Juros: <strong>{fmtBRL(item.late_fee_amount + item.interest_amount)}</strong>
+                                  Multa/Juros aplicados: <strong>{fmtBRL(item.late_fee_amount + item.interest_amount)}</strong>
                                 </span>
                               )}
+                              {item.collection_status && item.collection_status !== "not_due" && (
+                                <span>Cobrança: <strong>{item.collection_status}</strong>{item.collection_attempts > 0 ? ` (${item.collection_attempts}×)` : ""}</span>
+                              )}
+                              {item.opportunity_id && <span>Oportunidade: <strong>{item.opportunity_id}</strong></span>}
+                              {item.sales_rep_id   && <span>Vendedor: <strong>{item.sales_rep_id}</strong></span>}
                               {item.commission_amount > 0 && (
-                                <span>Comissão: <strong>{fmtBRL(item.commission_amount)}</strong></span>
+                                <span>Comissão: <strong>{fmtBRL(item.commission_amount)}</strong>{item.commission_paid ? " ✓" : " (pendente)"}</span>
                               )}
                               {(item.payment_date ?? item.received_date) && (
                                 <span>
@@ -946,6 +1247,16 @@ export default function ARPage() {
                                   {(item.payment_reference ?? item.receipt_ref) && ` · ${item.payment_reference ?? item.receipt_ref}`}
                                 </span>
                               )}
+                              {(item.invoice_pdf_url || item.danfe_url || item.boleto_url || item.contract_url) && (
+                                <span className="flex gap-2">
+                                  {item.invoice_pdf_url && <a href={item.invoice_pdf_url} target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:underline">NF-e PDF</a>}
+                                  {item.danfe_url       && <a href={item.danfe_url}       target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:underline">DANFE</a>}
+                                  {item.boleto_url      && <a href={item.boleto_url}      target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:underline">Boleto</a>}
+                                  {item.contract_url    && <a href={item.contract_url}    target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:underline">Contrato</a>}
+                                </span>
+                              )}
+                              {item.boleto_barcode && <span>Cód. barras: <strong className="font-mono">{item.boleto_barcode}</strong></span>}
+                              {item.customer_notes && <span>Obs. cliente: <em>{item.customer_notes}</em></span>}
                               {item.notes && <span>Obs: <em>{item.notes}</em></span>}
                               {item.tags?.length > 0 && (
                                 <span className="flex gap-1">
