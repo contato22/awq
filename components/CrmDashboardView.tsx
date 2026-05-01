@@ -179,15 +179,33 @@ export default function CrmDashboardView({ buFilter }: Props) {
             (a) => !buFilter || a.related_to_type !== "opportunity" || allOpps.some(o => o.opportunity_id === a.related_to_id)
           );
           setActivities(filteredActs);
-          setAnalytics({
-            leadsNew: analJson.data.leadsNew ?? 0,
-            openOpportunities: analJson.data.openOpportunities ?? 0,
-            pipelineValue: analJson.data.pipelineValue ?? 0,
-            weightedForecast: analJson.data.weightedForecast ?? 0,
-            closedWonThisMonth: analJson.data.revenueThisMonth ?? 0,
-            winRate: analJson.data.winRate ?? 0,
-            tasksToday: analJson.data.tasksToday ?? 0,
-          });
+
+          // Derive KPIs from filtered opps so BU views never show cross-BU numbers
+          if (buFilter) {
+            const openFiltered = allOpps.filter(o => o.stage !== "closed_won" && o.stage !== "closed_lost");
+            const wonFiltered  = allOpps.filter(o => o.stage === "closed_won");
+            const lostFiltered = allOpps.filter(o => o.stage === "closed_lost");
+            const totalClosed  = wonFiltered.length + lostFiltered.length;
+            setAnalytics({
+              leadsNew: allOpps.length > 0 ? 1 : 0,
+              openOpportunities: openFiltered.length,
+              pipelineValue: openFiltered.reduce((s, o) => s + o.deal_value, 0),
+              weightedForecast: Math.round(openFiltered.reduce((s, o) => s + o.deal_value * o.probability / 100, 0)),
+              closedWonThisMonth: wonFiltered.reduce((s, o) => s + o.deal_value, 0),
+              winRate: totalClosed > 0 ? Math.round((wonFiltered.length / totalClosed) * 100) : 0,
+              tasksToday: 0,
+            });
+          } else {
+            setAnalytics({
+              leadsNew: analJson.data.leadsNew ?? 0,
+              openOpportunities: analJson.data.openOpportunities ?? 0,
+              pipelineValue: analJson.data.pipelineValue ?? 0,
+              weightedForecast: analJson.data.weightedForecast ?? 0,
+              closedWonThisMonth: analJson.data.revenueThisMonth ?? 0,
+              winRate: analJson.data.winRate ?? 0,
+              tasksToday: analJson.data.tasksToday ?? 0,
+            });
+          }
         } else {
           throw new Error("API error");
         }
