@@ -1,5 +1,4 @@
-import CrmDashboardView from "@/components/CrmDashboardView";
-
+import { redirect } from "next/navigation";
 export default function AdvisorCrmPage() {
-  return <CrmDashboardView buFilter="ADVISOR" />;
+  redirect("/crm");
 }

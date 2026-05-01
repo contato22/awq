@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import type { DragEvent, FormEvent } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Header from "@/components/Header";
 import SectionHeader from "@/components/SectionHeader";
@@ -342,10 +343,12 @@ function KanbanColumn({
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function PipelinePage() {
+function PipelinePageInner() {
+  const searchParams = useSearchParams();
   const [opps, setOpps] = useState<CrmOpportunity[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterBU, setFilterBU] = useState("Todos");
+  const urlBu = searchParams.get("bu");
+  const [filterBU, setFilterBU] = useState(urlBu && BU_OPTIONS.includes(urlBu) ? urlBu : "Todos");
   const [filterOwner, setFilterOwner] = useState("Todos");
   const [dragOverStage, setDragOverStage] = useState<string | null>(null);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
@@ -603,5 +606,13 @@ export default function PipelinePage() {
 
       </div>
     </>
+  );
+}
+
+export default function PipelinePage() {
+  return (
+    <Suspense fallback={null}>
+      <PipelinePageInner />
+    </Suspense>
   );
 }

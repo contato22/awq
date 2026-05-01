@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
 import SectionHeader from "@/components/SectionHeader";
 import EmptyState from "@/components/EmptyState";
@@ -56,13 +56,15 @@ function BuBadge({ bu }: { bu: string }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function LeadsPage() {
+function LeadsPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [leads, setLeads] = useState<CrmLead[]>([]);
   const [loading, setLoading] = useState(true);
   const [isStatic, setIsStatic] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [buFilter, setBuFilter] = useState<string>("Todos");
+  const urlBu = searchParams.get("bu");
+  const [buFilter, setBuFilter] = useState<string>(urlBu && BU_LIST.includes(urlBu as typeof BU_LIST[number]) ? urlBu : "Todos");
   const [search, setSearch] = useState("");
   const [converting, setConverting] = useState<string | null>(null);
 
@@ -371,5 +373,13 @@ export default function LeadsPage() {
 
       </div>
     </>
+  );
+}
+
+export default function LeadsPage() {
+  return (
+    <Suspense fallback={null}>
+      <LeadsPageInner />
+    </Suspense>
   );
 }

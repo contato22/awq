@@ -1,5 +1,4 @@
-import CrmDashboardView from "@/components/CrmDashboardView";
-
+import { redirect } from "next/navigation";
 export default function CazaCrmPage() {
-  return <CrmDashboardView buFilter="CAZA" />;
+  redirect("/crm");
 }
