@@ -50,6 +50,8 @@ import {
     ArrowDownLeft,
     Target,
     LayoutGrid,
+    GanttChart,
+    Clock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -243,6 +245,16 @@ const AWQ_JURIDICO_ITEMS = [
 const AWQ_DADOS_ITEMS = [
     { label: "Base de Dados", href: "/awq/data",      icon: Database    },
     { label: "Segurança",     href: "/awq/security",  icon: ShieldAlert },
+] as const;
+
+// PPM — Project Portfolio Management
+const AWQ_PPM_ITEMS = [
+    { label: "Portfolio",       href: "/awq/ppm",               icon: Briefcase    },
+    { label: "Tarefas",         href: "/awq/ppm/tasks",         icon: ClipboardList},
+    { label: "Timesheets",      href: "/awq/ppm/timesheets",    icon: Clock        },
+    { label: "Recursos",        href: "/awq/ppm/resources",     icon: Users        },
+    { label: "Rentabilidade",   href: "/awq/ppm/profitability", icon: TrendingUp   },
+    { label: "Riscos",          href: "/awq/ppm/risks",         icon: AlertTriangle},
 ] as const;
 
 // CRM — Customer Relationship Management (pipeline unificado AWQ)
@@ -464,6 +476,7 @@ function AwqSidebar({ pathname }: { pathname: string }) {
     const controladoriaActive= isGroupActive(AWQ_CONTROLADORIA_ITEMS);
     const epmActive          = isGroupActive(AWQ_EPM_ITEMS);
     const crmGroupActive     = isGroupActive(AWQ_CRM_ITEMS);
+    const ppmGroupActive     = isGroupActive(AWQ_PPM_ITEMS);
 
     // Initialize all sections closed to avoid SSR/client hydration mismatch
     const [ctOpen,            setCtOpen]           = useState(false);
@@ -472,6 +485,7 @@ function AwqSidebar({ pathname }: { pathname: string }) {
     const [controladoriaOpen, setControladoriaOpen]= useState(false);
     const [epmOpen,           setEpmOpen]          = useState(false);
     const [crmGroupOpen,      setCrmGroupOpen]     = useState(false);
+    const [ppmGroupOpen,      setPpmGroupOpen]     = useState(false);
 
     useEffect(() => { if (ctActive)           setCtOpen(true);           }, [ctActive]);
     useEffect(() => { if (fpaActive)          setFpaOpen(true);          }, [fpaActive]);
@@ -479,6 +493,7 @@ function AwqSidebar({ pathname }: { pathname: string }) {
     useEffect(() => { if (controladoriaActive)setControladoriaOpen(true);}, [controladoriaActive]);
     useEffect(() => { if (epmActive)          setEpmOpen(true);          }, [epmActive]);
     useEffect(() => { if (crmGroupActive)     setCrmGroupOpen(true);     }, [crmGroupActive]);
+    useEffect(() => { if (ppmGroupActive)     setPpmGroupOpen(true);     }, [ppmGroupActive]);
 
     return (
         <>
@@ -564,7 +579,31 @@ function AwqSidebar({ pathname }: { pathname: string }) {
                     ))}
                 </CollapsibleSection>
 
-                {/* ── 3. CRM — Pipeline unificado AWQ ──────────────────── */}
+                {/* ── 3. PPM — Project Portfolio Management ────────────── */}
+                <SectionLabel>PPM</SectionLabel>
+                <CollapsibleSection
+                    label="Projetos"
+                    icon={GanttChart}
+                    isAnyActive={ppmGroupActive}
+                    isOpen={ppmGroupOpen}
+                    onToggle={() => setPpmGroupOpen((o) => !o)}
+                >
+                    {AWQ_PPM_ITEMS.map((item) => (
+                        <NavItem
+                            key={item.href}
+                            href={item.href}
+                            icon={item.icon}
+                            label={item.label}
+                            active={
+                                item.href === "/awq/ppm"
+                                    ? pathname === "/awq/ppm"
+                                    : pathname === item.href || pathname.startsWith(item.href + "/")
+                            }
+                        />
+                    ))}
+                </CollapsibleSection>
+
+                {/* ── 4. CRM — Pipeline unificado AWQ ──────────────────── */}
                 <CollapsibleSection
                     label="CRM"
                     icon={Target}
@@ -583,7 +622,7 @@ function AwqSidebar({ pathname }: { pathname: string }) {
                     ))}
                 </CollapsibleSection>
 
-                {/* ── 4. EPM — Enterprise Performance Management ────────── */}
+                {/* ── 5. EPM — Enterprise Performance Management ────────── */}
                 <SectionLabel>EPM</SectionLabel>
                 <div className="space-y-0.5">
                     {AWQ_EPM_ITEMS.map((item) => (
