@@ -106,7 +106,11 @@ export interface ARItem {
   gross_amount:   number;
   iss_rate:       number;
   iss_amount:     number;
-  net_amount:     number;  // gross - ISS
+  pis_rate:       number;
+  pis_amount:     number;
+  cofins_rate:    number;
+  cofins_amount:  number;
+  net_amount:     number;  // gross - ISS - PIS - COFINS
   status:         ARStatus;
   received_date?: string;
   received_amount?: number;
@@ -129,6 +133,8 @@ export interface NewARInput {
   due_date:       string;
   gross_amount:   number;
   iss_rate?:      number;  // 0–1, defaults to 0.05 for service categories
+  pis_rate?:      number;  // 0–1, defaults to 0.0065 for service categories
+  cofins_rate?:   number;  // 0–1, defaults to 0.03 for service categories
   source_system?: string;
   created_by?:    string;
 }
@@ -315,6 +321,10 @@ export async function initAPARDB(): Promise<void> {
   await sql`CREATE INDEX IF NOT EXISTS idx_epm_ar_due_date   ON epm_ar(due_date)`;
   await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS customer_id TEXT`;
   await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS cost_center TEXT`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS pis_rate    NUMERIC NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS pis_amount  NUMERIC NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS cofins_rate   NUMERIC NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS cofins_amount NUMERIC NOT NULL DEFAULT 0`;
 }
 
 // ─── Aging helper ─────────────────────────────────────────────────────────────
@@ -383,8 +393,12 @@ function rowToAR(row: Record<string, unknown>): ARItem {
     issue_date:       String(row.issue_date),
     due_date:         String(row.due_date),
     gross_amount:     Number(row.gross_amount),
-    iss_rate:         Number(row.iss_rate),
-    iss_amount:       Number(row.iss_amount),
+    iss_rate:         Number(row.iss_rate    ?? 0),
+    iss_amount:       Number(row.iss_amount  ?? 0),
+    pis_rate:         Number(row.pis_rate    ?? 0),
+    pis_amount:       Number(row.pis_amount  ?? 0),
+    cofins_rate:      Number(row.cofins_rate   ?? 0),
+    cofins_amount:    Number(row.cofins_amount ?? 0),
     net_amount:       Number(row.net_amount),
     status:           String(row.status) as ARStatus,
     received_date:    row.received_date ? String(row.received_date) : undefined,
@@ -586,10 +600,14 @@ export async function getAllAR(filters?: { bu_code?: BuCode; status?: ARStatus }
 }
 
 export async function addAR(input: NewARInput): Promise<ARItem> {
-  const isServiceCat = AR_SERVICE_CATEGORIES.includes(input.category);
-  const iss_rate     = input.iss_rate ?? (isServiceCat ? 0.05 : 0);
-  const iss_amount   = round2(input.gross_amount * iss_rate);
-  const net_amount   = round2(input.gross_amount - iss_amount);
+  const isServiceCat  = AR_SERVICE_CATEGORIES.includes(input.category);
+  const iss_rate      = input.iss_rate    ?? (isServiceCat ? 0.05   : 0);
+  const pis_rate      = input.pis_rate    ?? (isServiceCat ? 0.0065 : 0);
+  const cofins_rate   = input.cofins_rate ?? (isServiceCat ? 0.03   : 0);
+  const iss_amount    = round2(input.gross_amount * iss_rate);
+  const pis_amount    = round2(input.gross_amount * pis_rate);
+  const cofins_amount = round2(input.gross_amount * cofins_rate);
+  const net_amount    = round2(input.gross_amount - iss_amount - pis_amount - cofins_amount);
 
   const item: ARItem = {
     id:             randomUUID(),
@@ -606,6 +624,10 @@ export async function addAR(input: NewARInput): Promise<ARItem> {
     gross_amount:   input.gross_amount,
     iss_rate,
     iss_amount,
+    pis_rate,
+    pis_amount,
+    cofins_rate,
+    cofins_amount,
     net_amount,
     status:         "PENDING",
     source_system:  input.source_system ?? "manual",
@@ -618,12 +640,14 @@ export async function addAR(input: NewARInput): Promise<ARItem> {
       INSERT INTO epm_ar (
         id, bu_code, customer_id, customer_name, customer_doc, description, category,
         cost_center, reference_doc, issue_date, due_date, gross_amount,
-        iss_rate, iss_amount, net_amount, status, source_system, created_at, created_by
+        iss_rate, iss_amount, pis_rate, pis_amount, cofins_rate, cofins_amount,
+        net_amount, status, source_system, created_at, created_by
       ) VALUES (
         ${item.id}, ${item.bu_code}, ${item.customer_id ?? null}, ${item.customer_name},
         ${item.customer_doc ?? null}, ${item.description}, ${item.category},
         ${item.cost_center ?? null}, ${item.reference_doc ?? null}, ${item.issue_date}, ${item.due_date}, ${item.gross_amount},
-        ${item.iss_rate}, ${item.iss_amount}, ${item.net_amount},
+        ${item.iss_rate}, ${item.iss_amount}, ${item.pis_rate}, ${item.pis_amount},
+        ${item.cofins_rate}, ${item.cofins_amount}, ${item.net_amount},
         ${item.status}, ${item.source_system}, ${item.created_at}, ${item.created_by ?? null}
       )
     `;

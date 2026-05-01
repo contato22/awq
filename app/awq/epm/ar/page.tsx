@@ -32,6 +32,10 @@ interface ARItem {
   gross_amount:    number;
   iss_rate:        number;
   iss_amount:      number;
+  pis_rate:        number;
+  pis_amount:      number;
+  cofins_rate:     number;
+  cofins_amount:   number;
   net_amount:      number;
   status:          ARStatus;
   received_date?:  string;
@@ -49,14 +53,23 @@ interface ARKPIs {
   arAging:            Record<AgingBucket, number>;
 }
 
-// ─── ISS categories ───────────────────────────────────────────────────────────
+// ─── AR fiscal calculation (ISS + PIS + COFINS) ───────────────────────────────
 
-const ISS_SERVICE_CATEGORIES = new Set(["Serviço Recorrente", "Projeto", "Consultoria", "Produção"]);
+const AR_SERVICE_CATEGORIES = new Set(["Serviço Recorrente", "Projeto", "Consultoria", "Produção"]);
 
-function calcISS(gross: number, category: string, issRate?: number): { iss_rate: number; iss_amount: number; net_amount: number } {
-  const rate = issRate ?? (ISS_SERVICE_CATEGORIES.has(category) ? 0.05 : 0);
-  const iss  = Math.round(gross * rate * 100) / 100;
-  return { iss_rate: rate, iss_amount: iss, net_amount: Math.round((gross - iss) * 100) / 100 };
+function r2(n: number) { return Math.round(n * 100) / 100; }
+function pct(r: number) { return r > 0 ? (r * 100).toFixed(2).replace(/\.?0+$/, "") + "%" : "—"; }
+
+function calcARFiscal(gross: number, category: string) {
+  const isSvc      = AR_SERVICE_CATEGORIES.has(category);
+  const iss_rate    = isSvc ? 0.05   : 0;
+  const pis_rate    = isSvc ? 0.0065 : 0;
+  const cofins_rate = isSvc ? 0.03   : 0;
+  const iss_amount    = r2(gross * iss_rate);
+  const pis_amount    = r2(gross * pis_rate);
+  const cofins_amount = r2(gross * cofins_rate);
+  const total         = r2(iss_amount + pis_amount + cofins_amount);
+  return { iss_rate, iss_amount, pis_rate, pis_amount, cofins_rate, cofins_amount, total, net: r2(gross - total) };
 }
 
 // ─── Formatting ───────────────────────────────────────────────────────────────
@@ -129,8 +142,8 @@ export default function ARPage() {
     installments:  "1",
   });
 
-  const gross = parseFloat(form.gross_amount) || 0;
-  const issPreview = gross > 0 ? calcISS(gross, form.category) : null;
+  const gross        = parseFloat(form.gross_amount) || 0;
+  const fiscalPreview = gross > 0 ? calcARFiscal(gross, form.category) : null;
 
   // ── Load ─────────────────────────────────────────────────────────────────────
 
@@ -408,7 +421,7 @@ export default function ARPage() {
                 >
                   {CATEGORIES.map((c) => (
                     <option key={c} value={c}>
-                      {c}{ISS_SERVICE_CATEGORIES.has(c) ? " (ISS 5%)" : ""}
+                      {c}{AR_SERVICE_CATEGORIES.has(c) ? " (ISS+PIS+COFINS)" : ""}
                     </option>
                   ))}
                 </select>
@@ -487,30 +500,35 @@ export default function ARPage() {
               </div>
             </div>
 
-            {/* ── ISS preview ──────────────────────────────────────── */}
-            {issPreview && gross > 0 && (
-              <div className={`rounded-xl p-4 text-xs space-y-1 border ${
-                issPreview.iss_amount > 0
+            {/* ── Fiscal preview (ISS + PIS + COFINS) ─────────────── */}
+            {fiscalPreview && gross > 0 && (
+              <div className={`rounded-xl p-4 text-xs space-y-2 border ${
+                fiscalPreview.total > 0
                   ? "bg-violet-50 border-violet-200"
                   : "bg-gray-50 border-gray-200"
               }`}>
                 <div className="flex items-center gap-1.5 font-semibold text-violet-800 mb-2">
                   <Receipt size={12} />
-                  {issPreview.iss_amount > 0 ? "ISS retido na fonte (5% — SP)" : "Categoria sem ISS"}
+                  {fiscalPreview.total > 0 ? "Tributos sobre receita — cálculo automático" : "Categoria sem tributos"}
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-600">Valor do serviço (bruto):</span>
-                  <span className="font-semibold tabular-nums">{fmtBRL(gross)}</span>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  {[
+                    { label: "ISS",    rate: fiscalPreview.iss_rate,    amount: fiscalPreview.iss_amount    },
+                    { label: "PIS",    rate: fiscalPreview.pis_rate,    amount: fiscalPreview.pis_amount    },
+                    { label: "COFINS", rate: fiscalPreview.cofins_rate, amount: fiscalPreview.cofins_amount },
+                  ].map((tax) => (
+                    <div key={tax.label} className="bg-white rounded-lg p-2 border border-violet-100">
+                      <div className="text-[10px] text-gray-500 font-medium">{tax.label}</div>
+                      <div className="text-violet-700 font-bold tabular-nums">{fmtBRL(tax.amount)}</div>
+                      <div className="text-[9px] text-gray-400">{pct(tax.rate)}</div>
+                    </div>
+                  ))}
                 </div>
-                {issPreview.iss_amount > 0 && (
-                  <div className="flex items-center justify-between text-violet-700">
-                    <span>ISS 5% (retido pelo cliente):</span>
-                    <span className="font-semibold tabular-nums">({fmtBRL(issPreview.iss_amount)})</span>
-                  </div>
-                )}
-                <div className="flex items-center justify-between border-t border-violet-200 pt-1 font-bold">
-                  <span>Líquido a receber:</span>
-                  <span className="text-emerald-700 tabular-nums">{fmtBRL(issPreview.net_amount)}</span>
+                <div className="flex items-center justify-between pt-1 border-t border-violet-200">
+                  <span className="text-gray-600">Total tributos: <strong className="text-violet-800">{fmtBRL(fiscalPreview.total)}</strong></span>
+                  <span className="text-gray-600">
+                    Líquido a receber: <strong className="text-emerald-700 text-sm">{fmtBRL(fiscalPreview.net)}</strong>
+                  </span>
                 </div>
               </div>
             )}
@@ -545,7 +563,7 @@ export default function ARPage() {
                     <th className="py-2.5 px-3 text-gray-500 font-semibold">Cliente</th>
                     <th className="py-2.5 px-3 text-gray-500 font-semibold">BU</th>
                     <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Bruto</th>
-                    <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">ISS</th>
+                    <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Tributos</th>
                     <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Líquido</th>
                     <th className="py-2.5 px-3 text-gray-500 font-semibold text-center">Status</th>
                     <th className="py-2.5 px-3 text-gray-500 font-semibold text-center">Ações</th>
@@ -577,7 +595,9 @@ export default function ARPage() {
                           {fmtBRL(item.gross_amount)}
                         </td>
                         <td className="py-2.5 px-3 text-right tabular-nums text-violet-700">
-                          {item.iss_amount > 0 ? `(${fmtBRL(item.iss_amount)})` : "—"}
+                          {(item.iss_amount + item.pis_amount + item.cofins_amount) > 0
+                            ? `(${fmtBRL(r2(item.iss_amount + item.pis_amount + item.cofins_amount))})`
+                            : "—"}
                         </td>
                         <td className="py-2.5 px-3 text-right font-semibold tabular-nums text-emerald-700">
                           {fmtBRL(item.net_amount)}
@@ -622,20 +642,22 @@ export default function ARPage() {
                       expanded && (
                         <tr key={`${item.id}-detail`} className="bg-violet-50 border-b border-violet-100">
                           <td colSpan={8} className="px-4 py-3">
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-[11px]">
-                              <div className="bg-white rounded-lg px-3 py-2 border border-violet-100">
-                                <div className="text-gray-500">ISS ({(item.iss_rate * 100).toFixed(0)}% — retido pelo cliente)</div>
-                                <div className={`font-bold tabular-nums ${item.iss_amount > 0 ? "text-violet-700" : "text-gray-300"}`}>
-                                  {fmtBRL(item.iss_amount)}
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[11px]">
+                              {[
+                                { label: "ISS",    rate: item.iss_rate,    amount: item.iss_amount    },
+                                { label: "PIS",    rate: item.pis_rate,    amount: item.pis_amount    },
+                                { label: "COFINS", rate: item.cofins_rate, amount: item.cofins_amount },
+                              ].map((t) => (
+                                <div key={t.label} className="bg-white rounded-lg px-3 py-2 border border-violet-100 text-center">
+                                  <div className="text-gray-500 font-medium">{t.label} ({pct(t.rate)})</div>
+                                  <div className={`font-bold tabular-nums ${t.amount > 0 ? "text-violet-700" : "text-gray-300"}`}>
+                                    {fmtBRL(t.amount)}
+                                  </div>
                                 </div>
-                              </div>
-                              <div className="bg-white rounded-lg px-3 py-2 border border-violet-100">
-                                <div className="text-gray-500">Receita líquida reconhecida</div>
+                              ))}
+                              <div className="bg-white rounded-lg px-3 py-2 border border-violet-100 text-center">
+                                <div className="text-gray-500 font-medium">Líquido reconhecido</div>
                                 <div className="font-bold tabular-nums text-emerald-700">{fmtBRL(item.net_amount)}</div>
-                              </div>
-                              <div className="bg-white rounded-lg px-3 py-2 border border-violet-100">
-                                <div className="text-gray-500">Categoria</div>
-                                <div className="font-bold text-gray-700">{item.category}</div>
                               </div>
                             </div>
                             <div className="mt-2 flex flex-wrap gap-4 text-[11px] text-gray-500">
