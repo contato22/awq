@@ -6,7 +6,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { ArrowLeft, AlertTriangle, Plus, X, Save, RefreshCw, Shield } from "lucide-react";
 import { formatDateBR } from "@/lib/utils";
-import type { PpmRisk } from "@/lib/ppm-types";
+import type { PpmRisk, PpmProject } from "@/lib/ppm-types";
 
 type RiskStatus = "identified" | "mitigating" | "occurred" | "closed";
 
@@ -30,25 +30,18 @@ const STATUS_LABEL: Record<RiskStatus, string> = {
 const INPUT  = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 bg-white";
 const SELECT = INPUT;
 
-const PROJECTS = [
-  { value: "prj-001", label: "XP Investimentos — Campanha Q1" },
-  { value: "prj-002", label: "Nubank — Vídeo Institucional"   },
-  { value: "prj-003", label: "Carol Bertolini — Social Media" },
-  { value: "prj-004", label: "Reabilicor — Consultoria"       },
-  { value: "prj-005", label: "Colégio CEM — Produção Anual"   },
-];
-
 export default function RisksPage() {
-  const [risks,   setRisks]   = useState<PpmRisk[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm,setShowForm]= useState(false);
-  const [saving,  setSaving]  = useState(false);
-  const [error,   setError]   = useState("");
+  const [risks,    setRisks]    = useState<PpmRisk[]>([]);
+  const [projects, setProjects] = useState<PpmProject[]>([]);
+  const [loading,  setLoading]  = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [saving,   setSaving]   = useState(false);
+  const [error,    setError]    = useState("");
   const [filterProject, setFilterProject] = useState("");
   const [filterStatus,  setFilterStatus]  = useState("");
 
   const [form, setForm] = useState({
-    project_id: "prj-001", risk_description: "",
+    project_id: "", risk_description: "",
     impact: "medium", probability: "medium",
     mitigation_plan: "", contingency_plan: "",
     status: "identified",
@@ -67,9 +60,20 @@ export default function RisksPage() {
     try {
       const params = new URLSearchParams();
       if (filterProject) params.set("project_id", filterProject);
-      const res  = await fetch(`/api/ppm/risks?${params}`);
-      const json = await res.json();
-      if (json.success) setRisks(json.data);
+      const [risksRes, projectsRes] = await Promise.all([
+        fetch(`/api/ppm/risks?${params}`),
+        fetch("/api/ppm/projects"),
+      ]);
+      const [risksJson, projectsJson] = await Promise.all([
+        risksRes.json(),
+        projectsRes.json(),
+      ]);
+      if (risksJson.success) setRisks(risksJson.data);
+      if (projectsJson.success) {
+        const projs: PpmProject[] = projectsJson.data.projects ?? [];
+        setProjects(projs);
+        setForm(f => ({ ...f, project_id: f.project_id || (projs[0]?.project_id ?? "") }));
+      }
     } finally {
       setLoading(false);
     }
@@ -79,6 +83,7 @@ export default function RisksPage() {
 
   async function submitRisk(e: React.FormEvent) {
     e.preventDefault();
+    if (!form.project_id) { setError("Selecione o projeto"); return; }
     if (!form.risk_description.trim()) { setError("Descreva o risco"); return; }
     setSaving(true); setError("");
     try {
@@ -163,7 +168,8 @@ export default function RisksPage() {
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 mb-1.5">Projeto</label>
                   <select value={form.project_id} onChange={set("project_id")} className={SELECT}>
-                    {PROJECTS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+                    <option value="">Selecionar projeto…</option>
+                    {projects.map(p => <option key={p.project_id} value={p.project_id}>{p.project_name}</option>)}
                   </select>
                 </div>
                 <div>
@@ -225,7 +231,7 @@ export default function RisksPage() {
             className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none"
           >
             <option value="">Todos Projetos</option>
-            {PROJECTS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+            {projects.map(p => <option key={p.project_id} value={p.project_id}>{p.project_name}</option>)}
           </select>
           <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
             className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none"

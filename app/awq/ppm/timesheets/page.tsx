@@ -6,7 +6,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { ArrowLeft, Plus, Clock, CheckCircle2, XCircle, Save, X } from "lucide-react";
 import { formatDateBR, formatBRL } from "@/lib/utils";
-import type { PpmTimeEntry } from "@/lib/ppm-types";
+import type { PpmTimeEntry, PpmProject } from "@/lib/ppm-types";
 
 type Status = "draft" | "submitted" | "approved" | "rejected";
 
@@ -22,17 +22,11 @@ const STATUS_LABEL: Record<Status, string> = {
 
 const INPUT = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 bg-white";
 
-const USERS    = ["miguel","danilo"] as const;
-const PROJECTS = [
-  { value: "prj-001", label: "XP Investimentos — Campanha Q1" },
-  { value: "prj-002", label: "Nubank — Vídeo Institucional"   },
-  { value: "prj-003", label: "Carol Bertolini — Social Media" },
-  { value: "prj-004", label: "Reabilicor — Consultoria"       },
-  { value: "prj-005", label: "Colégio CEM — Produção Anual"   },
-];
+const USERS = ["miguel", "danilo"] as const;
 
 export default function TimesheetsPage() {
   const [entries,   setEntries]   = useState<PpmTimeEntry[]>([]);
+  const [projects,  setProjects]  = useState<PpmProject[]>([]);
   const [loading,   setLoading]   = useState(true);
   const [showForm,  setShowForm]  = useState(false);
   const [saving,    setSaving]    = useState(false);
@@ -41,7 +35,7 @@ export default function TimesheetsPage() {
 
   const [form, setForm] = useState({
     user_id:     "miguel",
-    project_id:  "prj-001",
+    project_id:  "",
     entry_date:  new Date().toISOString().slice(0,10),
     hours:       "",
     is_billable: true,
@@ -56,9 +50,20 @@ export default function TimesheetsPage() {
     try {
       const params = new URLSearchParams();
       if (filterUser) params.set("user_id", filterUser);
-      const res  = await fetch(`/api/ppm/time-entries?${params}`);
-      const json = await res.json();
-      if (json.success) setEntries(json.data);
+      const [entriesRes, projectsRes] = await Promise.all([
+        fetch(`/api/ppm/time-entries?${params}`),
+        fetch("/api/ppm/projects"),
+      ]);
+      const [entriesJson, projectsJson] = await Promise.all([
+        entriesRes.json(),
+        projectsRes.json(),
+      ]);
+      if (entriesJson.success) setEntries(entriesJson.data);
+      if (projectsJson.success) {
+        const projs: PpmProject[] = projectsJson.data.projects ?? [];
+        setProjects(projs);
+        setForm(f => ({ ...f, project_id: f.project_id || (projs[0]?.project_id ?? "") }));
+      }
     } finally {
       setLoading(false);
     }
@@ -68,6 +73,7 @@ export default function TimesheetsPage() {
 
   async function submitEntry(e: React.FormEvent) {
     e.preventDefault();
+    if (!form.project_id) { setError("Selecione o projeto"); return; }
     if (!form.hours || parseFloat(form.hours) <= 0) { setError("Informe as horas trabalhadas"); return; }
     setSaving(true); setError("");
     try {
@@ -166,7 +172,8 @@ export default function TimesheetsPage() {
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1.5">Projeto</label>
                 <select value={form.project_id} onChange={set("project_id")} className={INPUT}>
-                  {PROJECTS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+                  <option value="">Selecionar projeto…</option>
+                  {projects.map(p => <option key={p.project_id} value={p.project_id}>{p.project_name}</option>)}
                 </select>
               </div>
               <div>
