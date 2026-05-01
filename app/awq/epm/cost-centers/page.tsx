@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import type { EpmCostCenter, BuCode } from "@/lib/ap-ar-db";
 
 const BUS: BuCode[] = ["AWQ", "JACQES", "CAZA", "ADVISOR", "VENTURE"];
@@ -141,6 +142,12 @@ export default function CostCentersPage() {
           </table>
         </div>
       )}
+
+      <div className="flex items-center gap-3 text-xs mt-4">
+        <Link href="/awq/epm/revenue-recognition" className="text-brand-600 hover:underline">← Reconhec. de Receita</Link>
+        <span className="text-gray-300">|</span>
+        <Link href="/awq/epm" className="text-brand-600 hover:underline">Visão Geral EPM →</Link>
+      </div>
     </div>
   );
 }

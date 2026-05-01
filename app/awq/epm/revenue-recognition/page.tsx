@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import type { ARItem, RevenueRecognition } from "@/lib/ap-ar-db";
 
 function fmt(v: number) { return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }); }
@@ -218,6 +219,12 @@ export default function RevenueRecognitionPage() {
             </>
           )}
         </div>
+      </div>
+
+      <div className="flex items-center gap-3 text-xs mt-4">
+        <Link href="/awq/epm/bank-reconciliation" className="text-brand-600 hover:underline">← Conciliação Bancária</Link>
+        <span className="text-gray-300">|</span>
+        <Link href="/awq/epm/cost-centers" className="text-brand-600 hover:underline">Centros de Custo →</Link>
       </div>
     </div>
   );

@@ -597,7 +597,7 @@ function AwqSidebar({ pathname }: { pathname: string }) {
                     ))}
                 </div>
 
-                {/* ── 4. Governança & Jurídico ──────────────────────────── */}
+                {/* ── 5. Governança & Jurídico ──────────────────────────── */}
                 <SectionLabel>Governança & Jurídico</SectionLabel>
                 <div className="space-y-0.5">
                     {AWQ_JURIDICO_ITEMS.map((item) => (
@@ -605,7 +605,7 @@ function AwqSidebar({ pathname }: { pathname: string }) {
                     ))}
                 </div>
 
-                {/* ── 4. Dados & Infra ──────────────────────────────────── */}
+                {/* ── 6. Dados & Infra ──────────────────────────────────── */}
                 <SectionLabel>Dados & Infra</SectionLabel>
                 <div className="space-y-0.5">
                     {AWQ_DADOS_ITEMS.map((item) => (
@@ -613,7 +613,7 @@ function AwqSidebar({ pathname }: { pathname: string }) {
                     ))}
                 </div>
 
-                {/* ── 5. Business Unit quick-access cards ───────────────── */}
+                {/* ── 7. Business Unit quick-access cards ───────────────── */}
                 <SectionLabel>Business Units</SectionLabel>
                 <div className="space-y-2 mt-1">
                     {businessUnits.map((bu) => (
