@@ -307,12 +307,13 @@ export interface NewARInput {
   interest_rate?:  number;
 
   // ── Documents ────────────────────────────────────────────────────────────────
-  invoice_xml_url?:  string;
-  invoice_pdf_url?:  string;
-  danfe_url?:        string;
-  contract_url?:     string;
-  boleto_url?:       string;
-  boleto_barcode?:   string;
+  invoice_xml_url?:     string;
+  invoice_pdf_url?:     string;
+  danfe_url?:           string;
+  payment_receipt_url?: string;
+  contract_url?:        string;
+  boleto_url?:          string;
+  boleto_barcode?:      string;
 
   // ── CRM ──────────────────────────────────────────────────────────────────────
   opportunity_id?:   string;
@@ -1153,7 +1154,7 @@ export async function addAR(input: NewARInput): Promise<ARItem> {
     invoice_xml_url:     input.invoice_xml_url,
     invoice_pdf_url:     input.invoice_pdf_url,
     danfe_url:           input.danfe_url,
-    payment_receipt_url: undefined,
+    payment_receipt_url: input.payment_receipt_url,
     contract_url:        input.contract_url,
     boleto_url:          input.boleto_url,
     boleto_barcode:      input.boleto_barcode,
@@ -1195,7 +1196,7 @@ export async function addAR(input: NewARInput): Promise<ARItem> {
         contract_start_date, contract_end_date, mrr, arr,
         status, collection_status, collection_attempts,
         late_fee_rate, interest_rate,
-        invoice_xml_url, invoice_pdf_url, danfe_url, contract_url,
+        invoice_xml_url, invoice_pdf_url, danfe_url, payment_receipt_url, contract_url,
         boleto_url, boleto_barcode,
         opportunity_id, sales_rep_id, commission_rate, commission_amount,
         notes, customer_notes, tags,
@@ -1237,7 +1238,7 @@ export async function addAR(input: NewARInput): Promise<ARItem> {
         ${item.status}, ${item.collection_status}, ${item.collection_attempts},
         ${item.late_fee_rate}, ${item.interest_rate},
         ${item.invoice_xml_url ?? null}, ${item.invoice_pdf_url ?? null},
-        ${item.danfe_url ?? null}, ${item.contract_url ?? null},
+        ${item.danfe_url ?? null}, ${item.payment_receipt_url ?? null}, ${item.contract_url ?? null},
         ${item.boleto_url ?? null}, ${item.boleto_barcode ?? null},
         ${item.opportunity_id ?? null}, ${item.sales_rep_id ?? null},
         ${item.commission_rate}, ${item.commission_amount},
@@ -1318,7 +1319,7 @@ export type ARUpdateInput = Partial<Pick<ARItem,
   | "contract_start_date" | "contract_end_date" | "mrr" | "arr"
   | "collection_status" | "collection_attempts" | "last_collection_date"
   | "late_fee_rate" | "late_fee_amount" | "interest_rate" | "interest_amount"
-  | "invoice_xml_url" | "invoice_pdf_url" | "danfe_url" | "contract_url"
+  | "invoice_xml_url" | "invoice_pdf_url" | "danfe_url" | "payment_receipt_url" | "contract_url"
   | "boleto_url" | "boleto_barcode"
   | "opportunity_id" | "sales_rep_id" | "commission_rate" | "commission_amount" | "commission_paid"
   | "notes" | "customer_notes" | "tags" | "updated_by"
@@ -1374,9 +1375,10 @@ export async function updateAR(id: string, updates: ARUpdateInput): Promise<ARIt
         invoice_xml_url   = ${updates.invoice_xml_url ?? null},
         invoice_pdf_url   = ${updates.invoice_pdf_url ?? null},
         danfe_url         = ${updates.danfe_url       ?? null},
-        contract_url      = ${updates.contract_url    ?? null},
-        boleto_url        = ${updates.boleto_url      ?? null},
-        boleto_barcode    = ${updates.boleto_barcode  ?? null},
+        contract_url         = ${updates.contract_url         ?? null},
+        payment_receipt_url  = ${updates.payment_receipt_url  ?? null},
+        boleto_url           = ${updates.boleto_url           ?? null},
+        boleto_barcode       = ${updates.boleto_barcode       ?? null},
         opportunity_id    = ${updates.opportunity_id  ?? null},
         sales_rep_id      = ${updates.sales_rep_id    ?? null},
         commission_rate   = COALESCE(${updates.commission_rate   ?? null}, commission_rate),

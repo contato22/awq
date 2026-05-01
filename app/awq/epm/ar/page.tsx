@@ -111,10 +111,11 @@ interface ARItem {
   // Documents
   invoice_pdf_url?: string;
   invoice_xml_url?: string;
-  danfe_url?:       string;
-  contract_url?:    string;
-  boleto_url?:      string;
-  boleto_barcode?:  string;
+  danfe_url?:            string;
+  payment_receipt_url?:  string;
+  contract_url?:         string;
+  boleto_url?:           string;
+  boleto_barcode?:       string;
   // CRM
   opportunity_id?:   string;
   sales_rep_id?:     string;
@@ -287,6 +288,7 @@ export default function ARPage() {
     invoice_pdf_url:      "",
     invoice_xml_url:      "",
     danfe_url:            "",
+    payment_receipt_url:  "",
     boleto_url:           "",
     boleto_barcode:       "",
     contract_url:         "",
@@ -378,6 +380,7 @@ export default function ARPage() {
         invoice_pdf_url:      form.invoice_pdf_url      || undefined,
         invoice_xml_url:      form.invoice_xml_url      || undefined,
         danfe_url:            form.danfe_url             || undefined,
+        payment_receipt_url:  form.payment_receipt_url   || undefined,
         boleto_url:           form.boleto_url            || undefined,
         boleto_barcode:       form.boleto_barcode        || undefined,
         contract_url:         form.contract_url          || undefined,
@@ -409,7 +412,7 @@ export default function ARPage() {
           service_category: "", contract_type: "", tax_regime: "", simples_rate: "",
           revenue_account_id: "", revenue_type: "", nature_of_operation: "", project_id: "",
           late_fee_rate: "", interest_rate: "",
-          invoice_pdf_url: "", invoice_xml_url: "", danfe_url: "",
+          invoice_pdf_url: "", invoice_xml_url: "", danfe_url: "", payment_receipt_url: "",
           boleto_url: "", boleto_barcode: "", contract_url: "",
           opportunity_id: "", sales_rep_id: "", commission_rate: "",
           notes: "", customer_notes: "", tags: "",
@@ -885,10 +888,11 @@ export default function ARPage() {
                 {[
                   { label: "URL PDF NF-e",   key: "invoice_pdf_url", ph: "https://…" },
                   { label: "URL XML NF-e",   key: "invoice_xml_url", ph: "https://…" },
-                  { label: "URL DANFE",      key: "danfe_url",       ph: "https://…" },
-                  { label: "URL Boleto",     key: "boleto_url",      ph: "https://…" },
-                  { label: "Cód. barras",    key: "boleto_barcode",  ph: "00000…"    },
-                  { label: "URL Contrato",   key: "contract_url",    ph: "https://…" },
+                  { label: "URL DANFE",          key: "danfe_url",            ph: "https://…" },
+                  { label: "URL Boleto",         key: "boleto_url",           ph: "https://…" },
+                  { label: "Cód. barras",        key: "boleto_barcode",       ph: "00000…"    },
+                  { label: "URL Contrato",       key: "contract_url",         ph: "https://…" },
+                  { label: "URL Comprovante pag.",key: "payment_receipt_url", ph: "https://…" },
                 ].map(({ label, key, ph }) => (
                   <div key={key}>
                     <label className="block font-semibold text-gray-500 mb-0.5">{label}</label>
@@ -1250,9 +1254,10 @@ export default function ARPage() {
                               {(item.invoice_pdf_url || item.danfe_url || item.boleto_url || item.contract_url) && (
                                 <span className="flex gap-2">
                                   {item.invoice_pdf_url && <a href={item.invoice_pdf_url} target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:underline">NF-e PDF</a>}
-                                  {item.danfe_url       && <a href={item.danfe_url}       target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:underline">DANFE</a>}
-                                  {item.boleto_url      && <a href={item.boleto_url}      target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:underline">Boleto</a>}
-                                  {item.contract_url    && <a href={item.contract_url}    target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:underline">Contrato</a>}
+                                  {item.danfe_url           && <a href={item.danfe_url}           target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:underline">DANFE</a>}
+                                  {item.boleto_url          && <a href={item.boleto_url}          target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:underline">Boleto</a>}
+                                  {item.contract_url        && <a href={item.contract_url}        target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:underline">Contrato</a>}
+                                  {item.payment_receipt_url && <a href={item.payment_receipt_url} target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:underline">Comprovante</a>}
                                 </span>
                               )}
                               {item.boleto_barcode && <span>Cód. barras: <strong className="font-mono">{item.boleto_barcode}</strong></span>}
