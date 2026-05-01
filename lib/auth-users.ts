@@ -1,4 +1,4 @@
-export type Role = "owner" | "admin" | "analyst" | "cs-ops";
+export type Role = "owner" | "admin" | "analyst" | "cs-ops" | "caza";
 
 export interface AuthUser {
   id: string;
@@ -51,33 +51,39 @@ export const USERS: AuthUser[] = [
     role: "owner",
     homeRoute: "/awq",
   },
+  {
+    id: "6",
+    name: "Daniel Chiappetta",
+    email: "danielcchiappetta@live.com",
+    passwordHash: "$2b$10$Y9gcPY4r6AbbIi5fz131GeSCmuu5nTiL7gZ4wTjJJQeb3KsdKsO92",
+    role: "caza",
+    homeRoute: "/caza-vision",
+  },
 ];
 
 // ── RBAC route prefixes ───────────────────────────────────────────────────────
 //
-// POLICY: Intentionally permissive during MVP phase.
-// All authenticated users can access all routes regardless of role.
-// The ["/"] prefix matches every pathname, making canAccess() always return true.
+// POLICY: Mostly permissive (MVP), with strict isolation for BU-scoped roles.
 //
-// When role-based restrictions are needed, update to:
 //   owner:   ["/"]                           — all routes
 //   admin:   ["/"]                           — all routes
-//   analyst: ["/jacqes", "/awq"]             — JACQES BU + AWQ holding overview only
-//   cs-ops:  ["/jacqes/csops", "/jacqes/customers", "/jacqes/carteira"]
+//   analyst: ["/"]                           — full access (permissive, MVP)
+//   cs-ops:  ["/"]                           — full access (permissive, MVP)
+//   caza:    ["/caza-vision"]                — Caza Vision BU only; no holding, no other BUs
 //
-// CLASSIFICATION: Security layer = authentication REAL, authorization PERMISSIVE BY DESIGN.
+// CLASSIFICATION: Security layer = authentication REAL, authorization ENFORCED for "caza".
 //
 export const ROLE_ALLOWED_PREFIXES: Record<Role, string[]> = {
-  owner:   ["/"], // unrestricted
-  admin:   ["/"], // full access — permissive by design (MVP)
-  analyst: ["/"], // full access — permissive by design (MVP)
-  "cs-ops": ["/"], // full access — permissive by design (MVP)
+  owner:    ["/"],             // unrestricted
+  admin:    ["/"],             // full access — permissive by design (MVP)
+  analyst:  ["/"],             // full access — permissive by design (MVP)
+  "cs-ops": ["/"],             // full access — permissive by design (MVP)
+  caza:     ["/caza-vision"],  // restricted to Caza Vision BU only
 };
 
 export function canAccess(role: Role, pathname: string): boolean {
   if (role === "owner") return true;
   const allowed = ROLE_ALLOWED_PREFIXES[role];
-  // Currently all non-owner roles have ["/"] → this always returns true (permissive by design)
   return allowed.some((prefix) => prefix === "/" || pathname === prefix || pathname.startsWith(prefix + "/"));
 }
 
