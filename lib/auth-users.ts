@@ -51,6 +51,14 @@ export const USERS: AuthUser[] = [
     role: "owner",
     homeRoute: "/awq",
   },
+  {
+    id: "99",
+    name: "Dev Test",
+    email: "dev@test.local",
+    passwordHash: "$2b$10$M8N5VlPi5jIZGMiLBVatfuOufW4VWaV.lbHOfUbQWcyixox2qhXfu",
+    role: "owner",
+    homeRoute: "/awq",
+  },
 ];
 
 // ── RBAC route prefixes ───────────────────────────────────────────────────────
