@@ -78,7 +78,7 @@ export default function Header({ title, subtitle }: HeaderProps) {
           {/* Date range chip */}
           <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-500 font-medium">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            Live · Mar 2026
+            Live · {new Date().toLocaleString("pt-BR", { month: "short", year: "numeric" })}
           </div>
         </div>
       </header>

@@ -141,7 +141,7 @@ export default function CrmDashboardPage() {
             openOpportunities: analJson.data.openOpportunities ?? 0,
             pipelineValue: analJson.data.pipelineValue ?? 0,
             weightedForecast: analJson.data.weightedForecast ?? 0,
-            closedWonThisMonth: analJson.data.closedWonThisMonth ?? 0,
+            closedWonThisMonth: analJson.data.revenueThisMonth ?? 0,
             winRate: analJson.data.winRate ?? 0,
             tasksToday: analJson.data.tasksToday ?? 0,
           });

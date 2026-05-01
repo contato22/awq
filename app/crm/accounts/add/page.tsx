@@ -61,7 +61,7 @@ export default function AddAccountPage() {
                 <select value={form.industry} onChange={e=>set("industry",e.target.value)}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30">
                   <option value="">— Selecionar —</option>
-                  {["tech","finance","education","health","media","retail","other"].map(i=><option key={i}>{i}</option>)}
+                  {[["tech","Tecnologia"],["finance","Finanças"],["education","Educação"],["health","Saúde"],["media","Mídia"],["retail","Varejo"],["other","Outro"]].map(([v,l])=><option key={v} value={v}>{l}</option>)}
                 </select></div>
               <div><label className="block text-xs font-medium text-gray-700 mb-1">Porte</label>
                 <select value={form.company_size} onChange={e=>set("company_size",e.target.value)}
@@ -78,7 +78,7 @@ export default function AddAccountPage() {
               <div><label className="block text-xs font-medium text-gray-700 mb-1">Tipo</label>
                 <select value={form.account_type} onChange={e=>set("account_type",e.target.value)}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30">
-                  {["prospect","customer","partner","former_customer"].map(t=><option key={t} value={t}>{t}</option>)}
+                  {[["prospect","Prospect"],["customer","Cliente"],["partner","Parceiro"],["former_customer","Ex-Cliente"]].map(([v,l])=><option key={v} value={v}>{l}</option>)}
                 </select></div>
               <div><label className="block text-xs font-medium text-gray-700 mb-1">Owner</label>
                 <select value={form.owner} onChange={e=>set("owner",e.target.value)}
@@ -93,7 +93,7 @@ export default function AddAccountPage() {
               <div><label className="block text-xs font-medium text-gray-700 mb-1">Churn Risk</label>
                 <select value={form.churn_risk} onChange={e=>set("churn_risk",e.target.value)}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30">
-                  {["low","medium","high"].map(r=><option key={r}>{r}</option>)}
+                  {[["low","Baixo"],["medium","Médio"],["high","Alto"]].map(([v,l])=><option key={v} value={v}>{l}</option>)}
                 </select></div>
               <div><label className="block text-xs font-medium text-gray-700 mb-1">Renovação</label>
                 <input type="date" value={form.renewal_date} onChange={e=>set("renewal_date",e.target.value)}

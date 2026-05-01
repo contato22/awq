@@ -166,7 +166,7 @@ export default function AnalyticsPage() {
                   </div>
                   <div className="text-right">
                     <div className="text-[11px] font-bold text-gray-900">{formatBRL(s.value)}</div>
-                    <div className="text-[9px] text-gray-400">{s.count} deals</div>
+                    <div className="text-[9px] text-gray-400">{s.count} {s.count === 1 ? "negócio" : "negócios"}</div>
                   </div>
                 </div>
               ))}
@@ -196,7 +196,7 @@ export default function AnalyticsPage() {
                   </div>
                   <div className="text-right">
                     <div className="text-[11px] font-bold text-gray-900">{formatBRL(b.value)}</div>
-                    <div className="text-[9px] text-gray-400">{b.count} deals</div>
+                    <div className="text-[9px] text-gray-400">{b.count} {b.count === 1 ? "negócio" : "negócios"}</div>
                   </div>
                 </div>
               ))}
@@ -220,8 +220,8 @@ export default function AnalyticsPage() {
                 <div className="grid grid-cols-2 gap-3">
                   {[
                     { label: "Pipeline", value: formatBRL(rep.pipeline) },
-                    { label: "Won", value: formatBRL(rep.won) },
-                    { label: "Deals abertos", value: rep.deals },
+                    { label: "Ganhos", value: formatBRL(rep.won) },
+                    { label: "Negócios abertos", value: rep.deals },
                     { label: "Win Rate", value: `${rep.winRate}%` },
                   ].map(m => (
                     <div key={m.label}>
