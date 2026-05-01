@@ -373,34 +373,283 @@ $$;
 -- ─── Accounts Receivable ─────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS accounts_receivable (
-  ar_id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-  customer_id     UUID        REFERENCES customers(customer_id),
-  bu_id           UUID        REFERENCES business_units(bu_id),
-  account_id      UUID        REFERENCES accounts(account_id),  -- revenue account
-  description     TEXT        NOT NULL,
-  gross_amount    NUMERIC(15,2) NOT NULL CHECK (gross_amount > 0),
-  tax_amount      NUMERIC(15,2) NOT NULL DEFAULT 0,
-  net_amount      NUMERIC(15,2) GENERATED ALWAYS AS (gross_amount - tax_amount) STORED,
-  issue_date      DATE        NOT NULL DEFAULT CURRENT_DATE,
-  due_date        DATE        NOT NULL,
-  received_date   DATE,
-  received_amount NUMERIC(15,2),
-  status          TEXT        NOT NULL DEFAULT 'PENDING'
-                              CHECK (status IN ('PENDING','PARTIAL','RECEIVED','OVERDUE','CANCELLED')),
-  category        TEXT,
-  reference_doc   TEXT,
-  bank_account_id UUID        REFERENCES bank_accounts(bank_account_id),
-  gl_id           UUID        REFERENCES general_ledger(gl_id),
-  notes           TEXT,
-  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  created_by      TEXT
+  -- ── Identity ────────────────────────────────────────────────────────────────
+  ar_id                  UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+  ar_code                TEXT          UNIQUE,                  -- AR-2026-001
+
+  -- ── Basic ───────────────────────────────────────────────────────────────────
+  customer_id            UUID          REFERENCES customers(customer_id),
+  bu_id                  UUID          REFERENCES business_units(bu_id),
+  invoice_number         TEXT,
+  invoice_series         TEXT,
+  invoice_date           DATE,
+  description            TEXT          NOT NULL,
+  category               TEXT          NOT NULL DEFAULT 'Serviço',
+  reference_doc          TEXT,
+
+  -- ── Values ──────────────────────────────────────────────────────────────────
+  gross_amount           NUMERIC(15,2) NOT NULL CHECK (gross_amount > 0),
+  discount_amount        NUMERIC(15,2) NOT NULL DEFAULT 0,
+  net_amount             NUMERIC(15,2) NOT NULL DEFAULT 0,      -- gross − discount − withholdings
+
+  -- ── Retentions suffered (withheld by customer, paid to govt on company's behalf) ──
+  irrf_withheld          NUMERIC(15,2) NOT NULL DEFAULT 0,
+  irrf_withheld_rate     NUMERIC(8,4)  NOT NULL DEFAULT 0,
+  inss_withheld          NUMERIC(15,2) NOT NULL DEFAULT 0,
+  inss_withheld_rate     NUMERIC(8,4)  NOT NULL DEFAULT 0,
+  iss_withheld           NUMERIC(15,2) NOT NULL DEFAULT 0,
+  iss_withheld_rate      NUMERIC(8,4)  NOT NULL DEFAULT 0,
+  pis_withheld           NUMERIC(15,2) NOT NULL DEFAULT 0,
+  pis_withheld_rate      NUMERIC(8,4)  NOT NULL DEFAULT 0,
+  cofins_withheld        NUMERIC(15,2) NOT NULL DEFAULT 0,
+  cofins_withheld_rate   NUMERIC(8,4)  NOT NULL DEFAULT 0,
+  csll_withheld          NUMERIC(15,2) NOT NULL DEFAULT 0,
+  csll_withheld_rate     NUMERIC(8,4)  NOT NULL DEFAULT 0,
+
+  -- ── Taxes on billing (company remits to govt; NOT deducted from customer payment) ──
+  iss_amount             NUMERIC(15,2) NOT NULL DEFAULT 0,
+  iss_rate               NUMERIC(8,4)  NOT NULL DEFAULT 0,
+  pis_amount             NUMERIC(15,2) NOT NULL DEFAULT 0,
+  pis_rate               NUMERIC(8,4)  NOT NULL DEFAULT 0,
+  cofins_amount          NUMERIC(15,2) NOT NULL DEFAULT 0,
+  cofins_rate            NUMERIC(8,4)  NOT NULL DEFAULT 0,
+  irpj_amount            NUMERIC(15,2) NOT NULL DEFAULT 0,
+  csll_amount            NUMERIC(15,2) NOT NULL DEFAULT 0,
+  tax_regime             TEXT          CHECK (tax_regime IN
+                           ('simples_nacional','presumido','real')),
+  simples_rate           NUMERIC(8,4)  NOT NULL DEFAULT 0,
+
+  -- ── Accounting classification ────────────────────────────────────────────────
+  revenue_account_id     UUID          REFERENCES accounts(account_id),
+  revenue_type           TEXT          CHECK (revenue_type IN
+                           ('service','product','recurring','one_off')),
+  nature_of_operation    TEXT,
+
+  -- ── Managerial classification ────────────────────────────────────────────────
+  cost_center            TEXT,
+  project_id             TEXT,
+  service_category       TEXT          CHECK (service_category IN
+                           ('social_media','video_production','consulting','other')),
+  contract_type          TEXT          CHECK (contract_type IN
+                           ('retainer','project','hourly')),
+
+  -- ── Revenue recognition / accrual ────────────────────────────────────────────
+  revenue_recognition_date DATE,
+  service_period_start   DATE,
+  service_period_end     DATE,
+  accrual_month          TEXT,                                  -- YYYY-MM
+  is_deferred_revenue    BOOLEAN       NOT NULL DEFAULT FALSE,
+  deferred_periods       SMALLINT      NOT NULL DEFAULT 0,
+
+  -- ── Payment ─────────────────────────────────────────────────────────────────
+  issue_date             DATE          NOT NULL DEFAULT CURRENT_DATE,
+  due_date               DATE          NOT NULL,
+  payment_date           DATE,
+  received_date          DATE,                                  -- alias for payment_date
+  payment_method         TEXT          CHECK (payment_method IN
+                           ('pix','ted','boleto','card','cash')),
+  bank_account_id        UUID          REFERENCES bank_accounts(bank_account_id),
+  bank_transaction_id    UUID,
+  payment_reference      TEXT,
+  receipt_ref            TEXT,                                  -- legacy alias
+  received_amount        NUMERIC(15,2),
+
+  -- ── Installments ────────────────────────────────────────────────────────────
+  is_installment         BOOLEAN       NOT NULL DEFAULT FALSE,
+  installment_number     SMALLINT,
+  total_installments     SMALLINT,
+  parent_ar_id           UUID          REFERENCES accounts_receivable(ar_id),
+
+  -- ── Recurrence ──────────────────────────────────────────────────────────────
+  is_recurring           BOOLEAN       NOT NULL DEFAULT FALSE,
+  recurrence_frequency   TEXT          CHECK (recurrence_frequency IN
+                           ('monthly','quarterly','annual')),
+  contract_value         NUMERIC(15,2),
+  contract_start_date    DATE,
+  contract_end_date      DATE,
+  mrr                    NUMERIC(15,2),
+  arr                    NUMERIC(15,2),
+
+  -- ── Status & collection ──────────────────────────────────────────────────────
+  status                 TEXT          NOT NULL DEFAULT 'PENDING'
+                         CHECK (status IN
+                           ('PENDING','PARTIAL','RECEIVED','OVERDUE','CANCELLED')),
+  collection_status      TEXT          NOT NULL DEFAULT 'not_due'
+                         CHECK (collection_status IN
+                           ('not_due','due','overdue','in_collection')),
+  collection_attempts    SMALLINT      NOT NULL DEFAULT 0,
+  last_collection_date   DATE,
+
+  -- ── Late fees & interest ─────────────────────────────────────────────────────
+  late_fee_rate          NUMERIC(8,4)  NOT NULL DEFAULT 0,
+  late_fee_amount        NUMERIC(15,2) NOT NULL DEFAULT 0,
+  interest_rate          NUMERIC(8,4)  NOT NULL DEFAULT 0,
+  interest_amount        NUMERIC(15,2) NOT NULL DEFAULT 0,
+
+  -- ── Document URLs ────────────────────────────────────────────────────────────
+  invoice_xml_url        TEXT,
+  invoice_pdf_url        TEXT,
+  danfe_url              TEXT,
+  payment_receipt_url    TEXT,
+  contract_url           TEXT,
+  boleto_url             TEXT,
+  boleto_barcode         TEXT,
+
+  -- ── CRM integration ─────────────────────────────────────────────────────────
+  opportunity_id         TEXT,
+  sales_rep_id           TEXT,
+  commission_rate        NUMERIC(8,4)  NOT NULL DEFAULT 0,
+  commission_amount      NUMERIC(15,2) NOT NULL DEFAULT 0,
+  commission_paid        BOOLEAN       NOT NULL DEFAULT FALSE,
+
+  -- ── Audit ───────────────────────────────────────────────────────────────────
+  notes                  TEXT,
+  customer_notes         TEXT,
+  tags                   JSONB         NOT NULL DEFAULT '[]',
+  gl_id                  UUID          REFERENCES general_ledger(gl_id),
+  source_system          TEXT          NOT NULL DEFAULT 'manual',
+  created_at             TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+  updated_at             TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+  created_by             TEXT,
+  updated_by             TEXT
 );
 
-CREATE INDEX IF NOT EXISTS idx_ar_due_date  ON accounts_receivable(due_date);
-CREATE INDEX IF NOT EXISTS idx_ar_status    ON accounts_receivable(status);
-CREATE INDEX IF NOT EXISTS idx_ar_bu        ON accounts_receivable(bu_id);
-CREATE INDEX IF NOT EXISTS idx_ar_customer  ON accounts_receivable(customer_id);
+CREATE INDEX IF NOT EXISTS idx_ar_due_date       ON accounts_receivable(due_date);
+CREATE INDEX IF NOT EXISTS idx_ar_status         ON accounts_receivable(status);
+CREATE INDEX IF NOT EXISTS idx_ar_bu             ON accounts_receivable(bu_id);
+CREATE INDEX IF NOT EXISTS idx_ar_customer       ON accounts_receivable(customer_id);
+CREATE INDEX IF NOT EXISTS idx_ar_accrual_month  ON accounts_receivable(accrual_month);
+CREATE INDEX IF NOT EXISTS idx_ar_parent         ON accounts_receivable(parent_ar_id);
+CREATE INDEX IF NOT EXISTS idx_ar_collection_status ON accounts_receivable(collection_status);
+
+-- ─── AR Installments ─────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS ar_installments (
+  installment_id     UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+  parent_ar_id       UUID          NOT NULL
+                     REFERENCES accounts_receivable(ar_id) ON DELETE CASCADE,
+  installment_number SMALLINT      NOT NULL,
+  total_installments SMALLINT      NOT NULL,
+  installment_amount NUMERIC(15,2) NOT NULL,
+  due_date           DATE          NOT NULL,
+  status             TEXT          NOT NULL DEFAULT 'pending'
+                     CHECK (status IN ('pending','paid','overdue')),
+  payment_date       DATE,
+  payment_method     TEXT          CHECK (payment_method IN
+                       ('pix','ted','boleto','card','cash')),
+  late_fees_applied  NUMERIC(15,2) NOT NULL DEFAULT 0,
+  created_at         TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_ari_parent ON ar_installments(parent_ar_id);
+
+-- ─── AR Recurring Contracts ───────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS ar_recurring_contracts (
+  contract_id             UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+  customer_id             UUID          REFERENCES customers(customer_id),
+  bu_id                   UUID          REFERENCES business_units(bu_id),
+  contract_name           TEXT          NOT NULL,
+  contract_value_monthly  NUMERIC(15,2) NOT NULL,
+  contract_value_annual   NUMERIC(15,2)
+    GENERATED ALWAYS AS (contract_value_monthly * 12) STORED,
+  start_date              DATE          NOT NULL,
+  end_date                DATE,
+  billing_day             SMALLINT      NOT NULL DEFAULT 5
+                          CHECK (billing_day BETWEEN 1 AND 28),
+  is_active               BOOLEAN       NOT NULL DEFAULT TRUE,
+  auto_invoice            BOOLEAN       NOT NULL DEFAULT FALSE,
+  next_invoice_date       DATE,
+  iss_rate                NUMERIC(8,4)  NOT NULL DEFAULT 0.05,
+  pis_rate                NUMERIC(8,4)  NOT NULL DEFAULT 0.0065,
+  cofins_rate             NUMERIC(8,4)  NOT NULL DEFAULT 0.03,
+  category                TEXT          NOT NULL DEFAULT 'Serviço Recorrente',
+  bu_code                 TEXT,
+  notes                   TEXT,
+  created_at              TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+  updated_at              TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+  created_by              TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_arc_customer ON ar_recurring_contracts(customer_id);
+CREATE INDEX IF NOT EXISTS idx_arc_active   ON ar_recurring_contracts(is_active);
+
+-- ─── AR Payment History ───────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS ar_payment_history (
+  payment_history_id  UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+  ar_id               UUID          NOT NULL
+                      REFERENCES accounts_receivable(ar_id) ON DELETE CASCADE,
+  payment_date        DATE          NOT NULL,
+  amount_paid         NUMERIC(15,2) NOT NULL,
+  payment_method      TEXT          CHECK (payment_method IN
+                        ('pix','ted','boleto','card','cash')),
+  bank_transaction_id UUID,
+  payment_reference   TEXT,
+  notes               TEXT,
+  created_at          TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+  created_by          TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_arph_ar ON ar_payment_history(ar_id);
+
+-- ─── AR Collections Log ──────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS ar_collections_log (
+  log_id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  ar_id               UUID        NOT NULL
+                      REFERENCES accounts_receivable(ar_id) ON DELETE CASCADE,
+  collection_date     DATE        NOT NULL,
+  collection_method   TEXT        NOT NULL
+                      CHECK (collection_method IN
+                        ('email','phone','whatsapp','letter','other')),
+  contacted_person    TEXT,
+  outcome             TEXT        NOT NULL
+                      CHECK (outcome IN
+                        ('promised_payment','no_answer','dispute','paid','other')),
+  next_follow_up_date DATE,
+  notes               TEXT,
+  collected_by        TEXT,
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_arcl_ar ON ar_collections_log(ar_id);
+
+-- ─── Revenue Recognition Schedule ────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS revenue_recognition_schedule (
+  schedule_id            UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+  ar_id                  UUID          NOT NULL
+                         REFERENCES accounts_receivable(ar_id) ON DELETE CASCADE,
+  total_amount           NUMERIC(15,2) NOT NULL,
+  recognition_start_date DATE          NOT NULL,
+  recognition_end_date   DATE          NOT NULL,
+  total_periods          SMALLINT      NOT NULL,
+  amount_per_period      NUMERIC(15,2) NOT NULL,
+  periods_recognized     SMALLINT      NOT NULL DEFAULT 0,
+  next_recognition_date  DATE,
+  status                 TEXT          NOT NULL DEFAULT 'active'
+                         CHECK (status IN ('active','completed','cancelled')),
+  created_at             TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+  updated_at             TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_rrs_ar     ON revenue_recognition_schedule(ar_id);
+CREATE INDEX IF NOT EXISTS idx_rrs_status ON revenue_recognition_schedule(status);
+
+-- ─── Revenue Recognition Entries ─────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS revenue_recognition_entries (
+  entry_id           UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+  schedule_id        UUID          NOT NULL
+                     REFERENCES revenue_recognition_schedule(schedule_id) ON DELETE CASCADE,
+  recognition_date   DATE          NOT NULL,
+  amount_recognized  NUMERIC(15,2) NOT NULL,
+  gl_entry_id        UUID          REFERENCES general_ledger(gl_id),
+  created_at         TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_rre_schedule ON revenue_recognition_entries(schedule_id);
 
 -- ─── Bank Transactions ───────────────────────────────────────────────────────
 
@@ -728,18 +977,24 @@ ORDER BY a.account_code;
 -- 5. ROW-LEVEL SECURITY (enable; policies to be added per Supabase / Neon setup)
 -- =============================================================================
 
-ALTER TABLE business_units      ENABLE ROW LEVEL SECURITY;
-ALTER TABLE accounts            ENABLE ROW LEVEL SECURITY;
-ALTER TABLE fiscal_periods      ENABLE ROW LEVEL SECURITY;
-ALTER TABLE suppliers           ENABLE ROW LEVEL SECURITY;
-ALTER TABLE customers           ENABLE ROW LEVEL SECURITY;
-ALTER TABLE bank_accounts       ENABLE ROW LEVEL SECURITY;
-ALTER TABLE general_ledger      ENABLE ROW LEVEL SECURITY;
-ALTER TABLE accounts_payable    ENABLE ROW LEVEL SECURITY;
-ALTER TABLE accounts_receivable ENABLE ROW LEVEL SECURITY;
-ALTER TABLE fixed_assets        ENABLE ROW LEVEL SECURITY;
-ALTER TABLE budgets             ENABLE ROW LEVEL SECURITY;
-ALTER TABLE kpi_values          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE business_units                ENABLE ROW LEVEL SECURITY;
+ALTER TABLE accounts                      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE fiscal_periods                ENABLE ROW LEVEL SECURITY;
+ALTER TABLE suppliers                     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE customers                     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE bank_accounts                 ENABLE ROW LEVEL SECURITY;
+ALTER TABLE general_ledger                ENABLE ROW LEVEL SECURITY;
+ALTER TABLE accounts_payable              ENABLE ROW LEVEL SECURITY;
+ALTER TABLE accounts_receivable           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ar_installments               ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ar_recurring_contracts        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ar_payment_history            ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ar_collections_log            ENABLE ROW LEVEL SECURITY;
+ALTER TABLE revenue_recognition_schedule  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE revenue_recognition_entries   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE fixed_assets                  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE budgets                       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE kpi_values                    ENABLE ROW LEVEL SECURITY;
 
 -- Public read for authenticated users (adjust for your auth setup)
 CREATE POLICY "Allow select for authenticated"
@@ -763,6 +1018,7 @@ BEGIN
   FOR tbl IN SELECT unnest(ARRAY[
     'business_units','suppliers','customers','bank_accounts',
     'general_ledger','accounts_payable','accounts_receivable',
+    'ar_recurring_contracts','revenue_recognition_schedule',
     'fixed_assets','budget_versions','budgets'
   ]) LOOP
     EXECUTE format('DROP TRIGGER IF EXISTS trg_updated_at ON %I', tbl);

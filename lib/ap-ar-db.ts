@@ -92,49 +92,239 @@ export interface NewAPInput {
 }
 
 export interface ARItem {
-  id:             string;
-  bu_code:        BuCode;
-  customer_id?:   string;
-  customer_name:  string;
-  customer_doc?:  string;
-  description:    string;
-  category:       string;
-  cost_center?:   string;
-  reference_doc?: string;
-  issue_date:     string;
-  due_date:       string;
-  gross_amount:   number;
-  iss_rate:       number;
-  iss_amount:     number;
-  pis_rate:       number;
-  pis_amount:     number;
-  cofins_rate:    number;
-  cofins_amount:  number;
-  net_amount:     number;  // gross - ISS - PIS - COFINS
-  status:         ARStatus;
-  received_date?: string;
-  received_amount?: number;
-  receipt_ref?:   string;
+  // ── Identity ────────────────────────────────────────────────────────────────
+  id:              string;
+  ar_code?:        string;
+
+  // ── Basic ───────────────────────────────────────────────────────────────────
+  bu_code:         BuCode;
+  customer_id?:    string;
+  customer_name:   string;
+  customer_doc?:   string;
+  description:     string;
+  category:        string;
+  cost_center?:    string;
+  reference_doc?:  string;
+  issue_date:      string;
+  due_date:        string;
+  invoice_number?: string;
+  invoice_series?: string;
+  invoice_date?:   string;
+
+  // ── Values ──────────────────────────────────────────────────────────────────
+  gross_amount:    number;
+  discount_amount: number;
+  net_amount:      number;   // gross − discount − total_withholdings
+
+  // ── Retentions suffered (withheld by customer) ──────────────────────────────
+  irrf_withheld:         number;
+  irrf_withheld_rate:    number;
+  inss_withheld:         number;
+  inss_withheld_rate:    number;
+  iss_withheld:          number;
+  iss_withheld_rate:     number;
+  pis_withheld:          number;
+  pis_withheld_rate:     number;
+  cofins_withheld:       number;
+  cofins_withheld_rate:  number;
+  csll_withheld:         number;
+  csll_withheld_rate:    number;
+
+  // ── Taxes on billing (company remits to govt) ────────────────────────────────
+  iss_rate:        number;
+  iss_amount:      number;
+  pis_rate:        number;
+  pis_amount:      number;
+  cofins_rate:     number;
+  cofins_amount:   number;
+  irpj_amount:     number;
+  csll_amount:     number;
+  tax_regime?:     string;
+  simples_rate:    number;
+
+  // ── Accounting classification ────────────────────────────────────────────────
+  revenue_account_id?:  string;
+  revenue_type?:        string;
+  nature_of_operation?: string;
+
+  // ── Managerial classification ────────────────────────────────────────────────
+  project_id?:       string;
+  service_category?: string;
+  contract_type?:    string;
+
+  // ── Revenue recognition / accrual ────────────────────────────────────────────
+  revenue_recognition_date?: string;
+  service_period_start?:     string;
+  service_period_end?:       string;
+  accrual_month?:            string;
+  is_deferred_revenue:       boolean;
+  deferred_periods:          number;
+
+  // ── Payment ─────────────────────────────────────────────────────────────────
+  payment_date?:        string;
+  received_date?:       string;   // legacy alias for payment_date
+  payment_method?:      string;
+  bank_account_id?:     string;
+  bank_transaction_id?: string;
+  payment_reference?:   string;
+  receipt_ref?:         string;   // legacy alias for payment_reference
+  received_amount?:     number;
+
+  // ── Installments ────────────────────────────────────────────────────────────
+  is_installment:     boolean;
+  installment_number?: number;
+  total_installments?: number;
+  parent_ar_id?:       string;
+
+  // ── Recurrence ──────────────────────────────────────────────────────────────
+  is_recurring:          boolean;
+  recurrence_frequency?: string;
+  contract_value?:       number;
+  contract_start_date?:  string;
+  contract_end_date?:    string;
+  mrr?:                  number;
+  arr?:                  number;
+
+  // ── Status & collection ──────────────────────────────────────────────────────
+  status:               ARStatus;
+  collection_status?:   string;
+  collection_attempts:  number;
+  last_collection_date?: string;
+
+  // ── Late fees & interest ─────────────────────────────────────────────────────
+  late_fee_rate:   number;
+  late_fee_amount: number;
+  interest_rate:   number;
+  interest_amount: number;
+
+  // ── Document URLs ────────────────────────────────────────────────────────────
+  invoice_xml_url?:     string;
+  invoice_pdf_url?:     string;
+  danfe_url?:           string;
+  payment_receipt_url?: string;
+  contract_url?:        string;
+  boleto_url?:          string;
+  boleto_barcode?:      string;
+
+  // ── CRM integration ─────────────────────────────────────────────────────────
+  opportunity_id?:   string;
+  sales_rep_id?:     string;
+  commission_rate:   number;
+  commission_amount: number;
+  commission_paid:   boolean;
+
+  // ── Audit ───────────────────────────────────────────────────────────────────
+  notes?:         string;
+  customer_notes?: string;
+  tags:           string[];
   source_system:  string;
   created_at:     string;
+  updated_at?:    string;
   created_by?:    string;
+  updated_by?:    string;
 }
 
 export interface NewARInput {
-  bu_code:        BuCode;
-  customer_id?:   string;
-  customer_name:  string;
-  customer_doc?:  string;
-  description:    string;
-  category:       string;
-  cost_center?:   string;
-  reference_doc?: string;
-  issue_date:     string;
-  due_date:       string;
-  gross_amount:   number;
-  iss_rate?:      number;  // 0–1, defaults to 0.05 for service categories
-  pis_rate?:      number;  // 0–1, defaults to 0.0065 for service categories
-  cofins_rate?:   number;  // 0–1, defaults to 0.03 for service categories
+  // ── Required ─────────────────────────────────────────────────────────────────
+  bu_code:       BuCode;
+  customer_name: string;
+  description:   string;
+  due_date:      string;
+  gross_amount:  number;
+
+  // ── Basic ────────────────────────────────────────────────────────────────────
+  customer_id?:    string;
+  customer_doc?:   string;
+  category?:       string;
+  cost_center?:    string;
+  reference_doc?:  string;
+  issue_date?:     string;
+  ar_code?:        string;
+  invoice_number?: string;
+  invoice_series?: string;
+  invoice_date?:   string;
+
+  // ── Values ───────────────────────────────────────────────────────────────────
+  discount_amount?: number;
+
+  // ── Withholding rates (0–1 fractions) ────────────────────────────────────────
+  irrf_withheld_rate?:   number;
+  inss_withheld_rate?:   number;
+  iss_withheld_rate?:    number;
+  pis_withheld_rate?:    number;
+  cofins_withheld_rate?: number;
+  csll_withheld_rate?:   number;
+
+  // ── Billing tax rates (0–1 fractions; service defaults applied if omitted) ────
+  iss_rate?:     number;
+  pis_rate?:     number;
+  cofins_rate?:  number;
+  irpj_amount?:  number;
+  csll_amount?:  number;
+  tax_regime?:   string;
+  simples_rate?: number;
+
+  // ── Accounting ───────────────────────────────────────────────────────────────
+  revenue_account_id?:  string;
+  revenue_type?:        string;
+  nature_of_operation?: string;
+
+  // ── Managerial ───────────────────────────────────────────────────────────────
+  project_id?:       string;
+  service_category?: string;
+  contract_type?:    string;
+
+  // ── Accrual ──────────────────────────────────────────────────────────────────
+  revenue_recognition_date?: string;
+  service_period_start?:     string;
+  service_period_end?:       string;
+  accrual_month?:            string;
+  is_deferred_revenue?:      boolean;
+  deferred_periods?:         number;
+
+  // ── Payment ──────────────────────────────────────────────────────────────────
+  payment_method?:      string;
+  bank_account_id?:     string;
+  payment_reference?:   string;
+
+  // ── Installments ─────────────────────────────────────────────────────────────
+  is_installment?:     boolean;
+  installment_number?: number;
+  total_installments?: number;
+  parent_ar_id?:       string;
+
+  // ── Recurrence ───────────────────────────────────────────────────────────────
+  is_recurring?:          boolean;
+  recurrence_frequency?:  string;
+  contract_value?:        number;
+  contract_start_date?:   string;
+  contract_end_date?:     string;
+  mrr?:                   number;
+  arr?:                   number;
+
+  // ── Late fees ────────────────────────────────────────────────────────────────
+  late_fee_rate?:  number;
+  interest_rate?:  number;
+
+  // ── Documents ────────────────────────────────────────────────────────────────
+  invoice_xml_url?:  string;
+  invoice_pdf_url?:  string;
+  danfe_url?:        string;
+  contract_url?:     string;
+  boleto_url?:       string;
+  boleto_barcode?:   string;
+
+  // ── CRM ──────────────────────────────────────────────────────────────────────
+  opportunity_id?:   string;
+  sales_rep_id?:     string;
+  commission_rate?:  number;
+  commission_amount?: number;
+
+  // ── Notes ────────────────────────────────────────────────────────────────────
+  notes?:         string;
+  customer_notes?: string;
+  tags?:          string[];
+
   source_system?: string;
   created_by?:    string;
 }
@@ -292,39 +482,191 @@ export async function initAPARDB(): Promise<void> {
 
   await sql`
     CREATE TABLE IF NOT EXISTS epm_ar (
-      id                TEXT PRIMARY KEY,
-      bu_code           TEXT NOT NULL,
-      customer_id       TEXT,
-      customer_name     TEXT NOT NULL,
-      customer_doc      TEXT,
-      description       TEXT NOT NULL,
-      category          TEXT NOT NULL DEFAULT 'Serviço',
-      reference_doc     TEXT,
-      issue_date        TEXT NOT NULL,
-      due_date          TEXT NOT NULL,
-      gross_amount      NUMERIC NOT NULL,
-      iss_rate          NUMERIC NOT NULL DEFAULT 0,
-      iss_amount        NUMERIC NOT NULL DEFAULT 0,
-      net_amount        NUMERIC NOT NULL,
-      status            TEXT NOT NULL DEFAULT 'PENDING',
-      received_date     TEXT,
-      received_amount   NUMERIC,
-      receipt_ref       TEXT,
-      source_system     TEXT NOT NULL DEFAULT 'manual',
-      created_at        TEXT NOT NULL,
-      created_by        TEXT
+      id                     TEXT    PRIMARY KEY,
+      ar_code                TEXT    UNIQUE,
+      bu_code                TEXT    NOT NULL,
+      customer_id            TEXT,
+      customer_name          TEXT    NOT NULL,
+      customer_doc           TEXT,
+      description            TEXT    NOT NULL,
+      category               TEXT    NOT NULL DEFAULT 'Serviço',
+      cost_center            TEXT,
+      reference_doc          TEXT,
+      issue_date             TEXT    NOT NULL,
+      due_date               TEXT    NOT NULL,
+      invoice_number         TEXT,
+      invoice_series         TEXT,
+      invoice_date           TEXT,
+      gross_amount           NUMERIC NOT NULL,
+      discount_amount        NUMERIC NOT NULL DEFAULT 0,
+      net_amount             NUMERIC NOT NULL DEFAULT 0,
+      irrf_withheld          NUMERIC NOT NULL DEFAULT 0,
+      irrf_withheld_rate     NUMERIC NOT NULL DEFAULT 0,
+      inss_withheld          NUMERIC NOT NULL DEFAULT 0,
+      inss_withheld_rate     NUMERIC NOT NULL DEFAULT 0,
+      iss_withheld           NUMERIC NOT NULL DEFAULT 0,
+      iss_withheld_rate      NUMERIC NOT NULL DEFAULT 0,
+      pis_withheld           NUMERIC NOT NULL DEFAULT 0,
+      pis_withheld_rate      NUMERIC NOT NULL DEFAULT 0,
+      cofins_withheld        NUMERIC NOT NULL DEFAULT 0,
+      cofins_withheld_rate   NUMERIC NOT NULL DEFAULT 0,
+      csll_withheld          NUMERIC NOT NULL DEFAULT 0,
+      csll_withheld_rate     NUMERIC NOT NULL DEFAULT 0,
+      iss_rate               NUMERIC NOT NULL DEFAULT 0,
+      iss_amount             NUMERIC NOT NULL DEFAULT 0,
+      pis_rate               NUMERIC NOT NULL DEFAULT 0,
+      pis_amount             NUMERIC NOT NULL DEFAULT 0,
+      cofins_rate            NUMERIC NOT NULL DEFAULT 0,
+      cofins_amount          NUMERIC NOT NULL DEFAULT 0,
+      irpj_amount            NUMERIC NOT NULL DEFAULT 0,
+      csll_amount            NUMERIC NOT NULL DEFAULT 0,
+      tax_regime             TEXT,
+      simples_rate           NUMERIC NOT NULL DEFAULT 0,
+      revenue_account_id     TEXT,
+      revenue_type           TEXT,
+      nature_of_operation    TEXT,
+      project_id             TEXT,
+      service_category       TEXT,
+      contract_type          TEXT,
+      revenue_recognition_date TEXT,
+      service_period_start   TEXT,
+      service_period_end     TEXT,
+      accrual_month          TEXT,
+      is_deferred_revenue    BOOLEAN NOT NULL DEFAULT false,
+      deferred_periods       INTEGER NOT NULL DEFAULT 0,
+      payment_date           TEXT,
+      received_date          TEXT,
+      payment_method         TEXT,
+      bank_account_id        TEXT,
+      bank_transaction_id    TEXT,
+      payment_reference      TEXT,
+      receipt_ref            TEXT,
+      received_amount        NUMERIC,
+      is_installment         BOOLEAN NOT NULL DEFAULT false,
+      installment_number     INTEGER,
+      total_installments     INTEGER,
+      parent_ar_id           TEXT,
+      is_recurring           BOOLEAN NOT NULL DEFAULT false,
+      recurrence_frequency   TEXT,
+      contract_value         NUMERIC,
+      contract_start_date    TEXT,
+      contract_end_date      TEXT,
+      mrr                    NUMERIC,
+      arr                    NUMERIC,
+      status                 TEXT    NOT NULL DEFAULT 'PENDING',
+      collection_status      TEXT    NOT NULL DEFAULT 'not_due',
+      collection_attempts    INTEGER NOT NULL DEFAULT 0,
+      last_collection_date   TEXT,
+      late_fee_rate          NUMERIC NOT NULL DEFAULT 0,
+      late_fee_amount        NUMERIC NOT NULL DEFAULT 0,
+      interest_rate          NUMERIC NOT NULL DEFAULT 0,
+      interest_amount        NUMERIC NOT NULL DEFAULT 0,
+      invoice_xml_url        TEXT,
+      invoice_pdf_url        TEXT,
+      danfe_url              TEXT,
+      payment_receipt_url    TEXT,
+      contract_url           TEXT,
+      boleto_url             TEXT,
+      boleto_barcode         TEXT,
+      opportunity_id         TEXT,
+      sales_rep_id           TEXT,
+      commission_rate        NUMERIC NOT NULL DEFAULT 0,
+      commission_amount      NUMERIC NOT NULL DEFAULT 0,
+      commission_paid        BOOLEAN NOT NULL DEFAULT false,
+      notes                  TEXT,
+      customer_notes         TEXT,
+      tags                   TEXT    NOT NULL DEFAULT '[]',
+      source_system          TEXT    NOT NULL DEFAULT 'manual',
+      created_at             TEXT    NOT NULL,
+      updated_at             TEXT,
+      created_by             TEXT,
+      updated_by             TEXT
     )
   `;
 
   await sql`CREATE INDEX IF NOT EXISTS idx_epm_ar_bu_code    ON epm_ar(bu_code)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_epm_ar_status     ON epm_ar(status)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_epm_ar_due_date   ON epm_ar(due_date)`;
-  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS customer_id TEXT`;
-  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS cost_center TEXT`;
-  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS pis_rate    NUMERIC NOT NULL DEFAULT 0`;
-  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS pis_amount  NUMERIC NOT NULL DEFAULT 0`;
-  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS cofins_rate   NUMERIC NOT NULL DEFAULT 0`;
-  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS cofins_amount NUMERIC NOT NULL DEFAULT 0`;
+
+  // Schema evolution — add columns to existing deployments
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS ar_code                TEXT`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS customer_id            TEXT`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS cost_center            TEXT`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS invoice_number         TEXT`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS invoice_series         TEXT`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS invoice_date           TEXT`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS discount_amount        NUMERIC NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS irrf_withheld          NUMERIC NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS irrf_withheld_rate     NUMERIC NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS inss_withheld          NUMERIC NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS inss_withheld_rate     NUMERIC NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS iss_withheld           NUMERIC NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS iss_withheld_rate      NUMERIC NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS pis_withheld           NUMERIC NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS pis_withheld_rate      NUMERIC NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS cofins_withheld        NUMERIC NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS cofins_withheld_rate   NUMERIC NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS csll_withheld          NUMERIC NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS csll_withheld_rate     NUMERIC NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS pis_rate               NUMERIC NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS pis_amount             NUMERIC NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS cofins_rate            NUMERIC NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS cofins_amount          NUMERIC NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS irpj_amount            NUMERIC NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS csll_amount            NUMERIC NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS tax_regime             TEXT`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS simples_rate           NUMERIC NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS revenue_account_id     TEXT`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS revenue_type           TEXT`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS nature_of_operation    TEXT`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS project_id             TEXT`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS service_category       TEXT`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS contract_type          TEXT`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS revenue_recognition_date TEXT`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS service_period_start   TEXT`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS service_period_end     TEXT`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS accrual_month          TEXT`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS is_deferred_revenue    BOOLEAN NOT NULL DEFAULT false`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS deferred_periods       INTEGER NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS payment_date           TEXT`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS payment_method         TEXT`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS bank_account_id        TEXT`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS bank_transaction_id    TEXT`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS payment_reference      TEXT`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS is_installment         BOOLEAN NOT NULL DEFAULT false`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS installment_number     INTEGER`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS total_installments     INTEGER`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS parent_ar_id           TEXT`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS is_recurring           BOOLEAN NOT NULL DEFAULT false`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS recurrence_frequency   TEXT`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS contract_value         NUMERIC`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS contract_start_date    TEXT`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS contract_end_date      TEXT`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS mrr                    NUMERIC`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS arr                    NUMERIC`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS collection_status      TEXT NOT NULL DEFAULT 'not_due'`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS collection_attempts    INTEGER NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS last_collection_date   TEXT`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS late_fee_rate          NUMERIC NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS late_fee_amount        NUMERIC NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS interest_rate          NUMERIC NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS interest_amount        NUMERIC NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS invoice_xml_url        TEXT`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS invoice_pdf_url        TEXT`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS danfe_url              TEXT`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS payment_receipt_url    TEXT`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS contract_url           TEXT`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS boleto_url             TEXT`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS boleto_barcode         TEXT`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS opportunity_id         TEXT`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS sales_rep_id           TEXT`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS commission_rate        NUMERIC NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS commission_amount      NUMERIC NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS commission_paid        BOOLEAN NOT NULL DEFAULT false`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS customer_notes         TEXT`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS tags                   TEXT NOT NULL DEFAULT '[]'`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS updated_at             TEXT`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS updated_by             TEXT`;
 }
 
 // ─── Aging helper ─────────────────────────────────────────────────────────────
@@ -380,33 +722,126 @@ function rowToAP(row: Record<string, unknown>): APItem {
 }
 
 function rowToAR(row: Record<string, unknown>): ARItem {
+  const str = (k: string) => row[k] != null ? String(row[k]) : undefined;
+  const num = (k: string) => Number(row[k] ?? 0);
+  const bool = (k: string) => Boolean(row[k]);
+  let tags: string[] = [];
+  try { tags = JSON.parse(String(row.tags ?? "[]")); } catch { tags = []; }
+
   return {
-    id:               String(row.id),
-    bu_code:          String(row.bu_code) as BuCode,
-    customer_id:      row.customer_id ? String(row.customer_id) : undefined,
-    customer_name:    String(row.customer_name),
-    customer_doc:     row.customer_doc ? String(row.customer_doc) : undefined,
-    description:      String(row.description),
-    category:         String(row.category),
-    cost_center:      row.cost_center ? String(row.cost_center) : undefined,
-    reference_doc:    row.reference_doc ? String(row.reference_doc) : undefined,
-    issue_date:       String(row.issue_date),
-    due_date:         String(row.due_date),
-    gross_amount:     Number(row.gross_amount),
-    iss_rate:         Number(row.iss_rate    ?? 0),
-    iss_amount:       Number(row.iss_amount  ?? 0),
-    pis_rate:         Number(row.pis_rate    ?? 0),
-    pis_amount:       Number(row.pis_amount  ?? 0),
-    cofins_rate:      Number(row.cofins_rate   ?? 0),
-    cofins_amount:    Number(row.cofins_amount ?? 0),
-    net_amount:       Number(row.net_amount),
-    status:           String(row.status) as ARStatus,
-    received_date:    row.received_date ? String(row.received_date) : undefined,
-    received_amount:  row.received_amount != null ? Number(row.received_amount) : undefined,
-    receipt_ref:      row.receipt_ref ? String(row.receipt_ref) : undefined,
-    source_system:    String(row.source_system),
-    created_at:       String(row.created_at),
-    created_by:       row.created_by ? String(row.created_by) : undefined,
+    id:             String(row.id),
+    ar_code:        str("ar_code"),
+    bu_code:        String(row.bu_code) as BuCode,
+    customer_id:    str("customer_id"),
+    customer_name:  String(row.customer_name),
+    customer_doc:   str("customer_doc"),
+    description:    String(row.description),
+    category:       String(row.category ?? "Serviço"),
+    cost_center:    str("cost_center"),
+    reference_doc:  str("reference_doc"),
+    issue_date:     String(row.issue_date),
+    due_date:       String(row.due_date),
+    invoice_number: str("invoice_number"),
+    invoice_series: str("invoice_series"),
+    invoice_date:   str("invoice_date"),
+
+    gross_amount:   num("gross_amount"),
+    discount_amount: num("discount_amount"),
+    net_amount:     num("net_amount"),
+
+    irrf_withheld:        num("irrf_withheld"),
+    irrf_withheld_rate:   num("irrf_withheld_rate"),
+    inss_withheld:        num("inss_withheld"),
+    inss_withheld_rate:   num("inss_withheld_rate"),
+    iss_withheld:         num("iss_withheld"),
+    iss_withheld_rate:    num("iss_withheld_rate"),
+    pis_withheld:         num("pis_withheld"),
+    pis_withheld_rate:    num("pis_withheld_rate"),
+    cofins_withheld:      num("cofins_withheld"),
+    cofins_withheld_rate: num("cofins_withheld_rate"),
+    csll_withheld:        num("csll_withheld"),
+    csll_withheld_rate:   num("csll_withheld_rate"),
+
+    iss_rate:      num("iss_rate"),
+    iss_amount:    num("iss_amount"),
+    pis_rate:      num("pis_rate"),
+    pis_amount:    num("pis_amount"),
+    cofins_rate:   num("cofins_rate"),
+    cofins_amount: num("cofins_amount"),
+    irpj_amount:   num("irpj_amount"),
+    csll_amount:   num("csll_amount"),
+    tax_regime:    str("tax_regime"),
+    simples_rate:  num("simples_rate"),
+
+    revenue_account_id:  str("revenue_account_id"),
+    revenue_type:        str("revenue_type"),
+    nature_of_operation: str("nature_of_operation"),
+
+    project_id:        str("project_id"),
+    service_category:  str("service_category"),
+    contract_type:     str("contract_type"),
+
+    revenue_recognition_date: str("revenue_recognition_date"),
+    service_period_start:     str("service_period_start"),
+    service_period_end:       str("service_period_end"),
+    accrual_month:            str("accrual_month"),
+    is_deferred_revenue:      bool("is_deferred_revenue"),
+    deferred_periods:         num("deferred_periods"),
+
+    payment_date:        str("payment_date"),
+    received_date:       str("received_date"),
+    payment_method:      str("payment_method"),
+    bank_account_id:     str("bank_account_id"),
+    bank_transaction_id: str("bank_transaction_id"),
+    payment_reference:   str("payment_reference"),
+    receipt_ref:         str("receipt_ref"),
+    received_amount:     row.received_amount != null ? num("received_amount") : undefined,
+
+    is_installment:      bool("is_installment"),
+    installment_number:  row.installment_number != null ? num("installment_number") : undefined,
+    total_installments:  row.total_installments != null ? num("total_installments") : undefined,
+    parent_ar_id:        str("parent_ar_id"),
+
+    is_recurring:          bool("is_recurring"),
+    recurrence_frequency:  str("recurrence_frequency"),
+    contract_value:        row.contract_value != null ? num("contract_value") : undefined,
+    contract_start_date:   str("contract_start_date"),
+    contract_end_date:     str("contract_end_date"),
+    mrr:                   row.mrr != null ? num("mrr") : undefined,
+    arr:                   row.arr != null ? num("arr") : undefined,
+
+    status:               String(row.status) as ARStatus,
+    collection_status:    str("collection_status"),
+    collection_attempts:  num("collection_attempts"),
+    last_collection_date: str("last_collection_date"),
+
+    late_fee_rate:   num("late_fee_rate"),
+    late_fee_amount: num("late_fee_amount"),
+    interest_rate:   num("interest_rate"),
+    interest_amount: num("interest_amount"),
+
+    invoice_xml_url:     str("invoice_xml_url"),
+    invoice_pdf_url:     str("invoice_pdf_url"),
+    danfe_url:           str("danfe_url"),
+    payment_receipt_url: str("payment_receipt_url"),
+    contract_url:        str("contract_url"),
+    boleto_url:          str("boleto_url"),
+    boleto_barcode:      str("boleto_barcode"),
+
+    opportunity_id:    str("opportunity_id"),
+    sales_rep_id:      str("sales_rep_id"),
+    commission_rate:   num("commission_rate"),
+    commission_amount: num("commission_amount"),
+    commission_paid:   bool("commission_paid"),
+
+    notes:          str("notes"),
+    customer_notes: str("customer_notes"),
+    tags,
+    source_system:  String(row.source_system ?? "manual"),
+    created_at:     String(row.created_at),
+    updated_at:     str("updated_at"),
+    created_by:     str("created_by"),
+    updated_by:     str("updated_by"),
   };
 }
 
@@ -600,55 +1035,216 @@ export async function getAllAR(filters?: { bu_code?: BuCode; status?: ARStatus }
 }
 
 export async function addAR(input: NewARInput): Promise<ARItem> {
-  const isServiceCat  = AR_SERVICE_CATEGORIES.includes(input.category);
+  const g = input.gross_amount;
+  const isServiceCat = AR_SERVICE_CATEGORIES.includes(input.category ?? "");
+
+  // Withholdings (customer deducts and remits to government)
+  const irrf_withheld_rate   = input.irrf_withheld_rate   ?? 0;
+  const inss_withheld_rate   = input.inss_withheld_rate   ?? 0;
+  const iss_withheld_rate    = input.iss_withheld_rate    ?? 0;
+  const pis_withheld_rate    = input.pis_withheld_rate    ?? 0;
+  const cofins_withheld_rate = input.cofins_withheld_rate ?? 0;
+  const csll_withheld_rate   = input.csll_withheld_rate   ?? 0;
+
+  const irrf_withheld   = round2(g * irrf_withheld_rate);
+  const inss_withheld   = round2(g * inss_withheld_rate);
+  const iss_withheld    = round2(g * iss_withheld_rate);
+  const pis_withheld    = round2(g * pis_withheld_rate);
+  const cofins_withheld = round2(g * cofins_withheld_rate);
+  const csll_withheld   = round2(g * csll_withheld_rate);
+  const total_withheld  = round2(irrf_withheld + inss_withheld + iss_withheld + pis_withheld + cofins_withheld + csll_withheld);
+
+  // Billing taxes (company remits to government; separate from withholdings)
   const iss_rate      = input.iss_rate    ?? (isServiceCat ? 0.05   : 0);
   const pis_rate      = input.pis_rate    ?? (isServiceCat ? 0.0065 : 0);
   const cofins_rate   = input.cofins_rate ?? (isServiceCat ? 0.03   : 0);
-  const iss_amount    = round2(input.gross_amount * iss_rate);
-  const pis_amount    = round2(input.gross_amount * pis_rate);
-  const cofins_amount = round2(input.gross_amount * cofins_rate);
-  const net_amount    = round2(input.gross_amount - iss_amount - pis_amount - cofins_amount);
+  const iss_amount    = round2(g * iss_rate);
+  const pis_amount    = round2(g * pis_rate);
+  const cofins_amount = round2(g * cofins_rate);
+
+  const discount_amount = input.discount_amount ?? 0;
+  const net_amount      = round2(g - discount_amount - total_withheld);
+
+  const now = new Date().toISOString();
 
   const item: ARItem = {
-    id:             randomUUID(),
-    bu_code:        input.bu_code,
-    customer_id:    input.customer_id,
-    customer_name:  input.customer_name,
-    customer_doc:   input.customer_doc,
-    description:    input.description,
-    category:       input.category,
-    cost_center:    input.cost_center,
-    reference_doc:  input.reference_doc,
-    issue_date:     input.issue_date,
-    due_date:       input.due_date,
-    gross_amount:   input.gross_amount,
-    iss_rate,
-    iss_amount,
-    pis_rate,
-    pis_amount,
-    cofins_rate,
-    cofins_amount,
+    id:           randomUUID(),
+    ar_code:      input.ar_code,
+    bu_code:      input.bu_code,
+    customer_id:  input.customer_id,
+    customer_name: input.customer_name,
+    customer_doc: input.customer_doc,
+    description:  input.description,
+    category:     input.category ?? "Serviço",
+    cost_center:  input.cost_center,
+    reference_doc: input.reference_doc,
+    issue_date:   input.issue_date ?? now.slice(0, 10),
+    due_date:     input.due_date,
+    invoice_number: input.invoice_number,
+    invoice_series: input.invoice_series,
+    invoice_date:   input.invoice_date,
+
+    gross_amount:   g,
+    discount_amount,
     net_amount,
-    status:         "PENDING",
+
+    irrf_withheld, irrf_withheld_rate,
+    inss_withheld, inss_withheld_rate,
+    iss_withheld,  iss_withheld_rate,
+    pis_withheld,  pis_withheld_rate,
+    cofins_withheld, cofins_withheld_rate,
+    csll_withheld, csll_withheld_rate,
+
+    iss_rate, iss_amount,
+    pis_rate, pis_amount,
+    cofins_rate, cofins_amount,
+    irpj_amount:  input.irpj_amount  ?? 0,
+    csll_amount:  input.csll_amount  ?? 0,
+    tax_regime:   input.tax_regime,
+    simples_rate: input.simples_rate ?? 0,
+
+    revenue_account_id:  input.revenue_account_id,
+    revenue_type:        input.revenue_type,
+    nature_of_operation: input.nature_of_operation,
+
+    project_id:        input.project_id,
+    service_category:  input.service_category,
+    contract_type:     input.contract_type,
+
+    revenue_recognition_date: input.revenue_recognition_date,
+    service_period_start:     input.service_period_start,
+    service_period_end:       input.service_period_end,
+    accrual_month:            input.accrual_month,
+    is_deferred_revenue:      input.is_deferred_revenue  ?? false,
+    deferred_periods:         input.deferred_periods      ?? 0,
+
+    payment_date:        undefined,
+    received_date:       undefined,
+    payment_method:      input.payment_method,
+    bank_account_id:     input.bank_account_id,
+    bank_transaction_id: undefined,
+    payment_reference:   input.payment_reference,
+    receipt_ref:         undefined,
+    received_amount:     undefined,
+
+    is_installment:     input.is_installment     ?? false,
+    installment_number: input.installment_number,
+    total_installments: input.total_installments,
+    parent_ar_id:       input.parent_ar_id,
+
+    is_recurring:          input.is_recurring          ?? false,
+    recurrence_frequency:  input.recurrence_frequency,
+    contract_value:        input.contract_value,
+    contract_start_date:   input.contract_start_date,
+    contract_end_date:     input.contract_end_date,
+    mrr:                   input.mrr,
+    arr:                   input.arr,
+
+    status:               "PENDING",
+    collection_status:    "not_due",
+    collection_attempts:  0,
+    last_collection_date: undefined,
+
+    late_fee_rate:   input.late_fee_rate  ?? 0,
+    late_fee_amount: 0,
+    interest_rate:   input.interest_rate  ?? 0,
+    interest_amount: 0,
+
+    invoice_xml_url:     input.invoice_xml_url,
+    invoice_pdf_url:     input.invoice_pdf_url,
+    danfe_url:           input.danfe_url,
+    payment_receipt_url: undefined,
+    contract_url:        input.contract_url,
+    boleto_url:          input.boleto_url,
+    boleto_barcode:      input.boleto_barcode,
+
+    opportunity_id:    input.opportunity_id,
+    sales_rep_id:      input.sales_rep_id,
+    commission_rate:   input.commission_rate  ?? 0,
+    commission_amount: input.commission_amount ?? 0,
+    commission_paid:   false,
+
+    notes:          input.notes,
+    customer_notes: input.customer_notes,
+    tags:           input.tags ?? [],
     source_system:  input.source_system ?? "manual",
-    created_at:     new Date().toISOString(),
+    created_at:     now,
+    updated_at:     now,
     created_by:     input.created_by,
   };
 
   if (sql) {
     await sql`
       INSERT INTO epm_ar (
-        id, bu_code, customer_id, customer_name, customer_doc, description, category,
-        cost_center, reference_doc, issue_date, due_date, gross_amount,
+        id, ar_code, bu_code, customer_id, customer_name, customer_doc,
+        description, category, cost_center, reference_doc, issue_date, due_date,
+        invoice_number, invoice_series, invoice_date,
+        gross_amount, discount_amount, net_amount,
+        irrf_withheld, irrf_withheld_rate, inss_withheld, inss_withheld_rate,
+        iss_withheld, iss_withheld_rate, pis_withheld, pis_withheld_rate,
+        cofins_withheld, cofins_withheld_rate, csll_withheld, csll_withheld_rate,
         iss_rate, iss_amount, pis_rate, pis_amount, cofins_rate, cofins_amount,
-        net_amount, status, source_system, created_at, created_by
+        irpj_amount, csll_amount, tax_regime, simples_rate,
+        revenue_account_id, revenue_type, nature_of_operation,
+        project_id, service_category, contract_type,
+        revenue_recognition_date, service_period_start, service_period_end,
+        accrual_month, is_deferred_revenue, deferred_periods,
+        payment_method, bank_account_id, payment_reference,
+        is_installment, installment_number, total_installments, parent_ar_id,
+        is_recurring, recurrence_frequency, contract_value,
+        contract_start_date, contract_end_date, mrr, arr,
+        status, collection_status, collection_attempts,
+        late_fee_rate, interest_rate,
+        invoice_xml_url, invoice_pdf_url, danfe_url, contract_url,
+        boleto_url, boleto_barcode,
+        opportunity_id, sales_rep_id, commission_rate, commission_amount,
+        notes, customer_notes, tags,
+        source_system, created_at, updated_at, created_by
       ) VALUES (
-        ${item.id}, ${item.bu_code}, ${item.customer_id ?? null}, ${item.customer_name},
-        ${item.customer_doc ?? null}, ${item.description}, ${item.category},
-        ${item.cost_center ?? null}, ${item.reference_doc ?? null}, ${item.issue_date}, ${item.due_date}, ${item.gross_amount},
-        ${item.iss_rate}, ${item.iss_amount}, ${item.pis_rate}, ${item.pis_amount},
-        ${item.cofins_rate}, ${item.cofins_amount}, ${item.net_amount},
-        ${item.status}, ${item.source_system}, ${item.created_at}, ${item.created_by ?? null}
+        ${item.id}, ${item.ar_code ?? null}, ${item.bu_code},
+        ${item.customer_id ?? null}, ${item.customer_name}, ${item.customer_doc ?? null},
+        ${item.description}, ${item.category}, ${item.cost_center ?? null},
+        ${item.reference_doc ?? null}, ${item.issue_date}, ${item.due_date},
+        ${item.invoice_number ?? null}, ${item.invoice_series ?? null}, ${item.invoice_date ?? null},
+        ${item.gross_amount}, ${item.discount_amount}, ${item.net_amount},
+        ${item.irrf_withheld}, ${item.irrf_withheld_rate},
+        ${item.inss_withheld}, ${item.inss_withheld_rate},
+        ${item.iss_withheld},  ${item.iss_withheld_rate},
+        ${item.pis_withheld},  ${item.pis_withheld_rate},
+        ${item.cofins_withheld}, ${item.cofins_withheld_rate},
+        ${item.csll_withheld}, ${item.csll_withheld_rate},
+        ${item.iss_rate}, ${item.iss_amount},
+        ${item.pis_rate}, ${item.pis_amount},
+        ${item.cofins_rate}, ${item.cofins_amount},
+        ${item.irpj_amount}, ${item.csll_amount},
+        ${item.tax_regime ?? null}, ${item.simples_rate},
+        ${item.revenue_account_id ?? null}, ${item.revenue_type ?? null},
+        ${item.nature_of_operation ?? null},
+        ${item.project_id ?? null}, ${item.service_category ?? null},
+        ${item.contract_type ?? null},
+        ${item.revenue_recognition_date ?? null},
+        ${item.service_period_start ?? null}, ${item.service_period_end ?? null},
+        ${item.accrual_month ?? null}, ${item.is_deferred_revenue},
+        ${item.deferred_periods},
+        ${item.payment_method ?? null}, ${item.bank_account_id ?? null},
+        ${item.payment_reference ?? null},
+        ${item.is_installment}, ${item.installment_number ?? null},
+        ${item.total_installments ?? null}, ${item.parent_ar_id ?? null},
+        ${item.is_recurring}, ${item.recurrence_frequency ?? null},
+        ${item.contract_value ?? null},
+        ${item.contract_start_date ?? null}, ${item.contract_end_date ?? null},
+        ${item.mrr ?? null}, ${item.arr ?? null},
+        ${item.status}, ${item.collection_status}, ${item.collection_attempts},
+        ${item.late_fee_rate}, ${item.interest_rate},
+        ${item.invoice_xml_url ?? null}, ${item.invoice_pdf_url ?? null},
+        ${item.danfe_url ?? null}, ${item.contract_url ?? null},
+        ${item.boleto_url ?? null}, ${item.boleto_barcode ?? null},
+        ${item.opportunity_id ?? null}, ${item.sales_rep_id ?? null},
+        ${item.commission_rate}, ${item.commission_amount},
+        ${item.notes ?? null}, ${item.customer_notes ?? null},
+        ${JSON.stringify(item.tags)},
+        ${item.source_system}, ${item.created_at}, ${item.updated_at ?? null},
+        ${item.created_by ?? null}
       )
     `;
   } else {
@@ -705,19 +1301,81 @@ export async function deleteAR(id: string): Promise<boolean> {
   return store.items.length < before;
 }
 
-export async function updateAR(
-  id: string,
-  updates: Partial<Pick<ARItem, "customer_name" | "description" | "category" | "cost_center" | "reference_doc" | "due_date">>
-): Promise<ARItem | null> {
+export type ARUpdateInput = Partial<Pick<ARItem,
+  | "customer_name" | "description" | "category" | "cost_center" | "reference_doc" | "due_date"
+  | "invoice_number" | "invoice_series" | "invoice_date" | "gross_amount" | "discount_amount"
+  | "irrf_withheld_rate" | "inss_withheld_rate" | "iss_withheld_rate"
+  | "pis_withheld_rate" | "cofins_withheld_rate" | "csll_withheld_rate"
+  | "iss_rate" | "pis_rate" | "cofins_rate" | "irpj_amount" | "csll_amount"
+  | "tax_regime" | "simples_rate"
+  | "revenue_account_id" | "revenue_type" | "nature_of_operation"
+  | "project_id" | "service_category" | "contract_type"
+  | "revenue_recognition_date" | "service_period_start" | "service_period_end"
+  | "accrual_month" | "is_deferred_revenue" | "deferred_periods"
+  | "payment_method" | "bank_account_id" | "payment_reference"
+  | "is_installment" | "installment_number" | "total_installments" | "parent_ar_id"
+  | "is_recurring" | "recurrence_frequency" | "contract_value"
+  | "contract_start_date" | "contract_end_date" | "mrr" | "arr"
+  | "collection_status" | "collection_attempts" | "last_collection_date"
+  | "late_fee_rate" | "late_fee_amount" | "interest_rate" | "interest_amount"
+  | "invoice_xml_url" | "invoice_pdf_url" | "danfe_url" | "contract_url"
+  | "boleto_url" | "boleto_barcode"
+  | "opportunity_id" | "sales_rep_id" | "commission_rate" | "commission_amount" | "commission_paid"
+  | "notes" | "customer_notes" | "tags" | "updated_by"
+>>;
+
+export async function updateAR(id: string, updates: ARUpdateInput): Promise<ARItem | null> {
+  const now = new Date().toISOString();
   if (sql) {
     const rows = await sql`
       UPDATE epm_ar SET
-        customer_name = COALESCE(${updates.customer_name ?? null}, customer_name),
-        description   = COALESCE(${updates.description   ?? null}, description),
-        category      = COALESCE(${updates.category      ?? null}, category),
-        cost_center   = ${updates.cost_center ?? null},
-        reference_doc = ${updates.reference_doc ?? null},
-        due_date      = COALESCE(${updates.due_date      ?? null}, due_date)
+        customer_name     = COALESCE(${updates.customer_name     ?? null}, customer_name),
+        description       = COALESCE(${updates.description       ?? null}, description),
+        category          = COALESCE(${updates.category          ?? null}, category),
+        cost_center       = ${updates.cost_center   ?? null},
+        reference_doc     = ${updates.reference_doc ?? null},
+        due_date          = COALESCE(${updates.due_date          ?? null}, due_date),
+        invoice_number    = ${updates.invoice_number ?? null},
+        invoice_series    = ${updates.invoice_series ?? null},
+        invoice_date      = ${updates.invoice_date   ?? null},
+        revenue_account_id = ${updates.revenue_account_id ?? null},
+        revenue_type      = ${updates.revenue_type       ?? null},
+        nature_of_operation = ${updates.nature_of_operation ?? null},
+        project_id        = ${updates.project_id        ?? null},
+        service_category  = ${updates.service_category  ?? null},
+        contract_type     = ${updates.contract_type     ?? null},
+        accrual_month     = ${updates.accrual_month     ?? null},
+        service_period_start = ${updates.service_period_start ?? null},
+        service_period_end   = ${updates.service_period_end   ?? null},
+        revenue_recognition_date = ${updates.revenue_recognition_date ?? null},
+        is_deferred_revenue  = COALESCE(${updates.is_deferred_revenue ?? null}, is_deferred_revenue),
+        deferred_periods     = COALESCE(${updates.deferred_periods    ?? null}, deferred_periods),
+        payment_method    = ${updates.payment_method ?? null},
+        bank_account_id   = ${updates.bank_account_id ?? null},
+        payment_reference = ${updates.payment_reference ?? null},
+        collection_status = COALESCE(${updates.collection_status ?? null}, collection_status),
+        collection_attempts = COALESCE(${updates.collection_attempts ?? null}, collection_attempts),
+        last_collection_date = ${updates.last_collection_date ?? null},
+        late_fee_rate     = COALESCE(${updates.late_fee_rate   ?? null}, late_fee_rate),
+        late_fee_amount   = COALESCE(${updates.late_fee_amount ?? null}, late_fee_amount),
+        interest_rate     = COALESCE(${updates.interest_rate   ?? null}, interest_rate),
+        interest_amount   = COALESCE(${updates.interest_amount ?? null}, interest_amount),
+        invoice_xml_url   = ${updates.invoice_xml_url ?? null},
+        invoice_pdf_url   = ${updates.invoice_pdf_url ?? null},
+        danfe_url         = ${updates.danfe_url       ?? null},
+        contract_url      = ${updates.contract_url    ?? null},
+        boleto_url        = ${updates.boleto_url      ?? null},
+        boleto_barcode    = ${updates.boleto_barcode  ?? null},
+        opportunity_id    = ${updates.opportunity_id  ?? null},
+        sales_rep_id      = ${updates.sales_rep_id    ?? null},
+        commission_rate   = COALESCE(${updates.commission_rate   ?? null}, commission_rate),
+        commission_amount = COALESCE(${updates.commission_amount ?? null}, commission_amount),
+        commission_paid   = COALESCE(${updates.commission_paid   ?? null}, commission_paid),
+        notes             = ${updates.notes          ?? null},
+        customer_notes    = ${updates.customer_notes ?? null},
+        tags              = COALESCE(${updates.tags ? JSON.stringify(updates.tags) : null}, tags),
+        updated_by        = ${updates.updated_by ?? null},
+        updated_at        = ${now}
       WHERE id = ${id} RETURNING *
     `;
     return rows[0] ? rowToAR(rows[0] as Record<string, unknown>) : null;
@@ -725,7 +1383,7 @@ export async function updateAR(
   const store = readARStore();
   const idx   = store.items.findIndex((i) => i.id === id);
   if (idx === -1) return null;
-  store.items[idx] = { ...store.items[idx], ...updates };
+  store.items[idx] = { ...store.items[idx], ...updates, updated_at: now };
   writeARStore(store);
   return store.items[idx];
 }
@@ -1538,6 +2196,320 @@ export async function findBankMatchCandidates(txn: BankTransaction): Promise<Ban
   return candidates.sort((a, b) => b.score - a.score).slice(0, 5);
 }
 
+// ─── AR Installments ─────────────────────────────────────────────────────────
+
+export interface ARInstallmentItem {
+  id:                 string;
+  parent_ar_id:       string;
+  installment_number: number;
+  total_installments: number;
+  installment_amount: number;
+  due_date:           string;
+  status:             "pending" | "paid" | "overdue";
+  payment_date?:      string;
+  payment_method?:    string;
+  late_fees_applied:  number;
+  created_at:         string;
+}
+
+export async function initARInstallmentsDB(): Promise<void> {
+  if (!sql) return;
+  await sql`
+    CREATE TABLE IF NOT EXISTS epm_ar_installments (
+      id                  TEXT    PRIMARY KEY,
+      parent_ar_id        TEXT    NOT NULL REFERENCES epm_ar(id) ON DELETE CASCADE,
+      installment_number  INTEGER NOT NULL,
+      total_installments  INTEGER NOT NULL,
+      installment_amount  NUMERIC NOT NULL,
+      due_date            TEXT    NOT NULL,
+      status              TEXT    NOT NULL DEFAULT 'pending',
+      payment_date        TEXT,
+      payment_method      TEXT,
+      late_fees_applied   NUMERIC NOT NULL DEFAULT 0,
+      created_at          TEXT    NOT NULL
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_epm_ari_parent ON epm_ar_installments(parent_ar_id)`;
+}
+
+function rowToInstallment(r: Record<string, unknown>): ARInstallmentItem {
+  return {
+    id:                 String(r.id),
+    parent_ar_id:       String(r.parent_ar_id),
+    installment_number: Number(r.installment_number),
+    total_installments: Number(r.total_installments),
+    installment_amount: Number(r.installment_amount),
+    due_date:           String(r.due_date),
+    status:             String(r.status) as ARInstallmentItem["status"],
+    payment_date:       r.payment_date ? String(r.payment_date) : undefined,
+    payment_method:     r.payment_method ? String(r.payment_method) : undefined,
+    late_fees_applied:  Number(r.late_fees_applied ?? 0),
+    created_at:         String(r.created_at),
+  };
+}
+
+export async function getARInstallments(parent_ar_id: string): Promise<ARInstallmentItem[]> {
+  if (sql) {
+    const rows = await sql`
+      SELECT * FROM epm_ar_installments
+      WHERE parent_ar_id = ${parent_ar_id}
+      ORDER BY installment_number
+    `;
+    return rows.map((r) => rowToInstallment(r as Record<string, unknown>));
+  }
+  return [];
+}
+
+export async function payARInstallment(
+  id: string,
+  data: { payment_date: string; payment_method?: string; late_fees_applied?: number }
+): Promise<ARInstallmentItem | null> {
+  if (sql) {
+    const rows = await sql`
+      UPDATE epm_ar_installments
+      SET status = 'paid',
+          payment_date      = ${data.payment_date},
+          payment_method    = ${data.payment_method ?? null},
+          late_fees_applied = ${data.late_fees_applied ?? 0}
+      WHERE id = ${id} RETURNING *
+    `;
+    return rows[0] ? rowToInstallment(rows[0] as Record<string, unknown>) : null;
+  }
+  return null;
+}
+
+// ─── AR Payment History ───────────────────────────────────────────────────────
+
+export interface ARPaymentHistoryItem {
+  id:                  string;
+  ar_id:               string;
+  payment_date:        string;
+  amount_paid:         number;
+  payment_method?:     string;
+  bank_transaction_id?: string;
+  payment_reference?:  string;
+  notes?:              string;
+  created_at:          string;
+  created_by?:         string;
+}
+
+export async function initARPaymentHistoryDB(): Promise<void> {
+  if (!sql) return;
+  await sql`
+    CREATE TABLE IF NOT EXISTS epm_ar_payment_history (
+      id                   TEXT    PRIMARY KEY,
+      ar_id                TEXT    NOT NULL REFERENCES epm_ar(id) ON DELETE CASCADE,
+      payment_date         TEXT    NOT NULL,
+      amount_paid          NUMERIC NOT NULL,
+      payment_method       TEXT,
+      bank_transaction_id  TEXT,
+      payment_reference    TEXT,
+      notes                TEXT,
+      created_at           TEXT    NOT NULL,
+      created_by           TEXT
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_epm_arph_ar ON epm_ar_payment_history(ar_id)`;
+}
+
+export async function addARPayment(
+  input: Omit<ARPaymentHistoryItem, "id" | "created_at">
+): Promise<ARPaymentHistoryItem> {
+  const item: ARPaymentHistoryItem = {
+    id: randomUUID(), ...input, created_at: new Date().toISOString(),
+  };
+  if (sql) {
+    await sql`
+      INSERT INTO epm_ar_payment_history
+        (id, ar_id, payment_date, amount_paid, payment_method,
+         bank_transaction_id, payment_reference, notes, created_at, created_by)
+      VALUES
+        (${item.id}, ${item.ar_id}, ${item.payment_date}, ${item.amount_paid},
+         ${item.payment_method ?? null}, ${item.bank_transaction_id ?? null},
+         ${item.payment_reference ?? null}, ${item.notes ?? null},
+         ${item.created_at}, ${item.created_by ?? null})
+    `;
+  }
+  return item;
+}
+
+export async function getARPaymentHistory(ar_id: string): Promise<ARPaymentHistoryItem[]> {
+  if (sql) {
+    const rows = await sql`
+      SELECT * FROM epm_ar_payment_history
+      WHERE ar_id = ${ar_id}
+      ORDER BY payment_date DESC
+    `;
+    return rows.map((r) => ({
+      id:                  String(r.id),
+      ar_id:               String(r.ar_id),
+      payment_date:        String(r.payment_date),
+      amount_paid:         Number(r.amount_paid),
+      payment_method:      r.payment_method      ? String(r.payment_method)      : undefined,
+      bank_transaction_id: r.bank_transaction_id ? String(r.bank_transaction_id) : undefined,
+      payment_reference:   r.payment_reference   ? String(r.payment_reference)   : undefined,
+      notes:               r.notes               ? String(r.notes)               : undefined,
+      created_at:          String(r.created_at),
+      created_by:          r.created_by          ? String(r.created_by)          : undefined,
+    }));
+  }
+  return [];
+}
+
+// ─── Revenue Recognition Schedule ────────────────────────────────────────────
+
+export interface RevenueRecognitionScheduleItem {
+  id:                     string;
+  ar_id:                  string;
+  total_amount:           number;
+  recognition_start_date: string;
+  recognition_end_date:   string;
+  total_periods:          number;
+  amount_per_period:      number;
+  periods_recognized:     number;
+  next_recognition_date?: string;
+  status:                 "active" | "completed" | "cancelled";
+  created_at:             string;
+  updated_at?:            string;
+}
+
+export interface RevenueRecognitionEntryItem {
+  id:                string;
+  schedule_id:       string;
+  recognition_date:  string;
+  amount_recognized: number;
+  gl_entry_id?:      string;
+  created_at:        string;
+}
+
+export async function initRevenueScheduleDB(): Promise<void> {
+  if (!sql) return;
+  await sql`
+    CREATE TABLE IF NOT EXISTS epm_revenue_schedule (
+      id                     TEXT    PRIMARY KEY,
+      ar_id                  TEXT    NOT NULL REFERENCES epm_ar(id) ON DELETE CASCADE,
+      total_amount           NUMERIC NOT NULL,
+      recognition_start_date TEXT    NOT NULL,
+      recognition_end_date   TEXT    NOT NULL,
+      total_periods          INTEGER NOT NULL,
+      amount_per_period      NUMERIC NOT NULL,
+      periods_recognized     INTEGER NOT NULL DEFAULT 0,
+      next_recognition_date  TEXT,
+      status                 TEXT    NOT NULL DEFAULT 'active',
+      created_at             TEXT    NOT NULL,
+      updated_at             TEXT
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_epm_rvsched_ar ON epm_revenue_schedule(ar_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_epm_rvsched_status ON epm_revenue_schedule(status)`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS epm_revenue_schedule_entries (
+      id                TEXT    PRIMARY KEY,
+      schedule_id       TEXT    NOT NULL REFERENCES epm_revenue_schedule(id) ON DELETE CASCADE,
+      recognition_date  TEXT    NOT NULL,
+      amount_recognized NUMERIC NOT NULL,
+      gl_entry_id       TEXT,
+      created_at        TEXT    NOT NULL
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_epm_rventry_sched ON epm_revenue_schedule_entries(schedule_id)`;
+}
+
+export async function createRevenueSchedule(
+  input: Omit<RevenueRecognitionScheduleItem, "id" | "periods_recognized" | "status" | "created_at" | "updated_at">
+): Promise<RevenueRecognitionScheduleItem> {
+  const item: RevenueRecognitionScheduleItem = {
+    id: randomUUID(), ...input,
+    periods_recognized: 0,
+    status: "active",
+    created_at: new Date().toISOString(),
+  };
+  if (sql) {
+    await sql`
+      INSERT INTO epm_revenue_schedule
+        (id, ar_id, total_amount, recognition_start_date, recognition_end_date,
+         total_periods, amount_per_period, periods_recognized, next_recognition_date,
+         status, created_at)
+      VALUES
+        (${item.id}, ${item.ar_id}, ${item.total_amount},
+         ${item.recognition_start_date}, ${item.recognition_end_date},
+         ${item.total_periods}, ${item.amount_per_period}, 0,
+         ${item.next_recognition_date ?? null}, 'active', ${item.created_at})
+    `;
+  }
+  return item;
+}
+
+export async function addRevenueScheduleEntry(
+  input: Omit<RevenueRecognitionEntryItem, "id" | "created_at">
+): Promise<RevenueRecognitionEntryItem> {
+  const item: RevenueRecognitionEntryItem = {
+    id: randomUUID(), ...input, created_at: new Date().toISOString(),
+  };
+  if (sql) {
+    await sql`
+      INSERT INTO epm_revenue_schedule_entries
+        (id, schedule_id, recognition_date, amount_recognized, gl_entry_id, created_at)
+      VALUES
+        (${item.id}, ${item.schedule_id}, ${item.recognition_date},
+         ${item.amount_recognized}, ${item.gl_entry_id ?? null}, ${item.created_at})
+    `;
+    const now = new Date().toISOString();
+    await sql`
+      UPDATE epm_revenue_schedule
+      SET periods_recognized = periods_recognized + 1,
+          updated_at = ${now},
+          status = CASE
+            WHEN periods_recognized + 1 >= total_periods THEN 'completed'
+            ELSE status
+          END
+      WHERE id = ${item.schedule_id}
+    `;
+  }
+  return item;
+}
+
+export async function getRevenueSchedules(ar_id: string): Promise<RevenueRecognitionScheduleItem[]> {
+  if (!sql) return [];
+  const rows = await sql`
+    SELECT * FROM epm_revenue_schedule WHERE ar_id = ${ar_id} ORDER BY recognition_start_date
+  `;
+  return rows.map((r) => ({
+    id:                     String(r.id),
+    ar_id:                  String(r.ar_id),
+    total_amount:           Number(r.total_amount),
+    recognition_start_date: String(r.recognition_start_date),
+    recognition_end_date:   String(r.recognition_end_date),
+    total_periods:          Number(r.total_periods),
+    amount_per_period:      Number(r.amount_per_period),
+    periods_recognized:     Number(r.periods_recognized),
+    next_recognition_date:  r.next_recognition_date ? String(r.next_recognition_date) : undefined,
+    status:                 String(r.status) as RevenueRecognitionScheduleItem["status"],
+    created_at:             String(r.created_at),
+    updated_at:             r.updated_at ? String(r.updated_at) : undefined,
+  }));
+}
+
+export async function getRevenueScheduleEntries(
+  schedule_id: string
+): Promise<RevenueRecognitionEntryItem[]> {
+  if (!sql) return [];
+  const rows = await sql`
+    SELECT * FROM epm_revenue_schedule_entries
+    WHERE schedule_id = ${schedule_id}
+    ORDER BY recognition_date
+  `;
+  return rows.map((r) => ({
+    id:                String(r.id),
+    schedule_id:       String(r.schedule_id),
+    recognition_date:  String(r.recognition_date),
+    amount_recognized: Number(r.amount_recognized),
+    gl_entry_id:       r.gl_entry_id ? String(r.gl_entry_id) : undefined,
+    created_at:        String(r.created_at),
+  }));
+}
+
 // ─── initAllAPARTables ────────────────────────────────────────────────────────
 
 export async function initAllAPARTables(): Promise<void> {
@@ -1549,4 +2521,7 @@ export async function initAllAPARTables(): Promise<void> {
   await initCostCentersDB();
   await initRevenueRecognitionDB();
   await initBankTransactionsDB();
+  await initARInstallmentsDB();
+  await initARPaymentHistoryDB();
+  await initRevenueScheduleDB();
 }
