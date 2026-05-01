@@ -58,7 +58,6 @@ export interface GLStore {
   last_updated:  string;
 }
 
-
 const ACCOUNT_MAP = new Map(CHART_OF_ACCOUNTS.map((a) => [a.account_code, a]));
 
 // ─── Persistence (JSON file — works in both static and SSR mode) ──────────────

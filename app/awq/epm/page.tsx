@@ -26,11 +26,6 @@ function fmtBRL(n: number) {
   return sign + "R$" + abs.toLocaleString("pt-BR", { minimumFractionDigits: 0 });
 }
 
-function pctStr(n: number | null): string {
-  if (n === null) return "—";
-  return (n * 100).toFixed(1) + "%";
-}
-
 // ─── Module Card ─────────────────────────────────────────────────────────────
 
 interface ModuleCard {
@@ -73,10 +68,9 @@ export default async function EpmOverviewPage() {
   const glPeriods = [...new Set(glEntries.map((e) => e.period_code))].sort().reverse();
 
   // Derive summary numbers: prefer real DRE data, fall back to snapshot
-  const revenue   = dre.hasData ? dre.dreRevenue            : snap.revenue;
-  const ebitda    = dre.hasData ? dre.dreEBITDA              : snap.ebitda;
-  const netResult = dre.hasData ? dre.dreNetResult           : snap.netIncome;
-  const gmPct     = dre.hasData ? dre.dreGrossMargin         : consolidatedMargins.grossMargin;
+  const revenue   = dre.hasData ? dre.dreRevenue     : snap.revenue;
+  const ebitda    = dre.hasData ? dre.dreEBITDA      : snap.ebitda;
+  const gmPct     = dre.hasData ? dre.dreGrossMargin : consolidatedMargins.grossMargin;
   const ebitdaPct = dre.hasData ? dre.dreEBITDAMargin        : consolidatedMargins.ebitdaMargin;
   const snapCogs  = snap.revenue - snap.grossProfit;
   const snapRevenueVariance = snap.revenue - snap.budgetRevenue;

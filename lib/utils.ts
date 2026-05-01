@@ -42,6 +42,19 @@ export function formatDate(date: Date | string): string {
   }).format(new Date(date));
 }
 
+export function formatDateBR(d: string | null | undefined): string {
+  if (!d) return "—";
+  const [y, m, day] = d.slice(0, 10).split("-");
+  return `${day}/${m}/${y}`;
+}
+
+export function formatBRL(n: number | null | undefined): string {
+  if (n == null) return "—";
+  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(1) + "M";
+  if (n >= 1_000)     return "R$" + (n / 1_000).toFixed(0) + "K";
+  return "R$" + n.toLocaleString("pt-BR");
+}
+
 export function getDeltaColor(delta: number): string {
   if (delta > 0) return "text-emerald-400";
   if (delta < 0) return "text-red-400";
