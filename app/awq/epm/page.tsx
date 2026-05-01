@@ -13,7 +13,8 @@ import {
   ArrowDownLeft, ArrowUpRight, ListOrdered, Building2,
   ChevronRight, CheckCircle2, AlertTriangle, Database,
   TrendingUp, DollarSign, BarChart3, Landmark, BookOpen, LayoutGrid,
-  Users, Receipt,
+  Users, Receipt, Package, GitMerge, Clock, Lock,
+  Globe, FileText, Activity, Calculator,
 } from "lucide-react";
 import { buildDreQuery } from "@/lib/dre-query";
 import { getAllGLEntries, getBalanceSheet } from "@/lib/epm-gl";
@@ -54,8 +55,16 @@ const EPM_MODULES: ModuleCard[] = [
   { label: "Centros de Custo",    sub: "CC por BU e categoria",        href: "/awq/epm/cost-centers",          icon: LayoutGrid,    color: "text-orange-600",  bg: "bg-orange-50",   status: "active" },
   { label: "Fornecedores",        sub: "Cadastro de fornecedores",     href: "/awq/epm/suppliers",             icon: Building2,     color: "text-teal-600",    bg: "bg-teal-50",     status: "active" },
   { label: "Clientes",            sub: "Cadastro de clientes",         href: "/awq/epm/customers",             icon: Users,         color: "text-brand-600",   bg: "bg-brand-50",    status: "active" },
-  { label: "AP Aging",            sub: "Vencimentos por faixa",        href: "/awq/epm/ap/aging",              icon: Receipt,       color: "text-amber-600",   bg: "bg-amber-50",    status: "active" },
-  { label: "AR Aging",            sub: "Recebíveis por faixa",         href: "/awq/epm/ar/aging",              icon: Receipt,       color: "text-emerald-600", bg: "bg-emerald-50",  status: "active" },
+  { label: "AP Aging",            sub: "Vencimentos por faixa",        href: "/awq/epm/ap/aging",                         icon: Receipt,       color: "text-amber-600",   bg: "bg-amber-50",    status: "active" },
+  { label: "AR Aging",            sub: "Recebíveis por faixa",         href: "/awq/epm/ar/aging",                         icon: Receipt,       color: "text-emerald-600", bg: "bg-emerald-50",  status: "active" },
+  { label: "Ativo Imobilizado",   sub: "CAPEX · Depreciação · Registro",href: "/awq/epm/fixed-assets",                    icon: Package,       color: "text-orange-600",  bg: "bg-orange-50",   status: "active" },
+  { label: "Budget Approval",     sub: "Workflow · Cenários · Audit",  href: "/awq/epm/budget/approval",                  icon: Clock,         color: "text-violet-600",  bg: "bg-violet-50",   status: "active" },
+  { label: "Forecast",            sub: "13-Week Cash · Driver-Based",  href: "/awq/epm/forecast",                         icon: Activity,      color: "text-brand-600",   bg: "bg-brand-50",    status: "active" },
+  { label: "Fechamento Períodos", sub: "Open → Reviewing → Locked",    href: "/awq/epm/periods",                          icon: Lock,          color: "text-gray-700",    bg: "bg-gray-100",    status: "active" },
+  { label: "Eliminações IC",      sub: "Intercompany · Reconciliação", href: "/awq/epm/consolidation/eliminations",       icon: GitMerge,      color: "text-violet-600",  bg: "bg-violet-50",   status: "active" },
+  { label: "Câmbio / FX",         sub: "FX Rates · Translation G/L",  href: "/awq/epm/currency",                         icon: Globe,         color: "text-cyan-700",    bg: "bg-cyan-50",     status: "active" },
+  { label: "Board Pack",          sub: "Relatório trimestral board",   href: "/awq/epm/reports/board-pack",               icon: FileText,      color: "text-brand-700",   bg: "bg-brand-50",    status: "active" },
+  { label: "Relatório Anual",     sub: "P&L · Balanço · DFC · 3Y",    href: "/awq/epm/reports/annual",                   icon: BarChart3,     color: "text-gray-700",    bg: "bg-gray-100",    status: "active" },
 ];
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
