@@ -9,6 +9,7 @@ import {
   LayoutDashboard, Plus, Search, Filter, TrendingUp, TrendingDown,
   DollarSign, Clock, Users, CheckCircle2, AlertTriangle, XCircle,
   BarChart3, Briefcase, Calendar, ChevronRight, RefreshCw,
+  GanttChart, ClipboardList,
 } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/utils";
 import type { PpmProject, PpmPortfolioMetrics } from "@/lib/ppm-types";
@@ -279,27 +280,37 @@ export default function PpmPortfolioPage() {
           <HealthSummary g={metrics?.green_count ?? 0} y={metrics?.yellow_count ?? 0} r={metrics?.red_count ?? 0} />
         </div>
 
-        {/* Quick nav */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[
-            { href: "/awq/ppm/tasks",        label: "Tarefas",     icon: CheckCircle2, desc: "Kanban de tarefas"    },
-            { href: "/awq/ppm/timesheets",   label: "Timesheets",  icon: Clock,        desc: "Apontamento de horas" },
-            { href: "/awq/ppm/resources",    label: "Recursos",    icon: Users,        desc: "Alocação de pessoas"  },
-            { href: "/awq/ppm/risks",        label: "Riscos",      icon: AlertTriangle,desc: "Registro de riscos"   },
-          ].map(({ href, label, icon: Icon, desc }) => (
-            <Link key={href} href={href}
-              className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl p-3.5 hover:border-brand-200 hover:bg-brand-50 transition-all group"
-            >
-              <div className="w-8 h-8 rounded-lg bg-gray-100 group-hover:bg-brand-100 flex items-center justify-center transition-colors">
-                <Icon size={14} className="text-gray-500 group-hover:text-brand-600 transition-colors" />
-              </div>
-              <div>
-                <div className="text-sm font-semibold text-gray-800 group-hover:text-brand-700">{label}</div>
-                <div className="text-[10px] text-gray-400">{desc}</div>
-              </div>
-            </Link>
-          ))}
-        </div>
+        {/* Módulos PPM */}
+        <section>
+          <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-3">
+            Módulos PPM
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { href: "/awq/ppm",              label: "Portfolio",     icon: Briefcase,     desc: "Visão geral dos projetos",   color: "text-brand-600",   bg: "bg-brand-50"   },
+              { href: "/awq/ppm/gantt",         label: "Gantt",         icon: GanttChart,    desc: "Linha do tempo e marcos",    color: "text-violet-600",  bg: "bg-violet-50"  },
+              { href: "/awq/ppm/tasks",         label: "Tarefas",       icon: ClipboardList, desc: "Kanban e gestão de tarefas", color: "text-amber-700",   bg: "bg-amber-50"   },
+              { href: "/awq/ppm/timesheets",    label: "Timesheets",    icon: Clock,         desc: "Apontamento de horas",       color: "text-cyan-700",    bg: "bg-cyan-50"    },
+              { href: "/awq/ppm/resources",     label: "Recursos",      icon: Users,         desc: "Alocação de pessoas",        color: "text-emerald-600", bg: "bg-emerald-50" },
+              { href: "/awq/ppm/utilization",   label: "Utilização",    icon: BarChart3,     desc: "Capacidade e ocupação",      color: "text-indigo-600",  bg: "bg-indigo-50"  },
+              { href: "/awq/ppm/profitability", label: "Rentabilidade", icon: TrendingUp,    desc: "EVM · CPI · SPI · Margem",   color: "text-emerald-700", bg: "bg-emerald-50" },
+              { href: "/awq/ppm/risks",         label: "Riscos",        icon: AlertTriangle, desc: "Registro e mitigação",       color: "text-red-600",     bg: "bg-red-50"     },
+            ].map(({ href, label, icon: Icon, desc, color, bg }) => (
+              <Link key={href} href={href}
+                className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl p-3.5 hover:border-brand-200 hover:shadow-sm transition-all group"
+              >
+                <div className={`w-9 h-9 rounded-lg ${bg} flex items-center justify-center shrink-0`}>
+                  <Icon size={15} className={color} />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold text-gray-800 group-hover:text-brand-700 transition-colors">{label}</div>
+                  <div className="text-[10px] text-gray-400 truncate">{desc}</div>
+                </div>
+                <ChevronRight size={12} className="text-gray-300 group-hover:text-brand-400 transition-colors shrink-0 ml-auto" />
+              </Link>
+            ))}
+          </div>
+        </section>
 
         {/* Filters */}
         <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
