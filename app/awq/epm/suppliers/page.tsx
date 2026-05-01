@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Header from "@/components/Header";
 import Link from "next/link";
-import { Plus, X, Search, Building2, Trash2 } from "lucide-react";
+import { Plus, X, Search, Building2 } from "lucide-react";
 
 type SupplierType = "service_professional" | "service_cleaning" | "service_construction" | "goods" | "rent" | "other";
 
