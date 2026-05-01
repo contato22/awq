@@ -44,6 +44,7 @@ export interface APItem {
   category:         string;
   cost_center?:     string;
   reference_doc?:   string;
+  project_id?:      string;  // PPM project link
   issue_date:       string;  // YYYY-MM-DD
   due_date:         string;  // YYYY-MM-DD
   gross_amount:     number;
@@ -78,6 +79,7 @@ export interface NewAPInput {
   category:      string;
   cost_center?:  string;
   reference_doc?: string;
+  project_id?:   string;  // PPM project link
   issue_date:    string;
   due_date:      string;
   gross_amount:  number;
@@ -101,6 +103,7 @@ export interface ARItem {
   category:       string;
   cost_center?:   string;
   reference_doc?: string;
+  project_id?:    string;  // PPM project link
   issue_date:     string;
   due_date:       string;
   gross_amount:   number;
@@ -129,6 +132,7 @@ export interface NewARInput {
   category:       string;
   cost_center?:   string;
   reference_doc?: string;
+  project_id?:    string;  // PPM project link
   issue_date:     string;
   due_date:       string;
   gross_amount:   number;
@@ -455,6 +459,7 @@ export async function addAP(input: NewAPInput): Promise<APItem> {
     category:         input.category,
     cost_center:      input.cost_center,
     reference_doc:    input.reference_doc,
+    project_id:       input.project_id,
     issue_date:       input.issue_date,
     due_date:         input.due_date,
     gross_amount:     input.gross_amount,
@@ -619,6 +624,7 @@ export async function addAR(input: NewARInput): Promise<ARItem> {
     category:       input.category,
     cost_center:    input.cost_center,
     reference_doc:  input.reference_doc,
+    project_id:     input.project_id,
     issue_date:     input.issue_date,
     due_date:       input.due_date,
     gross_amount:   input.gross_amount,

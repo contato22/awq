@@ -2,8 +2,8 @@
 
 // ─── /awq/ppm/add — Add New Project ──────────────────────────────────────────
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Save, Briefcase } from "lucide-react";
 
@@ -42,13 +42,15 @@ function Field({ label, required, children }: { label: string; required?: boolea
 const INPUT = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 bg-white text-gray-900 placeholder-gray-400";
 
 export default function AddProjectPage() {
-  const router = useRouter();
+  const router       = useRouter();
+  const searchParams = useSearchParams();
   const [saving, setSaving] = useState(false);
   const [error,  setError]  = useState("");
 
   const [form, setForm] = useState({
     project_name:     "",
     customer_name:    "",
+    opportunity_id:   "",
     bu_code:          "CAZA",
     project_type:     "one_off",
     service_category: "video_production",
@@ -65,6 +67,23 @@ export default function AddProjectPage() {
     billing_frequency:"",
     notes:            "",
   });
+
+  // Pre-fill from CRM opportunity URL params
+  useEffect(() => {
+    const opp    = searchParams.get("opportunity_id");
+    const cust   = searchParams.get("customer");
+    const rev    = searchParams.get("revenue");
+    const bu     = searchParams.get("bu");
+    if (opp || cust || rev || bu) {
+      setForm(f => ({
+        ...f,
+        opportunity_id:   opp   ?? f.opportunity_id,
+        customer_name:    cust  ?? f.customer_name,
+        budget_revenue:   rev   ?? f.budget_revenue,
+        bu_code:          (bu && ["JACQES","CAZA","ADVISOR","VENTURE","AWQ"].includes(bu)) ? bu : f.bu_code,
+      }));
+    }
+  }, [searchParams]);
 
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }));
@@ -90,6 +109,7 @@ export default function AddProjectPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
+          opportunity_id: form.opportunity_id || undefined,
           budget_hours:   form.budget_hours  ? parseFloat(form.budget_hours)  : undefined,
           budget_cost:    parseFloat(form.budget_cost),
           budget_revenue: parseFloat(form.budget_revenue),
@@ -123,6 +143,11 @@ export default function AddProjectPage() {
       <div className="max-w-3xl mx-auto px-6 py-6">
         <form onSubmit={e => void handleSubmit(e)} className="space-y-6">
 
+          {form.opportunity_id && (
+            <div className="bg-brand-50 border border-brand-200 text-brand-700 text-sm px-4 py-3 rounded-lg flex items-center gap-2">
+              <Briefcase size={14} /> Criando a partir da oportunidade CRM · <span className="font-mono text-xs">{form.opportunity_id}</span>
+            </div>
+          )}
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">
               {error}
