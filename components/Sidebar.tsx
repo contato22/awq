@@ -706,37 +706,55 @@ function JacqesSidebar({ pathname }: { pathname: string }) {
 function CazaSidebar({ pathname }: { pathname: string }) {
     const isActive = (href: string) =>
         href === "/caza-vision" ? pathname === href : pathname.startsWith(href);
+    const { data: session } = useSession();
+    const role = (session?.user as { role?: string } | undefined)?.role;
+    const isCazaOnly = role === "caza";
 
     return (
         <>
             <AwqHeader />
             {/* Caza Vision company selector */}
             <div className="px-3 pt-3">
-                <Link
-                    href="/business-units"
-                    className="flex items-center gap-3 px-3 py-2.5 bg-emerald-50 border border-emerald-200 rounded-xl hover:bg-emerald-100 transition-colors group"
-                >
-                    <div className="w-7 h-7 rounded-lg bg-emerald-600 flex items-center justify-center shrink-0">
-                        <Building2 size={13} className="text-gray-900" />
+                {isCazaOnly ? (
+                    // caza role: static chip, no link to other BUs
+                    <div className="flex items-center gap-3 px-3 py-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
+                        <div className="w-7 h-7 rounded-lg bg-emerald-600 flex items-center justify-center shrink-0">
+                            <Building2 size={13} className="text-gray-900" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <div className="text-sm font-bold text-emerald-700 truncate">Caza Vision</div>
+                            <div className="text-[10px] text-emerald-500 truncate">Produtora · AWQ Group</div>
+                        </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                        <div className="text-sm font-bold text-emerald-700 truncate">Caza Vision</div>
-                        <div className="text-[10px] text-emerald-500 truncate">Produtora · AWQ Group</div>
-                    </div>
-                    <ChevronDown size={14} className="text-emerald-600 shrink-0" />
-                </Link>
+                ) : (
+                    <Link
+                        href="/business-units"
+                        className="flex items-center gap-3 px-3 py-2.5 bg-emerald-50 border border-emerald-200 rounded-xl hover:bg-emerald-100 transition-colors group"
+                    >
+                        <div className="w-7 h-7 rounded-lg bg-emerald-600 flex items-center justify-center shrink-0">
+                            <Building2 size={13} className="text-gray-900" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <div className="text-sm font-bold text-emerald-700 truncate">Caza Vision</div>
+                            <div className="text-[10px] text-emerald-500 truncate">Produtora · AWQ Group</div>
+                        </div>
+                        <ChevronDown size={14} className="text-emerald-600 shrink-0" />
+                    </Link>
+                )}
             </div>
 
-            {/* Back to AWQ link */}
-            <div className="px-4 pt-2">
-                <Link
-                    href="/business-units"
-                    className="flex items-center gap-1.5 text-[10px] text-gray-400 hover:text-emerald-600 transition-colors"
-                >
-                    <ChevronLeft size={11} />
-                    Voltar para AWQ Group
-                </Link>
-            </div>
+            {/* Back to AWQ link — hidden for caza role */}
+            {!isCazaOnly && (
+                <div className="px-4 pt-2">
+                    <Link
+                        href="/business-units"
+                        className="flex items-center gap-1.5 text-[10px] text-gray-400 hover:text-emerald-600 transition-colors"
+                    >
+                        <ChevronLeft size={11} />
+                        Voltar para AWQ Group
+                    </Link>
+                </div>
+            )}
 
             <nav className="flex-1 overflow-y-auto px-3 py-2">
                 <SectionLabel>Caza Vision · Navegação</SectionLabel>
@@ -746,7 +764,9 @@ function CazaSidebar({ pathname }: { pathname: string }) {
                     ))}
                 </div>
 
-                <NavItem href="/crm" icon={Users} label="CRM" active={pathname === "/crm" || pathname.startsWith("/crm/")} />
+                {!isCazaOnly && (
+                    <NavItem href="/crm" icon={Users} label="CRM" active={pathname === "/crm" || pathname.startsWith("/crm/")} />
+                )}
 
                 <SectionLabel>IA & Agentes</SectionLabel>
                 <div className="space-y-0.5">
