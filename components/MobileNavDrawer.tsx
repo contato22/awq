@@ -95,6 +95,7 @@ const jacqesNav = [
   { label: "Budget",         href: "/jacqes/budget",         icon: Wallet },
   { label: "Relatórios",     href: "/reports",               icon: BarChart3 },
   { label: "Categorias",     href: "/categorias",            icon: Tag },
+  { label: "CRM",            href: "/crm",                   icon: Target },
 ];
 
 const cazaNav = [
@@ -105,6 +106,7 @@ const cazaNav = [
   { label: "Unit Economics", href: "/caza-vision/unit-economics", icon: Calculator },
   { label: "Pipeline",       href: "/caza-vision/pipeline",       icon: Activity },
   { label: "Relatórios",     href: "/caza-vision/relatorios",     icon: BarChart3 },
+  { label: "CRM",            href: "/crm",                        icon: Target },
 ];
 
 const advisorNav = [
