@@ -53,6 +53,16 @@ next-env.d.ts
 !/public/data/caza-crm-propostas.json
 !/public/data/caza-crm-interacoes.json
 !/public/data/caza-crm-stats.json
+!/public/data/advisor-crm-leads.json
+!/public/data/advisor-crm-oportunidades.json
+!/public/data/advisor-crm-clientes.json
+!/public/data/advisor-crm-interacoes.json
+!/public/data/advisor-crm-propostas.json
+!/public/data/advisor-crm-tarefas.json
+!/public/data/venture-crm-leads.json
+!/public/data/venture-crm-deals.json
+!/public/data/venture-crm-interacoes.json
+!/public/data/venture-crm-contatos.json
 
 # Uploaded PDFs (filesystem adapter — ephemeral, not versioned)
 /public/data/financial/pdfs/*.pdf
