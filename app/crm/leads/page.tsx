@@ -63,7 +63,7 @@ function LeadsPageInner() {
   const [loading, setLoading] = useState(true);
   const [isStatic, setIsStatic] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const urlBu = searchParams.get("bu");
+  const urlBu = searchParams?.get("bu") ?? null;
   const [buFilter, setBuFilter] = useState<string>(urlBu && BU_LIST.includes(urlBu as typeof BU_LIST[number]) ? urlBu : "Todos");
   const [search, setSearch] = useState("");
   const [converting, setConverting] = useState<string | null>(null);

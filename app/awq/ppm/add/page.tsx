@@ -70,10 +70,10 @@ function AddProjectPageInner() {
 
   // Pre-fill from CRM opportunity URL params
   useEffect(() => {
-    const opp    = searchParams.get("opportunity_id");
-    const cust   = searchParams.get("customer");
-    const rev    = searchParams.get("revenue");
-    const bu     = searchParams.get("bu");
+    const opp    = searchParams?.get("opportunity_id");
+    const cust   = searchParams?.get("customer");
+    const rev    = searchParams?.get("revenue");
+    const bu     = searchParams?.get("bu");
     if (opp || cust || rev || bu) {
       setForm(f => ({
         ...f,

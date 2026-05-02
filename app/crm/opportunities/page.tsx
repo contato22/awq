@@ -357,8 +357,8 @@ function PipelinePageInner() {
   const searchParams = useSearchParams();
   const [opps, setOpps] = useState<CrmOpportunity[]>([]);
   const [loading, setLoading] = useState(true);
-  const urlBu = searchParams.get("bu");
-  const [filterBU, setFilterBU] = useState(urlBu && BU_OPTIONS.includes(urlBu) ? urlBu : "Todos");
+  const urlBu = searchParams?.get("bu") ?? null;
+  const [filterBU, setFilterBU] = useState(urlBu && BU_OPTIONS.includes(urlBu as typeof BU_OPTIONS[number]) ? urlBu : "Todos");
   const [filterOwner, setFilterOwner] = useState("Todos");
   const [dragOverStage, setDragOverStage] = useState<string | null>(null);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);

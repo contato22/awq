@@ -94,7 +94,7 @@ function Stat({ label, value, sub, color }: { label: string; value: string; sub?
 
 export default function ProjectDetailPage() {
   const params = useParams();
-  const id     = params.id as string;
+  const id     = (params?.id ?? "") as string;
 
   const [project,     setProject]     = useState<PpmProject | null>(null);
   const [tasks,       setTasks]       = useState<PpmTask[]>([]);
