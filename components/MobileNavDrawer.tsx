@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -132,7 +132,6 @@ function NavLink({
     >
       <Icon size={18} className={cn(active ? "text-brand-600" : "text-gray-400")} />
       <span className="flex-1">{label}</span>
-      {active && <ChevronRight size={14} className="text-brand-500" />}
     </Link>
   );
 }
@@ -183,6 +182,8 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
   const rawPathname = usePathname();
   const pathname = rawPathname ?? "";
   const backdropRef = useRef<HTMLDivElement>(null);
+  const touchStartX = useRef<number>(0);
+  const touchCurrentX = useRef<number>(0);
 
   // Close on Escape
   useEffect(() => {
@@ -203,6 +204,21 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
     }
     return () => { document.body.style.overflow = ""; };
   }, [open]);
+
+  // Swipe-to-close: left swipe ≥ 60px closes the drawer
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchCurrentX.current = e.touches[0].clientX;
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    touchCurrentX.current = e.touches[0].clientX;
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    const delta = touchStartX.current - touchCurrentX.current;
+    if (delta > 60) onClose();
+  }, [onClose]);
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
 
@@ -279,6 +295,10 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
           "fixed top-0 left-0 bottom-0 z-50 w-[300px] max-w-[85vw] bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-out lg:hidden",
           open ? "translate-x-0" : "-translate-x-full"
         )}
+        style={{ willChange: "transform" }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
         {/* Drawer Header */}
         <div className="px-4 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">

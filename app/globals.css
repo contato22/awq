@@ -36,6 +36,12 @@
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 
+  /* Eliminate 300ms tap delay and iOS blue flash on interactive elements */
+  a, button, [role="button"] {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
   /* ── Scrollbar ─────────────────────────────────────────────── */
   ::-webkit-scrollbar {
     width: 6px;

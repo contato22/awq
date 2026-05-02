@@ -65,13 +65,24 @@ function getNavTabs(ctx: string): NavTab[] {
         { label: "BUs",       href: "/business-units",             icon: Building2,       match: (p) => p === "/business-units" },
         { label: "AI",        href: "/agents",                     icon: Bot,             match: (p) => p.startsWith("/agents") },
       ];
-    default: // awq
+    default: // awq — "Control" catches all /awq/* not handled by the other tabs
       return [
-        { label: "Control",   href: "/awq",              icon: LayoutDashboard, match: (p) => p === "/awq" },
-        { label: "Financial", href: "/awq/financial",    icon: DollarSign,      match: (p) => p.startsWith("/awq/financial") || p.startsWith("/awq/cashflow") },
-        { label: "BUs",       href: "/business-units",  icon: Building2,       match: (p) => p === "/business-units" },
-        { label: "Risk",      href: "/awq/risk",         icon: BarChart3,       match: (p) => p.startsWith("/awq/risk") || p.startsWith("/awq/budget") },
-        { label: "AI",        href: "/agents",           icon: Bot,             match: (p) => p.startsWith("/agents") },
+        {
+          label: "Control",
+          href: "/awq",
+          icon: LayoutDashboard,
+          match: (p) =>
+            p === "/awq" ||
+            (p.startsWith("/awq/") &&
+              !p.startsWith("/awq/financial") &&
+              !p.startsWith("/awq/cashflow") &&
+              !p.startsWith("/awq/risk") &&
+              !p.startsWith("/awq/budget")),
+        },
+        { label: "Financial", href: "/awq/financial", icon: DollarSign,   match: (p) => p.startsWith("/awq/financial") || p.startsWith("/awq/cashflow") },
+        { label: "BUs",       href: "/business-units", icon: Building2,   match: (p) => p === "/business-units" },
+        { label: "Risk",      href: "/awq/risk",       icon: BarChart3,   match: (p) => p.startsWith("/awq/risk") || p.startsWith("/awq/budget") },
+        { label: "AI",        href: "/agents",         icon: Bot,         match: (p) => p.startsWith("/agents") },
       ];
   }
 }
@@ -93,15 +104,29 @@ export default function BottomNavigation() {
               key={tab.href}
               href={tab.href}
               className={cn(
-                "relative flex-1 flex flex-col items-center justify-center py-2 pt-2.5 gap-0.5 text-[10px] font-medium transition-colors min-h-[56px]",
-                active ? "text-brand-600" : "text-gray-400 active:text-gray-600"
+                "relative flex-1 flex flex-col items-center justify-center py-1.5 pt-2 gap-0.5 text-[10px] font-medium transition-colors min-h-[56px]",
+                active ? "text-brand-600" : "text-gray-500 active:text-gray-700"
               )}
             >
-              {active && (
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-brand-600 rounded-full" />
-              )}
-              <Icon size={20} strokeWidth={active ? 2.5 : 1.5} />
-              <span>{tab.label}</span>
+              {/* Top indicator bar */}
+              <div
+                className={cn(
+                  "absolute top-0 left-1/2 -translate-x-1/2 h-0.5 rounded-full transition-all duration-200",
+                  active ? "w-10 bg-brand-600" : "w-0 bg-transparent"
+                )}
+              />
+              {/* Icon with active background pill */}
+              <div
+                className={cn(
+                  "flex items-center justify-center w-10 h-6 rounded-full transition-colors duration-150",
+                  active ? "bg-brand-50" : ""
+                )}
+              >
+                <Icon size={20} strokeWidth={active ? 2.5 : 1.5} />
+              </div>
+              <span className={cn("transition-all duration-150", active ? "font-semibold" : "")}>
+                {tab.label}
+              </span>
             </Link>
           );
         })}
