@@ -3,12 +3,13 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { findUserByEmail } from "@/lib/auth-users";
 
-if (!process.env.NEXTAUTH_SECRET) {
-  throw new Error("NEXTAUTH_SECRET environment variable is required");
+const secret = process.env.NEXTAUTH_SECRET;
+if (!secret && process.env.NODE_ENV === "production") {
+  throw new Error("NEXTAUTH_SECRET must be set in production");
 }
 
 export default NextAuth({
-  secret: process.env.NEXTAUTH_SECRET,
+  secret,
   providers: [
     CredentialsProvider({
       name: "Credentials",
