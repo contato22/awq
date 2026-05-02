@@ -29,18 +29,21 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  // ── RBAC guard: view em ai — owner, admin, finance, operator permitidos ──
-  const token   = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-  const user_id = (token?.email as string | undefined) ?? "anonymous";
-  const rawRole = (token?.role  as string | undefined) ?? "anonymous";
-  const { result: guardResult, reason: guardReason } = guard(
-    user_id, rawRole, "/api/agents", "ai", "view", "Agentes IA"
-  );
-  if (guardResult === "blocked") {
-    return new Response(
-      JSON.stringify({ error: "Acesso negado", code: "RBAC_DENIED", reason: guardReason }),
-      { status: 403, headers: { "Content-Type": "application/json" } }
+  // ── RBAC guard: skip entirely when NEXTAUTH_SECRET is absent (matches apiGuard behaviour) ──
+  const secret = process.env.NEXTAUTH_SECRET;
+  if (secret) {
+    const token   = await getToken({ req, secret });
+    const user_id = (token?.email as string | undefined) ?? "anonymous";
+    const rawRole = (token?.role  as string | undefined) ?? "anonymous";
+    const { result: guardResult, reason: guardReason } = guard(
+      user_id, rawRole, "/api/agents", "ai", "view", "Agentes IA"
     );
+    if (guardResult === "blocked") {
+      return new Response(
+        JSON.stringify({ error: "Acesso negado", code: "RBAC_DENIED", reason: guardReason }),
+        { status: 403, headers: { "Content-Type": "application/json" } }
+      );
+    }
   }
 
   try {
@@ -99,7 +102,7 @@ export async function POST(req: NextRequest) {
             iterations++;
 
             const response = await client.messages.create({
-              model: "claude-opus-4-6",
+              model: "claude-opus-4-7",
               max_tokens: 2048,
               system: agent.system,
               tools: agentTools.length > 0 ? agentTools : undefined,

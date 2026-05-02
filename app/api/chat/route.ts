@@ -98,18 +98,21 @@ Be analytical, data-driven, and strategic. Reference VC industry benchmarks when
 };
 
 export async function POST(req: NextRequest) {
-  // ── RBAC guard: view em ai — owner, admin, finance, operator permitidos ──
-  const token   = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-  const user_id = (token?.email as string | undefined) ?? "anonymous";
-  const rawRole = (token?.role  as string | undefined) ?? "anonymous";
-  const { result: guardResult, reason: guardReason } = guard(
-    user_id, rawRole, "/api/chat", "ai", "view", "OpenClaw — Chat IA"
-  );
-  if (guardResult === "blocked") {
-    return new Response(
-      JSON.stringify({ error: "Acesso negado", code: "RBAC_DENIED", reason: guardReason }),
-      { status: 403, headers: { "Content-Type": "application/json" } }
+  // ── RBAC guard: skip entirely when NEXTAUTH_SECRET is absent (matches apiGuard behaviour) ──
+  const secret = process.env.NEXTAUTH_SECRET;
+  if (secret) {
+    const token   = await getToken({ req, secret });
+    const user_id = (token?.email as string | undefined) ?? "anonymous";
+    const rawRole = (token?.role  as string | undefined) ?? "anonymous";
+    const { result: guardResult, reason: guardReason } = guard(
+      user_id, rawRole, "/api/chat", "ai", "view", "OpenClaw — Chat IA"
     );
+    if (guardResult === "blocked") {
+      return new Response(
+        JSON.stringify({ error: "Acesso negado", code: "RBAC_DENIED", reason: guardReason }),
+        { status: 403, headers: { "Content-Type": "application/json" } }
+      );
+    }
   }
 
   try {
@@ -132,7 +135,7 @@ export async function POST(req: NextRequest) {
     const client = new Anthropic({ apiKey });
 
     const stream = client.messages.stream({
-      model: "claude-opus-4-6",
+      model: "claude-opus-4-7",
       max_tokens: 1024,
       system: systemPrompt,
       messages: messages.map((m: { role: string; content: string }) => ({

@@ -213,7 +213,7 @@ export default function AgentsPanel() {
             "content-type": "application/json",
           },
           body: JSON.stringify({
-            model: "claude-opus-4-6",
+            model: "claude-opus-4-7",
             max_tokens: 512,
             stream: true,
             system: agent.system,
