@@ -29,18 +29,25 @@ import type {
 } from "@/lib/bpm-types";
 
 // ─── In-memory store (fallback when no DATABASE_URL) ─────────────────────────
+// Persisted on globalThis so it survives Next.js dev-mode module reloads.
 
-const _store = {
-  instances: [] as ProcessInstance[],
-  tasks: [] as ProcessTask[],
-  history: [] as ProcessHistoryEntry[],
-  notifications: [] as BpmNotification[],
+type BpmMemStore = {
+  instances: ProcessInstance[];
+  tasks: ProcessTask[];
+  history: ProcessHistoryEntry[];
+  notifications: BpmNotification[];
+  seq: number;
 };
 
-let _instanceSeq = 1;
+const _g = globalThis as typeof globalThis & { __bpmStore?: BpmMemStore };
+if (!_g.__bpmStore) {
+  _g.__bpmStore = { instances: [], tasks: [], history: [], notifications: [], seq: 1 };
+}
+const _store = _g.__bpmStore;
+
 function nextInstanceCode() {
   const year = new Date().getFullYear();
-  return `PI-${year}-${String(_instanceSeq++).padStart(4, "0")}`;
+  return `PI-${year}-${String(_store.seq++).padStart(4, "0")}`;
 }
 
 // ─── Schema bootstrap (Neon only) ────────────────────────────────────────────
