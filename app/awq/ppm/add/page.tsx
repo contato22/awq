@@ -2,7 +2,7 @@
 
 // ─── /awq/ppm/add — Add New Project ──────────────────────────────────────────
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Save, Briefcase } from "lucide-react";
@@ -41,7 +41,7 @@ function Field({ label, required, children }: { label: string; required?: boolea
 
 const INPUT = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 bg-white text-gray-900 placeholder-gray-400";
 
-export default function AddProjectPage() {
+function AddProjectPageInner() {
   const router       = useRouter();
   const searchParams = useSearchParams();
   const [saving, setSaving] = useState(false);
@@ -273,4 +273,8 @@ export default function AddProjectPage() {
       </div>
     </div>
   );
+}
+
+export default function AddProjectPage() {
+  return <Suspense><AddProjectPageInner /></Suspense>;
 }
