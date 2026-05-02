@@ -1,13 +1,15 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { initCrmDB, listOpportunities, getPipelineMetrics } from "@/lib/crm-db";
+import { getForcedBu } from "@/lib/api-guard";
 import type { CrmOpportunity } from "@/lib/crm-types";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     await initCrmDB();
+    const forcedBu = await getForcedBu(req);
     const [metrics, allOpps] = await Promise.all([
       getPipelineMetrics(),
-      listOpportunities(),
+      listOpportunities(forcedBu ? { bu: forcedBu } : undefined),
     ]);
 
     const activeStages = ["discovery","qualification","proposal","negotiation"] as const;

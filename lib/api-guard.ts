@@ -68,3 +68,18 @@ export async function apiGuard(
 
   return null; // permitido — handler continua
 }
+
+// Mapa de role → BU forçado (isolamento de dados por BU)
+const BU_FOR_ROLE: Record<string, string> = { caza: "CAZA" };
+
+/**
+ * Retorna o BU forçado para o usuário autenticado, ou null se não houver restrição.
+ * Usado nas rotas do CRM para isolar dados por BU sem expor registros de outros grupos.
+ */
+export async function getForcedBu(req: NextRequest): Promise<string | null> {
+  const secret = process.env.NEXTAUTH_SECRET;
+  if (!secret) return null;
+  const token = await getToken({ req, secret });
+  const role  = (token?.role as string | undefined) ?? "";
+  return BU_FOR_ROLE[role] ?? null;
+}
