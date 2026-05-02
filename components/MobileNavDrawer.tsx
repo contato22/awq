@@ -105,6 +105,28 @@ const businessUnits = [
   { id: "advisor", label: "Advisor",     sub: "Consultoria",    href: "/advisor",      color: "bg-violet-600" },
 ];
 
+// ── Best-match active detection ───────────────────────────────────────────
+// Returns the href of the single best-matching item for the current pathname.
+// Exact match wins; among prefix matches, the longest href wins.
+// This prevents parent + child being simultaneously highlighted.
+function getBestActiveHref(
+  pathname: string,
+  nav: Array<{ href: string }>
+): string | null {
+  const exact = nav.find((item) => pathname === item.href);
+  if (exact) return exact.href;
+  let best: { href: string } | null = null;
+  for (const item of nav) {
+    if (
+      pathname.startsWith(item.href + "/") &&
+      (!best || item.href.length > best.href.length)
+    ) {
+      best = item;
+    }
+  }
+  return best?.href ?? null;
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────
 function NavLink({
   href,
@@ -181,7 +203,6 @@ function BUContextBar({
 export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps) {
   const rawPathname = usePathname();
   const pathname = rawPathname ?? "";
-  const backdropRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef<number>(0);
   const touchCurrentX = useRef<number>(0);
 
@@ -219,8 +240,6 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
     const delta = touchStartX.current - touchCurrentX.current;
     if (delta > 60) onClose();
   }, [onClose]);
-
-  const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
 
   const jacqesMode  = isJacqesRoute(pathname);
   const cazaMode    = isCazaRoute(pathname);
@@ -277,11 +296,18 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
     );
   }
 
+  // Single best-match for the main nav section; separate simple match for AI/System
+  const mainActiveHref = getBestActiveHref(pathname, currentNav);
+  const isActive = (href: string) => {
+    const inMainNav = currentNav.some((item) => item.href === href);
+    if (inMainNav) return href === mainActiveHref;
+    return pathname === href || pathname.startsWith(href + "/");
+  };
+
   return (
     <>
       {/* Backdrop */}
       <div
-        ref={backdropRef}
         className={cn(
           "fixed inset-0 z-50 bg-black/40 backdrop-blur-sm transition-opacity duration-300 lg:hidden",
           open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"

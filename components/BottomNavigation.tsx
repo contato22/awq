@@ -35,35 +35,76 @@ function getNavTabs(ctx: string): NavTab[] {
   switch (ctx) {
     case "jacqes":
       return [
-        { label: "Overview",  href: "/jacqes",           icon: LayoutDashboard, match: (p) => p === "/jacqes" },
-        { label: "Financial", href: "/jacqes/financial",  icon: DollarSign,      match: (p) => p.startsWith("/jacqes/financial") },
-        { label: "Customers", href: "/jacqes/customers",  icon: BarChart3,       match: (p) => p.startsWith("/jacqes/customers") },
-        { label: "BUs",       href: "/business-units",    icon: Building2,       match: (p) => p === "/business-units" },
-        { label: "AI",        href: "/agents",            icon: Bot,             match: (p) => p.startsWith("/agents") },
+        {
+          label: "Overview",
+          href: "/jacqes",
+          icon: LayoutDashboard,
+          // catch-all: any JACQES route not claimed by the other tabs
+          match: (p) =>
+            p === "/jacqes" ||
+            (JACQES_PREFIXES.some((x) => p.startsWith(x)) &&
+              !p.startsWith("/jacqes/financial") &&
+              !p.startsWith("/jacqes/customers") &&
+              !p.startsWith("/agents")),
+        },
+        { label: "Financial", href: "/jacqes/financial",  icon: DollarSign, match: (p) => p.startsWith("/jacqes/financial") },
+        { label: "Customers", href: "/jacqes/customers",  icon: BarChart3,  match: (p) => p.startsWith("/jacqes/customers") },
+        { label: "BUs",       href: "/business-units",    icon: Building2,  match: (p) => p === "/business-units" },
+        { label: "AI",        href: "/agents",            icon: Bot,        match: (p) => p.startsWith("/agents") },
       ];
     case "caza":
       return [
-        { label: "Overview",  href: "/caza-vision",              icon: LayoutDashboard, match: (p) => p === "/caza-vision" },
-        { label: "Financial", href: "/caza-vision/financial",     icon: DollarSign,      match: (p) => p.startsWith("/caza-vision/financial") },
-        { label: "Clientes",  href: "/caza-vision/clientes",      icon: BarChart3,       match: (p) => p.startsWith("/caza-vision/clientes") },
-        { label: "BUs",       href: "/business-units",            icon: Building2,       match: (p) => p === "/business-units" },
-        { label: "AI",        href: "/agents",                    icon: Bot,             match: (p) => p.startsWith("/agents") },
+        {
+          label: "Overview",
+          href: "/caza-vision",
+          icon: LayoutDashboard,
+          match: (p) =>
+            p === "/caza-vision" ||
+            (p.startsWith("/caza-vision/") &&
+              !p.startsWith("/caza-vision/financial") &&
+              !p.startsWith("/caza-vision/clientes") &&
+              !p.startsWith("/agents")),
+        },
+        { label: "Financial", href: "/caza-vision/financial", icon: DollarSign, match: (p) => p.startsWith("/caza-vision/financial") },
+        { label: "Clientes",  href: "/caza-vision/clientes",  icon: BarChart3,  match: (p) => p.startsWith("/caza-vision/clientes") },
+        { label: "BUs",       href: "/business-units",        icon: Building2,  match: (p) => p === "/business-units" },
+        { label: "AI",        href: "/agents",                icon: Bot,        match: (p) => p.startsWith("/agents") },
       ];
     case "advisor":
       return [
-        { label: "Overview",  href: "/advisor",           icon: LayoutDashboard, match: (p) => p === "/advisor" },
-        { label: "Financial", href: "/advisor/financial",  icon: DollarSign,      match: (p) => p.startsWith("/advisor/financial") },
-        { label: "Customers", href: "/advisor/customers",  icon: BarChart3,       match: (p) => p.startsWith("/advisor/customers") },
-        { label: "BUs",       href: "/business-units",    icon: Building2,       match: (p) => p === "/business-units" },
-        { label: "AI",        href: "/agents",            icon: Bot,             match: (p) => p.startsWith("/agents") },
+        {
+          label: "Overview",
+          href: "/advisor",
+          icon: LayoutDashboard,
+          match: (p) =>
+            p === "/advisor" ||
+            (p.startsWith("/advisor/") &&
+              !p.startsWith("/advisor/financial") &&
+              !p.startsWith("/advisor/customers") &&
+              !p.startsWith("/agents")),
+        },
+        { label: "Financial", href: "/advisor/financial",  icon: DollarSign, match: (p) => p.startsWith("/advisor/financial") },
+        { label: "Customers", href: "/advisor/customers",  icon: BarChart3,  match: (p) => p.startsWith("/advisor/customers") },
+        { label: "BUs",       href: "/business-units",     icon: Building2,  match: (p) => p === "/business-units" },
+        { label: "AI",        href: "/agents",             icon: Bot,        match: (p) => p.startsWith("/agents") },
       ];
     case "venture":
       return [
-        { label: "Overview",  href: "/awq-venture",               icon: LayoutDashboard, match: (p) => p === "/awq-venture" },
-        { label: "Portfolio", href: "/awq-venture/portfolio",      icon: BarChart3,       match: (p) => p.startsWith("/awq-venture/portfolio") },
-        { label: "Financial", href: "/awq-venture/financial",      icon: DollarSign,      match: (p) => p.startsWith("/awq-venture/financial") },
-        { label: "BUs",       href: "/business-units",             icon: Building2,       match: (p) => p === "/business-units" },
-        { label: "AI",        href: "/agents",                     icon: Bot,             match: (p) => p.startsWith("/agents") },
+        {
+          label: "Overview",
+          href: "/awq-venture",
+          icon: LayoutDashboard,
+          match: (p) =>
+            p === "/awq-venture" ||
+            (p.startsWith("/awq-venture/") &&
+              !p.startsWith("/awq-venture/portfolio") &&
+              !p.startsWith("/awq-venture/financial") &&
+              !p.startsWith("/agents")),
+        },
+        { label: "Portfolio", href: "/awq-venture/portfolio", icon: BarChart3,  match: (p) => p.startsWith("/awq-venture/portfolio") },
+        { label: "Financial", href: "/awq-venture/financial", icon: DollarSign, match: (p) => p.startsWith("/awq-venture/financial") },
+        { label: "BUs",       href: "/business-units",        icon: Building2,  match: (p) => p === "/business-units" },
+        { label: "AI",        href: "/agents",                icon: Bot,        match: (p) => p.startsWith("/agents") },
       ];
     default: // awq — "Control" catches all /awq/* not handled by the other tabs
       return [
@@ -79,10 +120,10 @@ function getNavTabs(ctx: string): NavTab[] {
               !p.startsWith("/awq/risk") &&
               !p.startsWith("/awq/budget")),
         },
-        { label: "Financial", href: "/awq/financial", icon: DollarSign,   match: (p) => p.startsWith("/awq/financial") || p.startsWith("/awq/cashflow") },
-        { label: "BUs",       href: "/business-units", icon: Building2,   match: (p) => p === "/business-units" },
-        { label: "Risk",      href: "/awq/risk",       icon: BarChart3,   match: (p) => p.startsWith("/awq/risk") || p.startsWith("/awq/budget") },
-        { label: "AI",        href: "/agents",         icon: Bot,         match: (p) => p.startsWith("/agents") },
+        { label: "Financial", href: "/awq/financial", icon: DollarSign, match: (p) => p.startsWith("/awq/financial") || p.startsWith("/awq/cashflow") },
+        { label: "BUs",       href: "/business-units", icon: Building2, match: (p) => p === "/business-units" },
+        { label: "Risk",      href: "/awq/risk",       icon: BarChart3, match: (p) => p.startsWith("/awq/risk") || p.startsWith("/awq/budget") },
+        { label: "AI",        href: "/agents",         icon: Bot,       match: (p) => p.startsWith("/agents") },
       ];
   }
 }
@@ -108,7 +149,7 @@ export default function BottomNavigation() {
                 active ? "text-brand-600" : "text-gray-500 active:text-gray-700"
               )}
             >
-              {/* Top indicator bar */}
+              {/* Top indicator bar — animates width 0 → 40px */}
               <div
                 className={cn(
                   "absolute top-0 left-1/2 -translate-x-1/2 h-0.5 rounded-full transition-all duration-200",

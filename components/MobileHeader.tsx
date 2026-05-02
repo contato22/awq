@@ -29,10 +29,13 @@ const PAGE_TITLES: Array<{ prefix: string; label: string }> = [
   { prefix: "/caza-vision/clientes",     label: "Clientes" },
   { prefix: "/caza-vision/imoveis",      label: "Projetos" },
   { prefix: "/caza-vision/pipeline",     label: "Pipeline" },
-  { prefix: "/caza-vision",             label: "Caza Vision" },
+  { prefix: "/caza-vision/unit-economics", label: "Unit Economics" },
+  { prefix: "/caza-vision/relatorios",   label: "Relatórios" },
+  { prefix: "/caza-vision",              label: "Caza Vision" },
   { prefix: "/advisor/financial",        label: "Financial" },
   { prefix: "/advisor/customers",        label: "Customers" },
   { prefix: "/advisor/portfolio",        label: "Portfólio" },
+  { prefix: "/advisor/relatorios",       label: "Relatórios" },
   { prefix: "/advisor",                  label: "Advisor" },
   { prefix: "/awq-venture/portfolio",    label: "Portfólio" },
   { prefix: "/awq-venture/pipeline",     label: "Pipeline" },
@@ -47,6 +50,7 @@ const PAGE_TITLES: Array<{ prefix: string; label: string }> = [
   { prefix: "/analise",                  label: "Análise" },
   { prefix: "/csops",                    label: "CS Ops" },
   { prefix: "/reports",                  label: "Relatórios" },
+  { prefix: "/revenue",                  label: "Revenue" },
   { prefix: "/categorias",               label: "Categorias" },
 ];
 
