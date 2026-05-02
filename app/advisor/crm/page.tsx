@@ -1,4 +1,4 @@
 import { redirect } from "next/navigation";
-export default function CazaCrmPage() {
+export default function AdvisorCrmPage() {
   redirect("/crm");
 }
