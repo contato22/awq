@@ -35,7 +35,7 @@ const ACTION_ICONS: Record<string, React.ReactNode> = {
 export default function InstanceDetailPage() {
   const params     = useParams();
   const router     = useRouter();
-  const instanceId = params.id as string;
+  const instanceId = (params?.id ?? "") as string;
 
   const [instance, setInstance] = useState<ProcessInstance | null>(null);
   const [tasks, setTasks]       = useState<ProcessTask[]>([]);
@@ -132,11 +132,11 @@ export default function InstanceDetailPage() {
               <InfoRow label="Prioridade" value={instance.priority} />
               {instance.sla_due_date && <InfoRow label="SLA Due" value={new Date(instance.sla_due_date).toLocaleString("pt-BR")} />}
               {instance.completed_at && <InfoRow label="Concluído em" value={new Date(instance.completed_at).toLocaleString("pt-BR")} />}
-              {rd.supplier_name   && <InfoRow label="Fornecedor"  value={String(rd.supplier_name)} />}
-              {rd.amount          && <InfoRow label="Valor"       value={formatBRL(Number(rd.amount))} />}
-              {rd.description     && <InfoRow label="Descrição"   value={String(rd.description)} />}
-              {rd.contract_name   && <InfoRow label="Contrato"    value={String(rd.contract_name)} />}
-              {rd.project_name    && <InfoRow label="Projeto"     value={String(rd.project_name)} />}
+              {!!rd.supplier_name   && <InfoRow label="Fornecedor"  value={String(rd.supplier_name)} />}
+              {!!rd.amount          && <InfoRow label="Valor"       value={formatBRL(Number(rd.amount))} />}
+              {!!rd.description     && <InfoRow label="Descrição"   value={String(rd.description)} />}
+              {!!rd.contract_name   && <InfoRow label="Contrato"    value={String(rd.contract_name)} />}
+              {!!rd.project_name    && <InfoRow label="Projeto"     value={String(rd.project_name)} />}
             </div>
           </div>
 

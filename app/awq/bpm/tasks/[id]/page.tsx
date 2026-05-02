@@ -34,7 +34,7 @@ interface TaskDetail extends WorkQueueItem {
 export default function ApproveTaskPage() {
   const params    = useParams();
   const router    = useRouter();
-  const taskId    = params.id as string;
+  const taskId    = (params?.id ?? "") as string;
 
   const [task, setTask]           = useState<TaskDetail | null>(null);
   const [loading, setLoading]     = useState(true);
@@ -198,14 +198,14 @@ export default function ApproveTaskPage() {
             Dados do Pedido
           </h2>
           <div className="grid grid-cols-2 gap-4 text-sm">
-            {rd.supplier_name   && <InfoRow label="Fornecedor"   value={String(rd.supplier_name)} />}
-            {rd.amount          && <InfoRow label="Valor"        value={formatBRL(Number(rd.amount))} />}
-            {rd.description     && <InfoRow label="Descrição"    value={String(rd.description)} />}
-            {rd.due_date        && <InfoRow label="Vencimento"   value={formatDateBR(String(rd.due_date))} />}
-            {rd.bu              && <InfoRow label="BU"           value={String(rd.bu)} />}
-            {rd.contract_name   && <InfoRow label="Contrato"     value={String(rd.contract_name)} />}
-            {rd.project_name    && <InfoRow label="Projeto"      value={String(rd.project_name)} />}
-            {rd.budget          && <InfoRow label="Orçamento"    value={formatBRL(Number(rd.budget))} />}
+            {!!rd.supplier_name   && <InfoRow label="Fornecedor"   value={String(rd.supplier_name)} />}
+            {!!rd.amount          && <InfoRow label="Valor"        value={formatBRL(Number(rd.amount))} />}
+            {!!rd.description     && <InfoRow label="Descrição"    value={String(rd.description)} />}
+            {!!rd.due_date        && <InfoRow label="Vencimento"   value={formatDateBR(String(rd.due_date))} />}
+            {!!rd.bu              && <InfoRow label="BU"           value={String(rd.bu)} />}
+            {!!rd.contract_name   && <InfoRow label="Contrato"     value={String(rd.contract_name)} />}
+            {!!rd.project_name    && <InfoRow label="Projeto"      value={String(rd.project_name)} />}
+            {!!rd.budget          && <InfoRow label="Orçamento"    value={formatBRL(Number(rd.budget))} />}
             {Object.entries(rd).filter(([k]) => !["supplier_name","amount","description","due_date","bu","contract_name","project_name","budget"].includes(k)).map(([k, v]) => (
               <InfoRow key={k} label={k} value={String(v)} />
             ))}
