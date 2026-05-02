@@ -78,7 +78,7 @@ export const ROLE_ALLOWED_PREFIXES: Record<Role, string[]> = {
   admin:    ["/"],             // full access — permissive by design (MVP)
   analyst:  ["/"],             // full access — permissive by design (MVP)
   "cs-ops": ["/"],             // full access — permissive by design (MVP)
-  caza:     ["/caza-vision"],  // restricted to Caza Vision BU only
+  caza:     ["/caza-vision", "/crm"],  // Caza Vision BU + CRM compartilhado
 };
 
 export function canAccess(role: Role, pathname: string): boolean {

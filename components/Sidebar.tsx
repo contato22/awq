@@ -790,9 +790,7 @@ function CazaSidebar({ pathname }: { pathname: string }) {
                     ))}
                 </div>
 
-                {!isCazaOnly && (
-                    <NavItem href="/crm" icon={Users} label="CRM" active={pathname === "/crm" || pathname.startsWith("/crm/")} />
-                )}
+                <NavItem href="/crm" icon={Users} label="CRM" active={pathname === "/crm" || pathname.startsWith("/crm/")} />
 
                 <SectionLabel>IA & Agentes</SectionLabel>
                 <div className="space-y-0.5">
