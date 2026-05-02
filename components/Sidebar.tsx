@@ -170,6 +170,7 @@ const businessUnits = [
 const awqPrimaryNav = [
     { label: "Visão Geral",    href: "/awq",              icon: LayoutDashboard },
     { label: "Business Units", href: "/business-units",    icon: Building2       },
+    { label: "CRM",            href: "/crm",              icon: Users           },
     { label: "Novidades",      href: "/awq/novidades",     icon: Sparkles        },
 ] as const;
 
@@ -232,17 +233,6 @@ const AWQ_PPM_ITEMS = [
     { label: "Utilização",      href: "/awq/ppm/utilization",    icon: BarChart3    },
     { label: "Rentabilidade",   href: "/awq/ppm/profitability",  icon: TrendingUp   },
     { label: "Riscos",          href: "/awq/ppm/risks",          icon: AlertTriangle},
-] as const;
-
-// CRM — Customer Relationship Management (pipeline unificado AWQ)
-const AWQ_CRM_ITEMS = [
-    { label: "Dashboard CRM",    href: "/crm",                    icon: LayoutDashboard },
-    { label: "Pipeline",         href: "/crm/opportunities",      icon: TrendingUp      },
-    { label: "Leads",            href: "/crm/leads",              icon: UserPlus        },
-    { label: "Contas",           href: "/crm/accounts",           icon: Building2       },
-    { label: "Contatos",         href: "/crm/contacts",           icon: Users           },
-    { label: "Atividades",       href: "/crm/activities",         icon: Activity        },
-    { label: "Analytics",        href: "/crm/analytics",          icon: BarChart3       },
 ] as const;
 
 // EPM — Enterprise Performance Management (módulos financeiros completos)
@@ -452,7 +442,6 @@ function AwqSidebar({ pathname }: { pathname: string }) {
     const tesourariaActive   = isGroupActive(AWQ_TESOURARIA_ITEMS);
     const controladoriaActive= isGroupActive(AWQ_CONTROLADORIA_ITEMS);
     const epmActive          = isGroupActive(AWQ_EPM_ITEMS);
-    const crmGroupActive     = isGroupActive(AWQ_CRM_ITEMS);
 
     // Initialize all sections closed to avoid SSR/client hydration mismatch
     const [ctOpen,            setCtOpen]           = useState(false);
@@ -460,14 +449,12 @@ function AwqSidebar({ pathname }: { pathname: string }) {
     const [tesourariaOpen,    setTesourariaOpen]   = useState(false);
     const [controladoriaOpen, setControladoriaOpen]= useState(false);
     const [epmOpen,           setEpmOpen]          = useState(false);
-    const [crmGroupOpen,      setCrmGroupOpen]     = useState(false);
 
     useEffect(() => { if (ctActive)           setCtOpen(true);           }, [ctActive]);
     useEffect(() => { if (fpaActive)          setFpaOpen(true);          }, [fpaActive]);
     useEffect(() => { if (tesourariaActive)   setTesourariaOpen(true);   }, [tesourariaActive]);
     useEffect(() => { if (controladoriaActive)setControladoriaOpen(true);}, [controladoriaActive]);
     useEffect(() => { if (epmActive)          setEpmOpen(true);          }, [epmActive]);
-    useEffect(() => { if (crmGroupActive)     setCrmGroupOpen(true);     }, [crmGroupActive]);
 
     return (
         <>
@@ -571,26 +558,7 @@ function AwqSidebar({ pathname }: { pathname: string }) {
                     ))}
                 </div>
 
-                {/* ── 4. CRM — Pipeline unificado AWQ ──────────────────── */}
-                <CollapsibleSection
-                    label="CRM"
-                    icon={Target}
-                    isAnyActive={crmGroupActive}
-                    isOpen={crmGroupOpen}
-                    onToggle={() => setCrmGroupOpen((o) => !o)}
-                >
-                    {AWQ_CRM_ITEMS.map((item) => (
-                        <NavItem
-                            key={item.href}
-                            href={item.href}
-                            icon={item.icon}
-                            label={item.label}
-                            active={pathname === item.href || pathname.startsWith(item.href + "/")}
-                        />
-                    ))}
-                </CollapsibleSection>
-
-                {/* ── 5. EPM — Enterprise Performance Management ────────── */}
+                {/* ── 4. EPM — Enterprise Performance Management ────────── */}
                 <SectionLabel>EPM</SectionLabel>
                 <div className="space-y-0.5">
                     {AWQ_EPM_ITEMS.map((item) => (
