@@ -44,6 +44,7 @@ import {
     Building,
     AlertTriangle,
     Lock,
+    GitBranch,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -217,6 +218,7 @@ const AWQ_TESOURARIA_ITEMS = [
     { label: "Contas Banco",  href: "/awq/bank",           icon: CreditCard   },
     { label: "Investimentos", href: "/awq/investments",    icon: Landmark     },
     { label: "AP & AR",       href: "/awq/ap-ar",          icon: FileText     },
+    { label: "BPM",           href: "/awq/bpm",            icon: GitBranch    },
 ] as const;
 
 // Financeiro Corporativo — Controladoria & Contábil
