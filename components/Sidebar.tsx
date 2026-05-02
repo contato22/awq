@@ -759,7 +759,7 @@ function CazaSidebar({ pathname }: { pathname: string }) {
             <nav className="flex-1 overflow-y-auto px-3 py-2">
                 <SectionLabel>Caza Vision · Navegação</SectionLabel>
                 <div className="space-y-0.5">
-                    {cazaNav.map((item) => (
+                    {(isCazaOnly ? cazaNav.slice(0, 1) : cazaNav).map((item) => (
                         <NavItem key={item.href} {...item} active={isActive(item.href)} />
                     ))}
                 </div>
