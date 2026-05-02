@@ -27,6 +27,11 @@ import {
   ChevronRight,
   ChevronLeft,
   Tag,
+  GanttChart,
+  Clock,
+  AlertTriangle,
+  Layers,
+  Target,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -48,15 +53,28 @@ function isVentureRoute(p: string) { return VENTURE_PREFIXES.some((x) => p.start
 
 // ── Nav configs ───────────────────────────────────────────────────────────
 const awqNav = [
-  { label: "Visão Geral",    href: "/awq",               icon: LayoutDashboard },
-  { label: "Business Units", href: "/business-units",    icon: Building2 },
-  { label: "Financial",      href: "/awq/financial",     icon: LineChart },
-  { label: "Cash Flow",      href: "/awq/cashflow",      icon: Zap },
-  { label: "Budget",         href: "/awq/budget",        icon: Wallet },
-  { label: "Forecast",       href: "/awq/forecast",      icon: TrendingUp },
-  { label: "Allocations",    href: "/awq/allocations",   icon: Wallet },
-  { label: "Risk",           href: "/awq/risk",          icon: Activity },
-  { label: "Contas Banco",   href: "/awq/bank",          icon: CreditCard },
+  { label: "Visão Geral",    href: "/awq",                    icon: LayoutDashboard },
+  { label: "Business Units", href: "/business-units",         icon: Building2 },
+  { label: "Financial",      href: "/awq/financial",          icon: LineChart },
+  { label: "Cash Flow",      href: "/awq/cashflow",           icon: Zap },
+  { label: "Budget",         href: "/awq/budget",             icon: Wallet },
+  { label: "Forecast",       href: "/awq/forecast",           icon: TrendingUp },
+  { label: "Allocations",    href: "/awq/allocations",        icon: Wallet },
+  { label: "Risk",           href: "/awq/risk",               icon: Activity },
+  { label: "Contas Banco",   href: "/awq/bank",               icon: CreditCard },
+  // ── PPM ──
+  { label: "PPM Portfolio",  href: "/awq/ppm",                icon: Briefcase },
+  { label: "Gantt",          href: "/awq/ppm/gantt",          icon: GanttChart },
+  { label: "Tarefas",        href: "/awq/ppm/tasks",          icon: FileText },
+  { label: "Timesheets",     href: "/awq/ppm/timesheets",     icon: Clock },
+  { label: "Recursos",       href: "/awq/ppm/resources",      icon: Users },
+  { label: "Utilização",     href: "/awq/ppm/utilization",    icon: BarChart3 },
+  { label: "Rentabilidade",  href: "/awq/ppm/profitability",  icon: TrendingUp },
+  { label: "Riscos PPM",     href: "/awq/ppm/risks",          icon: AlertTriangle },
+  // ── CRM ──
+  { label: "CRM",            href: "/crm",                    icon: Target },
+  // ── EPM ──
+  { label: "EPM",            href: "/awq/epm",                icon: Layers },
 ];
 
 const jacqesNav = [
