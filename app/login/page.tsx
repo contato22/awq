@@ -35,7 +35,11 @@ export default function LoginPage() {
     });
 
     if (result?.error) {
-      setError("E-mail ou senha incorretos.");
+      if (result.error === "SessionRequired" || result.error.toLowerCase().includes("session")) {
+        setError("Erro de configuração do servidor. Entre em contato com o administrador.");
+      } else {
+        setError("E-mail ou senha incorretos.");
+      }
       setLoading(false);
       return;
     }
