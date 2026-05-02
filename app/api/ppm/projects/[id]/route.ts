@@ -3,7 +3,12 @@ import {
   getProject, updateProject,
   listTasks, listMilestones, listAllocations,
   listTimeEntries, listRisks, listIssues,
+  SEED_PROJECTS,
 } from "@/lib/ppm-db";
+
+export function generateStaticParams() {
+  return SEED_PROJECTS.map(p => ({ id: p.project_id }));
+}
 
 function ok(data: unknown)          { return NextResponse.json({ success: true,  data }); }
 function err(msg: string, s = 400)  { return NextResponse.json({ success: false, error: msg }, { status: s }); }
