@@ -235,6 +235,14 @@ const AWQ_PPM_ITEMS = [
     { label: "Riscos",          href: "/awq/ppm/risks",          icon: AlertTriangle},
 ] as const;
 
+// BPM — Business Process Management
+const AWQ_BPM_ITEMS = [
+    { label: "Minha Fila",  href: "/awq/bpm/tasks",                  icon: ClipboardList },
+    { label: "Processos",   href: "/awq/bpm/processes",              icon: Activity      },
+    { label: "Instâncias",  href: "/awq/bpm/instances",              icon: Layers        },
+    { label: "Analytics",   href: "/awq/bpm/analytics/performance",  icon: BarChart3     },
+] as const;
+
 // EPM — Enterprise Performance Management (módulos financeiros completos)
 const AWQ_EPM_ITEMS = [
     { label: "Visão Geral EPM",    href: "/awq/epm",                         icon: Layers        },
@@ -572,7 +580,25 @@ function AwqSidebar({ pathname }: { pathname: string }) {
                     ))}
                 </div>
 
-                {/* ── 5. Governança & Jurídico ──────────────────────────── */}
+                {/* ── 5. BPM — Business Process Management ─────────────── */}
+                <SectionLabel>BPM</SectionLabel>
+                <div className="space-y-0.5">
+                    {AWQ_BPM_ITEMS.map((item) => (
+                        <NavItem
+                            key={item.href}
+                            href={item.href}
+                            icon={item.icon}
+                            label={item.label}
+                            active={
+                                item.href === "/awq/bpm/tasks"
+                                    ? pathname === "/awq/bpm/tasks" || pathname.startsWith("/awq/bpm/tasks/")
+                                    : pathname === item.href || pathname.startsWith(item.href + "/")
+                            }
+                        />
+                    ))}
+                </div>
+
+                {/* ── 6. Governança & Jurídico ──────────────────────────── */}
                 <SectionLabel>Governança & Jurídico</SectionLabel>
                 <div className="space-y-0.5">
                     {AWQ_JURIDICO_ITEMS.map((item) => (

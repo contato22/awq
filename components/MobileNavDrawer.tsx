@@ -32,6 +32,7 @@ import {
   AlertTriangle,
   Layers,
   Target,
+  ClipboardList,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -81,6 +82,13 @@ const awqCrmNav = [
 
 const awqEpmNav = [
   { label: "Visão Geral EPM",href: "/awq/epm",               icon: Layers       },
+];
+
+const awqBpmNav = [
+  { label: "Minha Fila",  href: "/awq/bpm/tasks",                 icon: ClipboardList },
+  { label: "Processos",   href: "/awq/bpm/processes",             icon: Activity      },
+  { label: "Instâncias",  href: "/awq/bpm/instances",             icon: Layers        },
+  { label: "Analytics",   href: "/awq/bpm/analytics/performance", icon: BarChart3     },
 ];
 
 const jacqesNav = [
@@ -363,6 +371,12 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
               <SectionLabel>EPM</SectionLabel>
               <div className="space-y-0.5">
                 {awqEpmNav.map((item) => (
+                  <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
+                ))}
+              </div>
+              <SectionLabel>BPM</SectionLabel>
+              <div className="space-y-0.5">
+                {awqBpmNav.map((item) => (
                   <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
                 ))}
               </div>
