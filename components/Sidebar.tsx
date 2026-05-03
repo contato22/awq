@@ -99,15 +99,6 @@ const cazaNav = [
     { label: "Importar",       href: "/caza-vision/import",            icon: FileUp          },
 ];
 
-const cazaCrmNav = [
-    { label: "Visão Geral CRM",  href: "/caza-vision/crm",                icon: LayoutDashboard },
-    { label: "Leads",            href: "/caza-vision/crm/leads",          icon: UserPlus        },
-    { label: "Oportunidades",    href: "/caza-vision/crm/oportunidades",  icon: Target          },
-    { label: "Pipeline",         href: "/caza-vision/crm/pipeline",       icon: Activity        },
-    { label: "Propostas",        href: "/caza-vision/crm/propostas",      icon: FileText        },
-    { label: "Relatórios",       href: "/caza-vision/crm/relatorios",     icon: BarChart3       },
-];
-
 
 const advisorNav = [
     { label: "Visão Geral", href: "/advisor",              icon: LayoutDashboard },
@@ -745,10 +736,6 @@ function CazaSidebar({ pathname }: { pathname: string }) {
     const role = (session?.user as { role?: string } | undefined)?.role;
     const isCazaOnly = role === "caza";
 
-    const crmActive = cazaCrmNav.some(i => pathname === i.href || pathname.startsWith(i.href + "/"));
-    const [crmOpen, setCrmOpen] = useState(false);
-    useEffect(() => { if (crmActive) setCrmOpen(true); }, [crmActive]);
-
     return (
         <>
             <AwqHeader />
@@ -803,24 +790,7 @@ function CazaSidebar({ pathname }: { pathname: string }) {
                     ))}
                 </div>
 
-                <SectionLabel>CRM Comercial</SectionLabel>
-                <CollapsibleSection
-                    label="CRM"
-                    icon={Users}
-                    isAnyActive={crmActive}
-                    isOpen={crmOpen}
-                    onToggle={() => setCrmOpen(o => !o)}
-                >
-                    {cazaCrmNav.map(item => (
-                        <NavItem
-                            key={item.href}
-                            href={item.href}
-                            icon={item.icon}
-                            label={item.label}
-                            active={pathname === item.href || pathname.startsWith(item.href + "/")}
-                        />
-                    ))}
-                </CollapsibleSection>
+                <NavItem href="/crm" icon={Users} label="CRM" active={pathname === "/crm" || pathname.startsWith("/crm/")} />
 
                 <SectionLabel>IA & Agentes</SectionLabel>
                 <div className="space-y-0.5">
