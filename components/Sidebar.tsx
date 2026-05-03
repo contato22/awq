@@ -18,8 +18,6 @@ import {
     ChevronDown,
     ChevronLeft,
     Zap,
-    Bot,
-    Sparkles,
     LogOut,
     Building2,
     LineChart,
@@ -121,10 +119,6 @@ const gestaoNav = [
     { label: "Modo Carreira", href: "/jacqes/carreira", icon: Briefcase },
 ];
 
-const aiNav = [
-    { label: "Agents",   href: "/agents",   icon: Bot      },
-    { label: "OpenClaw", href: "/openclaw", icon: Sparkles },
-];
 
 const sistemaNav = [
     { label: "Settings", href: "/settings", icon: Settings },
@@ -637,12 +631,6 @@ function AwqSidebar({ pathname }: { pathname: string }) {
                     ))}
                 </div>
 
-                <SectionLabel>IA & Agentes</SectionLabel>
-                <div className="space-y-0.5">
-                    {aiNav.map((item) => (
-                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
-                    ))}
-                </div>
 
                 <SectionLabel>Sistema</SectionLabel>
                 <div className="space-y-0.5">
@@ -707,12 +695,6 @@ function JacqesSidebar({ pathname }: { pathname: string }) {
                 <SectionLabel>Gestão</SectionLabel>
                 <div className="space-y-0.5">
                     {gestaoNav.map((item) => (
-                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
-                    ))}
-                </div>
-                <SectionLabel>IA & Agentes</SectionLabel>
-                <div className="space-y-0.5">
-                    {aiNav.map((item) => (
                         <NavItem key={item.href} {...item} active={isActive(item.href)} />
                     ))}
                 </div>
@@ -792,12 +774,6 @@ function CazaSidebar({ pathname }: { pathname: string }) {
 
                 <NavItem href="/crm" icon={Users} label="CRM" active={pathname === "/crm" || pathname.startsWith("/crm/")} />
 
-                <SectionLabel>IA & Agentes</SectionLabel>
-                <div className="space-y-0.5">
-                    {aiNav.map((item) => (
-                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
-                    ))}
-                </div>
                 <SectionLabel>Sistema</SectionLabel>
                 <div className="space-y-0.5">
                     {sistemaNav.map((item) => (
@@ -852,12 +828,6 @@ function AdvisorSidebar({ pathname }: { pathname: string }) {
                         <NavItem key={item.href} {...item} active={isActive(item.href)} />
                     ))}
                 </div>
-                <SectionLabel>IA & Agentes</SectionLabel>
-                <div className="space-y-0.5">
-                    {aiNav.map((item) => (
-                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
-                    ))}
-                </div>
                 <SectionLabel>Sistema</SectionLabel>
                 <div className="space-y-0.5">
                     {sistemaNav.map((item) => (
@@ -909,12 +879,6 @@ function AwqVentureSidebar({ pathname }: { pathname: string }) {
                 <SectionLabel>AWQ Venture · Navegação</SectionLabel>
                 <div className="space-y-0.5">
                     {ventureNav.map((item) => (
-                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
-                    ))}
-                </div>
-                <SectionLabel>IA & Agentes</SectionLabel>
-                <div className="space-y-0.5">
-                    {aiNav.map((item) => (
                         <NavItem key={item.href} {...item} active={isActive(item.href)} />
                     ))}
                 </div>

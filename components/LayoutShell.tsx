@@ -6,8 +6,6 @@ import Sidebar from "./Sidebar";
 import MobileHeader from "./MobileHeader";
 import MobileNavDrawer from "./MobileNavDrawer";
 import BottomNavigation from "./BottomNavigation";
-import OpenClawWidget from "./OpenClawWidget";
-import SupervisorWidget from "./SupervisorWidget";
 
 export default function LayoutShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -32,9 +30,6 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
         <main className="flex-1 overflow-y-auto pb-16 lg:pb-0">
           {children}
         </main>
-
-        <OpenClawWidget />
-        <SupervisorWidget />
       </div>
 
       {/* Mobile Nav Drawer — slide-out overlay below lg */}

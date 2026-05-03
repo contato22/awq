@@ -1,7 +1,6 @@
 import Header from "@/components/Header";
 import SectionHeader from "@/components/SectionHeader";
 import Link from "next/link";
-import { ExpandableQuickNav } from "@/components/ExpandableQuickNav";
 import {
   DollarSign, TrendingUp, BarChart3, Zap, ArrowUpRight, ArrowDownRight,
   ChevronRight, ShieldAlert, Activity, Wallet, Target, Building2,
@@ -520,10 +519,6 @@ export default async function AwqGroupPage() {
           </section>
         )}
 
-        {/* ── Quick nav ─────────────────────────────────────────────────────── */}
-        <section>
-          <ExpandableQuickNav />
-        </section>
 
       </div>
     </>

@@ -21,8 +21,6 @@ import {
   Film,
   Briefcase,
   FileText,
-  Bot,
-  Sparkles,
   Settings,
   ChevronRight,
   ChevronLeft,
@@ -408,12 +406,6 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
               </div>
             </>
           )}
-
-          <SectionLabel>IA & Agentes</SectionLabel>
-          <div className="space-y-0.5">
-            <NavLink href="/agents"   icon={Bot}      label="Agents"   active={isActive("/agents")}   onNavigate={onClose} />
-            <NavLink href="/openclaw" icon={Sparkles} label="OpenClaw" active={isActive("/openclaw")} onNavigate={onClose} />
-          </div>
 
           <SectionLabel>Sistema</SectionLabel>
           <div className="space-y-0.5">
