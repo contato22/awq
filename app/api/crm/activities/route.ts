@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { initCrmDB, listActivities, createActivity } from "@/lib/crm-db";
+import { initCrmDB, listActivities, createActivity, updateActivity } from "@/lib/crm-db";
 import { sql } from "@/lib/db";
 
 function ok(data: unknown) { return NextResponse.json({ success: true, data }); }
@@ -43,6 +43,12 @@ export async function POST(req: NextRequest) {
         return ok(rows[0]);
       }
       return ok({ activity_id, status: "completed" });
+    }
+    if (action === "update") {
+      const { activity_id, ...rest } = data;
+      if (!activity_id) return err("activity_id required", 400);
+      const row = await updateActivity(activity_id, rest);
+      return ok(row);
     }
     return err("Unknown action", 400);
   } catch (e) { return err(String(e)); }

@@ -4,32 +4,42 @@ import { useEffect, useState, Suspense } from "react";
 import type { FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
-import { STAGE_LABELS, STAGE_PROBABILITY, BU_OPTIONS, OWNER_OPTIONS } from "@/lib/crm-types";
+import {
+  STAGE_LABELS, STAGE_PROBABILITY, BU_OPTIONS, OWNER_OPTIONS,
+  BU_PIPELINE_STAGES, SERVICE_CATEGORIES, PAYMENT_METHODS, PAYMENT_TERMS,
+} from "@/lib/crm-types";
 import type { CrmAccount } from "@/lib/crm-types";
 import { SEED_ACCOUNTS } from "@/lib/crm-db";
-
-const ACTIVE_STAGES = ["discovery","qualification","proposal","negotiation","closed_won","closed_lost"] as const;
 
 function AddOpportunityPageInner() {
   const router = useRouter();
   const params = useSearchParams();
-  const defaultStage = (params?.get("stage") ?? "discovery") as typeof ACTIVE_STAGES[number];
+  const defaultStage = params?.get("stage") ?? "discovery";
+  const defaultBu    = (params?.get("bu") ?? "JACQES") as typeof BU_OPTIONS[number];
 
   const [accounts, setAccounts] = useState<CrmAccount[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   const [form, setForm] = useState({
-    opportunity_name: "",
-    bu: "JACQES",
-    owner: "Miguel",
-    stage: defaultStage,
-    deal_value: "",
-    expected_close_date: "",
-    account_id: "",
-    lost_reason: "",
+    opportunity_name:   "",
+    bu:                 defaultBu,
+    owner:              "Miguel",
+    stage:              defaultStage,
+    deal_value:         "",
+    expected_close_date:"",
+    account_id:         "",
+    lost_reason:        "",
     proposal_sent_date: "",
+    service_category:   "",
+    payment_method:     "",
+    payment_terms:      "",
   });
+
+  const buStages = [
+    ...(BU_PIPELINE_STAGES[form.bu] ?? BU_PIPELINE_STAGES["Todos"]),
+    "closed_won", "closed_lost",
+  ];
 
   useEffect(() => {
     fetch("/api/crm/accounts")
@@ -39,15 +49,24 @@ function AddOpportunityPageInner() {
   }, []);
 
   function set(field: string, value: string) {
-    setForm(prev => ({ ...prev, [field]: value }));
+    setForm(prev => {
+      const next = { ...prev, [field]: value };
+      if (field === "bu") {
+        const stages = BU_PIPELINE_STAGES[value] ?? BU_PIPELINE_STAGES["Todos"];
+        if (!stages.includes(next.stage) && !["closed_won","closed_lost"].includes(next.stage)) {
+          next.stage = stages[0];
+        }
+        next.service_category = "";
+      }
+      return next;
+    });
   }
 
-  const probability = STAGE_PROBABILITY[form.stage as keyof typeof STAGE_PROBABILITY] ?? 25;
+  const probability = STAGE_PROBABILITY[form.stage] ?? 25;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!form.opportunity_name.trim()) { setError("Nome da oportunidade é obrigatório"); return; }
-    if (!form.bu) { setError("BU é obrigatória"); return; }
     setSaving(true);
     setError("");
     try {
@@ -55,16 +74,19 @@ function AddOpportunityPageInner() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          action: "create",
-          opportunity_name: form.opportunity_name.trim(),
-          bu: form.bu,
-          owner: form.owner,
-          stage: form.stage,
-          deal_value: parseFloat(form.deal_value) || 0,
+          action:              "create",
+          opportunity_name:    form.opportunity_name.trim(),
+          bu:                  form.bu,
+          owner:               form.owner,
+          stage:               form.stage,
+          deal_value:          parseFloat(form.deal_value) || 0,
           expected_close_date: form.expected_close_date || null,
-          account_id: form.account_id || null,
-          lost_reason: form.lost_reason || null,
-          proposal_sent_date: form.proposal_sent_date || null,
+          account_id:          form.account_id || null,
+          lost_reason:         form.lost_reason || null,
+          proposal_sent_date:  form.proposal_sent_date || null,
+          service_category:    form.service_category || null,
+          payment_method:      form.payment_method || null,
+          payment_terms:       form.payment_terms  || null,
         }),
       });
       const data = await res.json();
@@ -127,16 +149,51 @@ function AddOpportunityPageInner() {
             </div>
           </div>
 
+          {/* Serviço & Pagamento */}
+          <div className="card p-5 space-y-4">
+            <h2 className="text-sm font-semibold text-gray-900">Serviço & Pagamento</h2>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Categoria de Serviço</label>
+              <select value={form.service_category} onChange={e => set("service_category", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30">
+                <option value="">— Selecionar —</option>
+                {(SERVICE_CATEGORIES[form.bu] ?? SERVICE_CATEGORIES["Todos"]).map(c => (
+                  <option key={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Forma de Pagamento</label>
+                <select value={form.payment_method} onChange={e => set("payment_method", e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30">
+                  <option value="">— Selecionar —</option>
+                  {PAYMENT_METHODS.map(m => <option key={m}>{m}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Condição de Pagamento</label>
+                <select value={form.payment_terms} onChange={e => set("payment_terms", e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30">
+                  <option value="">— Selecionar —</option>
+                  {PAYMENT_TERMS.map(t => <option key={t}>{t}</option>)}
+                </select>
+              </div>
+            </div>
+          </div>
+
           {/* Estágio & Valores */}
           <div className="card p-5 space-y-4">
             <h2 className="text-sm font-semibold text-gray-900">Estágio & Valores</h2>
 
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Estágio</label>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Estágio ({form.bu})</label>
               <select value={form.stage} onChange={e => set("stage", e.target.value)}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30">
-                {ACTIVE_STAGES.map(s => (
-                  <option key={s} value={s}>{STAGE_LABELS[s]} — {STAGE_PROBABILITY[s]}%</option>
+                {buStages.map(s => (
+                  <option key={s} value={s}>{STAGE_LABELS[s] ?? s} — {STAGE_PROBABILITY[s] ?? 50}%</option>
                 ))}
               </select>
               <p className="text-[11px] text-gray-500 mt-1">Probabilidade automática: <strong>{probability}%</strong></p>
@@ -156,7 +213,7 @@ function AddOpportunityPageInner() {
               </div>
             </div>
 
-            {(form.stage === "proposal" || form.stage === "negotiation" || form.stage === "closed_won") && (
+            {(form.stage === "proposal" || form.stage === "contract" || form.stage === "negotiation" || form.stage === "closed_won") && (
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Data de Envio da Proposta</label>
                 <input type="date" value={form.proposal_sent_date} onChange={e => set("proposal_sent_date", e.target.value)}
@@ -187,7 +244,8 @@ function AddOpportunityPageInner() {
               Cancelar
             </button>
             <button type="submit" disabled={saving}
-              className="flex-1 py-2.5 bg-brand-600 text-white text-sm font-semibold rounded-xl hover:bg-brand-700 disabled:opacity-50 transition-colors">
+              className="flex-1 py-2.5 bg-brand-600 text-white text-sm font-semibold rounded-xl hover:bg-brand-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2">
+              {saving && <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />}
               {saving ? "Salvando…" : "Criar Oportunidade"}
             </button>
           </div>

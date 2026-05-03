@@ -1,15 +1,150 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { ReactNode } from "react";
+import type { ReactNode, FormEvent } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
 import SectionHeader from "@/components/SectionHeader";
 import EmptyState from "@/components/EmptyState";
-import { Activity, Phone, Mail, Users, CheckCircle2, FileText, Plus, Clock } from "lucide-react";
+import { Activity, Phone, Mail, Users, CheckCircle2, FileText, Plus, Clock, Pencil, X } from "lucide-react";
 import type { CrmActivity } from "@/lib/crm-types";
 import { SEED_ACTIVITIES } from "@/lib/crm-db";
 import { formatDateBR } from "@/lib/utils";
+
+// ─── Edit Activity Modal ──────────────────────────────────────────────────────
+
+function EditActivityModal({
+  activity,
+  onSave,
+  onClose,
+}: {
+  activity: CrmActivity;
+  onSave: (updated: CrmActivity) => void;
+  onClose: () => void;
+}) {
+  const [form, setForm] = useState({
+    subject:          activity.subject,
+    description:      activity.description ?? "",
+    outcome:          activity.outcome ?? "",
+    duration_minutes: String(activity.duration_minutes ?? ""),
+    scheduled_at:     activity.scheduled_at ? activity.scheduled_at.slice(0,16) : "",
+    status:           activity.status,
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  function set(field: string, value: string) {
+    setForm(prev => ({ ...prev, [field]: value }));
+  }
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (!form.subject.trim()) return;
+    setSaving(true);
+    setError("");
+    try {
+      const res = await fetch("/api/crm/activities", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action:           "update",
+          activity_id:      activity.activity_id,
+          subject:          form.subject.trim(),
+          description:      form.description || null,
+          outcome:          form.outcome     || null,
+          duration_minutes: form.duration_minutes ? parseInt(form.duration_minutes) : null,
+          scheduled_at:     form.scheduled_at || null,
+          status:           form.status,
+        }),
+      });
+      if (!res.ok) throw new Error("API error");
+      const json = await res.json();
+      onSave(json.success ? json.data : {
+        ...activity,
+        subject:          form.subject.trim(),
+        description:      form.description || null,
+        outcome:          form.outcome     as CrmActivity["outcome"] || null,
+        duration_minutes: form.duration_minutes ? parseInt(form.duration_minutes) : null,
+        scheduled_at:     form.scheduled_at || null,
+        status:           form.status as CrmActivity["status"],
+      });
+    } catch {
+      setError("Erro ao salvar. Tente novamente.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <h2 className="text-sm font-bold text-gray-900">Editar Atividade</h2>
+          <button onClick={onClose} disabled={saving} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+            <X size={16} className="text-gray-500" />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-5 space-y-3">
+          {error && <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Assunto *</label>
+            <input value={form.subject} onChange={e => set("subject", e.target.value)} required
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Descrição</label>
+            <textarea value={form.description} onChange={e => set("description", e.target.value)} rows={2}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 resize-none" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
+              <select value={form.status} onChange={e => set("status", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30">
+                <option value="scheduled">Agendada</option>
+                <option value="completed">Concluída</option>
+                <option value="cancelled">Cancelada</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Resultado</label>
+              <select value={form.outcome} onChange={e => set("outcome", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30">
+                <option value="">— Sem resultado —</option>
+                <option value="successful">Sucesso</option>
+                <option value="unsuccessful">Sem sucesso</option>
+                <option value="no_answer">Sem resposta</option>
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Agendamento</label>
+              <input type="datetime-local" value={form.scheduled_at} onChange={e => set("scheduled_at", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Duração (min)</label>
+              <input type="number" min="0" value={form.duration_minutes} onChange={e => set("duration_minutes", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30" />
+            </div>
+          </div>
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={onClose} disabled={saving}
+              className="flex-1 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50">
+              Cancelar
+            </button>
+            <button type="submit" disabled={saving}
+              className="flex-1 py-2 bg-brand-600 text-white text-sm font-semibold rounded-xl hover:bg-brand-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+              {saving && <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />}
+              {saving ? "Salvando…" : "Salvar"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
 
 function fmtDatetime(d: string | null | undefined) {
   if (!d) return "—";
@@ -49,6 +184,13 @@ export default function ActivitiesPage() {
   const [filterType, setFilterType] = useState("Todos");
   const [filterStatus, setFilterStatus] = useState("Todos");
   const [completing, setCompleting] = useState<string | null>(null);
+  const [editingActivity, setEditingActivity] = useState<CrmActivity | null>(null);
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
+
+  function showToast(msg: string, ok: boolean) {
+    setToast({ msg, ok });
+    setTimeout(() => setToast(null), 3000);
+  }
 
   useEffect(() => {
     fetch("/api/crm/activities")
@@ -85,6 +227,24 @@ export default function ActivitiesPage() {
     <>
       <Header title="Atividades — CRM AWQ" subtitle="Timeline de interações e tarefas" />
       <div className="page-container">
+
+        {toast && (
+          <div className={`fixed top-4 right-4 z-50 px-4 py-2.5 rounded-xl text-sm font-medium shadow-lg ${toast.ok ? "bg-emerald-600 text-white" : "bg-red-600 text-white"}`}>
+            {toast.msg}
+          </div>
+        )}
+
+        {editingActivity && (
+          <EditActivityModal
+            activity={editingActivity}
+            onSave={updated => {
+              setActivities(prev => prev.map(a => a.activity_id === updated.activity_id ? updated : a));
+              setEditingActivity(null);
+              showToast("Atividade atualizada", true);
+            }}
+            onClose={() => setEditingActivity(null)}
+          />
+        )}
 
         {/* KPIs */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -167,6 +327,10 @@ export default function ActivitiesPage() {
                                   {completing === a.activity_id ? "…" : "Concluir"}
                                 </button>
                               )}
+                              <button onClick={() => setEditingActivity(a)}
+                                className="p-1 rounded-md hover:bg-gray-100 transition-colors" title="Editar atividade">
+                                <Pencil size={12} className="text-gray-400 hover:text-brand-600" />
+                              </button>
                             </div>
                           </div>
                           <div className="flex items-center gap-3 mt-2">

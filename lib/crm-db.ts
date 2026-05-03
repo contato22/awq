@@ -240,6 +240,25 @@ export async function updateLead(id: string, data: Partial<CrmLead>): Promise<Cr
   return rows[0] as CrmLead;
 }
 
+export async function updateContact(id: string, data: Partial<CrmContact>): Promise<CrmContact> {
+  if (!sql) throw new Error("DB not available");
+  const rows = await sql`
+    UPDATE crm_contacts SET
+      full_name           = COALESCE(${data.full_name ?? null}, full_name),
+      email               = COALESCE(${data.email ?? null}, email),
+      phone               = COALESCE(${data.phone ?? null}, phone),
+      mobile              = COALESCE(${data.mobile ?? null}, mobile),
+      job_title           = COALESCE(${data.job_title ?? null}, job_title),
+      department          = COALESCE(${data.department ?? null}, department),
+      seniority           = COALESCE(${data.seniority ?? null}, seniority),
+      is_primary_contact  = COALESCE(${data.is_primary_contact ?? null}, is_primary_contact),
+      updated_at          = NOW()
+    WHERE contact_id = ${id}
+    RETURNING *
+  `;
+  return rows[0] as CrmContact;
+}
+
 export async function getContact(id: string): Promise<CrmContact | null> {
   if (!sql) return SEED_CONTACTS.find(c => c.contact_id === id) ?? null;
   const rows = await sql`
@@ -389,6 +408,23 @@ export async function createActivity(data: Partial<CrmActivity>): Promise<CrmAct
       ${data.subject!}, ${data.description ?? null}, ${data.outcome ?? null},
       ${data.duration_minutes ?? null}, ${data.scheduled_at ?? null},
       ${data.status ?? 'scheduled'}, ${data.created_by ?? 'Miguel'})
+    RETURNING *
+  `;
+  return rows[0] as CrmActivity;
+}
+
+export async function updateActivity(id: string, data: Partial<CrmActivity>): Promise<CrmActivity> {
+  if (!sql) throw new Error("DB not available");
+  const rows = await sql`
+    UPDATE crm_activities SET
+      subject          = COALESCE(${data.subject ?? null}, subject),
+      description      = COALESCE(${data.description ?? null}, description),
+      outcome          = COALESCE(${data.outcome ?? null}, outcome),
+      duration_minutes = COALESCE(${data.duration_minutes ?? null}, duration_minutes),
+      scheduled_at     = COALESCE(${data.scheduled_at ?? null}, scheduled_at),
+      status           = COALESCE(${data.status ?? null}, status),
+      updated_at       = NOW()
+    WHERE activity_id = ${id}
     RETURNING *
   `;
   return rows[0] as CrmActivity;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { ReactNode } from "react";
+import type { ReactNode, FormEvent } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import Header from "@/components/Header";
@@ -9,11 +9,320 @@ import SectionHeader from "@/components/SectionHeader";
 import EmptyState from "@/components/EmptyState";
 import {
   Building2, Users, Target, Activity, Globe,
-  Phone, Mail, MapPin, CheckCircle2, AlertTriangle,
+  Phone, Mail, MapPin, CheckCircle2, Pencil, X,
 } from "lucide-react";
 import type { CrmAccount, CrmContact, CrmOpportunity, CrmActivity } from "@/lib/crm-types";
 import { SEED_ACCOUNTS, SEED_CONTACTS, SEED_OPPORTUNITIES, SEED_ACTIVITIES } from "@/lib/crm-db";
 import { formatBRL, formatDateBR } from "@/lib/utils";
+
+const OWNER_OPTIONS = ["Miguel", "Danilo"];
+const INDUSTRY_OPTIONS = ["tech","finance","education","health","media","retail","other"];
+const INDUSTRY_LABELS: Record<string,string> = { tech:"Tecnologia", finance:"Finanças", education:"Educação", health:"Saúde", media:"Mídia", retail:"Varejo", other:"Outro" };
+const CHURN_OPTIONS = ["low","medium","high"];
+const ACCOUNT_TYPE_OPTIONS = ["prospect","customer","partner","former_customer"];
+const ACCOUNT_TYPE_LABELS: Record<string,string> = { prospect:"Prospect", customer:"Cliente", partner:"Parceiro", former_customer:"Ex-Cliente" };
+const SENIORITY_OPTIONS = ["analyst","manager","director","c_level","other"];
+
+// ─── Edit Account Modal ───────────────────────────────────────────────────────
+
+function EditAccountModal({
+  account,
+  onSave,
+  onClose,
+}: {
+  account: CrmAccount;
+  onSave: (updated: CrmAccount) => void;
+  onClose: () => void;
+}) {
+  const [form, setForm] = useState({
+    account_name:  account.account_name,
+    trade_name:    account.trade_name ?? "",
+    industry:      account.industry ?? "",
+    company_size:  account.company_size ?? "",
+    account_type:  account.account_type,
+    owner:         account.owner,
+    health_score:  String(account.health_score),
+    churn_risk:    account.churn_risk,
+    website:       account.website ?? "",
+    address_city:  account.address_city ?? "",
+    address_state: account.address_state ?? "",
+    renewal_date:  account.renewal_date ?? "",
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  function set(field: string, value: string) {
+    setForm(prev => ({ ...prev, [field]: value }));
+  }
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (!form.account_name.trim()) return;
+    setSaving(true);
+    setError("");
+    try {
+      const res = await fetch("/api/crm/accounts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "update",
+          account_id: account.account_id,
+          account_name: form.account_name.trim(),
+          trade_name:   form.trade_name || null,
+          industry:     form.industry   || null,
+          company_size: form.company_size || null,
+          account_type: form.account_type,
+          owner:        form.owner,
+          health_score: parseInt(form.health_score) || account.health_score,
+          churn_risk:   form.churn_risk,
+          website:      form.website || null,
+          address_city: form.address_city || null,
+          address_state:form.address_state || null,
+          renewal_date: form.renewal_date || null,
+        }),
+      });
+      if (!res.ok) throw new Error("API error");
+      const json = await res.json();
+      onSave(json.success ? json.data : { ...account, ...form, health_score: parseInt(form.health_score) || account.health_score });
+    } catch {
+      setError("Erro ao salvar. Tente novamente.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <h2 className="text-sm font-bold text-gray-900">Editar Conta</h2>
+          <button onClick={onClose} disabled={saving} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+            <X size={16} className="text-gray-500" />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          {error && <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2">
+              <label className="block text-xs font-medium text-gray-700 mb-1">Razão Social *</label>
+              <input value={form.account_name} onChange={e => set("account_name", e.target.value)} required
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30" />
+            </div>
+            <div className="col-span-2">
+              <label className="block text-xs font-medium text-gray-700 mb-1">Nome Fantasia</label>
+              <input value={form.trade_name} onChange={e => set("trade_name", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Tipo</label>
+              <select value={form.account_type} onChange={e => set("account_type", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30">
+                {ACCOUNT_TYPE_OPTIONS.map(t => <option key={t} value={t}>{ACCOUNT_TYPE_LABELS[t]}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Owner</label>
+              <select value={form.owner} onChange={e => set("owner", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30">
+                {OWNER_OPTIONS.map(o => <option key={o}>{o}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Setor</label>
+              <select value={form.industry} onChange={e => set("industry", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30">
+                <option value="">— Selecionar —</option>
+                {INDUSTRY_OPTIONS.map(i => <option key={i} value={i}>{INDUSTRY_LABELS[i]}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Porte</label>
+              <input value={form.company_size} onChange={e => set("company_size", e.target.value)} placeholder="ex: 51-200"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Health Score (0–100)</label>
+              <input type="number" min="0" max="100" value={form.health_score} onChange={e => set("health_score", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Churn Risk</label>
+              <select value={form.churn_risk} onChange={e => set("churn_risk", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30">
+                {CHURN_OPTIONS.map(c => <option key={c} value={c}>{{ low:"Baixo", medium:"Médio", high:"Alto" }[c]}</option>)}
+              </select>
+            </div>
+            <div className="col-span-2">
+              <label className="block text-xs font-medium text-gray-700 mb-1">Website</label>
+              <input value={form.website} onChange={e => set("website", e.target.value)} placeholder="https://"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Cidade</label>
+              <input value={form.address_city} onChange={e => set("address_city", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Estado</label>
+              <input value={form.address_state} onChange={e => set("address_state", e.target.value)} placeholder="SP"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Data Renovação</label>
+              <input type="date" value={form.renewal_date} onChange={e => set("renewal_date", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30" />
+            </div>
+          </div>
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={onClose} disabled={saving}
+              className="flex-1 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50">
+              Cancelar
+            </button>
+            <button type="submit" disabled={saving}
+              className="flex-1 py-2 bg-brand-600 text-white text-sm font-semibold rounded-xl hover:bg-brand-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+              {saving && <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />}
+              {saving ? "Salvando…" : "Salvar"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── Edit Contact Modal ───────────────────────────────────────────────────────
+
+function EditContactModal({
+  contact,
+  onSave,
+  onClose,
+}: {
+  contact: CrmContact;
+  onSave: (updated: CrmContact) => void;
+  onClose: () => void;
+}) {
+  const [form, setForm] = useState({
+    full_name:          contact.full_name,
+    email:              contact.email ?? "",
+    phone:              contact.phone ?? "",
+    mobile:             contact.mobile ?? "",
+    job_title:          contact.job_title ?? "",
+    department:         contact.department ?? "",
+    seniority:          contact.seniority ?? "manager",
+    is_primary_contact: contact.is_primary_contact,
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  function set(field: string, value: string | boolean) {
+    setForm(prev => ({ ...prev, [field]: value }));
+  }
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (!form.full_name.trim()) return;
+    setSaving(true);
+    setError("");
+    try {
+      const res = await fetch("/api/crm/contacts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "update",
+          contact_id:         contact.contact_id,
+          full_name:          form.full_name.trim(),
+          email:              form.email   || null,
+          phone:              form.phone   || null,
+          mobile:             form.mobile  || null,
+          job_title:          form.job_title   || null,
+          department:         form.department  || null,
+          seniority:          form.seniority,
+          is_primary_contact: form.is_primary_contact,
+        }),
+      });
+      if (!res.ok) throw new Error("API error");
+      const json = await res.json();
+      onSave(json.success ? json.data : { ...contact, ...form });
+    } catch {
+      setError("Erro ao salvar. Tente novamente.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <h2 className="text-sm font-bold text-gray-900">Editar Contato</h2>
+          <button onClick={onClose} disabled={saving} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+            <X size={16} className="text-gray-500" />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-5 space-y-3">
+          {error && <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Nome Completo *</label>
+            <input value={form.full_name} onChange={e => set("full_name", e.target.value)} required
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">E-mail</label>
+              <input type="email" value={form.email} onChange={e => set("email", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Telefone</label>
+              <input value={form.phone} onChange={e => set("phone", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Cargo</label>
+              <input value={form.job_title} onChange={e => set("job_title", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Departamento</label>
+              <input value={form.department} onChange={e => set("department", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Senioridade</label>
+              <select value={form.seniority} onChange={e => set("seniority", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30">
+                {SENIORITY_OPTIONS.map(s => <option key={s} value={s}>{{ analyst:"Analista", manager:"Gerente", director:"Diretor", c_level:"C-Level", other:"Outro" }[s]}</option>)}
+              </select>
+            </div>
+            <div className="flex items-end pb-1">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={form.is_primary_contact}
+                  onChange={e => set("is_primary_contact", e.target.checked)}
+                  className="w-4 h-4 accent-brand-600" />
+                <span className="text-xs text-gray-700">Contato Principal</span>
+              </label>
+            </div>
+          </div>
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={onClose} disabled={saving}
+              className="flex-1 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50">
+              Cancelar
+            </button>
+            <button type="submit" disabled={saving}
+              className="flex-1 py-2 bg-brand-600 text-white text-sm font-semibold rounded-xl hover:bg-brand-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+              {saving && <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />}
+              {saving ? "Salvando…" : "Salvar"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
 
 const STAGE_COLORS: Record<string, string> = {
   discovery:"bg-blue-100 text-blue-700", qualification:"bg-violet-100 text-violet-700",
@@ -35,11 +344,19 @@ const ACT_ICONS: Record<string, ReactNode> = {
 export default function AccountDetailClient() {
   const params = useParams<{ id: string }>();
   const id = params?.id ?? "";
-  const [account,      setAccount]      = useState<CrmAccount | null>(null);
-  const [contacts,     setContacts]     = useState<CrmContact[]>([]);
-  const [opportunities,setOpps]         = useState<CrmOpportunity[]>([]);
-  const [activities,   setActivities]   = useState<CrmActivity[]>([]);
-  const [loading,      setLoading]      = useState(true);
+  const [account,       setAccount]      = useState<CrmAccount | null>(null);
+  const [contacts,      setContacts]     = useState<CrmContact[]>([]);
+  const [opportunities, setOpps]         = useState<CrmOpportunity[]>([]);
+  const [activities,    setActivities]   = useState<CrmActivity[]>([]);
+  const [loading,       setLoading]      = useState(true);
+  const [editingAccount,  setEditingAccount]  = useState(false);
+  const [editingContact,  setEditingContact]  = useState<CrmContact | null>(null);
+  const [toast,           setToast]           = useState<{ msg: string; ok: boolean } | null>(null);
+
+  function showToast(msg: string, ok: boolean) {
+    setToast({ msg, ok });
+    setTimeout(() => setToast(null), 3000);
+  }
 
   useEffect(() => {
     if (!id) return;
@@ -106,6 +423,33 @@ export default function AccountDetailClient() {
       <Header title={account.trade_name ?? account.account_name} subtitle={`${account.account_code} · ${{"customer":"Cliente","prospect":"Prospect","partner":"Parceiro","former_customer":"Ex-Cliente"}[account.account_type] ?? account.account_type}`} />
       <div className="page-container">
 
+        {/* Toast */}
+        {toast && (
+          <div className={`fixed top-4 right-4 z-50 px-4 py-2.5 rounded-xl text-sm font-medium shadow-lg ${toast.ok ? "bg-emerald-600 text-white" : "bg-red-600 text-white"}`}>
+            {toast.msg}
+          </div>
+        )}
+
+        {/* Modals */}
+        {editingAccount && (
+          <EditAccountModal
+            account={account}
+            onSave={updated => { setAccount(updated); setEditingAccount(false); showToast("Conta atualizada", true); }}
+            onClose={() => setEditingAccount(false)}
+          />
+        )}
+        {editingContact && (
+          <EditContactModal
+            contact={editingContact}
+            onSave={updated => {
+              setContacts(prev => prev.map(c => c.contact_id === updated.contact_id ? updated : c));
+              setEditingContact(null);
+              showToast("Contato atualizado", true);
+            }}
+            onClose={() => setEditingContact(null)}
+          />
+        )}
+
         <div className="flex items-center gap-2 text-xs text-gray-500 -mt-2">
           <Link href="/crm/accounts" className="hover:text-brand-600 transition-colors">Contas</Link>
           <span>/</span>
@@ -121,8 +465,14 @@ export default function AccountDetailClient() {
                 <div className="w-12 h-12 rounded-xl bg-brand-100 flex items-center justify-center shrink-0">
                   <Building2 size={22} className="text-brand-600" />
                 </div>
-                <div>
-                  <h2 className="font-bold text-gray-900 text-base leading-snug">{account.account_name}</h2>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <h2 className="font-bold text-gray-900 text-base leading-snug">{account.account_name}</h2>
+                    <button onClick={() => setEditingAccount(true)}
+                      className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors shrink-0" title="Editar conta">
+                      <Pencil size={13} className="text-gray-400 hover:text-brand-600" />
+                    </button>
+                  </div>
                   {account.trade_name && account.trade_name !== account.account_name && (
                     <p className="text-xs text-gray-500">{account.trade_name}</p>
                   )}
@@ -222,9 +572,13 @@ export default function AccountDetailClient() {
                           </div>
                           <p className="text-[11px] text-gray-500">{c.job_title ?? "—"}</p>
                         </div>
-                        <div className="flex gap-2 shrink-0">
+                        <div className="flex gap-2 shrink-0 items-center">
                           {c.email && <a href={`mailto:${c.email}`} className="text-gray-400 hover:text-blue-500"><Mail size={14} /></a>}
                           {c.phone && <a href={`tel:${c.phone}`} className="text-gray-400 hover:text-emerald-500"><Phone size={14} /></a>}
+                          <button onClick={() => setEditingContact(c)}
+                            className="p-1 rounded-md hover:bg-gray-200 transition-colors" title="Editar contato">
+                            <Pencil size={12} className="text-gray-400 hover:text-brand-600" />
+                          </button>
                         </div>
                       </div>
                     ))}

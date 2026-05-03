@@ -9,14 +9,18 @@ import SectionHeader from "@/components/SectionHeader";
 import EmptyState from "@/components/EmptyState";
 import {
   Target, DollarSign, TrendingUp, Plus, X,
-  Calendar, Building2, AlertCircle,
+  Calendar, Building2, AlertCircle, FileText,
 } from "lucide-react";
 import type { CrmOpportunity } from "@/lib/crm-types";
-import { STAGE_LABELS, STAGE_PROBABILITY, BU_OPTIONS, OWNER_OPTIONS, PIPELINE_STAGES } from "@/lib/crm-types";
+import {
+  STAGE_LABELS, STAGE_PROBABILITY, BU_OPTIONS, OWNER_OPTIONS,
+  BU_PIPELINE_STAGES, BU_STAGE_COLORS, SERVICE_CATEGORIES,
+  PAYMENT_METHODS, PAYMENT_TERMS,
+} from "@/lib/crm-types";
 import { SEED_OPPORTUNITIES } from "@/lib/crm-db";
 import { formatBRL, formatDateBR } from "@/lib/utils";
 
-const LS_KEY = "crm-opportunities-v1";
+const LS_KEY = "crm-opportunities-v2";
 
 function daysUntil(d: string | null | undefined): number | null {
   if (!d) return null;
@@ -24,15 +28,17 @@ function daysUntil(d: string | null | undefined): number | null {
   return Math.ceil(diff / 86400000);
 }
 
-const STAGE_CONFIG: Record<string, {
-  label: string; prob: number; bg: string; border: string;
-  header: string; tag: string; bar: string;
-}> = {
-  discovery:     { label: "Discovery",     prob: 25,  bg: "bg-blue-50",   border: "border-blue-200",   header: "bg-blue-500",   tag: "bg-blue-100 text-blue-700",   bar: "bg-blue-500" },
-  qualification: { label: "Qualificação",  prob: 40,  bg: "bg-violet-50", border: "border-violet-200", header: "bg-violet-500", tag: "bg-violet-100 text-violet-700", bar: "bg-violet-500" },
-  proposal:      { label: "Proposta",      prob: 60,  bg: "bg-amber-50",  border: "border-amber-200",  header: "bg-amber-500",  tag: "bg-amber-100 text-amber-700",  bar: "bg-amber-500" },
-  negotiation:   { label: "Negociação",    prob: 75,  bg: "bg-orange-50", border: "border-orange-200", header: "bg-orange-500", tag: "bg-orange-100 text-orange-700", bar: "bg-orange-500" },
-};
+function stageConfig(key: string) {
+  const colors = BU_STAGE_COLORS[key] ?? {
+    bg: "bg-gray-50", border: "border-gray-200", header: "bg-gray-500",
+    tag: "bg-gray-100 text-gray-700", bar: "bg-gray-500",
+  };
+  return {
+    label: STAGE_LABELS[key] ?? key,
+    prob:  STAGE_PROBABILITY[key] ?? 50,
+    ...colors,
+  };
+}
 
 const BU_COLORS: Record<string, string> = {
   JACQES:  "bg-blue-100 text-blue-700",
@@ -41,80 +47,91 @@ const BU_COLORS: Record<string, string> = {
   VENTURE: "bg-amber-100 text-amber-700",
 };
 
-const ACTIVE_STAGES = ["discovery","qualification","proposal","negotiation"] as const;
-
 // ─── Edit Modal ───────────────────────────────────────────────────────────────
 
 function EditModal({
   opp,
   onSave,
   onClose,
+  saving,
 }: {
   opp: CrmOpportunity;
   onSave: (updated: CrmOpportunity) => void;
   onClose: () => void;
+  saving?: boolean;
 }) {
   const [form, setForm] = useState({
-    opportunity_name: opp.opportunity_name,
-    bu: opp.bu,
-    owner: opp.owner,
-    stage: opp.stage,
-    deal_value: String(opp.deal_value),
-    expected_close_date: opp.expected_close_date ?? "",
-    proposal_sent_date: opp.proposal_sent_date ?? "",
-    lost_reason: opp.lost_reason ?? "",
+    opportunity_name:   opp.opportunity_name,
+    bu:                 opp.bu,
+    owner:              opp.owner,
+    stage:              opp.stage,
+    deal_value:         String(opp.deal_value),
+    expected_close_date:opp.expected_close_date ?? "",
+    proposal_sent_date: opp.proposal_sent_date  ?? "",
+    lost_reason:        opp.lost_reason ?? "",
+    service_category:   opp.service_category ?? "",
+    payment_method:     opp.payment_method  ?? "",
+    payment_terms:      opp.payment_terms   ?? "",
   });
 
+  const buStages = [
+    ...(BU_PIPELINE_STAGES[form.bu] ?? BU_PIPELINE_STAGES["Todos"]),
+    "closed_won", "closed_lost",
+  ];
+
   function set(field: string, value: string) {
-    setForm(prev => ({ ...prev, [field]: value }));
+    setForm(prev => {
+      const next = { ...prev, [field]: value };
+      if (field === "bu") {
+        const stages = BU_PIPELINE_STAGES[value] ?? BU_PIPELINE_STAGES["Todos"];
+        if (!stages.includes(next.stage) && !["closed_won","closed_lost"].includes(next.stage)) {
+          next.stage = stages[0];
+        }
+      }
+      return next;
+    });
   }
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!form.opportunity_name.trim()) return;
-    const stage = form.stage as CrmOpportunity["stage"];
-    const probability = STAGE_PROBABILITY[stage] ?? opp.probability;
     onSave({
       ...opp,
-      opportunity_name: form.opportunity_name.trim(),
-      bu: form.bu as CrmOpportunity["bu"],
-      owner: form.owner as CrmOpportunity["owner"],
-      stage,
-      probability,
-      deal_value: parseFloat(form.deal_value) || 0,
+      opportunity_name:    form.opportunity_name.trim(),
+      bu:                  form.bu,
+      owner:               form.owner,
+      stage:               form.stage,
+      probability:         STAGE_PROBABILITY[form.stage] ?? opp.probability,
+      deal_value:          parseFloat(form.deal_value) || 0,
       expected_close_date: form.expected_close_date || null,
-      proposal_sent_date: form.proposal_sent_date || null,
-      lost_reason: form.lost_reason || null,
+      proposal_sent_date:  form.proposal_sent_date  || null,
+      lost_reason:         form.lost_reason          || null,
+      service_category:    form.service_category     || null,
+      payment_method:      form.payment_method       || null,
+      payment_terms:       form.payment_terms        || null,
     });
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <div>
             <h2 className="text-sm font-bold text-gray-900">Editar Oportunidade</h2>
             <p className="text-[11px] text-gray-400 font-mono mt-0.5">{opp.opportunity_code}</p>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+          <button onClick={onClose} disabled={saving} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
             <X size={16} className="text-gray-500" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
-          {/* Nome */}
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">Nome da Oportunidade *</label>
-            <input
-              value={form.opportunity_name}
-              onChange={e => set("opportunity_name", e.target.value)}
-              required
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400"
-            />
+            <input value={form.opportunity_name} onChange={e => set("opportunity_name", e.target.value)} required
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400" />
           </div>
 
-          {/* BU + Owner */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">Business Unit</label>
@@ -132,18 +149,25 @@ function EditModal({
             </div>
           </div>
 
-          {/* Estágio */}
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">Estágio</label>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Estágio ({form.bu})</label>
             <select value={form.stage} onChange={e => set("stage", e.target.value)}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30">
-              {PIPELINE_STAGES.map(s => (
-                <option key={s} value={s}>{STAGE_LABELS[s]} — {STAGE_PROBABILITY[s]}%</option>
+              {buStages.map(s => (
+                <option key={s} value={s}>{STAGE_LABELS[s] ?? s} — {STAGE_PROBABILITY[s] ?? 50}%</option>
               ))}
             </select>
           </div>
 
-          {/* Valor + Data */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Categoria de Serviço</label>
+            <select value={form.service_category} onChange={e => set("service_category", e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30">
+              <option value="">— Selecionar —</option>
+              {(SERVICE_CATEGORIES[form.bu] ?? SERVICE_CATEGORIES["Todos"]).map(c => <option key={c}>{c}</option>)}
+            </select>
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">Valor (R$)</label>
@@ -153,23 +177,38 @@ function EditModal({
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">Previsão Fechamento</label>
-              <input type="date" value={form.expected_close_date}
-                onChange={e => set("expected_close_date", e.target.value)}
+              <input type="date" value={form.expected_close_date} onChange={e => set("expected_close_date", e.target.value)}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30" />
             </div>
           </div>
 
-          {/* Proposta enviada */}
-          {(form.stage === "proposal" || form.stage === "negotiation" || form.stage === "closed_won") && (
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Forma de Pagamento</label>
+              <select value={form.payment_method} onChange={e => set("payment_method", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30">
+                <option value="">— Selecionar —</option>
+                {PAYMENT_METHODS.map(m => <option key={m}>{m}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Condição de Pagamento</label>
+              <select value={form.payment_terms} onChange={e => set("payment_terms", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30">
+                <option value="">— Selecionar —</option>
+                {PAYMENT_TERMS.map(t => <option key={t}>{t}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {(form.stage === "proposal" || form.stage === "contract" || form.stage === "negotiation" || form.stage === "closed_won") && (
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">Data de Envio da Proposta</label>
-              <input type="date" value={form.proposal_sent_date}
-                onChange={e => set("proposal_sent_date", e.target.value)}
+              <input type="date" value={form.proposal_sent_date} onChange={e => set("proposal_sent_date", e.target.value)}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30" />
             </div>
           )}
 
-          {/* Motivo da perda */}
           {form.stage === "closed_lost" && (
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">Motivo da Perda</label>
@@ -185,15 +224,171 @@ function EditModal({
             </div>
           )}
 
-          {/* Actions */}
           <div className="flex gap-3 pt-1">
-            <button type="button" onClick={onClose}
-              className="flex-1 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-50 transition-colors">
+            <button type="button" onClick={onClose} disabled={saving}
+              className="flex-1 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50">
               Cancelar
             </button>
-            <button type="submit"
-              className="flex-1 py-2 bg-brand-600 text-white text-sm font-semibold rounded-xl hover:bg-brand-700 transition-colors">
-              Salvar
+            <button type="submit" disabled={saving}
+              className="flex-1 py-2 bg-brand-600 text-white text-sm font-semibold rounded-xl hover:bg-brand-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+              {saving && <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />}
+              {saving ? "Salvando…" : "Salvar"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── Proposal Modal ───────────────────────────────────────────────────────────
+
+function ProposalModal({
+  opp,
+  onSave,
+  onClose,
+}: {
+  opp: CrmOpportunity;
+  onSave: (updated: CrmOpportunity) => void;
+  onClose: () => void;
+}) {
+  const [form, setForm] = useState({
+    proposal_value:        String(opp.proposal_value ?? opp.deal_value),
+    payment_method:        opp.payment_method  ?? "",
+    payment_terms:         opp.payment_terms   ?? "",
+    proposal_validity_date:opp.proposal_validity_date ?? "",
+    proposal_notes:        opp.proposal_notes  ?? "",
+    proposal_sent_date:    opp.proposal_sent_date ?? new Date().toISOString().slice(0,10),
+    service_category:      opp.service_category ?? "",
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  function set(field: string, value: string) {
+    setForm(prev => ({ ...prev, [field]: value }));
+  }
+
+  const proposalStage = (BU_PIPELINE_STAGES[opp.bu] ?? []).includes("proposal") ? "proposal"
+    : (BU_PIPELINE_STAGES[opp.bu] ?? [])[1] ?? "proposal";
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    setError("");
+    const updated: CrmOpportunity = {
+      ...opp,
+      stage:               opp.stage === "closed_won" || opp.stage === "closed_lost" ? opp.stage : proposalStage,
+      probability:         STAGE_PROBABILITY[proposalStage] ?? 60,
+      proposal_sent_date:  form.proposal_sent_date || new Date().toISOString().slice(0,10),
+      proposal_viewed:     false,
+      proposal_accepted:   false,
+      proposal_value:      parseFloat(form.proposal_value) || opp.deal_value,
+      proposal_notes:      form.proposal_notes || null,
+      proposal_validity_date: form.proposal_validity_date || null,
+      payment_method:      form.payment_method || null,
+      payment_terms:       form.payment_terms  || null,
+      service_category:    form.service_category || null,
+      deal_value:          parseFloat(form.proposal_value) || opp.deal_value,
+    };
+    try {
+      const res = await fetch("/api/crm/opportunities", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "update", ...updated }),
+      });
+      if (!res.ok) throw new Error("API error");
+      onSave(updated);
+    } catch {
+      setError("Erro ao emitir proposta. Tente novamente.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <div>
+            <h2 className="text-sm font-bold text-gray-900">Emitir Proposta</h2>
+            <p className="text-[11px] text-gray-400 font-mono mt-0.5">{opp.opportunity_code} · {opp.opportunity_name}</p>
+          </div>
+          <button onClick={onClose} disabled={saving} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+            <X size={16} className="text-gray-500" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          {error && <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Categoria de Serviço</label>
+            <select value={form.service_category} onChange={e => set("service_category", e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30">
+              <option value="">— Selecionar —</option>
+              {(SERVICE_CATEGORIES[opp.bu] ?? SERVICE_CATEGORIES["Todos"]).map(c => <option key={c}>{c}</option>)}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Valor da Proposta (R$) *</label>
+              <input type="number" min="0" step="100" value={form.proposal_value}
+                onChange={e => set("proposal_value", e.target.value)} required
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Data de Envio *</label>
+              <input type="date" value={form.proposal_sent_date} onChange={e => set("proposal_sent_date", e.target.value)} required
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Forma de Pagamento</label>
+              <select value={form.payment_method} onChange={e => set("payment_method", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30">
+                <option value="">— Selecionar —</option>
+                {PAYMENT_METHODS.map(m => <option key={m}>{m}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Condição de Pagamento</label>
+              <select value={form.payment_terms} onChange={e => set("payment_terms", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30">
+                <option value="">— Selecionar —</option>
+                {PAYMENT_TERMS.map(t => <option key={t}>{t}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Validade da Proposta</label>
+            <input type="date" value={form.proposal_validity_date} onChange={e => set("proposal_validity_date", e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30" />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Observações / Escopo</label>
+            <textarea value={form.proposal_notes} onChange={e => set("proposal_notes", e.target.value)}
+              rows={3} placeholder="Descreva os serviços incluídos, condições especiais, etc."
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 resize-none" />
+          </div>
+
+          <p className="text-[11px] text-gray-500 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+            Ao emitir a proposta, o estágio será movido automaticamente para <strong>{STAGE_LABELS[proposalStage] ?? "Proposta"}</strong>.
+          </p>
+
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={onClose} disabled={saving}
+              className="flex-1 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50">
+              Cancelar
+            </button>
+            <button type="submit" disabled={saving}
+              className="flex-1 py-2 bg-amber-500 text-white text-sm font-semibold rounded-xl hover:bg-amber-600 transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+              {saving && <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />}
+              {saving ? "Emitindo…" : "Emitir Proposta"}
             </button>
           </div>
         </form>
@@ -208,10 +403,12 @@ function OppCard({
   opp,
   onDragStart,
   onClick,
+  onProposal,
 }: {
   opp: CrmOpportunity;
   onDragStart: (e: DragEvent, id: string) => void;
   onClick: () => void;
+  onProposal?: () => void;
 }) {
   const days = daysUntil(opp.expected_close_date);
   const isUrgent = days !== null && days <= 7 && days >= 0;
@@ -271,6 +468,24 @@ function OppCard({
         </div>
       )}
 
+      {opp.service_category && (
+        <div className="mt-1 text-[10px] text-gray-400 truncate">{opp.service_category}</div>
+      )}
+      {(opp.payment_method || opp.payment_terms) && (
+        <div className="mt-0.5 text-[10px] text-gray-400 truncate">
+          {[opp.payment_method, opp.payment_terms].filter(Boolean).join(" · ")}
+        </div>
+      )}
+
+      {opp.stage !== "closed_won" && opp.stage !== "closed_lost" && onProposal && (
+        <button
+          onClick={e => { e.stopPropagation(); onProposal(); }}
+          className="mt-2 flex items-center justify-center gap-1 w-full text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg py-1 hover:bg-amber-100 transition-colors"
+        >
+          <FileText size={10} /> Emitir Proposta
+        </button>
+      )}
+
       {opp.stage === "closed_won" && (
         <Link
           href={`/awq/ppm/add?opportunity_id=${opp.opportunity_id}&customer=${encodeURIComponent(opp.account_name ?? "")}&revenue=${opp.deal_value}&bu=${opp.bu}`}
@@ -287,7 +502,7 @@ function OppCard({
 // ─── Column ───────────────────────────────────────────────────────────────────
 
 function KanbanColumn({
-  stage, opps, onDrop, onDragOver, onDragLeave, isDragOver, onCardClick,
+  stage, opps, onDrop, onDragOver, onDragLeave, isDragOver, onCardClick, onCardProposal, bu,
 }: {
   stage: string;
   opps: CrmOpportunity[];
@@ -296,8 +511,10 @@ function KanbanColumn({
   onDragLeave: () => void;
   isDragOver: boolean;
   onCardClick: (opp: CrmOpportunity) => void;
+  onCardProposal: (opp: CrmOpportunity) => void;
+  bu: string;
 }) {
-  const cfg = STAGE_CONFIG[stage]!;
+  const cfg = stageConfig(stage);
   const total = opps.reduce((s, o) => s + o.deal_value, 0);
 
   return (
@@ -309,7 +526,6 @@ function KanbanColumn({
       onDragOver={e => onDragOver(e, stage)}
       onDragLeave={onDragLeave}
     >
-      {/* Header */}
       <div className={`px-3 py-2.5 rounded-t-[10px] ${cfg.header} flex items-center justify-between`}>
         <div>
           <div className="text-xs font-bold text-white">{cfg.label}</div>
@@ -321,7 +537,6 @@ function KanbanColumn({
         </div>
       </div>
 
-      {/* Cards */}
       <div className="flex-1 p-2 space-y-2 min-h-[120px]">
         {opps.map(o => (
           <OppCard
@@ -329,6 +544,7 @@ function KanbanColumn({
             opp={o}
             onDragStart={(e, id) => { e.dataTransfer.setData("text/plain", id); }}
             onClick={() => onCardClick(o)}
+            onProposal={() => onCardProposal(o)}
           />
         ))}
         {opps.length === 0 && (
@@ -338,10 +554,9 @@ function KanbanColumn({
         )}
       </div>
 
-      {/* Add button */}
       <div className="p-2 border-t border-gray-200">
         <Link
-          href={`/crm/opportunities/add?stage=${stage}`}
+          href={`/crm/opportunities/add?stage=${stage}&bu=${bu !== "Todos" ? bu : ""}`}
           className="flex items-center justify-center gap-1.5 w-full py-1.5 text-[11px] font-medium text-gray-500 hover:text-brand-600 hover:bg-white rounded-lg transition-colors border border-dashed border-gray-300 hover:border-brand-300"
         >
           <Plus size={12} /> Nova oportunidade
@@ -363,6 +578,10 @@ function PipelinePageInner() {
   const [dragOverStage, setDragOverStage] = useState<string | null>(null);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const [editingOpp, setEditingOpp] = useState<CrmOpportunity | null>(null);
+  const [proposingOpp, setProposingOpp] = useState<CrmOpportunity | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const activeStages = BU_PIPELINE_STAGES[filterBU] ?? BU_PIPELINE_STAGES["Todos"];
 
   useEffect(() => {
     // Try localStorage first for instant load with persisted state
@@ -417,7 +636,7 @@ function PipelinePageInner() {
     });
   }
 
-  function handleDrop(e: DragEvent, toStage: string) {
+  async function handleDrop(e: DragEvent, toStage: string) {
     e.preventDefault();
     setDragOverStage(null);
     const id = e.dataTransfer.getData("text/plain");
@@ -425,6 +644,7 @@ function PipelinePageInner() {
     const opp = opps.find(o => o.opportunity_id === id);
     if (!opp || opp.stage === toStage) return;
 
+    const prev = opps;
     const next = opps.map(o =>
       o.opportunity_id === id
         ? { ...o, stage: toStage as CrmOpportunity["stage"], probability: STAGE_PROBABILITY[toStage as keyof typeof STAGE_PROBABILITY] ?? o.probability }
@@ -433,26 +653,37 @@ function PipelinePageInner() {
     updateOpps(next);
     showToast(`Movido para ${STAGE_LABELS[toStage as keyof typeof STAGE_LABELS] ?? toStage}`, true);
 
-    // Best-effort API sync — no revert on failure
-    fetch("/api/crm/opportunities", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "update", opportunity_id: id, stage: toStage }),
-    }).catch(() => undefined);
+    try {
+      const res = await fetch("/api/crm/opportunities", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "update", opportunity_id: id, stage: toStage }),
+      });
+      if (!res.ok) throw new Error("API error");
+    } catch {
+      updateOpps(prev);
+      showToast("Erro ao salvar — mudança revertida", false);
+    }
   }
 
-  function handleSaveEdit(updated: CrmOpportunity) {
-    const next = opps.map(o => o.opportunity_id === updated.opportunity_id ? updated : o);
-    updateOpps(next);
-    setEditingOpp(null);
-    showToast("Oportunidade atualizada", true);
-
-    // Best-effort API sync
-    fetch("/api/crm/opportunities", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "update", ...updated }),
-    }).catch(() => undefined);
+  async function handleSaveEdit(updated: CrmOpportunity) {
+    setSaving(true);
+    try {
+      const res = await fetch("/api/crm/opportunities", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "update", ...updated }),
+      });
+      if (!res.ok) throw new Error("API error");
+      const next = opps.map(o => o.opportunity_id === updated.opportunity_id ? updated : o);
+      updateOpps(next);
+      setEditingOpp(null);
+      showToast("Oportunidade atualizada", true);
+    } catch {
+      showToast("Erro ao salvar oportunidade", false);
+    } finally {
+      setSaving(false);
+    }
   }
 
   const openOpps = opps.filter(o => o.stage !== "closed_won" && o.stage !== "closed_lost");
@@ -481,12 +712,25 @@ function PipelinePageInner() {
       <Header title="Pipeline — CRM AWQ" subtitle="Visão kanban do funil de vendas" />
       <div className="page-container">
 
-        {/* Edit modal */}
         {editingOpp && (
           <EditModal
             opp={editingOpp}
             onSave={handleSaveEdit}
-            onClose={() => setEditingOpp(null)}
+            onClose={() => { if (!saving) setEditingOpp(null); }}
+            saving={saving}
+          />
+        )}
+
+        {proposingOpp && (
+          <ProposalModal
+            opp={proposingOpp}
+            onSave={updated => {
+              const next = opps.map(o => o.opportunity_id === updated.opportunity_id ? updated : o);
+              updateOpps(next);
+              setProposingOpp(null);
+              showToast("Proposta emitida com sucesso!", true);
+            }}
+            onClose={() => setProposingOpp(null)}
           />
         )}
 
@@ -544,16 +788,18 @@ function PipelinePageInner() {
         {/* Kanban Board */}
         <div className="overflow-x-auto pb-4">
           <div className="flex gap-4 min-w-max">
-            {ACTIVE_STAGES.map(stage => (
+            {activeStages.map(stage => (
               <KanbanColumn
                 key={stage}
                 stage={stage}
+                bu={filterBU}
                 opps={filtered(stage)}
                 onDrop={handleDrop}
                 onDragOver={(e: DragEvent, s: string) => { e.preventDefault(); setDragOverStage(s); }}
                 onDragLeave={() => setDragOverStage(null)}
                 isDragOver={dragOverStage === stage}
                 onCardClick={setEditingOpp}
+                onCardProposal={setProposingOpp}
               />
             ))}
           </div>

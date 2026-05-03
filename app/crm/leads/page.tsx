@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo, Suspense } from "react";
+import type { FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
@@ -8,11 +9,184 @@ import SectionHeader from "@/components/SectionHeader";
 import EmptyState from "@/components/EmptyState";
 import {
   Users, Plus, Search, Target, TrendingUp,
-  BarChart3, ExternalLink, RefreshCw, ChevronRight,
+  BarChart3, ExternalLink, ChevronRight, Pencil, X,
 } from "lucide-react";
 import type { CrmLead } from "@/lib/crm-types";
+import { BU_OPTIONS, OWNER_OPTIONS } from "@/lib/crm-types";
 import { SEED_LEADS } from "@/lib/crm-db";
 import { formatBRL, formatDateBR } from "@/lib/utils";
+
+// ─── Edit Lead Modal ──────────────────────────────────────────────────────────
+
+function EditLeadModal({
+  lead,
+  onSave,
+  onClose,
+}: {
+  lead: CrmLead;
+  onSave: (updated: CrmLead) => void;
+  onClose: () => void;
+}) {
+  const [form, setForm] = useState({
+    company_name:         lead.company_name,
+    contact_name:         lead.contact_name,
+    email:                lead.email ?? "",
+    phone:                lead.phone ?? "",
+    job_title:            lead.job_title ?? "",
+    bu:                   lead.bu,
+    assigned_to:          lead.assigned_to,
+    status:               lead.status,
+    lead_score:           String(lead.lead_score),
+    qualification_notes:  lead.qualification_notes ?? "",
+    bant_budget:          String(lead.bant_budget ?? ""),
+    bant_authority:       lead.bant_authority,
+    bant_need:            lead.bant_need ?? "",
+    bant_timeline:        lead.bant_timeline ?? "",
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  function set(field: string, value: string | boolean) {
+    setForm(prev => ({ ...prev, [field]: value }));
+  }
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    setError("");
+    try {
+      const res = await fetch("/api/crm/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action:              "update",
+          lead_id:             lead.lead_id,
+          status:              form.status,
+          lead_score:          parseInt(form.lead_score) || 0,
+          qualification_notes: form.qualification_notes || null,
+          bant_budget:         form.bant_budget ? parseFloat(form.bant_budget) : null,
+          bant_authority:      form.bant_authority,
+          bant_need:           form.bant_need   || null,
+          bant_timeline:       form.bant_timeline || null,
+          assigned_to:         form.assigned_to,
+        }),
+      });
+      if (!res.ok) throw new Error("API error");
+      onSave({
+        ...lead,
+        status:              form.status as CrmLead["status"],
+        lead_score:          parseInt(form.lead_score) || 0,
+        qualification_notes: form.qualification_notes || null,
+        bant_budget:         form.bant_budget ? parseFloat(form.bant_budget) : null,
+        bant_authority:      form.bant_authority,
+        bant_need:           form.bant_need as CrmLead["bant_need"] || null,
+        bant_timeline:       form.bant_timeline || null,
+        assigned_to:         form.assigned_to,
+      });
+    } catch {
+      setError("Erro ao salvar. Tente novamente.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <div>
+            <h2 className="text-sm font-bold text-gray-900">Editar Lead</h2>
+            <p className="text-[11px] text-gray-400 mt-0.5">{lead.contact_name} · {lead.company_name}</p>
+          </div>
+          <button onClick={onClose} disabled={saving} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+            <X size={16} className="text-gray-500" />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          {error && <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
+              <select value={form.status} onChange={e => set("status", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30">
+                <option value="new">Novo</option>
+                <option value="contacted">Contato</option>
+                <option value="qualified">Qualificado</option>
+                <option value="unqualified">Desqualificado</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Responsável</label>
+              <select value={form.assigned_to} onChange={e => set("assigned_to", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30">
+                {OWNER_OPTIONS.map(o => <option key={o}>{o}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Score (0–100)</label>
+            <input type="number" min="0" max="100" value={form.lead_score} onChange={e => set("lead_score", e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30" />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Notas de Qualificação</label>
+            <textarea value={form.qualification_notes} onChange={e => set("qualification_notes", e.target.value)}
+              rows={2} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 resize-none" />
+          </div>
+
+          <div className="border-t border-gray-100 pt-3">
+            <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-3">BANT</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Budget (R$)</label>
+                <input type="number" min="0" value={form.bant_budget} onChange={e => set("bant_budget", e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Need</label>
+                <select value={form.bant_need} onChange={e => set("bant_need", e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30">
+                  <option value="">— Indefinido —</option>
+                  <option value="high">Alta</option>
+                  <option value="medium">Média</option>
+                  <option value="low">Baixa</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Timeline</label>
+                <input type="date" value={form.bant_timeline} onChange={e => set("bant_timeline", e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30" />
+              </div>
+              <div className="flex items-end pb-1">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={form.bant_authority}
+                    onChange={e => set("bant_authority", e.target.checked)}
+                    className="w-4 h-4 accent-brand-600" />
+                  <span className="text-xs text-gray-700">Decisor identificado</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={onClose} disabled={saving}
+              className="flex-1 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50">
+              Cancelar
+            </button>
+            <button type="submit" disabled={saving}
+              className="flex-1 py-2 bg-brand-600 text-white text-sm font-semibold rounded-xl hover:bg-brand-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+              {saving && <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />}
+              {saving ? "Salvando…" : "Salvar"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
 
 const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
   new:         { label: "Novo",           cls: "badge badge-blue" },
@@ -67,6 +241,13 @@ function LeadsPageInner() {
   const [buFilter, setBuFilter] = useState<string>(urlBu && BU_LIST.includes(urlBu as typeof BU_LIST[number]) ? urlBu : "Todos");
   const [search, setSearch] = useState("");
   const [converting, setConverting] = useState<string | null>(null);
+  const [editingLead, setEditingLead] = useState<CrmLead | null>(null);
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
+
+  function showToast(msg: string, ok: boolean) {
+    setToast({ msg, ok });
+    setTimeout(() => setToast(null), 3000);
+  }
 
   useEffect(() => {
     async function load() {
@@ -158,6 +339,24 @@ function LeadsPageInner() {
     <>
       <Header title="Leads — CRM AWQ" subtitle="Pipeline de prospecção" />
       <div className="page-container">
+
+        {toast && (
+          <div className={`fixed top-4 right-4 z-50 px-4 py-2.5 rounded-xl text-sm font-medium shadow-lg ${toast.ok ? "bg-emerald-600 text-white" : "bg-red-600 text-white"}`}>
+            {toast.msg}
+          </div>
+        )}
+
+        {editingLead && (
+          <EditLeadModal
+            lead={editingLead}
+            onSave={updated => {
+              setLeads(prev => prev.map(l => l.lead_id === updated.lead_id ? updated : l));
+              setEditingLead(null);
+              showToast("Lead atualizado", true);
+            }}
+            onClose={() => setEditingLead(null)}
+          />
+        )}
 
         {/* Header actions */}
         <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -346,6 +545,10 @@ function LeadsPageInner() {
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-1.5">
+                            <button onClick={() => setEditingLead(lead)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">
+                              <Pencil size={10} /> Editar
+                            </button>
                             <Link href={`/crm/activities/add?related_to_type=lead&related_to_id=${lead.lead_id}`}
                               className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">
                               <ExternalLink size={10} />
