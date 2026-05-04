@@ -1,0 +1,31 @@
+(self.webpackChunk_N_E=self.webpackChunk_N_E||[]).push([[631],{64034:function(e,r,t){Promise.resolve().then(t.bind(t,75786))},75786:function(e,r,t){"use strict";t.r(r),t.d(r,{default:function(){return d}});var a=t(57437),s=t(2265),l=t(87138),n=t(95137),i=t(54817),c=t(29162);let o={Linear:"bg-blue-100 text-blue-700",Acelerado:"bg-purple-100 text-purple-700"};function d(){let[e,r]=(0,s.useState)("");return(0,a.jsxs)("div",{className:"min-h-screen bg-gray-50",children:[(0,a.jsx)("div",{className:"bg-white border-b border-gray-200 px-6 py-4",children:(0,a.jsxs)("div",{className:"max-w-screen-xl mx-auto flex items-center gap-3",children:[(0,a.jsx)(l.default,{href:"/awq/erp/assets",className:"p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors",children:(0,a.jsx)(n.Z,{size:16})}),(0,a.jsxs)("div",{children:[(0,a.jsx)("h1",{className:"text-lg font-bold text-gray-900",children:"Deprecia\xe7\xe3o de Assets"}),(0,a.jsx)("p",{className:"text-xs text-gray-500",children:"ERP \xb7 Ativo Fixo"})]})]})}),(0,a.jsxs)("div",{className:"max-w-screen-xl mx-auto px-6 py-6 space-y-6",children:[(0,a.jsx)("div",{className:"grid grid-cols-3 gap-4",children:[{label:"Valor Original Total",color:"text-gray-900"},{label:"Deprecia\xe7\xe3o Acumulada",color:"text-red-600"},{label:"Valor L\xedquido Cont\xe1bil",color:"text-emerald-600"}].map(e=>{let{label:r,color:t}=e;return(0,a.jsxs)("div",{className:"bg-white border border-gray-200 rounded-xl p-4 shadow-sm",children:[(0,a.jsx)("div",{className:"text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1",children:r}),(0,a.jsx)("div",{className:"text-2xl font-bold ".concat(t),children:"—"})]},r)})}),(0,a.jsxs)("div",{className:"flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2 max-w-sm shadow-sm",children:[(0,a.jsx)(i.Z,{size:14,className:"text-gray-400 shrink-0"}),(0,a.jsx)("input",{value:e,onChange:e=>r(e.target.value),placeholder:"Buscar asset…",className:"flex-1 text-sm focus:outline-none bg-transparent"})]}),(0,a.jsx)("div",{className:"bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden",children:(0,a.jsx)("div",{className:"overflow-x-auto",children:(0,a.jsxs)("table",{className:"min-w-full divide-y divide-gray-100",children:[(0,a.jsx)("thead",{className:"bg-gray-50",children:(0,a.jsx)("tr",{children:["Asset","Vida \xdatil","M\xe9todo","Taxa % a.a.","Valor Original","Dep. Acumulada","Valor L\xedquido"].map(e=>(0,a.jsx)("th",{className:"px-4 py-3 text-left text-[10px] font-semibold text-gray-500 uppercase whitespace-nowrap",children:e},e))})}),(0,a.jsx)("tbody",{className:"divide-y divide-gray-100",children:(0,a.jsx)("tr",{children:(0,a.jsx)("td",{colSpan:7,className:"px-4 py-16",children:(0,a.jsxs)("div",{className:"flex flex-col items-center gap-3 text-center",children:[(0,a.jsx)(c.Z,{size:32,className:"text-gray-200"}),(0,a.jsx)("p",{className:"text-sm font-medium text-gray-500",children:"Nenhum registro encontrado"})]})})})})]})})}),(0,a.jsx)("div",{className:"flex flex-wrap gap-2",children:Object.entries(o).map(e=>{let[r,t]=e;return(0,a.jsx)("span",{className:"px-2 py-0.5 rounded-full text-[10px] font-semibold ".concat(t),children:r},r)})})]})]})}},78030:function(e,r,t){"use strict";t.d(r,{Z:function(){return c}});var a=t(2265);/**
+ * @license lucide-react v0.435.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */let s=e=>e.replace(/([a-z0-9])([A-Z])/g,"$1-$2").toLowerCase(),l=function(){for(var e=arguments.length,r=Array(e),t=0;t<e;t++)r[t]=arguments[t];return r.filter((e,r,t)=>!!e&&t.indexOf(e)===r).join(" ")};/**
+ * @license lucide-react v0.435.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */var n={xmlns:"http://www.w3.org/2000/svg",width:24,height:24,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2,strokeLinecap:"round",strokeLinejoin:"round"};/**
+ * @license lucide-react v0.435.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */let i=(0,a.forwardRef)((e,r)=>{let{color:t="currentColor",size:s=24,strokeWidth:i=2,absoluteStrokeWidth:c,className:o="",children:d,iconNode:x,...u}=e;return(0,a.createElement)("svg",{ref:r,...n,width:s,height:s,stroke:t,strokeWidth:c?24*Number(i)/Number(s):i,className:l("lucide",o),...u},[...x.map(e=>{let[r,t]=e;return(0,a.createElement)(r,t)}),...Array.isArray(d)?d:[d]])}),c=(e,r)=>{let t=(0,a.forwardRef)((t,n)=>{let{className:c,...o}=t;return(0,a.createElement)(i,{ref:n,iconNode:r,className:l("lucide-".concat(s(e)),c),...o})});return t.displayName="".concat(e),t}},95137:function(e,r,t){"use strict";t.d(r,{Z:function(){return a}});/**
+ * @license lucide-react v0.435.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */let a=(0,t(78030).Z)("ArrowLeft",[["path",{d:"m12 19-7-7 7-7",key:"1l729n"}],["path",{d:"M19 12H5",key:"x3x0zl"}]])},54817:function(e,r,t){"use strict";t.d(r,{Z:function(){return a}});/**
+ * @license lucide-react v0.435.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */let a=(0,t(78030).Z)("Search",[["circle",{cx:"11",cy:"11",r:"8",key:"4ej97u"}],["path",{d:"m21 21-4.3-4.3",key:"1qie3q"}]])},29162:function(e,r,t){"use strict";t.d(r,{Z:function(){return a}});/**
+ * @license lucide-react v0.435.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */let a=(0,t(78030).Z)("TrendingDown",[["polyline",{points:"22 17 13.5 8.5 8.5 13.5 2 7",key:"1r2t7k"}],["polyline",{points:"16 17 22 17 22 11",key:"11uiuu"}]])},87138:function(e,r,t){"use strict";t.d(r,{default:function(){return s.a}});var a=t(231),s=t.n(a)}},function(e){e.O(0,[231,2971,7023,1744],function(){return e(e.s=64034)}),_N_E=e.O()}]);

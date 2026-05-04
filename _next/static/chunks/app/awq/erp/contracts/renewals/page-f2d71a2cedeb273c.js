@@ -1,0 +1,36 @@
+(self.webpackChunk_N_E=self.webpackChunk_N_E||[]).push([[6168],{41761:function(e,t,r){Promise.resolve().then(r.bind(r,96394))},96394:function(e,t,r){"use strict";r.r(t),r.d(t,{default:function(){return o}});var s=r(57437),a=r(2265),n=r(87138),l=r(95137),c=r(54817),i=r(36127),d=r(66706);function o(){let[e,t]=(0,a.useState)("");return(0,s.jsxs)("div",{className:"min-h-screen bg-gray-50",children:[(0,s.jsx)("div",{className:"bg-white border-b border-gray-200 px-6 py-4",children:(0,s.jsxs)("div",{className:"max-w-screen-xl mx-auto flex items-center gap-3",children:[(0,s.jsx)(n.default,{href:"/awq/erp/contracts",className:"p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors",children:(0,s.jsx)(l.Z,{size:16})}),(0,s.jsxs)("div",{children:[(0,s.jsx)("h1",{className:"text-lg font-bold text-gray-900",children:"Renova\xe7\xf5es de Contratos"}),(0,s.jsx)("p",{className:"text-xs text-gray-500",children:"ERP \xb7 Contratos"})]})]})}),(0,s.jsxs)("div",{className:"max-w-screen-xl mx-auto px-6 py-6 space-y-5",children:[(0,s.jsx)("div",{className:"grid grid-cols-3 gap-4",children:[{label:"Vencendo em < 30 dias",color:"border-red-200 bg-red-50",textColor:"text-red-600"},{label:"Vencendo em < 60 dias",color:"border-amber-200 bg-amber-50",textColor:"text-amber-600"},{label:"Vencendo em < 90 dias",color:"border-blue-200 bg-blue-50",textColor:"text-blue-600"}].map(e=>{let{label:t,color:r,textColor:a}=e;return(0,s.jsxs)("div",{className:"border rounded-xl p-4 shadow-sm ".concat(r),children:[(0,s.jsx)("div",{className:"text-xs font-semibold text-gray-600 mb-1",children:t}),(0,s.jsx)("div",{className:"text-2xl font-bold ".concat(a),children:"0"})]},t)})}),(0,s.jsxs)("div",{className:"flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2 max-w-sm shadow-sm",children:[(0,s.jsx)(c.Z,{size:14,className:"text-gray-400 shrink-0"}),(0,s.jsx)("input",{value:e,onChange:e=>t(e.target.value),placeholder:"Buscar contrato ou contraparte…",className:"flex-1 text-sm focus:outline-none bg-transparent"})]}),(0,s.jsx)("div",{className:"bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden",children:(0,s.jsx)("div",{className:"overflow-x-auto",children:(0,s.jsxs)("table",{className:"min-w-full divide-y divide-gray-100",children:[(0,s.jsx)("thead",{className:"bg-gray-50",children:(0,s.jsx)("tr",{children:["N\xba Contrato","Contraparte","Vencimento","Dias Restantes","Valor","A\xe7\xe3o"].map(e=>(0,s.jsx)("th",{className:"px-4 py-3 text-left text-[10px] font-semibold text-gray-500 uppercase whitespace-nowrap",children:e},e))})}),(0,s.jsx)("tbody",{className:"divide-y divide-gray-100",children:(0,s.jsx)("tr",{children:(0,s.jsx)("td",{colSpan:6,className:"px-4 py-16",children:(0,s.jsxs)("div",{className:"flex flex-col items-center gap-3 text-center",children:[(0,s.jsx)(i.Z,{size:32,className:"text-gray-200"}),(0,s.jsx)("p",{className:"text-sm font-medium text-gray-500",children:"Nenhum contrato pr\xf3ximo do vencimento"})]})})})})]})})}),(0,s.jsxs)("div",{className:"flex items-center gap-3 text-xs text-gray-500",children:[(0,s.jsxs)("div",{className:"flex items-center gap-1.5",children:[(0,s.jsx)("span",{className:"inline-block w-2.5 h-2.5 rounded-full bg-red-500"}),(0,s.jsx)("span",{children:"< 30 dias"})]}),(0,s.jsxs)("div",{className:"flex items-center gap-1.5",children:[(0,s.jsx)("span",{className:"inline-block w-2.5 h-2.5 rounded-full bg-amber-400"}),(0,s.jsx)("span",{children:"< 60 dias"})]}),(0,s.jsxs)("div",{className:"flex items-center gap-1.5",children:[(0,s.jsx)("span",{className:"inline-block w-2.5 h-2.5 rounded-full bg-emerald-500"}),(0,s.jsx)("span",{children:"> 60 dias"})]}),(0,s.jsxs)("span",{className:"ml-2 flex items-center gap-1",children:[(0,s.jsx)(d.Z,{size:11,className:"text-brand-600"}),' Bot\xe3o "Iniciar Renova\xe7\xe3o" dispon\xedvel por linha']})]})]})]})}},78030:function(e,t,r){"use strict";r.d(t,{Z:function(){return i}});var s=r(2265);/**
+ * @license lucide-react v0.435.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */let a=e=>e.replace(/([a-z0-9])([A-Z])/g,"$1-$2").toLowerCase(),n=function(){for(var e=arguments.length,t=Array(e),r=0;r<e;r++)t[r]=arguments[r];return t.filter((e,t,r)=>!!e&&r.indexOf(e)===t).join(" ")};/**
+ * @license lucide-react v0.435.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */var l={xmlns:"http://www.w3.org/2000/svg",width:24,height:24,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2,strokeLinecap:"round",strokeLinejoin:"round"};/**
+ * @license lucide-react v0.435.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */let c=(0,s.forwardRef)((e,t)=>{let{color:r="currentColor",size:a=24,strokeWidth:c=2,absoluteStrokeWidth:i,className:d="",children:o,iconNode:x,...m}=e;return(0,s.createElement)("svg",{ref:t,...l,width:a,height:a,stroke:r,strokeWidth:i?24*Number(c)/Number(a):c,className:n("lucide",d),...m},[...x.map(e=>{let[t,r]=e;return(0,s.createElement)(t,r)}),...Array.isArray(o)?o:[o]])}),i=(e,t)=>{let r=(0,s.forwardRef)((r,l)=>{let{className:i,...d}=r;return(0,s.createElement)(c,{ref:l,iconNode:t,className:n("lucide-".concat(a(e)),i),...d})});return r.displayName="".concat(e),r}},95137:function(e,t,r){"use strict";r.d(t,{Z:function(){return s}});/**
+ * @license lucide-react v0.435.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */let s=(0,r(78030).Z)("ArrowLeft",[["path",{d:"m12 19-7-7 7-7",key:"1l729n"}],["path",{d:"M19 12H5",key:"x3x0zl"}]])},66706:function(e,t,r){"use strict";r.d(t,{Z:function(){return s}});/**
+ * @license lucide-react v0.435.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */let s=(0,r(78030).Z)("RefreshCw",[["path",{d:"M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8",key:"v9h5vc"}],["path",{d:"M21 3v5h-5",key:"1q7to0"}],["path",{d:"M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16",key:"3uifl3"}],["path",{d:"M8 16H3v5",key:"1cv678"}]])},54817:function(e,t,r){"use strict";r.d(t,{Z:function(){return s}});/**
+ * @license lucide-react v0.435.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */let s=(0,r(78030).Z)("Search",[["circle",{cx:"11",cy:"11",r:"8",key:"4ej97u"}],["path",{d:"m21 21-4.3-4.3",key:"1qie3q"}]])},36127:function(e,t,r){"use strict";r.d(t,{Z:function(){return s}});/**
+ * @license lucide-react v0.435.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */let s=(0,r(78030).Z)("TriangleAlert",[["path",{d:"m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3",key:"wmoenq"}],["path",{d:"M12 9v4",key:"juzpu7"}],["path",{d:"M12 17h.01",key:"p32p05"}]])},87138:function(e,t,r){"use strict";r.d(t,{default:function(){return a.a}});var s=r(231),a=r.n(s)}},function(e){e.O(0,[231,2971,7023,1744],function(){return e(e.s=41761)}),_N_E=e.O()}]);
