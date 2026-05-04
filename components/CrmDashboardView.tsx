@@ -9,7 +9,7 @@ import {
   Users, Target, DollarSign, TrendingUp, CheckCircle2,
   Activity, AlertTriangle, Clock, ClipboardList,
   Phone, Mail, CalendarClock, BarChart3, FileText,
-  MessageSquare, Zap,
+  MessageSquare, Zap, Filter,
 } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/utils";
 
@@ -136,15 +136,24 @@ function KpiCard({ label, value, icon: Icon, iconColor, iconBg, sub }: KpiCardPr
   );
 }
 
+// ─── BU filter options ────────────────────────────────────────────────────────
+const BUS = ["Todos", "JACQES", "CAZA", "ADVISOR", "VENTURE"] as const;
+type BuFilter = typeof BUS[number];
+
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface Props {
-  buFilter?: string;
+  buFilter?: string; // optional external override (legacy)
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function CrmDashboardView({ buFilter }: Props) {
+export default function CrmDashboardView({ buFilter: externalBu }: Props) {
+  const [bu, setBu] = useState<BuFilter>(
+    (externalBu as BuFilter | undefined) ?? "Todos"
+  );
+  const buFilter = bu !== "Todos" ? bu : undefined;
+
   const [opps, setOpps] = useState<CrmOpportunity[]>([]);
   const [activities, setActivities] = useState<CrmActivity[]>([]);
   const [analytics, setAnalytics] = useState<Record<string, number>>({});
@@ -152,10 +161,10 @@ export default function CrmDashboardView({ buFilter }: Props) {
   const [isStatic, setIsStatic] = useState(false);
 
   const buLabel = buFilter ? (BU_LABELS[buFilter] ?? buFilter) : "AWQ Group";
-  const pageTitle = `CRM — ${buLabel}`;
+  const pageTitle = `CRM Tower`;
   const pageSubtitle = buFilter
     ? `Pipeline e vendas · ${buLabel}`
-    : "Controle de pipeline e vendas";
+    : "Controle de pipeline e vendas · AWQ Group";
 
   useEffect(() => {
     async function load() {
@@ -289,14 +298,30 @@ export default function CrmDashboardView({ buFilter }: Props) {
       <Header title={pageTitle} subtitle={pageSubtitle} />
       <div className="page-container">
 
-        {isStatic && (
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700">
+        {/* BU Filter */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <Filter size={13} className="text-gray-400 shrink-0" />
+          <span className="text-[11px] text-gray-500 shrink-0">Filtrar por BU:</span>
+          {BUS.map(b => (
+            <button
+              key={b}
+              onClick={() => setBu(b)}
+              className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all ${
+                bu === b
+                  ? "bg-brand-600 text-white shadow-sm"
+                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+              }`}
+            >
+              {b}
+            </button>
+          ))}
+          {isStatic && (
+            <span className="ml-auto inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
-              Snapshot estático — dados de demonstração
+              Snapshot estático
             </span>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* ── KPI Row ───────────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
