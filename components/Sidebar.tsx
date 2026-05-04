@@ -206,27 +206,6 @@ const epmPartesNav = [
     { label: "Clientes EPM",         href: "/awq/epm/customers",            icon: Users         },
 ];
 
-// ── PPM nav array ─────────────────────────────────────────────────────────────
-const ppmNav = [
-    { label: "Portfolio",            href: "/awq/ppm",                      icon: Briefcase     },
-    { label: "Gantt",                href: "/awq/ppm/gantt",                icon: GanttChart    },
-    { label: "Tarefas",              href: "/awq/ppm/tasks",                icon: ClipboardList },
-    { label: "Timesheets",           href: "/awq/ppm/timesheets",           icon: Clock         },
-    { label: "Recursos",             href: "/awq/ppm/resources",            icon: Users         },
-    { label: "Utilização",           href: "/awq/ppm/utilization",          icon: BarChart3     },
-    { label: "Rentabilidade",        href: "/awq/ppm/profitability",        icon: TrendingUp    },
-    { label: "Riscos",               href: "/awq/ppm/risks",                icon: AlertTriangle },
-];
-
-// ── BI nav array ──────────────────────────────────────────────────────────────
-const biNav = [
-    { label: "Dashboards",           href: "/awq/bi",                       icon: PieChart      },
-    { label: "Relatórios",           href: "/awq/bi/reports",               icon: FileText      },
-    { label: "Análises",             href: "/awq/bi/analytics",             icon: BarChart3     },
-    { label: "Visualizações",        href: "/awq/bi/visualizations",        icon: LineChart     },
-    { label: "Base de Dados",        href: "/awq/data",                     icon: Database      },
-];
-
 // ── Settings nav arrays ───────────────────────────────────────────────────────
 const settingsGeralNav = [
     { label: "Geral",                href: "/settings",                     icon: Settings      },
