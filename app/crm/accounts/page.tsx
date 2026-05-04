@@ -7,6 +7,7 @@ import SectionHeader from "@/components/SectionHeader";
 import EmptyState from "@/components/EmptyState";
 import { Building2, Plus, Search, HeartPulse, AlertTriangle, CheckCircle2 } from "lucide-react";
 import type { CrmAccount } from "@/lib/crm-types";
+import { BU_OPTIONS } from "@/lib/crm-types";
 import { SEED_ACCOUNTS } from "@/lib/crm-db";
 import { formatBRL } from "@/lib/utils";
 
@@ -39,11 +40,13 @@ export default function AccountsPage() {
   const [loading,  setLoading]  = useState(true);
   const [search,   setSearch]   = useState("");
   const [filterType, setFilterType] = useState("Todos");
+  const [filterBu, setFilterBu] = useState("Todos");
   const [filterOwner, setFilterOwner] = useState("Todos");
 
   useEffect(() => {
     const params = new URLSearchParams();
     if (filterType !== "Todos") params.set("account_type", filterType);
+    if (filterBu !== "Todos") params.set("bu", filterBu);
     if (filterOwner !== "Todos") params.set("owner", filterOwner);
     if (search) params.set("search", search);
     fetch(`/api/crm/accounts?${params}`)
@@ -51,7 +54,7 @@ export default function AccountsPage() {
       .then(res => setAccounts(res.success ? res.data : SEED_ACCOUNTS))
       .catch(() => setAccounts(SEED_ACCOUNTS))
       .finally(() => setLoading(false));
-  }, [filterType, filterOwner, search]);
+  }, [filterType, filterBu, filterOwner, search]);
 
   const customers  = accounts.filter(a => a.account_type === "customer").length;
   const prospects  = accounts.filter(a => a.account_type === "prospect").length;
@@ -96,6 +99,14 @@ export default function AccountsPage() {
               <button key={t} onClick={() => setFilterType(t)}
                 className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${filterType === t ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"}`}>
                 {t === "Todos" ? "Todos" : TYPE_LABELS[t]}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+            {["Todos", ...BU_OPTIONS].map(b => (
+              <button key={b} onClick={() => setFilterBu(b)}
+                className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${filterBu === b ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"}`}>
+                {b}
               </button>
             ))}
           </div>
