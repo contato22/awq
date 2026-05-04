@@ -77,10 +77,10 @@ function AddContactPageInner() {
                 <option value="">— Sem empresa —</option>
                 {accounts.map(a=><option key={a.account_id} value={a.account_id}>{a.account_name}</option>)}
               </select></div>
+            <div><label className="block text-xs font-medium text-gray-700 mb-1">Cargo</label>
+              <input value={form.job_title} onChange={e=>set("job_title",e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30"/></div>
             <div className="grid grid-cols-2 gap-4">
-              <div><label className="block text-xs font-medium text-gray-700 mb-1">Cargo</label>
-                <input value={form.job_title} onChange={e=>set("job_title",e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30"/></div>
               <div><label className="block text-xs font-medium text-gray-700 mb-1">Senioridade</label>
                 <select value={form.seniority} onChange={e=>set("seniority",e.target.value)}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30">
