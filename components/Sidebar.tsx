@@ -1353,7 +1353,7 @@ function CrmSidebar({ pathname }: { pathname: string }) {
             : pathname === href || pathname.startsWith(href + "/");
 
     return (
-        <>
+        <div className="w-64 flex flex-col h-full bg-white border-r border-gray-200 overflow-hidden">
             <AwqHeader />
             <div className="px-3 pt-3">
                 <Link
@@ -1400,7 +1400,7 @@ function CrmSidebar({ pathname }: { pathname: string }) {
                 </div>
             </nav>
             <SidebarFooter />
-        </>
+        </div>
     );
 }
 
@@ -1452,7 +1452,7 @@ function EpmSidebar({ pathname }: { pathname: string }) {
             : pathname === href || pathname.startsWith(href + "/");
 
     return (
-        <>
+        <div className="w-64 flex flex-col h-full bg-white border-r border-gray-200 overflow-hidden">
             <AwqHeader />
             <div className="px-3 pt-3">
                 <Link
@@ -1529,7 +1529,7 @@ function EpmSidebar({ pathname }: { pathname: string }) {
                 </div>
             </nav>
             <SidebarFooter />
-        </>
+        </div>
     );
 }
 
@@ -1552,7 +1552,7 @@ function PpmSidebar({ pathname }: { pathname: string }) {
             : pathname === href || pathname.startsWith(href + "/");
 
     return (
-        <>
+        <div className="w-64 flex flex-col h-full bg-white border-r border-gray-200 overflow-hidden">
             <AwqHeader />
             <div className="px-3 pt-3">
                 <Link
@@ -1599,7 +1599,7 @@ function PpmSidebar({ pathname }: { pathname: string }) {
                 </div>
             </nav>
             <SidebarFooter />
-        </>
+        </div>
     );
 }
 
@@ -1621,7 +1621,7 @@ function BiSidebar({ pathname }: { pathname: string }) {
             : pathname === href || pathname.startsWith(href + "/");
 
     return (
-        <>
+        <div className="w-64 flex flex-col h-full bg-white border-r border-gray-200 overflow-hidden">
             <AwqHeader />
             <div className="px-3 pt-3">
                 <Link
@@ -1668,7 +1668,7 @@ function BiSidebar({ pathname }: { pathname: string }) {
                 </div>
             </nav>
             <SidebarFooter />
-        </>
+        </div>
     );
 }
 
@@ -1677,7 +1677,7 @@ function SettingsSidebar({ pathname }: { pathname: string }) {
     const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
 
     return (
-        <>
+        <div className="w-64 flex flex-col h-full bg-white border-r border-gray-200 overflow-hidden">
             <AwqHeader />
             <div className="px-4 pt-3">
                 <Link
@@ -1703,7 +1703,7 @@ function SettingsSidebar({ pathname }: { pathname: string }) {
                 </div>
             </nav>
             <SidebarFooter />
-        </>
+        </div>
     );
 }
 
