@@ -65,6 +65,7 @@ const JACQES_PREFIXES = ["/jacqes"];
 const CAZA_PREFIXES = ["/caza-vision"];
 const ADVISOR_PREFIXES = ["/advisor"];
 const VENTURE_PREFIXES = ["/awq-venture"];
+const CRM_PREFIXES = ["/crm"];
 
 function isJacqesRoute(pathname: string) {
     return JACQES_PREFIXES.some((prefix) => pathname.startsWith(prefix));
@@ -77,6 +78,9 @@ function isAdvisorRoute(pathname: string) {
 }
 function isVentureRoute(pathname: string) {
     return VENTURE_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
+function isCrmRoute(pathname: string) {
+    return CRM_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(prefix + "/"));
 }
 
 // ── BU nav arrays (unchanged) ─────────────────────────────────────────────────
@@ -221,6 +225,7 @@ const AWQ_MODULES: AwqModule[] = [
             { label: "Pipeline",       href: "/crm/pipeline",          icon: Activity     },
             { label: "Clientes",       href: "/crm/customers",         icon: Users        },
             { label: "Oportunidades",  href: "/crm/opportunities",     icon: ArrowUpRight },
+            { label: "Matriz RFM",     href: "/crm/rfm",               icon: BarChart3    },
         ],
     },
     {
@@ -1157,6 +1162,76 @@ function AwqVentureSidebar({ pathname }: { pathname: string }) {
     );
 }
 
+// ── CRM sidebar ───────────────────────────────────────────────────────────────
+const crmNav = [
+    { label: "Dashboard CRM",  href: "/crm",                  icon: Target       },
+    { label: "Contas",         href: "/crm/accounts",         icon: Building2    },
+    { label: "Contatos",       href: "/crm/contacts",         icon: Users        },
+    { label: "Leads",          href: "/crm/leads",            icon: UserPlus     },
+    { label: "Oportunidades",  href: "/crm/opportunities",    icon: ArrowUpRight },
+    { label: "Atividades",     href: "/crm/activities",       icon: Activity     },
+    { label: "Analytics",      href: "/crm/analytics",        icon: BarChart3    },
+    { label: "Matriz RFM",     href: "/crm/rfm",              icon: PieChart     },
+];
+
+function CrmSidebar({ pathname }: { pathname: string }) {
+    const isActive = (href: string) =>
+        href === "/crm"
+            ? pathname === "/crm"
+            : pathname === href || pathname.startsWith(href + "/");
+
+    return (
+        <>
+            <AwqHeader />
+            <div className="px-3 pt-3">
+                <Link
+                    href="/awq"
+                    className="flex items-center gap-3 px-3 py-2.5 bg-brand-50 border border-brand-200 rounded-xl hover:bg-brand-100 transition-colors group"
+                >
+                    <div className="w-7 h-7 rounded-lg bg-brand-600 flex items-center justify-center shrink-0">
+                        <Target size={13} className="text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <div className="text-sm font-bold text-brand-700 truncate">CRM Tower</div>
+                        <div className="text-[10px] text-brand-500 truncate">Vendas · AWQ Group</div>
+                    </div>
+                    <ChevronDown size={14} className="text-brand-600 shrink-0" />
+                </Link>
+            </div>
+            <div className="px-4 pt-2">
+                <Link
+                    href="/awq"
+                    className="flex items-center gap-1.5 text-[10px] text-gray-400 hover:text-brand-600 transition-colors"
+                >
+                    <ChevronLeft size={11} />
+                    Voltar para AWQ Group
+                </Link>
+            </div>
+            <nav className="flex-1 overflow-y-auto px-3 py-2">
+                <SectionLabel>CRM · Navegação</SectionLabel>
+                <div className="space-y-0.5">
+                    {crmNav.map((item) => (
+                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
+                    ))}
+                </div>
+                <SectionLabel>IA & Agentes</SectionLabel>
+                <div className="space-y-0.5">
+                    {aiNav.map((item) => (
+                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
+                    ))}
+                </div>
+                <SectionLabel>Sistema</SectionLabel>
+                <div className="space-y-0.5">
+                    {sistemaNav.map((item) => (
+                        <NavItem key={item.href} {...item} active={pathname === item.href} />
+                    ))}
+                </div>
+            </nav>
+            <SidebarFooter />
+        </>
+    );
+}
+
 // ── Root Sidebar ──────────────────────────────────────────────────────────────
 export default function Sidebar() {
     const rawPathname = usePathname();
@@ -1165,6 +1240,7 @@ export default function Sidebar() {
     const cazaMode    = isCazaRoute(pathname);
     const advisorMode = isAdvisorRoute(pathname);
     const ventureMode = isVentureRoute(pathname);
+    const crmMode     = isCrmRoute(pathname);
     return (
         <div className="flex flex-col h-full">
             {jacqesMode ? (
@@ -1175,6 +1251,8 @@ export default function Sidebar() {
                 <AdvisorSidebar pathname={pathname} />
             ) : ventureMode ? (
                 <AwqVentureSidebar pathname={pathname} />
+            ) : crmMode ? (
+                <CrmSidebar pathname={pathname} />
             ) : (
                 <AwqSidebar pathname={pathname} />
             )}

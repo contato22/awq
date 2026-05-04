@@ -4,7 +4,8 @@ import { useEffect, useState, useMemo } from "react";
 import Header from "@/components/Header";
 import SectionHeader from "@/components/SectionHeader";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import { TrendingUp, DollarSign, Target, Users, BarChart3 } from "lucide-react";
+import { TrendingUp, DollarSign, Target, Users, BarChart3, ArrowRight } from "lucide-react";
+import Link from "next/link";
 import type { CrmOpportunity } from "@/lib/crm-types";
 import { SEED_OPPORTUNITIES } from "@/lib/crm-db";
 import { formatBRL } from "@/lib/utils";
@@ -252,6 +253,20 @@ export default function AnalyticsPage() {
             ))}
           </div>
         </div>
+
+        {/* RFM shortcut */}
+        <Link href="/crm/rfm" className="card p-4 flex items-center justify-between hover:shadow-md transition-shadow group">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-violet-50 flex items-center justify-center shrink-0">
+              <BarChart3 size={16} className="text-violet-600" />
+            </div>
+            <div>
+              <div className="text-sm font-semibold text-gray-900">Matriz RFM</div>
+              <div className="text-[11px] text-gray-500">Segmentação de clientes por Recência, Frequência e Valor</div>
+            </div>
+          </div>
+          <ArrowRight size={16} className="text-gray-400 group-hover:text-violet-600 transition-colors shrink-0" />
+        </Link>
 
       </div>
     </>
