@@ -221,6 +221,7 @@ const AWQ_MODULES: AwqModule[] = [
             { label: "Pipeline",       href: "/crm/pipeline",          icon: Activity     },
             { label: "Clientes",       href: "/crm/customers",         icon: Users        },
             { label: "Oportunidades",  href: "/crm/opportunities",     icon: ArrowUpRight },
+            { label: "Matriz RFM",     href: "/crm/rfm",               icon: BarChart3    },
         ],
     },
     {

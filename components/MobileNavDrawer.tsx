@@ -89,6 +89,7 @@ const awqCrmNav = [
   { label: "Pipeline",       href: "/crm/pipeline",        icon: Activity     },
   { label: "Clientes",       href: "/crm/customers",       icon: Users        },
   { label: "Oportunidades",  href: "/crm/opportunities",   icon: ArrowUpRight },
+  { label: "Matriz RFM",     href: "/crm/rfm",             icon: BarChart3    },
 ];
 
 // PPM — Projetos, tasks, alocação de pessoas, cronogramas
