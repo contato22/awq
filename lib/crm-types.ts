@@ -223,7 +223,7 @@ export type CsatSurvey = {
   contact_name?: string;
   related_to_type: "opportunity" | "activity" | "general" | null;
   related_to_id: string | null;
-  related_name?: string;
+  related_name?: string | null;
   sent_by: string;
   sent_at: string;
   response_score: number | null;       // 1–5
@@ -369,12 +369,12 @@ export type EmailEnrollment = {
 export type EmailLog = {
   log_id: string;
   template_id: string | null;
-  template_name?: string;
+  template_name?: string | null;
   enrollment_id: string | null;
-  sequence_name?: string;
+  sequence_name?: string | null;
   related_to_type: "lead" | "opportunity" | "account" | "contact";
   related_to_id: string;
-  related_name?: string;
+  related_name?: string | null;
   to_email: string;
   to_name: string;
   subject: string;

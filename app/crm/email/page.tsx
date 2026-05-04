@@ -7,7 +7,7 @@ import {
   Mail, Plus, Search, LayoutTemplate, GitBranch, Clock,
   CheckCircle2, MousePointerClick, MessageSquare, AlertTriangle,
   Send, Eye, X, ChevronRight, Zap, Users, BarChart3,
-  Toggle3Off, ToggleLeft, Edit2, Copy, ArrowRight, PlayCircle,
+  ToggleLeft, Edit2, Copy, ArrowRight, PlayCircle,
 } from "lucide-react";
 import type { EmailTemplate, EmailSequence, EmailLog } from "@/lib/crm-types";
 import {

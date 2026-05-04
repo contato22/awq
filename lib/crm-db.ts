@@ -6,7 +6,7 @@ import { sql } from "@/lib/db";
 import type {
   CrmAccount, CrmContact, CrmLead, CrmOpportunity,
   CrmActivity, CrmDashboardMetrics, CrmPipelineMetrics,
-  EmailTemplate, EmailSequence, EmailEnrollment, EmailLog,
+  EmailTemplate, EmailSequence, EmailSequenceStep, EmailEnrollment, EmailLog,
   ProposalTemplate, Proposal, ProposalSection,
   NpsSurvey, CsatSurvey, AccountHealthSummary, NpsCategory,
   QuotaTarget, QuotaAttainment,
