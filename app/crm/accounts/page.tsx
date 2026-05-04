@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
-import SectionHeader from "@/components/SectionHeader";
 import EmptyState from "@/components/EmptyState";
 import { Building2, Plus, Search, AlertTriangle, CheckCircle2, Trash2, HardDrive } from "lucide-react";
 import type { CrmAccount } from "@/lib/crm-types";

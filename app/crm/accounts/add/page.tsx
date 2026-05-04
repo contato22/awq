@@ -53,7 +53,7 @@ export default function AddAccountPage() {
     if (!form.account_name.trim()) { setError("Nome da empresa é obrigatório"); return; }
     setSaving(true); setError("");
 
-    // Try API first; fall back to localStorage on any failure
+    // Try API first; fall back to localStorage only on network error
     try {
       const res = await fetch("/api/crm/accounts", {
         method: "POST",
@@ -73,7 +73,11 @@ export default function AddAccountPage() {
         router.push("/crm/accounts");
         return;
       }
-    } catch { /* API unavailable — fall through to localStorage */ }
+      // API is reachable but returned a business error — show it, don't silently fall back
+      setError(data.error ?? "Erro ao criar conta");
+      setSaving(false);
+      return;
+    } catch { /* API unavailable (network error) — fall through to localStorage */ }
 
     // Manual mode: create directly in localStorage
     const existing = loadAccounts();
