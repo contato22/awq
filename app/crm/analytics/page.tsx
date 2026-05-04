@@ -53,17 +53,19 @@ export default function AnalyticsPage() {
   [opps, buFilter]);
 
   const metrics = useMemo(() => {
+    if (data && buFilter === "Todos") return data;
+    const monthStart = new Date().toISOString().slice(0, 7) + "-01";
     const open = filteredOpps.filter(o=>o.stage!=="closed_won"&&o.stage!=="closed_lost");
     const won  = filteredOpps.filter(o=>o.stage==="closed_won");
+    const wonThisMonth = won.filter(o=>o.actual_close_date != null && o.actual_close_date >= monthStart);
     const closed = filteredOpps.filter(o=>o.stage==="closed_won"||o.stage==="closed_lost");
-    if (data && buFilter === "Todos") return data;
     return {
       leadsNew: 0,
       openOpportunities: open.length,
       pipelineValue: open.reduce((s,o)=>s+o.deal_value,0),
       weightedForecast: open.reduce((s,o)=>s+o.deal_value*o.probability/100,0),
-      closedWonThisMonth: won.length,
-      revenueThisMonth: won.reduce((s,o)=>s+o.deal_value,0),
+      closedWonThisMonth: wonThisMonth.length,
+      revenueThisMonth: wonThisMonth.reduce((s,o)=>s+o.deal_value,0),
       winRate: closed.length>0?Math.round(won.length/closed.length*100):0,
       byBU: {} as Record<string, { count: number; value: number; weighted: number }>,
       byStage: {} as Record<string, { count: number; value: number; weighted: number }>,

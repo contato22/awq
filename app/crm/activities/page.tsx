@@ -123,13 +123,14 @@ export default function ActivitiesPage() {
               </button>
             ))}
           </div>
-          <select
-            value={filterBu}
-            onChange={e => setFilterBu(e.target.value)}
-            className="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
-          >
-            {BU_LIST.map(b => <option key={b}>{b}</option>)}
-          </select>
+          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+            {BU_LIST.map(b => (
+              <button key={b} onClick={() => setFilterBu(b)}
+                className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${filterBu === b ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
+                {b}
+              </button>
+            ))}
+          </div>
           <Link href="/crm/activities/add"
             className="ml-auto flex items-center gap-1.5 px-3 py-2 bg-brand-600 text-white text-xs font-semibold rounded-lg hover:bg-brand-700 transition-colors">
             <Plus size={13} /> Registrar Atividade
