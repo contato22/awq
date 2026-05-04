@@ -57,6 +57,10 @@ import {
     ShoppingCart,
     Calendar,
     X,
+    Truck,
+    Box,
+    Wrench,
+    RotateCcw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -170,12 +174,19 @@ const businessUnits = [
 // Each module groups related routes under a single icon.
 // Existing hrefs are preserved; new stubs use /awq/<module>/<slug> convention.
 type ModuleItem = { label: string; href: string; icon: React.ElementType };
+type ModuleSection = {
+    id: string;
+    label: string;
+    icon: React.ElementType;
+    items: ModuleItem[];
+};
 type AwqModule = {
     id: string;
     label: string;
     description: string;
     icon: React.ElementType;
     items: ModuleItem[];
+    sections?: ModuleSection[];
 };
 
 const AWQ_MODULES: AwqModule[] = [
@@ -317,13 +328,89 @@ const AWQ_MODULES: AwqModule[] = [
     {
         id: "erp",
         label: "ERP",
-        description: "Compras, contratos, time tracking, assets",
+        description: "Financials, procurement, inventário, contratos, assets",
         icon: Package,
-        items: [
-            { label: "Compras",       href: "/awq/erp/purchases",    icon: ShoppingCart },
-            { label: "Contratos",     href: "/awq/erp/contracts",    icon: FileText     },
-            { label: "Time Tracking", href: "/awq/erp/timetracking", icon: Clock        },
-            { label: "Assets",        href: "/awq/erp/assets",       icon: Package      },
+        items: [],
+        sections: [
+            {
+                id: "financials",
+                label: "Financials",
+                icon: DollarSign,
+                items: [
+                    { label: "Razão Geral (GL)",      href: "/awq/epm/gl",                   icon: ListOrdered   },
+                    { label: "Fixed Assets",           href: "/awq/erp/financials/fixed-assets", icon: Building  },
+                    { label: "Contas a Pagar (AP)",    href: "/awq/epm/ap",                   icon: ArrowDownLeft },
+                    { label: "Contas a Receber (AR)",  href: "/awq/epm/ar",                   icon: ArrowUpRight  },
+                    { label: "Cash Management",        href: "/awq/erp/financials/cash",       icon: Wallet       },
+                    { label: "Conciliação Bancária",   href: "/awq/epm/bank-reconciliation",   icon: Landmark     },
+                    { label: "Reconhec. de Receita",   href: "/awq/epm/revenue-recognition",   icon: BookOpen     },
+                ],
+            },
+            {
+                id: "procurement",
+                label: "Procurement",
+                icon: ShoppingCart,
+                items: [
+                    { label: "Requisições",    href: "/awq/erp/procurement/requisitions", icon: ClipboardList },
+                    { label: "Purchase Orders",href: "/awq/erp/purchases",                icon: ShoppingCart  },
+                    { label: "Fornecedores",   href: "/awq/epm/suppliers",                icon: Building2     },
+                    { label: "Recebimento",    href: "/awq/erp/procurement/receiving",    icon: ArrowDownLeft },
+                ],
+            },
+            {
+                id: "inventory",
+                label: "Inventory",
+                icon: Box,
+                items: [
+                    { label: "Produtos / Items",    href: "/awq/erp/inventory/items",      icon: Box      },
+                    { label: "Movimentações",       href: "/awq/erp/inventory/movements",  icon: Activity },
+                    { label: "Armazéns",            href: "/awq/erp/inventory/warehouses", icon: Building },
+                    { label: "Avaliação de Estoque",href: "/awq/erp/inventory/valuation",  icon: Layers   },
+                ],
+            },
+            {
+                id: "order-management",
+                label: "Order Management",
+                icon: ListOrdered,
+                items: [
+                    { label: "Pedidos de Venda", href: "/awq/erp/orders/sales",       icon: ShoppingCart  },
+                    { label: "Fulfillment",      href: "/awq/erp/orders/fulfillment", icon: CheckCircle2  },
+                    { label: "Faturamento",      href: "/awq/erp/orders/billing",     icon: Receipt       },
+                    { label: "Expedição",        href: "/awq/erp/orders/shipping",    icon: Truck         },
+                ],
+            },
+            {
+                id: "time-expense",
+                label: "Time & Expense",
+                icon: Clock,
+                items: [
+                    { label: "Timesheets",          href: "/awq/erp/timetracking",           icon: Clock        },
+                    { label: "Relatório de Despesas",href: "/awq/erp/expenses",              icon: Receipt      },
+                    { label: "Aprovações",          href: "/awq/erp/timeexpense/approvals",  icon: CheckCircle2 },
+                ],
+            },
+            {
+                id: "contract-management",
+                label: "Contract Management",
+                icon: FileText,
+                items: [
+                    { label: "Contratos",      href: "/awq/erp/contracts",            icon: FileText     },
+                    { label: "Ciclo de Vida",  href: "/awq/erp/contracts/lifecycle",  icon: Activity     },
+                    { label: "Renovações",     href: "/awq/erp/contracts/renewals",   icon: RotateCcw    },
+                    { label: "Obrigações",     href: "/awq/erp/contracts/obligations",icon: ClipboardList},
+                ],
+            },
+            {
+                id: "asset-management",
+                label: "Asset Management",
+                icon: Package,
+                items: [
+                    { label: "Assets",        href: "/awq/erp/assets",             icon: Package       },
+                    { label: "Depreciação",   href: "/awq/erp/assets/depreciation",icon: TrendingUp    },
+                    { label: "Manutenção",    href: "/awq/erp/assets/maintenance", icon: Wrench        },
+                    { label: "Baixa de Ativos",href: "/awq/erp/assets/disposal",   icon: AlertTriangle },
+                ],
+            },
         ],
     },
     {
@@ -544,6 +631,10 @@ function AwqSidebar({ pathname }: { pathname: string }) {
             ? pathname === "/awq"
             : pathname === href || pathname.startsWith(href + "/");
 
+    const getAllItems = (mod: AwqModule): ModuleItem[] => [
+        ...mod.items,
+        ...(mod.sections?.flatMap((s) => s.items) ?? []),
+    ];
     const isModuleActive = (items: ModuleItem[]) =>
         items.some((i) => isActive(i.href));
 
@@ -589,7 +680,7 @@ function AwqSidebar({ pathname }: { pathname: string }) {
                 {/* Module icons */}
                 <nav className="flex-1 overflow-y-auto px-2 py-1 space-y-0.5 scrollbar-none">
                     {AWQ_MODULES.map((mod) => {
-                        const modActive = isModuleActive(mod.items);
+                        const modActive = isModuleActive(getAllItems(mod));
                         const isOpen = activePanel === mod.id;
                         return (
                             <button
@@ -742,15 +833,37 @@ function AwqSidebar({ pathname }: { pathname: string }) {
                             )}
 
                             {activeMod && (
-                                <div className="space-y-0.5 mt-1">
-                                    {activeMod.items.map((item) => (
-                                        <NavItem
-                                            key={item.href}
-                                            {...item}
-                                            active={isActive(item.href)}
-                                        />
-                                    ))}
-                                </div>
+                                activeMod.sections ? (
+                                    activeMod.sections.map((section) => (
+                                        <div key={section.id}>
+                                            <div className="flex items-center gap-1.5 px-2 pt-4 pb-1 first:pt-2">
+                                                <section.icon size={11} className="text-gray-400" />
+                                                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-[0.1em]">
+                                                    {section.label}
+                                                </span>
+                                            </div>
+                                            <div className="space-y-0.5">
+                                                {section.items.map((item) => (
+                                                    <NavItem
+                                                        key={item.href}
+                                                        {...item}
+                                                        active={isActive(item.href)}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="space-y-0.5 mt-1">
+                                        {activeMod.items.map((item) => (
+                                            <NavItem
+                                                key={item.href}
+                                                {...item}
+                                                active={isActive(item.href)}
+                                            />
+                                        ))}
+                                    </div>
+                                )
                             )}
                         </nav>
                     </div>
