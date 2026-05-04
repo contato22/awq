@@ -100,10 +100,29 @@ function isSettingsRoute(pathname: string) {
 }
 
 // ── BU nav arrays (unchanged) ─────────────────────────────────────────────────
-const jacqesNav = [
-    { label: "Visão Geral",    href: "/jacqes",             icon: LayoutDashboard },
-    { label: "FP&A",           href: "/jacqes/fpa",         icon: BarChart3       },
-    { label: "Relatórios",     href: "/jacqes/reports",     icon: BarChart3       },
+const jacqesEpmNav = [
+    { label: "Visão Geral",    href: "/jacqes",                    icon: LayoutDashboard },
+    { label: "FP&A",           href: "/jacqes/fpa",                icon: BarChart3       },
+    { label: "Financial",      href: "/jacqes/financial",          icon: DollarSign      },
+    { label: "Budget",         href: "/jacqes/budget",             icon: Target          },
+    { label: "Revenue",        href: "/jacqes/revenue",            icon: TrendingUp      },
+    { label: "Unit Economics", href: "/jacqes/unit-economics",     icon: Calculator      },
+    { label: "SG&A",           href: "/jacqes/sga",                icon: BarChart3       },
+    { label: "Relatórios",     href: "/jacqes/reports",            icon: FileText        },
+];
+
+const jacquesCrmNav = [
+    { label: "Pipeline",       href: "/jacqes/crm/pipeline",       icon: Activity        },
+    { label: "Clientes",       href: "/jacqes/crm/clientes",       icon: Users           },
+    { label: "Leads",          href: "/jacqes/crm/leads",          icon: UserPlus        },
+    { label: "Oportunidades",  href: "/jacqes/crm/oportunidades",  icon: ArrowUpRight    },
+    { label: "Propostas",      href: "/jacqes/crm/propostas",      icon: FileText        },
+    { label: "Carteira",       href: "/jacqes/crm/carteira",       icon: Briefcase       },
+    { label: "CS Ops",         href: "/jacqes/csops",              icon: HeartPulse      },
+];
+
+const jacqesGestaoNav = [
+    { label: "Modo Carreira",  href: "/jacqes/carreira",           icon: Briefcase       },
 ];
 
 const cazaNav = [
@@ -133,9 +152,6 @@ const ventureNav = [
     { label: "Sales",       href: "/awq-venture/sales",        icon: DollarSign      },
 ];
 
-const gestaoNav = [
-    { label: "Modo Carreira", href: "/jacqes/carreira", icon: Briefcase },
-];
 
 const aiNav = [
     { label: "Agents",   href: "/agents",   icon: Bot      },
@@ -1116,15 +1132,72 @@ function BUSidebar({
 
 // ── BU sidebar wrappers ───────────────────────────────────────────────────────
 function JacqesSidebar({ pathname }: { pathname: string }) {
+    const isActive = (href: string) =>
+        href === "/jacqes"
+            ? pathname === "/jacqes"
+            : pathname === href || pathname.startsWith(href + "/");
+
     return (
-        <BUSidebar
-            buId="jacqes"
-            label="JACQES"
-            homeHref="/jacqes"
-            headerIcon={BarChart3}
-            modules={JACQES_MODULES}
-            pathname={pathname}
-        />
+        <>
+            <AwqHeader />
+            <div className="px-3 pt-3">
+                <Link
+                    href="/awq"
+                    className="flex items-center gap-3 px-3 py-2.5 bg-brand-50 border border-brand-200 rounded-xl hover:bg-brand-100 transition-colors group"
+                >
+                    <div className="w-7 h-7 rounded-lg bg-brand-600 flex items-center justify-center shrink-0">
+                        <BarChart3 size={13} className="text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <div className="text-sm font-bold text-brand-700 truncate">JACQES</div>
+                        <div className="text-[10px] text-brand-500 truncate">Agência · AWQ Group</div>
+                    </div>
+                    <ChevronDown size={14} className="text-brand-600 shrink-0" />
+                </Link>
+            </div>
+            <div className="px-4 pt-2">
+                <Link
+                    href="/awq"
+                    className="flex items-center gap-1.5 text-[10px] text-gray-400 hover:text-brand-600 transition-colors"
+                >
+                    <ChevronLeft size={11} />
+                    Voltar para AWQ Group
+                </Link>
+            </div>
+            <nav className="flex-1 overflow-y-auto px-3 py-2">
+                <SectionLabel>EPM · Financeiro</SectionLabel>
+                <div className="space-y-0.5">
+                    {jacqesEpmNav.map((item) => (
+                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
+                    ))}
+                </div>
+                <SectionLabel>CRM · Vendas</SectionLabel>
+                <div className="space-y-0.5">
+                    {jacquesCrmNav.map((item) => (
+                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
+                    ))}
+                </div>
+                <SectionLabel>Gestão</SectionLabel>
+                <div className="space-y-0.5">
+                    {jacqesGestaoNav.map((item) => (
+                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
+                    ))}
+                </div>
+                <SectionLabel>IA & Agentes</SectionLabel>
+                <div className="space-y-0.5">
+                    {aiNav.map((item) => (
+                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
+                    ))}
+                </div>
+                <SectionLabel>Sistema</SectionLabel>
+                <div className="space-y-0.5">
+                    {sistemaNav.map((item) => (
+                        <NavItem key={item.href} {...item} active={pathname === item.href} />
+                    ))}
+                </div>
+            </nav>
+            <SidebarFooter />
+        </>
     );
 }
 

@@ -175,18 +175,26 @@ const awqHcmNav = [
 // ── BU nav — mirrors desktop Sidebar module configs exactly ──────────────
 // JACQES: EPM · CRM · Gestão
 const jacqesEpmNav = [
-  { label: "FP&A",       href: "/jacqes/fpa",     icon: BarChart3 },
-  { label: "Relatórios", href: "/jacqes/reports", icon: FileText  },
+  { label: "Visão Geral",    href: "/jacqes",                   icon: LayoutDashboard },
+  { label: "FP&A",           href: "/jacqes/fpa",               icon: BarChart3       },
+  { label: "Financial",      href: "/jacqes/financial",         icon: DollarSign      },
+  { label: "Budget",         href: "/jacqes/budget",            icon: Briefcase       },
+  { label: "Revenue",        href: "/jacqes/revenue",           icon: TrendingUp      },
+  { label: "Unit Economics", href: "/jacqes/unit-economics",    icon: Calculator      },
+  { label: "SG&A",           href: "/jacqes/sga",               icon: BarChart3       },
+  { label: "Relatórios",     href: "/jacqes/reports",           icon: FileText        },
 ];
 const jacquesCrmNav = [
-  { label: "Dashboard CRM",  href: "/crm",               icon: Target       },
-  { label: "Leads",          href: "/crm/leads",         icon: UserPlus     },
-  { label: "Pipeline",       href: "/crm/pipeline",      icon: Activity     },
-  { label: "Clientes",       href: "/crm/customers",     icon: Users        },
-  { label: "Oportunidades",  href: "/crm/opportunities", icon: ArrowUpRight },
+  { label: "Pipeline",       href: "/jacqes/crm/pipeline",      icon: Activity        },
+  { label: "Clientes",       href: "/jacqes/crm/clientes",      icon: Users           },
+  { label: "Leads",          href: "/jacqes/crm/leads",         icon: UserPlus        },
+  { label: "Oportunidades",  href: "/jacqes/crm/oportunidades", icon: ArrowUpRight    },
+  { label: "Propostas",      href: "/jacqes/crm/propostas",     icon: FileText        },
+  { label: "Carteira",       href: "/jacqes/crm/carteira",      icon: Briefcase       },
+  { label: "CS Ops",         href: "/jacqes/csops",             icon: HeartPulse      },
 ];
 const jacqesGestaoNav = [
-  { label: "Modo Carreira", href: "/jacqes/carreira", icon: Briefcase },
+  { label: "Modo Carreira",  href: "/jacqes/carreira",          icon: Briefcase       },
 ];
 
 // Caza Vision: EPM · PPM · CRM
