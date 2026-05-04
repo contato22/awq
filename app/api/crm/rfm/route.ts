@@ -71,6 +71,7 @@ const SEED_RFM_RAW: CustomerRaw[] = [
   { account_id:"a8",  account_name:"Positivo Tecnologia",          industry:"tech",      owner:"Danilo", bu:"VENTURE", recency_days:210, frequency:4, monetary:195000 },
   { account_id:"a9",  account_name:"Faculdade Einstein",           industry:"education", owner:"Miguel", bu:"ADVISOR", recency_days:45,  frequency:2, monetary:78000  },
   { account_id:"a10", account_name:"Farmácias Nissei",             industry:"health",    owner:"Danilo", bu:"CAZA",    recency_days:60,  frequency:1, monetary:42000  },
+  { account_id:"a11", account_name:"Hospital São Lucas",            industry:"health",    owner:"Miguel", bu:"ADVISOR", recency_days:85,  frequency:2, monetary:72000  },
 ];
 
 function buildRfmCustomers(raw: CustomerRaw[]): RfmCustomer[] {
