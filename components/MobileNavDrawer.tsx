@@ -118,6 +118,7 @@ const crmTowerNav = [
   { label: "Contatos",       href: "/crm/contacts",        icon: Users        },
   { label: "Leads",          href: "/crm/leads",           icon: UserPlus     },
   { label: "Oportunidades",  href: "/crm/opportunities",   icon: ArrowUpRight },
+  { label: "Propostas",      href: "/crm/proposals",       icon: FileText     },
   { label: "Atividades",     href: "/crm/activities",      icon: Activity     },
   { label: "E-mail",         href: "/crm/email",           icon: Mail         },
   { label: "Analytics",      href: "/crm/analytics",       icon: BarChart3    },

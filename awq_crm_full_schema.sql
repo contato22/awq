@@ -315,7 +315,118 @@ CREATE INDEX IF NOT EXISTS idx_email_log_target   ON crm_email_log(related_to_ty
 CREATE INDEX IF NOT EXISTS idx_email_log_template ON crm_email_log(template_id);
 
 -- =============================================================================
--- 6. TRIGGERS
+-- 6. PROPOSALS
+-- =============================================================================
+
+-- ─── Proposal Templates ───────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS crm_proposal_templates (
+  template_id    UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  template_code  TEXT        UNIQUE,
+  name           TEXT        NOT NULL,
+  bu             TEXT        NOT NULL DEFAULT 'ALL'
+                   CHECK (bu IN ('JACQES','CAZA','ADVISOR','VENTURE','ALL')),
+  description    TEXT,
+  sections       JSONB       NOT NULL DEFAULT '[]',
+  variables      JSONB       NOT NULL DEFAULT '[]',
+  is_active      BOOLEAN     NOT NULL DEFAULT TRUE,
+  times_used     INTEGER     NOT NULL DEFAULT 0,
+  created_by     TEXT        NOT NULL DEFAULT 'system',
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_prop_tpl_bu ON crm_proposal_templates(bu);
+
+-- ─── Proposals ────────────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS crm_proposals (
+  proposal_id                UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  proposal_code              TEXT        UNIQUE,
+  opportunity_id             UUID        NOT NULL REFERENCES crm_opportunities(opportunity_id) ON DELETE CASCADE,
+  template_id                UUID        REFERENCES crm_proposal_templates(template_id) ON DELETE SET NULL,
+  title                      TEXT        NOT NULL,
+  bu                         TEXT        NOT NULL DEFAULT 'JACQES'
+                               CHECK (bu IN ('JACQES','CAZA','ADVISOR','VENTURE')),
+  owner                      TEXT        NOT NULL DEFAULT 'Miguel',
+  deal_value                 NUMERIC(15,2) NOT NULL DEFAULT 0,
+  valid_until                DATE,
+  -- Content
+  sections                   JSONB       NOT NULL DEFAULT '[]',
+  -- Status
+  status                     TEXT        NOT NULL DEFAULT 'draft'
+                               CHECK (status IN ('draft','sent','viewed','signed','declined','expired')),
+  sent_at                    TIMESTAMPTZ,
+  viewed_at                  TIMESTAMPTZ,
+  viewed_count               INTEGER     NOT NULL DEFAULT 0,
+  -- E-Signature
+  signature_status           TEXT        NOT NULL DEFAULT 'none'
+                               CHECK (signature_status IN ('none','pending','signed','declined')),
+  signature_requested_at     TIMESTAMPTZ,
+  signature_link             TEXT,
+  signed_at                  TIMESTAMPTZ,
+  signer_name                TEXT,
+  signer_email               TEXT,
+  declined_at                TIMESTAMPTZ,
+  decline_reason             TEXT,
+  created_at                 TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at                 TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_proposals_opp     ON crm_proposals(opportunity_id);
+CREATE INDEX IF NOT EXISTS idx_proposals_status  ON crm_proposals(status);
+CREATE INDEX IF NOT EXISTS idx_proposals_bu      ON crm_proposals(bu);
+CREATE INDEX IF NOT EXISTS idx_proposals_owner   ON crm_proposals(owner);
+
+-- Auto-generate proposal_code
+CREATE OR REPLACE FUNCTION set_proposal_code()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+DECLARE seq_val INTEGER;
+BEGIN
+  IF NEW.proposal_code IS NULL THEN
+    SELECT COALESCE(MAX(CAST(SUBSTRING(proposal_code FROM 6) AS INTEGER)), 0) + 1
+      INTO seq_val FROM crm_proposals WHERE proposal_code ~ '^PROP-[0-9]+$';
+    NEW.proposal_code := 'PROP-' || LPAD(seq_val::TEXT, 3, '0');
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_set_proposal_code ON crm_proposals;
+CREATE TRIGGER trg_set_proposal_code
+  BEFORE INSERT ON crm_proposals
+  FOR EACH ROW EXECUTE FUNCTION set_proposal_code();
+
+-- Sync proposal status back to opportunity when signed
+CREATE OR REPLACE FUNCTION sync_proposal_to_opportunity()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.status = 'signed' AND OLD.status != 'signed' THEN
+    UPDATE crm_opportunities
+      SET proposal_accepted = TRUE, proposal_viewed = TRUE, updated_at = NOW()
+    WHERE opportunity_id = NEW.opportunity_id;
+  END IF;
+  IF NEW.status = 'sent' AND OLD.status = 'draft' THEN
+    UPDATE crm_opportunities
+      SET proposal_sent_date = NEW.sent_at::date, updated_at = NOW()
+    WHERE opportunity_id = NEW.opportunity_id AND proposal_sent_date IS NULL;
+  END IF;
+  IF NEW.status = 'viewed' AND OLD.status != 'viewed' THEN
+    UPDATE crm_opportunities
+      SET proposal_viewed = TRUE, updated_at = NOW()
+    WHERE opportunity_id = NEW.opportunity_id;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_sync_proposal_to_opp ON crm_proposals;
+CREATE TRIGGER trg_sync_proposal_to_opp
+  AFTER UPDATE ON crm_proposals
+  FOR EACH ROW EXECUTE FUNCTION sync_proposal_to_opportunity();
+
+-- =============================================================================
+-- 7. TRIGGERS
 -- =============================================================================
 
 -- ─── Auto-set probability by stage ───────────────────────────────────────────
@@ -406,7 +517,7 @@ CREATE TRIGGER trg_crm_account_code
   FOR EACH ROW EXECUTE FUNCTION fn_crm_account_code();
 
 -- =============================================================================
--- 7. VIEWS
+-- 8. VIEWS
 -- =============================================================================
 
 -- ─── Pipeline Overview ────────────────────────────────────────────────────────
@@ -509,7 +620,7 @@ SELECT
 FROM monthly;
 
 -- =============================================================================
--- 8. ROW LEVEL SECURITY
+-- 9. ROW LEVEL SECURITY
 -- =============================================================================
 
 ALTER TABLE crm_accounts                    ENABLE ROW LEVEL SECURITY;
@@ -528,7 +639,7 @@ CREATE POLICY IF NOT EXISTS crm_stage_hist_all      ON crm_opportunity_stage_his
 CREATE POLICY IF NOT EXISTS crm_activities_all      ON crm_activities            FOR ALL USING (TRUE);
 
 -- =============================================================================
--- 9. SEED DATA
+-- 10. SEED DATA
 -- =============================================================================
 
 -- ─── Accounts ────────────────────────────────────────────────────────────────

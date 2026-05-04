@@ -195,6 +195,65 @@ export type CrmDashboardMetrics = {
   tasksToday: CrmActivity[];
 };
 
+// ─── Proposal Templates ───────────────────────────────────────────────────────
+
+export type ProposalTemplate = {
+  template_id: string;
+  template_code: string;
+  name: string;
+  bu: "JACQES" | "CAZA" | "ADVISOR" | "VENTURE" | "ALL";
+  description: string | null;
+  sections: ProposalSection[];
+  variables: string[];
+  is_active: boolean;
+  times_used: number;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ProposalSection = {
+  id: string;
+  title: string;
+  content: string;
+  order: number;
+};
+
+// ─── Proposals ────────────────────────────────────────────────────────────────
+
+export type Proposal = {
+  proposal_id: string;
+  proposal_code: string;
+  opportunity_id: string;
+  opportunity_name?: string;
+  account_name?: string;
+  template_id: string | null;
+  template_name?: string;
+  title: string;
+  bu: "JACQES" | "CAZA" | "ADVISOR" | "VENTURE";
+  owner: string;
+  deal_value: number;
+  valid_until: string | null;
+  // Content
+  sections: ProposalSection[];
+  // Status
+  status: "draft" | "sent" | "viewed" | "signed" | "declined" | "expired";
+  sent_at: string | null;
+  viewed_at: string | null;
+  viewed_count: number;
+  // E-signature
+  signature_status: "none" | "pending" | "signed" | "declined";
+  signature_requested_at: string | null;
+  signature_link: string | null;
+  signed_at: string | null;
+  signer_name: string | null;
+  signer_email: string | null;
+  declined_at: string | null;
+  decline_reason: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 // ─── Email Templates ──────────────────────────────────────────────────────────
 
 export type EmailTemplate = {

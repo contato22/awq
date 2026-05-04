@@ -7,6 +7,7 @@ import type {
   CrmAccount, CrmContact, CrmLead, CrmOpportunity,
   CrmActivity, CrmDashboardMetrics, CrmPipelineMetrics,
   EmailTemplate, EmailSequence, EmailEnrollment, EmailLog,
+  ProposalTemplate, Proposal, ProposalSection,
 } from "@/lib/crm-types";
 
 // ─── Schema Bootstrap ─────────────────────────────────────────────────────────
@@ -658,4 +659,213 @@ export async function logEmail(data: Partial<EmailLog>): Promise<EmailLog> {
     await sql`UPDATE crm_email_templates SET times_used = times_used + 1 WHERE template_id = ${data.template_id}`;
   }
   return rows[0] as EmailLog;
+}
+
+// =============================================================================
+// PROPOSALS
+// =============================================================================
+
+const DEFAULT_SECTIONS: ProposalSection[] = [
+  { id: "s1", title: "Apresentação", order: 1, content: "A **AWQ Group** é um grupo de comunicação especializado em estratégia de mídia, produção audiovisual e consultoria de marketing para marcas que buscam crescimento acelerado.\n\nNeste documento, apresentamos nossa proposta comercial para {{nome_cliente}} / {{empresa}}." },
+  { id: "s2", title: "Escopo de Trabalho", order: 2, content: "Com base nas conversas realizadas, propomos a entrega dos seguintes serviços:\n\n{{escopo_servicos}}" },
+  { id: "s3", title: "Investimento", order: 3, content: "**Valor total:** {{valor}}\n**Forma de pagamento:** {{pagamento}}\n**Validade desta proposta:** {{validade}}" },
+  { id: "s4", title: "Próximos Passos", order: 4, content: "1. Aprovação desta proposta\n2. Assinatura do contrato\n3. Kickoff — {{data_kickoff}}\n4. Início das entregas" },
+];
+
+export const SEED_PROPOSAL_TEMPLATES: ProposalTemplate[] = [
+  {
+    template_id: "ptpl-1", template_code: "PTPL-001",
+    name: "Proposta Padrão — Social Media",
+    bu: "JACQES", description: "Template completo para projetos de gestão de mídias sociais",
+    variables: ["{{nome_cliente}}", "{{empresa}}", "{{escopo_servicos}}", "{{valor}}", "{{pagamento}}", "{{validade}}", "{{data_kickoff}}"],
+    is_active: true, times_used: 8, created_by: "Miguel",
+    created_at: "2026-01-10T00:00:00Z", updated_at: "2026-04-01T00:00:00Z",
+    sections: DEFAULT_SECTIONS,
+  },
+  {
+    template_id: "ptpl-2", template_code: "PTPL-002",
+    name: "Proposta — Produção Audiovisual",
+    bu: "CAZA", description: "Para projetos de vídeo, motion e conteúdo premium",
+    variables: ["{{nome_cliente}}", "{{empresa}}", "{{escopo_servicos}}", "{{formatos}}", "{{valor}}", "{{pagamento}}", "{{validade}}", "{{data_gravacao}}"],
+    is_active: true, times_used: 5, created_by: "Miguel",
+    created_at: "2026-02-01T00:00:00Z", updated_at: "2026-03-15T00:00:00Z",
+    sections: [
+      { id: "s1", title: "Apresentação", order: 1, content: "A **Caza Vision** produz conteúdo audiovisual de alta performance para marcas que comunicam com qualidade.\n\nEsta proposta foi preparada exclusivamente para **{{empresa}}**." },
+      { id: "s2", title: "Escopo de Produção", order: 2, content: "**Formatos entregues:** {{formatos}}\n\n{{escopo_servicos}}" },
+      { id: "s3", title: "Cronograma", order: 3, content: "**Data de gravação:** {{data_gravacao}}\n**Prazo de entrega:** 10 dias úteis após gravação" },
+      { id: "s4", title: "Investimento", order: 4, content: "**Valor total:** {{valor}}\n**Pagamento:** {{pagamento}}\n**Validade:** {{validade}}" },
+    ],
+  },
+  {
+    template_id: "ptpl-3", template_code: "PTPL-003",
+    name: "Proposta — Consultoria Estratégica",
+    bu: "ADVISOR", description: "Para projetos de consultoria e planejamento estratégico",
+    variables: ["{{nome_cliente}}", "{{empresa}}", "{{objetivo}}", "{{metodologia}}", "{{valor}}", "{{pagamento}}", "{{validade}}", "{{duracao}}"],
+    is_active: true, times_used: 3, created_by: "Danilo",
+    created_at: "2026-03-01T00:00:00Z", updated_at: "2026-04-10T00:00:00Z",
+    sections: [
+      { id: "s1", title: "Contexto e Objetivo", order: 1, content: "Com base nas conversas com **{{nome_cliente}}** da **{{empresa}}**, identificamos o seguinte objetivo central:\n\n> {{objetivo}}" },
+      { id: "s2", title: "Metodologia", order: 2, content: "Nossa abordagem para este projeto:\n\n{{metodologia}}" },
+      { id: "s3", title: "Duração e Entregas", order: 3, content: "**Duração do projeto:** {{duracao}}\n\n**Entregas previstas:**\n- Diagnóstico estratégico\n- Plano de ação\n- Acompanhamento mensal" },
+      { id: "s4", title: "Investimento", order: 4, content: "**Valor total:** {{valor}}\n**Pagamento:** {{pagamento}}\n**Validade:** {{validade}}" },
+    ],
+  },
+];
+
+export const SEED_PROPOSALS: Proposal[] = [
+  {
+    proposal_id: "prop-1", proposal_code: "PROP-001",
+    opportunity_id: "o3", opportunity_name: "CEM — Produção Anual",
+    account_name: "Colégio CEM", template_id: "ptpl-2", template_name: "Proposta — Produção Audiovisual",
+    title: "Proposta de Produção Audiovisual — CEM 2026", bu: "CAZA", owner: "Miguel",
+    deal_value: 35000, valid_until: "2026-05-31",
+    sections: [
+      { id: "s1", title: "Apresentação", order: 1, content: "A **Caza Vision** produz conteúdo audiovisual de alta performance para marcas que comunicam com qualidade.\n\nEsta proposta foi preparada exclusivamente para o **Colégio CEM**." },
+      { id: "s2", title: "Escopo de Produção", order: 2, content: "**Formatos entregues:** 4 vídeos institucionais + 12 reels\n\nProdução completa incluindo pré-produção, gravação em 2 dias e pós-produção com motion design." },
+      { id: "s3", title: "Cronograma", order: 3, content: "**Data de gravação:** 20/05/2026\n**Prazo de entrega:** 10 dias úteis após gravação" },
+      { id: "s4", title: "Investimento", order: 4, content: "**Valor total:** R$ 35.000\n**Pagamento:** 50% na aprovação + 50% na entrega\n**Validade:** 31/05/2026" },
+    ],
+    status: "viewed", sent_at: "2026-04-21T10:05:00Z", viewed_at: "2026-04-21T14:00:00Z", viewed_count: 3,
+    signature_status: "pending", signature_requested_at: "2026-04-21T10:05:00Z",
+    signature_link: "https://sign.awq.com.br/prop-001", signed_at: null, signer_name: null,
+    signer_email: "fernanda@colegiocm.com.br", declined_at: null, decline_reason: null,
+    created_at: "2026-04-20T15:00:00Z", updated_at: "2026-04-21T14:00:00Z",
+  },
+  {
+    proposal_id: "prop-2", proposal_code: "PROP-002",
+    opportunity_id: "o4", opportunity_name: "Reabilicor — Consultoria",
+    account_name: "Reabilicor", template_id: "ptpl-3", template_name: "Proposta — Consultoria Estratégica",
+    title: "Consultoria Estratégica de Marketing — Reabilicor", bu: "ADVISOR", owner: "Danilo",
+    deal_value: 95000, valid_until: "2026-05-15",
+    sections: [
+      { id: "s1", title: "Contexto e Objetivo", order: 1, content: "Com base nas conversas com **Dr. Roberto Silva** da **Reabilicor**, identificamos o seguinte objetivo central:\n\n> Desenvolver uma estratégia de marketing digital para aumentar o reconhecimento da marca na região e captar 30% mais pacientes em 6 meses." },
+      { id: "s2", title: "Metodologia", order: 2, content: "Nossa abordagem inclui diagnóstico de posicionamento, análise competitiva, definição de personas e plano de conteúdo integrado." },
+      { id: "s3", title: "Duração e Entregas", order: 3, content: "**Duração do projeto:** 6 meses\n\n**Entregas previstas:**\n- Diagnóstico estratégico\n- Plano de ação\n- Acompanhamento mensal" },
+      { id: "s4", title: "Investimento", order: 4, content: "**Valor total:** R$ 95.000\n**Pagamento:** Parcelado em 6x mensais\n**Validade:** 15/05/2026" },
+    ],
+    status: "sent", sent_at: "2026-04-10T09:00:00Z", viewed_at: null, viewed_count: 0,
+    signature_status: "pending", signature_requested_at: "2026-04-10T09:00:00Z",
+    signature_link: "https://sign.awq.com.br/prop-002", signed_at: null, signer_name: null,
+    signer_email: "roberto@reabilicor.com.br", declined_at: null, decline_reason: null,
+    created_at: "2026-04-09T16:00:00Z", updated_at: "2026-04-10T09:00:00Z",
+  },
+  {
+    proposal_id: "prop-3", proposal_code: "PROP-003",
+    opportunity_id: "o5", opportunity_name: "Carol Bertolini — Pacote Social",
+    account_name: "Carol Bertolini", template_id: "ptpl-1", template_name: "Proposta Padrão — Social Media",
+    title: "Gestão de Redes Sociais — Carol Bertolini", bu: "JACQES", owner: "Miguel",
+    deal_value: 18000, valid_until: "2026-04-20",
+    sections: [
+      { id: "s1", title: "Apresentação", order: 1, content: "Proposta de gestão mensal de redes sociais preparada para **Carol Bertolini**." },
+      { id: "s2", title: "Escopo", order: 2, content: "Gestão completa de Instagram e TikTok: 20 posts/mês, stories diários, copy, design e relatório mensal." },
+      { id: "s3", title: "Investimento", order: 3, content: "**Valor:** R$ 18.000/ano (R$ 1.500/mês)\n**Pagamento:** Anual antecipado\n**Validade:** 20/04/2026" },
+      { id: "s4", title: "Próximos Passos", order: 4, content: "1. Aprovação e assinatura\n2. Kickoff — 01/05/2026\n3. Início das entregas" },
+    ],
+    status: "signed", sent_at: "2026-04-08T10:00:00Z", viewed_at: "2026-04-08T14:00:00Z", viewed_count: 2,
+    signature_status: "signed", signature_requested_at: "2026-04-08T10:00:00Z",
+    signature_link: "https://sign.awq.com.br/prop-003", signed_at: "2026-04-12T11:30:00Z",
+    signer_name: "Carol Bertolini", signer_email: "carol@carolbertolini.com.br",
+    declined_at: null, decline_reason: null,
+    created_at: "2026-04-07T15:00:00Z", updated_at: "2026-04-12T11:30:00Z",
+  },
+];
+
+// ─── Proposal Template CRUD ───────────────────────────────────────────────────
+
+export async function listProposalTemplates(filters?: { bu?: string }): Promise<ProposalTemplate[]> {
+  if (!sql) return SEED_PROPOSAL_TEMPLATES;
+  try {
+    const rows = await sql`
+      SELECT * FROM crm_proposal_templates
+      WHERE (${filters?.bu ?? null} IS NULL OR bu IN ('ALL', ${filters?.bu ?? ''}))
+        AND is_active = TRUE
+      ORDER BY created_at DESC
+    `;
+    return rows.map(r => ({ ...r, sections: r.sections ?? [], variables: r.variables ?? [] })) as ProposalTemplate[];
+  } catch { return SEED_PROPOSAL_TEMPLATES; }
+}
+
+// ─── Proposal CRUD ────────────────────────────────────────────────────────────
+
+export async function listProposals(filters?: { opportunity_id?: string; status?: string; bu?: string }): Promise<Proposal[]> {
+  if (!sql) return SEED_PROPOSALS;
+  try {
+    const rows = await sql`
+      SELECT p.*,
+        o.opportunity_name, a.account_name,
+        t.name as template_name
+      FROM crm_proposals p
+      LEFT JOIN crm_opportunities o ON o.opportunity_id = p.opportunity_id
+      LEFT JOIN crm_accounts a ON a.account_id = o.account_id
+      LEFT JOIN crm_proposal_templates t ON t.template_id = p.template_id
+      WHERE (${filters?.opportunity_id ?? null} IS NULL OR p.opportunity_id = ${filters?.opportunity_id ?? ''})
+        AND (${filters?.status ?? null} IS NULL OR p.status = ${filters?.status ?? ''})
+        AND (${filters?.bu ?? null} IS NULL OR p.bu = ${filters?.bu ?? ''})
+      ORDER BY p.created_at DESC
+    `;
+    return rows.map(r => ({ ...r, sections: r.sections ?? [] })) as Proposal[];
+  } catch { return SEED_PROPOSALS; }
+}
+
+export async function getProposal(id: string): Promise<Proposal | null> {
+  if (!sql) return SEED_PROPOSALS.find(p => p.proposal_id === id) ?? null;
+  try {
+    const rows = await sql`
+      SELECT p.*, o.opportunity_name, a.account_name, t.name as template_name
+      FROM crm_proposals p
+      LEFT JOIN crm_opportunities o ON o.opportunity_id = p.opportunity_id
+      LEFT JOIN crm_accounts a ON a.account_id = o.account_id
+      LEFT JOIN crm_proposal_templates t ON t.template_id = p.template_id
+      WHERE p.proposal_id = ${id}
+    `;
+    if (!rows.length) return null;
+    return { ...rows[0], sections: rows[0].sections ?? [] } as Proposal;
+  } catch { return null; }
+}
+
+export async function createProposal(data: Partial<Proposal>): Promise<Proposal> {
+  if (!sql) throw new Error("DB not available");
+  const code = `PROP-${String(Date.now()).slice(-4)}`;
+  const rows = await sql`
+    INSERT INTO crm_proposals (
+      proposal_code, opportunity_id, template_id, title, bu, owner,
+      deal_value, valid_until, sections, status, signer_email
+    ) VALUES (
+      ${code}, ${data.opportunity_id!}, ${data.template_id ?? null},
+      ${data.title!}, ${data.bu ?? 'JACQES'}, ${data.owner ?? 'Miguel'},
+      ${data.deal_value ?? 0}, ${data.valid_until ?? null},
+      ${JSON.stringify(data.sections ?? [])}::jsonb,
+      'draft', ${data.signer_email ?? null}
+    ) RETURNING *
+  `;
+  if (data.template_id) {
+    await sql`UPDATE crm_proposal_templates SET times_used = times_used + 1 WHERE template_id = ${data.template_id}`;
+  }
+  return rows[0] as Proposal;
+}
+
+export async function updateProposal(id: string, data: Partial<Proposal>): Promise<Proposal> {
+  if (!sql) throw new Error("DB not available");
+  const rows = await sql`
+    UPDATE crm_proposals SET
+      title               = COALESCE(${data.title ?? null}, title),
+      status              = COALESCE(${data.status ?? null}, status),
+      sections            = COALESCE(${data.sections ? JSON.stringify(data.sections) : null}::jsonb, sections),
+      valid_until         = COALESCE(${data.valid_until ?? null}::date, valid_until),
+      sent_at             = COALESCE(${data.sent_at ?? null}::timestamptz, sent_at),
+      viewed_at           = COALESCE(${data.viewed_at ?? null}::timestamptz, viewed_at),
+      viewed_count        = COALESCE(${data.viewed_count ?? null}, viewed_count),
+      signature_status    = COALESCE(${data.signature_status ?? null}, signature_status),
+      signature_requested_at = COALESCE(${data.signature_requested_at ?? null}::timestamptz, signature_requested_at),
+      signature_link      = COALESCE(${data.signature_link ?? null}, signature_link),
+      signed_at           = COALESCE(${data.signed_at ?? null}::timestamptz, signed_at),
+      signer_name         = COALESCE(${data.signer_name ?? null}, signer_name),
+      signer_email        = COALESCE(${data.signer_email ?? null}, signer_email),
+      declined_at         = COALESCE(${data.declined_at ?? null}::timestamptz, declined_at),
+      decline_reason      = COALESCE(${data.decline_reason ?? null}, decline_reason),
+      updated_at          = NOW()
+    WHERE proposal_id = ${id}
+    RETURNING *
+  `;
+  return rows[0] as Proposal;
 }
