@@ -41,8 +41,15 @@ import {
   Package,
   UserPlus,
   ArrowUpRight,
+  ArrowDownLeft,
   CheckCircle2,
   FileUp,
+  Landmark,
+  Receipt,
+  ListOrdered,
+  BookOpen,
+  LayoutGrid,
+  Database,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -56,11 +63,21 @@ const JACQES_PREFIXES  = ["/jacqes"];
 const CAZA_PREFIXES    = ["/caza-vision"];
 const ADVISOR_PREFIXES = ["/advisor"];
 const VENTURE_PREFIXES = ["/awq-venture"];
+const CRM_PREFIXES     = ["/crm"];
+const EPM_PREFIXES     = ["/awq/epm"];
+const PPM_PREFIXES     = ["/awq/ppm"];
+const BI_PREFIXES      = ["/awq/bi"];
+const SETTINGS_PREFIXES = ["/settings"];
 
-function isJacqesRoute(p: string)  { return JACQES_PREFIXES.some((x)  => p.startsWith(x)); }
-function isCazaRoute(p: string)    { return CAZA_PREFIXES.some((x)    => p.startsWith(x)); }
-function isAdvisorRoute(p: string) { return ADVISOR_PREFIXES.some((x) => p.startsWith(x)); }
-function isVentureRoute(p: string) { return VENTURE_PREFIXES.some((x) => p.startsWith(x)); }
+function isJacqesRoute(p: string)   { return JACQES_PREFIXES.some((x)   => p.startsWith(x)); }
+function isCazaRoute(p: string)     { return CAZA_PREFIXES.some((x)     => p.startsWith(x)); }
+function isAdvisorRoute(p: string)  { return ADVISOR_PREFIXES.some((x)  => p.startsWith(x)); }
+function isVentureRoute(p: string)  { return VENTURE_PREFIXES.some((x)  => p.startsWith(x)); }
+function isCrmRoute(p: string)      { return CRM_PREFIXES.some((x)      => p === x || p.startsWith(x + "/")); }
+function isEpmRoute(p: string)      { return EPM_PREFIXES.some((x)      => p === x || p.startsWith(x + "/")); }
+function isPpmRoute(p: string)      { return PPM_PREFIXES.some((x)      => p === x || p.startsWith(x + "/")); }
+function isBiRoute(p: string)       { return BI_PREFIXES.some((x)       => p === x || p.startsWith(x + "/")); }
+function isSettingsRoute(p: string) { return SETTINGS_PREFIXES.some((x) => p === x || p.startsWith(x + "/")); }
 
 // ── Nav configs ───────────────────────────────────────────────────────────
 const awqNav = [
@@ -83,7 +100,7 @@ const awqEpmNav = [
   { label: "Controladoria",    href: "/awq/management",     icon: ShieldCheck },
 ];
 
-// CRM — Vendas, leads, pipeline, clientes, oportunidades
+// CRM — Vendas, leads, pipeline, clientes, oportunidades (AWQ module list)
 const awqCrmNav = [
   { label: "Dashboard CRM",  href: "/crm",                 icon: Target       },
   { label: "Leads",          href: "/crm/leads",           icon: UserPlus     },
@@ -91,6 +108,86 @@ const awqCrmNav = [
   { label: "Clientes",       href: "/crm/customers",       icon: Users        },
   { label: "Oportunidades",  href: "/crm/opportunities",   icon: ArrowUpRight },
   { label: "Matriz RFM",     href: "/crm/rfm",             icon: BarChart3    },
+];
+
+// CRM Tower — nav completo (espelha CrmSidebar desktop)
+const crmTowerNav = [
+  { label: "Dashboard CRM",  href: "/crm",                 icon: Target       },
+  { label: "Contas",         href: "/crm/accounts",        icon: Building2    },
+  { label: "Contatos",       href: "/crm/contacts",        icon: Users        },
+  { label: "Leads",          href: "/crm/leads",           icon: UserPlus     },
+  { label: "Oportunidades",  href: "/crm/opportunities",   icon: ArrowUpRight },
+  { label: "Atividades",     href: "/crm/activities",      icon: Activity     },
+  { label: "Analytics",      href: "/crm/analytics",       icon: BarChart3    },
+  { label: "Matriz RFM",     href: "/crm/rfm",             icon: PieChart     },
+];
+
+// EPM Tower — FP&A
+const epmFpaNav = [
+  { label: "Visão Geral EPM",      href: "/awq/epm",                     icon: Layers        },
+  { label: "Financial (DRE)",      href: "/awq/financial",               icon: LineChart     },
+  { label: "P&L (DRE)",           href: "/awq/epm/pl",                  icon: LineChart     },
+  { label: "Balanço Patrimonial",  href: "/awq/epm/balance-sheet",       icon: Scale         },
+  { label: "Budget",              href: "/awq/budget",                  icon: BarChart3     },
+  { label: "Forecast",            href: "/awq/forecast",                icon: TrendingUp    },
+  { label: "Budget vs Actual",    href: "/awq/epm/budget",              icon: Target        },
+];
+
+// EPM Tower — Tesouraria
+const epmTesourariaNav = [
+  { label: "Cash Flow",           href: "/awq/cashflow",                icon: Zap           },
+  { label: "Contas Banco",        href: "/awq/bank",                    icon: CreditCard    },
+  { label: "Investimentos",       href: "/awq/investments",             icon: Landmark      },
+  { label: "Conciliação",         href: "/awq/conciliacao",             icon: CheckCircle2  },
+];
+
+// EPM Tower — AP & AR
+const epmApArNav = [
+  { label: "AP & AR",             href: "/awq/ap-ar",                   icon: FileText      },
+  { label: "Contas a Pagar",      href: "/awq/epm/ap",                  icon: ArrowDownLeft },
+  { label: "AP Aging",            href: "/awq/epm/ap/aging",            icon: Receipt       },
+  { label: "Contas a Receber",    href: "/awq/epm/ar",                  icon: ArrowUpRight  },
+  { label: "AR Aging",            href: "/awq/epm/ar/aging",            icon: Receipt       },
+];
+
+// EPM Tower — Controladoria
+const epmControladoriaNav = [
+  { label: "KPI Dashboard",       href: "/awq/epm/kpis",                icon: PieChart      },
+  { label: "Razão Geral (GL)",    href: "/awq/epm/gl",                  icon: ListOrdered   },
+  { label: "Consolidação",        href: "/awq/epm/consolidation",       icon: Building2     },
+  { label: "Conciliação Bancária",href: "/awq/epm/bank-reconciliation", icon: Landmark      },
+  { label: "Reconhec. de Receita",href: "/awq/epm/revenue-recognition", icon: BookOpen      },
+  { label: "Centros de Custo",    href: "/awq/epm/cost-centers",        icon: LayoutGrid    },
+  { label: "Controladoria",       href: "/awq/management",              icon: ShieldCheck   },
+  { label: "Contabilidade",       href: "/awq/contabilidade",           icon: BookOpen      },
+  { label: "Fiscal",              href: "/awq/fiscal",                  icon: Receipt       },
+];
+
+// EPM Tower — Partes
+const epmPartesNav = [
+  { label: "Fornecedores",        href: "/awq/epm/suppliers",           icon: Building2     },
+  { label: "Clientes EPM",        href: "/awq/epm/customers",           icon: Users         },
+];
+
+// PPM Tower
+const ppmTowerNav = [
+  { label: "Portfolio",           href: "/awq/ppm",                     icon: Briefcase     },
+  { label: "Gantt",               href: "/awq/ppm/gantt",               icon: GanttChart    },
+  { label: "Tarefas",             href: "/awq/ppm/tasks",               icon: ClipboardList },
+  { label: "Timesheets",          href: "/awq/ppm/timesheets",          icon: Clock         },
+  { label: "Recursos",            href: "/awq/ppm/resources",           icon: Users         },
+  { label: "Utilização",          href: "/awq/ppm/utilization",         icon: BarChart3     },
+  { label: "Rentabilidade",       href: "/awq/ppm/profitability",       icon: TrendingUp    },
+  { label: "Riscos",              href: "/awq/ppm/risks",               icon: AlertTriangle },
+];
+
+// BI Tower
+const biTowerNav = [
+  { label: "Dashboards",          href: "/awq/bi",                      icon: PieChart      },
+  { label: "Relatórios",          href: "/awq/bi/reports",              icon: FileText      },
+  { label: "Análises",            href: "/awq/bi/analytics",            icon: BarChart3     },
+  { label: "Visualizações",       href: "/awq/bi/visualizations",       icon: LineChart     },
+  { label: "Base de Dados",       href: "/awq/data",                    icon: Database      },
 ];
 
 // PPM — Projetos, tasks, alocação de pessoas, cronogramas
@@ -327,10 +424,18 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
 
-  const jacqesMode  = isJacqesRoute(pathname);
-  const cazaMode    = isCazaRoute(pathname);
-  const advisorMode = isAdvisorRoute(pathname);
-  const ventureMode = isVentureRoute(pathname);
+  const jacqesMode   = isJacqesRoute(pathname);
+  const cazaMode     = isCazaRoute(pathname);
+  const advisorMode  = isAdvisorRoute(pathname);
+  const ventureMode  = isVentureRoute(pathname);
+  const crmMode      = isCrmRoute(pathname);
+  const epmMode      = isEpmRoute(pathname);
+  const ppmMode      = isPpmRoute(pathname);
+  const biMode       = isBiRoute(pathname);
+  const settingsMode = isSettingsRoute(pathname);
+
+  const isBuMode = jacqesMode || cazaMode || advisorMode || ventureMode;
+  const isTowerMode = crmMode || epmMode || ppmMode || biMode || settingsMode;
 
   let buContext: React.ReactNode = null;
 
@@ -367,6 +472,42 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
         label="AWQ Venture"
         sub="Investimentos · AWQ Group"
         colorClass="bg-amber-50 border-amber-200 text-amber-700"
+        onNavigate={onClose}
+      />
+    );
+  } else if (crmMode) {
+    buContext = (
+      <BUContextBar
+        label="CRM Tower"
+        sub="Vendas · AWQ Group"
+        colorClass="bg-brand-50 border-brand-200 text-brand-700"
+        onNavigate={onClose}
+      />
+    );
+  } else if (epmMode) {
+    buContext = (
+      <BUContextBar
+        label="EPM Tower"
+        sub="Finanças · AWQ Group"
+        colorClass="bg-brand-50 border-brand-200 text-brand-700"
+        onNavigate={onClose}
+      />
+    );
+  } else if (ppmMode) {
+    buContext = (
+      <BUContextBar
+        label="PPM Tower"
+        sub="Projetos · AWQ Group"
+        colorClass="bg-brand-50 border-brand-200 text-brand-700"
+        onNavigate={onClose}
+      />
+    );
+  } else if (biMode) {
+    buContext = (
+      <BUContextBar
+        label="BI Tower"
+        sub="Analytics · AWQ Group"
+        colorClass="bg-brand-50 border-brand-200 text-brand-700"
         onNavigate={onClose}
       />
     );
@@ -509,8 +650,98 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
             </>
           )}
 
+          {/* ── CRM Tower ────────────────────────────────── */}
+          {crmMode && (
+            <>
+              <SectionLabel>CRM · Navegação</SectionLabel>
+              <div className="space-y-0.5">
+                {crmTowerNav.map((item) => (
+                  <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* ── EPM Tower ────────────────────────────────── */}
+          {epmMode && (
+            <>
+              <SectionLabel>FP&A</SectionLabel>
+              <div className="space-y-0.5">
+                {epmFpaNav.map((item) => (
+                  <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
+                ))}
+              </div>
+              <SectionLabel>Tesouraria</SectionLabel>
+              <div className="space-y-0.5">
+                {epmTesourariaNav.map((item) => (
+                  <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
+                ))}
+              </div>
+              <SectionLabel>AP & AR</SectionLabel>
+              <div className="space-y-0.5">
+                {epmApArNav.map((item) => (
+                  <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
+                ))}
+              </div>
+              <SectionLabel>Controladoria</SectionLabel>
+              <div className="space-y-0.5">
+                {epmControladoriaNav.map((item) => (
+                  <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
+                ))}
+              </div>
+              <SectionLabel>Partes</SectionLabel>
+              <div className="space-y-0.5">
+                {epmPartesNav.map((item) => (
+                  <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* ── PPM Tower ────────────────────────────────── */}
+          {ppmMode && (
+            <>
+              <SectionLabel>PPM · Navegação</SectionLabel>
+              <div className="space-y-0.5">
+                {ppmTowerNav.map((item) => (
+                  <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* ── BI Tower ─────────────────────────────────── */}
+          {biMode && (
+            <>
+              <SectionLabel>BI · Navegação</SectionLabel>
+              <div className="space-y-0.5">
+                {biTowerNav.map((item) => (
+                  <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* ── Settings ─────────────────────────────────── */}
+          {settingsMode && (
+            <>
+              <SectionLabel>Configurações</SectionLabel>
+              <div className="space-y-0.5">
+                <NavLink href="/settings" icon={Settings} label="Geral" active={pathname === "/settings"} onNavigate={onClose} />
+              </div>
+              <SectionLabel>Segurança</SectionLabel>
+              <div className="space-y-0.5">
+                <NavLink href="/settings/security" icon={ShieldCheck} label="Segurança" active={isActive("/settings/security")} onNavigate={onClose} />
+              </div>
+              <SectionLabel>Sistema</SectionLabel>
+              <div className="space-y-0.5">
+                <NavLink href="/settings/integrations" icon={Database} label="Integrações" active={isActive("/settings/integrations")} onNavigate={onClose} />
+              </div>
+            </>
+          )}
+
           {/* ── AWQ Group ────────────────────────────────── */}
-          {!jacqesMode && !cazaMode && !advisorMode && !ventureMode && (
+          {!isBuMode && !isTowerMode && (
             <>
               <SectionLabel>AWQ Group · Visão Geral</SectionLabel>
               <div className="space-y-0.5">
@@ -522,7 +753,7 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
           )}
 
           {/* 10 modules — only in AWQ mode */}
-          {!jacqesMode && !cazaMode && !advisorMode && !ventureMode && (
+          {!isBuMode && !isTowerMode && (
             <>
               <SectionLabel>EPM · Finanças & Performance</SectionLabel>
               <div className="space-y-0.5">
@@ -588,7 +819,7 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
           )}
 
           {/* BU quick-switch when in AWQ mode */}
-          {!jacqesMode && !cazaMode && !advisorMode && !ventureMode && (
+          {!isBuMode && !isTowerMode && (
             <>
               <SectionLabel>Business Units</SectionLabel>
               <div className="space-y-2 mt-1">
@@ -613,16 +844,26 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
             </>
           )}
 
-          <SectionLabel>IA & Agentes</SectionLabel>
-          <div className="space-y-0.5">
-            <NavLink href="/agents"   icon={Bot}      label="Agents"   active={isActive("/agents")}   onNavigate={onClose} />
-            <NavLink href="/openclaw" icon={Sparkles} label="OpenClaw" active={isActive("/openclaw")} onNavigate={onClose} />
-          </div>
+          {/* IA & Agentes — sempre visível */}
+          {!settingsMode && (
+            <>
+              <SectionLabel>IA & Agentes</SectionLabel>
+              <div className="space-y-0.5">
+                <NavLink href="/agents"   icon={Bot}      label="Agents"   active={isActive("/agents")}   onNavigate={onClose} />
+                <NavLink href="/openclaw" icon={Sparkles} label="OpenClaw" active={isActive("/openclaw")} onNavigate={onClose} />
+              </div>
+            </>
+          )}
 
-          <SectionLabel>Sistema</SectionLabel>
-          <div className="space-y-0.5">
-            <NavLink href="/settings" icon={Settings} label="Settings" active={pathname === "/settings"} onNavigate={onClose} />
-          </div>
+          {/* Sistema — sempre visível */}
+          {!settingsMode && (
+            <SectionLabel>Sistema</SectionLabel>
+          )}
+          {!settingsMode && (
+            <div className="space-y-0.5">
+              <NavLink href="/settings" icon={Settings} label="Settings" active={pathname === "/settings"} onNavigate={onClose} />
+            </div>
+          )}
         </nav>
 
         {/* Drawer Footer */}
