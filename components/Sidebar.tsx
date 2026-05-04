@@ -984,6 +984,18 @@ const JACQES_MODULES: BUModule[] = [
         ],
     },
     {
+        id: "bi",
+        label: "BI",
+        description: "Analytics & Relatórios",
+        icon: PieChart,
+        items: [
+            { label: "Receita",        href: "/jacqes/revenue",        icon: TrendingUp },
+            { label: "Unit Economics", href: "/jacqes/unit-economics", icon: Calculator },
+            { label: "FP&A",          href: "/jacqes/fpa",            icon: BarChart3  },
+            { label: "Relatórios",    href: "/jacqes/reports",        icon: FileText   },
+        ],
+    },
+    {
         id: "ops",
         label: "Gestão",
         description: "Carreira & Operações",
