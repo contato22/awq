@@ -1080,6 +1080,7 @@ const JACQES_MODULES: BUModule[] = [
         description: "Analytics & Relatórios",
         icon: PieChart,
         items: [
+            { label: "Mini P&L",       href: "/jacqes/pl",             icon: LineChart  },
             { label: "Receita",        href: "/jacqes/revenue",        icon: TrendingUp },
             { label: "Unit Economics", href: "/jacqes/unit-economics", icon: Calculator },
             { label: "FP&A",          href: "/jacqes/fpa",            icon: BarChart3  },
