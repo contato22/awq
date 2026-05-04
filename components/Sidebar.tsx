@@ -1564,16 +1564,18 @@ function PpmSidebar({ pathname }: { pathname: string }) {
 
 // ── BI sidebar ────────────────────────────────────────────────────────────────
 const biNav = [
-    { label: "Dashboards",    href: "/awq/bi",                icon: PieChart  },
-    { label: "Relatórios",    href: "/awq/bi/reports",        icon: FileText  },
-    { label: "Análises",      href: "/awq/bi/analytics",      icon: BarChart3 },
-    { label: "Visualizações", href: "/awq/bi/visualizations", icon: LineChart },
-    { label: "Base de Dados", href: "/awq/data",              icon: Database  },
+    { label: "Base de Dados",   href: "/awq/data",              icon: Database  },
+    { label: "Relatórios",      href: "/awq/bi/reports",        icon: FileText  },
+    { label: "Análises",        href: "/awq/bi/analytics",      icon: BarChart3 },
+    { label: "Visualizações",   href: "/awq/bi/visualizations", icon: LineChart },
+    { label: "Dashboards",      href: "/awq/bi",                icon: PieChart  },
 ];
 
 function BiSidebar({ pathname }: { pathname: string }) {
     const isActive = (href: string) =>
-        href === "/awq/bi"
+        href === "/awq/data"
+            ? pathname === "/awq/data"
+            : href === "/awq/bi"
             ? pathname === "/awq/bi"
             : pathname === href || pathname.startsWith(href + "/");
 
