@@ -27,10 +27,13 @@ type Analytics = {
   byStage: Record<string, { count: number; value: number; weighted: number }>;
 };
 
+const BU_LIST = ["Todos", "JACQES", "CAZA", "ADVISOR", "VENTURE"] as const;
+
 export default function AnalyticsPage() {
   const [data, setData] = useState<Analytics | null>(null);
   const [opps, setOpps] = useState<CrmOpportunity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [buFilter, setBuFilter] = useState("Todos");
 
   useEffect(() => {
     Promise.all([
@@ -45,11 +48,15 @@ export default function AnalyticsPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  const filteredOpps = useMemo(() =>
+    buFilter === "Todos" ? opps : opps.filter(o => o.bu === buFilter),
+  [opps, buFilter]);
+
   const metrics = useMemo(() => {
-    if (data) return data;
-    const open = opps.filter(o=>o.stage!=="closed_won"&&o.stage!=="closed_lost");
-    const won  = opps.filter(o=>o.stage==="closed_won");
-    const closed = opps.filter(o=>o.stage==="closed_won"||o.stage==="closed_lost");
+    const open = filteredOpps.filter(o=>o.stage!=="closed_won"&&o.stage!=="closed_lost");
+    const won  = filteredOpps.filter(o=>o.stage==="closed_won");
+    const closed = filteredOpps.filter(o=>o.stage==="closed_won"||o.stage==="closed_lost");
+    if (data && buFilter === "Todos") return data;
     return {
       leadsNew: 0,
       openOpportunities: open.length,
@@ -61,25 +68,25 @@ export default function AnalyticsPage() {
       byBU: {} as Record<string, { count: number; value: number; weighted: number }>,
       byStage: {} as Record<string, { count: number; value: number; weighted: number }>,
     };
-  }, [data, opps]);
+  }, [data, filteredOpps, buFilter]);
 
   const stageData = useMemo(() => ["discovery","qualification","proposal","negotiation"].map(s => ({
     stage: STAGE_PT[s],
-    value: data?.byStage[s]?.value ?? opps.filter(o=>o.stage===s).reduce((sum,o)=>sum+o.deal_value,0),
-    count: data?.byStage[s]?.count ?? opps.filter(o=>o.stage===s).length,
-    weighted: data?.byStage[s]?.weighted ?? opps.filter(o=>o.stage===s).reduce((sum,o)=>sum+o.deal_value*o.probability/100,0),
+    value: filteredOpps.filter(o=>o.stage===s).reduce((sum,o)=>sum+o.deal_value,0),
+    count: filteredOpps.filter(o=>o.stage===s).length,
+    weighted: filteredOpps.filter(o=>o.stage===s).reduce((sum,o)=>sum+o.deal_value*o.probability/100,0),
     color: ["#3b82f6","#8b5cf6","#f59e0b","#f97316"][["discovery","qualification","proposal","negotiation"].indexOf(s)],
-  })), [data, opps]);
+  })), [filteredOpps]);
 
   const buData = useMemo(() => ["JACQES","CAZA","ADVISOR","VENTURE"].map(bu => ({
     bu,
-    value: data?.byBU[bu]?.value ?? opps.filter(o=>o.bu===bu&&o.stage!=="closed_won"&&o.stage!=="closed_lost").reduce((s,o)=>s+o.deal_value,0),
-    count: data?.byBU[bu]?.count ?? opps.filter(o=>o.bu===bu&&o.stage!=="closed_won"&&o.stage!=="closed_lost").length,
+    value: filteredOpps.filter(o=>o.bu===bu&&o.stage!=="closed_won"&&o.stage!=="closed_lost").reduce((s,o)=>s+o.deal_value,0),
+    count: filteredOpps.filter(o=>o.bu===bu&&o.stage!=="closed_won"&&o.stage!=="closed_lost").length,
     color: BU_COLORS[bu],
-  })), [data, opps]);
+  })), [filteredOpps]);
 
   const reps = useMemo(() => ["Miguel","Danilo"].map(r => {
-    const myOpps = opps.filter(o=>o.owner===r);
+    const myOpps = filteredOpps.filter(o=>o.owner===r);
     const myOpen = myOpps.filter(o=>o.stage!=="closed_won"&&o.stage!=="closed_lost");
     const myWon  = myOpps.filter(o=>o.stage==="closed_won");
     const myLost = myOpps.filter(o=>o.stage==="closed_lost");
@@ -92,7 +99,7 @@ export default function AnalyticsPage() {
       wonDeals: myWon.length,
       winRate: myClosed>0?Math.round(myWon.length/myClosed*100):0,
     };
-  }), [opps]);
+  }), [filteredOpps]);
 
   if (loading) return (
     <>
@@ -121,6 +128,19 @@ export default function AnalyticsPage() {
     <>
       <Header title="Analytics — CRM AWQ" subtitle="Métricas de pipeline e performance de vendas" />
       <div className="page-container">
+
+        {/* BU Filter */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-500 font-medium">BU:</span>
+          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+            {BU_LIST.map(b => (
+              <button key={b} onClick={() => setBuFilter(b)}
+                className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${buFilter === b ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
+                {b}
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* KPI Row */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

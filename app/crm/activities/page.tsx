@@ -43,11 +43,14 @@ function groupByDate(acts: CrmActivity[]) {
   return Object.entries(groups).sort(([a],[b]) => b.localeCompare(a));
 }
 
+const BU_LIST = ["Todos", "JACQES", "CAZA", "ADVISOR", "VENTURE"] as const;
+
 export default function ActivitiesPage() {
   const [activities, setActivities] = useState<CrmActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState("Todos");
   const [filterStatus, setFilterStatus] = useState("Todos");
+  const [filterBu, setFilterBu] = useState("Todos");
   const [completing, setCompleting] = useState<string | null>(null);
 
   useEffect(() => {
@@ -61,6 +64,7 @@ export default function ActivitiesPage() {
   const filtered = activities.filter(a => {
     if (filterType !== "Todos" && a.activity_type !== filterType) return false;
     if (filterStatus !== "Todos" && a.status !== filterStatus) return false;
+    if (filterBu !== "Todos" && a.bu !== filterBu) return false;
     return true;
   });
 
@@ -119,6 +123,13 @@ export default function ActivitiesPage() {
               </button>
             ))}
           </div>
+          <select
+            value={filterBu}
+            onChange={e => setFilterBu(e.target.value)}
+            className="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
+          >
+            {BU_LIST.map(b => <option key={b}>{b}</option>)}
+          </select>
           <Link href="/crm/activities/add"
             className="ml-auto flex items-center gap-1.5 px-3 py-2 bg-brand-600 text-white text-xs font-semibold rounded-lg hover:bg-brand-700 transition-colors">
             <Plus size={13} /> Registrar Atividade

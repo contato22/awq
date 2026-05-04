@@ -162,6 +162,7 @@ export type CrmActivity = {
   related_to_type: "lead" | "opportunity" | "account" | "contact";
   related_to_id: string;
   related_name?: string;
+  bu?: string;
   subject: string;
   description: string | null;
   outcome: "successful" | "unsuccessful" | "no_answer" | null;
