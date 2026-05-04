@@ -9,6 +9,7 @@ import EmptyState from "@/components/EmptyState";
 import {
   Users, Plus, Search, Target, TrendingUp,
   BarChart3, ExternalLink, RefreshCw, ChevronRight,
+  Upload, X, Download, CheckCircle2, AlertCircle, Link2,
 } from "lucide-react";
 import type { CrmLead } from "@/lib/crm-types";
 import { SEED_LEADS } from "@/lib/crm-db";
@@ -54,6 +55,208 @@ function BuBadge({ bu }: { bu: string }) {
   return <span className="badge badge-yellow text-[10px]">{bu}</span>;
 }
 
+// ─── CSV Import Modal ─────────────────────────────────────────────────────────
+
+const CSV_TEMPLATE = `nome,empresa,email,telefone,cargo,bu,fonte,budget,necessidade,timeline,responsavel,notas
+Rafael Moura,Tech Solutions,rafael@tech.com,11999990000,CEO,CAZA,referral,50000,high,2026-08-01,Miguel,Cliente potencial via indicação`;
+
+type ImportResult = { success: boolean; row: number; name?: string; error?: string };
+
+function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
+  const [csv, setCsv] = useState("");
+  const [defaultBu, setDefaultBu] = useState("JACQES");
+  const [defaultAssigned, setDefaultAssigned] = useState("Miguel");
+  const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState<ImportResult[] | null>(null);
+  const [parsePreview, setParsePreview] = useState<number>(0);
+
+  useEffect(() => {
+    if (!csv.trim()) { setParsePreview(0); return; }
+    const lines = csv.split(/\r?\n/).filter(l => l.trim());
+    setParsePreview(Math.max(0, lines.length - 1));
+  }, [csv]);
+
+  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => setCsv((ev.target?.result as string) ?? "");
+    reader.readAsText(file, "utf-8");
+  }
+
+  function downloadTemplate() {
+    const blob = new Blob([CSV_TEMPLATE], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "leads_template.csv"; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function handleImport() {
+    if (!csv.trim()) return;
+    setLoading(true);
+    setResults(null);
+    try {
+      const res = await fetch("/api/crm/leads/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ csv, default_bu: defaultBu, default_assigned_to: defaultAssigned }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setResults(json.data.results);
+      } else {
+        setResults([{ success: false, row: 0, error: json.error ?? "Erro desconhecido" }]);
+      }
+    } catch {
+      setResults([{ success: false, row: 0, error: "Erro de conexão" }]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const importedCount = results?.filter(r => r.success).length ?? 0;
+  const errCount = results?.filter(r => !r.success).length ?? 0;
+  const allDone = results !== null;
+
+  const selectCls = "w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+      <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-2">
+            <Upload size={15} className="text-blue-600" />
+            <h2 className="text-sm font-bold text-gray-900">Importar Leads via CSV</h2>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-700 transition-colors">
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="px-5 py-4 space-y-4 max-h-[70vh] overflow-y-auto">
+
+          {/* Template download */}
+          <div className="flex items-center justify-between p-3 rounded-xl bg-blue-50 border border-blue-200">
+            <div>
+              <p className="text-xs font-semibold text-blue-800">Precisa do modelo?</p>
+              <p className="text-[11px] text-blue-600">Baixe o CSV template com todas as colunas</p>
+            </div>
+            <button
+              onClick={downloadTemplate}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-white border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors"
+            >
+              <Download size={12} />
+              Template
+            </button>
+          </div>
+
+          {/* Upload area */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-2">Arquivo CSV</label>
+            <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-blue-300 hover:bg-blue-50/30 transition-colors">
+              <Upload size={18} className="text-gray-400 mb-1" />
+              <span className="text-xs text-gray-500">Clique para selecionar o arquivo</span>
+              <span className="text-[10px] text-gray-400">.csv, UTF-8</span>
+              <input type="file" accept=".csv,text/csv" className="hidden" onChange={handleFile} />
+            </label>
+          </div>
+
+          {/* Paste area */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+              Ou cole o conteúdo CSV diretamente
+              {parsePreview > 0 && (
+                <span className="ml-2 text-[10px] font-normal text-gray-500">
+                  {parsePreview} {parsePreview === 1 ? "linha detectada" : "linhas detectadas"}
+                </span>
+              )}
+            </label>
+            <textarea
+              rows={5}
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-mono text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 resize-none"
+              placeholder="nome,empresa,email,telefone,cargo,bu,fonte,budget,necessidade..."
+              value={csv}
+              onChange={e => setCsv(e.target.value)}
+            />
+          </div>
+
+          {/* Defaults */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">BU padrão (se não informada)</label>
+              <select className={selectCls} value={defaultBu} onChange={e => setDefaultBu(e.target.value)}>
+                <option value="JACQES">JACQES</option>
+                <option value="CAZA">CAZA</option>
+                <option value="ADVISOR">ADVISOR</option>
+                <option value="VENTURE">VENTURE</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">Responsável padrão</label>
+              <select className={selectCls} value={defaultAssigned} onChange={e => setDefaultAssigned(e.target.value)}>
+                <option value="Miguel">Miguel</option>
+                <option value="Danilo">Danilo</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Results */}
+          {results && (
+            <div className={`p-3 rounded-xl border text-sm ${errCount === 0 ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200"}`}>
+              <div className="flex items-center gap-2 mb-2">
+                {errCount === 0 ? <CheckCircle2 size={14} className="text-emerald-600" /> : <AlertCircle size={14} className="text-amber-600" />}
+                <span className="text-xs font-semibold text-gray-800">
+                  {importedCount} importado{importedCount !== 1 ? "s" : ""}
+                  {errCount > 0 && ` · ${errCount} com erro`}
+                </span>
+              </div>
+              {errCount > 0 && (
+                <ul className="space-y-1 max-h-32 overflow-y-auto">
+                  {results.filter(r => !r.success).map(r => (
+                    <li key={r.row} className="text-[11px] text-amber-700">
+                      Linha {r.row}: {r.error}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-gray-100">
+          {allDone ? (
+            <button onClick={onDone} className="btn-primary flex items-center gap-2 text-sm">
+              <CheckCircle2 size={14} />
+              Ver Leads importados
+            </button>
+          ) : (
+            <>
+              <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
+                Cancelar
+              </button>
+              <button
+                onClick={handleImport}
+                disabled={!csv.trim() || loading}
+                className="btn-primary flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? (
+                  <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Importando…</>
+                ) : (
+                  <><Upload size={14} />Importar {parsePreview > 0 ? `${parsePreview} leads` : "CSV"}</>
+                )}
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 function LeadsPageInner() {
@@ -62,6 +265,7 @@ function LeadsPageInner() {
   const [leads, setLeads] = useState<CrmLead[]>([]);
   const [loading, setLoading] = useState(true);
   const [isStatic, setIsStatic] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const urlBu = searchParams?.get("bu") ?? null;
   const [buFilter, setBuFilter] = useState<string>(urlBu && BU_LIST.includes(urlBu as typeof BU_LIST[number]) ? urlBu : "Todos");
@@ -159,6 +363,14 @@ function LeadsPageInner() {
       <Header title="Leads — CRM AWQ" subtitle="Pipeline de prospecção" />
       <div className="page-container">
 
+        {/* Import modal */}
+        {showImport && (
+          <ImportModal
+            onClose={() => setShowImport(false)}
+            onDone={() => { setShowImport(false); window.location.reload(); }}
+          />
+        )}
+
         {/* Header actions */}
         <div className="flex items-center justify-between gap-3 flex-wrap">
           {isStatic && (
@@ -168,13 +380,32 @@ function LeadsPageInner() {
             </span>
           )}
           {!isStatic && <div />}
-          <Link
-            href="/crm/leads/add"
-            className="btn-primary flex items-center gap-2 text-sm"
-          >
-            <Plus size={14} />
-            Adicionar Lead
-          </Link>
+          <div className="flex items-center gap-2 flex-wrap">
+            <a
+              href="/leads/capture?bu=JACQES"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-colors shadow-sm"
+              title="Abrir formulário público de captura"
+            >
+              <Link2 size={12} />
+              Web Form
+            </a>
+            <button
+              onClick={() => setShowImport(true)}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-colors shadow-sm"
+            >
+              <Upload size={12} />
+              Importar CSV
+            </button>
+            <Link
+              href="/crm/leads/add"
+              className="btn-primary flex items-center gap-2 text-sm"
+            >
+              <Plus size={14} />
+              Adicionar Lead
+            </Link>
+          </div>
         </div>
 
         {/* ── KPI Row ───────────────────────────────────────────────────────── */}
