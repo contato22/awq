@@ -9,7 +9,7 @@ import {
 } from "recharts";
 import { Users, DollarSign, TrendingUp, Star, AlertTriangle } from "lucide-react";
 import { formatBRL } from "@/lib/utils";
-import type { RfmCustomer, RfmResponse, RfmSegment } from "@/app/api/crm/rfm/route";
+import type { RfmCustomer, RfmResponse, RfmSegment } from "@/lib/crm-rfm-types";
 
 // ─── Segment display order ────────────────────────────────────────────────────
 const SEGMENT_ORDER: RfmSegment[] = [
