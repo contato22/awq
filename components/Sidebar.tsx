@@ -65,7 +65,11 @@ const JACQES_PREFIXES = ["/jacqes"];
 const CAZA_PREFIXES = ["/caza-vision"];
 const ADVISOR_PREFIXES = ["/advisor"];
 const VENTURE_PREFIXES = ["/awq-venture"];
-const CRM_PREFIXES = ["/crm"];
+const CRM_PREFIXES      = ["/crm"];
+const EPM_PREFIXES      = ["/awq/epm", "/awq/financial", "/awq/cashflow", "/awq/budget", "/awq/forecast", "/awq/bank", "/awq/investments", "/awq/ap-ar", "/awq/conciliacao", "/awq/contabilidade", "/awq/fiscal", "/awq/management"];
+const PPM_PREFIXES      = ["/awq/ppm"];
+const BI_PREFIXES       = ["/awq/bi", "/awq/data"];
+const SETTINGS_PREFIXES = ["/settings"];
 
 function isJacqesRoute(pathname: string) {
     return JACQES_PREFIXES.some((prefix) => pathname.startsWith(prefix));
@@ -81,6 +85,18 @@ function isVentureRoute(pathname: string) {
 }
 function isCrmRoute(pathname: string) {
     return CRM_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(prefix + "/"));
+}
+function isEpmRoute(pathname: string) {
+    return EPM_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(prefix + "/"));
+}
+function isPpmRoute(pathname: string) {
+    return PPM_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(prefix + "/"));
+}
+function isBiRoute(pathname: string) {
+    return BI_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(prefix + "/"));
+}
+function isSettingsRoute(pathname: string) {
+    return SETTINGS_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(prefix + "/"));
 }
 
 // ── BU nav arrays (unchanged) ─────────────────────────────────────────────────
@@ -1232,15 +1248,266 @@ function CrmSidebar({ pathname }: { pathname: string }) {
     );
 }
 
+// ── EPM sidebar ───────────────────────────────────────────────────────────────
+const epmNav = [
+    { label: "Dashboard EPM",        href: "/awq/epm",                       icon: DollarSign    },
+    { label: "Financial (DRE)",       href: "/awq/financial",                 icon: LineChart     },
+    { label: "P&L (DRE)",            href: "/awq/epm/pl",                    icon: LineChart     },
+    { label: "Balanço Patrimonial",   href: "/awq/epm/balance-sheet",         icon: Scale         },
+    { label: "Budget vs Actual",      href: "/awq/epm/budget",                icon: Target        },
+    { label: "Cash Flow",             href: "/awq/cashflow",                  icon: Zap           },
+    { label: "KPI Dashboard",         href: "/awq/epm/kpis",                  icon: PieChart      },
+    { label: "Contas a Pagar",        href: "/awq/epm/ap",                    icon: ArrowDownLeft },
+    { label: "Contas a Receber",      href: "/awq/epm/ar",                    icon: ArrowUpRight  },
+    { label: "Fornecedores",          href: "/awq/epm/suppliers",             icon: Building2     },
+    { label: "Clientes EPM",          href: "/awq/epm/customers",             icon: Users         },
+    { label: "Razão Geral (GL)",      href: "/awq/epm/gl",                    icon: ListOrdered   },
+    { label: "Centros de Custo",      href: "/awq/epm/cost-centers",          icon: LayoutGrid    },
+    { label: "Consolidação",          href: "/awq/epm/consolidation",         icon: Building2     },
+    { label: "Conciliação Bancária",  href: "/awq/epm/bank-reconciliation",   icon: Landmark      },
+    { label: "Reconhec. de Receita",  href: "/awq/epm/revenue-recognition",   icon: BookOpen      },
+    { label: "Relatórios",            href: "/awq/epm/reports",               icon: FileText      },
+];
+
+function EpmSidebar({ pathname }: { pathname: string }) {
+    const isActive = (href: string) =>
+        href === "/awq/epm"
+            ? pathname === "/awq/epm"
+            : pathname === href || pathname.startsWith(href + "/");
+
+    return (
+        <>
+            <AwqHeader />
+            <div className="px-3 pt-3">
+                <Link
+                    href="/awq"
+                    className="flex items-center gap-3 px-3 py-2.5 bg-brand-50 border border-brand-200 rounded-xl hover:bg-brand-100 transition-colors group"
+                >
+                    <div className="w-7 h-7 rounded-lg bg-brand-600 flex items-center justify-center shrink-0">
+                        <DollarSign size={13} className="text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <div className="text-sm font-bold text-brand-700 truncate">EPM Tower</div>
+                        <div className="text-[10px] text-brand-500 truncate">Finanças · AWQ Group</div>
+                    </div>
+                    <ChevronDown size={14} className="text-brand-600 shrink-0" />
+                </Link>
+            </div>
+            <div className="px-4 pt-2">
+                <Link
+                    href="/awq"
+                    className="flex items-center gap-1.5 text-[10px] text-gray-400 hover:text-brand-600 transition-colors"
+                >
+                    <ChevronLeft size={11} />
+                    Voltar para AWQ Group
+                </Link>
+            </div>
+            <nav className="flex-1 overflow-y-auto px-3 py-2">
+                <SectionLabel>EPM · Navegação</SectionLabel>
+                <div className="space-y-0.5">
+                    {epmNav.map((item) => (
+                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
+                    ))}
+                </div>
+                <SectionLabel>IA & Agentes</SectionLabel>
+                <div className="space-y-0.5">
+                    {aiNav.map((item) => (
+                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
+                    ))}
+                </div>
+                <SectionLabel>Sistema</SectionLabel>
+                <div className="space-y-0.5">
+                    {sistemaNav.map((item) => (
+                        <NavItem key={item.href} {...item} active={pathname === item.href} />
+                    ))}
+                </div>
+            </nav>
+            <SidebarFooter />
+        </>
+    );
+}
+
+// ── PPM sidebar ───────────────────────────────────────────────────────────────
+const ppmNav = [
+    { label: "Portfolio",      href: "/awq/ppm",               icon: Briefcase     },
+    { label: "Gantt",          href: "/awq/ppm/gantt",         icon: GanttChart    },
+    { label: "Tarefas",        href: "/awq/ppm/tasks",         icon: ClipboardList },
+    { label: "Timesheets",     href: "/awq/ppm/timesheets",    icon: Clock         },
+    { label: "Recursos",       href: "/awq/ppm/resources",     icon: Users         },
+    { label: "Utilização",     href: "/awq/ppm/utilization",   icon: BarChart3     },
+    { label: "Rentabilidade",  href: "/awq/ppm/profitability", icon: TrendingUp    },
+    { label: "Riscos",         href: "/awq/ppm/risks",         icon: AlertTriangle },
+];
+
+function PpmSidebar({ pathname }: { pathname: string }) {
+    const isActive = (href: string) =>
+        href === "/awq/ppm"
+            ? pathname === "/awq/ppm"
+            : pathname === href || pathname.startsWith(href + "/");
+
+    return (
+        <>
+            <AwqHeader />
+            <div className="px-3 pt-3">
+                <Link
+                    href="/awq"
+                    className="flex items-center gap-3 px-3 py-2.5 bg-brand-50 border border-brand-200 rounded-xl hover:bg-brand-100 transition-colors group"
+                >
+                    <div className="w-7 h-7 rounded-lg bg-brand-600 flex items-center justify-center shrink-0">
+                        <GanttChart size={13} className="text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <div className="text-sm font-bold text-brand-700 truncate">PPM Tower</div>
+                        <div className="text-[10px] text-brand-500 truncate">Projetos · AWQ Group</div>
+                    </div>
+                    <ChevronDown size={14} className="text-brand-600 shrink-0" />
+                </Link>
+            </div>
+            <div className="px-4 pt-2">
+                <Link
+                    href="/awq"
+                    className="flex items-center gap-1.5 text-[10px] text-gray-400 hover:text-brand-600 transition-colors"
+                >
+                    <ChevronLeft size={11} />
+                    Voltar para AWQ Group
+                </Link>
+            </div>
+            <nav className="flex-1 overflow-y-auto px-3 py-2">
+                <SectionLabel>PPM · Navegação</SectionLabel>
+                <div className="space-y-0.5">
+                    {ppmNav.map((item) => (
+                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
+                    ))}
+                </div>
+                <SectionLabel>IA & Agentes</SectionLabel>
+                <div className="space-y-0.5">
+                    {aiNav.map((item) => (
+                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
+                    ))}
+                </div>
+                <SectionLabel>Sistema</SectionLabel>
+                <div className="space-y-0.5">
+                    {sistemaNav.map((item) => (
+                        <NavItem key={item.href} {...item} active={pathname === item.href} />
+                    ))}
+                </div>
+            </nav>
+            <SidebarFooter />
+        </>
+    );
+}
+
+// ── BI sidebar ────────────────────────────────────────────────────────────────
+const biNav = [
+    { label: "Dashboards",    href: "/awq/bi",                icon: PieChart  },
+    { label: "Relatórios",    href: "/awq/bi/reports",        icon: FileText  },
+    { label: "Análises",      href: "/awq/bi/analytics",      icon: BarChart3 },
+    { label: "Visualizações", href: "/awq/bi/visualizations", icon: LineChart },
+    { label: "Base de Dados", href: "/awq/data",              icon: Database  },
+];
+
+function BiSidebar({ pathname }: { pathname: string }) {
+    const isActive = (href: string) =>
+        href === "/awq/bi"
+            ? pathname === "/awq/bi"
+            : pathname === href || pathname.startsWith(href + "/");
+
+    return (
+        <>
+            <AwqHeader />
+            <div className="px-3 pt-3">
+                <Link
+                    href="/awq"
+                    className="flex items-center gap-3 px-3 py-2.5 bg-brand-50 border border-brand-200 rounded-xl hover:bg-brand-100 transition-colors group"
+                >
+                    <div className="w-7 h-7 rounded-lg bg-brand-600 flex items-center justify-center shrink-0">
+                        <PieChart size={13} className="text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <div className="text-sm font-bold text-brand-700 truncate">BI Tower</div>
+                        <div className="text-[10px] text-brand-500 truncate">Inteligência · AWQ Group</div>
+                    </div>
+                    <ChevronDown size={14} className="text-brand-600 shrink-0" />
+                </Link>
+            </div>
+            <div className="px-4 pt-2">
+                <Link
+                    href="/awq"
+                    className="flex items-center gap-1.5 text-[10px] text-gray-400 hover:text-brand-600 transition-colors"
+                >
+                    <ChevronLeft size={11} />
+                    Voltar para AWQ Group
+                </Link>
+            </div>
+            <nav className="flex-1 overflow-y-auto px-3 py-2">
+                <SectionLabel>BI · Navegação</SectionLabel>
+                <div className="space-y-0.5">
+                    {biNav.map((item) => (
+                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
+                    ))}
+                </div>
+                <SectionLabel>IA & Agentes</SectionLabel>
+                <div className="space-y-0.5">
+                    {aiNav.map((item) => (
+                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
+                    ))}
+                </div>
+                <SectionLabel>Sistema</SectionLabel>
+                <div className="space-y-0.5">
+                    {sistemaNav.map((item) => (
+                        <NavItem key={item.href} {...item} active={pathname === item.href} />
+                    ))}
+                </div>
+            </nav>
+            <SidebarFooter />
+        </>
+    );
+}
+
+// ── BU Settings sidebar ───────────────────────────────────────────────────────
+const settingsNav = [
+    { label: "Configurações",   href: "/settings",              icon: Settings  },
+];
+
+function SettingsSidebar({ pathname }: { pathname: string }) {
+    const isActive = (href: string) =>
+        pathname === href || pathname.startsWith(href + "/");
+
+    return (
+        <>
+            <AwqHeader />
+            <nav className="flex-1 overflow-y-auto px-3 py-2 pt-4">
+                <SectionLabel>BU Settings</SectionLabel>
+                <div className="space-y-0.5">
+                    {settingsNav.map((item) => (
+                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
+                    ))}
+                </div>
+                <SectionLabel>IA & Agentes</SectionLabel>
+                <div className="space-y-0.5">
+                    {aiNav.map((item) => (
+                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
+                    ))}
+                </div>
+            </nav>
+            <SidebarFooter />
+        </>
+    );
+}
+
 // ── Root Sidebar ──────────────────────────────────────────────────────────────
 export default function Sidebar() {
     const rawPathname = usePathname();
     const pathname = rawPathname ?? "";
-    const jacqesMode  = isJacqesRoute(pathname);
-    const cazaMode    = isCazaRoute(pathname);
-    const advisorMode = isAdvisorRoute(pathname);
-    const ventureMode = isVentureRoute(pathname);
-    const crmMode     = isCrmRoute(pathname);
+    const jacqesMode   = isJacqesRoute(pathname);
+    const cazaMode     = isCazaRoute(pathname);
+    const advisorMode  = isAdvisorRoute(pathname);
+    const ventureMode  = isVentureRoute(pathname);
+    const crmMode      = isCrmRoute(pathname);
+    const epmMode      = isEpmRoute(pathname);
+    const ppmMode      = isPpmRoute(pathname);
+    const biMode       = isBiRoute(pathname);
+    const settingsMode = isSettingsRoute(pathname);
     return (
         <div className="flex flex-col h-full">
             {jacqesMode ? (
@@ -1253,6 +1520,14 @@ export default function Sidebar() {
                 <AwqVentureSidebar pathname={pathname} />
             ) : crmMode ? (
                 <CrmSidebar pathname={pathname} />
+            ) : epmMode ? (
+                <EpmSidebar pathname={pathname} />
+            ) : ppmMode ? (
+                <PpmSidebar pathname={pathname} />
+            ) : biMode ? (
+                <BiSidebar pathname={pathname} />
+            ) : settingsMode ? (
+                <SettingsSidebar pathname={pathname} />
             ) : (
                 <AwqSidebar pathname={pathname} />
             )}
