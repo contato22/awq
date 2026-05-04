@@ -9,7 +9,9 @@
 --   2. Pipeline     — crm_leads, crm_opportunities, crm_opportunity_stage_history
 --   3. Activities   — crm_activities
 --   4. Analytics    — crm_pipeline_snapshot
---   5. Views        — v_crm_pipeline_overview, v_crm_sales_forecast,
+--   5. Email        — crm_email_templates, crm_email_sequences, crm_email_sequence_steps,
+--                     crm_email_enrollments, crm_email_log
+--   6. Views        — v_crm_pipeline_overview, v_crm_sales_forecast,
 --                     v_crm_account_health, v_crm_conversion_funnel,
 --                     v_crm_rep_performance
 -- =============================================================================
@@ -212,7 +214,108 @@ CREATE TABLE IF NOT EXISTS crm_pipeline_snapshot (
 CREATE INDEX IF NOT EXISTS idx_crm_snap_date ON crm_pipeline_snapshot(snapshot_date);
 
 -- =============================================================================
--- 5. TRIGGERS
+-- 5. EMAIL
+-- =============================================================================
+
+-- ─── Email Templates ──────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS crm_email_templates (
+  template_id    UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  template_code  TEXT        UNIQUE,
+  name           TEXT        NOT NULL,
+  category       TEXT        NOT NULL DEFAULT 'other'
+                   CHECK (category IN ('prospecting','follow_up','proposal','onboarding','nurturing','other')),
+  bu             TEXT        NOT NULL DEFAULT 'ALL'
+                   CHECK (bu IN ('JACQES','CAZA','ADVISOR','VENTURE','ALL')),
+  subject        TEXT        NOT NULL,
+  body_text      TEXT        NOT NULL,
+  variables      JSONB       NOT NULL DEFAULT '[]',
+  is_active      BOOLEAN     NOT NULL DEFAULT TRUE,
+  times_used     INTEGER     NOT NULL DEFAULT 0,
+  created_by     TEXT        NOT NULL DEFAULT 'system',
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_email_templates_bu       ON crm_email_templates(bu);
+CREATE INDEX IF NOT EXISTS idx_email_templates_category ON crm_email_templates(category);
+
+-- ─── Email Sequences ──────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS crm_email_sequences (
+  sequence_id  UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  name         TEXT        NOT NULL,
+  description  TEXT,
+  bu           TEXT        NOT NULL DEFAULT 'ALL'
+                 CHECK (bu IN ('JACQES','CAZA','ADVISOR','VENTURE','ALL')),
+  trigger      TEXT        NOT NULL DEFAULT 'manual'
+                 CHECK (trigger IN ('manual','lead_created','lead_qualified','opp_created','opp_proposal')),
+  is_active    BOOLEAN     NOT NULL DEFAULT TRUE,
+  created_by   TEXT        NOT NULL DEFAULT 'system',
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- ─── Sequence Steps ───────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS crm_email_sequence_steps (
+  step_id      UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  sequence_id  UUID        NOT NULL REFERENCES crm_email_sequences(sequence_id) ON DELETE CASCADE,
+  step_order   SMALLINT    NOT NULL,
+  delay_days   SMALLINT    NOT NULL DEFAULT 0,
+  template_id  UUID        NOT NULL REFERENCES crm_email_templates(template_id) ON DELETE RESTRICT,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (sequence_id, step_order)
+);
+
+CREATE INDEX IF NOT EXISTS idx_seq_steps_seq ON crm_email_sequence_steps(sequence_id);
+
+-- ─── Enrollments ──────────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS crm_email_enrollments (
+  enrollment_id   UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  sequence_id     UUID        NOT NULL REFERENCES crm_email_sequences(sequence_id),
+  related_to_type TEXT        NOT NULL CHECK (related_to_type IN ('lead','opportunity','contact')),
+  related_to_id   TEXT        NOT NULL,
+  current_step    SMALLINT    NOT NULL DEFAULT 1,
+  total_steps     SMALLINT    NOT NULL DEFAULT 0,
+  status          TEXT        NOT NULL DEFAULT 'active'
+                    CHECK (status IN ('active','completed','paused','cancelled')),
+  next_send_at    TIMESTAMPTZ,
+  enrolled_by     TEXT        NOT NULL DEFAULT 'system',
+  enrolled_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_enrollments_seq    ON crm_email_enrollments(sequence_id);
+CREATE INDEX IF NOT EXISTS idx_enrollments_target ON crm_email_enrollments(related_to_type, related_to_id);
+
+-- ─── Email Log ────────────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS crm_email_log (
+  log_id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  template_id     UUID        REFERENCES crm_email_templates(template_id) ON DELETE SET NULL,
+  enrollment_id   UUID        REFERENCES crm_email_enrollments(enrollment_id) ON DELETE SET NULL,
+  related_to_type TEXT        NOT NULL CHECK (related_to_type IN ('lead','opportunity','account','contact')),
+  related_to_id   TEXT        NOT NULL,
+  to_email        TEXT        NOT NULL,
+  to_name         TEXT        NOT NULL,
+  subject         TEXT        NOT NULL,
+  sent_by         TEXT        NOT NULL DEFAULT 'system',
+  sent_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  opened_at       TIMESTAMPTZ,
+  clicked_at      TIMESTAMPTZ,
+  replied_at      TIMESTAMPTZ,
+  bounced         BOOLEAN     NOT NULL DEFAULT FALSE,
+  status          TEXT        NOT NULL DEFAULT 'sent'
+                    CHECK (status IN ('sent','opened','clicked','replied','bounced'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_email_log_sent     ON crm_email_log(sent_at DESC);
+CREATE INDEX IF NOT EXISTS idx_email_log_target   ON crm_email_log(related_to_type, related_to_id);
+CREATE INDEX IF NOT EXISTS idx_email_log_template ON crm_email_log(template_id);
+
+-- =============================================================================
+-- 6. TRIGGERS
 -- =============================================================================
 
 -- ─── Auto-set probability by stage ───────────────────────────────────────────
@@ -303,7 +406,7 @@ CREATE TRIGGER trg_crm_account_code
   FOR EACH ROW EXECUTE FUNCTION fn_crm_account_code();
 
 -- =============================================================================
--- 6. VIEWS
+-- 7. VIEWS
 -- =============================================================================
 
 -- ─── Pipeline Overview ────────────────────────────────────────────────────────
@@ -406,7 +509,7 @@ SELECT
 FROM monthly;
 
 -- =============================================================================
--- 7. ROW LEVEL SECURITY
+-- 8. ROW LEVEL SECURITY
 -- =============================================================================
 
 ALTER TABLE crm_accounts                    ENABLE ROW LEVEL SECURITY;
@@ -425,7 +528,7 @@ CREATE POLICY IF NOT EXISTS crm_stage_hist_all      ON crm_opportunity_stage_his
 CREATE POLICY IF NOT EXISTS crm_activities_all      ON crm_activities            FOR ALL USING (TRUE);
 
 -- =============================================================================
--- 8. SEED DATA
+-- 9. SEED DATA
 -- =============================================================================
 
 -- ─── Accounts ────────────────────────────────────────────────────────────────

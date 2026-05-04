@@ -41,6 +41,7 @@ const ITEMS: Item[] = [
       { label: "Contas",         href: "/crm/accounts"       },
       { label: "Oportunidades",  href: "/crm/opportunities"  },
       { label: "Leads",          href: "/crm/leads"          },
+      { label: "E-mail",         href: "/crm/email"          },
       { label: "Analytics",      href: "/crm/analytics"      },
       { label: "Matriz RFM",     href: "/crm/rfm"            },
     ],

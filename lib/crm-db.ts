@@ -6,6 +6,7 @@ import { sql } from "@/lib/db";
 import type {
   CrmAccount, CrmContact, CrmLead, CrmOpportunity,
   CrmActivity, CrmDashboardMetrics, CrmPipelineMetrics,
+  EmailTemplate, EmailSequence, EmailEnrollment, EmailLog,
 } from "@/lib/crm-types";
 
 // ─── Schema Bootstrap ─────────────────────────────────────────────────────────
@@ -441,4 +442,220 @@ export async function getDashboardMetrics(): Promise<CrmDashboardMetrics> {
     winRate: closedAll.length > 0 ? Math.round(opps.filter(o => o.stage === 'closed_won').length / closedAll.length * 100) : 0,
     tasksToday,
   };
+}
+
+// =============================================================================
+// EMAIL — Templates
+// =============================================================================
+
+export const SEED_EMAIL_TEMPLATES: EmailTemplate[] = [
+  {
+    template_id: "tpl-1", template_code: "TPL-001", name: "Primeiro contato — Prospecção",
+    category: "prospecting", bu: "ALL",
+    subject: "{{empresa}} + AWQ Group — Oportunidade de crescimento",
+    body_text: `Olá {{nome}},\n\nMeu nome é {{remetente}} e faço parte do time da AWQ Group.\n\nIdentifiquei que a {{empresa}} pode se beneficiar das nossas soluções de {{servico}}. Temos ajudado empresas como a sua a alcançar resultados expressivos em pouco tempo.\n\nGostaria de agendar uma conversa de 20 minutos para entender melhor seus objetivos. Você teria disponibilidade essa semana?\n\n{{link_agendamento}}\n\nAtenciosamente,\n{{remetente}}`,
+    variables: ["{{nome}}", "{{empresa}}", "{{remetente}}", "{{servico}}", "{{link_agendamento}}"],
+    is_active: true, times_used: 12,
+    created_by: "Miguel", created_at: "2026-01-10T10:00:00Z", updated_at: "2026-03-15T10:00:00Z",
+  },
+  {
+    template_id: "tpl-2", template_code: "TPL-002", name: "Follow-up pós reunião",
+    category: "follow_up", bu: "ALL",
+    subject: "Próximos passos — {{empresa}}",
+    body_text: `Olá {{nome}},\n\nFoi um prazer conversar com você hoje!\n\nComo combinamos, segue um resumo dos próximos passos:\n\n{{proximos_passos}}\n\nQualquer dúvida, estou à disposição.\n\nAbraços,\n{{remetente}}`,
+    variables: ["{{nome}}", "{{empresa}}", "{{remetente}}", "{{proximos_passos}}"],
+    is_active: true, times_used: 28,
+    created_by: "Danilo", created_at: "2026-01-15T10:00:00Z", updated_at: "2026-04-01T10:00:00Z",
+  },
+  {
+    template_id: "tpl-3", template_code: "TPL-003", name: "Envio de proposta",
+    category: "proposal", bu: "ALL",
+    subject: "Proposta comercial — {{nome_proposta}}",
+    body_text: `Olá {{nome}},\n\nSegue em anexo a proposta comercial que preparamos especialmente para a {{empresa}}.\n\nA proposta contempla:\n{{itens_proposta}}\n\nValor total: {{valor}}\nValidade: {{validade}}\n\nEstou disponível para tirar dúvidas e discutir os detalhes. Podemos agendar uma call para a semana que vem?\n\n{{link_agendamento}}\n\nAtenciosamente,\n{{remetente}}`,
+    variables: ["{{nome}}", "{{empresa}}", "{{nome_proposta}}", "{{itens_proposta}}", "{{valor}}", "{{validade}}", "{{link_agendamento}}", "{{remetente}}"],
+    is_active: true, times_used: 9,
+    created_by: "Miguel", created_at: "2026-02-01T10:00:00Z", updated_at: "2026-04-10T10:00:00Z",
+  },
+  {
+    template_id: "tpl-4", template_code: "TPL-004", name: "Nurturing — Conteúdo de valor",
+    category: "nurturing", bu: "JACQES",
+    subject: "{{empresa}}: Como marcas como a sua crescem {{porcentagem}}% em 90 dias",
+    body_text: `Olá {{nome}},\n\nSeparei um conteúdo que pode ser muito útil para a {{empresa}}:\n\n{{titulo_conteudo}}\n{{link_conteudo}}\n\nEsse é o tipo de estratégia que temos aplicado com nossos clientes. Caso queira saber como adaptamos isso ao seu contexto, é só responder esse e-mail.\n\nAbraços,\n{{remetente}}`,
+    variables: ["{{nome}}", "{{empresa}}", "{{porcentagem}}", "{{titulo_conteudo}}", "{{link_conteudo}}", "{{remetente}}"],
+    is_active: true, times_used: 5,
+    created_by: "Miguel", created_at: "2026-03-01T10:00:00Z", updated_at: "2026-03-20T10:00:00Z",
+  },
+  {
+    template_id: "tpl-5", template_code: "TPL-005", name: "Reativação — Lead sem resposta",
+    category: "follow_up", bu: "ALL",
+    subject: "Ainda faz sentido conversar, {{nome}}?",
+    body_text: `Olá {{nome}},\n\nTentei entrar em contato algumas vezes mas não consegui retorno.\n\nEntendo que as prioridades mudam — mas caso a {{empresa}} ainda tenha interesse em {{servico}}, adoraria ter uma conversa rápida.\n\nSe não for mais o momento certo, sem problemas! Só me avise e retiro você da lista.\n\nAbraços,\n{{remetente}}`,
+    variables: ["{{nome}}", "{{empresa}}", "{{servico}}", "{{remetente}}"],
+    is_active: true, times_used: 7,
+    created_by: "Danilo", created_at: "2026-02-20T10:00:00Z", updated_at: "2026-04-05T10:00:00Z",
+  },
+];
+
+export const SEED_EMAIL_SEQUENCES: EmailSequence[] = [
+  {
+    sequence_id: "seq-1", name: "Prospecção Fria — 5 Passos",
+    description: "Cadência de prospecção para leads novos sem contato prévio",
+    bu: "ALL", trigger: "lead_created", is_active: true,
+    enrolled_count: 14, created_by: "Miguel",
+    created_at: "2026-02-01T00:00:00Z", updated_at: "2026-04-01T00:00:00Z",
+    steps: [
+      { step_id: "s1-1", sequence_id: "seq-1", step_order: 1, delay_days: 0,  template_id: "tpl-1", template_name: "Primeiro contato — Prospecção",   template_subject: "{{empresa}} + AWQ Group — Oportunidade de crescimento" },
+      { step_id: "s1-2", sequence_id: "seq-1", step_order: 2, delay_days: 3,  template_id: "tpl-4", template_name: "Nurturing — Conteúdo de valor",    template_subject: "{{empresa}}: Como marcas como a sua crescem {{porcentagem}}% em 90 dias" },
+      { step_id: "s1-3", sequence_id: "seq-1", step_order: 3, delay_days: 7,  template_id: "tpl-5", template_name: "Reativação — Lead sem resposta",   template_subject: "Ainda faz sentido conversar, {{nome}}?" },
+    ],
+  },
+  {
+    sequence_id: "seq-2", name: "Pós-Proposta — Nurturing",
+    description: "Sequência para manter engajamento após envio de proposta",
+    bu: "ALL", trigger: "opp_proposal", is_active: true,
+    enrolled_count: 6, created_by: "Danilo",
+    created_at: "2026-03-01T00:00:00Z", updated_at: "2026-04-10T00:00:00Z",
+    steps: [
+      { step_id: "s2-1", sequence_id: "seq-2", step_order: 1, delay_days: 1,  template_id: "tpl-2", template_name: "Follow-up pós reunião",  template_subject: "Próximos passos — {{empresa}}" },
+      { step_id: "s2-2", sequence_id: "seq-2", step_order: 2, delay_days: 5,  template_id: "tpl-4", template_name: "Nurturing — Conteúdo de valor", template_subject: "{{empresa}}: Como marcas como a sua crescem {{porcentagem}}% em 90 dias" },
+      { step_id: "s2-3", sequence_id: "seq-2", step_order: 3, delay_days: 10, template_id: "tpl-5", template_name: "Reativação — Lead sem resposta", template_subject: "Ainda faz sentido conversar, {{nome}}?" },
+    ],
+  },
+];
+
+export const SEED_EMAIL_LOG: EmailLog[] = [
+  { log_id: "log-1", template_id: "tpl-1", template_name: "Primeiro contato — Prospecção", enrollment_id: null, sequence_name: null, related_to_type: "lead", related_to_id: "l1", related_name: "Tech Solutions BR", to_email: "rafael@techsolutions.com.br", to_name: "Rafael Moura", subject: "Tech Solutions + AWQ Group — Oportunidade de crescimento", sent_by: "Miguel", sent_at: "2026-04-20T09:00:00Z", opened_at: "2026-04-20T11:30:00Z", clicked_at: null, replied_at: null, bounced: false, status: "opened" },
+  { log_id: "log-2", template_id: "tpl-3", template_name: "Envio de proposta", enrollment_id: null, sequence_name: null, related_to_type: "opportunity", related_to_id: "o3", related_name: "CEM — Produção Anual", to_email: "fernanda@colegiocm.com.br", to_name: "Fernanda Costa", subject: "Proposta comercial — CEM Produção 2026", sent_by: "Miguel", sent_at: "2026-04-21T10:05:00Z", opened_at: "2026-04-21T14:00:00Z", clicked_at: "2026-04-21T14:02:00Z", replied_at: null, bounced: false, status: "clicked" },
+  { log_id: "log-3", template_id: "tpl-2", template_name: "Follow-up pós reunião", enrollment_id: "enr-1", sequence_name: "Pós-Proposta — Nurturing", related_to_type: "opportunity", related_to_id: "o4", related_name: "Reabilicor — Consultoria", to_email: "roberto@reabilicor.com.br", to_name: "Dr. Roberto Silva", subject: "Próximos passos — Reabilicor", sent_by: "Danilo", sent_at: "2026-04-22T08:00:00Z", opened_at: null, clicked_at: null, replied_at: null, bounced: false, status: "sent" },
+  { log_id: "log-4", template_id: "tpl-1", template_name: "Primeiro contato — Prospecção", enrollment_id: "enr-2", sequence_name: "Prospecção Fria — 5 Passos", related_to_type: "lead", related_to_id: "l2", related_name: "HealthFirst Clínicas", to_email: "sandra@healthfirst.com.br", to_name: "Dra. Sandra Lima", subject: "HealthFirst + AWQ Group — Oportunidade de crescimento", sent_by: "Danilo", sent_at: "2026-04-18T10:00:00Z", opened_at: "2026-04-18T16:00:00Z", clicked_at: null, replied_at: "2026-04-19T09:00:00Z", bounced: false, status: "replied" },
+  { log_id: "log-5", template_id: "tpl-5", template_name: "Reativação — Lead sem resposta", enrollment_id: null, sequence_name: null, related_to_type: "lead", related_to_id: "l3", related_name: "Esporte Clube Nac.", to_email: "lucas@ecnacional.com.br", to_name: "Lucas Ferreira", subject: "Ainda faz sentido conversar, Lucas?", sent_by: "Miguel", sent_at: "2026-04-15T11:00:00Z", opened_at: null, clicked_at: null, replied_at: null, bounced: true, status: "bounced" },
+];
+
+// ─── Email Template CRUD ──────────────────────────────────────────────────────
+
+export async function listEmailTemplates(filters?: { bu?: string; category?: string; is_active?: boolean }): Promise<EmailTemplate[]> {
+  if (!sql) return SEED_EMAIL_TEMPLATES;
+  try {
+    const rows = await sql`
+      SELECT * FROM crm_email_templates
+      WHERE (${filters?.bu ?? null} IS NULL OR bu IN ('ALL', ${filters?.bu ?? ''}))
+        AND (${filters?.category ?? null} IS NULL OR category = ${filters?.category ?? ''})
+        AND (${filters?.is_active ?? null} IS NULL OR is_active = ${filters?.is_active ?? true})
+      ORDER BY created_at DESC
+    `;
+    return rows as EmailTemplate[];
+  } catch { return SEED_EMAIL_TEMPLATES; }
+}
+
+export async function createEmailTemplate(data: Partial<EmailTemplate>): Promise<EmailTemplate> {
+  if (!sql) throw new Error("DB not available");
+  const code = `TPL-${String(Date.now()).slice(-4)}`;
+  const rows = await sql`
+    INSERT INTO crm_email_templates (template_code, name, category, bu, subject, body_text, variables, is_active, created_by)
+    VALUES (${code}, ${data.name!}, ${data.category ?? 'other'}, ${data.bu ?? 'ALL'},
+            ${data.subject!}, ${data.body_text!}, ${JSON.stringify(data.variables ?? [])},
+            ${data.is_active ?? true}, ${data.created_by ?? 'system'})
+    RETURNING *
+  `;
+  return rows[0] as EmailTemplate;
+}
+
+export async function updateEmailTemplate(id: string, data: Partial<EmailTemplate>): Promise<EmailTemplate> {
+  if (!sql) throw new Error("DB not available");
+  const rows = await sql`
+    UPDATE crm_email_templates SET
+      name       = COALESCE(${data.name ?? null}, name),
+      category   = COALESCE(${data.category ?? null}, category),
+      bu         = COALESCE(${data.bu ?? null}, bu),
+      subject    = COALESCE(${data.subject ?? null}, subject),
+      body_text  = COALESCE(${data.body_text ?? null}, body_text),
+      variables  = COALESCE(${data.variables ? JSON.stringify(data.variables) : null}::jsonb, variables),
+      is_active  = COALESCE(${data.is_active ?? null}, is_active),
+      updated_at = NOW()
+    WHERE template_id = ${id}
+    RETURNING *
+  `;
+  return rows[0] as EmailTemplate;
+}
+
+// ─── Email Sequences ──────────────────────────────────────────────────────────
+
+export async function listEmailSequences(filters?: { bu?: string }): Promise<EmailSequence[]> {
+  if (!sql) return SEED_EMAIL_SEQUENCES;
+  try {
+    const seqs = await sql`
+      SELECT s.*, COUNT(e.enrollment_id) as enrolled_count
+      FROM crm_email_sequences s
+      LEFT JOIN crm_email_enrollments e ON e.sequence_id = s.sequence_id
+      WHERE (${filters?.bu ?? null} IS NULL OR s.bu IN ('ALL', ${filters?.bu ?? ''}))
+      GROUP BY s.sequence_id
+      ORDER BY s.created_at DESC
+    ` as EmailSequence[];
+    for (const seq of seqs) {
+      const steps = await sql`
+        SELECT ss.*, t.name as template_name, t.subject as template_subject
+        FROM crm_email_sequence_steps ss
+        LEFT JOIN crm_email_templates t ON t.template_id = ss.template_id
+        WHERE ss.sequence_id = ${seq.sequence_id}
+        ORDER BY ss.step_order
+      `;
+      seq.steps = steps as EmailSequenceStep[];
+    }
+    return seqs;
+  } catch { return SEED_EMAIL_SEQUENCES; }
+}
+
+export async function createEmailSequence(data: Partial<EmailSequence> & { steps?: Partial<EmailSequenceStep>[] }): Promise<EmailSequence> {
+  if (!sql) throw new Error("DB not available");
+  const [seq] = await sql`
+    INSERT INTO crm_email_sequences (name, description, bu, trigger, is_active, created_by)
+    VALUES (${data.name!}, ${data.description ?? null}, ${data.bu ?? 'ALL'},
+            ${data.trigger ?? 'manual'}, ${data.is_active ?? true}, ${data.created_by ?? 'system'})
+    RETURNING *
+  ` as EmailSequence[];
+  if (data.steps?.length) {
+    for (const step of data.steps) {
+      await sql`
+        INSERT INTO crm_email_sequence_steps (sequence_id, step_order, delay_days, template_id)
+        VALUES (${seq.sequence_id}, ${step.step_order ?? 1}, ${step.delay_days ?? 0}, ${step.template_id!})
+      `;
+    }
+  }
+  return seq;
+}
+
+// ─── Email Log ────────────────────────────────────────────────────────────────
+
+export async function listEmailLog(filters?: { related_to_id?: string; sent_by?: string; limit?: number }): Promise<EmailLog[]> {
+  if (!sql) return SEED_EMAIL_LOG;
+  try {
+    const rows = await sql`
+      SELECT l.*, t.name as template_name, s.name as sequence_name
+      FROM crm_email_log l
+      LEFT JOIN crm_email_templates t ON t.template_id = l.template_id
+      LEFT JOIN crm_email_enrollments e ON e.enrollment_id = l.enrollment_id
+      LEFT JOIN crm_email_sequences s ON s.sequence_id = e.sequence_id
+      WHERE (${filters?.related_to_id ?? null} IS NULL OR l.related_to_id = ${filters?.related_to_id ?? ''})
+        AND (${filters?.sent_by ?? null} IS NULL OR l.sent_by = ${filters?.sent_by ?? ''})
+      ORDER BY l.sent_at DESC
+      LIMIT ${filters?.limit ?? 100}
+    `;
+    return rows as EmailLog[];
+  } catch { return SEED_EMAIL_LOG; }
+}
+
+export async function logEmail(data: Partial<EmailLog>): Promise<EmailLog> {
+  if (!sql) throw new Error("DB not available");
+  const rows = await sql`
+    INSERT INTO crm_email_log (template_id, enrollment_id, related_to_type, related_to_id,
+      to_email, to_name, subject, sent_by)
+    VALUES (${data.template_id ?? null}, ${data.enrollment_id ?? null},
+            ${data.related_to_type!}, ${data.related_to_id!},
+            ${data.to_email!}, ${data.to_name!}, ${data.subject!}, ${data.sent_by ?? 'system'})
+    RETURNING *
+  `;
+  if (data.template_id) {
+    await sql`UPDATE crm_email_templates SET times_used = times_used + 1 WHERE template_id = ${data.template_id}`;
+  }
+  return rows[0] as EmailLog;
 }

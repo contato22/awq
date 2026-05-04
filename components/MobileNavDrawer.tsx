@@ -50,6 +50,7 @@ import {
   BookOpen,
   LayoutGrid,
   Database,
+  Mail,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -118,6 +119,7 @@ const crmTowerNav = [
   { label: "Leads",          href: "/crm/leads",           icon: UserPlus     },
   { label: "Oportunidades",  href: "/crm/opportunities",   icon: ArrowUpRight },
   { label: "Atividades",     href: "/crm/activities",      icon: Activity     },
+  { label: "E-mail",         href: "/crm/email",           icon: Mail         },
   { label: "Analytics",      href: "/crm/analytics",       icon: BarChart3    },
   { label: "Matriz RFM",     href: "/crm/rfm",             icon: PieChart     },
 ];

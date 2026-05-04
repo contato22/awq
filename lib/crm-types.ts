@@ -195,6 +195,90 @@ export type CrmDashboardMetrics = {
   tasksToday: CrmActivity[];
 };
 
+// ─── Email Templates ──────────────────────────────────────────────────────────
+
+export type EmailTemplate = {
+  template_id: string;
+  template_code: string;
+  name: string;
+  category: "prospecting" | "follow_up" | "proposal" | "onboarding" | "nurturing" | "other";
+  bu: "JACQES" | "CAZA" | "ADVISOR" | "VENTURE" | "ALL";
+  subject: string;
+  body_text: string;
+  variables: string[];      // e.g. ["{{nome}}", "{{empresa}}", "{{link}}"]
+  is_active: boolean;
+  times_used: number;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+};
+
+// ─── Email Sequences ──────────────────────────────────────────────────────────
+
+export type EmailSequenceStep = {
+  step_id: string;
+  sequence_id: string;
+  step_order: number;
+  delay_days: number;
+  template_id: string;
+  template_name?: string;
+  template_subject?: string;
+};
+
+export type EmailSequence = {
+  sequence_id: string;
+  name: string;
+  description: string | null;
+  bu: "JACQES" | "CAZA" | "ADVISOR" | "VENTURE" | "ALL";
+  trigger: "manual" | "lead_created" | "lead_qualified" | "opp_created" | "opp_proposal";
+  is_active: boolean;
+  steps?: EmailSequenceStep[];
+  enrolled_count?: number;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+};
+
+// ─── Email Enrollments ────────────────────────────────────────────────────────
+
+export type EmailEnrollment = {
+  enrollment_id: string;
+  sequence_id: string;
+  sequence_name?: string;
+  related_to_type: "lead" | "opportunity" | "contact";
+  related_to_id: string;
+  related_name?: string;
+  current_step: number;
+  total_steps: number;
+  status: "active" | "completed" | "paused" | "cancelled";
+  next_send_at: string | null;
+  enrolled_by: string;
+  enrolled_at: string;
+};
+
+// ─── Email Log ────────────────────────────────────────────────────────────────
+
+export type EmailLog = {
+  log_id: string;
+  template_id: string | null;
+  template_name?: string;
+  enrollment_id: string | null;
+  sequence_name?: string;
+  related_to_type: "lead" | "opportunity" | "account" | "contact";
+  related_to_id: string;
+  related_name?: string;
+  to_email: string;
+  to_name: string;
+  subject: string;
+  sent_by: string;
+  sent_at: string;
+  opened_at: string | null;
+  clicked_at: string | null;
+  replied_at: string | null;
+  bounced: boolean;
+  status: "sent" | "opened" | "clicked" | "replied" | "bounced";
+};
+
 // ─── API Response ─────────────────────────────────────────────────────────────
 
 export type ApiResponse<T = unknown> = {
