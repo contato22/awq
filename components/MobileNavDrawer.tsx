@@ -56,11 +56,19 @@ const JACQES_PREFIXES  = ["/jacqes"];
 const CAZA_PREFIXES    = ["/caza-vision"];
 const ADVISOR_PREFIXES = ["/advisor"];
 const VENTURE_PREFIXES = ["/awq-venture"];
+const EPM_PREFIXES     = ["/awq/epm", "/awq/financial", "/awq/cashflow", "/awq/budget", "/awq/forecast", "/awq/bank", "/awq/investments", "/awq/ap-ar", "/awq/conciliacao", "/awq/contabilidade", "/awq/fiscal", "/awq/management"];
+const PPM_PREFIXES     = ["/awq/ppm"];
+const BI_PREFIXES      = ["/awq/bi", "/awq/data"];
+const SETTINGS_PREFIXES = ["/settings"];
 
 function isJacqesRoute(p: string)  { return JACQES_PREFIXES.some((x)  => p.startsWith(x)); }
 function isCazaRoute(p: string)    { return CAZA_PREFIXES.some((x)    => p.startsWith(x)); }
 function isAdvisorRoute(p: string) { return ADVISOR_PREFIXES.some((x) => p.startsWith(x)); }
 function isVentureRoute(p: string) { return VENTURE_PREFIXES.some((x) => p.startsWith(x)); }
+function isEpmRoute(p: string)     { return EPM_PREFIXES.some((x)     => p === x || p.startsWith(x + "/")); }
+function isPpmRoute(p: string)     { return PPM_PREFIXES.some((x)     => p === x || p.startsWith(x + "/")); }
+function isBiRoute(p: string)      { return BI_PREFIXES.some((x)      => p === x || p.startsWith(x + "/")); }
+function isSettingsRoute(p: string){ return SETTINGS_PREFIXES.some((x) => p === x || p.startsWith(x + "/")); }
 
 // ── Nav configs ───────────────────────────────────────────────────────────
 const awqNav = [
@@ -327,10 +335,15 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
 
-  const jacqesMode  = isJacqesRoute(pathname);
-  const cazaMode    = isCazaRoute(pathname);
-  const advisorMode = isAdvisorRoute(pathname);
-  const ventureMode = isVentureRoute(pathname);
+  const jacqesMode   = isJacqesRoute(pathname);
+  const cazaMode     = isCazaRoute(pathname);
+  const advisorMode  = isAdvisorRoute(pathname);
+  const ventureMode  = isVentureRoute(pathname);
+  const epmMode      = isEpmRoute(pathname);
+  const ppmMode      = isPpmRoute(pathname);
+  const biMode       = isBiRoute(pathname);
+  const settingsMode = isSettingsRoute(pathname);
+  const awqMode      = !jacqesMode && !cazaMode && !advisorMode && !ventureMode && !epmMode && !ppmMode && !biMode && !settingsMode;
 
   let buContext: React.ReactNode = null;
 
@@ -367,6 +380,33 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
         label="AWQ Venture"
         sub="Investimentos · AWQ Group"
         colorClass="bg-amber-50 border-amber-200 text-amber-700"
+        onNavigate={onClose}
+      />
+    );
+  } else if (epmMode) {
+    buContext = (
+      <BUContextBar
+        label="EPM Tower"
+        sub="Finanças · AWQ Group"
+        colorClass="bg-brand-50 border-brand-200 text-brand-700"
+        onNavigate={onClose}
+      />
+    );
+  } else if (ppmMode) {
+    buContext = (
+      <BUContextBar
+        label="PPM Tower"
+        sub="Projetos · AWQ Group"
+        colorClass="bg-brand-50 border-brand-200 text-brand-700"
+        onNavigate={onClose}
+      />
+    );
+  } else if (biMode) {
+    buContext = (
+      <BUContextBar
+        label="BI Tower"
+        sub="Inteligência · AWQ Group"
+        colorClass="bg-brand-50 border-brand-200 text-brand-700"
         onNavigate={onClose}
       />
     );
@@ -509,12 +549,48 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
             </>
           )}
 
+          {/* ── EPM ──────────────────────────────────────── */}
+          {epmMode && (
+            <>
+              <SectionLabel>EPM · Finanças & Performance</SectionLabel>
+              <div className="space-y-0.5">
+                {awqEpmNav.map((item) => (
+                  <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* ── PPM ──────────────────────────────────────── */}
+          {ppmMode && (
+            <>
+              <SectionLabel>PPM · Projetos & Portfólio</SectionLabel>
+              <div className="space-y-0.5">
+                {awqPpmNav.map((item) => (
+                  <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* ── BI ───────────────────────────────────────── */}
+          {biMode && (
+            <>
+              <SectionLabel>BI · Dashboards & Análises</SectionLabel>
+              <div className="space-y-0.5">
+                {awqBiNav.map((item) => (
+                  <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
+                ))}
+              </div>
+            </>
+          )}
+
           {/* ── AWQ Group ────────────────────────────────── */}
-          {!jacqesMode && !cazaMode && !advisorMode && !ventureMode && (
+          {awqMode && (
             <>
               <SectionLabel>AWQ Group · Visão Geral</SectionLabel>
               <div className="space-y-0.5">
-                {currentNav.map((item) => (
+                {awqNav.map((item) => (
                   <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
                 ))}
               </div>
@@ -522,7 +598,7 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
           )}
 
           {/* 10 modules — only in AWQ mode */}
-          {!jacqesMode && !cazaMode && !advisorMode && !ventureMode && (
+          {awqMode && (
             <>
               <SectionLabel>EPM · Finanças & Performance</SectionLabel>
               <div className="space-y-0.5">
@@ -588,7 +664,7 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
           )}
 
           {/* BU quick-switch when in AWQ mode */}
-          {!jacqesMode && !cazaMode && !advisorMode && !ventureMode && (
+          {awqMode && (
             <>
               <SectionLabel>Business Units</SectionLabel>
               <div className="space-y-2 mt-1">
