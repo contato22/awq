@@ -42,6 +42,7 @@ import {
   UserPlus,
   ArrowUpRight,
   CheckCircle2,
+  FileUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -51,7 +52,7 @@ interface MobileNavDrawerProps {
 }
 
 // ── Route membership (mirrored from Sidebar) ──────────────────────────────
-const JACQES_PREFIXES  = ["/jacqes", "/desempenho", "/carteira", "/analise", "/csops", "/revenue", "/reports"];
+const JACQES_PREFIXES  = ["/jacqes"];
 const CAZA_PREFIXES    = ["/caza-vision"];
 const ADVISOR_PREFIXES = ["/advisor"];
 const VENTURE_PREFIXES = ["/awq-venture"];
@@ -162,45 +163,59 @@ const awqHcmNav = [
   { label: "Treinamento",        href: "/awq/hcm/training",    icon: HeartPulse},
 ];
 
-const jacqesNav = [
-  { label: "Visão Geral",    href: "/jacqes",                icon: LayoutDashboard },
-  { label: "Desempenho",     href: "/desempenho",            icon: TrendingUp },
-  { label: "Carteira",       href: "/carteira",              icon: Users },
-  { label: "Análise",        href: "/analise",               icon: Activity },
-  { label: "CS Ops",         href: "/csops",                 icon: HeartPulse },
-  { label: "Financial",      href: "/jacqes/financial",      icon: DollarSign },
-  { label: "Customers",      href: "/jacqes/customers",      icon: Users },
-  { label: "Unit Economics", href: "/jacqes/unit-economics", icon: Calculator },
-  { label: "Budget",         href: "/jacqes/budget",         icon: Wallet },
-  { label: "Relatórios",     href: "/reports",               icon: BarChart3 },
-  { label: "Categorias",     href: "/categorias",            icon: Tag },
-  { label: "CRM",            href: "/crm",                   icon: Target },
+// ── BU nav — mirrors desktop Sidebar module configs exactly ──────────────
+// JACQES: EPM · CRM · Gestão
+const jacqesEpmNav = [
+  { label: "FP&A",       href: "/jacqes/fpa",     icon: BarChart3 },
+  { label: "Relatórios", href: "/jacqes/reports", icon: FileText  },
+];
+const jacquesCrmNav = [
+  { label: "Dashboard CRM",  href: "/crm",               icon: Target       },
+  { label: "Leads",          href: "/crm/leads",         icon: UserPlus     },
+  { label: "Pipeline",       href: "/crm/pipeline",      icon: Activity     },
+  { label: "Clientes",       href: "/crm/customers",     icon: Users        },
+  { label: "Oportunidades",  href: "/crm/opportunities", icon: ArrowUpRight },
+];
+const jacqesGestaoNav = [
+  { label: "Modo Carreira", href: "/jacqes/carreira", icon: Briefcase },
 ];
 
-const cazaNav = [
-  { label: "Visão Geral",    href: "/caza-vision",                icon: LayoutDashboard },
-  { label: "Projetos",       href: "/caza-vision/imoveis",        icon: Film },
-  { label: "Clientes",       href: "/caza-vision/clientes",       icon: Users },
+// Caza Vision: EPM · PPM · CRM
+const cazaEpmNav = [
   { label: "Financial",      href: "/caza-vision/financial",      icon: DollarSign },
   { label: "Unit Economics", href: "/caza-vision/unit-economics", icon: Calculator },
-  { label: "Pipeline",       href: "/caza-vision/pipeline",       icon: Activity },
-  { label: "Relatórios",     href: "/caza-vision/relatorios",     icon: BarChart3 },
-  { label: "CRM",            href: "/crm",                        icon: Target },
+  { label: "Contas",         href: "/caza-vision/contas",         icon: Briefcase  },
+  { label: "Importar",       href: "/caza-vision/import",         icon: FileUp     },
+];
+const cazaPpmNav = [
+  { label: "Projetos", href: "/caza-vision/imoveis", icon: Film },
+];
+const cazaCrmNav = [
+  { label: "Clientes",      href: "/caza-vision/clientes", icon: Users  },
+  { label: "Dashboard CRM", href: "/crm",                  icon: Target },
 ];
 
-const advisorNav = [
-  { label: "Visão Geral", href: "/advisor",              icon: LayoutDashboard },
-  { label: "Financial",   href: "/advisor/financial",    icon: DollarSign },
-  { label: "Customers",   href: "/advisor/customers",    icon: Users },
-  { label: "Portfólio",   href: "/advisor/portfolio",    icon: LineChart },
-  { label: "Relatórios",  href: "/advisor/relatorios",   icon: FileText },
+// Advisor: EPM · CRM
+const advisorEpmNav = [
+  { label: "Financial", href: "/advisor/financial", icon: DollarSign },
+];
+const advisorCrmNav = [
+  { label: "Customers", href: "/advisor/customers", icon: Users },
 ];
 
-const ventureNav = [
-  { label: "Visão Geral", href: "/awq-venture",           icon: LayoutDashboard },
-  { label: "Portfólio",   href: "/awq-venture/portfolio", icon: Briefcase },
-  { label: "Pipeline",    href: "/awq-venture/pipeline",  icon: Activity },
-  { label: "Financial",   href: "/awq-venture/financial", icon: DollarSign },
+// AWQ Venture: EPM · CRM · PPM
+const ventureEpmNav = [
+  { label: "Financial", href: "/awq-venture/financial",  icon: DollarSign },
+  { label: "YoY 2025",  href: "/awq-venture/yoy-2025",   icon: LineChart  },
+];
+const ventureCrmNav = [
+  { label: "Comercial", href: "/awq-venture/comercial", icon: TrendingUp },
+  { label: "Deals",     href: "/awq-venture/deals",     icon: FileText   },
+  { label: "Pipeline",  href: "/awq-venture/pipeline",  icon: Activity   },
+  { label: "Sales",     href: "/awq-venture/sales",     icon: DollarSign },
+];
+const venturePpmNav = [
+  { label: "Portfólio", href: "/awq-venture/portfolio", icon: Briefcase },
 ];
 
 const businessUnits = [
@@ -316,13 +331,9 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
   const advisorMode = isAdvisorRoute(pathname);
   const ventureMode = isVentureRoute(pathname);
 
-  let currentNav = awqNav;
-  let sectionTitle = "AWQ Group";
   let buContext: React.ReactNode = null;
 
   if (jacqesMode) {
-    currentNav = jacqesNav;
-    sectionTitle = "JACQES";
     buContext = (
       <BUContextBar
         label="JACQES"
@@ -332,8 +343,6 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
       />
     );
   } else if (cazaMode) {
-    currentNav = cazaNav;
-    sectionTitle = "Caza Vision";
     buContext = (
       <BUContextBar
         label="Caza Vision"
@@ -343,8 +352,6 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
       />
     );
   } else if (advisorMode) {
-    currentNav = advisorNav;
-    sectionTitle = "Advisor";
     buContext = (
       <BUContextBar
         label="Advisor"
@@ -354,8 +361,6 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
       />
     );
   } else if (ventureMode) {
-    currentNav = ventureNav;
-    sectionTitle = "AWQ Venture";
     buContext = (
       <BUContextBar
         label="AWQ Venture"
@@ -412,17 +417,108 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-3 py-2 overscroll-contain">
-          <SectionLabel>{sectionTitle} · Navegação</SectionLabel>
-          <div className="space-y-0.5">
-            {currentNav.map((item) => (
-              <NavLink
-                key={item.href}
-                {...item}
-                active={isActive(item.href)}
-                onNavigate={onClose}
-              />
-            ))}
-          </div>
+
+          {/* ── JACQES ───────────────────────────────────── */}
+          {jacqesMode && (
+            <>
+              <SectionLabel>EPM · Financeiro & Performance</SectionLabel>
+              <div className="space-y-0.5">
+                {jacqesEpmNav.map((item) => (
+                  <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
+                ))}
+              </div>
+              <SectionLabel>CRM · Vendas & Relacionamento</SectionLabel>
+              <div className="space-y-0.5">
+                {jacquesCrmNav.map((item) => (
+                  <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
+                ))}
+              </div>
+              <SectionLabel>Gestão</SectionLabel>
+              <div className="space-y-0.5">
+                {jacqesGestaoNav.map((item) => (
+                  <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* ── Caza Vision ──────────────────────────────── */}
+          {cazaMode && (
+            <>
+              <SectionLabel>EPM · Financeiro & Performance</SectionLabel>
+              <div className="space-y-0.5">
+                {cazaEpmNav.map((item) => (
+                  <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
+                ))}
+              </div>
+              <SectionLabel>PPM · Projetos</SectionLabel>
+              <div className="space-y-0.5">
+                {cazaPpmNav.map((item) => (
+                  <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
+                ))}
+              </div>
+              <SectionLabel>CRM · Clientes & Relacionamento</SectionLabel>
+              <div className="space-y-0.5">
+                {cazaCrmNav.map((item) => (
+                  <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* ── Advisor ──────────────────────────────────── */}
+          {advisorMode && (
+            <>
+              <SectionLabel>EPM · Financeiro & Performance</SectionLabel>
+              <div className="space-y-0.5">
+                {advisorEpmNav.map((item) => (
+                  <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
+                ))}
+              </div>
+              <SectionLabel>CRM · Clientes & Relacionamento</SectionLabel>
+              <div className="space-y-0.5">
+                {advisorCrmNav.map((item) => (
+                  <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* ── AWQ Venture ──────────────────────────────── */}
+          {ventureMode && (
+            <>
+              <SectionLabel>EPM · Financeiro & Performance</SectionLabel>
+              <div className="space-y-0.5">
+                {ventureEpmNav.map((item) => (
+                  <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
+                ))}
+              </div>
+              <SectionLabel>CRM · Comercial & Pipeline</SectionLabel>
+              <div className="space-y-0.5">
+                {ventureCrmNav.map((item) => (
+                  <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
+                ))}
+              </div>
+              <SectionLabel>PPM · Portfólio & Investimentos</SectionLabel>
+              <div className="space-y-0.5">
+                {venturePpmNav.map((item) => (
+                  <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* ── AWQ Group ────────────────────────────────── */}
+          {!jacqesMode && !cazaMode && !advisorMode && !ventureMode && (
+            <>
+              <SectionLabel>AWQ Group · Visão Geral</SectionLabel>
+              <div className="space-y-0.5">
+                {currentNav.map((item) => (
+                  <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
+                ))}
+              </div>
+            </>
+          )}
 
           {/* 10 modules — only in AWQ mode */}
           {!jacqesMode && !cazaMode && !advisorMode && !ventureMode && (
