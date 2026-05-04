@@ -26,12 +26,12 @@ export const SEED_ACCOUNTS: CrmAccount[] = [
 ];
 
 export const SEED_CONTACTS: CrmContact[] = [
-  { contact_id:"c1", account_id:"a1", account_name:"XP Investimentos", full_name:"João Silva", email:"joao.silva@xpi.com.br", phone:"11 3456-7890", mobile:null, job_title:"Head of Marketing", department:"Marketing", seniority:"director", linkedin_url:null, is_primary_contact:true, contact_preferences:["email","phone"], created_at:"2026-01-01T00:00:00Z", updated_at:"2026-01-01T00:00:00Z" },
-  { contact_id:"c2", account_id:"a2", account_name:"Nubank", full_name:"Carlos Mendes", email:"carlos.mendes@nubank.com.br", phone:"11 4567-8901", mobile:null, job_title:"VP Marketing", department:"Marketing", seniority:"director", linkedin_url:null, is_primary_contact:true, contact_preferences:["email"], created_at:"2026-01-15T00:00:00Z", updated_at:"2026-01-15T00:00:00Z" },
-  { contact_id:"c3", account_id:"a3", account_name:"Colégio CEM", full_name:"Fernanda Costa", email:"fernanda@colegiocm.com.br", phone:"11 5678-9012", mobile:null, job_title:"Diretora Pedagógica", department:"Diretoria", seniority:"c_level", linkedin_url:null, is_primary_contact:true, contact_preferences:["phone","whatsapp"], created_at:"2026-02-01T00:00:00Z", updated_at:"2026-02-01T00:00:00Z" },
-  { contact_id:"c4", account_id:"a4", account_name:"Reabilicor", full_name:"Dr. Roberto Silva", email:"roberto@reabilicor.com.br", phone:"21 6789-0123", mobile:null, job_title:"Diretor Médico", department:"Diretoria", seniority:"c_level", linkedin_url:null, is_primary_contact:true, contact_preferences:["phone"], created_at:"2026-03-01T00:00:00Z", updated_at:"2026-03-01T00:00:00Z" },
-  { contact_id:"c5", account_id:"a5", account_name:"Clínica Teresópolis", full_name:"Dra. Aline Duarte", email:"aline@clinicateresopolis.com.br", phone:"24 7890-1234", mobile:null, job_title:"Sócia Fundadora", department:"Diretoria", seniority:"c_level", linkedin_url:null, is_primary_contact:true, contact_preferences:["whatsapp"], created_at:"2026-02-15T00:00:00Z", updated_at:"2026-02-15T00:00:00Z" },
-  { contact_id:"c6", account_id:"a6", account_name:"Carol Bertolini", full_name:"Carol Bertolini", email:"carol@carolbertolini.com.br", phone:"11 9999-0000", mobile:null, job_title:"Artista", department:"Pessoal", seniority:"c_level", linkedin_url:null, is_primary_contact:true, contact_preferences:["whatsapp","email"], created_at:"2026-01-10T00:00:00Z", updated_at:"2026-01-10T00:00:00Z" },
+  { contact_id:"c1", account_id:"a1", account_name:"XP Investimentos", full_name:"João Silva", email:"joao.silva@xpi.com.br", phone:"11 3456-7890", mobile:null, job_title:"Head of Marketing", department:"Marketing", seniority:"director", linkedin_url:null, is_primary_contact:true, contact_preferences:["email","phone"], bu:"CAZA", created_at:"2026-01-01T00:00:00Z", updated_at:"2026-01-01T00:00:00Z" },
+  { contact_id:"c2", account_id:"a2", account_name:"Nubank", full_name:"Carlos Mendes", email:"carlos.mendes@nubank.com.br", phone:"11 4567-8901", mobile:null, job_title:"VP Marketing", department:"Marketing", seniority:"director", linkedin_url:null, is_primary_contact:true, contact_preferences:["email"], bu:"CAZA", created_at:"2026-01-15T00:00:00Z", updated_at:"2026-01-15T00:00:00Z" },
+  { contact_id:"c3", account_id:"a3", account_name:"Colégio CEM", full_name:"Fernanda Costa", email:"fernanda@colegiocm.com.br", phone:"11 5678-9012", mobile:null, job_title:"Diretora Pedagógica", department:"Diretoria", seniority:"c_level", linkedin_url:null, is_primary_contact:true, contact_preferences:["phone","whatsapp"], bu:"CAZA", created_at:"2026-02-01T00:00:00Z", updated_at:"2026-02-01T00:00:00Z" },
+  { contact_id:"c4", account_id:"a4", account_name:"Reabilicor", full_name:"Dr. Roberto Silva", email:"roberto@reabilicor.com.br", phone:"21 6789-0123", mobile:null, job_title:"Diretor Médico", department:"Diretoria", seniority:"c_level", linkedin_url:null, is_primary_contact:true, contact_preferences:["phone"], bu:"ADVISOR", created_at:"2026-03-01T00:00:00Z", updated_at:"2026-03-01T00:00:00Z" },
+  { contact_id:"c5", account_id:"a5", account_name:"Clínica Teresópolis", full_name:"Dra. Aline Duarte", email:"aline@clinicateresopolis.com.br", phone:"24 7890-1234", mobile:null, job_title:"Sócia Fundadora", department:"Diretoria", seniority:"c_level", linkedin_url:null, is_primary_contact:true, contact_preferences:["whatsapp"], bu:"ADVISOR", created_at:"2026-02-15T00:00:00Z", updated_at:"2026-02-15T00:00:00Z" },
+  { contact_id:"c6", account_id:"a6", account_name:"Carol Bertolini", full_name:"Carol Bertolini", email:"carol@carolbertolini.com.br", phone:"11 9999-0000", mobile:null, job_title:"Artista", department:"Pessoal", seniority:"c_level", linkedin_url:null, is_primary_contact:true, contact_preferences:["whatsapp","email"], bu:"JACQES", created_at:"2026-01-10T00:00:00Z", updated_at:"2026-01-10T00:00:00Z" },
 ];
 
 export const SEED_LEADS: CrmLead[] = [
@@ -142,10 +142,11 @@ export async function updateAccount(id: string, data: Partial<CrmAccount>): Prom
 
 // ─── Contact CRUD ─────────────────────────────────────────────────────────────
 
-export async function listContacts(filters?: { account_id?: string; search?: string }): Promise<CrmContact[]> {
+export async function listContacts(filters?: { account_id?: string; search?: string; bu?: string }): Promise<CrmContact[]> {
   if (!sql) {
     let rows = [...SEED_CONTACTS];
     if (filters?.account_id) rows = rows.filter(r => r.account_id === filters.account_id);
+    if (filters?.bu) rows = rows.filter(r => r.bu === filters.bu);
     if (filters?.search) {
       const s = filters.search.toLowerCase();
       rows = rows.filter(r => r.full_name.toLowerCase().includes(s) || (r.email ?? "").toLowerCase().includes(s));
@@ -156,6 +157,7 @@ export async function listContacts(filters?: { account_id?: string; search?: str
     SELECT c.*, a.account_name FROM crm_contacts c
     LEFT JOIN crm_accounts a ON a.account_id = c.account_id
     WHERE (${filters?.account_id ?? null}::uuid IS NULL OR c.account_id = ${filters?.account_id ?? null}::uuid)
+      AND (${filters?.bu ?? null}::text IS NULL OR c.bu = ${filters?.bu ?? null})
       AND (${filters?.search ?? null}::text IS NULL
            OR c.full_name ILIKE ${'%' + (filters?.search ?? '') + '%'}
            OR c.email     ILIKE ${'%' + (filters?.search ?? '') + '%'})

@@ -5,6 +5,7 @@ import type { FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
 import type { CrmAccount } from "@/lib/crm-types";
+import { BU_OPTIONS } from "@/lib/crm-types";
 import { SEED_ACCOUNTS } from "@/lib/crm-db";
 
 function AddContactPageInner() {
@@ -17,6 +18,7 @@ function AddContactPageInner() {
     full_name: "", email: "", phone: "", mobile: "",
     job_title: "", department: "", seniority: "manager",
     linkedin_url: "", is_primary_contact: false,
+    bu: "JACQES",
     account_id: params?.get("account_id") ?? "",
   });
 
@@ -83,6 +85,11 @@ function AddContactPageInner() {
                 <select value={form.seniority} onChange={e=>set("seniority",e.target.value)}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30">
                   {[["c_level","C-Level"],["director","Diretor"],["manager","Gerente"],["ic","Analista/IC"]].map(([v,l])=><option key={v} value={v}>{l}</option>)}
+                </select></div>
+              <div><label className="block text-xs font-medium text-gray-700 mb-1">BU</label>
+                <select value={form.bu} onChange={e=>set("bu",e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30">
+                  {BU_OPTIONS.map(b=><option key={b} value={b}>{b}</option>)}
                 </select></div>
             </div>
             <div className="flex items-center gap-2">

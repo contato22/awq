@@ -82,6 +82,7 @@ export type CrmContact = {
   linkedin_url: string | null;
   is_primary_contact: boolean;
   contact_preferences: string[];
+  bu: string;
   created_at: string;
   updated_at: string;
 };

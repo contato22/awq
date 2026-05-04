@@ -11,6 +11,7 @@ export async function GET(req: NextRequest) {
     const rows = await listContacts({
       account_id: p.get("account_id") ?? undefined,
       search:     p.get("search")     ?? undefined,
+      bu:         p.get("bu")         ?? undefined,
     });
     return ok(rows);
   } catch (e) { return err(String(e)); }

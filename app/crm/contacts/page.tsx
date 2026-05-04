@@ -6,6 +6,7 @@ import Header from "@/components/Header";
 import EmptyState from "@/components/EmptyState";
 import { Users, Plus, Search, Mail, Phone, Linkedin } from "lucide-react";
 import type { CrmContact } from "@/lib/crm-types";
+import { BU_OPTIONS } from "@/lib/crm-types";
 import { SEED_CONTACTS } from "@/lib/crm-db";
 
 const SENIORITY_LABELS: Record<string, string> = {
@@ -16,25 +17,64 @@ const SENIORITY_COLORS: Record<string, string> = {
   manager: "bg-amber-50 text-amber-700", ic: "bg-gray-100 text-gray-600",
 };
 
+const BU_COLORS: Record<string, string> = {
+  JACQES:  "bg-blue-50 text-blue-700 ring-blue-200/60",
+  CAZA:    "bg-violet-50 text-violet-700 ring-violet-200/60",
+  ADVISOR: "bg-emerald-50 text-emerald-700 ring-emerald-200/60",
+  VENTURE: "bg-amber-50 text-amber-700 ring-amber-200/60",
+};
+
+const BUS = ["Todos", ...BU_OPTIONS] as const;
+type BuFilter = typeof BUS[number];
+
 export default function ContactsPage() {
   const [contacts, setContacts] = useState<CrmContact[]>([]);
   const [loading,  setLoading]  = useState(true);
   const [search,   setSearch]   = useState("");
+  const [bu,       setBu]       = useState<BuFilter>("Todos");
+
+  const buFilter = bu !== "Todos" ? bu : undefined;
 
   useEffect(() => {
+    setLoading(true);
     const p = new URLSearchParams();
     if (search) p.set("search", search);
+    if (buFilter) p.set("bu", buFilter);
     fetch(`/api/crm/contacts?${p}`)
       .then(r => r.json())
-      .then(res => setContacts(res.success ? res.data : SEED_CONTACTS))
-      .catch(() => setContacts(SEED_CONTACTS))
+      .then(res => {
+        if (res.success) {
+          setContacts(res.data);
+        } else {
+          const seed = buFilter ? SEED_CONTACTS.filter(c => c.bu === buFilter) : SEED_CONTACTS;
+          setContacts(seed);
+        }
+      })
+      .catch(() => {
+        const seed = buFilter ? SEED_CONTACTS.filter(c => c.bu === buFilter) : SEED_CONTACTS;
+        setContacts(seed);
+      })
       .finally(() => setLoading(false));
-  }, [search]);
+  }, [search, buFilter]);
 
   return (
     <>
       <Header title="Contatos — CRM AWQ" subtitle="Pessoas e decisores" />
       <div className="page-container">
+
+        {/* BU Filter */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {BUS.map(b => (
+            <button key={b} onClick={() => setBu(b)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                bu === b
+                  ? "bg-brand-600 text-white shadow-sm"
+                  : "bg-white text-gray-600 border border-gray-200 hover:border-brand-300 hover:text-brand-600"
+              }`}>
+              {b}
+            </button>
+          ))}
+        </div>
 
         {/* KPIs */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -70,7 +110,7 @@ export default function ContactsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200">
-                  {["Contato","Empresa","Cargo","Senioridade","Canais","Principal"].map(h=>(
+                  {["Contato","BU","Empresa","Cargo","Senioridade","Canais","Principal"].map(h=>(
                     <th key={h} className="text-left py-3 px-4 text-[11px] font-semibold text-gray-500 whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -79,13 +119,13 @@ export default function ContactsPage() {
                 {loading ? (
                   Array.from({length:4}).map((_,i)=>(
                     <tr key={i} className="border-b border-gray-100">
-                      {Array.from({length:6}).map((_,j)=>(
+                      {Array.from({length:7}).map((_,j)=>(
                         <td key={j} className="py-3 px-4"><div className="h-4 bg-gray-100 rounded animate-pulse w-20"/></td>
                       ))}
                     </tr>
                   ))
                 ) : contacts.length === 0 ? (
-                  <tr><td colSpan={6} className="py-0">
+                  <tr><td colSpan={7} className="py-0">
                     <EmptyState compact icon={<Users size={16} className="text-gray-400"/>} title="Nenhum contato encontrado"/>
                   </td></tr>
                 ) : contacts.map(c=>(
@@ -99,6 +139,11 @@ export default function ContactsPage() {
                           <p className="text-[13px] font-medium text-gray-900">{c.full_name}</p>
                         </div>
                       </div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ring-1 ${BU_COLORS[c.bu] ?? "bg-gray-100 text-gray-600 ring-gray-200/60"}`}>
+                        {c.bu}
+                      </span>
                     </td>
                     <td className="py-3 px-4">
                       {c.account_id ? (
