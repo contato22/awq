@@ -755,256 +755,405 @@ function AwqSidebar({ pathname }: { pathname: string }) {
     );
 }
 
-// ── JACQES sidebar ───────────────────────────────────────────────────────────
-function JacqesSidebar({ pathname }: { pathname: string }) {
+// ── BU sidebar — generic icon-only + flyout ───────────────────────────────────
+// Each BU defines its own modules using only its own routes (no cross-BU data).
+
+type BUModule = {
+    id: string;
+    label: string;
+    description: string;
+    icon: React.ElementType;
+    items: ModuleItem[];
+};
+
+// Per-BU color tokens (full Tailwind class strings for JIT)
+type BUColors = {
+    iconBg: string;   // open/selected icon button bg
+    activeBg: string; // active route highlight bg
+    activeText: string;
+};
+
+const BU_COLORS: Record<string, BUColors> = {
+    jacqes:  { iconBg: "bg-brand-600",   activeBg: "bg-brand-50",   activeText: "text-brand-700"   },
+    caza:    { iconBg: "bg-emerald-600",  activeBg: "bg-emerald-50", activeText: "text-emerald-700" },
+    advisor: { iconBg: "bg-violet-600",   activeBg: "bg-violet-50",  activeText: "text-violet-700"  },
+    venture: { iconBg: "bg-amber-600",    activeBg: "bg-amber-50",   activeText: "text-amber-700"   },
+};
+
+// ── Module configs — only existing BU routes, no new pages ────────────────────
+
+const JACQES_MODULES: BUModule[] = [
+    {
+        id: "epm",
+        label: "EPM",
+        description: "Financeiro & Performance",
+        icon: DollarSign,
+        items: [
+            { label: "FP&A",       href: "/jacqes/fpa",     icon: BarChart3 },
+            { label: "Relatórios", href: "/jacqes/reports", icon: FileText  },
+        ],
+    },
+    {
+        id: "crm",
+        label: "CRM",
+        description: "Vendas & Relacionamento",
+        icon: Users,
+        items: [
+            { label: "Dashboard CRM",  href: "/crm",               icon: Target       },
+            { label: "Leads",          href: "/crm/leads",         icon: UserPlus     },
+            { label: "Pipeline",       href: "/crm/pipeline",      icon: Activity     },
+            { label: "Clientes",       href: "/crm/customers",     icon: Users        },
+            { label: "Oportunidades",  href: "/crm/opportunities", icon: ArrowUpRight },
+        ],
+    },
+    {
+        id: "ops",
+        label: "Gestão",
+        description: "Carreira & Operações",
+        icon: Briefcase,
+        items: [
+            { label: "Modo Carreira", href: "/jacqes/carreira", icon: Briefcase },
+        ],
+    },
+];
+
+const CAZA_MODULES: BUModule[] = [
+    {
+        id: "epm",
+        label: "EPM",
+        description: "Financeiro & Performance",
+        icon: DollarSign,
+        items: [
+            { label: "Financial",      href: "/caza-vision/financial",      icon: DollarSign },
+            { label: "Unit Economics", href: "/caza-vision/unit-economics", icon: Calculator },
+            { label: "Contas",         href: "/caza-vision/contas",         icon: Briefcase  },
+            { label: "Importar",       href: "/caza-vision/import",         icon: FileUp     },
+        ],
+    },
+    {
+        id: "ppm",
+        label: "PPM",
+        description: "Projetos & Portfólio",
+        icon: Film,
+        items: [
+            { label: "Projetos", href: "/caza-vision/imoveis", icon: Film },
+        ],
+    },
+    {
+        id: "crm",
+        label: "CRM",
+        description: "Clientes & Relacionamento",
+        icon: Users,
+        items: [
+            { label: "Clientes",      href: "/caza-vision/clientes", icon: Users  },
+            { label: "Dashboard CRM", href: "/crm",                  icon: Target },
+        ],
+    },
+];
+
+const ADVISOR_MODULES: BUModule[] = [
+    {
+        id: "epm",
+        label: "EPM",
+        description: "Financeiro & Performance",
+        icon: DollarSign,
+        items: [
+            { label: "Financial", href: "/advisor/financial", icon: DollarSign },
+        ],
+    },
+    {
+        id: "crm",
+        label: "CRM",
+        description: "Clientes & Relacionamento",
+        icon: Users,
+        items: [
+            { label: "Customers", href: "/advisor/customers", icon: Users },
+        ],
+    },
+];
+
+const VENTURE_MODULES: BUModule[] = [
+    {
+        id: "epm",
+        label: "EPM",
+        description: "Financeiro & Performance",
+        icon: DollarSign,
+        items: [
+            { label: "Financial", href: "/awq-venture/financial",  icon: DollarSign },
+            { label: "YoY 2025",  href: "/awq-venture/yoy-2025",   icon: LineChart  },
+        ],
+    },
+    {
+        id: "crm",
+        label: "CRM",
+        description: "Comercial & Pipeline",
+        icon: TrendingUp,
+        items: [
+            { label: "Comercial", href: "/awq-venture/comercial", icon: TrendingUp },
+            { label: "Deals",     href: "/awq-venture/deals",     icon: FileText   },
+            { label: "Pipeline",  href: "/awq-venture/pipeline",  icon: Activity   },
+            { label: "Sales",     href: "/awq-venture/sales",     icon: DollarSign },
+        ],
+    },
+    {
+        id: "ppm",
+        label: "PPM",
+        description: "Portfólio & Investimentos",
+        icon: Briefcase,
+        items: [
+            { label: "Portfólio", href: "/awq-venture/portfolio", icon: Briefcase },
+        ],
+    },
+];
+
+// ── Generic BU sidebar component ──────────────────────────────────────────────
+function BUSidebar({
+    buId,
+    label,
+    homeHref,
+    headerIcon: HeaderIcon,
+    modules,
+    pathname,
+    showBack = true,
+}: {
+    buId: string;
+    label: string;
+    homeHref: string;
+    headerIcon: React.ElementType;
+    modules: BUModule[];
+    pathname: string;
+    showBack?: boolean;
+}) {
+    const [activePanel, setActivePanel] = useState<string | null>(null);
+    const colors = BU_COLORS[buId] ?? BU_COLORS.jacqes;
+
+    useEffect(() => { setActivePanel(null); }, [pathname]);
+
     const isActive = (href: string) =>
-        href === "/jacqes"
-            ? pathname === "/jacqes"
-            : pathname === href || pathname.startsWith(href + "/");
+        href === homeHref ? pathname === homeHref : pathname === href || pathname.startsWith(href + "/");
+
+    const isModuleActive = (items: ModuleItem[]) => items.some((i) => isActive(i.href));
+
+    const togglePanel = (id: string) => setActivePanel((prev) => (prev === id ? null : id));
+
+    const activeMod = modules.find((m) => m.id === activePanel);
 
     return (
         <>
-            <AwqHeader />
-            <div className="px-3 pt-3">
-                <Link
-                    href="/business-units"
-                    className="flex items-center gap-3 px-3 py-2.5 bg-brand-50 border border-brand-200 rounded-xl hover:bg-brand-100 transition-colors group"
-                >
-                    <div className="w-7 h-7 rounded-lg bg-brand-600 flex items-center justify-center shrink-0">
-                        <BarChart3 size={13} className="text-gray-900" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <div className="text-sm font-bold text-brand-700 truncate">JACQES</div>
-                        <div className="text-[10px] text-brand-500 truncate">Agência · AWQ Group</div>
-                    </div>
-                    <ChevronDown size={14} className="text-brand-600 shrink-0" />
-                </Link>
-            </div>
-            <div className="px-4 pt-2">
-                <Link
-                    href="/business-units"
-                    className="flex items-center gap-1.5 text-[10px] text-gray-400 hover:text-brand-600 transition-colors"
-                >
-                    <ChevronLeft size={11} />
-                    Voltar para AWQ Group
-                </Link>
-            </div>
-            <nav className="flex-1 overflow-y-auto px-3 py-2">
-                <SectionLabel>JACQES · Navegação</SectionLabel>
-                <div className="space-y-0.5">
-                    {jacqesNav.map((item) => (
-                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
-                    ))}
-                </div>
-                <NavItem href="/crm" icon={Users} label="CRM" active={pathname === "/crm" || pathname.startsWith("/crm/")} />
-                <SectionLabel>Gestão</SectionLabel>
-                <div className="space-y-0.5">
-                    {gestaoNav.map((item) => (
-                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
-                    ))}
-                </div>
-                <SectionLabel>IA & Agentes</SectionLabel>
-                <div className="space-y-0.5">
-                    {aiNav.map((item) => (
-                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
-                    ))}
-                </div>
-                <SectionLabel>Sistema</SectionLabel>
-                <div className="space-y-0.5">
-                    {sistemaNav.map((item) => (
-                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
-                    ))}
-                </div>
-            </nav>
-            <SidebarFooter />
-        </>
-    );
-}
+            {/* ── Icon bar ─────────────────────────────────────────── */}
+            <div className="flex flex-col h-full w-16 bg-white border-r border-gray-100 relative z-30">
 
-// ── Caza Vision sidebar ───────────────────────────────────────────────────────
-function CazaSidebar({ pathname }: { pathname: string }) {
-    const isActive = (href: string) =>
-        href === "/caza-vision" ? pathname === href : pathname.startsWith(href);
-    const { data: session } = useSession();
-    const role = (session?.user as { role?: string } | undefined)?.role;
-    const isCazaOnly = role === "caza";
-
-    return (
-        <>
-            <AwqHeader />
-            <div className="px-3 pt-3">
-                {isCazaOnly ? (
-                    <div className="flex items-center gap-3 px-3 py-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
-                        <div className="w-7 h-7 rounded-lg bg-emerald-600 flex items-center justify-center shrink-0">
-                            <Building2 size={13} className="text-gray-900" />
+                {/* BU logo */}
+                <div className="h-14 flex items-center justify-center border-b border-gray-100 shrink-0">
+                    <Link href={homeHref} onClick={() => setActivePanel(null)} title={label}>
+                        <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center shadow-md", colors.iconBg)}>
+                            <HeaderIcon size={17} className="text-white" />
                         </div>
-                        <div className="flex-1 min-w-0">
-                            <div className="text-sm font-bold text-emerald-700 truncate">Caza Vision</div>
-                            <div className="text-[10px] text-emerald-500 truncate">Produtora · AWQ Group</div>
-                        </div>
-                    </div>
-                ) : (
-                    <Link
-                        href="/business-units"
-                        className="flex items-center gap-3 px-3 py-2.5 bg-emerald-50 border border-emerald-200 rounded-xl hover:bg-emerald-100 transition-colors group"
-                    >
-                        <div className="w-7 h-7 rounded-lg bg-emerald-600 flex items-center justify-center shrink-0">
-                            <Building2 size={13} className="text-gray-900" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <div className="text-sm font-bold text-emerald-700 truncate">Caza Vision</div>
-                            <div className="text-[10px] text-emerald-500 truncate">Produtora · AWQ Group</div>
-                        </div>
-                        <ChevronDown size={14} className="text-emerald-600 shrink-0" />
                     </Link>
+                </div>
+
+                {/* Back to AWQ */}
+                {showBack && (
+                    <div className="px-2 pt-2 shrink-0">
+                        <Link
+                            href="/business-units"
+                            title="Voltar para AWQ Group"
+                            className="flex flex-col items-center gap-0.5 py-2 px-1 rounded-lg w-full text-gray-400 hover:bg-gray-50 hover:text-gray-600 transition-all"
+                        >
+                            <ChevronLeft size={18} />
+                            <span className="text-[9px] font-semibold leading-none">AWQ</span>
+                        </Link>
+                    </div>
                 )}
-            </div>
-            {!isCazaOnly && (
-                <div className="px-4 pt-2">
+
+                <div className="mx-3 my-1.5 border-t border-gray-100 shrink-0" />
+
+                {/* Home */}
+                <div className="px-2 shrink-0">
                     <Link
-                        href="/business-units"
-                        className="flex items-center gap-1.5 text-[10px] text-gray-400 hover:text-emerald-600 transition-colors"
+                        href={homeHref}
+                        onClick={() => setActivePanel(null)}
+                        title="Visão Geral"
+                        className={cn(
+                            "flex flex-col items-center gap-0.5 py-2 px-1 rounded-lg transition-all w-full",
+                            pathname === homeHref
+                                ? cn(colors.activeBg, colors.activeText)
+                                : "text-gray-400 hover:bg-gray-50 hover:text-gray-700"
+                        )}
                     >
-                        <ChevronLeft size={11} />
-                        Voltar para AWQ Group
+                        <LayoutDashboard size={18} />
+                        <span className="text-[9px] font-semibold leading-none">Início</span>
                     </Link>
                 </div>
+
+                <div className="mx-3 my-1.5 border-t border-gray-100 shrink-0" />
+
+                {/* Module icons */}
+                <nav className="flex-1 overflow-y-auto px-2 py-1 space-y-0.5 scrollbar-none">
+                    {modules.map((mod) => {
+                        const modActive = isModuleActive(mod.items);
+                        const isOpen = activePanel === mod.id;
+                        return (
+                            <button
+                                key={mod.id}
+                                onClick={() => togglePanel(mod.id)}
+                                title={mod.label}
+                                className={cn(
+                                    "flex flex-col items-center gap-0.5 py-2 px-1 rounded-lg transition-all w-full",
+                                    isOpen
+                                        ? cn(colors.iconBg, "text-white shadow-sm")
+                                        : modActive
+                                        ? cn(colors.activeBg, colors.activeText)
+                                        : "text-gray-400 hover:bg-gray-50 hover:text-gray-700"
+                                )}
+                            >
+                                <mod.icon size={18} className="shrink-0" />
+                                <span className="text-[9px] font-bold leading-none tracking-wide">
+                                    {mod.label}
+                                </span>
+                            </button>
+                        );
+                    })}
+                </nav>
+
+                <div className="mx-3 my-1.5 border-t border-gray-100 shrink-0" />
+
+                {/* IA + Settings */}
+                <div className="px-2 pb-1 space-y-0.5 shrink-0">
+                    <button
+                        onClick={() => togglePanel("ai")}
+                        title="IA & Agentes"
+                        className={cn(
+                            "flex flex-col items-center gap-0.5 py-2 px-1 rounded-lg transition-all w-full",
+                            activePanel === "ai"
+                                ? cn(colors.iconBg, "text-white")
+                                : "text-gray-400 hover:bg-gray-50 hover:text-gray-700"
+                        )}
+                    >
+                        <Bot size={18} />
+                        <span className="text-[9px] font-bold leading-none">IA</span>
+                    </button>
+                    <Link
+                        href="/settings"
+                        title="Settings"
+                        className={cn(
+                            "flex flex-col items-center gap-0.5 py-2 px-1 rounded-lg transition-all w-full",
+                            pathname === "/settings"
+                                ? cn(colors.activeBg, colors.activeText)
+                                : "text-gray-400 hover:bg-gray-50 hover:text-gray-700"
+                        )}
+                    >
+                        <Settings size={18} />
+                    </Link>
+                </div>
+
+                <SlimSidebarFooter />
+            </div>
+
+            {/* ── Flyout panel ─────────────────────────────────────── */}
+            {activePanel && (
+                <>
+                    <div className="fixed inset-0 z-20" onClick={() => setActivePanel(null)} />
+                    <div className="fixed left-16 top-0 h-full w-64 bg-white border-r border-gray-200 shadow-2xl z-30 flex flex-col">
+                        <div className="px-4 py-4 border-b border-gray-100 flex items-start justify-between shrink-0">
+                            <div>
+                                <div className="text-sm font-bold text-gray-900">
+                                    {activePanel === "ai" ? "IA & Agentes" : activeMod?.label}
+                                </div>
+                                <div className="text-[11px] text-gray-400 mt-0.5 leading-snug">
+                                    {activePanel === "ai" ? "Agentes e ferramentas" : activeMod?.description}
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setActivePanel(null)}
+                                className="p-1 text-gray-300 hover:text-gray-500 rounded transition-colors shrink-0 ml-2"
+                            >
+                                <X size={14} />
+                            </button>
+                        </div>
+                        <nav className="flex-1 overflow-y-auto px-3 py-2">
+                            {activePanel === "ai" ? (
+                                <div className="space-y-0.5 mt-1">
+                                    {aiNav.map((item) => (
+                                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
+                                    ))}
+                                </div>
+                            ) : activeMod ? (
+                                <div className="space-y-0.5 mt-1">
+                                    {activeMod.items.map((item) => (
+                                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
+                                    ))}
+                                </div>
+                            ) : null}
+                        </nav>
+                    </div>
+                </>
             )}
-            <nav className="flex-1 overflow-y-auto px-3 py-2">
-                <SectionLabel>Caza Vision · Navegação</SectionLabel>
-                <div className="space-y-0.5">
-                    {(isCazaOnly ? cazaNav.slice(0, 1) : cazaNav).map((item) => (
-                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
-                    ))}
-                </div>
-                <NavItem href="/crm" icon={Users} label="CRM" active={pathname === "/crm" || pathname.startsWith("/crm/")} />
-                <SectionLabel>IA & Agentes</SectionLabel>
-                <div className="space-y-0.5">
-                    {aiNav.map((item) => (
-                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
-                    ))}
-                </div>
-                <SectionLabel>Sistema</SectionLabel>
-                <div className="space-y-0.5">
-                    {sistemaNav.map((item) => (
-                        <NavItem key={item.href} {...item} active={pathname === item.href} />
-                    ))}
-                </div>
-            </nav>
-            <SidebarFooter />
         </>
     );
 }
 
-// ── Advisor sidebar ───────────────────────────────────────────────────────────
+// ── BU sidebar wrappers ───────────────────────────────────────────────────────
+function JacqesSidebar({ pathname }: { pathname: string }) {
+    return (
+        <BUSidebar
+            buId="jacqes"
+            label="JACQES"
+            homeHref="/jacqes"
+            headerIcon={BarChart3}
+            modules={JACQES_MODULES}
+            pathname={pathname}
+        />
+    );
+}
+
+function CazaSidebar({ pathname }: { pathname: string }) {
+    const { data: session } = useSession();
+    const isCazaOnly = (session?.user as { role?: string } | undefined)?.role === "caza";
+    // isCazaOnly: show only overview, no back-to-AWQ
+    const modules = isCazaOnly
+        ? CAZA_MODULES.map((m) =>
+            m.id === "epm"
+                ? { ...m, items: m.items.filter((i) => i.href !== "/caza-vision/import") }
+                : m
+          )
+        : CAZA_MODULES;
+    return (
+        <BUSidebar
+            buId="caza"
+            label="Caza Vision"
+            homeHref="/caza-vision"
+            headerIcon={Building2}
+            modules={modules}
+            pathname={pathname}
+            showBack={!isCazaOnly}
+        />
+    );
+}
+
 function AdvisorSidebar({ pathname }: { pathname: string }) {
-    const isActive = (href: string) =>
-        href === "/advisor" ? pathname === href : pathname.startsWith(href);
     return (
-        <>
-            <AwqHeader />
-            <div className="px-3 pt-3">
-                <Link
-                    href="/business-units"
-                    className="flex items-center gap-3 px-3 py-2.5 bg-violet-50 border border-violet-200 rounded-xl hover:bg-violet-100 transition-colors group"
-                >
-                    <div className="w-7 h-7 rounded-lg bg-violet-600 flex items-center justify-center shrink-0">
-                        <Briefcase size={13} className="text-gray-900" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <div className="text-sm font-bold text-violet-700 truncate">Advisor</div>
-                        <div className="text-[10px] text-violet-500 truncate">Consultoria · AWQ Group</div>
-                    </div>
-                    <ChevronDown size={14} className="text-violet-700 shrink-0" />
-                </Link>
-            </div>
-            <div className="px-4 pt-2">
-                <Link
-                    href="/business-units"
-                    className="flex items-center gap-1.5 text-[10px] text-gray-400 hover:text-violet-600 transition-colors"
-                >
-                    <ChevronLeft size={11} />
-                    Voltar para AWQ Group
-                </Link>
-            </div>
-            <nav className="flex-1 overflow-y-auto px-3 py-2">
-                <SectionLabel>Advisor · Navegação</SectionLabel>
-                <div className="space-y-0.5">
-                    {advisorNav.map((item) => (
-                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
-                    ))}
-                </div>
-                <SectionLabel>IA & Agentes</SectionLabel>
-                <div className="space-y-0.5">
-                    {aiNav.map((item) => (
-                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
-                    ))}
-                </div>
-                <SectionLabel>Sistema</SectionLabel>
-                <div className="space-y-0.5">
-                    {sistemaNav.map((item) => (
-                        <NavItem key={item.href} {...item} active={pathname === item.href} />
-                    ))}
-                </div>
-            </nav>
-            <SidebarFooter />
-        </>
+        <BUSidebar
+            buId="advisor"
+            label="Advisor"
+            homeHref="/advisor"
+            headerIcon={Briefcase}
+            modules={ADVISOR_MODULES}
+            pathname={pathname}
+        />
     );
 }
 
-// ── AWQ Venture sidebar ───────────────────────────────────────────────────────
 function AwqVentureSidebar({ pathname }: { pathname: string }) {
-    const isActive = (href: string) =>
-        href === "/awq-venture" ? pathname === href : pathname.startsWith(href);
     return (
-        <>
-            <AwqHeader />
-            <div className="px-3 pt-3">
-                <Link
-                    href="/business-units"
-                    className="flex items-center gap-3 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-xl hover:bg-amber-100 transition-colors group"
-                >
-                    <div className="w-7 h-7 rounded-lg bg-amber-600 flex items-center justify-center shrink-0">
-                        <TrendingUp size={13} className="text-gray-900" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <div className="text-sm font-bold text-amber-700 truncate">AWQ Venture</div>
-                        <div className="text-[10px] text-amber-500 truncate">Investimentos · AWQ Group</div>
-                    </div>
-                    <ChevronDown size={14} className="text-amber-700 shrink-0" />
-                </Link>
-            </div>
-            <div className="px-4 pt-2">
-                <Link
-                    href="/business-units"
-                    className="flex items-center gap-1.5 text-[10px] text-gray-400 hover:text-amber-600 transition-colors"
-                >
-                    <ChevronLeft size={11} />
-                    Voltar para AWQ Group
-                </Link>
-            </div>
-            <nav className="flex-1 overflow-y-auto px-3 py-2">
-                <SectionLabel>AWQ Venture · Navegação</SectionLabel>
-                <div className="space-y-0.5">
-                    {ventureNav.map((item) => (
-                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
-                    ))}
-                </div>
-                <SectionLabel>IA & Agentes</SectionLabel>
-                <div className="space-y-0.5">
-                    {aiNav.map((item) => (
-                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
-                    ))}
-                </div>
-                <SectionLabel>Sistema</SectionLabel>
-                <div className="space-y-0.5">
-                    {sistemaNav.map((item) => (
-                        <NavItem key={item.href} {...item} active={pathname === item.href} />
-                    ))}
-                </div>
-            </nav>
-            <SidebarFooter />
-        </>
+        <BUSidebar
+            buId="venture"
+            label="AWQ Venture"
+            homeHref="/awq-venture"
+            headerIcon={TrendingUp}
+            modules={VENTURE_MODULES}
+            pathname={pathname}
+        />
     );
 }
 
