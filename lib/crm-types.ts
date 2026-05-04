@@ -423,6 +423,30 @@ export type QuotaAttainment = {
   activities_pct: number | null;
 };
 
+// ─── Forecast Sync (CRM → EPM) ────────────────────────────────────────────────
+
+export type ForecastLineItem = {
+  bu: string;
+  owner: string;
+  period_label: string;      // "2026-05", "2026-06", …
+  stage: string;
+  deal_count: number;
+  pipeline_value: number;    // sum of deal_value
+  weighted_value: number;    // pipeline_value × probability
+};
+
+export type ForecastSnapshot = {
+  snapshot_id: string;
+  period_label: string;      // month of snapshot: "2026-05"
+  snapshot_at: string;
+  created_by: string;
+  line_items: ForecastLineItem[];
+  total_pipeline: number;
+  total_weighted: number;
+  synced_to_epm: boolean;
+  epm_sync_at: string | null;
+};
+
 // ─── API Response ─────────────────────────────────────────────────────────────
 
 export type ApiResponse<T = unknown> = {

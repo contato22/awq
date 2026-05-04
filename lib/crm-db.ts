@@ -10,6 +10,7 @@ import type {
   ProposalTemplate, Proposal, ProposalSection,
   NpsSurvey, CsatSurvey, AccountHealthSummary, NpsCategory,
   QuotaTarget, QuotaAttainment,
+  ForecastLineItem, ForecastSnapshot,
 } from "@/lib/crm-types";
 
 // ─── Schema Bootstrap ─────────────────────────────────────────────────────────
@@ -1188,4 +1189,142 @@ export async function getQuotaAttainments(opts: {
     `;
     return rows as QuotaAttainment[];
   } catch { return []; }
+}
+
+// ─── Forecast Sync (CRM → EPM) ────────────────────────────────────────────────
+
+import { STAGE_PROBABILITY } from "@/lib/crm-types";
+
+// Seed snapshot derived from SEED_OPPORTUNITIES (open deals)
+function buildSeedSnapshot(): ForecastSnapshot {
+  const open = SEED_OPPORTUNITIES.filter(o => o.stage !== "closed_lost");
+  const byGroup: Record<string, ForecastLineItem> = {};
+
+  for (const opp of open) {
+    const month = opp.expected_close_date
+      ? opp.expected_close_date.slice(0, 7)
+      : "2026-05";
+    const key = `${opp.bu}|${opp.owner}|${month}|${opp.stage}`;
+    if (!byGroup[key]) {
+      byGroup[key] = {
+        bu: opp.bu, owner: opp.owner, period_label: month,
+        stage: opp.stage, deal_count: 0, pipeline_value: 0, weighted_value: 0,
+      };
+    }
+    const prob = STAGE_PROBABILITY[opp.stage as keyof typeof STAGE_PROBABILITY] ?? opp.probability;
+    byGroup[key].deal_count     += 1;
+    byGroup[key].pipeline_value += opp.deal_value;
+    byGroup[key].weighted_value += opp.deal_value * (prob / 100);
+  }
+
+  const lines = Object.values(byGroup);
+  const totalPipeline = lines.reduce((s, l) => s + l.pipeline_value, 0);
+  const totalWeighted = lines.reduce((s, l) => s + l.weighted_value, 0);
+
+  return {
+    snapshot_id: "snap-seed-1",
+    period_label: "2026-05",
+    snapshot_at: "2026-05-04T00:00:00Z",
+    created_by: "system",
+    line_items: lines,
+    total_pipeline: totalPipeline,
+    total_weighted: totalWeighted,
+    synced_to_epm: false,
+    epm_sync_at: null,
+  };
+}
+
+const SEED_SNAPSHOTS: ForecastSnapshot[] = [buildSeedSnapshot()];
+
+export async function getLatestForecastSnapshot(period_label?: string): Promise<ForecastSnapshot | null> {
+  if (!sql) {
+    if (period_label) return SEED_SNAPSHOTS.find(s => s.period_label === period_label) ?? null;
+    return SEED_SNAPSHOTS[SEED_SNAPSHOTS.length - 1] ?? null;
+  }
+  try {
+    const rows = await sql`
+      SELECT * FROM crm_forecast_snapshots
+      ${period_label ? sql`WHERE period_label = ${period_label}` : sql``}
+      ORDER BY snapshot_at DESC LIMIT 1
+    `;
+    if (!rows[0]) return null;
+    const snap = rows[0] as ForecastSnapshot;
+    const lines = await sql`
+      SELECT * FROM crm_forecast_lines WHERE snapshot_id = ${snap.snapshot_id}
+      ORDER BY period_label, bu, stage
+    `;
+    snap.line_items = lines as ForecastLineItem[];
+    return snap;
+  } catch { return null; }
+}
+
+export async function listForecastSnapshots(): Promise<Omit<ForecastSnapshot, "line_items">[]> {
+  if (!sql) return SEED_SNAPSHOTS.map(({ line_items: _, ...rest }) => rest);
+  try {
+    const rows = await sql`
+      SELECT snapshot_id, period_label, snapshot_at, created_by, total_pipeline, total_weighted, synced_to_epm, epm_sync_at
+      FROM crm_forecast_snapshots ORDER BY snapshot_at DESC
+    `;
+    return rows as Omit<ForecastSnapshot, "line_items">[];
+  } catch { return []; }
+}
+
+export async function createForecastSnapshot(created_by: string): Promise<ForecastSnapshot> {
+  // Build from live pipeline
+  const seed = buildSeedSnapshot();
+  if (!sql) {
+    const snap: ForecastSnapshot = { ...seed, snapshot_id: `snap-${Date.now()}`, snapshot_at: new Date().toISOString(), created_by };
+    SEED_SNAPSHOTS.push(snap);
+    return snap;
+  }
+  try {
+    // Build lines from DB
+    const opps = await sql`
+      SELECT bu, owner, stage, deal_value, probability, expected_close_date
+      FROM crm_opportunities
+      WHERE stage NOT IN ('closed_lost')
+    ` as { bu: string; owner: string; stage: string; deal_value: number; probability: number; expected_close_date: string | null }[];
+
+    const byGroup: Record<string, ForecastLineItem> = {};
+    for (const opp of opps) {
+      const month = opp.expected_close_date ? opp.expected_close_date.slice(0, 7) : "unknown";
+      const key   = `${opp.bu}|${opp.owner}|${month}|${opp.stage}`;
+      if (!byGroup[key]) byGroup[key] = { bu: opp.bu, owner: opp.owner, period_label: month, stage: opp.stage, deal_count: 0, pipeline_value: 0, weighted_value: 0 };
+      byGroup[key].deal_count     += 1;
+      byGroup[key].pipeline_value += Number(opp.deal_value);
+      byGroup[key].weighted_value += Number(opp.deal_value) * (opp.probability / 100);
+    }
+    const lines       = Object.values(byGroup);
+    const totalPipeline = lines.reduce((s, l) => s + l.pipeline_value, 0);
+    const totalWeighted = lines.reduce((s, l) => s + l.weighted_value, 0);
+    const today       = new Date().toISOString().slice(0, 7);
+
+    const [snap] = await sql`
+      INSERT INTO crm_forecast_snapshots (period_label, created_by, total_pipeline, total_weighted)
+      VALUES (${today}, ${created_by}, ${totalPipeline}, ${totalWeighted})
+      RETURNING *
+    ` as ForecastSnapshot[];
+
+    for (const l of lines) {
+      await sql`
+        INSERT INTO crm_forecast_lines (snapshot_id, bu, owner, period_label, stage, deal_count, pipeline_value, weighted_value)
+        VALUES (${snap.snapshot_id}, ${l.bu}, ${l.owner}, ${l.period_label}, ${l.stage}, ${l.deal_count}, ${l.pipeline_value}, ${l.weighted_value})
+      `;
+    }
+    snap.line_items = lines;
+    return snap;
+  } catch (e) { throw e; }
+}
+
+export async function markSnapshotSynced(snapshot_id: string): Promise<void> {
+  if (!sql) {
+    const s = SEED_SNAPSHOTS.find(x => x.snapshot_id === snapshot_id);
+    if (s) { s.synced_to_epm = true; s.epm_sync_at = new Date().toISOString(); }
+    return;
+  }
+  await sql`
+    UPDATE crm_forecast_snapshots
+    SET synced_to_epm = true, epm_sync_at = now()
+    WHERE snapshot_id = ${snapshot_id}
+  `;
 }

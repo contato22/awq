@@ -555,7 +555,39 @@ CREATE TRIGGER trg_set_quota_updated_at
   BEFORE UPDATE ON crm_quota_targets
   FOR EACH ROW EXECUTE FUNCTION trg_quota_updated_at();
 
--- 9. TRIGGERS
+-- 9. FORECAST SYNC (CRM → EPM)
+-- =============================================================================
+
+-- ─── Forecast Snapshots ───────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS crm_forecast_snapshots (
+  snapshot_id     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  period_label    TEXT NOT NULL,          -- e.g. '2026-05'
+  snapshot_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_by      TEXT NOT NULL DEFAULT 'system',
+  total_pipeline  NUMERIC(18,2) NOT NULL DEFAULT 0,
+  total_weighted  NUMERIC(18,2) NOT NULL DEFAULT 0,
+  synced_to_epm   BOOLEAN NOT NULL DEFAULT false,
+  epm_sync_at     TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_forecast_snapshots_period ON crm_forecast_snapshots (period_label);
+
+-- ─── Forecast Line Items ──────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS crm_forecast_lines (
+  line_id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  snapshot_id     UUID NOT NULL REFERENCES crm_forecast_snapshots(snapshot_id) ON DELETE CASCADE,
+  bu              TEXT NOT NULL,
+  owner           TEXT NOT NULL,
+  period_label    TEXT NOT NULL,
+  stage           TEXT NOT NULL,
+  deal_count      INT  NOT NULL DEFAULT 0,
+  pipeline_value  NUMERIC(18,2) NOT NULL DEFAULT 0,
+  weighted_value  NUMERIC(18,2) NOT NULL DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS idx_forecast_lines_snapshot ON crm_forecast_lines (snapshot_id);
+
+-- 10. TRIGGERS
 -- =============================================================================
 
 -- ─── Auto-set probability by stage ───────────────────────────────────────────
