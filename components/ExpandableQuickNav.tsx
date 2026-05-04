@@ -14,6 +14,7 @@ import {
   TrendingUp,
   AlertTriangle,
   Briefcase,
+  Target,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -29,6 +30,21 @@ type Item = {
 };
 
 const ITEMS: Item[] = [
+  {
+    label: "CRM",
+    href:  "/crm",
+    icon:  Target,
+    color: "text-emerald-600",
+    bg:    "bg-emerald-50",
+    subs: [
+      { label: "Dashboard CRM",  href: "/crm"               },
+      { label: "Contas",         href: "/crm/accounts"       },
+      { label: "Oportunidades",  href: "/crm/opportunities"  },
+      { label: "Leads",          href: "/crm/leads"          },
+      { label: "Analytics",      href: "/crm/analytics"      },
+      { label: "Matriz RFM",     href: "/crm/rfm"            },
+    ],
+  },
   {
     label:    "PPM",
     href:     "/awq/ppm",
