@@ -8,6 +8,7 @@ import type {
   CrmActivity, CrmDashboardMetrics, CrmPipelineMetrics,
   EmailTemplate, EmailSequence, EmailEnrollment, EmailLog,
   ProposalTemplate, Proposal, ProposalSection,
+  NpsSurvey, CsatSurvey, AccountHealthSummary, NpsCategory,
 } from "@/lib/crm-types";
 
 // ─── Schema Bootstrap ─────────────────────────────────────────────────────────
@@ -868,4 +869,170 @@ export async function updateProposal(id: string, data: Partial<Proposal>): Promi
     RETURNING *
   `;
   return rows[0] as Proposal;
+}
+
+// =============================================================================
+// NPS / CSAT / ACCOUNT HEALTH
+// =============================================================================
+
+function npsCategory(score: number | null): NpsCategory | null {
+  if (score === null) return null;
+  if (score >= 9) return "promoter";
+  if (score >= 7) return "passive";
+  return "detractor";
+}
+
+export const SEED_NPS_SURVEYS: NpsSurvey[] = [
+  { survey_id: "nps-1", account_id: "a1", account_name: "XP Investimentos",   contact_id: "c1", contact_name: "João Silva",       contact_email: "joao.silva@xpi.com.br",           sent_by: "Miguel", sent_at: "2026-03-01T10:00:00Z", response_score: 9,  category: "promoter",   comment: "Excelente trabalho, sempre entregam com qualidade.",   responded_at: "2026-03-02T14:00:00Z", period: "2026-Q1" },
+  { survey_id: "nps-2", account_id: "a2", account_name: "Nubank",             contact_id: "c2", contact_name: "Carlos Mendes",     contact_email: "carlos.mendes@nubank.com.br",      sent_by: "Danilo", sent_at: "2026-03-01T10:00:00Z", response_score: 8,  category: "passive",    comment: "Bom trabalho, mas prazos poderiam ser melhores.",       responded_at: "2026-03-03T10:00:00Z", period: "2026-Q1" },
+  { survey_id: "nps-3", account_id: "a3", account_name: "Colégio CEM",        contact_id: "c3", contact_name: "Fernanda Costa",    contact_email: "fernanda@colegiocm.com.br",        sent_by: "Miguel", sent_at: "2026-03-01T10:00:00Z", response_score: 10, category: "promoter",   comment: "Perfeito! Indicaremos para outros colégios da rede.",   responded_at: "2026-03-05T09:00:00Z", period: "2026-Q1" },
+  { survey_id: "nps-4", account_id: "a4", account_name: "Reabilicor",         contact_id: "c4", contact_name: "Dr. Roberto Silva", contact_email: "roberto@reabilicor.com.br",        sent_by: "Danilo", sent_at: "2026-03-01T10:00:00Z", response_score: 6,  category: "detractor",  comment: "A entrega foi boa mas a comunicação ao longo do projeto ficou a desejar.", responded_at: "2026-03-07T11:00:00Z", period: "2026-Q1" },
+  { survey_id: "nps-5", account_id: "a5", account_name: "Clínica Teresópolis",contact_id: "c5", contact_name: "Dra. Aline Duarte", contact_email: "aline@clinicateresopolis.com.br", sent_by: "Danilo", sent_at: "2026-04-01T10:00:00Z", response_score: null,category: null,        comment: null,                                                    responded_at: null,                   period: "2026-Q2" },
+  { survey_id: "nps-6", account_id: "a1", account_name: "XP Investimentos",   contact_id: "c1", contact_name: "João Silva",        contact_email: "joao.silva@xpi.com.br",            sent_by: "Miguel", sent_at: "2026-04-01T10:00:00Z", response_score: 10, category: "promoter",   comment: "Resultado da campanha Q1 superou expectativas!",        responded_at: "2026-04-03T09:00:00Z", period: "2026-Q2" },
+];
+
+export const SEED_CSAT_SURVEYS: CsatSurvey[] = [
+  { survey_id: "csat-1", account_id: "a1", account_name: "XP Investimentos",   contact_id: "c1", contact_name: "João Silva",       related_to_type: "opportunity", related_to_id: "o1", related_name: "XP Q2 — Campanha Performance", sent_by: "Miguel", sent_at: "2026-04-15T10:00:00Z", response_score: 5, comment: "Onboarding muito bem conduzido.",   responded_at: "2026-04-16T10:00:00Z" },
+  { survey_id: "csat-2", account_id: "a3", account_name: "Colégio CEM",        contact_id: "c3", contact_name: "Fernanda Costa",   related_to_type: "opportunity", related_to_id: "o3", related_name: "CEM — Produção Anual",        sent_by: "Miguel", sent_at: "2026-04-20T10:00:00Z", response_score: 4, comment: "Proposta muito clara e objetiva.",  responded_at: "2026-04-21T09:00:00Z" },
+  { survey_id: "csat-3", account_id: "a4", account_name: "Reabilicor",         contact_id: "c4", contact_name: "Dr. Roberto Silva",related_to_type: "opportunity", related_to_id: "o4", related_name: "Reabilicor — Consultoria",   sent_by: "Danilo", sent_at: "2026-04-22T10:00:00Z", response_score: 3, comment: "Proposta boa mas esperávamos mais detalhes no escopo.", responded_at: "2026-04-23T14:00:00Z" },
+  { survey_id: "csat-4", account_id: "a2", account_name: "Nubank",             contact_id: "c2", contact_name: "Carlos Mendes",    related_to_type: "general",     related_to_id: null, related_name: null,                          sent_by: "Danilo", sent_at: "2026-04-10T10:00:00Z", response_score: null,comment: null,                                                   responded_at: null },
+];
+
+// ─── NPS ──────────────────────────────────────────────────────────────────────
+
+export async function listNpsSurveys(filters?: { account_id?: string; period?: string }): Promise<NpsSurvey[]> {
+  if (!sql) return SEED_NPS_SURVEYS;
+  try {
+    const rows = await sql`
+      SELECT n.*,
+        a.account_name,
+        c.full_name as contact_name,
+        c.email     as contact_email
+      FROM crm_nps_surveys n
+      LEFT JOIN crm_accounts a ON a.account_id = n.account_id
+      LEFT JOIN crm_contacts c ON c.contact_id = n.contact_id
+      WHERE (${filters?.account_id ?? null} IS NULL OR n.account_id = ${filters?.account_id ?? ''})
+        AND (${filters?.period ?? null} IS NULL OR n.period = ${filters?.period ?? ''})
+      ORDER BY n.sent_at DESC
+    `;
+    return rows as NpsSurvey[];
+  } catch { return SEED_NPS_SURVEYS; }
+}
+
+export async function createNpsSurvey(data: Partial<NpsSurvey>): Promise<NpsSurvey> {
+  if (!sql) throw new Error("DB not available");
+  const period = data.period ?? `${new Date().getFullYear()}-Q${Math.ceil((new Date().getMonth() + 1) / 3)}`;
+  const rows = await sql`
+    INSERT INTO crm_nps_surveys (account_id, contact_id, sent_by, period)
+    VALUES (${data.account_id!}, ${data.contact_id ?? null}, ${data.sent_by ?? 'system'}, ${period})
+    RETURNING *
+  `;
+  return rows[0] as NpsSurvey;
+}
+
+export async function respondNps(id: string, score: number, comment?: string): Promise<NpsSurvey> {
+  if (!sql) throw new Error("DB not available");
+  const category = npsCategory(score);
+  const rows = await sql`
+    UPDATE crm_nps_surveys SET
+      response_score = ${score},
+      category       = ${category},
+      comment        = ${comment ?? null},
+      responded_at   = NOW(),
+      updated_at     = NOW()
+    WHERE survey_id = ${id}
+    RETURNING *
+  `;
+  return rows[0] as NpsSurvey;
+}
+
+// ─── CSAT ─────────────────────────────────────────────────────────────────────
+
+export async function listCsatSurveys(filters?: { account_id?: string }): Promise<CsatSurvey[]> {
+  if (!sql) return SEED_CSAT_SURVEYS;
+  try {
+    const rows = await sql`
+      SELECT s.*,
+        a.account_name,
+        c.full_name as contact_name
+      FROM crm_csat_surveys s
+      LEFT JOIN crm_accounts a ON a.account_id = s.account_id
+      LEFT JOIN crm_contacts c ON c.contact_id = s.contact_id
+      WHERE (${filters?.account_id ?? null} IS NULL OR s.account_id = ${filters?.account_id ?? ''})
+      ORDER BY s.sent_at DESC
+    `;
+    return rows as CsatSurvey[];
+  } catch { return SEED_CSAT_SURVEYS; }
+}
+
+export async function createCsatSurvey(data: Partial<CsatSurvey>): Promise<CsatSurvey> {
+  if (!sql) throw new Error("DB not available");
+  const rows = await sql`
+    INSERT INTO crm_csat_surveys (account_id, contact_id, related_to_type, related_to_id, sent_by)
+    VALUES (${data.account_id!}, ${data.contact_id ?? null},
+            ${data.related_to_type ?? 'general'}, ${data.related_to_id ?? null}, ${data.sent_by ?? 'system'})
+    RETURNING *
+  `;
+  return rows[0] as CsatSurvey;
+}
+
+export async function respondCsat(id: string, score: number, comment?: string): Promise<CsatSurvey> {
+  if (!sql) throw new Error("DB not available");
+  const rows = await sql`
+    UPDATE crm_csat_surveys SET
+      response_score = ${score},
+      comment        = ${comment ?? null},
+      responded_at   = NOW(),
+      updated_at     = NOW()
+    WHERE survey_id = ${id}
+    RETURNING *
+  `;
+  return rows[0] as CsatSurvey;
+}
+
+// ─── Account Health Summary ───────────────────────────────────────────────────
+
+export async function getAccountHealthSummaries(): Promise<AccountHealthSummary[]> {
+  if (!sql) {
+    // Build from seed data
+    return SEED_ACCOUNTS.filter(a => a.account_type === "customer").map(a => {
+      const npsForAcc = SEED_NPS_SURVEYS.filter(n => n.account_id === a.account_id && n.response_score !== null)
+        .sort((x, y) => y.sent_at.localeCompare(x.sent_at));
+      const csatForAcc = SEED_CSAT_SURVEYS.filter(c => c.account_id === a.account_id && c.response_score !== null)
+        .sort((x, y) => y.sent_at.localeCompare(x.sent_at));
+      const opps = SEED_OPPORTUNITIES.filter(o => o.account_id === a.account_id &&
+        o.stage !== "closed_won" && o.stage !== "closed_lost");
+      const acts = SEED_ACTIVITIES.filter(act => act.related_to_type === "account" && act.related_to_id === a.account_id);
+      return {
+        account_id:     a.account_id,
+        account_name:   a.account_name,
+        health_score:   a.health_score,
+        churn_risk:     a.churn_risk,
+        latest_nps:     npsForAcc[0]?.response_score ?? null,
+        nps_category:   npsForAcc[0]?.category ?? null,
+        latest_csat:    csatForAcc[0]?.response_score ?? null,
+        open_opps:      opps.length,
+        last_activity_at: acts.sort((x, y) => (y.completed_at ?? "").localeCompare(x.completed_at ?? ""))[0]?.completed_at ?? null,
+        renewal_date:   a.renewal_date ?? null,
+      } as AccountHealthSummary;
+    });
+  }
+  try {
+    const rows = await sql`
+      SELECT
+        a.account_id, a.account_name, a.health_score, a.churn_risk, a.renewal_date,
+        (SELECT response_score FROM crm_nps_surveys  WHERE account_id = a.account_id AND response_score IS NOT NULL ORDER BY sent_at DESC LIMIT 1) as latest_nps,
+        (SELECT category       FROM crm_nps_surveys  WHERE account_id = a.account_id AND response_score IS NOT NULL ORDER BY sent_at DESC LIMIT 1) as nps_category,
+        (SELECT response_score FROM crm_csat_surveys WHERE account_id = a.account_id AND response_score IS NOT NULL ORDER BY sent_at DESC LIMIT 1) as latest_csat,
+        (SELECT COUNT(*)       FROM crm_opportunities WHERE account_id = a.account_id AND stage NOT IN ('closed_won','closed_lost'))::int as open_opps,
+        (SELECT MAX(GREATEST(COALESCE(completed_at, '1970-01-01'::timestamptz), COALESCE(scheduled_at, '1970-01-01'::timestamptz)))
+          FROM crm_activities WHERE related_to_type = 'account' AND related_to_id = a.account_id::text) as last_activity_at
+      FROM crm_accounts a
+      WHERE a.account_type = 'customer'
+      ORDER BY a.health_score ASC
+    `;
+    return rows as AccountHealthSummary[];
+  } catch {
+    return [];
+  }
 }

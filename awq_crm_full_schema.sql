@@ -315,7 +315,104 @@ CREATE INDEX IF NOT EXISTS idx_email_log_target   ON crm_email_log(related_to_ty
 CREATE INDEX IF NOT EXISTS idx_email_log_template ON crm_email_log(template_id);
 
 -- =============================================================================
--- 6. PROPOSALS
+-- 6. NPS / CSAT
+-- =============================================================================
+
+-- ─── NPS Surveys ──────────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS crm_nps_surveys (
+  survey_id      UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id     UUID        NOT NULL REFERENCES crm_accounts(account_id) ON DELETE CASCADE,
+  contact_id     UUID        REFERENCES crm_contacts(contact_id) ON DELETE SET NULL,
+  sent_by        TEXT        NOT NULL DEFAULT 'system',
+  sent_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  period         TEXT        NOT NULL,                       -- "2026-Q2"
+  response_score SMALLINT    CHECK (response_score BETWEEN 0 AND 10),
+  category       TEXT        CHECK (category IN ('promoter','passive','detractor')),
+  comment        TEXT,
+  responded_at   TIMESTAMPTZ,
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_nps_account ON crm_nps_surveys(account_id);
+CREATE INDEX IF NOT EXISTS idx_nps_period  ON crm_nps_surveys(period);
+
+-- Auto-categorize on score update
+CREATE OR REPLACE FUNCTION set_nps_category()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.response_score IS NOT NULL THEN
+    NEW.category := CASE
+      WHEN NEW.response_score >= 9 THEN 'promoter'
+      WHEN NEW.response_score >= 7 THEN 'passive'
+      ELSE 'detractor'
+    END;
+    NEW.responded_at := COALESCE(NEW.responded_at, NOW());
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_nps_category ON crm_nps_surveys;
+CREATE TRIGGER trg_nps_category
+  BEFORE INSERT OR UPDATE ON crm_nps_surveys
+  FOR EACH ROW EXECUTE FUNCTION set_nps_category();
+
+-- ─── CSAT Surveys ─────────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS crm_csat_surveys (
+  survey_id        UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id       UUID        NOT NULL REFERENCES crm_accounts(account_id) ON DELETE CASCADE,
+  contact_id       UUID        REFERENCES crm_contacts(contact_id) ON DELETE SET NULL,
+  related_to_type  TEXT        CHECK (related_to_type IN ('opportunity','activity','general')),
+  related_to_id    TEXT,
+  sent_by          TEXT        NOT NULL DEFAULT 'system',
+  sent_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  response_score   SMALLINT    CHECK (response_score BETWEEN 1 AND 5),
+  comment          TEXT,
+  responded_at     TIMESTAMPTZ,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_csat_account ON crm_csat_surveys(account_id);
+
+-- ─── Health Score update trigger ──────────────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION refresh_account_health()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+DECLARE
+  v_nps_avg  NUMERIC;
+  v_csat_avg NUMERIC;
+  v_new_score SMALLINT;
+BEGIN
+  SELECT AVG(response_score) INTO v_nps_avg
+    FROM crm_nps_surveys WHERE account_id = NEW.account_id AND response_score IS NOT NULL;
+  SELECT AVG(response_score) INTO v_csat_avg
+    FROM crm_csat_surveys WHERE account_id = NEW.account_id AND response_score IS NOT NULL;
+  v_new_score := LEAST(100, GREATEST(0, ROUND(
+    COALESCE(v_nps_avg * 10, 70) * 0.5 +
+    COALESCE(v_csat_avg * 20, 70) * 0.5
+  )))::SMALLINT;
+  UPDATE crm_accounts SET health_score = v_new_score, updated_at = NOW()
+    WHERE account_id = NEW.account_id;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_refresh_health_nps  ON crm_nps_surveys;
+CREATE TRIGGER trg_refresh_health_nps
+  AFTER INSERT OR UPDATE OF response_score ON crm_nps_surveys
+  FOR EACH ROW WHEN (NEW.response_score IS NOT NULL) EXECUTE FUNCTION refresh_account_health();
+
+DROP TRIGGER IF EXISTS trg_refresh_health_csat ON crm_csat_surveys;
+CREATE TRIGGER trg_refresh_health_csat
+  AFTER INSERT OR UPDATE OF response_score ON crm_csat_surveys
+  FOR EACH ROW WHEN (NEW.response_score IS NOT NULL) EXECUTE FUNCTION refresh_account_health();
+
+-- =============================================================================
+-- 7. PROPOSALS
 -- =============================================================================
 
 -- ─── Proposal Templates ───────────────────────────────────────────────────────
@@ -426,7 +523,7 @@ CREATE TRIGGER trg_sync_proposal_to_opp
   FOR EACH ROW EXECUTE FUNCTION sync_proposal_to_opportunity();
 
 -- =============================================================================
--- 7. TRIGGERS
+-- 8. TRIGGERS
 -- =============================================================================
 
 -- ─── Auto-set probability by stage ───────────────────────────────────────────
@@ -517,7 +614,7 @@ CREATE TRIGGER trg_crm_account_code
   FOR EACH ROW EXECUTE FUNCTION fn_crm_account_code();
 
 -- =============================================================================
--- 8. VIEWS
+-- 10. VIEWS
 -- =============================================================================
 
 -- ─── Pipeline Overview ────────────────────────────────────────────────────────
@@ -620,7 +717,7 @@ SELECT
 FROM monthly;
 
 -- =============================================================================
--- 9. ROW LEVEL SECURITY
+-- 11. ROW LEVEL SECURITY
 -- =============================================================================
 
 ALTER TABLE crm_accounts                    ENABLE ROW LEVEL SECURITY;
@@ -639,7 +736,7 @@ CREATE POLICY IF NOT EXISTS crm_stage_hist_all      ON crm_opportunity_stage_his
 CREATE POLICY IF NOT EXISTS crm_activities_all      ON crm_activities            FOR ALL USING (TRUE);
 
 -- =============================================================================
--- 10. SEED DATA
+-- 12. SEED DATA
 -- =============================================================================
 
 -- ─── Accounts ────────────────────────────────────────────────────────────────

@@ -121,6 +121,7 @@ const crmTowerNav = [
   { label: "Propostas",      href: "/crm/proposals",       icon: FileText     },
   { label: "Atividades",     href: "/crm/activities",      icon: Activity     },
   { label: "E-mail",         href: "/crm/email",           icon: Mail         },
+  { label: "Account Health", href: "/crm/health",          icon: HeartPulse   },
   { label: "Analytics",      href: "/crm/analytics",       icon: BarChart3    },
   { label: "Matriz RFM",     href: "/crm/rfm",             icon: PieChart     },
 ];

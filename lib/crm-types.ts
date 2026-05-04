@@ -195,6 +195,55 @@ export type CrmDashboardMetrics = {
   tasksToday: CrmActivity[];
 };
 
+// ─── NPS / CSAT ───────────────────────────────────────────────────────────────
+
+export type NpsCategory = "promoter" | "passive" | "detractor";
+
+export type NpsSurvey = {
+  survey_id: string;
+  account_id: string;
+  account_name?: string;
+  contact_id: string | null;
+  contact_name?: string;
+  contact_email?: string;
+  sent_by: string;
+  sent_at: string;
+  response_score: number | null;       // 0–10
+  category: NpsCategory | null;        // computed: 9-10=promoter, 7-8=passive, 0-6=detractor
+  comment: string | null;
+  responded_at: string | null;
+  period: string;                       // "2026-Q2"
+};
+
+export type CsatSurvey = {
+  survey_id: string;
+  account_id: string;
+  account_name?: string;
+  contact_id: string | null;
+  contact_name?: string;
+  related_to_type: "opportunity" | "activity" | "general" | null;
+  related_to_id: string | null;
+  related_name?: string;
+  sent_by: string;
+  sent_at: string;
+  response_score: number | null;       // 1–5
+  comment: string | null;
+  responded_at: string | null;
+};
+
+export type AccountHealthSummary = {
+  account_id: string;
+  account_name: string;
+  health_score: number;
+  churn_risk: "low" | "medium" | "high";
+  latest_nps: number | null;
+  nps_category: NpsCategory | null;
+  latest_csat: number | null;
+  open_opps: number;
+  last_activity_at: string | null;
+  renewal_date: string | null;
+};
+
 // ─── Proposal Templates ───────────────────────────────────────────────────────
 
 export type ProposalTemplate = {
