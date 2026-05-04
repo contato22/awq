@@ -53,6 +53,7 @@ export type CrmAccount = {
   address_state: string | null;
   address_zip: string | null;
   account_type: "prospect" | "customer" | "partner" | "former_customer";
+  bu: string;
   owner: string;
   health_score: number;
   churn_risk: "low" | "medium" | "high";

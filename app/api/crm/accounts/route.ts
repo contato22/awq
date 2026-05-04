@@ -28,6 +28,7 @@ export async function GET(req: NextRequest) {
 
     const rows = await listAccounts({
       account_type: p.get("account_type") ?? undefined,
+      bu:           p.get("bu")           ?? undefined,
       owner:        p.get("owner")        ?? undefined,
       search:       p.get("search")       ?? undefined,
     });
