@@ -514,7 +514,7 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
             <>
               <SectionLabel>AWQ Group · Visão Geral</SectionLabel>
               <div className="space-y-0.5">
-                {currentNav.map((item) => (
+                {awqNav.map((item) => (
                   <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
                 ))}
               </div>
