@@ -116,7 +116,7 @@ export default function AccountsPage() {
             ))}
           </div>
           <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
-            {["Todos", "Miguel", "Danilo"].map(o => (
+            {["Todos", "Miguel", "Danilo", "Daniel"].map(o => (
               <button key={o} onClick={() => setFilterOwner(o)}
                 className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${filterOwner === o ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"}`}>
                 {o}

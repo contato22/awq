@@ -28,7 +28,7 @@ export const STAGE_LABELS: Record<PipelineStage, string> = {
 export const BU_OPTIONS = ["JACQES", "CAZA", "ADVISOR", "VENTURE"] as const;
 export type BuCode = typeof BU_OPTIONS[number];
 
-export const OWNER_OPTIONS = ["Miguel", "Danilo"] as const;
+export const OWNER_OPTIONS = ["Miguel", "Danilo", "Daniel"] as const;
 export type Owner = typeof OWNER_OPTIONS[number];
 
 export const CLOSED_STAGES = ["closed_won", "closed_lost"] as const satisfies PipelineStage[];

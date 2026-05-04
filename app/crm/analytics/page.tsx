@@ -78,7 +78,7 @@ export default function AnalyticsPage() {
     color: BU_COLORS[bu],
   })), [data, opps]);
 
-  const reps = useMemo(() => ["Miguel","Danilo"].map(r => {
+  const reps = useMemo(() => ["Miguel","Danilo","Daniel"].map(r => {
     const myOpps = opps.filter(o=>o.owner===r);
     const myOpen = myOpps.filter(o=>o.stage!=="closed_won"&&o.stage!=="closed_lost");
     const myWon  = myOpps.filter(o=>o.stage==="closed_won");

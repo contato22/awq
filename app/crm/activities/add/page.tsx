@@ -66,7 +66,7 @@ function AddActivityPageInner() {
               <div><label className="block text-xs font-medium text-gray-700 mb-1">Responsável</label>
                 <select value={form.created_by} onChange={e=>set("created_by",e.target.value)}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30">
-                  <option>Miguel</option><option>Danilo</option>
+                  <option>Miguel</option><option>Danilo</option><option>Daniel</option>
                 </select></div>
             </div>
 

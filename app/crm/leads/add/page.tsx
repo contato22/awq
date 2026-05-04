@@ -333,6 +333,7 @@ export default function AddLeadPage() {
                 <option value="">Selecionar responsável…</option>
                 <option value="Miguel">Miguel</option>
                 <option value="Danilo">Danilo</option>
+                <option value="Daniel">Daniel</option>
               </select>
               {errors.assigned_to && <p className="text-[11px] text-red-600 mt-1">{errors.assigned_to}</p>}
             </Field>
