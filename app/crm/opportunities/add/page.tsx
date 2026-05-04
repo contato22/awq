@@ -68,8 +68,10 @@ function AddOpportunityPageInner() {
         }),
       });
       const data = await res.json();
-      if (data.success) router.push("/crm/opportunities");
-      else setError(data.error ?? "Erro ao criar oportunidade");
+      if (data.success) {
+        try { localStorage.removeItem("crm-opportunities-v1"); } catch { /* ignore */ }
+        router.push("/crm/opportunities");
+      } else setError(data.error ?? "Erro ao criar oportunidade");
     } catch {
       setError("Erro de rede — tente novamente");
     } finally {

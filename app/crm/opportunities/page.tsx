@@ -9,7 +9,7 @@ import SectionHeader from "@/components/SectionHeader";
 import EmptyState from "@/components/EmptyState";
 import {
   Target, DollarSign, TrendingUp, Plus, X,
-  Calendar, Building2, AlertCircle,
+  Calendar, Building2, AlertCircle, RefreshCw,
 } from "lucide-react";
 import type { CrmOpportunity } from "@/lib/crm-types";
 import { STAGE_LABELS, STAGE_PROBABILITY, BU_OPTIONS, OWNER_OPTIONS, PIPELINE_STAGES } from "@/lib/crm-types";
@@ -17,6 +17,8 @@ import { SEED_OPPORTUNITIES } from "@/lib/crm-db";
 import { formatBRL, formatDateBR } from "@/lib/utils";
 
 const LS_KEY = "crm-opportunities-v1";
+const LS_TS_KEY = "crm-opportunities-ts-v1";
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 function daysUntil(d: string | null | undefined): number | null {
   if (!d) return null;
@@ -363,18 +365,10 @@ function PipelinePageInner() {
   const [dragOverStage, setDragOverStage] = useState<string | null>(null);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const [editingOpp, setEditingOpp] = useState<CrmOpportunity | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    // Try localStorage first for instant load with persisted state
-    try {
-      const stored = localStorage.getItem(LS_KEY);
-      if (stored) {
-        setOpps(JSON.parse(stored));
-        setLoading(false);
-        return;
-      }
-    } catch { /* ignore */ }
-
+  function loadFromApi(showRefreshing = false) {
+    if (showRefreshing) setRefreshing(true);
     fetch("/api/crm/pipeline")
       .then(r => r.json())
       .then(res => {
@@ -391,11 +385,29 @@ function PipelinePageInner() {
         }
       })
       .catch(() => setOpps(SEED_OPPORTUNITIES))
-      .finally(() => setLoading(false));
+      .finally(() => { setLoading(false); setRefreshing(false); });
+  }
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(LS_KEY);
+      const ts = localStorage.getItem(LS_TS_KEY);
+      const age = ts ? Date.now() - Number(ts) : Infinity;
+      if (stored && age < CACHE_TTL_MS) {
+        setOpps(JSON.parse(stored));
+        setLoading(false);
+        return;
+      }
+    } catch { /* ignore */ }
+    loadFromApi();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function persist(data: CrmOpportunity[]) {
-    try { localStorage.setItem(LS_KEY, JSON.stringify(data)); } catch { /* ignore */ }
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify(data));
+      localStorage.setItem(LS_TS_KEY, String(Date.now()));
+    } catch { /* ignore */ }
   }
 
   function updateOpps(next: CrmOpportunity[]) {
@@ -535,10 +547,21 @@ function PipelinePageInner() {
               </button>
             ))}
           </div>
-          <Link href="/crm/opportunities/add"
-            className="ml-auto flex items-center gap-1.5 px-3 py-2 bg-brand-600 text-white text-xs font-semibold rounded-lg hover:bg-brand-700 transition-colors">
-            <Plus size={13} /> Nova Oportunidade
-          </Link>
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              onClick={() => loadFromApi(true)}
+              disabled={refreshing}
+              title="Atualizar pipeline"
+              className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 text-gray-600 text-xs font-medium rounded-lg hover:bg-gray-200 disabled:opacity-50 transition-colors"
+            >
+              <RefreshCw size={12} className={refreshing ? "animate-spin" : ""} />
+              {refreshing ? "Atualizando…" : "Atualizar"}
+            </button>
+            <Link href="/crm/opportunities/add"
+              className="flex items-center gap-1.5 px-3 py-2 bg-brand-600 text-white text-xs font-semibold rounded-lg hover:bg-brand-700 transition-colors">
+              <Plus size={13} /> Nova Oportunidade
+            </Link>
+          </div>
         </div>
 
         {/* Kanban Board */}

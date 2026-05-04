@@ -105,6 +105,7 @@ function LeadsPageInner() {
       const json = await res.json();
       if (json.success) {
         setLeads(prev => prev.map(l => l.lead_id === lead.lead_id ? { ...l, status: "converted" as const } : l));
+        try { localStorage.removeItem("crm-opportunities-v1"); } catch { /* ignore */ }
         router.push("/crm/opportunities");
       } else {
         alert(json.error ?? "Erro ao converter lead");
