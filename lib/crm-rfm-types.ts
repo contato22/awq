@@ -1,20 +1,24 @@
 // Shared RFM types — used by both API route and client page
 
 export type RfmSegment =
-  | "Champions"
-  | "Clientes Leais"
-  | "Potencial de Fidelidade"
+  | "Campeões"
+  | "Clientes Fiéis"
+  | "Fiéis em Potencial"
   | "Novos Clientes"
-  | "Requer Atenção"
-  | "Em Risco"
+  | "Clientes Promissores"
+  | "Precisam de Atenção"
+  | "Quase Dormentes"
   | "Não Pode Perder"
-  | "Hibernando";
+  | "Em Risco"
+  | "Hibernando"
+  | "Perdidos";
 
 export type RfmCustomer = {
   account_id: string;
   account_name: string;
   industry: string | null;
   owner: string;
+  bu: string;
   recency_days: number;
   frequency: number;
   monetary: number;
