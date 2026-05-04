@@ -72,12 +72,18 @@ export default function ActivitiesPage() {
   async function completeActivity(id: string) {
     setCompleting(id);
     try {
-      await fetch("/api/crm/activities", {
+      const res = await fetch("/api/crm/activities", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "complete", activity_id: id }),
       });
-      setActivities(prev => prev.map(a => a.activity_id === id ? { ...a, status: "completed", completed_at: new Date().toISOString() } : a));
+      if (res.ok) {
+        setActivities(prev => prev.map(a =>
+          a.activity_id === id
+            ? { ...a, status: "completed" as const, completed_at: new Date().toISOString() }
+            : a
+        ));
+      }
     } finally { setCompleting(null); }
   }
 

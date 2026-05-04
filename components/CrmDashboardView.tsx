@@ -5,6 +5,8 @@ import type { ReactNode, ElementType } from "react";
 import Header from "@/components/Header";
 import SectionHeader from "@/components/SectionHeader";
 import EmptyState from "@/components/EmptyState";
+import type { CrmOpportunity, CrmActivity } from "@/lib/crm-types";
+import { SEED_OPPORTUNITIES, SEED_ACTIVITIES } from "@/lib/crm-db";
 import {
   Users, Target, DollarSign, TrendingUp, CheckCircle2,
   Activity, AlertTriangle, Clock, ClipboardList,
@@ -13,48 +15,8 @@ import {
 } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/utils";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-type CrmOpportunity = {
-  opportunity_id: string; opportunity_code: string; opportunity_name: string;
-  account_id: string | null; account_name?: string; contact_id: string | null;
-  contact_name?: string | null; bu: string;
-  stage: "discovery" | "qualification" | "proposal" | "negotiation" | "closed_won" | "closed_lost";
-  deal_value: number; probability: number; expected_close_date: string | null;
-  actual_close_date: string | null; lost_reason: string | null; win_reason: string | null;
-  owner: string; proposal_sent_date: string | null; synced_to_epm: boolean;
-  epm_customer_id: string | null; epm_ar_id: string | null;
-  created_at: string; updated_at: string;
-};
-
-type CrmActivity = {
-  activity_id: string; activity_type: "call" | "email" | "meeting" | "task" | "note";
-  related_to_type: "lead" | "opportunity" | "account" | "contact"; related_to_id: string;
-  related_name?: string; subject: string; description: string | null; outcome: string | null;
-  duration_minutes: number | null; scheduled_at: string | null; completed_at: string | null;
-  status: "scheduled" | "completed" | "cancelled"; created_by: string; created_at: string;
-};
-
-// ─── Seed Data ────────────────────────────────────────────────────────────────
-
-const SEED_OPPS: CrmOpportunity[] = [
-  { opportunity_id: "o1", opportunity_code: "OPP-001", opportunity_name: "XP Q2 — Campanha Performance", account_id: "a1", account_name: "XP Investimentos", contact_id: "c1", contact_name: "João Silva", bu: "CAZA", stage: "discovery", deal_value: 120000, probability: 25, expected_close_date: "2026-06-30", actual_close_date: null, lost_reason: null, win_reason: null, owner: "Miguel", proposal_sent_date: null, synced_to_epm: false, epm_customer_id: null, epm_ar_id: null, created_at: "2026-04-01T10:00:00Z", updated_at: "2026-04-10T10:00:00Z" },
-  { opportunity_id: "o2", opportunity_code: "OPP-002", opportunity_name: "Nubank — Vídeo Institucional", account_id: "a2", account_name: "Nubank", contact_id: "c2", contact_name: "Maria Santos", bu: "CAZA", stage: "qualification", deal_value: 85000, probability: 40, expected_close_date: "2026-05-31", actual_close_date: null, lost_reason: null, win_reason: null, owner: "Danilo", proposal_sent_date: null, synced_to_epm: false, epm_customer_id: null, epm_ar_id: null, created_at: "2026-04-03T10:00:00Z", updated_at: "2026-04-12T10:00:00Z" },
-  { opportunity_id: "o3", opportunity_code: "OPP-003", opportunity_name: "CEM — Produção Anual", account_id: "a3", account_name: "Colégio CEM", contact_id: "c3", contact_name: "Fernanda Costa", bu: "CAZA", stage: "proposal", deal_value: 35000, probability: 60, expected_close_date: "2026-05-15", actual_close_date: null, lost_reason: null, win_reason: null, owner: "Miguel", proposal_sent_date: "2026-04-20", synced_to_epm: false, epm_customer_id: null, epm_ar_id: null, created_at: "2026-04-05T10:00:00Z", updated_at: "2026-04-20T10:00:00Z" },
-  { opportunity_id: "o4", opportunity_code: "OPP-004", opportunity_name: "Reabilicor — Consultoria Estratégica", account_id: "a4", account_name: "Reabilicor", contact_id: "c4", contact_name: "Dr. Roberto Silva", bu: "ADVISOR", stage: "negotiation", deal_value: 95000, probability: 75, expected_close_date: "2026-05-10", actual_close_date: null, lost_reason: null, win_reason: null, owner: "Danilo", proposal_sent_date: "2026-04-10", synced_to_epm: false, epm_customer_id: null, epm_ar_id: null, created_at: "2026-04-02T10:00:00Z", updated_at: "2026-04-22T10:00:00Z" },
-  { opportunity_id: "o5", opportunity_code: "OPP-005", opportunity_name: "Carol Bertolini — Pacote Social", account_id: "a6", account_name: "Carol Bertolini", contact_id: "c5", contact_name: "Carol Bertolini", bu: "JACQES", stage: "closed_won", deal_value: 18000, probability: 100, expected_close_date: "2026-04-15", actual_close_date: "2026-04-15", lost_reason: null, win_reason: "Relationship,Price competitive", owner: "Miguel", proposal_sent_date: "2026-04-08", synced_to_epm: false, epm_customer_id: null, epm_ar_id: null, created_at: "2026-03-25T10:00:00Z", updated_at: "2026-04-15T10:00:00Z" },
-  { opportunity_id: "o6", opportunity_code: "OPP-006", opportunity_name: "Clínica Teresópolis — Estratégia Digital", account_id: "a5", account_name: "Clínica Teresópolis", contact_id: "c6", contact_name: "Dra. Aline Duarte", bu: "ADVISOR", stage: "closed_lost", deal_value: 50000, probability: 0, expected_close_date: "2026-04-20", actual_close_date: "2026-04-20", lost_reason: "Price too high", win_reason: null, owner: "Danilo", proposal_sent_date: "2026-04-05", synced_to_epm: false, epm_customer_id: null, epm_ar_id: null, created_at: "2026-03-20T10:00:00Z", updated_at: "2026-04-20T10:00:00Z" },
-  { opportunity_id: "o7", opportunity_code: "OPP-007", opportunity_name: "JACQES — Social Media Fintechx", account_id: null, account_name: "Fintechx (Prospect)", contact_id: null, contact_name: null, bu: "JACQES", stage: "discovery", deal_value: 60000, probability: 25, expected_close_date: "2026-06-15", actual_close_date: null, lost_reason: null, win_reason: null, owner: "Miguel", proposal_sent_date: null, synced_to_epm: false, epm_customer_id: null, epm_ar_id: null, created_at: "2026-04-21T10:00:00Z", updated_at: "2026-04-21T10:00:00Z" },
-  { opportunity_id: "o8", opportunity_code: "OPP-008", opportunity_name: "XP — Brand Refresh Q3", account_id: "a1", account_name: "XP Investimentos", contact_id: "c1", contact_name: "João Silva", bu: "CAZA", stage: "qualification", deal_value: 45000, probability: 40, expected_close_date: "2026-07-31", actual_close_date: null, lost_reason: null, win_reason: null, owner: "Miguel", proposal_sent_date: null, synced_to_epm: false, epm_customer_id: null, epm_ar_id: null, created_at: "2026-04-22T10:00:00Z", updated_at: "2026-04-22T10:00:00Z" },
-];
-
-const SEED_ACTIVITIES: CrmActivity[] = [
-  { activity_id: "act1", activity_type: "call", related_to_type: "opportunity", related_to_id: "o4", related_name: "Reabilicor — Consultoria", subject: "Alinhamento final de proposta", description: "Discutido escopo e ajuste de preço.", outcome: "Aguardando aprovação do sócio", duration_minutes: 30, scheduled_at: null, completed_at: "2026-04-22T14:00:00Z", status: "completed", created_by: "Danilo", created_at: "2026-04-22T14:30:00Z" },
-  { activity_id: "act2", activity_type: "email", related_to_type: "opportunity", related_to_id: "o3", related_name: "CEM — Produção Anual", subject: "Envio da proposta revisada", description: "Proposta enviada com ajuste de cronograma.", outcome: null, duration_minutes: null, scheduled_at: null, completed_at: "2026-04-21T10:00:00Z", status: "completed", created_by: "Miguel", created_at: "2026-04-21T10:05:00Z" },
-  { activity_id: "act3", activity_type: "meeting", related_to_type: "lead", related_to_id: "l1", related_name: "Tech Solutions BR", subject: "Reunião de descoberta", description: "Entendimento das necessidades de mídia social.", outcome: "Lead muito qualificado", duration_minutes: 60, scheduled_at: null, completed_at: "2026-04-20T16:00:00Z", status: "completed", created_by: "Miguel", created_at: "2026-04-20T17:00:00Z" },
-  { activity_id: "act4", activity_type: "task", related_to_type: "opportunity", related_to_id: "o2", related_name: "Nubank — Vídeo", subject: "Preparar briefing criativo", description: null, outcome: null, duration_minutes: null, scheduled_at: "2026-04-28T09:00:00Z", completed_at: null, status: "scheduled", created_by: "Danilo", created_at: "2026-04-19T08:00:00Z" },
-  { activity_id: "act5", activity_type: "note", related_to_type: "account", related_to_id: "a1", related_name: "XP Investimentos", subject: "Feedback da campanha Q1", description: "Cliente satisfeito com os resultados. Aberto para Q2.", outcome: null, duration_minutes: null, scheduled_at: null, completed_at: "2026-04-18T11:00:00Z", status: "completed", created_by: "Miguel", created_at: "2026-04-18T11:30:00Z" },
-];
+// ─── Seed aliases (canonical source: lib/crm-db.ts) ──────────────────────────
+const SEED_OPPS = SEED_OPPORTUNITIES;
 
 // BU label display names
 const BU_LABELS: Record<string, string> = {
@@ -184,9 +146,15 @@ export default function CrmDashboardView({ buFilter: externalBu }: Props) {
           const allOpps = (Object.values(pipeJson.data.byStage as Record<string, CrmOpportunity[]>).flat())
             .filter((o: CrmOpportunity) => !buFilter || o.bu === buFilter);
           setOpps(allOpps);
-          const filteredActs = (actJson.data as CrmActivity[]).filter(
-            (a) => !buFilter || a.related_to_type !== "opportunity" || allOpps.some(o => o.opportunity_id === a.related_to_id)
-          );
+          const oppIds    = new Set(allOpps.map(o => o.opportunity_id));
+          const accountIds = new Set(allOpps.map(o => o.account_id).filter(Boolean));
+          const filteredActs = (actJson.data as CrmActivity[]).filter((a) => {
+            if (!buFilter) return true;
+            if (a.related_to_type === "opportunity") return oppIds.has(a.related_to_id);
+            if (a.related_to_type === "account")     return accountIds.has(a.related_to_id);
+            // lead and contact activities excluded from BU-scoped views (no BU field on activity)
+            return false;
+          });
           setActivities(filteredActs);
 
           // Derive KPIs from filtered opps so BU views never show cross-BU numbers
@@ -224,11 +192,14 @@ export default function CrmDashboardView({ buFilter: externalBu }: Props) {
           ? SEED_OPPS.filter(o => o.bu === buFilter)
           : SEED_OPPS;
 
-        const filteredOppIds = new Set(filteredOpps.map(o => o.opportunity_id));
+        const filteredOppIds     = new Set(filteredOpps.map(o => o.opportunity_id));
+        const filteredAccountIds = new Set(filteredOpps.map(o => o.account_id).filter(Boolean));
         const filteredActs = buFilter
-          ? SEED_ACTIVITIES.filter(
-              a => a.related_to_type !== "opportunity" || filteredOppIds.has(a.related_to_id)
-            )
+          ? SEED_ACTIVITIES.filter(a => {
+              if (a.related_to_type === "opportunity") return filteredOppIds.has(a.related_to_id);
+              if (a.related_to_type === "account")     return filteredAccountIds.has(a.related_to_id);
+              return false;
+            })
           : SEED_ACTIVITIES;
 
         const openSeed = filteredOpps.filter(o => o.stage !== "closed_won" && o.stage !== "closed_lost");
