@@ -5,6 +5,34 @@ import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import { OWNER_OPTIONS } from "@/lib/crm-types";
+import type { CrmAccount } from "@/lib/crm-types";
+import { SEED_ACCOUNTS } from "@/lib/crm-db";
+
+const LS_KEY = "crm_accounts";
+
+function loadAccounts(): CrmAccount[] {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) return JSON.parse(raw) as CrmAccount[];
+  } catch { /* ignore */ }
+  return SEED_ACCOUNTS;
+}
+
+function saveAccounts(data: CrmAccount[]) {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(data)); } catch { /* ignore */ }
+}
+
+function generateId() {
+  return "a-" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+}
+
+function nextCode(accounts: CrmAccount[]): string {
+  const nums = accounts
+    .map(a => parseInt(a.account_code?.replace("ACC-", "") ?? "0"))
+    .filter(n => !isNaN(n));
+  const max = nums.length ? Math.max(...nums) : 0;
+  return `ACC-${String(max + 1).padStart(3, "0")}`;
+}
 
 export default function AddAccountPage() {
   const router = useRouter();
@@ -24,6 +52,8 @@ export default function AddAccountPage() {
     e.preventDefault();
     if (!form.account_name.trim()) { setError("Nome da empresa é obrigatório"); return; }
     setSaving(true); setError("");
+
+    // Try API first; fall back to localStorage on any failure
     try {
       const res = await fetch("/api/crm/accounts", {
         method: "POST",
@@ -31,9 +61,53 @@ export default function AddAccountPage() {
         body: JSON.stringify({ action: "create", ...form, health_score: parseInt(form.health_score) }),
       });
       const data = await res.json();
-      if (data.success) router.push("/crm/accounts");
-      else setError(data.error ?? "Erro ao criar conta");
-    } catch { setError("Erro de rede"); } finally { setSaving(false); }
+      if (data.success) {
+        // Also persist locally so the list page shows it immediately
+        const existing = loadAccounts();
+        const newAccount: CrmAccount = {
+          ...data.data,
+          open_opportunities: 0,
+          last_activity_at: null,
+        };
+        saveAccounts([...existing, newAccount]);
+        router.push("/crm/accounts");
+        return;
+      }
+    } catch { /* API unavailable — fall through to localStorage */ }
+
+    // Manual mode: create directly in localStorage
+    const existing = loadAccounts();
+    const now = new Date().toISOString();
+    const newAccount: CrmAccount = {
+      account_id:               generateId(),
+      account_code:             nextCode(existing),
+      account_name:             form.account_name.trim(),
+      trade_name:               form.trade_name.trim() || null,
+      document_number:          form.document_number.trim() || null,
+      industry:                 form.industry || null,
+      company_size:             form.company_size || null,
+      annual_revenue_estimate:  null,
+      website:                  form.website.trim() || null,
+      linkedin_url:             form.linkedin_url.trim() || null,
+      address_street:           form.address_street.trim() || null,
+      address_city:             form.address_city.trim() || null,
+      address_state:            form.address_state.trim() || null,
+      address_zip:              form.address_zip.trim() || null,
+      account_type:             form.account_type as CrmAccount["account_type"],
+      owner:                    form.owner,
+      health_score:             parseInt(form.health_score) || 70,
+      churn_risk:               form.churn_risk as CrmAccount["churn_risk"],
+      renewal_date:             form.renewal_date || null,
+      epm_customer_id:          null,
+      created_at:               now,
+      updated_at:               now,
+      created_by:               form.owner,
+      open_opportunities:       0,
+      last_activity_at:         null,
+    };
+    saveAccounts([...existing, newAccount]);
+    setSaving(false);
+    router.push("/crm/accounts");
   }
 
   return (

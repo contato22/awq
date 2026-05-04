@@ -5,10 +5,11 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import SectionHeader from "@/components/SectionHeader";
 import EmptyState from "@/components/EmptyState";
-import { Building2, Plus, Search, HeartPulse, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Building2, Plus, Search, AlertTriangle, CheckCircle2, Trash2, HardDrive } from "lucide-react";
 import type { CrmAccount } from "@/lib/crm-types";
 import { SEED_ACCOUNTS } from "@/lib/crm-db";
-import { formatBRL } from "@/lib/utils";
+
+const LS_KEY = "crm_accounts";
 
 const TYPE_LABELS: Record<string, string> = {
   prospect:        "Prospect",
@@ -26,12 +27,24 @@ const TYPE_COLORS: Record<string, string> = {
 
 function HealthBadge({ score }: { score: number }) {
   const color = score >= 80 ? "text-emerald-600" : score >= 60 ? "text-amber-600" : "text-red-600";
-  const icon = score >= 80 ? <CheckCircle2 size={11} /> : score >= 60 ? <AlertTriangle size={11} /> : <AlertTriangle size={11} />;
+  const icon = score >= 80 ? <CheckCircle2 size={11} /> : <AlertTriangle size={11} />;
   return (
     <span className={`flex items-center gap-1 text-[11px] font-semibold ${color}`}>
       {icon} {score}
     </span>
   );
+}
+
+function loadFromStorage(): CrmAccount[] | null {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) return JSON.parse(raw) as CrmAccount[];
+  } catch { /* ignore */ }
+  return null;
+}
+
+function saveToStorage(data: CrmAccount[]) {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(data)); } catch { /* ignore */ }
 }
 
 export default function AccountsPage() {
@@ -40,23 +53,83 @@ export default function AccountsPage() {
   const [search,   setSearch]   = useState("");
   const [filterType, setFilterType] = useState("Todos");
   const [filterOwner, setFilterOwner] = useState("Todos");
+  const [isManual, setIsManual] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   useEffect(() => {
+    const stored = loadFromStorage();
+    if (stored) {
+      setAccounts(stored);
+      setIsManual(true);
+      setLoading(false);
+      return;
+    }
+
     const params = new URLSearchParams();
     if (filterType !== "Todos") params.set("account_type", filterType);
     if (filterOwner !== "Todos") params.set("owner", filterOwner);
     if (search) params.set("search", search);
     fetch(`/api/crm/accounts?${params}`)
       .then(r => r.json())
-      .then(res => setAccounts(res.success ? res.data : SEED_ACCOUNTS))
-      .catch(() => setAccounts(SEED_ACCOUNTS))
+      .then(res => {
+        const data = res.success ? res.data : SEED_ACCOUNTS;
+        setAccounts(data);
+        saveToStorage(data);
+        setIsManual(true);
+      })
+      .catch(() => {
+        setAccounts(SEED_ACCOUNTS);
+        saveToStorage(SEED_ACCOUNTS);
+        setIsManual(true);
+      })
       .finally(() => setLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Re-filter from localStorage when filters change (after initial load)
+  useEffect(() => {
+    if (loading) return;
+    const stored = loadFromStorage();
+    const base = stored ?? SEED_ACCOUNTS;
+    let filtered = base;
+    if (filterType !== "Todos") filtered = filtered.filter(a => a.account_type === filterType);
+    if (filterOwner !== "Todos") filtered = filtered.filter(a => a.owner === filterOwner);
+    if (search) {
+      const q = search.toLowerCase();
+      filtered = filtered.filter(a =>
+        a.account_name.toLowerCase().includes(q) ||
+        (a.trade_name ?? "").toLowerCase().includes(q) ||
+        (a.document_number ?? "").includes(q)
+      );
+    }
+    setAccounts(filtered);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterType, filterOwner, search]);
+
+  function handleDelete(id: string) {
+    const stored = loadFromStorage() ?? SEED_ACCOUNTS;
+    const next = stored.filter(a => a.account_id !== id);
+    saveToStorage(next);
+
+    // Re-apply current filters to the updated list
+    let filtered = next;
+    if (filterType !== "Todos") filtered = filtered.filter(a => a.account_type === filterType);
+    if (filterOwner !== "Todos") filtered = filtered.filter(a => a.owner === filterOwner);
+    if (search) {
+      const q = search.toLowerCase();
+      filtered = filtered.filter(a =>
+        a.account_name.toLowerCase().includes(q) ||
+        (a.trade_name ?? "").toLowerCase().includes(q) ||
+        (a.document_number ?? "").includes(q)
+      );
+    }
+    setAccounts(filtered);
+    setConfirmDelete(null);
+  }
 
   const customers  = accounts.filter(a => a.account_type === "customer").length;
   const prospects  = accounts.filter(a => a.account_type === "prospect").length;
   const atRisk     = accounts.filter(a => a.churn_risk === "high").length;
-  const avgHealth  = accounts.length ? Math.round(accounts.reduce((s,a) => s + a.health_score, 0) / accounts.length) : 0;
 
   return (
     <>
@@ -111,6 +184,11 @@ export default function AccountsPage() {
             className="flex items-center gap-1.5 px-3 py-2 bg-brand-600 text-white text-xs font-semibold rounded-lg hover:bg-brand-700 transition-colors">
             <Plus size={13} /> Nova Conta
           </Link>
+          {isManual && (
+            <span className="flex items-center gap-1 text-[11px] text-gray-400 font-medium">
+              <HardDrive size={11} /> Local
+            </span>
+          )}
         </div>
 
         {/* Table */}
@@ -119,8 +197,8 @@ export default function AccountsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200">
-                  {["Empresa","Tipo","Cidade","Owner","Opps","Health","Risco"].map(h => (
-                    <th key={h} className="text-left py-3 px-4 text-[11px] font-semibold text-gray-500 whitespace-nowrap">{h}</th>
+                  {["Empresa","Tipo","Cidade","Owner","Opps","Health","Risco",""].map((h, i) => (
+                    <th key={i} className="text-left py-3 px-4 text-[11px] font-semibold text-gray-500 whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -128,13 +206,13 @@ export default function AccountsPage() {
                 {loading ? (
                   Array.from({length:4}).map((_,i) => (
                     <tr key={i} className="border-b border-gray-100">
-                      {Array.from({length:7}).map((_,j) => (
+                      {Array.from({length:8}).map((_,j) => (
                         <td key={j} className="py-3 px-4"><div className="h-4 bg-gray-100 rounded animate-pulse w-20" /></td>
                       ))}
                     </tr>
                   ))
                 ) : accounts.length === 0 ? (
-                  <tr><td colSpan={7} className="py-0">
+                  <tr><td colSpan={8} className="py-0">
                     <EmptyState compact icon={<Building2 size={16} className="text-gray-400" />} title="Nenhuma conta encontrada" />
                   </td></tr>
                 ) : (
@@ -159,6 +237,25 @@ export default function AccountsPage() {
                         <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${a.churn_risk === "high" ? "bg-red-50 text-red-700" : a.churn_risk === "medium" ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>
                           {a.churn_risk === "high" ? "Alto" : a.churn_risk === "medium" ? "Médio" : "Baixo"}
                         </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        {confirmDelete === a.account_id ? (
+                          <div className="flex items-center gap-1">
+                            <button onClick={() => handleDelete(a.account_id)}
+                              className="text-[11px] font-semibold text-red-600 hover:text-red-700 px-2 py-0.5 rounded bg-red-50 hover:bg-red-100 transition-colors">
+                              Confirmar
+                            </button>
+                            <button onClick={() => setConfirmDelete(null)}
+                              className="text-[11px] text-gray-500 hover:text-gray-700 px-2 py-0.5 rounded hover:bg-gray-100 transition-colors">
+                              Cancelar
+                            </button>
+                          </div>
+                        ) : (
+                          <button onClick={() => setConfirmDelete(a.account_id)}
+                            className="text-gray-300 hover:text-red-500 transition-colors p-1 rounded hover:bg-red-50">
+                            <Trash2 size={13} />
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))
