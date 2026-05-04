@@ -328,33 +328,18 @@ const AWQ_MODULES: AwqModule[] = [
     {
         id: "erp",
         label: "ERP",
-        description: "Financials, procurement, inventário, contratos, assets",
+        description: "Procurement, inventário, pedidos, contratos, time tracking, assets",
         icon: Package,
         items: [],
         sections: [
-            {
-                id: "financials",
-                label: "Financials",
-                icon: DollarSign,
-                items: [
-                    { label: "Razão Geral (GL)",      href: "/awq/epm/gl",                   icon: ListOrdered   },
-                    { label: "Fixed Assets",           href: "/awq/erp/financials/fixed-assets", icon: Building  },
-                    { label: "Contas a Pagar (AP)",    href: "/awq/epm/ap",                   icon: ArrowDownLeft },
-                    { label: "Contas a Receber (AR)",  href: "/awq/epm/ar",                   icon: ArrowUpRight  },
-                    { label: "Cash Management",        href: "/awq/erp/financials/cash",       icon: Wallet       },
-                    { label: "Conciliação Bancária",   href: "/awq/epm/bank-reconciliation",   icon: Landmark     },
-                    { label: "Reconhec. de Receita",   href: "/awq/epm/revenue-recognition",   icon: BookOpen     },
-                ],
-            },
             {
                 id: "procurement",
                 label: "Procurement",
                 icon: ShoppingCart,
                 items: [
-                    { label: "Requisições",    href: "/awq/erp/procurement/requisitions", icon: ClipboardList },
-                    { label: "Purchase Orders",href: "/awq/erp/purchases",                icon: ShoppingCart  },
-                    { label: "Fornecedores",   href: "/awq/epm/suppliers",                icon: Building2     },
-                    { label: "Recebimento",    href: "/awq/erp/procurement/receiving",    icon: ArrowDownLeft },
+                    { label: "Requisições",     href: "/awq/erp/procurement/requisitions", icon: ClipboardList },
+                    { label: "Purchase Orders", href: "/awq/erp/purchases",                icon: ShoppingCart  },
+                    { label: "Recebimento",     href: "/awq/erp/procurement/receiving",    icon: ArrowDownLeft },
                 ],
             },
             {
@@ -362,10 +347,10 @@ const AWQ_MODULES: AwqModule[] = [
                 label: "Inventory",
                 icon: Box,
                 items: [
-                    { label: "Produtos / Items",    href: "/awq/erp/inventory/items",      icon: Box      },
-                    { label: "Movimentações",       href: "/awq/erp/inventory/movements",  icon: Activity },
-                    { label: "Armazéns",            href: "/awq/erp/inventory/warehouses", icon: Building },
-                    { label: "Avaliação de Estoque",href: "/awq/erp/inventory/valuation",  icon: Layers   },
+                    { label: "Produtos / Items",     href: "/awq/erp/inventory/items",      icon: Box      },
+                    { label: "Movimentações",        href: "/awq/erp/inventory/movements",  icon: Activity },
+                    { label: "Armazéns",             href: "/awq/erp/inventory/warehouses", icon: Building },
+                    { label: "Avaliação de Estoque", href: "/awq/erp/inventory/valuation",  icon: Layers   },
                 ],
             },
             {
@@ -373,10 +358,10 @@ const AWQ_MODULES: AwqModule[] = [
                 label: "Order Management",
                 icon: ListOrdered,
                 items: [
-                    { label: "Pedidos de Venda", href: "/awq/erp/orders/sales",       icon: ShoppingCart  },
-                    { label: "Fulfillment",      href: "/awq/erp/orders/fulfillment", icon: CheckCircle2  },
-                    { label: "Faturamento",      href: "/awq/erp/orders/billing",     icon: Receipt       },
-                    { label: "Expedição",        href: "/awq/erp/orders/shipping",    icon: Truck         },
+                    { label: "Pedidos de Venda", href: "/awq/erp/orders/sales",       icon: ShoppingCart },
+                    { label: "Fulfillment",      href: "/awq/erp/orders/fulfillment", icon: CheckCircle2 },
+                    { label: "Faturamento",      href: "/awq/erp/orders/billing",     icon: Receipt      },
+                    { label: "Expedição",        href: "/awq/erp/orders/shipping",    icon: Truck        },
                 ],
             },
             {
@@ -384,9 +369,9 @@ const AWQ_MODULES: AwqModule[] = [
                 label: "Time & Expense",
                 icon: Clock,
                 items: [
-                    { label: "Timesheets",          href: "/awq/erp/timetracking",           icon: Clock        },
-                    { label: "Relatório de Despesas",href: "/awq/erp/expenses",              icon: Receipt      },
-                    { label: "Aprovações",          href: "/awq/erp/timeexpense/approvals",  icon: CheckCircle2 },
+                    { label: "Timesheets",           href: "/awq/erp/timetracking",          icon: Clock        },
+                    { label: "Relatório de Despesas", href: "/awq/erp/expenses",             icon: Receipt      },
+                    { label: "Aprovações",           href: "/awq/erp/timeexpense/approvals", icon: CheckCircle2 },
                 ],
             },
             {
@@ -394,10 +379,10 @@ const AWQ_MODULES: AwqModule[] = [
                 label: "Contract Management",
                 icon: FileText,
                 items: [
-                    { label: "Contratos",      href: "/awq/erp/contracts",            icon: FileText     },
-                    { label: "Ciclo de Vida",  href: "/awq/erp/contracts/lifecycle",  icon: Activity     },
-                    { label: "Renovações",     href: "/awq/erp/contracts/renewals",   icon: RotateCcw    },
-                    { label: "Obrigações",     href: "/awq/erp/contracts/obligations",icon: ClipboardList},
+                    { label: "Contratos",       href: "/awq/erp/contracts",             icon: FileText     },
+                    { label: "Ciclo de Vida",   href: "/awq/erp/contracts/lifecycle",   icon: Activity     },
+                    { label: "Renovações",      href: "/awq/erp/contracts/renewals",    icon: RotateCcw    },
+                    { label: "Obrigações",      href: "/awq/erp/contracts/obligations", icon: ClipboardList},
                 ],
             },
             {
@@ -405,10 +390,10 @@ const AWQ_MODULES: AwqModule[] = [
                 label: "Asset Management",
                 icon: Package,
                 items: [
-                    { label: "Assets",        href: "/awq/erp/assets",             icon: Package       },
-                    { label: "Depreciação",   href: "/awq/erp/assets/depreciation",icon: TrendingUp    },
-                    { label: "Manutenção",    href: "/awq/erp/assets/maintenance", icon: Wrench        },
-                    { label: "Baixa de Ativos",href: "/awq/erp/assets/disposal",   icon: AlertTriangle },
+                    { label: "Assets",           href: "/awq/erp/assets",              icon: Package       },
+                    { label: "Depreciação",      href: "/awq/erp/assets/depreciation", icon: TrendingUp    },
+                    { label: "Manutenção",       href: "/awq/erp/assets/maintenance",  icon: Wrench        },
+                    { label: "Baixa de Ativos",  href: "/awq/erp/assets/disposal",     icon: AlertTriangle },
                 ],
             },
         ],
