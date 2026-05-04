@@ -17,6 +17,46 @@ const SEGMENT_ORDER: RfmSegment[] = [
   "Requer Atenção", "Não Pode Perder", "Em Risco", "Hibernando",
 ];
 
+const SEGMENT_META_CLIENT: Record<RfmSegment, { color: string; bg: string }> = {
+  "Champions":               { color: "#10b981", bg: "#d1fae5" },
+  "Clientes Leais":          { color: "#3b82f6", bg: "#dbeafe" },
+  "Potencial de Fidelidade": { color: "#8b5cf6", bg: "#ede9fe" },
+  "Novos Clientes":          { color: "#06b6d4", bg: "#cffafe" },
+  "Requer Atenção":          { color: "#f59e0b", bg: "#fef3c7" },
+  "Não Pode Perder":         { color: "#f97316", bg: "#ffedd5" },
+  "Em Risco":                { color: "#ef4444", bg: "#fee2e2" },
+  "Hibernando":              { color: "#6b7280", bg: "#f3f4f6" },
+};
+
+// Pre-computed fallback for static export (no API available)
+const SEED_RFM_CUSTOMERS: RfmCustomer[] = [
+  { account_id:"a1", account_name:"XP Investimentos S.A.",      industry:"finance",   owner:"Miguel", recency_days:10,  frequency:6, monetary:420000, r_score:5, f_score:5, m_score:5, rfm_score:15, segment:"Champions",               segment_color:"#10b981", segment_bg:"#d1fae5" },
+  { account_id:"a2", account_name:"Nu Pagamentos S.A.",          industry:"finance",   owner:"Danilo", recency_days:28,  frequency:4, monetary:285000, r_score:4, f_score:4, m_score:4, rfm_score:12, segment:"Champions",               segment_color:"#10b981", segment_bg:"#d1fae5" },
+  { account_id:"a3", account_name:"Colégio CEM",                 industry:"education", owner:"Miguel", recency_days:95,  frequency:3, monetary:125000, r_score:3, f_score:3, m_score:3, rfm_score:9,  segment:"Clientes Leais",          segment_color:"#3b82f6", segment_bg:"#dbeafe" },
+  { account_id:"a4", account_name:"Reabilicor Clínica Cardíaca", industry:"health",    owner:"Danilo", recency_days:175, frequency:2, monetary:95000,  r_score:2, f_score:2, m_score:2, rfm_score:6,  segment:"Requer Atenção",          segment_color:"#f59e0b", segment_bg:"#fef3c7" },
+  { account_id:"a5", account_name:"Clínica Teresópolis",         industry:"health",    owner:"Danilo", recency_days:370, frequency:1, monetary:50000,  r_score:1, f_score:1, m_score:1, rfm_score:3,  segment:"Hibernando",              segment_color:"#6b7280", segment_bg:"#f3f4f6" },
+  { account_id:"a6", account_name:"Carol Bertolini",             industry:"media",     owner:"Miguel", recency_days:19,  frequency:1, monetary:18000,  r_score:5, f_score:1, m_score:1, rfm_score:7,  segment:"Novos Clientes",          segment_color:"#06b6d4", segment_bg:"#cffafe" },
+];
+
+function buildSeedResponse(): RfmResponse {
+  const customers = SEED_RFM_CUSTOMERS;
+  const segments = Object.fromEntries(
+    SEGMENT_ORDER.map(seg => [
+      seg,
+      {
+        count: customers.filter(c => c.segment === seg).length,
+        ...SEGMENT_META_CLIENT[seg],
+      },
+    ])
+  ) as RfmResponse["segments"];
+  const totalMonetary = customers.reduce((s, c) => s + c.monetary, 0);
+  return {
+    customers,
+    segments,
+    totals: { customers: customers.length, monetary: totalMonetary, avgMonetary: Math.round(totalMonetary / customers.length) },
+  };
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const SEGMENT_ICON: Record<RfmSegment, any> = {
   "Champions":               Star,
@@ -80,8 +120,8 @@ export default function RfmPage() {
   useEffect(() => {
     fetch("/api/crm/rfm")
       .then(r => r.json())
-      .then(json => { if (json.success) setData(json.data); })
-      .catch(() => {})
+      .then(json => { setData(json.success ? json.data : buildSeedResponse()); })
+      .catch(() => { setData(buildSeedResponse()); })
       .finally(() => setLoading(false));
   }, []);
 
