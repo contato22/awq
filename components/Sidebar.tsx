@@ -52,42 +52,39 @@ import {
     LayoutGrid,
     GanttChart,
     Clock,
+    FolderOpen,
+    Package,
+    ShoppingCart,
+    Calendar,
+    X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // ── Route membership ──────────────────────────────────────────────────────────
-// All JACQES routes are now under /jacqes/*. Root-level legacy routes redirect here.
 const JACQES_PREFIXES = ["/jacqes"];
-
 const CAZA_PREFIXES = ["/caza-vision"];
-
 const ADVISOR_PREFIXES = ["/advisor"];
-
 const VENTURE_PREFIXES = ["/awq-venture"];
 
 function isJacqesRoute(pathname: string) {
     return JACQES_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
-
 function isCazaRoute(pathname: string) {
     return CAZA_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
-
 function isAdvisorRoute(pathname: string) {
     return ADVISOR_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
-
 function isVentureRoute(pathname: string) {
     return VENTURE_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
-// ── Nav items ────────────────────────────────────────────────────────────────
+// ── BU nav arrays (unchanged) ─────────────────────────────────────────────────
 const jacqesNav = [
     { label: "Visão Geral",    href: "/jacqes",             icon: LayoutDashboard },
     { label: "FP&A",           href: "/jacqes/fpa",         icon: BarChart3       },
     { label: "Relatórios",     href: "/jacqes/reports",     icon: BarChart3       },
 ];
-
 
 const cazaNav = [
     { label: "Visão Geral",    href: "/caza-vision",                   icon: LayoutDashboard },
@@ -98,7 +95,6 @@ const cazaNav = [
     { label: "Unit Economics", href: "/caza-vision/unit-economics",    icon: Calculator      },
     { label: "Importar",       href: "/caza-vision/import",            icon: FileUp          },
 ];
-
 
 const advisorNav = [
     { label: "Visão Geral", href: "/advisor",              icon: LayoutDashboard },
@@ -130,7 +126,7 @@ const sistemaNav = [
     { label: "Settings", href: "/settings", icon: Settings },
 ];
 
-// ── Business Units for AWQ mode ──────────────────────────────────────────────
+// ── Business Units ─────────────────────────────────────────────────────────────
 const businessUnits = [
     {
         id: "jacqes",
@@ -166,102 +162,179 @@ const businessUnits = [
     },
 ];
 
-// ── AWQ primary nav (always visible, top of sidebar) ─────────────────────────
-const awqPrimaryNav = [
-    { label: "Visão Geral",    href: "/awq",              icon: LayoutDashboard },
-    { label: "Business Units", href: "/business-units",    icon: Building2       },
-    { label: "CRM",            href: "/crm",              icon: Users           },
-    { label: "Novidades",      href: "/awq/novidades",     icon: Sparkles        },
-] as const;
+// ── AWQ Modules — icon sidebar ────────────────────────────────────────────────
+// Each module groups related routes under a single icon.
+// Existing hrefs are preserved; new stubs use /awq/<module>/<slug> convention.
+type ModuleItem = { label: string; href: string; icon: React.ElementType };
+type AwqModule = {
+    id: string;
+    label: string;
+    description: string;
+    icon: React.ElementType;
+    items: ModuleItem[];
+};
 
-// ── GOVERNANCE REGISTRY: AWQ holding routes by ERP layer ─────────────────────
-// RULE: Every /awq/* page MUST appear here and ONLY here.
-// To add a new page: append to the correct section array → never elsewhere.
-
-// Control Tower — visão executiva, KPIs, risco, portfolio
-const AWQ_CONTROL_TOWER_ITEMS = [
-    { label: "KPIs Consolidados", href: "/awq/kpis",        icon: BarChart3      },
-    { label: "Risk & Alertas",    href: "/awq/risk",         icon: AlertTriangle  },
-    { label: "Portfolio",         href: "/awq/portfolio",    icon: Briefcase      },
-    { label: "Allocations",       href: "/awq/allocations",  icon: Wallet         },
-] as const;
-
-// Financeiro Corporativo — FP&A (DRE, planejamento, projeção)
-const AWQ_FPA_ITEMS = [
-    { label: "Financial (DRE)", href: "/awq/financial",   icon: LineChart  },
-    { label: "Budget",          href: "/awq/budget",      icon: BarChart3  },
-    { label: "Forecast",        href: "/awq/forecast",    icon: TrendingUp },
-] as const;
-
-// Financeiro Corporativo — Tesouraria (caixa, contas, aplicações)
-// Conciliação aparece PRIMEIRO — é o passo operacional que alimenta DFC/DRE/KPIs.
-const AWQ_TESOURARIA_ITEMS = [
-    { label: "Conciliação",   href: "/awq/conciliacao",    icon: CheckCircle2 },
-    { label: "Cash Flow",     href: "/awq/cashflow",       icon: Zap          },
-    { label: "Contas Banco",  href: "/awq/bank",           icon: CreditCard   },
-    { label: "Investimentos", href: "/awq/investments",    icon: Landmark     },
-    { label: "AP & AR",       href: "/awq/ap-ar",          icon: FileText     },
-] as const;
-
-// Financeiro Corporativo — Controladoria & Contábil
-const AWQ_CONTROLADORIA_ITEMS = [
-    { label: "Controladoria", href: "/awq/management",    icon: ShieldCheck },
-    { label: "Contabilidade", href: "/awq/contabilidade", icon: BookOpen    },
-    { label: "Fiscal",        href: "/awq/fiscal",        icon: Receipt     },
-] as const;
-
-// Governança & Jurídico
-const AWQ_JURIDICO_ITEMS = [
-    { label: "Jurídico",    href: "/awq/juridico",   icon: Scale    },
-    { label: "Societário",  href: "/awq/societario", icon: Building },
-    { label: "Compliance",  href: "/awq/compliance", icon: Lock     },
-] as const;
-
-// Dados & Infra
-const AWQ_DADOS_ITEMS = [
-    { label: "Base de Dados", href: "/awq/data",      icon: Database    },
-    { label: "Segurança",     href: "/awq/security",  icon: ShieldAlert },
-] as const;
-
-// PPM — Project Portfolio Management
-const AWQ_PPM_ITEMS = [
-    { label: "Portfolio",       href: "/awq/ppm",                icon: Briefcase    },
-    { label: "Gantt",           href: "/awq/ppm/gantt",          icon: GanttChart   },
-    { label: "Tarefas",         href: "/awq/ppm/tasks",          icon: ClipboardList},
-    { label: "Timesheets",      href: "/awq/ppm/timesheets",     icon: Clock        },
-    { label: "Recursos",        href: "/awq/ppm/resources",      icon: Users        },
-    { label: "Utilização",      href: "/awq/ppm/utilization",    icon: BarChart3    },
-    { label: "Rentabilidade",   href: "/awq/ppm/profitability",  icon: TrendingUp   },
-    { label: "Riscos",          href: "/awq/ppm/risks",          icon: AlertTriangle},
-] as const;
-
-// BPM — Business Process Management
-const AWQ_BPM_ITEMS = [
-    { label: "Minha Fila",  href: "/awq/bpm/tasks",                  icon: ClipboardList },
-    { label: "Processos",   href: "/awq/bpm/processes",              icon: Activity      },
-    { label: "Instâncias",  href: "/awq/bpm/instances",              icon: Layers        },
-    { label: "Analytics",   href: "/awq/bpm/analytics/performance",  icon: BarChart3     },
-] as const;
-
-// EPM — Enterprise Performance Management (módulos financeiros completos)
-const AWQ_EPM_ITEMS = [
-    { label: "Visão Geral EPM",    href: "/awq/epm",                         icon: Layers        },
-    { label: "P&L (DRE)",          href: "/awq/epm/pl",                      icon: LineChart     },
-    { label: "Balanço Patrimonial",href: "/awq/epm/balance-sheet",           icon: Scale         },
-    { label: "Budget vs Actual",   href: "/awq/epm/budget",                  icon: Target        },
-    { label: "KPI Dashboard",      href: "/awq/epm/kpis",                    icon: PieChart      },
-    { label: "Contas a Pagar",     href: "/awq/epm/ap",                      icon: ArrowDownLeft },
-    { label: "AP Aging",           href: "/awq/epm/ap/aging",                icon: Receipt       },
-    { label: "Contas a Receber",   href: "/awq/epm/ar",                      icon: ArrowUpRight  },
-    { label: "AR Aging",           href: "/awq/epm/ar/aging",                icon: Receipt       },
-    { label: "Fornecedores",       href: "/awq/epm/suppliers",               icon: Building2     },
-    { label: "Clientes",           href: "/awq/epm/customers",               icon: Users         },
-    { label: "Razão Geral (GL)",   href: "/awq/epm/gl",                      icon: ListOrdered   },
-    { label: "Consolidação",       href: "/awq/epm/consolidation",           icon: Building2     },
-    { label: "Conciliação Bancária",href: "/awq/epm/bank-reconciliation",    icon: Landmark      },
-    { label: "Reconhec. de Receita",href: "/awq/epm/revenue-recognition",   icon: BookOpen      },
-    { label: "Centros de Custo",   href: "/awq/epm/cost-centers",            icon: LayoutGrid    },
-] as const;
+const AWQ_MODULES: AwqModule[] = [
+    {
+        id: "epm",
+        label: "EPM",
+        description: "Dinheiro, finanças, budget, P&L, cashflow, AP/AR",
+        icon: DollarSign,
+        items: [
+            { label: "Visão Geral EPM",       href: "/awq/epm",                       icon: Layers        },
+            { label: "Financial (DRE)",        href: "/awq/financial",                 icon: LineChart     },
+            { label: "P&L (DRE)",             href: "/awq/epm/pl",                    icon: LineChart     },
+            { label: "Balanço Patrimonial",    href: "/awq/epm/balance-sheet",         icon: Scale         },
+            { label: "Budget",                href: "/awq/budget",                    icon: BarChart3     },
+            { label: "Forecast",              href: "/awq/forecast",                  icon: TrendingUp    },
+            { label: "Budget vs Actual",      href: "/awq/epm/budget",                icon: Target        },
+            { label: "Cash Flow",             href: "/awq/cashflow",                  icon: Zap           },
+            { label: "Conciliação",           href: "/awq/conciliacao",               icon: CheckCircle2  },
+            { label: "Contas Banco",          href: "/awq/bank",                      icon: CreditCard    },
+            { label: "Investimentos",         href: "/awq/investments",               icon: Landmark      },
+            { label: "AP & AR",               href: "/awq/ap-ar",                     icon: FileText      },
+            { label: "Contas a Pagar",        href: "/awq/epm/ap",                    icon: ArrowDownLeft },
+            { label: "AP Aging",              href: "/awq/epm/ap/aging",              icon: Receipt       },
+            { label: "Contas a Receber",      href: "/awq/epm/ar",                    icon: ArrowUpRight  },
+            { label: "AR Aging",              href: "/awq/epm/ar/aging",              icon: Receipt       },
+            { label: "KPI Dashboard",         href: "/awq/epm/kpis",                  icon: PieChart      },
+            { label: "Fornecedores",          href: "/awq/epm/suppliers",             icon: Building2     },
+            { label: "Clientes EPM",          href: "/awq/epm/customers",             icon: Users         },
+            { label: "Razão Geral (GL)",      href: "/awq/epm/gl",                    icon: ListOrdered   },
+            { label: "Consolidação",          href: "/awq/epm/consolidation",         icon: Building2     },
+            { label: "Conciliação Bancária",  href: "/awq/epm/bank-reconciliation",   icon: Landmark      },
+            { label: "Reconhec. de Receita",  href: "/awq/epm/revenue-recognition",   icon: BookOpen      },
+            { label: "Centros de Custo",      href: "/awq/epm/cost-centers",          icon: LayoutGrid    },
+            { label: "Controladoria",         href: "/awq/management",                icon: ShieldCheck   },
+            { label: "Contabilidade",         href: "/awq/contabilidade",             icon: BookOpen      },
+            { label: "Fiscal",                href: "/awq/fiscal",                    icon: Receipt       },
+        ],
+    },
+    {
+        id: "crm",
+        label: "CRM",
+        description: "Vendas, leads, pipeline, clientes, oportunidades",
+        icon: Users,
+        items: [
+            { label: "Dashboard CRM",  href: "/crm",                   icon: Target       },
+            { label: "Leads",          href: "/crm/leads",             icon: UserPlus     },
+            { label: "Pipeline",       href: "/crm/pipeline",          icon: Activity     },
+            { label: "Clientes",       href: "/crm/customers",         icon: Users        },
+            { label: "Oportunidades",  href: "/crm/opportunities",     icon: ArrowUpRight },
+        ],
+    },
+    {
+        id: "ppm",
+        label: "PPM",
+        description: "Projetos, tasks, alocação de pessoas, cronogramas",
+        icon: GanttChart,
+        items: [
+            { label: "Portfolio",      href: "/awq/ppm",               icon: Briefcase     },
+            { label: "Gantt",          href: "/awq/ppm/gantt",         icon: GanttChart    },
+            { label: "Tarefas",        href: "/awq/ppm/tasks",         icon: ClipboardList },
+            { label: "Timesheets",     href: "/awq/ppm/timesheets",    icon: Clock         },
+            { label: "Recursos",       href: "/awq/ppm/resources",     icon: Users         },
+            { label: "Utilização",     href: "/awq/ppm/utilization",   icon: BarChart3     },
+            { label: "Rentabilidade",  href: "/awq/ppm/profitability", icon: TrendingUp    },
+            { label: "Riscos",         href: "/awq/ppm/risks",         icon: AlertTriangle },
+        ],
+    },
+    {
+        id: "bpm",
+        label: "BPM",
+        description: "Processos, workflows, aprovações, automação",
+        icon: Activity,
+        items: [
+            { label: "Minha Fila",  href: "/awq/bpm/tasks",                 icon: ClipboardList },
+            { label: "Processos",   href: "/awq/bpm/processes",             icon: Activity      },
+            { label: "Instâncias",  href: "/awq/bpm/instances",             icon: Layers        },
+            { label: "Analytics",   href: "/awq/bpm/analytics/performance", icon: BarChart3     },
+        ],
+    },
+    {
+        id: "bi",
+        label: "BI",
+        description: "Dashboards, relatórios, análises, visualizações",
+        icon: PieChart,
+        items: [
+            { label: "Dashboards",    href: "/awq/bi",                icon: PieChart  },
+            { label: "Relatórios",    href: "/awq/bi/reports",        icon: FileText  },
+            { label: "Análises",      href: "/awq/bi/analytics",      icon: BarChart3 },
+            { label: "Visualizações", href: "/awq/bi/visualizations", icon: LineChart },
+            { label: "Base de Dados", href: "/awq/data",              icon: Database  },
+        ],
+    },
+    {
+        id: "cpm",
+        label: "CPM",
+        description: "Estratégia, OKRs, scorecards, performance reviews",
+        icon: Target,
+        items: [
+            { label: "KPIs Consolidados",   href: "/awq/kpis",            icon: BarChart3     },
+            { label: "Risk & Alertas",      href: "/awq/risk",            icon: AlertTriangle },
+            { label: "Portfolio Corp.",     href: "/awq/portfolio",       icon: Briefcase     },
+            { label: "Allocations",         href: "/awq/allocations",     icon: Wallet        },
+            { label: "Estratégia",          href: "/awq/cpm/strategy",    icon: Target        },
+            { label: "OKRs",                href: "/awq/cpm/okrs",        icon: CheckCircle2  },
+            { label: "Scorecards",          href: "/awq/cpm/scorecards",  icon: ClipboardList },
+            { label: "Performance Reviews", href: "/awq/cpm/reviews",     icon: BarChart3     },
+            { label: "Novidades",           href: "/awq/novidades",       icon: Sparkles      },
+        ],
+    },
+    {
+        id: "grc",
+        label: "GRC",
+        description: "Políticas, riscos, compliance, auditorias, controles",
+        icon: ShieldCheck,
+        items: [
+            { label: "Jurídico",    href: "/awq/juridico",      icon: Scale        },
+            { label: "Societário",  href: "/awq/societario",    icon: Building     },
+            { label: "Compliance",  href: "/awq/compliance",    icon: Lock         },
+            { label: "Segurança",   href: "/awq/security",      icon: ShieldAlert  },
+            { label: "Políticas",   href: "/awq/grc/policies",  icon: FileText     },
+            { label: "Riscos",      href: "/awq/grc/risks",     icon: AlertTriangle},
+            { label: "Auditorias",  href: "/awq/grc/audits",    icon: ClipboardList},
+            { label: "Controles",   href: "/awq/grc/controls",  icon: ShieldCheck  },
+        ],
+    },
+    {
+        id: "dms",
+        label: "DMS",
+        description: "Documentos, arquivos, versionamento, colaboração",
+        icon: FolderOpen,
+        items: [
+            { label: "Documentos",    href: "/awq/dms",                  icon: FileText     },
+            { label: "Arquivos",      href: "/awq/dms/files",            icon: FolderOpen   },
+            { label: "Versionamento", href: "/awq/dms/versioning",       icon: Layers       },
+            { label: "Colaboração",   href: "/awq/dms/collaboration",    icon: MessageSquare},
+        ],
+    },
+    {
+        id: "erp",
+        label: "ERP",
+        description: "Compras, contratos, time tracking, assets",
+        icon: Package,
+        items: [
+            { label: "Compras",       href: "/awq/erp/purchases",    icon: ShoppingCart },
+            { label: "Contratos",     href: "/awq/erp/contracts",    icon: FileText     },
+            { label: "Time Tracking", href: "/awq/erp/timetracking", icon: Clock        },
+            { label: "Assets",        href: "/awq/erp/assets",       icon: Package      },
+        ],
+    },
+    {
+        id: "hcm",
+        label: "HCM",
+        description: "RH, folha, férias, recrutamento, treinamento",
+        icon: HeartPulse,
+        items: [
+            { label: "RH",                href: "/awq/hcm",              icon: Users      },
+            { label: "Folha de Pagamento", href: "/awq/hcm/payroll",     icon: DollarSign },
+            { label: "Férias",            href: "/awq/hcm/vacation",     icon: Calendar   },
+            { label: "Recrutamento",      href: "/awq/hcm/recruitment",  icon: UserPlus   },
+            { label: "Treinamento",       href: "/awq/hcm/training",     icon: BookOpen   },
+        ],
+    },
+];
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
 function NavItem({
@@ -310,7 +383,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
     );
 }
 
-// ── AWQ Group header (shared) ────────────────────────────────────────────────
+// ── AWQ Group header ─────────────────────────────────────────────────────────
 function AwqHeader() {
     return (
         <div className="px-5 py-5 border-b border-gray-100">
@@ -329,7 +402,7 @@ function AwqHeader() {
     );
 }
 
-// ── Footer (shared) ───────────────────────────────────────────────────────────
+// ── Footer (BU sidebars) ──────────────────────────────────────────────────────
 const ROLE_LABELS: Record<string, string> = {
   owner: "Owner",
   admin: "Admin",
@@ -380,7 +453,31 @@ function SidebarFooter() {
     );
 }
 
-// ── Collapsible section helper ────────────────────────────────────────────────
+// ── Slim footer for icon sidebar ──────────────────────────────────────────────
+function SlimSidebarFooter() {
+    const { data: session } = useSession();
+    const user = session?.user as { name?: string; email?: string } | undefined;
+    const name = user?.name ?? user?.email ?? "?";
+    const initials =
+        name.split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase() || "?";
+
+    return (
+        <div className="px-2 py-3 border-t border-gray-100 shrink-0">
+            <button
+                onClick={() => void signOut({ callbackUrl: "/login" })}
+                title="Sair"
+                className="flex flex-col items-center gap-0.5 w-full py-1.5 rounded-lg hover:bg-red-50 transition-colors group"
+            >
+                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-awq-gold to-amber-600 flex items-center justify-center text-[10px] font-bold text-gray-900">
+                    {initials}
+                </div>
+                <LogOut size={10} className="text-gray-300 group-hover:text-red-400 transition-colors" />
+            </button>
+        </div>
+    );
+}
+
+// ── CollapsibleSection (used by BU sidebars) ──────────────────────────────────
 function CollapsibleSection({
     label,
     icon: Icon,
@@ -428,230 +525,232 @@ function CollapsibleSection({
     );
 }
 
-// ── AWQ Group sidebar ────────────────────────────────────────────────────────
-// Navigation structure follows the AWQ ERP macro-architecture:
-//   1. Control Tower    — visão executiva, KPIs, risco, portfolio
-//   2. Financeiro Corp  — FP&A · Tesouraria · Controladoria
-//   3. Governança       — Jurídico · Societário
-//   4. Dados & Infra    — Ingestão · Base de Dados
-//   5. Business Units   — access cards to BU sidebars
+// ── AWQ Group sidebar — icon-only with flyout panels ─────────────────────────
 function AwqSidebar({ pathname }: { pathname: string }) {
+    const [activePanel, setActivePanel] = useState<string | null>(null);
+
+    // Close flyout on navigation
+    useEffect(() => {
+        setActivePanel(null);
+    }, [pathname]);
+
     const isActive = (href: string) =>
         href === "/awq"
             ? pathname === "/awq"
             : pathname === href || pathname.startsWith(href + "/");
 
-    const isGroupActive = (items: readonly { href: string }[]) =>
-        items.some((i) => pathname === i.href || pathname.startsWith(i.href + "/"));
+    const isModuleActive = (items: ModuleItem[]) =>
+        items.some((i) => isActive(i.href));
 
-    // Collapsible open states — auto-expand when child route is active
-    const ctActive           = isGroupActive(AWQ_CONTROL_TOWER_ITEMS);
-    const fpaActive          = isGroupActive(AWQ_FPA_ITEMS);
-    const tesourariaActive   = isGroupActive(AWQ_TESOURARIA_ITEMS);
-    const controladoriaActive= isGroupActive(AWQ_CONTROLADORIA_ITEMS);
-    const epmActive          = isGroupActive(AWQ_EPM_ITEMS);
+    const togglePanel = (id: string) =>
+        setActivePanel((prev) => (prev === id ? null : id));
 
-    // Initialize all sections closed to avoid SSR/client hydration mismatch
-    const [ctOpen,            setCtOpen]           = useState(false);
-    const [fpaOpen,           setFpaOpen]          = useState(false);
-    const [tesourariaOpen,    setTesourariaOpen]   = useState(false);
-    const [controladoriaOpen, setControladoriaOpen]= useState(false);
-    const [epmOpen,           setEpmOpen]          = useState(false);
-
-    useEffect(() => { if (ctActive)           setCtOpen(true);           }, [ctActive]);
-    useEffect(() => { if (fpaActive)          setFpaOpen(true);          }, [fpaActive]);
-    useEffect(() => { if (tesourariaActive)   setTesourariaOpen(true);   }, [tesourariaActive]);
-    useEffect(() => { if (controladoriaActive)setControladoriaOpen(true);}, [controladoriaActive]);
-    useEffect(() => { if (epmActive)          setEpmOpen(true);          }, [epmActive]);
+    // Resolve flyout content
+    const activeMod = AWQ_MODULES.find((m) => m.id === activePanel);
 
     return (
         <>
-            <AwqHeader />
-            <nav className="flex-1 overflow-y-auto px-3 py-2">
-
-                {/* ── 1. Control Tower ──────────────────────────────────── */}
-                <SectionLabel>Control Tower</SectionLabel>
-                <div className="space-y-0.5">
-                    {awqPrimaryNav.map((item) => (
-                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
-                    ))}
-                </div>
-                <CollapsibleSection
-                    label="Indicadores"
-                    icon={BarChart3}
-                    isAnyActive={ctActive}
-                    isOpen={ctOpen}
-                    onToggle={() => setCtOpen((o) => !o)}
-                >
-                    {AWQ_CONTROL_TOWER_ITEMS.map((item) => (
-                        <NavItem
-                            key={item.href}
-                            href={item.href}
-                            icon={item.icon}
-                            label={item.label}
-                            active={pathname === item.href || pathname.startsWith(item.href + "/")}
-                        />
-                    ))}
-                </CollapsibleSection>
-
-                {/* ── 2. Financeiro Corporativo ─────────────────────────── */}
-                <SectionLabel>Financeiro Corporativo</SectionLabel>
-                <CollapsibleSection
-                    label="FP&A"
-                    icon={LineChart}
-                    isAnyActive={fpaActive}
-                    isOpen={fpaOpen}
-                    onToggle={() => setFpaOpen((o) => !o)}
-                >
-                    {AWQ_FPA_ITEMS.map((item) => (
-                        <NavItem
-                            key={item.href}
-                            href={item.href}
-                            icon={item.icon}
-                            label={item.label}
-                            active={pathname === item.href || pathname.startsWith(item.href + "/")}
-                        />
-                    ))}
-                </CollapsibleSection>
-                <CollapsibleSection
-                    label="Tesouraria"
-                    icon={Wallet}
-                    isAnyActive={tesourariaActive}
-                    isOpen={tesourariaOpen}
-                    onToggle={() => setTesourariaOpen((o) => !o)}
-                >
-                    {AWQ_TESOURARIA_ITEMS.map((item) => (
-                        <NavItem
-                            key={item.href}
-                            href={item.href}
-                            icon={item.icon}
-                            label={item.label}
-                            active={pathname === item.href || pathname.startsWith(item.href + "/")}
-                        />
-                    ))}
-                </CollapsibleSection>
-                <CollapsibleSection
-                    label="Controladoria"
-                    icon={ShieldCheck}
-                    isAnyActive={controladoriaActive}
-                    isOpen={controladoriaOpen}
-                    onToggle={() => setControladoriaOpen((o) => !o)}
-                >
-                    {AWQ_CONTROLADORIA_ITEMS.map((item) => (
-                        <NavItem
-                            key={item.href}
-                            href={item.href}
-                            icon={item.icon}
-                            label={item.label}
-                            active={pathname === item.href || pathname.startsWith(item.href + "/")}
-                        />
-                    ))}
-                </CollapsibleSection>
-
-                {/* ── 3. PPM — Project Portfolio Management ────────────── */}
-                <SectionLabel>PPM</SectionLabel>
-                <div className="space-y-0.5">
-                    {AWQ_PPM_ITEMS.map((item) => (
-                        <NavItem
-                            key={item.href}
-                            href={item.href}
-                            icon={item.icon}
-                            label={item.label}
-                            active={
-                                item.href === "/awq/ppm"
-                                    ? pathname === "/awq/ppm"
-                                    : pathname === item.href || pathname.startsWith(item.href + "/")
-                            }
-                        />
-                    ))}
+            {/* ── Icon bar ─────────────────────────────────────────── */}
+            <div className="flex flex-col h-full w-16 bg-white border-r border-gray-100 relative z-30">
+                {/* Logo */}
+                <div className="h-14 flex items-center justify-center border-b border-gray-100 shrink-0">
+                    <Link href="/awq" onClick={() => setActivePanel(null)}>
+                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-awq-gold to-amber-600 flex items-center justify-center shadow-md">
+                            <Zap size={17} className="text-gray-900" />
+                        </div>
+                    </Link>
                 </div>
 
-                {/* ── 4. EPM — Enterprise Performance Management ────────── */}
-                <SectionLabel>EPM</SectionLabel>
-                <div className="space-y-0.5">
-                    {AWQ_EPM_ITEMS.map((item) => (
-                        <NavItem
-                            key={item.href}
-                            href={item.href}
-                            icon={item.icon}
-                            label={item.label}
-                            active={pathname === item.href || pathname.startsWith(item.href + "/")}
-                        />
-                    ))}
+                {/* Home shortcut */}
+                <div className="px-2 pt-2 shrink-0">
+                    <Link
+                        href="/awq"
+                        onClick={() => setActivePanel(null)}
+                        title="Visão Geral"
+                        className={cn(
+                            "flex flex-col items-center gap-0.5 py-2 px-1 rounded-lg transition-all w-full",
+                            pathname === "/awq"
+                                ? "bg-brand-50 text-brand-700"
+                                : "text-gray-400 hover:bg-gray-50 hover:text-gray-700"
+                        )}
+                    >
+                        <LayoutDashboard size={18} />
+                        <span className="text-[9px] font-semibold leading-none">Início</span>
+                    </Link>
                 </div>
 
-                {/* ── 5. BPM — Business Process Management ─────────────── */}
-                <SectionLabel>BPM</SectionLabel>
-                <div className="space-y-0.5">
-                    {AWQ_BPM_ITEMS.map((item) => (
-                        <NavItem
-                            key={item.href}
-                            href={item.href}
-                            icon={item.icon}
-                            label={item.label}
-                            active={
-                                item.href === "/awq/bpm/tasks"
-                                    ? pathname === "/awq/bpm/tasks" || pathname.startsWith("/awq/bpm/tasks/")
-                                    : pathname === item.href || pathname.startsWith(item.href + "/")
-                            }
-                        />
-                    ))}
+                <div className="mx-3 my-1.5 border-t border-gray-100 shrink-0" />
+
+                {/* Module icons */}
+                <nav className="flex-1 overflow-y-auto px-2 py-1 space-y-0.5 scrollbar-none">
+                    {AWQ_MODULES.map((mod) => {
+                        const modActive = isModuleActive(mod.items);
+                        const isOpen = activePanel === mod.id;
+                        return (
+                            <button
+                                key={mod.id}
+                                onClick={() => togglePanel(mod.id)}
+                                title={`${mod.label}`}
+                                className={cn(
+                                    "flex flex-col items-center gap-0.5 py-2 px-1 rounded-lg transition-all w-full",
+                                    isOpen
+                                        ? "bg-brand-600 text-white shadow-sm"
+                                        : modActive
+                                        ? "bg-brand-50 text-brand-700"
+                                        : "text-gray-400 hover:bg-gray-50 hover:text-gray-700"
+                                )}
+                            >
+                                <mod.icon size={18} className="shrink-0" />
+                                <span className="text-[9px] font-bold leading-none tracking-wide">
+                                    {mod.label}
+                                </span>
+                            </button>
+                        );
+                    })}
+                </nav>
+
+                <div className="mx-3 my-1.5 border-t border-gray-100 shrink-0" />
+
+                {/* Bottom icons */}
+                <div className="px-2 pb-1 space-y-0.5 shrink-0">
+                    {/* Business Units */}
+                    <button
+                        onClick={() => togglePanel("bus")}
+                        title="Business Units"
+                        className={cn(
+                            "flex flex-col items-center gap-0.5 py-2 px-1 rounded-lg transition-all w-full",
+                            activePanel === "bus"
+                                ? "bg-brand-600 text-white"
+                                : "text-gray-400 hover:bg-gray-50 hover:text-gray-700"
+                        )}
+                    >
+                        <Building2 size={18} />
+                        <span className="text-[9px] font-bold leading-none">BUs</span>
+                    </button>
+
+                    {/* IA & Agentes */}
+                    <button
+                        onClick={() => togglePanel("ai")}
+                        title="IA & Agentes"
+                        className={cn(
+                            "flex flex-col items-center gap-0.5 py-2 px-1 rounded-lg transition-all w-full",
+                            activePanel === "ai"
+                                ? "bg-brand-600 text-white"
+                                : "text-gray-400 hover:bg-gray-50 hover:text-gray-700"
+                        )}
+                    >
+                        <Bot size={18} />
+                        <span className="text-[9px] font-bold leading-none">IA</span>
+                    </button>
+
+                    {/* Settings */}
+                    <Link
+                        href="/settings"
+                        title="Settings"
+                        className={cn(
+                            "flex flex-col items-center gap-0.5 py-2 px-1 rounded-lg transition-all w-full",
+                            pathname === "/settings"
+                                ? "bg-brand-50 text-brand-700"
+                                : "text-gray-400 hover:bg-gray-50 hover:text-gray-700"
+                        )}
+                    >
+                        <Settings size={18} />
+                    </Link>
                 </div>
 
-                {/* ── 6. Governança & Jurídico ──────────────────────────── */}
-                <SectionLabel>Governança & Jurídico</SectionLabel>
-                <div className="space-y-0.5">
-                    {AWQ_JURIDICO_ITEMS.map((item) => (
-                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
-                    ))}
-                </div>
+                <SlimSidebarFooter />
+            </div>
 
-                {/* ── 6. Dados & Infra ──────────────────────────────────── */}
-                <SectionLabel>Dados & Infra</SectionLabel>
-                <div className="space-y-0.5">
-                    {AWQ_DADOS_ITEMS.map((item) => (
-                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
-                    ))}
-                </div>
+            {/* ── Flyout panel ─────────────────────────────────────── */}
+            {activePanel && (
+                <>
+                    {/* Backdrop — click outside to close */}
+                    <div
+                        className="fixed inset-0 z-20"
+                        onClick={() => setActivePanel(null)}
+                    />
 
-                {/* ── 7. Business Unit quick-access cards ───────────────── */}
-                <SectionLabel>Business Units</SectionLabel>
-                <div className="space-y-2 mt-1">
-                    {businessUnits.map((bu) => (
-                        <Link
-                            key={bu.id}
-                            href={bu.href}
-                            className="flex items-center gap-3 px-3 py-3 rounded-xl border border-gray-200 hover:border-brand-200 hover:bg-brand-50 transition-all group"
-                        >
-                            <div className={`w-8 h-8 rounded-lg ${bu.color} flex items-center justify-center shrink-0`}>
-                                <bu.icon size={14} className="text-gray-900" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <div className="text-sm font-semibold text-gray-800 group-hover:text-brand-700">
-                                    {bu.label}
+                    {/* Panel */}
+                    <div className="fixed left-16 top-0 h-full w-64 bg-white border-r border-gray-200 shadow-2xl z-30 flex flex-col">
+                        {/* Panel header */}
+                        <div className="px-4 py-4 border-b border-gray-100 flex items-start justify-between shrink-0">
+                            <div>
+                                <div className="text-sm font-bold text-gray-900">
+                                    {activePanel === "bus"
+                                        ? "Business Units"
+                                        : activePanel === "ai"
+                                        ? "IA & Agentes"
+                                        : activeMod?.label}
                                 </div>
-                                <div className="text-[10px] text-gray-400">{bu.sub}</div>
+                                <div className="text-[11px] text-gray-400 mt-0.5 leading-snug">
+                                    {activePanel === "bus"
+                                        ? "Unidades de Negócio"
+                                        : activePanel === "ai"
+                                        ? "Agentes e ferramentas"
+                                        : activeMod?.description}
+                                </div>
                             </div>
-                            <ChevronRight size={14} className="text-gray-400 group-hover:text-brand-600" />
-                        </Link>
-                    ))}
-                </div>
+                            <button
+                                onClick={() => setActivePanel(null)}
+                                className="p-1 text-gray-300 hover:text-gray-500 rounded transition-colors shrink-0 ml-2"
+                            >
+                                <X size={14} />
+                            </button>
+                        </div>
 
-                <SectionLabel>IA & Agentes</SectionLabel>
-                <div className="space-y-0.5">
-                    {aiNav.map((item) => (
-                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
-                    ))}
-                </div>
+                        {/* Panel nav */}
+                        <nav className="flex-1 overflow-y-auto px-3 py-2">
+                            {activePanel === "bus" && (
+                                <div className="space-y-2 mt-1">
+                                    {businessUnits.map((bu) => (
+                                        <Link
+                                            key={bu.id}
+                                            href={bu.href}
+                                            onClick={() => setActivePanel(null)}
+                                            className="flex items-center gap-3 px-3 py-3 rounded-xl border border-gray-200 hover:border-brand-200 hover:bg-brand-50 transition-all group"
+                                        >
+                                            <div className={`w-8 h-8 rounded-lg ${bu.color} flex items-center justify-center shrink-0`}>
+                                                <bu.icon size={14} className="text-gray-900" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="text-sm font-semibold text-gray-800 group-hover:text-brand-700">
+                                                    {bu.label}
+                                                </div>
+                                                <div className="text-[10px] text-gray-400">{bu.sub}</div>
+                                            </div>
+                                            <ChevronRight size={14} className="text-gray-400 group-hover:text-brand-600" />
+                                        </Link>
+                                    ))}
+                                </div>
+                            )}
 
-                <SectionLabel>Sistema</SectionLabel>
-                <div className="space-y-0.5">
-                    {sistemaNav.map((item) => (
-                        <NavItem key={item.href} {...item} active={pathname === item.href} />
-                    ))}
-                </div>
-            </nav>
-            <SidebarFooter />
+                            {activePanel === "ai" && (
+                                <div className="space-y-0.5 mt-1">
+                                    {aiNav.map((item) => (
+                                        <NavItem
+                                            key={item.href}
+                                            {...item}
+                                            active={isActive(item.href)}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+
+                            {activeMod && (
+                                <div className="space-y-0.5 mt-1">
+                                    {activeMod.items.map((item) => (
+                                        <NavItem
+                                            key={item.href}
+                                            {...item}
+                                            active={isActive(item.href)}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </nav>
+                    </div>
+                </>
+            )}
         </>
     );
 }
@@ -666,7 +765,6 @@ function JacqesSidebar({ pathname }: { pathname: string }) {
     return (
         <>
             <AwqHeader />
-            {/* JACQES company selector */}
             <div className="px-3 pt-3">
                 <Link
                     href="/business-units"
@@ -682,8 +780,6 @@ function JacqesSidebar({ pathname }: { pathname: string }) {
                     <ChevronDown size={14} className="text-brand-600 shrink-0" />
                 </Link>
             </div>
-
-            {/* Back to AWQ link */}
             <div className="px-4 pt-2">
                 <Link
                     href="/business-units"
@@ -693,7 +789,6 @@ function JacqesSidebar({ pathname }: { pathname: string }) {
                     Voltar para AWQ Group
                 </Link>
             </div>
-
             <nav className="flex-1 overflow-y-auto px-3 py-2">
                 <SectionLabel>JACQES · Navegação</SectionLabel>
                 <div className="space-y-0.5">
@@ -701,9 +796,7 @@ function JacqesSidebar({ pathname }: { pathname: string }) {
                         <NavItem key={item.href} {...item} active={isActive(item.href)} />
                     ))}
                 </div>
-
                 <NavItem href="/crm" icon={Users} label="CRM" active={pathname === "/crm" || pathname.startsWith("/crm/")} />
-
                 <SectionLabel>Gestão</SectionLabel>
                 <div className="space-y-0.5">
                     {gestaoNav.map((item) => (
@@ -739,10 +832,8 @@ function CazaSidebar({ pathname }: { pathname: string }) {
     return (
         <>
             <AwqHeader />
-            {/* Caza Vision company selector */}
             <div className="px-3 pt-3">
                 {isCazaOnly ? (
-                    // caza role: static chip, no link to other BUs
                     <div className="flex items-center gap-3 px-3 py-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
                         <div className="w-7 h-7 rounded-lg bg-emerald-600 flex items-center justify-center shrink-0">
                             <Building2 size={13} className="text-gray-900" />
@@ -768,8 +859,6 @@ function CazaSidebar({ pathname }: { pathname: string }) {
                     </Link>
                 )}
             </div>
-
-            {/* Back to AWQ link — hidden for caza role */}
             {!isCazaOnly && (
                 <div className="px-4 pt-2">
                     <Link
@@ -781,7 +870,6 @@ function CazaSidebar({ pathname }: { pathname: string }) {
                     </Link>
                 </div>
             )}
-
             <nav className="flex-1 overflow-y-auto px-3 py-2">
                 <SectionLabel>Caza Vision · Navegação</SectionLabel>
                 <div className="space-y-0.5">
@@ -789,9 +877,7 @@ function CazaSidebar({ pathname }: { pathname: string }) {
                         <NavItem key={item.href} {...item} active={isActive(item.href)} />
                     ))}
                 </div>
-
                 <NavItem href="/crm" icon={Users} label="CRM" active={pathname === "/crm" || pathname.startsWith("/crm/")} />
-
                 <SectionLabel>IA & Agentes</SectionLabel>
                 <div className="space-y-0.5">
                     {aiNav.map((item) => (
@@ -817,7 +903,6 @@ function AdvisorSidebar({ pathname }: { pathname: string }) {
     return (
         <>
             <AwqHeader />
-            {/* Advisor company selector */}
             <div className="px-3 pt-3">
                 <Link
                     href="/business-units"
@@ -833,8 +918,6 @@ function AdvisorSidebar({ pathname }: { pathname: string }) {
                     <ChevronDown size={14} className="text-violet-700 shrink-0" />
                 </Link>
             </div>
-
-            {/* Back to AWQ link */}
             <div className="px-4 pt-2">
                 <Link
                     href="/business-units"
@@ -844,7 +927,6 @@ function AdvisorSidebar({ pathname }: { pathname: string }) {
                     Voltar para AWQ Group
                 </Link>
             </div>
-
             <nav className="flex-1 overflow-y-auto px-3 py-2">
                 <SectionLabel>Advisor · Navegação</SectionLabel>
                 <div className="space-y-0.5">
@@ -877,7 +959,6 @@ function AwqVentureSidebar({ pathname }: { pathname: string }) {
     return (
         <>
             <AwqHeader />
-            {/* AWQ Venture company selector */}
             <div className="px-3 pt-3">
                 <Link
                     href="/business-units"
@@ -893,8 +974,6 @@ function AwqVentureSidebar({ pathname }: { pathname: string }) {
                     <ChevronDown size={14} className="text-amber-700 shrink-0" />
                 </Link>
             </div>
-
-            {/* Back to AWQ link */}
             <div className="px-4 pt-2">
                 <Link
                     href="/business-units"
@@ -904,7 +983,6 @@ function AwqVentureSidebar({ pathname }: { pathname: string }) {
                     Voltar para AWQ Group
                 </Link>
             </div>
-
             <nav className="flex-1 overflow-y-auto px-3 py-2">
                 <SectionLabel>AWQ Venture · Navegação</SectionLabel>
                 <div className="space-y-0.5">

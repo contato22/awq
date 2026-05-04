@@ -33,6 +33,15 @@ import {
   Layers,
   Target,
   ClipboardList,
+  ShieldCheck,
+  Lock,
+  Scale,
+  PieChart,
+  FolderOpen,
+  Package,
+  UserPlus,
+  ArrowUpRight,
+  CheckCircle2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -54,41 +63,103 @@ function isVentureRoute(p: string) { return VENTURE_PREFIXES.some((x) => p.start
 
 // ── Nav configs ───────────────────────────────────────────────────────────
 const awqNav = [
-  { label: "Visão Geral",    href: "/awq",               icon: LayoutDashboard },
-  { label: "Business Units", href: "/business-units",    icon: Building2 },
-  { label: "Financial",      href: "/awq/financial",     icon: LineChart },
-  { label: "Cash Flow",      href: "/awq/cashflow",      icon: Zap },
-  { label: "Budget",         href: "/awq/budget",        icon: Wallet },
-  { label: "Forecast",       href: "/awq/forecast",      icon: TrendingUp },
-  { label: "Allocations",    href: "/awq/allocations",   icon: Wallet },
-  { label: "Risk",           href: "/awq/risk",          icon: Activity },
-  { label: "Contas Banco",   href: "/awq/bank",          icon: CreditCard },
+  { label: "Visão Geral",    href: "/awq",             icon: LayoutDashboard },
+  { label: "Business Units", href: "/business-units",  icon: Building2       },
 ];
 
-const awqPpmNav = [
-  { label: "Portfolio",      href: "/awq/ppm",               icon: Briefcase    },
-  { label: "Gantt",          href: "/awq/ppm/gantt",         icon: GanttChart   },
-  { label: "Tarefas",        href: "/awq/ppm/tasks",         icon: FileText     },
-  { label: "Timesheets",     href: "/awq/ppm/timesheets",    icon: Clock        },
-  { label: "Recursos",       href: "/awq/ppm/resources",     icon: Users        },
-  { label: "Utilização",     href: "/awq/ppm/utilization",   icon: BarChart3    },
-  { label: "Rentabilidade",  href: "/awq/ppm/profitability", icon: TrendingUp   },
-  { label: "Riscos",         href: "/awq/ppm/risks",         icon: AlertTriangle},
-];
-
-const awqCrmNav = [
-  { label: "Dashboard CRM",  href: "/crm",                   icon: Target       },
-];
-
+// EPM — Dinheiro, finanças, budget, P&L, cashflow, AP/AR
 const awqEpmNav = [
-  { label: "Visão Geral EPM",href: "/awq/epm",               icon: Layers       },
+  { label: "Visão Geral EPM",  href: "/awq/epm",            icon: Layers      },
+  { label: "Financial (DRE)",  href: "/awq/financial",      icon: LineChart   },
+  { label: "Cash Flow",        href: "/awq/cashflow",       icon: Zap         },
+  { label: "Budget",           href: "/awq/budget",         icon: Wallet      },
+  { label: "Forecast",         href: "/awq/forecast",       icon: TrendingUp  },
+  { label: "AP & AR",          href: "/awq/ap-ar",          icon: FileText    },
+  { label: "Contas a Pagar",   href: "/awq/epm/ap",         icon: FileText    },
+  { label: "Contas a Receber", href: "/awq/epm/ar",         icon: FileText    },
+  { label: "Conciliação",      href: "/awq/conciliacao",    icon: CheckCircle2},
+  { label: "Contas Banco",     href: "/awq/bank",           icon: CreditCard  },
+  { label: "Controladoria",    href: "/awq/management",     icon: ShieldCheck },
 ];
 
+// CRM — Vendas, leads, pipeline, clientes, oportunidades
+const awqCrmNav = [
+  { label: "Dashboard CRM",  href: "/crm",                 icon: Target       },
+  { label: "Leads",          href: "/crm/leads",           icon: UserPlus     },
+  { label: "Pipeline",       href: "/crm/pipeline",        icon: Activity     },
+  { label: "Clientes",       href: "/crm/customers",       icon: Users        },
+  { label: "Oportunidades",  href: "/crm/opportunities",   icon: ArrowUpRight },
+];
+
+// PPM — Projetos, tasks, alocação de pessoas, cronogramas
+const awqPpmNav = [
+  { label: "Portfolio",      href: "/awq/ppm",               icon: Briefcase     },
+  { label: "Gantt",          href: "/awq/ppm/gantt",         icon: GanttChart    },
+  { label: "Tarefas",        href: "/awq/ppm/tasks",         icon: FileText      },
+  { label: "Timesheets",     href: "/awq/ppm/timesheets",    icon: Clock         },
+  { label: "Recursos",       href: "/awq/ppm/resources",     icon: Users         },
+  { label: "Utilização",     href: "/awq/ppm/utilization",   icon: BarChart3     },
+  { label: "Rentabilidade",  href: "/awq/ppm/profitability", icon: TrendingUp    },
+  { label: "Riscos",         href: "/awq/ppm/risks",         icon: AlertTriangle },
+];
+
+// BPM — Processos, workflows, aprovações, automação
 const awqBpmNav = [
   { label: "Minha Fila",  href: "/awq/bpm/tasks",                 icon: ClipboardList },
   { label: "Processos",   href: "/awq/bpm/processes",             icon: Activity      },
   { label: "Instâncias",  href: "/awq/bpm/instances",             icon: Layers        },
   { label: "Analytics",   href: "/awq/bpm/analytics/performance", icon: BarChart3     },
+];
+
+// BI — Dashboards, relatórios, análises, visualizações
+const awqBiNav = [
+  { label: "Dashboards",    href: "/awq/bi",                icon: PieChart  },
+  { label: "Relatórios",    href: "/awq/bi/reports",        icon: FileText  },
+  { label: "Análises",      href: "/awq/bi/analytics",      icon: BarChart3 },
+  { label: "Visualizações", href: "/awq/bi/visualizations", icon: LineChart },
+];
+
+// CPM — Estratégia, OKRs, scorecards, performance reviews
+const awqCpmNav = [
+  { label: "KPIs Consolidados",   href: "/awq/kpis",           icon: BarChart3   },
+  { label: "Risk & Alertas",      href: "/awq/risk",           icon: AlertTriangle},
+  { label: "Allocations",         href: "/awq/allocations",    icon: Wallet      },
+  { label: "OKRs",                href: "/awq/cpm/okrs",       icon: CheckCircle2},
+  { label: "Scorecards",          href: "/awq/cpm/scorecards", icon: ClipboardList},
+  { label: "Performance Reviews", href: "/awq/cpm/reviews",    icon: BarChart3   },
+];
+
+// GRC — Políticas, riscos, compliance, auditorias, controles
+const awqGrcNav = [
+  { label: "Compliance",  href: "/awq/compliance",    icon: Lock        },
+  { label: "Jurídico",    href: "/awq/juridico",      icon: Scale       },
+  { label: "Políticas",   href: "/awq/grc/policies",  icon: FileText    },
+  { label: "Riscos",      href: "/awq/grc/risks",     icon: AlertTriangle},
+  { label: "Auditorias",  href: "/awq/grc/audits",    icon: ClipboardList},
+  { label: "Controles",   href: "/awq/grc/controls",  icon: ShieldCheck },
+];
+
+// DMS — Documentos, arquivos, versionamento, colaboração
+const awqDmsNav = [
+  { label: "Documentos",    href: "/awq/dms",                  icon: FileText  },
+  { label: "Arquivos",      href: "/awq/dms/files",            icon: FolderOpen},
+  { label: "Versionamento", href: "/awq/dms/versioning",       icon: Layers    },
+];
+
+// ERP — Compras, contratos, time tracking, assets
+const awqErpNav = [
+  { label: "Compras",       href: "/awq/erp/purchases",    icon: Package },
+  { label: "Contratos",     href: "/awq/erp/contracts",    icon: FileText},
+  { label: "Time Tracking", href: "/awq/erp/timetracking", icon: Clock   },
+  { label: "Assets",        href: "/awq/erp/assets",       icon: Package },
+];
+
+// HCM — RH, folha, férias, recrutamento, treinamento
+const awqHcmNav = [
+  { label: "RH",                 href: "/awq/hcm",             icon: Users    },
+  { label: "Folha de Pagamento", href: "/awq/hcm/payroll",     icon: DollarSign},
+  { label: "Recrutamento",       href: "/awq/hcm/recruitment", icon: UserPlus },
+  { label: "Treinamento",        href: "/awq/hcm/training",    icon: HeartPulse},
 ];
 
 const jacqesNav = [
@@ -353,30 +424,66 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
             ))}
           </div>
 
-          {/* PPM, CRM, EPM — only in AWQ mode */}
+          {/* 10 modules — only in AWQ mode */}
           {!jacqesMode && !cazaMode && !advisorMode && !ventureMode && (
             <>
-              <SectionLabel>PPM</SectionLabel>
-              <div className="space-y-0.5">
-                {awqPpmNav.map((item) => (
-                  <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
-                ))}
-              </div>
-              <SectionLabel>CRM</SectionLabel>
-              <div className="space-y-0.5">
-                {awqCrmNav.map((item) => (
-                  <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
-                ))}
-              </div>
-              <SectionLabel>EPM</SectionLabel>
+              <SectionLabel>EPM · Finanças & Performance</SectionLabel>
               <div className="space-y-0.5">
                 {awqEpmNav.map((item) => (
                   <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
                 ))}
               </div>
-              <SectionLabel>BPM</SectionLabel>
+              <SectionLabel>CRM · Vendas & Relacionamento</SectionLabel>
+              <div className="space-y-0.5">
+                {awqCrmNav.map((item) => (
+                  <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
+                ))}
+              </div>
+              <SectionLabel>PPM · Projetos & Portfólio</SectionLabel>
+              <div className="space-y-0.5">
+                {awqPpmNav.map((item) => (
+                  <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
+                ))}
+              </div>
+              <SectionLabel>BPM · Processos & Workflows</SectionLabel>
               <div className="space-y-0.5">
                 {awqBpmNav.map((item) => (
+                  <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
+                ))}
+              </div>
+              <SectionLabel>BI · Dashboards & Análises</SectionLabel>
+              <div className="space-y-0.5">
+                {awqBiNav.map((item) => (
+                  <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
+                ))}
+              </div>
+              <SectionLabel>CPM · Estratégia & Performance</SectionLabel>
+              <div className="space-y-0.5">
+                {awqCpmNav.map((item) => (
+                  <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
+                ))}
+              </div>
+              <SectionLabel>GRC · Governança & Compliance</SectionLabel>
+              <div className="space-y-0.5">
+                {awqGrcNav.map((item) => (
+                  <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
+                ))}
+              </div>
+              <SectionLabel>DMS · Documentos & Arquivos</SectionLabel>
+              <div className="space-y-0.5">
+                {awqDmsNav.map((item) => (
+                  <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
+                ))}
+              </div>
+              <SectionLabel>ERP · Compras & Contratos</SectionLabel>
+              <div className="space-y-0.5">
+                {awqErpNav.map((item) => (
+                  <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
+                ))}
+              </div>
+              <SectionLabel>HCM · RH & Pessoas</SectionLabel>
+              <div className="space-y-0.5">
+                {awqHcmNav.map((item) => (
                   <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
                 ))}
               </div>
