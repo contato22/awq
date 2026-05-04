@@ -387,6 +387,42 @@ export type EmailLog = {
   status: "sent" | "opened" | "clicked" | "replied" | "bounced";
 };
 
+// ─── Quota Tracking ───────────────────────────────────────────────────────────
+
+export type QuotaPeriodType = "monthly" | "quarterly" | "annual";
+
+export type QuotaTarget = {
+  quota_id: string;
+  owner: string;
+  bu: string;
+  period_type: QuotaPeriodType;
+  period_label: string;    // "2026-Q2", "2026-05"
+  revenue_target: number;
+  deals_target: number | null;
+  activities_target: number | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type QuotaAttainment = {
+  quota_id: string;
+  owner: string;
+  bu: string;
+  period_type: QuotaPeriodType;
+  period_label: string;
+  revenue_target: number;
+  deals_target: number | null;
+  activities_target: number | null;
+  // actuals (calculated)
+  revenue_actual: number;
+  deals_actual: number;
+  activities_actual: number;
+  // attainment %
+  revenue_pct: number;
+  deals_pct: number | null;
+  activities_pct: number | null;
+};
+
 // ─── API Response ─────────────────────────────────────────────────────────────
 
 export type ApiResponse<T = unknown> = {

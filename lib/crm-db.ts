@@ -9,6 +9,7 @@ import type {
   EmailTemplate, EmailSequence, EmailEnrollment, EmailLog,
   ProposalTemplate, Proposal, ProposalSection,
   NpsSurvey, CsatSurvey, AccountHealthSummary, NpsCategory,
+  QuotaTarget, QuotaAttainment,
 } from "@/lib/crm-types";
 
 // ─── Schema Bootstrap ─────────────────────────────────────────────────────────
@@ -1035,4 +1036,156 @@ export async function getAccountHealthSummaries(): Promise<AccountHealthSummary[
   } catch {
     return [];
   }
+}
+
+// ─── Quota Tracking ───────────────────────────────────────────────────────────
+
+const SEED_QUOTA_TARGETS: QuotaTarget[] = [
+  { quota_id: "q-1", owner: "Miguel", bu: "JACQES",  period_type: "quarterly", period_label: "2026-Q2", revenue_target: 150000, deals_target: 5, activities_target: 60, created_at: "2026-04-01T00:00:00Z", updated_at: "2026-04-01T00:00:00Z" },
+  { quota_id: "q-2", owner: "Miguel", bu: "CAZA",    period_type: "quarterly", period_label: "2026-Q2", revenue_target:  80000, deals_target: 3, activities_target: 40, created_at: "2026-04-01T00:00:00Z", updated_at: "2026-04-01T00:00:00Z" },
+  { quota_id: "q-3", owner: "Danilo", bu: "ADVISOR", period_type: "quarterly", period_label: "2026-Q2", revenue_target: 200000, deals_target: 8, activities_target: 80, created_at: "2026-04-01T00:00:00Z", updated_at: "2026-04-01T00:00:00Z" },
+  { quota_id: "q-4", owner: "Danilo", bu: "VENTURE", period_type: "quarterly", period_label: "2026-Q2", revenue_target: 120000, deals_target: 4, activities_target: 50, created_at: "2026-04-01T00:00:00Z", updated_at: "2026-04-01T00:00:00Z" },
+  { quota_id: "q-5", owner: "Miguel", bu: "JACQES",  period_type: "monthly",   period_label: "2026-05", revenue_target:  50000, deals_target: 2, activities_target: 20, created_at: "2026-05-01T00:00:00Z", updated_at: "2026-05-01T00:00:00Z" },
+  { quota_id: "q-6", owner: "Danilo", bu: "ADVISOR", period_type: "monthly",   period_label: "2026-05", revenue_target:  70000, deals_target: 3, activities_target: 28, created_at: "2026-05-01T00:00:00Z", updated_at: "2026-05-01T00:00:00Z" },
+];
+
+// Seed actuals derived from SEED_PROPOSALS (closed_won) + SEED_ACTIVITIES
+const SEED_ACTUALS: Record<string, { revenue: number; deals: number; activities: number }> = {
+  "q-1": { revenue: 87500,  deals: 3, activities: 41 },
+  "q-2": { revenue: 32000,  deals: 1, activities: 22 },
+  "q-3": { revenue: 145000, deals: 6, activities: 67 },
+  "q-4": { revenue: 58000,  deals: 2, activities: 31 },
+  "q-5": { revenue: 18000,  deals: 1, activities: 9  },
+  "q-6": { revenue: 28000,  deals: 1, activities: 12 },
+};
+
+function buildAttainment(target: QuotaTarget): QuotaAttainment {
+  const a = SEED_ACTUALS[target.quota_id] ?? { revenue: 0, deals: 0, activities: 0 };
+  return {
+    ...target,
+    revenue_actual:    a.revenue,
+    deals_actual:      a.deals,
+    activities_actual: a.activities,
+    revenue_pct:       target.revenue_target > 0 ? Math.round((a.revenue / target.revenue_target) * 100) : 0,
+    deals_pct:         target.deals_target    ? Math.round((a.deals    / target.deals_target)    * 100) : null,
+    activities_pct:    target.activities_target ? Math.round((a.activities / target.activities_target) * 100) : null,
+  };
+}
+
+export async function listQuotaTargets(opts: {
+  owner?: string; bu?: string; period_type?: string; period_label?: string;
+} = {}): Promise<QuotaTarget[]> {
+  if (!sql) {
+    let rows = SEED_QUOTA_TARGETS;
+    if (opts.owner)       rows = rows.filter(r => r.owner === opts.owner);
+    if (opts.bu)          rows = rows.filter(r => r.bu    === opts.bu);
+    if (opts.period_type) rows = rows.filter(r => r.period_type  === opts.period_type);
+    if (opts.period_label) rows = rows.filter(r => r.period_label === opts.period_label);
+    return rows;
+  }
+  try {
+    const rows = await sql`
+      SELECT * FROM crm_quota_targets
+      WHERE (${ opts.owner       ?? null } IS NULL OR owner        = ${ opts.owner       ?? null })
+        AND (${ opts.bu          ?? null } IS NULL OR bu           = ${ opts.bu          ?? null })
+        AND (${ opts.period_type ?? null } IS NULL OR period_type  = ${ opts.period_type ?? null })
+        AND (${ opts.period_label ?? null } IS NULL OR period_label = ${ opts.period_label ?? null })
+      ORDER BY period_label DESC, owner, bu
+    `;
+    return rows as QuotaTarget[];
+  } catch { return []; }
+}
+
+export async function upsertQuotaTarget(data: Partial<QuotaTarget> & {
+  owner: string; bu: string; period_type: string; period_label: string; revenue_target: number;
+}): Promise<QuotaTarget> {
+  if (!sql) {
+    const existing = SEED_QUOTA_TARGETS.find(
+      r => r.owner === data.owner && r.bu === data.bu &&
+           r.period_type === data.period_type && r.period_label === data.period_label
+    );
+    if (existing) { Object.assign(existing, data); return existing; }
+    const newQ: QuotaTarget = {
+      quota_id: `q-${Date.now()}`, created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+      deals_target: null, activities_target: null,
+      ...data,
+    } as QuotaTarget;
+    SEED_QUOTA_TARGETS.push(newQ);
+    return newQ;
+  }
+  try {
+    const rows = await sql`
+      INSERT INTO crm_quota_targets (owner, bu, period_type, period_label, revenue_target, deals_target, activities_target)
+      VALUES (${data.owner}, ${data.bu}, ${data.period_type}, ${data.period_label},
+              ${data.revenue_target}, ${data.deals_target ?? null}, ${data.activities_target ?? null})
+      ON CONFLICT (owner, bu, period_type, period_label) DO UPDATE
+        SET revenue_target    = EXCLUDED.revenue_target,
+            deals_target      = EXCLUDED.deals_target,
+            activities_target = EXCLUDED.activities_target,
+            updated_at        = now()
+      RETURNING *
+    `;
+    return rows[0] as QuotaTarget;
+  } catch (e) { throw e; }
+}
+
+export async function getQuotaAttainments(opts: {
+  owner?: string; bu?: string; period_type?: string; period_label?: string;
+} = {}): Promise<QuotaAttainment[]> {
+  if (!sql) {
+    const targets = await listQuotaTargets(opts);
+    return targets.map(buildAttainment);
+  }
+  try {
+    // For DB: join quota targets with actual closed_won revenue + activity counts
+    const rows = await sql`
+      SELECT
+        qt.*,
+        COALESCE(rev.revenue_actual, 0)    AS revenue_actual,
+        COALESCE(rev.deals_actual,   0)    AS deals_actual,
+        COALESCE(act.activities_actual, 0) AS activities_actual,
+        CASE WHEN qt.revenue_target > 0 THEN
+          ROUND((COALESCE(rev.revenue_actual,0) / qt.revenue_target) * 100)::int ELSE 0 END AS revenue_pct,
+        CASE WHEN qt.deals_target IS NOT NULL AND qt.deals_target > 0 THEN
+          ROUND((COALESCE(rev.deals_actual,0) / qt.deals_target) * 100)::int END AS deals_pct,
+        CASE WHEN qt.activities_target IS NOT NULL AND qt.activities_target > 0 THEN
+          ROUND((COALESCE(act.activities_actual,0) / qt.activities_target) * 100)::int END AS activities_pct
+      FROM crm_quota_targets qt
+      LEFT JOIN LATERAL (
+        SELECT
+          SUM(deal_value)::numeric AS revenue_actual,
+          COUNT(*)::int            AS deals_actual
+        FROM crm_opportunities
+        WHERE stage = 'closed_won'
+          AND owner = qt.owner
+          AND bu    = qt.bu
+          AND (
+            CASE qt.period_type
+              WHEN 'monthly'   THEN to_char(actual_close_date, 'YYYY-MM')
+              WHEN 'quarterly' THEN to_char(actual_close_date, 'YYYY-"Q"Q')
+              ELSE to_char(actual_close_date, 'YYYY')
+            END
+          ) = qt.period_label
+      ) rev ON true
+      LEFT JOIN LATERAL (
+        SELECT COUNT(*)::int AS activities_actual
+        FROM crm_activities
+        WHERE created_by = qt.owner
+          AND status = 'completed'
+          AND (
+            CASE qt.period_type
+              WHEN 'monthly'   THEN to_char(completed_at, 'YYYY-MM')
+              WHEN 'quarterly' THEN to_char(completed_at, 'YYYY-"Q"Q')
+              ELSE to_char(completed_at, 'YYYY')
+            END
+          ) = qt.period_label
+      ) act ON true
+      WHERE (${ opts.owner       ?? null } IS NULL OR qt.owner        = ${ opts.owner       ?? null })
+        AND (${ opts.bu          ?? null } IS NULL OR qt.bu           = ${ opts.bu          ?? null })
+        AND (${ opts.period_type ?? null } IS NULL OR qt.period_type  = ${ opts.period_type ?? null })
+        AND (${ opts.period_label ?? null } IS NULL OR qt.period_label = ${ opts.period_label ?? null })
+      ORDER BY qt.period_label DESC, qt.owner, qt.bu
+    `;
+    return rows as QuotaAttainment[];
+  } catch { return []; }
 }

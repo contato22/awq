@@ -523,7 +523,39 @@ CREATE TRIGGER trg_sync_proposal_to_opp
   FOR EACH ROW EXECUTE FUNCTION sync_proposal_to_opportunity();
 
 -- =============================================================================
--- 8. TRIGGERS
+-- 8. QUOTA TRACKING
+-- =============================================================================
+
+-- ─── Quota Targets ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS crm_quota_targets (
+  quota_id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  owner             TEXT NOT NULL,
+  bu                TEXT NOT NULL,
+  period_type       TEXT NOT NULL CHECK (period_type IN ('monthly','quarterly','annual')),
+  period_label      TEXT NOT NULL,   -- e.g. '2026-Q2', '2026-05', '2026'
+  revenue_target    NUMERIC(18,2)   NOT NULL DEFAULT 0,
+  deals_target      INT,
+  activities_target INT,
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (owner, bu, period_type, period_label)
+);
+
+CREATE INDEX IF NOT EXISTS idx_quota_targets_owner   ON crm_quota_targets (owner);
+CREATE INDEX IF NOT EXISTS idx_quota_targets_period  ON crm_quota_targets (period_label);
+
+-- ─── updated_at trigger ───────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION trg_quota_updated_at()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN NEW.updated_at = now(); RETURN NEW; END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_set_quota_updated_at ON crm_quota_targets;
+CREATE TRIGGER trg_set_quota_updated_at
+  BEFORE UPDATE ON crm_quota_targets
+  FOR EACH ROW EXECUTE FUNCTION trg_quota_updated_at();
+
+-- 9. TRIGGERS
 -- =============================================================================
 
 -- ─── Auto-set probability by stage ───────────────────────────────────────────
