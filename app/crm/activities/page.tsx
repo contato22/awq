@@ -72,13 +72,18 @@ export default function ActivitiesPage() {
   async function completeActivity(id: string) {
     setCompleting(id);
     try {
-      await fetch("/api/crm/activities", {
+      const res = await fetch("/api/crm/activities", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "complete", activity_id: id }),
       });
+      if (!res.ok) throw new Error("Erro ao completar atividade");
       setActivities(prev => prev.map(a => a.activity_id === id ? { ...a, status: "completed", completed_at: new Date().toISOString() } : a));
-    } finally { setCompleting(null); }
+    } catch {
+      alert("Falha ao registrar conclusão. Tente novamente.");
+    } finally {
+      setCompleting(null);
+    }
   }
 
   return (

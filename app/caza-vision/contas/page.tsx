@@ -203,18 +203,35 @@ export default function ContasPage() {
     setEditing(true);
   }
 
-  function saveEdit() {
+  async function saveEdit() {
     if (!selected) return;
-    const updated: CazaClient = {
-      ...selected,
-      ...form,
-      last_internal_update: new Date().toISOString(),
-      sync_status: "modified",
+    const payload = {
+      name:         form.name,
+      status:       form.status,
+      segmento:     form.segmento,
+      since:        form.since,
+      health_score: form.health_score,
+      observacoes:  form.observacoes,
     };
-    const next = clientes.map(c => c.id === selected.id ? updated : c);
-    lsSet("clientes", next);
-    setClientes(next);
-    setSelected(updated);
+    try {
+      const res = await fetch(`/api/caza/clients/${selected.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = res.ok ? (await res.json() as CazaClient) : null;
+      const updated: CazaClient = data ?? {
+        ...selected, ...payload,
+        last_internal_update: new Date().toISOString(),
+        sync_status: "modified",
+      };
+      const next = clientes.map(c => c.id === selected.id ? updated : c);
+      lsSet("clientes", next);
+      setClientes(next);
+      setSelected(updated);
+    } catch {
+      alert("Falha ao salvar alterações. Tente novamente.");
+    }
     setEditing(false);
   }
 

@@ -198,39 +198,11 @@ export default function AddLeadPage() {
           } else if (json && res.status >= 400 && res.status < 500) {
             apiError = json.error ?? json.message ?? "Erro ao criar lead";
           }
-        } catch { /* network error — fall through to localStorage */ }
+        } catch { throw new Error("Erro de rede. Verifique sua conexão e tente novamente."); }
       }
 
       if (apiError) throw new Error(apiError);
-
-      if (!saved) {
-        const now = new Date().toISOString();
-        const localLead = {
-          lead_id: `local-${Date.now()}`,
-          lead_source: payload.lead_source,
-          company_name: payload.company_name,
-          contact_name: payload.contact_name,
-          email: payload.email,
-          phone: payload.phone,
-          job_title: payload.job_title,
-          bu: payload.bu,
-          lead_score: payload.lead_score,
-          status: payload.status,
-          qualification_notes: payload.qualification_notes,
-          bant_budget: payload.bant_budget,
-          bant_authority: payload.bant_authority,
-          bant_need: payload.bant_need,
-          bant_timeline: payload.bant_timeline,
-          assigned_to: payload.assigned_to,
-          converted_to_opportunity_id: null,
-          converted_at: null,
-          created_at: now,
-          updated_at: now,
-          created_by: payload.assigned_to,
-        };
-        const stored = JSON.parse(localStorage.getItem("awq_local_leads") ?? "[]");
-        localStorage.setItem("awq_local_leads", JSON.stringify([localLead, ...stored]));
-      }
+      if (!saved) throw new Error("Não foi possível salvar o lead. Tente novamente.");
 
       setToast({ message: "Lead criado com sucesso!", type: "success" });
       setTimeout(() => router.push("/crm/leads"), 1500);

@@ -213,10 +213,14 @@ export default function ClientesPage() {
       return;
     }
     try {
-      await fetch(`/api/caza/clients/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/caza/clients/${id}`, { method: "DELETE" });
+      if (!res.ok && res.status !== 204) throw new Error("Erro ao remover");
       setClients((prev) => prev.filter((c) => c.id !== id));
       setDeletingId(null); if (editingId === id) setEditingId(null);
-    } catch { /* ignore */ }
+    } catch {
+      alert("Falha ao remover cliente. Tente novamente.");
+      setDeletingId(null);
+    }
   }
 
   return (

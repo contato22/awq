@@ -438,6 +438,30 @@ export async function createInteraction(
   return coerceInteraction(rows[0]);
 }
 
+export async function updateInteraction(
+  id: string,
+  patch: Partial<Omit<CazaCrmInteraction, "id">>
+): Promise<CazaCrmInteraction | null> {
+  if (!sql) throw new Error("DB not available");
+  const rows = await sql`
+    UPDATE caza_crm_interactions SET
+      tipo        = COALESCE(${patch.tipo        ?? null}, tipo),
+      descricao   = COALESCE(${patch.descricao   ?? null}, descricao),
+      owner       = COALESCE(${patch.owner       ?? null}, owner),
+      data        = COALESCE(${patch.data        ?? null}::date, data),
+      observacoes = COALESCE(${patch.observacoes ?? null}, observacoes)
+    WHERE id = ${id}
+    RETURNING id, entidade_tipo, entidade_id, tipo, descricao, owner, data, observacoes
+  `;
+  return rows.length ? coerceInteraction(rows[0]) : null;
+}
+
+export async function deleteInteraction(id: string): Promise<boolean> {
+  if (!sql) throw new Error("DB not available");
+  const rows = await sql`DELETE FROM caza_crm_interactions WHERE id = ${id} RETURNING id`;
+  return rows.length > 0;
+}
+
 // ─── Coercions (DB rows → typed objects) ──────────────────────────────────────
 
 function coerceLead(r: Record<string, unknown>): CazaCrmLead {

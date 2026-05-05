@@ -402,6 +402,57 @@ export async function createActivity(data: Partial<CrmActivity>): Promise<CrmAct
   return rows[0] as CrmActivity;
 }
 
+export async function updateContact(id: string, patch: Partial<CrmContact>): Promise<CrmContact | null> {
+  if (!sql) throw new Error("DB not available");
+  const rows = await sql`
+    UPDATE crm_contacts SET
+      full_name           = COALESCE(${patch.full_name            ?? null}, full_name),
+      email               = COALESCE(${patch.email               ?? null}, email),
+      phone               = COALESCE(${patch.phone               ?? null}, phone),
+      mobile              = COALESCE(${patch.mobile              ?? null}, mobile),
+      job_title           = COALESCE(${patch.job_title           ?? null}, job_title),
+      department          = COALESCE(${patch.department          ?? null}, department),
+      seniority           = COALESCE(${patch.seniority           ?? null}, seniority),
+      linkedin_url        = COALESCE(${patch.linkedin_url        ?? null}, linkedin_url),
+      is_primary_contact  = COALESCE(${patch.is_primary_contact  ?? null}, is_primary_contact),
+      contact_preferences = COALESCE(${patch.contact_preferences ?? null}, contact_preferences),
+      updated_at          = NOW()
+    WHERE contact_id = ${id}
+    RETURNING *
+  `;
+  return rows.length ? (rows[0] as CrmContact) : null;
+}
+
+export async function deleteContact(id: string): Promise<boolean> {
+  if (!sql) throw new Error("DB not available");
+  const rows = await sql`DELETE FROM crm_contacts WHERE contact_id = ${id} RETURNING contact_id`;
+  return rows.length > 0;
+}
+
+export async function updateActivity(id: string, patch: Partial<CrmActivity>): Promise<CrmActivity | null> {
+  if (!sql) throw new Error("DB not available");
+  const rows = await sql`
+    UPDATE crm_activities SET
+      subject          = COALESCE(${patch.subject          ?? null}, subject),
+      description      = COALESCE(${patch.description      ?? null}, description),
+      outcome          = COALESCE(${patch.outcome          ?? null}, outcome),
+      duration_minutes = COALESCE(${patch.duration_minutes ?? null}, duration_minutes),
+      status           = COALESCE(${patch.status           ?? null}, status),
+      completed_at     = COALESCE(${patch.completed_at     ?? null}::timestamptz, completed_at),
+      scheduled_at     = COALESCE(${patch.scheduled_at     ?? null}::timestamptz, scheduled_at),
+      updated_at       = NOW()
+    WHERE activity_id = ${id}
+    RETURNING *
+  `;
+  return rows.length ? (rows[0] as CrmActivity) : null;
+}
+
+export async function deleteActivity(id: string): Promise<boolean> {
+  if (!sql) throw new Error("DB not available");
+  const rows = await sql`DELETE FROM crm_activities WHERE activity_id = ${id} RETURNING activity_id`;
+  return rows.length > 0;
+}
+
 // ─── Analytics ────────────────────────────────────────────────────────────────
 
 export async function getPipelineMetrics(): Promise<CrmPipelineMetrics> {
