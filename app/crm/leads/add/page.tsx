@@ -194,11 +194,13 @@ export default function AddLeadPage() {
           const json = await res.json();
           if (json.success) {
             saved = true;
-          } else {
+          } else if (res.status >= 400 && res.status < 500) {
+            // Validation error (400) — show to user
             apiError = json.error ?? json.message ?? "Erro ao criar lead";
           }
+          // 5xx (DB unavailable etc.) — fall through to localStorage
         }
-        // Non-JSON response = static export without API — fall through to localStorage
+        // Non-JSON (HTML 404 in static export) — fall through to localStorage
       } catch {
         // Network error — fall through to localStorage
       }
