@@ -93,19 +93,43 @@ function EditModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[90vh]">
+        {/* Header — sempre visível */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
           <div>
             <h2 className="text-sm font-bold text-gray-900">Editar Oportunidade</h2>
             <p className="text-[11px] text-gray-400 font-mono mt-0.5">{opp.opportunity_code}</p>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-            <X size={16} className="text-gray-500" />
-          </button>
+          <div className="flex items-center gap-1">
+            {!confirmDelete ? (
+              <button
+                type="button"
+                title="Excluir oportunidade"
+                onClick={() => setConfirmDelete(true)}
+                className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors"
+              >
+                <Trash2 size={16} />
+              </button>
+            ) : (
+              <div className="flex items-center gap-2 mr-1">
+                <span className="text-xs text-red-600 font-medium">Confirmar exclusão?</span>
+                <button type="button" onClick={() => setConfirmDelete(false)}
+                  className="px-2 py-1 text-xs border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50">
+                  Não
+                </button>
+                <button type="button" onClick={() => onDelete(opp.opportunity_id)}
+                  className="px-2 py-1 text-xs bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700">
+                  Sim, excluir
+                </button>
+              </div>
+            )}
+            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+              <X size={16} className="text-gray-500" />
+            </button>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+        <form onSubmit={handleSubmit} className="p-5 space-y-4 overflow-y-auto">
           {/* Nome */}
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">Nome da Oportunidade *</label>
@@ -200,32 +224,6 @@ function EditModal({
             </button>
           </div>
 
-          {/* Delete zone */}
-          {!confirmDelete ? (
-            <button
-              type="button"
-              onClick={() => setConfirmDelete(true)}
-              className="w-full flex items-center justify-center gap-2 py-2 text-sm text-red-500 hover:text-red-700 hover:bg-red-50 rounded-xl transition-colors"
-            >
-              <Trash2 size={14} /> Excluir oportunidade
-            </button>
-          ) : (
-            <div className="rounded-xl border border-red-200 bg-red-50 p-3 space-y-2">
-              <p className="text-xs text-red-700 text-center font-medium">
-                Tem certeza? Esta ação não pode ser desfeita.
-              </p>
-              <div className="flex gap-2">
-                <button type="button" onClick={() => setConfirmDelete(false)}
-                  className="flex-1 py-1.5 text-xs border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50">
-                  Não, cancelar
-                </button>
-                <button type="button" onClick={() => onDelete(opp.opportunity_id)}
-                  className="flex-1 py-1.5 text-xs bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700">
-                  Sim, excluir
-                </button>
-              </div>
-            </div>
-          )}
         </form>
       </div>
     </div>
