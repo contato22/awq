@@ -189,7 +189,7 @@ export default function AddLeadPage() {
         setToast({ message: "Lead criado com sucesso!", type: "success" });
         setTimeout(() => router.push("/crm/leads"), 1500);
       } else {
-        throw new Error(json.message ?? "Erro ao criar lead");
+        throw new Error(json.error ?? "Erro ao criar lead");
       }
     } catch (err) {
       setToast({ message: err instanceof Error ? err.message : "Erro ao criar lead", type: "error" });

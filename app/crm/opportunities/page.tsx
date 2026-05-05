@@ -365,14 +365,10 @@ function PipelinePageInner() {
   const [editingOpp, setEditingOpp] = useState<CrmOpportunity | null>(null);
 
   useEffect(() => {
-    // Try localStorage first for instant load with persisted state
+    // Load from localStorage for instant render, then always refresh from API
     try {
       const stored = localStorage.getItem(LS_KEY);
-      if (stored) {
-        setOpps(JSON.parse(stored));
-        setLoading(false);
-        return;
-      }
+      if (stored) setOpps(JSON.parse(stored));
     } catch { /* ignore */ }
 
     fetch("/api/crm/pipeline")
@@ -386,11 +382,11 @@ function PipelinePageInner() {
           ];
           persist(all);
           setOpps(all);
-        } else {
+        } else if (!localStorage.getItem(LS_KEY)) {
           setOpps(SEED_OPPORTUNITIES);
         }
       })
-      .catch(() => setOpps(SEED_OPPORTUNITIES))
+      .catch(() => { if (!localStorage.getItem(LS_KEY)) setOpps(SEED_OPPORTUNITIES); })
       .finally(() => setLoading(false));
   }, []);
 

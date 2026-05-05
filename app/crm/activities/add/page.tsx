@@ -1,16 +1,28 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import type { FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
 import { SEED_ACCOUNTS, SEED_CONTACTS, SEED_LEADS, SEED_OPPORTUNITIES } from "@/lib/crm-db";
+import type { CrmOpportunity, CrmAccount, CrmLead, CrmContact } from "@/lib/crm-types";
 
 function AddActivityPageInner() {
   const router = useRouter();
   const params = useSearchParams();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [opportunities, setOpportunities] = useState<CrmOpportunity[]>(SEED_OPPORTUNITIES);
+  const [accounts, setAccounts] = useState<CrmAccount[]>(SEED_ACCOUNTS);
+  const [leads, setLeads] = useState<CrmLead[]>(SEED_LEADS);
+  const [contacts, setContacts] = useState<CrmContact[]>(SEED_CONTACTS);
+
+  useEffect(() => {
+    fetch("/api/crm/opportunities").then(r => r.json()).then(res => { if (res.success) setOpportunities(res.data); }).catch(() => {});
+    fetch("/api/crm/accounts").then(r => r.json()).then(res => { if (res.success) setAccounts(res.data); }).catch(() => {});
+    fetch("/api/crm/leads").then(r => r.json()).then(res => { if (res.success) setLeads(res.data); }).catch(() => {});
+    fetch("/api/crm/contacts").then(r => r.json()).then(res => { if (res.success) setContacts(res.data); }).catch(() => {});
+  }, []);
   const [form, setForm] = useState({
     activity_type: "call",
     related_to_type: params?.get("related_to_type") ?? "opportunity",
@@ -94,13 +106,13 @@ function AddActivityPageInner() {
                 <select value={form.related_to_id} onChange={e=>set("related_to_id",e.target.value)}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30">
                   <option value="">— Selecionar —</option>
-                  {form.related_to_type === "opportunity" && SEED_OPPORTUNITIES.map(o =>
+                  {form.related_to_type === "opportunity" && opportunities.map(o =>
                     <option key={o.opportunity_id} value={o.opportunity_id}>{o.opportunity_name}</option>)}
-                  {form.related_to_type === "account" && SEED_ACCOUNTS.map(a =>
+                  {form.related_to_type === "account" && accounts.map(a =>
                     <option key={a.account_id} value={a.account_id}>{a.trade_name ?? a.account_name}</option>)}
-                  {form.related_to_type === "lead" && SEED_LEADS.map(l =>
+                  {form.related_to_type === "lead" && leads.map(l =>
                     <option key={l.lead_id} value={l.lead_id}>{l.contact_name} — {l.company_name}</option>)}
-                  {form.related_to_type === "contact" && SEED_CONTACTS.map(c =>
+                  {form.related_to_type === "contact" && contacts.map(c =>
                     <option key={c.contact_id} value={c.contact_id}>{c.full_name} ({c.account_name})</option>)}
                 </select></div>
             </div>
