@@ -212,7 +212,28 @@ export async function getLead(id: string): Promise<CrmLead | null> {
 }
 
 export async function createLead(data: Partial<CrmLead>): Promise<CrmLead> {
-  if (!sql) throw new Error("DB not available");
+  if (!sql) {
+    const row: CrmLead = {
+      lead_id: `l-${Date.now()}`,
+      lead_source: data.lead_source ?? "manual",
+      company_name: data.company_name ?? "",
+      contact_name: data.contact_name ?? "",
+      email: data.email ?? null,
+      phone: data.phone ?? null,
+      job_title: data.job_title ?? null,
+      bu: data.bu ?? "JACQES",
+      lead_score: data.lead_score ?? 0,
+      status: data.status ?? "new",
+      qualification_notes: null,
+      bant_budget: null, bant_authority: false, bant_need: null, bant_timeline: null,
+      assigned_to: data.assigned_to ?? "Miguel",
+      converted_to_opportunity_id: null, converted_at: null,
+      created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+      created_by: data.created_by ?? null,
+    };
+    SEED_LEADS.push(row);
+    return row;
+  }
   const rows = await sql`
     INSERT INTO crm_leads (lead_source, company_name, contact_name, email, phone, job_title,
       bu, lead_score, status, qualification_notes, bant_budget, bant_authority, bant_need,
@@ -334,7 +355,32 @@ export async function getOpportunity(id: string): Promise<CrmOpportunity | null>
 }
 
 export async function createOpportunity(data: Partial<CrmOpportunity>): Promise<CrmOpportunity> {
-  if (!sql) throw new Error("DB not available");
+  if (!sql) {
+    const stage = (data.stage ?? "discovery") as CrmOpportunity["stage"];
+    const row: CrmOpportunity = {
+      opportunity_id: `o-${Date.now()}`,
+      opportunity_code: `OPP-${String(SEED_OPPORTUNITIES.length + 1).padStart(3, "0")}`,
+      opportunity_name: data.opportunity_name ?? "",
+      account_id: data.account_id ?? null,
+      account_name: data.account_name,
+      contact_id: data.contact_id ?? null,
+      contact_name: data.contact_name ?? null,
+      bu: data.bu ?? "JACQES",
+      stage,
+      deal_value: data.deal_value ?? 0,
+      probability: STAGE_PROBABILITY[stage] ?? 25,
+      expected_close_date: data.expected_close_date ?? null,
+      actual_close_date: null,
+      lost_reason: null, lost_to_competitor: null, win_reason: null,
+      owner: data.owner ?? "Miguel",
+      proposal_sent_date: null, proposal_viewed: false, proposal_accepted: false,
+      synced_to_epm: false, epm_customer_id: null, epm_ar_id: null,
+      created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+      created_by: data.created_by ?? data.owner ?? null,
+    };
+    SEED_OPPORTUNITIES.push(row);
+    return row;
+  }
   const rows = await sql`
     INSERT INTO crm_opportunities (opportunity_name, account_id, contact_id, bu, stage,
       deal_value, expected_close_date, owner, proposal_sent_date, created_by)
@@ -931,8 +977,20 @@ export async function listNpsSurveys(filters?: { account_id?: string; period?: s
 }
 
 export async function createNpsSurvey(data: Partial<NpsSurvey>): Promise<NpsSurvey> {
-  if (!sql) throw new Error("DB not available");
   const period = data.period ?? `${new Date().getFullYear()}-Q${Math.ceil((new Date().getMonth() + 1) / 3)}`;
+  if (!sql) {
+    const row: NpsSurvey = {
+      survey_id: `nps-${Date.now()}`,
+      account_id: data.account_id ?? "",
+      contact_id: data.contact_id ?? null,
+      sent_by: data.sent_by ?? "system",
+      sent_at: new Date().toISOString(),
+      response_score: null, category: null, comment: null, responded_at: null,
+      period,
+    };
+    SEED_NPS_SURVEYS.push(row);
+    return row;
+  }
   const rows = await sql`
     INSERT INTO crm_nps_surveys (account_id, contact_id, sent_by, period)
     VALUES (${data.account_id!}, ${data.contact_id ?? null}, ${data.sent_by ?? 'system'}, ${period})
@@ -941,9 +999,17 @@ export async function createNpsSurvey(data: Partial<NpsSurvey>): Promise<NpsSurv
   return rows[0] as NpsSurvey;
 }
 
-export async function respondNps(id: string, score: number, comment?: string): Promise<NpsSurvey> {
-  if (!sql) throw new Error("DB not available");
+export async function respondNps(id: string, score: number, comment?: string | null): Promise<NpsSurvey> {
   const category = npsCategory(score);
+  if (!sql) {
+    const row = SEED_NPS_SURVEYS.find(r => r.survey_id === id);
+    if (!row) throw new Error("NPS survey not found: " + id);
+    row.response_score = score;
+    row.category = category;
+    row.comment = comment ?? null;
+    row.responded_at = new Date().toISOString();
+    return row;
+  }
   const rows = await sql`
     UPDATE crm_nps_surveys SET
       response_score = ${score},
@@ -977,7 +1043,20 @@ export async function listCsatSurveys(filters?: { account_id?: string }): Promis
 }
 
 export async function createCsatSurvey(data: Partial<CsatSurvey>): Promise<CsatSurvey> {
-  if (!sql) throw new Error("DB not available");
+  if (!sql) {
+    const row: CsatSurvey = {
+      survey_id: `csat-${Date.now()}`,
+      account_id: data.account_id ?? "",
+      contact_id: data.contact_id ?? null,
+      related_to_type: data.related_to_type ?? "general",
+      related_to_id: data.related_to_id ?? null,
+      sent_by: data.sent_by ?? "system",
+      sent_at: new Date().toISOString(),
+      response_score: null, comment: null, responded_at: null,
+    };
+    SEED_CSAT_SURVEYS.push(row);
+    return row;
+  }
   const rows = await sql`
     INSERT INTO crm_csat_surveys (account_id, contact_id, related_to_type, related_to_id, sent_by)
     VALUES (${data.account_id!}, ${data.contact_id ?? null},
@@ -987,8 +1066,15 @@ export async function createCsatSurvey(data: Partial<CsatSurvey>): Promise<CsatS
   return rows[0] as CsatSurvey;
 }
 
-export async function respondCsat(id: string, score: number, comment?: string): Promise<CsatSurvey> {
-  if (!sql) throw new Error("DB not available");
+export async function respondCsat(id: string, score: number, comment?: string | null): Promise<CsatSurvey> {
+  if (!sql) {
+    const row = SEED_CSAT_SURVEYS.find(r => r.survey_id === id);
+    if (!row) throw new Error("CSAT survey not found: " + id);
+    row.response_score = score;
+    row.comment = comment ?? null;
+    row.responded_at = new Date().toISOString();
+    return row;
+  }
   const rows = await sql`
     UPDATE crm_csat_surveys SET
       response_score = ${score},
