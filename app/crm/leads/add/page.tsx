@@ -180,35 +180,30 @@ export default function AddLeadPage() {
         qualification_notes: form.qualification_notes || null,
       };
 
+      const isStaticExport = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
       let saved = false;
       let apiError: string | null = null;
 
-      try {
-        const res = await fetch("/api/crm/leads", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        const ct = res.headers.get("content-type") ?? "";
-        if (ct.includes("application/json")) {
-          const json = await res.json();
-          if (json.success) {
+      if (!isStaticExport) {
+        try {
+          const res = await fetch("/api/crm/leads", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          let json: { success: boolean; error?: string; message?: string } | null = null;
+          try { json = await res.json(); } catch { /* non-JSON response */ }
+          if (json?.success) {
             saved = true;
-          } else if (res.status >= 400 && res.status < 500) {
-            // Validation error (400) — show to user
+          } else if (json && res.status >= 400 && res.status < 500) {
             apiError = json.error ?? json.message ?? "Erro ao criar lead";
           }
-          // 5xx (DB unavailable etc.) — fall through to localStorage
-        }
-        // Non-JSON (HTML 404 in static export) — fall through to localStorage
-      } catch {
-        // Network error — fall through to localStorage
+        } catch { /* network error — fall through to localStorage */ }
       }
 
       if (apiError) throw new Error(apiError);
 
       if (!saved) {
-        // API unavailable (static export): persist lead locally
         const now = new Date().toISOString();
         const localLead = {
           lead_id: `local-${Date.now()}`,
@@ -233,8 +228,8 @@ export default function AddLeadPage() {
           updated_at: now,
           created_by: payload.assigned_to,
         };
-        const existing = JSON.parse(localStorage.getItem("awq_local_leads") ?? "[]");
-        localStorage.setItem("awq_local_leads", JSON.stringify([localLead, ...existing]));
+        const stored = JSON.parse(localStorage.getItem("awq_local_leads") ?? "[]");
+        localStorage.setItem("awq_local_leads", JSON.stringify([localLead, ...stored]));
       }
 
       setToast({ message: "Lead criado com sucesso!", type: "success" });
