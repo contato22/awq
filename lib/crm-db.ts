@@ -366,6 +366,15 @@ export async function updateOpportunity(id: string, data: Partial<CrmOpportunity
   return rows[0] as CrmOpportunity;
 }
 
+export async function deleteOpportunity(id: string): Promise<void> {
+  if (!sql) {
+    const idx = SEED_OPPORTUNITIES.findIndex(o => o.opportunity_id === id);
+    if (idx !== -1) SEED_OPPORTUNITIES.splice(idx, 1);
+    return;
+  }
+  await sql`DELETE FROM crm_opportunities WHERE opportunity_id = ${id}`;
+}
+
 // ─── Activity CRUD ────────────────────────────────────────────────────────────
 
 export async function listActivities(filters?: { related_to_type?: string; related_to_id?: string; created_by?: string }): Promise<CrmActivity[]> {

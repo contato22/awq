@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { initCrmDB, listOpportunities, getOpportunity, createOpportunity, updateOpportunity } from "@/lib/crm-db";
+import { initCrmDB, listOpportunities, getOpportunity, createOpportunity, updateOpportunity, deleteOpportunity } from "@/lib/crm-db";
 import { getForcedBu } from "@/lib/api-guard";
 
 function ok(data: unknown) { return NextResponse.json({ success: true, data }); }
@@ -44,6 +44,11 @@ export async function POST(req: NextRequest) {
       if (!opportunity_id) return err("opportunity_id required", 400);
       const row = await updateOpportunity(opportunity_id, rest);
       return ok(row);
+    }
+    if (action === "delete") {
+      if (!data.opportunity_id) return err("opportunity_id required", 400);
+      await deleteOpportunity(data.opportunity_id);
+      return ok({ deleted: true });
     }
     return err("Unknown action", 400);
   } catch (e) { return err(String(e)); }

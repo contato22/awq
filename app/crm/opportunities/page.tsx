@@ -9,7 +9,7 @@ import SectionHeader from "@/components/SectionHeader";
 import EmptyState from "@/components/EmptyState";
 import {
   Target, DollarSign, TrendingUp, Plus, X,
-  Calendar, Building2, AlertCircle,
+  Calendar, Building2, AlertCircle, Trash2,
 } from "lucide-react";
 import type { CrmOpportunity } from "@/lib/crm-types";
 import { STAGE_LABELS, STAGE_PROBABILITY, BU_OPTIONS, OWNER_OPTIONS, PIPELINE_STAGES } from "@/lib/crm-types";
@@ -49,11 +49,14 @@ function EditModal({
   opp,
   onSave,
   onClose,
+  onDelete,
 }: {
   opp: CrmOpportunity;
   onSave: (updated: CrmOpportunity) => void;
   onClose: () => void;
+  onDelete: (id: string) => void;
 }) {
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [form, setForm] = useState({
     opportunity_name: opp.opportunity_name,
     bu: opp.bu,
@@ -196,6 +199,33 @@ function EditModal({
               Salvar
             </button>
           </div>
+
+          {/* Delete zone */}
+          {!confirmDelete ? (
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(true)}
+              className="w-full flex items-center justify-center gap-2 py-2 text-sm text-red-500 hover:text-red-700 hover:bg-red-50 rounded-xl transition-colors"
+            >
+              <Trash2 size={14} /> Excluir oportunidade
+            </button>
+          ) : (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-3 space-y-2">
+              <p className="text-xs text-red-700 text-center font-medium">
+                Tem certeza? Esta ação não pode ser desfeita.
+              </p>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setConfirmDelete(false)}
+                  className="flex-1 py-1.5 text-xs border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50">
+                  Não, cancelar
+                </button>
+                <button type="button" onClick={() => onDelete(opp.opportunity_id)}
+                  className="flex-1 py-1.5 text-xs bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700">
+                  Sim, excluir
+                </button>
+              </div>
+            </div>
+          )}
         </form>
       </div>
     </div>
@@ -455,6 +485,18 @@ function PipelinePageInner() {
     }).catch(() => undefined);
   }
 
+  function handleDelete(id: string) {
+    updateOpps(opps.filter(o => o.opportunity_id !== id));
+    setEditingOpp(null);
+    showToast("Oportunidade excluída", true);
+
+    fetch("/api/crm/opportunities", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "delete", opportunity_id: id }),
+    }).catch(() => undefined);
+  }
+
   const openOpps = opps.filter(o => o.stage !== "closed_won" && o.stage !== "closed_lost");
   const totalPipeline = openOpps.reduce((s, o) => s + o.deal_value, 0);
   const weightedForecast = openOpps.reduce((s, o) => s + o.deal_value * o.probability / 100, 0);
@@ -487,6 +529,7 @@ function PipelinePageInner() {
             opp={editingOpp}
             onSave={handleSaveEdit}
             onClose={() => setEditingOpp(null)}
+            onDelete={handleDelete}
           />
         )}
 
