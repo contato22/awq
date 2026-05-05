@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { initCrmDB, listOpportunities, getOpportunity, createOpportunity, updateOpportunity } from "@/lib/crm-db";
+import { initCrmDB, listOpportunities, getOpportunity, createOpportunity, updateOpportunity, deleteOpportunity } from "@/lib/crm-db";
 import { getForcedBu } from "@/lib/api-guard";
 
 function ok(data: unknown) { return NextResponse.json({ success: true, data }); }
@@ -46,5 +46,15 @@ export async function POST(req: NextRequest) {
       return ok(row);
     }
     return err("Unknown action", 400);
+  } catch (e) { return err(String(e)); }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    await initCrmDB();
+    const id = req.nextUrl.searchParams.get("id");
+    if (!id) return err("id required", 400);
+    await deleteOpportunity(id);
+    return NextResponse.json({ success: true });
   } catch (e) { return err(String(e)); }
 }
