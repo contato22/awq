@@ -8,7 +8,7 @@ import SectionHeader from "@/components/SectionHeader";
 import EmptyState from "@/components/EmptyState";
 import {
   Users, Plus, Search, Target, TrendingUp,
-  BarChart3, ExternalLink, RefreshCw, ChevronRight,
+  BarChart3, ExternalLink, RefreshCw, ChevronRight, Trash2,
 } from "lucide-react";
 import type { CrmLead } from "@/lib/crm-types";
 import { SEED_LEADS } from "@/lib/crm-db";
@@ -67,6 +67,7 @@ function LeadsPageInner() {
   const [buFilter, setBuFilter] = useState<string>(urlBu && BU_LIST.includes(urlBu as typeof BU_LIST[number]) ? urlBu : "Todos");
   const [search, setSearch] = useState("");
   const [converting, setConverting] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -86,6 +87,31 @@ function LeadsPageInner() {
     }
     load();
   }, []);
+
+  async function handleDelete(lead: CrmLead) {
+    if (!confirm(`Apagar lead "${lead.contact_name} — ${lead.company_name}"? Esta ação não pode ser desfeita.`)) return;
+    setDeleting(lead.lead_id);
+    try {
+      if (isStatic) {
+        const local = JSON.parse(localStorage.getItem("awq_local_leads") ?? "[]") as CrmLead[];
+        const updated = local.filter(l => l.lead_id !== lead.lead_id);
+        localStorage.setItem("awq_local_leads", JSON.stringify(updated));
+        setLeads(prev => prev.filter(l => l.lead_id !== lead.lead_id));
+      } else {
+        const res = await fetch(`/api/crm/leads?id=${lead.lead_id}`, { method: "DELETE" });
+        if (res.ok || res.status === 204) {
+          setLeads(prev => prev.filter(l => l.lead_id !== lead.lead_id));
+        } else {
+          const json = await res.json().catch(() => ({}));
+          alert(json.error ?? "Erro ao apagar lead");
+        }
+      }
+    } catch {
+      alert("Erro de rede — tente novamente");
+    } finally {
+      setDeleting(null);
+    }
+  }
 
   async function handleConvert(lead: CrmLead) {
     if (!confirm(`Converter "${lead.company_name}" em oportunidade?`)) return;
@@ -361,6 +387,13 @@ function LeadsPageInner() {
                                 {converting === lead.lead_id ? "…" : "Converter"}
                               </button>
                             )}
+                            <button
+                              onClick={() => handleDelete(lead)}
+                              disabled={deleting === lead.lead_id}
+                              title="Apagar lead"
+                              className="inline-flex items-center justify-center w-7 h-7 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-40">
+                              <Trash2 size={12} />
+                            </button>
                           </div>
                         </td>
                       </tr>

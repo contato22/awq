@@ -242,6 +242,12 @@ export async function updateLead(id: string, data: Partial<CrmLead>): Promise<Cr
   return rows[0] as CrmLead;
 }
 
+export async function deleteLead(id: string): Promise<boolean> {
+  if (!sql) return false;
+  const rows = await sql`DELETE FROM crm_leads WHERE lead_id = ${id} RETURNING lead_id`;
+  return rows.length > 0;
+}
+
 export async function getContact(id: string): Promise<CrmContact | null> {
   if (!sql) return SEED_CONTACTS.find(c => c.contact_id === id) ?? null;
   const rows = await sql`
