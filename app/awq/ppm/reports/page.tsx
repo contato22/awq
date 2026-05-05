@@ -391,9 +391,11 @@ export default function ReportsPage() {
       ]);
       if (projectsJson.success) {
         setProjects(projectsJson.data.projects ?? []);
-        setMetrics(projectsJson.data.metrics ?? null);
+        // Prefer metrics from projects endpoint; fall back to dedicated metrics endpoint
+        setMetrics(projectsJson.data.metrics ?? (metricsJson.success ? metricsJson.data.metrics ?? metricsJson.data : null));
+      } else if (metricsJson.success) {
+        setMetrics(metricsJson.data.metrics ?? metricsJson.data);
       }
-      if (metricsJson.success && !metrics) setMetrics(metricsJson.data);
     } finally {
       setLoading(false);
     }
