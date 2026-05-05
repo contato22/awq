@@ -638,6 +638,39 @@ export async function createRisk(input: Omit<PpmRisk, "risk_id" | "risk_score" |
   return r;
 }
 
+export async function updateRisk(risk_id: string, patch: Partial<PpmRisk>): Promise<PpmRisk | null> {
+  if (!sql) {
+    const idx = _risks.findIndex(r => r.risk_id === risk_id);
+    if (idx === -1) return null;
+    if (patch.impact || patch.probability) {
+      const imp = (patch.impact ?? _risks[idx].impact) as RiskImpact;
+      const prb = (patch.probability ?? _risks[idx].probability) as RiskProbability;
+      patch.risk_score = calcRiskScore(imp, prb);
+    }
+    _risks[idx] = { ..._risks[idx], ...patch, risk_id, updated_at: now() };
+    return _risks[idx];
+  }
+  const risk_score = patch.impact || patch.probability
+    ? calcRiskScore((patch.impact ?? "medium") as RiskImpact, (patch.probability ?? "medium") as RiskProbability)
+    : undefined;
+  await sql`
+    UPDATE ppm_risks SET
+      status           = COALESCE(${patch.status ?? null}, status),
+      risk_description = COALESCE(${patch.risk_description ?? null}, risk_description),
+      impact           = COALESCE(${patch.impact ?? null}, impact),
+      probability      = COALESCE(${patch.probability ?? null}, probability),
+      risk_score       = COALESCE(${risk_score ?? null}, risk_score),
+      mitigation_plan  = COALESCE(${patch.mitigation_plan ?? null}, mitigation_plan),
+      contingency_plan = COALESCE(${patch.contingency_plan ?? null}, contingency_plan),
+      closed_date      = COALESCE(${patch.closed_date ?? null}, closed_date),
+      notes            = COALESCE(${patch.notes ?? null}, notes),
+      updated_at       = ${now()}
+    WHERE risk_id = ${risk_id}
+  `;
+  const rows = await sql`SELECT r.*, p.project_name FROM ppm_risks r LEFT JOIN ppm_projects p ON r.project_id = p.project_id WHERE r.risk_id = ${risk_id}`;
+  return rows[0] as PpmRisk ?? null;
+}
+
 // ─── Issue CRUD ───────────────────────────────────────────────────────────────
 
 export async function listIssues(project_id?: string): Promise<PpmIssue[]> {
@@ -663,6 +696,28 @@ export async function createIssue(input: Omit<PpmIssue, "issue_id" | "created_at
     VALUES (${issue_id}, ${input.project_id}, ${input.issue_description}, ${input.severity}, ${input.reported_by ?? null}, ${input.assigned_to ?? null}, ${input.status}, ${input.reported_date}, ${input.notes ?? null}, ${now()}, ${now()})
   `;
   return i;
+}
+
+export async function updateIssue(issue_id: string, patch: Partial<PpmIssue>): Promise<PpmIssue | null> {
+  if (!sql) {
+    const idx = _issues.findIndex(i => i.issue_id === issue_id);
+    if (idx === -1) return null;
+    _issues[idx] = { ..._issues[idx], ...patch, issue_id, updated_at: now() };
+    return _issues[idx];
+  }
+  await sql`
+    UPDATE ppm_issues SET
+      status          = COALESCE(${patch.status ?? null}, status),
+      severity        = COALESCE(${patch.severity ?? null}, severity),
+      assigned_to     = COALESCE(${patch.assigned_to ?? null}, assigned_to),
+      resolution      = COALESCE(${patch.resolution ?? null}, resolution),
+      resolved_date   = COALESCE(${patch.resolved_date ?? null}, resolved_date),
+      notes           = COALESCE(${patch.notes ?? null}, notes),
+      updated_at      = ${now()}
+    WHERE issue_id = ${issue_id}
+  `;
+  const rows = await sql`SELECT i.*, p.project_name FROM ppm_issues i LEFT JOIN ppm_projects p ON i.project_id = p.project_id WHERE i.issue_id = ${issue_id}`;
+  return rows[0] as PpmIssue ?? null;
 }
 
 // ─── Portfolio Metrics ────────────────────────────────────────────────────────

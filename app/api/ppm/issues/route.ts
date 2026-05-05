@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { listIssues, createIssue } from "@/lib/ppm-db";
+import { listIssues, createIssue, updateIssue } from "@/lib/ppm-db";
 
 function ok(data: unknown)          { return NextResponse.json({ success: true,  data }); }
 function err(msg: string, s = 400)  { return NextResponse.json({ success: false, error: msg }, { status: s }); }
@@ -27,6 +27,19 @@ export async function POST(req: NextRequest) {
       reported_date: body.reported_date ?? new Date().toISOString().slice(0, 10),
     });
     return ok(issue);
+  } catch (e) {
+    return err((e as Error).message, 500);
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { issue_id, ...patch } = body;
+    if (!issue_id) return err("issue_id is required");
+    const updated = await updateIssue(issue_id, patch);
+    if (!updated) return err("Issue not found", 404);
+    return ok(updated);
   } catch (e) {
     return err((e as Error).message, 500);
   }
