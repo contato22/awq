@@ -300,6 +300,75 @@ export interface ResourceUtilization {
   project_names:        string[];
 }
 
+// ─── Collaboration ────────────────────────────────────────────────────────────
+
+export type CommentEntityType = "project" | "task" | "risk" | "issue";
+export type DocType = "spec" | "contract" | "report" | "presentation" | "other";
+export type ActivityAction =
+  | "project_created" | "project_updated" | "status_changed" | "health_changed"
+  | "task_created"    | "task_completed"  | "task_blocked"
+  | "milestone_achieved" | "milestone_missed"
+  | "risk_identified" | "risk_closed"
+  | "issue_opened"    | "issue_resolved"
+  | "timesheet_approved" | "comment_added" | "document_added";
+
+export interface PpmComment {
+  comment_id:    string;
+  project_id:    string;
+  project_name?: string;
+  entity_type:   CommentEntityType;
+  entity_id?:    string;
+  user_id:       string;
+  user_name:     string;
+  content:       string;
+  created_at:    string;
+  updated_at:    string;
+}
+
+export interface PpmDocument {
+  doc_id:        string;
+  project_id:    string;
+  project_name?: string;
+  title:         string;
+  url:           string;
+  doc_type:      DocType;
+  description?:  string;
+  uploaded_by:   string;
+  uploader_name?: string;
+  version?:      string;
+  created_at:    string;
+  updated_at:    string;
+}
+
+export interface PpmActivity {
+  activity_id:   string;
+  project_id:    string;
+  project_name?: string;
+  action:        ActivityAction;
+  description:   string;
+  user_name?:    string;
+  entity_id?:    string;
+  created_at:    string;
+}
+
+// ─── Capacity / Hiring ────────────────────────────────────────────────────────
+
+export interface CapacityMonth {
+  month:            string;   // YYYY-MM
+  demand_hours:     number;
+  capacity_hours:   number;
+  gap:              number;   // demand - capacity (positive = need to hire)
+  utilization_pct:  number;
+}
+
+export interface HiringNeed {
+  role:             string;
+  headcount_needed: number;
+  start_month:      string;
+  reason:           string;
+  projects:         string[];
+}
+
 // ─── EVM Metrics ─────────────────────────────────────────────────────────────
 
 export interface PpmEvm {

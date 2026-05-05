@@ -11,6 +11,7 @@ import {
   ChevronRight, Download,
 } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/utils";
+import { ppmFetch } from "@/lib/ppm-fetch";
 import type { PpmProject, PpmPortfolioMetrics } from "@/lib/ppm-types";
 
 type HealthStatus = "green" | "yellow" | "red";
@@ -382,21 +383,18 @@ export default function ReportsPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [projectsRes, metricsRes] = await Promise.all([
-        fetch("/api/ppm/projects"),
-        fetch("/api/ppm/metrics"),
-      ]);
       const [projectsJson, metricsJson] = await Promise.all([
-        projectsRes.json(), metricsRes.json(),
-      ]);
+        ppmFetch("/api/ppm/projects"),
+        ppmFetch("/api/ppm/metrics"),
+      ]) as [
+        { success: boolean; data: { projects: PpmProject[]; metrics: PpmPortfolioMetrics } },
+        { success: boolean; data: { metrics: PpmPortfolioMetrics } },
+      ];
       if (projectsJson.success) {
         setProjects(projectsJson.data.projects ?? []);
-        // Prefer metrics from projects endpoint; fall back to dedicated metrics endpoint
-        setMetrics(projectsJson.data.metrics ?? (metricsJson.success ? metricsJson.data.metrics ?? metricsJson.data : null));
-      } else if (metricsJson.success) {
-        setMetrics(metricsJson.data.metrics ?? metricsJson.data);
+        setMetrics(projectsJson.data.metrics ?? metricsJson.data?.metrics ?? null);
       }
-    } finally {
+    } catch { /* keep existing data on error */ } finally {
       setLoading(false);
     }
   }, []);

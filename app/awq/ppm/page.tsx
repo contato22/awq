@@ -10,6 +10,7 @@ import {
   DollarSign, Clock, Users, CheckCircle2, AlertTriangle, XCircle,
   BarChart3, Briefcase, Calendar, ChevronRight, RefreshCw,
   GanttChart, ClipboardList, Layers, Star, FlaskConical, FileText, CircleAlert,
+  MessageSquare, UserPlus, Plug, Link2,
 } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/utils";
 import type { PpmProject, PpmPortfolioMetrics } from "@/lib/ppm-types";
@@ -299,7 +300,11 @@ export default function PpmPortfolioPage() {
               { href: "/awq/ppm/issues",         label: "Ocorrências",    icon: CircleAlert,    desc: "Issue tracking e resolução",   color: "text-orange-600",  bg: "bg-orange-50"  },
               { href: "/awq/ppm/prioritization", label: "Priorização",    icon: Star,           desc: "Scoring estratégico e ranking", color: "text-yellow-600",  bg: "bg-yellow-50"  },
               { href: "/awq/ppm/scenarios",      label: "Cenários",       icon: FlaskConical,   desc: "What-if e simulação de portfolio", color: "text-teal-600", bg: "bg-teal-50"    },
-              { href: "/awq/ppm/reports",        label: "Relatórios",     icon: FileText,       desc: "Executivo · Saúde · Financeiro", color: "text-slate-600",  bg: "bg-slate-50"   },
+              { href: "/awq/ppm/reports",           label: "Relatórios",     icon: FileText,       desc: "Executivo · Saúde · Financeiro",   color: "text-slate-600",   bg: "bg-slate-50"   },
+              { href: "/awq/ppm/collaboration",     label: "Colaboração",    icon: MessageSquare,  desc: "Discussões · Docs · Feed",         color: "text-blue-600",    bg: "bg-blue-50"    },
+              { href: "/awq/ppm/capacity",          label: "Capacidade",     icon: UserPlus,       desc: "Forecast de contratação",          color: "text-teal-600",    bg: "bg-teal-50"    },
+              { href: "/awq/ppm/integrations/epm",  label: "Integração EPM", icon: Plug,           desc: "Custos → GL · Revenue → AR",       color: "text-indigo-600",  bg: "bg-indigo-50"  },
+              { href: "/awq/ppm/integrations/crm",  label: "Integração CRM", icon: Link2,          desc: "Opportunity → Projeto",            color: "text-violet-600",  bg: "bg-violet-50"  },
             ].map(({ href, label, icon: Icon, desc, color, bg }) => (
               <Link key={href} href={href}
                 className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl p-3.5 hover:border-brand-200 hover:shadow-sm transition-all group"

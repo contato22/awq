@@ -10,6 +10,7 @@ import {
   DollarSign, ChevronUp, ChevronDown, Save,
 } from "lucide-react";
 import { formatBRL } from "@/lib/utils";
+import { ppmFetch } from "@/lib/ppm-fetch";
 import type { PpmProject } from "@/lib/ppm-types";
 
 type Priority = "low" | "medium" | "high" | "critical";
@@ -74,10 +75,9 @@ export default function PrioritizationPage() {
     try {
       const params = new URLSearchParams({ status: filterStatus || "" });
       if (filterBU) params.set("bu_code", filterBU);
-      const res  = await fetch(`/api/ppm/projects?${params}`);
-      const json = await res.json();
+      const json = await ppmFetch(`/api/ppm/projects?${params}`) as { success: boolean; data: { projects: PpmProject[] } };
       if (json.success) setProjects(json.data.projects ?? []);
-    } finally {
+    } catch { /* keep existing */ } finally {
       setLoading(false);
     }
   }, [filterBU, filterStatus]);
@@ -114,7 +114,7 @@ export default function PrioritizationPage() {
     if (!e) return;
     setSaving(prev => ({ ...prev, [p.project_id]: true }));
     try {
-      await fetch(`/api/ppm/projects/${p.project_id}`, {
+      await ppmFetch(`/api/ppm/projects/${p.project_id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

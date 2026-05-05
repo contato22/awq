@@ -9,6 +9,7 @@ import {
   CheckCircle2, Clock, XCircle,
 } from "lucide-react";
 import { formatDateBR } from "@/lib/utils";
+import { ppmFetch } from "@/lib/ppm-fetch";
 import type { PpmIssue, PpmProject } from "@/lib/ppm-types";
 
 type IssueStatus   = "open" | "in_progress" | "resolved" | "closed";
@@ -63,19 +64,18 @@ export default function IssuesPage() {
     try {
       const params = new URLSearchParams();
       if (filterProject) params.set("project_id", filterProject);
-      const [issuesRes, projectsRes] = await Promise.all([
-        fetch(`/api/ppm/issues?${params}`),
-        fetch("/api/ppm/projects"),
-      ]);
       const [issuesJson, projectsJson] = await Promise.all([
-        issuesRes.json(), projectsRes.json(),
-      ]);
-      if (issuesJson.success)   setIssues(issuesJson.data);
+        ppmFetch(`/api/ppm/issues?${params}`),
+        ppmFetch("/api/ppm/projects"),
+      ]) as [{ success: boolean; data: PpmIssue[] }, { success: boolean; data: { projects: PpmProject[] } }];
+      if (issuesJson.success)   setIssues(issuesJson.data ?? []);
       if (projectsJson.success) {
         const projs: PpmProject[] = projectsJson.data.projects ?? [];
         setProjects(projs);
         setForm(f => ({ ...f, project_id: f.project_id || (projs[0]?.project_id ?? "") }));
       }
+    } catch (e) {
+      setError((e as Error).message);
     } finally {
       setLoading(false);
     }

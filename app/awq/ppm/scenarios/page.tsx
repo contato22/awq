@@ -10,6 +10,7 @@ import {
   TrendingUp, TrendingDown, DollarSign, Users, BarChart3,
 } from "lucide-react";
 import { formatBRL } from "@/lib/utils";
+import { ppmFetch } from "@/lib/ppm-fetch";
 import type { PpmProject } from "@/lib/ppm-types";
 
 interface ScenarioProject {
@@ -75,10 +76,9 @@ export default function ScenariosPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res  = await fetch("/api/ppm/projects");
-      const json = await res.json();
+      const json = await ppmFetch("/api/ppm/projects") as { success: boolean; data: { projects: PpmProject[] } };
       if (json.success) setProjects(json.data.projects ?? []);
-    } finally {
+    } catch { /* network/auth error — keep existing data */ } finally {
       setLoading(false);
     }
   }, []);

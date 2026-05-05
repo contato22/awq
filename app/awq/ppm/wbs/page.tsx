@@ -11,6 +11,7 @@ import {
   Flag, Layers,
 } from "lucide-react";
 import { formatDateBR } from "@/lib/utils";
+import { ppmFetch } from "@/lib/ppm-fetch";
 import type { PpmTask, PpmProject } from "@/lib/ppm-types";
 
 type TaskStatus = "not_started" | "in_progress" | "completed" | "blocked" | "cancelled";
@@ -191,14 +192,11 @@ export default function WbsPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [tasksRes, projectsRes] = await Promise.all([
-        fetch(projectId ? `/api/ppm/tasks?project_id=${projectId}` : "/api/ppm/tasks"),
-        fetch("/api/ppm/projects"),
-      ]);
       const [tasksJson, projectsJson] = await Promise.all([
-        tasksRes.json(), projectsRes.json(),
-      ]);
-      if (tasksJson.success)    setTasks(tasksJson.data);
+        ppmFetch(projectId ? `/api/ppm/tasks?project_id=${projectId}` : "/api/ppm/tasks"),
+        ppmFetch("/api/ppm/projects"),
+      ]) as [{ success: boolean; data: PpmTask[] }, { success: boolean; data: { projects: PpmProject[] } }];
+      if (tasksJson.success)    setTasks(tasksJson.data ?? []);
       if (projectsJson.success) {
         const projs: PpmProject[] = projectsJson.data.projects ?? [];
         setProjects(projs);

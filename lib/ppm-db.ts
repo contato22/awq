@@ -13,15 +13,18 @@ import type {
   Priority, TaskStatus, TaskType, MilestoneStatus, AllocationStatus,
   TimeEntryStatus, RiskImpact, RiskProbability, RiskStatus,
   IssueSeverity, IssueStatus,
+  PpmComment, PpmDocument, PpmActivity,
+  CommentEntityType, DocType, ActivityAction,
 } from "@/lib/ppm-types";
 
 export type {
   PpmProject, PpmTask, PpmMilestone, PpmAllocation, PpmTimeEntry,
   PpmRisk, PpmIssue, PpmPortfolioMetrics,
+  PpmComment, PpmDocument, PpmActivity,
   BuCode, ProjectType, ContractType, ProjectPhase, ProjectStatus,
   HealthStatus, Priority, TaskStatus, TaskType, MilestoneStatus,
   AllocationStatus, TimeEntryStatus, RiskImpact, RiskProbability,
-  RiskStatus, IssueSeverity, IssueStatus,
+  RiskStatus, IssueSeverity, IssueStatus, CommentEntityType, DocType, ActivityAction,
 };
 
 function now() { return new Date().toISOString(); }
@@ -745,4 +748,103 @@ export async function getPortfolioMetrics(): Promise<PpmPortfolioMetrics> {
     total_team_members: [...new Set(_allocations.filter(a => a.status === "active").map(a => a.user_id))].length,
     overdue_tasks:      overdue.length,
   };
+}
+
+// ─── Collaboration — Comments ─────────────────────────────────────────────────
+
+const _comments: PpmComment[] = [
+  { comment_id:"cmt-001", project_id:"prj-001", entity_type:"project", user_id:"miguel", user_name:"Miguel", content:"Reunião com XP confirmada para amanhã às 10h. Vamos fechar o roteiro do vídeo 2.", created_at:"2026-04-25T14:30:00Z", updated_at:"2026-04-25T14:30:00Z" },
+  { comment_id:"cmt-002", project_id:"prj-001", entity_type:"project", user_id:"danilo", user_name:"Danilo", content:"Locação confirmada. Precisamos só do ok final do cliente nas imagens de referência.", created_at:"2026-04-26T09:00:00Z", updated_at:"2026-04-26T09:00:00Z" },
+  { comment_id:"cmt-003", project_id:"prj-002", entity_type:"project", user_id:"miguel", user_name:"Miguel", content:"Cliente Nubank pediu revisão no briefing — esperar aprovação antes de avançar.", created_at:"2026-04-28T11:00:00Z", updated_at:"2026-04-28T11:00:00Z" },
+];
+
+export async function listComments(project_id?: string): Promise<PpmComment[]> {
+  if (!sql) return project_id ? _comments.filter(c => c.project_id === project_id) : [..._comments];
+  const rows = await sql`
+    SELECT c.*, p.project_name FROM ppm_comments c
+    LEFT JOIN ppm_projects p ON c.project_id = p.project_id
+    WHERE (${project_id ?? null} IS NULL OR c.project_id = ${project_id ?? null})
+    ORDER BY c.created_at DESC
+  `;
+  return rows as PpmComment[];
+}
+
+export async function createComment(input: Omit<PpmComment, "comment_id" | "created_at" | "updated_at">): Promise<PpmComment> {
+  const comment_id = randomUUID();
+  const c: PpmComment = { ...input, comment_id, created_at: now(), updated_at: now() };
+  if (!sql) { _comments.unshift(c); return c; }
+  await sql`
+    INSERT INTO ppm_comments (comment_id, project_id, entity_type, entity_id, user_id, user_name, content, created_at, updated_at)
+    VALUES (${comment_id}, ${input.project_id}, ${input.entity_type}, ${input.entity_id ?? null}, ${input.user_id}, ${input.user_name}, ${input.content}, ${now()}, ${now()})
+  `;
+  return c;
+}
+
+// ─── Collaboration — Documents ────────────────────────────────────────────────
+
+const _documents: PpmDocument[] = [
+  { doc_id:"doc-001", project_id:"prj-001", title:"Briefing XP Q1 2026", url:"https://drive.google.com/file/xp-brief", doc_type:"spec", description:"Briefing completo aprovado pelo cliente", uploaded_by:"miguel", uploader_name:"Miguel", version:"v2.1", created_at:"2026-01-16T10:00:00Z", updated_at:"2026-01-16T10:00:00Z" },
+  { doc_id:"doc-002", project_id:"prj-001", title:"Contrato Caza × XP", url:"https://drive.google.com/file/contrato-xp", doc_type:"contract", description:"Contrato assinado — fixed price R$ 320k", uploaded_by:"miguel", uploader_name:"Miguel", version:"v1.0", created_at:"2026-01-10T10:00:00Z", updated_at:"2026-01-10T10:00:00Z" },
+  { doc_id:"doc-003", project_id:"prj-002", title:"Proposta Nubank", url:"https://drive.google.com/file/nubank-prop", doc_type:"presentation", description:"Apresentação comercial enviada ao cliente", uploaded_by:"miguel", uploader_name:"Miguel", version:"v1.0", created_at:"2026-01-28T10:00:00Z", updated_at:"2026-01-28T10:00:00Z" },
+];
+
+export async function listDocuments(project_id?: string): Promise<PpmDocument[]> {
+  if (!sql) return project_id ? _documents.filter(d => d.project_id === project_id) : [..._documents];
+  const rows = await sql`
+    SELECT d.*, p.project_name FROM ppm_documents d
+    LEFT JOIN ppm_projects p ON d.project_id = p.project_id
+    WHERE (${project_id ?? null} IS NULL OR d.project_id = ${project_id ?? null})
+    ORDER BY d.created_at DESC
+  `;
+  return rows as PpmDocument[];
+}
+
+export async function createDocument(input: Omit<PpmDocument, "doc_id" | "created_at" | "updated_at">): Promise<PpmDocument> {
+  const doc_id = randomUUID();
+  const d: PpmDocument = { ...input, doc_id, created_at: now(), updated_at: now() };
+  if (!sql) { _documents.unshift(d); return d; }
+  await sql`
+    INSERT INTO ppm_documents (doc_id, project_id, title, url, doc_type, description, uploaded_by, uploader_name, version, created_at, updated_at)
+    VALUES (${doc_id}, ${input.project_id}, ${input.title}, ${input.url}, ${input.doc_type}, ${input.description ?? null}, ${input.uploaded_by}, ${input.uploader_name ?? null}, ${input.version ?? null}, ${now()}, ${now()})
+  `;
+  return d;
+}
+
+// ─── Collaboration — Activity Feed ───────────────────────────────────────────
+
+const _activities: PpmActivity[] = [
+  { activity_id:"act-001", project_id:"prj-001", action:"status_changed",    description:"Status alterado para Ativo",                user_name:"Miguel", created_at:"2026-01-10T10:00:00Z" },
+  { activity_id:"act-002", project_id:"prj-001", action:"task_created",      description:"Tarefa 'Briefing com cliente' criada",       user_name:"Miguel", created_at:"2026-01-12T10:00:00Z" },
+  { activity_id:"act-003", project_id:"prj-001", action:"task_completed",    description:"Tarefa 'Briefing com cliente' concluída",    user_name:"Miguel", created_at:"2026-01-15T18:00:00Z" },
+  { activity_id:"act-004", project_id:"prj-001", action:"risk_identified",   description:"Risco de atraso em aprovações identificado", user_name:"Miguel", created_at:"2026-01-15T10:00:00Z" },
+  { activity_id:"act-005", project_id:"prj-001", action:"comment_added",     description:"Comentário: Reunião com XP confirmada",      user_name:"Miguel", created_at:"2026-04-25T14:30:00Z" },
+  { activity_id:"act-006", project_id:"prj-001", action:"document_added",    description:"Documento 'Briefing XP Q1 2026' adicionado", user_name:"Miguel", created_at:"2026-01-16T10:00:00Z" },
+  { activity_id:"act-007", project_id:"prj-002", action:"project_created",   description:"Projeto criado",                            user_name:"Miguel", created_at:"2026-01-28T10:00:00Z" },
+  { activity_id:"act-008", project_id:"prj-002", action:"issue_opened",      description:"Issue: Briefing não aprovado em 3 semanas", user_name:"Miguel", created_at:"2026-02-22T10:00:00Z" },
+  { activity_id:"act-009", project_id:"prj-002", action:"health_changed",    description:"Health alterado para 🟡 At Risk",           user_name:"Sistema", created_at:"2026-03-01T09:00:00Z" },
+];
+
+export async function listActivities(project_id?: string, limit = 50): Promise<PpmActivity[]> {
+  if (!sql) {
+    const result = project_id ? _activities.filter(a => a.project_id === project_id) : [..._activities];
+    return result.sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, limit);
+  }
+  const rows = await sql`
+    SELECT a.*, p.project_name FROM ppm_activities a
+    LEFT JOIN ppm_projects p ON a.project_id = p.project_id
+    WHERE (${project_id ?? null} IS NULL OR a.project_id = ${project_id ?? null})
+    ORDER BY a.created_at DESC LIMIT ${limit}
+  `;
+  return rows as PpmActivity[];
+}
+
+export async function createActivity(input: Omit<PpmActivity, "activity_id" | "created_at">): Promise<PpmActivity> {
+  const activity_id = randomUUID();
+  const a: PpmActivity = { ...input, activity_id, created_at: now() };
+  if (!sql) { _activities.unshift(a); return a; }
+  await sql`
+    INSERT INTO ppm_activities (activity_id, project_id, action, description, user_name, entity_id, created_at)
+    VALUES (${activity_id}, ${input.project_id}, ${input.action}, ${input.description}, ${input.user_name ?? null}, ${input.entity_id ?? null}, ${now()})
+  `;
+  return a;
 }
