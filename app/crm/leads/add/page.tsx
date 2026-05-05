@@ -179,18 +179,64 @@ export default function AddLeadPage() {
         bant_timeline: form.bant_timeline || null,
         qualification_notes: form.qualification_notes || null,
       };
-      const res = await fetch("/api/crm/leads", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const json = await res.json();
-      if (json.success) {
-        setToast({ message: "Lead criado com sucesso!", type: "success" });
-        setTimeout(() => router.push("/crm/leads"), 1500);
-      } else {
-        throw new Error(json.message ?? "Erro ao criar lead");
+
+      let saved = false;
+      let apiError: string | null = null;
+
+      try {
+        const res = await fetch("/api/crm/leads", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const ct = res.headers.get("content-type") ?? "";
+        if (ct.includes("application/json")) {
+          const json = await res.json();
+          if (json.success) {
+            saved = true;
+          } else {
+            apiError = json.error ?? json.message ?? "Erro ao criar lead";
+          }
+        }
+        // Non-JSON response = static export without API — fall through to localStorage
+      } catch {
+        // Network error — fall through to localStorage
       }
+
+      if (apiError) throw new Error(apiError);
+
+      if (!saved) {
+        // API unavailable (static export): persist lead locally
+        const now = new Date().toISOString();
+        const localLead = {
+          lead_id: `local-${Date.now()}`,
+          lead_source: payload.lead_source,
+          company_name: payload.company_name,
+          contact_name: payload.contact_name,
+          email: payload.email,
+          phone: payload.phone,
+          job_title: payload.job_title,
+          bu: payload.bu,
+          lead_score: payload.lead_score,
+          status: payload.status,
+          qualification_notes: payload.qualification_notes,
+          bant_budget: payload.bant_budget,
+          bant_authority: payload.bant_authority,
+          bant_need: payload.bant_need,
+          bant_timeline: payload.bant_timeline,
+          assigned_to: payload.assigned_to,
+          converted_to_opportunity_id: null,
+          converted_at: null,
+          created_at: now,
+          updated_at: now,
+          created_by: payload.assigned_to,
+        };
+        const existing = JSON.parse(localStorage.getItem("awq_local_leads") ?? "[]");
+        localStorage.setItem("awq_local_leads", JSON.stringify([localLead, ...existing]));
+      }
+
+      setToast({ message: "Lead criado com sucesso!", type: "success" });
+      setTimeout(() => router.push("/crm/leads"), 1500);
     } catch (err) {
       setToast({ message: err instanceof Error ? err.message : "Erro ao criar lead", type: "error" });
     } finally {
