@@ -6,6 +6,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Save, Briefcase } from "lucide-react";
+import { ppmFetch } from "@/lib/ppm-fetch";
 
 const BU_OPTIONS    = ["JACQES","CAZA","ADVISOR","VENTURE","AWQ"] as const;
 const TYPE_OPTIONS  = [
@@ -104,7 +105,7 @@ function AddProjectPageInner() {
 
     setSaving(true); setError("");
     try {
-      const res  = await fetch("/api/ppm/projects", {
+      const json = await ppmFetch("/api/ppm/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -115,8 +116,7 @@ function AddProjectPageInner() {
           budget_revenue: parseFloat(form.budget_revenue),
           margin_target:  marginPct ? parseFloat(marginPct) / 100 : undefined,
         }),
-      });
-      const json = await res.json();
+      }) as { success: boolean; data: { project_id: string }; error?: string };
       if (!json.success) throw new Error(json.error);
       router.push(`/awq/ppm/${json.data.project_id}`);
     } catch (e) {

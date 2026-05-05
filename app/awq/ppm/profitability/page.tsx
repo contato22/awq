@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { ArrowLeft, TrendingUp, TrendingDown, RefreshCw, DollarSign, Download } from "lucide-react";
 import { formatBRL } from "@/lib/utils";
+import { ppmFetch } from "@/lib/ppm-fetch";
 
 interface ProfitRow {
   project_id: string; project_code: string; project_name: string; bu_code: string; status: string;
@@ -39,6 +40,7 @@ export default function ProfitabilityPage() {
   const [rows,    setRows]    = useState<ProfitRow[]>([]);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error,   setError]   = useState("");
   const [sort,    setSort]    = useState<keyof ProfitRow>("budget_margin_pct");
   const [asc,     setAsc]     = useState(false);
 
@@ -73,13 +75,15 @@ export default function ProfitabilityPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
+    setError("");
     try {
-      const res  = await fetch("/api/ppm/metrics");
-      const json = await res.json();
+      const json = await ppmFetch("/api/ppm/metrics") as { success: boolean; data: { profitability: ProfitRow[]; metrics: Metrics } };
       if (json.success) {
         setRows(json.data.profitability);
         setMetrics(json.data.metrics);
       }
+    } catch (e) {
+      setError((e as Error).message);
     } finally {
       setLoading(false);
     }
@@ -139,6 +143,12 @@ export default function ProfitabilityPage() {
       </div>
 
       <div className="max-w-screen-xl mx-auto px-6 py-6 space-y-6">
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
+            Erro ao carregar rentabilidade: {error}
+          </div>
+        )}
 
         {/* Portfolio KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

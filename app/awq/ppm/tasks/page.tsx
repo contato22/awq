@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { ArrowLeft, Plus, CheckCircle2, Circle, PlayCircle, XCircle, AlertTriangle } from "lucide-react";
 import { formatDateBR } from "@/lib/utils";
+import { ppmFetch } from "@/lib/ppm-fetch";
 import type { PpmTask } from "@/lib/ppm-types";
 
 type TaskStatus = "not_started" | "in_progress" | "completed" | "blocked" | "cancelled";
@@ -27,11 +28,13 @@ const ICON_COLOR: Record<TaskStatus, string> = {
 
 function TaskCard({ task, onUpdate }: { task: PpmTask; onUpdate: () => void }) {
   async function moveTo(status: TaskStatus) {
-    await fetch("/api/ppm/tasks", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ task_id: task.task_id, status }),
-    });
+    try {
+      await ppmFetch("/api/ppm/tasks", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ task_id: task.task_id, status }),
+      });
+    } catch { /* ignore mutation errors silently */ }
     onUpdate();
   }
 
@@ -80,16 +83,19 @@ function TaskCard({ task, onUpdate }: { task: PpmTask; onUpdate: () => void }) {
 export default function TasksPage() {
   const [tasks,   setTasks]   = useState<PpmTask[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error,   setError]   = useState("");
   const [projectFilter, setProjectFilter] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
+    setError("");
     try {
       const params = new URLSearchParams();
       if (projectFilter) params.set("project_id", projectFilter);
-      const res  = await fetch(`/api/ppm/tasks?${params}`);
-      const json = await res.json();
+      const json = await ppmFetch(`/api/ppm/tasks?${params}`) as { success: boolean; data: PpmTask[] };
       if (json.success) setTasks(json.data);
+    } catch (e) {
+      setError((e as Error).message);
     } finally {
       setLoading(false);
     }
@@ -127,6 +133,11 @@ export default function TasksPage() {
       </div>
 
       <div className="max-w-screen-2xl mx-auto px-6 py-6">
+        {error && (
+          <div className="mb-4 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
+            Erro ao carregar tarefas: {error}
+          </div>
+        )}
         {loading ? (
           <div className="text-center py-12 text-sm text-gray-400">Carregando tarefas…</div>
         ) : (

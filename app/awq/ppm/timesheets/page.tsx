@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { ArrowLeft, Plus, Clock, CheckCircle2, XCircle, Save, X, Download } from "lucide-react";
 import { formatDateBR, formatBRL } from "@/lib/utils";
+import { ppmFetch } from "@/lib/ppm-fetch";
 import type { PpmTimeEntry, PpmProject } from "@/lib/ppm-types";
 
 type Status = "draft" | "submitted" | "approved" | "rejected";
@@ -50,14 +51,10 @@ export default function TimesheetsPage() {
     try {
       const params = new URLSearchParams();
       if (filterUser) params.set("user_id", filterUser);
-      const [entriesRes, projectsRes] = await Promise.all([
-        fetch(`/api/ppm/time-entries?${params}`),
-        fetch("/api/ppm/projects"),
-      ]);
       const [entriesJson, projectsJson] = await Promise.all([
-        entriesRes.json(),
-        projectsRes.json(),
-      ]);
+        ppmFetch(`/api/ppm/time-entries?${params}`),
+        ppmFetch("/api/ppm/projects"),
+      ]) as [{ success: boolean; data: PpmTimeEntry[] }, { success: boolean; data: { projects: PpmProject[] } }];
       if (entriesJson.success) setEntries(entriesJson.data);
       if (projectsJson.success) {
         const projs: PpmProject[] = projectsJson.data.projects ?? [];
@@ -77,12 +74,11 @@ export default function TimesheetsPage() {
     if (!form.hours || parseFloat(form.hours) <= 0) { setError("Informe as horas trabalhadas"); return; }
     setSaving(true); setError("");
     try {
-      const res  = await fetch("/api/ppm/time-entries", {
+      const json = await ppmFetch("/api/ppm/time-entries", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...form, hours: parseFloat(form.hours), status: "submitted" }),
-      });
-      const json = await res.json();
+      }) as { success: boolean; error?: string };
       if (!json.success) throw new Error(json.error);
       setShowForm(false);
       setForm(f => ({ ...f, hours: "", description: "" }));
@@ -95,11 +91,13 @@ export default function TimesheetsPage() {
   }
 
   async function approve(entry_id: string) {
-    await fetch("/api/ppm/time-entries", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "approve", entry_id, approved_by: "miguel" }),
-    });
+    try {
+      await ppmFetch("/api/ppm/time-entries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "approve", entry_id, approved_by: "miguel" }),
+      });
+    } catch { /* ignore */ }
     void load();
   }
 

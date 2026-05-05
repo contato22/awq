@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { ArrowLeft, AlertTriangle, Plus, X, Save, RefreshCw, Shield } from "lucide-react";
 import { formatDateBR } from "@/lib/utils";
+import { ppmFetch } from "@/lib/ppm-fetch";
 import type { PpmRisk, PpmProject } from "@/lib/ppm-types";
 
 type RiskStatus = "identified" | "mitigating" | "occurred" | "closed";
@@ -60,14 +61,10 @@ export default function RisksPage() {
     try {
       const params = new URLSearchParams();
       if (filterProject) params.set("project_id", filterProject);
-      const [risksRes, projectsRes] = await Promise.all([
-        fetch(`/api/ppm/risks?${params}`),
-        fetch("/api/ppm/projects"),
-      ]);
       const [risksJson, projectsJson] = await Promise.all([
-        risksRes.json(),
-        projectsRes.json(),
-      ]);
+        ppmFetch(`/api/ppm/risks?${params}`),
+        ppmFetch("/api/ppm/projects"),
+      ]) as [{ success: boolean; data: PpmRisk[] }, { success: boolean; data: { projects: PpmProject[] } }];
       if (risksJson.success) setRisks(risksJson.data);
       if (projectsJson.success) {
         const projs: PpmProject[] = projectsJson.data.projects ?? [];
@@ -87,12 +84,11 @@ export default function RisksPage() {
     if (!form.risk_description.trim()) { setError("Descreva o risco"); return; }
     setSaving(true); setError("");
     try {
-      const res  = await fetch("/api/ppm/risks", {
+      const json = await ppmFetch("/api/ppm/risks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...form, identified_date: new Date().toISOString().slice(0,10) }),
-      });
-      const json = await res.json();
+      }) as { success: boolean; error?: string };
       if (!json.success) throw new Error(json.error);
       setShowForm(false);
       setForm(f => ({ ...f, risk_description:"", mitigation_plan:"", contingency_plan:"" }));

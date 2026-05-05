@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { ArrowLeft, Users, AlertTriangle, CheckCircle2, Circle, RefreshCw, TrendingUp } from "lucide-react";
+import { ppmFetch } from "@/lib/ppm-fetch";
 
 type UtilRow = {
   user_id: string; user_name: string; email?: string;
@@ -72,13 +73,16 @@ function UtilCard({ row }: { row: UtilRow }) {
 export default function UtilizationPage() {
   const [utilization, setUtilization] = useState<UtilRow[]>([]);
   const [loading,     setLoading]     = useState(true);
+  const [error,       setError]       = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
+    setError("");
     try {
-      const res  = await fetch("/api/ppm/resources?mode=utilization");
-      const json = await res.json();
+      const json = await ppmFetch("/api/ppm/resources?mode=utilization") as { success: boolean; data: UtilRow[] };
       if (json.success) setUtilization(json.data);
+    } catch (e) {
+      setError((e as Error).message);
     } finally {
       setLoading(false);
     }
@@ -116,6 +120,12 @@ export default function UtilizationPage() {
       </div>
 
       <div className="max-w-screen-xl mx-auto px-6 py-6 space-y-6">
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
+            Erro: {error}
+          </div>
+        )}
 
         {/* KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

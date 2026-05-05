@@ -13,6 +13,7 @@ import {
   XCircle, Circle, PlayCircle,
 } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/utils";
+import { ppmFetch } from "@/lib/ppm-fetch";
 import type { PpmProject, PpmTask, PpmMilestone, PpmAllocation, PpmRisk, PpmIssue } from "@/lib/ppm-types";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -108,8 +109,7 @@ export default function ProjectDetailPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res  = await fetch(`/api/ppm/projects/${id}`);
-      const json = await res.json();
+      const json = await ppmFetch(`/api/ppm/projects/${id}`) as { success: boolean; data: { project: PpmProject; tasks: PpmTask[]; milestones: PpmMilestone[]; allocations: PpmAllocation[]; risks: PpmRisk[]; issues: PpmIssue[] } };
       if (json.success) {
         setProject(json.data.project);
         setTasks(json.data.tasks);
@@ -118,7 +118,8 @@ export default function ProjectDetailPage() {
         setRisks(json.data.risks);
         setIssues(json.data.issues);
       }
-    } finally {
+    } catch { /* project not found handled by !project check below */ }
+    finally {
       setLoading(false);
     }
   }, [id]);
@@ -126,27 +127,33 @@ export default function ProjectDetailPage() {
   useEffect(() => { void load(); }, [load]);
 
   async function updateStatus(status: string) {
-    await fetch(`/api/ppm/projects/${id}`, {
-      method: "PATCH", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
-    });
+    try {
+      await ppmFetch(`/api/ppm/projects/${id}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+    } catch { /* ignore */ }
     void load();
   }
 
   async function updateHealth(health_status: string) {
-    await fetch(`/api/ppm/projects/${id}`, {
-      method: "PATCH", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ health_status }),
-    });
+    try {
+      await ppmFetch(`/api/ppm/projects/${id}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ health_status }),
+      });
+    } catch { /* ignore */ }
     void load();
   }
 
   async function toggleTask(task: PpmTask) {
     const next = task.status === "completed" ? "in_progress" : task.status === "not_started" ? "in_progress" : "completed";
-    await fetch("/api/ppm/tasks", {
-      method: "PATCH", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ task_id: task.task_id, status: next }),
-    });
+    try {
+      await ppmFetch("/api/ppm/tasks", {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ task_id: task.task_id, status: next }),
+      });
+    } catch { /* ignore */ }
     void load();
   }
 

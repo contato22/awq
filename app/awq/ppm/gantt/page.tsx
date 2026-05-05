@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { ArrowLeft, RefreshCw, Calendar } from "lucide-react";
 import { formatDateBR } from "@/lib/utils";
+import { ppmFetch } from "@/lib/ppm-fetch";
 import type { PpmProject, PpmTask } from "@/lib/ppm-types";
 
 const STATUS_COLOR: Record<string, string> = {
@@ -61,33 +62,37 @@ function monthsBetween(start: Date, end: Date): string[] {
 export default function GanttPage() {
   const [projects, setProjects] = useState<PpmProject[]>([]);
   const [tasksByProject, setTasksByProject] = useState<Record<string, PpmTask[]>>({});
-  const [loading, setLoading]   = useState(true);
+  const [loading,  setLoading]  = useState(true);
+  const [error,    setError]    = useState("");
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [filterBU, setFilterBU] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
+    setError("");
     try {
       const params = new URLSearchParams({ status: "active" });
       if (filterBU) params.set("bu_code", filterBU);
-      const res  = await fetch(`/api/ppm/projects?${params}`);
-      const json = await res.json();
+      const json = await ppmFetch(`/api/ppm/projects?${params}`) as { success: boolean; data: { projects: PpmProject[] } };
       if (!json.success) return;
       const projs: PpmProject[] = json.data.projects ?? [];
       setProjects(projs);
 
-      // Load tasks for each project
       const tasks: Record<string, PpmTask[]> = {};
       await Promise.all(projs.map(async p => {
-        const r    = await fetch(`/api/ppm/projects/${p.project_id}`);
-        const j    = await r.json();
-        tasks[p.project_id] = j.success ? (j.data.tasks as PpmTask[]) : [];
+        try {
+          const j = await ppmFetch(`/api/ppm/projects/${p.project_id}`) as { success: boolean; data: { tasks: PpmTask[] } };
+          tasks[p.project_id] = j.success ? j.data.tasks : [];
+        } catch {
+          tasks[p.project_id] = [];
+        }
       }));
       setTasksByProject(tasks);
-      // Expand all by default
       const initExpanded: Record<string, boolean> = {};
       projs.forEach(p => { initExpanded[p.project_id] = true; });
       setExpanded(initExpanded);
+    } catch (e) {
+      setError((e as Error).message);
     } finally {
       setLoading(false);
     }
@@ -140,6 +145,11 @@ export default function GanttPage() {
       </div>
 
       <div className="max-w-screen-2xl mx-auto px-6 py-6">
+        {error && (
+          <div className="mb-4 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
+            Erro ao carregar Gantt: {error}
+          </div>
+        )}
         {loading ? (
           <div className="text-center py-16 text-sm text-gray-400">Carregando Gantt…</div>
         ) : (

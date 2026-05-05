@@ -5,6 +5,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { ArrowLeft, Users, AlertTriangle, CheckCircle2, Circle, Plus, RefreshCw, X, Save } from "lucide-react";
+import { ppmFetch } from "@/lib/ppm-fetch";
 import type { PpmAllocation, PpmProject } from "@/lib/ppm-types";
 
 type UtilRow = {
@@ -96,12 +97,11 @@ export default function ResourcesPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [uRes, aRes, pRes] = await Promise.all([
-        fetch("/api/ppm/resources?mode=utilization"),
-        fetch("/api/ppm/resources"),
-        fetch("/api/ppm/projects"),
-      ]);
-      const [uJson, aJson, pJson] = await Promise.all([uRes.json(), aRes.json(), pRes.json()]);
+      const [uJson, aJson, pJson] = await Promise.all([
+        ppmFetch("/api/ppm/resources?mode=utilization"),
+        ppmFetch("/api/ppm/resources"),
+        ppmFetch("/api/ppm/projects"),
+      ]) as [{ success: boolean; data: UtilRow[] }, { success: boolean; data: PpmAllocation[] }, { success: boolean; data: { projects: PpmProject[] } }];
       if (uJson.success) setUtilization(uJson.data);
       if (aJson.success) setAllocations(aJson.data);
       if (pJson.success) {
@@ -109,6 +109,8 @@ export default function ResourcesPage() {
         setProjects(projs);
         setForm(f => ({ ...f, project_id: f.project_id || (projs[0]?.project_id ?? "") }));
       }
+    } catch (err) {
+      setFormError((err as Error).message);
     } finally {
       setLoading(false);
     }
@@ -120,7 +122,7 @@ export default function ResourcesPage() {
     if (!form.allocation_pct || parseFloat(form.allocation_pct) <= 0) { setFormError("Informe o percentual de alocação"); return; }
     setSaving(true); setFormError("");
     try {
-      const res  = await fetch("/api/ppm/resources", {
+      const json = await ppmFetch("/api/ppm/resources", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -132,8 +134,7 @@ export default function ResourcesPage() {
           end_date:       form.end_date || undefined,
           status:         "active",
         }),
-      });
-      const json = await res.json();
+      }) as { success: boolean; error?: string };
       if (!json.success) throw new Error(json.error);
       setShowForm(false);
       void load();

@@ -13,6 +13,7 @@ import {
   MessageSquare, UserPlus, Plug, Link2,
 } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/utils";
+import { ppmFetch } from "@/lib/ppm-fetch";
 import type { PpmProject, PpmPortfolioMetrics } from "@/lib/ppm-types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -197,6 +198,7 @@ export default function PpmPortfolioPage() {
   const [projects,  setProjects]  = useState<PpmProject[]>([]);
   const [metrics,   setMetrics]   = useState<PpmPortfolioMetrics | null>(null);
   const [loading,   setLoading]   = useState(true);
+  const [error,     setError]     = useState("");
   const [search,    setSearch]    = useState("");
   const [filterBU,      setFilterBU]      = useState("");
   const [filterStatus,  setFilterStatus]  = useState("");
@@ -205,6 +207,7 @@ export default function PpmPortfolioPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
+    setError("");
     try {
       const params = new URLSearchParams();
       if (search)       params.set("search",       search);
@@ -213,12 +216,13 @@ export default function PpmPortfolioPage() {
       if (filterHealth) params.set("health_status",filterHealth);
       if (filterType)   params.set("project_type", filterType);
 
-      const res  = await fetch(`/api/ppm/projects?${params}`);
-      const json = await res.json();
+      const json = await ppmFetch(`/api/ppm/projects?${params}`) as { success: boolean; data: { projects: PpmProject[]; metrics: PpmPortfolioMetrics } };
       if (json.success) {
         setProjects(json.data.projects);
         setMetrics(json.data.metrics);
       }
+    } catch (e) {
+      setError((e as Error).message);
     } finally {
       setLoading(false);
     }
@@ -271,6 +275,12 @@ export default function PpmPortfolioPage() {
       </div>
 
       <div className="max-w-screen-2xl mx-auto px-6 py-6 space-y-6">
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
+            Erro ao carregar projetos: {error}
+          </div>
+        )}
 
         {/* KPI Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
