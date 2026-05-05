@@ -279,14 +279,20 @@ export async function convertLead(leadId: string, oppData: Partial<CrmOpportunit
       ${oppData.owner ?? 'Miguel'}, ${oppData.owner ?? 'Miguel'})
     RETURNING *
   `;
-  await sql`
-    UPDATE crm_leads SET
-      status = 'converted',
-      converted_to_opportunity_id = ${opp[0].opportunity_id},
-      converted_at = NOW(),
-      updated_at   = NOW()
-    WHERE lead_id = ${leadId}
-  `;
+  try {
+    await sql`
+      UPDATE crm_leads SET
+        status = 'converted',
+        converted_to_opportunity_id = ${opp[0].opportunity_id},
+        converted_at = NOW(),
+        updated_at   = NOW()
+      WHERE lead_id = ${leadId}
+    `;
+  } catch (updateErr) {
+    // Compensating delete to avoid orphaned opportunity
+    await sql`DELETE FROM crm_opportunities WHERE opportunity_id = ${opp[0].opportunity_id}`;
+    throw updateErr;
+  }
   return opp[0] as CrmOpportunity;
 }
 

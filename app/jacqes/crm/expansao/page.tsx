@@ -238,14 +238,24 @@ export default function ExpansaoPage() {
           const nova = crmCreate<CrmExpansion>("expansion", payload as Omit<CrmExpansion, "id">, "exp");
           setExpansions(prev => [nova, ...prev]);
         }
+      } else if (editingId) {
+        const res = await fetch(`/api/jacqes/crm/expansao/${editingId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error("Erro ao atualizar");
+        const updated = await res.json();
+        setExpansions(prev => prev.map(e => e.id === editingId ? updated : e));
       } else {
-        if (editingId) {
-          crmUpdate<CrmExpansion>("expansion", editingId, payload);
-          setExpansions(prev => prev.map(e => e.id === editingId ? { ...e, ...payload } : e));
-        } else {
-          const nova = crmCreate<CrmExpansion>("expansion", payload as Omit<CrmExpansion, "id">, "exp");
-          setExpansions(prev => [nova, ...prev]);
-        }
+        const res = await fetch("/api/jacqes/crm/expansao", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error("Erro ao criar");
+        const nova = await res.json();
+        setExpansions(prev => [nova, ...prev]);
       }
       setModal(false);
       setForm(EMPTY_FORM);
@@ -258,10 +268,20 @@ export default function ExpansaoPage() {
     }
   }
 
-  function handleDelete(id: string) {
+  async function handleDelete(id: string) {
     if (!confirm("Remover esta oportunidade de expansão?")) return;
-    crmDelete("expansion", id);
-    setExpansions(prev => prev.filter(e => e.id !== id));
+    if (IS_STATIC) {
+      crmDelete("expansion", id);
+      setExpansions(prev => prev.filter(e => e.id !== id));
+      return;
+    }
+    try {
+      const res = await fetch(`/api/jacqes/crm/expansao/${id}`, { method: "DELETE" });
+      if (!res.ok && res.status !== 204) throw new Error("Erro ao remover");
+      setExpansions(prev => prev.filter(e => e.id !== id));
+    } catch {
+      alert("Falha ao remover expansão. Tente novamente.");
+    }
   }
 
   return (

@@ -365,13 +365,12 @@ function PipelinePageInner() {
   const [editingOpp, setEditingOpp] = useState<CrmOpportunity | null>(null);
 
   useEffect(() => {
-    // Try localStorage first for instant load with persisted state
+    // Show cached data instantly while fetching fresh data from API
     try {
       const stored = localStorage.getItem(LS_KEY);
       if (stored) {
         setOpps(JSON.parse(stored));
         setLoading(false);
-        return;
       }
     } catch { /* ignore */ }
 
@@ -387,10 +386,10 @@ function PipelinePageInner() {
           persist(all);
           setOpps(all);
         } else {
-          setOpps(SEED_OPPORTUNITIES);
+          setOpps(prev => prev.length ? prev : SEED_OPPORTUNITIES);
         }
       })
-      .catch(() => setOpps(SEED_OPPORTUNITIES))
+      .catch(() => setOpps(prev => prev.length ? prev : SEED_OPPORTUNITIES))
       .finally(() => setLoading(false));
   }, []);
 
@@ -430,29 +429,51 @@ function PipelinePageInner() {
         ? { ...o, stage: toStage as CrmOpportunity["stage"], probability: STAGE_PROBABILITY[toStage as keyof typeof STAGE_PROBABILITY] ?? o.probability }
         : o
     );
+    const prev = opps;
     updateOpps(next);
-    showToast(`Movido para ${STAGE_LABELS[toStage as keyof typeof STAGE_LABELS] ?? toStage}`, true);
 
-    // Best-effort API sync — no revert on failure
     fetch("/api/crm/opportunities", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "update", opportunity_id: id, stage: toStage }),
-    }).catch(() => undefined);
+    })
+      .then(res => {
+        if (res.ok) {
+          showToast(`Movido para ${STAGE_LABELS[toStage as keyof typeof STAGE_LABELS] ?? toStage}`, true);
+        } else {
+          updateOpps(prev);
+          showToast("Erro ao mover oportunidade", false);
+        }
+      })
+      .catch(() => {
+        updateOpps(prev);
+        showToast("Erro ao mover oportunidade", false);
+      });
   }
 
   function handleSaveEdit(updated: CrmOpportunity) {
+    const prev = opps;
     const next = opps.map(o => o.opportunity_id === updated.opportunity_id ? updated : o);
     updateOpps(next);
     setEditingOpp(null);
-    showToast("Oportunidade atualizada", true);
 
-    // Best-effort API sync
     fetch("/api/crm/opportunities", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "update", ...updated }),
-    }).catch(() => undefined);
+    })
+      .then(res => {
+        if (res.ok) {
+          showToast("Oportunidade atualizada", true);
+        } else {
+          updateOpps(prev);
+          showToast("Erro ao salvar oportunidade", false);
+        }
+      })
+      .catch(() => {
+        updateOpps(prev);
+        showToast("Erro ao salvar oportunidade", false);
+      });
   }
 
   const openOpps = opps.filter(o => o.stage !== "closed_won" && o.stage !== "closed_lost");

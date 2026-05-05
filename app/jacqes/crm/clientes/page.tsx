@@ -139,33 +139,45 @@ export default function ClientesPage() {
     }
 
     try {
+
       if (editingId) {
-        crmUpdate<CrmClient>("clients", editingId, payload);
-        setClientes(prev => prev.map(c => c.id === editingId ? { ...c, ...payload } : c));
+        const res = await fetch(`/api/jacqes/crm/clientes/${editingId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error("Erro ao atualizar");
+        const updated = await res.json();
+        setClientes(prev => prev.map(c => c.id === editingId ? updated : c));
       } else {
         const res = await fetch("/api/jacqes/crm/clientes", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
-        if (!res.ok) throw new Error("Erro ao salvar");
+        if (!res.ok) throw new Error("Erro ao criar");
         const novo = await res.json();
-        setClientes(prev => [novo.cliente ?? novo, ...prev]);
+        setClientes(prev => [novo, ...prev]);
       }
       setModal(false);
       setForm(EMPTY_FORM);
       setErro("");
     } catch {
-      setErro("Falha ao criar cliente. Tente novamente.");
+      setErro("Falha ao salvar cliente. Tente novamente.");
     } finally {
       setSaving(false);
     }
   }
 
-  function handleDelete(id: string) {
+  async function handleDelete(id: string) {
     if (!confirm("Remover este cliente?")) return;
-    crmDelete("clients", id);
-    setClientes(prev => prev.filter(c => c.id !== id));
+    try {
+      const res = await fetch(`/api/jacqes/crm/clientes/${id}`, { method: "DELETE" });
+      if (!res.ok && res.status !== 204) throw new Error("Erro ao remover");
+      setClientes(prev => prev.filter(c => c.id !== id));
+    } catch {
+      alert("Falha ao remover cliente. Tente novamente.");
+    }
   }
 
   return (
