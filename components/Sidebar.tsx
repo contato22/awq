@@ -1100,7 +1100,12 @@ const CAZA_MODULES: BUModule[] = [
         description: "Projetos & Portfólio",
         icon: Film,
         items: [
-            { label: "Projetos", href: "/caza-vision/imoveis", icon: Film },
+            { label: "Projetos",       href: "/caza-vision/imoveis",    icon: Film         },
+            { label: "Portfolio AWQ",  href: "/awq/ppm",                icon: Briefcase    },
+            { label: "Gantt",          href: "/awq/ppm/gantt",          icon: GanttChart   },
+            { label: "Tarefas",        href: "/awq/ppm/tasks",          icon: ClipboardList},
+            { label: "Timesheets",     href: "/awq/ppm/timesheets",     icon: Clock        },
+            { label: "Recursos",       href: "/awq/ppm/resources",      icon: Users        },
         ],
     },
     {
