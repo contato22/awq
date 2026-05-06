@@ -31,6 +31,18 @@ export default function ContactsPage() {
   function handleDelete(contact: CrmContact) {
     setContacts(prev => prev.filter(c => c.contact_id !== contact.contact_id));
     setDeletingId(null);
+
+    // Remove from localStorage (local contacts)
+    const localContacts = JSON.parse(localStorage.getItem("awq_local_contacts") ?? "[]") as CrmContact[];
+    const updatedLocal = localContacts.filter(c => c.contact_id !== contact.contact_id);
+    localStorage.setItem("awq_local_contacts", JSON.stringify(updatedLocal));
+
+    // Track deleted seed/API contacts so they stay hidden on reload
+    if (!contact.contact_id.startsWith("local-")) {
+      const deleted = JSON.parse(localStorage.getItem("awq_deleted_contacts") ?? "[]") as string[];
+      localStorage.setItem("awq_deleted_contacts", JSON.stringify([...deleted, contact.contact_id]));
+    }
+
     showToast("Contato apagado", true);
     fetch("/api/crm/contacts", {
       method: "POST",
@@ -40,12 +52,40 @@ export default function ContactsPage() {
   }
 
   useEffect(() => {
+    const localContacts = JSON.parse(localStorage.getItem("awq_local_contacts") ?? "[]") as CrmContact[];
+    const deletedIds = new Set<string>(JSON.parse(localStorage.getItem("awq_deleted_contacts") ?? "[]"));
+
     const p = new URLSearchParams();
     if (search) p.set("search", search);
     fetch(`/api/crm/contacts?${p}`)
       .then(r => r.json())
-      .then(res => setContacts(res.success ? res.data : SEED_CONTACTS))
-      .catch(() => setContacts(SEED_CONTACTS))
+      .then(res => {
+        const apiContacts: CrmContact[] = res.success ? res.data : SEED_CONTACTS;
+        const filtered = apiContacts.filter(c => !deletedIds.has(c.contact_id));
+        const apiIds = new Set(filtered.map(c => c.contact_id));
+        const merged = [
+          ...localContacts.filter(c =>
+            !apiIds.has(c.contact_id) &&
+            !deletedIds.has(c.contact_id) &&
+            (!search || c.full_name.toLowerCase().includes(search.toLowerCase()) || (c.email ?? "").toLowerCase().includes(search.toLowerCase()))
+          ),
+          ...filtered,
+        ];
+        setContacts(merged);
+      })
+      .catch(() => {
+        const seedFiltered = SEED_CONTACTS.filter(c => !deletedIds.has(c.contact_id));
+        const seedIds = new Set(seedFiltered.map(c => c.contact_id));
+        const merged = [
+          ...localContacts.filter(c =>
+            !seedIds.has(c.contact_id) &&
+            !deletedIds.has(c.contact_id) &&
+            (!search || c.full_name.toLowerCase().includes(search.toLowerCase()) || (c.email ?? "").toLowerCase().includes(search.toLowerCase()))
+          ),
+          ...seedFiltered,
+        ];
+        setContacts(merged);
+      })
       .finally(() => setLoading(false));
   }, [search]);
 
