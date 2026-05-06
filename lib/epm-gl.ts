@@ -11,6 +11,7 @@
 import fs from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
+import { sql } from "./db";
 export type { AccountType, BuCode, AccountRef } from "./epm-gl-constants";
 export { CHART_OF_ACCOUNTS } from "./epm-gl-constants";
 import type { AccountType, BuCode, AccountRef } from "./epm-gl-constants";
@@ -60,7 +61,38 @@ export interface GLStore {
 
 const ACCOUNT_MAP = new Map(CHART_OF_ACCOUNTS.map((a) => [a.account_code, a]));
 
-// ─── Persistence (JSON file — works in both static and SSR mode) ──────────────
+// ─── DB schema init ───────────────────────────────────────────────────────────
+
+export async function initGLDB(): Promise<void> {
+  if (!sql) return;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS epm_gl (
+      gl_id            TEXT PRIMARY KEY,
+      journal_id       TEXT NOT NULL,
+      transaction_date TEXT NOT NULL,
+      period_code      TEXT NOT NULL,
+      bu_code          TEXT NOT NULL,
+      account_code     TEXT NOT NULL,
+      account_name     TEXT NOT NULL,
+      account_type     TEXT NOT NULL,
+      debit_amount     NUMERIC NOT NULL DEFAULT 0,
+      credit_amount    NUMERIC NOT NULL DEFAULT 0,
+      description      TEXT NOT NULL,
+      reference_doc    TEXT,
+      source_system    TEXT NOT NULL DEFAULT 'manual',
+      is_intercompany  BOOLEAN NOT NULL DEFAULT false,
+      created_at       TEXT NOT NULL,
+      created_by       TEXT
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_epm_gl_journal_id    ON epm_gl(journal_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_epm_gl_bu_code       ON epm_gl(bu_code)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_epm_gl_period_code   ON epm_gl(period_code)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_epm_gl_account_code  ON epm_gl(account_code)`;
+}
+
+// ─── JSON file persistence (fallback when no DATABASE_URL) ───────────────────
 
 const GL_FILE = path.join(process.cwd(), "public", "data", "epm-gl.json");
 
@@ -87,37 +119,89 @@ function writeStore(store: GLStore) {
   fs.writeFileSync(GL_FILE, JSON.stringify(store, null, 2), "utf-8");
 }
 
+// ─── Row normalizer (DB rows → GLEntry) ──────────────────────────────────────
+
+function rowToEntry(r: Record<string, unknown>): GLEntry {
+  return {
+    gl_id:            String(r.gl_id),
+    journal_id:       String(r.journal_id),
+    transaction_date: String(r.transaction_date),
+    period_code:      String(r.period_code),
+    bu_code:          String(r.bu_code) as BuCode,
+    account_code:     String(r.account_code),
+    account_name:     String(r.account_name),
+    account_type:     String(r.account_type) as AccountType,
+    debit_amount:     Number(r.debit_amount),
+    credit_amount:    Number(r.credit_amount),
+    description:      String(r.description),
+    reference_doc:    r.reference_doc ? String(r.reference_doc) : undefined,
+    source_system:    String(r.source_system) as GLEntry["source_system"],
+    is_intercompany:  Boolean(r.is_intercompany),
+    created_at:       String(r.created_at),
+    created_by:       r.created_by ? String(r.created_by) : undefined,
+  };
+}
+
 // ─── Period helper ────────────────────────────────────────────────────────────
 
 function dateToPeriodCode(date: string): string {
-  // date = YYYY-MM-DD → YYYY-MM
   return date.slice(0, 7);
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 /** Return all GL entries, newest first. */
-export function getAllGLEntries(): GLEntry[] {
+export async function getAllGLEntries(): Promise<GLEntry[]> {
+  if (sql) {
+    const rows = await sql`SELECT * FROM epm_gl ORDER BY transaction_date DESC, created_at DESC`;
+    return (rows as Record<string, unknown>[]).map(rowToEntry);
+  }
   const store = readStore();
   return [...store.entries].sort((a, b) => b.transaction_date.localeCompare(a.transaction_date));
 }
 
 /** Return GL entries filtered by optional bu_code and/or period_code. */
-export function getGLEntries(filters?: {
-  bu_code?:     BuCode;
-  period_code?: string;
+export async function getGLEntries(filters?: {
+  bu_code?:      BuCode;
+  period_code?:  string;
   account_code?: string;
-}): GLEntry[] {
-  let entries = getAllGLEntries();
-  if (filters?.bu_code)     entries = entries.filter((e) => e.bu_code     === filters.bu_code);
-  if (filters?.period_code) entries = entries.filter((e) => e.period_code === filters.period_code);
-  if (filters?.account_code)entries = entries.filter((e) => e.account_code === filters.account_code);
+}): Promise<GLEntry[]> {
+  if (sql) {
+    const bu      = filters?.bu_code      ?? null;
+    const period  = filters?.period_code  ?? null;
+    const account = filters?.account_code ?? null;
+
+    let rows: Record<string, unknown>[];
+    if (bu && period && account) {
+      rows = await sql`SELECT * FROM epm_gl WHERE bu_code=${bu} AND period_code=${period} AND account_code=${account} ORDER BY transaction_date DESC`;
+    } else if (bu && period) {
+      rows = await sql`SELECT * FROM epm_gl WHERE bu_code=${bu} AND period_code=${period} ORDER BY transaction_date DESC`;
+    } else if (bu && account) {
+      rows = await sql`SELECT * FROM epm_gl WHERE bu_code=${bu} AND account_code=${account} ORDER BY transaction_date DESC`;
+    } else if (period && account) {
+      rows = await sql`SELECT * FROM epm_gl WHERE period_code=${period} AND account_code=${account} ORDER BY transaction_date DESC`;
+    } else if (bu) {
+      rows = await sql`SELECT * FROM epm_gl WHERE bu_code=${bu} ORDER BY transaction_date DESC`;
+    } else if (period) {
+      rows = await sql`SELECT * FROM epm_gl WHERE period_code=${period} ORDER BY transaction_date DESC`;
+    } else if (account) {
+      rows = await sql`SELECT * FROM epm_gl WHERE account_code=${account} ORDER BY transaction_date DESC`;
+    } else {
+      rows = await sql`SELECT * FROM epm_gl ORDER BY transaction_date DESC`;
+    }
+    return (rows as Record<string, unknown>[]).map(rowToEntry);
+  }
+
+  let entries = await getAllGLEntries();
+  if (filters?.bu_code)      entries = entries.filter((e) => e.bu_code      === filters.bu_code);
+  if (filters?.period_code)  entries = entries.filter((e) => e.period_code  === filters.period_code);
+  if (filters?.account_code) entries = entries.filter((e) => e.account_code === filters.account_code);
   return entries;
 }
 
 /** Return unique journal groups with their two legs balanced. */
-export function getJournals(): { journal_id: string; debit: GLEntry; credit: GLEntry; balanced: boolean }[] {
-  const entries = getAllGLEntries();
+export async function getJournals(): Promise<{ journal_id: string; debit: GLEntry; credit: GLEntry; balanced: boolean }[]> {
+  const entries = await getAllGLEntries();
   const map = new Map<string, GLEntry[]>();
   for (const e of entries) {
     const legs = map.get(e.journal_id) ?? [];
@@ -137,7 +221,7 @@ export function getJournals(): { journal_id: string; debit: GLEntry; credit: GLE
 }
 
 /** Add a double-entry journal. Throws if amounts don't match or account unknown. */
-export function addJournalEntry(input: NewJournalInput): { debit: GLEntry; credit: GLEntry } {
+export async function addJournalEntry(input: NewJournalInput): Promise<{ debit: GLEntry; credit: GLEntry }> {
   if (Math.abs(input.debit_amount - input.credit_amount) > 0.005) {
     throw new Error(`Journal unbalanced: debit ${input.debit_amount} ≠ credit ${input.credit_amount}`);
   }
@@ -191,14 +275,42 @@ export function addJournalEntry(input: NewJournalInput): { debit: GLEntry; credi
     created_by:       input.created_by,
   };
 
-  const store = readStore();
-  store.entries.push(debitEntry, creditEntry);
-  writeStore(store);
+  if (sql) {
+    await sql`
+      INSERT INTO epm_gl
+        (gl_id, journal_id, transaction_date, period_code, bu_code,
+         account_code, account_name, account_type, debit_amount, credit_amount,
+         description, reference_doc, source_system, is_intercompany, created_at, created_by)
+      VALUES
+        (${debitEntry.gl_id}, ${journal_id}, ${input.transaction_date}, ${period_code}, ${input.bu_code},
+         ${debitEntry.account_code}, ${debitEntry.account_name}, ${debitEntry.account_type},
+         ${debitEntry.debit_amount}, ${debitEntry.credit_amount},
+         ${input.description}, ${input.reference_doc ?? null}, ${source},
+         ${debitEntry.is_intercompany}, ${created_at}, ${input.created_by ?? null})
+    `;
+    await sql`
+      INSERT INTO epm_gl
+        (gl_id, journal_id, transaction_date, period_code, bu_code,
+         account_code, account_name, account_type, debit_amount, credit_amount,
+         description, reference_doc, source_system, is_intercompany, created_at, created_by)
+      VALUES
+        (${creditEntry.gl_id}, ${journal_id}, ${input.transaction_date}, ${period_code}, ${input.bu_code},
+         ${creditEntry.account_code}, ${creditEntry.account_name}, ${creditEntry.account_type},
+         ${creditEntry.debit_amount}, ${creditEntry.credit_amount},
+         ${input.description}, ${input.reference_doc ?? null}, ${source},
+         ${creditEntry.is_intercompany}, ${created_at}, ${input.created_by ?? null})
+    `;
+  } else {
+    const store = readStore();
+    store.entries.push(debitEntry, creditEntry);
+    writeStore(store);
+  }
 
   return { debit: debitEntry, credit: creditEntry };
 }
 
-/** Trial balance for a given period (or all periods if none specified). */
+// ─── Trial Balance ────────────────────────────────────────────────────────────
+
 export interface TrialBalanceLine {
   account_code:  string;
   account_name:  string;
@@ -208,11 +320,11 @@ export interface TrialBalanceLine {
   net_balance:   number;
 }
 
-export function getTrialBalance(filters?: {
+export async function getTrialBalance(filters?: {
   bu_code?:     BuCode;
   period_code?: string;
-}): TrialBalanceLine[] {
-  const entries = getGLEntries(filters);
+}): Promise<TrialBalanceLine[]> {
+  const entries = await getGLEntries(filters);
   const map = new Map<string, { debit: number; credit: number; account: AccountRef }>();
 
   for (const e of entries) {
@@ -236,18 +348,19 @@ export function getTrialBalance(filters?: {
     .sort((a, b) => a.account_code.localeCompare(b.account_code));
 }
 
-/** Balance sheet snapshot: asset total, liability total, equity total. */
+// ─── Balance Sheet ────────────────────────────────────────────────────────────
+
 export interface BalanceSheetSummary {
-  hasData:        boolean;
-  totalAssets:    number;
+  hasData:          boolean;
+  totalAssets:      number;
   totalLiabilities: number;
-  totalEquity:    number;
-  isBalanced:     boolean;   // Assets = Liabilities + Equity
-  lines:          TrialBalanceLine[];
+  totalEquity:      number;
+  isBalanced:       boolean;
+  lines:            TrialBalanceLine[];
 }
 
-export function getBalanceSheet(filters?: { bu_code?: BuCode; period_code?: string }): BalanceSheetSummary {
-  const tb = getTrialBalance(filters);
+export async function getBalanceSheet(filters?: { bu_code?: BuCode; period_code?: string }): Promise<BalanceSheetSummary> {
+  const tb = await getTrialBalance(filters);
   const bsLines = tb.filter((l) => ["ASSET","LIABILITY","EQUITY"].includes(l.account_type));
 
   let totalAssets = 0;
@@ -275,7 +388,8 @@ export function getBalanceSheet(filters?: { bu_code?: BuCode; period_code?: stri
   };
 }
 
-/** Simple P&L from GL entries. Uses account_type to classify. */
+// ─── P&L from GL ─────────────────────────────────────────────────────────────
+
 export interface PLSummary {
   hasData:            boolean;
   totalRevenue:       number;
@@ -290,8 +404,8 @@ export interface PLSummary {
   netMarginPct:       number | null;
 }
 
-export function getPLFromGL(filters?: { bu_code?: BuCode; period_code?: string }): PLSummary {
-  const tb = getTrialBalance(filters);
+export async function getPLFromGL(filters?: { bu_code?: BuCode; period_code?: string }): Promise<PLSummary> {
+  const tb = await getTrialBalance(filters);
 
   let totalRevenue      = 0;
   let totalCOGS         = 0;
