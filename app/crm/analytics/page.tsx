@@ -7,6 +7,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { TrendingUp, DollarSign, Target, Users, BarChart3, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import type { CrmOpportunity } from "@/lib/crm-types";
+import { OWNER_OPTIONS } from "@/lib/crm-types";
 import { SEED_OPPORTUNITIES } from "@/lib/crm-db";
 import { formatBRL } from "@/lib/utils";
 
@@ -78,7 +79,7 @@ export default function AnalyticsPage() {
     color: BU_COLORS[bu],
   })), [data, opps]);
 
-  const reps = useMemo(() => ["Miguel","Danilo"].map(r => {
+  const reps = useMemo(() => [...OWNER_OPTIONS].map(r => {
     const myOpps = opps.filter(o=>o.owner===r);
     const myOpen = myOpps.filter(o=>o.stage!=="closed_won"&&o.stage!=="closed_lost");
     const myWon  = myOpps.filter(o=>o.stage==="closed_won");

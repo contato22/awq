@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
+import { OWNER_OPTIONS } from "@/lib/crm-types";
 import {
   User, Building2, Mail, Phone, Briefcase,
   BarChart3, CheckCircle2, AlertCircle, ChevronLeft,
@@ -374,8 +375,7 @@ export default function AddLeadPage() {
                 onChange={e => set("assigned_to", e.target.value)}
               >
                 <option value="">Selecionar responsável…</option>
-                <option value="Miguel">Miguel</option>
-                <option value="Danilo">Danilo</option>
+                {OWNER_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
               </select>
               {errors.assigned_to && <p className="text-[11px] text-red-600 mt-1">{errors.assigned_to}</p>}
             </Field>

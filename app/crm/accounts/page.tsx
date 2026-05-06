@@ -6,7 +6,7 @@ import Header from "@/components/Header";
 import EmptyState from "@/components/EmptyState";
 import { Building2, Plus, Search, AlertTriangle, CheckCircle2, Trash2 } from "lucide-react";
 import type { CrmAccount } from "@/lib/crm-types";
-import { BU_OPTIONS } from "@/lib/crm-types";
+import { BU_OPTIONS, OWNER_OPTIONS } from "@/lib/crm-types";
 import { SEED_ACCOUNTS } from "@/lib/crm-db";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -150,7 +150,7 @@ export default function AccountsPage() {
             ))}
           </div>
           <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
-            {["Todos", "Miguel", "Danilo"].map(o => (
+            {["Todos", ...OWNER_OPTIONS].map(o => (
               <button key={o} onClick={() => setFilterOwner(o)}
                 className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${filterOwner === o ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"}`}>
                 {o}
