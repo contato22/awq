@@ -323,7 +323,8 @@ const AWQ_MODULES: AwqModule[] = [
                     { label: "Conciliação Bancária",   href: "/awq/epm/bank-reconciliation", icon: Landmark      },
                     { label: "Cash Flow",              href: "/awq/cashflow",                icon: Zap           },
                     { label: "Conciliação",            href: "/awq/conciliacao",             icon: CheckCircle2  },
-                    { label: "Fixed Assets",           href: "/awq/epm/fixed-assets",        icon: Building      },
+                    { label: "Ativo Imobilizado",      href: "/awq/epm/fixed-assets",        icon: Package       },
+                    { label: "Fechamento Períodos",    href: "/awq/epm/periods",             icon: Lock          },
                     { label: "Investimentos",          href: "/awq/investments",             icon: TrendingUp    },
                     { label: "Reconhec. de Receita",   href: "/awq/epm/revenue-recognition", icon: BookOpen      },
                     { label: "Fiscal",                 href: "/awq/fiscal",                  icon: Receipt       },
@@ -334,10 +335,11 @@ const AWQ_MODULES: AwqModule[] = [
                 label: "Budgeting & Planning",
                 icon: BarChart3,
                 items: [
-                    { label: "Budget",           href: "/awq/budget",          icon: BarChart3  },
-                    { label: "Budget vs Actual", href: "/awq/epm/budget",      icon: Target     },
-                    { label: "Forecast",         href: "/awq/forecast",        icon: TrendingUp },
-                    { label: "Centros de Custo", href: "/awq/epm/cost-centers",icon: LayoutGrid },
+                    { label: "Budget",           href: "/awq/budget",               icon: BarChart3  },
+                    { label: "Budget vs Actual", href: "/awq/epm/budget",           icon: Target     },
+                    { label: "Budget Approval",  href: "/awq/epm/budget/approval",  icon: Clock      },
+                    { label: "Forecast",         href: "/awq/epm/forecast",         icon: TrendingUp },
+                    { label: "Centros de Custo", href: "/awq/epm/cost-centers",     icon: LayoutGrid },
                 ],
             },
             {
@@ -1500,8 +1502,9 @@ const epmNavPl = [
     { label: "P&L (DRE)",           href: "/awq/epm/pl",                   icon: LineChart    },
     { label: "Balanço Patrimonial",  href: "/awq/epm/balance-sheet",        icon: Scale        },
     { label: "Budget",              href: "/awq/budget",                   icon: BarChart3    },
-    { label: "Forecast",            href: "/awq/forecast",                 icon: TrendingUp   },
+    { label: "Forecast",            href: "/awq/epm/forecast",             icon: TrendingUp   },
     { label: "Budget vs Actual",    href: "/awq/epm/budget",               icon: Target       },
+    { label: "Budget Approval",     href: "/awq/epm/budget/approval",      icon: Clock        },
     { label: "KPI Dashboard",       href: "/awq/epm/kpis",                 icon: PieChart     },
 ];
 const epmNavTesouraria = [
@@ -1518,18 +1521,26 @@ const epmNavApAr = [
     { label: "AR Aging",            href: "/awq/epm/ar/aging",             icon: Receipt      },
 ];
 const epmNavControladoria = [
-    { label: "Centros de Custo",    href: "/awq/epm/cost-centers",         icon: LayoutGrid   },
-    { label: "Razão Geral (GL)",    href: "/awq/epm/gl",                   icon: ListOrdered  },
-    { label: "Consolidação",        href: "/awq/epm/consolidation",        icon: Building2    },
-    { label: "Conciliação Bancária",href: "/awq/epm/bank-reconciliation",  icon: Landmark     },
-    { label: "Reconhec. de Receita",href: "/awq/epm/revenue-recognition",  icon: BookOpen     },
-    { label: "Fornecedores",        href: "/awq/epm/suppliers",            icon: Building2    },
-    { label: "Clientes EPM",        href: "/awq/epm/customers",            icon: Users        },
+    { label: "Centros de Custo",    href: "/awq/epm/cost-centers",                   icon: LayoutGrid   },
+    { label: "Razão Geral (GL)",    href: "/awq/epm/gl",                             icon: ListOrdered  },
+    { label: "Ativo Imobilizado",   href: "/awq/epm/fixed-assets",                   icon: Package      },
+    { label: "Consolidação",        href: "/awq/epm/consolidation",                  icon: Building2    },
+    { label: "Eliminações IC",      href: "/awq/epm/consolidation/eliminations",     icon: Layers       },
+    { label: "Câmbio / FX",        href: "/awq/epm/currency",                       icon: DollarSign   },
+    { label: "Conciliação Bancária",href: "/awq/epm/bank-reconciliation",            icon: Landmark     },
+    { label: "Reconhec. de Receita",href: "/awq/epm/revenue-recognition",            icon: BookOpen     },
+    { label: "Fechamento Períodos", href: "/awq/epm/periods",                        icon: Lock         },
+    { label: "Fornecedores",        href: "/awq/epm/suppliers",                      icon: Building2    },
+    { label: "Clientes EPM",        href: "/awq/epm/customers",                      icon: Users        },
 ];
 const epmNavFiscal = [
     { label: "Controladoria",       href: "/awq/management",               icon: ShieldCheck  },
     { label: "Contabilidade",       href: "/awq/contabilidade",            icon: BookOpen     },
     { label: "Fiscal",              href: "/awq/fiscal",                   icon: Receipt      },
+];
+const epmNavRelatorios = [
+    { label: "Board Pack",          href: "/awq/epm/reports/board-pack",   icon: FileText     },
+    { label: "Relatório Anual",     href: "/awq/epm/reports/annual",       icon: BarChart3    },
 ];
 
 function EpmSidebar({ pathname }: { pathname: string }) {
@@ -1599,6 +1610,12 @@ function EpmSidebar({ pathname }: { pathname: string }) {
                 <SectionLabel>Fiscal & Contábil</SectionLabel>
                 <div className="space-y-0.5">
                     {epmNavFiscal.map((item) => (
+                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
+                    ))}
+                </div>
+                <SectionLabel>Relatórios</SectionLabel>
+                <div className="space-y-0.5">
+                    {epmNavRelatorios.map((item) => (
                         <NavItem key={item.href} {...item} active={isActive(item.href)} />
                     ))}
                 </div>
