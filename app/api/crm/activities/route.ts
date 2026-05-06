@@ -33,16 +33,20 @@ export async function POST(req: NextRequest) {
     if (action === "complete") {
       const { activity_id } = data;
       if (!activity_id) return err("activity_id required", 400);
-      if (sql) {
-        const rows = await sql`
-          UPDATE crm_activities
-          SET status = 'completed', completed_at = NOW(), updated_at = NOW()
-          WHERE activity_id = ${activity_id}
-          RETURNING *
-        `;
-        return ok(rows[0]);
+      if (!sql) {
+        return NextResponse.json(
+          { success: false, error: "DB unavailable — conclusão não persistida. Configure DATABASE_URL." },
+          { status: 503 }
+        );
       }
-      return ok({ activity_id, status: "completed" });
+      const rows = await sql`
+        UPDATE crm_activities
+        SET status = 'completed', completed_at = NOW(), updated_at = NOW()
+        WHERE activity_id = ${activity_id}
+        RETURNING *
+      `;
+      if (!rows[0]) return err("activity not found", 404);
+      return ok(rows[0]);
     }
     return err("Unknown action", 400);
   } catch (e) { return err(String(e)); }
