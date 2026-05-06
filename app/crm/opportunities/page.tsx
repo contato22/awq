@@ -32,6 +32,7 @@ const STAGE_CONFIG: Record<string, {
   qualification: { label: "Qualificação",  prob: 40,  bg: "bg-violet-50", border: "border-violet-200", header: "bg-violet-500", tag: "bg-violet-100 text-violet-700", bar: "bg-violet-500" },
   proposal:      { label: "Proposta",      prob: 60,  bg: "bg-amber-50",  border: "border-amber-200",  header: "bg-amber-500",  tag: "bg-amber-100 text-amber-700",  bar: "bg-amber-500" },
   negotiation:   { label: "Negociação",    prob: 75,  bg: "bg-orange-50", border: "border-orange-200", header: "bg-orange-500", tag: "bg-orange-100 text-orange-700", bar: "bg-orange-500" },
+  closed_won:    { label: "Ganho",         prob: 100, bg: "bg-emerald-50", border: "border-emerald-200", header: "bg-emerald-600", tag: "bg-emerald-100 text-emerald-700", bar: "bg-emerald-500" },
 };
 
 const BU_COLORS: Record<string, string> = {
@@ -41,7 +42,7 @@ const BU_COLORS: Record<string, string> = {
   VENTURE: "bg-amber-100 text-amber-700",
 };
 
-const ACTIVE_STAGES = ["discovery","qualification","proposal","negotiation"] as const;
+const ACTIVE_STAGES = ["discovery","qualification","proposal","negotiation","closed_won"] as const;
 
 // ─── Edit Modal ───────────────────────────────────────────────────────────────
 
@@ -338,15 +339,17 @@ function KanbanColumn({
         )}
       </div>
 
-      {/* Add button */}
-      <div className="p-2 border-t border-gray-200">
-        <Link
-          href={`/crm/opportunities/add?stage=${stage}`}
-          className="flex items-center justify-center gap-1.5 w-full py-1.5 text-[11px] font-medium text-gray-500 hover:text-brand-600 hover:bg-white rounded-lg transition-colors border border-dashed border-gray-300 hover:border-brand-300"
-        >
-          <Plus size={12} /> Nova oportunidade
-        </Link>
-      </div>
+      {/* Footer */}
+      {stage !== "closed_won" && (
+        <div className="p-2 border-t border-gray-200">
+          <Link
+            href={`/crm/opportunities/add?stage=${stage}`}
+            className="flex items-center justify-center gap-1.5 w-full py-1.5 text-[11px] font-medium text-gray-500 hover:text-brand-600 hover:bg-white rounded-lg transition-colors border border-dashed border-gray-300 hover:border-brand-300"
+          >
+            <Plus size={12} /> Nova oportunidade
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
@@ -559,60 +562,27 @@ function PipelinePageInner() {
           </div>
         </div>
 
-        {/* Closed section */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Won */}
-          <div className="card p-4">
-            <SectionHeader icon={<TrendingUp size={14} className="text-emerald-500" />} title="Ganhos" />
-            {wonThisMonth.length === 0
-              ? <EmptyState compact title="Nenhum deal ganho ainda" />
-              : (
-                <div className="space-y-2">
-                  {wonThisMonth.map(o => (
-                    <div
-                      key={o.opportunity_id}
-                      className="flex items-center justify-between py-1.5 border-b border-gray-100 last:border-0 cursor-pointer hover:bg-gray-50 rounded px-1 -mx-1 transition-colors"
-                      onClick={() => setEditingOpp(o)}
-                    >
-                      <div>
-                        <p className="text-xs font-medium text-gray-900">{o.opportunity_name}</p>
-                        <p className="text-[10px] text-gray-500">{o.owner} · {formatDateBR(o.actual_close_date)}</p>
-                      </div>
-                      <span className="text-sm font-bold text-emerald-600">{formatBRL(o.deal_value)}</span>
-                    </div>
-                  ))}
-                  <div className="pt-1 flex justify-between text-xs font-semibold text-gray-700">
-                    <span>{wonThisMonth.length} deals ganhos</span>
-                    <span className="text-emerald-600">{formatBRL(wonThisMonth.reduce((s,o)=>s+o.deal_value,0))}</span>
-                  </div>
-                </div>
-              )}
-          </div>
-
-          {/* Lost */}
+        {/* Closed Lost section */}
+        {opps.filter(o => o.stage === "closed_lost").length > 0 && (
           <div className="card p-4">
             <SectionHeader icon={<AlertCircle size={14} className="text-red-500" />} title="Perdidos" />
-            {opps.filter(o=>o.stage==="closed_lost").length === 0
-              ? <EmptyState compact title="Nenhum deal perdido" />
-              : (
-                <div className="space-y-2">
-                  {opps.filter(o=>o.stage==="closed_lost").map(o => (
-                    <div
-                      key={o.opportunity_id}
-                      className="flex items-center justify-between py-1.5 border-b border-gray-100 last:border-0 cursor-pointer hover:bg-gray-50 rounded px-1 -mx-1 transition-colors"
-                      onClick={() => setEditingOpp(o)}
-                    >
-                      <div>
-                        <p className="text-xs font-medium text-gray-900">{o.opportunity_name}</p>
-                        <p className="text-[10px] text-gray-500">{o.lost_reason ?? "—"} · {formatDateBR(o.actual_close_date)}</p>
-                      </div>
-                      <span className="text-sm font-semibold text-red-500">{formatBRL(o.deal_value)}</span>
-                    </div>
-                  ))}
+            <div className="space-y-2">
+              {opps.filter(o => o.stage === "closed_lost").map(o => (
+                <div
+                  key={o.opportunity_id}
+                  className="flex items-center justify-between py-1.5 border-b border-gray-100 last:border-0 cursor-pointer hover:bg-gray-50 rounded px-1 -mx-1 transition-colors"
+                  onClick={() => setEditingOpp(o)}
+                >
+                  <div>
+                    <p className="text-xs font-medium text-gray-900">{o.opportunity_name}</p>
+                    <p className="text-[10px] text-gray-500">{o.lost_reason ?? "—"} · {formatDateBR(o.actual_close_date)}</p>
+                  </div>
+                  <span className="text-sm font-semibold text-red-500">{formatBRL(o.deal_value)}</span>
                 </div>
-              )}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
       </div>
     </>
