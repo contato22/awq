@@ -7,6 +7,8 @@ import Header from "@/components/Header";
 import type { CrmAccount } from "@/lib/crm-types";
 import { SEED_ACCOUNTS } from "@/lib/crm-db";
 
+const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
+
 function AddContactPageInner() {
   const router = useRouter();
   const params = useSearchParams();
@@ -34,15 +36,64 @@ function AddContactPageInner() {
     if (!form.full_name.trim()) { setError("Nome completo é obrigatório"); return; }
     setSaving(true); setError("");
     try {
-      const res = await fetch("/api/crm/contacts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "create", ...form, account_id: form.account_id || null }),
-      });
-      const data = await res.json();
-      if (data.success) router.push(form.account_id ? `/crm/accounts/${form.account_id}` : "/crm/contacts");
-      else setError(data.error ?? "Erro ao criar contato");
-    } catch { setError("Erro de rede"); } finally { setSaving(false); }
+      const payload = {
+        action: "create",
+        ...form,
+        account_id: form.account_id || null,
+      };
+
+      let saved = false;
+      let apiError: string | null = null;
+
+      if (!IS_STATIC) {
+        try {
+          const res = await fetch("/api/crm/contacts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          let json: { success: boolean; error?: string } | null = null;
+          try { json = await res.json(); } catch { /* non-JSON */ }
+          if (json?.success) {
+            saved = true;
+          } else if (json && res.status >= 400 && res.status < 500) {
+            apiError = json.error ?? "Erro ao criar contato";
+          }
+        } catch { /* network error — fall through to localStorage */ }
+      }
+
+      if (apiError) throw new Error(apiError);
+
+      if (!saved) {
+        const now = new Date().toISOString();
+        const accountName = accounts.find(a => a.account_id === form.account_id)?.account_name ?? null;
+        const localContact = {
+          contact_id: `local-${Date.now()}`,
+          account_id: form.account_id || null,
+          account_name: accountName,
+          full_name: form.full_name,
+          email: form.email || null,
+          phone: form.phone || null,
+          mobile: form.mobile || null,
+          job_title: form.job_title || null,
+          department: form.department || null,
+          seniority: form.seniority,
+          linkedin_url: form.linkedin_url || null,
+          is_primary_contact: form.is_primary_contact,
+          contact_preferences: [],
+          created_at: now,
+          updated_at: now,
+        };
+        const stored = JSON.parse(localStorage.getItem("awq_local_contacts") ?? "[]");
+        localStorage.setItem("awq_local_contacts", JSON.stringify([localContact, ...stored]));
+      }
+
+      router.push(form.account_id ? `/crm/accounts/${form.account_id}` : "/crm/contacts");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao criar contato");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
