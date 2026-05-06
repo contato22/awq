@@ -38,6 +38,15 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     listInteractions(),
   ]);
 
+  const today      = new Date().toISOString().slice(0, 10);
+  const thisMonth  = today.slice(0, 7);
+  const thisYear   = today.slice(0, 4);
+  const wd = new Date(); const dow = wd.getDay();
+  wd.setDate(wd.getDate() - dow + (dow === 0 ? -6 : 1)); wd.setHours(0,0,0,0);
+  const weekStart  = wd.toISOString().slice(0, 10);
+
+  const closeDate = (o: (typeof opps)[0]) => o.prazo_estimado ?? o.data_abertura ?? "";
+
   const leadsAtivos    = leads.filter((l) => l.status !== "Perdido" && l.status !== "Convertido").length;
   const oppsAbertas    = opps.filter((o) => o.stage !== "Fechado Ganho" && o.stage !== "Fechado Perdido").length;
   const oppsGanhas     = opps.filter((o) => o.stage === "Fechado Ganho").length;
@@ -55,6 +64,17 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     ? parseFloat(((oppsGanhas / totalFechadas) * 100).toFixed(1)) : 0;
   const ticketMedio    = oppsAbertas > 0
     ? Math.round(valorPipeline / oppsAbertas) : 0;
+
+  // Period-based: ganhos por dia / semana / mês / ano
+  const ganhasHoje   = opps.filter(o => o.stage === "Fechado Ganho" && closeDate(o) === today);
+  const ganhasSemana = opps.filter(o => o.stage === "Fechado Ganho" && closeDate(o) >= weekStart);
+  const ganhasMes    = opps.filter(o => o.stage === "Fechado Ganho" && closeDate(o).startsWith(thisMonth));
+  const ganhasAno    = opps.filter(o => o.stage === "Fechado Ganho" && closeDate(o).startsWith(thisYear));
+
+  const leadsHoje   = leads.filter(l => (l.data_entrada ?? "") === today).length;
+  const leadsSemana = leads.filter(l => (l.data_entrada ?? "") >= weekStart).length;
+  const leadsMes    = leads.filter(l => (l.data_entrada ?? "").startsWith(thisMonth)).length;
+  const leadsAno    = leads.filter(l => (l.data_entrada ?? "").startsWith(thisYear)).length;
 
   const pipelineByStage = CAZA_PIPELINE_STAGES.map((stage) => {
     const stageOpps = opps.filter((o) => o.stage === stage);
@@ -89,6 +109,13 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     ticket_medio_pipeline: ticketMedio,
     pipeline_by_stage:     pipelineByStage,
     interacoes_recentes:   interacoesRecentes,
+    // Por período (usando prazo_estimado como data canônica de fechamento)
+    periodo: {
+      hoje:   { ganhas: ganhasHoje.length,   receita: ganhasHoje.reduce((s,o)=>s+o.valor_estimado,0),   leads: leadsHoje },
+      semana: { ganhas: ganhasSemana.length,  receita: ganhasSemana.reduce((s,o)=>s+o.valor_estimado,0),  leads: leadsSemana },
+      mes:    { ganhas: ganhasMes.length,    receita: ganhasMes.reduce((s,o)=>s+o.valor_estimado,0),    leads: leadsMes },
+      ano:    { ganhas: ganhasAno.length,    receita: ganhasAno.reduce((s,o)=>s+o.valor_estimado,0),    leads: leadsAno },
+    },
     source: "internal",
   });
 }

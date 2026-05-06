@@ -442,17 +442,35 @@ export async function getDashboardMetrics(): Promise<CrmDashboardMetrics> {
   ]);
   const today = new Date().toISOString().slice(0, 10);
   const monthStart = today.slice(0, 7) + '-01';
-  const open = opps.filter(o => o.stage !== 'closed_won' && o.stage !== 'closed_lost');
-  const wonThisMonth = opps.filter(o => o.stage === 'closed_won' && (o.actual_close_date ?? '') >= monthStart);
-  const closedAll = opps.filter(o => o.stage === 'closed_won' || o.stage === 'closed_lost');
-  const tasksToday = activities.filter(a => a.status === 'scheduled' && a.scheduled_at && a.scheduled_at.slice(0, 10) === today);
+  const yearStart  = today.slice(0, 4) + '-01-01';
+  // Monday of current ISO week
+  const wd = new Date(); const dow = wd.getDay();
+  wd.setDate(wd.getDate() - dow + (dow === 0 ? -6 : 1)); wd.setHours(0,0,0,0);
+  const weekStart = wd.toISOString().slice(0, 10);
+
+  const closeDate = (o: CrmOpportunity) => o.actual_close_date ?? o.expected_close_date ?? '';
+
+  const open         = opps.filter(o => o.stage !== 'closed_won' && o.stage !== 'closed_lost');
+  const closedAll    = opps.filter(o => o.stage === 'closed_won' || o.stage === 'closed_lost');
+  const wonToday     = opps.filter(o => o.stage === 'closed_won' && closeDate(o) === today);
+  const wonThisWeek  = opps.filter(o => o.stage === 'closed_won' && closeDate(o) >= weekStart);
+  const wonThisMonth = opps.filter(o => o.stage === 'closed_won' && closeDate(o) >= monthStart);
+  const wonThisYear  = opps.filter(o => o.stage === 'closed_won' && closeDate(o) >= yearStart);
+  const tasksToday   = activities.filter(a => a.status === 'scheduled' && a.scheduled_at && a.scheduled_at.slice(0, 10) === today);
+
   return {
     leadsNew: leads.filter(l => l.status === 'new').length,
     openOpportunities: open.length,
     pipelineValue: open.reduce((s, o) => s + o.deal_value, 0),
     weightedForecast: open.reduce((s, o) => s + o.deal_value * o.probability / 100, 0),
+    closedWonToday:     wonToday.length,
+    revenueToday:       wonToday.reduce((s, o) => s + o.deal_value, 0),
+    closedWonThisWeek:  wonThisWeek.length,
+    revenueThisWeek:    wonThisWeek.reduce((s, o) => s + o.deal_value, 0),
     closedWonThisMonth: wonThisMonth.length,
-    revenueThisMonth: wonThisMonth.reduce((s, o) => s + o.deal_value, 0),
+    revenueThisMonth:   wonThisMonth.reduce((s, o) => s + o.deal_value, 0),
+    closedWonThisYear:  wonThisYear.length,
+    revenueThisYear:    wonThisYear.reduce((s, o) => s + o.deal_value, 0),
     winRate: closedAll.length > 0 ? Math.round(opps.filter(o => o.stage === 'closed_won').length / closedAll.length * 100) : 0,
     tasksToday,
   };

@@ -189,8 +189,15 @@ export type CrmDashboardMetrics = {
   openOpportunities: number;
   pipelineValue: number;
   weightedForecast: number;
+  // period-based closed-won counts and revenue
+  closedWonToday: number;
+  revenueToday: number;
+  closedWonThisWeek: number;
+  revenueThisWeek: number;
   closedWonThisMonth: number;
   revenueThisMonth: number;
+  closedWonThisYear: number;
+  revenueThisYear: number;
   winRate: number;
   tasksToday: CrmActivity[];
 };

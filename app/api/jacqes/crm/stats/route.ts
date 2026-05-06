@@ -21,6 +21,12 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
   const today = new Date().toISOString().slice(0, 10);
   const thisMonth = today.slice(0, 7);
+  const thisYear  = today.slice(0, 4);
+  // Monday of the current ISO week
+  const d = new Date(); const dow = d.getDay();
+  const diff = d.getDate() - dow + (dow === 0 ? -6 : 1);
+  d.setDate(diff); d.setHours(0, 0, 0, 0);
+  const weekStart = d.toISOString().slice(0, 10);
 
   // Pipeline por estágio
   const pipelineByStage = PIPELINE_STAGES.map(stage => ({
@@ -34,9 +40,36 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const pipelineTotal = oppsAbertas.reduce((s, o) => s + o.valor_potencial, 0);
   const receitaPotencial = oppsAbertas.reduce((s, o) => s + (o.valor_potencial * o.probabilidade / 100), 0);
 
+  // Fecha data canônica: usa data_fechamento_prevista; cai em data_abertura se nula
+  const closeDate = (o: (typeof opps)[0]) => o.data_fechamento_prevista ?? o.data_abertura ?? "";
+
+  // Fechados no dia
+  const fechadosGanhosHoje    = opps.filter(o => o.stage === "Fechado Ganho"   && closeDate(o) === today).length;
+  const fechadosPerdidosHoje  = opps.filter(o => o.stage === "Fechado Perdido" && closeDate(o) === today).length;
+
+  // Fechados na semana
+  const fechadosGanhosSemana   = opps.filter(o => o.stage === "Fechado Ganho"   && closeDate(o) >= weekStart).length;
+  const fechadosPerdidosSemana = opps.filter(o => o.stage === "Fechado Perdido" && closeDate(o) >= weekStart).length;
+  const receitaSemana = opps.filter(o => o.stage === "Fechado Ganho" && closeDate(o) >= weekStart)
+    .reduce((s, o) => s + o.valor_potencial, 0);
+
   // Fechados no mês
-  const fechadosGanhos = opps.filter(o => o.stage === "Fechado Ganho" && (o.data_abertura ?? "").startsWith(thisMonth)).length;
-  const fechadosPerdidos = opps.filter(o => o.stage === "Fechado Perdido" && (o.data_abertura ?? "").startsWith(thisMonth)).length;
+  const fechadosGanhos    = opps.filter(o => o.stage === "Fechado Ganho"   && closeDate(o).startsWith(thisMonth)).length;
+  const fechadosPerdidos  = opps.filter(o => o.stage === "Fechado Perdido" && closeDate(o).startsWith(thisMonth)).length;
+  const receitaMes = opps.filter(o => o.stage === "Fechado Ganho" && closeDate(o).startsWith(thisMonth))
+    .reduce((s, o) => s + o.valor_potencial, 0);
+
+  // Fechados no ano
+  const fechadosGanhosAno   = opps.filter(o => o.stage === "Fechado Ganho"   && closeDate(o).startsWith(thisYear)).length;
+  const fechadosPerdidosAno = opps.filter(o => o.stage === "Fechado Perdido" && closeDate(o).startsWith(thisYear)).length;
+  const receitaAno = opps.filter(o => o.stage === "Fechado Ganho" && closeDate(o).startsWith(thisYear))
+    .reduce((s, o) => s + o.valor_potencial, 0);
+
+  // Leads por período
+  const leadsHoje   = leads.filter(l => l.data_entrada === today).length;
+  const leadsSemana = leads.filter(l => l.data_entrada >= weekStart).length;
+  const leadsMes    = leads.filter(l => (l.data_entrada ?? "").startsWith(thisMonth)).length;
+  const leadsAno    = leads.filter(l => (l.data_entrada ?? "").startsWith(thisYear)).length;
 
   // Clientes
   const clientesAtivos = clients.filter(c => c.status_conta === "Ativo").length;
@@ -84,8 +117,23 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       pipelineTotal,
       receitaPotencial,
       propostasNegociacao: opps.filter(o => o.stage === "Negociação" || o.stage === "Proposta").length,
-      fechadosGanhos,
-      fechadosPerdidos,
+      // Fechados por período (usando data_fechamento_prevista como data canônica)
+      fechadosGanhosHoje,
+      fechadosPerdidosHoje,
+      fechadosGanhosSemana,
+      fechadosPerdidosSemana,
+      receitaSemana,
+      fechadosGanhos,      // mês
+      fechadosPerdidos,    // mês
+      receitaMes,
+      fechadosGanhosAno,
+      fechadosPerdidosAno,
+      receitaAno,
+      // Leads por período
+      leadsHoje,
+      leadsSemana,
+      leadsMes,
+      leadsAno,
       clientesAtivos,
       mrrTotal,
       healthMedio,
