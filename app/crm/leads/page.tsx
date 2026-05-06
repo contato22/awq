@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, useMemo, Suspense } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import SectionHeader from "@/components/SectionHeader";
 import EmptyState from "@/components/EmptyState";
@@ -56,18 +56,24 @@ function BuBadge({ bu }: { bu: string }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-function LeadsPageInner() {
+export default function LeadsPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [leads, setLeads] = useState<CrmLead[]>([]);
   const [loading, setLoading] = useState(true);
   const [isStatic, setIsStatic] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const urlBu = searchParams?.get("bu") ?? null;
-  const [buFilter, setBuFilter] = useState<string>(urlBu && BU_LIST.includes(urlBu as typeof BU_LIST[number]) ? urlBu : "Todos");
+  const [buFilter, setBuFilter] = useState<string>("Todos");
   const [search, setSearch] = useState("");
   const [converting, setConverting] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlBu = params.get("bu");
+    if (urlBu && BU_LIST.includes(urlBu as typeof BU_LIST[number])) {
+      setBuFilter(urlBu);
+    }
+  }, []);
 
   useEffect(() => {
     async function load() {
@@ -477,10 +483,3 @@ function LeadsPageInner() {
   );
 }
 
-export default function LeadsPage() {
-  return (
-    <Suspense fallback={null}>
-      <LeadsPageInner />
-    </Suspense>
-  );
-}
