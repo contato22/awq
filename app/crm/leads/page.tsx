@@ -10,8 +10,8 @@ import {
   Users, Plus, Search, Target, TrendingUp,
   BarChart3, ExternalLink, RefreshCw, ChevronRight,
 } from "lucide-react";
-import type { CrmLead } from "@/lib/crm-types";
-import { SEED_LEADS } from "@/lib/crm-db";
+import type { CrmLead, CrmOpportunity } from "@/lib/crm-types";
+import { SEED_LEADS, SEED_OPPORTUNITIES } from "@/lib/crm-db";
 import { formatBRL, formatDateBR } from "@/lib/utils";
 
 const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
@@ -78,7 +78,13 @@ function LeadsPageInner() {
         } else throw new Error("api");
       } catch {
         const localLeads = JSON.parse(localStorage.getItem("awq_local_leads") ?? "[]") as CrmLead[];
-        setLeads([...localLeads, ...SEED_LEADS]);
+        const converted = JSON.parse(localStorage.getItem("awq_converted_leads") ?? "{}") as Record<string, string>;
+        const combined = [...localLeads, ...SEED_LEADS].map(l =>
+          converted[l.lead_id]
+            ? { ...l, status: "converted" as const, converted_to_opportunity_id: converted[l.lead_id] }
+            : l
+        );
+        setLeads(combined);
         setIsStatic(true);
       } finally {
         setLoading(false);
@@ -90,6 +96,51 @@ function LeadsPageInner() {
   async function handleConvert(lead: CrmLead) {
     if (!confirm(`Converter "${lead.company_name}" em oportunidade?`)) return;
     setConverting(lead.lead_id);
+
+    if (isStatic) {
+      try {
+        const newOppId = `opp-${lead.lead_id}-${Date.now()}`;
+        const newOpp: CrmOpportunity = {
+          opportunity_id: newOppId,
+          opportunity_code: `OPP-L${String(Date.now()).slice(-4)}`,
+          opportunity_name: `${lead.company_name} — ${lead.bu}`,
+          account_id: null, account_name: undefined, contact_id: null, contact_name: null,
+          bu: lead.bu,
+          stage: "discovery", deal_value: lead.bant_budget ?? 0, probability: 25,
+          expected_close_date: null, actual_close_date: null,
+          lost_reason: null, lost_to_competitor: null, win_reason: null,
+          owner: lead.assigned_to,
+          proposal_sent_date: null, proposal_viewed: false, proposal_accepted: false,
+          synced_to_epm: false, epm_customer_id: null, epm_ar_id: null,
+          created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+          created_by: lead.assigned_to,
+        };
+
+        const storedOpps: CrmOpportunity[] = JSON.parse(localStorage.getItem("crm-opportunities-v1") ?? "null") ?? SEED_OPPORTUNITIES;
+        localStorage.setItem("crm-opportunities-v1", JSON.stringify([...storedOpps, newOpp]));
+
+        const converted = JSON.parse(localStorage.getItem("awq_converted_leads") ?? "{}") as Record<string, string>;
+        converted[lead.lead_id] = newOppId;
+        localStorage.setItem("awq_converted_leads", JSON.stringify(converted));
+
+        const localLeads = JSON.parse(localStorage.getItem("awq_local_leads") ?? "[]") as CrmLead[];
+        const updatedLocal = localLeads.map(l =>
+          l.lead_id === lead.lead_id ? { ...l, status: "converted" as const, converted_to_opportunity_id: newOppId } : l
+        );
+        localStorage.setItem("awq_local_leads", JSON.stringify(updatedLocal));
+
+        setLeads(prev => prev.map(l =>
+          l.lead_id === lead.lead_id ? { ...l, status: "converted" as const, converted_to_opportunity_id: newOppId } : l
+        ));
+        router.push("/crm/opportunities");
+      } catch {
+        alert("Erro ao converter lead localmente");
+      } finally {
+        setConverting(null);
+      }
+      return;
+    }
+
     try {
       const res = await fetch("/api/crm/leads", {
         method: "POST",
