@@ -1,24 +1,49 @@
-// ─── Google Drive Storage — AWQ Group PDFs ────────────────────────────────────
+// ─── Google Drive Storage — AWQ PLATAFORM GROUP ───────────────────────────────
 //
-// Storage de PDFs financeiros (extratos bancários) via Google Drive API.
-// Escopo: apenas AWQ Group — pipeline de ingestão financeira.
+// Storage centralizado da plataforma AWQ via Google Drive API.
+// Toda criação de arquivo — presente e futura — é roteada para as subpastas
+// corretas dentro de AWQ PLATAFORM GROUP (eqoa@ultrapack.cloud, 10 TB).
 //
 // AUTENTICAÇÃO: Service Account (server-to-server — sem OAuth de usuário).
-//   Crie uma Service Account no Google Cloud Console, ative a Drive API,
-//   e compartilhe a pasta alvo com o e-mail da service account.
+//   awq-ingest@awq-storage.iam.gserviceaccount.com
 //
 // VARIÁVEIS DE AMBIENTE:
-//   GOOGLE_SERVICE_ACCOUNT_KEY  – JSON completo da service account (como string)
-//   GOOGLE_DRIVE_FOLDER_ID      – ID da pasta de destino no Drive
+//   GOOGLE_SERVICE_ACCOUNT_KEY  – JSON completo da service account
+//   GOOGLE_DRIVE_FOLDER_ID      – ID da pasta raiz ou subpasta padrão
 //
 // STORAGE PRIORITY (upload/route.ts):
 //   Google Drive > Vercel Blob > filesystem local
 //
 // blobUrl no DB: "gdrive://{fileId}"
-// Limite: 15 GB no free tier pessoal / ilimitado em Workspace Business
-// Deduplicação: mantida via SHA-256 em financial-db (independente do storage)
+// Storage: 10 TB (eqoa@ultrapack.cloud — Google Workspace)
+// Deduplicação: SHA-256 em financial-db (independente do storage)
 
 import crypto from "crypto";
+
+// ─── AWQ PLATAFORM GROUP — Estrutura de pastas (IDs fixos) ────────────────────
+//
+//   AWQ PLATAFORM GROUP/              1nQRL0GEZz1QNVGqpS1kprr9qnFAfWStV
+//   ├── PDFs Financeiros/             1--4XbF_2hws1Xr12ZFRd5o6Q31AhJnhm
+//   ├── Extratos Bancários/           1aO0YlFJ2aS05KKx7NjSL9YfLL57ZodJs
+//   ├── Segurança & Auditoria/        1JCufL7BhHkmgY2AOvReLhQ2VzERwPpMc
+//   └── Dados & Infra/                1ivE-J4lMmo-atYcPNOcVLj5shIqmYHvF
+
+export const AWQ_DRIVE_ROOT     = "1nQRL0GEZz1QNVGqpS1kprr9qnFAfWStV";
+
+export const AWQ_DRIVE_FOLDERS = {
+  root:       "1nQRL0GEZz1QNVGqpS1kprr9qnFAfWStV", // AWQ PLATAFORM GROUP
+  pdfs:       "1--4XbF_2hws1Xr12ZFRd5o6Q31AhJnhm", // PDFs Financeiros
+  extratos:   "1aO0YlFJ2aS05KKx7NjSL9YfLL57ZodJs", // Extratos Bancários
+  seguranca:  "1JCufL7BhHkmgY2AOvReLwPpMc",         // Segurança & Auditoria
+  infra:      "1ivE-J4lMmo-atYcPNOcVLj5shIqmYHvF",  // Dados & Infra
+} as const;
+
+export type DriveFolder = keyof typeof AWQ_DRIVE_FOLDERS;
+
+// Roteamento por tipo de arquivo
+export function getFolderForType(type: DriveFolder = "pdfs"): string {
+  return AWQ_DRIVE_FOLDERS[type] ?? AWQ_DRIVE_FOLDERS.pdfs;
+}
 
 // ─── Tipos internos ────────────────────────────────────────────────────────────
 
@@ -110,10 +135,11 @@ async function getAccessToken(): Promise<string> {
 export async function uploadToDrive(
   filename: string,
   buffer: Buffer,
-  mimeType = "application/pdf"
+  mimeType = "application/pdf",
+  folderType: DriveFolder = "pdfs"
 ): Promise<string> {
-  const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
-  if (!folderId) throw new Error("GOOGLE_DRIVE_FOLDER_ID não configurado.");
+  // Usa sempre a subpasta correta dentro de AWQ PLATAFORM GROUP
+  const folderId = getFolderForType(folderType);
 
   const token    = await getAccessToken();
   const boundary = "awq_drive_boundary";
