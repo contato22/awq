@@ -16,7 +16,7 @@ import { STAGE_LABELS, STAGE_PROBABILITY, BU_OPTIONS, OWNER_OPTIONS, PIPELINE_ST
 import { SEED_OPPORTUNITIES } from "@/lib/crm-db";
 import { formatBRL, formatDateBR } from "@/lib/utils";
 
-const LS_KEY = "crm-opportunities-v1";
+const LS_KEY = "crm-opportunities-v3";
 
 function daysUntil(d: string | null | undefined): number | null {
   if (!d) return null;
