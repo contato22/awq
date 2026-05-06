@@ -7,6 +7,11 @@ import Header from "@/components/Header";
 import { STAGE_LABELS, STAGE_PROBABILITY, BU_OPTIONS, OWNER_OPTIONS } from "@/lib/crm-types";
 import type { CrmAccount } from "@/lib/crm-types";
 import { Search, X, ChevronDown, Building2, CheckCircle2 } from "lucide-react";
+import { SEED_ACCOUNTS, SEED_OPPORTUNITIES } from "@/lib/crm-db";
+import type { CrmOpportunity } from "@/lib/crm-types";
+
+const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
+const LS_KEY = "crm-opportunities-v1";
 
 const ACTIVE_STAGES = ["discovery","qualification","proposal","negotiation","closed_won","closed_lost"] as const;
 
@@ -26,9 +31,19 @@ function AccountAutocomplete({
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const doSearch = useCallback(async (q: string) => {
-    const url = q.trim() ? `/api/crm/accounts?search=${encodeURIComponent(q)}` : "/api/crm/accounts";
-    const res = await fetch(url).then(r => r.json()).catch(() => ({ success: false }));
-    setResults(res.success ? res.data.slice(0, 8) : []);
+    if (!IS_STATIC) {
+      try {
+        const url = q.trim() ? `/api/crm/accounts?search=${encodeURIComponent(q)}` : "/api/crm/accounts";
+        const res = await fetch(url).then(r => r.json());
+        if (res.success) { setResults(res.data.slice(0, 8)); return; }
+      } catch { /* fall through to seed */ }
+    }
+    const norm = (v: string) => v.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+    const s = norm(q);
+    const filtered = s
+      ? SEED_ACCOUNTS.filter(a => norm(a.account_name).includes(s) || norm(a.trade_name ?? "").includes(s))
+      : SEED_ACCOUNTS;
+    setResults(filtered.slice(0, 8));
   }, []);
 
   useEffect(() => {
@@ -158,26 +173,60 @@ function AddOpportunityPageInner() {
     if (!form.bu) { setError("BU é obrigatória"); return; }
     setSaving(true);
     setError("");
+
+    const payload = {
+      action: "create",
+      opportunity_name: form.opportunity_name.trim(),
+      bu: form.bu,
+      owner: form.owner,
+      stage: form.stage,
+      deal_value: parseFloat(form.deal_value) || 0,
+      expected_close_date: form.expected_close_date || null,
+      account_id: form.account_id || null,
+      account_name: form.account_name || null,
+      lost_reason: form.lost_reason || null,
+      proposal_sent_date: form.proposal_sent_date || null,
+    };
+
     try {
-      const res = await fetch("/api/crm/opportunities", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "create",
-          opportunity_name: form.opportunity_name.trim(),
-          bu: form.bu,
-          owner: form.owner,
-          stage: form.stage,
-          deal_value: parseFloat(form.deal_value) || 0,
-          expected_close_date: form.expected_close_date || null,
-          account_id: form.account_id || null,
-          lost_reason: form.lost_reason || null,
-          proposal_sent_date: form.proposal_sent_date || null,
-        }),
-      });
-      const data = await res.json();
-      if (data.success) router.push("/crm/opportunities");
-      else setError(data.error ?? "Erro ao criar oportunidade");
+      if (!IS_STATIC) {
+        const res = await fetch("/api/crm/opportunities", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (data.success) { router.push("/crm/opportunities"); return; }
+        if (res.status >= 400 && res.status < 500) {
+          setError(data.error ?? "Erro ao criar oportunidade"); return;
+        }
+      }
+      // Static export or API unreachable — persist locally
+      const now = new Date().toISOString();
+      const localOpp: CrmOpportunity = {
+        opportunity_id: `local-${Date.now()}`,
+        opportunity_code: `OPP-L${Date.now()}`,
+        opportunity_name: payload.opportunity_name,
+        account_id: payload.account_id ?? null,
+        account_name: payload.account_name ?? "",
+        contact_id: null, contact_name: null,
+        bu: payload.bu,
+        stage: payload.stage as CrmOpportunity["stage"],
+        deal_value: payload.deal_value,
+        probability: STAGE_PROBABILITY[payload.stage as keyof typeof STAGE_PROBABILITY] ?? 25,
+        expected_close_date: payload.expected_close_date,
+        actual_close_date: null,
+        lost_reason: payload.lost_reason ?? null,
+        lost_to_competitor: null, win_reason: null,
+        owner: payload.owner,
+        proposal_sent_date: payload.proposal_sent_date,
+        proposal_viewed: false, proposal_accepted: false,
+        synced_to_epm: false, epm_customer_id: null, epm_ar_id: null,
+        created_at: now, updated_at: now, created_by: payload.owner,
+      };
+      const stored: CrmOpportunity[] = JSON.parse(localStorage.getItem(LS_KEY) ?? "null") ?? SEED_OPPORTUNITIES;
+      localStorage.setItem(LS_KEY, JSON.stringify([localOpp, ...stored]));
+      router.push("/crm/opportunities");
     } catch {
       setError("Erro de rede — tente novamente");
     } finally {
