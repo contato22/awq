@@ -165,7 +165,7 @@ export default function ContactsPage() {
                         </div>
                       ) : (
                         <button onClick={() => setDeletingId(c.contact_id)}
-                          className="p-1.5 rounded-md text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors">
+                          className="p-1.5 rounded-md text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors">
                           <Trash2 size={14} />
                         </button>
                       )}
