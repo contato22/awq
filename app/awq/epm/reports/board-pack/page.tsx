@@ -183,10 +183,10 @@ export default async function BoardPackPage() {
               { label: "ROIC",              value: "18.4%", target: ">15%", status: "good" as const  },
               { label: "CCC",               value: "28d",   target: "<30d", status: "good" as const  },
               { label: "Budget Var.",        value: (budgetVar >= 0 ? "+" : "") + budgetVar.toFixed(1) + "%", target: ">0%", status: budgetVar >= 0 ? "good" as const : "bad" as const },
-              { label: "MRR JACQES",        value: fmtBRL(JACQES_MRR), target: "R$8K", status: "good" as const },
+              { label: "MRR JACQES",        value: fmtBRL(JACQES_MRR), target: "R$8.280,00", status: "good" as const },
               { label: "Margem Bruta",      value: pct(gmPct ?? 0), target: ">50%", status: (gmPct ?? 0) >= 0.5 ? "good" as const : "warn" as const },
               { label: "DSO",               value: "32d",    target: "<45d", status: "good" as const  },
-              { label: "Burn Rate",         value: fmtBRL(burnRate), target: "<R$90K", status: "good" as const },
+              { label: "Burn Rate",         value: fmtBRL(burnRate), target: "<R$90.000,00", status: "good" as const },
             ].map((kpi) => {
               const color = kpi.status === "good" ? "text-emerald-700" : kpi.status === "warn" ? "text-amber-700" : "text-red-700";
               const bg    = kpi.status === "good" ? "bg-emerald-50" : kpi.status === "warn" ? "bg-amber-50" : "bg-red-50";

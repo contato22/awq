@@ -15,7 +15,7 @@ const mediaHealth: DealWorkspace = {
   lastUpdated:    "2026-04-05",
   sendStatus:     "Pronto para Envio",
   operationType:  "Aquisição Parcial",
-  valuationRange: "R$3,5M – R$5,0M",
+  valuationRange: "R$3.500.000,00 – R$5.000.000,00",
   proposedValue:  4_000_000,
   dealScore:      8.4,
   riskLevel:      "Médio",
@@ -36,7 +36,7 @@ const mediaHealth: DealWorkspace = {
 
   strategicThesis: {
     strategicRationale:
-      "MedIA Health opera no segmento de IA diagnóstica para imagem médica, mercado com TAM estimado de R$4B no Brasil até 2028. A empresa possui IP proprietário em visão computacional aplicada a radiologia e patologia, segmento com altíssima barreira de entrada regulatória e técnica.",
+      "MedIA Health opera no segmento de IA diagnóstica para imagem médica, mercado com TAM estimado de R$4.000.000.000,00 no Brasil até 2028. A empresa possui IP proprietário em visão computacional aplicada a radiologia e patologia, segmento com altíssima barreira de entrada regulatória e técnica.",
     whyNow:
       "A empresa acaba de obter homologação ANVISA para seu módulo de triagem de pneumonia. Esse marco regulatório cria uma janela de 12 meses de vantagem competitiva sobre concorrentes ainda em fase de certificação. Ingresso pré-Series A maximiza retorno.",
     synergies:
@@ -49,13 +49,13 @@ const mediaHealth: DealWorkspace = {
 
   assetDiagnosis: {
     summary:
-      "Empresa com 3 anos de operação, ARR de R$1,2M, crescimento MoM de 8%, equipe de 18 pessoas (12 tech). Produto no mercado com 40+ contratos ativos em clínicas privadas de médio porte. Churn baixo (< 4% anual). Inadimplência controlada. Cap table limpo.",
+      "Empresa com 3 anos de operação, ARR de R$1.200.000,00, crescimento MoM de 8%, equipe de 18 pessoas (12 tech). Produto no mercado com 40+ contratos ativos em clínicas privadas de médio porte. Churn baixo (< 4% anual). Inadimplência controlada. Cap table limpo.",
     strengths: [
       "IP próprio: algoritmo de triagem certificado pela ANVISA (módulo pneumonia)",
       "Receita recorrente B2B com contratos anuais e renovação > 90%",
       "Equipe técnica sênior com publicações em NeurIPS e MICCAI",
       "NPS de 71 junto a clientes ativos",
-      "CAC < R$8K com LTV > R$90K (LTV:CAC = 11,2×)",
+      "CAC < R$8.000,00 com LTV > R$90.000,00 (LTV:CAC = 11,2×)",
     ],
     weaknesses: [
       "Time comercial subdesenvolvido — apenas 2 vendedores para todo Brasil",
@@ -80,7 +80,7 @@ const mediaHealth: DealWorkspace = {
     proposedValuation:   4_000_000,
     impliedMultiple:     3.33,
     offerStructure:
-      "35% via aporte primário de R$1,4M + earnout de R$600K vinculado a meta ARR R$2M em 12 meses. Opção de call AWQ para maioria em 24 meses a múltiplo prefixado 4,5×.",
+      "35% via aporte primário de R$1.400.000,00 + earnout de R$600.000,00 vinculado a meta ARR R$2.000.000,00 em 12 meses. Opção de call AWQ para maioria em 24 meses a múltiplo prefixado 4,5×.",
     dealType:            "Aquisição Parcial",
     targetOwnership:     35,
     estimatedInvestment: 1_400_000,
@@ -94,7 +94,7 @@ const mediaHealth: DealWorkspace = {
     legalRisks:
       "Nenhum litígio identificado. Contratos de trabalho regulares. Verificar cláusulas de exclusividade em 2 contratos de parceria tecnológica. IP registrado em nome da empresa (não dos fundadores).",
     financialRisks:
-      "Runway atual: 9 meses sem aporte. Sem dívida financeira relevante. Necessidade de regularização de 2 obrigações fiscais de menor valor (DARF atrasados < R$12K). Burn mensal R$95K vs receita R$100K.",
+      "Runway atual: 9 meses sem aporte. Sem dívida financeira relevante. Necessidade de regularização de 2 obrigações fiscais de menor valor (DARF atrasados < R$12.000,00). Burn mensal R$95.000,00 vs receita R$100.000,00.",
     operationalRisks:
       "Infraestrutura em cloud não auditada. SLA com clientes sem penalidade contratual robusta. Plano de contingência de infraestrutura não documentado.",
     integrationRisks:
@@ -111,15 +111,15 @@ const mediaHealth: DealWorkspace = {
 
   proposalStructure: {
     economicProposal:
-      "Aporte primário de R$1,4M por 35% da empresa. Earnout de R$600K contingente a ARR R$2M atingido em 12 meses. Opção de call para controle (51%) em 24 meses ao múltiplo 4,5× sobre ARR vigente.",
+      "Aporte primário de R$1.400.000,00 por 35% da empresa. Earnout de R$600.000,00 contingente a ARR R$2.000.000,00 atingido em 12 meses. Opção de call para controle (51%) em 24 meses ao múltiplo 4,5× sobre ARR vigente.",
     paymentStructure:
-      "Desembolso em 2 tranches: R$900K no fechamento + R$500K após auditoria financeira aprovada (D+60). Earnout pago em D+365 se meta atingida.",
+      "Desembolso em 2 tranches: R$900.000,00 no fechamento + R$500.000,00 após auditoria financeira aprovada (D+60). Earnout pago em D+365 se meta atingida.",
     stages: [
       { label: "Assinatura do MOU",       description: "Memorando de entendimento, exclusividade 60 dias",   targetDate: "2026-04-20" },
       { label: "Due Diligence Final",      description: "Auditoria, validação contratual e IP review",         targetDate: "2026-05-15" },
       { label: "Negociação do SHA",        description: "Shareholders Agreement e termos finais",              targetDate: "2026-05-30" },
-      { label: "Fechamento e Desembolso", description: "Tranche 1 — R$900K + integração inicial",            targetDate: "2026-06-10" },
-      { label: "Tranche 2",               description: "R$500K após auditoria aprovada",                      targetDate: "2026-08-10" },
+      { label: "Fechamento e Desembolso", description: "Tranche 1 — R$900.000,00 + integração inicial",            targetDate: "2026-06-10" },
+      { label: "Tranche 2",               description: "R$500.000,00 após auditoria aprovada",                      targetDate: "2026-08-10" },
     ],
     conditions: [
       "Auditoria financeira sem ressalvas materiais",
@@ -150,7 +150,7 @@ const mediaHealth: DealWorkspace = {
       { date: "2026-03-10", by: "Miguel Costa", action: "Deal criado — estágio: Triagem" },
       { date: "2026-03-18", by: "Miguel Costa", action: "Avançado para Prospecção — primeiro contato com CEO" },
       { date: "2026-03-28", by: "Miguel Costa", action: "Avançado para Due Diligence — materiais recebidos" },
-      { date: "2026-04-02", by: "Miguel Costa", action: "Valuation revisado: R$5M → R$4M (ajuste por concentração de receita)" },
+      { date: "2026-04-02", by: "Miguel Costa", action: "Valuation revisado: R$5.000.000,00 → R$4.000.000,00 (ajuste por concentração de receita)" },
       { date: "2026-04-05", by: "Miguel Costa", action: "Status: Pronto para Envio — proposta econômica finalizada" },
     ],
   },
@@ -166,7 +166,7 @@ const eduFlow: DealWorkspace = {
   lastUpdated:    "2026-04-01",
   sendStatus:     "Enviado",
   operationType:  "Investimento Minoritário",
-  valuationRange: "R$2,5M – R$3,5M",
+  valuationRange: "R$2.500.000,00 – R$3.500.000,00",
   proposedValue:  3_000_000,
   dealScore:      7.9,
   riskLevel:      "Baixo",
@@ -194,7 +194,7 @@ const eduFlow: DealWorkspace = {
   },
 
   assetDiagnosis: {
-    summary:             "ARR R$900K, crescimento 12% MoM, 200+ clientes, churn 3%.",
+    summary:             "ARR R$900.000,00, crescimento 12% MoM, 200+ clientes, churn 3%.",
     strengths:           ["Receita recorrente alta previsibilidade", "NPS 68", "Equipe de produto consolidada"],
     weaknesses:          ["Produto monolítico — tech debt relevante", "Mercado geograficamente concentrado em MG/SP"],
     operationalMaturity: 4,
@@ -209,7 +209,7 @@ const eduFlow: DealWorkspace = {
     askValuation:        3_500_000,
     proposedValuation:   3_000_000,
     impliedMultiple:     3.33,
-    offerStructure:      "25% via aporte de R$750K. Sem earnout.",
+    offerStructure:      "25% via aporte de R$750.000,00. Sem earnout.",
     dealType:            "Investimento Minoritário",
     targetOwnership:     25,
     estimatedInvestment: 750_000,
@@ -228,7 +228,7 @@ const eduFlow: DealWorkspace = {
   },
 
   proposalStructure: {
-    economicProposal:  "R$750K por 25%. Opção de call para 40% em 18 meses.",
+    economicProposal:  "R$750.000,00 por 25%. Opção de call para 40% em 18 meses.",
     paymentStructure:  "Tranche única no fechamento.",
     stages: [
       { label: "Negociação SHA",   description: "Ajustes finais no term sheet",      targetDate: "2026-04-15" },
@@ -378,13 +378,13 @@ const energdyBlocks: Proposal10Blocks = {
     diagnostico:
       "O Grupo Energdy opera no setor de Energia / Utilities com capacidade operacional instalada, base de clientes em formação e contratos em andamento. A empresa se encontra em estágio de incubação estratégica, com operação confirmada mas ainda sem estrutura de governança, captação formal de capital ou visibilidade institucional.",
     situacaoAtual:
-      "Fee mensal de advisory de R$2.000/mês ativo desde 2025, com contrato de 36 meses totalizando R$72.000. A empresa está em fase de avaliação para participação estratégica ou aquisição parcial pela AWQ Venture.",
+      "Fee mensal de advisory de R$2.000,00/mês ativo desde 2025, com contrato de 36 meses totalizando R$72.000,00. A empresa está em fase de avaliação para participação estratégica ou aquisição parcial pela AWQ Venture.",
     problema:
       "A empresa não possui acesso a capital inteligente, rede de distribuição estratégica, estrutura de governança mínima ou reputação institucional para acelerar crescimento. Operar isoladamente neste setor significa concorrer com players capitalizados sem as ferramentas necessárias.",
     ruptura:
       "O setor de energia brasileiro está em momento de transformação estrutural: descentralização energética, mercado livre em expansão, e entrada de novos competidores capitalizados. Empresas sem parceria estratégica até o final de 2026 perderão janela de posicionamento.",
     oportunidade:
-      "AWQ Venture identifica potencial de participação estratégica ou aquisição parcial, alavancando o contrato de advisory como base de confiança e validação operacional. O ticket avaliado é de R$5.000.000 com score interno 8.1/10.",
+      "AWQ Venture identifica potencial de participação estratégica ou aquisição parcial, alavancando o contrato de advisory como base de confiança e validação operacional. O ticket avaliado é de R$5.000.000,00 com score interno 8.1/10.",
     riscoNaoAgir:
       "Manutenção de fee de advisory como único vínculo, sem captura de upside de valorização, sem direitos de governança e sem proteção contra diluição futura. A janela de entrada em termos favoráveis se fecha com a chegada de outros investidores.",
   },
@@ -408,8 +408,8 @@ const energdyBlocks: Proposal10Blocks = {
 
   b3: {
     oQueEntrega: [
-      "Capital de participação estratégica (ticket a definir — avaliado em R$5M)",
-      "Advisory mensal continuado (R$2K/mês — já ativo)",
+      "Capital de participação estratégica (ticket a definir — avaliado em R$5.000.000,00)",
+      "Advisory mensal continuado (R$2.000,00/mês — já ativo)",
       "Estrutura de governança: board advisory, routinas de reporting trimestrais",
       "Acesso à rede de clientes e parceiros da AWQ Holding",
       "Suporte a captação futura e estruturação de term sheets",
@@ -434,12 +434,12 @@ const energdyBlocks: Proposal10Blocks = {
     veiculo:         "A definir — Aquisição Parcial ou Participação Estratégica (SPE ou direta)",
     naturezaDireito: "Participação com direitos econômicos e de governança (tag-along, veto em decisões materiais, seats board)",
     conversaoFutura: "Opção de call para posição majoritária em 24–36 meses a múltiplo prefixado ou por evento de liquidez",
-    valorReferencia: "Ticket avaliado: R$5.000.000 · Contrato advisory ativo: R$72.000 (R$2K × 36 meses)",
+    valorReferencia: "Ticket avaliado: R$5.000.000,00 · Contrato advisory ativo: R$72.000,00 (R$2.000,00 × 36 meses)",
   },
 
   b5: {
     feeDescricao:     "Advisory e incubação estratégica mensal",
-    feeValor:         "R$2.000/mês",
+    feeValor:         "R$2.000,00/mês",
     feePrazo:         "36 meses (contrato ativo — confirmado)",
     upsideDescricao:  "Participação societária com direito a upside de valorização do ativo no evento de saída",
     upsidePercentual: "A definir na negociação do SHA (referência: 20–35% conforme ticket aportado)",
@@ -460,14 +460,14 @@ const energdyBlocks: Proposal10Blocks = {
 
   b6: {
     financeiras: [
-      { nome: "Receita Recorrente (MRR)", formula: "Soma de contratos ativos no mês / meses ativos", baseline: "R$2.000/mês (advisory)", meta: "R$20.000/mês em 24 meses", auditavel: true },
-      { nome: "ARR (Receita Recorrente Anual)", formula: "MRR × 12", baseline: "R$24.000/ano", meta: "R$240.000/ano em 24 meses", auditavel: true },
+      { nome: "Receita Recorrente (MRR)", formula: "Soma de contratos ativos no mês / meses ativos", baseline: "R$2.000,00/mês (advisory)", meta: "R$20.000,00/mês em 24 meses", auditavel: true },
+      { nome: "ARR (Receita Recorrente Anual)", formula: "MRR × 12", baseline: "R$24.000,00/ano", meta: "R$240.000,00/ano em 24 meses", auditavel: true },
       { nome: "EBITDA Ajustado", formula: "Resultado operacional antes de depreciação e amortização", baseline: "A definir pós-auditoria", meta: "Positivo em 18 meses", auditavel: true },
       { nome: "Runway (meses)", formula: "Caixa disponível / Burn mensal", baseline: "A definir", meta: "Mínimo 12 meses após aporte", auditavel: true },
     ],
     comerciais: [
       { nome: "Número de Contratos Ativos", formula: "Contagem de contratos vigentes com pagamento em dia", baseline: "1 (advisory AWQ)", meta: "5 contratos em 18 meses", auditavel: true },
-      { nome: "Ticket Médio por Contrato", formula: "Receita total / número de contratos", baseline: "R$2.000/mês", meta: "R$5.000/mês em 24 meses", auditavel: true },
+      { nome: "Ticket Médio por Contrato", formula: "Receita total / número de contratos", baseline: "R$2.000,00/mês", meta: "R$5.000,00/mês em 24 meses", auditavel: true },
       { nome: "Taxa de Renovação", formula: "Contratos renovados / contratos vencidos", baseline: "100% (advisory)", meta: "≥ 85%", auditavel: true },
     ],
     institucionais: [
@@ -493,7 +493,7 @@ const energdyBlocks: Proposal10Blocks = {
       "Relatório anual auditado por contador externo",
     ],
     alcadasDecisao:
-      "Decisões operacionais (até R$10K): autonomia total da empresa. Decisões financeiras relevantes (R$10K–R$100K): notificação prévia AWQ. Decisões estratégicas e acima de R$100K: co-aprovação AWQ obrigatória.",
+      "Decisões operacionais (até R$10.000,00): autonomia total da empresa. Decisões financeiras relevantes (R$10.000,00–R$100.000,00): notificação prévia AWQ. Decisões estratégicas e acima de R$100.000,00: co-aprovação AWQ obrigatória.",
     representacao:
       "AWQ Venture indica um membro para o board advisory com mandato de 24 meses, renovável.",
     conflito:
@@ -572,7 +572,7 @@ const grupoEnergdy: DealWorkspace = {
     "Alta",
     "Médio",
     "Advisory Contract",
-    "Cliente ativo de advisory e incubação estratégica (fee R$2K/mês, 36 meses, contrato R$72K confirmado). Avaliação para participação estratégica ou aquisição parcial em andamento.",
+    "Cliente ativo de advisory e incubação estratégica (fee R$2.000,00/mês, 36 meses, contrato R$72.000,00 confirmado). Avaliação para participação estratégica ou aquisição parcial em andamento.",
     "Q3 2026",
   ),
   proposal10Blocks: energdyBlocks,
