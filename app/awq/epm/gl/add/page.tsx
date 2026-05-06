@@ -11,6 +11,30 @@ import Link from "next/link";
 import { Plus, CheckCircle2, AlertTriangle, ChevronLeft } from "lucide-react";
 import { CHART_OF_ACCOUNTS } from "@/lib/epm-gl-constants";
 
+// ─── localStorage helpers ─────────────────────────────────────────────────────
+
+const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
+const LS_GL     = "epm_gl_entries";
+
+interface GLEntry {
+  id: string; journal_id: string; bu_code: string; transaction_date: string;
+  description: string; reference_doc?: string; source_system: string;
+  account_code: string; account_name: string; direction: "DEBIT" | "CREDIT";
+  amount: number; created_at: string;
+}
+
+function lsReadGL(): GLEntry[] {
+  if (typeof window === "undefined") return [];
+  try { return JSON.parse(localStorage.getItem(LS_GL) ?? "[]") as GLEntry[]; }
+  catch { return []; }
+}
+function lsWriteGL(entries: GLEntry[]) {
+  try { localStorage.setItem(LS_GL, JSON.stringify(entries)); } catch { /* ignore */ }
+}
+function genId() {
+  return `ls-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type BuCode = "AWQ" | "JACQES" | "CAZA" | "ADVISOR" | "VENTURE";
@@ -119,6 +143,21 @@ export default function AddGLPage() {
     setStatus("loading");
     setErrorMsg("");
     try {
+      if (IS_STATIC) {
+        const now       = new Date().toISOString();
+        const journalId = genId();
+        const entries   = lsReadGL();
+        entries.push(
+          { id: genId(), journal_id: journalId, bu_code: form.bu_code, transaction_date: form.transaction_date, description: form.description, reference_doc: form.reference_doc || undefined, source_system: form.source_system, account_code: form.debit_account_code, account_name: debitAccount?.account_name ?? form.debit_account_code, direction: "DEBIT", amount, created_at: now },
+          { id: genId(), journal_id: journalId, bu_code: form.bu_code, transaction_date: form.transaction_date, description: form.description, reference_doc: form.reference_doc || undefined, source_system: form.source_system, account_code: form.credit_account_code, account_name: creditAccount?.account_name ?? form.credit_account_code, direction: "CREDIT", amount, created_at: now },
+        );
+        lsWriteGL(entries);
+        setSuccessData({ debit: { account_code: form.debit_account_code, account_name: debitAccount?.account_name ?? form.debit_account_code }, credit: { account_code: form.credit_account_code, account_name: creditAccount?.account_name ?? form.credit_account_code } });
+        setStatus("success");
+        setForm((f) => ({ ...f, description: "", reference_doc: "", debit_account_code: "", credit_account_code: "", amount: "" }));
+        return;
+      }
+
       const res = await fetch("/api/epm/gl", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

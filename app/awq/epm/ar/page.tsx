@@ -3,7 +3,7 @@
 // ─── /awq/epm/ar — Contas a Receber ──────────────────────────────────────────
 // API-backed AR management with ISS auto-calculation, aging, and DSO tracking.
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Header from "@/components/Header";
 import Link from "next/link";
 import {
@@ -51,6 +51,47 @@ interface ARKPIs {
   dso:                number | null;
   ccc:                number | null;
   arAging:            Record<AgingBucket, number>;
+}
+
+// ─── localStorage helpers ─────────────────────────────────────────────────────
+
+const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
+const LS_AR     = "epm_ar_items";
+
+function lsReadAR(): ARItem[] {
+  if (typeof window === "undefined") return [];
+  try { return JSON.parse(localStorage.getItem(LS_AR) ?? "[]") as ARItem[]; }
+  catch { return []; }
+}
+function lsWriteAR(items: ARItem[]) {
+  try { localStorage.setItem(LS_AR, JSON.stringify(items)); } catch { /* ignore */ }
+}
+function genId() {
+  return `ls-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+function computeARKPIs(items: ARItem[]): ARKPIs {
+  const today       = new Date().toISOString().slice(0, 10);
+  const outstanding = items.filter(i => i.status !== "RECEIVED" && i.status !== "CANCELLED");
+  const overdue     = outstanding.filter(i => i.due_date < today);
+  const received    = items.filter(i => i.status === "RECEIVED");
+  const recDays     = received
+    .filter(i => i.received_date && i.issue_date)
+    .map(i => Math.round((new Date(i.received_date!).getTime() - new Date(i.issue_date).getTime()) / 86400000));
+  const dso = recDays.length > 0 ? Math.round(recDays.reduce((a, b) => a + b, 0) / recDays.length) : null;
+  const arAging: Record<AgingBucket, number> = { "CURRENT": 0, "1-30d": 0, "31-60d": 0, "61-90d": 0, "+90d": 0 };
+  for (const item of outstanding) {
+    const days = Math.round((new Date(today).getTime() - new Date(item.due_date).getTime()) / 86400000);
+    const b: AgingBucket = days <= 0 ? "CURRENT" : days <= 30 ? "1-30d" : days <= 60 ? "31-60d" : days <= 90 ? "61-90d" : "+90d";
+    arAging[b] += item.net_amount;
+  }
+  return {
+    totalAROutstanding: outstanding.reduce((s, i) => s + i.net_amount, 0),
+    totalAROverdue:     overdue.reduce((s, i) => s + i.net_amount, 0),
+    totalARReceived:    received.reduce((s, i) => s + (i.received_amount ?? i.net_amount), 0),
+    dso,
+    ccc: dso,
+    arAging,
+  };
 }
 
 // ─── AR fiscal calculation (ISS + PIS + COFINS) ───────────────────────────────
@@ -148,7 +189,16 @@ export default function ARPage() {
 
   // ── Load ─────────────────────────────────────────────────────────────────────
 
+  const useLS = useRef(IS_STATIC);
+
   const loadData = useCallback(async () => {
+    if (useLS.current) {
+      const saved = lsReadAR();
+      setItems(saved);
+      setKPIs(computeARKPIs(saved));
+      setLoading(false);
+      return;
+    }
     try {
       const [listRes, kpisRes, custRes, ccRes] = await Promise.all([
         fetch("/api/epm/ar"),
@@ -156,15 +206,28 @@ export default function ARPage() {
         fetch("/api/epm/customers"),
         fetch("/api/epm/cost-centers"),
       ]);
+      if (listRes.status >= 500) {
+        useLS.current = true;
+        const saved = lsReadAR();
+        setItems(saved);
+        setKPIs(computeARKPIs(saved));
+        setLoading(false);
+        return;
+      }
       const listJson = await listRes.json() as { success: boolean; data: ARItem[] };
       const kpisJson = await kpisRes.json() as { success: boolean; data: ARKPIs };
       const custJson = await custRes.json() as { success: boolean; data: EpmCustomer[] };
       const ccJson   = await ccRes.json()  as { success: boolean; data: { id: string; code: string; name: string }[] };
-      if (listJson.success) setItems(listJson.data);
+      if (listJson.success) { setItems(listJson.data); lsWriteAR(listJson.data); }
       if (kpisJson.success) setKPIs(kpisJson.data);
       if (custJson.success) setCustomers(custJson.data);
       if (ccJson.success)   setCostCenters(ccJson.data);
-    } catch { /* ignore */ }
+    } catch {
+      useLS.current = true;
+      const saved = lsReadAR();
+      setItems(saved);
+      setKPIs(computeARKPIs(saved));
+    }
     finally { setLoading(false); }
   }, []);
 
@@ -178,6 +241,32 @@ export default function ARPage() {
     const n = parseInt(form.installments) || 1;
     setSubmitting(true);
     try {
+      if (useLS.current) {
+        const now = new Date().toISOString();
+        const newItems: ARItem[] = Array.from({ length: n }, (_, idx) => {
+          const installAmt = r2(gross / n);
+          const dueDate = n > 1
+            ? (() => { const d = new Date(form.due_date); d.setMonth(d.getMonth() + idx); return d.toISOString().slice(0, 10); })()
+            : form.due_date;
+          const f = calcARFiscal(installAmt, form.category);
+          return {
+            id: genId(), bu_code: form.bu_code, customer_name: form.customer_name,
+            description: n > 1 ? `${form.description} (${idx + 1}/${n})` : form.description,
+            category: form.category, cost_center: form.cost_center || undefined,
+            reference_doc: form.reference_doc || undefined, issue_date: form.issue_date,
+            due_date: dueDate, gross_amount: installAmt,
+            iss_rate: f.iss_rate, iss_amount: f.iss_amount,
+            pis_rate: f.pis_rate, pis_amount: f.pis_amount,
+            cofins_rate: f.cofins_rate, cofins_amount: f.cofins_amount,
+            net_amount: f.net, status: "PENDING" as ARStatus, created_at: now,
+          };
+        });
+        lsWriteAR([...lsReadAR(), ...newItems]);
+        setShowForm(false);
+        setForm((f) => ({ ...f, customer_name: "", description: "", reference_doc: "", due_date: "", gross_amount: "", installments: "1" }));
+        await loadData();
+        return;
+      }
       const payload = {
         bu_code:       form.bu_code,
         customer_name: form.customer_name,
@@ -213,21 +302,34 @@ export default function ARPage() {
   async function confirmReceive() {
     if (!recModal.received_date || !recModal.received_amount) return;
     setRecModal((m) => ({ ...m, saving: true }));
-    await fetch("/api/epm/ar", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: recModal.id, action: "receive", received_date: recModal.received_date, received_amount: parseFloat(recModal.received_amount), receipt_ref: recModal.receipt_ref || undefined }),
-    });
+    if (useLS.current) {
+      const saved = lsReadAR();
+      const idx = saved.findIndex(i => i.id === recModal.id);
+      if (idx !== -1) {
+        saved[idx] = { ...saved[idx], status: "RECEIVED", received_date: recModal.received_date, received_amount: parseFloat(recModal.received_amount), receipt_ref: recModal.receipt_ref || undefined };
+        lsWriteAR(saved);
+      }
+    } else {
+      await fetch("/api/epm/ar", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: recModal.id, action: "receive", received_date: recModal.received_date, received_amount: parseFloat(recModal.received_amount), receipt_ref: recModal.receipt_ref || undefined }),
+      });
+    }
     setRecModal({ open: false, id: "", item: null, received_date: today, received_amount: "", receipt_ref: "", saving: false });
     await loadData();
   }
 
   async function handleDelete(id: string) {
-    await fetch("/api/epm/ar", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, action: "delete" }),
-    });
+    if (useLS.current) {
+      lsWriteAR(lsReadAR().filter(i => i.id !== id));
+    } else {
+      await fetch("/api/epm/ar", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, action: "delete" }),
+      });
+    }
     await loadData();
   }
 
@@ -238,11 +340,20 @@ export default function ARPage() {
   async function confirmEdit() {
     if (!editModal.item) return;
     setEditModal((m) => ({ ...m, saving: true }));
-    await fetch("/api/epm/ar", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: editModal.item.id, action: "update", customer_name: editModal.customer_name, description: editModal.description, category: editModal.category, cost_center: editModal.cost_center || undefined, reference_doc: editModal.reference_doc || undefined, due_date: editModal.due_date }),
-    });
+    if (useLS.current) {
+      const saved = lsReadAR();
+      const idx = saved.findIndex(i => i.id === editModal.item!.id);
+      if (idx !== -1) {
+        saved[idx] = { ...saved[idx], customer_name: editModal.customer_name, description: editModal.description, category: editModal.category, cost_center: editModal.cost_center || undefined, reference_doc: editModal.reference_doc || undefined, due_date: editModal.due_date };
+        lsWriteAR(saved);
+      }
+    } else {
+      await fetch("/api/epm/ar", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: editModal.item.id, action: "update", customer_name: editModal.customer_name, description: editModal.description, category: editModal.category, cost_center: editModal.cost_center || undefined, reference_doc: editModal.reference_doc || undefined, due_date: editModal.due_date }),
+      });
+    }
     setEditModal({ open: false, item: null, customer_name: "", description: "", category: "", cost_center: "", reference_doc: "", due_date: "", saving: false });
     await loadData();
   }

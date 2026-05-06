@@ -1,12 +1,100 @@
+"use client";
+
 // ─── /awq/epm/gl — Razão Geral (GL Transactions) ─────────────────────────────
 //
-// Lists all double-entry GL journals from epm-gl.ts (local JSON store).
-// Server component — reads directly from the data layer.
+// Lists all double-entry GL journals.
+// SSR mode: fetches from /api/epm/gl.
+// Static export: reads from localStorage "epm_gl_entries".
 
+import { useState, useEffect, useRef } from "react";
 import Header from "@/components/Header";
 import Link from "next/link";
-import { ListOrdered, Plus, Database, CheckCircle2, AlertTriangle } from "lucide-react";
-import { getJournals, getTrialBalance, CHART_OF_ACCOUNTS } from "@/lib/epm-gl";
+import { Plus, Database, CheckCircle2, AlertTriangle } from "lucide-react";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface GLEntry {
+  id: string;
+  journal_id: string;
+  bu_code: string;
+  transaction_date: string;
+  description: string;
+  reference_doc?: string;
+  source_system: string;
+  account_code: string;
+  account_name: string;
+  direction: "DEBIT" | "CREDIT";
+  amount: number;
+  debit_amount?: number;
+  credit_amount?: number;
+  created_at: string;
+}
+
+interface Journal {
+  journal_id: string;
+  balanced: boolean;
+  debit: GLEntry & { debit_amount: number };
+  credit: GLEntry & { credit_amount: number };
+}
+
+interface TrialBalance {
+  account_code: string;
+  account_name: string;
+  account_type: string;
+  total_debits: number;
+  total_credits: number;
+  net_balance: number;
+}
+
+// ─── localStorage helpers ─────────────────────────────────────────────────────
+
+const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
+const LS_GL     = "epm_gl_entries";
+
+function lsReadGL(): GLEntry[] {
+  if (typeof window === "undefined") return [];
+  try { return JSON.parse(localStorage.getItem(LS_GL) ?? "[]") as GLEntry[]; }
+  catch { return []; }
+}
+
+function entriesToJournals(entries: GLEntry[]): Journal[] {
+  const byJournal = new Map<string, GLEntry[]>();
+  for (const e of entries) {
+    const group = byJournal.get(e.journal_id) ?? [];
+    group.push(e);
+    byJournal.set(e.journal_id, group);
+  }
+  const journals: Journal[] = [];
+  for (const [journal_id, lines] of byJournal) {
+    const debitLine  = lines.find(l => l.direction === "DEBIT");
+    const creditLine = lines.find(l => l.direction === "CREDIT");
+    if (!debitLine || !creditLine) continue;
+    const balanced = Math.abs(debitLine.amount - creditLine.amount) < 0.01;
+    journals.push({
+      journal_id,
+      balanced,
+      debit:  { ...debitLine,  debit_amount: debitLine.amount  },
+      credit: { ...creditLine, credit_amount: creditLine.amount },
+    });
+  }
+  return journals.sort((a, b) => b.debit.transaction_date.localeCompare(a.debit.transaction_date));
+}
+
+function entriesToTrialBalance(entries: GLEntry[]): TrialBalance[] {
+  const map = new Map<string, TrialBalance>();
+  for (const e of entries) {
+    if (!map.has(e.account_code)) {
+      map.set(e.account_code, { account_code: e.account_code, account_name: e.account_name, account_type: "", total_debits: 0, total_credits: 0, net_balance: 0 });
+    }
+    const row = map.get(e.account_code)!;
+    if (e.direction === "DEBIT")  row.total_debits  += e.amount;
+    if (e.direction === "CREDIT") row.total_credits += e.amount;
+    row.net_balance = row.total_debits - row.total_credits;
+  }
+  return Array.from(map.values()).sort((a, b) => a.account_code.localeCompare(b.account_code));
+}
+
+// ─── Formatting ───────────────────────────────────────────────────────────────
 
 function fmtBRL(n: number): string {
   const abs  = Math.abs(n);
@@ -28,9 +116,51 @@ const SOURCE_LABELS: Record<string, string> = {
   ar_receipt:  "AR",
 };
 
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 export default function GLPage() {
-  const journals = getJournals();
-  const trialBal = getTrialBalance();
+  const [journals,  setJournals]  = useState<Journal[]>([]);
+  const [trialBal,  setTrialBal]  = useState<TrialBalance[]>([]);
+  const [loading,   setLoading]   = useState(true);
+  const useLS = useRef(IS_STATIC);
+
+  useEffect(() => {
+    async function load() {
+      if (useLS.current) {
+        const entries = lsReadGL();
+        setJournals(entriesToJournals(entries));
+        setTrialBal(entriesToTrialBalance(entries));
+        setLoading(false);
+        return;
+      }
+      try {
+        const [jRes, tbRes] = await Promise.all([
+          fetch("/api/epm/gl?view=journals"),
+          fetch("/api/epm/gl?view=trial-balance"),
+        ]);
+        if (jRes.status >= 500) {
+          useLS.current = true;
+          const entries = lsReadGL();
+          setJournals(entriesToJournals(entries));
+          setTrialBal(entriesToTrialBalance(entries));
+          setLoading(false);
+          return;
+        }
+        const jJson  = await jRes.json()  as { success: boolean; data: Journal[] };
+        const tbJson = await tbRes.json() as { success: boolean; data: TrialBalance[] };
+        if (jJson.success)  setJournals(jJson.data);
+        if (tbJson.success) setTrialBal(tbJson.data);
+      } catch {
+        useLS.current = true;
+        const entries = lsReadGL();
+        setJournals(entriesToJournals(entries));
+        setTrialBal(entriesToTrialBalance(entries));
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
 
   const totalDebits  = trialBal.reduce((s, l) => s + l.total_debits,  0);
   const totalCredits = trialBal.reduce((s, l) => s + l.total_credits, 0);
@@ -55,9 +185,11 @@ export default function GLPage() {
               ? <CheckCircle2 size={12} />
               : <AlertTriangle size={12} />}
             <span>
-              {balanced
-                ? `Razão balanceado · D:${fmtBRL(totalDebits)} = C:${fmtBRL(totalCredits)}`
-                : `DESEQUILIBRADO · D:${fmtBRL(totalDebits)} ≠ C:${fmtBRL(totalCredits)}`}
+              {loading
+                ? "Carregando…"
+                : balanced
+                  ? `Razão balanceado · D:${fmtBRL(totalDebits)} = C:${fmtBRL(totalCredits)}`
+                  : `DESEQUILIBRADO · D:${fmtBRL(totalDebits)} ≠ C:${fmtBRL(totalCredits)}`}
             </span>
           </div>
           <Link
@@ -69,7 +201,7 @@ export default function GLPage() {
         </div>
 
         {/* ── Empty state ─────────────────────────────────────────────── */}
-        {journals.length === 0 && (
+        {!loading && journals.length === 0 && (
           <div className="card p-16 flex flex-col items-center gap-4 text-center">
             <Database size={40} className="text-gray-200" />
             <div className="text-sm font-semibold text-gray-400">Nenhum lançamento ainda</div>

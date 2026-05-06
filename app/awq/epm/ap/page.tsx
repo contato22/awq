@@ -4,7 +4,7 @@
 // API-backed AP management with Brazilian fiscal retention auto-calculation.
 // IRRF / INSS / ISS / PIS / COFINS computed client-side on form, stored server-side.
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Header from "@/components/Header";
 import Link from "next/link";
 import {
@@ -61,6 +61,46 @@ interface APKPIs {
   totalAPPaid:        number;
   dpo:                number | null;
   apAging:            Record<AgingBucket, number>;
+}
+
+// ─── localStorage helpers (fallback for static export / no DB) ───────────────
+
+const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
+const LS_AP     = "epm_ap_items";
+
+function lsReadAP(): APItem[] {
+  if (typeof window === "undefined") return [];
+  try { return JSON.parse(localStorage.getItem(LS_AP) ?? "[]") as APItem[]; }
+  catch { return []; }
+}
+function lsWriteAP(items: APItem[]) {
+  try { localStorage.setItem(LS_AP, JSON.stringify(items)); } catch { /* ignore */ }
+}
+function genId() {
+  return `ls-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+function computeAPKPIs(items: APItem[]): APKPIs {
+  const today = new Date().toISOString().slice(0, 10);
+  const outstanding = items.filter(i => i.status !== "PAID" && i.status !== "CANCELLED");
+  const overdue     = outstanding.filter(i => i.due_date < today);
+  const paid        = items.filter(i => i.status === "PAID");
+  const paidDays    = paid
+    .filter(i => i.paid_date && i.issue_date)
+    .map(i => Math.round((new Date(i.paid_date!).getTime() - new Date(i.issue_date).getTime()) / 86400000));
+  const dpo = paidDays.length > 0 ? Math.round(paidDays.reduce((a, b) => a + b, 0) / paidDays.length) : null;
+  const apAging: Record<AgingBucket, number> = { "CURRENT": 0, "1-30d": 0, "31-60d": 0, "61-90d": 0, "+90d": 0 };
+  for (const item of outstanding) {
+    const days = Math.round((new Date(today).getTime() - new Date(item.due_date).getTime()) / 86400000);
+    const b: AgingBucket = days <= 0 ? "CURRENT" : days <= 30 ? "1-30d" : days <= 60 ? "31-60d" : days <= 90 ? "61-90d" : "+90d";
+    apAging[b] += item.net_amount;
+  }
+  return {
+    totalAPOutstanding: outstanding.reduce((s, i) => s + i.net_amount, 0),
+    totalAPOverdue:     overdue.reduce((s, i) => s + i.net_amount, 0),
+    totalAPPaid:        paid.reduce((s, i) => s + (i.paid_amount ?? i.net_amount), 0),
+    dpo,
+    apAging,
+  };
 }
 
 // ─── Fiscal defaults (mirrors lib/ap-ar-db.ts — client-safe copy) ─────────────
@@ -177,7 +217,16 @@ export default function APPage() {
 
   // ── Data loading ─────────────────────────────────────────────────────────────
 
+  const useLS = useRef(IS_STATIC);
+
   const loadData = useCallback(async () => {
+    if (useLS.current) {
+      const saved = lsReadAP();
+      setItems(saved);
+      setKPIs(computeAPKPIs(saved));
+      setLoading(false);
+      return;
+    }
     try {
       const [listRes, kpisRes, suppRes, ccRes] = await Promise.all([
         fetch("/api/epm/ap"),
@@ -185,15 +234,28 @@ export default function APPage() {
         fetch("/api/epm/suppliers"),
         fetch("/api/epm/cost-centers"),
       ]);
+      if (listRes.status >= 500) {
+        useLS.current = true;
+        const saved = lsReadAP();
+        setItems(saved);
+        setKPIs(computeAPKPIs(saved));
+        setLoading(false);
+        return;
+      }
       const listJson = await listRes.json() as { success: boolean; data: APItem[] };
       const kpisJson = await kpisRes.json() as { success: boolean; data: APKPIs };
       const suppJson = await suppRes.json() as { success: boolean; data: EpmSupplier[] };
       const ccJson   = await ccRes.json()  as { success: boolean; data: { id: string; code: string; name: string }[] };
-      if (listJson.success) setItems(listJson.data);
+      if (listJson.success) { setItems(listJson.data); lsWriteAP(listJson.data); }
       if (kpisJson.success) setKPIs(kpisJson.data);
       if (suppJson.success) setSuppliers(suppJson.data);
       if (ccJson.success)   setCostCenters(ccJson.data);
-    } catch { /* ignore network errors */ }
+    } catch {
+      useLS.current = true;
+      const saved = lsReadAP();
+      setItems(saved);
+      setKPIs(computeAPKPIs(saved));
+    }
     finally { setLoading(false); }
   }, []);
 
@@ -208,11 +270,20 @@ export default function APPage() {
   async function confirmEdit() {
     if (!editModal.item) return;
     setEditModal((m) => ({ ...m, saving: true }));
-    await fetch("/api/epm/ap", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: editModal.item.id, action: "update", supplier_name: editModal.supplier_name, description: editModal.description, category: editModal.category, cost_center: editModal.cost_center || undefined, reference_doc: editModal.reference_doc || undefined, due_date: editModal.due_date }),
-    });
+    if (useLS.current) {
+      const saved = lsReadAP();
+      const idx = saved.findIndex(i => i.id === editModal.item!.id);
+      if (idx !== -1) {
+        saved[idx] = { ...saved[idx], supplier_name: editModal.supplier_name, description: editModal.description, category: editModal.category, cost_center: editModal.cost_center || undefined, reference_doc: editModal.reference_doc || undefined, due_date: editModal.due_date };
+        lsWriteAP(saved);
+      }
+    } else {
+      await fetch("/api/epm/ap", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: editModal.item.id, action: "update", supplier_name: editModal.supplier_name, description: editModal.description, category: editModal.category, cost_center: editModal.cost_center || undefined, reference_doc: editModal.reference_doc || undefined, due_date: editModal.due_date }),
+      });
+    }
     setEditModal({ open: false, item: null, supplier_name: "", description: "", category: "", cost_center: "", reference_doc: "", due_date: "", saving: false });
     await loadData();
   }
@@ -224,6 +295,37 @@ export default function APPage() {
     if (!gross || gross <= 0) return;
     setSubmitting(true);
     try {
+      if (useLS.current) {
+        const now = new Date().toISOString();
+        const newItems: APItem[] = Array.from({ length: n }, (_, idx) => {
+          const installAmt = round2(gross / n);
+          const dueDate = n > 1
+            ? (() => { const d = new Date(form.due_date); d.setMonth(d.getMonth() + idx); return d.toISOString().slice(0, 10); })()
+            : form.due_date;
+          const f = calcFiscal(installAmt, form.supplier_type);
+          const rates = FISCAL_DEFAULTS[form.supplier_type];
+          return {
+            id: genId(), bu_code: form.bu_code, supplier_name: form.supplier_name,
+            supplier_type: form.supplier_type,
+            description: n > 1 ? `${form.description} (${idx + 1}/${n})` : form.description,
+            category: form.category, cost_center: form.cost_center || undefined,
+            reference_doc: form.reference_doc || undefined, issue_date: form.issue_date,
+            due_date: dueDate, gross_amount: installAmt,
+            irrf_rate: rates.irrf, irrf_amount: f.irrf,
+            inss_rate: rates.inss, inss_amount: f.inss,
+            iss_rate: rates.iss,   iss_amount: f.iss,
+            pis_rate: rates.pis,   pis_amount: f.pis,
+            cofins_rate: rates.cofins, cofins_amount: f.cofins,
+            total_retentions: f.total, net_amount: f.net,
+            status: "PENDING" as APStatus, created_at: now,
+          };
+        });
+        lsWriteAP([...lsReadAP(), ...newItems]);
+        setShowForm(false);
+        setForm((f) => ({ ...f, supplier_name: "", description: "", reference_doc: "", due_date: "", gross_amount: "", installments: "1" }));
+        await loadData();
+        return;
+      }
       const payload = {
         bu_code:       form.bu_code,
         supplier_name: form.supplier_name,
@@ -260,21 +362,34 @@ export default function APPage() {
   async function confirmPay() {
     if (!payModal.paid_date || !payModal.paid_amount) return;
     setPayModal((m) => ({ ...m, saving: true }));
-    await fetch("/api/epm/ap", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: payModal.id, action: "pay", paid_date: payModal.paid_date, paid_amount: parseFloat(payModal.paid_amount), payment_ref: payModal.payment_ref || undefined }),
-    });
+    if (useLS.current) {
+      const saved = lsReadAP();
+      const idx = saved.findIndex(i => i.id === payModal.id);
+      if (idx !== -1) {
+        saved[idx] = { ...saved[idx], status: "PAID", paid_date: payModal.paid_date, paid_amount: parseFloat(payModal.paid_amount), payment_ref: payModal.payment_ref || undefined };
+        lsWriteAP(saved);
+      }
+    } else {
+      await fetch("/api/epm/ap", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: payModal.id, action: "pay", paid_date: payModal.paid_date, paid_amount: parseFloat(payModal.paid_amount), payment_ref: payModal.payment_ref || undefined }),
+      });
+    }
     setPayModal({ open: false, id: "", item: null, paid_date: today, paid_amount: "", payment_ref: "", saving: false });
     await loadData();
   }
 
   async function handleDelete(id: string) {
-    await fetch("/api/epm/ap", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, action: "delete" }),
-    });
+    if (useLS.current) {
+      lsWriteAP(lsReadAP().filter(i => i.id !== id));
+    } else {
+      await fetch("/api/epm/ap", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, action: "delete" }),
+      });
+    }
     await loadData();
   }
 
