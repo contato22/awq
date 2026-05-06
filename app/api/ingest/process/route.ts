@@ -32,6 +32,7 @@ import type { BankTransaction, EntityLayer } from "@/lib/financial-db";
 import { parsePDF } from "@/lib/bank-parsers";
 import { classifyTransaction, inferEntityFromAccount } from "@/lib/financial-classifier";
 import { reconcileIntercompany, buildConsolidationSummary } from "@/lib/financial-reconciler";
+import { isGDriveUrl, extractFileId, downloadFromDrive } from "@/lib/gdrive-storage";
 
 export const runtime = "nodejs";
 
@@ -99,10 +100,14 @@ export async function POST(req: NextRequest): Promise<Response> {
         send({ stage: "extracting", message: "Enviando PDF para Claude para extração..." });
         await updateDocumentStatus(docId, "extracting");
 
-        // Load PDF: from Vercel Blob or local filesystem
+        // Load PDF: Google Drive > Vercel Blob > local filesystem
         let pdfBuffer: Buffer;
 
-        if (doc.blobUrl) {
+        if (doc.blobUrl && isGDriveUrl(doc.blobUrl)) {
+          // Google Drive storage
+          send({ stage: "extracting", message: "Carregando PDF do Google Drive..." });
+          pdfBuffer = await downloadFromDrive(extractFileId(doc.blobUrl));
+        } else if (doc.blobUrl) {
           // Blob storage (Vercel production)
           send({ stage: "extracting", message: "Carregando PDF do Blob storage..." });
           const res = await fetch(doc.blobUrl);

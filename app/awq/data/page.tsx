@@ -66,7 +66,8 @@ const BU_STORAGE_MAP: BuStorageConfig[] = [
     securityLayer: "holding · financeiro · dados_infra · security · juridico",
     primaryStorage: [
       { name: "Neon Postgres (financial_documents + bank_transactions)", type: "canonical-store", confidence: "confirmada" },
-      { name: "Vercel Blob (PDFs até 20 MB, dedup SHA-256)",            type: "canonical-store", confidence: "confirmada" },
+      { name: "Google Drive (PDFs — priority 1, 15 GB free, gdrive://)", type: "canonical-store", confidence: "confirmada" },
+      { name: "Vercel Blob (PDFs — priority 2, fallback, 512 MB free)",  type: "canonical-store", confidence: "confirmada" },
       { name: "lib/awq-group-data.ts (KPIs snapshot Q1 2026)",          type: "snapshot",        confidence: "snapshot"   },
       { name: "lib/financial-query.ts (seletor canônico)",               type: "selector",        confidence: "confirmada" },
       { name: "lib/bank-account-registry.ts (topologia contas)",         type: "registry",        confidence: "confirmada" },
@@ -476,22 +477,40 @@ export default async function AwqDataPage() {
                 Tabelas: financial_documents · bank_transactions · awq_security_audit_log · caza_*
               </div>
             </div>
+            {/* Google Drive */}
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+              <div className="flex items-center gap-1.5 mb-3">
+                <HardDrive size={12} className="text-emerald-600" />
+                <div className="text-xs font-bold text-emerald-800">Google Drive</div>
+                <span className="ml-auto text-[9px] bg-emerald-200 text-emerald-700 px-1.5 py-0.5 rounded font-semibold">Priority 1</span>
+              </div>
+              <div className="space-y-1.5 text-[10px] text-emerald-700">
+                <div className="flex justify-between"><span>Storage total</span><span className="font-semibold">15 GB (free)</span></div>
+                <div className="flex justify-between"><span>Workspace Business</span><span className="font-semibold">ilimitado</span></div>
+                <div className="flex justify-between"><span>Upload PDFs (config)</span><span className="font-semibold text-orange-600">20 MB (interno)</span></div>
+                <div className="flex justify-between"><span>Auth</span><span className="font-semibold">Service Account</span></div>
+                <div className="flex justify-between"><span>Escopo</span><span className="font-semibold">AWQ Group only</span></div>
+                <div className="flex justify-between"><span>blobUrl</span><span className="font-semibold font-mono text-[9px]">gdrive://&#123;fileId&#125;</span></div>
+              </div>
+              <div className="mt-3 text-[9px] text-emerald-600">
+                Fallback: Vercel Blob → filesystem (se não configurado)
+              </div>
+            </div>
             {/* Vercel Blob */}
             <div className="rounded-lg border border-violet-200 bg-violet-50 p-4">
               <div className="flex items-center gap-1.5 mb-3">
                 <Server size={12} className="text-violet-600" />
                 <div className="text-xs font-bold text-violet-800">Vercel Blob</div>
-                <span className="ml-auto text-[9px] bg-violet-200 text-violet-700 px-1.5 py-0.5 rounded font-semibold">Hobby</span>
+                <span className="ml-auto text-[9px] bg-violet-200 text-violet-700 px-1.5 py-0.5 rounded font-semibold">Priority 2</span>
               </div>
               <div className="space-y-1.5 text-[10px] text-violet-700">
                 <div className="flex justify-between"><span>Storage total</span><span className="font-semibold">512 MB</span></div>
                 <div className="flex justify-between"><span>Banda/mês</span><span className="font-semibold">100 GB</span></div>
                 <div className="flex justify-between"><span>Arquivo máx.</span><span className="font-semibold">500 MB por arquivo</span></div>
                 <div className="flex justify-between"><span>Upload PDFs (config)</span><span className="font-semibold text-orange-600">20 MB (interno)</span></div>
-                <div className="flex justify-between"><span>Ativado?</span><span className={"font-semibold " + (false ? "text-emerald-600" : "text-red-500")}>{typeof process !== "undefined" && process.env.BLOB_READ_WRITE_TOKEN ? "SIM" : "VER ENV"}</span></div>
               </div>
               <div className="mt-3 text-[9px] text-violet-500">
-                Fallback: public/data/financial/pdfs/ (efêmero, apenas dev)
+                Fallback do Drive. Se nem Drive nem Blob: filesystem local (efêmero, dev)
               </div>
             </div>
             {/* Vercel Functions */}

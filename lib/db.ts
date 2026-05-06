@@ -19,8 +19,9 @@ import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
 export const sql: NeonQueryFunction<false, false> | null =
   process.env.DATABASE_URL ? neon(process.env.DATABASE_URL) : null;
 
-export const USE_DB = !!process.env.DATABASE_URL;
-export const USE_BLOB = !!process.env.BLOB_READ_WRITE_TOKEN;
+export const USE_DB    = !!process.env.DATABASE_URL;
+export const USE_BLOB  = !!process.env.BLOB_READ_WRITE_TOKEN;
+export const USE_GDRIVE = !!(process.env.GOOGLE_SERVICE_ACCOUNT_KEY && process.env.GOOGLE_DRIVE_FOLDER_ID);
 
 // ─── Schema bootstrap ─────────────────────────────────────────────────────────
 // Idempotent — safe to call on every cold start.

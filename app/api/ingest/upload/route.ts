@@ -30,6 +30,7 @@ import {
 } from "@/lib/financial-db";
 import { inferEntityFromAccount } from "@/lib/financial-classifier";
 import { USE_BLOB, initDB } from "@/lib/db";
+import { USE_GDRIVE, uploadToDrive, makeGDriveUrl } from "@/lib/gdrive-storage";
 import type { BankName, EntityLayer, FinancialDocument } from "@/lib/financial-db";
 
 export const runtime = "nodejs";
@@ -128,10 +129,22 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const docId = newId();
   const safeFilename = `${docId}_${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
 
-  // ── Store PDF: Vercel Blob or filesystem ──
+  // ── Store PDF: Google Drive > Vercel Blob > filesystem ──
   let blobUrl: string | null = null;
 
-  if (USE_BLOB) {
+  if (USE_GDRIVE) {
+    // Google Drive — AWQ Group storage (15 GB free, persistent)
+    try {
+      const fileId = await uploadToDrive(safeFilename, buffer);
+      blobUrl = makeGDriveUrl(fileId);
+    } catch (driveErr) {
+      console.error("[ingest/upload] Google Drive upload failed:", driveErr);
+      return NextResponse.json(
+        { error: "Falha ao salvar arquivo no Google Drive. Verifique as credenciais da service account." },
+        { status: 500 }
+      );
+    }
+  } else if (USE_BLOB) {
     // Vercel Blob — persistent across deployments
     const { put } = await import("@vercel/blob");
     const result = await put(`financial-pdfs/${safeFilename}`, buffer, {
