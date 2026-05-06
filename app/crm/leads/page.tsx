@@ -8,7 +8,7 @@ import SectionHeader from "@/components/SectionHeader";
 import EmptyState from "@/components/EmptyState";
 import {
   Users, Plus, Search, Target, TrendingUp,
-  BarChart3, ExternalLink, RefreshCw, ChevronRight, Trash2,
+  BarChart3, ExternalLink, ChevronRight, Trash2, Pencil,
 } from "lucide-react";
 import type { CrmLead, CrmOpportunity } from "@/lib/crm-types";
 import { SEED_LEADS, SEED_OPPORTUNITIES } from "@/lib/crm-db";
@@ -77,24 +77,34 @@ export default function LeadsPage() {
 
   useEffect(() => {
     async function load() {
-      try {
-        const res = await fetch("/api/crm/leads");
-        const json = await res.json();
-        if (json.success) {
-          setLeads(json.data);
-        } else throw new Error("api");
-      } catch {
-        const localLeads = JSON.parse(localStorage.getItem("awq_local_leads") ?? "[]") as CrmLead[];
-        const converted = JSON.parse(localStorage.getItem("awq_converted_leads") ?? "{}") as Record<string, string>;
-        const deletedIds = new Set<string>(JSON.parse(localStorage.getItem("awq_deleted_leads") ?? "[]"));
-        const combined = [...localLeads, ...SEED_LEADS]
+      const localLeads = JSON.parse(localStorage.getItem("awq_local_leads") ?? "[]") as CrmLead[];
+      const leadEdits  = JSON.parse(localStorage.getItem("awq_lead_edits")   ?? "{}") as Record<string, CrmLead>;
+      const converted  = JSON.parse(localStorage.getItem("awq_converted_leads") ?? "{}") as Record<string, string>;
+      const deletedIds = new Set<string>(JSON.parse(localStorage.getItem("awq_deleted_leads") ?? "[]"));
+
+      function applyLocalState(rows: CrmLead[]): CrmLead[] {
+        const localIds = new Set(localLeads.map(l => l.lead_id));
+        return [
+          ...localLeads,
+          ...rows.filter(l => !localIds.has(l.lead_id)),
+        ]
           .filter(l => !deletedIds.has(l.lead_id))
+          .map(l => leadEdits[l.lead_id] ?? l)
           .map(l =>
             converted[l.lead_id]
               ? { ...l, status: "converted" as const, converted_to_opportunity_id: converted[l.lead_id] }
               : l
           );
-        setLeads(combined);
+      }
+
+      try {
+        const res = await fetch("/api/crm/leads");
+        const json = await res.json();
+        if (json.success) {
+          setLeads(applyLocalState(json.data));
+        } else throw new Error("api");
+      } catch {
+        setLeads(applyLocalState(SEED_LEADS));
         setIsStatic(true);
       } finally {
         setLoading(false);
@@ -182,38 +192,27 @@ export default function LeadsPage() {
     if (!confirm(`Apagar o lead "${lead.company_name}" permanentemente?`)) return;
     setDeleting(lead.lead_id);
 
-    if (isStatic) {
-      const localLeads = JSON.parse(localStorage.getItem("awq_local_leads") ?? "[]") as CrmLead[];
-      const updatedLocal = localLeads.filter(l => l.lead_id !== lead.lead_id);
-      localStorage.setItem("awq_local_leads", JSON.stringify(updatedLocal));
-
-      const deleted = JSON.parse(localStorage.getItem("awq_deleted_leads") ?? "[]") as string[];
-      if (!deleted.includes(lead.lead_id)) {
-        localStorage.setItem("awq_deleted_leads", JSON.stringify([...deleted, lead.lead_id]));
-      }
-
-      setLeads(prev => prev.filter(l => l.lead_id !== lead.lead_id));
-      setDeleting(null);
-      return;
+    // Always persist deletion in localStorage first (works on static + SSR)
+    const localLeads = JSON.parse(localStorage.getItem("awq_local_leads") ?? "[]") as CrmLead[];
+    localStorage.setItem("awq_local_leads", JSON.stringify(localLeads.filter(l => l.lead_id !== lead.lead_id)));
+    const deleted = JSON.parse(localStorage.getItem("awq_deleted_leads") ?? "[]") as string[];
+    if (!deleted.includes(lead.lead_id)) {
+      localStorage.setItem("awq_deleted_leads", JSON.stringify([...deleted, lead.lead_id]));
     }
+    // Remove any stored edit for this lead
+    const edits = JSON.parse(localStorage.getItem("awq_lead_edits") ?? "{}") as Record<string, CrmLead>;
+    delete edits[lead.lead_id];
+    localStorage.setItem("awq_lead_edits", JSON.stringify(edits));
 
-    try {
-      const res = await fetch("/api/crm/leads", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "delete", lead_id: lead.lead_id }),
-      });
-      const json = await res.json();
-      if (json.success) {
-        setLeads(prev => prev.filter(l => l.lead_id !== lead.lead_id));
-      } else {
-        alert(json.error ?? "Erro ao apagar lead");
-      }
-    } catch {
-      alert("Erro de rede — tente novamente");
-    } finally {
-      setDeleting(null);
-    }
+    setLeads(prev => prev.filter(l => l.lead_id !== lead.lead_id));
+    setDeleting(null);
+
+    // Fire-and-forget to API (no-op on static)
+    fetch("/api/crm/leads", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "delete", lead_id: lead.lead_id }),
+    }).catch(() => undefined);
   }
 
   const filtered = useMemo(() => {
@@ -446,6 +445,11 @@ export default function LeadsPage() {
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-1.5">
+                            <Link href={`/crm/leads/edit?id=${lead.lead_id}`}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">
+                              <Pencil size={10} />
+                              Editar
+                            </Link>
                             <Link href={`/crm/activities/add?related_to_type=lead&related_to_id=${lead.lead_id}`}
                               className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">
                               <ExternalLink size={10} />
