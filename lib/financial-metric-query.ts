@@ -423,10 +423,9 @@ export async function getManagementDiagnostics(): Promise<ManagementDiagnostics>
 // ─── Formatting helpers (re-exported for pages) ───────────────────────────────
 
 export function fmtR(n: number): string {
-  if (Math.abs(n) >= 1_000_000_000) return "R$" + (n / 1_000_000_000).toFixed(2) + "B";
-  if (Math.abs(n) >= 1_000_000)     return "R$" + (n / 1_000_000).toFixed(2).replace(".", ",") + "M";
-  if (Math.abs(n) >= 1_000)         return "R$" + (n / 1_000).toFixed(1).replace(".", ",") + "K";
-  return "R$" + n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const sign = n < 0 ? "-" : "";
+  const abs  = Math.abs(n);
+  return sign + "R$" + abs.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 export function fmtPct(n: number, decimals = 1): string {

@@ -14,8 +14,6 @@ import { IS_STATIC, crmCreate, crmUpdate, crmDelete } from "@/lib/jacqes-crm-sto
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function fmtCurrency(n: number): string {
-  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2).replace(".", ",") + "M";
-  if (n >= 1_000)     return "R$" + (n / 1_000).toFixed(1).replace(".", ",") + "K";
   return "R$" + n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 

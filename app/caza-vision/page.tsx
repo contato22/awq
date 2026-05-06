@@ -15,8 +15,6 @@ import {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function fmtCurrency(n: number) {
-  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2).replace(".", ",") + "M";
-  if (n >= 1_000)     return "R$" + (n / 1_000).toFixed(2).replace(".", ",") + "K";
   return "R$" + n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 function fmtNumber(n: number) { return n.toLocaleString("pt-BR"); }

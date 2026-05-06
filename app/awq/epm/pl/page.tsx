@@ -24,8 +24,6 @@ import { consolidated, consolidatedMargins, BUDGET_LINES } from "@/lib/awq-deriv
 function fmtBRL(n: number): string {
   const abs = Math.abs(n);
   const sign = n < 0 ? "-" : "";
-  if (abs >= 1_000_000) return sign + "R$" + (abs / 1_000_000).toFixed(2).replace(".", ",") + "M";
-  if (abs >= 1_000)     return sign + "R$" + (abs / 1_000).toFixed(1).replace(".", ",") + "K";
   return sign + "R$" + abs.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 

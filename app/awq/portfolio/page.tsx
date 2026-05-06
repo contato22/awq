@@ -24,9 +24,6 @@ import {
 import { getPortfolioMetrics, fmtBRL } from "@/lib/financial-metric-query";
 
 function fmtR(n: number) {
-  if (Math.abs(n) >= 1_000_000_000) return "R$" + (n / 1_000_000_000).toFixed(2) + "B";
-  if (Math.abs(n) >= 1_000_000)     return "R$" + (n / 1_000_000).toFixed(2).replace(".", ",") + "M";
-  if (Math.abs(n) >= 1_000)         return "R$" + (n / 1_000).toFixed(1).replace(".", ",") + "K";
   return "R$" + n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
@@ -273,7 +270,7 @@ export default async function AwqPortfolioPage() {
                       <span className="text-[11px] font-medium text-gray-700">{d.stage}</span>
                     </td>
                     <td className="py-2.5 px-3 text-right font-bold text-amber-600 tabular-nums">
-                      {d.proposedValue >= 1_000_000 ? "R$"+(d.proposedValue/1_000_000).toFixed(1).replace(".", ",") + "M" : "R$"+(d.proposedValue/1_000).toFixed(0).replace(".", ",") + "K"}
+                      {"R$ " + d.proposedValue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
                     <td className="py-2.5 px-3 text-gray-500 text-[11px]">{d.valuationRange}</td>
                     <td className="py-2.5 px-3">

@@ -30,14 +30,10 @@ import type {
 
 function fmtR(n: number | null, quality: DataQuality): string {
   if (n === null || quality === "sem_dado") return "—";
-  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(1).replace(".", ",") + "M";
-  if (n >= 1_000)     return "R$" + (n / 1_000).toFixed(1).replace(".", ",") + "K";
   return "R$" + n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function fmtRaw(n: number): string {
-  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(1).replace(".", ",") + "M";
-  if (n >= 1_000)     return "R$" + (n / 1_000).toFixed(1).replace(".", ",") + "K";
   return "R$" + n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
