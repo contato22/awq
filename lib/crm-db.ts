@@ -382,7 +382,6 @@ export async function listActivities(filters?: { related_to_type?: string; relat
       AND (${filters?.related_to_id ?? null}::uuid IS NULL OR related_to_id = ${filters?.related_to_id ?? null}::uuid)
       AND (${filters?.created_by ?? null}::text IS NULL OR created_by = ${filters?.created_by ?? null})
     ORDER BY created_at DESC
-    LIMIT 100
   `;
   return rows as CrmActivity[];
 }

@@ -126,8 +126,8 @@ export default function LeadsPage() {
           created_by: lead.assigned_to,
         };
 
-        const storedOpps: CrmOpportunity[] = JSON.parse(localStorage.getItem("crm-opportunities-v1") ?? "null") ?? SEED_OPPORTUNITIES;
-        localStorage.setItem("crm-opportunities-v1", JSON.stringify([...storedOpps, newOpp]));
+        const storedOpps: CrmOpportunity[] = JSON.parse(localStorage.getItem("crm-opportunities-v3") ?? "null") ?? SEED_OPPORTUNITIES;
+        localStorage.setItem("crm-opportunities-v3", JSON.stringify([...storedOpps, newOpp]));
 
         const converted = JSON.parse(localStorage.getItem("awq_converted_leads") ?? "{}") as Record<string, string>;
         converted[lead.lead_id] = newOppId;
