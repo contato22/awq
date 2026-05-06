@@ -71,8 +71,9 @@ export async function listAccounts(filters?: { search?: string; account_type?: s
     if (filters?.bu) rows = rows.filter(r => r.bu === filters.bu);
     if (filters?.owner) rows = rows.filter(r => r.owner === filters.owner);
     if (filters?.search) {
-      const s = filters.search.toLowerCase();
-      rows = rows.filter(r => r.account_name.toLowerCase().includes(s) || (r.trade_name ?? "").toLowerCase().includes(s));
+      const norm = (v: string) => v.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+      const s = norm(filters.search);
+      rows = rows.filter(r => norm(r.account_name).includes(s) || norm(r.trade_name ?? "").includes(s));
     }
     return rows;
   }
