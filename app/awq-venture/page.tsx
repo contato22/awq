@@ -15,8 +15,8 @@ function fmtBRL(n: number) {
 }
 
 function fmtK(n: number) {
-  if (n >= 1000) return "R$" + (n / 1000).toFixed(0) + "k";
-  return "R$" + n.toFixed(0);
+  if (n >= 1000) return "R$" + (n / 1000).toFixed(1) + "k";
+  return "R$" + n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────

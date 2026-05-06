@@ -16,8 +16,8 @@ import {
 function fmtR(n: number) {
   if (n >= 1_000_000_000) return "R$" + (n / 1_000_000_000).toFixed(2) + "B";
   if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  if (n >= 1_000) return "R$" + (n / 1_000).toFixed(0) + "K";
-  return "R$" + n.toLocaleString("pt-BR");
+  if (n >= 1_000) return "R$" + (n / 1_000).toFixed(1) + "K";
+  return "R$" + n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function fmtMult(x: number) {

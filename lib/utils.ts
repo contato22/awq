@@ -18,7 +18,8 @@ export function formatCurrency(
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency,
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(value);
 }
 
@@ -51,8 +52,8 @@ export function formatDateBR(d: string | null | undefined): string {
 export function formatBRL(n: number | null | undefined): string {
   if (n == null) return "—";
   if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(1) + "M";
-  if (n >= 1_000)     return "R$" + (n / 1_000).toFixed(0) + "K";
-  return "R$" + n.toLocaleString("pt-BR");
+  if (n >= 1_000)     return "R$" + (n / 1_000).toFixed(1) + "K";
+  return "R$" + n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 export function getDeltaColor(delta: number): string {

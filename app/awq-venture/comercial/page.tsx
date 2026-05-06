@@ -31,14 +31,14 @@ import type {
 function fmtR(n: number | null, quality: DataQuality): string {
   if (n === null || quality === "sem_dado") return "—";
   if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(1) + "M";
-  if (n >= 1_000)     return "R$" + (n / 1_000).toFixed(0) + "K";
-  return "R$" + n.toLocaleString("pt-BR");
+  if (n >= 1_000)     return "R$" + (n / 1_000).toFixed(1) + "K";
+  return "R$" + n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function fmtRaw(n: number): string {
   if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(1) + "M";
-  if (n >= 1_000)     return "R$" + (n / 1_000).toFixed(0) + "K";
-  return "R$" + n.toLocaleString("pt-BR");
+  if (n >= 1_000)     return "R$" + (n / 1_000).toFixed(1) + "K";
+  return "R$" + n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 // ─── Badges de qualidade de dado ──────────────────────────────────────────────
@@ -141,7 +141,7 @@ function ProposalPreviewOverlay({
             </span>
             {p.feeQuality !== "sem_dado" && p.monthlyFee !== null && (
               <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full ring-1 ring-emerald-200">
-                Fee: R${p.monthlyFee.toLocaleString("pt-BR")}/mês
+                Fee: R${p.monthlyFee.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mês
               </span>
             )}
           </div>
@@ -613,7 +613,7 @@ export default function ComercialPage() {
                   <div className="grid grid-cols-3 gap-3">
                     {p.monthlyFee !== null && p.feeQuality !== "sem_dado" && (
                       <div className="text-center p-2 rounded-lg bg-amber-50">
-                        <div className="text-sm font-bold text-amber-700">R${p.monthlyFee.toLocaleString("pt-BR")}</div>
+                        <div className="text-sm font-bold text-amber-700">R${p.monthlyFee.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                         <div className="text-[10px] text-amber-600">Fee mensal</div>
                         <QualityBadge q={p.feeQuality} />
                       </div>

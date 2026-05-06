@@ -19,8 +19,8 @@ import {
 function fmtR(n: number | null): string {
   if (n === null || n === undefined) return "—";
   if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(1) + "M";
-  if (n >= 1_000)     return "R$" + (n / 1_000).toFixed(0) + "K";
-  return "R$" + n.toLocaleString("pt-BR");
+  if (n >= 1_000)     return "R$" + (n / 1_000).toFixed(1) + "K";
+  return "R$" + n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function fmtPct(n: number | null): string {

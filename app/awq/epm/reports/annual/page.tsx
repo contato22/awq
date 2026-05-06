@@ -23,7 +23,7 @@ function fmtBRL(n: number): string {
   const sign = n < 0 ? "-" : "";
   if (abs >= 1_000_000) return sign + "R$" + (abs / 1_000_000).toFixed(2) + "M";
   if (abs >= 1_000)     return sign + "R$" + (abs / 1_000).toFixed(0)     + "K";
-  return sign + "R$" + abs.toLocaleString("pt-BR", { minimumFractionDigits: 0 });
+  return sign + "R$" + abs.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 // 3-year trend (FY2024, FY2025, FY2026 YTD)

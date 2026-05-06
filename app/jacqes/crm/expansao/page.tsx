@@ -20,8 +20,8 @@ import { IS_STATIC, crmCreate, crmUpdate, crmDelete } from "@/lib/jacqes-crm-sto
 
 function fmtCurrency(n: number): string {
   if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  if (n >= 1_000) return "R$" + Math.round(n / 1_000) + "K";
-  return "R$" + n;
+  if (n >= 1_000) return "R$" + (n / 1_000).toFixed(1) + "K";
+  return "R$" + n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 const TIPO_FILTERS = ["Todos", "Upsell", "Cross-sell", "Upgrade", "Projeto Extra", "Reativação"] as const;

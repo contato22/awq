@@ -15,7 +15,7 @@ const _jacqes = buData.find((b) => b.id === "jacqes")!;
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function fmtR(n: number) {
   if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  return "R$" + n.toLocaleString("pt-BR");
+  return "R$" + n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 const SEL_CLS =

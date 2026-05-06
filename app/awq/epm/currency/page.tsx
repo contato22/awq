@@ -23,7 +23,7 @@ function fmtBRL(n: number): string {
   const sign = n < 0 ? "-" : "";
   if (abs >= 1_000_000) return sign + "R$" + (abs / 1_000_000).toFixed(2) + "M";
   if (abs >= 1_000)     return sign + "R$" + (abs / 1_000).toFixed(0)     + "K";
-  return sign + "R$" + abs.toLocaleString("pt-BR", { minimumFractionDigits: 0 });
+  return sign + "R$" + abs.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function fmtFX(n: number, decimals = 4): string {
@@ -280,7 +280,7 @@ export default function CurrencyPage() {
                         </span>
                       </td>
                       <td className="py-2 px-3 text-right tabular-nums text-gray-700">
-                        {t.amount_fc.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}
+                        {t.amount_fc.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </td>
                       <td className="py-2 px-3 text-right tabular-nums text-gray-400">
                         {fmtFX(t.rate_at_booking, 4)}
