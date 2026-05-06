@@ -34,6 +34,7 @@ const STAGE_CONFIG: Record<string, {
   proposal:      { label: "Proposta",      prob: 60,  bg: "bg-amber-50",  border: "border-amber-200",  header: "bg-amber-500",  tag: "bg-amber-100 text-amber-700",  bar: "bg-amber-500" },
   negotiation:   { label: "Negociação",    prob: 75,  bg: "bg-orange-50", border: "border-orange-200", header: "bg-orange-500", tag: "bg-orange-100 text-orange-700", bar: "bg-orange-500" },
   closed_won:    { label: "Ganho",         prob: 100, bg: "bg-emerald-50", border: "border-emerald-200", header: "bg-emerald-600", tag: "bg-emerald-100 text-emerald-700", bar: "bg-emerald-500" },
+  closed_lost:   { label: "Perdido",       prob: 0,   bg: "bg-red-50",     border: "border-red-200",     header: "bg-red-600",     tag: "bg-red-100 text-red-700",         bar: "bg-red-500" },
 };
 
 const BU_COLORS: Record<string, string> = {
@@ -51,7 +52,7 @@ const ACTIVITY_TYPE_CONFIG: Record<string, { icon: React.ElementType; label: str
   note:    { icon: FileText,      label: "Nota",     color: "text-gray-600 bg-gray-100" },
 };
 
-const ACTIVE_STAGES = ["discovery","qualification","proposal","negotiation","closed_won"] as const;
+const ACTIVE_STAGES = ["discovery","qualification","proposal","negotiation","closed_won","closed_lost"] as const;
 
 // ─── Detail Modal (Detalhes + Atividades) ────────────────────────────────────
 
@@ -736,8 +737,8 @@ function KanbanColumn({
         )}
       </div>
 
-      {/* Add button — hidden for closed_won */}
-      {stage !== "closed_won" && (
+      {/* Add button — hidden for closed stages */}
+      {stage !== "closed_won" && stage !== "closed_lost" && (
         <div className="p-2 border-t border-gray-200">
           <Link
             href={`/crm/opportunities/add?stage=${stage}`}
@@ -996,36 +997,6 @@ function PipelinePageInner() {
             ))}
           </div>
         </div>
-
-        {/* Closed Lost section */}
-        {opps.filter(o => o.stage === "closed_lost").length > 0 && (
-          <div className="card p-4">
-            <SectionHeader icon={<AlertCircle size={14} className="text-red-500" />} title="Perdidos" />
-            <div className="space-y-2">
-              {opps.filter(o => o.stage === "closed_lost").map(o => (
-                <div
-                  key={o.opportunity_id}
-                  className="flex items-center justify-between py-1.5 border-b border-gray-100 last:border-0 hover:bg-gray-50 rounded px-1 -mx-1 transition-colors"
-                >
-                  <div className="flex-1 cursor-pointer" onClick={() => openCard(o, "edit")}>
-                    <p className="text-xs font-medium text-gray-900">{o.opportunity_name}</p>
-                    <p className="text-[10px] text-gray-500">{o.lost_reason ?? "—"} · {formatDateBR(o.actual_close_date)}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-red-500">{formatBRL(o.deal_value)}</span>
-                    <button
-                      onClick={() => handleDelete(o)}
-                      className="p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
-                      title="Apagar oportunidade"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
       </div>
     </>
