@@ -11,6 +11,7 @@
 import fs from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
+import { USE_GDRIVE, uploadToDrive } from "./gdrive-storage";
 export type { AccountType, BuCode, AccountRef } from "./epm-gl-constants";
 export { CHART_OF_ACCOUNTS } from "./epm-gl-constants";
 import type { AccountType, BuCode, AccountRef } from "./epm-gl-constants";
@@ -84,7 +85,12 @@ function readStore(): GLStore {
 function writeStore(store: GLStore) {
   ensureDir();
   store.last_updated = new Date().toISOString();
-  fs.writeFileSync(GL_FILE, JSON.stringify(store, null, 2), "utf-8");
+  const content = JSON.stringify(store, null, 2);
+  fs.writeFileSync(GL_FILE, content, "utf-8");
+  if (USE_GDRIVE) {
+    uploadToDrive("epm-gl.json", Buffer.from(content), "application/json", "infra")
+      .catch(() => {});
+  }
 }
 
 // ─── Period helper ────────────────────────────────────────────────────────────

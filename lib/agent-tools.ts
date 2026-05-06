@@ -13,7 +13,8 @@ import type { Tool } from "@anthropic-ai/sdk/resources/messages/messages";
 type ToolResultBlockParam = { type: "tool_result"; tool_use_id: string; content: string };
 
 import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync } from "fs";
-import { join, dirname } from "path";
+import { join, dirname, basename } from "path";
+import { USE_GDRIVE, uploadToDrive } from "./gdrive-storage";
 
 const NOTION_VERSION = "2022-06-28";
 
@@ -267,6 +268,10 @@ function safeWriteFile(
     const dir = dirname(abs);
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
     writeFileSync(abs, content, "utf8");
+    if (USE_GDRIVE && normalized.startsWith("public/data/")) {
+      uploadToDrive(basename(normalized), Buffer.from(content), "application/json", "infra")
+        .catch(() => {});
+    }
     return { written: true };
   } catch (err) {
     return { written: false, error: err instanceof Error ? err.message : String(err) };

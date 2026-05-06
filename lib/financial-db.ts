@@ -14,6 +14,7 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 import { sql, USE_DB } from "./db";
+import { USE_GDRIVE, uploadToDrive } from "./gdrive-storage";
 
 // ─── Directory (filesystem adapter only) ─────────────────────────────────────
 
@@ -40,7 +41,12 @@ function readJSON<T>(file: string, fallback: T): T {
 
 function writeJSON(file: string, data: unknown): void {
   ensureDir();
-  fs.writeFileSync(file, JSON.stringify(data, null, 2), "utf-8");
+  const content = JSON.stringify(data, null, 2);
+  fs.writeFileSync(file, content, "utf-8");
+  if (USE_GDRIVE) {
+    uploadToDrive(path.basename(file), Buffer.from(content), "application/json", "infra")
+      .catch(() => {});
+  }
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────

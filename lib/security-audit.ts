@@ -15,6 +15,7 @@
 import { sql } from "./db";
 import { SECURITY_ENFORCEMENT_MODE } from "./security-access";
 import type { AuditEvent, SecurityAction, AuditResult } from "./security-types";
+import { USE_GDRIVE, uploadToDrive } from "./gdrive-storage";
 
 const MAX_EVENTS = 100;
 const _auditLog: AuditEvent[] = [];
@@ -100,6 +101,17 @@ export function logAuditEvent(
 
   // DB fire-and-forget (não bloqueia guard flow)
   persistToDB(event).catch(() => { /* DB indisponível — in-memory é o único registro */ });
+
+  // Drive backup for blocked events (non-repudiation)
+  if (USE_GDRIVE && event.result === "blocked") {
+    const ts = event.timestamp.replace(/[:.]/g, "-");
+    uploadToDrive(
+      `security-blocked-${ts}.json`,
+      Buffer.from(JSON.stringify(event, null, 2)),
+      "application/json",
+      "seguranca"
+    ).catch(() => {});
+  }
 
   return event;
 }

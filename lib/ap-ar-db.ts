@@ -10,6 +10,7 @@ import fs from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
 import { sql } from "./db";
+import { USE_GDRIVE, uploadToDrive } from "./gdrive-storage";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -226,7 +227,12 @@ function readJSONFile<T>(file: string, empty: T): T {
 
 function writeJSONFile<T>(file: string, data: T) {
   ensureDir(file);
-  fs.writeFileSync(file, JSON.stringify(data, null, 2), "utf-8");
+  const content = JSON.stringify(data, null, 2);
+  fs.writeFileSync(file, content, "utf-8");
+  if (USE_GDRIVE) {
+    uploadToDrive(path.basename(file), Buffer.from(content), "application/json", "infra")
+      .catch(() => {});
+  }
 }
 
 interface APStore { items: APItem[]; last_updated: string }
