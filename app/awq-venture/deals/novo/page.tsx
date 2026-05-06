@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 
 // ─── Types & utils ────────────────────────────────────────────────────────────
-import { loadCustomDeals, saveCustomDeals } from "../custom-deal-utils";
+import { loadCustomDeals, createCustomDeal, updateCustomDeal, deleteCustomDeal } from "../custom-deal-utils";
 import type { CustomDeal } from "../custom-deal-utils";
 
 // ─── Field helpers ────────────────────────────────────────────────────────────
@@ -58,30 +58,33 @@ export default function NovoDealPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const id = params.get("id");
-    if (id) {
-      const existing = loadCustomDeals().find((d) => d.id === id);
+    if (!id) return;
+    loadCustomDeals().then((deals) => {
+      const existing = deals.find((d) => d.id === id);
       if (existing) { setForm(existing); setEditMode(true); }
-    }
+    }).catch(() => {});
   }, []);
 
   function set(field: keyof CustomDeal, val: string | number) {
     setForm((f) => ({ ...f, [field]: val }));
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!form.companyName.trim()) return;
-    const all = loadCustomDeals();
-    const idx = all.findIndex((d) => d.id === form.id);
-    const updated = { ...form, updatedAt: new Date().toISOString() };
-    if (idx >= 0) all[idx] = updated; else all.unshift(updated);
-    saveCustomDeals(all);
-    setSaved(true);
-    setTimeout(() => { router.push("/awq-venture/deals"); }, 1000);
+    try {
+      if (editMode) {
+        await updateCustomDeal(form.id, { ...form, updatedAt: new Date().toISOString() });
+      } else {
+        const { id: _id, createdAt: _c, updatedAt: _u, ...rest } = form;
+        await createCustomDeal(rest);
+      }
+      setSaved(true);
+      setTimeout(() => { router.push("/awq-venture/deals"); }, 1000);
+    } catch { /* ignore — keep button enabled */ }
   }
 
-  function handleDelete() {
-    const all = loadCustomDeals().filter((d) => d.id !== form.id);
-    saveCustomDeals(all);
+  async function handleDelete() {
+    await deleteCustomDeal(form.id);
     router.push("/awq-venture/deals");
   }
 
@@ -249,7 +252,7 @@ export default function NovoDealPage() {
             <textarea className={inputCls} rows={4} value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="Informações adicionais, contexto do deal, alertas internos, origem do contato…" />
           </Field>
           <div className="text-[10px] text-gray-400 bg-gray-50 rounded-lg px-3 py-2">
-            Deal salvo localmente em localStorage. Para sincronização com pipeline e base, integrar com API.
+            Deal salvo no servidor (Neon Postgres) — disponível em todos os dispositivos.
           </div>
         </div>
 

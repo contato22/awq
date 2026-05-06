@@ -3,17 +3,10 @@
 // ─── /awq/bank — Contas de Banco ─────────────────────────────────────────────
 //
 // ROLE: Local cash position tracker — accounts, balances, manual transaction history.
-//       Data lives in localStorage (browser-local, not server-persistent).
+//       Data stored in Neon Postgres via /api/awq/bank-accounts (cross-device).
 //
 // SCOPE: This page is NOT the document ingestion pipeline.
 //        For PDF-based bank statement import with full traceability, use /awq/conciliacao.
-//
-// ARCHITECTURE:
-//   • Accounts and transactions: localStorage ("awq_bank_accounts")
-//   • No server API calls for data storage — intentionally local/scratchpad
-//   • No AI parsing — that responsibility moved to /api/ingest/process (server-only)
-//   • Complements /awq/conciliacao: provides quick manual balance tracking; ingest provides
-//     the canonical document-backed financial database
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
@@ -47,10 +40,6 @@ interface BankAccount {
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-
-// localStorage key for this page's local account data.
-// This is intentionally separate from public/data/financial/* (the canonical store).
-const LS_KEY = "awq_bank_accounts";
 
 const BANK_GROUPS: { label: string; banks: string[] }[] = [
   {
@@ -120,43 +109,80 @@ function fmtDate(s: string) {
 }
 
 function uid() {
-  return Math.random().toString(36).slice(2) + Date.now().toString(36);
+  return crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
+
+// ─── API helpers ──────────────────────────────────────────────────────────────
+
+async function apiLoadAccounts(): Promise<BankAccount[]> {
+  try {
+    const res = await fetch("/api/awq/bank-accounts");
+    if (res.ok) return res.json();
+  } catch { /* fall through */ }
+  return [];
+}
+
+async function apiCreateAccount(acct: BankAccount): Promise<BankAccount> {
+  const res = await fetch("/api/awq/bank-accounts", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(acct),
+  });
+  if (!res.ok) throw new Error("Failed to create account");
+  return res.json();
+}
+
+async function apiDeleteAccount(id: string): Promise<void> {
+  await fetch(`/api/awq/bank-accounts/${id}`, { method: "DELETE" });
+}
+
+async function apiUpdateBalance(id: string, currentBalance: number, lastUpdated: string): Promise<void> {
+  await fetch(`/api/awq/bank-accounts/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ currentBalance, lastUpdated }),
+  });
+}
+
+async function apiAddTransaction(accountId: string, tx: BankTransaction): Promise<BankTransaction> {
+  const res = await fetch(`/api/awq/bank-accounts/${accountId}/transactions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(tx),
+  });
+  if (!res.ok) throw new Error("Failed to add transaction");
+  return res.json();
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function BankAccountsPage() {
-  const [accounts, setAccounts]     = useState<BankAccount[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [accounts, setAccounts]       = useState<BankAccount[]>([]);
+  const [selectedId, setSelectedId]   = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [search, setSearch]         = useState("");
-  const [sortAsc, setSortAsc]       = useState(false);
-  const [newBank, setNewBank]       = useState("Cora");
-  const [newName, setNewName]       = useState("");
-  const [newBalance, setNewBalance] = useState("");
+  const [search, setSearch]           = useState("");
+  const [sortAsc, setSortAsc]         = useState(false);
+  const [newBank, setNewBank]         = useState("Cora");
+  const [newName, setNewName]         = useState("");
+  const [newBalance, setNewBalance]   = useState("");
+  const [loading, setLoading]         = useState(true);
 
-  // ── Load from localStorage ───────────────────────────────────────────────
+  // ── Load from API ────────────────────────────────────────────────────────
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(LS_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as BankAccount[];
-        setAccounts(parsed);
-        if (parsed.length > 0) setSelectedId(parsed[0].id);
-      }
-    } catch { /* ignore */ }
+    apiLoadAccounts().then((data) => {
+      setAccounts(data);
+      if (data.length > 0) setSelectedId(data[0].id);
+    }).finally(() => setLoading(false));
   }, []);
 
-  // ── Persist to localStorage ──────────────────────────────────────────────
-  const save = useCallback((updated: BankAccount[]) => {
+  const updateLocal = useCallback((updated: BankAccount[]) => {
     setAccounts(updated);
-    try { localStorage.setItem(LS_KEY, JSON.stringify(updated)); } catch { /* ignore */ }
   }, []);
 
   const selected = accounts.find((a) => a.id === selectedId) ?? null;
 
   // ── Add account ──────────────────────────────────────────────────────────
-  function handleAddAccount() {
+  async function handleAddAccount() {
     if (!newName.trim()) return;
     const acct: BankAccount = {
       id: uid(),
@@ -167,9 +193,12 @@ export default function BankAccountsPage() {
       lastUpdated: new Date().toISOString().slice(0, 10),
       transactions: [],
     };
-    const updated = [...accounts, acct];
-    save(updated);
-    setSelectedId(acct.id);
+    try {
+      const created = await apiCreateAccount(acct);
+      const updated = [...accounts, { ...created, transactions: [] }];
+      updateLocal(updated);
+      setSelectedId(created.id);
+    } catch { /* keep local state unchanged */ }
     setNewBank("Cora");
     setNewName("");
     setNewBalance("");
@@ -177,9 +206,10 @@ export default function BankAccountsPage() {
   }
 
   // ── Delete account ───────────────────────────────────────────────────────
-  function handleDelete(id: string) {
+  async function handleDelete(id: string) {
+    await apiDeleteAccount(id);
     const updated = accounts.filter((a) => a.id !== id);
-    save(updated);
+    updateLocal(updated);
     setSelectedId(updated[0]?.id ?? null);
   }
 
@@ -199,11 +229,16 @@ export default function BankAccountsPage() {
   const acctCredits = (selected?.transactions ?? []).filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0);
   const acctDebits  = (selected?.transactions ?? []).filter((t) => t.amount < 0).reduce((s, t) => s + t.amount, 0);
 
+  // Suppress unused-variable warning; apiAddTransaction / apiUpdateBalance
+  // are available for future inline transaction creation features.
+  void apiAddTransaction;
+  void apiUpdateBalance;
+
   return (
     <>
       <Header
         title="Contas de Banco"
-        subtitle="Saldos manuais · Visão de caixa local · Dados em localStorage"
+        subtitle="Saldos manuais · Visão de caixa · Dados sincronizados entre dispositivos"
       />
       <div className="px-8 py-6 space-y-5">
 
@@ -302,7 +337,12 @@ export default function BankAccountsPage() {
             )}
 
             {/* Account list */}
-            {accounts.length === 0 && !showAddForm && (
+            {loading && (
+              <div className="card p-6 text-center">
+                <div className="text-xs text-gray-400">Carregando…</div>
+              </div>
+            )}
+            {!loading && accounts.length === 0 && !showAddForm && (
               <div className="card p-6 text-center">
                 <CreditCard size={28} className="text-gray-300 mx-auto mb-2" />
                 <div className="text-sm font-semibold text-gray-500">Nenhuma conta</div>

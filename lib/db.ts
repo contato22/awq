@@ -83,4 +83,85 @@ export async function initDB(): Promise<void> {
   const { initCazaDB } = await import("@/lib/caza-db");
   await initCazaDB();
 
+  // ─── Treasury — manual bank accounts (cross-device persistent) ───────────────
+  await sql`
+    CREATE TABLE IF NOT EXISTS awq_bank_accounts (
+      id              TEXT PRIMARY KEY,
+      bank            TEXT NOT NULL,
+      name            TEXT NOT NULL,
+      color           TEXT NOT NULL DEFAULT 'bg-gray-500',
+      current_balance NUMERIC NOT NULL DEFAULT 0,
+      last_updated    TEXT NOT NULL,
+      created_at      TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS awq_bank_transactions (
+      id          TEXT PRIMARY KEY,
+      account_id  TEXT NOT NULL REFERENCES awq_bank_accounts(id) ON DELETE CASCADE,
+      date        TEXT NOT NULL,
+      description TEXT NOT NULL,
+      amount      NUMERIC NOT NULL,
+      category    TEXT NOT NULL DEFAULT 'outros',
+      balance     NUMERIC,
+      original    TEXT,
+      created_at  TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_awq_bt_account ON awq_bank_transactions(account_id)`;
+
+  // ─── Venture — custom deals (cross-device persistent) ────────────────────────
+  await sql`
+    CREATE TABLE IF NOT EXISTS awq_custom_deals (
+      id            TEXT PRIMARY KEY,
+      company_name  TEXT NOT NULL,
+      cnpj          TEXT DEFAULT '',
+      sector        TEXT DEFAULT '',
+      location      TEXT DEFAULT '',
+      deal_type     TEXT DEFAULT '',
+      stage         TEXT DEFAULT 'Prospecção',
+      ticket        NUMERIC DEFAULT 0,
+      assignee      TEXT DEFAULT '',
+      risk_level    TEXT DEFAULT 'Médio',
+      priority      TEXT DEFAULT 'Média',
+      send_status   TEXT DEFAULT 'Não Enviado',
+      tese          TEXT DEFAULT '',
+      structura     TEXT DEFAULT '',
+      fee           TEXT DEFAULT '',
+      earnin        TEXT DEFAULT '',
+      conditions    TEXT DEFAULT '',
+      next_steps    TEXT DEFAULT '',
+      notes         TEXT DEFAULT '',
+      contact_name  TEXT DEFAULT '',
+      contact_email TEXT DEFAULT '',
+      contact_phone TEXT DEFAULT '',
+      website       TEXT DEFAULT '',
+      created_at    TIMESTAMPTZ DEFAULT NOW(),
+      updated_at    TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+
+  // ─── Contrapartes (cross-device persistent) ───────────────────────────────────
+  await sql`
+    CREATE TABLE IF NOT EXISTS awq_contrapartes (
+      id                TEXT PRIMARY KEY,
+      razao_social      TEXT NOT NULL,
+      nome_fantasia     TEXT DEFAULT '',
+      cnpj_cpf          TEXT DEFAULT '',
+      papel             TEXT NOT NULL DEFAULT 'fornecedor',
+      bu                TEXT DEFAULT '',
+      status            TEXT NOT NULL DEFAULT 'ativo',
+      email_financeiro  TEXT DEFAULT '',
+      telefone          TEXT DEFAULT '',
+      endereco          TEXT DEFAULT '',
+      observacoes       TEXT DEFAULT '',
+      deleted_at        TIMESTAMPTZ,
+      created_at        TIMESTAMPTZ DEFAULT NOW(),
+      updated_at        TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_awq_cp_papel   ON awq_contrapartes(papel)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_awq_cp_bu      ON awq_contrapartes(bu)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_awq_cp_status  ON awq_contrapartes(status)`;
+
 }

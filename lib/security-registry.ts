@@ -19,7 +19,7 @@ import type { SensitiveRoute, SensitiveApi } from "./security-types";
 export const SENSITIVE_ROUTES: SensitiveRoute[] = [
   { path: "/awq/financial",     layer: "financeiro",  sensitivity: "high",   requiredAction: "view",   description: "DRE gerencial consolidado (pipeline financeiro real)",     routeGuardStatus: "ready_for_guard" },
   { path: "/awq/cashflow",      layer: "financeiro",  sensitivity: "high",   requiredAction: "view",   description: "Fluxo de caixa operacional (pipeline financeiro real)",   routeGuardStatus: "ready_for_guard" },
-  { path: "/awq/bank",          layer: "financeiro",  sensitivity: "high",   requiredAction: "view",   description: "Contas bancárias e saldos (localStorage)",               routeGuardStatus: "ready_for_guard" },
+  { path: "/awq/bank",          layer: "financeiro",  sensitivity: "high",   requiredAction: "view",   description: "Contas bancárias e saldos (Neon Postgres)",              routeGuardStatus: "ready_for_guard" },
   { path: "/awq/investments",   layer: "financeiro",  sensitivity: "high",   requiredAction: "view",   description: "Aplicações financeiras e resgates",                      routeGuardStatus: "ready_for_guard" },
   { path: "/awq/management",    layer: "financeiro",  sensitivity: "high",   requiredAction: "view",   description: "Controladoria: qualidade, diagnósticos, fechamento",     routeGuardStatus: "ready_for_guard" },
   { path: "/awq/ingest",        layer: "dados_infra", sensitivity: "high",   requiredAction: "import", description: "Importação de extratos bancários PDF",                   routeGuardStatus: "ready_for_guard" },

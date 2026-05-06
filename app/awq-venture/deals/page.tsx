@@ -78,7 +78,7 @@ export default function DealsIndexPage() {
   const [customDeals, setCustomDeals] = useState<CustomDeal[]>([]);
 
   useEffect(() => {
-    setCustomDeals(loadCustomDeals());
+    loadCustomDeals().then(setCustomDeals).catch(() => {});
   }, []);
 
   const deals = dealWorkspaces;

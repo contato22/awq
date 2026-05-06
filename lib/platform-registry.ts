@@ -85,9 +85,9 @@ export const PLATFORM_ROUTES: PlatformRoute[] = [
 
   // ── AWQ Group — Financeiro Corporativo / Tesouraria ───────────────────────
   { href: "/awq/cashflow",    label: "Cash Flow",     bu: "awq", layer: "corporate-treasury", status: "active", dataSource: "lib/financial-query.ts (pipeline canônico — sem snapshot)", inSidebar: true, inTabNav: false },
-  { href: "/awq/bank",        label: "Contas Banco",  bu: "awq", layer: "corporate-treasury", status: "active", dataSource: "localStorage (saldos locais — não persistido no servidor — dívida técnica)", inSidebar: true, inTabNav: false },
+  { href: "/awq/bank",        label: "Contas Banco",  bu: "awq", layer: "corporate-treasury", status: "active", dataSource: "/api/awq/bank-accounts → Neon Postgres (awq_bank_accounts + awq_bank_transactions)", inSidebar: true, inTabNav: false },
   { href: "/awq/investments",  label: "Investimentos", bu: "awq", layer: "corporate-treasury", status: "active", dataSource: "lib/investment-query.ts (aplicacao/resgate financeiro — pipeline canônico)", inSidebar: true, inTabNav: false },
-  { href: "/awq/ap-ar",       label: "AP & AR",       bu: "awq", layer: "corporate-treasury", status: "active", dataSource: "localStorage (contas a pagar/receber — não persistido no servidor — dívida técnica)", inSidebar: true, inTabNav: false },
+  { href: "/awq/ap-ar",       label: "AP & AR",       bu: "awq", layer: "corporate-treasury", status: "active", dataSource: "lib/ap-ar-db.ts → Neon Postgres (epm_ap_items / epm_ar_items) ou JSON local dev", inSidebar: true, inTabNav: false },
   { href: "/awq/conciliacao", label: "Conciliação",   bu: "awq", layer: "corporate-treasury", status: "stub",   dataSource: "pending — conciliação bancária, conferência de extratos e lançamentos", inSidebar: true, inTabNav: false },
 
   // ── AWQ Group — Financeiro Corporativo / Controladoria ───────────────────
