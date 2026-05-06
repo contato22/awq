@@ -142,6 +142,11 @@ export async function updateAccount(id: string, data: Partial<CrmAccount>): Prom
   return rows[0] as CrmAccount;
 }
 
+export async function deleteAccount(id: string): Promise<void> {
+  if (!sql) throw new Error("DB not available");
+  await sql`DELETE FROM crm_accounts WHERE account_id = ${id}`;
+}
+
 // ─── Contact CRUD ─────────────────────────────────────────────────────────────
 
 export async function listContacts(filters?: { account_id?: string; search?: string }): Promise<CrmContact[]> {

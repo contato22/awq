@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
 import EmptyState from "@/components/EmptyState";
-import { Building2, Plus, Search, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Building2, Plus, Search, AlertTriangle, CheckCircle2, Trash2 } from "lucide-react";
 import type { CrmAccount } from "@/lib/crm-types";
 import { BU_OPTIONS } from "@/lib/crm-types";
 import { SEED_ACCOUNTS } from "@/lib/crm-db";
@@ -40,6 +40,7 @@ export default function AccountsPage() {
   const [filterType, setFilterType] = useState("Todos");
   const [filterBu, setFilterBu] = useState("Todos");
   const [filterOwner, setFilterOwner] = useState("Todos");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/crm/accounts")
@@ -48,6 +49,23 @@ export default function AccountsPage() {
       .catch(() => setAllAccounts(SEED_ACCOUNTS))
       .finally(() => setLoading(false));
   }, []);
+
+  async function handleDelete(id: string, name: string) {
+    if (!confirm(`Excluir a conta "${name}"? Esta ação não pode ser desfeita.`)) return;
+    setDeletingId(id);
+    try {
+      const res = await fetch("/api/crm/accounts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "delete", account_id: id }),
+      }).then(r => r.json());
+      if (res.success) {
+        setAllAccounts(prev => prev.filter(a => a.account_id !== id));
+      }
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   const accounts = useMemo(() => {
     return allAccounts.filter(a => {
@@ -135,7 +153,7 @@ export default function AccountsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200">
-                  {["Empresa", "Tipo", "BU", "Cidade", "Owner", "Opps", "Health", "Risco"].map(h => (
+                  {["Empresa", "Tipo", "BU", "Cidade", "Owner", "Opps", "Health", "Risco", ""].map(h => (
                     <th key={h} className="text-left py-3 px-4 text-[11px] font-semibold text-gray-500 whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -144,13 +162,13 @@ export default function AccountsPage() {
                 {loading ? (
                   Array.from({ length: 4 }).map((_, i) => (
                     <tr key={i} className="border-b border-gray-100">
-                      {Array.from({ length: 8 }).map((_, j) => (
+                      {Array.from({ length: 9 }).map((_, j) => (
                         <td key={j} className="py-3 px-4"><div className="h-4 bg-gray-100 rounded animate-pulse w-20" /></td>
                       ))}
                     </tr>
                   ))
                 ) : accounts.length === 0 ? (
-                  <tr><td colSpan={8} className="py-0">
+                  <tr><td colSpan={9} className="py-0">
                     <EmptyState compact icon={<Building2 size={16} className="text-gray-400" />} title="Nenhuma conta encontrada" />
                   </td></tr>
                 ) : (
@@ -180,6 +198,16 @@ export default function AccountsPage() {
                         <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${a.churn_risk === "high" ? "bg-red-50 text-red-700" : a.churn_risk === "medium" ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>
                           {a.churn_risk === "high" ? "Alto" : a.churn_risk === "medium" ? "Médio" : "Baixo"}
                         </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <button
+                          onClick={() => handleDelete(a.account_id, a.trade_name ?? a.account_name)}
+                          disabled={deletingId === a.account_id}
+                          className="p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-40"
+                          title="Excluir conta"
+                        >
+                          <Trash2 size={13} />
+                        </button>
                       </td>
                     </tr>
                   ))
