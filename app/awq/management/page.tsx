@@ -312,7 +312,7 @@ export default async function ManagementPage() {
                 {covered ? (
                   <div className="text-[10px] text-emerald-600 font-medium">
                     ✓ Extrato ingerido · período: {cov.periodStart ?? "?"} → {cov.periodEnd ?? "?"} ·
-                    saldo final: {cov.closingBalance != null ? `R$${cov.closingBalance.toLocaleString("pt-BR")}` : "—"}
+                    saldo final: {cov.closingBalance != null ? `R$${cov.closingBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—"}
                   </div>
                 ) : (
                   <div className="text-[10px] text-amber-700 font-medium">

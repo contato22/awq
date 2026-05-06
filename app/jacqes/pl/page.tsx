@@ -10,7 +10,7 @@ const totalPago  = clientes.filter((c) => c.status === "Pago").reduce((s, c) => 
 const totalPend  = clientes.filter((c) => c.status === "Pendente").reduce((s, c) => s + c.fee, 0);
 
 function fmt(n: number) {
-  return "R$ " + n.toLocaleString("pt-BR");
+  return "R$ " + n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 type LineStatus = "real" | "parcial" | "pendente";

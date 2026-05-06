@@ -112,7 +112,7 @@ export default function BpmProcessesPage() {
                           {step.conditions && (
                             <span className="ml-1 text-orange-600">
                               {Object.entries(step.conditions).map(([k, c]) =>
-                                c ? ` · Se ${k} ${c.operator} R$${c.value.toLocaleString("pt-BR")}` : ""
+                                c ? ` · Se ${k} ${c.operator} R$${c.value.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ""
                               )}
                             </span>
                           )}
