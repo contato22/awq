@@ -62,7 +62,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 }
 
 export async function PATCH(req: NextRequest): Promise<NextResponse> {
-  const denied = await apiGuard(req, "edit", "advisor", "CRM Oportunidades Advisor");
+  const denied = await apiGuard(req, "update", "advisor", "CRM Oportunidades Advisor");
   if (denied) return denied;
 
   try {

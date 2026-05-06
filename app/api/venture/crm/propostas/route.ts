@@ -11,7 +11,7 @@ import {
 export const runtime = "nodejs";
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
-  const denied = await apiGuard(req, "view", "venture", "CRM Propostas Venture");
+  const denied = await apiGuard(req, "view", "awq_venture", "CRM Propostas Venture");
   if (denied) return denied;
 
   const { searchParams } = new URL(req.url);
@@ -20,7 +20,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  const denied = await apiGuard(req, "create", "venture", "CRM Propostas Venture");
+  const denied = await apiGuard(req, "create", "awq_venture", "CRM Propostas Venture");
   if (denied) return denied;
 
   try {

@@ -14,7 +14,7 @@ import {
 export const runtime = "nodejs";
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
-  const denied = await apiGuard(req, "view", "venture", "CRM Oportunidades Venture");
+  const denied = await apiGuard(req, "view", "awq_venture", "CRM Oportunidades Venture");
   if (denied) return denied;
 
   const { searchParams } = new URL(req.url);
@@ -27,7 +27,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  const denied = await apiGuard(req, "create", "venture", "CRM Oportunidades Venture");
+  const denied = await apiGuard(req, "create", "awq_venture", "CRM Oportunidades Venture");
   if (denied) return denied;
 
   try {
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 }
 
 export async function PATCH(req: NextRequest): Promise<NextResponse> {
-  const denied = await apiGuard(req, "edit", "venture", "CRM Oportunidades Venture");
+  const denied = await apiGuard(req, "update", "awq_venture", "CRM Oportunidades Venture");
   if (denied) return denied;
 
   try {
@@ -85,7 +85,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
 }
 
 export async function DELETE(req: NextRequest): Promise<NextResponse> {
-  const denied = await apiGuard(req, "delete", "venture", "CRM Oportunidades Venture");
+  const denied = await apiGuard(req, "delete", "awq_venture", "CRM Oportunidades Venture");
   if (denied) return denied;
 
   const { searchParams } = new URL(req.url);
