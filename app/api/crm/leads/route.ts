@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { initCrmDB, listLeads, createLead, updateLead, convertLead } from "@/lib/crm-db";
+import { initCrmDB, listLeads, createLead, updateLead, convertLead, deleteLead } from "@/lib/crm-db";
 import { getForcedBu } from "@/lib/api-guard";
 
 function ok(data: unknown) { return NextResponse.json({ success: true, data }); }
@@ -43,6 +43,12 @@ export async function POST(req: NextRequest) {
       if (!lead_id) return err("lead_id required", 400);
       const opp = await convertLead(lead_id, oppData);
       return ok(opp);
+    }
+    if (action === "delete") {
+      const { lead_id } = data;
+      if (!lead_id) return err("lead_id required", 400);
+      await deleteLead(lead_id);
+      return ok(null);
     }
     return err("Unknown action", 400);
   } catch (e) { return err(String(e)); }
