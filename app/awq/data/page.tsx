@@ -66,7 +66,7 @@ const BU_STORAGE_MAP: BuStorageConfig[] = [
     securityLayer: "holding · financeiro · dados_infra · security · juridico",
     primaryStorage: [
       { name: "Neon Postgres (financial_documents + bank_transactions)", type: "canonical-store", confidence: "confirmada" },
-      { name: "Google Drive (PDFs — priority 1, 15 GB free, gdrive://)", type: "canonical-store", confidence: "confirmada" },
+      { name: "Google Drive AWQ PLATAFORM GROUP (10 TB — eqoa@ultrapack.cloud)", type: "canonical-store", confidence: "confirmada" },
       { name: "Vercel Blob (PDFs — priority 2, fallback, 512 MB free)",  type: "canonical-store", confidence: "confirmada" },
       { name: "lib/awq-group-data.ts (KPIs snapshot Q1 2026)",          type: "snapshot",        confidence: "snapshot"   },
       { name: "lib/financial-query.ts (seletor canônico)",               type: "selector",        confidence: "confirmada" },
@@ -485,15 +485,15 @@ export default async function AwqDataPage() {
                 <span className="ml-auto text-[9px] bg-emerald-200 text-emerald-700 px-1.5 py-0.5 rounded font-semibold">Priority 1</span>
               </div>
               <div className="space-y-1.5 text-[10px] text-emerald-700">
-                <div className="flex justify-between"><span>Storage total</span><span className="font-semibold">15 GB (free)</span></div>
-                <div className="flex justify-between"><span>Workspace Business</span><span className="font-semibold">ilimitado</span></div>
+                <div className="flex justify-between"><span>Pasta raiz</span><span className="font-semibold font-mono text-[9px]">AWQ PLATAFORM GROUP</span></div>
+                <div className="flex justify-between"><span>Conta</span><span className="font-semibold text-[9px]">eqoa@ultrapack.cloud</span></div>
+                <div className="flex justify-between"><span>Storage</span><span className="font-semibold">10 TB (Workspace)</span></div>
                 <div className="flex justify-between"><span>Upload PDFs (config)</span><span className="font-semibold text-orange-600">20 MB (interno)</span></div>
                 <div className="flex justify-between"><span>Auth</span><span className="font-semibold">Service Account</span></div>
-                <div className="flex justify-between"><span>Escopo</span><span className="font-semibold">AWQ Group only</span></div>
                 <div className="flex justify-between"><span>blobUrl</span><span className="font-semibold font-mono text-[9px]">gdrive://&#123;fileId&#125;</span></div>
               </div>
               <div className="mt-3 text-[9px] text-emerald-600">
-                Fallback: Vercel Blob → filesystem (se não configurado)
+                PDFs Financeiros · Extratos Bancários · Segurança &amp; Auditoria · Dados &amp; Infra
               </div>
             </div>
             {/* Vercel Blob */}
