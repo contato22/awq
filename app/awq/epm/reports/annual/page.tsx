@@ -22,16 +22,10 @@ function fmtBRL(n: number): string {
   const abs  = Math.abs(n);
   const sign = n < 0 ? "-" : "";
   if (abs >= 1_000_000) return sign + "R$" + (abs / 1_000_000).toFixed(2) + "M";
-  if (abs >= 1_000)     return sign + "R$" + (abs / 1_000).toFixed(0)     + "K";
+  if (abs >= 1_000)     return sign + "R$" + (abs / 1_000).toFixed(1) + "K";
   return sign + "R$" + abs.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-// 3-year trend (FY2024, FY2025, FY2026 YTD)
-const TREND_DATA = [
-  { year: "FY2024", revenue: 1_120_000, ebitda: -180_000, cashEnd:  95_000, employees: 3 },
-  { year: "FY2025", revenue: 3_210_000, ebitda:  240_000, cashEnd: 310_000, employees: 7 },
-  { year: "FY2026 YTD", revenue: 4_474_800, ebitda: 845_472, cashEnd: 412_000, employees: 9 },
-];
 
 // Annual P&L (FY2025 — last full year)
 const ANNUAL_PL = [
@@ -103,6 +97,12 @@ export default async function AnnualReportPage() {
 
   const ytdRevenue = dre.hasData ? dre.dreRevenue : snap.revenue;
   const ytdEBITDA  = dre.hasData ? dre.dreEBITDA  : snap.ebitda;
+
+  const TREND_DATA = [
+    { year: "FY2024",     revenue: 1_120_000, ebitda: -180_000, cashEnd:  95_000, employees: 3 },
+    { year: "FY2025",     revenue: 3_210_000, ebitda:  240_000, cashEnd: 310_000, employees: 7 },
+    { year: "FY2026 YTD", revenue: ytdRevenue, ebitda: ytdEBITDA, cashEnd: 412_000, employees: 9 },
+  ];
 
   return (
     <>

@@ -16,13 +16,14 @@ import {
   Building2, Calendar,
 } from "lucide-react";
 import { buildDreQuery } from "@/lib/dre-query";
-import { consolidated, consolidatedMargins, budgetVsActual } from "@/lib/awq-derived-metrics";
+import { consolidated, consolidatedMargins, budgetVsActual, buData } from "@/lib/awq-derived-metrics";
+import { JACQES_MRR } from "@/lib/awq-group-data";
 
 function fmtBRL(n: number): string {
   const abs  = Math.abs(n);
   const sign = n < 0 ? "-" : "";
   if (abs >= 1_000_000) return sign + "R$" + (abs / 1_000_000).toFixed(2) + "M";
-  if (abs >= 1_000)     return sign + "R$" + (abs / 1_000).toFixed(0)     + "K";
+  if (abs >= 1_000)     return sign + "R$" + (abs / 1_000).toFixed(1) + "K";
   return sign + "R$" + abs.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
@@ -184,7 +185,7 @@ export default async function BoardPackPage() {
               { label: "ROIC",              value: "18.4%", target: ">15%", status: "good" as const  },
               { label: "CCC",               value: "28d",   target: "<30d", status: "good" as const  },
               { label: "Budget Var.",        value: (budgetVar >= 0 ? "+" : "") + budgetVar.toFixed(1) + "%", target: ">0%", status: budgetVar >= 0 ? "good" as const : "bad" as const },
-              { label: "MRR JACQES",        value: "R$420K", target: "R$350K", status: "good" as const },
+              { label: "MRR JACQES",        value: fmtBRL(JACQES_MRR), target: "R$8K", status: "good" as const },
               { label: "Margem Bruta",      value: pct(gmPct ?? 0), target: ">50%", status: (gmPct ?? 0) >= 0.5 ? "good" as const : "warn" as const },
               { label: "DSO",               value: "32d",    target: "<45d", status: "good" as const  },
               { label: "Burn Rate",         value: fmtBRL(burnRate), target: "<R$90K", status: "good" as const },
@@ -226,12 +227,7 @@ export default async function BoardPackPage() {
                 </tr>
               </thead>
               <tbody>
-                {[
-                  { bu: "JACQES",  revenue: 3_624_000, budget: 3_400_000, ebitda: 905_000  },
-                  { bu: "CAZA",    revenue:   826_800,  budget: 1_000_000, ebitda:  33_072  },
-                  { bu: "ADVISOR", revenue:         0,  budget:         0, ebitda: -95_000  },
-                  { bu: "VENTURE", revenue:    24_000,  budget:    24_000, ebitda:   2_400  },
-                ].map((row) => {
+                {buData.map((b) => ({ bu: b.name, revenue: b.revenue, budget: b.budgetRevenue, ebitda: b.ebitda })).map((row) => {
                   const varPct    = row.budget > 0 ? ((row.revenue - row.budget) / row.budget) * 100 : 0;
                   const margin    = row.revenue > 0 ? (row.ebitda / row.revenue) * 100 : 0;
                   const onTrack   = row.budget === 0 || varPct >= -10;
