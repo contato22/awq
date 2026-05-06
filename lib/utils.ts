@@ -12,8 +12,8 @@ export function formatCurrency(
 ): string {
   if (compact) {
     const sym = currency === "BRL" ? "R$" : "$";
-    if (value >= 1_000_000) return `${sym}${(value / 1_000_000).toFixed(1)}M`;
-    if (value >= 1_000) return `${sym}${(value / 1_000).toFixed(1)}K`;
+    if (value >= 1_000_000) return `${sym}${(value / 1_000_000).toFixed(1).replace(".", ",")}M`;
+    if (value >= 1_000) return `${sym}${(value / 1_000).toFixed(1).replace(".", ",")}K`;
   }
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
@@ -51,8 +51,8 @@ export function formatDateBR(d: string | null | undefined): string {
 
 export function formatBRL(n: number | null | undefined): string {
   if (n == null) return "—";
-  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(1) + "M";
-  if (n >= 1_000)     return "R$" + (n / 1_000).toFixed(1) + "K";
+  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(1).replace(".", ",") + "M";
+  if (n >= 1_000)     return "R$" + (n / 1_000).toFixed(1).replace(".", ",") + "K";
   return "R$" + n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 

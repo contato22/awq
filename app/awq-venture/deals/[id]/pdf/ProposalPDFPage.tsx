@@ -258,7 +258,7 @@ export default function ProposalPDFPage({ params }: { params: { id: string } }) 
                 ["Deal ID",         deal.id],
                 ["Setor",           deal.identification.sector],
                 ["Estágio",         deal.stage],
-                ["Ticket avaliado", `R$ ${(deal.proposedValue/1_000_000).toFixed(1)}M`],
+                ["Ticket avaliado", `R$ ${(deal.proposedValue/1_000_000).toFixed(1).replace(".", ",")}M`],
                 ["Score interno",   `${deal.dealScore.toFixed(1)} / 10.0`],
                 ["Versão",          `${B.versao}.0 — ${today}`],
               ] as [string,string][]).map(([k,v]) => (

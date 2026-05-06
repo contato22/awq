@@ -280,7 +280,7 @@ function stubDeal(
     lastUpdated:    "2026-04-01",
     sendStatus:     "Rascunho",
     operationType:  "Aquisição Parcial",
-    valuationRange: `R$${(ticket * 0.8 / 1_000_000).toFixed(1)}M – R$${(ticket * 1.2 / 1_000_000).toFixed(1)}M`,
+    valuationRange: `R$${(ticket * 0.8 / 1_000_000).toFixed(1).replace(".", ",")}M – R$${(ticket * 1.2 / 1_000_000).toFixed(1).replace(".", ",")}M`,
     proposedValue:  ticket,
     dealScore:      score,
     riskLevel:      risk,

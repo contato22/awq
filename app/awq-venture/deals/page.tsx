@@ -26,8 +26,8 @@ import {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function fmtR(n: number) {
-  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(1) + "M";
-  if (n >= 1_000)     return "R$" + (n / 1_000).toFixed(1) + "K";
+  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(1).replace(".", ",") + "M";
+  if (n >= 1_000)     return "R$" + (n / 1_000).toFixed(1).replace(".", ",") + "K";
   return "R$" + n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
