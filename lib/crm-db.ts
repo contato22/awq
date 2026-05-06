@@ -366,6 +366,11 @@ export async function updateOpportunity(id: string, data: Partial<CrmOpportunity
   return rows[0] as CrmOpportunity;
 }
 
+export async function deleteOpportunity(id: string): Promise<void> {
+  if (!sql) throw new Error("DB not available");
+  await sql`DELETE FROM crm_opportunities WHERE opportunity_id = ${id}`;
+}
+
 // ─── Activity CRUD ────────────────────────────────────────────────────────────
 
 export async function listActivities(filters?: { related_to_type?: string; related_to_id?: string; created_by?: string }): Promise<CrmActivity[]> {

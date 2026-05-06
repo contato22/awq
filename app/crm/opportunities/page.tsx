@@ -10,7 +10,7 @@ import EmptyState from "@/components/EmptyState";
 import {
   Target, DollarSign, TrendingUp, Plus, X,
   Calendar, Building2, AlertCircle, Phone, Mail, Users,
-  CheckCircle2, FileText, MessageSquare, Clock,
+  CheckCircle2, FileText, MessageSquare, Clock, Trash2,
 } from "lucide-react";
 import type { CrmOpportunity, CrmActivity } from "@/lib/crm-types";
 import { STAGE_LABELS, STAGE_PROBABILITY, BU_OPTIONS, OWNER_OPTIONS, PIPELINE_STAGES } from "@/lib/crm-types";
@@ -59,14 +59,17 @@ function OppDetailModal({
   opp,
   initialTab,
   onSave,
+  onDelete,
   onClose,
 }: {
   opp: CrmOpportunity;
   initialTab: "edit" | "activity";
   onSave: (updated: CrmOpportunity) => void;
+  onDelete: (opp: CrmOpportunity) => void;
   onClose: () => void;
 }) {
   const [tab, setTab] = useState<"edit" | "activity">(initialTab);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [form, setForm] = useState({
     opportunity_name: opp.opportunity_name,
     bu: opp.bu,
@@ -309,16 +312,39 @@ function OppDetailModal({
                 </div>
               )}
 
-              <div className="flex gap-3 pt-1">
-                <button type="button" onClick={onClose}
-                  className="flex-1 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-50 transition-colors">
-                  Cancelar
-                </button>
-                <button type="submit"
-                  className="flex-1 py-2 bg-brand-600 text-white text-sm font-semibold rounded-xl hover:bg-brand-700 transition-colors">
-                  Salvar
-                </button>
-              </div>
+              {confirmDelete ? (
+                <div className="flex flex-col gap-2 pt-1 p-3 bg-red-50 border border-red-200 rounded-xl">
+                  <p className="text-xs font-semibold text-red-700 flex items-center gap-1.5">
+                    <AlertCircle size={13} /> Confirmar exclusão da oportunidade?
+                  </p>
+                  <p className="text-[11px] text-red-600">O lead e o contato associados não serão apagados.</p>
+                  <div className="flex gap-2 mt-1">
+                    <button type="button" onClick={() => setConfirmDelete(false)}
+                      className="flex-1 py-1.5 border border-gray-300 text-gray-700 text-xs font-medium rounded-lg hover:bg-white transition-colors">
+                      Cancelar
+                    </button>
+                    <button type="button" onClick={() => onDelete(opp)}
+                      className="flex-1 py-1.5 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-700 transition-colors">
+                      Apagar
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex gap-3 pt-1">
+                  <button type="button" onClick={() => setConfirmDelete(true)}
+                    className="p-2 border border-red-200 text-red-500 rounded-xl hover:bg-red-50 transition-colors">
+                    <Trash2 size={15} />
+                  </button>
+                  <button type="button" onClick={onClose}
+                    className="flex-1 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-50 transition-colors">
+                    Cancelar
+                  </button>
+                  <button type="submit"
+                    className="flex-1 py-2 bg-brand-600 text-white text-sm font-semibold rounded-xl hover:bg-brand-700 transition-colors">
+                    Salvar
+                  </button>
+                </div>
+              )}
             </form>
           )}
 
@@ -819,6 +845,19 @@ function PipelinePageInner() {
     }).catch(() => undefined);
   }
 
+  function handleDelete(opp: CrmOpportunity) {
+    const next = opps.filter(o => o.opportunity_id !== opp.opportunity_id);
+    updateOpps(next);
+    setEditingOpp(null);
+    showToast("Oportunidade apagada", true);
+
+    fetch("/api/crm/opportunities", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "delete", opportunity_id: opp.opportunity_id }),
+    }).catch(() => undefined);
+  }
+
   const openOpps = opps.filter(o => o.stage !== "closed_won" && o.stage !== "closed_lost");
   const totalPipeline = openOpps.reduce((s, o) => s + o.deal_value, 0);
   const weightedForecast = openOpps.reduce((s, o) => s + o.deal_value * o.probability / 100, 0);
@@ -851,6 +890,7 @@ function PipelinePageInner() {
             opp={editingOpp}
             initialTab={editingTab}
             onSave={handleSaveEdit}
+            onDelete={handleDelete}
             onClose={() => setEditingOpp(null)}
           />
         )}
