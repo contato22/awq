@@ -377,7 +377,557 @@ function PriorityBadge({ p }: { p: ActionItem["priority"] }) {
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 
-export default async function AwqDataPage() {
+const NAV_GROUPS = [
+  {
+    label: "Business Units",
+    ids: ["awq", "jacqes", "caza", "venture", "advisor"],
+  },
+  {
+    label: "Módulos AWQ",
+    ids: ["crm", "ppm", "bpm", "bi", "cpm", "grc", "dms", "erp", "hcm"],
+  },
+  {
+    label: "Sistema",
+    ids: ["ai", "system"],
+  },
+] as const;
+
+export default async function AwqDataPage({
+  searchParams,
+}: {
+  searchParams: { bu?: string };
+}) {
+  // ── Real data from canonical infrastructure ──────────────────────────────
+  const docs    = await getAllDocuments();
+  const txns    = await getAllTransactions();
+  const q       = await buildFinancialQuery();
+
+  const doneDocs       = docs.filter((d) => d.status === "done");
+  const errorDocs      = docs.filter((d) => d.status === "error");
+  const processingDocs = docs.filter((d) => !["done","error"].includes(d.status));
+  const ambiguousTxns  = txns.filter((t) => t.classificationConfidence === "ambiguous" || t.classificationConfidence === "unclassifiable");
+  const confirmedTxns  = txns.filter((t) => t.classificationConfidence === "confirmed");
+  const lastDoc        = docs.length > 0
+    ? docs.slice().sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime())[0]
+    : null;
+
+  const activeRoutes    = PLATFORM_ROUTES.filter((r) => r.inSidebar && r.status !== "redirect");
+  const snapshotRoutes  = activeRoutes.filter((r) => r.dataSource.includes("awq-group-data") || r.dataSource.includes("data.ts") || r.dataSource.includes("caza-data"));
+  const pipelineRoutes  = activeRoutes.filter((r) => r.dataSource.includes("financial-query") || r.dataSource.includes("financial-db") || r.dataSource.includes("financial/"));
+  const externalRoutes  = activeRoutes.filter((r) => r.dataSource.includes("Notion") || r.dataSource.includes("localStorage"));
+  const migration       = getSnapshotMigrationStatus();
+
+  // ── Selected BU ──────────────────────────────────────────────────────────
+  const selectedId = searchParams.bu ?? null;
+  const selectedBu = selectedId ? BU_STORAGE_MAP.find((b) => b.id === selectedId) ?? null : null;
+
+  return (
+    <>
+      <Header
+        title="Base de Dados — AWQ Group"
+        subtitle="Gestao, auditoria e governanca da camada de storage / source of truth / data layer"
+      />
+
+      {/* ── Layout: left nav + right content ─────────────────────────────── */}
+      <div className="flex h-[calc(100vh-56px)] overflow-hidden">
+
+        {/* ── Left sidebar nav ─────────────────────────────────────────── */}
+        <div className="w-52 shrink-0 bg-white border-r border-gray-100 overflow-y-auto py-3 flex flex-col gap-0.5">
+
+          {/* Overview */}
+          <div className="px-3 mb-1">
+            <Link
+              href="/awq/data"
+              className={
+                "flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-colors " +
+                (!selectedId
+                  ? "bg-brand-50 text-brand-700"
+                  : "text-gray-500 hover:bg-gray-50 hover:text-gray-800")
+              }
+            >
+              <Database size={13} className="shrink-0" />
+              Visão Geral
+            </Link>
+          </div>
+
+          {NAV_GROUPS.map((group) => (
+            <div key={group.label} className="px-3">
+              <div className="text-[9px] font-bold text-gray-400 uppercase tracking-widest px-3 py-1 mt-2">
+                {group.label}
+              </div>
+              {group.ids.map((id) => {
+                const bu = BU_STORAGE_MAP.find((b) => b.id === id);
+                if (!bu) return null;
+                const isActive = selectedId === id;
+                // Confidence indicator dot
+                const hasReal   = bu.primaryStorage.some((s) => s.confidence === "confirmada");
+                const hasMock   = bu.primaryStorage.every((s) => s.confidence === "mock");
+                const dotCls    = hasMock ? "bg-gray-300" : hasReal ? "bg-emerald-400" : "bg-amber-400";
+                return (
+                  <Link
+                    key={id}
+                    href={`/awq/data?bu=${id}`}
+                    className={
+                      "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-colors " +
+                      (isActive
+                        ? "bg-brand-50 text-brand-700 font-semibold"
+                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900")
+                    }
+                  >
+                    <span className={"w-1.5 h-1.5 rounded-full shrink-0 " + dotCls} />
+                    <span className="flex-1 truncate">{bu.label}</span>
+                    <span className="text-[9px] text-gray-400 shrink-0">{bu.primaryStorage.length}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
+
+          {/* Legend */}
+          <div className="mt-auto px-3 py-3 border-t border-gray-100">
+            <div className="text-[9px] text-gray-400 space-y-1 px-3">
+              <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> confirmado</div>
+              <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-amber-400" /> parcial/snapshot</div>
+              <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-gray-300" /> stub/mock</div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Right content ─────────────────────────────────────────────── */}
+        <div className="flex-1 overflow-y-auto bg-gray-50/40">
+
+          {selectedBu ? (
+            /* ── BU Detail Panel ──────────────────────────────────────── */
+            <div className="p-6 space-y-5 max-w-4xl">
+
+              {/* BU Header */}
+              <div className={"rounded-xl border p-5 " + selectedBu.borderCls + " " + selectedBu.bgCls}>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h2 className={"text-base font-bold " + selectedBu.textCls}>{selectedBu.label}</h2>
+                    <p className="text-xs text-gray-500 mt-0.5">{selectedBu.sublabel}</p>
+                    <div className="mt-2 inline-flex items-center gap-1.5 bg-white/70 border border-gray-200 rounded-lg px-2 py-1">
+                      <Shield size={11} className="text-gray-400" />
+                      <span className="text-[10px] text-gray-600 font-mono">{selectedBu.securityLayer}</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-2 shrink-0">
+                    <span className={selectedBu.badgeCls + " text-[10px] font-semibold px-2 py-1 rounded-lg"}>
+                      {selectedBu.primaryStorage.length} fontes
+                    </span>
+                    <span className={selectedBu.badgeCls + " text-[10px] font-semibold px-2 py-1 rounded-lg"}>
+                      {selectedBu.sidebarSections.length} seções
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Storage Backends */}
+              <div className="card p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <Server size={14} className="text-gray-600" />
+                  <h3 className="text-sm font-semibold text-gray-800">Storage Backends</h3>
+                </div>
+                <div className="space-y-2">
+                  {selectedBu.primaryStorage.map((s, i) => (
+                    <div key={i} className="flex items-start gap-2 p-2.5 rounded-lg bg-gray-50 border border-gray-100">
+                      <TypeBadge type={s.type} />
+                      <span className="flex-1 text-xs text-gray-700 leading-snug">{s.name}</span>
+                      <ConfidenceBadge level={s.confidence} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Sidebar Sections */}
+              <div className="card p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <Layers size={14} className="text-gray-600" />
+                  <h3 className="text-sm font-semibold text-gray-800">Seções do Sidebar</h3>
+                  <span className="ml-auto text-[10px] text-gray-400">{selectedBu.sidebarSections.length} seções</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {selectedBu.sidebarSections.map((s) => (
+                    <span key={s} className="text-[10px] bg-gray-100 border border-gray-200 px-2 py-1 rounded-md text-gray-600 font-medium">
+                      {s}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Platform Routes for this BU */}
+              {(() => {
+                const buRoutes = activeRoutes.filter((r) => r.bu === selectedBu.id);
+                if (buRoutes.length === 0) return null;
+                return (
+                  <div className="card p-5">
+                    <div className="flex items-center gap-2 mb-4">
+                      <ArrowRight size={14} className="text-gray-600" />
+                      <h3 className="text-sm font-semibold text-gray-800">Rotas no Platform Registry</h3>
+                      <span className="ml-auto text-[10px] text-gray-400">{buRoutes.length} rotas</span>
+                    </div>
+                    <div className="space-y-1">
+                      {buRoutes.map((r) => (
+                        <div key={r.href} className="flex items-center gap-3 py-1.5 px-2 rounded hover:bg-gray-50">
+                          <code className="text-[10px] font-mono text-gray-700 flex-1">{r.href}</code>
+                          <span className={
+                            "text-[9px] font-semibold px-1.5 py-0.5 rounded " +
+                            (r.status === "active" ? "bg-emerald-100 text-emerald-700" :
+                             r.status === "stub"   ? "bg-amber-100 text-amber-700" :
+                             "bg-gray-100 text-gray-500")
+                          }>{r.status}</span>
+                          {r.dataSource && (
+                            <span className="text-[9px] text-gray-400 truncate max-w-[180px]">{r.dataSource}</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Security section — only for storage-relevant layers */}
+              {(selectedBu.securityLayer.includes("dados_infra") || selectedBu.securityLayer.includes("financeiro") || selectedBu.securityLayer.includes("security")) && (() => {
+                const storageApis = SENSITIVE_APIS.filter((a) =>
+                  a.layer === "dados_infra" || a.layer === "financeiro" || a.layer === "security"
+                );
+                const storageRoutes = SENSITIVE_ROUTES.filter((r) =>
+                  r.layer === "dados_infra" || r.layer === "financeiro" || r.layer === "security"
+                );
+                return (
+                  <div className="card p-5">
+                    <div className="flex items-center gap-2 mb-3">
+                      <ShieldCheck size={14} className="text-gray-600" />
+                      <h3 className="text-sm font-semibold text-gray-800">Segurança do Storage</h3>
+                      <Link href="/awq/security" className="ml-auto text-[10px] text-blue-600 underline hover:text-blue-800">
+                        painel completo →
+                      </Link>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 mb-3">
+                      {storageApis.map((api) => (
+                        <span key={api.pattern} className="text-[9px] font-mono bg-emerald-50 border border-emerald-200 px-2 py-1 rounded text-emerald-700">{api.pattern}</span>
+                      ))}
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {storageRoutes.map((route) => (
+                        <span key={route.path} className={"text-[9px] font-mono px-2 py-1 rounded border " +
+                          (route.sensitivity === "high" ? "border-red-200 bg-red-50 text-red-700" : "border-amber-200 bg-amber-50 text-amber-700")}>
+                          {route.path}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Pipeline detail — AWQ only */}
+              {selectedBu.id === "awq" && (
+                <>
+                  <div className="card p-5">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Database size={14} className="text-gray-600" />
+                      <h3 className="text-sm font-semibold text-gray-800">Pipeline de Ingestão</h3>
+                      <span className="ml-auto text-[10px] text-gray-400">{INGEST_SUMMARY.implementedLayers}/{INGEST_SUMMARY.totalLayers} camadas</span>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="border-b border-gray-200">
+                            <th className="text-left py-2 px-2 font-semibold text-gray-500">Camada</th>
+                            <th className="text-left py-2 px-2 font-semibold text-gray-500">Impl.</th>
+                            <th className="text-left py-2 px-2 font-semibold text-gray-500">Validação</th>
+                            <th className="text-left py-2 px-2 font-semibold text-gray-500">Produção</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {INGEST_LAYER_STATUS.map((layer) => (
+                            <tr key={layer.name} className="border-b border-gray-100 hover:bg-gray-50/60">
+                              <td className="py-2 px-2">
+                                <div className="font-medium text-gray-800">{layer.name}</div>
+                                <div className="text-[9px] text-gray-400 font-mono">{layer.files[0]}</div>
+                              </td>
+                              <td className="py-2 px-2">
+                                {layer.implementation === "implemented"
+                                  ? <CheckCircle2 size={13} className="text-emerald-500" />
+                                  : <XCircle size={13} className="text-red-400" />}
+                              </td>
+                              <td className="py-2 px-2"><ValidationBadge v={layer.validation} /></td>
+                              <td className="py-2 px-2"><ProductionBadge p={layer.production} /></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div className="card p-5">
+                    <div className="flex items-center gap-2 mb-4">
+                      <ListTodo size={14} className="text-gray-600" />
+                      <h3 className="text-sm font-semibold text-gray-800">Fila de Ações</h3>
+                    </div>
+                    <div className="space-y-3">
+                      {ACTION_QUEUE.map((item) => (
+                        <div key={item.id} className="rounded-lg border border-gray-200 bg-gray-50/60 p-3">
+                          <div className="flex flex-wrap items-center gap-2 mb-1">
+                            <span className="text-[10px] font-bold text-gray-400 font-mono">{item.id}</span>
+                            <PriorityBadge p={item.priority} />
+                            <span className="text-xs font-semibold text-gray-800">{item.title}</span>
+                            <span className="ml-auto text-[10px] text-gray-400">{item.owner}</span>
+                          </div>
+                          <p className="text-[11px] text-gray-600">{item.description}</p>
+                          <p className="text-[10px] text-gray-400 mt-1"><span className="font-semibold">Impacto:</span> {item.impact}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+          ) : (
+            /* ── Overview Panel ───────────────────────────────────────── */
+            <div className="p-6 space-y-5">
+
+              {/* Executive stats */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="card p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Package size={14} className="text-emerald-600" />
+                    <span className="text-xs font-semibold text-gray-500">Documentos Ingeridos</span>
+                  </div>
+                  <div className="text-2xl font-bold text-gray-900">{docs.length}</div>
+                  <div className="text-[10px] text-gray-400 mt-1">
+                    {doneDocs.length} concluídos · {processingDocs.length} processando · {errorDocs.length} erro
+                  </div>
+                </div>
+                <div className="card p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Database size={14} className="text-blue-600" />
+                    <span className="text-xs font-semibold text-gray-500">Transações Classificadas</span>
+                  </div>
+                  <div className="text-2xl font-bold text-gray-900">{txns.length}</div>
+                  <div className="text-[10px] text-gray-400 mt-1">
+                    {confirmedTxns.length} confirmadas · {ambiguousTxns.length} ambíguas
+                  </div>
+                </div>
+                <div className="card p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertTriangle size={14} className="text-amber-600" />
+                    <span className="text-xs font-semibold text-gray-500">Em Snapshot</span>
+                  </div>
+                  <div className="text-2xl font-bold text-gray-900">{snapshotRoutes.length}</div>
+                  <div className="text-[10px] text-gray-400 mt-1">
+                    de {activeRoutes.length} rotas · {pipelineRoutes.length} no pipeline
+                  </div>
+                </div>
+                <div className="card p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Shield size={14} className={q.hasData ? "text-emerald-600" : "text-amber-600"} />
+                    <span className="text-xs font-semibold text-gray-500">Pipeline Status</span>
+                  </div>
+                  <div className={"text-sm font-bold " + (q.hasData ? "text-emerald-600" : "text-amber-600")}>
+                    {q.hasData ? "COM DADOS" : "AGUARDANDO EXTRATO"}
+                  </div>
+                  <div className="text-[10px] text-gray-400 mt-1">
+                    {lastDoc ? "Último: " + lastDoc.bank + " " + lastDoc.uploadedAt.slice(0,10) : "Nenhum extrato ingerido"}
+                  </div>
+                </div>
+              </div>
+
+              {/* Assessment banner */}
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle size={14} className="text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs font-semibold text-amber-800">{INGEST_SUMMARY.overallAssessment}</p>
+                    <p className="text-[11px] text-amber-600 mt-1">
+                      {INGEST_SUMMARY.implementedLayers}/{INGEST_SUMMARY.totalLayers} camadas implementadas
+                      · {INGEST_SUMMARY.stagingFunctional} staging-ok
+                      · {INGEST_SUMMARY.provenWithRealData} validadas com dados reais
+                      · {INGEST_SUMMARY.requiresRealPDFs} requerem PDF real
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* BU summary grid */}
+              <div className="card p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <Layers size={14} className="text-gray-600" />
+                  <h2 className="text-sm font-semibold text-gray-800">Storage por BU / Módulo</h2>
+                  <span className="ml-auto text-[10px] text-gray-400">{BU_STORAGE_MAP.length} entradas · clique para detalhar</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                  {BU_STORAGE_MAP.map((bu) => {
+                    const buRoutes    = activeRoutes.filter((r) => r.bu === bu.id);
+                    const sidebarCount = buRoutes.filter((r) => r.inSidebar).length;
+                    const hasReal     = bu.primaryStorage.some((s) => s.confidence === "confirmada");
+                    const hasMock     = bu.primaryStorage.every((s) => s.confidence === "mock");
+                    const dotCls      = hasMock ? "bg-gray-300" : hasReal ? "bg-emerald-400" : "bg-amber-400";
+                    return (
+                      <Link
+                        key={bu.id}
+                        href={`/awq/data?bu=${bu.id}`}
+                        className={"rounded-lg border p-3 block hover:shadow-sm transition-shadow " + bu.borderCls + " " + bu.bgCls}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className={"w-2 h-2 rounded-full shrink-0 " + dotCls} />
+                            <span className={"text-xs font-bold " + bu.textCls}>{bu.label}</span>
+                          </div>
+                          <span className={bu.badgeCls + " text-[9px] font-semibold px-1.5 py-0.5 rounded"}>
+                            {sidebarCount} rotas
+                          </span>
+                        </div>
+                        <p className="text-[9px] text-gray-500 mb-2 leading-snug">{bu.sublabel}</p>
+                        <div className="flex flex-wrap gap-1">
+                          {bu.primaryStorage.slice(0, 2).map((s) => (
+                            <TypeBadge key={s.name} type={s.type} />
+                          ))}
+                          {bu.primaryStorage.length > 2 && (
+                            <span className="text-[9px] text-gray-400">+{bu.primaryStorage.length - 2}</span>
+                          )}
+                        </div>
+                        <div className="mt-2 text-[9px] text-gray-400 font-mono truncate">{bu.securityLayer}</div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Storage limits */}
+              <div className="card p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <HardDrive size={14} className="text-gray-600" />
+                  <h2 className="text-sm font-semibold text-gray-800">Limites de Storage</h2>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+                    <div className="flex items-center gap-1.5 mb-3">
+                      <HardDrive size={12} className="text-emerald-600" />
+                      <div className="text-xs font-bold text-emerald-800">Google Drive</div>
+                      <span className="ml-auto text-[9px] bg-emerald-200 text-emerald-700 px-1.5 py-0.5 rounded font-semibold">Priority 1</span>
+                    </div>
+                    <div className="space-y-1 text-[10px] text-emerald-700">
+                      <div className="flex justify-between"><span>Storage</span><span className="font-semibold">10 TB (Workspace)</span></div>
+                      <div className="flex justify-between"><span>Conta</span><span className="font-semibold text-[9px]">eqoa@ultrapack.cloud</span></div>
+                      <div className="flex justify-between"><span>Auth</span><span className="font-semibold">Service Account</span></div>
+                      <div className="flex justify-between"><span>blobUrl</span><span className="font-mono text-[9px]">gdrive://&#123;id&#125;</span></div>
+                    </div>
+                    <div className="mt-2 text-[9px] text-emerald-600">PDFs · Extratos · Segurança · Infra</div>
+                  </div>
+                  <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                    <div className="flex items-center gap-1.5 mb-3">
+                      <Database size={12} className="text-blue-600" />
+                      <div className="text-xs font-bold text-blue-800">Neon Postgres</div>
+                      <span className="ml-auto text-[9px] bg-blue-200 text-blue-700 px-1.5 py-0.5 rounded font-semibold">Free Tier</span>
+                    </div>
+                    <div className="space-y-1 text-[10px] text-blue-700">
+                      <div className="flex justify-between"><span>Storage</span><span className="font-semibold">512 MB</span></div>
+                      <div className="flex justify-between"><span>Compute</span><span className="font-semibold">0.25 vCPU / 1 GB</span></div>
+                      <div className="flex justify-between"><span>Conexões</span><span className="font-semibold">100 concurrent</span></div>
+                      <div className="flex justify-between"><span>Compute hrs</span><span className="font-semibold">191 h/mês</span></div>
+                    </div>
+                    <div className="mt-2 text-[9px] text-blue-500">financial_documents · bank_transactions · caza_* · bpm_*</div>
+                  </div>
+                  <div className="rounded-lg border border-violet-200 bg-violet-50 p-4">
+                    <div className="flex items-center gap-1.5 mb-3">
+                      <Server size={12} className="text-violet-600" />
+                      <div className="text-xs font-bold text-violet-800">Vercel Blob</div>
+                      <span className="ml-auto text-[9px] bg-violet-200 text-violet-700 px-1.5 py-0.5 rounded font-semibold">Priority 2</span>
+                    </div>
+                    <div className="space-y-1 text-[10px] text-violet-700">
+                      <div className="flex justify-between"><span>Storage</span><span className="font-semibold">512 MB</span></div>
+                      <div className="flex justify-between"><span>Banda/mês</span><span className="font-semibold">100 GB</span></div>
+                      <div className="flex justify-between"><span>Max arquivo</span><span className="font-semibold">500 MB</span></div>
+                    </div>
+                    <div className="mt-2 text-[9px] text-violet-500">Fallback do Drive. Se ausente: filesystem local (efêmero).</div>
+                  </div>
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+                    <div className="flex items-center gap-1.5 mb-3">
+                      <ShieldCheck size={12} className="text-amber-600" />
+                      <div className="text-xs font-bold text-amber-800">Audit Log</div>
+                      <span className="ml-auto text-[9px] bg-amber-200 text-amber-700 px-1.5 py-0.5 rounded font-semibold">Híbrido</span>
+                    </div>
+                    <div className="space-y-1 text-[10px] text-amber-700">
+                      <div className="flex justify-between"><span>Primário</span><span className="font-semibold">Neon Postgres</span></div>
+                      <div className="flex justify-between"><span>Fallback</span><span className="font-semibold">in-memory</span></div>
+                      <div className="flex justify-between"><span>In-mem max</span><span className="font-semibold text-orange-600">100 eventos</span></div>
+                      <div className="flex justify-between"><span>Drive backup</span><span className="font-semibold text-emerald-600">blocked events</span></div>
+                    </div>
+                    <div className="mt-2 text-[9px] text-amber-500">awq_security_audit_log · Drive: Segurança & Auditoria</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Snapshot migration */}
+              <div className="card p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <AlertTriangle size={14} className="text-amber-600" />
+                  <h2 className="text-sm font-semibold text-gray-800">Migração de Snapshots</h2>
+                  <span className="ml-auto text-[10px] text-gray-400">{migration.totalSources} fontes · {migration.totalConsumers} consumidores</span>
+                </div>
+                <div className="grid grid-cols-4 gap-3 mb-4 text-center">
+                  {[
+                    { label: "Ativas",           v: migration.activeSources,   cls: "bg-amber-50 text-amber-700 border-amber-200" },
+                    { label: "Migração pendente", v: migration.pendingSources,  cls: "bg-blue-50 text-blue-700 border-blue-200"   },
+                    { label: "Substituídas",      v: migration.replacedSources, cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+                    { label: "Bloqueadas",        v: migration.blockedSources,  cls: "bg-red-50 text-red-700 border-red-200"     },
+                  ].map((s) => (
+                    <div key={s.label} className={"rounded-lg border p-3 " + s.cls}>
+                      <div className="text-xl font-bold">{s.v}</div>
+                      <div className="text-[10px] mt-0.5">{s.label}</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="space-y-2">
+                  {SNAPSHOT_REGISTRY.map((src) => (
+                    <div key={src.file} className="rounded-lg border border-amber-100 bg-amber-50/40 p-3">
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                        <code className="text-[10px] font-mono font-semibold text-amber-900 bg-amber-100 px-1.5 py-0.5 rounded">{src.file}</code>
+                        <span className={"inline-block px-2 py-0.5 rounded text-[9px] font-bold " +
+                          (src.status === "active" ? "bg-amber-200 text-amber-800" :
+                           src.status === "migration-pending" ? "bg-blue-100 text-blue-700" :
+                           src.status === "replaced" ? "bg-emerald-100 text-emerald-700" :
+                           "bg-red-100 text-red-700")}>
+                          {src.status}
+                        </span>
+                        <span className="text-[10px] text-gray-500">{src.period}</span>
+                      </div>
+                      <p className="text-[10px] text-gray-600 mb-1">{src.scope}</p>
+                      <div className="flex flex-wrap gap-1">
+                        {src.consumers.map((c) => (
+                          <code key={c} className="text-[9px] font-mono bg-white border border-amber-100 px-1 py-0.5 rounded text-gray-500">{c}</code>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+                <div className="flex flex-wrap items-center gap-4 text-[10px] text-gray-500">
+                  <span className="flex items-center gap-1"><Database size={10} /> <code>/awq/data</code></span>
+                  <span className="flex items-center gap-1"><Layers size={10} /> <code>lib/platform-registry.ts</code></span>
+                  <span className="flex items-center gap-1"><Server size={10} /> <code>lib/financial-ingest-status.ts</code></span>
+                  <span className="ml-auto flex items-center gap-1">
+                    <Link href="/awq/conciliacao" className="underline hover:text-gray-700">Ingestão</Link>
+                    <span className="mx-1">·</span>
+                    <Link href="/awq/financial" className="underline hover:text-gray-700">Financial</Link>
+                    <span className="mx-1">·</span>
+                    <Link href="/awq/security" className="underline hover:text-gray-700">Segurança</Link>
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
   // ── Real data from canonical infrastructure ──────────────────────────────
   const docs   = await getAllDocuments();
   const txns   = await getAllTransactions();
