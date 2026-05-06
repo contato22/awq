@@ -7,5 +7,27 @@
     "deploymentEnabled": {
       "gh-pages": false
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/bpm/sla-check",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/drive/cron/daily",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/drive/cron/weekly",
+      "schedule": "0 6 * * 1"
+    },
+    {
+      "path": "/api/drive/cron/monthly",
+      "schedule": "0 5 1 * *"
+    },
+    {
+      "path": "/api/drive/cron/annual",
+      "schedule": "0 4 1 1 *"
+    }
+  ]
 }
