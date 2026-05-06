@@ -18,6 +18,22 @@ import { SEED_OPPORTUNITIES } from "@/lib/crm-db";
 import { formatBRL, formatDateBR } from "@/lib/utils";
 
 const LS_KEY = "crm-opportunities-v3";
+const ACTS_LS_KEY = "crm-activities-v1";
+
+const PERIOD_OPTIONS = ["Todos", "Hoje", "Semana", "Mês", "Ano"] as const;
+
+function periodRange(period: string): [string, string] | null {
+  if (period === "Todos") return null;
+  const today = new Date().toISOString().slice(0, 10);
+  if (period === "Hoje") return [today, today];
+  if (period === "Semana") {
+    const d = new Date(); d.setDate(d.getDate() - 6);
+    return [d.toISOString().slice(0, 10), today];
+  }
+  if (period === "Mês") return [today.slice(0, 7) + "-01", today];
+  if (period === "Ano") return [today.slice(0, 4) + "-01-01", today];
+  return null;
+}
 
 function daysUntil(d: string | null | undefined): number | null {
   if (!d) return null;
@@ -162,6 +178,10 @@ function OppDetailModal({
             updated_at: new Date().toISOString(),
           };
       setActivities(prev => [newActivity, ...prev]);
+      try {
+        const allActs: CrmActivity[] = JSON.parse(localStorage.getItem(ACTS_LS_KEY) ?? "[]");
+        localStorage.setItem(ACTS_LS_KEY, JSON.stringify([newActivity, ...allActs]));
+      } catch { /* ignore */ }
       setActForm({ activity_type: "call", subject: "", description: "", outcome: "", scheduled_at: new Date().toISOString().slice(0, 16) });
     } catch { /* ignore */ }
     setActSaving(false);
@@ -704,6 +724,7 @@ function PipelinePageInner() {
   const urlBu = searchParams?.get("bu") ?? null;
   const [filterBU, setFilterBU] = useState(urlBu && BU_OPTIONS.includes(urlBu as typeof BU_OPTIONS[number]) ? urlBu : "Todos");
   const [filterOwner, setFilterOwner] = useState("Todos");
+  const [filterPeriod, setFilterPeriod] = useState<typeof PERIOD_OPTIONS[number]>("Todos");
   const [dragOverStage, setDragOverStage] = useState<string | null>(null);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const [editingOpp, setEditingOpp] = useState<CrmOpportunity | null>(null);
@@ -770,10 +791,15 @@ function PipelinePageInner() {
   }
 
   function filtered(stage: string) {
+    const range = periodRange(filterPeriod);
     return opps.filter(o => {
       if (o.stage !== stage) return false;
       if (filterBU !== "Todos" && o.bu !== filterBU) return false;
       if (filterOwner !== "Todos" && o.owner !== filterOwner) return false;
+      if (range) {
+        const d = (o.created_at ?? "").slice(0, 10);
+        if (d < range[0] || d > range[1]) return false;
+      }
       return true;
     });
   }
@@ -884,6 +910,15 @@ function PipelinePageInner() {
 
         {/* Filters */}
         <div className="flex items-center gap-3 flex-wrap">
+          {/* Period */}
+          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+            {PERIOD_OPTIONS.map(p => (
+              <button key={p} onClick={() => setFilterPeriod(p)}
+                className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${filterPeriod === p ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
+                {p}
+              </button>
+            ))}
+          </div>
           <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
             {["Todos","JACQES","CAZA","ADVISOR","VENTURE"].map(bu => (
               <button key={bu} onClick={() => setFilterBU(bu)}

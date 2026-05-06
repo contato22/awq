@@ -11,6 +11,25 @@ import type { CrmActivity } from "@/lib/crm-types";
 import { SEED_ACTIVITIES } from "@/lib/crm-db";
 import { formatDateBR } from "@/lib/utils";
 
+const ACTS_LS_KEY = "crm-activities-v1";
+
+function persistActivities(data: CrmActivity[]) {
+  try { localStorage.setItem(ACTS_LS_KEY, JSON.stringify(data)); } catch { /* ignore */ }
+}
+
+function periodRange(period: string): [string, string] | null {
+  if (period === "Todos") return null;
+  const today = new Date().toISOString().slice(0, 10);
+  if (period === "Hoje") return [today, today];
+  if (period === "Semana") {
+    const d = new Date(); d.setDate(d.getDate() - 6);
+    return [d.toISOString().slice(0, 10), today];
+  }
+  if (period === "Mês") return [today.slice(0, 7) + "-01", today];
+  if (period === "Ano") return [today.slice(0, 4) + "-01-01", today];
+  return null;
+}
+
 function fmtDatetime(d: string | null | undefined) {
   if (!d) return "—";
   const dt = new Date(d);
@@ -32,7 +51,6 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled:  "bg-gray-100 text-gray-500",
 };
 
-// Group activities by date
 function groupByDate(acts: CrmActivity[]) {
   const groups: Record<string, CrmActivity[]> = {};
   for (const a of acts) {
@@ -43,24 +61,48 @@ function groupByDate(acts: CrmActivity[]) {
   return Object.entries(groups).sort(([a],[b]) => b.localeCompare(a));
 }
 
+const PERIOD_OPTIONS = ["Todos", "Hoje", "Semana", "Mês", "Ano"] as const;
+
 export default function ActivitiesPage() {
   const [activities, setActivities] = useState<CrmActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState("Todos");
   const [filterStatus, setFilterStatus] = useState("Todos");
+  const [filterPeriod, setFilterPeriod] = useState<typeof PERIOD_OPTIONS[number]>("Todos");
   const [completing, setCompleting] = useState<string | null>(null);
 
   useEffect(() => {
+    try {
+      const stored = localStorage.getItem(ACTS_LS_KEY);
+      if (stored) {
+        setActivities(JSON.parse(stored));
+        setLoading(false);
+        return;
+      }
+    } catch { /* ignore */ }
+
     fetch("/api/crm/activities")
       .then(r => r.json())
-      .then(res => setActivities(res.success ? res.data : SEED_ACTIVITIES))
-      .catch(() => setActivities(SEED_ACTIVITIES))
+      .then(res => {
+        const data: CrmActivity[] = res.success ? res.data : SEED_ACTIVITIES;
+        persistActivities(data);
+        setActivities(data);
+      })
+      .catch(() => {
+        persistActivities(SEED_ACTIVITIES);
+        setActivities(SEED_ACTIVITIES);
+      })
       .finally(() => setLoading(false));
   }, []);
 
   const filtered = activities.filter(a => {
     if (filterType !== "Todos" && a.activity_type !== filterType) return false;
     if (filterStatus !== "Todos" && a.status !== filterStatus) return false;
+    const range = periodRange(filterPeriod);
+    if (range) {
+      const dateKey = (a.completed_at ?? a.scheduled_at ?? a.created_at).slice(0, 10);
+      if (dateKey < range[0] || dateKey > range[1]) return false;
+    }
     return true;
   });
 
@@ -71,14 +113,22 @@ export default function ActivitiesPage() {
 
   async function completeActivity(id: string) {
     setCompleting(id);
+    const now = new Date().toISOString();
     try {
       await fetch("/api/crm/activities", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "complete", activity_id: id }),
       });
-      setActivities(prev => prev.map(a => a.activity_id === id ? { ...a, status: "completed", completed_at: new Date().toISOString() } : a));
-    } finally { setCompleting(null); }
+    } catch { /* ignore — update local state regardless */ }
+    setActivities(prev => {
+      const next = prev.map(a =>
+        a.activity_id === id ? { ...a, status: "completed" as const, completed_at: now } : a
+      );
+      persistActivities(next);
+      return next;
+    });
+    setCompleting(null);
   }
 
   return (
@@ -103,6 +153,16 @@ export default function ActivitiesPage() {
 
         {/* Filters + Add */}
         <div className="flex items-center gap-3 flex-wrap">
+          {/* Period */}
+          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+            {PERIOD_OPTIONS.map(p => (
+              <button key={p} onClick={() => setFilterPeriod(p)}
+                className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${filterPeriod === p ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
+                {p}
+              </button>
+            ))}
+          </div>
+          {/* Type */}
           <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
             {["Todos","call","email","meeting","task","note"].map(t => (
               <button key={t} onClick={() => setFilterType(t)}
@@ -111,6 +171,7 @@ export default function ActivitiesPage() {
               </button>
             ))}
           </div>
+          {/* Status */}
           <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
             {["Todos","scheduled","completed"].map(s => (
               <button key={s} onClick={() => setFilterStatus(s)}

@@ -5,6 +5,9 @@ import type { FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
 import { SEED_ACCOUNTS, SEED_CONTACTS, SEED_LEADS, SEED_OPPORTUNITIES } from "@/lib/crm-db";
+import type { CrmActivity } from "@/lib/crm-types";
+
+const ACTS_LS_KEY = "crm-activities-v1";
 
 function AddActivityPageInner() {
   const router = useRouter();
@@ -31,22 +34,50 @@ function AddActivityPageInner() {
     if (!form.subject.trim()) { setError("Assunto é obrigatório"); return; }
     if (!form.related_to_id.trim()) { setError("Selecione a entidade vinculada"); return; }
     setSaving(true); setError("");
+    const payload = {
+      ...form,
+      duration_minutes: form.duration_minutes ? parseInt(form.duration_minutes) : null,
+      outcome: form.outcome || null,
+      scheduled_at: form.scheduled_at ? new Date(form.scheduled_at).toISOString() : null,
+    };
     try {
       const res = await fetch("/api/crm/activities", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "create",
-          ...form,
-          duration_minutes: form.duration_minutes ? parseInt(form.duration_minutes) : null,
-          outcome: form.outcome || null,
-          scheduled_at: form.scheduled_at ? new Date(form.scheduled_at).toISOString() : null,
-        }),
+        body: JSON.stringify({ action: "create", ...payload }),
       });
       const data = await res.json();
-      if (data.success) router.push("/crm/activities");
-      else setError(data.error ?? "Erro ao registrar atividade");
-    } catch { setError("Erro de rede"); } finally { setSaving(false); }
+      if (data.success) {
+        // Also persist to localStorage so activities page reflects the new entry
+        try {
+          const stored: CrmActivity[] = JSON.parse(localStorage.getItem(ACTS_LS_KEY) ?? "[]");
+          localStorage.setItem(ACTS_LS_KEY, JSON.stringify([data.data, ...stored]));
+        } catch { /* ignore */ }
+        router.push("/crm/activities");
+        return;
+      }
+    } catch { /* fall through to localStorage */ }
+
+    // Static / offline fallback
+    try {
+      const now = new Date().toISOString();
+      const newAct: CrmActivity = {
+        activity_id: crypto.randomUUID(),
+        created_at: now, updated_at: now,
+        completed_at: payload.status === "completed" ? now : null,
+        ...payload,
+        activity_type: payload.activity_type as CrmActivity["activity_type"],
+        related_to_type: payload.related_to_type as CrmActivity["related_to_type"],
+        status: payload.status as CrmActivity["status"],
+        outcome: payload.outcome as CrmActivity["outcome"],
+        duration_minutes: payload.duration_minutes ?? null,
+      };
+      const stored: CrmActivity[] = JSON.parse(localStorage.getItem(ACTS_LS_KEY) ?? "[]");
+      localStorage.setItem(ACTS_LS_KEY, JSON.stringify([newAct, ...stored]));
+      router.push("/crm/activities");
+    } catch {
+      setError("Não foi possível salvar a atividade");
+    } finally { setSaving(false); }
   }
 
   return (
