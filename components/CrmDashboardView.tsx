@@ -199,12 +199,28 @@ export default function CrmDashboardView({ buFilter: externalBu }: Props) {
             const wonFiltered  = allOpps.filter(o => o.stage === "closed_won");
             const lostFiltered = allOpps.filter(o => o.stage === "closed_lost");
             const totalClosed  = wonFiltered.length + lostFiltered.length;
+            const td = new Date().toISOString().slice(0, 10);
+            const wk = (() => { const d = new Date(); const dw = d.getDay(); d.setDate(d.getDate() - dw + (dw === 0 ? -6 : 1)); return d.toISOString().slice(0, 10); })();
+            const mo = td.slice(0, 7);
+            const yr = td.slice(0, 4);
+            const cd = (o: CrmOpportunity) => o.actual_close_date ?? o.expected_close_date ?? "";
+            const wonToday  = wonFiltered.filter(o => cd(o) === td);
+            const wonWeek   = wonFiltered.filter(o => cd(o) >= wk);
+            const wonMonth  = wonFiltered.filter(o => cd(o).startsWith(mo));
+            const wonYear   = wonFiltered.filter(o => cd(o).startsWith(yr));
             setAnalytics({
               leadsNew: allOpps.length > 0 ? 1 : 0,
               openOpportunities: openFiltered.length,
               pipelineValue: openFiltered.reduce((s, o) => s + o.deal_value, 0),
               weightedForecast: Math.round(openFiltered.reduce((s, o) => s + o.deal_value * o.probability / 100, 0)),
-              closedWonThisMonth: wonFiltered.reduce((s, o) => s + o.deal_value, 0),
+              revenueToday:      wonToday.reduce((s, o) => s + o.deal_value, 0),
+              revenueThisWeek:   wonWeek.reduce((s, o) => s + o.deal_value, 0),
+              revenueThisMonth:  wonMonth.reduce((s, o) => s + o.deal_value, 0),
+              revenueThisYear:   wonYear.reduce((s, o) => s + o.deal_value, 0),
+              closedWonToday:    wonToday.length,
+              closedWonThisWeek: wonWeek.length,
+              closedWonThisMonth:wonMonth.length,
+              closedWonThisYear: wonYear.length,
               winRate: totalClosed > 0 ? Math.round((wonFiltered.length / totalClosed) * 100) : 0,
               tasksToday: 0,
             });
@@ -249,12 +265,28 @@ export default function CrmDashboardView({ buFilter: externalBu }: Props) {
 
         setOpps(filteredOpps);
         setActivities(filteredActs);
+        const tds = new Date().toISOString().slice(0, 10);
+        const wks = (() => { const d = new Date(); const dw = d.getDay(); d.setDate(d.getDate() - dw + (dw === 0 ? -6 : 1)); return d.toISOString().slice(0, 10); })();
+        const mos = tds.slice(0, 7);
+        const yrs = tds.slice(0, 4);
+        const cds = (o: CrmOpportunity) => o.actual_close_date ?? o.expected_close_date ?? "";
+        const wonT = wonSeed.filter(o => cds(o) === tds);
+        const wonW = wonSeed.filter(o => cds(o) >= wks);
+        const wonM = wonSeed.filter(o => cds(o).startsWith(mos));
+        const wonY = wonSeed.filter(o => cds(o).startsWith(yrs));
         setAnalytics({
           leadsNew: buFilter ? (filteredOpps.length > 0 ? 1 : 0) : 3,
           openOpportunities: openSeed.length,
           pipelineValue: openSeed.reduce((s, o) => s + o.deal_value, 0),
           weightedForecast: Math.round(openSeed.reduce((s, o) => s + o.deal_value * o.probability / 100, 0)),
-          closedWonThisMonth: wonSeed.reduce((s, o) => s + o.deal_value, 0),
+          revenueToday:      wonT.reduce((s, o) => s + o.deal_value, 0),
+          revenueThisWeek:   wonW.reduce((s, o) => s + o.deal_value, 0),
+          revenueThisMonth:  wonM.reduce((s, o) => s + o.deal_value, 0),
+          revenueThisYear:   wonY.reduce((s, o) => s + o.deal_value, 0),
+          closedWonToday:    wonT.length,
+          closedWonThisWeek: wonW.length,
+          closedWonThisMonth:wonM.length,
+          closedWonThisYear: wonY.length,
           winRate: total > 0 ? Math.round((wonSeed.length / total) * 100) : 0,
           tasksToday: 0,
         });
