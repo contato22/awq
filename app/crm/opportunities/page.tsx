@@ -542,13 +542,16 @@ function OppCard({
   onDragStart,
   onClick,
   onActivityClick,
+  onDeleteClick,
 }: {
   opp: CrmOpportunity;
   activityCount?: number;
   onDragStart: (e: DragEvent, id: string) => void;
   onClick: () => void;
   onActivityClick: (e: React.MouseEvent) => void;
+  onDeleteClick: (e: React.MouseEvent) => void;
 }) {
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const days = daysUntil(opp.expected_close_date);
   const isUrgent = days !== null && days <= 7 && days >= 0;
   const isOverdue = days !== null && days < 0;
@@ -558,15 +561,24 @@ function OppCard({
     <div
       draggable
       onDragStart={e => onDragStart(e, opp.opportunity_id)}
-      onClick={onClick}
+      onClick={confirmDelete ? undefined : onClick}
       className="bg-white border border-gray-200 rounded-xl p-3.5 cursor-pointer active:cursor-grabbing shadow-sm hover:shadow-md hover:border-brand-300 transition-all group"
     >
-      {/* Code + BU */}
+      {/* Code + BU + Delete */}
       <div className="flex items-center justify-between mb-2">
         <span className="text-[10px] font-mono text-gray-400">{opp.opportunity_code}</span>
-        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${BU_COLORS[opp.bu] ?? "bg-gray-100 text-gray-600"}`}>
-          {opp.bu}
-        </span>
+        <div className="flex items-center gap-1.5">
+          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${BU_COLORS[opp.bu] ?? "bg-gray-100 text-gray-600"}`}>
+            {opp.bu}
+          </span>
+          <button
+            type="button"
+            onClick={e => { e.stopPropagation(); setConfirmDelete(true); }}
+            className="p-0.5 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
+          >
+            <Trash2 size={11} />
+          </button>
+        </div>
       </div>
 
       {/* Name */}
@@ -636,6 +648,22 @@ function OppCard({
           🚀 Criar Projeto PPM
         </Link>
       )}
+
+      {confirmDelete && (
+        <div className="mt-2 flex items-center justify-between gap-2 p-2 bg-red-50 border border-red-200 rounded-lg" onClick={e => e.stopPropagation()}>
+          <span className="text-[10px] text-red-600 font-medium">Apagar oportunidade?</span>
+          <div className="flex gap-1">
+            <button type="button" onClick={e => { e.stopPropagation(); onDeleteClick(e); }}
+              className="px-2 py-0.5 bg-red-600 text-white text-[10px] font-semibold rounded hover:bg-red-700 transition-colors">
+              Apagar
+            </button>
+            <button type="button" onClick={e => { e.stopPropagation(); setConfirmDelete(false); }}
+              className="px-2 py-0.5 bg-white border border-gray-300 text-gray-600 text-[10px] font-medium rounded hover:bg-gray-50 transition-colors">
+              Não
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -643,7 +671,7 @@ function OppCard({
 // ─── Column ───────────────────────────────────────────────────────────────────
 
 function KanbanColumn({
-  stage, opps, activityCounts, onDrop, onDragOver, onDragLeave, isDragOver, onCardClick, onActivityClick,
+  stage, opps, activityCounts, onDrop, onDragOver, onDragLeave, isDragOver, onCardClick, onActivityClick, onDeleteClick,
 }: {
   stage: string;
   opps: CrmOpportunity[];
@@ -654,6 +682,7 @@ function KanbanColumn({
   isDragOver: boolean;
   onCardClick: (opp: CrmOpportunity) => void;
   onActivityClick: (opp: CrmOpportunity) => void;
+  onDeleteClick: (opp: CrmOpportunity) => void;
 }) {
   const cfg = STAGE_CONFIG[stage]!;
   const total = opps.reduce((s, o) => s + o.deal_value, 0);
@@ -697,6 +726,7 @@ function KanbanColumn({
             onDragStart={(e, id) => { e.dataTransfer.setData("text/plain", id); }}
             onClick={() => onCardClick(o)}
             onActivityClick={e => { e.stopPropagation(); onActivityClick(o); }}
+            onDeleteClick={e => { e.stopPropagation(); onDeleteClick(o); }}
           />
         ))}
         {opps.length === 0 && (
@@ -961,6 +991,7 @@ function PipelinePageInner() {
                 isDragOver={dragOverStage === stage}
                 onCardClick={opp => openCard(opp, "edit")}
                 onActivityClick={opp => openCard(opp, "activity")}
+                onDeleteClick={handleDelete}
               />
             ))}
           </div>
@@ -974,14 +1005,22 @@ function PipelinePageInner() {
               {opps.filter(o => o.stage === "closed_lost").map(o => (
                 <div
                   key={o.opportunity_id}
-                  className="flex items-center justify-between py-1.5 border-b border-gray-100 last:border-0 cursor-pointer hover:bg-gray-50 rounded px-1 -mx-1 transition-colors"
-                  onClick={() => openCard(o, "edit")}
+                  className="flex items-center justify-between py-1.5 border-b border-gray-100 last:border-0 hover:bg-gray-50 rounded px-1 -mx-1 transition-colors"
                 >
-                  <div>
+                  <div className="flex-1 cursor-pointer" onClick={() => openCard(o, "edit")}>
                     <p className="text-xs font-medium text-gray-900">{o.opportunity_name}</p>
                     <p className="text-[10px] text-gray-500">{o.lost_reason ?? "—"} · {formatDateBR(o.actual_close_date)}</p>
                   </div>
-                  <span className="text-sm font-semibold text-red-500">{formatBRL(o.deal_value)}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-red-500">{formatBRL(o.deal_value)}</span>
+                    <button
+                      onClick={() => handleDelete(o)}
+                      className="p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+                      title="Apagar oportunidade"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
