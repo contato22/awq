@@ -7,10 +7,11 @@
 import Header from "@/components/Header";
 import Link from "next/link";
 import {
-  Database, Server, Layers, Shield, ListTodo,
+  Database, Server, Layers, Shield, ListTodo, HardDrive,
   CheckCircle2, XCircle, Clock, AlertTriangle,
   Package, ArrowRight, Eye, EyeOff,
 } from "lucide-react";
+import { USE_DB, USE_BLOB } from "@/lib/db";
 import { getAllDocuments, getAllTransactions } from "@/lib/financial-db";
 import { buildFinancialQuery, ENTITY_LABELS } from "@/lib/financial-query";
 import {
@@ -19,6 +20,33 @@ import {
 } from "@/lib/financial-ingest-status";
 import { PLATFORM_ROUTES } from "@/lib/platform-registry";
 import { SNAPSHOT_REGISTRY, getSnapshotMigrationStatus } from "@/lib/snapshot-registry";
+
+// ─── Sub-navigation shared across /awq/data/* ────────────────────────────────
+
+function DataSubNav({ active }: { active: "overview" | "storage" }) {
+  const tabs = [
+    { href: "/awq/data",         label: "Visão Geral", key: "overview" },
+    { href: "/awq/data/storage", label: "Storage",     key: "storage"  },
+  ];
+  return (
+    <div className="flex gap-1 border-b border-gray-200 mb-6">
+      {tabs.map((t) => (
+        <Link
+          key={t.key}
+          href={t.href}
+          className={
+            "px-4 py-2 text-xs font-semibold border-b-2 -mb-px transition-colors " +
+            (active === t.key
+              ? "border-gray-900 text-gray-900"
+              : "border-transparent text-gray-500 hover:text-gray-700")
+          }
+        >
+          {t.label}
+        </Link>
+      ))}
+    </div>
+  );
+}
 
 // ─── Local types ─────────────────────────────────────────────────────────────
 
@@ -178,6 +206,8 @@ export default async function AwqDataPage() {
       />
       <div className="page-container">
 
+        <DataSubNav active="overview" />
+
         {/* ── 5.1 Executive Header ─────────────────────────────────────────── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="card p-4">
@@ -291,47 +321,103 @@ export default async function AwqDataPage() {
           <div className="flex items-center gap-2 mb-4">
             <Server size={15} className="text-gray-700" />
             <h2 className="text-sm font-semibold text-gray-900">Storage / Persistencia</h2>
+            <Link
+              href="/awq/data/storage"
+              className="ml-auto text-[10px] text-blue-600 hover:underline flex items-center gap-1"
+            >
+              Gerenciar Storage <ArrowRight size={10} />
+            </Link>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
-              <div className="text-xs font-bold text-emerald-800 mb-2">Store Canonica (Pipeline)</div>
-              <div className="space-y-1 text-[11px] text-emerald-700">
-                <div><code>public/data/financial/documents.json</code></div>
-                <div><code>public/data/financial/transactions.json</code></div>
-                <div><code>public/data/financial/pdfs/</code></div>
+            {/* Backend adapter — real status from lib/db.ts */}
+            <div className={
+              "rounded-lg border p-4 " +
+              (USE_DB ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50")
+            }>
+              <div className={"text-xs font-bold mb-2 " + (USE_DB ? "text-emerald-800" : "text-amber-800")}>
+                {USE_DB ? "Neon Postgres (ativo)" : "JSON Files (fallback)"}
               </div>
-              <div className="mt-3 rounded bg-red-100 px-2 py-1 text-[10px] text-red-700 font-medium">
-                ATENCAO: efemero no Vercel serverless. Requer Vercel Blob/Neon para producao.
+              <div className={"space-y-1 text-[11px] " + (USE_DB ? "text-emerald-700" : "text-amber-700")}>
+                {USE_DB ? (
+                  <>
+                    <div><code>financial_documents</code> — tabela Neon</div>
+                    <div><code>bank_transactions</code> — tabela Neon</div>
+                    <div className="mt-2 text-[10px] text-emerald-600 font-medium">DATABASE_URL configurada — persistencia real</div>
+                  </>
+                ) : (
+                  <>
+                    <div><code>public/data/financial/documents.json</code></div>
+                    <div><code>public/data/financial/transactions.json</code></div>
+                    <div className="mt-2 rounded bg-red-100 px-2 py-1 text-[10px] text-red-700 font-medium">
+                      Sem DATABASE_URL — efemero no Vercel. Configure Neon para producao.
+                    </div>
+                  </>
+                )}
               </div>
-              <div className="mt-2 text-[10px] text-emerald-600">
-                {docs.length === 0 ? "Vazio — nenhum extrato ingerido" : docs.length + " documentos · " + txns.length + " transacoes"}
+              <div className="mt-2 text-[10px] text-gray-500">
+                {docs.length === 0 ? "Vazio — nenhum extrato ingerido" : docs.length + " docs · " + txns.length + " txns"}
               </div>
             </div>
+
+            {/* Blob adapter — real status from lib/db.ts */}
+            <div className={
+              "rounded-lg border p-4 " +
+              (USE_BLOB ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50")
+            }>
+              <div className={"text-xs font-bold mb-2 " + (USE_BLOB ? "text-emerald-800" : "text-amber-800")}>
+                {USE_BLOB ? "Vercel Blob (ativo)" : "Filesystem local (PDFs)"}
+              </div>
+              <div className={"space-y-1 text-[11px] " + (USE_BLOB ? "text-emerald-700" : "text-amber-700")}>
+                {USE_BLOB ? (
+                  <>
+                    <div>PDFs armazenados no Vercel Blob</div>
+                    <div>BLOB_READ_WRITE_TOKEN configurado</div>
+                    <div className="mt-2 text-[10px] text-emerald-600 font-medium">Persistencia de PDFs ativa</div>
+                  </>
+                ) : (
+                  <>
+                    <div><code>public/data/financial/pdfs/</code></div>
+                    <div className="mt-2 rounded bg-red-100 px-2 py-1 text-[10px] text-red-700 font-medium">
+                      Sem BLOB token — PDFs perdidos entre deploys. Configure Vercel Blob.
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Snapshots + runtime */}
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
-              <div className="text-xs font-bold text-amber-800 mb-2">TypeScript Hardcoded (Snapshots)</div>
+              <div className="text-xs font-bold text-amber-800 mb-2">Snapshots / Runtime</div>
               <div className="space-y-1 text-[11px] text-amber-700">
                 <div><code>lib/awq-group-data.ts</code> — AWQ Group</div>
                 <div><code>lib/data.ts</code> — JACQES</div>
                 <div><code>lib/caza-data.ts</code> — Caza Vision</div>
-                <div><code>public/data/venture-sales.json</code> — Venture</div>
+                <div><code>localStorage</code> — /awq/bank (client)</div>
               </div>
               <div className="mt-3 text-[10px] text-amber-600">
-                Fonte primaria atual de {snapshotRoutes.length} rotas. Estatico, bundled, Q1 2026.
-                Pendente substituicao pelo pipeline apos ingestao real.
+                {snapshotRoutes.length} rotas em snapshot. Estatico, bundled, Q1 2026.
               </div>
             </div>
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-              <div className="text-xs font-bold text-gray-700 mb-2">Runtime / Externo</div>
-              <div className="space-y-1 text-[11px] text-gray-600">
-                <div><code>localStorage</code> — saldos /awq/bank (client-side)</div>
-                <div><code>Notion API</code> — projetos Caza, vendas Venture</div>
-                <div><code>next-auth session</code> — auth em memoria</div>
-              </div>
-              <div className="mt-3 text-[10px] text-gray-500">
-                Nao persistido no servidor. Nao verificavel pelo repositorio.
-                Integracoes externas com fallback para JSON local.
-              </div>
-            </div>
+          </div>
+
+          {/* Storage status indicators */}
+          <div className="mt-4 flex flex-wrap gap-2 pt-3 border-t border-gray-200">
+            <span className={"inline-flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-semibold " +
+              (USE_DB ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-600")}>
+              <HardDrive size={10} />
+              DB: {USE_DB ? "Neon (prod)" : "JSON (local)"}
+            </span>
+            <span className={"inline-flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-semibold " +
+              (USE_BLOB ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-600")}>
+              <Package size={10} />
+              Blob: {USE_BLOB ? "Vercel (prod)" : "FS local"}
+            </span>
+            <Link
+              href="/awq/data/storage"
+              className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-100 text-gray-600 text-[10px] font-semibold hover:bg-gray-200 ml-auto"
+            >
+              Ver detalhes completos <ArrowRight size={10} />
+            </Link>
           </div>
         </div>
 
