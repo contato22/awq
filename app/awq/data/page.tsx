@@ -24,26 +24,36 @@ import { SNAPSHOT_REGISTRY, getSnapshotMigrationStatus } from "@/lib/snapshot-re
 // ─── Sub-navigation shared across /awq/data/* ────────────────────────────────
 
 function DataSubNav({ active }: { active: "overview" | "storage" }) {
-  const tabs = [
-    { href: "/awq/data",         label: "Visão Geral", key: "overview" },
-    { href: "/awq/data/storage", label: "Storage",     key: "storage"  },
-  ];
+  const hasStorageIssue = !USE_DB || !USE_BLOB;
   return (
     <div className="flex gap-1 border-b border-gray-200 mb-6">
-      {tabs.map((t) => (
-        <Link
-          key={t.key}
-          href={t.href}
-          className={
-            "px-4 py-2 text-xs font-semibold border-b-2 -mb-px transition-colors " +
-            (active === t.key
-              ? "border-gray-900 text-gray-900"
-              : "border-transparent text-gray-500 hover:text-gray-700")
-          }
-        >
-          {t.label}
-        </Link>
-      ))}
+      <Link
+        href="/awq/data"
+        className={
+          "px-4 py-2.5 text-xs font-semibold border-b-2 -mb-px transition-colors " +
+          (active === "overview"
+            ? "border-gray-900 text-gray-900"
+            : "border-transparent text-gray-500 hover:text-gray-700")
+        }
+      >
+        Visão Geral
+      </Link>
+      <Link
+        href="/awq/data/storage"
+        className={
+          "flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold border-b-2 -mb-px transition-colors " +
+          (active === "storage"
+            ? "border-gray-900 text-gray-900"
+            : "border-transparent text-gray-500 hover:text-gray-700")
+        }
+      >
+        Storage
+        {hasStorageIssue && active !== "storage" && (
+          <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-amber-400 text-white text-[9px] font-bold">
+            !
+          </span>
+        )}
+      </Link>
     </div>
   );
 }
