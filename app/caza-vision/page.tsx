@@ -4,10 +4,12 @@ import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import SectionHeader from "@/components/SectionHeader";
 import EmptyState from "@/components/EmptyState";
+import Link from "next/link";
 import {
   Building2, DollarSign, TrendingUp, ArrowUpRight,
   Film, CheckCircle2, AlertTriangle, CheckCircle,
   BarChart3, Database, CloudOff, Users,
+  Briefcase, Target, Wallet, FileText,
 } from "lucide-react";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -109,6 +111,33 @@ export default function CazaVisionPage() {
     <>
       <Header title="Caza Vision — Overview" subtitle="Produtora de Conteúdo · AWQ Group" />
       <div className="page-container">
+
+        {/* ── Atalhos Rápidos ───────────────────────────────────────────── */}
+        <section className="flex flex-wrap gap-2">
+          {[
+            { label: "PPM",            href: "/awq/ppm",                  icon: Briefcase,  color: "text-violet-600", bg: "bg-violet-50"  },
+            { label: "CRM",            href: "/caza-vision/crm",           icon: Target,     color: "text-emerald-600", bg: "bg-emerald-50" },
+            { label: "Projetos",       href: "/caza-vision/imoveis",       icon: Film,       color: "text-brand-600",  bg: "bg-brand-50"   },
+            { label: "Clientes",       href: "/caza-vision/clientes",      icon: Users,      color: "text-cyan-700",   bg: "bg-cyan-50"    },
+            { label: "Financeiro",     href: "/caza-vision/financial",     icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
+            { label: "Contas",         href: "/caza-vision/contas",        icon: Wallet,     color: "text-amber-700",  bg: "bg-amber-50"   },
+            { label: "Unit Economics", href: "/caza-vision/unit-economics", icon: BarChart3,  color: "text-brand-600",  bg: "bg-brand-50"   },
+            { label: "Importar",       href: "/caza-vision/import",        icon: FileText,   color: "text-gray-500",   bg: "bg-gray-100"   },
+          ].map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                title={item.label}
+                className={`flex items-center gap-2 px-3 h-10 rounded-xl text-xs font-semibold transition-all duration-150 ${item.bg} ${item.color} hover:brightness-95`}
+              >
+                <Icon size={15} />
+                {item.label}
+              </Link>
+            );
+          })}
+        </section>
 
         {/* Source badge */}
         {!loading && (

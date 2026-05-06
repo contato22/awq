@@ -77,7 +77,8 @@ function LeadsPageInner() {
           setLeads(json.data);
         } else throw new Error("api");
       } catch {
-        setLeads(SEED_LEADS);
+        const localLeads = JSON.parse(localStorage.getItem("awq_local_leads") ?? "[]") as CrmLead[];
+        setLeads([...localLeads, ...SEED_LEADS]);
         setIsStatic(true);
       } finally {
         setLoading(false);
