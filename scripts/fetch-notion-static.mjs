@@ -555,6 +555,39 @@ function buildStatsFromProjects(projects, clients = []) {
 const EMPTY_VENTURE = { rows: [], totalFechado: 0, totalLeads: 0, byCategoria: {}, byCanal: [], byQuarter: {}, byQCat: {} };
 const EMPTY_STATS   = { kpis: [], revenueData: [], pipeline: [], projectTypeRevenue: [], source: "empty" };
 
+const CRM_RFM_SEED = {
+  success: true,
+  data: {
+    customers: [
+      { account_id:"a1",  account_name:"XP Investimentos S.A.",      industry:"finance",   owner:"Miguel", bu:"JACQES",  recency_days:10,  frequency:6, monetary:420000, r_score:5, f_score:5, m_score:5, rfm_score:15, segment:"Campeões",            segment_color:"#1e40af", segment_bg:"#dbeafe" },
+      { account_id:"a2",  account_name:"Nu Pagamentos S.A.",          industry:"finance",   owner:"Danilo", bu:"JACQES",  recency_days:28,  frequency:4, monetary:285000, r_score:4, f_score:4, m_score:4, rfm_score:12, segment:"Clientes Fiéis",       segment_color:"#2563eb", segment_bg:"#eff6ff" },
+      { account_id:"a7",  account_name:"Grupo Pão de Açúcar",         industry:"retail",    owner:"Miguel", bu:"JACQES",  recency_days:320, frequency:5, monetary:380000, r_score:1, f_score:5, m_score:5, rfm_score:11, segment:"Não Pode Perder",      segment_color:"#92400e", segment_bg:"#fde68a" },
+      { account_id:"a9",  account_name:"Faculdade Einstein",          industry:"education", owner:"Miguel", bu:"ADVISOR", recency_days:45,  frequency:2, monetary:78000,  r_score:4, f_score:2, m_score:2, rfm_score:8,  segment:"Fiéis em Potencial",   segment_color:"#3b82f6", segment_bg:"#e0f2fe" },
+      { account_id:"a3",  account_name:"Colégio CEM",                 industry:"education", owner:"Miguel", bu:"ADVISOR", recency_days:95,  frequency:3, monetary:125000, r_score:3, f_score:3, m_score:3, rfm_score:9,  segment:"Precisam de Atenção",  segment_color:"#6b7280", segment_bg:"#f3f4f6" },
+      { account_id:"a8",  account_name:"Positivo Tecnologia",         industry:"tech",      owner:"Danilo", bu:"VENTURE", recency_days:210, frequency:4, monetary:195000, r_score:2, f_score:4, m_score:4, rfm_score:10, segment:"Em Risco",             segment_color:"#dc2626", segment_bg:"#fee2e2" },
+      { account_id:"a4",  account_name:"Reabilicor Clínica Cardíaca", industry:"health",    owner:"Danilo", bu:"CAZA",    recency_days:175, frequency:2, monetary:95000,  r_score:2, f_score:2, m_score:3, rfm_score:7,  segment:"Hibernando",           segment_color:"#ea580c", segment_bg:"#ffedd5" },
+      { account_id:"a10", account_name:"Farmácias Nissei",            industry:"health",    owner:"Danilo", bu:"CAZA",    recency_days:60,  frequency:1, monetary:42000,  r_score:3, f_score:1, m_score:1, rfm_score:5,  segment:"Clientes Promissores", segment_color:"#0369a1", segment_bg:"#e0f2fe" },
+      { account_id:"a6",  account_name:"Carol Bertolini",             industry:"media",     owner:"Miguel", bu:"VENTURE", recency_days:19,  frequency:1, monetary:18000,  r_score:5, f_score:1, m_score:1, rfm_score:7,  segment:"Novos Clientes",       segment_color:"#0284c7", segment_bg:"#f0f9ff" },
+      { account_id:"a5",  account_name:"Clínica Teresópolis",         industry:"health",    owner:"Danilo", bu:"CAZA",    recency_days:370, frequency:1, monetary:50000,  r_score:1, f_score:1, m_score:2, rfm_score:4,  segment:"Perdidos",             segment_color:"#991b1b", segment_bg:"#fecaca" },
+      { account_id:"a11", account_name:"Hospital São Lucas",           industry:"health",    owner:"Miguel", bu:"ADVISOR", recency_days:85,  frequency:2, monetary:72000,  r_score:3, f_score:2, m_score:2, rfm_score:7,  segment:"Quase Dormentes",      segment_color:"#d97706", segment_bg:"#fef3c7" },
+    ],
+    segments: {
+      "Campeões":             { count:1, color:"#1e40af", bg:"#dbeafe" },
+      "Clientes Fiéis":       { count:1, color:"#2563eb", bg:"#eff6ff" },
+      "Fiéis em Potencial":   { count:1, color:"#3b82f6", bg:"#e0f2fe" },
+      "Novos Clientes":       { count:1, color:"#0284c7", bg:"#f0f9ff" },
+      "Clientes Promissores": { count:1, color:"#0369a1", bg:"#e0f2fe" },
+      "Precisam de Atenção":  { count:1, color:"#6b7280", bg:"#f3f4f6" },
+      "Quase Dormentes":      { count:1, color:"#d97706", bg:"#fef3c7" },
+      "Não Pode Perder":      { count:1, color:"#92400e", bg:"#fde68a" },
+      "Em Risco":             { count:1, color:"#dc2626", bg:"#fee2e2" },
+      "Hibernando":           { count:1, color:"#ea580c", bg:"#ffedd5" },
+      "Perdidos":             { count:1, color:"#991b1b", bg:"#fecaca" },
+    },
+    totals: { customers:11, monetary:1760000, avgMonetary:160000 },
+  },
+};
+
 async function main() {
     mkdirSync(OUT_DIR, { recursive: true });
 
@@ -582,6 +615,7 @@ async function main() {
                 write("venture-sales.json", EMPTY_VENTURE, { skipIfExists: true });
             }
             write("jacqes-kpis.json", JACQES_KPIS);
+    write("crm-rfm.json",    CRM_RFM_SEED, { skipIfExists: true });
             console.log("[1/3] Done — Neon export complete.");
             return;
         }
@@ -598,6 +632,7 @@ async function main() {
         write("caza-stats.json",      EMPTY_STATS, { skipIfExists: true });
         write("venture-sales.json",   EMPTY_VENTURE, { skipIfExists: true });
         write("jacqes-kpis.json",     JACQES_KPIS);
+        write("crm-rfm.json",         CRM_RFM_SEED,  { skipIfExists: true });
         return;
     }
 
@@ -687,6 +722,7 @@ async function main() {
     }
 
     write("jacqes-kpis.json", JACQES_KPIS);
+    write("crm-rfm.json",    CRM_RFM_SEED, { skipIfExists: true });
     console.log("[2/3] Done — Notion export complete.");
 }
 
@@ -698,7 +734,8 @@ main().catch((err) => {
     try { write("caza-financial.json",  []); } catch (_) {}
     try { write("caza-clients.json",    []); } catch (_) {}
     try { write("caza-stats.json",      EMPTY_STATS); } catch (_) {}
-    try { write("jacqes-kpis.json",     JACQES_KPIS); } catch (_) {}
+    try { write("jacqes-kpis.json",     JACQES_KPIS);  } catch (_) {}
+    try { write("crm-rfm.json",         CRM_RFM_SEED, { skipIfExists: true }); } catch (_) {}
     console.warn("  Wrote empty fallbacks so build can continue.");
     process.exit(0);   // allow build to continue with empty data (shows empty state, not 404)
 });

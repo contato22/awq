@@ -7,7 +7,9 @@ import { Users, DollarSign, TrendingUp, Star, AlertTriangle, Filter, RefreshCw }
 import { formatBRL } from "@/lib/utils";
 import type { RfmCustomer, RfmResponse, RfmSegment } from "@/lib/crm-rfm-types";
 
-const CACHE_KEY = (bu: string) => `crm-rfm-v1-${bu}`;
+const IS_STATIC  = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
+const BASE_PATH  = process.env.NEXT_PUBLIC_BASE_PATH ?? "/awq";
+const CACHE_KEY  = (bu: string) => `crm-rfm-v1-${bu}`;
 const AUTO_SYNC_MS = 5 * 60 * 1000; // 5 minutes
 
 // ─── BU filter ────────────────────────────────────────────────────────────────
@@ -291,13 +293,44 @@ export default function RfmPage() {
 
   const fetchData = (buFilter: BuFilter, silent = false) => {
     if (!silent) setLoading(true); else setSyncing(true);
-    const buParam = buFilter !== "Todos" ? `?bu=${buFilter}` : "";
-    fetch(`/api/crm/rfm${buParam}`)
+
+    const url = IS_STATIC
+      ? `${BASE_PATH}/data/crm-rfm.json`
+      : `/api/crm/rfm${buFilter !== "Todos" ? `?bu=${buFilter}` : ""}`;
+
+    fetch(url)
       .then(r => r.json())
       .then(json => {
         if (json.success) {
-          saveCache(buFilter, json.data);
-          setData(json.data);
+          // In static mode the JSON contains all BUs; filter client-side
+          const raw: typeof json.data = IS_STATIC && buFilter !== "Todos"
+            ? {
+                ...json.data,
+                customers: json.data.customers.filter((c: { bu: string }) => c.bu === buFilter),
+              }
+            : json.data;
+
+          // Recompute segment counts and totals after BU filter
+          const filtered = IS_STATIC && buFilter !== "Todos" ? (() => {
+            const customers = raw.customers.length > 0 ? raw.customers : json.data.customers;
+            const segs = Object.fromEntries(
+              SEGMENT_ORDER.map(seg => [
+                seg,
+                { count: customers.filter((c: { segment: string }) => c.segment === seg).length,
+                  ...json.data.segments[seg] },
+              ])
+            ) as RfmResponse["segments"];
+            const tot = customers.reduce((s: number, c: { monetary: number }) => s + c.monetary, 0);
+            return {
+              customers,
+              segments: segs,
+              totals: { customers: customers.length, monetary: tot,
+                avgMonetary: customers.length > 0 ? Math.round(tot / customers.length) : 0 },
+            } as RfmResponse;
+          })() : raw;
+
+          saveCache(buFilter, filtered);
+          setData(filtered);
           setLastSync(Date.now());
         } else {
           const cached = loadCache(buFilter);

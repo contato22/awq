@@ -53,6 +53,7 @@ next-env.d.ts
 !/public/data/caza-crm-propostas.json
 !/public/data/caza-crm-interacoes.json
 !/public/data/caza-crm-stats.json
+!/public/data/crm-rfm.json
 
 # Uploaded PDFs (filesystem adapter — ephemeral, not versioned)
 /public/data/financial/pdfs/*.pdf
