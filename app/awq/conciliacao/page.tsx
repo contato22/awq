@@ -15,6 +15,8 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import BankReconciliationBoard from "@/components/BankReconciliationBoard";
 import { getAllTransactions, getAllDocuments } from "@/lib/financial-db";
+import { getStorageStatus } from "@/lib/storage-status";
+import StorageWarningBanner from "@/components/StorageWarningBanner";
 import {
   AlertCircle,
   ArrowDownRight,
@@ -65,6 +67,8 @@ export default async function ConciliacaoPage() {
     getAllDocuments(),
   ]);
 
+  const storageStatus = await getStorageStatus(documents.length, transactions.length);
+
   const counts = {
     total:      transactions.length,
     pendente:   transactions.filter((t) => t.reconciliationStatus === "pendente").length,
@@ -93,6 +97,9 @@ export default async function ConciliacaoPage() {
         subtitle="Hub unificado — revisão de transações importadas e verificação manual. DFC, DRE e KPIs recalculam automaticamente."
       />
       <div className="p-6 space-y-8">
+
+        {/* ── Aviso de storage ── */}
+        <StorageWarningBanner status={storageStatus} compact />
 
         {/* ── Seção 1: KPIs de conciliação (transações importadas) ── */}
         <section className="space-y-4">

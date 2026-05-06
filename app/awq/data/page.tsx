@@ -19,6 +19,8 @@ import {
 } from "@/lib/financial-ingest-status";
 import { PLATFORM_ROUTES } from "@/lib/platform-registry";
 import { SNAPSHOT_REGISTRY, getSnapshotMigrationStatus } from "@/lib/snapshot-registry";
+import { getStorageStatus } from "@/lib/storage-status";
+import StorageWarningBanner from "@/components/StorageWarningBanner";
 
 // ─── Local types ─────────────────────────────────────────────────────────────
 
@@ -149,6 +151,7 @@ export default async function AwqDataPage() {
   const txns   = await getAllTransactions();
   const q      = await buildFinancialQuery();
 
+  const storageStatus = await getStorageStatus(docs.length, txns.length);
   const doneDocs      = docs.filter((d) => d.status === "done");
   const errorDocs     = docs.filter((d) => d.status === "error");
   const processingDocs= docs.filter((d) => !["done","error"].includes(d.status));
@@ -223,6 +226,9 @@ export default async function AwqDataPage() {
             </div>
           </div>
         </div>
+
+        {/* ── Storage warning ─────────────────────────────────────────────── */}
+        <StorageWarningBanner status={storageStatus} />
 
         {/* ── Assessment banner ───────────────────────────────────────────── */}
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
