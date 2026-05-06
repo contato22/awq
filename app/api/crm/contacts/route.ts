@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { initCrmDB, listContacts, createContact } from "@/lib/crm-db";
+import { initCrmDB, listContacts, createContact, deleteContact } from "@/lib/crm-db";
 
 function ok(data: unknown) { return NextResponse.json({ success: true, data }); }
 function err(msg: string, status = 500) { return NextResponse.json({ success: false, error: msg }, { status }); }
@@ -25,6 +25,12 @@ export async function POST(req: NextRequest) {
       if (!data.full_name) return err("full_name required", 400);
       const row = await createContact(data);
       return ok(row);
+    }
+    if (action === "delete") {
+      const { contact_id } = data;
+      if (!contact_id) return err("contact_id required", 400);
+      await deleteContact(contact_id);
+      return ok({ deleted: true });
     }
     return err("Unknown action", 400);
   } catch (e) { return err(String(e)); }

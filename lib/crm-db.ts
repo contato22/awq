@@ -180,6 +180,11 @@ export async function createContact(data: Partial<CrmContact>): Promise<CrmConta
   return rows[0] as CrmContact;
 }
 
+export async function deleteContact(id: string): Promise<void> {
+  if (!sql) throw new Error("DB not available");
+  await sql`DELETE FROM crm_contacts WHERE contact_id = ${id}`;
+}
+
 // ─── Lead CRUD ────────────────────────────────────────────────────────────────
 
 export async function listLeads(filters?: { status?: string; bu?: string; assigned_to?: string }): Promise<CrmLead[]> {

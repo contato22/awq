@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
 import EmptyState from "@/components/EmptyState";
-import { Users, Plus, Search, Mail, Phone, Linkedin } from "lucide-react";
+import { Users, Plus, Search, Mail, Phone, Linkedin, Trash2, Check, X as XIcon } from "lucide-react";
 import type { CrmContact } from "@/lib/crm-types";
 import { SEED_CONTACTS } from "@/lib/crm-db";
 
@@ -20,6 +20,24 @@ export default function ContactsPage() {
   const [contacts, setContacts] = useState<CrmContact[]>([]);
   const [loading,  setLoading]  = useState(true);
   const [search,   setSearch]   = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
+
+  function showToast(msg: string, ok: boolean) {
+    setToast({ msg, ok });
+    setTimeout(() => setToast(null), 3000);
+  }
+
+  function handleDelete(contact: CrmContact) {
+    setContacts(prev => prev.filter(c => c.contact_id !== contact.contact_id));
+    setDeletingId(null);
+    showToast("Contato apagado", true);
+    fetch("/api/crm/contacts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "delete", contact_id: contact.contact_id }),
+    }).catch(() => undefined);
+  }
 
   useEffect(() => {
     const p = new URLSearchParams();
@@ -64,13 +82,20 @@ export default function ContactsPage() {
           </Link>
         </div>
 
+        {/* Toast */}
+        {toast && (
+          <div className={`fixed top-4 right-4 z-50 px-4 py-2.5 rounded-xl text-sm font-medium shadow-lg ${toast.ok ? "bg-emerald-600 text-white" : "bg-red-600 text-white"}`}>
+            {toast.msg}
+          </div>
+        )}
+
         {/* Table */}
         <div className="card">
           <div className="table-scroll">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200">
-                  {["Contato","Empresa","Cargo","Senioridade","Canais","Principal"].map(h=>(
+                  {["Contato","Empresa","Cargo","Senioridade","Canais","Principal",""].map(h=>(
                     <th key={h} className="text-left py-3 px-4 text-[11px] font-semibold text-gray-500 whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -79,13 +104,13 @@ export default function ContactsPage() {
                 {loading ? (
                   Array.from({length:4}).map((_,i)=>(
                     <tr key={i} className="border-b border-gray-100">
-                      {Array.from({length:6}).map((_,j)=>(
+                      {Array.from({length:7}).map((_,j)=>(
                         <td key={j} className="py-3 px-4"><div className="h-4 bg-gray-100 rounded animate-pulse w-20"/></td>
                       ))}
                     </tr>
                   ))
                 ) : contacts.length === 0 ? (
-                  <tr><td colSpan={6} className="py-0">
+                  <tr><td colSpan={7} className="py-0">
                     <EmptyState compact icon={<Users size={16} className="text-gray-400"/>} title="Nenhum contato encontrado"/>
                   </td></tr>
                 ) : contacts.map(c=>(
@@ -123,6 +148,26 @@ export default function ContactsPage() {
                     <td className="py-3 px-4">
                       {c.is_primary_contact && (
                         <span className="text-[10px] font-bold bg-brand-50 text-brand-700 px-1.5 py-0.5 rounded-full">Principal</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4">
+                      {deletingId === c.contact_id ? (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[11px] text-red-600 font-medium whitespace-nowrap">Confirmar?</span>
+                          <button onClick={() => handleDelete(c)}
+                            className="p-1 rounded-md bg-red-100 hover:bg-red-200 text-red-600 transition-colors">
+                            <Check size={12} />
+                          </button>
+                          <button onClick={() => setDeletingId(null)}
+                            className="p-1 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-500 transition-colors">
+                            <XIcon size={12} />
+                          </button>
+                        </div>
+                      ) : (
+                        <button onClick={() => setDeletingId(c.contact_id)}
+                          className="p-1.5 rounded-md text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors">
+                          <Trash2 size={14} />
+                        </button>
                       )}
                     </td>
                   </tr>
