@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import Header from "@/components/Header";
 import SectionHeader from "@/components/SectionHeader";
-import { Users, DollarSign, TrendingUp, Star, AlertTriangle, Filter } from "lucide-react";
+import { Users, DollarSign, TrendingUp, Star, AlertTriangle, Filter, RefreshCw } from "lucide-react";
 import { formatBRL } from "@/lib/utils";
 import type { RfmCustomer, RfmResponse, RfmSegment } from "@/lib/crm-rfm-types";
+
+const CACHE_KEY = (bu: string) => `crm-rfm-v1-${bu}`;
+const AUTO_SYNC_MS = 5 * 60 * 1000; // 5 minutes
 
 // ─── BU filter ────────────────────────────────────────────────────────────────
 const BUS = ["Todos", "JACQES", "CAZA", "ADVISOR", "VENTURE"] as const;
@@ -255,21 +258,72 @@ function SegmentLegend({
   );
 }
 
+function loadCache(bu: BuFilter): RfmResponse | null {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY(bu));
+    if (!raw) return null;
+    const { data } = JSON.parse(raw) as { data: RfmResponse; ts: number };
+    return data ?? null;
+  } catch { return null; }
+}
+
+function saveCache(bu: BuFilter, data: RfmResponse) {
+  try { localStorage.setItem(CACHE_KEY(bu), JSON.stringify({ data, ts: Date.now() })); } catch { /* quota */ }
+}
+
+function loadCacheTs(bu: BuFilter): number | null {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY(bu));
+    if (!raw) return null;
+    return (JSON.parse(raw) as { ts: number }).ts ?? null;
+  } catch { return null; }
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function RfmPage() {
   const [data, setData]               = useState<RfmResponse | null>(null);
   const [loading, setLoading]         = useState(true);
+  const [syncing, setSyncing]         = useState(false);
+  const [lastSync, setLastSync]       = useState<number | null>(null);
   const [selectedSegment, setSelectedSegment] = useState<RfmSegment | null>(null);
   const [bu, setBu]                   = useState<BuFilter>("Todos");
+  const intervalRef                   = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => {
-    setLoading(true);
-    const buParam = bu !== "Todos" ? `?bu=${bu}` : "";
+  const fetchData = (buFilter: BuFilter, silent = false) => {
+    if (!silent) setLoading(true); else setSyncing(true);
+    const buParam = buFilter !== "Todos" ? `?bu=${buFilter}` : "";
     fetch(`/api/crm/rfm${buParam}`)
       .then(r => r.json())
-      .then(json => { setData(json.success ? json.data : buildSeedResponse(bu)); })
-      .catch(() => { setData(buildSeedResponse(bu)); })
-      .finally(() => setLoading(false));
+      .then(json => {
+        if (json.success) {
+          saveCache(buFilter, json.data);
+          setData(json.data);
+          setLastSync(Date.now());
+        } else {
+          const cached = loadCache(buFilter);
+          setData(cached ?? buildSeedResponse(buFilter));
+          if (!lastSync) setLastSync(loadCacheTs(buFilter));
+        }
+      })
+      .catch(() => {
+        const cached = loadCache(buFilter);
+        setData(cached ?? buildSeedResponse(buFilter));
+        if (!lastSync) setLastSync(loadCacheTs(buFilter));
+      })
+      .finally(() => { setLoading(false); setSyncing(false); });
+  };
+
+  useEffect(() => {
+    // Immediately show cached data while fetching
+    const cached = loadCache(bu);
+    if (cached) { setData(cached); setLoading(false); setLastSync(loadCacheTs(bu)); }
+
+    fetchData(bu, !!cached);
+
+    // Auto-sync interval
+    intervalRef.current = setInterval(() => fetchData(bu, true), AUTO_SYNC_MS);
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bu]);
 
   const visibleCustomers = useMemo(
@@ -279,7 +333,7 @@ export default function RfmPage() {
     [data, selectedSegment]
   );
 
-  if (loading) return (
+  if (loading && !data) return (
     <>
       <Header title="Matriz RFM — CRM Tower" subtitle="Segmentação de clientes por Recência, Frequência e Valor" />
       <div className="page-container">
@@ -294,6 +348,10 @@ export default function RfmPage() {
   const segments = data?.segments ?? {} as RfmResponse["segments"];
   const topSegment = SEGMENT_ORDER.find(s => (segments[s]?.count ?? 0) > 0);
 
+  const syncLabel = lastSync
+    ? `Atualizado ${new Date(lastSync).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`
+    : null;
+
   return (
     <>
       <Header
@@ -302,23 +360,39 @@ export default function RfmPage() {
       />
       <div className="page-container">
 
-        {/* BU Filter */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <Filter size={13} className="text-gray-400 shrink-0" />
-          <span className="text-[11px] text-gray-500 shrink-0">Filtrar por BU:</span>
-          {BUS.map(b => (
+        {/* BU Filter + sync status */}
+        <div className="flex items-center gap-2 flex-wrap justify-between">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Filter size={13} className="text-gray-400 shrink-0" />
+            <span className="text-[11px] text-gray-500 shrink-0">Filtrar por BU:</span>
+            {BUS.map(b => (
+              <button
+                key={b}
+                onClick={() => { setBu(b); setSelectedSegment(null); }}
+                className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all ${
+                  bu === b
+                    ? "bg-brand-600 text-white shadow-sm"
+                    : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                }`}
+              >
+                {b}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2">
+            {syncLabel && (
+              <span className="text-[10px] text-gray-400">{syncLabel}</span>
+            )}
             <button
-              key={b}
-              onClick={() => { setBu(b); setSelectedSegment(null); }}
-              className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all ${
-                bu === b
-                  ? "bg-brand-600 text-white shadow-sm"
-                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-              }`}
+              onClick={() => fetchData(bu, true)}
+              disabled={syncing || loading}
+              title="Sincronizar agora"
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] text-gray-500 hover:bg-gray-100 transition-all disabled:opacity-40"
             >
-              {b}
+              <RefreshCw size={11} className={syncing ? "animate-spin" : ""} />
+              {syncing ? "Sincronizando…" : "Sync"}
             </button>
-          ))}
+          </div>
         </div>
 
         {/* KPI Row */}
