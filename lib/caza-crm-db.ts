@@ -92,6 +92,7 @@ export type CazaCrmOpportunity = {
   risco: string;
   motivo_perda: string;
   observacoes: string;
+  ppm_project_id?: string | null;
 };
 
 export type CazaCrmProposal = {
@@ -196,6 +197,8 @@ export async function initCazaCrmDB(): Promise<void> {
     )
   `;
 
+  await sql`ALTER TABLE caza_crm_opportunities ADD COLUMN IF NOT EXISTS ppm_project_id TEXT`;
+
   await sql`CREATE INDEX IF NOT EXISTS idx_caza_crm_leads_status ON caza_crm_leads(status)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_caza_crm_leads_created ON caza_crm_leads(created_at DESC)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_caza_crm_opps_stage ON caza_crm_opportunities(stage)`;
@@ -274,7 +277,8 @@ export async function listOpportunities(): Promise<CazaCrmOpportunity[]> {
   const rows = await sql`
     SELECT id, lead_id, nome_oportunidade, empresa, tipo_servico, valor_estimado,
            stage, probabilidade, owner, data_abertura, prazo_estimado,
-           proxima_acao, data_proxima_acao, risco, motivo_perda, observacoes
+           proxima_acao, data_proxima_acao, risco, motivo_perda, observacoes,
+           ppm_project_id
     FROM caza_crm_opportunities ORDER BY created_at DESC
   `;
   return rows.map(coerceOpportunity);
@@ -298,7 +302,8 @@ export async function createOpportunity(
       ${o.motivo_perda}, ${o.observacoes}
     ) RETURNING id, lead_id, nome_oportunidade, empresa, tipo_servico, valor_estimado,
                 stage, probabilidade, owner, data_abertura, prazo_estimado,
-                proxima_acao, data_proxima_acao, risco, motivo_perda, observacoes
+                proxima_acao, data_proxima_acao, risco, motivo_perda, observacoes,
+                ppm_project_id
   `;
   return coerceOpportunity(rows[0]);
 }
@@ -311,7 +316,8 @@ export async function updateOpportunity(
   const rows = await sql`
     SELECT id, lead_id, nome_oportunidade, empresa, tipo_servico, valor_estimado,
            stage, probabilidade, owner, data_abertura, prazo_estimado,
-           proxima_acao, data_proxima_acao, risco, motivo_perda, observacoes
+           proxima_acao, data_proxima_acao, risco, motivo_perda, observacoes,
+           ppm_project_id
     FROM caza_crm_opportunities WHERE id = ${id}
   `;
   if (!rows[0]) return null;
@@ -324,11 +330,13 @@ export async function updateOpportunity(
       probabilidade = ${m.probabilidade}, owner = ${m.owner},
       prazo_estimado = ${m.prazo_estimado ?? null}, proxima_acao = ${m.proxima_acao},
       data_proxima_acao = ${m.data_proxima_acao ?? null}, risco = ${m.risco},
-      motivo_perda = ${m.motivo_perda}, observacoes = ${m.observacoes}
+      motivo_perda = ${m.motivo_perda}, observacoes = ${m.observacoes},
+      ppm_project_id = ${m.ppm_project_id ?? null}
     WHERE id = ${id}
     RETURNING id, lead_id, nome_oportunidade, empresa, tipo_servico, valor_estimado,
               stage, probabilidade, owner, data_abertura, prazo_estimado,
-              proxima_acao, data_proxima_acao, risco, motivo_perda, observacoes
+              proxima_acao, data_proxima_acao, risco, motivo_perda, observacoes,
+              ppm_project_id
   `;
   return updated[0] ? coerceOpportunity(updated[0]) : null;
 }
@@ -478,6 +486,7 @@ function coerceOpportunity(r: Record<string, unknown>): CazaCrmOpportunity {
     risco:             String(r.risco ?? "Baixo"),
     motivo_perda:      String(r.motivo_perda ?? ""),
     observacoes:       String(r.observacoes ?? ""),
+    ppm_project_id:    r.ppm_project_id != null ? String(r.ppm_project_id) : null,
   };
 }
 
