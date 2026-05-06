@@ -569,16 +569,24 @@ function PipelinePageInner() {
               : (
                 <div className="space-y-2">
                   {wonThisMonth.map(o => (
-                    <div
-                      key={o.opportunity_id}
-                      className="flex items-center justify-between py-1.5 border-b border-gray-100 last:border-0 cursor-pointer hover:bg-gray-50 rounded px-1 -mx-1 transition-colors"
-                      onClick={() => setEditingOpp(o)}
-                    >
-                      <div>
-                        <p className="text-xs font-medium text-gray-900">{o.opportunity_name}</p>
-                        <p className="text-[10px] text-gray-500">{o.owner} · {formatDateBR(o.actual_close_date)}</p>
+                    <div key={o.opportunity_id} className="border-b border-gray-100 last:border-0">
+                      <div
+                        className="flex items-center justify-between py-1.5 cursor-pointer hover:bg-gray-50 rounded px-1 -mx-1 transition-colors"
+                        onClick={() => setEditingOpp(o)}
+                      >
+                        <div>
+                          <p className="text-xs font-medium text-gray-900">{o.opportunity_name}</p>
+                          <p className="text-[10px] text-gray-500">{o.owner} · {formatDateBR(o.actual_close_date)}</p>
+                        </div>
+                        <span className="text-sm font-bold text-emerald-600">{formatBRL(o.deal_value)}</span>
                       </div>
-                      <span className="text-sm font-bold text-emerald-600">{formatBRL(o.deal_value)}</span>
+                      <Link
+                        href={`/awq/ppm/add?opportunity_id=${o.opportunity_id}&customer=${encodeURIComponent(o.account_name ?? "")}&revenue=${o.deal_value}&bu=${o.bu}`}
+                        className="mb-1.5 flex items-center justify-center gap-1 w-full text-[10px] font-semibold text-brand-600 bg-brand-50 border border-brand-200 rounded-lg py-1 hover:bg-brand-100 transition-colors"
+                        onClick={e => e.stopPropagation()}
+                      >
+                        🚀 Criar Projeto PPM
+                      </Link>
                     </div>
                   ))}
                   <div className="pt-1 flex justify-between text-xs font-semibold text-gray-700">
