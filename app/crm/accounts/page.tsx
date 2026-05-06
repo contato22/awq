@@ -43,28 +43,44 @@ export default function AccountsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/crm/accounts")
-      .then(r => r.json())
-      .then(res => setAllAccounts(res.success ? res.data : SEED_ACCOUNTS))
-      .catch(() => setAllAccounts(SEED_ACCOUNTS))
-      .finally(() => setLoading(false));
+    async function load() {
+      const deletedIds = new Set<string>(
+        JSON.parse(localStorage.getItem("awq_deleted_accounts") ?? "[]")
+      );
+
+      function applyLocalState(rows: CrmAccount[]): CrmAccount[] {
+        return rows.filter(a => !deletedIds.has(a.account_id));
+      }
+
+      try {
+        const res = await fetch("/api/crm/accounts");
+        const json = await res.json();
+        setAllAccounts(applyLocalState(json.success ? json.data : SEED_ACCOUNTS));
+      } catch {
+        setAllAccounts(applyLocalState(SEED_ACCOUNTS));
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
   }, []);
 
-  async function handleDelete(id: string, name: string) {
+  function handleDelete(id: string, name: string) {
     if (!confirm(`Excluir a conta "${name}"? Esta ação não pode ser desfeita.`)) return;
     setDeletingId(id);
-    try {
-      const res = await fetch("/api/crm/accounts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "delete", account_id: id }),
-      }).then(r => r.json());
-      if (res.success) {
-        setAllAccounts(prev => prev.filter(a => a.account_id !== id));
-      }
-    } finally {
-      setDeletingId(null);
+
+    const deleted = JSON.parse(localStorage.getItem("awq_deleted_accounts") ?? "[]") as string[];
+    if (!deleted.includes(id)) {
+      localStorage.setItem("awq_deleted_accounts", JSON.stringify([...deleted, id]));
     }
+    setAllAccounts(prev => prev.filter(a => a.account_id !== id));
+    setDeletingId(null);
+
+    fetch("/api/crm/accounts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "delete", account_id: id }),
+    }).catch(() => undefined);
   }
 
   const accounts = useMemo(() => {
