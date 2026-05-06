@@ -14,6 +14,8 @@ import {
 import { formatBRL, formatDateBR } from "@/lib/utils";
 import type { PpmProject, PpmPortfolioMetrics } from "@/lib/ppm-types";
 
+const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type HealthStatus  = "green" | "yellow" | "red";
@@ -205,19 +207,26 @@ export default function PpmPortfolioPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (search)       params.set("search",       search);
-      if (filterBU)     params.set("bu_code",      filterBU);
-      if (filterStatus) params.set("status",       filterStatus);
-      if (filterHealth) params.set("health_status",filterHealth);
-      if (filterType)   params.set("project_type", filterType);
+      if (!IS_STATIC) {
+        const params = new URLSearchParams();
+        if (search)       params.set("search",       search);
+        if (filterBU)     params.set("bu_code",      filterBU);
+        if (filterStatus) params.set("status",       filterStatus);
+        if (filterHealth) params.set("health_status",filterHealth);
+        if (filterType)   params.set("project_type", filterType);
 
-      const res  = await fetch(`/api/ppm/projects?${params}`);
-      const json = await res.json();
-      if (json.success) {
-        setProjects(json.data.projects);
-        setMetrics(json.data.metrics);
+        const res  = await fetch(`/api/ppm/projects?${params}`);
+        let json: { success: boolean; data?: { projects: PpmProject[]; metrics: PpmPortfolioMetrics } } | null = null;
+        try { json = await res.json(); } catch { /* non-JSON response */ }
+        if (json?.success) {
+          setProjects(json.data!.projects);
+          setMetrics(json.data!.metrics);
+          return;
+        }
       }
+      // Static export or API unavailable — read from localStorage
+      const local: PpmProject[] = JSON.parse(localStorage.getItem("awq_local_ppm_projects") ?? "[]");
+      setProjects(local);
     } finally {
       setLoading(false);
     }

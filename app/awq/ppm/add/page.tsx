@@ -103,26 +103,83 @@ function AddProjectPageInner() {
     if (!form.budget_cost)         { setError("Custo estimado é obrigatório"); return; }
 
     setSaving(true); setError("");
-    try {
-      const res  = await fetch("/api/ppm/projects", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...form,
-          opportunity_id: form.opportunity_id || undefined,
-          budget_hours:   form.budget_hours  ? parseFloat(form.budget_hours)  : undefined,
-          budget_cost:    parseFloat(form.budget_cost),
-          budget_revenue: parseFloat(form.budget_revenue),
-          margin_target:  marginPct ? parseFloat(marginPct) / 100 : undefined,
-        }),
-      });
-      const json = await res.json();
-      if (!json.success) throw new Error(json.error);
-      router.push(`/awq/ppm/${json.data.project_id}`);
-    } catch (e) {
-      setError((e as Error).message);
-      setSaving(false);
+
+    const payload = {
+      ...form,
+      opportunity_id: form.opportunity_id || undefined,
+      budget_hours:   form.budget_hours  ? parseFloat(form.budget_hours)  : undefined,
+      budget_cost:    parseFloat(form.budget_cost),
+      budget_revenue: parseFloat(form.budget_revenue),
+      margin_target:  marginPct ? parseFloat(marginPct) / 100 : undefined,
+    };
+
+    const isStaticExport = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
+    let saved = false;
+    let apiError: string | null = null;
+
+    if (!isStaticExport) {
+      try {
+        const res = await fetch("/api/ppm/projects", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        let json: { success: boolean; error?: string; data?: { project_id: string } } | null = null;
+        try { json = await res.json(); } catch { /* non-JSON response — GitHub Pages returns HTML */ }
+        if (json?.success) {
+          router.push(`/awq/ppm/${json.data!.project_id}`);
+          return;
+        } else if (json && res.status >= 400 && res.status < 500) {
+          apiError = json.error ?? "Erro ao criar projeto";
+        }
+      } catch { /* network error — fall through to localStorage */ }
     }
+
+    if (apiError) { setError(apiError); setSaving(false); return; }
+
+    if (!saved) {
+      const nowStr  = new Date().toISOString();
+      const localId = `local-${Date.now()}`;
+      const year    = new Date().getFullYear();
+      const seq     = String(Date.now()).slice(-4);
+      const localProject = {
+        project_id:       localId,
+        project_code:     `PRJ-${year}-${seq}`,
+        project_name:     payload.project_name,
+        customer_name:    payload.customer_name,
+        opportunity_id:   payload.opportunity_id,
+        bu_code:          payload.bu_code,
+        project_type:     payload.project_type,
+        service_category: payload.service_category,
+        contract_type:    payload.contract_type,
+        start_date:       payload.start_date,
+        planned_end_date: payload.planned_end_date,
+        budget_hours:     payload.budget_hours ?? 0,
+        actual_hours:     0,
+        budget_cost:      payload.budget_cost,
+        actual_cost:      0,
+        budget_revenue:   payload.budget_revenue,
+        actual_revenue:   0,
+        margin_target:    payload.margin_target,
+        project_manager:  payload.project_manager,
+        description:      payload.description,
+        objectives:       payload.objectives,
+        notes:            payload.notes,
+        billing_frequency: payload.billing_frequency || undefined,
+        phase:            "initiation",
+        status:           "active",
+        health_status:    "green",
+        priority:         payload.priority,
+        completion_pct:   0,
+        created_at:       nowStr,
+        updated_at:       nowStr,
+        created_by:       payload.project_manager,
+      };
+      const stored = JSON.parse(localStorage.getItem("awq_local_ppm_projects") ?? "[]");
+      localStorage.setItem("awq_local_ppm_projects", JSON.stringify([localProject, ...stored]));
+    }
+
+    router.push("/awq/ppm");
   }
 
   return (
