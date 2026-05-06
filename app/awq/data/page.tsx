@@ -9,7 +9,8 @@ import Link from "next/link";
 import {
   Database, Server, Layers, Shield, ListTodo,
   CheckCircle2, XCircle, Clock, AlertTriangle,
-  Package, ArrowRight, Eye, EyeOff,
+  Package, ArrowRight, Eye, EyeOff, Lock, HardDrive,
+  KeyRound, ShieldAlert, ShieldCheck, Activity,
 } from "lucide-react";
 import { getAllDocuments, getAllTransactions } from "@/lib/financial-db";
 import { buildFinancialQuery, ENTITY_LABELS } from "@/lib/financial-query";
@@ -19,6 +20,9 @@ import {
 } from "@/lib/financial-ingest-status";
 import { PLATFORM_ROUTES } from "@/lib/platform-registry";
 import { SNAPSHOT_REGISTRY, getSnapshotMigrationStatus } from "@/lib/snapshot-registry";
+import { SENSITIVE_ROUTES, SENSITIVE_APIS } from "@/lib/security-registry";
+import { PERMISSION_MATRIX, SECURITY_ENFORCEMENT_MODE } from "@/lib/security-access";
+import type { SecurityRole } from "@/lib/security-types";
 
 // ─── Local types ─────────────────────────────────────────────────────────────
 
@@ -40,22 +44,121 @@ interface ActionItem {
   title: string; description: string; owner: string; impact: string;
 }
 
-// ─── Architectural catalog (describes repo structure — static metadata) ───────
+// ─── BU Storage Metadata — organizado por categoria do sidebar ───────────────
 
+interface BuStorageConfig {
+  id: "awq" | "jacqes" | "caza" | "venture" | "advisor" | "ai" | "system";
+  label: string;
+  sublabel: string;
+  borderCls: string;
+  bgCls: string;
+  textCls: string;
+  badgeCls: string;
+  securityLayer: string;
+  primaryStorage: { name: string; type: SourceType; confidence: ConfidenceLevel }[];
+  sidebarSections: string[];
+}
+
+const BU_STORAGE_MAP: BuStorageConfig[] = [
+  {
+    id: "awq", label: "AWQ Group", sublabel: "Control Tower · FP&A · Tesouraria · Controladoria · Jurídico · Dados & Infra",
+    borderCls: "border-blue-200", bgCls: "bg-blue-50", textCls: "text-blue-800", badgeCls: "bg-blue-100 text-blue-700",
+    securityLayer: "holding · financeiro · dados_infra · security · juridico",
+    primaryStorage: [
+      { name: "Neon Postgres (financial_documents + bank_transactions)", type: "canonical-store", confidence: "confirmada" },
+      { name: "Vercel Blob (PDFs até 20 MB, dedup SHA-256)",            type: "canonical-store", confidence: "confirmada" },
+      { name: "lib/awq-group-data.ts (KPIs snapshot Q1 2026)",          type: "snapshot",        confidence: "snapshot"   },
+      { name: "lib/financial-query.ts (seletor canônico)",               type: "selector",        confidence: "confirmada" },
+      { name: "lib/bank-account-registry.ts (topologia contas)",         type: "registry",        confidence: "confirmada" },
+      { name: "localStorage (saldos /awq/bank — client-side)",           type: "runtime",         confidence: "nao-verificavel" },
+      { name: "lib/security-audit.ts (Neon + in-memory fallback)",        type: "adapter",         confidence: "confirmada" },
+    ],
+    sidebarSections: ["Visão Geral","KPIs","Risk","Portfolio","Allocations","Financial (DRE)","Budget","Forecast","Cash Flow","Contas Banco","Investimentos","AP & AR","Conciliação","Controladoria","Contabilidade","Fiscal","Jurídico","Societário","Compliance","Ingestão","Base de Dados","Segurança"],
+  },
+  {
+    id: "jacqes", label: "JACQES", sublabel: "CRM · FP&A · Relatórios · Carreira",
+    borderCls: "border-indigo-200", bgCls: "bg-indigo-50", textCls: "text-indigo-800", badgeCls: "bg-indigo-100 text-indigo-700",
+    securityLayer: "jacqes",
+    primaryStorage: [
+      { name: "Neon Postgres (jacqes_crm_* — 10 tabelas CRM)",          type: "canonical-store", confidence: "confirmada" },
+      { name: "lib/data.ts (KPIs operacionais snapshot Q1 2026)",         type: "snapshot",        confidence: "snapshot"   },
+      { name: "lib/jacqes-crm-db.ts + lib/jacqes-crm-query.ts",          type: "selector",        confidence: "confirmada" },
+    ],
+    sidebarSections: ["Visão Geral","FP&A","Relatórios","CRM Visão Geral","Pipeline CRM","Leads","Oportunidades","Propostas","Clientes","Carteira","Tarefas & SLA","Interações","Expansão","Churn & Health","Relatórios CRM","Modo Carreira"],
+  },
+  {
+    id: "caza", label: "Caza Vision", sublabel: "Projetos · Clientes · Financial · Unit Econ · Importar",
+    borderCls: "border-violet-200", bgCls: "bg-violet-50", textCls: "text-violet-800", badgeCls: "bg-violet-100 text-violet-700",
+    securityLayer: "caza_vision",
+    primaryStorage: [
+      { name: "Neon Postgres (caza_* — projetos, clientes, financeiro)",  type: "canonical-store", confidence: "confirmada" },
+      { name: "Notion API (receita projetos accrual — fallback JSON)",     type: "external",        confidence: "parcial"    },
+      { name: "lib/caza-data.ts (snapshot Q1 2026)",                      type: "snapshot",        confidence: "snapshot"   },
+    ],
+    sidebarSections: ["Visão Geral","Projetos","Clientes","Financial","Unit Economics","Importar"],
+  },
+  {
+    id: "venture", label: "AWQ Venture", sublabel: "Visão Geral · Comercial · Portfólio · Deals · Sales",
+    borderCls: "border-purple-200", bgCls: "bg-purple-50", textCls: "text-purple-800", badgeCls: "bg-purple-100 text-purple-700",
+    securityLayer: "awq_venture",
+    primaryStorage: [
+      { name: "lib/awq-group-data.ts (snapshot portfólio/pipeline)",     type: "snapshot",        confidence: "snapshot"   },
+      { name: "lib/deal-data.ts (deal workspaces — in-memory/JSON)",     type: "snapshot",        confidence: "snapshot"   },
+      { name: "public/data/venture-sales.json (pipeline vendas Q1)",     type: "snapshot",        confidence: "snapshot"   },
+      { name: "Notion API (vendas ao vivo via notion-fetch.ts)",          type: "external",        confidence: "parcial"    },
+      { name: "lib/investment-query.ts (aplicações/resgates)",            type: "selector",        confidence: "confirmada" },
+    ],
+    sidebarSections: ["Visão Geral","Comercial","Portfólio","Pipeline","Deals","Financial","YoY 2025","Sales"],
+  },
+  {
+    id: "advisor", label: "Advisor", sublabel: "Visão Geral · Financial · Customers",
+    borderCls: "border-pink-200", bgCls: "bg-pink-50", textCls: "text-pink-800", badgeCls: "bg-pink-100 text-pink-700",
+    securityLayer: "advisor",
+    primaryStorage: [
+      { name: "Dados próprios — pre_revenue, sem extrato/contrato ativo", type: "snapshot",        confidence: "mock"       },
+      { name: "lib/caza-data.ts (referência parcial)",                    type: "adapter",         confidence: "parcial"    },
+    ],
+    sidebarSections: ["Visão Geral","Financial","Customers"],
+  },
+  {
+    id: "ai", label: "AI & Agentes", sublabel: "Agents · OpenClaw Chat",
+    borderCls: "border-emerald-200", bgCls: "bg-emerald-50", textCls: "text-emerald-800", badgeCls: "bg-emerald-100 text-emerald-700",
+    securityLayer: "ai",
+    primaryStorage: [
+      { name: "Anthropic API (Claude — chat + PDF parsing agentic)",      type: "external",        confidence: "confirmada" },
+      { name: "lib/agents-config.ts (4 agentes, system prompts, tools)",  type: "config",          confidence: "confirmada" },
+      { name: "Runtime SSE (/api/chat, /api/agents/*)",                   type: "runtime",         confidence: "confirmada" },
+    ],
+    sidebarSections: ["Agents","OpenClaw"],
+  },
+  {
+    id: "system", label: "Sistema", sublabel: "Login · Settings · Platform Registry",
+    borderCls: "border-gray-200", bgCls: "bg-gray-50", textCls: "text-gray-700", badgeCls: "bg-gray-100 text-gray-600",
+    securityLayer: "system",
+    primaryStorage: [
+      { name: "lib/auth-users.ts (6 users hardcoded, JWT via NextAuth)",  type: "config",          confidence: "confirmada" },
+      { name: "next-auth session (JWT em memória, cookie HTTPOnly)",       type: "runtime",         confidence: "confirmada" },
+      { name: "lib/platform-registry.ts (154 rotas canônicas)",           type: "registry",        confidence: "confirmada" },
+    ],
+    sidebarSections: ["Login","Settings"],
+  },
+];
+
+// ─── Kept for compatibility with governance section ───────────────────────────
 const DATA_SOURCES: DataSourceEntry[] = [
-  { name: "platform-registry.ts",       path: "lib/platform-registry.ts",            type: "registry",        scope: "Plataforma",           description: "154 rotas canônicas. Single source of truth para sidebar, routing e nav.",                                         isConsumed: true,  isInternal: true,  confidence: "confirmada",      pagesUsing: -1 },
-  { name: "awq-group-data.ts",           path: "lib/awq-group-data.ts",               type: "snapshot",        scope: "AWQ Group",            description: "KPIs consolidados Q1 2026 (4 BUs). Fonte primária de 8+ páginas AWQ.",                                              isConsumed: true,  isInternal: true,  confidence: "snapshot",        pagesUsing: 8  },
-  { name: "data.ts",                     path: "lib/data.ts",                          type: "snapshot",        scope: "JACQES",               description: "KPIs e dados operacionais JACQES Q1 2026. Fonte primária de /jacqes/*.",                                            isConsumed: true,  isInternal: true,  confidence: "snapshot",        pagesUsing: 9  },
-  { name: "caza-data.ts",                path: "lib/caza-data.ts",                     type: "snapshot",        scope: "Caza Vision / Advisor", description: "Dados de projetos e clientes Caza Vision. Usada também pelo Advisor.",                                             isConsumed: true,  isInternal: true,  confidence: "snapshot",        pagesUsing: 5  },
-  { name: "public/data/financial/",      path: "public/data/financial/{docs,txns}.json",type: "canonical-store", scope: "Financeiro",           description: "Store canônica do pipeline de ingestão. Vazio sem extrato real. Efêmero no Vercel. Consumida por financial-query.ts → 5+ páginas.",                               isConsumed: true,  isInternal: true,  confidence: "nao-verificavel", pagesUsing: 5  },
-  { name: "financial-query.ts",          path: "lib/financial-query.ts",               type: "selector",        scope: "Financeiro",           description: "Seletor canônico sobre financial-db. Único caminho autorizado para leitura real. Consumido por /awq/financial, /awq/cashflow, /awq/kpis, /awq/risk, /awq/portfolio.",       isConsumed: true,  isInternal: true,  confidence: "confirmada",      pagesUsing: 5  },
-  { name: "bank-account-registry.ts",    path: "lib/bank-account-registry.ts",         type: "registry",        scope: "Financeiro",           description: "Topologia canônica de contas bancárias AWQ. Usada pelo classifier para inferir entidade e pela /awq/management para exibir cobertura.",                              isConsumed: true,  isInternal: true,  confidence: "confirmada",      pagesUsing: 2  },
-  { name: "investment-query.ts",         path: "lib/investment-query.ts",              type: "selector",        scope: "AWQ Venture",          description: "Seletor de dados de investimento separado do pipeline operacional. Exclui aplicacao_financeira/resgate_financeiro do P&L consolidado.",                            isConsumed: true,  isInternal: true,  confidence: "confirmada",      pagesUsing: 2  },
-  { name: "agents-config.ts",            path: "lib/agents-config.ts",                 type: "config",          scope: "AI / Agents",          description: "4 agentes autônomos (JACQES, Caza, Venture, Advisor). System prompts e tools.",                                    isConsumed: true,  isInternal: true,  confidence: "confirmada",      pagesUsing: 1  },
-  { name: "auth-users.ts",               path: "lib/auth-users.ts",                    type: "config",          scope: "Sistema",              description: "4 usuários hardcoded. Roles definidos mas RBAC não enforced no middleware.",                                          isConsumed: true,  isInternal: true,  confidence: "confirmada",      pagesUsing: 1  },
-  { name: "venture-sales.json",          path: "public/data/venture-sales.json",        type: "snapshot",        scope: "AWQ Venture",          description: "Pipeline de vendas Venture Q1 2026. Servido via notion-fetch.ts com fallback.",                                    isConsumed: true,  isInternal: true,  confidence: "snapshot",        pagesUsing: 1  },
-  { name: "Notion API",                  path: "lib/notion-fetch.ts → /api/notion",     type: "external",        scope: "Caza / Venture",       description: "Dados ao vivo de projetos e vendas. Fallback para JSON local quando offline.",                                     isConsumed: true,  isInternal: false, confidence: "parcial",         pagesUsing: 3  },
-  { name: "localStorage (browser)",      path: "app/awq/bank/page.tsx",                 type: "runtime",         scope: "Contas Banco",         description: "Saldos manuais em /awq/bank. Client-side apenas. Não persistido no servidor.",                                     isConsumed: true,  isInternal: false, confidence: "nao-verificavel", pagesUsing: 1  },
+  { name: "platform-registry.ts",  path: "lib/platform-registry.ts",              type: "registry",        scope: "Plataforma",           description: "154 rotas canônicas. Single source of truth para sidebar, routing e nav.",                                         isConsumed: true, isInternal: true,  confidence: "confirmada",      pagesUsing: -1 },
+  { name: "awq-group-data.ts",      path: "lib/awq-group-data.ts",                 type: "snapshot",        scope: "AWQ Group",            description: "KPIs consolidados Q1 2026 (4 BUs). Fonte primária de 8+ páginas AWQ.",                                              isConsumed: true, isInternal: true,  confidence: "snapshot",        pagesUsing: 8  },
+  { name: "data.ts",                path: "lib/data.ts",                            type: "snapshot",        scope: "JACQES",               description: "KPIs e dados operacionais JACQES Q1 2026. Fonte primária de /jacqes/*.",                                            isConsumed: true, isInternal: true,  confidence: "snapshot",        pagesUsing: 9  },
+  { name: "caza-data.ts",           path: "lib/caza-data.ts",                       type: "snapshot",        scope: "Caza Vision / Advisor", description: "Dados de projetos e clientes Caza Vision. Usada também pelo Advisor.",                                             isConsumed: true, isInternal: true,  confidence: "snapshot",        pagesUsing: 5  },
+  { name: "public/data/financial/", path: "public/data/financial/{docs,txns}.json", type: "canonical-store", scope: "Financeiro",           description: "Store canônica do pipeline de ingestão. Vazio sem extrato real. Efêmero no Vercel.",                               isConsumed: true, isInternal: true,  confidence: "nao-verificavel", pagesUsing: 5  },
+  { name: "financial-query.ts",     path: "lib/financial-query.ts",                 type: "selector",        scope: "Financeiro",           description: "Seletor canônico sobre financial-db. Único caminho autorizado para leitura real.",                                 isConsumed: true, isInternal: true,  confidence: "confirmada",      pagesUsing: 5  },
+  { name: "bank-account-registry",  path: "lib/bank-account-registry.ts",           type: "registry",        scope: "Financeiro",           description: "Topologia canônica de contas bancárias AWQ.",                                                                    isConsumed: true, isInternal: true,  confidence: "confirmada",      pagesUsing: 2  },
+  { name: "investment-query.ts",    path: "lib/investment-query.ts",                type: "selector",        scope: "AWQ Venture",          description: "Seletor de dados de investimento separado do pipeline operacional.",                                              isConsumed: true, isInternal: true,  confidence: "confirmada",      pagesUsing: 2  },
+  { name: "agents-config.ts",       path: "lib/agents-config.ts",                   type: "config",          scope: "AI / Agents",          description: "4 agentes autônomos (JACQES, Caza, Venture, Advisor). System prompts e tools.",                                    isConsumed: true, isInternal: true,  confidence: "confirmada",      pagesUsing: 1  },
+  { name: "auth-users.ts",          path: "lib/auth-users.ts",                      type: "config",          scope: "Sistema",              description: "6 usuários. Roles definidos. RBAC enforced em api_guarded.",                                                       isConsumed: true, isInternal: true,  confidence: "confirmada",      pagesUsing: 1  },
+  { name: "venture-sales.json",     path: "public/data/venture-sales.json",          type: "snapshot",        scope: "AWQ Venture",          description: "Pipeline de vendas Venture Q1 2026. Fallback de Notion.",                                                         isConsumed: true, isInternal: true,  confidence: "snapshot",        pagesUsing: 1  },
+  { name: "Notion API",             path: "lib/notion-fetch.ts → /api/notion",       type: "external",        scope: "Caza / Venture",       description: "Dados ao vivo. Fallback para JSON local quando offline.",                                                         isConsumed: true, isInternal: false, confidence: "parcial",         pagesUsing: 3  },
+  { name: "localStorage (browser)", path: "app/awq/bank/page.tsx",                  type: "runtime",         scope: "Contas Banco",         description: "Saldos manuais em /awq/bank. Client-side apenas. Não persistido no servidor.",                                     isConsumed: true, isInternal: false, confidence: "nao-verificavel", pagesUsing: 1  },
 ];
 
 const ACTION_QUEUE: ActionItem[] = [
@@ -242,47 +345,58 @@ export default async function AwqDataPage() {
           </div>
         </div>
 
-        {/* ── 5.2 Data Source Overview ─────────────────────────────────────── */}
+        {/* ── 5.2 Storage por Categoria do Sidebar ─────────────────────────── */}
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-4">
             <Layers size={15} className="text-gray-700" />
-            <h2 className="text-sm font-semibold text-gray-900">Fontes de Dados da Plataforma</h2>
-            <span className="ml-auto text-[10px] text-gray-400">{DATA_SOURCES.length} fontes catalogadas</span>
+            <h2 className="text-sm font-semibold text-gray-900">Storage por Categoria — Sidebar</h2>
+            <span className="ml-auto text-[10px] text-gray-400">{BU_STORAGE_MAP.length} BUs catalogadas</span>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-2 px-2 font-semibold text-gray-500">Fonte</th>
-                  <th className="text-left py-2 px-2 font-semibold text-gray-500">Tipo</th>
-                  <th className="text-left py-2 px-2 font-semibold text-gray-500">Escopo</th>
-                  <th className="text-left py-2 px-2 font-semibold text-gray-500 hidden md:table-cell">Descricao</th>
-                  <th className="text-center py-2 px-2 font-semibold text-gray-500">Consumida</th>
-                  <th className="text-center py-2 px-2 font-semibold text-gray-500">Confianca</th>
-                </tr>
-              </thead>
-              <tbody>
-                {DATA_SOURCES.map((src) => (
-                  <tr key={src.name} className="border-b border-gray-100 hover:bg-gray-50/60">
-                    <td className="py-2 px-2">
-                      <code className="text-[10px] text-gray-700 font-mono">{src.name}</code>
-                      <div className="text-[9px] text-gray-400">{src.isInternal ? "interno" : "externo"}</div>
-                    </td>
-                    <td className="py-2 px-2"><TypeBadge type={src.type} /></td>
-                    <td className="py-2 px-2 text-gray-600">{src.scope}</td>
-                    <td className="py-2 px-2 text-gray-500 hidden md:table-cell max-w-xs">{src.description}</td>
-                    <td className="py-2 px-2 text-center">
-                      {src.isConsumed
-                        ? <CheckCircle2 size={13} className="inline text-emerald-500" />
-                        : <EyeOff size={13} className="inline text-red-400" />}
-                      {src.pagesUsing > 0 && <span className="ml-1 text-gray-400">{src.pagesUsing}p</span>}
-                      {src.pagesUsing === -1 && <span className="ml-1 text-gray-400">todas</span>}
-                    </td>
-                    <td className="py-2 px-2 text-center"><ConfidenceBadge level={src.confidence} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {BU_STORAGE_MAP.map((bu) => {
+              const buRoutes = activeRoutes.filter((r) => r.bu === bu.id);
+              const sidebarCount = buRoutes.filter((r) => r.inSidebar).length;
+              const activeCount  = buRoutes.filter((r) => r.status === "active").length;
+              return (
+                <div key={bu.id} className={"rounded-lg border p-4 " + bu.borderCls + " " + bu.bgCls}>
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <div className={"text-xs font-bold " + bu.textCls}>{bu.label}</div>
+                      <div className="text-[9px] text-gray-500 mt-0.5">{bu.sublabel}</div>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className={bu.badgeCls + " text-[9px] font-semibold px-1.5 py-0.5 rounded"}>
+                        {sidebarCount} sidebar
+                      </span>
+                      <span className="text-[9px] text-gray-400">{activeCount} ativos</span>
+                    </div>
+                  </div>
+                  {/* Storage backends */}
+                  <div className="space-y-1 mb-3">
+                    {bu.primaryStorage.map((s) => (
+                      <div key={s.name} className="flex items-start gap-1.5">
+                        <TypeBadge type={s.type} />
+                        <span className="text-[9px] text-gray-600 leading-tight flex-1">{s.name}</span>
+                        <ConfidenceBadge level={s.confidence} />
+                      </div>
+                    ))}
+                  </div>
+                  {/* Security layer */}
+                  <div className="rounded bg-white/60 border border-gray-200 px-2 py-1 text-[9px] text-gray-500">
+                    <span className="font-semibold">layer:</span> {bu.securityLayer}
+                  </div>
+                  {/* Sidebar items (compact) */}
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {bu.sidebarSections.slice(0, 8).map((s) => (
+                      <span key={s} className="text-[8px] bg-white/70 border border-gray-200 px-1 py-0.5 rounded text-gray-500">{s}</span>
+                    ))}
+                    {bu.sidebarSections.length > 8 && (
+                      <span className="text-[8px] text-gray-400">+{bu.sidebarSections.length - 8} mais</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -330,6 +444,113 @@ export default async function AwqDataPage() {
               <div className="mt-3 text-[10px] text-gray-500">
                 Nao persistido no servidor. Nao verificavel pelo repositorio.
                 Integracoes externas com fallback para JSON local.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── 5.3b Storage Limits ─────────────────────────────────────────── */}
+        <div className="card p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <HardDrive size={15} className="text-gray-700" />
+            <h2 className="text-sm font-semibold text-gray-900">Limites de Storage — Plataforma</h2>
+            <span className="ml-auto text-[10px] text-gray-400">infraestrutura atual</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Neon Postgres */}
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+              <div className="flex items-center gap-1.5 mb-3">
+                <Database size={12} className="text-blue-600" />
+                <div className="text-xs font-bold text-blue-800">Neon Postgres</div>
+                <span className="ml-auto text-[9px] bg-blue-200 text-blue-700 px-1.5 py-0.5 rounded font-semibold">Free Tier</span>
+              </div>
+              <div className="space-y-1.5 text-[10px] text-blue-700">
+                <div className="flex justify-between"><span>Storage total</span><span className="font-semibold">512 MB</span></div>
+                <div className="flex justify-between"><span>Projetos</span><span className="font-semibold">1</span></div>
+                <div className="flex justify-between"><span>Branches</span><span className="font-semibold">10</span></div>
+                <div className="flex justify-between"><span>Compute</span><span className="font-semibold">0.25 vCPU / 1 GB RAM</span></div>
+                <div className="flex justify-between"><span>Conexões</span><span className="font-semibold">100 concurrent</span></div>
+                <div className="flex justify-between"><span>Compute hours</span><span className="font-semibold">191 h/mês</span></div>
+              </div>
+              <div className="mt-3 text-[9px] text-blue-500">
+                Tabelas: financial_documents · bank_transactions · awq_security_audit_log · caza_*
+              </div>
+            </div>
+            {/* Vercel Blob */}
+            <div className="rounded-lg border border-violet-200 bg-violet-50 p-4">
+              <div className="flex items-center gap-1.5 mb-3">
+                <Server size={12} className="text-violet-600" />
+                <div className="text-xs font-bold text-violet-800">Vercel Blob</div>
+                <span className="ml-auto text-[9px] bg-violet-200 text-violet-700 px-1.5 py-0.5 rounded font-semibold">Hobby</span>
+              </div>
+              <div className="space-y-1.5 text-[10px] text-violet-700">
+                <div className="flex justify-between"><span>Storage total</span><span className="font-semibold">512 MB</span></div>
+                <div className="flex justify-between"><span>Banda/mês</span><span className="font-semibold">100 GB</span></div>
+                <div className="flex justify-between"><span>Arquivo máx.</span><span className="font-semibold">500 MB por arquivo</span></div>
+                <div className="flex justify-between"><span>Upload PDFs (config)</span><span className="font-semibold text-orange-600">20 MB (interno)</span></div>
+                <div className="flex justify-between"><span>Ativado?</span><span className={"font-semibold " + (false ? "text-emerald-600" : "text-red-500")}>{typeof process !== "undefined" && process.env.BLOB_READ_WRITE_TOKEN ? "SIM" : "VER ENV"}</span></div>
+              </div>
+              <div className="mt-3 text-[9px] text-violet-500">
+                Fallback: public/data/financial/pdfs/ (efêmero, apenas dev)
+              </div>
+            </div>
+            {/* Vercel Functions */}
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+              <div className="flex items-center gap-1.5 mb-3">
+                <Activity size={12} className="text-gray-600" />
+                <div className="text-xs font-bold text-gray-700">Vercel Functions</div>
+                <span className="ml-auto text-[9px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded font-semibold">Hobby</span>
+              </div>
+              <div className="space-y-1.5 text-[10px] text-gray-600">
+                <div className="flex justify-between"><span>Memória</span><span className="font-semibold">1024 MB</span></div>
+                <div className="flex justify-between"><span>Timeout</span><span className="font-semibold text-orange-600">15 s (hobby)</span></div>
+                <div className="flex justify-between"><span>Body size (default)</span><span className="font-semibold">4.5 MB</span></div>
+                <div className="flex justify-between"><span>Filesystem /tmp</span><span className="font-semibold text-red-500">efêmero</span></div>
+                <div className="flex justify-between"><span>Invocações/mês</span><span className="font-semibold">100 k</span></div>
+                <div className="flex justify-between"><span>SSE streaming</span><span className="font-semibold text-emerald-600">suportado</span></div>
+              </div>
+              <div className="mt-3 text-[9px] text-gray-400">
+                Ingestão: /api/ingest/upload + /api/ingest/process (SSE)
+              </div>
+            </div>
+            {/* Audit / In-memory */}
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+              <div className="flex items-center gap-1.5 mb-3">
+                <ShieldCheck size={12} className="text-amber-600" />
+                <div className="text-xs font-bold text-amber-800">Audit Log</div>
+                <span className="ml-auto text-[9px] bg-amber-200 text-amber-700 px-1.5 py-0.5 rounded font-semibold">Híbrido</span>
+              </div>
+              <div className="space-y-1.5 text-[10px] text-amber-700">
+                <div className="flex justify-between"><span>Primário</span><span className="font-semibold">Neon Postgres</span></div>
+                <div className="flex justify-between"><span>Fallback</span><span className="font-semibold">in-memory</span></div>
+                <div className="flex justify-between"><span>In-memory (max)</span><span className="font-semibold text-orange-600">100 eventos</span></div>
+                <div className="flex justify-between"><span>In-memory reset</span><span className="font-semibold text-red-500">cold start</span></div>
+                <div className="flex justify-between"><span>PII no log</span><span className="font-semibold text-emerald-600">jamais</span></div>
+                <div className="flex justify-between"><span>Campos</span><span className="font-semibold">user_id (email)</span></div>
+              </div>
+              <div className="mt-3 text-[9px] text-amber-500">
+                Tabela: awq_security_audit_log · índices: timestamp, result
+              </div>
+            </div>
+          </div>
+          {/* Storage usage bar (visual only, static reference) */}
+          <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-3">
+            <div className="text-[10px] font-semibold text-gray-700 mb-2">Referência de Limites — Tier Atual vs. Pro</div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-[10px]">
+              <div>
+                <div className="flex justify-between mb-0.5 text-gray-600"><span>Neon DB: docs + txns</span><span className="font-semibold">→ 512 MB free</span></div>
+                <div className="h-1.5 rounded-full bg-gray-200"><div className="h-1.5 rounded-full bg-blue-400" style={{width: docs.length > 0 ? "15%" : "2%"}} /></div>
+                <div className="text-[9px] text-gray-400 mt-0.5">{docs.length} docs · {txns.length} txns armazenados</div>
+              </div>
+              <div>
+                <div className="flex justify-between mb-0.5 text-gray-600"><span>Vercel Blob (PDFs)</span><span className="font-semibold">→ 512 MB free</span></div>
+                <div className="h-1.5 rounded-full bg-gray-200"><div className="h-1.5 rounded-full bg-violet-400" style={{width: docs.length > 0 ? "10%" : "1%"}} /></div>
+                <div className="text-[9px] text-gray-400 mt-0.5">PDFs até 20 MB cada · dedup SHA-256</div>
+              </div>
+              <div>
+                <div className="flex justify-between mb-0.5 text-gray-600"><span>Audit Log (Neon)</span><span className="font-semibold">→ incluso no DB</span></div>
+                <div className="h-1.5 rounded-full bg-gray-200"><div className="h-1.5 rounded-full bg-amber-400" style={{width: "5%"}} /></div>
+                <div className="text-[9px] text-gray-400 mt-0.5">in-memory fallback: 100 eventos (cold start)</div>
               </div>
             </div>
           </div>
@@ -467,6 +688,119 @@ export default async function AwqDataPage() {
           </div>
         </div>
 
+        {/* ── 5.6b Segurança do Storage — resumo (painel completo em /awq/security) */}
+        {(() => {
+          const storageApis = SENSITIVE_APIS.filter((a) =>
+            a.layer === "dados_infra" || a.layer === "financeiro" || a.layer === "security"
+          );
+          const storageRoutes = SENSITIVE_ROUTES.filter((r) =>
+            r.layer === "dados_infra" || r.layer === "financeiro" || r.layer === "security"
+          );
+          const canonicalRoles: SecurityRole[] = ["owner", "admin", "finance", "operator", "viewer"];
+          const storageLayers = ["financeiro", "dados_infra", "security"] as const;
+
+          return (
+            <div className="card p-5">
+              <div className="flex items-center gap-2 mb-1">
+                <ShieldCheck size={15} className="text-gray-700" />
+                <h2 className="text-sm font-semibold text-gray-900">Segurança do Storage</h2>
+                <span className={"ml-auto text-[10px] px-2 py-0.5 rounded font-semibold " +
+                  (SECURITY_ENFORCEMENT_MODE === "full" ? "bg-emerald-100 text-emerald-700" :
+                   SECURITY_ENFORCEMENT_MODE === "api_guarded" ? "bg-amber-100 text-amber-700" :
+                   "bg-red-100 text-red-600")}>
+                  modo: {SECURITY_ENFORCEMENT_MODE}
+                </span>
+                <Link href="/awq/security" className="text-[10px] text-blue-600 underline hover:text-blue-800 ml-2">
+                  painel completo →
+                </Link>
+              </div>
+              <p className="text-[11px] text-gray-500 mb-4">
+                Resumo dos controles de acesso aplicados às camadas de storage desta plataforma.
+                RBAC matrix, audit log completo e rotas sensíveis de todas as camadas estão em{" "}
+                <Link href="/awq/security" className="underline text-blue-600">/awq/security</Link>.
+              </p>
+
+              {/* Permissões RBAC — apenas camadas de storage */}
+              <div className="mb-4">
+                <div className="text-[11px] font-semibold text-gray-700 mb-2 flex items-center gap-1">
+                  <KeyRound size={11} className="text-gray-500" /> Acesso por Role — Camadas de Storage
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-[10px] border border-gray-200 rounded-lg overflow-hidden">
+                    <thead>
+                      <tr className="bg-gray-100">
+                        <th className="text-left py-1.5 px-2 font-semibold text-gray-600 border-b border-gray-200">Camada</th>
+                        {canonicalRoles.map((r) => (
+                          <th key={r} className="py-1.5 px-2 font-semibold text-gray-600 border-b border-gray-200 text-center">{r}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {storageLayers.map((layer, i) => (
+                        <tr key={layer} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                          <td className="py-1.5 px-2 font-mono text-[9px] text-gray-700 border-r border-gray-100">{layer}</td>
+                          {canonicalRoles.map((role) => {
+                            const actions = PERMISSION_MATRIX[role]?.[layer] ?? [];
+                            return (
+                              <td key={role} className="py-1.5 px-1 text-center">
+                                {actions.length === 0
+                                  ? <XCircle size={11} className="inline text-gray-300" />
+                                  : actions.length >= 8
+                                  ? <span className="text-[8px] font-bold text-emerald-600 bg-emerald-50 px-1 rounded">full</span>
+                                  : <span className="text-[8px] text-blue-600 bg-blue-50 px-1 rounded font-medium" title={actions.join(", ")}>{actions.join(", ")}</span>
+                                }
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* APIs de storage guardadas */}
+              <div className="mb-4">
+                <div className="text-[11px] font-semibold text-gray-700 mb-2 flex items-center gap-1">
+                  <Lock size={11} className="text-gray-500" /> APIs de Storage Guardadas ({storageApis.length})
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {storageApis.map((api) => (
+                    <div key={api.pattern} className="rounded border border-gray-200 bg-gray-50/60 p-2 flex items-start gap-2">
+                      <span className="mt-0.5 shrink-0 inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5" />
+                      <div>
+                        <code className="text-[9px] font-mono text-gray-800">{api.pattern}</code>
+                        <div className="text-[9px] text-gray-500">{api.description}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Rotas sensíveis de storage/financeiro */}
+              <div>
+                <div className="text-[11px] font-semibold text-gray-700 mb-2 flex items-center gap-1">
+                  <ShieldAlert size={11} className="text-gray-500" /> Rotas de Storage & Financeiro ({storageRoutes.length})
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {storageRoutes.map((route) => (
+                    <span key={route.path} className={"inline-flex items-center gap-1 px-2 py-1 rounded border text-[9px] font-mono " +
+                      (route.sensitivity === "high" ? "border-red-200 bg-red-50 text-red-800" : "border-amber-200 bg-amber-50 text-amber-800")}>
+                      <span className={"inline-block w-1 h-1 rounded-full " + (route.sensitivity === "high" ? "bg-red-400" : "bg-amber-400")} />
+                      {route.path}
+                    </span>
+                  ))}
+                </div>
+                <div className="mt-2 text-[9px] text-gray-400">
+                  Enforcement: <code>lib/security-guard.ts</code> + <code>lib/api-guard.ts</code> ·
+                  Registry: <code>lib/security-registry.ts</code> ·{" "}
+                  <Link href="/awq/security" className="underline hover:text-gray-600">Ver painel completo com audit log →</Link>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* ── 5.7 Action Queue / Consolidation Backlog ────────────────────── */}
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-4">
@@ -574,6 +908,8 @@ export default async function AwqDataPage() {
               <Link href="/awq/financial" className="underline hover:text-gray-700">Financial</Link>
               <span className="mx-1">·</span>
               <Link href="/awq/investments" className="underline hover:text-gray-700">Investimentos</Link>
+              <span className="mx-1">·</span>
+              <Link href="/awq/security" className="underline hover:text-gray-700">Seguranca</Link>
             </span>
           </div>
         </div>
