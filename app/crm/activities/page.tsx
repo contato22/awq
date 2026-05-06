@@ -51,11 +51,23 @@ export default function ActivitiesPage() {
   const [completing, setCompleting] = useState<string | null>(null);
 
   useEffect(() => {
+    function loadLocal() {
+      const local: CrmActivity[] = JSON.parse(localStorage.getItem("crm-activities-v1") ?? "[]");
+      const seedIds = new Set(SEED_ACTIVITIES.map(a => a.activity_id));
+      return [...SEED_ACTIVITIES, ...local.filter(a => !seedIds.has(a.activity_id))];
+    }
+
     fetch("/api/crm/activities")
       .then(r => r.json())
-      .then(res => setActivities(res.success ? res.data : SEED_ACTIVITIES))
-      .catch(() => setActivities(SEED_ACTIVITIES))
+      .then(res => setActivities(res.success ? res.data : loadLocal()))
+      .catch(() => setActivities(loadLocal()))
       .finally(() => setLoading(false));
+
+    function handleStorage() {
+      setActivities(loadLocal());
+    }
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
   const filtered = activities.filter(a => {

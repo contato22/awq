@@ -215,31 +215,49 @@ export default function CrmDashboardView({ buFilter: externalBu }: Props) {
               tasksToday: analJson.data.tasksToday ?? 0,
             });
           }
+          setIsStatic(false);
         } else {
           throw new Error("API error");
         }
       } catch {
-        // Filter seed data to this BU
+        // Static fallback: read from localStorage (written by opportunities/activities pages)
+        const storedOpps: CrmOpportunity[] = JSON.parse(
+          localStorage.getItem("crm-opportunities-v1") ?? "null"
+        ) ?? SEED_OPPS;
+
         const filteredOpps = buFilter
-          ? SEED_OPPS.filter(o => o.bu === buFilter)
-          : SEED_OPPS;
+          ? storedOpps.filter(o => o.bu === buFilter)
+          : storedOpps;
+
+        // Merge local activities with seed activities (local may contain user-added ones)
+        const localActs: CrmActivity[] = JSON.parse(
+          localStorage.getItem("crm-activities-v1") ?? "[]"
+        );
+        const seedActIds = new Set(SEED_ACTIVITIES.map(a => a.activity_id));
+        const allActs: CrmActivity[] = [
+          ...SEED_ACTIVITIES,
+          ...localActs.filter(a => !seedActIds.has(a.activity_id)),
+        ];
 
         const filteredOppIds = new Set(filteredOpps.map(o => o.opportunity_id));
         const filteredActs = buFilter
-          ? SEED_ACTIVITIES.filter(
+          ? allActs.filter(
               a => a.related_to_type !== "opportunity" || filteredOppIds.has(a.related_to_id)
             )
-          : SEED_ACTIVITIES;
+          : allActs;
 
         const openSeed = filteredOpps.filter(o => o.stage !== "closed_won" && o.stage !== "closed_lost");
         const wonSeed  = filteredOpps.filter(o => o.stage === "closed_won");
         const lostSeed = filteredOpps.filter(o => o.stage === "closed_lost");
         const total = wonSeed.length + lostSeed.length;
 
+        // Count local leads added via leads page
+        const localLeads: unknown[] = JSON.parse(localStorage.getItem("awq_local_leads") ?? "[]");
+
         setOpps(filteredOpps);
         setActivities(filteredActs);
         setAnalytics({
-          leadsNew: buFilter ? (filteredOpps.length > 0 ? 1 : 0) : 3,
+          leadsNew: buFilter ? (filteredOpps.length > 0 ? 1 : 0) : (3 + localLeads.length),
           openOpportunities: openSeed.length,
           pipelineValue: openSeed.reduce((s, o) => s + o.deal_value, 0),
           weightedForecast: Math.round(openSeed.reduce((s, o) => s + o.deal_value * o.probability / 100, 0)),
@@ -252,7 +270,20 @@ export default function CrmDashboardView({ buFilter: externalBu }: Props) {
         setLoading(false);
       }
     }
+
     load();
+
+    // Re-sync when another tab writes to localStorage
+    window.addEventListener("storage", load);
+
+    // Re-sync when user returns to this tab
+    function handleVisibility() { if (!document.hidden) load(); }
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      window.removeEventListener("storage", load);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
   }, [buFilter]);
 
   if (loading) {
