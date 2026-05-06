@@ -64,7 +64,20 @@ const CAZA_PREFIXES    = ["/caza-vision"];
 const ADVISOR_PREFIXES = ["/advisor"];
 const VENTURE_PREFIXES = ["/awq-venture"];
 const CRM_PREFIXES     = ["/crm"];
-const EPM_PREFIXES     = ["/awq/epm"];
+const EPM_PREFIXES     = [
+    "/awq/epm",
+    "/awq/financial",
+    "/awq/budget",
+    "/awq/forecast",
+    "/awq/cashflow",
+    "/awq/conciliacao",
+    "/awq/bank",
+    "/awq/investments",
+    "/awq/ap-ar",
+    "/awq/management",
+    "/awq/contabilidade",
+    "/awq/fiscal",
+];
 const PPM_PREFIXES     = ["/awq/ppm"];
 const BI_PREFIXES      = ["/awq/bi"];
 const SETTINGS_PREFIXES = ["/settings"];
@@ -129,8 +142,9 @@ const epmFpaNav = [
   { label: "P&L (DRE)",           href: "/awq/epm/pl",                  icon: LineChart     },
   { label: "Balanço Patrimonial",  href: "/awq/epm/balance-sheet",       icon: Scale         },
   { label: "Budget",              href: "/awq/budget",                  icon: BarChart3     },
-  { label: "Forecast",            href: "/awq/forecast",                icon: TrendingUp    },
+  { label: "Forecast",            href: "/awq/epm/forecast",            icon: TrendingUp    },
   { label: "Budget vs Actual",    href: "/awq/epm/budget",              icon: Target        },
+  { label: "Budget Approval",     href: "/awq/epm/budget/approval",     icon: Clock         },
 ];
 
 // EPM Tower — Tesouraria
@@ -152,21 +166,31 @@ const epmApArNav = [
 
 // EPM Tower — Controladoria
 const epmControladoriaNav = [
-  { label: "KPI Dashboard",       href: "/awq/epm/kpis",                icon: PieChart      },
-  { label: "Razão Geral (GL)",    href: "/awq/epm/gl",                  icon: ListOrdered   },
-  { label: "Consolidação",        href: "/awq/epm/consolidation",       icon: Building2     },
-  { label: "Conciliação Bancária",href: "/awq/epm/bank-reconciliation", icon: Landmark      },
-  { label: "Reconhec. de Receita",href: "/awq/epm/revenue-recognition", icon: BookOpen      },
-  { label: "Centros de Custo",    href: "/awq/epm/cost-centers",        icon: LayoutGrid    },
-  { label: "Controladoria",       href: "/awq/management",              icon: ShieldCheck   },
-  { label: "Contabilidade",       href: "/awq/contabilidade",           icon: BookOpen      },
-  { label: "Fiscal",              href: "/awq/fiscal",                  icon: Receipt       },
+  { label: "KPI Dashboard",        href: "/awq/epm/kpis",                            icon: PieChart      },
+  { label: "Razão Geral (GL)",     href: "/awq/epm/gl",                              icon: ListOrdered   },
+  { label: "Ativo Imobilizado",    href: "/awq/epm/fixed-assets",                    icon: Package       },
+  { label: "Consolidação",         href: "/awq/epm/consolidation",                   icon: Building2     },
+  { label: "Eliminações IC",       href: "/awq/epm/consolidation/eliminations",      icon: Layers        },
+  { label: "Câmbio / FX",         href: "/awq/epm/currency",                        icon: DollarSign    },
+  { label: "Conciliação Bancária", href: "/awq/epm/bank-reconciliation",             icon: Landmark      },
+  { label: "Reconhec. de Receita", href: "/awq/epm/revenue-recognition",             icon: BookOpen      },
+  { label: "Fechamento Períodos",  href: "/awq/epm/periods",                         icon: Lock          },
+  { label: "Centros de Custo",     href: "/awq/epm/cost-centers",                    icon: LayoutGrid    },
+  { label: "Controladoria",        href: "/awq/management",                          icon: ShieldCheck   },
+  { label: "Contabilidade",        href: "/awq/contabilidade",                       icon: BookOpen      },
+  { label: "Fiscal",               href: "/awq/fiscal",                              icon: Receipt       },
 ];
 
 // EPM Tower — Partes
 const epmPartesNav = [
   { label: "Fornecedores",        href: "/awq/epm/suppliers",           icon: Building2     },
   { label: "Clientes EPM",        href: "/awq/epm/customers",           icon: Users         },
+];
+
+// EPM Tower — Relatórios
+const epmRelatoriosNav = [
+  { label: "Board Pack",          href: "/awq/epm/reports/board-pack",  icon: FileText      },
+  { label: "Relatório Anual",     href: "/awq/epm/reports/annual",      icon: BarChart3     },
 ];
 
 // PPM Tower
@@ -692,6 +716,12 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
               <SectionLabel>Partes</SectionLabel>
               <div className="space-y-0.5">
                 {epmPartesNav.map((item) => (
+                  <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
+                ))}
+              </div>
+              <SectionLabel>Relatórios</SectionLabel>
+              <div className="space-y-0.5">
+                {epmRelatoriosNav.map((item) => (
                   <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
                 ))}
               </div>
