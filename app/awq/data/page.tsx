@@ -47,7 +47,8 @@ interface ActionItem {
 // ─── BU Storage Metadata — organizado por categoria do sidebar ───────────────
 
 interface BuStorageConfig {
-  id: "awq" | "jacqes" | "caza" | "venture" | "advisor" | "ai" | "system";
+  id: "awq" | "jacqes" | "caza" | "venture" | "advisor" | "ai" | "system"
+    | "crm" | "ppm" | "bpm" | "bi" | "cpm" | "grc" | "dms" | "erp" | "hcm";
   label: string;
   sublabel: string;
   borderCls: string;
@@ -74,7 +75,24 @@ const BU_STORAGE_MAP: BuStorageConfig[] = [
       { name: "localStorage (saldos /awq/bank — client-side)",           type: "runtime",         confidence: "nao-verificavel" },
       { name: "lib/security-audit.ts (Neon + in-memory fallback)",        type: "adapter",         confidence: "confirmada" },
     ],
-    sidebarSections: ["Visão Geral","KPIs","Risk","Portfolio","Allocations","Financial (DRE)","Budget","Forecast","Cash Flow","Contas Banco","Investimentos","AP & AR","Conciliação","Controladoria","Contabilidade","Fiscal","Jurídico","Societário","Compliance","Ingestão","Base de Dados","Segurança"],
+    sidebarSections: [
+      "Visão Geral","KPIs Consolidados","Risk & Alertas","Portfolio Corp.","Allocations",
+      "Financial (DRE)","P&L","Balanço Patrimonial","Budget","Budget vs Actual","Forecast","KPI Dashboard",
+      "Cash Flow","Contas Banco","Investimentos","Conciliação Bancária","Conciliação",
+      "AP & AR","Contas a Pagar","AP Aging","Contas a Receber","AR Aging","Fornecedores","Clientes EPM",
+      "Razão Geral (GL)","Centros de Custo","Consolidação","Reconhec. de Receita","Fixed Assets",
+      "Controladoria","Contabilidade","Fiscal",
+      "CRM Dashboard","Contas CRM","Contatos","Leads","Pipeline CRM","Oportunidades","Atividades CRM","Analytics CRM","Matriz RFM",
+      "PPM Portfolio","Gantt","Tarefas","Timesheets PPM","Recursos","Utilização","Rentabilidade PPM","Riscos PPM",
+      "BPM Fila","Processos","Instâncias","Analytics BPM",
+      "BI Dashboards","Relatórios BI","Análises","Visualizações","Base de Dados",
+      "Estratégia","OKRs","Scorecards","Performance Reviews","Novidades",
+      "Jurídico","Societário","Compliance","Políticas","Riscos GRC","Auditorias","Controles","Segurança",
+      "DMS Documentos","Arquivos","Versionamento","Colaboração",
+      "ERP Procurement","Inventory","Pedidos de Venda","Time & Expense","Contratos ERP","Assets",
+      "RH","Folha de Pagamento","Férias","Recrutamento","Treinamento",
+      "Ingestão",
+    ],
   },
   {
     id: "jacqes", label: "JACQES", sublabel: "CRM · FP&A · Relatórios · Carreira",
@@ -85,7 +103,7 @@ const BU_STORAGE_MAP: BuStorageConfig[] = [
       { name: "lib/data.ts (KPIs operacionais snapshot Q1 2026)",         type: "snapshot",        confidence: "snapshot"   },
       { name: "lib/jacqes-crm-db.ts + lib/jacqes-crm-query.ts",          type: "selector",        confidence: "confirmada" },
     ],
-    sidebarSections: ["Visão Geral","FP&A","Relatórios","CRM Visão Geral","Pipeline CRM","Leads","Oportunidades","Propostas","Clientes","Carteira","Tarefas & SLA","Interações","Expansão","Churn & Health","Relatórios CRM","Modo Carreira"],
+    sidebarSections: ["Visão Geral","FP&A","Relatórios","Mini P&L","Receita","Unit Economics","CRM Visão Geral","Pipeline CRM","Leads","Oportunidades","Propostas","Clientes","Carteira","Tarefas & SLA","Interações","Expansão","Churn & Health","Relatórios CRM","Matriz RFM","Modo Carreira"],
   },
   {
     id: "caza", label: "Caza Vision", sublabel: "Projetos · Clientes · Financial · Unit Econ · Importar",
@@ -96,7 +114,7 @@ const BU_STORAGE_MAP: BuStorageConfig[] = [
       { name: "Notion API (receita projetos accrual — fallback JSON)",     type: "external",        confidence: "parcial"    },
       { name: "lib/caza-data.ts (snapshot Q1 2026)",                      type: "snapshot",        confidence: "snapshot"   },
     ],
-    sidebarSections: ["Visão Geral","Projetos","Clientes","Financial","Unit Economics","Importar"],
+    sidebarSections: ["Visão Geral","Projetos","Clientes","Contas","Financial","Unit Economics","Importar"],
   },
   {
     id: "venture", label: "AWQ Venture", sublabel: "Visão Geral · Comercial · Portfólio · Deals · Sales",
@@ -141,7 +159,119 @@ const BU_STORAGE_MAP: BuStorageConfig[] = [
       { name: "next-auth session (JWT em memória, cookie HTTPOnly)",       type: "runtime",         confidence: "confirmada" },
       { name: "lib/platform-registry.ts (154 rotas canônicas)",           type: "registry",        confidence: "confirmada" },
     ],
-    sidebarSections: ["Login","Settings"],
+    sidebarSections: ["Login","Settings","Segurança (settings)","Integrações"],
+  },
+  // ── 5. CRM Tower ─────────────────────────────────────────────────────────────
+  {
+    id: "crm", label: "CRM Tower", sublabel: "Leads · Pipeline · Clientes · Oportunidades · Matriz RFM",
+    borderCls: "border-sky-200", bgCls: "bg-sky-50", textCls: "text-sky-800", badgeCls: "bg-sky-100 text-sky-700",
+    securityLayer: "jacqes · caza_vision · awq_venture",
+    primaryStorage: [
+      { name: "Neon Postgres (jacqes_crm_* — leads, pipeline, oportunidades)", type: "canonical-store", confidence: "confirmada" },
+      { name: "Neon Postgres (caza_crm_* — clientes Caza Vision)",              type: "canonical-store", confidence: "confirmada" },
+      { name: "lib/crm-db.ts + lib/jacqes-crm-db.ts + lib/caza-crm-db.ts",     type: "selector",        confidence: "confirmada" },
+      { name: "lib/jacqes-crm-store.ts (in-memory cache / local fallback)",     type: "adapter",         confidence: "parcial"    },
+      { name: "lib/crm-rfm-types.ts (Matriz RFM — calculado em runtime)",       type: "runtime",         confidence: "confirmada" },
+    ],
+    sidebarSections: ["Dashboard CRM","Contas","Contatos","Leads","Pipeline","Clientes","Oportunidades","Atividades","Analytics","Matriz RFM"],
+  },
+  // ── 6. PPM Tower ─────────────────────────────────────────────────────────────
+  {
+    id: "ppm", label: "PPM Tower", sublabel: "Portfolio · Gantt · Tarefas · Timesheets · Recursos",
+    borderCls: "border-teal-200", bgCls: "bg-teal-50", textCls: "text-teal-800", badgeCls: "bg-teal-100 text-teal-700",
+    securityLayer: "holding · dados_infra",
+    primaryStorage: [
+      { name: "Neon Postgres (ppm_projects, ppm_tasks, ppm_timesheets)",         type: "canonical-store", confidence: "confirmada" },
+      { name: "lib/ppm-db.ts + lib/ppm-types.ts",                               type: "selector",        confidence: "confirmada" },
+      { name: "public/data/ppm-*.json (fallback local dev)",                    type: "adapter",         confidence: "parcial"    },
+    ],
+    sidebarSections: ["Portfolio","Gantt","Tarefas","Timesheets","Recursos","Utilização","Rentabilidade","Riscos"],
+  },
+  // ── 7. BPM Tower ─────────────────────────────────────────────────────────────
+  {
+    id: "bpm", label: "BPM Tower", sublabel: "Processos · Workflows · Aprovações · Automação",
+    borderCls: "border-orange-200", bgCls: "bg-orange-50", textCls: "text-orange-800", badgeCls: "bg-orange-100 text-orange-700",
+    securityLayer: "holding · dados_infra",
+    primaryStorage: [
+      { name: "Neon Postgres (bpm_processes, bpm_instances, bpm_tasks)",         type: "canonical-store", confidence: "confirmada" },
+      { name: "lib/bpm-db.ts + lib/bpm-types.ts + lib/bpm-workflow-engine.ts",  type: "selector",        confidence: "confirmada" },
+      { name: "public/data/bpm-*.json (fallback local dev)",                    type: "adapter",         confidence: "parcial"    },
+    ],
+    sidebarSections: ["Minha Fila","Processos","Instâncias","Analytics BPM"],
+  },
+  // ── 8. BI Tower ──────────────────────────────────────────────────────────────
+  {
+    id: "bi", label: "BI Tower", sublabel: "Dashboards · Relatórios · Análises · Visualizações",
+    borderCls: "border-cyan-200", bgCls: "bg-cyan-50", textCls: "text-cyan-800", badgeCls: "bg-cyan-100 text-cyan-700",
+    securityLayer: "holding · financeiro · dados_infra",
+    primaryStorage: [
+      { name: "lib/financial-query.ts (seletor canônico — dados reais)",         type: "selector",        confidence: "confirmada" },
+      { name: "lib/awq-group-data.ts (KPIs consolidados — snapshot Q1 2026)",    type: "snapshot",        confidence: "snapshot"   },
+      { name: "lib/platform-registry.ts (154 rotas — metadados de navegação)",   type: "registry",        confidence: "confirmada" },
+      { name: "Base de Dados: /awq/data (esta página)",                          type: "runtime",         confidence: "confirmada" },
+    ],
+    sidebarSections: ["Dashboards","Relatórios","Análises","Visualizações","Base de Dados"],
+  },
+  // ── 9. CPM Tower ─────────────────────────────────────────────────────────────
+  {
+    id: "cpm", label: "CPM Tower", sublabel: "KPIs · OKRs · Estratégia · Scorecards · Performance",
+    borderCls: "border-lime-200", bgCls: "bg-lime-50", textCls: "text-lime-800", badgeCls: "bg-lime-100 text-lime-700",
+    securityLayer: "holding · admin",
+    primaryStorage: [
+      { name: "lib/awq-group-data.ts (KPIs consolidados — snapshot Q1 2026)",    type: "snapshot",        confidence: "snapshot"   },
+      { name: "lib/financial-query.ts (métricas reais pós-ingestão)",            type: "selector",        confidence: "confirmada" },
+      { name: "OKRs / Scorecards — stub (sem DB dedicado ainda)",                type: "runtime",         confidence: "mock"       },
+    ],
+    sidebarSections: ["KPIs Consolidados","Risk & Alertas","Portfolio Corp.","Allocations","Estratégia","OKRs","Scorecards","Performance Reviews","Novidades"],
+  },
+  // ── 10. GRC Tower ────────────────────────────────────────────────────────────
+  {
+    id: "grc", label: "GRC Tower", sublabel: "Jurídico · Societário · Compliance · Riscos · Auditorias",
+    borderCls: "border-red-200", bgCls: "bg-red-50", textCls: "text-red-800", badgeCls: "bg-red-100 text-red-700",
+    securityLayer: "security · holding",
+    primaryStorage: [
+      { name: "lib/security-audit.ts (Neon awq_security_audit_log + in-memory)", type: "canonical-store", confidence: "confirmada" },
+      { name: "lib/security-registry.ts (rotas + APIs sensíveis)",               type: "registry",        confidence: "confirmada" },
+      { name: "lib/security-access.ts (PERMISSION_MATRIX, RBAC)",                type: "config",          confidence: "confirmada" },
+      { name: "Google Drive Segurança & Auditoria (eventos blocked)",            type: "canonical-store", confidence: "confirmada" },
+      { name: "Jurídico / Societário / Compliance — stub (sem DB dedicado)",     type: "runtime",         confidence: "mock"       },
+    ],
+    sidebarSections: ["Jurídico","Societário","Compliance","Segurança","Políticas","Riscos","Auditorias","Controles"],
+  },
+  // ── 11. DMS Tower ────────────────────────────────────────────────────────────
+  {
+    id: "dms", label: "DMS Tower", sublabel: "Documentos · Arquivos · Versionamento · Colaboração",
+    borderCls: "border-stone-200", bgCls: "bg-stone-50", textCls: "text-stone-800", badgeCls: "bg-stone-100 text-stone-700",
+    securityLayer: "holding · dados_infra",
+    primaryStorage: [
+      { name: "Google Drive AWQ PLATAFORM GROUP (storage primário 10 TB)",       type: "canonical-store", confidence: "confirmada" },
+      { name: "Vercel Blob (fallback PDFs e arquivos binários)",                 type: "canonical-store", confidence: "confirmada" },
+      { name: "DMS DB / metadados — stub (sem tabela dedicada ainda)",           type: "runtime",         confidence: "mock"       },
+    ],
+    sidebarSections: ["Documentos","Arquivos","Versionamento","Colaboração"],
+  },
+  // ── 12. ERP Tower ────────────────────────────────────────────────────────────
+  {
+    id: "erp", label: "ERP Tower", sublabel: "Procurement · Inventory · Orders · Contratos · Assets",
+    borderCls: "border-amber-200", bgCls: "bg-amber-50", textCls: "text-amber-800", badgeCls: "bg-amber-100 text-amber-700",
+    securityLayer: "holding · dados_infra",
+    primaryStorage: [
+      { name: "ERP DB — stub (rotas existem, DB não implementado)",              type: "runtime",         confidence: "mock"       },
+      { name: "lib/ap-ar-db.ts (AP/AR como proxy de Procurement/Orders)",        type: "adapter",         confidence: "parcial"    },
+      { name: "Google Drive Dados & Infra (destino futuro de docs ERP)",         type: "canonical-store", confidence: "confirmada" },
+    ],
+    sidebarSections: ["Requisições","Purchase Orders","Recebimento","Inventory","Pedidos de Venda","Fulfillment","Faturamento","Expedição","Timesheets ERP","Despesas","Contratos","Assets","Depreciação","Manutenção"],
+  },
+  // ── 13. HCM Tower ────────────────────────────────────────────────────────────
+  {
+    id: "hcm", label: "HCM Tower", sublabel: "RH · Folha · Férias · Recrutamento · Treinamento",
+    borderCls: "border-rose-200", bgCls: "bg-rose-50", textCls: "text-rose-800", badgeCls: "bg-rose-100 text-rose-700",
+    securityLayer: "holding · admin",
+    primaryStorage: [
+      { name: "HCM DB — stub (rotas existem, DB não implementado)",              type: "runtime",         confidence: "mock"       },
+      { name: "Google Drive Dados & Infra (destino futuro de docs RH)",          type: "canonical-store", confidence: "confirmada" },
+    ],
+    sidebarSections: ["RH","Folha de Pagamento","Férias","Recrutamento","Treinamento"],
   },
 ];
 
