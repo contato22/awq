@@ -8,7 +8,7 @@ import SectionHeader from "@/components/SectionHeader";
 import EmptyState from "@/components/EmptyState";
 import {
   Users, Plus, Search, Target, TrendingUp,
-  BarChart3, ExternalLink, RefreshCw, ChevronRight,
+  BarChart3, ExternalLink, RefreshCw, ChevronRight, Trash2,
 } from "lucide-react";
 import type { CrmLead, CrmOpportunity } from "@/lib/crm-types";
 import { SEED_LEADS, SEED_OPPORTUNITIES } from "@/lib/crm-db";
@@ -67,6 +67,7 @@ function LeadsPageInner() {
   const [buFilter, setBuFilter] = useState<string>(urlBu && BU_LIST.includes(urlBu as typeof BU_LIST[number]) ? urlBu : "Todos");
   const [search, setSearch] = useState("");
   const [converting, setConverting] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -79,11 +80,14 @@ function LeadsPageInner() {
       } catch {
         const localLeads = JSON.parse(localStorage.getItem("awq_local_leads") ?? "[]") as CrmLead[];
         const converted = JSON.parse(localStorage.getItem("awq_converted_leads") ?? "{}") as Record<string, string>;
-        const combined = [...localLeads, ...SEED_LEADS].map(l =>
-          converted[l.lead_id]
-            ? { ...l, status: "converted" as const, converted_to_opportunity_id: converted[l.lead_id] }
-            : l
-        );
+        const deletedIds = new Set<string>(JSON.parse(localStorage.getItem("awq_deleted_leads") ?? "[]"));
+        const combined = [...localLeads, ...SEED_LEADS]
+          .filter(l => !deletedIds.has(l.lead_id))
+          .map(l =>
+            converted[l.lead_id]
+              ? { ...l, status: "converted" as const, converted_to_opportunity_id: converted[l.lead_id] }
+              : l
+          );
         setLeads(combined);
         setIsStatic(true);
       } finally {
@@ -165,6 +169,44 @@ function LeadsPageInner() {
       alert("Erro de rede — tente novamente");
     } finally {
       setConverting(null);
+    }
+  }
+
+  async function handleDelete(lead: CrmLead) {
+    if (!confirm(`Apagar o lead "${lead.company_name}" permanentemente?`)) return;
+    setDeleting(lead.lead_id);
+
+    if (isStatic) {
+      const localLeads = JSON.parse(localStorage.getItem("awq_local_leads") ?? "[]") as CrmLead[];
+      const updatedLocal = localLeads.filter(l => l.lead_id !== lead.lead_id);
+      localStorage.setItem("awq_local_leads", JSON.stringify(updatedLocal));
+
+      const deleted = JSON.parse(localStorage.getItem("awq_deleted_leads") ?? "[]") as string[];
+      if (!deleted.includes(lead.lead_id)) {
+        localStorage.setItem("awq_deleted_leads", JSON.stringify([...deleted, lead.lead_id]));
+      }
+
+      setLeads(prev => prev.filter(l => l.lead_id !== lead.lead_id));
+      setDeleting(null);
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/crm/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "delete", lead_id: lead.lead_id }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setLeads(prev => prev.filter(l => l.lead_id !== lead.lead_id));
+      } else {
+        alert(json.error ?? "Erro ao apagar lead");
+      }
+    } catch {
+      alert("Erro de rede — tente novamente");
+    } finally {
+      setDeleting(null);
     }
   }
 
@@ -412,6 +454,13 @@ function LeadsPageInner() {
                                 {converting === lead.lead_id ? "…" : "Converter"}
                               </button>
                             )}
+                            <button
+                              onClick={() => handleDelete(lead)}
+                              disabled={deleting === lead.lead_id}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-medium bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors disabled:opacity-50">
+                              <Trash2 size={10} />
+                              {deleting === lead.lead_id ? "…" : "Apagar"}
+                            </button>
                           </div>
                         </td>
                       </tr>
