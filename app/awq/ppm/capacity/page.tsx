@@ -167,11 +167,11 @@ export default function CapacityPage() {
       ]) as [
         { success: boolean; data: UtilRow[] },
         { success: boolean; data: { projects: PpmProject[] } },
-        { success: boolean; data: { allocations: PpmAllocation[] } },
+        { success: boolean; data: PpmAllocation[] },
       ];
       if (metricsJson.success)  setUtilization(metricsJson.data ?? []);
       if (projectsJson.success) setProjects(projectsJson.data.projects ?? []);
-      if (allocsJson.success)   setAllocations(allocsJson.data?.allocations ?? []);
+      if (allocsJson.success)   setAllocations(allocsJson.data ?? []);
     } catch { /* keep existing */ } finally {
       setLoading(false);
     }

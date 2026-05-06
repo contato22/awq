@@ -383,3 +383,42 @@ export interface PpmEvm {
   etc:                  number;   // Estimate to Complete = (budget_cost - EV) / CPI
   eac:                  number;   // Estimate at Completion = AC + ETC
 }
+
+// ─── EPM Integration ──────────────────────────────────────────────────────────
+
+export type EpmSyncFlow = "cost_gl" | "revenue_ar" | "budget_epm";
+export type EpmSyncStatus = "synced" | "error" | "pending";
+
+export interface PpmEpmSync {
+  sync_id:    string;
+  project_id: string;
+  flow:       EpmSyncFlow;
+  status:     EpmSyncStatus;
+  gl_account: string;
+  amount:     number;
+  synced_by:  string;
+  synced_at:  string;
+  error_msg?: string;
+}
+
+// ─── CRM Integration ──────────────────────────────────────────────────────────
+
+export type CrmStage =
+  | "Qualificação" | "Proposta Enviada" | "Negociação"
+  | "Fechado Ganho" | "Fechado Perdido";
+
+export interface PpmCrmOpportunity {
+  opportunity_id:     string;
+  title:              string;
+  customer_name:      string;
+  customer_id:        string;
+  bu_code:            string;
+  stage:              CrmStage;
+  value:              number;
+  probability:        number;
+  expected_close:     string;
+  owner:              string;
+  linked_project_id?: string;
+  created_at:         string;
+  updated_at:         string;
+}

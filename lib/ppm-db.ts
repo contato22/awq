@@ -15,16 +15,20 @@ import type {
   IssueSeverity, IssueStatus,
   PpmComment, PpmDocument, PpmActivity,
   CommentEntityType, DocType, ActivityAction,
+  PpmEpmSync, EpmSyncFlow, EpmSyncStatus,
+  PpmCrmOpportunity, CrmStage,
 } from "@/lib/ppm-types";
 
 export type {
   PpmProject, PpmTask, PpmMilestone, PpmAllocation, PpmTimeEntry,
   PpmRisk, PpmIssue, PpmPortfolioMetrics,
   PpmComment, PpmDocument, PpmActivity,
+  PpmEpmSync, PpmCrmOpportunity,
   BuCode, ProjectType, ContractType, ProjectPhase, ProjectStatus,
   HealthStatus, Priority, TaskStatus, TaskType, MilestoneStatus,
   AllocationStatus, TimeEntryStatus, RiskImpact, RiskProbability,
   RiskStatus, IssueSeverity, IssueStatus, CommentEntityType, DocType, ActivityAction,
+  EpmSyncFlow, EpmSyncStatus, CrmStage,
 };
 
 function now() { return new Date().toISOString(); }
@@ -847,4 +851,102 @@ export async function createActivity(input: Omit<PpmActivity, "activity_id" | "c
     VALUES (${activity_id}, ${input.project_id}, ${input.action}, ${input.description}, ${input.user_name ?? null}, ${input.entity_id ?? null}, ${now()})
   `;
   return a;
+}
+
+// ─── EPM Sync Log ─────────────────────────────────────────────────────────────
+
+const _epmSyncs: PpmEpmSync[] = [
+  { sync_id:"esync-001", project_id:"prj-001", flow:"cost_gl",     status:"synced", gl_account:"4.1.02.001 — Custo Prod. Caza Vision", amount:89600,  synced_by:"miguel", synced_at:"2026-04-30T09:00:00Z" },
+  { sync_id:"esync-002", project_id:"prj-001", flow:"revenue_ar",  status:"synced", gl_account:"3.1.02.001 — Receita Prod. Caza Vision", amount:320000, synced_by:"miguel", synced_at:"2026-04-30T09:01:00Z" },
+  { sync_id:"esync-003", project_id:"prj-002", flow:"cost_gl",     status:"synced", gl_account:"4.1.02.001 — Custo Prod. Caza Vision", amount:42000,  synced_by:"miguel", synced_at:"2026-04-29T15:00:00Z" },
+  { sync_id:"esync-004", project_id:"prj-004", flow:"revenue_ar",  status:"error",  gl_account:"3.1.03.001 — Receita Consult. Advisor",  amount:180000, synced_by:"sistema", synced_at:"2026-04-28T10:00:00Z", error_msg:"Timeout na conexão com o ERP" },
+];
+
+export async function listEpmSyncs(project_id?: string): Promise<PpmEpmSync[]> {
+  if (!sql) {
+    const rows = project_id ? _epmSyncs.filter(s => s.project_id === project_id) : [..._epmSyncs];
+    return rows.sort((a, b) => b.synced_at.localeCompare(a.synced_at));
+  }
+  const rows = await sql`
+    SELECT * FROM ppm_epm_syncs
+    WHERE (${project_id ?? null} IS NULL OR project_id = ${project_id ?? null})
+    ORDER BY synced_at DESC
+  `;
+  return rows as PpmEpmSync[];
+}
+
+export async function createEpmSync(input: Omit<PpmEpmSync, "sync_id">): Promise<PpmEpmSync> {
+  const sync_id = randomUUID();
+  const s: PpmEpmSync = { ...input, sync_id };
+  if (!sql) {
+    const idx = _epmSyncs.findIndex(x => x.project_id === s.project_id && x.flow === s.flow);
+    if (idx >= 0) _epmSyncs[idx] = s; else _epmSyncs.unshift(s);
+    return s;
+  }
+  await sql`
+    INSERT INTO ppm_epm_syncs (sync_id, project_id, flow, status, gl_account, amount, synced_by, synced_at, error_msg)
+    VALUES (${sync_id}, ${s.project_id}, ${s.flow}, ${s.status}, ${s.gl_account}, ${s.amount}, ${s.synced_by}, ${s.synced_at}, ${s.error_msg ?? null})
+    ON CONFLICT (project_id, flow) DO UPDATE SET
+      status = EXCLUDED.status, amount = EXCLUDED.amount, synced_at = EXCLUDED.synced_at, error_msg = EXCLUDED.error_msg
+  `;
+  return s;
+}
+
+// ─── CRM Opportunities ────────────────────────────────────────────────────────
+
+const _crmOpportunities: PpmCrmOpportunity[] = [
+  { opportunity_id:"opp-001", title:"BTG Pactual — Vídeos Institucionais Q3", customer_name:"BTG Pactual S.A.", customer_id:"cust-btg", bu_code:"CAZA", stage:"Proposta Enviada", value:280000, probability:70, expected_close:"2026-06-30", owner:"Miguel", created_at:"2026-03-10T10:00:00Z", updated_at:"2026-03-10T10:00:00Z" },
+  { opportunity_id:"opp-002", title:"Inter — Social Media Retainer", customer_name:"Banco Inter", customer_id:"cust-inter", bu_code:"JACQES", stage:"Negociação", value:96000, probability:85, expected_close:"2026-06-15", owner:"Miguel", created_at:"2026-03-20T10:00:00Z", updated_at:"2026-04-01T10:00:00Z" },
+  { opportunity_id:"opp-003", title:"Itaú — Campanha Performance", customer_name:"Itaú Unibanco", customer_id:"cust-itau", bu_code:"CAZA", stage:"Qualificação", value:420000, probability:35, expected_close:"2026-09-30", owner:"Miguel", created_at:"2026-04-01T10:00:00Z", updated_at:"2026-04-01T10:00:00Z" },
+  { opportunity_id:"opp-004", title:"Santander — Consultoria Estratégica", customer_name:"Santander Brasil", customer_id:"cust-sant", bu_code:"ADVISOR", stage:"Fechado Ganho", value:180000, probability:100, expected_close:"2026-05-01", owner:"Miguel", linked_project_id:"prj-004", created_at:"2026-02-15T10:00:00Z", updated_at:"2026-04-10T10:00:00Z" },
+  { opportunity_id:"opp-005", title:"C6 Bank — Identidade Visual", customer_name:"C6 Bank S.A.", customer_id:"cust-c6", bu_code:"CAZA", stage:"Proposta Enviada", value:65000, probability:55, expected_close:"2026-07-15", owner:"Danilo", created_at:"2026-04-05T10:00:00Z", updated_at:"2026-04-05T10:00:00Z" },
+];
+
+export async function listCrmOpportunities(linked?: "linked" | "unlinked"): Promise<PpmCrmOpportunity[]> {
+  if (!sql) {
+    let rows = [..._crmOpportunities];
+    if (linked === "linked")   rows = rows.filter(o => o.linked_project_id);
+    if (linked === "unlinked") rows = rows.filter(o => !o.linked_project_id);
+    return rows.sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+  }
+  const rows = await sql`
+    SELECT * FROM ppm_crm_opportunities
+    WHERE (${linked ?? null} IS NULL
+      OR (${linked ?? null} = 'linked' AND linked_project_id IS NOT NULL)
+      OR (${linked ?? null} = 'unlinked' AND linked_project_id IS NULL))
+    ORDER BY updated_at DESC
+  `;
+  return rows as PpmCrmOpportunity[];
+}
+
+export async function createCrmOpportunity(input: Omit<PpmCrmOpportunity, "opportunity_id" | "created_at" | "updated_at">): Promise<PpmCrmOpportunity> {
+  const opportunity_id = randomUUID();
+  const o: PpmCrmOpportunity = { ...input, opportunity_id, created_at: now(), updated_at: now() };
+  if (!sql) { _crmOpportunities.unshift(o); return o; }
+  await sql`
+    INSERT INTO ppm_crm_opportunities
+      (opportunity_id, title, customer_name, customer_id, bu_code, stage, value, probability, expected_close, owner, linked_project_id, created_at, updated_at)
+    VALUES
+      (${o.opportunity_id}, ${o.title}, ${o.customer_name}, ${o.customer_id}, ${o.bu_code}, ${o.stage}, ${o.value}, ${o.probability}, ${o.expected_close}, ${o.owner}, ${o.linked_project_id ?? null}, ${now()}, ${now()})
+  `;
+  return o;
+}
+
+export async function updateCrmOpportunity(opportunity_id: string, patch: Partial<Pick<PpmCrmOpportunity, "stage" | "linked_project_id" | "probability">>): Promise<PpmCrmOpportunity | null> {
+  if (!sql) {
+    const idx = _crmOpportunities.findIndex(o => o.opportunity_id === opportunity_id);
+    if (idx < 0) return null;
+    _crmOpportunities[idx] = { ..._crmOpportunities[idx], ...patch, updated_at: now() };
+    return _crmOpportunities[idx];
+  }
+  const rows = await sql`
+    UPDATE ppm_crm_opportunities SET
+      stage              = COALESCE(${patch.stage ?? null}, stage),
+      linked_project_id  = COALESCE(${patch.linked_project_id ?? null}, linked_project_id),
+      probability        = COALESCE(${patch.probability ?? null}, probability),
+      updated_at         = ${now()}
+    WHERE opportunity_id = ${opportunity_id}
+    RETURNING *
+  `;
+  return (rows[0] ?? null) as PpmCrmOpportunity | null;
 }

@@ -12,32 +12,7 @@ import {
 } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/utils";
 import { ppmFetch } from "@/lib/ppm-fetch";
-import type { PpmProject } from "@/lib/ppm-types";
-
-// ─── Mock CRM opportunity data ────────────────────────────────────────────────
-// In production this would come from /api/crm/opportunities or similar
-
-interface CrmOpportunity {
-  opportunity_id: string;
-  title:          string;
-  customer_name:  string;
-  customer_id:    string;
-  bu_code:        string;
-  stage:          string;
-  value:          number;
-  probability:    number;
-  expected_close: string;
-  owner:          string;
-  linked_project_id?: string;
-}
-
-const MOCK_OPPORTUNITIES: CrmOpportunity[] = [
-  { opportunity_id:"opp-001", title:"BTG Pactual — Vídeos Institucionais Q3", customer_name:"BTG Pactual S.A.", customer_id:"cust-btg", bu_code:"CAZA", stage:"Proposta Enviada", value:280000, probability:70, expected_close:"2026-06-30", owner:"Miguel", linked_project_id: undefined },
-  { opportunity_id:"opp-002", title:"Inter — Social Media Retainer", customer_name:"Banco Inter", customer_id:"cust-inter", bu_code:"JACQES", stage:"Negociação", value:96000, probability:85, expected_close:"2026-06-15", owner:"Miguel", linked_project_id: undefined },
-  { opportunity_id:"opp-003", title:"Itaú — Campanha Performance", customer_name:"Itaú Unibanco", customer_id:"cust-itau", bu_code:"CAZA", stage:"Qualificação", value:420000, probability:35, expected_close:"2026-09-30", owner:"Miguel", linked_project_id: undefined },
-  { opportunity_id:"opp-004", title:"Santander — Consultoria Estratégica", customer_name:"Santander Brasil", customer_id:"cust-sant", bu_code:"ADVISOR", stage:"Fechado Ganho", value:180000, probability:100, expected_close:"2026-05-01", owner:"Miguel", linked_project_id:"prj-004" },
-  { opportunity_id:"opp-005", title:"C6 Bank — Identidade Visual", customer_name:"C6 Bank S.A.", customer_id:"cust-c6", bu_code:"CAZA", stage:"Proposta Enviada", value:65000, probability:55, expected_close:"2026-07-15", owner:"Danilo", linked_project_id: undefined },
-];
+import type { PpmProject, PpmCrmOpportunity as CrmOpportunity } from "@/lib/ppm-types";
 
 const STAGE_CONFIG: Record<string, { color: string; icon: React.ElementType }> = {
   "Qualificação":     { color: "bg-gray-100    text-gray-600",    icon: Circle       },
@@ -59,7 +34,7 @@ const SELECT = INPUT;
 
 export default function CrmIntegrationPage() {
   const [projects,      setProjects]      = useState<PpmProject[]>([]);
-  const [opportunities, setOpportunities] = useState<CrmOpportunity[]>(MOCK_OPPORTUNITIES);
+  const [opportunities, setOpportunities] = useState<CrmOpportunity[]>([]);
   const [loading,       setLoading]       = useState(true);
   const [converting,    setConverting]    = useState<string | null>(null);
 
@@ -79,8 +54,15 @@ export default function CrmIntegrationPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const json = await ppmFetch("/api/ppm/projects") as { success: boolean; data: { projects: PpmProject[] } };
-      if (json.success) setProjects(json.data.projects ?? []);
+      const [projJson, oppJson] = await Promise.all([
+        ppmFetch("/api/ppm/projects"),
+        ppmFetch("/api/ppm/crm-opportunities"),
+      ]) as [
+        { success: boolean; data: { projects: PpmProject[] } },
+        { success: boolean; data: CrmOpportunity[] },
+      ];
+      if (projJson.success) setProjects(projJson.data.projects ?? []);
+      if (oppJson.success)  setOpportunities(oppJson.data ?? []);
     } catch { /* keep */ } finally {
       setLoading(false);
     }
@@ -113,9 +95,15 @@ export default function CrmIntegrationPage() {
         }),
       }) as { success: boolean; data: PpmProject };
       if (res.success) {
-        setOpportunities(prev => prev.map(o =>
-          o.opportunity_id === opp.opportunity_id ? { ...o, linked_project_id: res.data.project_id } : o
-        ));
+        await ppmFetch("/api/ppm/crm-opportunities", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            opportunity_id:    opp.opportunity_id,
+            linked_project_id: res.data.project_id,
+            stage:             "Fechado Ganho",
+          }),
+        });
         setConvertOpp(null);
         void load();
       }
@@ -124,13 +112,22 @@ export default function CrmIntegrationPage() {
     }
   }
 
-  function linkToExisting() {
+  async function linkToExisting() {
     if (!linkOpp || !linkProjectId) return;
-    setOpportunities(prev => prev.map(o =>
-      o.opportunity_id === linkOpp.opportunity_id ? { ...o, linked_project_id: linkProjectId } : o
-    ));
-    setLinkOpp(null);
-    setLinkProjectId("");
+    try {
+      await ppmFetch("/api/ppm/crm-opportunities", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          opportunity_id:    linkOpp.opportunity_id,
+          linked_project_id: linkProjectId,
+          stage:             "Fechado Ganho",
+        }),
+      });
+      setLinkOpp(null);
+      setLinkProjectId("");
+      void load();
+    } catch { /* ignore */ }
   }
 
   const linked   = opportunities.filter(o => o.linked_project_id);

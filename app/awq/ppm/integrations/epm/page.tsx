@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/utils";
 import { ppmFetch } from "@/lib/ppm-fetch";
-import type { PpmProject } from "@/lib/ppm-types";
+import type { PpmProject, PpmEpmSync } from "@/lib/ppm-types";
 
 type SyncStatus = "synced" | "pending" | "error" | "never";
 
@@ -54,12 +54,10 @@ const GL_REVENUE: Record<string, string> = {
   AWQ:     "3.1.05.001 — Receita Corporativa AWQ",
 };
 
-function buildMappings(projects: PpmProject[]): GlMapping[] {
-  return projects.filter(p => p.status !== "cancelled").map((p, idx) => {
-    const status: SyncStatus = idx % 5 === 0 ? "pending" : idx % 7 === 0 ? "error" : "synced";
-    const lastSync = (status === "pending")
-      ? null
-      : new Date(Date.now() - (idx + 1) * 3600000 * 24).toISOString().slice(0, 10);
+function buildMappings(projects: PpmProject[], syncs: PpmEpmSync[], flow: string): GlMapping[] {
+  const syncByProject = new Map(syncs.filter(s => s.flow === flow).map(s => [s.project_id, s]));
+  return projects.filter(p => p.status !== "cancelled").map(p => {
+    const syncEntry = syncByProject.get(p.project_id);
     return {
       project_id:          p.project_id,
       project_name:        p.project_name,
@@ -71,8 +69,8 @@ function buildMappings(projects: PpmProject[]): GlMapping[] {
       actual_cost:         p.actual_cost,
       budget_revenue:      p.budget_revenue,
       actual_revenue:      p.actual_revenue,
-      last_sync:           lastSync,
-      sync_status:         status,
+      last_sync:           syncEntry ? syncEntry.synced_at.slice(0, 10) : null,
+      sync_status:         (syncEntry?.status ?? "never") as SyncStatus,
     };
   });
 }
@@ -106,20 +104,34 @@ const FLOWS: { id: IntegrationFlow; label: string; desc: string; icon: React.Ele
   },
 ];
 
+const FLOW_API_KEY: Record<IntegrationFlow, string> = {
+  cost_to_gl:     "cost_gl",
+  revenue_to_ar:  "revenue_ar",
+  budget_to_epm:  "budget_epm",
+};
+
 export default function EpmIntegrationPage() {
-  const [projects,    setProjects]    = useState<PpmProject[]>([]);
-  const [loading,     setLoading]     = useState(true);
-  const [syncing,     setSyncing]     = useState<Record<string, boolean>>({});
-  const [syncAll,     setSyncAll]     = useState(false);
-  const [activeFlow,  setActiveFlow]  = useState<IntegrationFlow>("cost_to_gl");
-  const [filterBU,    setFilterBU]    = useState("");
+  const [projects,     setProjects]     = useState<PpmProject[]>([]);
+  const [syncs,        setSyncs]        = useState<PpmEpmSync[]>([]);
+  const [loading,      setLoading]      = useState(true);
+  const [syncing,      setSyncing]      = useState<Record<string, boolean>>({});
+  const [syncAll,      setSyncAll]      = useState(false);
+  const [activeFlow,   setActiveFlow]   = useState<IntegrationFlow>("cost_to_gl");
+  const [filterBU,     setFilterBU]     = useState("");
   const [lastFullSync, setLastFullSync] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const json = await ppmFetch("/api/ppm/projects") as { success: boolean; data: { projects: PpmProject[] } };
-      if (json.success) setProjects(json.data.projects ?? []);
+      const [projJson, syncJson] = await Promise.all([
+        ppmFetch("/api/ppm/projects"),
+        ppmFetch("/api/ppm/epm-sync"),
+      ]) as [
+        { success: boolean; data: { projects: PpmProject[] } },
+        { success: boolean; data: PpmEpmSync[] },
+      ];
+      if (projJson.success) setProjects(projJson.data.projects ?? []);
+      if (syncJson.success) setSyncs(syncJson.data ?? []);
     } catch { /* keep */ } finally {
       setLoading(false);
     }
@@ -127,22 +139,45 @@ export default function EpmIntegrationPage() {
 
   useEffect(() => { void load(); }, [load]);
 
-  async function syncProject(project_id: string) {
-    setSyncing(prev => ({ ...prev, [project_id]: true }));
-    await new Promise(r => setTimeout(r, 1200));
-    setSyncing(prev => ({ ...prev, [project_id]: false }));
+  async function syncProject(project: PpmProject) {
+    const flowKey = FLOW_API_KEY[activeFlow];
+    const gl_account = activeFlow === "cost_to_gl"
+      ? GL_COST[project.bu_code]    ?? "4.1.99.001 — Custo Outros"
+      : activeFlow === "revenue_to_ar"
+      ? GL_REVENUE[project.bu_code] ?? "3.1.99.001 — Receita Outros"
+      : `BDG.${project.project_code}`;
+    const amount = activeFlow === "cost_to_gl"
+      ? project.actual_cost
+      : activeFlow === "revenue_to_ar"
+      ? project.actual_revenue
+      : project.budget_cost + project.budget_revenue;
+
+    setSyncing(prev => ({ ...prev, [project.project_id]: true }));
+    try {
+      const json = await ppmFetch("/api/ppm/epm-sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ project_id: project.project_id, flow: flowKey, gl_account, amount }),
+      }) as { success: boolean; data: PpmEpmSync };
+      if (json.success) setSyncs(prev => {
+        const filtered = prev.filter(s => !(s.project_id === project.project_id && s.flow === flowKey));
+        return [json.data, ...filtered];
+      });
+    } catch { /* ignore */ } finally {
+      setSyncing(prev => ({ ...prev, [project.project_id]: false }));
+    }
   }
 
   async function syncAllProjects() {
+    const visibleProjects = filterBU ? projects.filter(p => p.bu_code === filterBU) : projects;
     setSyncAll(true);
-    await new Promise(r => setTimeout(r, 2000));
+    await Promise.all(visibleProjects.filter(p => p.status !== "cancelled").map(p => syncProject(p)));
     setLastFullSync(new Date().toISOString().slice(0, 10));
     setSyncAll(false);
   }
 
-  const mappings = buildMappings(
-    filterBU ? projects.filter(p => p.bu_code === filterBU) : projects
-  );
+  const visibleProjects = filterBU ? projects.filter(p => p.bu_code === filterBU) : projects;
+  const mappings = buildMappings(visibleProjects, syncs, FLOW_API_KEY[activeFlow]);
 
   const syncedCount  = mappings.filter(m => m.sync_status === "synced").length;
   const pendingCount = mappings.filter(m => m.sync_status === "pending" || m.sync_status === "never").length;
@@ -307,7 +342,7 @@ export default function EpmIntegrationPage() {
                         {m.last_sync ? formatDateBR(m.last_sync) : "—"}
                       </td>
                       <td className="px-4 py-3">
-                        <button onClick={() => void syncProject(m.project_id)} disabled={isSyncing}
+                        <button onClick={() => { const p = projects.find(x => x.project_id === m.project_id); if (p) void syncProject(p); }} disabled={isSyncing}
                           className="flex items-center gap-1 text-[10px] font-semibold px-2 py-1 border border-indigo-200 text-indigo-700 rounded hover:bg-indigo-50 disabled:opacity-60">
                           <Play size={9} className={isSyncing ? "animate-pulse" : ""} />
                           {isSyncing ? "…" : "Exportar"}
