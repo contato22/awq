@@ -5,7 +5,7 @@ import type { APARKPIs, BuCode } from "@/lib/ap-ar-db";
 
 const BU_CODES: BuCode[] = ["AWQ", "JACQES", "CAZA", "ADVISOR", "VENTURE"];
 
-function fmt(v: number) { return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }); }
+function fmt(v: number) { return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 function fmtDays(v: number | null) { if (v == null) return "—"; return `${Math.round(v)} dias`; }
 
 interface KpiCardProps { label: string; value: string; sub?: string; color?: string; }

@@ -84,7 +84,7 @@ export default async function ConciliacaoPage() {
     .filter((t) => t.reconciliationStatus !== "conciliado" && t.direction === "debit")
     .reduce((s, t) => s + Math.abs(t.amount), 0);
 
-  const fmt = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const fmt = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   return (
     <>

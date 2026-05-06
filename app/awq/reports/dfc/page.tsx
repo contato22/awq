@@ -5,7 +5,7 @@ import type { DFCLine, BuCode } from "@/lib/ap-ar-db";
 
 const BU_CODES: BuCode[] = ["AWQ", "JACQES", "CAZA", "ADVISOR", "VENTURE"];
 
-function fmt(v: number) { return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }); }
+function fmt(v: number) { return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 function fmtMonth(m: string) {
   const [y, mo] = m.split("-");
   const date = new Date(Number(y), Number(mo) - 1, 1);

@@ -455,7 +455,7 @@ function ImportResultPanel({
                   <td className="px-3 py-1.5 text-gray-500 whitespace-nowrap">{t.date}</td>
                   <td className="px-3 py-1.5 text-gray-800 max-w-xs truncate">{t.description}</td>
                   <td className={`px-3 py-1.5 text-right font-mono font-medium ${t.amount >= 0 ? "text-emerald-700" : "text-red-600"}`}>
-                    {t.amount >= 0 ? "+" : ""}{t.amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                    {t.amount >= 0 ? "+" : ""}{t.amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </td>
                 </tr>
               ))}

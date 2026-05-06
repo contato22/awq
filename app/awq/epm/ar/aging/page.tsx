@@ -20,7 +20,7 @@ const BUCKET_COLOR: Record<AgingBucket, string> = {
 };
 const BUS: BuCode[] = ["AWQ", "JACQES", "CAZA", "ADVISOR", "VENTURE"];
 
-function fmt(v: number) { return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }); }
+function fmt(v: number) { return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
 function getAgingBucket(due_date: string): AgingBucket {
   const today = new Date();

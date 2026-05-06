@@ -120,7 +120,7 @@ function dreEffectOf(cat: ManagerialCategory): { label: string; color: string } 
 // ─── Format helpers ───────────────────────────────────────────────────────────
 
 function fmtBRL(v: number): string {
-  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function fmtDate(s: string): string {

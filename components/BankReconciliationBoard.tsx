@@ -54,7 +54,7 @@ type DirectionFilter = "todos" | "recebimentos" | "pagamentos";
 // ─── Format helpers ───────────────────────────────────────────────────────────
 
 function fmtBRL(v: number) {
-  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 const WEEKDAYS = [

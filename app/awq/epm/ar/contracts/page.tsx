@@ -6,7 +6,7 @@ import type { ARContract, BuCode } from "@/lib/ap-ar-db";
 const BUS: BuCode[] = ["AWQ", "JACQES", "CAZA", "ADVISOR", "VENTURE"];
 const CATEGORIES = ["Serviço Recorrente", "Projeto", "Consultoria", "Produção", "Outros"];
 
-function fmt(v: number) { return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }); }
+function fmt(v: number) { return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 function fmtDate(d: string) { return new Date(d + "T12:00:00").toLocaleDateString("pt-BR"); }
 
 const EMPTY_FORM = {

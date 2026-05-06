@@ -5,7 +5,7 @@ import type { DRELine, BuCode } from "@/lib/ap-ar-db";
 
 const BU_CODES: BuCode[] = ["AWQ", "JACQES", "CAZA", "ADVISOR", "VENTURE"];
 
-function fmt(v: number) { return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }); }
+function fmt(v: number) { return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 function pct(v: number | null | undefined) {
   if (v == null || !isFinite(v)) return "—";
   return v.toFixed(1) + "%";

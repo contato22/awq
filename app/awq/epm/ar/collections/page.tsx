@@ -9,7 +9,7 @@ const METHOD_LABELS: Record<string, string>  = { email: "E-mail", phone: "Ligaç
 const OUTCOME_LABELS: Record<string, string> = { promised: "Prometeu pagar", no_answer: "Sem resposta", dispute: "Disputa", paid: "Pagou", other: "Outro" };
 const OUTCOME_COLOR: Record<string, string>  = { promised: "text-blue-600", no_answer: "text-gray-500", dispute: "text-red-600", paid: "text-emerald-600", other: "text-gray-600" };
 
-function fmt(v: number) { return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }); }
+function fmt(v: number) { return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 function fmtDate(d: string) { return new Date(d + "T12:00:00").toLocaleDateString("pt-BR"); }
 function daysOverdue(due_date: string) {
   const today = new Date();
