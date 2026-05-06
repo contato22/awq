@@ -203,17 +203,22 @@ export default function CrmDashboardView({ buFilter: externalBu }: Props) {
       acts: CrmActivity[];
       localLeadsCount: number;
     } {
-      const storedOppsRaw = localStorage.getItem("crm-opportunities-v1");
-      const opps: CrmOpportunity[] | null = storedOppsRaw ? JSON.parse(storedOppsRaw) : null;
+      let opps: CrmOpportunity[] | null = null;
+      try {
+        const raw = localStorage.getItem("crm-opportunities-v1");
+        if (raw) opps = JSON.parse(raw);
+      } catch { /* corrupted — treat as empty */ }
 
-      const localActs: CrmActivity[] = JSON.parse(localStorage.getItem("crm-activities-v1") ?? "[]");
+      let localActs: CrmActivity[] = [];
+      try { localActs = JSON.parse(localStorage.getItem("crm-activities-v1") ?? "[]"); } catch { /* ignore */ }
       const seedActIds = new Set(SEED_ACTIVITIES.map(a => a.activity_id));
       const acts: CrmActivity[] = [
         ...SEED_ACTIVITIES,
         ...localActs.filter(a => !seedActIds.has(a.activity_id)),
       ];
 
-      const localLeadsCount = (JSON.parse(localStorage.getItem("awq_local_leads") ?? "[]") as unknown[]).length;
+      let localLeadsCount = 0;
+      try { localLeadsCount = (JSON.parse(localStorage.getItem("awq_local_leads") ?? "[]") as unknown[]).length; } catch { /* ignore */ }
 
       return { opps, acts, localLeadsCount };
     }
