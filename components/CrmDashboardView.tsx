@@ -136,9 +136,12 @@ function KpiCard({ label, value, icon: Icon, iconColor, iconBg, sub }: KpiCardPr
   );
 }
 
-// ─── BU filter options ────────────────────────────────────────────────────────
+// ─── Filter options ───────────────────────────────────────────────────────────
 const BUS = ["Todos", "JACQES", "CAZA", "ADVISOR", "VENTURE"] as const;
 type BuFilter = typeof BUS[number];
+
+const PERIODS = ["Hoje", "Semana", "Mês", "Ano"] as const;
+type PeriodFilter = typeof PERIODS[number];
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -153,6 +156,7 @@ export default function CrmDashboardView({ buFilter: externalBu }: Props) {
     (externalBu as BuFilter | undefined) ?? "Todos"
   );
   const buFilter = bu !== "Todos" ? bu : undefined;
+  const [period, setPeriod] = useState<PeriodFilter>("Mês");
 
   const [opps, setOpps] = useState<CrmOpportunity[]>([]);
   const [activities, setActivities] = useState<CrmActivity[]>([]);
@@ -210,7 +214,14 @@ export default function CrmDashboardView({ buFilter: externalBu }: Props) {
               openOpportunities: analJson.data.openOpportunities ?? 0,
               pipelineValue: analJson.data.pipelineValue ?? 0,
               weightedForecast: analJson.data.weightedForecast ?? 0,
-              closedWonThisMonth: analJson.data.revenueThisMonth ?? 0,
+              revenueToday:      analJson.data.revenueToday      ?? 0,
+              revenueThisWeek:   analJson.data.revenueThisWeek   ?? 0,
+              revenueThisMonth:  analJson.data.revenueThisMonth  ?? 0,
+              revenueThisYear:   analJson.data.revenueThisYear   ?? 0,
+              closedWonToday:    analJson.data.closedWonToday    ?? 0,
+              closedWonThisWeek: analJson.data.closedWonThisWeek ?? 0,
+              closedWonThisMonth:analJson.data.closedWonThisMonth ?? 0,
+              closedWonThisYear: analJson.data.closedWonThisYear ?? 0,
               winRate: analJson.data.winRate ?? 0,
               tasksToday: analJson.data.tasksToday ?? 0,
             });
@@ -274,6 +285,16 @@ export default function CrmDashboardView({ buFilter: externalBu }: Props) {
   const TODAY = new Date().toISOString().slice(0, 10);
   const TODAY_PLUS_7 = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
 
+  // Pick revenue / count for the selected period
+  const periodRevenueKey: Record<PeriodFilter, string> = {
+    Hoje: "revenueToday", Semana: "revenueThisWeek", Mês: "revenueThisMonth", Ano: "revenueThisYear",
+  };
+  const periodCountKey: Record<PeriodFilter, string> = {
+    Hoje: "closedWonToday", Semana: "closedWonThisWeek", Mês: "closedWonThisMonth", Ano: "closedWonThisYear",
+  };
+  const periodRevenue = analytics[periodRevenueKey[period]] ?? 0;
+  const periodCount   = analytics[periodCountKey[period]]   ?? 0;
+
   const openOpps = opps.filter(o => o.stage !== "closed_won" && o.stage !== "closed_lost");
 
   const funnelStages = ["discovery", "qualification", "proposal", "negotiation"] as const;
@@ -298,23 +319,41 @@ export default function CrmDashboardView({ buFilter: externalBu }: Props) {
       <Header title={pageTitle} subtitle={pageSubtitle} />
       <div className="page-container">
 
-        {/* BU Filter */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <Filter size={13} className="text-gray-400 shrink-0" />
-          <span className="text-[11px] text-gray-500 shrink-0">Filtrar por BU:</span>
-          {BUS.map(b => (
-            <button
-              key={b}
-              onClick={() => setBu(b)}
-              className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all ${
-                bu === b
-                  ? "bg-brand-600 text-white shadow-sm"
-                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-              }`}
-            >
-              {b}
-            </button>
-          ))}
+        {/* Filters */}
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Filter size={13} className="text-gray-400 shrink-0" />
+            <span className="text-[11px] text-gray-500 shrink-0">BU:</span>
+            {BUS.map(b => (
+              <button
+                key={b}
+                onClick={() => setBu(b)}
+                className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all ${
+                  bu === b
+                    ? "bg-brand-600 text-white shadow-sm"
+                    : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                }`}
+              >
+                {b}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[11px] text-gray-500 shrink-0">Período:</span>
+            {PERIODS.map(p => (
+              <button
+                key={p}
+                onClick={() => setPeriod(p)}
+                className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all ${
+                  period === p
+                    ? "bg-emerald-600 text-white shadow-sm"
+                    : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                }`}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
           {isStatic && (
             <span className="ml-auto inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
@@ -329,7 +368,7 @@ export default function CrmDashboardView({ buFilter: externalBu }: Props) {
           <KpiCard label="Oportunidades abertas" value={analytics.openOpportunities ?? 0}        icon={Target}       iconColor="text-violet-600"  iconBg="bg-violet-50" />
           <KpiCard label="Pipeline total"         value={formatBRL(analytics.pipelineValue ?? 0)} icon={BarChart3}    iconColor="text-amber-600"   iconBg="bg-amber-50" />
           <KpiCard label="Forecast ponderado"     value={formatBRL(analytics.weightedForecast ?? 0)} icon={DollarSign} iconColor="text-emerald-600" iconBg="bg-emerald-50" sub="prob. ponderada" />
-          <KpiCard label="Fechado no mês"         value={formatBRL(analytics.closedWonThisMonth ?? 0)} icon={CheckCircle2} iconColor="text-green-600" iconBg="bg-green-50" />
+          <KpiCard label={`Fechado (${period.toLowerCase()})`} value={formatBRL(periodRevenue)} icon={CheckCircle2} iconColor="text-green-600" iconBg="bg-green-50" sub={`${periodCount} deal${periodCount !== 1 ? "s" : ""}`} />
           <KpiCard label="Win Rate"               value={`${analytics.winRate ?? 0}%`}           icon={TrendingUp}   iconColor="text-blue-600"    iconBg="bg-blue-50" />
         </div>
 
