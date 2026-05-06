@@ -187,12 +187,16 @@ export async function deleteContact(id: string): Promise<void> {
 
 // ─── Lead CRUD ────────────────────────────────────────────────────────────────
 
-export async function listLeads(filters?: { status?: string; bu?: string; assigned_to?: string }): Promise<CrmLead[]> {
+export async function listLeads(filters?: { status?: string; bu?: string; assigned_to?: string; search?: string }): Promise<CrmLead[]> {
   if (!sql) {
     let rows = [...SEED_LEADS];
     if (filters?.status) rows = rows.filter(r => r.status === filters.status);
     if (filters?.bu) rows = rows.filter(r => r.bu === filters.bu);
     if (filters?.assigned_to) rows = rows.filter(r => r.assigned_to === filters.assigned_to);
+    if (filters?.search) {
+      const s = filters.search.toLowerCase();
+      rows = rows.filter(r => r.company_name.toLowerCase().includes(s) || r.contact_name.toLowerCase().includes(s));
+    }
     return rows;
   }
   const rows = await sql`
@@ -200,6 +204,9 @@ export async function listLeads(filters?: { status?: string; bu?: string; assign
     WHERE (${filters?.status ?? null}::text IS NULL OR status = ${filters?.status ?? null})
       AND (${filters?.bu ?? null}::text IS NULL OR bu = ${filters?.bu ?? null})
       AND (${filters?.assigned_to ?? null}::text IS NULL OR assigned_to = ${filters?.assigned_to ?? null})
+      AND (${filters?.search ?? null}::text IS NULL
+           OR company_name ILIKE ${'%' + (filters?.search ?? '') + '%'}
+           OR contact_name ILIKE ${'%' + (filters?.search ?? '') + '%'})
     ORDER BY created_at DESC
   `;
   return rows as CrmLead[];
@@ -250,6 +257,18 @@ export async function updateLead(id: string, data: Partial<CrmLead>): Promise<Cr
 export async function deleteLead(id: string): Promise<void> {
   if (!sql) throw new Error("DB not available");
   await sql`DELETE FROM crm_leads WHERE lead_id = ${id}`;
+}
+
+export async function markLeadConverted(leadId: string, opportunityId: string): Promise<void> {
+  if (!sql) return;
+  await sql`
+    UPDATE crm_leads SET
+      status = 'converted',
+      converted_to_opportunity_id = ${opportunityId},
+      converted_at = NOW(),
+      updated_at   = NOW()
+    WHERE lead_id = ${leadId}
+  `;
 }
 
 export async function getContact(id: string): Promise<CrmContact | null> {

@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
       status:      p.get("status")      ?? undefined,
       bu:          forcedBu ?? p.get("bu") ?? undefined,
       assigned_to: p.get("assigned_to") ?? undefined,
+      search:      p.get("search")      ?? undefined,
     });
     return ok(rows);
   } catch (e) { return err(String(e)); }

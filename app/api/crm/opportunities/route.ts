@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { initCrmDB, listOpportunities, getOpportunity, createOpportunity, updateOpportunity, deleteOpportunity } from "@/lib/crm-db";
+import { initCrmDB, listOpportunities, getOpportunity, createOpportunity, updateOpportunity, deleteOpportunity, markLeadConverted } from "@/lib/crm-db";
 import { getForcedBu } from "@/lib/api-guard";
 
 function ok(data: unknown) { return NextResponse.json({ success: true, data }); }
@@ -36,7 +36,9 @@ export async function POST(req: NextRequest) {
 
     if (action === "create") {
       if (!data.opportunity_name || !data.bu) return err("opportunity_name and bu required", 400);
-      const row = await createOpportunity(data);
+      const { lead_id, ...oppData } = data;
+      const row = await createOpportunity(oppData);
+      if (lead_id) await markLeadConverted(lead_id, row.opportunity_id);
       return ok(row);
     }
     if (action === "update" || action === "close") {
