@@ -3,8 +3,8 @@
 // Receives a PDF bank statement via multipart/form-data and:
 //   1. Validates the file (type, size)
 //   2. Computes SHA-256 hash for deduplication
-//   3. Saves document metadata to financial-db (Neon or filesystem)
-//   4. Stores the PDF: Vercel Blob (BLOB_READ_WRITE_TOKEN set) or local filesystem
+//   3. Saves document metadata to financial-db (Postgres or filesystem)
+//   4. Stores the PDF: Supabase Storage (SUPABASE_URL set) or local filesystem
 //   5. Returns the document ID for subsequent processing
 //
 // FIELDS (form-data):
@@ -128,17 +128,21 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const docId = newId();
   const safeFilename = `${docId}_${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
 
-  // ── Store PDF: Vercel Blob or filesystem ──
+  // ── Store PDF: Supabase Storage or filesystem ──
   let blobUrl: string | null = null;
 
   if (USE_BLOB) {
-    // Vercel Blob — persistent across deployments
-    const { put } = await import("@vercel/blob");
-    const result = await put(`financial-pdfs/${safeFilename}`, buffer, {
-      access: "private",
-      contentType: "application/pdf",
-    });
-    blobUrl = result.url;
+    // Supabase Storage — persistent across deployments
+    const { supabaseAdmin, STORAGE_BUCKET } = await import("@/lib/supabase");
+    if (!supabaseAdmin) throw new Error("Supabase client not initialised");
+    const { data, error } = await supabaseAdmin.storage
+      .from(STORAGE_BUCKET)
+      .upload(safeFilename, buffer, { contentType: "application/pdf", upsert: false });
+    if (error) throw new Error(`Supabase Storage upload failed: ${error.message}`);
+    const { data: publicUrl } = supabaseAdmin.storage
+      .from(STORAGE_BUCKET)
+      .getPublicUrl(data.path);
+    blobUrl = publicUrl.publicUrl;
   } else {
     // Local filesystem (development or single-instance deploy)
     try {
