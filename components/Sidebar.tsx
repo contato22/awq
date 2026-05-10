@@ -104,6 +104,11 @@ function isEpmRoute(pathname: string) {
     return EPM_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
 }
 
+const MA_PREFIXES = ["/awq/ma", "/awq/portfolio"];
+function isMaRoute(pathname: string) {
+    return MA_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
+}
+
 const PPM_PREFIXES = ["/awq/ppm"];
 function isPpmRoute(pathname: string) {
     return PPM_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
@@ -459,6 +464,46 @@ const AWQ_MODULES: AwqModule[] = [
             { label: "Riscos",      href: "/awq/grc/risks",     icon: AlertTriangle},
             { label: "Auditorias",  href: "/awq/grc/audits",    icon: ClipboardList},
             { label: "Controles",   href: "/awq/grc/controls",  icon: ShieldCheck  },
+        ],
+    },
+    {
+        id: "ma",
+        label: "M&A",
+        description: "Deal pipeline M4E, portfólio, cap table, IC, consolidação",
+        icon: TrendingUp,
+        items: [],
+        sections: [
+            {
+                id: "deal-pipeline",
+                label: "Deal Pipeline",
+                icon: Activity,
+                items: [
+                    { label: "Deal Pipeline",   href: "/awq/ma/deals",            icon: Activity     },
+                    { label: "Novo Deal",       href: "/awq/ma/deals/new",        icon: FileText     },
+                    { label: "IC Meetings",     href: "/awq/ma/ic",               icon: Users        },
+                ],
+            },
+            {
+                id: "portfolio",
+                label: "Portfolio Companies",
+                icon: Briefcase,
+                items: [
+                    { label: "Portfolio",       href: "/awq/portfolio",            icon: Briefcase    },
+                    { label: "Atualizar KPIs",  href: "/awq/portfolio/kpis",       icon: BarChart3    },
+                    { label: "Board Meetings",  href: "/awq/portfolio/board",      icon: Calendar     },
+                    { label: "Mídia M4E",       href: "/awq/portfolio/media",      icon: Film         },
+                ],
+            },
+            {
+                id: "analytics",
+                label: "Analytics & Estrutura",
+                icon: DollarSign,
+                items: [
+                    { label: "Cap Table",       href: "/awq/ma/cap-table",         icon: Users        },
+                    { label: "Sinergias",        href: "/awq/ma/synergies",         icon: Layers       },
+                    { label: "Consolidação IC",  href: "/awq/ma/consolidation",     icon: Building2    },
+                ],
+            },
         ],
     },
     {
