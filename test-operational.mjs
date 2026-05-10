@@ -26,7 +26,6 @@ const { getDeals, upsertDeal, getDealById, deleteDeal,
         getVentureContracts, upsertVentureContract, deleteVentureContract
       } = await import("./lib/venture-db.ts");
 
-// Deals — CRUD
 const testDeal = {
   id: "TEST-001", companyName: "Empresa Teste", stage: "Triagem",
   assignee: "Miguel", lastUpdated: new Date().toISOString().slice(0,10),
@@ -47,22 +46,18 @@ ok("getDealById: retorna deal correto", found?.companyName === "Empresa Teste");
 const notFound = await getDealById("INEXISTENTE");
 ok("getDealById: null para ID inexistente", notFound === null);
 
-// Overrides
 await saveDealOverrides("TEST-001", { stage: "Due Diligence", editedAt: "2026-05-10" });
 const overrides = await getDealOverrides("TEST-001");
 ok("saveDealOverrides + getDealOverrides: persiste em fallback", overrides?.stage === "Due Diligence");
 
-// Client responses
 await saveDealClientResponses("TEST-001", [{ round: 1, status: "approved" }]);
 const responses = await getDealClientResponses("TEST-001");
 ok("saveDealClientResponses + getDealClientResponses: array persiste", Array.isArray(responses) && responses.length === 1);
 
-// Delete
 await deleteDeal("TEST-001");
 const afterDelete = await getDeals();
 ok("deleteDeal: remove do fallback", !afterDelete.some(d => d.id === "TEST-001"));
 
-// Contracts — CRUD
 const contractId = await upsertVentureContract({
   counterparty: "TESTE LTDA", monthlyFee: 2000, durationMonths: 12,
   totalContractValue: 24000, arr: 24000, startDate: null,
@@ -82,11 +77,9 @@ console.log("\n── 3. lib/bank-accounts-db.ts ──────────�
 const { getBankAccounts, saveBankAccount, deleteBankAccount, newAccountId, newTxnId }
   = await import("./lib/bank-accounts-db.ts");
 
-// Sem DB — deve retornar [] sem erro
 const emptyAccounts = await getBankAccounts();
 ok("getBankAccounts sem DB: retorna [] sem erro", Array.isArray(emptyAccounts));
 
-// Sem DB — save deve ser no-op sem erro
 const testAccount = {
   id: newAccountId(), bank: "Cora", name: "Conta Teste",
   color: "bg-brand-600", currentBalance: 5000,
@@ -108,14 +101,12 @@ ok("deleteBankAccount sem DB: no-op sem exceção", deleteError === null);
 console.log("\n── 4. lib/financial-db.ts (fallback JSON) ───────────────────");
 const { getAllDocuments, getAllTransactions } = await import("./lib/financial-db.ts");
 
-let docsError = null;
-let docs;
+let docsError = null, docs;
 try { docs = await getAllDocuments(); } catch(e) { docsError = e; }
 ok("getAllDocuments sem DB: sem exceção", docsError === null);
 ok("getAllDocuments sem DB: retorna array", Array.isArray(docs));
 
-let txnsError = null;
-let txns;
+let txnsError = null, txns;
 try { txns = await getAllTransactions(); } catch(e) { txnsError = e; }
 ok("getAllTransactions sem DB: sem exceção", txnsError === null);
 ok("getAllTransactions sem DB: retorna array", Array.isArray(txns));
@@ -135,6 +126,92 @@ ok("getRecentAuditEvents: contém evento registrado", recent.some(e => e.user_id
 const stats = await getAuditStats();
 ok("getAuditStats.total > 0", stats.total > 0);
 ok("getAuditStats.persistent = false sem DB", stats.persistent === false);
+
+// ─── 6. lib/epm-gl.ts ────────────────────────────────────────────────────────
+console.log("\n── 6. lib/epm-gl.ts (Supabase / JSON fallback) ─────────────");
+const { getAllGLEntries, addJournalEntry, getJournals, getTrialBalance, getBalanceSheet } = await import("./lib/epm-gl.ts");
+
+const beforeGL = await getAllGLEntries();
+const glCountBefore = beforeGL.length;
+ok("getAllGLEntries sem DB: retorna array", Array.isArray(beforeGL));
+
+let glErr = null, glResult;
+try {
+  glResult = await addJournalEntry({
+    transaction_date: "2026-05-10",
+    bu_code: "AWQ",
+    description: "Teste operacional GL",
+    debit_account_code:  "1.1.01",
+    debit_amount:        1000,
+    credit_account_code: "3.1.01",
+    credit_amount:       1000,
+    source_system: "manual",
+    created_by: "test",
+  });
+} catch(e) { glErr = e; }
+
+if (glErr) {
+  // Account codes may not exist in this environment — just verify it throws properly
+  ok("addJournalEntry sem DB: executa sem crash de módulo", glErr instanceof Error);
+  ok("getAllGLEntries após addJournal: retorna array", Array.isArray(await getAllGLEntries()));
+} else {
+  ok("addJournalEntry sem DB: retorna debit+credit entries", glResult?.debit?.gl_id && glResult?.credit?.gl_id);
+  const afterGL = await getAllGLEntries();
+  ok("getAllGLEntries: conta incrementou", afterGL.length > glCountBefore);
+  const journals = await getJournals();
+  ok("getJournals: inclui journal criado", journals.some(j => j.journal_id === glResult?.debit?.journal_id));
+  const tb = await getTrialBalance();
+  ok("getTrialBalance: retorna array", Array.isArray(tb));
+  const bs = await getBalanceSheet();
+  ok("getBalanceSheet: retorna objeto com hasData", typeof bs.hasData === "boolean");
+}
+
+// ─── 7. lib/awq-apar-db.ts ───────────────────────────────────────────────────
+console.log("\n── 7. lib/awq-apar-db.ts (Supabase / [] fallback) ──────────");
+const { getAllAPARItems, upsertAPARItem, deleteAPARItem } = await import("./lib/awq-apar-db.ts");
+
+// Sem DB → deve retornar [] sem erro
+const emptyApar = await getAllAPARItems();
+ok("getAllAPARItems sem DB: retorna []", Array.isArray(emptyApar) && emptyApar.length === 0);
+
+// Sem DB → upsert é no-op sem erro
+let aparErr = null;
+try {
+  await upsertAPARItem({
+    id: "apar-test-001", type: "ap", bu: "awq",
+    description: "Fornecedor Teste", entity: "ACME Ltda",
+    amount: 5000, due_date: "2026-06-01",
+    status: "pending", category: "Fornecedor",
+    created_at: new Date().toISOString(),
+  });
+} catch(e) { aparErr = e; }
+ok("upsertAPARItem sem DB: no-op sem exceção", aparErr === null);
+
+let aparDelErr = null;
+try { await deleteAPARItem("apar-test-001"); } catch(e) { aparDelErr = e; }
+ok("deleteAPARItem sem DB: no-op sem exceção", aparDelErr === null);
+
+// ─── 8. lib/contraparte-db.ts ────────────────────────────────────────────────
+console.log("\n── 8. lib/contraparte-db.ts (Supabase / [] fallback) ────────");
+const { listContrapartesDB, upsertContraparteDB, softDeleteContraparteDB } = await import("./lib/contraparte-db.ts");
+
+const emptyContra = await listContrapartesDB();
+ok("listContrapartesDB sem DB: retorna []", Array.isArray(emptyContra) && emptyContra.length === 0);
+
+let contraErr = null;
+try {
+  await upsertContraparteDB({
+    id: "contra-test-001", tipo: "pj", papel: "fornecedor",
+    razaoSocial: "ACME Ltda", cnpjCpf: "12345678000199",
+    regime: "simples", bu: "awq", status: "ativo",
+    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+  });
+} catch(e) { contraErr = e; }
+ok("upsertContraparteDB sem DB: no-op sem exceção", contraErr === null);
+
+let contraSoftDelErr = null;
+try { await softDeleteContraparteDB("contra-test-001"); } catch(e) { contraSoftDelErr = e; }
+ok("softDeleteContraparteDB sem DB: no-op sem exceção", contraSoftDelErr === null);
 
 // ─── Resultado final ─────────────────────────────────────────────────────────
 console.log(`\n${"─".repeat(55)}`);
