@@ -13,16 +13,26 @@
 //   In Next.js App Router, call initDB() in the first server action that needs DB.
 //   CREATE TABLE IF NOT EXISTS is idempotent — safe to call on every cold start.
 
-import postgres, { type Sql } from "postgres";
+import postgres from "postgres";
 
-// Exported null-safe SQL client. null = no DATABASE_URL = use filesystem.
-export const sql: Sql | null = process.env.DATABASE_URL
+// Thin wrapper: returns Promise<any[]> so callers can use `as SomeType[]`
+// and typed map callbacks without double-cast — same pattern that worked
+// with @neondatabase/serverless. Type safety is enforced at each call site.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SqlTag = (strings: TemplateStringsArray, ...values: unknown[]) => Promise<any[]>;
+
+const _pg = process.env.DATABASE_URL
   ? postgres(process.env.DATABASE_URL, {
       ssl: "require",
       max: 5,
       idle_timeout: 20,
       connect_timeout: 10,
     })
+  : null;
+
+// Exported null-safe SQL client. null = no DATABASE_URL = use filesystem.
+export const sql: SqlTag | null = _pg
+  ? (strings, ...values) => (_pg as unknown as SqlTag)(strings, ...values)
   : null;
 
 export const USE_DB = !!process.env.DATABASE_URL;
