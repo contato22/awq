@@ -90,6 +90,10 @@ export interface FixedAsset {
   location: string;
   acquisition_value: number;
   acquisition_date: string;
+  useful_life_months: number;
+  residual_value: number;
+  accumulated_depreciation: number;
+  is_active: boolean;
   status: AssetStatus;
   bu: string;
   created_at: string;
@@ -191,18 +195,35 @@ export async function initERPDB(): Promise<void> {
     `;
     await sql`
       CREATE TABLE IF NOT EXISTS erp_fixed_assets (
-        id                TEXT PRIMARY KEY,
-        code              TEXT UNIQUE,
-        description       TEXT,
-        category          TEXT,
-        location          TEXT,
-        acquisition_value NUMERIC,
-        acquisition_date  TEXT,
-        status            TEXT,
-        bu                TEXT NOT NULL DEFAULT 'awq',
-        created_at        TEXT
+        id                       TEXT PRIMARY KEY,
+        code                     TEXT UNIQUE,
+        description              TEXT,
+        category                 TEXT,
+        location                 TEXT,
+        acquisition_value        NUMERIC,
+        acquisition_date         TEXT,
+        useful_life_months       INTEGER DEFAULT 60,
+        residual_value           NUMERIC DEFAULT 0,
+        accumulated_depreciation NUMERIC DEFAULT 0,
+        is_active                BOOLEAN DEFAULT true,
+        status                   TEXT,
+        bu                       TEXT NOT NULL DEFAULT 'awq',
+        created_at               TEXT
       )
     `;
+    // Add depreciation columns to existing tables (idempotent)
+    for (const col of [
+      "useful_life_months INTEGER DEFAULT 60",
+      "residual_value NUMERIC DEFAULT 0",
+      "accumulated_depreciation NUMERIC DEFAULT 0",
+      "is_active BOOLEAN DEFAULT true",
+    ]) {
+      try {
+        await (sql as unknown as { unsafe(q: string): Promise<unknown> }).unsafe(
+          `ALTER TABLE erp_fixed_assets ADD COLUMN IF NOT EXISTS ${col}`
+        );
+      } catch { /* column already exists */ }
+    }
     await sql`
       CREATE TABLE IF NOT EXISTS erp_expense_reports (
         id          TEXT PRIMARY KEY,
@@ -303,16 +324,20 @@ function rowToERPContract(r: Record<string, unknown>): ERPContract {
 
 function rowToFixedAsset(r: Record<string, unknown>): FixedAsset {
   return {
-    id:                r.id as string,
-    code:              r.code as string,
-    description:       r.description as string,
-    category:          r.category as string,
-    location:          r.location as string,
-    acquisition_value: Number(r.acquisition_value),
-    acquisition_date:  r.acquisition_date as string,
-    status:            r.status as AssetStatus,
-    bu:                r.bu as string,
-    created_at:        r.created_at as string,
+    id:                       r.id as string,
+    code:                     r.code as string,
+    description:              r.description as string,
+    category:                 r.category as string,
+    location:                 r.location as string,
+    acquisition_value:        Number(r.acquisition_value),
+    acquisition_date:         r.acquisition_date as string,
+    useful_life_months:       Number(r.useful_life_months ?? 60),
+    residual_value:           Number(r.residual_value ?? 0),
+    accumulated_depreciation: Number(r.accumulated_depreciation ?? 0),
+    is_active:                r.is_active !== false,
+    status:                   r.status as AssetStatus,
+    bu:                       r.bu as string,
+    created_at:               r.created_at as string,
   };
 }
 
@@ -556,19 +581,26 @@ export async function upsertFixedAsset(a: FixedAsset): Promise<void> {
   if (!sql) return;
   await sql`
     INSERT INTO erp_fixed_assets
-      (id, code, description, category, location, acquisition_value, acquisition_date, status, bu, created_at)
+      (id, code, description, category, location, acquisition_value, acquisition_date,
+       useful_life_months, residual_value, accumulated_depreciation, is_active, status, bu, created_at)
     VALUES
       (${a.id}, ${a.code}, ${a.description}, ${a.category}, ${a.location},
-       ${a.acquisition_value}, ${a.acquisition_date}, ${a.status}, ${a.bu}, ${a.created_at})
+       ${a.acquisition_value}, ${a.acquisition_date},
+       ${a.useful_life_months}, ${a.residual_value}, ${a.accumulated_depreciation}, ${a.is_active},
+       ${a.status}, ${a.bu}, ${a.created_at})
     ON CONFLICT (id) DO UPDATE SET
-      code              = EXCLUDED.code,
-      description       = EXCLUDED.description,
-      category          = EXCLUDED.category,
-      location          = EXCLUDED.location,
-      acquisition_value = EXCLUDED.acquisition_value,
-      acquisition_date  = EXCLUDED.acquisition_date,
-      status            = EXCLUDED.status,
-      bu                = EXCLUDED.bu
+      code                     = EXCLUDED.code,
+      description              = EXCLUDED.description,
+      category                 = EXCLUDED.category,
+      location                 = EXCLUDED.location,
+      acquisition_value        = EXCLUDED.acquisition_value,
+      acquisition_date         = EXCLUDED.acquisition_date,
+      useful_life_months       = EXCLUDED.useful_life_months,
+      residual_value           = EXCLUDED.residual_value,
+      accumulated_depreciation = EXCLUDED.accumulated_depreciation,
+      is_active                = EXCLUDED.is_active,
+      status                   = EXCLUDED.status,
+      bu                       = EXCLUDED.bu
   `;
 }
 
