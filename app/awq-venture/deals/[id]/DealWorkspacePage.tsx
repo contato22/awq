@@ -977,7 +977,13 @@ export default function DealWorkspacePage({
   const [showStatusModal,   setShowStatusModal]   = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  useEffect(() => { setOverride(loadOverride(deal.id)); }, [deal.id]);
+  useEffect(() => {
+    setOverride(loadOverride(deal.id)); // immediate from localStorage
+    fetch(`/api/venture/deals?id=${deal.id}&section=overrides`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data && Object.keys(data).length > 0) setOverride(data as DealOverride); })
+      .catch(() => { /* keep localStorage value */ });
+  }, [deal.id]);
 
   function applyOverride(patch: Partial<DealOverride>) {
     setOverride((prev) => {

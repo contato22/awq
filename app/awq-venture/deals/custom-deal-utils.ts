@@ -96,6 +96,50 @@ export function loadCustomDeals(): CustomDeal[] {
   try { return JSON.parse(localStorage.getItem(LS_KEY) ?? "[]"); } catch { return []; }
 }
 
+// Async version — reads from Supabase, falls back to localStorage.
+// Use this in page useEffect to get the authoritative server-side state.
+export async function loadCustomDealsFromDB(): Promise<CustomDeal[]> {
+  try {
+    const res = await fetch("/api/venture/deals");
+    if (!res.ok) throw new Error("API error");
+    const deals = await res.json() as Array<Record<string, unknown>>;
+    const custom = deals
+      .filter((d) => d.is_custom)
+      .map((d) => ({
+        id:           d.id as string,
+        companyName:  d.company_name as string,
+        cnpj:         ((d.identification as Record<string, unknown>)?.cnpj as string) ?? "",
+        sector:       ((d.identification as Record<string, unknown>)?.sector as string) ?? "",
+        location:     ((d.identification as Record<string, unknown>)?.location as string) ?? "",
+        dealType:     (d.operation_type as string) ?? "",
+        stage:        (d.stage as string) ?? "",
+        ticket:       Number(d.proposed_value ?? 0),
+        assignee:     (d.assignee as string) ?? "",
+        riskLevel:    (d.risk_level as string) ?? "",
+        priority:     (d.priority as string) ?? "",
+        sendStatus:   (d.send_status as string) ?? "",
+        tese:         ((d.strategic_thesis as Record<string, unknown>)?.strategicRationale as string) ?? "",
+        structura:    ((d.proposal_structure as Record<string, unknown>)?.economicProposal as string) ?? "",
+        fee:          ((d.financials as Record<string, unknown>)?.financialNotes as string) ?? "",
+        earnin:       "",
+        conditions:   "",
+        nextSteps:    "",
+        notes:        ((d.asset_diagnosis as Record<string, unknown>)?.summary as string) ?? "",
+        contactName:  ((d.identification as Record<string, unknown>)?.mainContact as string) ?? "",
+        contactEmail: ((d.identification as Record<string, unknown>)?.mainContactEmail as string) ?? "",
+        contactPhone: ((d.identification as Record<string, unknown>)?.mainContactPhone as string) ?? "",
+        website:      ((d.identification as Record<string, unknown>)?.website as string) ?? "",
+        createdAt:    (d.created_at as string) ?? "",
+        updatedAt:    (d.updated_at as string) ?? "",
+      }));
+    if (custom.length > 0) {
+      localStorage.setItem(LS_KEY, JSON.stringify(custom));
+      return custom;
+    }
+  } catch { /* fall through */ }
+  return loadCustomDeals();
+}
+
 export function saveCustomDeals(deals: CustomDeal[]) {
   if (typeof window === "undefined") return;
   localStorage.setItem(LS_KEY, JSON.stringify(deals));

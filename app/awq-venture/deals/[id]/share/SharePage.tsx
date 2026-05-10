@@ -723,10 +723,17 @@ export default function DealSharePage({ params }: { params: { id: string } }) {
 
   useEffect(() => {
     const saved = loadRounds(deal.id);
-    if (saved.length > 0) {
-      setRounds(saved);
-      setCurrentRound(saved.length + 1);
-    }
+    if (saved.length > 0) { setRounds(saved); setCurrentRound(saved.length + 1); }
+    // Fetch from DB — source of truth
+    fetch(`/api/venture/deals?id=${deal.id}&section=responses`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setRounds(data as NegotiationRound[]);
+          setCurrentRound((data as NegotiationRound[]).length + 1);
+        }
+      })
+      .catch(() => {});
   }, [deal.id]);
 
   function updateSection(idx: number, r: SectionResponse) {

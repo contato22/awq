@@ -100,6 +100,15 @@ export default function NegotiationPage({ params }: { params: { id: string } }) 
   useEffect(() => {
     setOverride(loadOverride(deal.id));
     setClientRounds(loadClientRounds(deal.id));
+    // Fetch from DB — overrides source of truth
+    fetch(`/api/venture/deals?id=${deal.id}&section=overrides`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data && Object.keys(data).length > 0) setOverride(data as DealOverride); })
+      .catch(() => {});
+    fetch(`/api/venture/deals?id=${deal.id}&section=responses`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (Array.isArray(data) && data.length > 0) setClientRounds(data as NegotiationRound[]); })
+      .catch(() => {});
   }, [deal.id]);
 
   function addNote() {
