@@ -121,6 +121,51 @@ export async function POST(): Promise<NextResponse> {
     } catch (err) {
       results.push({ step: "schema:awq_contrapartes", status: "error", detail: String(err) });
     }
+
+    // ERP bootstrap
+    try {
+      const { initERPDB } = await import("@/lib/erp-db");
+      await initERPDB();
+      results.push({ step: "schema:erp_tables", status: "ok" });
+    } catch (err) {
+      results.push({ step: "schema:erp_tables", status: "error", detail: String(err) });
+    }
+
+    // HCM bootstrap
+    try {
+      const { initHCMDB } = await import("@/lib/hcm-db");
+      await initHCMDB();
+      results.push({ step: "schema:hcm_tables", status: "ok" });
+    } catch (err) {
+      results.push({ step: "schema:hcm_tables", status: "error", detail: String(err) });
+    }
+
+    // GRC bootstrap
+    try {
+      const { initGRCDB } = await import("@/lib/grc-db");
+      await initGRCDB();
+      results.push({ step: "schema:grc_tables", status: "ok" });
+    } catch (err) {
+      results.push({ step: "schema:grc_tables", status: "error", detail: String(err) });
+    }
+
+    // DMS bootstrap
+    try {
+      const { initDMSDB } = await import("@/lib/dms-db");
+      await initDMSDB();
+      results.push({ step: "schema:dms_tables", status: "ok" });
+    } catch (err) {
+      results.push({ step: "schema:dms_tables", status: "error", detail: String(err) });
+    }
+
+    // CPM bootstrap
+    try {
+      const { initCPMDB } = await import("@/lib/cpm-db");
+      await initCPMDB();
+      results.push({ step: "schema:cpm_tables", status: "ok" });
+    } catch (err) {
+      results.push({ step: "schema:cpm_tables", status: "error", detail: String(err) });
+    }
   }
 
   // ── 2. Supabase Storage bucket ───────────────────────────────────────────────

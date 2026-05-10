@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, Plus, Search, Layers } from "lucide-react";
+import type { FixedAsset } from "@/lib/erp-db";
 
 const STATUS_BADGE: Record<string, string> = {
   Ativo:          "bg-emerald-100 text-emerald-700",
@@ -10,8 +11,34 @@ const STATUS_BADGE: Record<string, string> = {
   Baixado:        "bg-gray-100 text-gray-500",
 };
 
+function fmtBRL(n: number) {
+  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
 export default function AssetsPage() {
   const [search, setSearch] = useState("");
+  const [items, setItems] = useState<FixedAsset[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/awq/erp/assets")
+      .then(r => r.json())
+      .then(j => { if (j.success) setItems(j.data); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const totalCount = items.length;
+  const ativosCount = items.filter(x => x.status === "Ativo").length;
+  const manutencaoCount = items.filter(x => x.status === "Em Manutenção").length;
+  const valorTotal = items
+    .filter(x => x.status === "Ativo")
+    .reduce((sum, x) => sum + x.acquisition_value, 0);
+
+  const q = search.toLowerCase();
+  const filtered = items.filter(x =>
+    x.code.toLowerCase().includes(q) || x.description.toLowerCase().includes(q)
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -36,17 +63,22 @@ export default function AssetsPage() {
 
         {/* KPI cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: "Total Assets",     color: "text-gray-900"    },
-            { label: "Assets Ativos",    color: "text-emerald-600" },
-            { label: "Em Manutenção",    color: "text-amber-600"   },
-            { label: "Valor Total",      color: "text-brand-600"   },
-          ].map(({ label, color }) => (
-            <div key={label} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">{label}</div>
-              <div className={`text-2xl font-bold ${color}`}>—</div>
-            </div>
-          ))}
+          <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Total Assets</div>
+            <div className="text-2xl font-bold text-gray-900">{loading ? "—" : totalCount}</div>
+          </div>
+          <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Assets Ativos</div>
+            <div className="text-2xl font-bold text-emerald-600">{loading ? "—" : ativosCount}</div>
+          </div>
+          <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Em Manutenção</div>
+            <div className="text-2xl font-bold text-amber-600">{loading ? "—" : manutencaoCount}</div>
+          </div>
+          <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Valor Total</div>
+            <div className="text-2xl font-bold text-brand-600">{loading ? "—" : fmtBRL(valorTotal)}</div>
+          </div>
         </div>
 
         {/* Search */}
@@ -72,17 +104,41 @@ export default function AssetsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                <tr>
-                  <td colSpan={7} className="px-4 py-16">
-                    <div className="flex flex-col items-center gap-3 text-center">
-                      <Layers size={32} className="text-gray-200" />
-                      <p className="text-sm font-medium text-gray-500">Nenhum registro encontrado</p>
-                      <button className="flex items-center gap-1.5 text-sm bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors">
-                        <Plus size={14} /> Novo Asset
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+                {loading ? (
+                  <tr>
+                    <td colSpan={7}>
+                      <div className="text-sm text-gray-400 text-center py-16">Carregando…</div>
+                    </td>
+                  </tr>
+                ) : filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-16">
+                      <div className="flex flex-col items-center gap-3 text-center">
+                        <Layers size={32} className="text-gray-200" />
+                        <p className="text-sm font-medium text-gray-500">Nenhum registro encontrado</p>
+                        <button className="flex items-center gap-1.5 text-sm bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors">
+                          <Plus size={14} /> Novo Asset
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  filtered.map(item => (
+                    <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">{item.code}</td>
+                      <td className="px-4 py-3 text-sm text-gray-700">{item.description}</td>
+                      <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">{item.category}</td>
+                      <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">{item.location}</td>
+                      <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">{fmtBRL(item.acquisition_value)}</td>
+                      <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">{item.acquisition_date}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${STATUS_BADGE[item.status] ?? "bg-gray-100 text-gray-600"}`}>
+                          {item.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

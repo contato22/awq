@@ -168,6 +168,101 @@ ok("listLeads sem DB: retorna []",        Array.isArray(await czListLeads()));
 ok("listOpportunities sem DB: retorna []", Array.isArray(await czListOpps()));
 ok("listProposals sem DB: retorna []",    Array.isArray(await czListProps()));
 
+// ─── 17. lib/erp-db.ts ───────────────────────────────────────────────────────
+console.log("\n── 17. lib/erp-db.ts ────────────────────────────────────────");
+const {
+  getPurchaseOrders, upsertPurchaseOrder, deletePurchaseOrder,
+  getSalesOrders, upsertSalesOrder,
+  getInventoryItems, upsertInventoryItem,
+  getERPContracts, upsertERPContract, deleteERPContract,
+  getFixedAssets, upsertFixedAsset,
+  getExpenseReports, upsertExpenseReport,
+} = await import("./lib/erp-db.ts");
+
+ok("getPurchaseOrders sem DB: retorna []",  Array.isArray(await getPurchaseOrders()));
+await noThrow("upsertPurchaseOrder sem DB: no-op", () => upsertPurchaseOrder({ id: "po1", numero: "PC-001", supplier: "F", date: "2026-05-10", total_value: 1000, status: "Rascunho", bu: "awq", created_at: new Date().toISOString() }));
+await noThrow("deletePurchaseOrder sem DB: no-op", () => deletePurchaseOrder("po1"));
+ok("getSalesOrders sem DB: retorna []",     Array.isArray(await getSalesOrders()));
+await noThrow("upsertSalesOrder sem DB: no-op", () => upsertSalesOrder({ id: "so1", numero: "PV-001", customer: "C", date: "2026-05-10", value: 500, status: "Novo", bu: "awq", created_at: new Date().toISOString() }));
+ok("getInventoryItems sem DB: retorna []",  Array.isArray(await getInventoryItems()));
+await noThrow("upsertInventoryItem sem DB: no-op", () => upsertInventoryItem({ id: "ii1", code: "SKU-001", description: "Item Teste", category: "Geral", unit: "un", qty_stock: 10, location: "A1", bu: "awq", created_at: new Date().toISOString() }));
+ok("getERPContracts sem DB: retorna []",    Array.isArray(await getERPContracts()));
+await noThrow("upsertERPContract sem DB: no-op", () => upsertERPContract({ id: "ct1", numero: "CT-001", counterparty: "CP", object: "Serviços", total_value: 12000, start_date: "2026-01-01", end_date: "2026-12-31", status: "Ativo", bu: "awq", created_at: new Date().toISOString() }));
+ok("getFixedAssets sem DB: retorna []",     Array.isArray(await getFixedAssets()));
+await noThrow("upsertFixedAsset sem DB: no-op", () => upsertFixedAsset({ id: "fa1", code: "AT-001", description: "Notebook", category: "TI", location: "Escritório", acquisition_value: 5000, acquisition_date: "2025-01-01", status: "Ativo", bu: "awq", created_at: new Date().toISOString() }));
+ok("getExpenseReports sem DB: retorna []",  Array.isArray(await getExpenseReports()));
+await noThrow("upsertExpenseReport sem DB: no-op", () => upsertExpenseReport({ id: "er1", date: "2026-05-10", employee: "João", category: "Viagem", description: "Passagem SP", value: 350, status: "Submetido", bu: "awq", created_at: new Date().toISOString() }));
+
+// ─── 18. lib/hcm-db.ts ───────────────────────────────────────────────────────
+console.log("\n── 18. lib/hcm-db.ts ────────────────────────────────────────");
+const {
+  getEmployees, upsertEmployee,
+  getPayrollRuns, upsertPayrollRun,
+  getVacationRequests, upsertVacationRequest,
+  getJobOpenings, upsertJobOpening,
+  getTrainingCourses, upsertTrainingCourse,
+} = await import("./lib/hcm-db.ts");
+
+ok("getEmployees sem DB: retorna []",        Array.isArray(await getEmployees()));
+await noThrow("upsertEmployee sem DB: no-op", () => upsertEmployee({ id: "e1", name: "Ana", role: "Dev", department: "TI", bu: "awq", salary: 8000, hire_date: "2024-01-01", status: "Ativo", email: "ana@awq.com", created_at: new Date().toISOString() }));
+ok("getPayrollRuns sem DB: retorna []",       Array.isArray(await getPayrollRuns()));
+await noThrow("upsertPayrollRun sem DB: no-op", () => upsertPayrollRun({ id: "pr1", period: "2026-05", bu: "awq", total_gross: 50000, total_net: 40000, employee_count: 10, status: "Rascunho", payment_date: null, created_at: new Date().toISOString() }));
+ok("getVacationRequests sem DB: retorna []",  Array.isArray(await getVacationRequests()));
+await noThrow("upsertVacationRequest sem DB: no-op", () => upsertVacationRequest({ id: "vr1", employee_id: "e1", employee_name: "Ana", start_date: "2026-07-01", end_date: "2026-07-15", days: 15, status: "Solicitado", bu: "awq", created_at: new Date().toISOString() }));
+ok("getJobOpenings sem DB: retorna []",       Array.isArray(await getJobOpenings()));
+await noThrow("upsertJobOpening sem DB: no-op", () => upsertJobOpening({ id: "jo1", title: "Dev Senior", department: "TI", bu: "awq", status: "Aberta", open_date: "2026-05-01", close_date: null, applications: 0, created_at: new Date().toISOString() }));
+ok("getTrainingCourses sem DB: retorna []",   Array.isArray(await getTrainingCourses()));
+await noThrow("upsertTrainingCourse sem DB: no-op", () => upsertTrainingCourse({ id: "tc1", title: "Segurança da Informação", category: "Compliance", instructor: "Prof. Carlos", start_date: "2026-06-01", end_date: "2026-06-02", participants: 20, status: "Planejado", bu: "awq", created_at: new Date().toISOString() }));
+
+// ─── 19. lib/grc-db.ts ───────────────────────────────────────────────────────
+console.log("\n── 19. lib/grc-db.ts ────────────────────────────────────────");
+const {
+  getGRCPolicies, upsertGRCPolicy,
+  getGRCRisks, upsertGRCRisk,
+  getGRCControls, upsertGRCControl,
+  getGRCAudits, upsertGRCAudit,
+} = await import("./lib/grc-db.ts");
+
+ok("getGRCPolicies sem DB: retorna []",   Array.isArray(await getGRCPolicies()));
+await noThrow("upsertGRCPolicy sem DB: no-op", () => upsertGRCPolicy({ id: "gp1", title: "Política de Segurança", category: "Segurança", owner: "TI", version: "v1.0", status: "Aprovada", effective_date: "2026-01-01", review_date: "2027-01-01", bu: "awq", created_at: new Date().toISOString() }));
+ok("getGRCRisks sem DB: retorna []",      Array.isArray(await getGRCRisks()));
+await noThrow("upsertGRCRisk sem DB: no-op", () => upsertGRCRisk({ id: "gr1", title: "Risco Financeiro", category: "Financeiro", description: "Inadimplência", probability: 3, impact: 4, risk_score: 12, level: "Alto", owner: "CFO", status: "Identificado", mitigation: "Seguro", bu: "awq", created_at: new Date().toISOString() }));
+ok("getGRCControls sem DB: retorna []",   Array.isArray(await getGRCControls()));
+await noThrow("upsertGRCControl sem DB: no-op", () => upsertGRCControl({ id: "gc1", title: "Revisão Acesso", type: "Preventivo", category: "TI", risk_id: null, owner: "TI", frequency: "Mensal", status: "Efetivo", last_test_date: "2026-04-01", next_test_date: "2026-05-01", bu: "awq", created_at: new Date().toISOString() }));
+ok("getGRCAudits sem DB: retorna []",     Array.isArray(await getGRCAudits()));
+await noThrow("upsertGRCAudit sem DB: no-op", () => upsertGRCAudit({ id: "ga1", title: "Auditoria Interna Q1", scope: "Financeiro", auditor: "Auditoria", start_date: "2026-04-01", end_date: "2026-04-30", status: "Concluída", findings: 3, critical_findings: 1, bu: "awq", created_at: new Date().toISOString() }));
+
+// ─── 20. lib/dms-db.ts ───────────────────────────────────────────────────────
+console.log("\n── 20. lib/dms-db.ts ────────────────────────────────────────");
+const {
+  getDMSDocuments, upsertDMSDocument, deleteDMSDocument,
+  getDocumentVersions, addDocumentVersion,
+} = await import("./lib/dms-db.ts");
+
+ok("getDMSDocuments sem DB: retorna []",    Array.isArray(await getDMSDocuments()));
+await noThrow("upsertDMSDocument sem DB: no-op", () => upsertDMSDocument({ id: "doc1", title: "Contrato Modelo", category: "Contrato", owner: "Jurídico", status: "Aprovado", version: "v1.0", size_kb: 512, mime_type: "application/pdf", tags: ["contrato", "modelo"], bu: "awq", folder: "Contratos/2026", created_at: new Date().toISOString(), updated_at: new Date().toISOString() }));
+await noThrow("deleteDMSDocument sem DB: no-op", () => deleteDMSDocument("doc1"));
+ok("getDocumentVersions sem DB: retorna []", Array.isArray(await getDocumentVersions("doc1")));
+await noThrow("addDocumentVersion sem DB: no-op", () => addDocumentVersion({ id: "dv1", document_id: "doc1", version: "v1.1", changed_by: "Ana", change_note: "Revisão cláusula 3", size_kb: 520, created_at: new Date().toISOString() }));
+
+// ─── 21. lib/cpm-db.ts ───────────────────────────────────────────────────────
+console.log("\n── 21. lib/cpm-db.ts ────────────────────────────────────────");
+const {
+  getOKRs, upsertOKR,
+  getScorecards, upsertScorecard,
+  getStrategicObjectives, upsertStrategicObjective,
+  getPerformanceReviews, upsertPerformanceReview,
+} = await import("./lib/cpm-db.ts");
+
+ok("getOKRs sem DB: retorna []",                   Array.isArray(await getOKRs()));
+await noThrow("upsertOKR sem DB: no-op", () => upsertOKR({ id: "okr1", cycle: "Q2 2026", type: "company", owner: "CEO", objective: "Crescer ARR 30%", key_results: [], progress: 0, status: "Não Iniciado", bu: "awq", created_at: new Date().toISOString() }));
+ok("getScorecards sem DB: retorna []",             Array.isArray(await getScorecards()));
+await noThrow("upsertScorecard sem DB: no-op", () => upsertScorecard({ id: "sc1", name: "BSC Q2 2026", period: "Q2 2026", bu: "awq", overall_score: 0, kpis: [], created_at: new Date().toISOString() }));
+ok("getStrategicObjectives sem DB: retorna []",    Array.isArray(await getStrategicObjectives()));
+await noThrow("upsertStrategicObjective sem DB: no-op", () => upsertStrategicObjective({ id: "so1", title: "Expansão Mercado", description: "Novos clientes", perspective: "Cliente", owner: "CCO", target_date: "2026-12-31", status: "Em Execução", progress: 30, bu: "awq", created_at: new Date().toISOString() }));
+ok("getPerformanceReviews sem DB: retorna []",     Array.isArray(await getPerformanceReviews()));
+await noThrow("upsertPerformanceReview sem DB: no-op", () => upsertPerformanceReview({ id: "rev1", title: "Revisão Q1 2026", type: "quarterly", period: "Q1 2026", facilitator: "CEO", date: "2026-04-15", status: "Realizada", participants: 8, key_decisions: "Acelerar produto", bu: "awq", created_at: new Date().toISOString() }));
+
 // ─── Resultado final ─────────────────────────────────────────────────────────
 console.log(`\n${"─".repeat(55)}`);
 console.log(`  RESULTADO: ${passed} passou  |  ${failed} falhou`);

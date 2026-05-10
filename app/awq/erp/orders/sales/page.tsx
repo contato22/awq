@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, Plus, Search, ShoppingBag } from "lucide-react";
+import type { SalesOrder } from "@/lib/erp-db";
 
 const STATUS_BADGE: Record<string, string> = {
   Novo:             "bg-blue-100 text-blue-700",
@@ -12,8 +13,27 @@ const STATUS_BADGE: Record<string, string> = {
   Cancelado:        "bg-red-100 text-red-700",
 };
 
+function fmtBRL(n: number) {
+  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
 export default function SalesOrdersPage() {
   const [search, setSearch] = useState("");
+  const [items, setItems] = useState<SalesOrder[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/awq/erp/sales")
+      .then(r => r.json())
+      .then(j => { if (j.success) setItems(j.data); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const q = search.toLowerCase();
+  const filtered = items.filter(x =>
+    x.numero.toLowerCase().includes(q) || x.customer.toLowerCase().includes(q)
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -56,17 +76,39 @@ export default function SalesOrdersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                <tr>
-                  <td colSpan={5} className="px-4 py-16">
-                    <div className="flex flex-col items-center gap-3 text-center">
-                      <ShoppingBag size={32} className="text-gray-200" />
-                      <p className="text-sm font-medium text-gray-500">Nenhum registro encontrado</p>
-                      <button className="flex items-center gap-1.5 text-sm bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors">
-                        <Plus size={14} /> Novo Pedido de Venda
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+                {loading ? (
+                  <tr>
+                    <td colSpan={5}>
+                      <div className="text-sm text-gray-400 text-center py-16">Carregando…</div>
+                    </td>
+                  </tr>
+                ) : filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-16">
+                      <div className="flex flex-col items-center gap-3 text-center">
+                        <ShoppingBag size={32} className="text-gray-200" />
+                        <p className="text-sm font-medium text-gray-500">Nenhum registro encontrado</p>
+                        <button className="flex items-center gap-1.5 text-sm bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors">
+                          <Plus size={14} /> Novo Pedido de Venda
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  filtered.map(item => (
+                    <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">{item.numero}</td>
+                      <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">{item.customer}</td>
+                      <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">{item.date}</td>
+                      <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">{fmtBRL(item.value)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${STATUS_BADGE[item.status] ?? "bg-gray-100 text-gray-600"}`}>
+                          {item.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

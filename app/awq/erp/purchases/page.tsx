@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { ArrowLeft, Plus, Search, ShoppingCart } from "lucide-react";
+import { ArrowLeft, Plus, Search, ShoppingCart, Trash2 } from "lucide-react";
+import type { PurchaseOrder } from "@/lib/erp-db";
 
 type PurchaseStatus = "Rascunho" | "Aprovado" | "Recebido" | "Cancelado";
 
@@ -13,8 +14,35 @@ const STATUS_BADGE: Record<PurchaseStatus, string> = {
   Cancelado: "bg-red-100 text-red-700",
 };
 
+function fmtBRL(n: number) {
+  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
 export default function PurchasesPage() {
   const [search, setSearch] = useState("");
+  const [items, setItems] = useState<PurchaseOrder[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/awq/erp/purchases")
+      .then(r => r.json())
+      .then(j => { if (j.success) setItems(j.data); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleDelete = useCallback((id: string) => {
+    fetch("/api/awq/erp/purchases", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "delete", id }),
+    }).then(() => setItems(prev => prev.filter(x => x.id !== id))).catch(() => {});
+  }, []);
+
+  const q = search.toLowerCase();
+  const filtered = items.filter(x =>
+    x.numero.toLowerCase().includes(q) || x.supplier.toLowerCase().includes(q)
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -60,17 +88,48 @@ export default function PurchasesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                <tr>
-                  <td colSpan={6} className="px-4 py-16">
-                    <div className="flex flex-col items-center gap-3 text-center">
-                      <ShoppingCart size={32} className="text-gray-200" />
-                      <p className="text-sm font-medium text-gray-500">Nenhum registro encontrado</p>
-                      <button className="flex items-center gap-1.5 text-sm bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors">
-                        <Plus size={14} /> Novo Pedido
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+                {loading ? (
+                  <tr>
+                    <td colSpan={6}>
+                      <div className="text-sm text-gray-400 text-center py-16">Carregando…</div>
+                    </td>
+                  </tr>
+                ) : filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-16">
+                      <div className="flex flex-col items-center gap-3 text-center">
+                        <ShoppingCart size={32} className="text-gray-200" />
+                        <p className="text-sm font-medium text-gray-500">Nenhum registro encontrado</p>
+                        <button className="flex items-center gap-1.5 text-sm bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors">
+                          <Plus size={14} /> Novo Pedido
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  filtered.map(item => (
+                    <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">{item.numero}</td>
+                      <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">{item.supplier}</td>
+                      <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">{item.date}</td>
+                      <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">{fmtBRL(item.total_value)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${STATUS_BADGE[item.status as PurchaseStatus] ?? "bg-gray-100 text-gray-600"}`}>
+                          {item.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <button
+                          onClick={() => handleDelete(item.id)}
+                          className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                          title="Excluir"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

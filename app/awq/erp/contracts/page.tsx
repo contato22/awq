@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, Plus, Search, FileSignature } from "lucide-react";
+import type { ERPContract } from "@/lib/erp-db";
 
 const STATUS_BADGE: Record<string, string> = {
   Rascunho:      "bg-gray-100 text-gray-600",
@@ -12,8 +13,40 @@ const STATUS_BADGE: Record<string, string> = {
   Cancelado:     "bg-red-100 text-red-700",
 };
 
+function fmtBRL(n: number) {
+  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
 export default function ContractsPage() {
   const [search, setSearch] = useState("");
+  const [items, setItems] = useState<ERPContract[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/awq/erp/contracts")
+      .then(r => r.json())
+      .then(j => { if (j.success) setItems(j.data); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const today = new Date("2026-05-10");
+  const in30 = new Date(today);
+  in30.setDate(in30.getDate() + 30);
+
+  const totalCount = items.length;
+  const ativos = items.filter(x => x.status === "Ativo");
+  const ativosCount = ativos.length;
+  const vencendo30 = items.filter(x => {
+    const end = new Date(x.end_date);
+    return end >= today && end <= in30;
+  }).length;
+  const valorVigente = ativos.reduce((sum, x) => sum + x.total_value, 0);
+
+  const q = search.toLowerCase();
+  const filtered = items.filter(x =>
+    x.numero.toLowerCase().includes(q) || x.counterparty.toLowerCase().includes(q)
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -38,17 +71,22 @@ export default function ContractsPage() {
 
         {/* KPI cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: "Total Contratos",        color: "text-gray-900"    },
-            { label: "Ativos",                 color: "text-emerald-600" },
-            { label: "Vencendo em 30 dias",    color: "text-amber-600"   },
-            { label: "Valor Total Vigente",    color: "text-brand-600"   },
-          ].map(({ label, color }) => (
-            <div key={label} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">{label}</div>
-              <div className={`text-2xl font-bold ${color}`}>—</div>
-            </div>
-          ))}
+          <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Total Contratos</div>
+            <div className="text-2xl font-bold text-gray-900">{loading ? "—" : totalCount}</div>
+          </div>
+          <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Ativos</div>
+            <div className="text-2xl font-bold text-emerald-600">{loading ? "—" : ativosCount}</div>
+          </div>
+          <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Vencendo em 30 dias</div>
+            <div className="text-2xl font-bold text-amber-600">{loading ? "—" : vencendo30}</div>
+          </div>
+          <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Valor Total Vigente</div>
+            <div className="text-2xl font-bold text-brand-600">{loading ? "—" : fmtBRL(valorVigente)}</div>
+          </div>
         </div>
 
         {/* Search */}
@@ -74,17 +112,41 @@ export default function ContractsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                <tr>
-                  <td colSpan={7} className="px-4 py-16">
-                    <div className="flex flex-col items-center gap-3 text-center">
-                      <FileSignature size={32} className="text-gray-200" />
-                      <p className="text-sm font-medium text-gray-500">Nenhum registro encontrado</p>
-                      <button className="flex items-center gap-1.5 text-sm bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors">
-                        <Plus size={14} /> Novo Contrato
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+                {loading ? (
+                  <tr>
+                    <td colSpan={7}>
+                      <div className="text-sm text-gray-400 text-center py-16">Carregando…</div>
+                    </td>
+                  </tr>
+                ) : filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-16">
+                      <div className="flex flex-col items-center gap-3 text-center">
+                        <FileSignature size={32} className="text-gray-200" />
+                        <p className="text-sm font-medium text-gray-500">Nenhum registro encontrado</p>
+                        <button className="flex items-center gap-1.5 text-sm bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors">
+                          <Plus size={14} /> Novo Contrato
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  filtered.map(item => (
+                    <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">{item.numero}</td>
+                      <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">{item.counterparty}</td>
+                      <td className="px-4 py-3 text-sm text-gray-700">{item.object}</td>
+                      <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">{fmtBRL(item.total_value)}</td>
+                      <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">{item.start_date}</td>
+                      <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">{item.end_date}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${STATUS_BADGE[item.status] ?? "bg-gray-100 text-gray-600"}`}>
+                          {item.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

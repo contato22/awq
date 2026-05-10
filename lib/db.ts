@@ -106,5 +106,10 @@ export async function initDB(): Promise<void> {
     import("@/lib/epm-gl").then(({ initGlDB }) => initGlDB()),
     import("@/lib/awq-apar-db").then(({ initAWQAPARDB }) => initAWQAPARDB()),
     import("@/lib/contraparte-db").then(({ initContraparteDB }) => initContraparteDB()),
+    import("@/lib/erp-db").then(({ initERPDB }) => initERPDB()),
+    import("@/lib/hcm-db").then(({ initHCMDB }) => initHCMDB()),
+    import("@/lib/grc-db").then(({ initGRCDB }) => initGRCDB()),
+    import("@/lib/dms-db").then(({ initDMSDB }) => initDMSDB()),
+    import("@/lib/cpm-db").then(({ initCPMDB }) => initCPMDB()),
   ]);
 }
