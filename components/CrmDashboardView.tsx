@@ -12,6 +12,7 @@ import {
   MessageSquare, Zap, Filter,
 } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/utils";
+import { SEED_LEADS } from "@/lib/crm-db";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -169,105 +170,98 @@ export default function CrmDashboardView({ buFilter: externalBu }: Props) {
   useEffect(() => {
     let cancelled = false;
 
+    function deriveAndApply(
+      rawOpps: CrmOpportunity[],
+      acts: CrmActivity[],
+      leadsNew: number,
+      staticMode: boolean,
+    ) {
+      if (cancelled) return;
+      const opps = buFilter ? rawOpps.filter(o => o.bu === buFilter) : rawOpps;
+      const filteredActs = acts.filter(
+        a => !buFilter || a.related_to_type !== "opportunity" || opps.some(o => o.opportunity_id === a.related_to_id)
+      );
+      const open   = opps.filter(o => o.stage !== "closed_won" && o.stage !== "closed_lost");
+      const won    = opps.filter(o => o.stage === "closed_won");
+      const closed = won.length + opps.filter(o => o.stage === "closed_lost").length;
+      setOpps(opps);
+      setActivities(filteredActs);
+      setAnalytics({
+        leadsNew,
+        openOpportunities:  open.length,
+        pipelineValue:      open.reduce((s, o) => s + o.deal_value, 0),
+        weightedForecast:   Math.round(open.reduce((s, o) => s + o.deal_value * o.probability / 100, 0)),
+        closedWonThisMonth: won.reduce((s, o) => s + o.deal_value, 0),
+        winRate:            closed > 0 ? Math.round(won.length / closed * 100) : 0,
+        tasksToday:         0,
+      });
+      setIsStatic(staticMode);
+    }
+
     async function load() {
       setLoading(true);
       setIsStatic(false);
-      const buParam = buFilter ? `?bu=${buFilter}` : "";
       try {
+        // 1. localStorage — fonte primária no deploy estático (GitHub Pages)
+        const stored = localStorage.getItem("crm-opportunities-v3");
+        if (stored) {
+          const rawOpps: CrmOpportunity[] = JSON.parse(stored);
+          type MinLead = { lead_id: string; status: string; bu: string };
+          const localLeads: MinLead[] = JSON.parse(localStorage.getItem("awq_local_leads") ?? "[]");
+          const deleted = new Set<string>(JSON.parse(localStorage.getItem("awq_deleted_leads") ?? "[]"));
+          const allLeads = [
+            ...localLeads,
+            ...SEED_LEADS.filter(l => !localLeads.some(ll => ll.lead_id === l.lead_id)),
+          ].filter(l => !deleted.has(l.lead_id));
+          const leadsNew = allLeads.filter(
+            l => l.status === "new" && (!buFilter || l.bu === buFilter)
+          ).length;
+          deriveAndApply(rawOpps, SEED_ACTIVITIES, leadsNew, false);
+          return;
+        }
+
+        // 2. API (deploy com Node.js runtime)
+        const buParam = buFilter ? `?bu=${buFilter}` : "";
         const [analRes, pipeRes, actRes] = await Promise.all([
           fetch(`/api/crm/analytics${buParam}`),
           fetch(`/api/crm/pipeline${buParam}`),
           fetch(`/api/crm/activities${buParam}`),
         ]);
-
         if (cancelled) return;
-
         const [analJson, pipeJson, actJson] = await Promise.all([
-          analRes.json(),
-          pipeRes.json(),
-          actRes.json(),
+          analRes.json(), pipeRes.json(), actRes.json(),
         ]);
-
         if (cancelled) return;
-
-        if (analJson.success && pipeJson.success && actJson.success) {
-          const allOpps = (Object.values(pipeJson.data.byStage as Record<string, CrmOpportunity[]>).flat())
-            .filter((o: CrmOpportunity) => !buFilter || o.bu === buFilter);
-          const filteredActs = (actJson.data as CrmActivity[]).filter(
-            (a) => !buFilter || a.related_to_type !== "opportunity" || allOpps.some(o => o.opportunity_id === a.related_to_id)
-          );
-
-          let newAnalytics: Record<string, number>;
-          if (buFilter) {
-            const openFiltered = allOpps.filter(o => o.stage !== "closed_won" && o.stage !== "closed_lost");
-            const wonFiltered  = allOpps.filter(o => o.stage === "closed_won");
-            const lostFiltered = allOpps.filter(o => o.stage === "closed_lost");
-            const totalClosed  = wonFiltered.length + lostFiltered.length;
-            newAnalytics = {
-              leadsNew: allOpps.length > 0 ? 1 : 0,
-              openOpportunities: openFiltered.length,
-              pipelineValue: openFiltered.reduce((s, o) => s + o.deal_value, 0),
-              weightedForecast: Math.round(openFiltered.reduce((s, o) => s + o.deal_value * o.probability / 100, 0)),
-              closedWonThisMonth: wonFiltered.reduce((s, o) => s + o.deal_value, 0),
-              winRate: totalClosed > 0 ? Math.round((wonFiltered.length / totalClosed) * 100) : 0,
-              tasksToday: 0,
-            };
-          } else {
-            newAnalytics = {
-              leadsNew: analJson.data.leadsNew ?? 0,
-              openOpportunities: analJson.data.openOpportunities ?? 0,
-              pipelineValue: analJson.data.pipelineValue ?? 0,
-              weightedForecast: analJson.data.weightedForecast ?? 0,
-              closedWonThisMonth: analJson.data.revenueThisMonth ?? 0,
-              winRate: analJson.data.winRate ?? 0,
-              tasksToday: analJson.data.tasksToday ?? 0,
-            };
-          }
-
-          setOpps(allOpps);
-          setActivities(filteredActs);
-          setAnalytics(newAnalytics);
-        } else {
-          throw new Error("API error");
-        }
+        if (!analJson.success || !pipeJson.success || !actJson.success) throw new Error("api");
+        const rawOpps = Object.values(pipeJson.data.byStage as Record<string, CrmOpportunity[]>).flat();
+        const opps    = buFilter ? rawOpps.filter(o => o.bu === buFilter) : rawOpps;
+        const acts    = (actJson.data as CrmActivity[]).filter(
+          a => !buFilter || a.related_to_type !== "opportunity" || opps.some(o => o.opportunity_id === a.related_to_id)
+        );
+        if (cancelled) return;
+        setOpps(opps);
+        setActivities(acts);
+        setAnalytics({
+          leadsNew:           analJson.data.leadsNew ?? 0,
+          openOpportunities:  analJson.data.openOpportunities ?? 0,
+          pipelineValue:      analJson.data.pipelineValue ?? 0,
+          weightedForecast:   analJson.data.weightedForecast ?? 0,
+          closedWonThisMonth: analJson.data.revenueThisMonth ?? 0,
+          winRate:            analJson.data.winRate ?? 0,
+          tasksToday:         analJson.data.tasksToday ?? 0,
+        });
       } catch {
         if (cancelled) return;
-
-        const filteredOpps = buFilter
-          ? SEED_OPPS.filter(o => o.bu === buFilter)
-          : SEED_OPPS;
-
-        const filteredOppIds = new Set(filteredOpps.map(o => o.opportunity_id));
-        const filteredActs = buFilter
-          ? SEED_ACTIVITIES.filter(
-              a => a.related_to_type !== "opportunity" || filteredOppIds.has(a.related_to_id)
-            )
-          : SEED_ACTIVITIES;
-
-        const openSeed = filteredOpps.filter(o => o.stage !== "closed_won" && o.stage !== "closed_lost");
-        const wonSeed  = filteredOpps.filter(o => o.stage === "closed_won");
-        const lostSeed = filteredOpps.filter(o => o.stage === "closed_lost");
-        const total = wonSeed.length + lostSeed.length;
-
-        setOpps(filteredOpps);
-        setActivities(filteredActs);
-        setAnalytics({
-          leadsNew: buFilter ? (filteredOpps.length > 0 ? 1 : 0) : 3,
-          openOpportunities: openSeed.length,
-          pipelineValue: openSeed.reduce((s, o) => s + o.deal_value, 0),
-          weightedForecast: Math.round(openSeed.reduce((s, o) => s + o.deal_value * o.probability / 100, 0)),
-          closedWonThisMonth: wonSeed.reduce((s, o) => s + o.deal_value, 0),
-          winRate: total > 0 ? Math.round((wonSeed.length / total) * 100) : 0,
-          tasksToday: 0,
-        });
-        setIsStatic(true);
+        const seedLeadsNew = SEED_LEADS.filter(
+          l => l.status === "new" && (!buFilter || l.bu === buFilter)
+        ).length;
+        deriveAndApply(SEED_OPPS, SEED_ACTIVITIES, seedLeadsNew, true);
       } finally {
         if (!cancelled) setLoading(false);
       }
     }
 
     load();
-
     return () => { cancelled = true; };
   }, [buFilter]);
 
