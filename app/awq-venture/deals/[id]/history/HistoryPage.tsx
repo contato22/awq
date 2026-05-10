@@ -18,6 +18,11 @@ function loadOverride(id: string): DealOverride {
 function saveOverride(id: string, data: DealOverride) {
   if (typeof window === "undefined") return;
   localStorage.setItem(overrideKey(id), JSON.stringify(data));
+  fetch("/api/venture/deals", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "save_overrides", id, overrides: data }),
+  }).catch(() => { /* localStorage is fallback */ });
 }
 
 function fieldLabel(key: string): string {
@@ -139,7 +144,7 @@ export default function HistoryPage({ params }: { params: { id: string } }) {
                 {fieldCount} campo{fieldCount !== 1 ? "s" : ""} com override local
               </div>
               <div className="text-xs text-gray-500 mt-0.5">
-                Alterações salvas em localStorage. Não sincronizadas com nenhuma base de dados.
+                Alterações persistidas no Supabase (fallback: localStorage).
               </div>
             </div>
             <div className="flex gap-2 shrink-0">

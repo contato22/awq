@@ -22,6 +22,11 @@ function loadOverride(id: string): DealOverride {
 function saveOverride(id: string, data: DealOverride) {
   if (typeof window === "undefined") return;
   localStorage.setItem(overrideKey(id), JSON.stringify(data));
+  fetch("/api/venture/deals", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "save_overrides", id, overrides: data }),
+  }).catch(() => { /* localStorage is fallback */ });
 }
 
 // ─── Client response types (must mirror share/SharePage.tsx) ─────────────────

@@ -2,18 +2,11 @@
 
 // ─── /awq/bank — Contas de Banco ─────────────────────────────────────────────
 //
-// ROLE: Local cash position tracker — accounts, balances, manual transaction history.
-//       Data lives in localStorage (browser-local, not server-persistent).
+// ROLE: Manual cash position tracker — accounts, balances, transaction history.
+//       Data persists to Supabase via /api/bank-accounts (localStorage fallback).
 //
-// SCOPE: This page is NOT the document ingestion pipeline.
-//        For PDF-based bank statement import with full traceability, use /awq/conciliacao.
-//
-// ARCHITECTURE:
-//   • Accounts and transactions: localStorage ("awq_bank_accounts")
-//   • No server API calls for data storage — intentionally local/scratchpad
-//   • No AI parsing — that responsibility moved to /api/ingest/process (server-only)
-//   • Complements /awq/conciliacao: provides quick manual balance tracking; ingest provides
-//     the canonical document-backed financial database
+// SCOPE: Complements /awq/conciliacao (PDF ingestion with full traceability).
+//        This page is for quick manual balance tracking.
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
@@ -135,22 +128,44 @@ export default function BankAccountsPage() {
   const [newName, setNewName]       = useState("");
   const [newBalance, setNewBalance] = useState("");
 
-  // ── Load from localStorage ───────────────────────────────────────────────
+  // ── Load: API first, localStorage fallback ───────────────────────────────
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(LS_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as BankAccount[];
-        setAccounts(parsed);
-        if (parsed.length > 0) setSelectedId(parsed[0].id);
-      }
-    } catch { /* ignore */ }
+    async function load() {
+      try {
+        const res = await fetch("/api/bank-accounts");
+        if (res.ok) {
+          const data = await res.json() as BankAccount[];
+          if (data.length > 0) {
+            setAccounts(data);
+            setSelectedId(data[0].id);
+            localStorage.setItem(LS_KEY, JSON.stringify(data));
+            return;
+          }
+        }
+      } catch { /* fall through to localStorage */ }
+      try {
+        const raw = localStorage.getItem(LS_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw) as BankAccount[];
+          setAccounts(parsed);
+          if (parsed.length > 0) setSelectedId(parsed[0].id);
+        }
+      } catch { /* ignore */ }
+    }
+    load();
   }, []);
 
-  // ── Persist to localStorage ──────────────────────────────────────────────
-  const save = useCallback((updated: BankAccount[]) => {
+  // ── Persist: API + localStorage ───────────────────────────────────────────
+  const save = useCallback((updated: BankAccount[], changedAccount?: BankAccount) => {
     setAccounts(updated);
     try { localStorage.setItem(LS_KEY, JSON.stringify(updated)); } catch { /* ignore */ }
+    if (changedAccount) {
+      fetch("/api/bank-accounts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "save", account: changedAccount }),
+      }).catch(() => { /* ignore — localStorage has it */ });
+    }
   }, []);
 
   const selected = accounts.find((a) => a.id === selectedId) ?? null;
@@ -168,7 +183,7 @@ export default function BankAccountsPage() {
       transactions: [],
     };
     const updated = [...accounts, acct];
-    save(updated);
+    save(updated, acct);
     setSelectedId(acct.id);
     setNewBank("Cora");
     setNewName("");
@@ -179,7 +194,13 @@ export default function BankAccountsPage() {
   // ── Delete account ───────────────────────────────────────────────────────
   function handleDelete(id: string) {
     const updated = accounts.filter((a) => a.id !== id);
-    save(updated);
+    setAccounts(updated);
+    try { localStorage.setItem(LS_KEY, JSON.stringify(updated)); } catch { /* ignore */ }
+    fetch("/api/bank-accounts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "delete", id }),
+    }).catch(() => { /* ignore */ });
     setSelectedId(updated[0]?.id ?? null);
   }
 
@@ -203,7 +224,7 @@ export default function BankAccountsPage() {
     <>
       <Header
         title="Contas de Banco"
-        subtitle="Saldos manuais · Visão de caixa local · Dados em localStorage"
+        subtitle="Saldos manuais · Visão de caixa · Persistido no Supabase"
       />
       <div className="px-8 py-6 space-y-5">
 

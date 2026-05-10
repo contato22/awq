@@ -61,6 +61,11 @@ function loadRounds(dealId: string): NegotiationRound[] {
 function saveRounds(dealId: string, rounds: NegotiationRound[]) {
   if (typeof window === "undefined") return;
   localStorage.setItem(STORAGE_KEY(dealId), JSON.stringify(rounds));
+  fetch("/api/venture/deals", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "save_responses", id: dealId, responses: rounds }),
+  }).catch(() => { /* localStorage is fallback */ });
 }
 
 // ─── Block metadata ───────────────────────────────────────────────────────────

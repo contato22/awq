@@ -426,6 +426,12 @@ function loadOverride(id: string): DealOverride {
 function saveOverride(id: string, data: DealOverride) {
   if (typeof window === "undefined") return;
   localStorage.setItem(overrideKey(id), JSON.stringify(data));
+  // Persist to Supabase in background
+  fetch("/api/venture/deals", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "save_overrides", id, overrides: data }),
+  }).catch(() => { /* localStorage is fallback */ });
 }
 
 const ALL_STAGES: DealStage[] = [
