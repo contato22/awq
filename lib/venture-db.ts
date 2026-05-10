@@ -73,7 +73,9 @@ export async function initVentureDB(): Promise<void> {
 // ─── In-memory fallback ───────────────────────────────────────────────────────
 
 let _deals: DealWorkspace[] = [];
-let _contracts: VentureContract[] = [];
+const _contractsMap = new Map<string, VentureContract>(); // id → contract
+const _overrides: Record<string, Record<string, unknown>> = {};
+const _responses: Record<string, unknown[]> = {};
 
 function rowToDeal(r: Record<string, unknown>): DealWorkspace {
   return {
@@ -203,14 +205,16 @@ export async function getDealOverrides(id: string): Promise<Record<string, unkno
     const rows = await sql`SELECT overrides FROM venture_deals WHERE id = ${id}`;
     return (rows[0]?.overrides as Record<string, unknown>) ?? {};
   }
-  return {};
+  return _overrides[id] ?? {};
 }
 
 export async function saveDealOverrides(id: string, overrides: Record<string, unknown>): Promise<void> {
   await initVentureDB();
   if (sql) {
     await sql`UPDATE venture_deals SET overrides = ${JSON.stringify(overrides)}, updated_at = NOW() WHERE id = ${id}`;
+    return;
   }
+  _overrides[id] = overrides;
 }
 
 export async function getDealClientResponses(id: string): Promise<unknown[]> {
@@ -219,14 +223,16 @@ export async function getDealClientResponses(id: string): Promise<unknown[]> {
     const rows = await sql`SELECT client_responses FROM venture_deals WHERE id = ${id}`;
     return (rows[0]?.client_responses as unknown[]) ?? [];
   }
-  return [];
+  return _responses[id] ?? [];
 }
 
 export async function saveDealClientResponses(id: string, responses: unknown[]): Promise<void> {
   await initVentureDB();
   if (sql) {
     await sql`UPDATE venture_deals SET client_responses = ${JSON.stringify(responses)}, updated_at = NOW() WHERE id = ${id}`;
+    return;
   }
+  _responses[id] = responses;
 }
 
 // ─── Venture Contracts ────────────────────────────────────────────────────────
@@ -237,7 +243,7 @@ export async function getVentureContracts(): Promise<VentureContract[]> {
     const rows = await sql`SELECT * FROM venture_contracts ORDER BY created_at`;
     return rows.map(rowToContract);
   }
-  return [..._contracts];
+  return [..._contractsMap.values()];
 }
 
 export async function upsertVentureContract(
@@ -266,7 +272,7 @@ export async function upsertVentureContract(
     `;
     return id;
   }
-  _contracts.push(contract);
+  _contractsMap.set(id, { ...contract });
   return id;
 }
 
@@ -274,5 +280,7 @@ export async function deleteVentureContract(id: string): Promise<void> {
   await initVentureDB();
   if (sql) {
     await sql`DELETE FROM venture_contracts WHERE id = ${id}`;
+    return;
   }
+  _contractsMap.delete(id);
 }
