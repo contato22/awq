@@ -212,10 +212,10 @@ function EditLeadPageInner() {
 
       if (!saved) {
         const existing = findLead(leadId);
-        const updated: CrmLead = {
+        const updated = {
           ...(existing ?? ({} as CrmLead)),
           ...payload,
-        };
+        } as CrmLead;
         const edits = JSON.parse(localStorage.getItem("awq_lead_edits") ?? "{}") as Record<string, CrmLead>;
         edits[leadId] = updated;
         localStorage.setItem("awq_lead_edits", JSON.stringify(edits));
