@@ -95,8 +95,13 @@ export async function initDB(): Promise<void> {
   await sql`CREATE INDEX IF NOT EXISTS idx_bt_document_id ON bank_transactions(document_id)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_bt_entity ON bank_transactions(entity)`;
 
-  // ─── Caza Vision tables ──────────────────────────────────────────────────────
-  const { initCazaDB } = await import("@/lib/caza-db");
-  await initCazaDB();
-
+  // ─── All module tables — bootstrapped in parallel ────────────────────────────
+  await Promise.allSettled([
+    import("@/lib/caza-db").then(({ initCazaDB }) => initCazaDB()),
+    import("@/lib/bpm-db").then(({ initBpmDB }) => initBpmDB()),
+    import("@/lib/ppm-db").then(({ initPpmDB }) => initPpmDB()),
+    import("@/lib/ap-ar-db").then(({ initAllAPARTables }) => initAllAPARTables()),
+    import("@/lib/venture-db").then(({ initVentureDB }) => initVentureDB()),
+    import("@/lib/advisor-db").then(({ initAdvisorDB }) => initAdvisorDB()),
+  ]);
 }

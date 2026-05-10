@@ -135,6 +135,15 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // Supabase Storage — persistent across deployments
     const { supabaseAdmin, STORAGE_BUCKET } = await import("@/lib/supabase");
     if (!supabaseAdmin) throw new Error("Supabase client not initialised");
+    // Auto-create bucket if it doesn't exist (idempotent)
+    const { data: buckets } = await supabaseAdmin.storage.listBuckets();
+    if (!buckets?.some((b) => b.name === STORAGE_BUCKET)) {
+      await supabaseAdmin.storage.createBucket(STORAGE_BUCKET, {
+        public: false,
+        fileSizeLimit: 20 * 1024 * 1024,
+        allowedMimeTypes: ["application/pdf"],
+      });
+    }
     const { data, error } = await supabaseAdmin.storage
       .from(STORAGE_BUCKET)
       .upload(safeFilename, buffer, { contentType: "application/pdf", upsert: false });
