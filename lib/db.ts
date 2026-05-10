@@ -1,23 +1,34 @@
-// ─── AWQ Database Client — Neon Serverless Postgres ───────────────────────────
+// ─── AWQ Database Client — Supabase Postgres ─────────────────────────────────
 //
-// Provides a SQL client when DATABASE_URL is set (Vercel + Neon production).
-// Falls back to null when absent; financial-db.ts detects null and uses
-// JSON-file storage (local dev, GitHub Pages static build).
+// Provides a SQL client when DATABASE_URL is set (Vercel + Supabase production).
+// Falls back to null when absent; db modules detect null and use seed/localStorage.
+//
+// SUPABASE SETUP:
+//   Dashboard → Settings → Database → Connection string → Transaction pooler
+//   Format: postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres
+//   Set as DATABASE_URL in Vercel environment variables.
 //
 // USAGE:
-//   import { sql, initDB } from "@/lib/db";
-//   if (sql) { await sql`SELECT 1`; }  // Neon
-//   else { /* filesystem fallback */ }
-//
-// SCHEMA: call initDB() once at startup (or rely on Vercel's build step).
-//   In Next.js App Router, call initDB() in the first server action that needs DB.
-//   CREATE TABLE IF NOT EXISTS is idempotent — safe to call on every cold start.
+//   import { sql } from "@/lib/db";
+//   if (sql) { await sql`SELECT 1`; }
+//   else { /* seed/localStorage fallback */ }
 
-import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
+import postgres from "postgres";
 
-// Exported null-safe SQL client. null = no DATABASE_URL = use filesystem.
-export const sql: NeonQueryFunction<false, false> | null =
-  process.env.DATABASE_URL ? neon(process.env.DATABASE_URL) : null;
+// Tagged-template function signature compatible with all existing `as SomeType[]` casts.
+type SqlFn = (strings: TemplateStringsArray, ...values: unknown[]) => Promise<postgres.Row[]>;
+
+const _pg = process.env.DATABASE_URL
+  ? postgres(process.env.DATABASE_URL, {
+      ssl: "require",
+      max: 10,
+      idle_timeout: 20,
+      connect_timeout: 10,
+    })
+  : null;
+
+// Exported null-safe SQL client. null = no DATABASE_URL = seed/localStorage mode.
+export const sql: SqlFn | null = _pg ? (_pg as unknown as SqlFn) : null;
 
 export const USE_DB = !!process.env.DATABASE_URL;
 export const USE_BLOB = !!process.env.BLOB_READ_WRITE_TOKEN;
@@ -82,5 +93,4 @@ export async function initDB(): Promise<void> {
   // ─── Caza Vision tables ──────────────────────────────────────────────────────
   const { initCazaDB } = await import("@/lib/caza-db");
   await initCazaDB();
-
 }
