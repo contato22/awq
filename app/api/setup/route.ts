@@ -103,6 +103,24 @@ export async function POST(): Promise<NextResponse> {
     } catch (err) {
       results.push({ step: "schema:epm_gl_entries", status: "error", detail: String(err) });
     }
+
+    // AP/AR manual items bootstrap
+    try {
+      const { initAWQAPARDB } = await import("@/lib/awq-apar-db");
+      await initAWQAPARDB();
+      results.push({ step: "schema:awq_ap_ar_items", status: "ok" });
+    } catch (err) {
+      results.push({ step: "schema:awq_ap_ar_items", status: "error", detail: String(err) });
+    }
+
+    // Contrapartes bootstrap
+    try {
+      const { initContraparteDB } = await import("@/lib/contraparte-db");
+      await initContraparteDB();
+      results.push({ step: "schema:awq_contrapartes", status: "ok" });
+    } catch (err) {
+      results.push({ step: "schema:awq_contrapartes", status: "error", detail: String(err) });
+    }
   }
 
   // ── 2. Supabase Storage bucket ───────────────────────────────────────────────

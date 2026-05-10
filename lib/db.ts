@@ -104,5 +104,7 @@ export async function initDB(): Promise<void> {
     import("@/lib/venture-db").then(({ initVentureDB }) => initVentureDB()),
     import("@/lib/advisor-db").then(({ initAdvisorDB }) => initAdvisorDB()),
     import("@/lib/epm-gl").then(({ initGlDB }) => initGlDB()),
+    import("@/lib/awq-apar-db").then(({ initAWQAPARDB }) => initAWQAPARDB()),
+    import("@/lib/contraparte-db").then(({ initContraparteDB }) => initContraparteDB()),
   ]);
 }

@@ -227,32 +227,58 @@ export default function APARPage() {
   const [addedFlash, setAddedFlash]     = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
-  // ── Load from localStorage ───────────────────────────────────────────────
+  // ── Load: localStorage first (instant), then API (authoritative) ────────
   useEffect(() => {
     const snaps = loadBankSnapshots();
     setBankTxSnaps(snaps);
+
+    function refresh(parsed: APARItem[], txSnaps: BankTxSnap[]) {
+      const validBUs = new Set(BUS.map((b) => b.id));
+      return parsed.map((item) => {
+        const base = {
+          ...item,
+          bu: (validBUs.has(item.bu) ? item.bu : "awq") as BU,
+          status: computeStatus(item.dueDate, item.status),
+        };
+        if (!base.financialLinkStatus || base.financialLinkSource === "heuristic") {
+          const link = computeHeuristicLink(base, txSnaps);
+          return { ...base, financialLinkStatus: link.status, financialLinkNote: link.note, financialLinkSource: "heuristic" as const };
+        }
+        return base;
+      });
+    }
+
+    // Immediate from localStorage
     try {
       const raw = localStorage.getItem(LS_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as APARItem[];
-        const validBUs = new Set(BUS.map((b) => b.id));
-        const refreshed = parsed.map((item) => {
-          const base = {
-            ...item,
-            bu: (validBUs.has(item.bu) ? item.bu : "awq") as BU,
-            status: computeStatus(item.dueDate, item.status),
-          };
-          // Auto-compute heuristic link if not yet AI-verified
-          if (!base.financialLinkStatus || base.financialLinkSource === "heuristic") {
-            const link = computeHeuristicLink(base, snaps);
-            return { ...base, financialLinkStatus: link.status, financialLinkNote: link.note, financialLinkSource: "heuristic" as const };
-          }
-          return base;
-        });
+      if (raw) setItems(refresh(JSON.parse(raw) as APARItem[], snaps));
+    } catch { /* ignore */ }
+
+    // Authoritative from Supabase
+    fetch("/api/awq/ap-ar")
+      .then((r) => r.ok ? r.json() : null)
+      .then((json) => {
+        if (!json?.data || !Array.isArray(json.data) || json.data.length === 0) return;
+        const fromDB: APARItem[] = (json.data as Array<Record<string, unknown>>).map((r) => ({
+          id:          r.id as string,
+          type:        r.type as ItemType,
+          bu:          r.bu as BU,
+          description: r.description as string,
+          entity:      r.entity as string,
+          amount:      Number(r.amount),
+          dueDate:     r.due_date as string,
+          status:      r.status as ItemStatus,
+          category:    r.category as string,
+          createdAt:   r.created_at as string,
+          financialLinkStatus: (r.financial_link_status as FinancialLinkStatus) ?? undefined,
+          financialLinkNote:   (r.financial_link_note as string) ?? undefined,
+          financialLinkSource: (r.financial_link_source as "ai" | "heuristic") ?? undefined,
+        }));
+        const refreshed = refresh(fromDB, snaps);
         setItems(refreshed);
         try { localStorage.setItem(LS_KEY, JSON.stringify(refreshed)); } catch { /* ignore */ }
-      }
-    } catch { /* ignore */ }
+      })
+      .catch(() => { /* keep localStorage value */ });
   }, []);
 
   function clearFilters() {
@@ -276,9 +302,29 @@ export default function APARPage() {
     if (bu !== "all") setForm((f) => ({ ...f, bu }));
   }
 
-  const save = useCallback((updated: APARItem[]) => {
+  const save = useCallback((updated: APARItem[], deleted?: string) => {
     setItems(updated);
     try { localStorage.setItem(LS_KEY, JSON.stringify(updated)); } catch { /* ignore */ }
+    // Sync to Supabase (fire-and-forget)
+    if (deleted) {
+      fetch("/api/awq/ap-ar", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "delete", id: deleted }),
+      }).catch(() => { /* localStorage is fallback */ });
+    } else {
+      const upsertItems = updated.map((i) => ({
+        id: i.id, type: i.type, bu: i.bu, description: i.description,
+        entity: i.entity, amount: i.amount, due_date: i.dueDate,
+        status: i.status, category: i.category, created_at: i.createdAt,
+        financial_link_status: i.financialLinkStatus ?? null,
+        financial_link_note:   i.financialLinkNote   ?? null,
+        financial_link_source: i.financialLinkSource ?? null,
+      }));
+      fetch("/api/awq/ap-ar", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "upsert_many", items: upsertItems }),
+      }).catch(() => { /* localStorage is fallback */ });
+    }
   }, []);
 
   // ── Amount helpers ───────────────────────────────────────────────────────
@@ -321,7 +367,7 @@ export default function APARPage() {
     }));
   }
 
-  function handleDelete(id: string) { save(items.filter((i) => i.id !== id)); }
+  function handleDelete(id: string) { save(items.filter((i) => i.id !== id), id); }
 
   function handleOpenEdit(item: APARItem) {
     setEditingItem(item);
