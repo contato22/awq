@@ -60,15 +60,20 @@ function DealCard({ deal }: { deal: any }) {
     (deal.product_score ?? 0) +
     (deal.traction_score ?? 0)
   );
+  const scoreColor = score >= 70 ? "text-emerald-400 bg-emerald-500/10" : score >= 50 ? "text-amber-400 bg-amber-500/10" : "text-red-400 bg-red-500/10";
+  const scorePct = Math.min((score / 100) * 100, 100);
+  const scoreBar = score >= 70 ? "bg-emerald-500" : score >= 50 ? "bg-amber-500" : "bg-red-500";
 
   return (
     <Link href={`/awq/ma/deals/${deal.deal_id}`}>
-      <div className="rounded-lg bg-gray-800 border border-gray-700 p-3 hover:border-gray-500 hover:bg-gray-750 transition-all cursor-pointer space-y-2">
-        {/* Company name + deal type */}
+      <div className="rounded-xl bg-gray-900/80 border border-gray-700/80 p-3 hover:border-gray-500 hover:bg-gray-800/80 transition-all cursor-pointer space-y-2.5">
+        {/* Header: company + type */}
         <div className="flex items-start justify-between gap-1">
           <div className="flex items-center gap-1.5 min-w-0">
-            <Building2 size={11} className="text-gray-500 shrink-0 mt-0.5" />
-            <span className="text-xs font-semibold text-white truncate">
+            <div className="w-5 h-5 rounded bg-gray-700 flex items-center justify-center shrink-0">
+              <Building2 size={10} className="text-gray-400" />
+            </div>
+            <span className="text-xs font-bold text-white truncate leading-tight">
               {deal.company_name}
             </span>
           </div>
@@ -77,21 +82,25 @@ function DealCard({ deal }: { deal: any }) {
           </span>
         </div>
 
-        {/* Deal name (if different) */}
         {deal.deal_name && deal.deal_name !== deal.company_name && (
-          <p className="text-[10px] text-gray-500 truncate">{deal.deal_name}</p>
+          <p className="text-[10px] text-gray-500 truncate -mt-1">{deal.deal_name}</p>
         )}
 
-        {/* Score + amount */}
-        <div className="flex items-center justify-between">
-          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${scoreBadge(score)}`}>
-            {score}/100
-          </span>
-          {deal.proposed_investment_amount ? (
-            <span className="text-[10px] font-semibold text-gray-400">
-              {fmtR(deal.proposed_investment_amount)}
+        {/* Score bar */}
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${scoreColor}`}>
+              Score {score}
             </span>
-          ) : null}
+            {deal.proposed_investment_amount && (
+              <span className="text-[9px] font-semibold text-gray-400">
+                {fmtR(deal.proposed_investment_amount)}
+              </span>
+            )}
+          </div>
+          <div className="h-1 bg-gray-700 rounded-full overflow-hidden">
+            <div className={`h-full ${scoreBar} rounded-full`} style={{ width: `${scorePct}%` }} />
+          </div>
         </div>
       </div>
     </Link>
@@ -160,30 +169,43 @@ export default function DealPipelinePage() {
 
         {/* ── Kanban Board ─────────────────────────────────────────────────── */}
         {!loading && !error && (
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 items-start">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3 items-start">
             {PIPELINE_STAGES.map((stage) => {
               const stageDeals = dealsByStage(stage.key);
+              const totalVal = stageDeals.reduce((s, d) => s + (d.proposed_investment_amount ?? 0), 0);
               return (
                 <div
                   key={stage.key}
-                  className={`rounded-xl bg-gray-800/40 border-t-2 ${stage.color} border-l border-r border-b border-gray-700/60 p-3 space-y-2 min-h-[200px]`}
+                  className="rounded-xl bg-gray-800/30 border border-gray-700/60 overflow-hidden"
                 >
                   {/* Column header */}
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-semibold text-white">{stage.label}</span>
+                  <div className={`border-b-2 ${stage.color} px-3 py-2.5 flex items-center justify-between`}>
+                    <div>
+                      <span className="text-xs font-bold text-white">{stage.label}</span>
+                      {totalVal > 0 && (
+                        <div className="text-[9px] text-gray-500 mt-0.5">{fmtR(totalVal)}</div>
+                      )}
+                    </div>
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${stage.badge}`}>
                       {stageDeals.length}
                     </span>
                   </div>
 
                   {/* Deal cards */}
-                  {stageDeals.length === 0 ? (
-                    <p className="text-[10px] text-gray-600 text-center py-6">Nenhum deal</p>
-                  ) : (
-                    stageDeals.map((d) => (
-                      <DealCard key={d.deal_id} deal={d} />
-                    ))
-                  )}
+                  <div className="p-2 space-y-2 min-h-[160px]">
+                    {stageDeals.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-8 text-gray-700">
+                        <div className="w-6 h-6 rounded border border-dashed border-gray-700 flex items-center justify-center mb-1">
+                          <Plus size={10} />
+                        </div>
+                        <p className="text-[10px]">Nenhum deal</p>
+                      </div>
+                    ) : (
+                      stageDeals.map((d) => (
+                        <DealCard key={d.deal_id} deal={d} />
+                      ))
+                    )}
+                  </div>
                 </div>
               );
             })}

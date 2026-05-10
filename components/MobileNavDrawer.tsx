@@ -238,6 +238,21 @@ const awqGrcNav = [
   { label: "Controles",   href: "/awq/grc/controls",  icon: ShieldCheck },
 ];
 
+// M&A — Deal pipeline, portfólio, cap table, IC, consolidação
+const awqMaNav = [
+  { label: "M&A Hub",        href: "/awq/ma",               icon: TrendingUp    },
+  { label: "Deal Pipeline",  href: "/awq/ma/deals",         icon: Activity      },
+  { label: "Novo Deal",      href: "/awq/ma/deals/new",     icon: FileText      },
+  { label: "IC Meetings",    href: "/awq/ma/ic",            icon: Users         },
+  { label: "Portfolio",      href: "/awq/portfolio",        icon: Briefcase     },
+  { label: "Atualizar KPIs", href: "/awq/portfolio/kpis",   icon: BarChart3     },
+  { label: "Board Meetings", href: "/awq/portfolio/board",  icon: ClipboardList },
+  { label: "Mídia M4E",      href: "/awq/portfolio/media",  icon: Film          },
+  { label: "Cap Table",      href: "/awq/ma/cap-table",     icon: PieChart      },
+  { label: "Sinergias",      href: "/awq/ma/synergies",     icon: ArrowUpRight  },
+  { label: "Consolidação",   href: "/awq/ma/consolidation", icon: Layers        },
+];
+
 // DMS — Documentos, arquivos, versionamento, colaboração
 const awqDmsNav = [
   { label: "Documentos",    href: "/awq/dms",                  icon: FileText  },
@@ -794,6 +809,12 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
               <SectionLabel>GRC · Governança & Compliance</SectionLabel>
               <div className="space-y-0.5">
                 {awqGrcNav.map((item) => (
+                  <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
+                ))}
+              </div>
+              <SectionLabel>M&A · Fusões, Aquisições & Portfólio</SectionLabel>
+              <div className="space-y-0.5">
+                {awqMaNav.map((item) => (
                   <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
                 ))}
               </div>
