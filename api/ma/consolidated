@@ -1,0 +1,1 @@
+{"success":true,"data":{"equity_portfolio":{"total_invested":1000000,"total_current_value":1050000,"unrealized_gain":50000,"avg_multiple":1.05},"intercompany":{"total_transactions":2,"total_eliminated":16000,"pending_elimination":0},"media_obligations":{"total_committed":200000,"total_delivered":24000,"total_remaining":176000,"delivery_pct":12}}}
