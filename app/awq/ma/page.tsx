@@ -5,8 +5,8 @@ import Link from "next/link";
 import {
   TrendingUp, Building2, DollarSign, BarChart3, Network,
   Layers, ChevronRight, GitMerge, Briefcase, FileText,
-  CalendarDays, Zap, ArrowUpRight, Users, Film, Activity,
-  PieChart, Target,
+  CalendarDays, Film, Activity, PieChart, Target,
+  ArrowUpRight, Plus, Users,
 } from "lucide-react";
 import {
   listPortfolioCompanies,
@@ -16,8 +16,8 @@ import {
 } from "@/lib/ma-db";
 
 function fmtR(n: number) {
-  if (Math.abs(n) >= 1_000_000_000) return "R$" + (n / 1_000_000_000).toFixed(2) + "B";
-  if (Math.abs(n) >= 1_000_000)     return "R$" + (n / 1_000_000).toFixed(2) + "M";
+  if (Math.abs(n) >= 1_000_000_000) return "R$" + (n / 1_000_000_000).toFixed(1) + "B";
+  if (Math.abs(n) >= 1_000_000)     return "R$" + (n / 1_000_000).toFixed(1) + "M";
   if (Math.abs(n) >= 1_000)         return "R$" + (n / 1_000).toFixed(0) + "K";
   return "R$" + n.toLocaleString("pt-BR");
 }
@@ -28,40 +28,43 @@ const STAGE_LABELS: Record<string, string> = {
   due_diligence: "Due Diligence",
   structuring:   "Estruturação",
   ic_review:     "Revisão IC",
-  closed_won:    "Fechados (Won)",
-  closed_lost:   "Fechados (Lost)",
-};
-
-const STAGE_COLORS: Record<string, string> = {
-  sourcing:      "bg-gray-500/20 text-gray-300",
-  screening:     "bg-blue-500/20 text-blue-300",
-  due_diligence: "bg-amber-500/20 text-amber-300",
-  structuring:   "bg-orange-500/20 text-orange-300",
-  ic_review:     "bg-purple-500/20 text-purple-300",
 };
 
 const STAGE_BAR: Record<string, string> = {
-  sourcing:      "bg-gray-500",
+  sourcing:      "bg-gray-400",
   screening:     "bg-blue-500",
   due_diligence: "bg-amber-500",
   structuring:   "bg-orange-500",
   ic_review:     "bg-purple-500",
 };
 
-const quickLinks = [
-  { label: "Deal Pipeline",   href: "/awq/ma/deals",            icon: Activity,    color: "text-blue-400",    bg: "bg-blue-500/10",    border: "border-blue-500/20"    },
-  { label: "Portfolio",       href: "/awq/portfolio",            icon: Briefcase,   color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
-  { label: "Cap Table",       href: "/awq/ma/cap-table",         icon: PieChart,    color: "text-amber-400",   bg: "bg-amber-500/10",   border: "border-amber-500/20"   },
-  { label: "Comitê IC",       href: "/awq/ma/ic",                icon: CalendarDays,color: "text-purple-400",  bg: "bg-purple-500/10",  border: "border-purple-500/20"  },
-  { label: "Sinergias",       href: "/awq/ma/synergies",         icon: Network,     color: "text-cyan-400",    bg: "bg-cyan-500/10",    border: "border-cyan-500/20"    },
-  { label: "Consolidação",    href: "/awq/ma/consolidation",     icon: Layers,      color: "text-rose-400",    bg: "bg-rose-500/10",    border: "border-rose-500/20"    },
-  { label: "Novo Deal",       href: "/awq/ma/deals/new",         icon: FileText,    color: "text-violet-400",  bg: "bg-violet-500/10",  border: "border-violet-500/20"  },
-  { label: "KPIs Portco",     href: "/awq/portfolio/kpis",       icon: BarChart3,   color: "text-orange-400",  bg: "bg-orange-500/10",  border: "border-orange-500/20"  },
-  { label: "Mídia M4E",       href: "/awq/portfolio/media",      icon: Film,        color: "text-pink-400",    bg: "bg-pink-500/10",    border: "border-pink-500/20"    },
-  { label: "Board Meetings",  href: "/awq/portfolio/board",      icon: Users,       color: "text-teal-400",    bg: "bg-teal-500/10",    border: "border-teal-500/20"    },
-];
+const STAGE_DOT: Record<string, string> = {
+  sourcing:      "bg-gray-400",
+  screening:     "bg-blue-400",
+  due_diligence: "bg-amber-400",
+  structuring:   "bg-orange-400",
+  ic_review:     "bg-purple-400",
+};
 
 const pipelineStages = ["sourcing", "screening", "due_diligence", "structuring", "ic_review"];
+
+// Primary modules (big cards)
+const primaryLinks = [
+  { label: "Deal Pipeline",  href: "/awq/ma/deals",         icon: Activity,    color: "text-blue-400",    bg: "bg-blue-50",    border: "border-blue-200",    accent: "bg-blue-500"    },
+  { label: "Portfolio",      href: "/awq/portfolio",         icon: Briefcase,   color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-200", accent: "bg-emerald-500" },
+  { label: "Cap Table",      href: "/awq/ma/cap-table",      icon: PieChart,    color: "text-amber-600",   bg: "bg-amber-50",   border: "border-amber-200",   accent: "bg-amber-500"   },
+  { label: "Comitê IC",      href: "/awq/ma/ic",             icon: CalendarDays,color: "text-violet-600",  bg: "bg-violet-50",  border: "border-violet-200",  accent: "bg-violet-500"  },
+  { label: "Sinergias",      href: "/awq/ma/synergies",      icon: Network,     color: "text-cyan-600",    bg: "bg-cyan-50",    border: "border-cyan-200",    accent: "bg-cyan-500"    },
+  { label: "Consolidação",   href: "/awq/ma/consolidation",  icon: Layers,      color: "text-rose-600",    bg: "bg-rose-50",    border: "border-rose-200",    accent: "bg-rose-500"    },
+];
+
+// Secondary utility links
+const secondaryLinks = [
+  { label: "Novo Deal",      href: "/awq/ma/deals/new",      icon: FileText     },
+  { label: "KPIs Portco",    href: "/awq/portfolio/kpis",    icon: BarChart3    },
+  { label: "Mídia M4E",      href: "/awq/portfolio/media",   icon: Film         },
+  { label: "Board Meetings", href: "/awq/portfolio/board",   icon: Users        },
+];
 
 export default async function MaCommandCenterPage() {
   await initMaDB();
@@ -82,200 +85,213 @@ export default async function MaCommandCenterPage() {
     stageCount[s] = (stageCount[s] ?? 0) + 1;
   }
   const maxCount = Math.max(...pipelineStages.map(s => stageCount[s] ?? 0), 1);
+  const totalDeals = pipelineStages.reduce((a, s) => a + (stageCount[s] ?? 0), 0);
 
   const activePortcos = portcos.filter(p => p.status === "active");
-
   const totalInvested  = totals.total_investment ?? 0;
   const currentValue   = totals.total_current_value ?? totalInvested;
   const unrealizedGain = currentValue - totalInvested;
+  const moic = totals.weighted_avg_multiple ?? null;
 
   const kpiCards = [
     {
-      label: "Portfólio Ativo",
-      value: String(totals.active_portcos ?? activePortcos.length),
-      sub:   "empresas investidas",
-      icon:  Building2,
-      color: "text-emerald-400",
-      bg:    "bg-emerald-500/10",
-      border:"border-emerald-500/20",
+      label:  "Portfólio Ativo",
+      value:  String(totals.active_portcos ?? activePortcos.length),
+      sub:    "empresas investidas",
+      icon:   Building2,
+      accent: "border-l-emerald-500",
+      val:    "text-emerald-600",
     },
     {
-      label: "Total Investido",
-      value: totalInvested ? fmtR(totalInvested) : "—",
-      sub:   "capital comprometido",
-      icon:  DollarSign,
-      color: "text-blue-400",
-      bg:    "bg-blue-500/10",
-      border:"border-blue-500/20",
+      label:  "Total Investido",
+      value:  totalInvested ? fmtR(totalInvested) : "—",
+      sub:    "capital comprometido",
+      icon:   DollarSign,
+      accent: "border-l-blue-500",
+      val:    "text-blue-600",
     },
     {
-      label: "Valor Atual",
-      value: currentValue ? fmtR(currentValue) : "—",
-      sub:   unrealizedGain >= 0 ? `+${fmtR(unrealizedGain)} não-realizado` : `${fmtR(unrealizedGain)} não-realizado`,
-      icon:  TrendingUp,
-      color: unrealizedGain >= 0 ? "text-emerald-400" : "text-red-400",
-      bg:    unrealizedGain >= 0 ? "bg-emerald-500/10" : "bg-red-500/10",
-      border:unrealizedGain >= 0 ? "border-emerald-500/20" : "border-red-500/20",
+      label:  "Valor Atual",
+      value:  currentValue ? fmtR(currentValue) : "—",
+      sub:    unrealizedGain >= 0 ? `+${fmtR(unrealizedGain)} ganho` : `${fmtR(unrealizedGain)} perda`,
+      icon:   TrendingUp,
+      accent: unrealizedGain >= 0 ? "border-l-emerald-500" : "border-l-red-500",
+      val:    unrealizedGain >= 0 ? "text-emerald-600" : "text-red-600",
     },
     {
-      label: "Múltiplo Médio",
-      value: totals.weighted_avg_multiple ? totals.weighted_avg_multiple.toFixed(2) + "×" : "—",
-      sub:   "weighted avg. MOIC",
-      icon:  Target,
-      color: "text-amber-400",
-      bg:    "bg-amber-500/10",
-      border:"border-amber-500/20",
+      label:  "MOIC Médio",
+      value:  moic ? moic.toFixed(2) + "×" : "—",
+      sub:    "múltiplo ponderado",
+      icon:   Target,
+      accent: "border-l-amber-500",
+      val:    "text-amber-600",
     },
     {
-      label: "Deals no Pipeline",
-      value: String(activeDeals.length),
-      sub:   `${stageCount["closed_won"] ?? 0} fechados (won)`,
-      icon:  BarChart3,
-      color: "text-purple-400",
-      bg:    "bg-purple-500/10",
-      border:"border-purple-500/20",
+      label:  "Pipeline Ativo",
+      value:  String(activeDeals.length),
+      sub:    `${stageCount["closed_won"] ?? 0} deal(s) fechado(s)`,
+      icon:   BarChart3,
+      accent: "border-l-violet-500",
+      val:    "text-violet-600",
     },
     {
-      label: "Mídia Entregue",
-      value: totals.media_delivery_pct != null ? totals.media_delivery_pct.toFixed(0) + "%" : "—",
-      sub:   "do compromisso M4E",
-      icon:  Film,
-      color: "text-cyan-400",
-      bg:    "bg-cyan-500/10",
-      border:"border-cyan-500/20",
+      label:  "Mídia Entregue",
+      value:  totals.media_delivery_pct != null ? totals.media_delivery_pct.toFixed(0) + "%" : "—",
+      sub:    "do compromisso M4E",
+      icon:   Film,
+      accent: "border-l-cyan-500",
+      val:    "text-cyan-600",
     },
   ];
 
   return (
     <>
       <Header title="M&A Command Center" subtitle="Holding-Level · AWQ Group" />
-      <div className="px-6 lg:px-8 py-6 space-y-6">
+      <div className="px-6 lg:px-8 py-6 space-y-5">
 
-        {/* Hero */}
-        <div className="rounded-xl bg-gradient-to-br from-gray-800 via-gray-800/90 to-gray-900 border border-gray-700/80 p-6 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 via-transparent to-transparent pointer-events-none" />
-          <div className="relative flex items-start justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
-                <GitMerge size={22} className="text-amber-400" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-white tracking-tight">M&A Command Center</h2>
-                <p className="text-sm text-gray-400 mt-0.5">Gestão holding-level · AWQ Group</p>
-              </div>
+        {/* ── Hero ─────────────────────────────────────────────────────────── */}
+        <div className="rounded-xl bg-gradient-to-r from-gray-900 to-gray-800 border border-gray-700 p-5 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-11 h-11 rounded-xl bg-amber-400/10 border border-amber-400/30 flex items-center justify-center shrink-0">
+              <GitMerge size={20} className="text-amber-400" />
             </div>
-            <Link
-              href="/awq/ma/deals/new"
-              className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-gray-900 text-xs font-bold rounded-lg transition-colors"
-            >
-              <FileText size={13} />
-              Novo Deal
-            </Link>
+            <div>
+              <h2 className="text-lg font-bold text-white">M&A Command Center</h2>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {activePortcos.length} portco{activePortcos.length !== 1 ? "s" : ""} ·{" "}
+                {activeDeals.length} deal{activeDeals.length !== 1 ? "s" : ""} no pipeline ·{" "}
+                {stageCount["closed_won"] ?? 0} fechado(s) won
+              </p>
+            </div>
           </div>
-          <p className="relative text-xs text-gray-500 mt-4 max-w-2xl">
-            Visão consolidada do pipeline de deals M4E, portfólio de empresas investidas, estrutura de capital, comitê de investimentos e sinergias do grupo.
-          </p>
+          <Link
+            href="/awq/ma/deals/new"
+            className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 bg-amber-400 hover:bg-amber-300 text-gray-900 text-xs font-bold rounded-lg transition-colors"
+          >
+            <Plus size={13} />
+            Novo Deal
+          </Link>
         </div>
 
-        {/* KPI Cards */}
+        {/* ── KPI Strip ────────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {kpiCards.map(card => {
             const Icon = card.icon;
             return (
-              <div key={card.label} className={`rounded-xl bg-gray-800/50 border ${card.border} p-4 flex flex-col gap-3`}>
-                <div className={`w-8 h-8 rounded-lg ${card.bg} flex items-center justify-center`}>
-                  <Icon size={15} className={card.color} />
-                </div>
-                <div>
-                  <div className="text-xl font-bold text-white leading-none">{card.value}</div>
-                  <div className="text-[10px] text-gray-500 mt-1 leading-tight">{card.label}</div>
-                  {card.sub && <div className="text-[9px] text-gray-600 mt-0.5 leading-tight">{card.sub}</div>}
-                </div>
+              <div key={card.label} className={`bg-white rounded-xl border border-gray-200 border-l-4 ${card.accent} p-4`}>
+                <div className={`text-xl font-bold ${card.val}`}>{card.value}</div>
+                <div className="text-xs font-semibold text-gray-600 mt-0.5">{card.label}</div>
+                <div className="text-[10px] text-gray-400 mt-0.5 leading-tight">{card.sub}</div>
               </div>
             );
           })}
         </div>
 
-        {/* Two columns: Quick Links + Pipeline Funnel */}
+        {/* ── Main grid: Modules + Pipeline ────────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
 
-          {/* Quick Links */}
-          <div className="lg:col-span-3">
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Módulos</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-              {quickLinks.map(item => {
+          {/* Left: Primary module cards */}
+          <div className="lg:col-span-3 space-y-3">
+            <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Módulos</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {primaryLinks.map(item => {
                 const Icon = item.icon;
                 return (
                   <Link
                     key={item.label}
                     href={item.href}
-                    className={`rounded-xl bg-gray-800/50 border ${item.border} p-3 flex flex-col items-center gap-2 text-center hover:bg-gray-800 transition-all group`}
+                    className={`${item.bg} rounded-xl border ${item.border} p-4 flex items-center gap-3 hover:shadow-sm transition-all group`}
                   >
-                    <div className={`w-8 h-8 rounded-lg ${item.bg} flex items-center justify-center`}>
-                      <Icon size={14} className={item.color} />
+                    <div className={`w-9 h-9 rounded-lg bg-white border ${item.border} flex items-center justify-center shrink-0`}>
+                      <Icon size={16} className={item.color} />
                     </div>
-                    <span className="text-[10px] font-semibold text-gray-400 group-hover:text-white transition-colors leading-tight">
-                      {item.label}
-                    </span>
+                    <div className="min-w-0">
+                      <div className={`text-sm font-bold ${item.color} leading-tight`}>{item.label}</div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+            {/* Secondary links row */}
+            <div className="flex gap-2 flex-wrap">
+              {secondaryLinks.map(item => {
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-medium text-gray-600 transition-colors"
+                  >
+                    <Icon size={12} className="text-gray-500" />
+                    {item.label}
                   </Link>
                 );
               })}
             </div>
           </div>
 
-          {/* Pipeline Funnel */}
-          <div className="lg:col-span-2 rounded-xl bg-gray-800/50 border border-gray-700 p-5">
+          {/* Right: Pipeline funnel */}
+          <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 p-4">
             <div className="flex items-center gap-2 mb-4">
-              <Zap size={14} className="text-amber-400" />
-              <h3 className="text-sm font-semibold text-white">Funil de Pipeline</h3>
-              <Link href="/awq/ma/deals" className="ml-auto text-xs text-blue-400 hover:text-blue-300 flex items-center gap-0.5">
+              <div className="w-6 h-6 rounded-lg bg-amber-50 flex items-center justify-center">
+                <BarChart3 size={12} className="text-amber-600" />
+              </div>
+              <h3 className="text-sm font-bold text-gray-800">Pipeline Funnel</h3>
+              <Link href="/awq/ma/deals" className="ml-auto text-xs text-blue-500 hover:text-blue-600 flex items-center gap-0.5 font-medium">
                 Ver todos <ChevronRight size={11} />
               </Link>
             </div>
-            <div className="space-y-3">
-              {pipelineStages.map(stage => {
-                const count = stageCount[stage] ?? 0;
-                const pct   = maxCount > 0 ? (count / maxCount) * 100 : 0;
-                return (
-                  <div key={stage} className="space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${STAGE_COLORS[stage]}`}>
-                        {STAGE_LABELS[stage]}
-                      </span>
-                      <span className="text-xs font-bold text-white">{count}</span>
-                    </div>
-                    <div className="h-1.5 bg-gray-700/60 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full ${STAGE_BAR[stage]} rounded-full transition-all`}
-                        style={{ width: `${pct}%`, minWidth: count > 0 ? "4%" : "0%" }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            {((stageCount["closed_won"] ?? 0) + (stageCount["closed_lost"] ?? 0)) > 0 && (
-              <div className="mt-4 pt-3 border-t border-gray-700/60 flex items-center gap-4">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" />
-                  <span className="text-xs text-gray-500"><span className="text-emerald-400 font-bold">{stageCount["closed_won"] ?? 0}</span> won</span>
+
+            {totalDeals === 0 ? (
+              <div className="text-center py-6">
+                <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
+                  <Plus size={18} className="text-gray-400" />
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-red-400 inline-block" />
-                  <span className="text-xs text-gray-500"><span className="text-red-400 font-bold">{stageCount["closed_lost"] ?? 0}</span> lost</span>
+                <p className="text-sm font-semibold text-gray-700 mb-1">Pipeline vazio</p>
+                <p className="text-xs text-gray-400 mb-3">Adicione o primeiro deal M4E para começar.</p>
+                <Link
+                  href="/awq/ma/deals/new"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors"
+                >
+                  <Plus size={11} /> Adicionar deal
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {pipelineStages.map(stage => {
+                  const count = stageCount[stage] ?? 0;
+                  const pct   = (count / maxCount) * 100;
+                  return (
+                    <div key={stage} className="space-y-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-1.5">
+                          <span className={`w-1.5 h-1.5 rounded-full ${STAGE_DOT[stage]}`} />
+                          <span className="text-gray-600 font-medium">{STAGE_LABELS[stage]}</span>
+                        </div>
+                        <span className="font-bold text-gray-800">{count}</span>
+                      </div>
+                      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div className={`h-full ${STAGE_BAR[stage]} rounded-full transition-all`}
+                          style={{ width: `${Math.max(pct, count > 0 ? 5 : 0)}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+                <div className="pt-2 border-t border-gray-100 flex items-center gap-4 text-xs">
+                  <span className="text-gray-400">Won: <span className="text-emerald-600 font-bold">{stageCount["closed_won"] ?? 0}</span></span>
+                  <span className="text-gray-400">Lost: <span className="text-red-500 font-bold">{stageCount["closed_lost"] ?? 0}</span></span>
                 </div>
               </div>
             )}
           </div>
         </div>
 
-        {/* Portfolio Companies Strip */}
+        {/* ── Portfolio strip ───────────────────────────────────────────────── */}
         {activePortcos.length > 0 && (
           <div>
-            <div className="flex items-center gap-2 mb-3">
-              <Building2 size={13} className="text-gray-500" />
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Portfolio Ativo</h3>
-              <Link href="/awq/portfolio" className="ml-auto text-xs text-blue-400 hover:text-blue-300 flex items-center gap-0.5">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Portfolio Ativo</p>
+              <Link href="/awq/portfolio" className="text-xs text-blue-500 hover:text-blue-600 font-medium flex items-center gap-0.5">
                 Ver todos <ChevronRight size={11} />
               </Link>
             </div>
@@ -284,34 +300,43 @@ export default async function MaCommandCenterPage() {
                 const mrr = (p as any).latest_mrr ?? (p as any).mrr ?? null;
                 const runway = (p as any).runway_months ?? null;
                 const awqPct = p.awq_ownership_pct ?? null;
+                const multiple = (p as any).current_valuation && (p as any).entry_valuation
+                  ? ((p as any).current_valuation / (p as any).entry_valuation)
+                  : null;
                 return (
                   <Link
                     key={p.portco_id}
                     href={`/awq/portfolio/${p.portco_id}`}
-                    className="rounded-xl bg-gray-800/50 border border-gray-700 hover:border-gray-500 p-4 transition-all group"
+                    className="bg-white rounded-xl border border-gray-200 hover:border-blue-200 hover:shadow-sm p-4 transition-all group"
                   >
                     <div className="flex items-start justify-between gap-2 mb-3">
                       <div>
-                        <div className="font-semibold text-white text-sm group-hover:text-blue-300 transition-colors">
+                        <div className="font-bold text-gray-900 text-sm group-hover:text-blue-600 transition-colors leading-tight">
                           {p.legal_name ?? (p as any).company_name}
                         </div>
-                        <div className="text-[10px] text-gray-500 mt-0.5">{p.portco_code}</div>
+                        <div className="text-[10px] text-gray-400 mt-0.5">{p.portco_code}</div>
                       </div>
-                      <ArrowUpRight size={14} className="text-gray-600 group-hover:text-blue-400 transition-colors shrink-0 mt-0.5" />
+                      <ArrowUpRight size={14} className="text-gray-300 group-hover:text-blue-400 transition-colors shrink-0 mt-0.5" />
                     </div>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-4 gap-2 pt-3 border-t border-gray-100">
                       <div>
-                        <div className="text-[9px] text-gray-600">AWQ %</div>
-                        <div className="text-xs font-bold text-amber-400">{awqPct != null ? awqPct.toFixed(0) + "%" : "—"}</div>
+                        <div className="text-[9px] text-gray-400 uppercase font-medium">AWQ %</div>
+                        <div className="text-xs font-bold text-amber-600">{awqPct != null ? awqPct.toFixed(0) + "%" : "—"}</div>
                       </div>
                       <div>
-                        <div className="text-[9px] text-gray-600">MRR</div>
-                        <div className="text-xs font-bold text-emerald-400">{mrr ? fmtR(mrr) : "—"}</div>
+                        <div className="text-[9px] text-gray-400 uppercase font-medium">MRR</div>
+                        <div className="text-xs font-bold text-emerald-600">{mrr ? fmtR(mrr) : "—"}</div>
                       </div>
                       <div>
-                        <div className="text-[9px] text-gray-600">Runway</div>
-                        <div className={`text-xs font-bold ${runway != null && runway < 6 ? "text-red-400" : runway != null && runway < 12 ? "text-amber-400" : "text-gray-300"}`}>
+                        <div className="text-[9px] text-gray-400 uppercase font-medium">Runway</div>
+                        <div className={`text-xs font-bold ${runway != null && runway < 6 ? "text-red-500" : runway != null && runway < 12 ? "text-amber-600" : "text-gray-700"}`}>
                           {runway != null ? runway + "m" : "—"}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[9px] text-gray-400 uppercase font-medium">MOIC</div>
+                        <div className={`text-xs font-bold ${multiple != null && multiple >= 1 ? "text-emerald-600" : "text-gray-700"}`}>
+                          {multiple != null ? multiple.toFixed(2) + "×" : "—"}
                         </div>
                       </div>
                     </div>
