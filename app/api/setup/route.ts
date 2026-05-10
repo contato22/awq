@@ -94,6 +94,15 @@ export async function POST(): Promise<NextResponse> {
     } catch (err) {
       results.push({ step: "schema:caza_tables", status: "error", detail: String(err) });
     }
+
+    // GL bootstrap
+    try {
+      const { initGlDB } = await import("@/lib/epm-gl");
+      await initGlDB();
+      results.push({ step: "schema:epm_gl_entries", status: "ok" });
+    } catch (err) {
+      results.push({ step: "schema:epm_gl_entries", status: "error", detail: String(err) });
+    }
   }
 
   // ── 2. Supabase Storage bucket ───────────────────────────────────────────────
