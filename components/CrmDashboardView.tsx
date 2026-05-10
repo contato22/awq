@@ -167,7 +167,11 @@ export default function CrmDashboardView({ buFilter: externalBu }: Props) {
     : "Controle de pipeline e vendas · AWQ Group";
 
   useEffect(() => {
+    let cancelled = false;
+
     async function load() {
+      setLoading(true);
+      setIsStatic(false);
       const buParam = buFilter ? `?bu=${buFilter}` : "";
       try {
         const [analRes, pipeRes, actRes] = await Promise.all([
@@ -175,27 +179,31 @@ export default function CrmDashboardView({ buFilter: externalBu }: Props) {
           fetch(`/api/crm/pipeline${buParam}`),
           fetch(`/api/crm/activities${buParam}`),
         ]);
+
+        if (cancelled) return;
+
         const [analJson, pipeJson, actJson] = await Promise.all([
           analRes.json(),
           pipeRes.json(),
           actRes.json(),
         ]);
+
+        if (cancelled) return;
+
         if (analJson.success && pipeJson.success && actJson.success) {
           const allOpps = (Object.values(pipeJson.data.byStage as Record<string, CrmOpportunity[]>).flat())
             .filter((o: CrmOpportunity) => !buFilter || o.bu === buFilter);
-          setOpps(allOpps);
           const filteredActs = (actJson.data as CrmActivity[]).filter(
             (a) => !buFilter || a.related_to_type !== "opportunity" || allOpps.some(o => o.opportunity_id === a.related_to_id)
           );
-          setActivities(filteredActs);
 
-          // Derive KPIs from filtered opps so BU views never show cross-BU numbers
+          let newAnalytics: Record<string, number>;
           if (buFilter) {
             const openFiltered = allOpps.filter(o => o.stage !== "closed_won" && o.stage !== "closed_lost");
             const wonFiltered  = allOpps.filter(o => o.stage === "closed_won");
             const lostFiltered = allOpps.filter(o => o.stage === "closed_lost");
             const totalClosed  = wonFiltered.length + lostFiltered.length;
-            setAnalytics({
+            newAnalytics = {
               leadsNew: allOpps.length > 0 ? 1 : 0,
               openOpportunities: openFiltered.length,
               pipelineValue: openFiltered.reduce((s, o) => s + o.deal_value, 0),
@@ -203,9 +211,9 @@ export default function CrmDashboardView({ buFilter: externalBu }: Props) {
               closedWonThisMonth: wonFiltered.reduce((s, o) => s + o.deal_value, 0),
               winRate: totalClosed > 0 ? Math.round((wonFiltered.length / totalClosed) * 100) : 0,
               tasksToday: 0,
-            });
+            };
           } else {
-            setAnalytics({
+            newAnalytics = {
               leadsNew: analJson.data.leadsNew ?? 0,
               openOpportunities: analJson.data.openOpportunities ?? 0,
               pipelineValue: analJson.data.pipelineValue ?? 0,
@@ -213,13 +221,18 @@ export default function CrmDashboardView({ buFilter: externalBu }: Props) {
               closedWonThisMonth: analJson.data.revenueThisMonth ?? 0,
               winRate: analJson.data.winRate ?? 0,
               tasksToday: analJson.data.tasksToday ?? 0,
-            });
+            };
           }
+
+          setOpps(allOpps);
+          setActivities(filteredActs);
+          setAnalytics(newAnalytics);
         } else {
           throw new Error("API error");
         }
       } catch {
-        // Filter seed data to this BU
+        if (cancelled) return;
+
         const filteredOpps = buFilter
           ? SEED_OPPS.filter(o => o.bu === buFilter)
           : SEED_OPPS;
@@ -249,10 +262,13 @@ export default function CrmDashboardView({ buFilter: externalBu }: Props) {
         });
         setIsStatic(true);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
+
     load();
+
+    return () => { cancelled = true; };
   }, [buFilter]);
 
   if (loading) {
