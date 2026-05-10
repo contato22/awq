@@ -133,44 +133,46 @@ export default function PortfolioDashboardPage() {
       <div className="px-6 lg:px-8 py-6 space-y-6">
 
         {/* ── Summary Strip ─────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {summaryCards.map((card) => {
             const Icon = card.icon;
             return (
               <div
                 key={card.label}
-                className="rounded-lg bg-gray-800/50 border border-gray-700 p-4 flex flex-col gap-2"
+                className="rounded-xl bg-white border border-gray-200 p-4 flex items-center gap-3"
               >
-                <div className={`w-8 h-8 rounded-lg ${card.bg} flex items-center justify-center`}>
-                  <Icon size={15} className={card.color} />
+                <div className={`w-9 h-9 rounded-xl ${card.bg} flex items-center justify-center shrink-0`}>
+                  <Icon size={16} className={card.color} />
                 </div>
-                <div className="text-lg font-bold text-white">{card.value}</div>
-                <div className="text-[10px] text-gray-500 leading-tight">{card.label}</div>
+                <div className="min-w-0">
+                  <div className="text-lg font-bold text-gray-900 leading-none truncate">{card.value}</div>
+                  <div className="text-[10px] text-gray-500 mt-1 leading-tight">{card.label}</div>
+                </div>
               </div>
             );
           })}
         </div>
 
         {/* ── Table ─────────────────────────────────────────────────────────── */}
-        <div className="rounded-lg bg-gray-800/50 border border-gray-700 overflow-hidden">
+        <div className="rounded-xl bg-white border border-gray-200 overflow-hidden">
 
           {/* Filter tabs */}
-          <div className="flex items-center gap-1 p-3 border-b border-gray-700">
-            <Layers size={13} className="text-gray-500 mr-1" />
+          <div className="flex items-center gap-1 px-4 py-3 border-b border-gray-100">
+            <Layers size={13} className="text-gray-400 mr-1" />
             {(["all","active","exited"] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setFilter(tab)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                   filter === tab
-                    ? "bg-gray-700 text-white"
-                    : "text-gray-500 hover:text-gray-300"
+                    ? "bg-gray-900 text-white"
+                    : "text-gray-500 hover:text-gray-700"
                 }`}
               >
                 {tab === "all" ? "Todas" : tab === "active" ? "Ativas" : "Exitadas"}
               </button>
             ))}
-            <span className="ml-auto text-xs text-gray-600">{visibleRows.length} empresas</span>
+            <span className="ml-auto text-xs text-gray-400">{visibleRows.length} empresa{visibleRows.length !== 1 ? "s" : ""}</span>
           </div>
 
           {loading && (
@@ -190,7 +192,7 @@ export default function PortfolioDashboardPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="border-b border-gray-700 text-gray-500">
+                  <tr className="border-b border-gray-100 bg-gray-50 text-gray-500">
                     <th className="text-left  py-3 px-4 font-semibold">Empresa</th>
                     <th className="text-right py-3 px-4 font-semibold">% AWQ</th>
                     <th className="text-right py-3 px-4 font-semibold">Val. Entrada</th>
@@ -202,12 +204,12 @@ export default function PortfolioDashboardPage() {
                     <th className="text-left  py-3 px-4 font-semibold">Ações</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-700/50">
+                <tbody className="divide-y divide-gray-100">
                   {visibleRows.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="text-center py-10 text-gray-600">
+                      <td colSpan={9} className="text-center py-12 text-gray-400">
                         Nenhuma empresa encontrada.{" "}
-                        <Link href="/awq/ma/deals" className="text-blue-400 underline">
+                        <Link href="/awq/ma/deals" className="text-blue-500 underline">
                           Ver pipeline de deals
                         </Link>
                       </td>
@@ -227,52 +229,52 @@ export default function PortfolioDashboardPage() {
                       const runway = row.runway_months ?? null;
 
                       return (
-                        <tr key={row.portco_id} className="hover:bg-gray-700/20 transition-colors">
+                        <tr key={row.portco_id} className="hover:bg-blue-50/50 transition-colors">
                           <td className="py-3 px-4">
-                            <div className="font-semibold text-white">{row.company_name ?? row.legal_name ?? "—"}</div>
+                            <div className="font-semibold text-gray-900">{row.company_name ?? row.legal_name ?? "—"}</div>
                             {row.portco_code && (
-                              <div className="text-[10px] text-gray-600">{row.portco_code}</div>
+                              <div className="text-[10px] text-gray-400">{row.portco_code}</div>
                             )}
                           </td>
-                          <td className="py-3 px-4 text-right text-gray-300">
+                          <td className="py-3 px-4 text-right text-gray-600 font-medium">
                             {fmtPct(row.awq_ownership_pct)}
                           </td>
-                          <td className="py-3 px-4 text-right text-gray-300">
+                          <td className="py-3 px-4 text-right text-gray-500">
                             {fmtR(row.entry_valuation)}
                           </td>
-                          <td className="py-3 px-4 text-right text-white font-semibold">
+                          <td className="py-3 px-4 text-right text-gray-900 font-bold">
                             {fmtR(row.current_valuation ?? row.entry_valuation)}
                           </td>
                           <td className={`py-3 px-4 text-right font-bold ${multColor(multiple)}`}>
                             {multiple != null ? multiple.toFixed(2) + "×" : "—"}
                           </td>
-                          <td className="py-3 px-4 text-right text-gray-300">
+                          <td className="py-3 px-4 text-right text-gray-600 font-medium">
                             {fmtR(row.latest_mrr)}
                           </td>
-                          <td className={`py-3 px-4 text-right font-semibold ${runwayColor(runway)}`}>
+                          <td className={`py-3 px-4 text-right font-bold ${runwayColor(runway)}`}>
                             {runway != null ? runway + " m" : "—"}
                           </td>
                           <td className="py-3 px-4 text-right">
                             {mediaPct != null ? (
                               <div className="flex items-center justify-end gap-2">
-                                <div className="w-12 h-1.5 bg-gray-700 rounded-full overflow-hidden">
+                                <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                                   <div
                                     className="h-full bg-cyan-500 rounded-full"
                                     style={{ width: `${Math.min(mediaPct, 100)}%` }}
                                   />
                                 </div>
-                                <span className="text-cyan-400 text-[10px] font-semibold">
+                                <span className="text-cyan-600 text-[10px] font-bold">
                                   {fmtPct(mediaPct)}
                                 </span>
                               </div>
                             ) : (
-                              <span className="text-gray-600">—</span>
+                              <span className="text-gray-300">—</span>
                             )}
                           </td>
                           <td className="py-3 px-4">
                             <Link
                               href={`/awq/portfolio/${row.portco_id}`}
-                              className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-400 hover:text-blue-300 transition-colors"
+                              className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-500 hover:text-blue-700 transition-colors"
                             >
                               Detalhes <ChevronRight size={10} />
                             </Link>

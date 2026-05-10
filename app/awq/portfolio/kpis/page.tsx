@@ -113,21 +113,23 @@ export default function PortcoKpisPage() {
   const f = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm(prev => ({ ...prev, [k]: e.target.value }));
 
-  const inputCls = "w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500";
+  const inputCls = "w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-gray-900 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-400 transition-colors";
+  const labelCls = "text-xs font-medium text-gray-600 mb-1.5 block";
 
   return (
     <>
       <Header title="Atualizar KPIs" subtitle="Portcos — Relatório Mensal de Performance" />
-      <div className="px-6 py-6 space-y-6">
+      <div className="px-6 py-6 space-y-5">
 
         <div className="flex items-center gap-3">
-          <Link href="/awq/portfolio" className="text-gray-400 hover:text-white">
-            <ArrowLeft size={16} />
+          <Link href="/awq/portfolio" className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 transition-colors">
+            <ArrowLeft size={14} /> Portfólio
           </Link>
+          <span className="text-gray-300">/</span>
           <select
             value={selectedPortco}
             onChange={e => setSelectedPortco(e.target.value)}
-            className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm"
+            className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             {portcos.map(p => (
               <option key={p.portco_id} value={p.portco_id}>{p.legal_name}</option>
@@ -136,82 +138,84 @@ export default function PortcoKpisPage() {
         </div>
 
         {/* KPI Entry Form */}
-        <div className="bg-gray-800/50 rounded-xl border border-gray-700 p-6">
-          <h2 className="font-semibold text-white mb-5 flex items-center gap-2">
-            <BarChart3 size={16} className="text-blue-400" />
+        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+          <h2 className="font-bold text-gray-900 mb-5 flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center">
+              <BarChart3 size={14} className="text-blue-600" />
+            </div>
             Inserir / Atualizar KPIs do Mês
           </h2>
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="text-xs text-gray-400 mb-1 block">Data de Referência (fim de mês) *</label>
+              <label className={labelCls}>Data de Referência (fim de mês) *</label>
               <input type="date" required value={form.reporting_date}
                 onChange={f("reporting_date")} className={inputCls} />
             </div>
 
             <div>
-              <h3 className="text-xs text-gray-500 uppercase tracking-wider mb-3">Financeiro</h3>
+              <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">Financeiro</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="text-xs text-gray-400 mb-1 block">MRR (R$)</label>
+                  <label className={labelCls}>MRR (R$)</label>
                   <input type="number" value={form.mrr} onChange={f("mrr")}
-                    className={inputCls} placeholder="0" />
+                    className={inputCls} placeholder="ex: 45000" />
                 </div>
                 <div>
-                  <label className="text-xs text-gray-400 mb-1 block">Receita Total (R$)</label>
+                  <label className={labelCls}>Receita Total (R$)</label>
                   <input type="number" value={form.total_revenue} onChange={f("total_revenue")}
-                    className={inputCls} placeholder="0" />
+                    className={inputCls} placeholder="ex: 52000" />
                 </div>
                 <div>
-                  <label className="text-xs text-gray-400 mb-1 block">Margem Bruta (%)</label>
+                  <label className={labelCls}>Margem Bruta (%)</label>
                   <input type="number" step="0.1" value={form.gross_margin_pct} onChange={f("gross_margin_pct")}
-                    className={inputCls} placeholder="0" />
+                    className={inputCls} placeholder="ex: 68.5" />
                 </div>
                 <div>
-                  <label className="text-xs text-gray-400 mb-1 block">Burn Rate (R$, negativo)</label>
+                  <label className={labelCls}>Burn Rate (R$, negativo)</label>
                   <input type="number" value={form.burn_rate} onChange={f("burn_rate")}
-                    className={inputCls} placeholder="-20000" />
-                  <p className="text-xs text-gray-600 mt-1">Use valor negativo se queimando caixa</p>
+                    className={inputCls} placeholder="ex: -15000" />
+                  <p className="text-[11px] text-gray-400 mt-1">Use valor negativo se queimando caixa</p>
                 </div>
                 <div>
-                  <label className="text-xs text-gray-400 mb-1 block">Saldo de Caixa (R$)</label>
+                  <label className={labelCls}>Saldo de Caixa (R$)</label>
                   <input type="number" value={form.cash_balance} onChange={f("cash_balance")}
-                    className={inputCls} placeholder="0" />
+                    className={inputCls} placeholder="ex: 280000" />
                 </div>
               </div>
             </div>
 
             <div>
-              <h3 className="text-xs text-gray-500 uppercase tracking-wider mb-3">Crescimento & Time</h3>
+              <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">Crescimento & Time</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="text-xs text-gray-400 mb-1 block">Crescimento MoM (%)</label>
+                  <label className={labelCls}>Crescimento MoM (%)</label>
                   <input type="number" step="0.1" value={form.mom_growth_pct} onChange={f("mom_growth_pct")}
-                    className={inputCls} placeholder="0" />
+                    className={inputCls} placeholder="ex: 8.5" />
                 </div>
                 <div>
-                  <label className="text-xs text-gray-400 mb-1 block">Headcount</label>
+                  <label className={labelCls}>Headcount</label>
                   <input type="number" value={form.headcount} onChange={f("headcount")}
-                    className={inputCls} placeholder="0" />
+                    className={inputCls} placeholder="ex: 12" />
                 </div>
               </div>
             </div>
 
             <div>
-              <label className="text-xs text-gray-400 mb-1 block">Notas / Highlights do Mês</label>
+              <label className={labelCls}>Notas / Highlights do Mês</label>
               <textarea value={form.notes} onChange={f("notes")} rows={3}
-                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-gray-900 text-sm resize-none placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-400 transition-colors"
                 placeholder="Principais eventos, conquistas ou desafios do mês..." />
             </div>
 
-            {error && <div className="text-red-400 text-sm bg-red-500/10 rounded-lg px-4 py-3">{error}</div>}
+            {error && <div className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg px-4 py-3">{error}</div>}
             {saved && (
-              <div className="flex items-center gap-2 text-green-400 text-sm bg-green-500/10 rounded-lg px-4 py-3">
+              <div className="flex items-center gap-2 text-emerald-700 text-sm bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3">
                 <CheckCircle2 size={16} /> KPIs salvos com sucesso!
               </div>
             )}
 
             <button type="submit"
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors">
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg text-sm font-semibold transition-colors">
               <TrendingUp size={14} />
               Salvar KPIs
             </button>
@@ -219,42 +223,43 @@ export default function PortcoKpisPage() {
         </div>
 
         {/* KPI History */}
-        <div className="bg-gray-800/50 rounded-xl border border-gray-700 overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-700">
-            <h3 className="font-semibold text-white">Histórico de KPIs</h3>
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+          <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
+            <BarChart3 size={14} className="text-gray-400" />
+            <h3 className="font-bold text-gray-800 text-sm">Histórico de KPIs</h3>
           </div>
           {loading ? (
-            <div className="px-5 py-8 text-center text-gray-500 text-sm">Carregando...</div>
+            <div className="px-5 py-8 text-center text-gray-400 text-sm">Carregando...</div>
           ) : kpis.length === 0 ? (
-            <div className="px-5 py-8 text-center text-gray-500 text-sm">Nenhum KPI registrado ainda.</div>
+            <div className="px-5 py-12 text-center text-gray-400 text-sm">Nenhum KPI registrado ainda.</div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full text-xs">
                 <thead>
-                  <tr className="border-b border-gray-700">
+                  <tr className="border-b border-gray-100 bg-gray-50">
                     {["Mês", "MRR", "ARR", "Burn Rate", "Caixa", "Runway", "MoM%", "Headcount", "Notas"].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-xs text-gray-500 font-medium">{h}</th>
+                      <th key={h} className="px-4 py-3 text-left text-gray-500 font-semibold">{h}</th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-700/50">
+                <tbody className="divide-y divide-gray-100">
                   {kpis.map(k => (
-                    <tr key={k.kpi_id} className="hover:bg-gray-700/30">
-                      <td className="px-4 py-3 text-sm font-medium text-white">{k.year_month ?? k.reporting_date.slice(0, 7)}</td>
-                      <td className="px-4 py-3 text-sm text-green-400">{fmtR(k.mrr)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-400">{fmtR(k.arr)}</td>
-                      <td className={`px-4 py-3 text-sm ${(k.burn_rate ?? 0) < 0 ? "text-red-400" : "text-green-400"}`}>
+                    <tr key={k.kpi_id} className="hover:bg-blue-50/40">
+                      <td className="px-4 py-3 font-bold text-gray-800">{k.year_month ?? k.reporting_date.slice(0, 7)}</td>
+                      <td className="px-4 py-3 font-semibold text-emerald-600">{fmtR(k.mrr)}</td>
+                      <td className="px-4 py-3 text-gray-500">{fmtR(k.arr)}</td>
+                      <td className={`px-4 py-3 font-semibold ${(k.burn_rate ?? 0) < 0 ? "text-red-500" : "text-emerald-600"}`}>
                         {fmtR(k.burn_rate)}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-300">{fmtR(k.cash_balance)}</td>
-                      <td className={`px-4 py-3 text-sm font-medium ${(k.runway_months ?? 99) < 6 ? "text-red-400" : "text-gray-300"}`}>
+                      <td className="px-4 py-3 text-gray-600">{fmtR(k.cash_balance)}</td>
+                      <td className={`px-4 py-3 font-bold ${(k.runway_months ?? 99) < 6 ? "text-red-500" : (k.runway_months ?? 99) < 12 ? "text-amber-600" : "text-gray-700"}`}>
                         {k.runway_months != null ? k.runway_months.toFixed(1) + "m" : "—"}
                       </td>
-                      <td className={`px-4 py-3 text-sm ${(k.mom_growth_pct ?? 0) > 0 ? "text-green-400" : "text-red-400"}`}>
+                      <td className={`px-4 py-3 font-semibold ${(k.mom_growth_pct ?? 0) > 0 ? "text-emerald-600" : "text-red-500"}`}>
                         {k.mom_growth_pct != null ? (k.mom_growth_pct > 0 ? "+" : "") + k.mom_growth_pct.toFixed(1) + "%" : "—"}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-300">{k.headcount ?? "—"}</td>
-                      <td className="px-4 py-3 text-xs text-gray-500 max-w-xs truncate">{k.notes ?? "—"}</td>
+                      <td className="px-4 py-3 text-gray-600">{k.headcount ?? "—"}</td>
+                      <td className="px-4 py-3 text-gray-400 max-w-xs truncate">{k.notes ?? "—"}</td>
                     </tr>
                   ))}
                 </tbody>
