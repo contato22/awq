@@ -10,6 +10,8 @@ import type { CrmOpportunity } from "@/lib/crm-types";
 import { SEED_OPPORTUNITIES } from "@/lib/crm-db";
 import { formatBRL } from "@/lib/utils";
 
+const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
+
 const STAGE_PT: Record<string, string> = {
   discovery:"Discovery", qualification:"Qualif.", proposal:"Proposta", negotiation:"Negoc.", closed_won:"Ganho", closed_lost:"Perdido",
 };
@@ -33,6 +35,11 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (IS_STATIC) {
+      try { setOpps(JSON.parse(localStorage.getItem("crm-opportunities-v3") ?? "[]")); } catch { setOpps([]); }
+      setLoading(false);
+      return;
+    }
     Promise.all([
       fetch("/api/crm/analytics").then(r=>r.json()),
       fetch("/api/crm/opportunities").then(r=>r.json()),

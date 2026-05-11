@@ -103,7 +103,7 @@ export default function MediaDeliverablesPage() {
   const loadDeliverables = (id: string) => {
     if (!id) return;
     if (IS_STATIC) {
-      setDeliverables(SEED_MEDIA_DELIVERABLES.filter(d => d.portco_id === id) as MediaDeliverable[]);
+      setDeliverables(SEED_MEDIA_DELIVERABLES.filter(d => d.portco_id === id) as unknown as MediaDeliverable[]);
       setLoading(false);
       return;
     }

@@ -7,7 +7,8 @@ import EmptyState from "@/components/EmptyState";
 import { Building2, Plus, Search, AlertTriangle, CheckCircle2, Trash2 } from "lucide-react";
 import type { CrmAccount } from "@/lib/crm-types";
 import { BU_OPTIONS } from "@/lib/crm-types";
-import { SEED_ACCOUNTS } from "@/lib/crm-db";
+
+const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 
 const TYPE_LABELS: Record<string, string> = {
   prospect:        "Prospect",
@@ -47,17 +48,25 @@ export default function AccountsPage() {
       const deletedIds = new Set<string>(
         JSON.parse(localStorage.getItem("awq_deleted_accounts") ?? "[]")
       );
-
       function applyLocalState(rows: CrmAccount[]): CrmAccount[] {
         return rows.filter(a => !deletedIds.has(a.account_id));
+      }
+      function lsAccounts(): CrmAccount[] {
+        try { return JSON.parse(localStorage.getItem("awq_crm_accounts") ?? "[]"); } catch { return []; }
+      }
+
+      if (IS_STATIC) {
+        setAllAccounts(applyLocalState(lsAccounts()));
+        setLoading(false);
+        return;
       }
 
       try {
         const res = await fetch("/api/crm/accounts");
         const json = await res.json();
-        setAllAccounts(applyLocalState(json.success ? json.data : SEED_ACCOUNTS));
+        setAllAccounts(applyLocalState(json.success ? json.data : lsAccounts()));
       } catch {
-        setAllAccounts(applyLocalState(SEED_ACCOUNTS));
+        setAllAccounts(applyLocalState(lsAccounts()));
       } finally {
         setLoading(false);
       }
@@ -76,11 +85,13 @@ export default function AccountsPage() {
     setAllAccounts(prev => prev.filter(a => a.account_id !== id));
     setDeletingId(null);
 
-    fetch("/api/crm/accounts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "delete", account_id: id }),
-    }).catch(() => undefined);
+    if (!IS_STATIC) {
+      fetch("/api/crm/accounts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "delete", account_id: id }),
+      }).catch(() => undefined);
+    }
   }
 
   const accounts = useMemo(() => {

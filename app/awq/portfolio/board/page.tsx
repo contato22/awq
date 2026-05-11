@@ -75,7 +75,7 @@ export default function BoardMeetingsPage() {
   const loadMeetings = (id: string) => {
     if (!id) return;
     if (IS_STATIC) {
-      setMeetings(SEED_BOARD_MEETINGS.filter(m => m.portco_id === id) as BoardMeeting[]);
+      setMeetings(SEED_BOARD_MEETINGS.filter(m => m.portco_id === id) as unknown as BoardMeeting[]);
       setLoading(false);
       return;
     }

@@ -6,6 +6,9 @@ import SectionHeader from "@/components/SectionHeader";
 import { Users, DollarSign, TrendingUp, Star, AlertTriangle, Filter } from "lucide-react";
 import { formatBRL } from "@/lib/utils";
 import type { RfmCustomer, RfmResponse, RfmSegment } from "@/lib/crm-rfm-types";
+import type { CrmOpportunity, CrmAccount } from "@/lib/crm-types";
+
+const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 
 // ─── BU filter ────────────────────────────────────────────────────────────────
 const BUS = ["Todos", "JACQES", "CAZA", "ADVISOR", "VENTURE"] as const;
@@ -83,44 +86,90 @@ const SEGMENT_ICON: Record<RfmSegment, any> = {
   "Hibernando":Users,"Perdidos":AlertTriangle,
 };
 
-// ─── Pre-computed seed data for static export ─────────────────────────────────
-const SEED_RFM_CUSTOMERS: RfmCustomer[] = [
-  { account_id:"a1",  account_name:"XP Investimentos S.A.",      industry:"finance",   owner:"Miguel", bu:"JACQES",  recency_days:10,  frequency:6, monetary:420000, r_score:5, f_score:5, m_score:5, rfm_score:15, segment:"Campeões",             segment_color:"#1e40af", segment_bg:"#dbeafe" },
-  { account_id:"a2",  account_name:"Nu Pagamentos S.A.",          industry:"finance",   owner:"Danilo", bu:"JACQES",  recency_days:28,  frequency:4, monetary:285000, r_score:4, f_score:4, m_score:4, rfm_score:12, segment:"Clientes Fiéis",        segment_color:"#2563eb", segment_bg:"#eff6ff" },
-  { account_id:"a7",  account_name:"Grupo Pão de Açúcar",         industry:"retail",    owner:"Miguel", bu:"JACQES",  recency_days:320, frequency:5, monetary:380000, r_score:1, f_score:5, m_score:5, rfm_score:11, segment:"Não Pode Perder",      segment_color:"#92400e", segment_bg:"#fde68a" },
-  { account_id:"a9",  account_name:"Faculdade Einstein",          industry:"education", owner:"Miguel", bu:"ADVISOR", recency_days:45,  frequency:2, monetary:78000,  r_score:4, f_score:2, m_score:2, rfm_score:8,  segment:"Fiéis em Potencial",    segment_color:"#3b82f6", segment_bg:"#e0f2fe" },
-  { account_id:"a3",  account_name:"Colégio CEM",                 industry:"education", owner:"Miguel", bu:"ADVISOR", recency_days:95,  frequency:3, monetary:125000, r_score:3, f_score:3, m_score:3, rfm_score:9,  segment:"Precisam de Atenção",   segment_color:"#6b7280", segment_bg:"#f3f4f6" },
-  { account_id:"a8",  account_name:"Positivo Tecnologia",         industry:"tech",      owner:"Danilo", bu:"VENTURE", recency_days:210, frequency:4, monetary:195000, r_score:2, f_score:4, m_score:4, rfm_score:10, segment:"Em Risco",              segment_color:"#dc2626", segment_bg:"#fee2e2" },
-  { account_id:"a4",  account_name:"Reabilicor Clínica Cardíaca", industry:"health",    owner:"Danilo", bu:"CAZA",    recency_days:175, frequency:2, monetary:95000,  r_score:2, f_score:2, m_score:3, rfm_score:7,  segment:"Hibernando",            segment_color:"#ea580c", segment_bg:"#ffedd5" },
-  { account_id:"a10", account_name:"Farmácias Nissei",            industry:"health",    owner:"Danilo", bu:"CAZA",    recency_days:60,  frequency:1, monetary:42000,  r_score:3, f_score:1, m_score:1, rfm_score:5,  segment:"Clientes Promissores",  segment_color:"#0369a1", segment_bg:"#e0f2fe" },
-  { account_id:"a6",  account_name:"Carol Bertolini",             industry:"media",     owner:"Miguel", bu:"VENTURE", recency_days:19,  frequency:1, monetary:18000,  r_score:5, f_score:1, m_score:1, rfm_score:7,  segment:"Novos Clientes",        segment_color:"#0284c7", segment_bg:"#f0f9ff" },
-  { account_id:"a5",  account_name:"Clínica Teresópolis",         industry:"health",    owner:"Danilo", bu:"CAZA",    recency_days:370, frequency:1, monetary:50000,  r_score:1, f_score:1, m_score:2, rfm_score:4,  segment:"Perdidos",              segment_color:"#991b1b", segment_bg:"#fecaca" },
-  { account_id:"a11", account_name:"Hospital São Lucas",           industry:"health",    owner:"Miguel", bu:"ADVISOR", recency_days:85,  frequency:2, monetary:72000,  r_score:3, f_score:2, m_score:2, rfm_score:7,  segment:"Quase Dormentes",       segment_color:"#d97706", segment_bg:"#fef3c7" },
-];
+// ─── Build RFM from localStorage ─────────────────────────────────────────────
+function assignScores(vals: number[], higherIsBetter: boolean): number[] {
+  const n = vals.length;
+  if (n === 0) return [];
+  if (n === 1) return [3];
+  const sorted = [...vals].sort((a, b) => a - b);
+  return vals.map(v => {
+    const rank = sorted.lastIndexOf(v); // 0 = lowest value
+    const score = Math.max(1, Math.round(1 + (rank / (n - 1)) * 4)); // 1-5
+    return higherIsBetter ? score : 6 - score;
+  });
+}
 
-function buildSeedResponse(buFilter: BuFilter = "Todos"): RfmResponse {
-  const base = buFilter !== "Todos"
-    ? SEED_RFM_CUSTOMERS.filter(c => c.bu === buFilter)
-    : SEED_RFM_CUSTOMERS;
-  const customers = base.length > 0 ? base : SEED_RFM_CUSTOMERS;
+function buildRfmFromLocalStorage(buFilter: BuFilter = "Todos"): RfmResponse {
+  let opps: CrmOpportunity[] = [];
+  let accts: CrmAccount[] = [];
+  try { opps = JSON.parse(localStorage.getItem("crm-opportunities-v3") ?? "[]"); } catch { /* */ }
+  try { accts = JSON.parse(localStorage.getItem("awq_crm_accounts") ?? "[]"); } catch { /* */ }
+
+  const filtered = buFilter !== "Todos" ? opps.filter(o => o.bu === buFilter) : opps;
+  const acctMap = new Map(accts.map(a => [a.account_id, a]));
+
+  // Group opps by account key
+  const groups = new Map<string, CrmOpportunity[]>();
+  for (const opp of filtered) {
+    const key = opp.account_id ?? opp.account_name ?? "unknown";
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(opp);
+  }
+
+  if (groups.size === 0) {
+    return {
+      customers: [],
+      segments: Object.fromEntries(SEGMENT_ORDER.map(s => [s, { count: 0, ...SEGMENT_META_CLIENT[s] }])) as RfmResponse["segments"],
+      totals: { customers: 0, monetary: 0, avgMonetary: 0 },
+    };
+  }
+
+  const now = Date.now();
+  const rawList = [...groups.entries()].map(([key, acctOpps]) => {
+    const lastMs = acctOpps.reduce((best, o) => {
+      const t = new Date(o.updated_at ?? o.created_at).getTime();
+      return t > best ? t : best;
+    }, 0);
+    const recency_days = lastMs > 0 ? Math.floor((now - lastMs) / 86400000) : 999;
+    const frequency = acctOpps.length;
+    const monetary = acctOpps.filter(o => o.stage === "closed_won").reduce((s, o) => s + o.deal_value, 0);
+    const rep = acctOpps[0];
+    const detail = rep.account_id ? acctMap.get(rep.account_id) : undefined;
+    return {
+      account_id: rep.account_id ?? key,
+      account_name: detail?.account_name ?? rep.account_name ?? key,
+      industry: detail?.industry ?? null,
+      owner: detail?.owner ?? rep.owner,
+      bu: rep.bu,
+      recency_days, frequency, monetary,
+    };
+  });
+
+  const rScores = assignScores(rawList.map(r => r.recency_days), false);
+  const fScores = assignScores(rawList.map(r => r.frequency), true);
+  const mScores = assignScores(rawList.map(r => r.monetary), true);
+
+  const customers: RfmCustomer[] = rawList.map((r, i) => {
+    const r_score = rScores[i], f_score = fScores[i], m_score = mScores[i];
+    const segment = CELL_SEGMENTS[`${r_score},${f_score}`] ?? "Precisam de Atenção";
+    const meta = SEGMENT_META_CLIENT[segment];
+    return { ...r, r_score, f_score, m_score, rfm_score: r_score + f_score + m_score, segment, segment_color: meta.color, segment_bg: meta.bg };
+  });
 
   const segments = Object.fromEntries(
-    SEGMENT_ORDER.map(seg => [
-      seg,
-      { count: customers.filter(c => c.segment === seg).length, ...SEGMENT_META_CLIENT[seg] },
-    ])
+    SEGMENT_ORDER.map(seg => [seg, { count: customers.filter(c => c.segment === seg).length, ...SEGMENT_META_CLIENT[seg] }])
   ) as RfmResponse["segments"];
 
   const totalMonetary = customers.reduce((s, c) => s + c.monetary, 0);
   return {
     customers,
     segments,
-    totals: {
-      customers: customers.length,
-      monetary: totalMonetary,
-      avgMonetary: customers.length > 0 ? Math.round(totalMonetary / customers.length) : 0,
-    },
+    totals: { customers: customers.length, monetary: totalMonetary, avgMonetary: customers.length > 0 ? Math.round(totalMonetary / customers.length) : 0 },
   };
+}
+
+function buildSeedResponse(buFilter: BuFilter = "Todos"): RfmResponse {
+  return buildRfmFromLocalStorage(buFilter);
 }
 
 // ─── Score dots ───────────────────────────────────────────────────────────────
@@ -264,11 +313,16 @@ export default function RfmPage() {
 
   useEffect(() => {
     setLoading(true);
+    if (IS_STATIC) {
+      setData(buildRfmFromLocalStorage(bu));
+      setLoading(false);
+      return;
+    }
     const buParam = bu !== "Todos" ? `?bu=${bu}` : "";
     fetch(`/api/crm/rfm${buParam}`)
       .then(r => r.json())
-      .then(json => { setData(json.success ? json.data : buildSeedResponse(bu)); })
-      .catch(() => { setData(buildSeedResponse(bu)); })
+      .then(json => { setData(json.success ? json.data : buildRfmFromLocalStorage(bu)); })
+      .catch(() => { setData(buildRfmFromLocalStorage(bu)); })
       .finally(() => setLoading(false));
   }, [bu]);
 

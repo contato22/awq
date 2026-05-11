@@ -115,7 +115,7 @@ export default function CapTablePage() {
   const loadCapTable = useCallback(async (portco_id: string) => {
     if (!portco_id) return;
     if (IS_STATIC) {
-      setCapTable(SEED_CAP_TABLE.filter(c => c.portco_id === portco_id) as CapEntry[]);
+      setCapTable(SEED_CAP_TABLE.filter(c => c.portco_id === portco_id) as unknown as CapEntry[]);
       setLoading(false);
       return;
     }
