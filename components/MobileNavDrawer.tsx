@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
 import {
   X,
   Zap,
@@ -34,6 +35,7 @@ import {
   Target,
   ClipboardList,
   ShieldCheck,
+  ShieldAlert,
   Lock,
   Scale,
   PieChart,
@@ -50,6 +52,12 @@ import {
   BookOpen,
   LayoutGrid,
   Database,
+  Building,
+  Calendar,
+  MessageSquare,
+  GitMerge,
+  LogOut,
+  RotateCcw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -64,7 +72,21 @@ const CAZA_PREFIXES    = ["/caza-vision"];
 const ADVISOR_PREFIXES = ["/advisor"];
 const VENTURE_PREFIXES = ["/awq-venture"];
 const CRM_PREFIXES     = ["/crm"];
-const EPM_PREFIXES     = ["/awq/epm"];
+const EPM_PREFIXES     = [
+    "/awq/epm",
+    "/awq/financial",
+    "/awq/budget",
+    "/awq/forecast",
+    "/awq/cashflow",
+    "/awq/conciliacao",
+    "/awq/reconciliation",
+    "/awq/bank",
+    "/awq/investments",
+    "/awq/ap-ar",
+    "/awq/management",
+    "/awq/contabilidade",
+    "/awq/fiscal",
+];
 const PPM_PREFIXES     = ["/awq/ppm"];
 const BI_PREFIXES      = ["/awq/bi"];
 const SETTINGS_PREFIXES = ["/settings"];
@@ -124,21 +146,25 @@ const crmTowerNav = [
 
 // EPM Tower — FP&A
 const epmFpaNav = [
-  { label: "Visão Geral EPM",      href: "/awq/epm",                     icon: Layers        },
-  { label: "Financial (DRE)",      href: "/awq/financial",               icon: LineChart     },
+  { label: "Visão Geral EPM",      href: "/awq/epm",                    icon: Layers        },
+  { label: "Financial (DRE)",      href: "/awq/financial",              icon: LineChart     },
   { label: "P&L (DRE)",           href: "/awq/epm/pl",                  icon: LineChart     },
-  { label: "Balanço Patrimonial",  href: "/awq/epm/balance-sheet",       icon: Scale         },
+  { label: "Balanço Patrimonial",  href: "/awq/epm/balance-sheet",      icon: Scale         },
   { label: "Budget",              href: "/awq/budget",                  icon: BarChart3     },
   { label: "Forecast",            href: "/awq/forecast",                icon: TrendingUp    },
   { label: "Budget vs Actual",    href: "/awq/epm/budget",              icon: Target        },
+  { label: "Budget Approval",     href: "/awq/epm/budget/approval",     icon: CheckCircle2  },
+  { label: "KPI Dashboard",       href: "/awq/epm/kpis",                icon: PieChart      },
 ];
 
 // EPM Tower — Tesouraria
 const epmTesourariaNav = [
   { label: "Cash Flow",           href: "/awq/cashflow",                icon: Zap           },
-  { label: "Contas Banco",        href: "/awq/bank",                    icon: CreditCard    },
-  { label: "Investimentos",       href: "/awq/investments",             icon: Landmark      },
   { label: "Conciliação",         href: "/awq/conciliacao",             icon: CheckCircle2  },
+  { label: "Conciliação Oper.",   href: "/awq/reconciliation",          icon: RotateCcw     },
+  { label: "Contas Banco",        href: "/awq/bank",                    icon: CreditCard    },
+  { label: "Câmbio / FX",        href: "/awq/epm/currency",            icon: DollarSign    },
+  { label: "Investimentos",       href: "/awq/investments",             icon: Landmark      },
 ];
 
 // EPM Tower — AP & AR
@@ -148,25 +174,31 @@ const epmApArNav = [
   { label: "AP Aging",            href: "/awq/epm/ap/aging",            icon: Receipt       },
   { label: "Contas a Receber",    href: "/awq/epm/ar",                  icon: ArrowUpRight  },
   { label: "AR Aging",            href: "/awq/epm/ar/aging",            icon: Receipt       },
+  { label: "Contratos AR",        href: "/awq/epm/ar/contracts",        icon: FileText      },
+  { label: "Cobranças AR",        href: "/awq/epm/ar/collections",      icon: Receipt       },
 ];
 
 // EPM Tower — Controladoria
 const epmControladoriaNav = [
-  { label: "KPI Dashboard",       href: "/awq/epm/kpis",                icon: PieChart      },
-  { label: "Razão Geral (GL)",    href: "/awq/epm/gl",                  icon: ListOrdered   },
-  { label: "Consolidação",        href: "/awq/epm/consolidation",       icon: Building2     },
-  { label: "Conciliação Bancária",href: "/awq/epm/bank-reconciliation", icon: Landmark      },
-  { label: "Reconhec. de Receita",href: "/awq/epm/revenue-recognition", icon: BookOpen      },
-  { label: "Centros de Custo",    href: "/awq/epm/cost-centers",        icon: LayoutGrid    },
-  { label: "Controladoria",       href: "/awq/management",              icon: ShieldCheck   },
-  { label: "Contabilidade",       href: "/awq/contabilidade",           icon: BookOpen      },
-  { label: "Fiscal",              href: "/awq/fiscal",                  icon: Receipt       },
+  { label: "Razão Geral (GL)",    href: "/awq/epm/gl",                          icon: ListOrdered  },
+  { label: "Consolidação",        href: "/awq/epm/consolidation",               icon: Building2    },
+  { label: "Eliminações IC",      href: "/awq/epm/consolidation/eliminations",  icon: Layers       },
+  { label: "Conciliação Bancária",href: "/awq/epm/bank-reconciliation",         icon: Landmark     },
+  { label: "Reconhec. de Receita",href: "/awq/epm/revenue-recognition",         icon: BookOpen     },
+  { label: "Centros de Custo",    href: "/awq/epm/cost-centers",                icon: LayoutGrid   },
+  { label: "Ativo Imobilizado",   href: "/awq/epm/fixed-assets",                icon: Building     },
+  { label: "Fechamento Períodos", href: "/awq/epm/periods",                     icon: Calendar     },
+  { label: "Fornecedores",        href: "/awq/epm/suppliers",                   icon: Building2    },
+  { label: "Clientes EPM",        href: "/awq/epm/customers",                   icon: Users        },
+  { label: "Controladoria",       href: "/awq/management",                      icon: ShieldCheck  },
+  { label: "Contabilidade",       href: "/awq/contabilidade",                   icon: BookOpen     },
+  { label: "Fiscal",              href: "/awq/fiscal",                          icon: Receipt      },
 ];
 
-// EPM Tower — Partes
-const epmPartesNav = [
-  { label: "Fornecedores",        href: "/awq/epm/suppliers",           icon: Building2     },
-  { label: "Clientes EPM",        href: "/awq/epm/customers",           icon: Users         },
+// EPM Tower — Relatórios
+const epmRelatoriosNav = [
+  { label: "Board Pack",          href: "/awq/epm/reports/board-pack",  icon: Briefcase     },
+  { label: "Relatório Anual",     href: "/awq/epm/reports/annual",      icon: FileText      },
 ];
 
 // PPM Tower
@@ -216,31 +248,37 @@ const awqBiNav = [
   { label: "Relatórios",    href: "/awq/bi/reports",        icon: FileText  },
   { label: "Análises",      href: "/awq/bi/analytics",      icon: BarChart3 },
   { label: "Visualizações", href: "/awq/bi/visualizations", icon: LineChart },
+  { label: "Base de Dados", href: "/awq/data",              icon: Database  },
 ];
 
 // CPM — Estratégia, OKRs, scorecards, performance reviews
 const awqCpmNav = [
-  { label: "KPIs Consolidados",   href: "/awq/kpis",           icon: BarChart3   },
-  { label: "Risk & Alertas",      href: "/awq/risk",           icon: AlertTriangle},
-  { label: "Allocations",         href: "/awq/allocations",    icon: Wallet      },
-  { label: "OKRs",                href: "/awq/cpm/okrs",       icon: CheckCircle2},
-  { label: "Scorecards",          href: "/awq/cpm/scorecards", icon: ClipboardList},
-  { label: "Performance Reviews", href: "/awq/cpm/reviews",    icon: BarChart3   },
+  { label: "KPIs Consolidados",   href: "/awq/kpis",            icon: BarChart3    },
+  { label: "Risk & Alertas",      href: "/awq/risk",            icon: AlertTriangle},
+  { label: "Portfolio Corp.",     href: "/awq/portfolio",       icon: Briefcase    },
+  { label: "Allocations",         href: "/awq/allocations",     icon: Wallet       },
+  { label: "Estratégia",          href: "/awq/cpm/strategy",    icon: Target       },
+  { label: "OKRs",                href: "/awq/cpm/okrs",        icon: CheckCircle2 },
+  { label: "Scorecards",          href: "/awq/cpm/scorecards",  icon: ClipboardList},
+  { label: "Performance Reviews", href: "/awq/cpm/reviews",     icon: BarChart3    },
+  { label: "Novidades",           href: "/awq/novidades",       icon: Sparkles     },
 ];
 
 // GRC — Políticas, riscos, compliance, auditorias, controles
 const awqGrcNav = [
-  { label: "Compliance",  href: "/awq/compliance",    icon: Lock        },
-  { label: "Jurídico",    href: "/awq/juridico",      icon: Scale       },
-  { label: "Políticas",   href: "/awq/grc/policies",  icon: FileText    },
+  { label: "Jurídico",    href: "/awq/juridico",      icon: Scale        },
+  { label: "Societário",  href: "/awq/societario",    icon: Building     },
+  { label: "Compliance",  href: "/awq/compliance",    icon: Lock         },
+  { label: "Segurança",   href: "/awq/security",      icon: ShieldAlert  },
+  { label: "Políticas",   href: "/awq/grc/policies",  icon: FileText     },
   { label: "Riscos",      href: "/awq/grc/risks",     icon: AlertTriangle},
   { label: "Auditorias",  href: "/awq/grc/audits",    icon: ClipboardList},
-  { label: "Controles",   href: "/awq/grc/controls",  icon: ShieldCheck },
+  { label: "Controles",   href: "/awq/grc/controls",  icon: ShieldCheck  },
 ];
 
 // M&A — Deal pipeline, portfólio, cap table, IC, consolidação
 const awqMaNav = [
-  { label: "M&A Hub",        href: "/awq/ma",               icon: TrendingUp    },
+  { label: "M&A Hub",        href: "/awq/ma",               icon: GitMerge      },
   { label: "Deal Pipeline",  href: "/awq/ma/deals",         icon: Activity      },
   { label: "Novo Deal",      href: "/awq/ma/deals/new",     icon: FileText      },
   { label: "IC Meetings",    href: "/awq/ma/ic",            icon: Users         },
@@ -255,25 +293,33 @@ const awqMaNav = [
 
 // DMS — Documentos, arquivos, versionamento, colaboração
 const awqDmsNav = [
-  { label: "Documentos",    href: "/awq/dms",                  icon: FileText  },
-  { label: "Arquivos",      href: "/awq/dms/files",            icon: FolderOpen},
-  { label: "Versionamento", href: "/awq/dms/versioning",       icon: Layers    },
+  { label: "Documentos",    href: "/awq/dms",                  icon: FileText     },
+  { label: "Arquivos",      href: "/awq/dms/files",            icon: FolderOpen   },
+  { label: "Versionamento", href: "/awq/dms/versioning",       icon: Layers       },
+  { label: "Colaboração",   href: "/awq/dms/collaboration",    icon: MessageSquare},
 ];
 
 // ERP — Compras, contratos, time tracking, assets
 const awqErpNav = [
-  { label: "Compras",       href: "/awq/erp/purchases",    icon: Package },
-  { label: "Contratos",     href: "/awq/erp/contracts",    icon: FileText},
-  { label: "Time Tracking", href: "/awq/erp/timetracking", icon: Clock   },
-  { label: "Assets",        href: "/awq/erp/assets",       icon: Package },
+  { label: "Requisições",     href: "/awq/erp/procurement/requisitions", icon: ClipboardList },
+  { label: "Compras",         href: "/awq/erp/purchases",                icon: Package       },
+  { label: "Recebimento",     href: "/awq/erp/procurement/receiving",    icon: ArrowDownLeft },
+  { label: "Estoque",         href: "/awq/erp/inventory/items",          icon: Package       },
+  { label: "Pedidos de Venda",href: "/awq/erp/orders/sales",             icon: ClipboardList },
+  { label: "Faturamento",     href: "/awq/erp/orders/billing",           icon: Receipt       },
+  { label: "Contratos",       href: "/awq/erp/contracts",                icon: FileText      },
+  { label: "Time Tracking",   href: "/awq/erp/timetracking",             icon: Clock         },
+  { label: "Despesas",        href: "/awq/erp/expenses",                 icon: Receipt       },
+  { label: "Assets",          href: "/awq/erp/assets",                   icon: Package       },
 ];
 
 // HCM — RH, folha, férias, recrutamento, treinamento
 const awqHcmNav = [
-  { label: "RH",                 href: "/awq/hcm",             icon: Users    },
-  { label: "Folha de Pagamento", href: "/awq/hcm/payroll",     icon: DollarSign},
-  { label: "Recrutamento",       href: "/awq/hcm/recruitment", icon: UserPlus },
-  { label: "Treinamento",        href: "/awq/hcm/training",    icon: HeartPulse},
+  { label: "RH",                 href: "/awq/hcm",             icon: Users      },
+  { label: "Folha de Pagamento", href: "/awq/hcm/payroll",     icon: DollarSign },
+  { label: "Férias",             href: "/awq/hcm/vacation",    icon: Calendar   },
+  { label: "Recrutamento",       href: "/awq/hcm/recruitment", icon: UserPlus   },
+  { label: "Treinamento",        href: "/awq/hcm/training",    icon: HeartPulse },
 ];
 
 // ── BU nav — mirrors desktop Sidebar module configs exactly ──────────────
@@ -411,11 +457,24 @@ function BUContextBar({
   );
 }
 
+const ROLE_LABELS: Record<string, string> = {
+  owner: "Owner",
+  admin: "Admin",
+  analyst: "Analyst",
+  "cs-ops": "CS Ops",
+};
+
 // ── Main Component ────────────────────────────────────────────────────────
 export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps) {
   const rawPathname = usePathname();
   const pathname = rawPathname ?? "";
   const backdropRef = useRef<HTMLDivElement>(null);
+  const { data: session } = useSession();
+  const sessionUser = session?.user as { name?: string; email?: string; role?: string } | undefined;
+  const userName = sessionUser?.name ?? sessionUser?.email ?? "Usuário";
+  const userInitials = userName.split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase() || "?";
+  const userRole = sessionUser?.role;
+  const roleLabel = ROLE_LABELS[userRole ?? ""] ?? userRole ?? "—";
 
   // Close on Escape
   useEffect(() => {
@@ -578,6 +637,9 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
           {/* ── JACQES ───────────────────────────────────── */}
           {jacqesMode && (
             <>
+              <div className="space-y-0.5 mt-2 mb-1">
+                <NavLink href="/jacqes" icon={LayoutDashboard} label="Visão Geral" active={pathname === "/jacqes"} onNavigate={onClose} />
+              </div>
               <SectionLabel>EPM · Financeiro & Performance</SectionLabel>
               <div className="space-y-0.5">
                 {jacqesEpmNav.map((item) => (
@@ -602,6 +664,9 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
           {/* ── Caza Vision ──────────────────────────────── */}
           {cazaMode && (
             <>
+              <div className="space-y-0.5 mt-2 mb-1">
+                <NavLink href="/caza-vision" icon={LayoutDashboard} label="Visão Geral" active={pathname === "/caza-vision"} onNavigate={onClose} />
+              </div>
               <SectionLabel>EPM · Financeiro & Performance</SectionLabel>
               <div className="space-y-0.5">
                 {cazaEpmNav.map((item) => (
@@ -626,6 +691,9 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
           {/* ── Advisor ──────────────────────────────────── */}
           {advisorMode && (
             <>
+              <div className="space-y-0.5 mt-2 mb-1">
+                <NavLink href="/advisor" icon={LayoutDashboard} label="Visão Geral" active={pathname === "/advisor"} onNavigate={onClose} />
+              </div>
               <SectionLabel>EPM · Financeiro & Performance</SectionLabel>
               <div className="space-y-0.5">
                 {advisorEpmNav.map((item) => (
@@ -644,6 +712,9 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
           {/* ── AWQ Venture ──────────────────────────────── */}
           {ventureMode && (
             <>
+              <div className="space-y-0.5 mt-2 mb-1">
+                <NavLink href="/awq-venture" icon={LayoutDashboard} label="Visão Geral" active={pathname === "/awq-venture"} onNavigate={onClose} />
+              </div>
               <SectionLabel>EPM · Financeiro & Performance</SectionLabel>
               <div className="space-y-0.5">
                 {ventureEpmNav.map((item) => (
@@ -704,9 +775,9 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
                   <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
                 ))}
               </div>
-              <SectionLabel>Partes</SectionLabel>
+              <SectionLabel>Relatórios</SectionLabel>
               <div className="space-y-0.5">
-                {epmPartesNav.map((item) => (
+                {epmRelatoriosNav.map((item) => (
                   <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
                 ))}
               </div>
@@ -891,12 +962,26 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
         <div className="px-4 py-4 border-t border-gray-100 shrink-0">
           <div className="flex items-center gap-3 px-1">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-awq-gold to-amber-600 flex items-center justify-center text-xs font-bold text-gray-900 shrink-0">
-              AD
+              {userInitials}
             </div>
             <div className="flex-1 min-w-0">
-              <span className="text-sm font-semibold text-gray-800">Admin</span>
-              <div className="text-[10px] text-gray-400">Administrador</div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-gray-800 truncate">{userName}</span>
+                {userRole && (
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-200">
+                    {roleLabel.toUpperCase()}
+                  </span>
+                )}
+              </div>
+              <div className="text-[10px] text-gray-400 truncate">{sessionUser?.email ?? "—"}</div>
             </div>
+            <button
+              onClick={() => void signOut({ callbackUrl: "/login" })}
+              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+              title="Sair"
+            >
+              <LogOut size={14} />
+            </button>
           </div>
         </div>
       </div>
