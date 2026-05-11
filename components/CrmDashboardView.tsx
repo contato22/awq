@@ -25,6 +25,12 @@ const BU_LABELS: Record<string, string> = {
   VENTURE: "AWQ Venture",
 };
 
+const OUTCOME_LABELS: Record<string, string> = {
+  successful: "Positivo — avançou para próxima etapa",
+  unsuccessful: "Sem avanço",
+  no_answer: "Sem resposta",
+};
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function daysUntil(dateStr: string | null): number {
@@ -450,7 +456,7 @@ export default function CrmDashboardView({ buFilter: externalBu }: Props) {
                       <p className="text-[11px] text-gray-500 mt-0.5 line-clamp-1">{a.description}</p>
                     )}
                     {a.outcome && (
-                      <p className="text-[11px] text-blue-600 mt-0.5 font-medium">Resultado: {a.outcome}</p>
+                      <p className="text-[11px] text-blue-600 mt-0.5 font-medium">Resultado: {OUTCOME_LABELS[a.outcome] ?? a.outcome}</p>
                     )}
                   </div>
                   <div className="shrink-0 text-right">
