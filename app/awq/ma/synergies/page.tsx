@@ -75,7 +75,7 @@ export default function SynergiesPage() {
 
   const load = async () => {
     if (IS_STATIC) {
-      setSynergies(SEED_SYNERGIES as Synergy[]);
+      setSynergies(SEED_SYNERGIES as unknown as Synergy[]);
       setLoading(false);
       return;
     }
@@ -84,7 +84,7 @@ export default function SynergiesPage() {
     try {
       const r = await fetch("/api/ma/synergies");
       const j = await r.json();
-      if (j.success) setSynergies(j.data as Synergy[]);
+      if (j.success) setSynergies(j.data as unknown as Synergy[]);
       else setError(j.error);
     } catch (e) {
       setError(String(e));

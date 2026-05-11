@@ -103,14 +103,14 @@ export default function MediaDeliverablesPage() {
   const loadDeliverables = (id: string) => {
     if (!id) return;
     if (IS_STATIC) {
-      setDeliverables(SEED_MEDIA_DELIVERABLES.filter(d => d.portco_id === id) as MediaDeliverable[]);
+      setDeliverables(SEED_MEDIA_DELIVERABLES.filter(d => d.portco_id === id) as unknown as MediaDeliverable[]);
       setLoading(false);
       return;
     }
     setLoading(true);
     fetch(`/api/ma/media?portco_id=${id}`)
       .then(r => r.json())
-      .then(j => { if (j.success) setDeliverables(j.data as MediaDeliverable[]); })
+      .then(j => { if (j.success) setDeliverables(j.data as unknown as MediaDeliverable[]); })
       .finally(() => setLoading(false));
   };
 

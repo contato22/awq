@@ -75,14 +75,14 @@ export default function BoardMeetingsPage() {
   const loadMeetings = (id: string) => {
     if (!id) return;
     if (IS_STATIC) {
-      setMeetings(SEED_BOARD_MEETINGS.filter(m => m.portco_id === id) as BoardMeeting[]);
+      setMeetings(SEED_BOARD_MEETINGS.filter(m => m.portco_id === id) as unknown as BoardMeeting[]);
       setLoading(false);
       return;
     }
     setLoading(true);
     fetch(`/api/ma/board?portco_id=${id}`)
       .then(r => r.json())
-      .then(j => { if (j.success) setMeetings(j.data as BoardMeeting[]); })
+      .then(j => { if (j.success) setMeetings(j.data as unknown as BoardMeeting[]); })
       .finally(() => setLoading(false));
   };
 

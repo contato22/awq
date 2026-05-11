@@ -23,7 +23,7 @@ type FormData = {
   bu: string;
   lead_source: string;
   assigned_to: string;
-  status: string;
+  status: "new" | "contacted" | "qualified" | "unqualified" | "converted";
   bant_budget: string;
   bant_authority: boolean;
   bant_need: string;
@@ -212,12 +212,12 @@ function EditLeadPageInner() {
 
       if (!saved) {
         const existing = findLead(leadId);
-        const updated: CrmLead = {
+        const updated = {
           ...(existing ?? ({} as CrmLead)),
           ...payload,
         };
         const edits = JSON.parse(localStorage.getItem("awq_lead_edits") ?? "{}") as Record<string, CrmLead>;
-        edits[leadId] = updated;
+        edits[leadId] = updated as unknown as CrmLead;
         localStorage.setItem("awq_lead_edits", JSON.stringify(edits));
 
         // Also update awq_local_leads if this is a local lead
@@ -316,7 +316,7 @@ function EditLeadPageInner() {
 
           <FormSection icon={<Building2 size={15} />} title="Qualificação">
             <Field label="Status">
-              <select className={selectCls} value={form.status} onChange={e => set("status", e.target.value)}>
+              <select className={selectCls} value={form.status} onChange={e => set("status", e.target.value as "new" | "contacted" | "qualified" | "unqualified" | "converted")}>
                 <option value="new">Novo</option>
                 <option value="contacted">Contato feito</option>
                 <option value="qualified">Qualificado</option>
