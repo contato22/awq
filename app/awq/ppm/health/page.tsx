@@ -48,10 +48,6 @@ function deriveHealth(cpi: number | null, spi: number | null, daysLate: number, 
   return bad ? "red" : warn ? "yellow" : "green";
 }
 
-function Pill({ children, color }: { children: React.ReactNode; color: string }) {
-  return <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${color}`}>{children}</span>;
-}
-
 // ─── Health Card ──────────────────────────────────────────────────────────────
 
 function HealthCard({ row }: { row: HealthRow }) {
