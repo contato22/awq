@@ -263,13 +263,26 @@ export default function RfmPage() {
   const [bu, setBu]                   = useState<BuFilter>("Todos");
 
   useEffect(() => {
+    let cancelled = false;
     setLoading(true);
+    setData(null);
+
     const buParam = bu !== "Todos" ? `?bu=${bu}` : "";
     fetch(`/api/crm/rfm${buParam}`)
       .then(r => r.json())
-      .then(json => { setData(json.success ? json.data : buildSeedResponse(bu)); })
-      .catch(() => { setData(buildSeedResponse(bu)); })
-      .finally(() => setLoading(false));
+      .then(json => {
+        if (cancelled) return;
+        setData(json.success ? json.data : buildSeedResponse(bu));
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setData(buildSeedResponse(bu));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => { cancelled = true; };
   }, [bu]);
 
   const visibleCustomers = useMemo(
