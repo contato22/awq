@@ -206,12 +206,15 @@ export default function PortfolioHealthPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [projRes, metRes] = await Promise.all([
+      const [projRes, metRes, risksRes, issuesRes] = await Promise.all([
         fetch("/api/ppm/projects"),
         fetch("/api/ppm/metrics"),
+        fetch("/api/ppm/risks"),
+        fetch("/api/ppm/issues"),
       ]);
-      const projJson = await projRes.json();
-      const metJson  = await metRes.json();
+      const [projJson, metJson, risksJson, issuesJson] = await Promise.all([
+        projRes.json(), metRes.json(), risksRes.json(), issuesRes.json(),
+      ]);
 
       if (!projJson.success) return;
 
@@ -222,6 +225,24 @@ export default function PortfolioHealthPage() {
         ])
       );
 
+      // Count open risks/issues per project
+      const riskCounts = new Map<string, number>();
+      if (risksJson.success) {
+        for (const r of risksJson.data as { project_id: string; status: string }[]) {
+          if (r.status !== "closed") {
+            riskCounts.set(r.project_id, (riskCounts.get(r.project_id) ?? 0) + 1);
+          }
+        }
+      }
+      const issueCounts = new Map<string, number>();
+      if (issuesJson.success) {
+        for (const i of issuesJson.data as { project_id: string; status: string }[]) {
+          if (i.status !== "closed" && i.status !== "resolved") {
+            issueCounts.set(i.project_id, (issueCounts.get(i.project_id) ?? 0) + 1);
+          }
+        }
+      }
+
       const built: HealthRow[] = (projJson.data.projects as PpmProject[])
         .filter(p => p.status === "active")
         .map(p => {
@@ -231,6 +252,8 @@ export default function PortfolioHealthPage() {
           const eac = evm?.eac ?? null;
           const bh  = calcBudgetHealth(p.budget_cost, p.actual_cost);
           const daysLate = daysOverdue(p.planned_end_date);
+          const openRisks  = riskCounts.get(p.project_id)  ?? 0;
+          const openIssues = issueCounts.get(p.project_id) ?? 0;
           const overallHealth = deriveHealth(cpi, spi, daysLate, bh.variancePct);
           return {
             project: p,
@@ -238,8 +261,8 @@ export default function PortfolioHealthPage() {
             spi,
             eac,
             daysLate,
-            openRisks:  0,
-            openIssues: 0,
+            openRisks,
+            openIssues,
             budgetVariancePct: bh.variancePct,
             overallHealth,
           };
