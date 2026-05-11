@@ -1,16 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import {
   DollarSign, TrendingUp, Users, BarChart3,
   AlertTriangle, Info, Activity,
 } from "lucide-react";
-import { buData, monthlyRevenue, JACQES_MRR, JACQES_MRR_Q1 } from "@/lib/awq-group-data";
-import { JACQES_CLIENTS } from "@/lib/jacqes-customers";
-
-// ─── Source of truth ──────────────────────────────────────────────────────────
-const _jacqes = buData.find((b) => b.id === "jacqes")!;
+import { buData as SEED_BU, monthlyRevenue, JACQES_MRR as SEED_MRR, JACQES_MRR_Q1 } from "@/lib/awq-group-data";
+import { JACQES_CLIENTS as SEED_CLIENTS } from "@/lib/jacqes-customers";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function fmtR(n: number) {
@@ -22,13 +19,9 @@ const SEL_CLS =
   "border border-gray-200 rounded-lg px-2 py-1.5 text-[11px] text-gray-700 bg-white " +
   "focus:outline-none focus:ring-1 focus:ring-brand-400 cursor-pointer";
 
-// ─── Clientes — fonte única: lib/jacqes-customers.ts ─────────────────────────
-const clientes = JACQES_CLIENTS;
-const totalPago = clientes.filter((c) => c.status === "Pago").reduce((s, c) => s + c.fee, 0);
-const totalPend = clientes.filter((c) => c.status === "Pendente").reduce((s, c) => s + c.fee, 0);
-
 // ─── Período expandido 2021–2030 ─────────────────────────────────────────────
 const YEAR_START = 2021;
+const SEED_JACQES = SEED_BU.find((b) => b.id === "jacqes")!;
 const YEAR_END   = 2030;
 const ALL_YEARS  = Array.from({ length: YEAR_END - YEAR_START + 1 }, (_, i) => YEAR_START + i);
 const MES_PT     = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
@@ -43,7 +36,7 @@ const REAL_BY_MI: Partial<Record<number, number>> = {
   [miOf(2026, 0)]: JACQES_MRR_Q1,
   [miOf(2026, 1)]: JACQES_MRR_Q1,
   [miOf(2026, 2)]: JACQES_MRR_Q1,
-  [miOf(2026, 3)]: JACQES_MRR,
+  [miOf(2026, 3)]: SEED_MRR,
 };
 const realRevArr: number[] = Array.from({ length: TOTAL_MIS }, (_, mi) => REAL_BY_MI[mi] ?? 0);
 const zeroArr: number[]    = Array(TOTAL_MIS).fill(0);
@@ -143,6 +136,43 @@ export default function FpaPage() {
   const [dateFrom, setDateFrom] = useState("2026-01-01");
   const [dateTo,   setDateTo]   = useState("2026-04-30");
 
+  // ─── Live data (seeded from static imports, updated from DB) ────────────────
+  const [jacqes,   setJacqes]   = useState(SEED_JACQES);
+  const [clientes, setClientes] = useState<{ nome: string; fee: number; status: "Pago" | "Pendente"; alloc: string }[]>(SEED_CLIENTS);
+  const [mrrLive,  setMrrLive]  = useState(SEED_MRR);
+
+  useEffect(() => {
+    // Fetch BU profiles
+    fetch("/api/awq/planning?key=bu_profiles")
+      .then(r => r.ok ? r.json() : null)
+      .catch(() => null)
+      .then(j => {
+        if (!j?.success || !Array.isArray(j.data)) return;
+        const bu = j.data.find((b: { id: string }) => b.id === "jacqes");
+        if (bu) setJacqes(bu);
+      });
+
+    // Fetch CRM clients
+    fetch("/api/jacqes/crm/clientes")
+      .then(r => r.ok ? r.json() : null)
+      .catch(() => null)
+      .then(data => {
+        if (!Array.isArray(data) || data.length === 0) return;
+        const mapped = data.map((c: { nome: string; ticket_mensal: number; status_conta: string }) => ({
+          nome:   c.nome,
+          fee:    c.ticket_mensal,
+          status: c.status_conta === "Ativo" ? "Pago" as const : "Pendente" as const,
+          alloc:  "manter",
+        }));
+        setClientes(mapped);
+        setMrrLive(mapped.reduce((s: number, c: { fee: number }) => s + c.fee, 0));
+      });
+  }, []);
+
+  // ─── Derived from live clientes ───────────────────────────────────────────
+  const totalPago = clientes.filter((c) => c.status === "Pago").reduce((s, c) => s + c.fee, 0);
+  const totalPend = clientes.filter((c) => c.status === "Pendente").reduce((s, c) => s + c.fee, 0);
+
   const activeMIs: number[] = (() => {
     if (gran === "mes") return Array.from({ length: miTo - miFrom + 1 }, (_, i) => miFrom + i);
     if (gran === "ano") {
@@ -197,10 +227,10 @@ export default function FpaPage() {
           <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { label: "MRR Atual (Abr/26)",    value: fmtR(JACQES_MRR),           sub: "4 clientes · Notion CRM",    icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
-                { label: "Receita YTD (Jan–Abr)", value: fmtR(_jacqes.revenue),       sub: "6.490×3 + 8.280 confirmado", icon: BarChart3,  color: "text-brand-600",   bg: "bg-brand-50"   },
+                { label: "MRR Atual (Abr/26)",    value: fmtR(mrrLive),               sub: "4 clientes · Notion CRM",    icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
+                { label: "Receita YTD (Jan–Abr)", value: fmtR(jacqes.revenue),        sub: "6.490×3 + 8.280 confirmado", icon: BarChart3,  color: "text-brand-600",   bg: "bg-brand-50"   },
                 { label: "ARR Projetado",          value: fmtR(arr),                   sub: "MRR × 12 · referência",      icon: TrendingUp, color: "text-violet-700",  bg: "bg-violet-50"  },
-                { label: "Clientes Ativos",        value: String(_jacqes.customers),   sub: "CEM · Carol · André · Tati", icon: Users,      color: "text-cyan-700",    bg: "bg-cyan-50"    },
+                { label: "Clientes Ativos",        value: String(jacqes.customers),    sub: "CEM · Carol · André · Tati", icon: Users,      color: "text-cyan-700",    bg: "bg-cyan-50"    },
               ].map((c) => {
                 const Icon = c.icon;
                 return (
@@ -236,7 +266,7 @@ export default function FpaPage() {
                   </thead>
                   <tbody>
                     {[
-                      { tipo: "Recorrente (FEE)", mrr: JACQES_MRR, ytd: _jacqes.revenue, ok: true },
+                      { tipo: "Recorrente (FEE)", mrr: mrrLive, ytd: jacqes.revenue, ok: true },
                       { tipo: "Não recorrente",   mrr: 0, ytd: 0, ok: false },
                       { tipo: "Setup",            mrr: 0, ytd: 0, ok: false },
                       { tipo: "Projeto",          mrr: 0, ytd: 0, ok: false },
@@ -261,8 +291,8 @@ export default function FpaPage() {
                   <tfoot>
                     <tr className="border-t border-gray-200">
                       <td className="py-2.5 px-3 text-xs font-bold text-gray-700">Total Bruto</td>
-                      <td className="py-2.5 px-3 text-right text-xs font-bold text-brand-700">{fmtR(JACQES_MRR)}</td>
-                      <td className="py-2.5 px-3 text-right text-xs font-bold text-brand-700">{fmtR(_jacqes.revenue)}</td>
+                      <td className="py-2.5 px-3 text-right text-xs font-bold text-brand-700">{fmtR(mrrLive)}</td>
+                      <td className="py-2.5 px-3 text-right text-xs font-bold text-brand-700">{fmtR(jacqes.revenue)}</td>
                       <td />
                     </tr>
                   </tfoot>
@@ -343,7 +373,7 @@ export default function FpaPage() {
                     <tfoot>
                       <tr className="border-t border-gray-200">
                         <td className="py-2 px-3 text-xs font-bold text-gray-700">Total</td>
-                        <td className="py-2 px-3 text-right text-xs font-bold text-brand-700">{fmtR(JACQES_MRR)}</td>
+                        <td className="py-2 px-3 text-right text-xs font-bold text-brand-700">{fmtR(mrrLive)}</td>
                         <td />
                       </tr>
                     </tfoot>
@@ -417,7 +447,7 @@ export default function FpaPage() {
               <h3 className="text-sm font-semibold text-gray-900 mb-4">3. Lucro Bruto</h3>
               <div className="rounded-lg bg-gray-50 border border-gray-200 px-4 py-4 mb-4 font-mono text-xs text-gray-600 space-y-1">
                 <p>Lucro Bruto = Receita Líquida − COGS</p>
-                <p>= {fmtR(JACQES_MRR)} (MRR) − <span className="text-gray-400">[COGS pendente]</span></p>
+                <p>= {fmtR(mrrLive)} (MRR) − <span className="text-gray-400">[COGS pendente]</span></p>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 {[
@@ -772,7 +802,7 @@ export default function FpaPage() {
           <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { label: "MRR Atual (Abr/26)", value: fmtR(JACQES_MRR), sub: "4 clientes FEE",      icon: DollarSign, color: "text-brand-600",   bg: "bg-brand-50"   },
+                { label: "MRR Atual (Abr/26)", value: fmtR(mrrLive), sub: "4 clientes FEE",      icon: DollarSign, color: "text-brand-600",   bg: "bg-brand-50"   },
                 { label: "ARR Projetado",       value: fmtR(arr),         sub: "MRR × 12",            icon: TrendingUp, color: "text-emerald-600", bg: "bg-emerald-50" },
                 { label: "MoM (Mar→Abr)",       value: `+${mrrGrowth}%`,  sub: "Tati Simões entrou", icon: TrendingUp, color: "text-amber-700",   bg: "bg-amber-50"   },
                 { label: "CAC",                 value: "—",               sub: "pipeline de vendas", icon: BarChart3,  color: "text-gray-400",    bg: "bg-gray-50"    },
@@ -811,7 +841,7 @@ export default function FpaPage() {
                         <td className="py-2.5 px-3 text-xs font-semibold text-gray-900">{c.nome}</td>
                         <td className="py-2.5 px-3 text-right text-xs font-bold text-gray-900">{fmtR(c.fee)}</td>
                         <td className="py-2.5 px-3 text-right text-xs text-gray-500">
-                          {((c.fee / JACQES_MRR) * 100).toFixed(1)}%
+                          {((c.fee / mrrLive) * 100).toFixed(1)}%
                         </td>
                         <td className="py-2.5 px-3 text-right text-xs text-gray-300">—</td>
                       </tr>
@@ -870,7 +900,7 @@ export default function FpaPage() {
                       <tr key={c.nome} className="border-b border-gray-100 hover:bg-gray-50/80 transition-colors">
                         <td className="py-2.5 px-3 text-xs font-semibold text-gray-900">{c.nome}</td>
                         <td className="py-2.5 px-3 text-right text-xs font-bold text-gray-900">{fmtR(c.fee)}</td>
-                        <td className="py-2.5 px-3 text-right text-xs text-gray-500">{((c.fee/JACQES_MRR)*100).toFixed(1)}%</td>
+                        <td className="py-2.5 px-3 text-right text-xs text-gray-500">{((c.fee/mrrLive)*100).toFixed(1)}%</td>
                         <td className="py-2.5 px-3 text-right">
                           {c.status === "Pago"
                             ? <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">pago</span>

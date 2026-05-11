@@ -1,16 +1,13 @@
 import Header from "@/components/Header";
 import { TrendingUp, AlertTriangle } from "lucide-react";
-import { buData, monthlyRevenue, JACQES_MRR } from "@/lib/awq-group-data";
-import { JACQES_CLIENTS } from "@/lib/jacqes-customers";
-
-const jacqes = buData.find((b) => b.id === "jacqes")!;
-const mrrHistory = monthlyRevenue.filter((m) => m.jacqes > 0).map((m) => ({ month: m.month, mrr: m.jacqes }));
-const clientes   = JACQES_CLIENTS;
-const totalPago  = clientes.filter((c) => c.status === "Pago").reduce((s, c) => s + c.fee, 0);
-const totalPend  = clientes.filter((c) => c.status === "Pendente").reduce((s, c) => s + c.fee, 0);
+import { buData as SEED_BU, monthlyRevenue, JACQES_MRR as SEED_MRR } from "@/lib/awq-group-data";
+import type { BuData } from "@/lib/awq-group-data";
+import { JACQES_CLIENTS as SEED_CLIENTS } from "@/lib/jacqes-customers";
+import { getPlanningBlob } from "@/lib/planning-db";
+import { listCrmClients } from "@/lib/jacqes-crm-db";
 
 function fmt(n: number) {
-  return "R$ " + n.toLocaleString("pt-BR");
+  return "R$ " + n.toLocaleString("pt-BR");
 }
 
 type LineStatus = "real" | "parcial" | "pendente";
@@ -26,22 +23,6 @@ interface PlRow {
 
 const MES_PT = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 
-const rows: PlRow[] = [
-  { label: "(+) Receita Bruta",       value: jacqes.revenue, status: "real",     bold: false, indent: false, type: "positive" },
-  { label: "(-) Deduções (ISS/PIS…)", value: null,           status: "pendente", bold: false, indent: true,  type: "negative" },
-  { label: "(=) Receita Líquida",     value: jacqes.revenue, status: "parcial",  bold: true,  indent: false, type: "positive" },
-  { label: "(-) COGS",                value: null,           status: "pendente", bold: false, indent: true,  type: "negative" },
-  { label: "(=) Lucro Bruto",         value: null,           status: "pendente", bold: true,  indent: false, type: "neutral"  },
-  { label: "(-) Pessoal",             value: null,           status: "pendente", bold: false, indent: true,  type: "negative" },
-  { label: "(-) Adm & Marketing",     value: null,           status: "pendente", bold: false, indent: true,  type: "negative" },
-  { label: "(=) EBITDA",              value: null,           status: "pendente", bold: true,  indent: false, type: "neutral"  },
-  { label: "(-) D&A",                 value: null,           status: "pendente", bold: false, indent: true,  type: "negative" },
-  { label: "(=) EBIT",                value: null,           status: "pendente", bold: true,  indent: false, type: "neutral"  },
-  { label: "(+/-) Resultado Fin.",    value: null,           status: "pendente", bold: false, indent: true,  type: "neutral"  },
-  { label: "(-) IR / CSLL",           value: null,           status: "pendente", bold: false, indent: true,  type: "negative" },
-  { label: "(=) Lucro Líquido",       value: jacqes.netIncome || null, status: jacqes.netIncome ? "real" : "pendente", bold: true, indent: false, type: "neutral" },
-];
-
 const statusLabel: Record<LineStatus, string> = {
   real:     "real",
   parcial:  "parcial",
@@ -53,9 +34,49 @@ const statusCls: Record<LineStatus, string> = {
   pendente: "text-gray-300 bg-transparent",
 };
 
-const maxBar = Math.max(...mrrHistory.map((r) => r.mrr));
+export default async function JacqesPLPage() {
+  const [dbBu, crmClients] = await Promise.all([
+    getPlanningBlob<BuData[]>("bu_profiles"),
+    listCrmClients(),
+  ]);
+  const buData = dbBu ?? SEED_BU;
+  const jacqes = buData.find((b) => b.id === "jacqes") ?? SEED_BU.find((b) => b.id === "jacqes")!;
 
-export default function MiniPlPage() {
+  const clientes = crmClients.length > 0
+    ? crmClients.map(c => ({
+        nome:   c.nome,
+        fee:    c.ticket_mensal,
+        status: c.status_conta === "Ativo" ? "Pago" as const : "Pendente" as const,
+        alloc:  "manter" as const,
+      }))
+    : SEED_CLIENTS;
+
+  const JACQES_MRR = crmClients.length > 0
+    ? crmClients.reduce((s, c) => s + c.ticket_mensal, 0)
+    : SEED_MRR;
+
+  const mrrHistory = monthlyRevenue.filter((m) => m.jacqes > 0).map((m) => ({ month: m.month, mrr: m.jacqes }));
+  const totalPago  = clientes.filter((c) => c.status === "Pago").reduce((s, c) => s + c.fee, 0);
+  const totalPend  = clientes.filter((c) => c.status === "Pendente").reduce((s, c) => s + c.fee, 0);
+
+  const rows: PlRow[] = [
+    { label: "(+) Receita Bruta",       value: jacqes.revenue, status: "real",     bold: false, indent: false, type: "positive" },
+    { label: "(-) Deduções (ISS/PIS…)", value: null,           status: "pendente", bold: false, indent: true,  type: "negative" },
+    { label: "(=) Receita Líquida",     value: jacqes.revenue, status: "parcial",  bold: true,  indent: false, type: "positive" },
+    { label: "(-) COGS",                value: null,           status: "pendente", bold: false, indent: true,  type: "negative" },
+    { label: "(=) Lucro Bruto",         value: null,           status: "pendente", bold: true,  indent: false, type: "neutral"  },
+    { label: "(-) Pessoal",             value: null,           status: "pendente", bold: false, indent: true,  type: "negative" },
+    { label: "(-) Adm & Marketing",     value: null,           status: "pendente", bold: false, indent: true,  type: "negative" },
+    { label: "(=) EBITDA",              value: null,           status: "pendente", bold: true,  indent: false, type: "neutral"  },
+    { label: "(-) D&A",                 value: null,           status: "pendente", bold: false, indent: true,  type: "negative" },
+    { label: "(=) EBIT",                value: null,           status: "pendente", bold: true,  indent: false, type: "neutral"  },
+    { label: "(+/-) Resultado Fin.",    value: null,           status: "pendente", bold: false, indent: true,  type: "neutral"  },
+    { label: "(-) IR / CSLL",           value: null,           status: "pendente", bold: false, indent: true,  type: "negative" },
+    { label: "(=) Lucro Líquido",       value: jacqes.netIncome || null, status: jacqes.netIncome ? "real" : "pendente", bold: true, indent: false, type: "neutral" },
+  ];
+
+  const maxBar = Math.max(...mrrHistory.map((r) => r.mrr));
+
   return (
     <>
       <Header title="Mini P&L — JACQES" subtitle="Demonstrativo de Resultado · Q1/Q2 2026" />

@@ -6,7 +6,8 @@
 import Link from "next/link";
 import Header from "@/components/Header";
 import { Briefcase, Users, DollarSign, TrendingUp, Star, ChevronRight } from "lucide-react";
-import { advisorClients } from "@/lib/advisor-clients-data";
+import { listAdvisorClients } from "@/lib/advisor-db";
+import { advisorClients as SEED_CLIENTS } from "@/lib/advisor-clients-data";
 
 function fmtR(n: number) {
   if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
@@ -14,8 +15,9 @@ function fmtR(n: number) {
   return "R$" + n;
 }
 
-export default function AdvisorPage() {
-  const clients  = advisorClients;
+export default async function AdvisorPage() {
+  const dbClients = await listAdvisorClients();
+  const clients   = dbClients.length > 0 ? dbClients : SEED_CLIENTS;
   const ativos   = clients.filter((c) => c.status === "Ativo").length;
   const totalAum = clients.reduce((s, c) => s + (c.aum ?? 0), 0);
   const scored   = clients.filter((c) => c.nps != null);

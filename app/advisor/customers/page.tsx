@@ -9,8 +9,9 @@
 
 import Header from "@/components/Header";
 import { Users, DollarSign, Star, BarChart3, Database } from "lucide-react";
-import { advisorClients } from "@/lib/advisor-clients-data";
-import type { AdvisorClientSeed as AdvisorClientRow } from "@/lib/advisor-clients-data";
+import { listAdvisorClients } from "@/lib/advisor-db";
+import type { AdvisorClient as AdvisorClientRow } from "@/lib/advisor-db";
+import { advisorClients as SEED_CLIENTS } from "@/lib/advisor-clients-data";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -29,8 +30,9 @@ const statusBadge: Record<string, string> = {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function AdvisorCustomersPage() {
-  const clients = advisorClients;
+export default async function AdvisorCustomersPage() {
+  const dbClients = await listAdvisorClients();
+  const clients   = dbClients.length > 0 ? dbClients : SEED_CLIENTS;
 
   const ativos   = clients.filter((c) => c.status === "Ativo").length;
   const totalAum = clients.reduce((s, c) => s + (c.aum ?? 0), 0);

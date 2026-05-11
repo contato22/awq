@@ -1,7 +1,9 @@
 import Header from "@/components/Header";
 import Link from "next/link";
 import { BarChart3, Building2, TrendingUp, ChevronRight, Users, DollarSign, Briefcase, Zap, CheckCircle2 } from "lucide-react";
-import { buData, consolidated, ventureFeeMRR, ventureFeeARR } from "@/lib/awq-derived-metrics";
+import { buData as SEED_BU, consolidated, ventureFeeMRR, ventureFeeARR } from "@/lib/awq-derived-metrics";
+import { getPlanningBlob } from "@/lib/planning-db";
+import type { BuData } from "@/lib/awq-group-data";
 import { getAWQGroupKPIs, fmtBRL } from "@/lib/financial-metric-query";
 
 // ── Formatters ──────────────────────────────────────────────────────────────
@@ -14,85 +16,87 @@ function fmtPct(n: number): string {
   return n.toFixed(1) + "%";
 }
 
-// ── BU display config — links internal; KPIs sourced from awq-group-data ────
-const jacqes = buData.find((b) => b.id === "jacqes")!;
-const caza   = buData.find((b) => b.id === "caza")!;
-const venture = buData.find((b) => b.id === "venture");
-const advisor = buData.find((b) => b.id === "advisor");
-
-const BUS = [
-  {
-    id: "jacqes",
-    label: "JACQES",
-    sub: "Agência",
-    href: "/jacqes",
-    bgColor: "bg-brand-50",
-    textColor: "text-brand-700",
-    badgeColor: "bg-brand-100 text-brand-600 border-brand-200",
-    icon: BarChart3,
-    kpis: [
-      { label: "Receita",  value: fmtR(jacqes.revenue)                },
-      { label: "Clientes", value: String(jacqes.customers)            },
-      { label: "EBITDA %", value: fmtPct((jacqes.ebitda / jacqes.revenue) * 100) },
-    ],
-    status: jacqes.status,
-    statusColor: "bg-emerald-100 text-emerald-600 border-emerald-200",
-  },
-  {
-    id: "caza",
-    label: "Caza Vision",
-    sub: "Produtora",
-    href: "/caza-vision",
-    bgColor: "bg-emerald-50",
-    textColor: "text-emerald-700",
-    badgeColor: "bg-emerald-100 text-emerald-600 border-emerald-200",
-    icon: Building2,
-    kpis: [
-      { label: "Receita",  value: fmtR(caza.revenue)                },
-      { label: "Clientes", value: String(caza.customers)            },
-      { label: "EBITDA %", value: fmtPct((caza.ebitda / caza.revenue) * 100) },
-    ],
-    status: caza.status,
-    statusColor: "bg-emerald-100 text-emerald-600 border-emerald-200",
-  },
-  {
-    id: "venture",
-    label: "AWQ Venture",
-    sub: "Investimentos (híbrido)",
-    href: "/awq-venture",
-    bgColor: "bg-amber-50",
-    textColor: "text-amber-700",
-    badgeColor: "bg-amber-100 text-amber-600 border-amber-200",
-    icon: TrendingUp,
-    kpis: [
-      { label: "Fee MRR",   value: fmtR(ventureFeeMRR) },
-      { label: "CDB DI",    value: fmtR(venture?.capitalAllocated ?? 0) },
-      { label: "Fee ARR",   value: fmtR(ventureFeeARR) },
-    ],
-    status: venture?.status ?? "Em construção",
-    statusColor: "bg-amber-100 text-amber-600 border-amber-200",
-  },
-  {
-    id: "advisor",
-    label: "Advisor",
-    sub: "Consultoria (pré-receita)",
-    href: "/advisor",
-    bgColor: "bg-violet-50",
-    textColor: "text-violet-700",
-    badgeColor: "bg-violet-100 text-violet-600 border-violet-200",
-    icon: Briefcase,
-    kpis: [
-      { label: "Receita",  value: "—" },
-      { label: "Status",   value: "Pré-receita" },
-      { label: "Tipo",     value: "Estratégico" },
-    ],
-    status: advisor?.status ?? "Em construção",
-    statusColor: "bg-violet-100 text-violet-600 border-violet-200",
-  },
-];
-
 export default async function BusinessUnitsPage() {
   const kpis = await getAWQGroupKPIs();
+  const dbBu = await getPlanningBlob<BuData[]>("bu_profiles");
+  const buData = dbBu ?? SEED_BU;
+
+  // ── BU display config — links internal; KPIs sourced from awq-group-data ──
+  const jacqes = buData.find((b) => b.id === "jacqes")!;
+  const caza   = buData.find((b) => b.id === "caza")!;
+  const venture = buData.find((b) => b.id === "venture");
+  const advisor = buData.find((b) => b.id === "advisor");
+
+  const BUS = [
+    {
+      id: "jacqes",
+      label: "JACQES",
+      sub: "Agência",
+      href: "/jacqes",
+      bgColor: "bg-brand-50",
+      textColor: "text-brand-700",
+      badgeColor: "bg-brand-100 text-brand-600 border-brand-200",
+      icon: BarChart3,
+      kpis: [
+        { label: "Receita",  value: fmtR(jacqes.revenue)                },
+        { label: "Clientes", value: String(jacqes.customers)            },
+        { label: "EBITDA %", value: fmtPct((jacqes.ebitda / jacqes.revenue) * 100) },
+      ],
+      status: jacqes.status,
+      statusColor: "bg-emerald-100 text-emerald-600 border-emerald-200",
+    },
+    {
+      id: "caza",
+      label: "Caza Vision",
+      sub: "Produtora",
+      href: "/caza-vision",
+      bgColor: "bg-emerald-50",
+      textColor: "text-emerald-700",
+      badgeColor: "bg-emerald-100 text-emerald-600 border-emerald-200",
+      icon: Building2,
+      kpis: [
+        { label: "Receita",  value: fmtR(caza.revenue)                },
+        { label: "Clientes", value: String(caza.customers)            },
+        { label: "EBITDA %", value: fmtPct((caza.ebitda / caza.revenue) * 100) },
+      ],
+      status: caza.status,
+      statusColor: "bg-emerald-100 text-emerald-600 border-emerald-200",
+    },
+    {
+      id: "venture",
+      label: "AWQ Venture",
+      sub: "Investimentos (híbrido)",
+      href: "/awq-venture",
+      bgColor: "bg-amber-50",
+      textColor: "text-amber-700",
+      badgeColor: "bg-amber-100 text-amber-600 border-amber-200",
+      icon: TrendingUp,
+      kpis: [
+        { label: "Fee MRR",   value: fmtR(ventureFeeMRR) },
+        { label: "CDB DI",    value: fmtR(venture?.capitalAllocated ?? 0) },
+        { label: "Fee ARR",   value: fmtR(ventureFeeARR) },
+      ],
+      status: venture?.status ?? "Em construção",
+      statusColor: "bg-amber-100 text-amber-600 border-amber-200",
+    },
+    {
+      id: "advisor",
+      label: "Advisor",
+      sub: "Consultoria (pré-receita)",
+      href: "/advisor",
+      bgColor: "bg-violet-50",
+      textColor: "text-violet-700",
+      badgeColor: "bg-violet-100 text-violet-600 border-violet-200",
+      icon: Briefcase,
+      kpis: [
+        { label: "Receita",  value: "—" },
+        { label: "Status",   value: "Pré-receita" },
+        { label: "Tipo",     value: "Estratégico" },
+      ],
+      status: advisor?.status ?? "Em construção",
+      statusColor: "bg-violet-100 text-violet-600 border-violet-200",
+    },
+  ];
 
   return (
     <>
