@@ -111,5 +111,7 @@ export async function initDB(): Promise<void> {
     import("@/lib/grc-db").then(({ initGRCDB }) => initGRCDB()),
     import("@/lib/dms-db").then(({ initDMSDB }) => initDMSDB()),
     import("@/lib/cpm-db").then(({ initCPMDB }) => initCPMDB()),
+    import("@/lib/epm-db").then(({ initEPMDB }) => initEPMDB()),
+    import("@/lib/bi-db").then(({ initBIDB }) => initBIDB()),
   ]);
 }

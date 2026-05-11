@@ -166,6 +166,24 @@ export async function POST(): Promise<NextResponse> {
     } catch (err) {
       results.push({ step: "schema:cpm_tables", status: "error", detail: String(err) });
     }
+
+    // EPM bootstrap
+    try {
+      const { initEPMDB } = await import("@/lib/epm-db");
+      await initEPMDB();
+      results.push({ step: "schema:epm_tables", status: "ok" });
+    } catch (err) {
+      results.push({ step: "schema:epm_tables", status: "error", detail: String(err) });
+    }
+
+    // BI bootstrap
+    try {
+      const { initBIDB } = await import("@/lib/bi-db");
+      await initBIDB();
+      results.push({ step: "schema:bi_tables", status: "ok" });
+    } catch (err) {
+      results.push({ step: "schema:bi_tables", status: "error", detail: String(err) });
+    }
   }
 
   // ── 2. Supabase Storage bucket ───────────────────────────────────────────────

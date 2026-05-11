@@ -1,9 +1,54 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, BarChart3 } from "lucide-react";
+import { ArrowLeft, BarChart3, Plus, Trash2 } from "lucide-react";
+import type { BIAnalytic } from "@/lib/bi-db";
+
+const TYPE_BADGE: Record<string, string> = {
+  chart: "bg-blue-100 text-blue-700",
+  table: "bg-gray-100 text-gray-600",
+  kpi:   "bg-emerald-100 text-emerald-700",
+};
 
 export default function BiAnalyticsPage() {
+  const [items, setItems]   = useState<BIAnalytic[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState(false);
+  const [form, setForm]     = useState({ name: "", description: "", type: "chart" as BIAnalytic["type"] });
+
+  function load() {
+    setLoading(true);
+    fetch("/api/awq/bi/analytics")
+      .then(r => r.json())
+      .then(j => { if (j.success) setItems(j.data); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }
+
+  useEffect(() => { load(); }, []);
+
+  async function handleAdd(e: React.FormEvent) {
+    e.preventDefault();
+    await fetch("/api/awq/bi/analytics", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "upsert", data: { ...form, config: {} } }),
+    });
+    setForm({ name: "", description: "", type: "chart" });
+    setAdding(false);
+    load();
+  }
+
+  async function handleDelete(id: string) {
+    await fetch("/api/awq/bi/analytics", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "delete", id }),
+    });
+    load();
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white border-b border-gray-200 px-6 py-4">
@@ -11,15 +56,99 @@ export default function BiAnalyticsPage() {
           <Link href="/awq/bi" className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
             <ArrowLeft size={16} />
           </Link>
+          <BarChart3 size={20} className="text-gray-400" />
           <div>
             <h1 className="text-lg font-bold text-gray-900">Análises</h1>
-            <p className="text-xs text-gray-500">BI · Analytics</p>
+            <p className="text-xs text-gray-500">BI · Analytics Configurados</p>
           </div>
+          <button
+            onClick={() => setAdding(v => !v)}
+            className="ml-auto flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 text-white text-xs font-semibold rounded-lg hover:bg-brand-700 transition-colors"
+          >
+            <Plus size={13} /> Nova Análise
+          </button>
         </div>
       </div>
-      <div className="max-w-screen-xl mx-auto px-6 py-16 flex flex-col items-center gap-3 text-center">
-        <BarChart3 size={32} className="text-gray-200" />
-        <p className="text-sm font-medium text-gray-500">Nenhuma análise configurada ainda</p>
+
+      <div className="max-w-screen-xl mx-auto px-6 py-6 space-y-6">
+
+        {adding && (
+          <form onSubmit={handleAdd} className="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
+            <h2 className="text-sm font-semibold text-gray-900">Nova Análise</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <input required placeholder="Nome da análise" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                className="border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-300" />
+              <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value as BIAnalytic["type"] }))}
+                className="border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-300">
+                <option value="chart">Gráfico</option>
+                <option value="table">Tabela</option>
+                <option value="kpi">KPI</option>
+              </select>
+              <input placeholder="Descrição" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                className="border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-300 sm:col-span-2" />
+            </div>
+            <div className="flex gap-2">
+              <button type="submit" className="px-4 py-2 bg-brand-600 text-white text-xs font-semibold rounded-lg hover:bg-brand-700 transition-colors">Salvar</button>
+              <button type="button" onClick={() => setAdding(false)} className="px-4 py-2 bg-gray-100 text-gray-700 text-xs font-semibold rounded-lg hover:bg-gray-200 transition-colors">Cancelar</button>
+            </div>
+          </form>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {[
+            { label: "Total Análises", value: items.length,                                                color: "text-gray-900"  },
+            { label: "Gráficos",       value: items.filter(i => i.type === "chart").length,               color: "text-blue-700"  },
+            { label: "KPIs",           value: items.filter(i => i.type === "kpi").length,                 color: "text-emerald-700" },
+          ].map(c => (
+            <div key={c.label} className="bg-white rounded-xl border border-gray-200 p-4">
+              <p className="text-xs text-gray-500">{c.label}</p>
+              <p className={`text-2xl font-bold ${c.color}`}>{c.value}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-100 bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
+                <th className="text-left px-4 py-3">Nome</th>
+                <th className="text-left px-4 py-3">Tipo</th>
+                <th className="text-left px-4 py-3">Descrição</th>
+                <th className="text-left px-4 py-3">Criado em</th>
+                <th className="px-4 py-3 w-10" />
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan={5} className="text-center py-12 text-gray-400 text-sm">Carregando…</td></tr>
+              ) : items.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="text-center py-16 text-gray-400">
+                    <BarChart3 size={28} className="mx-auto mb-2 text-gray-200" />
+                    <p className="text-sm font-medium">Nenhuma análise ainda</p>
+                    <p className="text-xs text-gray-300 mt-1">Clique em "Nova Análise" para configurar</p>
+                  </td>
+                </tr>
+              ) : items.map(item => (
+                <tr key={item.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-3 font-medium text-gray-900">{item.name}</td>
+                  <td className="px-4 py-3">
+                    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium capitalize ${TYPE_BADGE[item.type] ?? "bg-gray-100 text-gray-600"}`}>
+                      {item.type}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-gray-500 max-w-[240px] truncate">{item.description || "—"}</td>
+                  <td className="px-4 py-3 text-gray-400 text-xs">{item.created_at?.slice(0, 10)}</td>
+                  <td className="px-4 py-3">
+                    <button onClick={() => handleDelete(item.id)} className="p-1 text-gray-300 hover:text-red-500 transition-colors">
+                      <Trash2 size={13} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
