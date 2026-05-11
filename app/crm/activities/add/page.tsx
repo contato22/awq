@@ -1,14 +1,35 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, Suspense, useEffect } from "react";
 import type { FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
-import { SEED_ACCOUNTS, SEED_CONTACTS, SEED_LEADS, SEED_OPPORTUNITIES } from "@/lib/crm-db";
+
+const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
+const LS_ACTIVITIES = "awq_crm_activities";
+
+function lsGet<T>(key: string): T[] {
+  try { return JSON.parse(localStorage.getItem(key) ?? "[]"); } catch { return []; }
+}
 
 function AddActivityPageInner() {
   const router = useRouter();
   const params = useSearchParams();
+  const [lsOpps, setLsOpps]       = useState<{ id: string; name: string }[]>([]);
+  const [lsAccounts, setLsAccounts] = useState<{ id: string; name: string }[]>([]);
+  const [lsLeads, setLsLeads]     = useState<{ id: string; name: string }[]>([]);
+  const [lsContacts, setLsContacts] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    setLsOpps(lsGet<{ opportunity_id: string; opportunity_name: string }>("crm-opportunities-v3")
+      .map(o => ({ id: o.opportunity_id, name: o.opportunity_name })));
+    setLsAccounts(lsGet<{ account_id: string; account_name: string; trade_name?: string | null }>("awq_crm_accounts")
+      .map(a => ({ id: a.account_id, name: a.trade_name ?? a.account_name })));
+    setLsLeads(lsGet<{ lead_id: string; contact_name: string; company_name: string }>("awq_local_leads")
+      .map(l => ({ id: l.lead_id, name: `${l.contact_name} — ${l.company_name}` })));
+    setLsContacts(lsGet<{ contact_id: string; full_name: string; account_name?: string }>("awq_local_contacts")
+      .map(c => ({ id: c.contact_id, name: `${c.full_name}${c.account_name ? ` (${c.account_name})` : ""}` })));
+  }, []);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({
@@ -31,22 +52,43 @@ function AddActivityPageInner() {
     if (!form.subject.trim()) { setError("Assunto é obrigatório"); return; }
     if (!form.related_to_id.trim()) { setError("Selecione a entidade vinculada"); return; }
     setSaving(true); setError("");
-    try {
-      const res = await fetch("/api/crm/activities", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "create",
-          ...form,
-          duration_minutes: form.duration_minutes ? parseInt(form.duration_minutes) : null,
-          outcome: form.outcome || null,
-          scheduled_at: form.scheduled_at ? new Date(form.scheduled_at).toISOString() : null,
-        }),
-      });
-      const data = await res.json();
-      if (data.success) router.push("/crm/activities");
-      else setError(data.error ?? "Erro ao registrar atividade");
-    } catch { setError("Erro de rede"); } finally { setSaving(false); }
+
+    // Find related entity name for display
+    const entityLists: Record<string, { id: string; name: string }[]> = {
+      opportunity: lsOpps, account: lsAccounts, lead: lsLeads, contact: lsContacts,
+    };
+    const relatedName = entityLists[form.related_to_type]?.find(e => e.id === form.related_to_id)?.name ?? form.related_to_id;
+
+    const newActivity = {
+      activity_id: `local-${Date.now()}`,
+      ...form,
+      related_name: relatedName,
+      duration_minutes: form.duration_minutes ? parseInt(form.duration_minutes) : null,
+      outcome: (form.outcome || null) as "successful" | "unsuccessful" | "no_answer" | null,
+      scheduled_at: form.scheduled_at ? new Date(form.scheduled_at).toISOString() : null,
+      completed_at: form.status === "completed" ? new Date().toISOString() : null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    // Always persist to localStorage
+    const existing = lsGet<typeof newActivity>(LS_ACTIVITIES);
+    try { localStorage.setItem(LS_ACTIVITIES, JSON.stringify([...existing, newActivity])); } catch { /* */ }
+
+    if (!IS_STATIC) {
+      try {
+        const res = await fetch("/api/crm/activities", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "create", ...newActivity }),
+        });
+        const data = await res.json();
+        if (!data.success) { setError(data.error ?? "Erro ao registrar atividade"); setSaving(false); return; }
+      } catch { /* saved in localStorage already */ }
+    }
+
+    router.push("/crm/activities");
+    setSaving(false);
   }
 
   return (
@@ -94,14 +136,14 @@ function AddActivityPageInner() {
                 <select value={form.related_to_id} onChange={e=>set("related_to_id",e.target.value)}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30">
                   <option value="">— Selecionar —</option>
-                  {form.related_to_type === "opportunity" && SEED_OPPORTUNITIES.map(o =>
-                    <option key={o.opportunity_id} value={o.opportunity_id}>{o.opportunity_name}</option>)}
-                  {form.related_to_type === "account" && SEED_ACCOUNTS.map(a =>
-                    <option key={a.account_id} value={a.account_id}>{a.trade_name ?? a.account_name}</option>)}
-                  {form.related_to_type === "lead" && SEED_LEADS.map(l =>
-                    <option key={l.lead_id} value={l.lead_id}>{l.contact_name} — {l.company_name}</option>)}
-                  {form.related_to_type === "contact" && SEED_CONTACTS.map(c =>
-                    <option key={c.contact_id} value={c.contact_id}>{c.full_name} ({c.account_name})</option>)}
+                  {form.related_to_type === "opportunity" && lsOpps.map(o =>
+                    <option key={o.id} value={o.id}>{o.name}</option>)}
+                  {form.related_to_type === "account" && lsAccounts.map(a =>
+                    <option key={a.id} value={a.id}>{a.name}</option>)}
+                  {form.related_to_type === "lead" && lsLeads.map(l =>
+                    <option key={l.id} value={l.id}>{l.name}</option>)}
+                  {form.related_to_type === "contact" && lsContacts.map(c =>
+                    <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select></div>
             </div>
           </div>

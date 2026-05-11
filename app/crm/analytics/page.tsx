@@ -36,7 +36,7 @@ export default function AnalyticsPage() {
 
   useEffect(() => {
     if (IS_STATIC) {
-      setOpps(SEED_OPPORTUNITIES);
+      try { setOpps(JSON.parse(localStorage.getItem("crm-opportunities-v3") ?? "[]")); } catch { setOpps([]); }
       setLoading(false);
       return;
     }

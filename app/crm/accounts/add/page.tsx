@@ -24,16 +24,43 @@ export default function AddAccountPage() {
     e.preventDefault();
     if (!form.account_name.trim()) { setError("Nome da empresa é obrigatório"); return; }
     setSaving(true); setError("");
+
+    // Always persist to localStorage
     try {
-      const res = await fetch("/api/crm/accounts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "create", ...form, health_score: parseInt(form.health_score) }),
-      });
-      const data = await res.json();
-      if (data.success) router.push("/crm/accounts");
-      else setError(data.error ?? "Erro ao criar conta");
-    } catch { setError("Erro de rede"); } finally { setSaving(false); }
+      const existing = JSON.parse(localStorage.getItem("awq_crm_accounts") ?? "[]");
+      localStorage.setItem("awq_crm_accounts", JSON.stringify([...existing, {
+        account_id: `local-${Date.now()}`,
+        account_code: `ACC-${Date.now()}`,
+        ...form,
+        health_score: parseInt(form.health_score),
+        renewal_date: form.renewal_date || null,
+        open_opportunities: 0,
+        last_activity_at: null,
+        epm_customer_id: null,
+        annual_revenue_estimate: null,
+        address_street: null,
+        address_zip: null,
+        linkedin_url: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        created_by: "Miguel",
+      }]));
+    } catch { /* */ }
+
+    if (process.env.NEXT_PUBLIC_STATIC_DATA !== "1") {
+      try {
+        const res = await fetch("/api/crm/accounts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "create", ...form, health_score: parseInt(form.health_score) }),
+        });
+        const data = await res.json();
+        if (!data.success) { setError(data.error ?? "Erro ao criar conta"); setSaving(false); return; }
+      } catch { /* saved in localStorage already */ }
+    }
+
+    router.push("/crm/accounts");
+    setSaving(false);
   }
 
   return (

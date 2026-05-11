@@ -135,16 +135,20 @@ export default function CrmDashboardView({ buFilter: externalBu }: Props) {
 
   useEffect(() => {
     function loadFromSeed(bf: string | undefined) {
-      const filteredOpps = bf
-        ? SEED_OPPORTUNITIES.filter(o => o.bu === bf)
-        : SEED_OPPORTUNITIES;
+      // Read from localStorage (canonical store for static sites)
+      let allOpps: CrmOpportunity[] = [];
+      let allActs: CrmActivity[] = [];
+      try { allOpps = JSON.parse(localStorage.getItem("crm-opportunities-v3") ?? "[]"); } catch { /* */ }
+      try { allActs = JSON.parse(localStorage.getItem("awq_crm_activities") ?? "[]"); } catch { /* */ }
+
+      const filteredOpps = bf ? allOpps.filter(o => o.bu === bf) : allOpps;
 
       const filteredOppIds = new Set(filteredOpps.map(o => o.opportunity_id));
       const filteredActs = bf
-        ? SEED_ACTIVITIES.filter(
+        ? allActs.filter(
             a => a.related_to_type !== "opportunity" || filteredOppIds.has(a.related_to_id)
           )
-        : SEED_ACTIVITIES;
+        : allActs;
 
       const openSeed = filteredOpps.filter(o => o.stage !== "closed_won" && o.stage !== "closed_lost");
       const wonSeed  = filteredOpps.filter(o => o.stage === "closed_won");
