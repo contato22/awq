@@ -12,8 +12,13 @@ import {
   Phone, Mail, MapPin, CheckCircle2, AlertTriangle,
 } from "lucide-react";
 import type { CrmAccount, CrmContact, CrmOpportunity, CrmActivity } from "@/lib/crm-types";
-import { SEED_ACCOUNTS, SEED_CONTACTS, SEED_OPPORTUNITIES, SEED_ACTIVITIES } from "@/lib/crm-db";
 import { formatBRL, formatDateBR } from "@/lib/utils";
+
+const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
+
+function lsGet<T>(key: string): T[] {
+  try { return JSON.parse(localStorage.getItem(key) ?? "[]"); } catch { return []; }
+}
 
 const STAGE_COLORS: Record<string, string> = {
   discovery:"bg-blue-100 text-blue-700", qualification:"bg-violet-100 text-violet-700",
@@ -43,6 +48,25 @@ export default function AccountDetailClient() {
 
   useEffect(() => {
     if (!id) return;
+
+    function loadFromLocalStorage() {
+      const lsOpps = lsGet<CrmOpportunity>("crm-opportunities-v3").filter(o => o.account_id === id);
+      const oppIds = new Set(lsOpps.map(o => o.opportunity_id));
+      setAccount(lsGet<CrmAccount>("awq_crm_accounts").find(a => a.account_id === id) ?? null);
+      setContacts(lsGet<CrmContact>("awq_local_contacts").filter(c => c.account_id === id));
+      setOpps(lsOpps);
+      setActivities(lsGet<CrmActivity>("awq_crm_activities").filter(a =>
+        (a.related_to_type === "account"     && a.related_to_id === id) ||
+        (a.related_to_type === "opportunity" && oppIds.has(a.related_to_id))
+      ));
+    }
+
+    if (IS_STATIC) {
+      loadFromLocalStorage();
+      setLoading(false);
+      return;
+    }
+
     fetch(`/api/crm/accounts?id=${id}`)
       .then(r => r.json())
       .then(res => {
@@ -52,28 +76,10 @@ export default function AccountDetailClient() {
           setOpps(res.data.opportunities ?? []);
           setActivities(res.data.activities ?? []);
         } else {
-          const seedOpps = SEED_OPPORTUNITIES.filter(o => o.account_id === id);
-          const oppIds   = new Set(seedOpps.map(o => o.opportunity_id));
-          setAccount(SEED_ACCOUNTS.find(a => a.account_id === id) ?? null);
-          setContacts(SEED_CONTACTS.filter(c => c.account_id === id));
-          setOpps(seedOpps);
-          setActivities(SEED_ACTIVITIES.filter(a =>
-            (a.related_to_type === "account"     && a.related_to_id === id) ||
-            (a.related_to_type === "opportunity" && oppIds.has(a.related_to_id))
-          ));
+          loadFromLocalStorage();
         }
       })
-      .catch(() => {
-        const seedOpps = SEED_OPPORTUNITIES.filter(o => o.account_id === id);
-        const oppIds   = new Set(seedOpps.map(o => o.opportunity_id));
-        setAccount(SEED_ACCOUNTS.find(a => a.account_id === id) ?? null);
-        setContacts(SEED_CONTACTS.filter(c => c.account_id === id));
-        setOpps(seedOpps);
-        setActivities(SEED_ACTIVITIES.filter(a =>
-          (a.related_to_type === "account"     && a.related_to_id === id) ||
-          (a.related_to_type === "opportunity" && oppIds.has(a.related_to_id))
-        ));
-      })
+      .catch(() => loadFromLocalStorage())
       .finally(() => setLoading(false));
   }, [id]);
 
