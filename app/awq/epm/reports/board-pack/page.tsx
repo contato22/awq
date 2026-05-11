@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { buildDreQuery } from "@/lib/dre-query";
 import { consolidated, consolidatedMargins, budgetVsActual } from "@/lib/awq-derived-metrics";
+import { getInitiatives, getRisks } from "@/lib/epm-db";
 
 function fmtBRL(n: number): string {
   const abs  = Math.abs(n);
@@ -38,7 +39,7 @@ interface Initiative {
   update:   string;
 }
 
-const INITIATIVES: Initiative[] = [
+const SEED_INITIATIVES: Initiative[] = [
   { label: "Contratação Sales Manager JACQES",          status: "on_track",    owner: "CEO",     deadline: "2026-06-30", update: "2 candidatos finalistas — entrevistas marcadas para maio." },
   { label: "Expansão carteira CAZA — 3 novos clientes", status: "at_risk",     owner: "CAZA",    deadline: "2026-06-30", update: "Pipeline insuficiente. Necessário reforçar prospecção ativa." },
   { label: "Sistema ERP EPM — módulo imobilizado",      status: "completed",   owner: "CFO",     deadline: "2026-04-30", update: "Fixed assets register implantado em Abr/2026." },
@@ -61,7 +62,7 @@ interface Risk {
   mitigation:  string;
 }
 
-const RISKS: Risk[] = [
+const SEED_RISKS: Risk[] = [
   { description: "Churn de cliente-chave JACQES (>20% MRR)", probability: "MEDIUM", impact: "HIGH",   mitigation: "Aprofundar relacionamento, quarterly business reviews, plano de expansão de escopo." },
   { description: "Aumento custo freelancers (pressão COGS)",   probability: "HIGH",   impact: "MEDIUM", mitigation: "Contratar 1 FTE sênior em produção para reduzir dependência de outsourcing." },
   { description: "Volatilidade cambial USD/BRL (software)",    probability: "MEDIUM", impact: "LOW",    mitigation: "Monitorar via módulo FX. Considerar pagamento anual para travar taxa." },
@@ -75,8 +76,22 @@ const RISK_COLORS = {
 };
 
 export default async function BoardPackPage() {
-  const dre  = await buildDreQuery("all");
+  const [dre, initiativesDb, risksDb] = await Promise.all([
+    buildDreQuery("all"),
+    getInitiatives(),
+    getRisks(),
+  ]);
   const snap = consolidated;
+
+  const INITIATIVES: Initiative[] = initiativesDb.length > 0
+    ? initiativesDb.map(i => ({ label: i.label, status: i.status, owner: i.owner, deadline: i.deadline, update: i.update_text }))
+    : SEED_INITIATIVES;
+
+  const RISKS: Risk[] = risksDb.length > 0
+    ? risksDb.map(r => ({ description: r.description, probability: r.probability, impact: r.impact, mitigation: r.mitigation }))
+    : SEED_RISKS;
+
+  const usingSeed = initiativesDb.length === 0 && risksDb.length === 0;
 
   const revenue      = dre.hasData ? dre.dreRevenue      : snap.revenue;
   const ebitda       = dre.hasData ? dre.dreEBITDA        : snap.ebitda;
@@ -99,6 +114,12 @@ export default async function BoardPackPage() {
         subtitle="EPM · AWQ Group · Management Report · Trimestral"
       />
       <div className="page-container">
+
+        {usingSeed && (
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-[10px] font-semibold text-amber-700 w-fit">
+            iniciativas · riscos — dados de exemplo
+          </div>
+        )}
 
         {/* ── Cover section ─────────────────────────────────────────── */}
         <div className="card p-6 bg-gradient-to-br from-brand-600 to-brand-800 text-white">

@@ -10,13 +10,13 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import {
-  buData,
-  operatingBus,
-  consolidated,
-  budgetVsActual,
-  categoryBudget,
-  BUDGET_LINES,
+  buData as SEED_BU,
+  categoryBudget as SEED_CATEGORY_BUDGET,
+  BUDGET_LINES as SEED_BUDGET_LINES,
 } from "@/lib/awq-derived-metrics";
+import type { BudgetLine } from "@/lib/awq-derived-metrics";
+import type { BuData, CategoryBudgetItem } from "@/lib/awq-group-data";
+import { getPlanningBlob } from "@/lib/planning-db";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -33,10 +33,21 @@ function varPct(actual: number, budget: number) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function AwqBudgetPage() {
-  const totalBudget = consolidated.budgetRevenue;
-  const totalActual = consolidated.revenue;
-  const var_        = budgetVsActual;
+export default async function AwqBudgetPage() {
+  const [dbBu, dbBudgetLines, dbCategoryBudget] = await Promise.all([
+    getPlanningBlob<BuData[]>("bu_profiles"),
+    getPlanningBlob<BudgetLine[]>("budget_lines"),
+    getPlanningBlob<CategoryBudgetItem[]>("category_budget"),
+  ]);
+
+  const buData       = dbBu            ?? SEED_BU;
+  const BUDGET_LINES = dbBudgetLines   ?? SEED_BUDGET_LINES;
+  const categoryBudget = dbCategoryBudget ?? SEED_CATEGORY_BUDGET;
+
+  const operatingBus  = buData.filter((b) => b.id !== "venture");
+  const totalBudget   = operatingBus.reduce((s, b) => s + b.budgetRevenue, 0);
+  const totalActual   = operatingBus.reduce((s, b) => s + b.revenue, 0);
+  const var_          = totalBudget > 0 ? ((totalActual - totalBudget) / totalBudget) * 100 : 0;
 
   // ── Derived from canonical BUDGET_LINES — no hardcoded strings ───────────────
   const revLine        = BUDGET_LINES.find((l) => l.line === "Receita")!;

@@ -113,5 +113,7 @@ export async function initDB(): Promise<void> {
     import("@/lib/cpm-db").then(({ initCPMDB }) => initCPMDB()),
     import("@/lib/epm-db").then(({ initEPMDB }) => initEPMDB()),
     import("@/lib/bi-db").then(({ initBIDB }) => initBIDB()),
+    import("@/lib/changelog-db").then(({ initChangelogDB }) => initChangelogDB()),
+    import("@/lib/planning-db").then(({ initPlanningDB }) => initPlanningDB()),
   ]);
 }

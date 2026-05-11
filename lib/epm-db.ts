@@ -233,6 +233,9 @@ export async function initEPMDB(): Promise<void> {
       )
     `;
     _ready = true;
+    // Also init extended tables
+    await initAnnualReportTables();
+    await initBoardPackTables();
   } catch { /* silent — no DB in dev */ }
 }
 
@@ -534,4 +537,234 @@ export async function addApprovalEvent(e: Omit<ApprovalEvent, "id">): Promise<vo
       VALUES (${e.version_name}, ${e.action}, ${e.by}, ${e.at}, ${e.comment})
     `;
   } catch { /* no-op */ }
+}
+
+// ─── Annual Report ────────────────────────────────────────────────────────────
+
+export interface AnnualTrendRow {
+  id: string;        // year label e.g. "FY2024"
+  revenue: number;
+  ebitda: number;
+  cash_end: number;
+  employees: number;
+}
+
+export interface AnnualPLLine {
+  id: string;
+  sort_order: number;
+  line: string;
+  amount: number;
+  budget: number;
+  type: string;
+  year_label: string;
+}
+
+export interface AnnualCFRow {
+  id: string;
+  sort_order: number;
+  label: string;
+  section: string;
+  amount: number;
+  year_label: string;
+}
+
+export interface AnnualBalanceSheet {
+  id: string;        // year label
+  data_json: Record<string, unknown>;
+}
+
+let _annualReady = false;
+
+export async function initAnnualReportTables(): Promise<void> {
+  if (_annualReady || !sql) return;
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS epm_annual_trend (
+        id TEXT PRIMARY KEY,
+        revenue NUMERIC NOT NULL DEFAULT 0,
+        ebitda NUMERIC NOT NULL DEFAULT 0,
+        cash_end NUMERIC NOT NULL DEFAULT 0,
+        employees INTEGER NOT NULL DEFAULT 0,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `;
+    await sql`
+      CREATE TABLE IF NOT EXISTS epm_annual_pl_lines (
+        id TEXT PRIMARY KEY,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        line TEXT NOT NULL,
+        amount NUMERIC NOT NULL DEFAULT 0,
+        budget NUMERIC NOT NULL DEFAULT 0,
+        type TEXT NOT NULL DEFAULT '',
+        year_label TEXT NOT NULL DEFAULT 'FY2025',
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `;
+    await sql`
+      CREATE TABLE IF NOT EXISTS epm_annual_cf_rows (
+        id TEXT PRIMARY KEY,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        label TEXT NOT NULL,
+        section TEXT NOT NULL,
+        amount NUMERIC NOT NULL DEFAULT 0,
+        year_label TEXT NOT NULL DEFAULT 'FY2025',
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `;
+    await sql`
+      CREATE TABLE IF NOT EXISTS epm_annual_balance_sheet (
+        id TEXT PRIMARY KEY,
+        data_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `;
+    _annualReady = true;
+  } catch { /* silent */ }
+}
+
+export async function getAnnualTrend(): Promise<AnnualTrendRow[]> {
+  if (!sql) return [];
+  try {
+    await initAnnualReportTables();
+    const rows = await sql`SELECT * FROM epm_annual_trend ORDER BY id`;
+    return rows.map(r => ({ id: r.id as string, revenue: Number(r.revenue), ebitda: Number(r.ebitda), cash_end: Number(r.cash_end), employees: Number(r.employees) }));
+  } catch { return []; }
+}
+
+export async function getAnnualPLLines(yearLabel: string): Promise<AnnualPLLine[]> {
+  if (!sql) return [];
+  try {
+    await initAnnualReportTables();
+    const rows = await sql`SELECT * FROM epm_annual_pl_lines WHERE year_label = ${yearLabel} ORDER BY sort_order`;
+    return rows.map(r => ({ id: r.id as string, sort_order: Number(r.sort_order), line: r.line as string, amount: Number(r.amount), budget: Number(r.budget), type: r.type as string, year_label: r.year_label as string }));
+  } catch { return []; }
+}
+
+export async function getAnnualCFRows(yearLabel: string): Promise<AnnualCFRow[]> {
+  if (!sql) return [];
+  try {
+    await initAnnualReportTables();
+    const rows = await sql`SELECT * FROM epm_annual_cf_rows WHERE year_label = ${yearLabel} ORDER BY sort_order`;
+    return rows.map(r => ({ id: r.id as string, sort_order: Number(r.sort_order), label: r.label as string, section: r.section as string, amount: Number(r.amount), year_label: r.year_label as string }));
+  } catch { return []; }
+}
+
+export async function getAnnualBalanceSheet(id: string): Promise<AnnualBalanceSheet | null> {
+  if (!sql) return null;
+  try {
+    await initAnnualReportTables();
+    const rows = await sql`SELECT * FROM epm_annual_balance_sheet WHERE id = ${id}`;
+    if (!rows.length) return null;
+    const r = rows[0];
+    return { id: r.id as string, data_json: typeof r.data_json === "string" ? JSON.parse(r.data_json) : (r.data_json as Record<string, unknown>) };
+  } catch { return null; }
+}
+
+// ─── Initiatives & Risks (Board Pack) ────────────────────────────────────────
+
+export interface Initiative {
+  id: string;
+  label: string;
+  status: "on_track" | "at_risk" | "completed" | "not_started";
+  owner: string;
+  deadline: string;
+  update_text: string;
+  sort_order: number;
+}
+
+export interface Risk {
+  id: string;
+  description: string;
+  probability: "HIGH" | "MEDIUM" | "LOW";
+  impact: "HIGH" | "MEDIUM" | "LOW";
+  mitigation: string;
+  sort_order: number;
+}
+
+let _boardReady = false;
+
+export async function initBoardPackTables(): Promise<void> {
+  if (_boardReady || !sql) return;
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS epm_initiatives (
+        id TEXT PRIMARY KEY,
+        label TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'not_started',
+        owner TEXT NOT NULL DEFAULT '',
+        deadline TEXT NOT NULL DEFAULT '',
+        update_text TEXT NOT NULL DEFAULT '',
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `;
+    await sql`
+      CREATE TABLE IF NOT EXISTS epm_risks (
+        id TEXT PRIMARY KEY,
+        description TEXT NOT NULL,
+        probability TEXT NOT NULL DEFAULT 'MEDIUM',
+        impact TEXT NOT NULL DEFAULT 'MEDIUM',
+        mitigation TEXT NOT NULL DEFAULT '',
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `;
+    _boardReady = true;
+  } catch { /* silent */ }
+}
+
+export async function getInitiatives(): Promise<Initiative[]> {
+  if (!sql) return [];
+  try {
+    await initBoardPackTables();
+    const rows = await sql`SELECT * FROM epm_initiatives ORDER BY sort_order, created_at`;
+    return rows.map(r => ({ id: r.id as string, label: r.label as string, status: r.status as Initiative["status"], owner: r.owner as string, deadline: r.deadline as string, update_text: r.update_text as string, sort_order: Number(r.sort_order) }));
+  } catch { return []; }
+}
+
+export async function upsertInitiative(item: Initiative): Promise<void> {
+  if (!sql) return;
+  try {
+    await initBoardPackTables();
+    await sql`
+      INSERT INTO epm_initiatives (id, label, status, owner, deadline, update_text, sort_order)
+      VALUES (${item.id}, ${item.label}, ${item.status}, ${item.owner}, ${item.deadline}, ${item.update_text}, ${item.sort_order})
+      ON CONFLICT (id) DO UPDATE SET
+        label = EXCLUDED.label, status = EXCLUDED.status, owner = EXCLUDED.owner,
+        deadline = EXCLUDED.deadline, update_text = EXCLUDED.update_text, sort_order = EXCLUDED.sort_order
+    `;
+  } catch { /* no-op */ }
+}
+
+export async function deleteInitiative(id: string): Promise<void> {
+  if (!sql) return;
+  try { await sql`DELETE FROM epm_initiatives WHERE id = ${id}`; } catch { /* no-op */ }
+}
+
+export async function getRisks(): Promise<Risk[]> {
+  if (!sql) return [];
+  try {
+    await initBoardPackTables();
+    const rows = await sql`SELECT * FROM epm_risks ORDER BY sort_order, created_at`;
+    return rows.map(r => ({ id: r.id as string, description: r.description as string, probability: r.probability as Risk["probability"], impact: r.impact as Risk["impact"], mitigation: r.mitigation as string, sort_order: Number(r.sort_order) }));
+  } catch { return []; }
+}
+
+export async function upsertRisk(item: Risk): Promise<void> {
+  if (!sql) return;
+  try {
+    await initBoardPackTables();
+    await sql`
+      INSERT INTO epm_risks (id, description, probability, impact, mitigation, sort_order)
+      VALUES (${item.id}, ${item.description}, ${item.probability}, ${item.impact}, ${item.mitigation}, ${item.sort_order})
+      ON CONFLICT (id) DO UPDATE SET
+        description = EXCLUDED.description, probability = EXCLUDED.probability,
+        impact = EXCLUDED.impact, mitigation = EXCLUDED.mitigation, sort_order = EXCLUDED.sort_order
+    `;
+  } catch { /* no-op */ }
+}
+
+export async function deleteRisk(id: string): Promise<void> {
+  if (!sql) return;
+  try { await sql`DELETE FROM epm_risks WHERE id = ${id}`; } catch { /* no-op */ }
 }

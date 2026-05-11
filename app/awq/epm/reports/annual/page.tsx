@@ -1,22 +1,14 @@
 // ─── /awq/epm/reports/annual — Annual Report ──────────────────────────────────
-//
-// Annual financial report for AWQ Group:
-//   • Year-in-review executive summary
-//   • Full-year P&L vs budget
-//   • Balance sheet year-end
-//   • Cash flow (annual)
-//   • BU performance scorecard
-//   • 3-year trend (if data available)
-//   • Auditor notes placeholder
 
 import Header from "@/components/Header";
 import Link from "next/link";
 import {
   FileText, TrendingUp, Scale, DollarSign, BarChart3,
-  Building2, Layers, CheckCircle2, Calendar,
+  CheckCircle2,
 } from "lucide-react";
 import { buildDreQuery } from "@/lib/dre-query";
-import { consolidated, consolidatedMargins, buData } from "@/lib/awq-derived-metrics";
+import { consolidated, buData } from "@/lib/awq-derived-metrics";
+import { getAnnualTrend, getAnnualPLLines, getAnnualCFRows, getAnnualBalanceSheet } from "@/lib/epm-db";
 
 function fmtBRL(n: number): string {
   const abs  = Math.abs(n);
@@ -26,67 +18,55 @@ function fmtBRL(n: number): string {
   return sign + "R$" + abs.toLocaleString("pt-BR", { minimumFractionDigits: 0 });
 }
 
-// 3-year trend (FY2024, FY2025, FY2026 YTD)
-const TREND_DATA = [
-  { year: "FY2024", revenue: 1_120_000, ebitda: -180_000, cashEnd:  95_000, employees: 3 },
-  { year: "FY2025", revenue: 3_210_000, ebitda:  240_000, cashEnd: 310_000, employees: 7 },
-  { year: "FY2026 YTD", revenue: 4_474_800, ebitda: 845_472, cashEnd: 412_000, employees: 9 },
+// ─── Seed data ────────────────────────────────────────────────────────────────
+
+const SEED_TREND = [
+  { year: "FY2024",     revenue: 1_120_000, ebitda: -180_000, cashEnd:  95_000, employees: 3 },
+  { year: "FY2025",     revenue: 3_210_000, ebitda:  240_000, cashEnd: 310_000, employees: 7 },
+  { year: "FY2026 YTD", revenue: 4_474_800, ebitda:  845_472, cashEnd: 412_000, employees: 9 },
 ];
 
-// Annual P&L (FY2025 — last full year)
-const ANNUAL_PL = [
-  { line: "Receita Bruta",            amount: 3_210_000, budget: 2_800_000, type: "revenue"  },
-  { line: "(-) COGS",                 amount: -1_444_500, budget: -1_260_000, type: "cogs"   },
-  { line: "Lucro Bruto",              amount: 1_765_500, budget: 1_540_000, type: "gross"    },
-  { line: "(-) Salários e Encargos",  amount:  -680_000, budget:  -650_000, type: "opex"    },
-  { line: "(-) Software e SaaS",      amount:   -98_000, budget:   -90_000, type: "opex"    },
-  { line: "(-) Marketing",            amount:  -120_000, budget:  -150_000, type: "opex"    },
-  { line: "(-) Administrativo",       amount:  -280_000, budget:  -260_000, type: "opex"    },
-  { line: "(-) Depreciação",          amount:   -45_000, budget:   -40_000, type: "opex"    },
-  { line: "(-) Outros OPEX",          amount:  -302_500, budget:  -250_000, type: "opex"    },
-  { line: "EBITDA",                   amount:  240_000,  budget:  100_000,  type: "ebitda"  },
-  { line: "(-) Despesas Financeiras", amount:   -28_000, budget:   -25_000, type: "fin"     },
-  { line: "Resultado Líquido",        amount:  212_000,  budget:   75_000,  type: "net"     },
+const SEED_ANNUAL_PL = [
+  { line: "Receita Bruta",            amount: 3_210_000,  budget: 2_800_000,  type: "revenue" },
+  { line: "(-) COGS",                 amount: -1_444_500, budget: -1_260_000, type: "cogs"    },
+  { line: "Lucro Bruto",              amount: 1_765_500,  budget: 1_540_000,  type: "gross"   },
+  { line: "(-) Salários e Encargos",  amount:  -680_000,  budget:  -650_000,  type: "opex"    },
+  { line: "(-) Software e SaaS",      amount:   -98_000,  budget:   -90_000,  type: "opex"    },
+  { line: "(-) Marketing",            amount:  -120_000,  budget:  -150_000,  type: "opex"    },
+  { line: "(-) Administrativo",       amount:  -280_000,  budget:  -260_000,  type: "opex"    },
+  { line: "(-) Depreciação",          amount:   -45_000,  budget:   -40_000,  type: "opex"    },
+  { line: "(-) Outros OPEX",          amount:  -302_500,  budget:  -250_000,  type: "opex"    },
+  { line: "EBITDA",                   amount:   240_000,  budget:   100_000,  type: "ebitda"  },
+  { line: "(-) Despesas Financeiras", amount:   -28_000,  budget:   -25_000,  type: "fin"     },
+  { line: "Resultado Líquido",        amount:   212_000,  budget:    75_000,  type: "net"     },
 ];
 
-// Balance sheet year-end FY2025
-const BS_DATA = {
+const SEED_BS_DATA = {
   assets: {
-    current:    {
-      cash: 310_000, ar: 280_000, prepaid: 45_000, other: 28_000,
-    },
+    current:    { cash: 310_000, ar: 280_000, prepaid: 45_000, other: 28_000 },
     nonCurrent: { fixed: 92_000, intangible: 18_000, investments: 75_000 },
   },
   liabilities: {
-    current: { ap: 125_000, taxes: 68_000, payroll: 95_000, other: 32_000 },
+    current:  { ap: 125_000, taxes: 68_000, payroll: 95_000, other: 32_000 },
     longTerm: { loans: 0, other: 12_000 },
   },
   equity: { capital: 100_000, reserves: 62_000, retained: 274_000 },
 };
 
-const totalCurrentAssets    = Object.values(BS_DATA.assets.current).reduce((s, v) => s + v, 0);
-const totalNonCurrentAssets = Object.values(BS_DATA.assets.nonCurrent).reduce((s, v) => s + v, 0);
-const totalAssets           = totalCurrentAssets + totalNonCurrentAssets;
-const totalCurrentLiab      = Object.values(BS_DATA.liabilities.current).reduce((s, v) => s + v, 0);
-const totalLTLiab           = Object.values(BS_DATA.liabilities.longTerm).reduce((s, v) => s + v, 0);
-const totalLiabilities      = totalCurrentLiab + totalLTLiab;
-const totalEquity           = Object.values(BS_DATA.equity).reduce((s, v) => s + v, 0);
-
-// Cash flow (indirect, FY2025)
-const CF_ROWS = [
-  { label: "Resultado Líquido",             section: "operating", amount:  212_000 },
-  { label: "(+) Depreciação",               section: "operating", amount:   45_000 },
-  { label: "(+/-) Variação de Capital de Giro", section: "operating", amount: -32_000 },
-  { label: "Cash from Operations",          section: "subtotal",  amount:  225_000 },
-  { label: "(-) CAPEX (hardware/software)", section: "investing", amount:  -68_000 },
-  { label: "(-) Investimentos LP",          section: "investing", amount:  -75_000 },
-  { label: "Cash from Investing",           section: "subtotal",  amount: -143_000 },
-  { label: "Aporte de Capital (sócios)",    section: "financing", amount:  100_000 },
-  { label: "(-) Pagamento de Pró-labore extra", section: "financing", amount: -80_000 },
-  { label: "Cash from Financing",           section: "subtotal",  amount:   20_000 },
-  { label: "Variação Líquida de Caixa",     section: "total",     amount:  102_000 },
-  { label: "Caixa Inicial (Jan/2025)",      section: "total",     amount:  208_000 },
-  { label: "Caixa Final (Dez/2025)",        section: "total",     amount:  310_000 },
+const SEED_CF_ROWS = [
+  { label: "Resultado Líquido",                section: "operating", amount:  212_000 },
+  { label: "(+) Depreciação",                  section: "operating", amount:   45_000 },
+  { label: "(+/-) Variação de Capital de Giro",section: "operating", amount:  -32_000 },
+  { label: "Cash from Operations",             section: "subtotal",  amount:  225_000 },
+  { label: "(-) CAPEX (hardware/software)",    section: "investing", amount:  -68_000 },
+  { label: "(-) Investimentos LP",             section: "investing", amount:  -75_000 },
+  { label: "Cash from Investing",              section: "subtotal",  amount: -143_000 },
+  { label: "Aporte de Capital (sócios)",       section: "financing", amount:  100_000 },
+  { label: "(-) Pagamento de Pró-labore extra",section: "financing", amount:  -80_000 },
+  { label: "Cash from Financing",              section: "subtotal",  amount:   20_000 },
+  { label: "Variação Líquida de Caixa",        section: "total",     amount:  102_000 },
+  { label: "Caixa Inicial (Jan/2025)",         section: "total",     amount:  208_000 },
+  { label: "Caixa Final (Dez/2025)",           section: "total",     amount:  310_000 },
 ];
 
 const SECTION_STYLE: Record<string, string> = {
@@ -97,12 +77,47 @@ const SECTION_STYLE: Record<string, string> = {
   total:      "font-bold text-brand-800 bg-brand-50",
 };
 
-export default async function AnnualReportPage() {
-  const dre  = await buildDreQuery("all");
-  const snap = consolidated;
+type BSDataShape = typeof SEED_BS_DATA;
 
+export default async function AnnualReportPage() {
+  const [dre, trendDb, plDb, cfDb, bsDb] = await Promise.all([
+    buildDreQuery("all"),
+    getAnnualTrend(),
+    getAnnualPLLines("FY2025"),
+    getAnnualCFRows("FY2025"),
+    getAnnualBalanceSheet("FY2025"),
+  ]);
+
+  const usingSeed = trendDb.length === 0 && plDb.length === 0 && cfDb.length === 0 && !bsDb;
+
+  const TREND_DATA = trendDb.length > 0
+    ? trendDb.map(r => ({ year: r.id, revenue: r.revenue, ebitda: r.ebitda, cashEnd: r.cash_end, employees: r.employees }))
+    : SEED_TREND;
+
+  const ANNUAL_PL = plDb.length > 0
+    ? plDb.map(r => ({ line: r.line, amount: r.amount, budget: r.budget, type: r.type }))
+    : SEED_ANNUAL_PL;
+
+  const BS_DATA: BSDataShape = bsDb ? (bsDb.data_json as unknown as BSDataShape) : SEED_BS_DATA;
+
+  const CF_ROWS = cfDb.length > 0
+    ? cfDb.map(r => ({ label: r.label, section: r.section, amount: r.amount }))
+    : SEED_CF_ROWS;
+
+  const snap = consolidated;
   const ytdRevenue = dre.hasData ? dre.dreRevenue : snap.revenue;
   const ytdEBITDA  = dre.hasData ? dre.dreEBITDA  : snap.ebitda;
+  void ytdRevenue; void ytdEBITDA; // available for future use
+
+  const totalCurrentAssets    = Object.values(BS_DATA.assets.current).reduce((s, v) => s + v, 0);
+  const totalNonCurrentAssets = Object.values(BS_DATA.assets.nonCurrent).reduce((s, v) => s + v, 0);
+  const totalAssets           = totalCurrentAssets + totalNonCurrentAssets;
+  const totalCurrentLiab      = Object.values(BS_DATA.liabilities.current).reduce((s, v) => s + v, 0);
+  const totalLTLiab           = Object.values(BS_DATA.liabilities.longTerm).reduce((s, v) => s + v, 0);
+  const totalLiabilities      = totalCurrentLiab + totalLTLiab;
+  const totalEquity           = Object.values(BS_DATA.equity).reduce((s, v) => s + v, 0);
+
+  void buData; // available for BU scorecard future expansion
 
   return (
     <>
@@ -111,6 +126,12 @@ export default async function AnnualReportPage() {
         subtitle="EPM · Annual Report · FY2025 (Completo) + FY2026 YTD"
       />
       <div className="page-container">
+
+        {usingSeed && (
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-[10px] font-semibold text-amber-700 w-fit">
+            dados de exemplo
+          </div>
+        )}
 
         {/* ── Cover ─────────────────────────────────────────────────── */}
         <div className="card p-6 bg-gradient-to-br from-gray-800 to-gray-950 text-white">
@@ -183,7 +204,6 @@ export default async function AnnualReportPage() {
               </tbody>
             </table>
           </div>
-          {/* Bar chart visual */}
           <div className="flex items-end gap-4 h-20 mt-4 px-3">
             {TREND_DATA.map((row) => {
               const maxRev = Math.max(...TREND_DATA.map((r) => r.revenue));
@@ -252,7 +272,6 @@ export default async function AnnualReportPage() {
             <span className="text-sm font-semibold text-gray-900">Balanço Patrimonial — 31/Dez/2025</span>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Assets */}
             <div>
               <div className="text-[10px] font-bold text-brand-700 uppercase tracking-widest mb-2">Ativo</div>
               <div className="space-y-1">
@@ -284,7 +303,6 @@ export default async function AnnualReportPage() {
                 </div>
               </div>
             </div>
-            {/* Liabilities + Equity */}
             <div>
               <div className="text-[10px] font-bold text-red-700 uppercase tracking-widest mb-2">Passivo + PL</div>
               <div className="space-y-1">

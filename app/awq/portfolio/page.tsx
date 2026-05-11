@@ -13,7 +13,8 @@ import {
   AlertTriangle,
   CheckCircle2,
 } from "lucide-react";
-import { getDealHoldingSummaries } from "@/lib/deal-data";
+import { getDeals } from "@/lib/venture-db";
+import { toDealHoldingSummary } from "@/lib/deal-types";
 import {
   buData,
   consolidated,
@@ -31,8 +32,9 @@ function fmtR(n: number) {
 }
 
 export default async function AwqPortfolioPage() {
-  const pm  = await getPortfolioMetrics();
-  const totalCap      = pm.totalCapitalAllocated.value;
+  const [pm, rawDeals] = await Promise.all([getPortfolioMetrics(), getDeals()]);
+  const dealSummaries  = rawDeals.map(toDealHoldingSummary);
+  const totalCap       = pm.totalCapitalAllocated.value;
   const totalNetIncome = pm.totalNetIncome.value;
 
   return (
@@ -262,7 +264,7 @@ export default async function AwqPortfolioPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {getDealHoldingSummaries().map((d) => (
+                {dealSummaries.map((d) => (
                   <tr key={d.dealId} className="hover:bg-gray-50/60 transition-colors">
                     <td className="py-2.5 px-3">
                       <div className="font-semibold text-gray-900">{d.companyName}</div>

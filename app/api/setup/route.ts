@@ -15,6 +15,8 @@ import { sql } from "@/lib/db";
 import { supabaseAdmin, STORAGE_BUCKET } from "@/lib/supabase";
 import { upsertDeal } from "@/lib/venture-db";
 import { dealWorkspaces } from "@/lib/deal-data";
+import { upsertPlanningBlob, getPlanningBlob } from "@/lib/planning-db";
+import { buData, BUDGET_LINES, categoryBudget } from "@/lib/awq-derived-metrics";
 
 export const runtime = "nodejs";
 
@@ -184,6 +186,24 @@ export async function POST(): Promise<NextResponse> {
     } catch (err) {
       results.push({ step: "schema:bi_tables", status: "error", detail: String(err) });
     }
+
+    // Changelog bootstrap
+    try {
+      const { initChangelogDB } = await import("@/lib/changelog-db");
+      await initChangelogDB();
+      results.push({ step: "schema:changelog_table", status: "ok" });
+    } catch (err) {
+      results.push({ step: "schema:changelog_table", status: "error", detail: String(err) });
+    }
+
+    // Planning blobs bootstrap
+    try {
+      const { initPlanningDB } = await import("@/lib/planning-db");
+      await initPlanningDB();
+      results.push({ step: "schema:planning_blobs", status: "ok" });
+    } catch (err) {
+      results.push({ step: "schema:planning_blobs", status: "error", detail: String(err) });
+    }
   }
 
   // ── 2. Supabase Storage bucket ───────────────────────────────────────────────
@@ -229,7 +249,26 @@ export async function POST(): Promise<NextResponse> {
     }
   }
 
-  // ── 4. Security audit log table ──────────────────────────────────────────────
+  // ── 4. Seed planning blobs ───────────────────────────────────────────────────
+  if (!sql) {
+    results.push({ step: "seed_planning", status: "skipped", detail: "DATABASE_URL não configurado" });
+  } else {
+    try {
+      const existing = await getPlanningBlob("bu_profiles");
+      if (!existing) {
+        await upsertPlanningBlob("bu_profiles", buData);
+        await upsertPlanningBlob("budget_lines", BUDGET_LINES);
+        await upsertPlanningBlob("category_budget", categoryBudget);
+        results.push({ step: "seed_planning", status: "ok", detail: "bu_profiles, budget_lines, category_budget inseridos" });
+      } else {
+        results.push({ step: "seed_planning", status: "ok", detail: "planning blobs já existem" });
+      }
+    } catch (err) {
+      results.push({ step: "seed_planning", status: "error", detail: String(err) });
+    }
+  }
+
+  // ── 5. Security audit log table ──────────────────────────────────────────────
   if (sql) {
     try {
       await sql`

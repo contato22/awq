@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import { Sparkles, Wrench, Zap, CalendarDays, Tag } from "lucide-react";
 
@@ -18,9 +18,9 @@ interface Novidade {
   itens?: string[];
 }
 
-// ─── Changelog data ───────────────────────────────────────────────────────────
+// ─── Seed data (fallback when DB not connected) ───────────────────────────────
 
-const NOVIDADES: Novidade[] = [
+const SEED_NOVIDADES: Novidade[] = [
   {
     id: "ap-ar-cadastro-ux",
     data: "2026-04-27",
@@ -225,10 +225,24 @@ function todayISO() { return new Date().toISOString().slice(0, 10); }
 
 export default function NovidadesPage() {
   const [tipoFilter, setTipoFilter] = useState<TipoNovidade | "all">("all");
+  const [novidades, setNovidades]   = useState<Novidade[]>(SEED_NOVIDADES);
+  const [usingSeed, setUsingSeed]   = useState(true);
+
+  useEffect(() => {
+    fetch("/api/awq/changelog")
+      .then(r => r.json())
+      .then(j => {
+        if (j.success && j.data.length > 0) {
+          setNovidades(j.data);
+          setUsingSeed(false);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const filtered = tipoFilter === "all"
-    ? NOVIDADES
-    : NOVIDADES.filter((n) => n.tipo === tipoFilter);
+    ? novidades
+    : novidades.filter((n) => n.tipo === tipoFilter);
 
   const byDate = filtered.reduce<Record<string, Novidade[]>>((acc, n) => {
     (acc[n.data] ??= []).push(n);
@@ -241,9 +255,15 @@ export default function NovidadesPage() {
     <>
       <Header
         title="Novidades"
-        subtitle={`${NOVIDADES.length} atualizações · melhorias e correções da plataforma`}
+        subtitle={`${novidades.length} atualizações · melhorias e correções da plataforma`}
       />
       <div className="px-8 py-6 max-w-2xl">
+
+        {usingSeed && (
+          <div className="mb-4 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-[10px] font-semibold text-amber-700">
+            dados de exemplo
+          </div>
+        )}
 
         {/* ── Filtros de tipo ──────────────────────────────────────────────── */}
         <div className="flex items-center gap-2 flex-wrap mb-7">
@@ -256,12 +276,12 @@ export default function NovidadesPage() {
                 : "bg-gray-100 text-gray-600 hover:bg-gray-200"
             }`}
           >
-            Tudo <span className="opacity-60 ml-0.5">({NOVIDADES.length})</span>
+            Tudo <span className="opacity-60 ml-0.5">({novidades.length})</span>
           </button>
           {(["feature", "melhoria", "fix"] as TipoNovidade[]).map((tipo) => {
             const cfg   = TIPO_CONFIG[tipo];
             const Icon  = cfg.icon;
-            const count = NOVIDADES.filter((n) => n.tipo === tipo).length;
+            const count = novidades.filter((n) => n.tipo === tipo).length;
             const ativo = tipoFilter === tipo;
             return (
               <button

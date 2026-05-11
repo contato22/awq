@@ -10,11 +10,14 @@ import { Target, AlertTriangle, TrendingUp, BarChart3 } from "lucide-react";
 import {
   budgetVsActual,
   consolidated,
-  BUDGET_LINES,
-  categoryBudget,
+  BUDGET_LINES as SEED_BUDGET_LINES,
+  categoryBudget as SEED_CATEGORY_BUDGET,
   operatingBus,
 } from "@/lib/awq-derived-metrics";
 import { buildDreQuery } from "@/lib/dre-query";
+import { getPlanningBlob } from "@/lib/planning-db";
+import type { BudgetLine } from "@/lib/awq-derived-metrics";
+import type { CategoryBudgetItem } from "@/lib/awq-group-data";
 
 function fmtBRL(n: number): string {
   const abs  = Math.abs(n);
@@ -79,7 +82,13 @@ function BudgetRow({
 }
 
 export default async function EpmBudgetPage() {
-  const dre  = await buildDreQuery("all");
+  const [dre, dbBudgetLines, dbCategoryBudget] = await Promise.all([
+    buildDreQuery("all"),
+    getPlanningBlob<BudgetLine[]>("budget_lines"),
+    getPlanningBlob<CategoryBudgetItem[]>("category_budget"),
+  ]);
+  const BUDGET_LINES   = dbBudgetLines    ?? SEED_BUDGET_LINES;
+  const categoryBudget = dbCategoryBudget ?? SEED_CATEGORY_BUDGET;
   const snap = consolidated;
 
   function sumBudgLine(name: string) {

@@ -11,13 +11,13 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import {
-  buData,
-  operatingBus,
-  consolidated,
+  buData as SEED_BU,
   allocFlags,
   flagConfig,
   PAYBACK_ESTIMATES,
 } from "@/lib/awq-derived-metrics";
+import { getPlanningBlob } from "@/lib/planning-db";
+import type { BuData } from "@/lib/awq-group-data";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -30,7 +30,10 @@ function fmtR(n: number) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function AwqAllocationsPage() {
+export default async function AwqAllocationsPage() {
+  const dbBu = await getPlanningBlob<BuData[]>("bu_profiles");
+  const buData = dbBu ?? SEED_BU;
+  const operatingBus = buData.filter((b) => b.id !== "venture");
   const totalCap = buData.reduce((s, b) => s + b.capitalAllocated, 0);
 
   // Rankings
