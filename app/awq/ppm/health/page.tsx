@@ -332,13 +332,13 @@ export default function PortfolioHealthPage() {
             <div className="md:col-span-2 bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
               <h3 className="text-sm font-bold text-gray-900 mb-3">Legenda EVM</h3>
               <div className="grid grid-cols-2 gap-3 text-xs text-gray-600">
-                <div><span className="font-semibold text-gray-800">CPI</span> — Cost Performance Index. &gt;1.0 = abaixo do orçamento.</div>
-                <div><span className="font-semibold text-gray-800">SPI</span> — Schedule Performance Index. &gt;1.0 = adiantado.</div>
+                <div><span className="font-semibold text-gray-800">CPI</span> — Cost Performance Index. {">"}1.0 = abaixo do orçamento.</div>
+                <div><span className="font-semibold text-gray-800">SPI</span> — Schedule Performance Index. {">"}1.0 = adiantado.</div>
                 <div><span className="font-semibold text-gray-800">EAC</span> — Estimate at Completion. Previsão de custo final.</div>
                 <div><span className="font-semibold text-gray-800">Margem</span> — (Revenue − Cost) / Revenue × 100.</div>
                 <div><span className="font-semibold text-emerald-600">● Saudável</span> — CPI/SPI ≥ 0.95, sem atraso, orçamento OK.</div>
                 <div><span className="font-semibold text-amber-600">● Em Risco</span> — CPI/SPI entre 0.85–0.95 ou leve atraso.</div>
-                <div><span className="font-semibold text-red-600">● Crítico</span> — CPI/SPI &lt; 0.85, &gt;14d atraso ou &gt;15% over budget.</div>
+                <div><span className="font-semibold text-red-600">● Crítico</span> — CPI/SPI {"<"} 0.85, {">"}14d atraso ou {">"}15% over budget.</div>
               </div>
             </div>
           </div>
@@ -349,7 +349,7 @@ export default function PortfolioHealthPage() {
           <div className="text-center py-16 text-sm text-gray-400">Carregando health report…</div>
         ) : visible.length === 0 ? (
           <div className="text-center py-16 text-sm text-gray-400">
-            {filter === "all" ? "Nenhum projeto ativo encontrado." : `Nenhum projeto com status "${filter}".`}
+            {filter === "all" ? "Nenhum projeto ativo encontrado." : `Nenhum projeto ${HEALTH_LABEL[filter] ? `com status "${HEALTH_LABEL[filter]}"` : ""}.`}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">

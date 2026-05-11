@@ -23,6 +23,10 @@ const PHASE_STEPS   = ["initiation","planning","execution","monitoring","closure
 const PHASE_LABEL   = { initiation: "Iniciação", planning: "Planejamento", execution: "Execução", monitoring: "Monitoramento", closure: "Encerramento" } as const;
 const TASK_STATUS_ICON: Record<string, React.ElementType> = { completed: CheckCircle2, in_progress: PlayCircle, blocked: XCircle, cancelled: XCircle, not_started: Circle };
 const TASK_STATUS_COLOR: Record<string, string> = { completed: "text-emerald-600", in_progress: "text-blue-600", blocked: "text-red-500", cancelled: "text-gray-400", not_started: "text-gray-400" };
+const TASK_STATUS_LABEL: Record<string, string> = { completed: "Concluído", in_progress: "Em Andamento", blocked: "Bloqueado", cancelled: "Cancelado", not_started: "A Fazer" };
+const MILESTONE_STATUS_LABEL: Record<string, string> = { achieved: "Alcançado", missed: "Atrasado", pending: "Pendente" };
+const RISK_STATUS_LABEL: Record<string, string> = { identified: "Identificado", monitoring: "Monitorando", mitigating: "Mitigando", mitigated: "Mitigado", occurred: "Ocorreu", closed: "Fechado" };
+const ISSUE_STATUS_LABEL: Record<string, string> = { open: "Aberto", in_progress: "Em Progresso", resolved: "Resolvido", closed: "Fechado" };
 const RISK_SCORE_COLOR = (s: number) => s >= 6 ? "bg-red-100 text-red-700" : s >= 3 ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700";
 const SEV_COLOR: Record<string, string> = { critical: "bg-red-100 text-red-700", high: "bg-orange-100 text-orange-700", medium: "bg-amber-100 text-amber-700", low: "bg-gray-100 text-gray-600" };
 const ISSUE_STATUS_COLOR: Record<string, string> = { open: "bg-red-100 text-red-700", in_progress: "bg-blue-100 text-blue-700", resolved: "bg-emerald-100 text-emerald-700", closed: "bg-gray-100 text-gray-600" };
@@ -337,7 +341,7 @@ export default function ProjectDetailPage() {
                       m.status === "achieved" ? "bg-emerald-100 text-emerald-700" :
                       m.status === "missed"   ? "bg-red-100 text-red-700" :
                       "bg-gray-100 text-gray-600"
-                    }`}>{m.status}</span>
+                    }`}>{MILESTONE_STATUS_LABEL[m.status] ?? m.status}</span>
                   </div>
                 ))}
                 {milestones.length === 0 && <p className="text-sm text-gray-400">Nenhum milestone cadastrado.</p>}
@@ -352,7 +356,7 @@ export default function ProjectDetailPage() {
                     <div key={issue.issue_id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
                       <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${SEV_COLOR[issue.severity]}`}>{issue.severity.toUpperCase()}</span>
                       <div className="flex-1 text-sm text-gray-700">{issue.issue_description}</div>
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${ISSUE_STATUS_COLOR[issue.status]}`}>{issue.status}</span>
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${ISSUE_STATUS_COLOR[issue.status]}`}>{ISSUE_STATUS_LABEL[issue.status] ?? issue.status}</span>
                     </div>
                   ))}
                 </div>
@@ -421,7 +425,7 @@ export default function ProjectDetailPage() {
                           )}
                         </td>
                         <td className="px-4 py-2.5">
-                          <span className={`text-[10px] font-semibold ${color}`}>{task.status.replace("_"," ")}</span>
+                          <span className={`text-[10px] font-semibold ${color}`}>{TASK_STATUS_LABEL[task.status] ?? task.status}</span>
                         </td>
                         <td className="px-4 py-2.5">
                           <button onClick={() => void toggleTask(task)} title="Alternar status" className="p-1 rounded hover:bg-gray-100 transition-colors">
@@ -476,7 +480,7 @@ export default function ProjectDetailPage() {
                           r.status === "occurred" ? "bg-red-100 text-red-700" :
                           r.status === "mitigating" ? "bg-amber-100 text-amber-700" :
                           "bg-blue-100 text-blue-700"
-                        }`}>{r.status}</span>
+                        }`}>{RISK_STATUS_LABEL[r.status] ?? r.status}</span>
                       </td>
                     </tr>
                   ))}

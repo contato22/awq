@@ -193,7 +193,7 @@ export default function GanttPage() {
                     {isOpen && topTasks.map(task => (
                       <div key={task.task_id} className="flex items-center hover:bg-gray-50 transition-colors">
                         <div className="w-80 shrink-0 px-4 py-2 border-r border-gray-100 flex items-center gap-2 pl-8">
-                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_COLOR[task.status]?.replace("bg-","bg-") ?? "bg-gray-300"}`} />
+                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_COLOR[task.status] ?? "bg-gray-300"}`} />
                           <span className="text-[11px] text-gray-600 truncate flex-1">{task.task_name}</span>
                           {task.wbs_code && <span className="text-[10px] font-mono text-gray-400 shrink-0">{task.wbs_code}</span>}
                         </div>

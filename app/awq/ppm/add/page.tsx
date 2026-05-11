@@ -60,7 +60,7 @@ function AddProjectPageInner() {
     budget_hours:     "",
     budget_cost:      "",
     budget_revenue:   "",
-    project_manager:  "Miguel",
+    project_manager:  "",
     priority:         "medium",
     description:      "",
     objectives:       "",

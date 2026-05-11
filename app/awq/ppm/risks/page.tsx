@@ -303,7 +303,7 @@ export default function RisksPage() {
                   </td>
                   <td className="px-4 py-3">
                     {risk.project_id && (
-                      <Link href={`/awq/ppm/${risk.project_id}#risks`} className="text-[10px] text-gray-400 hover:text-brand-600">Ver →</Link>
+                      <Link href={`/awq/ppm/${risk.project_id}`} className="text-[10px] text-gray-400 hover:text-brand-600">Ver →</Link>
                     )}
                   </td>
                 </tr>

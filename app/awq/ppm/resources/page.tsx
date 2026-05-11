@@ -5,7 +5,10 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { ArrowLeft, Users, AlertTriangle, CheckCircle2, Circle, Plus, RefreshCw, X, Save } from "lucide-react";
+import { formatDateBR } from "@/lib/utils";
 import type { PpmAllocation, PpmProject } from "@/lib/ppm-types";
+
+const ALLOC_STATUS_LABEL: Record<string, string> = { active: "Ativo", paused: "Pausado", ended: "Encerrado" };
 
 type UtilRow = {
   user_id: string; user_name: string; email?: string;
@@ -66,7 +69,6 @@ function UtilCard({ row }: { row: UtilRow }) {
 }
 
 const INPUT = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 bg-white";
-const USERS = ["miguel", "danilo"] as const;
 
 export default function ResourcesPage() {
   const [utilization,  setUtilization]  = useState<UtilRow[]>([]);
@@ -80,7 +82,7 @@ export default function ResourcesPage() {
 
   const [form, setForm] = useState({
     project_id:     "",
-    user_id:        "miguel",
+    user_id:        "",
     role:           "Team Member",
     allocation_pct: "50",
     hours_per_week: "20",
@@ -102,7 +104,10 @@ export default function ResourcesPage() {
         fetch("/api/ppm/projects"),
       ]);
       const [uJson, aJson, pJson] = await Promise.all([uRes.json(), aRes.json(), pRes.json()]);
-      if (uJson.success) setUtilization(uJson.data);
+      if (uJson.success) {
+        setUtilization(uJson.data);
+        setForm(f => ({ ...f, user_id: f.user_id || (uJson.data[0]?.user_id ?? "") }));
+      }
       if (aJson.success) setAllocations(aJson.data);
       if (pJson.success) {
         const projs: PpmProject[] = pJson.data.projects ?? [];
@@ -217,7 +222,8 @@ export default function ResourcesPage() {
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1.5">Pessoa *</label>
                 <select value={form.user_id} onChange={set("user_id")} className={INPUT}>
-                  {USERS.map(u => <option key={u} value={u}>{u.charAt(0).toUpperCase() + u.slice(1)}</option>)}
+                  <option value="">Selecionar…</option>
+                  {utilization.map(u => <option key={u.user_id} value={u.user_id}>{u.user_name}</option>)}
                 </select>
               </div>
               <div>
@@ -308,14 +314,14 @@ export default function ResourcesPage() {
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-600">{a.hours_per_week ? `${a.hours_per_week}h` : "—"}</td>
                     <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
-                      {a.start_date.slice(0,10)} → {a.end_date ? a.end_date.slice(0,10) : "em aberto"}
+                      {formatDateBR(a.start_date.slice(0,10))} → {a.end_date ? formatDateBR(a.end_date.slice(0,10)) : "em aberto"}
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-600">
                       {a.billable_rate ? `R$${a.billable_rate}/h` : "—"}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${a.status === "active" ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-500"}`}>
-                        {a.status}
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${a.status === "active" ? "bg-emerald-100 text-emerald-700" : a.status === "paused" ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-500"}`}>
+                        {ALLOC_STATUS_LABEL[a.status] ?? a.status}
                       </span>
                     </td>
                   </tr>
