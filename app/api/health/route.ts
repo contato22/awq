@@ -2,7 +2,7 @@
 //
 // PUBLIC endpoint (excluded from middleware auth). Reports:
 //   1. Env var presence (boolean — never exposes values)
-//   2. Neon DB connectivity (SELECT 1 ping)
+//   2. Supabase DB connectivity (SELECT 1 ping)
 //   3. Schema existence (financial_documents, bank_transactions tables)
 //   4. REAL DATA counters — the definitive proof of operational state:
 //        documentCount     — total docs in financial_documents
@@ -31,7 +31,7 @@ export async function GET(): Promise<NextResponse> {
     ai:      !!process.env.ANTHROPIC_API_KEY,
     auth:    !!process.env.NEXTAUTH_SECRET,
     authUrl: !!process.env.NEXTAUTH_URL,
-    dbAdapter:   USE_DB   ? "neon-postgres"   : "filesystem-json",
+    dbAdapter:   USE_DB   ? "supabase-postgres" : "filesystem-json",
     blobAdapter: USE_BLOB ? "vercel-blob"      : "local-filesystem",
   };
 

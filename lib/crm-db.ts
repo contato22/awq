@@ -11,8 +11,319 @@ import type {
 // ─── Schema Bootstrap ─────────────────────────────────────────────────────────
 export async function initCrmDB(): Promise<void> {
   if (!sql) return;
-  // Tables are created via awq_crm_full_schema.sql run once in Neon.
-  // This function is a no-op placeholder kept for API route parity.
+
+  await sql`CREATE EXTENSION IF NOT EXISTS pgcrypto`;
+
+  // ── Tables ────────────────────────────────────────────────────────────────
+  await sql`
+    CREATE TABLE IF NOT EXISTS crm_accounts (
+      account_id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+      account_code             TEXT        UNIQUE,
+      account_name             TEXT        NOT NULL,
+      trade_name               TEXT,
+      document_number          TEXT        UNIQUE,
+      industry                 TEXT        CHECK (industry IN ('tech','finance','education','health','media','retail','other')),
+      company_size             TEXT        CHECK (company_size IN ('1-10','11-50','51-200','201-500','500+')),
+      annual_revenue_estimate  NUMERIC(15,2),
+      website                  TEXT,
+      linkedin_url             TEXT,
+      address_street           TEXT,
+      address_city             TEXT,
+      address_state            TEXT,
+      address_zip              TEXT,
+      account_type             TEXT        NOT NULL DEFAULT 'prospect'
+                                 CHECK (account_type IN ('prospect','customer','partner','former_customer')),
+      owner                    TEXT        NOT NULL DEFAULT 'Miguel',
+      health_score             SMALLINT    NOT NULL DEFAULT 70
+                                 CHECK (health_score BETWEEN 0 AND 100),
+      churn_risk               TEXT        NOT NULL DEFAULT 'low'
+                                 CHECK (churn_risk IN ('low','medium','high')),
+      renewal_date             DATE,
+      epm_customer_id          UUID,
+      created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      created_by               TEXT
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS crm_contacts (
+      contact_id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+      account_id          UUID        REFERENCES crm_accounts(account_id) ON DELETE CASCADE,
+      full_name           TEXT        NOT NULL,
+      email               TEXT,
+      phone               TEXT,
+      mobile              TEXT,
+      job_title           TEXT,
+      department          TEXT,
+      seniority           TEXT        NOT NULL DEFAULT 'manager'
+                            CHECK (seniority IN ('c_level','director','manager','ic')),
+      linkedin_url        TEXT,
+      is_primary_contact  BOOLEAN     NOT NULL DEFAULT FALSE,
+      contact_preferences TEXT[]      NOT NULL DEFAULT '{}',
+      created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS crm_leads (
+      lead_id                      UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+      lead_source                  TEXT        NOT NULL DEFAULT 'manual'
+                                     CHECK (lead_source IN ('organic','paid','referral','inbound','manual')),
+      company_name                 TEXT        NOT NULL,
+      contact_name                 TEXT        NOT NULL,
+      email                        TEXT,
+      phone                        TEXT,
+      job_title                    TEXT,
+      bu                           TEXT        NOT NULL DEFAULT 'JACQES'
+                                     CHECK (bu IN ('JACQES','CAZA','ADVISOR','VENTURE')),
+      lead_score                   SMALLINT    NOT NULL DEFAULT 0
+                                     CHECK (lead_score BETWEEN 0 AND 100),
+      status                       TEXT        NOT NULL DEFAULT 'new'
+                                     CHECK (status IN ('new','contacted','qualified','unqualified','converted')),
+      qualification_notes          TEXT,
+      bant_budget                  NUMERIC(15,2),
+      bant_authority               BOOLEAN     NOT NULL DEFAULT FALSE,
+      bant_need                    TEXT        CHECK (bant_need IN ('low','medium','high')),
+      bant_timeline                DATE,
+      assigned_to                  TEXT        NOT NULL DEFAULT 'Miguel',
+      converted_to_opportunity_id  UUID,
+      converted_at                 TIMESTAMPTZ,
+      created_at                   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at                   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      created_by                   TEXT
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS crm_opportunities (
+      opportunity_id      UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+      opportunity_code    TEXT        UNIQUE,
+      opportunity_name    TEXT        NOT NULL,
+      account_id          UUID        REFERENCES crm_accounts(account_id) ON DELETE SET NULL,
+      contact_id          UUID        REFERENCES crm_contacts(contact_id) ON DELETE SET NULL,
+      bu                  TEXT        NOT NULL
+                            CHECK (bu IN ('JACQES','CAZA','ADVISOR','VENTURE')),
+      stage               TEXT        NOT NULL DEFAULT 'discovery'
+                            CHECK (stage IN ('discovery','qualification','proposal','negotiation','closed_won','closed_lost')),
+      deal_value          NUMERIC(15,2) NOT NULL DEFAULT 0,
+      probability         SMALLINT    NOT NULL DEFAULT 25
+                            CHECK (probability BETWEEN 0 AND 100),
+      expected_close_date DATE,
+      actual_close_date   DATE,
+      lost_reason         TEXT,
+      lost_to_competitor  TEXT,
+      win_reason          TEXT,
+      owner               TEXT        NOT NULL DEFAULT 'Miguel',
+      proposal_sent_date  DATE,
+      proposal_viewed     BOOLEAN     NOT NULL DEFAULT FALSE,
+      proposal_accepted   BOOLEAN     NOT NULL DEFAULT FALSE,
+      synced_to_epm       BOOLEAN     NOT NULL DEFAULT FALSE,
+      epm_customer_id     UUID,
+      epm_ar_id           UUID,
+      created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      created_by          TEXT
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS crm_opportunity_stage_history (
+      history_id      UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+      opportunity_id  UUID        NOT NULL REFERENCES crm_opportunities(opportunity_id) ON DELETE CASCADE,
+      from_stage      TEXT,
+      to_stage        TEXT        NOT NULL,
+      changed_by      TEXT,
+      changed_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS crm_activities (
+      activity_id       UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+      activity_type     TEXT        NOT NULL
+                          CHECK (activity_type IN ('call','email','meeting','task','note')),
+      related_to_type   TEXT        NOT NULL
+                          CHECK (related_to_type IN ('lead','opportunity','account','contact')),
+      related_to_id     UUID        NOT NULL,
+      subject           TEXT        NOT NULL,
+      description       TEXT,
+      outcome           TEXT        CHECK (outcome IN ('successful','unsuccessful','no_answer')),
+      duration_minutes  INTEGER,
+      scheduled_at      TIMESTAMPTZ,
+      completed_at      TIMESTAMPTZ,
+      status            TEXT        NOT NULL DEFAULT 'scheduled'
+                          CHECK (status IN ('scheduled','completed','cancelled')),
+      created_by        TEXT        NOT NULL DEFAULT 'Miguel',
+      created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS crm_pipeline_snapshot (
+      snapshot_id         UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+      snapshot_date       DATE          NOT NULL DEFAULT CURRENT_DATE,
+      stage               TEXT          NOT NULL,
+      bu                  TEXT          NOT NULL,
+      total_opportunities INTEGER       NOT NULL DEFAULT 0,
+      total_value         NUMERIC(15,2) NOT NULL DEFAULT 0,
+      weighted_value      NUMERIC(15,2) NOT NULL DEFAULT 0
+    )
+  `;
+
+  // ── Indexes ───────────────────────────────────────────────────────────────
+  await sql`CREATE INDEX IF NOT EXISTS idx_crm_accounts_type   ON crm_accounts(account_type)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_crm_accounts_owner  ON crm_accounts(owner)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_crm_contacts_account ON crm_contacts(account_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_crm_leads_status    ON crm_leads(status)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_crm_leads_bu        ON crm_leads(bu)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_crm_leads_assigned  ON crm_leads(assigned_to)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_crm_opp_stage       ON crm_opportunities(stage)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_crm_opp_bu          ON crm_opportunities(bu)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_crm_opp_owner       ON crm_opportunities(owner)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_crm_opp_account     ON crm_opportunities(account_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_crm_stage_hist_opp  ON crm_opportunity_stage_history(opportunity_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_crm_act_related     ON crm_activities(related_to_type, related_to_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_crm_act_status      ON crm_activities(status)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_crm_act_creator     ON crm_activities(created_by)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_crm_snap_date       ON crm_pipeline_snapshot(snapshot_date)`;
+
+  // ── Trigger: auto-set probability by stage ────────────────────────────────
+  await sql`
+    CREATE OR REPLACE FUNCTION fn_crm_opp_set_probability()
+    RETURNS TRIGGER LANGUAGE plpgsql AS $$
+    BEGIN
+      NEW.probability := CASE NEW.stage
+        WHEN 'discovery'     THEN 25
+        WHEN 'qualification' THEN 40
+        WHEN 'proposal'      THEN 60
+        WHEN 'negotiation'   THEN 75
+        WHEN 'closed_won'    THEN 100
+        WHEN 'closed_lost'   THEN 0
+        ELSE NEW.probability
+      END;
+      NEW.updated_at := NOW();
+      RETURN NEW;
+    END;
+    $$
+  `;
+  await sql`DROP TRIGGER IF EXISTS trg_crm_opp_probability ON crm_opportunities`;
+  await sql`
+    CREATE TRIGGER trg_crm_opp_probability
+      BEFORE INSERT OR UPDATE OF stage ON crm_opportunities
+      FOR EACH ROW EXECUTE FUNCTION fn_crm_opp_set_probability()
+  `;
+
+  // ── Trigger: auto-log stage changes ──────────────────────────────────────
+  await sql`
+    CREATE OR REPLACE FUNCTION fn_crm_opp_log_stage()
+    RETURNS TRIGGER LANGUAGE plpgsql AS $$
+    BEGIN
+      IF (TG_OP = 'UPDATE' AND OLD.stage IS DISTINCT FROM NEW.stage) THEN
+        INSERT INTO crm_opportunity_stage_history (opportunity_id, from_stage, to_stage, changed_by)
+        VALUES (NEW.opportunity_id, OLD.stage, NEW.stage, NEW.created_by);
+        IF NEW.stage IN ('closed_won','closed_lost') AND OLD.actual_close_date IS NULL THEN
+          NEW.actual_close_date := CURRENT_DATE;
+        END IF;
+      END IF;
+      RETURN NEW;
+    END;
+    $$
+  `;
+  await sql`DROP TRIGGER IF EXISTS trg_crm_opp_stage_history ON crm_opportunities`;
+  await sql`
+    CREATE TRIGGER trg_crm_opp_stage_history
+      BEFORE UPDATE ON crm_opportunities
+      FOR EACH ROW EXECUTE FUNCTION fn_crm_opp_log_stage()
+  `;
+
+  // ── Trigger: auto-generate opportunity_code ───────────────────────────────
+  await sql`
+    CREATE OR REPLACE FUNCTION fn_crm_opp_code()
+    RETURNS TRIGGER LANGUAGE plpgsql AS $$
+    DECLARE v_seq INTEGER;
+    BEGIN
+      IF NEW.opportunity_code IS NULL THEN
+        SELECT COALESCE(MAX(CAST(SUBSTRING(opportunity_code FROM 5) AS INTEGER)), 0) + 1
+        INTO v_seq FROM crm_opportunities WHERE opportunity_code LIKE 'OPP-%';
+        NEW.opportunity_code := 'OPP-' || LPAD(v_seq::TEXT, 3, '0');
+      END IF;
+      RETURN NEW;
+    END;
+    $$
+  `;
+  await sql`DROP TRIGGER IF EXISTS trg_crm_opp_code ON crm_opportunities`;
+  await sql`
+    CREATE TRIGGER trg_crm_opp_code
+      BEFORE INSERT ON crm_opportunities
+      FOR EACH ROW EXECUTE FUNCTION fn_crm_opp_code()
+  `;
+
+  // ── Trigger: auto-generate account_code ──────────────────────────────────
+  await sql`
+    CREATE OR REPLACE FUNCTION fn_crm_account_code()
+    RETURNS TRIGGER LANGUAGE plpgsql AS $$
+    DECLARE v_seq INTEGER;
+    BEGIN
+      IF NEW.account_code IS NULL THEN
+        SELECT COALESCE(MAX(CAST(SUBSTRING(account_code FROM 5) AS INTEGER)), 0) + 1
+        INTO v_seq FROM crm_accounts WHERE account_code LIKE 'ACC-%';
+        NEW.account_code := 'ACC-' || LPAD(v_seq::TEXT, 3, '0');
+      END IF;
+      RETURN NEW;
+    END;
+    $$
+  `;
+  await sql`DROP TRIGGER IF EXISTS trg_crm_account_code ON crm_accounts`;
+  await sql`
+    CREATE TRIGGER trg_crm_account_code
+      BEFORE INSERT ON crm_accounts
+      FOR EACH ROW EXECUTE FUNCTION fn_crm_account_code()
+  `;
+
+  // ── Views ─────────────────────────────────────────────────────────────────
+  await sql`
+    CREATE OR REPLACE VIEW v_crm_pipeline_overview AS
+    SELECT stage, bu,
+      COUNT(*)                                  AS deal_count,
+      SUM(deal_value)                           AS total_value,
+      SUM(deal_value * probability / 100.0)     AS weighted_value
+    FROM crm_opportunities
+    WHERE stage NOT IN ('closed_won','closed_lost')
+    GROUP BY stage, bu
+  `;
+
+  await sql`
+    CREATE OR REPLACE VIEW v_crm_sales_forecast AS
+    SELECT bu, owner,
+      TO_CHAR(expected_close_date, 'YYYY-MM')   AS forecast_month,
+      COUNT(*)                                   AS deal_count,
+      SUM(deal_value)                            AS pipeline_value,
+      SUM(deal_value * probability / 100.0)      AS weighted_forecast
+    FROM crm_opportunities
+    WHERE stage NOT IN ('closed_won','closed_lost')
+      AND expected_close_date IS NOT NULL
+    GROUP BY bu, owner, TO_CHAR(expected_close_date, 'YYYY-MM')
+    ORDER BY forecast_month, bu
+  `;
+
+  await sql`
+    CREATE OR REPLACE VIEW v_crm_account_health AS
+    SELECT a.account_id, a.account_code, a.account_name, a.account_type,
+      a.owner, a.health_score, a.churn_risk, a.renewal_date,
+      COUNT(DISTINCT o.opportunity_id) FILTER (WHERE o.stage NOT IN ('closed_won','closed_lost'))
+                                                AS open_opportunities,
+      MAX(act.created_at)                       AS last_activity_at,
+      EXTRACT(DAY FROM NOW() - MAX(act.created_at)) AS days_since_activity
+    FROM crm_accounts a
+    LEFT JOIN crm_opportunities o   ON o.account_id = a.account_id
+    LEFT JOIN crm_activities    act ON act.related_to_type = 'account'
+                                   AND act.related_to_id = a.account_id
+    GROUP BY a.account_id, a.account_code, a.account_name, a.account_type,
+             a.owner, a.health_score, a.churn_risk, a.renewal_date
+  `;
 }
 
 // ─── Seed Data (static/no-DB fallback) ───────────────────────────────────────
