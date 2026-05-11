@@ -300,6 +300,23 @@ export interface ResourceUtilization {
   project_names:        string[];
 }
 
+// ─── Comment ──────────────────────────────────────────────────────────────────
+
+export interface PpmComment {
+  comment_id:        string;
+  project_id:        string;
+  task_id?:          string;
+  task_name?:        string;
+  project_name?:     string;
+  author_id?:        string;
+  author_name:       string;
+  body:              string;
+  mentions?:         string[];   // user IDs mentioned with @
+  parent_comment_id?: string;
+  created_at:        string;
+  updated_at:        string;
+}
+
 // ─── EVM Metrics ─────────────────────────────────────────────────────────────
 
 export interface PpmEvm {

@@ -9,7 +9,7 @@ import {
   LayoutDashboard, Plus, Search, Filter, TrendingUp, TrendingDown,
   DollarSign, Clock, Users, CheckCircle2, AlertTriangle, XCircle,
   BarChart3, Briefcase, Calendar, ChevronRight, RefreshCw,
-  GanttChart, ClipboardList,
+  GanttChart, ClipboardList, HeartPulse,
 } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/utils";
 import type { PpmProject, PpmPortfolioMetrics } from "@/lib/ppm-types";
@@ -295,6 +295,7 @@ export default function PpmPortfolioPage() {
               { href: "/awq/ppm/utilization",   label: "Utilização",    icon: BarChart3,     desc: "Capacidade e ocupação",      color: "text-indigo-600",  bg: "bg-indigo-50"  },
               { href: "/awq/ppm/profitability", label: "Rentabilidade", icon: TrendingUp,    desc: "EVM · CPI · SPI · Margem",   color: "text-emerald-700", bg: "bg-emerald-50" },
               { href: "/awq/ppm/risks",         label: "Riscos",        icon: AlertTriangle, desc: "Registro e mitigação",       color: "text-red-600",     bg: "bg-red-50"     },
+              { href: "/awq/ppm/health",        label: "Health Report", icon: HeartPulse,    desc: "CPI · SPI · saúde do portfolio", color: "text-pink-600",  bg: "bg-pink-50"    },
             ].map(({ href, label, icon: Icon, desc, color, bg }) => (
               <Link key={href} href={href}
                 className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl p-3.5 hover:border-brand-200 hover:shadow-sm transition-all group"

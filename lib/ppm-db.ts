@@ -1,6 +1,6 @@
 // ─── AWQ PPM — Data Access Layer ──────────────────────────────────────────────
 //
-// Manages Projects, Tasks, Milestones, Allocations, Time Entries, Risks, Issues.
+// Manages Projects, Tasks, Milestones, Allocations, Time Entries, Risks, Issues, Comments.
 // Storage: Neon PostgreSQL when DATABASE_URL is set; in-memory seed data otherwise.
 // DO NOT import in client components.
 
@@ -8,7 +8,7 @@ import { randomUUID } from "crypto";
 import { sql } from "@/lib/db";
 import type {
   PpmProject, PpmTask, PpmMilestone, PpmAllocation, PpmTimeEntry,
-  PpmRisk, PpmIssue, PpmPortfolioMetrics, BuCode,
+  PpmRisk, PpmIssue, PpmComment, PpmPortfolioMetrics, BuCode,
   ProjectType, ContractType, ProjectPhase, ProjectStatus, HealthStatus,
   Priority, TaskStatus, TaskType, MilestoneStatus, AllocationStatus,
   TimeEntryStatus, RiskImpact, RiskProbability, RiskStatus,
@@ -17,7 +17,7 @@ import type {
 
 export type {
   PpmProject, PpmTask, PpmMilestone, PpmAllocation, PpmTimeEntry,
-  PpmRisk, PpmIssue, PpmPortfolioMetrics,
+  PpmRisk, PpmIssue, PpmComment, PpmPortfolioMetrics,
   BuCode, ProjectType, ContractType, ProjectPhase, ProjectStatus,
   HealthStatus, Priority, TaskStatus, TaskType, MilestoneStatus,
   AllocationStatus, TimeEntryStatus, RiskImpact, RiskProbability,
@@ -690,4 +690,32 @@ export async function getPortfolioMetrics(): Promise<PpmPortfolioMetrics> {
     total_team_members: [...new Set(_allocations.filter(a => a.status === "active").map(a => a.user_id))].length,
     overdue_tasks:      overdue.length,
   };
+}
+
+// ─── Comments ─────────────────────────────────────────────────────────────────
+
+const _comments: PpmComment[] = [];
+
+export async function listComments(projectId?: string, taskId?: string): Promise<PpmComment[]> {
+  if (taskId)    return _comments.filter(c => c.task_id    === taskId);
+  if (projectId) return _comments.filter(c => c.project_id === projectId);
+  return _comments;
+}
+
+export async function createComment(data: Omit<PpmComment, "comment_id" | "created_at" | "updated_at">): Promise<PpmComment> {
+  const comment: PpmComment = {
+    ...data,
+    comment_id: randomUUID(),
+    created_at: now(),
+    updated_at: now(),
+  };
+  _comments.push(comment);
+  return comment;
+}
+
+export async function deleteComment(commentId: string): Promise<boolean> {
+  const idx = _comments.findIndex(c => c.comment_id === commentId);
+  if (idx === -1) return false;
+  _comments.splice(idx, 1);
+  return true;
 }

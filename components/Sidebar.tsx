@@ -225,6 +225,7 @@ const ppmNav = [
     { label: "Utilização",           href: "/awq/ppm/utilization",          icon: BarChart3     },
     { label: "Rentabilidade",        href: "/awq/ppm/profitability",        icon: TrendingUp    },
     { label: "Riscos",               href: "/awq/ppm/risks",                icon: AlertTriangle },
+    { label: "Health Report",        href: "/awq/ppm/health",               icon: HeartPulse    },
 ];
 
 // ── BI nav array ──────────────────────────────────────────────────────────────
@@ -407,6 +408,7 @@ const AWQ_MODULES: AwqModule[] = [
             { label: "Utilização",     href: "/awq/ppm/utilization",   icon: BarChart3     },
             { label: "Rentabilidade",  href: "/awq/ppm/profitability", icon: TrendingUp    },
             { label: "Riscos",         href: "/awq/ppm/risks",         icon: AlertTriangle },
+            { label: "Health Report",  href: "/awq/ppm/health",        icon: HeartPulse    },
         ],
     },
     {
