@@ -5,8 +5,14 @@ import type { FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
 import { STAGE_LABELS, STAGE_PROBABILITY, BU_OPTIONS, OWNER_OPTIONS } from "@/lib/crm-types";
-import type { CrmAccount } from "@/lib/crm-types";
-import { SEED_ACCOUNTS } from "@/lib/crm-db";
+import type { CrmAccount, CrmOpportunity } from "@/lib/crm-types";
+
+const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
+const LS_KEY = "crm-opportunities-v3";
+
+function lsGet<T>(key: string): T[] {
+  try { return JSON.parse(localStorage.getItem(key) ?? "[]"); } catch { return []; }
+}
 
 const ACTIVE_STAGES = ["discovery","qualification","proposal","negotiation","closed_won","closed_lost"] as const;
 
@@ -32,10 +38,14 @@ function AddOpportunityPageInner() {
   });
 
   useEffect(() => {
+    if (IS_STATIC) {
+      setAccounts(lsGet<CrmAccount>("awq_crm_accounts"));
+      return;
+    }
     fetch("/api/crm/accounts")
       .then(r => r.json())
-      .then(res => setAccounts(res.success ? res.data : SEED_ACCOUNTS))
-      .catch(() => setAccounts(SEED_ACCOUNTS));
+      .then(res => setAccounts(res.success ? res.data : lsGet<CrmAccount>("awq_crm_accounts")))
+      .catch(() => setAccounts(lsGet<CrmAccount>("awq_crm_accounts")));
   }, []);
 
   function set(field: string, value: string) {
@@ -50,31 +60,56 @@ function AddOpportunityPageInner() {
     if (!form.bu) { setError("BU é obrigatória"); return; }
     setSaving(true);
     setError("");
+
+    const payload = {
+      opportunity_id: `local-${Date.now()}`,
+      opportunity_code: `OPP-${Date.now()}`,
+      opportunity_name: form.opportunity_name.trim(),
+      bu: form.bu,
+      owner: form.owner,
+      stage: form.stage,
+      deal_value: parseFloat(form.deal_value) || 0,
+      probability,
+      expected_close_date: form.expected_close_date || null,
+      actual_close_date: null,
+      account_id: form.account_id || null,
+      account_name: accounts.find(a => a.account_id === form.account_id)?.account_name ?? undefined,
+      contact_id: null,
+      contact_name: null,
+      lost_reason: form.lost_reason || null,
+      lost_to_competitor: null,
+      win_reason: null,
+      proposal_sent_date: form.proposal_sent_date || null,
+      proposal_viewed: false,
+      proposal_accepted: false,
+      synced_to_epm: false,
+      epm_customer_id: null,
+      epm_ar_id: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      created_by: form.owner,
+    } satisfies CrmOpportunity;
+
+    // Always persist to localStorage
     try {
-      const res = await fetch("/api/crm/opportunities", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "create",
-          opportunity_name: form.opportunity_name.trim(),
-          bu: form.bu,
-          owner: form.owner,
-          stage: form.stage,
-          deal_value: parseFloat(form.deal_value) || 0,
-          expected_close_date: form.expected_close_date || null,
-          account_id: form.account_id || null,
-          lost_reason: form.lost_reason || null,
-          proposal_sent_date: form.proposal_sent_date || null,
-        }),
-      });
-      const data = await res.json();
-      if (data.success) router.push("/crm/opportunities");
-      else setError(data.error ?? "Erro ao criar oportunidade");
-    } catch {
-      setError("Erro de rede — tente novamente");
-    } finally {
-      setSaving(false);
+      const existing = lsGet<CrmOpportunity>(LS_KEY);
+      localStorage.setItem(LS_KEY, JSON.stringify([...existing, payload]));
+    } catch { /* */ }
+
+    if (!IS_STATIC) {
+      try {
+        const res = await fetch("/api/crm/opportunities", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "create", ...payload }),
+        });
+        const data = await res.json();
+        if (!data.success) { setError(data.error ?? "Erro ao criar oportunidade"); setSaving(false); return; }
+      } catch { /* saved in localStorage already */ }
     }
+
+    router.push("/crm/opportunities");
+    setSaving(false);
   }
 
   return (
