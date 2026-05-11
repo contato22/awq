@@ -7,6 +7,9 @@ import {
   Users, PieChart, TrendingUp, Calendar, ChevronRight,
   Clock, CheckCircle2, AlertTriangle,
 } from "lucide-react";
+import { SEED_PORTCOS, SEED_CAP_TABLE } from "@/lib/ma-seed-data";
+
+const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -91,6 +94,12 @@ export default function CapTablePage() {
 
   // Load portfolio companies
   useEffect(() => {
+    if (IS_STATIC) {
+      const active = SEED_PORTCOS.filter(p => p.status === "active") as Portco[];
+      setPortcos(active);
+      if (active.length > 0) setSelectedPortco(active[0].portco_id);
+      return;
+    }
     fetch("/api/ma/portfolio")
       .then(r => r.json())
       .then(j => {
@@ -105,6 +114,11 @@ export default function CapTablePage() {
 
   const loadCapTable = useCallback(async (portco_id: string) => {
     if (!portco_id) return;
+    if (IS_STATIC) {
+      setCapTable(SEED_CAP_TABLE.filter(c => c.portco_id === portco_id) as CapEntry[]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {

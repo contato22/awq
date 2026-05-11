@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import Link from "next/link";
+import { SEED_PORTCOS, computePortfolioTotals } from "@/lib/ma-seed-data";
+
+const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 import {
   Building2,
   TrendingUp,
@@ -54,6 +57,12 @@ export default function PortfolioDashboardPage() {
   const [filter,  setFilter]  = useState<"all" | "active" | "exited">("all");
 
   useEffect(() => {
+    if (IS_STATIC) {
+      setRows(SEED_PORTCOS);
+      setTotals(computePortfolioTotals(SEED_PORTCOS));
+      setLoading(false);
+      return;
+    }
     fetch("/api/ma/portfolio")
       .then((r) => r.json())
       .then((json) => {

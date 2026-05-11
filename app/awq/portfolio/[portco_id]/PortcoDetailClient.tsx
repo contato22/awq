@@ -21,6 +21,9 @@ import {
   ExternalLink,
   ChevronRight,
 } from "lucide-react";
+import { SEED_PORTCOS, SEED_CAP_TABLE, SEED_KPIS, SEED_BOARD_MEETINGS, SEED_MEDIA_DELIVERABLES } from "@/lib/ma-seed-data";
+
+const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -86,6 +89,22 @@ export default function PortcoDetailClient({ params }: { params: { portco_id: st
 
   useEffect(() => {
     if (!portcoId) return;
+    if (IS_STATIC) {
+      const portco = SEED_PORTCOS.find(p => p.portco_id === portcoId);
+      if (portco) {
+        setData({
+          portco,
+          cap_table: SEED_CAP_TABLE.filter(c => c.portco_id === portcoId),
+          recent_kpis: SEED_KPIS.filter(k => k.portco_id === portcoId),
+          board_meetings: SEED_BOARD_MEETINGS.filter(m => m.portco_id === portcoId),
+          media_deliverables: SEED_MEDIA_DELIVERABLES.filter(m => m.portco_id === portcoId),
+        });
+      } else {
+        setError("Empresa não encontrada");
+      }
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     fetch("/api/ma/portfolio", {
       method:  "POST",

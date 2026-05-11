@@ -3,6 +3,9 @@
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import { Users, Calendar, Plus, CheckCircle2, Clock, XCircle, ExternalLink } from "lucide-react";
+import { SEED_PORTCOS, SEED_BOARD_MEETINGS } from "@/lib/ma-seed-data";
+
+const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 
 interface Portco {
   portco_id: string;
@@ -52,6 +55,12 @@ export default function BoardMeetingsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (IS_STATIC) {
+      const active = SEED_PORTCOS.filter(p => p.status === "active") as Portco[];
+      setPortcos(active);
+      if (active.length > 0) setSelectedPortco(active[0].portco_id);
+      return;
+    }
     fetch("/api/ma/portfolio")
       .then(r => r.json())
       .then(j => {
@@ -65,6 +74,11 @@ export default function BoardMeetingsPage() {
 
   const loadMeetings = (id: string) => {
     if (!id) return;
+    if (IS_STATIC) {
+      setMeetings(SEED_BOARD_MEETINGS.filter(m => m.portco_id === id) as BoardMeeting[]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     fetch(`/api/ma/board?portco_id=${id}`)
       .then(r => r.json())

@@ -11,6 +11,9 @@ import {
   XCircle,
   Loader2,
 } from "lucide-react";
+import { SEED_DEALS } from "@/lib/ma-seed-data";
+
+const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -115,6 +118,11 @@ export default function DealPipelinePage() {
   const [error, setError]     = useState<string | null>(null);
 
   useEffect(() => {
+    if (IS_STATIC) {
+      setDeals(SEED_DEALS);
+      setLoading(false);
+      return;
+    }
     fetch("/api/ma/deals")
       .then((r) => r.json())
       .then((json) => {

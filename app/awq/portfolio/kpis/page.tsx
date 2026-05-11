@@ -3,6 +3,9 @@
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Link from "next/link";
+import { SEED_PORTCOS, SEED_KPIS } from "@/lib/ma-seed-data";
+
+const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 import { BarChart3, TrendingUp, ArrowLeft, CheckCircle2 } from "lucide-react";
 
 interface Portco {
@@ -52,6 +55,12 @@ export default function PortcoKpisPage() {
   });
 
   useEffect(() => {
+    if (IS_STATIC) {
+      const active = SEED_PORTCOS.filter(p => p.status === "active") as Portco[];
+      setPortcos(active);
+      if (active.length > 0) setSelectedPortco(active[0].portco_id);
+      return;
+    }
     fetch("/api/ma/portfolio")
       .then(r => r.json())
       .then(j => {
@@ -65,6 +74,11 @@ export default function PortcoKpisPage() {
 
   useEffect(() => {
     if (!selectedPortco) return;
+    if (IS_STATIC) {
+      setKpis(SEED_KPIS.filter(k => k.portco_id === selectedPortco) as KpiRow[]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     fetch(`/api/ma/kpis?portco_id=${selectedPortco}`)
       .then(r => r.json())
@@ -76,6 +90,10 @@ export default function PortcoKpisPage() {
     e.preventDefault();
     setError(null);
     setSaved(false);
+    if (IS_STATIC) {
+      setError("Modo somente-leitura no GitHub Pages. Use a versão Vercel para salvar KPIs.");
+      return;
+    }
     try {
       const r = await fetch("/api/ma/kpis", {
         method: "POST",
