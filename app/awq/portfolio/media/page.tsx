@@ -110,7 +110,7 @@ export default function MediaDeliverablesPage() {
     setLoading(true);
     fetch(`/api/ma/media?portco_id=${id}`)
       .then(r => r.json())
-      .then(j => { if (j.success) setDeliverables(j.data as MediaDeliverable[]); })
+      .then(j => { if (j.success) setDeliverables(j.data as unknown as MediaDeliverable[]); })
       .finally(() => setLoading(false));
   };
 

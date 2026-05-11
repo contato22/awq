@@ -84,7 +84,7 @@ export default function SynergiesPage() {
     try {
       const r = await fetch("/api/ma/synergies");
       const j = await r.json();
-      if (j.success) setSynergies(j.data as Synergy[]);
+      if (j.success) setSynergies(j.data as unknown as Synergy[]);
       else setError(j.error);
     } catch (e) {
       setError(String(e));

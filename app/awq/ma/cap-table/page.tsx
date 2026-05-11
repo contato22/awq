@@ -124,7 +124,7 @@ export default function CapTablePage() {
     try {
       const r = await fetch(`/api/ma/cap-table?portco_id=${portco_id}`);
       const j = await r.json();
-      if (j.success) setCapTable(j.data as CapEntry[]);
+      if (j.success) setCapTable(j.data as unknown as CapEntry[]);
       else setError(j.error);
     } catch (e) {
       setError(String(e));

@@ -82,7 +82,7 @@ export default function BoardMeetingsPage() {
     setLoading(true);
     fetch(`/api/ma/board?portco_id=${id}`)
       .then(r => r.json())
-      .then(j => { if (j.success) setMeetings(j.data as BoardMeeting[]); })
+      .then(j => { if (j.success) setMeetings(j.data as unknown as BoardMeeting[]); })
       .finally(() => setLoading(false));
   };
 
