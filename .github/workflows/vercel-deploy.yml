@@ -19,7 +19,7 @@ on:
   push:
     branches:
       - main
-      - claude/consolidate-awq-platform-sMoN0
+      - "claude/**"
   pull_request:
     branches:
       - main
