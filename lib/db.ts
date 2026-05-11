@@ -88,12 +88,15 @@ export async function initDB(): Promise<void> {
       intercompany_match_id       TEXT,
       excluded_from_consolidated  BOOLEAN NOT NULL DEFAULT false,
       extracted_at                TEXT NOT NULL,
-      classified_at               TEXT
+      classified_at               TEXT,
+      reconciliation_status       TEXT NOT NULL DEFAULT 'pendente'
     )
   `;
 
   await sql`CREATE INDEX IF NOT EXISTS idx_bt_document_id ON bank_transactions(document_id)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_bt_entity ON bank_transactions(entity)`;
+  // Backfill column for DBs created before reconciliation_status was added
+  await sql`ALTER TABLE bank_transactions ADD COLUMN IF NOT EXISTS reconciliation_status TEXT NOT NULL DEFAULT 'pendente'`;
 
   // ─── All module tables — bootstrapped in parallel ────────────────────────────
   await Promise.allSettled([
