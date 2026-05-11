@@ -7,6 +7,8 @@ import { Users, DollarSign, TrendingUp, Star, AlertTriangle, Filter } from "luci
 import { formatBRL } from "@/lib/utils";
 import type { RfmCustomer, RfmResponse, RfmSegment } from "@/lib/crm-rfm-types";
 
+const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
+
 // ─── BU filter ────────────────────────────────────────────────────────────────
 const BUS = ["Todos", "JACQES", "CAZA", "ADVISOR", "VENTURE"] as const;
 type BuFilter = typeof BUS[number];
@@ -264,6 +266,11 @@ export default function RfmPage() {
 
   useEffect(() => {
     setLoading(true);
+    if (IS_STATIC) {
+      setData(buildSeedResponse(bu));
+      setLoading(false);
+      return;
+    }
     const buParam = bu !== "Todos" ? `?bu=${bu}` : "";
     fetch(`/api/crm/rfm${buParam}`)
       .then(r => r.json())
