@@ -61,6 +61,7 @@ import {
     Box,
     Wrench,
     RotateCcw,
+    GitMerge,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -478,6 +479,7 @@ const AWQ_MODULES: AwqModule[] = [
                 label: "Deal Pipeline",
                 icon: Activity,
                 items: [
+                    { label: "M&A Hub",         href: "/awq/ma",                  icon: GitMerge     },
                     { label: "Deal Pipeline",   href: "/awq/ma/deals",            icon: Activity     },
                     { label: "Novo Deal",       href: "/awq/ma/deals/new",        icon: FileText     },
                     { label: "IC Meetings",     href: "/awq/ma/ic",               icon: Users        },

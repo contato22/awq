@@ -3,6 +3,9 @@
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import { Network, Plus, TrendingUp, DollarSign, CheckCircle2, Clock, AlertTriangle } from "lucide-react";
+import { SEED_SYNERGIES } from "@/lib/ma-seed-data";
+
+const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 
 interface Synergy {
   synergy_id: string;
@@ -71,6 +74,11 @@ export default function SynergiesPage() {
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
+    if (IS_STATIC) {
+      setSynergies(SEED_SYNERGIES as Synergy[]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {

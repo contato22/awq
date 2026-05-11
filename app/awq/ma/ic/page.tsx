@@ -16,6 +16,9 @@ import {
   AlertCircle,
   BarChart3,
 } from "lucide-react";
+import { SEED_IC_MEETINGS } from "@/lib/ma-seed-data";
+
+const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -172,6 +175,12 @@ export default function IcPage() {
   const [showModal,  setShowModal]  = useState(false);
 
   async function load() {
+    if (IS_STATIC) {
+      setMeetings(SEED_IC_MEETINGS as any[]);
+      setDecisions(SEED_IC_MEETINGS.flatMap(m => (m as any).decisions ?? []) as any[]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const res  = await fetch("/api/ma/ic");

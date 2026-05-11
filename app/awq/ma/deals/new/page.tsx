@@ -110,6 +110,11 @@ export default function NewDealPage() {
     e.preventDefault();
     setSubmitError(null);
 
+    if (process.env.NEXT_PUBLIC_STATIC_DATA === "1") {
+      setSubmitError("Modo somente-leitura no GitHub Pages. Use a versão Vercel para criar deals.");
+      return;
+    }
+
     if (!form.deal_name.trim())    return setSubmitError("Nome do deal é obrigatório.");
     if (!form.company_name.trim()) return setSubmitError("Nome da empresa é obrigatório.");
     if (!form.deal_type.trim())    return setSubmitError("Tipo de deal é obrigatório.");

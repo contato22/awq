@@ -3,6 +3,9 @@
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import { Film, Plus, CheckCircle2, Clock, Play, Package, ExternalLink } from "lucide-react";
+import { SEED_PORTCOS, SEED_MEDIA_DELIVERABLES } from "@/lib/ma-seed-data";
+
+const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 
 interface Portco {
   portco_id: string;
@@ -80,6 +83,12 @@ export default function MediaDeliverablesPage() {
   const [currentPortco, setCurrentPortco] = useState<Portco | null>(null);
 
   useEffect(() => {
+    if (IS_STATIC) {
+      const active = SEED_PORTCOS.filter(p => p.status === "active") as Portco[];
+      setPortcos(active);
+      if (active.length > 0) { setSelectedPortco(active[0].portco_id); setCurrentPortco(active[0] as unknown as Portco); }
+      return;
+    }
     fetch("/api/ma/portfolio")
       .then(r => r.json())
       .then(j => {
@@ -93,6 +102,11 @@ export default function MediaDeliverablesPage() {
 
   const loadDeliverables = (id: string) => {
     if (!id) return;
+    if (IS_STATIC) {
+      setDeliverables(SEED_MEDIA_DELIVERABLES.filter(d => d.portco_id === id) as MediaDeliverable[]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     fetch(`/api/ma/media?portco_id=${id}`)
       .then(r => r.json())

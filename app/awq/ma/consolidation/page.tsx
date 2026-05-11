@@ -6,6 +6,9 @@ import {
   BarChart3, TrendingUp, ArrowUpDown, Building2,
   CheckCircle2, AlertTriangle, DollarSign, Layers,
 } from "lucide-react";
+import { SEED_CONSOLIDATED, SEED_INTERCOMPANY } from "@/lib/ma-seed-data";
+
+const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -69,6 +72,12 @@ export default function ConsolidationPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (IS_STATIC) {
+      setSnapshot(SEED_CONSOLIDATED as ConsolidatedSnapshot);
+      setTransactions(SEED_INTERCOMPANY as IcTransaction[]);
+      setLoading(false);
+      return;
+    }
     const load = async () => {
       setLoading(true);
       try {
