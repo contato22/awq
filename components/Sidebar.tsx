@@ -1113,8 +1113,6 @@ const JACQES_MODULES: BUModule[] = [
             { label: "Mini P&L",       href: "/jacqes/pl",             icon: LineChart  },
             { label: "Receita",        href: "/jacqes/revenue",        icon: TrendingUp },
             { label: "Unit Economics", href: "/jacqes/unit-economics", icon: Calculator },
-            { label: "FP&A",          href: "/jacqes/fpa",            icon: BarChart3  },
-            { label: "Relatórios",    href: "/jacqes/reports",        icon: FileText   },
         ],
     },
     {
@@ -1285,7 +1283,7 @@ function BUSidebar({
                 <div className="mx-3 my-1.5 border-t border-gray-100 shrink-0" />
 
                 {/* Home */}
-                <div className="px-2 shrink-0">
+                <div className="px-2 pt-2 shrink-0">
                     <Link
                         href={homeHref}
                         onClick={() => setActivePanel(null)}
