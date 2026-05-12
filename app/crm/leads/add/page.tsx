@@ -191,10 +191,15 @@ export default function AddLeadPage() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
           });
-          let json: { success: boolean; error?: string; message?: string } | null = null;
+          let json: { success: boolean; data?: unknown; error?: string; message?: string } | null = null;
           try { json = await res.json(); } catch { /* non-JSON response */ }
           if (json?.success) {
             saved = true;
+            // Cache the DB-persisted lead locally so it survives future API outages
+            if (json.data) {
+              const stored = JSON.parse(localStorage.getItem("awq_local_leads") ?? "[]");
+              localStorage.setItem("awq_local_leads", JSON.stringify([json.data, ...stored]));
+            }
           } else if (json && res.status >= 400 && res.status < 500) {
             apiError = json.error ?? json.message ?? "Erro ao criar lead";
           }
