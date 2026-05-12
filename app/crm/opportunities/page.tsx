@@ -792,8 +792,17 @@ function PipelinePageInner() {
           setOpps(SEED_OPPORTUNITIES);
         }
       })
-      .catch(() => setOpps(SEED_OPPORTUNITIES))
-      .finally(() => setLoading(false));
+      .catch(async () => {
+        try {
+          const { listOpportunities: sbList } = await import("@/lib/crm-db");
+          const rows = await sbList();
+          persist(rows);
+          setOpps(rows);
+        } catch {
+          setOpps(SEED_OPPORTUNITIES);
+        }
+        setLoading(false);
+      });
   }, []);
 
   // Fetch activity counts for all opportunity cards

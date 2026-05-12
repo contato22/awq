@@ -69,6 +69,11 @@ jobs:
           STATIC_EXPORT: "1"
           NEXT_PUBLIC_STATIC_DATA: "1"
           NEXT_PUBLIC_BASE_PATH: "/awq"
+          # Supabase — NEXT_PUBLIC_* são seguros no browser (projetados para isso).
+          # Adicione os secrets no repositório GitHub:
+          # Settings → Secrets → NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           # NEXT_PUBLIC_ANTHROPIC_API_KEY deliberately omitted:
           # NEXT_PUBLIC_* vars are inlined into the client JS bundle and are
           # publicly visible to anyone who inspects the static output.

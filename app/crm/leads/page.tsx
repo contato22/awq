@@ -104,8 +104,15 @@ export default function LeadsPage() {
           setLeads(applyLocalState(json.data));
         } else throw new Error("api");
       } catch {
-        setLeads(applyLocalState(SEED_LEADS));
-        setIsStatic(true);
+        // API indisponível (GitHub Pages) — tentar Supabase direto
+        try {
+          const { listLeads: sbList } = await import("@/lib/crm-db");
+          const rows = await sbList();
+          setLeads(rows);
+        } catch {
+          setLeads(applyLocalState(SEED_LEADS));
+          setIsStatic(true);
+        }
       } finally {
         setLoading(false);
       }

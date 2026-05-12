@@ -209,6 +209,17 @@ export default function AddLeadPage() {
       if (apiError) throw new Error(apiError);
 
       if (!saved) {
+        // Tentar Supabase diretamente (funciona no browser/GitHub Pages)
+        try {
+          const { createLead: sbCreate } = await import("@/lib/crm-db");
+          const row = await sbCreate(payload);
+          saved = true;
+          const stored = JSON.parse(localStorage.getItem("awq_local_leads") ?? "[]");
+          localStorage.setItem("awq_local_leads", JSON.stringify([row, ...stored]));
+        } catch { /* sem Supabase configurado — cai no localStorage */ }
+      }
+
+      if (!saved) {
         const now = new Date().toISOString();
         const localLead = {
           lead_id: `local-${Date.now()}`,

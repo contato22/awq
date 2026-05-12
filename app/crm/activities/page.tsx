@@ -52,15 +52,17 @@ export default function ActivitiesPage() {
   const [completing, setCompleting] = useState<string | null>(null);
 
   useEffect(() => {
-    if (IS_STATIC) {
-      try { setActivities(JSON.parse(localStorage.getItem(LS_ACTIVITIES) ?? "[]")); } catch { setActivities([]); }
-      setLoading(false);
-      return;
-    }
     fetch("/api/crm/activities")
       .then(r => r.json())
       .then(res => setActivities(res.success ? res.data : []))
-      .catch(() => setActivities([]))
+      .catch(async () => {
+        try {
+          const { listActivities: sbList } = await import("@/lib/crm-db");
+          setActivities(await sbList());
+        } catch {
+          try { setActivities(JSON.parse(localStorage.getItem(LS_ACTIVITIES) ?? "[]")); } catch { setActivities([]); }
+        }
+      })
       .finally(() => setLoading(false));
   }, []);
 

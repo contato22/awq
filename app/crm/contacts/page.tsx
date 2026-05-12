@@ -73,20 +73,26 @@ export default function ContactsPage() {
         ];
         setContacts(merged);
       })
-      .catch(() => {
-        const seedFiltered = SEED_CONTACTS.filter(c => !deletedIds.has(c.contact_id));
-        const seedIds = new Set(seedFiltered.map(c => c.contact_id));
-        const merged = [
-          ...localContacts.filter(c =>
-            !seedIds.has(c.contact_id) &&
-            !deletedIds.has(c.contact_id) &&
-            (!search || c.full_name.toLowerCase().includes(search.toLowerCase()) || (c.email ?? "").toLowerCase().includes(search.toLowerCase()))
-          ),
-          ...seedFiltered,
-        ];
-        setContacts(merged);
-      })
-      .finally(() => setLoading(false));
+      .catch(async () => {
+        try {
+          const { listContacts: sbList } = await import("@/lib/crm-db");
+          const rows = await sbList(search ? { search } : undefined);
+          setContacts(rows.filter(c => !deletedIds.has(c.contact_id)));
+        } catch {
+          const seedFiltered = SEED_CONTACTS.filter(c => !deletedIds.has(c.contact_id));
+          const seedIds = new Set(seedFiltered.map(c => c.contact_id));
+          const merged = [
+            ...localContacts.filter(c =>
+              !seedIds.has(c.contact_id) &&
+              !deletedIds.has(c.contact_id) &&
+              (!search || c.full_name.toLowerCase().includes(search.toLowerCase()) || (c.email ?? "").toLowerCase().includes(search.toLowerCase()))
+            ),
+            ...seedFiltered,
+          ];
+          setContacts(merged);
+        }
+        setLoading(false);
+      });
   }, [search]);
 
   return (

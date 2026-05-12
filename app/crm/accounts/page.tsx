@@ -66,7 +66,13 @@ export default function AccountsPage() {
         const json = await res.json();
         setAllAccounts(applyLocalState(json.success ? json.data : lsAccounts()));
       } catch {
-        setAllAccounts(applyLocalState(lsAccounts()));
+        try {
+          const { listAccounts: sbList } = await import("@/lib/crm-db");
+          const rows = await sbList();
+          setAllAccounts(rows);
+        } catch {
+          setAllAccounts(applyLocalState(lsAccounts()));
+        }
       } finally {
         setLoading(false);
       }
