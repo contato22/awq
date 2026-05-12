@@ -41,6 +41,8 @@ function Field({ label, required, children }: { label: string; required?: boolea
 
 const INPUT = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 bg-white text-gray-900 placeholder-gray-400";
 
+const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
+
 interface ClientOption { account_id: string; account_name: string; trade_name?: string }
 
 function ClientSearch({ value, onChange }: { value: string; onChange: (name: string) => void }) {
@@ -54,6 +56,7 @@ function ClientSearch({ value, onChange }: { value: string; onChange: (name: str
   useEffect(() => { setQuery(value); }, [value]);
 
   const search = useCallback((q: string) => {
+    if (IS_STATIC) return;
     if (timerRef.current) clearTimeout(timerRef.current);
     if (!q.trim()) { setOptions([]); setOpen(false); return; }
     timerRef.current = setTimeout(async () => {
@@ -62,7 +65,7 @@ function ClientSearch({ value, onChange }: { value: string; onChange: (name: str
         const res  = await fetch(`/api/crm/accounts?search=${encodeURIComponent(q)}`);
         const json = await res.json();
         if (json.success) { setOptions(json.data ?? []); setOpen(true); }
-      } finally { setLoading(false); }
+      } catch { /* silent — user can still type freely */ } finally { setLoading(false); }
     }, 300);
   }, []);
 
