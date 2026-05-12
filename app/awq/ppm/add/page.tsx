@@ -2,10 +2,10 @@
 
 // ─── /awq/ppm/add — Add New Project ──────────────────────────────────────────
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Save, Briefcase } from "lucide-react";
+import { ArrowLeft, Save, Briefcase, Search } from "lucide-react";
 
 const BU_OPTIONS    = ["JACQES","CAZA","ADVISOR","VENTURE","AWQ"] as const;
 const TYPE_OPTIONS  = [
@@ -40,6 +40,72 @@ function Field({ label, required, children }: { label: string; required?: boolea
 }
 
 const INPUT = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 bg-white text-gray-900 placeholder-gray-400";
+
+interface ClientOption { account_id: string; account_name: string; trade_name?: string }
+
+function ClientSearch({ value, onChange }: { value: string; onChange: (name: string) => void }) {
+  const [query,    setQuery]    = useState(value);
+  const [options,  setOptions]  = useState<ClientOption[]>([]);
+  const [open,     setOpen]     = useState(false);
+  const [loading,  setLoading]  = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const timerRef     = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => { setQuery(value); }, [value]);
+
+  const search = useCallback((q: string) => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    if (!q.trim()) { setOptions([]); setOpen(false); return; }
+    timerRef.current = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const res  = await fetch(`/api/crm/accounts?search=${encodeURIComponent(q)}`);
+        const json = await res.json();
+        if (json.success) { setOptions(json.data ?? []); setOpen(true); }
+      } finally { setLoading(false); }
+    }, 300);
+  }, []);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  return (
+    <div ref={containerRef} className="relative">
+      <div className="relative">
+        <input
+          value={query}
+          onChange={e => { setQuery(e.target.value); onChange(e.target.value); search(e.target.value); }}
+          onFocus={() => { if (options.length > 0) setOpen(true); }}
+          placeholder="Buscar cliente..."
+          className="w-full border border-gray-200 rounded-lg pl-8 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 bg-white text-gray-900 placeholder-gray-400"
+        />
+        <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+        {loading && <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs">…</span>}
+      </div>
+      {open && options.length > 0 && (
+        <ul className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-52 overflow-y-auto text-sm">
+          {options.map(c => (
+            <li
+              key={c.account_id}
+              onMouseDown={() => { onChange(c.account_name); setQuery(c.account_name); setOpen(false); }}
+              className="px-3 py-2 cursor-pointer hover:bg-brand-50 flex flex-col"
+            >
+              <span className="font-medium text-gray-900">{c.account_name}</span>
+              {c.trade_name && c.trade_name !== c.account_name && (
+                <span className="text-xs text-gray-400">{c.trade_name}</span>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 function AddProjectPageInner() {
   const router       = useRouter();
@@ -162,7 +228,10 @@ function AddProjectPageInner() {
             </Field>
             <div className="grid grid-cols-2 gap-4">
               <Field label="Cliente">
-                <input value={form.customer_name} onChange={set("customer_name")} placeholder="Nome do cliente" className={INPUT} />
+                <ClientSearch
+                  value={form.customer_name}
+                  onChange={name => setForm(f => ({ ...f, customer_name: name }))}
+                />
               </Field>
               <Field label="Business Unit" required>
                 <select value={form.bu_code} onChange={set("bu_code")} className={INPUT}>
