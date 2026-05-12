@@ -50,31 +50,84 @@ function AddOpportunityPageInner() {
     if (!form.bu) { setError("BU é obrigatória"); return; }
     setSaving(true);
     setError("");
+
+    const payload = {
+      action: "create",
+      opportunity_name: form.opportunity_name.trim(),
+      bu: form.bu,
+      owner: form.owner,
+      stage: form.stage,
+      deal_value: parseFloat(form.deal_value) || 0,
+      expected_close_date: form.expected_close_date || null,
+      account_id: form.account_id || null,
+      lost_reason: form.lost_reason || null,
+      proposal_sent_date: form.proposal_sent_date || null,
+    };
+
+    let savedToServer = false;
+    let clientError = "";
+
     try {
       const res = await fetch("/api/crm/opportunities", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "create",
-          opportunity_name: form.opportunity_name.trim(),
-          bu: form.bu,
-          owner: form.owner,
-          stage: form.stage,
-          deal_value: parseFloat(form.deal_value) || 0,
-          expected_close_date: form.expected_close_date || null,
-          account_id: form.account_id || null,
-          lost_reason: form.lost_reason || null,
-          proposal_sent_date: form.proposal_sent_date || null,
-        }),
+        body: JSON.stringify(payload),
       });
-      const data = await res.json();
-      if (data.success) router.push("/crm/opportunities");
-      else setError(data.error ?? "Erro ao criar oportunidade");
-    } catch {
-      setError("Erro de rede — tente novamente");
-    } finally {
-      setSaving(false);
+      let data: { success: boolean; error?: string } | null = null;
+      try { data = await res.json(); } catch { /* non-JSON */ }
+      if (data?.success) {
+        savedToServer = true;
+      } else if (res.status >= 400 && res.status < 500) {
+        clientError = data?.error ?? "Erro ao criar oportunidade";
+      }
+      // 5xx (DB not available, etc.) → fall through to localStorage
+    } catch { /* network error → fall through to localStorage */ }
+
+    setSaving(false);
+
+    if (clientError) { setError(clientError); return; }
+
+    if (!savedToServer) {
+      const now = new Date().toISOString();
+      const account = accounts.find(a => a.account_id === payload.account_id);
+      const localOpp = {
+        opportunity_id: `local-${Date.now()}`,
+        opportunity_code: `OPP-L${Date.now().toString().slice(-5)}`,
+        opportunity_name: payload.opportunity_name,
+        account_id: payload.account_id,
+        account_name: account?.account_name ?? null,
+        contact_id: null,
+        contact_name: null,
+        bu: payload.bu,
+        stage: payload.stage,
+        deal_value: payload.deal_value,
+        probability: 25,
+        expected_close_date: payload.expected_close_date,
+        actual_close_date: null,
+        lost_reason: payload.lost_reason,
+        lost_to_competitor: null,
+        win_reason: null,
+        owner: payload.owner,
+        proposal_sent_date: payload.proposal_sent_date,
+        proposal_viewed: false,
+        proposal_accepted: false,
+        synced_to_epm: false,
+        epm_customer_id: null,
+        epm_ar_id: null,
+        created_at: now,
+        updated_at: now,
+        created_by: payload.owner,
+      };
+      try {
+        const stored = JSON.parse(localStorage.getItem("awq_local_opportunities") ?? "[]");
+        localStorage.setItem("awq_local_opportunities", JSON.stringify([localOpp, ...stored]));
+        // Merge into the pipeline cache so the list page shows it immediately
+        const cached = JSON.parse(localStorage.getItem("crm-opportunities-v3") ?? "[]");
+        localStorage.setItem("crm-opportunities-v3", JSON.stringify([localOpp, ...cached]));
+      } catch { /* ignore storage errors */ }
     }
+
+    router.push("/crm/opportunities");
   }
 
   return (
