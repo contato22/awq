@@ -52,10 +52,15 @@ function AddContactPageInner() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
           });
-          let json: { success: boolean; error?: string } | null = null;
+          let json: { success: boolean; data?: unknown; error?: string } | null = null;
           try { json = await res.json(); } catch { /* non-JSON */ }
           if (json?.success) {
             saved = true;
+            // Cache the DB-persisted contact locally so it survives future API outages
+            if (json.data) {
+              const stored = JSON.parse(localStorage.getItem("awq_local_contacts") ?? "[]");
+              localStorage.setItem("awq_local_contacts", JSON.stringify([json.data, ...stored]));
+            }
           } else if (json && res.status >= 400 && res.status < 500) {
             apiError = json.error ?? "Erro ao criar contato";
           }

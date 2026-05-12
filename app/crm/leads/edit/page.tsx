@@ -198,10 +198,24 @@ function EditLeadPageInner() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ action: "update", ...payload }),
           });
-          let json: { success: boolean; error?: string } | null = null;
+          let json: { success: boolean; data?: unknown; error?: string } | null = null;
           try { json = await res.json(); } catch { /* non-JSON */ }
           if (json?.success) {
             saved = true;
+            // Keep localStorage in sync so edits survive future API outages
+            if (json.data) {
+              const updatedLead = json.data as CrmLead;
+              const edits = JSON.parse(localStorage.getItem("awq_lead_edits") ?? "{}") as Record<string, CrmLead>;
+              edits[leadId] = updatedLead;
+              localStorage.setItem("awq_lead_edits", JSON.stringify(edits));
+              const local = JSON.parse(localStorage.getItem("awq_local_leads") ?? "[]") as CrmLead[];
+              const hasLocal = local.some(l => l.lead_id === leadId);
+              if (hasLocal) {
+                localStorage.setItem("awq_local_leads", JSON.stringify(
+                  local.map(l => l.lead_id === leadId ? updatedLead : l)
+                ));
+              }
+            }
           } else if (json && res.status >= 400 && res.status < 500) {
             apiError = json.error ?? "Erro ao salvar lead";
           }
