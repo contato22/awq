@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { initCrmDB } from "@/lib/crm-db";
 import { getForcedBu } from "@/lib/api-guard";
-import { sql } from "@/lib/db";
+import { supabase } from "@/lib/supabase";
 import type { RfmSegment, RfmCustomer, RfmResponse } from "@/lib/crm-rfm-types";
 export type { RfmSegment, RfmCustomer, RfmResponse } from "@/lib/crm-rfm-types";
 
@@ -98,29 +98,45 @@ function buildRfmCustomers(raw: CustomerRaw[]): RfmCustomer[] {
 }
 
 async function fetchFromDb(forcedBu: string | null): Promise<CustomerRaw[] | null> {
-  if (!sql) return null;
-  const today = new Date();
-  const rows = await sql`
-    SELECT
-      a.account_id,
-      a.account_name,
-      a.industry,
-      a.owner,
-      MAX(o.bu) AS bu,
-      EXTRACT(DAY FROM (${today.toISOString()}::timestamptz - MAX(o.actual_close_date::timestamptz)))::int AS recency_days,
-      COUNT(o.opportunity_id)::int AS frequency,
-      SUM(o.deal_value)::float     AS monetary
-    FROM crm_opportunities o
-    JOIN crm_accounts a ON a.account_id = o.account_id
-    WHERE o.stage = 'closed_won'
-      AND o.actual_close_date IS NOT NULL
-      AND (${forcedBu}::text IS NULL OR o.bu = ${forcedBu})
-    GROUP BY a.account_id, a.account_name, a.industry, a.owner
-    HAVING COUNT(o.opportunity_id) > 0
-    ORDER BY SUM(o.deal_value) DESC
-  `;
-  if (rows.length === 0) return null;
-  return rows as CustomerRaw[];
+  if (!supabase) return null;
+  let q = supabase
+    .from("crm_opportunities")
+    .select("opportunity_id, bu, deal_value, actual_close_date, account_id, crm_accounts(account_id, account_name, industry, owner)")
+    .eq("stage", "closed_won")
+    .not("actual_close_date", "is", null);
+  if (forcedBu) q = q.eq("bu", forcedBu);
+  const { data, error } = await q;
+  if (error || !data || data.length === 0) return null;
+
+  // Aggregate client-side: group by account_id
+  const today = Date.now();
+  const map = new Map<string, CustomerRaw>();
+  for (const o of data as Record<string, unknown>[]) {
+    const acc = o.crm_accounts as Record<string, unknown> | null;
+    if (!acc) continue;
+    const accountId = String(acc.account_id ?? "");
+    const closeDate = new Date(String(o.actual_close_date ?? ""));
+    const recency   = isNaN(closeDate.getTime()) ? 999 : Math.round((today - closeDate.getTime()) / 86400000);
+    const existing  = map.get(accountId);
+    if (existing) {
+      existing.frequency++;
+      existing.monetary  += Number(o.deal_value ?? 0);
+      existing.recency_days = Math.min(existing.recency_days, recency);
+    } else {
+      map.set(accountId, {
+        account_id:   accountId,
+        account_name: String(acc.account_name ?? ""),
+        industry:     acc.industry ? String(acc.industry) : null,
+        owner:        String(acc.owner ?? ""),
+        bu:           String(o.bu ?? ""),
+        recency_days: recency,
+        frequency:    1,
+        monetary:     Number(o.deal_value ?? 0),
+      });
+    }
+  }
+  const result = [...map.values()].sort((a, b) => b.monetary - a.monetary);
+  return result.length === 0 ? null : result;
 }
 
 export async function GET(req: NextRequest) {

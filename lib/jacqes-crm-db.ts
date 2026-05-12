@@ -476,10 +476,9 @@ export async function updateTask(id: string, patch: Partial<Omit<CrmTask, "id">>
 
 export async function deleteTask(id: string): Promise<boolean> {
   if (!supabase) throw new Error("DB unavailable");
-  const { error, count } = await supabase
-    .from("jacqes_crm_tasks").delete().eq("id", id).select("id", { count: "exact" });
+  const { error } = await supabase.from("jacqes_crm_tasks").delete().eq("id", id);
   if (error) throw error;
-  return (count ?? 0) > 0;
+  return true;
 }
 
 // ─── CRUD — Expansion ─────────────────────────────────────────────────────────
