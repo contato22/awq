@@ -390,3 +390,94 @@ DROP POLICY IF EXISTS "allow_all_hcm_recruitment"  ON hcm_recruitment;
 CREATE POLICY "allow_all_hcm_recruitment"  ON hcm_recruitment       FOR ALL USING (true) WITH CHECK (true);
 DROP POLICY IF EXISTS "allow_all_hcm_training"     ON hcm_training;
 CREATE POLICY "allow_all_hcm_training"     ON hcm_training          FOR ALL USING (true) WITH CHECK (true);
+
+-- ─── ERP Expenses ─────────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS erp_expenses (
+  id          TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  employee    TEXT NOT NULL DEFAULT '',
+  category    TEXT NOT NULL DEFAULT 'Outros',
+  description TEXT NOT NULL DEFAULT '',
+  amount      NUMERIC NOT NULL DEFAULT 0,
+  date        DATE NOT NULL DEFAULT CURRENT_DATE,
+  status      TEXT NOT NULL DEFAULT 'Rascunho',
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE erp_expenses ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "allow_all_erp_expenses" ON erp_expenses;
+CREATE POLICY "allow_all_erp_expenses" ON erp_expenses FOR ALL USING (true) WITH CHECK (true);
+
+-- ─── ERP Asset Maintenance ────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS erp_asset_maintenance (
+  id             TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  asset_name     TEXT NOT NULL DEFAULT '',
+  type           TEXT NOT NULL DEFAULT 'Preventiva',
+  description    TEXT NOT NULL DEFAULT '',
+  scheduled_date DATE,
+  completed_date DATE,
+  responsible    TEXT NOT NULL DEFAULT '',
+  status         TEXT NOT NULL DEFAULT 'Agendada',
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE erp_asset_maintenance ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "allow_all_erp_maintenance" ON erp_asset_maintenance;
+CREATE POLICY "allow_all_erp_maintenance" ON erp_asset_maintenance FOR ALL USING (true) WITH CHECK (true);
+
+-- ─── CPM Strategies ───────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS cpm_strategies (
+  id          TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  title       TEXT NOT NULL,
+  pillar      TEXT NOT NULL DEFAULT '',
+  owner       TEXT NOT NULL DEFAULT '',
+  horizon     TEXT NOT NULL DEFAULT '',
+  status      TEXT NOT NULL DEFAULT 'Ativo',
+  description TEXT NOT NULL DEFAULT '',
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE cpm_strategies ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "allow_all_cpm_strategies" ON cpm_strategies;
+CREATE POLICY "allow_all_cpm_strategies" ON cpm_strategies FOR ALL USING (true) WITH CHECK (true);
+
+-- ─── CPM Reviews ──────────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS cpm_reviews (
+  id        TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  title     TEXT NOT NULL,
+  period    TEXT NOT NULL DEFAULT '',
+  owner     TEXT NOT NULL DEFAULT '',
+  status    TEXT NOT NULL DEFAULT 'Agendada',
+  findings  TEXT NOT NULL DEFAULT '',
+  actions   TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE cpm_reviews ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "allow_all_cpm_reviews" ON cpm_reviews;
+CREATE POLICY "allow_all_cpm_reviews" ON cpm_reviews FOR ALL USING (true) WITH CHECK (true);
+
+-- ─── DMS Tasks (Collaboration) ────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS dms_tasks (
+  id          TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  title       TEXT NOT NULL,
+  document_id TEXT,
+  assignee    TEXT NOT NULL DEFAULT '',
+  due_date    DATE,
+  status      TEXT NOT NULL DEFAULT 'Aberta',
+  notes       TEXT NOT NULL DEFAULT '',
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE dms_tasks ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "allow_all_dms_tasks" ON dms_tasks;
+CREATE POLICY "allow_all_dms_tasks" ON dms_tasks FOR ALL USING (true) WITH CHECK (true);

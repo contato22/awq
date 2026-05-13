@@ -99,3 +99,44 @@ export async function createTimeEntry(d: Omit<ErpTimeEntry,"id">): Promise<ErpTi
   const [r] = await sql`INSERT INTO erp_timeentries ${sql(d)} RETURNING id,employee,project,date::text AS date,hours,description,status`;
   return r as unknown as ErpTimeEntry;
 }
+
+export type ErpExpense = {
+  id: string; employee: string; category: string; description: string;
+  amount: number; date: string; status: string;
+};
+
+export async function listExpenses(): Promise<ErpExpense[]> {
+  if (!sql) return [];
+  const rows = await sql`SELECT id,employee,category,description,amount,date::text AS date,status FROM erp_expenses ORDER BY date DESC`;
+  return rows as unknown as ErpExpense[];
+}
+export async function createExpense(d: Omit<ErpExpense,"id">): Promise<ErpExpense> {
+  if (!sql) throw new Error("DB unavailable");
+  const [r] = await sql`INSERT INTO erp_expenses ${sql(d)} RETURNING id,employee,category,description,amount,date::text AS date,status`;
+  return r as unknown as ErpExpense;
+}
+export async function deleteExpense(id: string): Promise<void> {
+  if (!sql) return;
+  await sql`DELETE FROM erp_expenses WHERE id=${id}`;
+}
+
+export type ErpMaintenance = {
+  id: string; asset_name: string; type: string; description: string;
+  scheduled_date: string | null; completed_date: string | null;
+  responsible: string; status: string;
+};
+
+export async function listMaintenance(): Promise<ErpMaintenance[]> {
+  if (!sql) return [];
+  const rows = await sql`SELECT id,asset_name,type,description,scheduled_date::text AS scheduled_date,completed_date::text AS completed_date,responsible,status FROM erp_asset_maintenance ORDER BY scheduled_date DESC`;
+  return rows as unknown as ErpMaintenance[];
+}
+export async function createMaintenance(d: Omit<ErpMaintenance,"id">): Promise<ErpMaintenance> {
+  if (!sql) throw new Error("DB unavailable");
+  const [r] = await sql`INSERT INTO erp_asset_maintenance ${sql(d)} RETURNING id,asset_name,type,description,scheduled_date::text AS scheduled_date,completed_date::text AS completed_date,responsible,status`;
+  return r as unknown as ErpMaintenance;
+}
+export async function deleteMaintenance(id: string): Promise<void> {
+  if (!sql) return;
+  await sql`DELETE FROM erp_asset_maintenance WHERE id=${id}`;
+}

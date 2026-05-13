@@ -5,7 +5,9 @@ import Link from "next/link";
 import { ArrowLeft, LayoutDashboard, Plus, Trash2 } from "lucide-react";
 import type { CpmScorecard } from "@/lib/cpm-db";
 
-const EMPTY = { name: "", description: "", owner: "", period: "", score: 0, status: "Ativo" as string };
+const PERSPECTIVES = ["Financeira", "Clientes", "Processos", "Aprendizado"];
+
+const EMPTY = { name: "", perspective: "Financeira" as string, kpi_id: null as string | null, target: 0, actual: 0, status: "OK" as string, periodo: "", owner: "" };
 
 export default function ScorecardsPage() {
   const [data, setData] = useState<CpmScorecard[]>([]);
@@ -21,7 +23,7 @@ export default function ScorecardsPage() {
   async function onCreate(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    const r = await fetch("/api/cpm/scorecards", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...form, score: Number(form.score) }) });
+    const r = await fetch("/api/cpm/scorecards", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...form, target: Number(form.target), actual: Number(form.actual), kpi_id: form.kpi_id || null }) });
     const j = await r.json();
     setData(p => [j.data, ...p]);
     setForm(EMPTY);
@@ -34,12 +36,21 @@ export default function ScorecardsPage() {
     setData(p => p.filter(x => x.id !== id));
   }
 
-  const badge = (v: string) => {
-    const map: Record<string, string> = { Ativo: "bg-green-100 text-green-700", Inativo: "bg-gray-100 text-gray-600", Arquivado: "bg-red-100 text-red-700" };
+  const statusBadge = (v: string) => {
+    const map: Record<string, string> = { OK: "bg-green-100 text-green-700", "Atenção": "bg-amber-100 text-amber-700", Crítico: "bg-red-100 text-red-700" };
     return `inline-flex px-2 py-0.5 rounded text-xs font-medium ${map[v] ?? "bg-gray-100 text-gray-600"}`;
   };
 
-  const scoreColor = (s: number) => s >= 80 ? "text-green-600" : s >= 60 ? "text-yellow-600" : "text-red-600";
+  const pct = (actual: number | null, target: number | null) => {
+    if (!target) return "—";
+    return `${Math.round(((actual ?? 0) / target) * 100)}%`;
+  };
+
+  const pctColor = (actual: number | null, target: number | null) => {
+    if (!target) return "text-gray-500";
+    const r = (actual ?? 0) / target;
+    return r >= 0.9 ? "text-green-600" : r >= 0.7 ? "text-amber-600" : "text-red-600";
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -73,7 +84,7 @@ export default function ScorecardsPage() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  {["Nome", "Período", "Score", "Status", "Responsável", ""].map(h => (
+                  {["Nome", "Perspectiva", "Período", "Meta", "Real", "Atingimento", "Status", "Responsável", ""].map(h => (
                     <th key={h} className="px-4 py-3 text-left text-xs font-medium text-gray-500">{h}</th>
                   ))}
                 </tr>
@@ -82,11 +93,12 @@ export default function ScorecardsPage() {
                 {data.map(s => (
                   <tr key={s.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 font-medium text-gray-900">{s.name}</td>
-                    <td className="px-4 py-3 text-gray-600">{s.period}</td>
-                    <td className="px-4 py-3 font-bold text-lg">
-                      <span className={scoreColor(s.score ?? 0)}>{s.score ?? 0}</span>
-                    </td>
-                    <td className="px-4 py-3"><span className={badge(s.status)}>{s.status}</span></td>
+                    <td className="px-4 py-3 text-gray-600">{s.perspective}</td>
+                    <td className="px-4 py-3 text-gray-600">{s.periodo}</td>
+                    <td className="px-4 py-3 text-gray-700">{s.target ?? "—"}</td>
+                    <td className="px-4 py-3 text-gray-700">{s.actual ?? "—"}</td>
+                    <td className={`px-4 py-3 font-bold ${pctColor(s.actual, s.target)}`}>{pct(s.actual, s.target)}</td>
+                    <td className="px-4 py-3"><span className={statusBadge(s.status)}>{s.status}</span></td>
                     <td className="px-4 py-3 text-gray-600">{s.owner}</td>
                     <td className="px-4 py-3">
                       <button onClick={() => onDelete(s.id)} className="p-1.5 text-gray-400 hover:text-red-600 rounded hover:bg-red-50 transition-colors">
@@ -108,25 +120,29 @@ export default function ScorecardsPage() {
               <h2 className="text-base font-semibold text-gray-900">Novo Scorecard</h2>
             </div>
             <form onSubmit={onCreate} className="px-6 py-4 space-y-3">
-              {[["Nome", "name"], ["Período", "period"], ["Responsável", "owner"]].map(([label, key]) => (
+              {[["Nome", "name"], ["Período", "periodo"], ["Responsável", "owner"]].map(([label, key]) => (
                 <div key={key}>
                   <label className="block text-xs font-medium text-gray-700 mb-1">{label}</label>
                   <input className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value={form[key as keyof typeof form] as string} onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))} required={key === "name"} />
                 </div>
               ))}
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Score (0–100)</label>
-                <input type="number" min={0} max={100} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value={form.score} onChange={e => setForm(p => ({ ...p, score: Number(e.target.value) }))} />
+                <label className="block text-xs font-medium text-gray-700 mb-1">Perspectiva</label>
+                <select className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value={form.perspective} onChange={e => setForm(p => ({ ...p, perspective: e.target.value }))}>
+                  {PERSPECTIVES.map(o => <option key={o}>{o}</option>)}
+                </select>
               </div>
+              {[["Meta", "target"], ["Real", "actual"]].map(([label, key]) => (
+                <div key={key}>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">{label}</label>
+                  <input type="number" min={0} step="0.01" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value={form[key as keyof typeof form] as number} onChange={e => setForm(p => ({ ...p, [key]: Number(e.target.value) }))} />
+                </div>
+              ))}
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
                 <select className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))}>
-                  {["Ativo", "Inativo", "Arquivado"].map(o => <option key={o}>{o}</option>)}
+                  {["OK", "Atenção", "Crítico"].map(o => <option key={o}>{o}</option>)}
                 </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Descrição</label>
-                <textarea className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" rows={3} value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} />
               </div>
               <div className="flex justify-end gap-2 pt-2">
                 <button type="button" onClick={() => setShow(false)} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900">Cancelar</button>

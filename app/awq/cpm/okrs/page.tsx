@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, Target, Plus, Trash2 } from "lucide-react";
 import type { CpmOkr } from "@/lib/cpm-db";
 
-const EMPTY = { title: "", description: "", owner: "", period: "", status: "Em Andamento" as string, progress: 0 };
+const EMPTY = { objective: "", key_result: "", owner: "", quarter: "", status: "Em Andamento" as string, progress: 0 };
 
 export default function OKRsPage() {
   const [data, setData] = useState<CpmOkr[]>([]);
@@ -71,7 +71,7 @@ export default function OKRsPage() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  {["Objetivo", "Período", "Progresso", "Status", "Responsável", ""].map(h => (
+                  {["Objetivo", "Key Result", "Trimestre", "Progresso", "Status", "Responsável", ""].map(h => (
                     <th key={h} className="px-4 py-3 text-left text-xs font-medium text-gray-500">{h}</th>
                   ))}
                 </tr>
@@ -79,8 +79,9 @@ export default function OKRsPage() {
               <tbody className="divide-y divide-gray-100">
                 {data.map(o => (
                   <tr key={o.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium text-gray-900">{o.title}</td>
-                    <td className="px-4 py-3 text-gray-600">{o.period}</td>
+                    <td className="px-4 py-3 font-medium text-gray-900">{o.objective}</td>
+                    <td className="px-4 py-3 text-gray-600 max-w-xs truncate">{o.key_result}</td>
+                    <td className="px-4 py-3 text-gray-600">{o.quarter}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <div className="w-24 bg-gray-100 rounded-full h-1.5">
@@ -111,10 +112,10 @@ export default function OKRsPage() {
               <h2 className="text-base font-semibold text-gray-900">Novo OKR</h2>
             </div>
             <form onSubmit={onCreate} className="px-6 py-4 space-y-3">
-              {[["Objetivo", "title"], ["Período (ex: Q1 2025)", "period"], ["Responsável", "owner"]].map(([label, key]) => (
+              {[["Objetivo", "objective"], ["Key Result", "key_result"], ["Trimestre (ex: Q1 2025)", "quarter"], ["Responsável", "owner"]].map(([label, key]) => (
                 <div key={key}>
                   <label className="block text-xs font-medium text-gray-700 mb-1">{label}</label>
-                  <input className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value={form[key as keyof typeof form] as string} onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))} required={key === "title"} />
+                  <input className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value={form[key as keyof typeof form] as string} onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))} required={key === "objective"} />
                 </div>
               ))}
               <div>
@@ -126,10 +127,6 @@ export default function OKRsPage() {
                 <select className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))}>
                   {["Em Andamento", "Concluído", "Atrasado", "Cancelado"].map(o => <option key={o}>{o}</option>)}
                 </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Descrição</label>
-                <textarea className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" rows={3} value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} />
               </div>
               <div className="flex justify-end gap-2 pt-2">
                 <button type="button" onClick={() => setShow(false)} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900">Cancelar</button>

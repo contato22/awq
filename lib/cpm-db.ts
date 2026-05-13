@@ -86,3 +86,43 @@ export async function deleteScorecard(id: string): Promise<void> {
   if (!sql) return;
   await sql`DELETE FROM cpm_scorecards WHERE id=${id}`;
 }
+
+export type CpmStrategy = {
+  id: string; title: string; pillar: string; owner: string;
+  horizon: string; status: string; description: string;
+};
+
+export async function listStrategies(): Promise<CpmStrategy[]> {
+  if (!sql) return [];
+  const rows = await sql`SELECT id,title,pillar,owner,horizon,status,description FROM cpm_strategies ORDER BY created_at DESC`;
+  return rows as unknown as CpmStrategy[];
+}
+export async function createStrategy(d: Omit<CpmStrategy,"id">): Promise<CpmStrategy> {
+  if (!sql) throw new Error("DB unavailable");
+  const [r] = await sql`INSERT INTO cpm_strategies ${sql(d)} RETURNING id,title,pillar,owner,horizon,status,description`;
+  return r as unknown as CpmStrategy;
+}
+export async function deleteStrategy(id: string): Promise<void> {
+  if (!sql) return;
+  await sql`DELETE FROM cpm_strategies WHERE id=${id}`;
+}
+
+export type CpmReview = {
+  id: string; title: string; period: string; owner: string;
+  status: string; findings: string; actions: string;
+};
+
+export async function listReviews(): Promise<CpmReview[]> {
+  if (!sql) return [];
+  const rows = await sql`SELECT id,title,period,owner,status,findings,actions FROM cpm_reviews ORDER BY created_at DESC`;
+  return rows as unknown as CpmReview[];
+}
+export async function createReview(d: Omit<CpmReview,"id">): Promise<CpmReview> {
+  if (!sql) throw new Error("DB unavailable");
+  const [r] = await sql`INSERT INTO cpm_reviews ${sql(d)} RETURNING id,title,period,owner,status,findings,actions`;
+  return r as unknown as CpmReview;
+}
+export async function deleteReview(id: string): Promise<void> {
+  if (!sql) return;
+  await sql`DELETE FROM cpm_reviews WHERE id=${id}`;
+}

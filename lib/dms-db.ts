@@ -40,3 +40,23 @@ export async function createVersion(d: Omit<DmsDocumentVersion,"id"|"created_at"
   const [r] = await sql`INSERT INTO dms_document_versions ${sql(d)} RETURNING id,document_id,version,file_url,changed_by,notes,created_at::text AS created_at`;
   return r as unknown as DmsDocumentVersion;
 }
+
+export type DmsTask = {
+  id: string; title: string; document_id: string | null;
+  assignee: string; due_date: string | null; status: string; notes: string;
+};
+
+export async function listTasks(): Promise<DmsTask[]> {
+  if (!sql) return [];
+  const rows = await sql`SELECT id,title,document_id,assignee,due_date::text AS due_date,status,notes FROM dms_tasks ORDER BY due_date ASC NULLS LAST`;
+  return rows as unknown as DmsTask[];
+}
+export async function createTask(d: Omit<DmsTask,"id">): Promise<DmsTask> {
+  if (!sql) throw new Error("DB unavailable");
+  const [r] = await sql`INSERT INTO dms_tasks ${sql(d)} RETURNING id,title,document_id,assignee,due_date::text AS due_date,status,notes`;
+  return r as unknown as DmsTask;
+}
+export async function deleteTask(id: string): Promise<void> {
+  if (!sql) return;
+  await sql`DELETE FROM dms_tasks WHERE id=${id}`;
+}
