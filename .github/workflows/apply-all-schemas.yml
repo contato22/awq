@@ -14,6 +14,8 @@ on:
       - 'awq_jacqes_crm_full_schema.sql'
       - 'awq_advisor_full_schema.sql'
       - 'awq_stubs_full_schema.sql'
+      - 'awq_jacqes_fpa_full_schema.sql'
+      - 'awq_venture_full_schema.sql'
       - '.github/workflows/apply-all-schemas.yml'
   workflow_dispatch:
 
@@ -93,6 +95,18 @@ jobs:
           echo "=== Applying Stub Modules Schema (BI, CPM, GRC, DMS, ERP, HCM) ==="
           psql "$DATABASE_URL" -f awq_stubs_full_schema.sql
           echo "✅ Stubs done"
+
+      - name: Apply JACQES FPA Schema
+        run: |
+          echo "=== Applying JACQES FPA Schema ==="
+          psql "$DATABASE_URL" -f awq_jacqes_fpa_full_schema.sql
+          echo "✅ JACQES FPA done"
+
+      - name: Apply Venture Schema
+        run: |
+          echo "=== Applying AWQ Venture Schema ==="
+          psql "$DATABASE_URL" -f awq_venture_full_schema.sql
+          echo "✅ Venture done"
 
       - name: Verify tables
         run: |
