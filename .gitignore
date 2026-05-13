@@ -56,3 +56,8 @@ next-env.d.ts
 
 # Uploaded PDFs (filesystem adapter — ephemeral, not versioned)
 /public/data/financial/pdfs/*.pdf
+
+# Playwright — artefatos de teste gerados automaticamente
+test-results/
+playwright-report/
+.playwright-cache/
