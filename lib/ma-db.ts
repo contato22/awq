@@ -1,7 +1,8 @@
-// ─── AWQ M&A & Portfolio Management — Database Layer (Neon Postgres) ──────────
-// Uses sql from lib/db.ts — falls back to seed arrays when DATABASE_URL unset.
+// ─── AWQ M&A & Portfolio Management — Database Layer (Supabase) ───────────────
+// Uses getSupabaseAdmin from lib/supabase.ts — falls back to seed arrays when
+// Supabase is not configured.
 
-import { sql } from "@/lib/db";
+import { getSupabaseAdmin } from "@/lib/supabase";
 import type {
   MaDeal,
   MaPortfolioCompany,
@@ -20,7 +21,7 @@ import type {
 
 // ─── Schema Bootstrap ─────────────────────────────────────────────────────────
 export async function initMaDB(): Promise<void> {
-  // Tables and views are created via the M&A SQL schema file run once in Neon.
+  // Tables and views are created via the M&A SQL schema file run once in Supabase.
   // This function is a no-op placeholder kept for API route parity.
 }
 
@@ -458,112 +459,143 @@ export async function listDeals(filters?: {
   pipeline_stage?: string;
   deal_type?: string;
 }): Promise<MaDeal[]> {
-  if (!sql) {
+  const sb = getSupabaseAdmin();
+  if (!sb) {
     let rows = [...SEED_DEALS];
     if (filters?.pipeline_stage) rows = rows.filter(r => r.pipeline_stage === filters.pipeline_stage);
     if (filters?.deal_type) rows = rows.filter(r => r.deal_type === filters.deal_type);
     return rows;
   }
-  const rows = await sql`
-    SELECT d.*,
-      COUNT(dd.dd_item_id)                                          AS dd_total_items,
-      COUNT(dd.dd_item_id) FILTER (WHERE dd.completion_pct = 100)  AS dd_completed_items
-    FROM ma_deals d
-    LEFT JOIN ma_due_diligence_items dd ON dd.deal_id = d.deal_id
-    WHERE (${filters?.pipeline_stage ?? null}::text IS NULL OR d.pipeline_stage = ${filters?.pipeline_stage ?? null})
-      AND (${filters?.deal_type ?? null}::text IS NULL OR d.deal_type = ${filters?.deal_type ?? null})
-    GROUP BY d.deal_id
-    ORDER BY d.created_at DESC
-  `;
-  return rows as MaDeal[];
+
+  // Fetch deals and dd items, compute aggregates in JS
+  let q = sb.from("ma_deals").select("*").order("created_at", { ascending: false });
+  if (filters?.pipeline_stage) q = q.eq("pipeline_stage", filters.pipeline_stage);
+  if (filters?.deal_type)      q = q.eq("deal_type", filters.deal_type);
+  const { data: deals, error } = await q;
+  if (error) throw error;
+
+  const { data: ddItems } = await sb.from("ma_due_diligence_items").select("deal_id, completion_pct");
+  const ddMap: Record<string, { total: number; completed: number }> = {};
+  for (const item of (ddItems ?? [])) {
+    if (!ddMap[item.deal_id]) ddMap[item.deal_id] = { total: 0, completed: 0 };
+    ddMap[item.deal_id].total += 1;
+    if (item.completion_pct === 100) ddMap[item.deal_id].completed += 1;
+  }
+
+  return (deals ?? []).map(d => ({
+    ...d,
+    dd_total_items:     ddMap[d.deal_id]?.total     ?? 0,
+    dd_completed_items: ddMap[d.deal_id]?.completed ?? 0,
+  })) as MaDeal[];
 }
 
 export async function getDeal(deal_id: string): Promise<MaDeal | null> {
-  if (!sql) return SEED_DEALS.find(d => d.deal_id === deal_id) ?? null;
-  const rows = await sql`
-    SELECT d.*,
-      COUNT(dd.dd_item_id)                                          AS dd_total_items,
-      COUNT(dd.dd_item_id) FILTER (WHERE dd.completion_pct = 100)  AS dd_completed_items
-    FROM ma_deals d
-    LEFT JOIN ma_due_diligence_items dd ON dd.deal_id = d.deal_id
-    WHERE d.deal_id = ${deal_id}
-    GROUP BY d.deal_id
-  `;
-  return (rows[0] as MaDeal) ?? null;
+  const sb = getSupabaseAdmin();
+  if (!sb) return SEED_DEALS.find(d => d.deal_id === deal_id) ?? null;
+
+  const { data: deal, error } = await sb
+    .from("ma_deals")
+    .select("*")
+    .eq("deal_id", deal_id)
+    .single();
+  if (error) return null;
+
+  const { data: ddItems } = await sb
+    .from("ma_due_diligence_items")
+    .select("completion_pct")
+    .eq("deal_id", deal_id);
+  const dd_total_items     = (ddItems ?? []).length;
+  const dd_completed_items = (ddItems ?? []).filter(i => i.completion_pct === 100).length;
+
+  return { ...deal, dd_total_items, dd_completed_items } as MaDeal;
 }
 
 export async function createDeal(data: Partial<MaDeal>): Promise<MaDeal> {
-  if (!sql) throw new Error("DB not available");
-  const rows = await sql`
-    INSERT INTO ma_deals (
-      deal_code, deal_name, company_name, company_website, industry, company_stage,
-      deal_type, pipeline_stage, lead_source, lead_source_detail,
-      market_score, team_score, product_score, traction_score,
-      proposed_valuation, proposed_investment_amount, proposed_equity_pct,
-      media_commitment_value, media_delivery_period_months,
-      board_seat, observer_rights, vesting_period_years, vesting_cliff_months,
-      expected_close_date, deal_lead, tags, notes, created_by
-    ) VALUES (
-      ${data.deal_code!}, ${data.deal_name!}, ${data.company_name!},
-      ${data.company_website ?? null}, ${data.industry ?? null}, ${data.company_stage ?? null},
-      ${data.deal_type ?? 'm4e'}, ${data.pipeline_stage ?? 'sourcing'},
-      ${data.lead_source ?? null}, ${data.lead_source_detail ?? null},
-      ${data.market_score ?? 0}, ${data.team_score ?? 0},
-      ${data.product_score ?? 0}, ${data.traction_score ?? 0},
-      ${data.proposed_valuation ?? null}, ${data.proposed_investment_amount ?? null},
-      ${data.proposed_equity_pct ?? null},
-      ${data.media_commitment_value ?? null}, ${data.media_delivery_period_months ?? null},
-      ${data.board_seat ?? false}, ${data.observer_rights ?? false},
-      ${data.vesting_period_years ?? null}, ${data.vesting_cliff_months ?? null},
-      ${data.expected_close_date ?? null}, ${data.deal_lead ?? null},
-      ${data.tags ? JSON.stringify(data.tags) : null},
-      ${data.notes ?? null}, ${data.created_by ?? null}
-    )
-    RETURNING *
-  `;
-  return rows[0] as MaDeal;
+  const sb = getSupabaseAdmin();
+  if (!sb) throw new Error("DB not available");
+  const { data: row, error } = await sb
+    .from("ma_deals")
+    .insert({
+      deal_code:                    data.deal_code!,
+      deal_name:                    data.deal_name!,
+      company_name:                 data.company_name!,
+      company_website:              data.company_website ?? null,
+      industry:                     data.industry ?? null,
+      company_stage:                data.company_stage ?? null,
+      deal_type:                    data.deal_type ?? "m4e",
+      pipeline_stage:               data.pipeline_stage ?? "sourcing",
+      lead_source:                  data.lead_source ?? null,
+      lead_source_detail:           data.lead_source_detail ?? null,
+      market_score:                 data.market_score ?? 0,
+      team_score:                   data.team_score ?? 0,
+      product_score:                data.product_score ?? 0,
+      traction_score:               data.traction_score ?? 0,
+      proposed_valuation:           data.proposed_valuation ?? null,
+      proposed_investment_amount:   data.proposed_investment_amount ?? null,
+      proposed_equity_pct:          data.proposed_equity_pct ?? null,
+      media_commitment_value:       data.media_commitment_value ?? null,
+      media_delivery_period_months: data.media_delivery_period_months ?? null,
+      board_seat:                   data.board_seat ?? false,
+      observer_rights:              data.observer_rights ?? false,
+      vesting_period_years:         data.vesting_period_years ?? null,
+      vesting_cliff_months:         data.vesting_cliff_months ?? null,
+      expected_close_date:          data.expected_close_date ?? null,
+      deal_lead:                    data.deal_lead ?? null,
+      tags:                         data.tags ?? null,
+      notes:                        data.notes ?? null,
+      created_by:                   data.created_by ?? null,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return row as MaDeal;
 }
 
 export async function updateDeal(deal_id: string, data: Partial<MaDeal>): Promise<MaDeal> {
-  if (!sql) throw new Error("DB not available");
-  const rows = await sql`
-    UPDATE ma_deals SET
-      deal_name                  = COALESCE(${data.deal_name ?? null}, deal_name),
-      company_name               = COALESCE(${data.company_name ?? null}, company_name),
-      pipeline_stage             = COALESCE(${data.pipeline_stage ?? null}, pipeline_stage),
-      deal_type                  = COALESCE(${data.deal_type ?? null}, deal_type),
-      industry                   = COALESCE(${data.industry ?? null}, industry),
-      company_stage              = COALESCE(${data.company_stage ?? null}, company_stage),
-      market_score               = COALESCE(${data.market_score ?? null}, market_score),
-      team_score                 = COALESCE(${data.team_score ?? null}, team_score),
-      product_score              = COALESCE(${data.product_score ?? null}, product_score),
-      traction_score             = COALESCE(${data.traction_score ?? null}, traction_score),
-      screening_decision         = COALESCE(${data.screening_decision ?? null}, screening_decision),
-      screening_notes            = COALESCE(${data.screening_notes ?? null}, screening_notes),
-      dd_status                  = COALESCE(${data.dd_status ?? null}, dd_status),
-      dd_completion_pct          = COALESCE(${data.dd_completion_pct ?? null}, dd_completion_pct),
-      dd_start_date              = COALESCE(${data.dd_start_date ?? null}, dd_start_date),
-      dd_end_date                = COALESCE(${data.dd_end_date ?? null}, dd_end_date),
-      proposed_valuation         = COALESCE(${data.proposed_valuation ?? null}, proposed_valuation),
-      proposed_investment_amount = COALESCE(${data.proposed_investment_amount ?? null}, proposed_investment_amount),
-      proposed_equity_pct        = COALESCE(${data.proposed_equity_pct ?? null}, proposed_equity_pct),
-      media_commitment_value     = COALESCE(${data.media_commitment_value ?? null}, media_commitment_value),
-      ic_decision                = COALESCE(${data.ic_decision ?? null}, ic_decision),
-      ic_decision_date           = COALESCE(${data.ic_decision_date ?? null}, ic_decision_date),
-      ic_decision_notes          = COALESCE(${data.ic_decision_notes ?? null}, ic_decision_notes),
-      ic_meeting_date            = COALESCE(${data.ic_meeting_date ?? null}, ic_meeting_date),
-      expected_close_date        = COALESCE(${data.expected_close_date ?? null}, expected_close_date),
-      actual_close_date          = COALESCE(${data.actual_close_date ?? null}, actual_close_date),
-      close_reason               = COALESCE(${data.close_reason ?? null}, close_reason),
-      close_notes                = COALESCE(${data.close_notes ?? null}, close_notes),
-      portco_id                  = COALESCE(${data.portco_id ?? null}, portco_id),
-      deal_lead                  = COALESCE(${data.deal_lead ?? null}, deal_lead),
-      notes                      = COALESCE(${data.notes ?? null}, notes),
-      updated_at                 = NOW()
-    WHERE deal_id = ${deal_id}
-    RETURNING *
-  `;
-  return rows[0] as MaDeal;
+  const sb = getSupabaseAdmin();
+  if (!sb) throw new Error("DB not available");
+
+  const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (data.deal_name                  != null) updates.deal_name                  = data.deal_name;
+  if (data.company_name               != null) updates.company_name               = data.company_name;
+  if (data.pipeline_stage             != null) updates.pipeline_stage             = data.pipeline_stage;
+  if (data.deal_type                  != null) updates.deal_type                  = data.deal_type;
+  if (data.industry                   != null) updates.industry                   = data.industry;
+  if (data.company_stage              != null) updates.company_stage              = data.company_stage;
+  if (data.market_score               != null) updates.market_score               = data.market_score;
+  if (data.team_score                 != null) updates.team_score                 = data.team_score;
+  if (data.product_score              != null) updates.product_score              = data.product_score;
+  if (data.traction_score             != null) updates.traction_score             = data.traction_score;
+  if (data.screening_decision         != null) updates.screening_decision         = data.screening_decision;
+  if (data.screening_notes            != null) updates.screening_notes            = data.screening_notes;
+  if (data.dd_status                  != null) updates.dd_status                  = data.dd_status;
+  if (data.dd_completion_pct          != null) updates.dd_completion_pct          = data.dd_completion_pct;
+  if (data.dd_start_date              != null) updates.dd_start_date              = data.dd_start_date;
+  if (data.dd_end_date                != null) updates.dd_end_date                = data.dd_end_date;
+  if (data.proposed_valuation         != null) updates.proposed_valuation         = data.proposed_valuation;
+  if (data.proposed_investment_amount != null) updates.proposed_investment_amount = data.proposed_investment_amount;
+  if (data.proposed_equity_pct        != null) updates.proposed_equity_pct        = data.proposed_equity_pct;
+  if (data.media_commitment_value     != null) updates.media_commitment_value     = data.media_commitment_value;
+  if (data.ic_decision                != null) updates.ic_decision                = data.ic_decision;
+  if (data.ic_decision_date           != null) updates.ic_decision_date           = data.ic_decision_date;
+  if (data.ic_decision_notes          != null) updates.ic_decision_notes          = data.ic_decision_notes;
+  if (data.ic_meeting_date            != null) updates.ic_meeting_date            = data.ic_meeting_date;
+  if (data.expected_close_date        != null) updates.expected_close_date        = data.expected_close_date;
+  if (data.actual_close_date          != null) updates.actual_close_date          = data.actual_close_date;
+  if (data.close_reason               != null) updates.close_reason               = data.close_reason;
+  if (data.close_notes                != null) updates.close_notes                = data.close_notes;
+  if (data.portco_id                  != null) updates.portco_id                  = data.portco_id;
+  if (data.deal_lead                  != null) updates.deal_lead                  = data.deal_lead;
+  if (data.notes                      != null) updates.notes                      = data.notes;
+
+  const { data: row, error } = await sb
+    .from("ma_deals")
+    .update(updates)
+    .eq("deal_id", deal_id)
+    .select()
+    .single();
+  if (error) throw error;
+  return row as MaDeal;
 }
 
 // ─── Portfolio Companies ──────────────────────────────────────────────────────
@@ -571,102 +603,120 @@ export async function updateDeal(deal_id: string, data: Partial<MaDeal>): Promis
 export async function listPortfolioCompanies(filters?: {
   status?: string;
 }): Promise<MaPortfolioDashboardRow[]> {
-  if (!sql) {
+  const sb = getSupabaseAdmin();
+  if (!sb) {
     let rows = [...SEED_PORTCOS];
     if (filters?.status) rows = rows.filter(r => r.status === filters.status);
     return rows;
   }
-  const rows = await sql`
-    SELECT *
-    FROM v_ma_portfolio_dashboard
-    WHERE (${filters?.status ?? null}::text IS NULL OR status = ${filters?.status ?? null})
-    ORDER BY investment_date DESC
-  `;
-  return rows as MaPortfolioDashboardRow[];
+
+  // Use the dashboard view if it exists; otherwise fall back to base table
+  let q = sb.from("v_ma_portfolio_dashboard").select("*").order("investment_date", { ascending: false });
+  if (filters?.status) q = q.eq("status", filters.status);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []) as MaPortfolioDashboardRow[];
 }
 
 export async function getPortfolioCompany(
   portco_id: string
 ): Promise<MaPortfolioDashboardRow | null> {
-  if (!sql) return SEED_PORTCOS.find(p => p.portco_id === portco_id) ?? null;
-  const rows = await sql`
-    SELECT * FROM v_ma_portfolio_dashboard
-    WHERE portco_id = ${portco_id}
-  `;
-  return (rows[0] as MaPortfolioDashboardRow) ?? null;
+  const sb = getSupabaseAdmin();
+  if (!sb) return SEED_PORTCOS.find(p => p.portco_id === portco_id) ?? null;
+  const { data, error } = await sb
+    .from("v_ma_portfolio_dashboard")
+    .select("*")
+    .eq("portco_id", portco_id)
+    .single();
+  if (error) return null;
+  return data as MaPortfolioDashboardRow;
 }
 
 export async function createPortfolioCompany(
   data: Partial<MaPortfolioCompany>
 ): Promise<MaPortfolioCompany> {
-  if (!sql) throw new Error("DB not available");
-  const rows = await sql`
-    INSERT INTO ma_portfolio_companies (
-      portco_code, legal_name, trade_name, document_number, deal_id, deal_type,
-      investment_date, awq_ownership_pct, awq_shares_held, total_shares_outstanding,
-      entry_valuation, current_valuation, valuation_date,
-      media_commitment_value, media_delivered_value, media_remaining_value,
-      media_delivery_start_date, media_delivery_end_date,
-      board_seat, observer_rights, board_meeting_frequency,
-      company_stage, ceo_name, ceo_email, ceo_phone,
-      website, industry, sector, status, tags, notes, created_by
-    ) VALUES (
-      ${data.portco_code!}, ${data.legal_name!}, ${data.trade_name ?? null},
-      ${data.document_number ?? null}, ${data.deal_id ?? null}, ${data.deal_type ?? 'm4e'},
-      ${data.investment_date!}, ${data.awq_ownership_pct ?? null},
-      ${data.awq_shares_held ?? null}, ${data.total_shares_outstanding ?? null},
-      ${data.entry_valuation ?? null}, ${data.current_valuation ?? null},
-      ${data.valuation_date ?? null},
-      ${data.media_commitment_value ?? null}, ${data.media_delivered_value ?? 0},
-      ${data.media_remaining_value ?? null},
-      ${data.media_delivery_start_date ?? null}, ${data.media_delivery_end_date ?? null},
-      ${data.board_seat ?? false}, ${data.observer_rights ?? false},
-      ${data.board_meeting_frequency ?? null},
-      ${data.company_stage ?? null}, ${data.ceo_name ?? null},
-      ${data.ceo_email ?? null}, ${data.ceo_phone ?? null},
-      ${data.website ?? null}, ${data.industry ?? null}, ${data.sector ?? null},
-      ${data.status ?? 'active'},
-      ${data.tags ? JSON.stringify(data.tags) : null},
-      ${data.notes ?? null}, ${data.created_by ?? null}
-    )
-    RETURNING *
-  `;
-  return rows[0] as MaPortfolioCompany;
+  const sb = getSupabaseAdmin();
+  if (!sb) throw new Error("DB not available");
+  const { data: row, error } = await sb
+    .from("ma_portfolio_companies")
+    .insert({
+      portco_code:                data.portco_code!,
+      legal_name:                 data.legal_name!,
+      trade_name:                 data.trade_name ?? null,
+      document_number:            data.document_number ?? null,
+      deal_id:                    data.deal_id ?? null,
+      deal_type:                  data.deal_type ?? "m4e",
+      investment_date:            data.investment_date!,
+      awq_ownership_pct:          data.awq_ownership_pct ?? null,
+      awq_shares_held:            data.awq_shares_held ?? null,
+      total_shares_outstanding:   data.total_shares_outstanding ?? null,
+      entry_valuation:            data.entry_valuation ?? null,
+      current_valuation:          data.current_valuation ?? null,
+      valuation_date:             data.valuation_date ?? null,
+      media_commitment_value:     data.media_commitment_value ?? null,
+      media_delivered_value:      data.media_delivered_value ?? 0,
+      media_remaining_value:      data.media_remaining_value ?? null,
+      media_delivery_start_date:  data.media_delivery_start_date ?? null,
+      media_delivery_end_date:    data.media_delivery_end_date ?? null,
+      board_seat:                 data.board_seat ?? false,
+      observer_rights:            data.observer_rights ?? false,
+      board_meeting_frequency:    data.board_meeting_frequency ?? null,
+      company_stage:              data.company_stage ?? null,
+      ceo_name:                   data.ceo_name ?? null,
+      ceo_email:                  data.ceo_email ?? null,
+      ceo_phone:                  data.ceo_phone ?? null,
+      website:                    data.website ?? null,
+      industry:                   data.industry ?? null,
+      sector:                     data.sector ?? null,
+      status:                     data.status ?? "active",
+      tags:                       data.tags ?? null,
+      notes:                      data.notes ?? null,
+      created_by:                 data.created_by ?? null,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return row as MaPortfolioCompany;
 }
 
 export async function updatePortfolioCompany(
   portco_id: string,
   data: Partial<MaPortfolioCompany>
 ): Promise<MaPortfolioCompany> {
-  if (!sql) throw new Error("DB not available");
-  const rows = await sql`
-    UPDATE ma_portfolio_companies SET
-      legal_name              = COALESCE(${data.legal_name ?? null}, legal_name),
-      trade_name              = COALESCE(${data.trade_name ?? null}, trade_name),
-      current_valuation       = COALESCE(${data.current_valuation ?? null}, current_valuation),
-      valuation_date          = COALESCE(${data.valuation_date ?? null}, valuation_date),
-      media_delivered_value   = COALESCE(${data.media_delivered_value ?? null}, media_delivered_value),
-      media_remaining_value   = COALESCE(${data.media_remaining_value ?? null}, media_remaining_value),
-      awq_ownership_pct       = COALESCE(${data.awq_ownership_pct ?? null}, awq_ownership_pct),
-      status                  = COALESCE(${data.status ?? null}, status),
-      exit_date               = COALESCE(${data.exit_date ?? null}, exit_date),
-      exit_type               = COALESCE(${data.exit_type ?? null}, exit_type),
-      exit_valuation          = COALESCE(${data.exit_valuation ?? null}, exit_valuation),
-      exit_proceeds           = COALESCE(${data.exit_proceeds ?? null}, exit_proceeds),
-      ceo_name                = COALESCE(${data.ceo_name ?? null}, ceo_name),
-      ceo_email               = COALESCE(${data.ceo_email ?? null}, ceo_email),
-      ceo_phone               = COALESCE(${data.ceo_phone ?? null}, ceo_phone),
-      website                 = COALESCE(${data.website ?? null}, website),
-      company_stage           = COALESCE(${data.company_stage ?? null}, company_stage),
-      board_seat              = COALESCE(${data.board_seat ?? null}, board_seat),
-      observer_rights         = COALESCE(${data.observer_rights ?? null}, observer_rights),
-      board_meeting_frequency = COALESCE(${data.board_meeting_frequency ?? null}, board_meeting_frequency),
-      notes                   = COALESCE(${data.notes ?? null}, notes),
-      updated_at              = NOW()
-    WHERE portco_id = ${portco_id}
-    RETURNING *
-  `;
-  return rows[0] as MaPortfolioCompany;
+  const sb = getSupabaseAdmin();
+  if (!sb) throw new Error("DB not available");
+
+  const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (data.legal_name              != null) updates.legal_name              = data.legal_name;
+  if (data.trade_name              != null) updates.trade_name              = data.trade_name;
+  if (data.current_valuation       != null) updates.current_valuation       = data.current_valuation;
+  if (data.valuation_date          != null) updates.valuation_date          = data.valuation_date;
+  if (data.media_delivered_value   != null) updates.media_delivered_value   = data.media_delivered_value;
+  if (data.media_remaining_value   != null) updates.media_remaining_value   = data.media_remaining_value;
+  if (data.awq_ownership_pct       != null) updates.awq_ownership_pct       = data.awq_ownership_pct;
+  if (data.status                  != null) updates.status                  = data.status;
+  if (data.exit_date               != null) updates.exit_date               = data.exit_date;
+  if (data.exit_type               != null) updates.exit_type               = data.exit_type;
+  if (data.exit_valuation          != null) updates.exit_valuation          = data.exit_valuation;
+  if (data.exit_proceeds           != null) updates.exit_proceeds           = data.exit_proceeds;
+  if (data.ceo_name                != null) updates.ceo_name                = data.ceo_name;
+  if (data.ceo_email               != null) updates.ceo_email               = data.ceo_email;
+  if (data.ceo_phone               != null) updates.ceo_phone               = data.ceo_phone;
+  if (data.website                 != null) updates.website                 = data.website;
+  if (data.company_stage           != null) updates.company_stage           = data.company_stage;
+  if (data.board_seat              != null) updates.board_seat              = data.board_seat;
+  if (data.observer_rights         != null) updates.observer_rights         = data.observer_rights;
+  if (data.board_meeting_frequency != null) updates.board_meeting_frequency = data.board_meeting_frequency;
+  if (data.notes                   != null) updates.notes                   = data.notes;
+
+  const { data: row, error } = await sb
+    .from("ma_portfolio_companies")
+    .update(updates)
+    .eq("portco_id", portco_id)
+    .select()
+    .single();
+  if (error) throw error;
+  return row as MaPortfolioCompany;
 }
 
 // ─── Due Diligence ────────────────────────────────────────────────────────────
@@ -674,227 +724,245 @@ export async function updatePortfolioCompany(
 export const SEED_DD_ITEMS: MaDueDiligenceItem[] = [];
 
 export async function listDdItems(deal_id: string): Promise<MaDueDiligenceItem[]> {
-  if (!sql) return SEED_DD_ITEMS.filter(d => d.deal_id === deal_id);
-  const rows = await sql`
-    SELECT * FROM ma_due_diligence_items
-    WHERE deal_id = ${deal_id}
-    ORDER BY dd_category, item_name
-  `;
-  return rows as MaDueDiligenceItem[];
+  const sb = getSupabaseAdmin();
+  if (!sb) return SEED_DD_ITEMS.filter(d => d.deal_id === deal_id);
+  const { data, error } = await sb
+    .from("ma_due_diligence_items")
+    .select("*")
+    .eq("deal_id", deal_id)
+    .order("dd_category", { ascending: true })
+    .order("item_name", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as MaDueDiligenceItem[];
 }
 
 export async function createDdItem(
   data: Partial<MaDueDiligenceItem>
 ): Promise<MaDueDiligenceItem> {
-  if (!sql) throw new Error("DB not available");
-  const rows = await sql`
-    INSERT INTO ma_due_diligence_items (
-      deal_id, dd_category, item_name, item_description,
-      status, completion_pct, finding, finding_notes, risk_level,
-      documents, assigned_to, due_date, completed_date
-    ) VALUES (
-      ${data.deal_id!}, ${data.dd_category ?? 'financial'}, ${data.item_name!},
-      ${data.item_description ?? null}, ${data.status ?? 'not_started'},
-      ${data.completion_pct ?? 0}, ${data.finding ?? null},
-      ${data.finding_notes ?? null}, ${data.risk_level ?? null},
-      ${data.documents ? JSON.stringify(data.documents) : null},
-      ${data.assigned_to ?? null}, ${data.due_date ?? null}, ${data.completed_date ?? null}
-    )
-    RETURNING *
-  `;
-  return rows[0] as MaDueDiligenceItem;
+  const sb = getSupabaseAdmin();
+  if (!sb) throw new Error("DB not available");
+  const { data: row, error } = await sb
+    .from("ma_due_diligence_items")
+    .insert({
+      deal_id:          data.deal_id!,
+      dd_category:      data.dd_category ?? "financial",
+      item_name:        data.item_name!,
+      item_description: data.item_description ?? null,
+      status:           data.status ?? "not_started",
+      completion_pct:   data.completion_pct ?? 0,
+      finding:          data.finding ?? null,
+      finding_notes:    data.finding_notes ?? null,
+      risk_level:       data.risk_level ?? null,
+      documents:        data.documents ?? null,
+      assigned_to:      data.assigned_to ?? null,
+      due_date:         data.due_date ?? null,
+      completed_date:   data.completed_date ?? null,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return row as MaDueDiligenceItem;
 }
 
 export async function updateDdItem(
   dd_item_id: string,
   data: Partial<MaDueDiligenceItem>
 ): Promise<MaDueDiligenceItem> {
-  if (!sql) throw new Error("DB not available");
-  const rows = await sql`
-    UPDATE ma_due_diligence_items SET
-      status         = COALESCE(${data.status ?? null}, status),
-      completion_pct = COALESCE(${data.completion_pct ?? null}, completion_pct),
-      finding        = COALESCE(${data.finding ?? null}, finding),
-      finding_notes  = COALESCE(${data.finding_notes ?? null}, finding_notes),
-      risk_level     = COALESCE(${data.risk_level ?? null}, risk_level),
-      assigned_to    = COALESCE(${data.assigned_to ?? null}, assigned_to),
-      due_date       = COALESCE(${data.due_date ?? null}, due_date),
-      completed_date = COALESCE(${data.completed_date ?? null}, completed_date),
-      updated_at     = NOW()
-    WHERE dd_item_id = ${dd_item_id}
-    RETURNING *
-  `;
-  return rows[0] as MaDueDiligenceItem;
+  const sb = getSupabaseAdmin();
+  if (!sb) throw new Error("DB not available");
+
+  const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (data.status         != null) updates.status         = data.status;
+  if (data.completion_pct != null) updates.completion_pct = data.completion_pct;
+  if (data.finding        != null) updates.finding        = data.finding;
+  if (data.finding_notes  != null) updates.finding_notes  = data.finding_notes;
+  if (data.risk_level     != null) updates.risk_level     = data.risk_level;
+  if (data.assigned_to    != null) updates.assigned_to    = data.assigned_to;
+  if (data.due_date       != null) updates.due_date       = data.due_date;
+  if (data.completed_date != null) updates.completed_date = data.completed_date;
+
+  const { data: row, error } = await sb
+    .from("ma_due_diligence_items")
+    .update(updates)
+    .eq("dd_item_id", dd_item_id)
+    .select()
+    .single();
+  if (error) throw error;
+  return row as MaDueDiligenceItem;
 }
 
 // ─── Cap Table ────────────────────────────────────────────────────────────────
 
 export async function listCapTable(portco_id: string): Promise<MaCapTableEntry[]> {
-  if (!sql) return SEED_CAP_TABLE.filter(c => c.portco_id === portco_id);
-  const rows = await sql`
-    SELECT * FROM ma_cap_table
-    WHERE portco_id = ${portco_id}
-    ORDER BY ownership_pct DESC NULLS LAST
-  `;
-  return rows as MaCapTableEntry[];
+  const sb = getSupabaseAdmin();
+  if (!sb) return SEED_CAP_TABLE.filter(c => c.portco_id === portco_id);
+  const { data, error } = await sb
+    .from("ma_cap_table")
+    .select("*")
+    .eq("portco_id", portco_id)
+    .order("ownership_pct", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as MaCapTableEntry[];
 }
 
 export async function createCapTableEntry(
   data: Partial<MaCapTableEntry>
 ): Promise<MaCapTableEntry> {
-  if (!sql) throw new Error("DB not available");
-  const rows = await sql`
-    INSERT INTO ma_cap_table (
-      portco_id, shareholder_name, shareholder_type, shareholder_entity,
-      share_class, shares_held, ownership_pct,
-      vesting_schedule, vesting_start_date, vesting_cliff_date, vesting_end_date,
-      shares_vested, shares_unvested, cost_per_share, total_cost_basis,
-      acquisition_date, is_active
-    ) VALUES (
-      ${data.portco_id!}, ${data.shareholder_name!},
-      ${data.shareholder_type ?? null}, ${data.shareholder_entity ?? null},
-      ${data.share_class ?? 'common'}, ${data.shares_held ?? 0},
-      ${data.ownership_pct ?? null},
-      ${data.vesting_schedule ?? null}, ${data.vesting_start_date ?? null},
-      ${data.vesting_cliff_date ?? null}, ${data.vesting_end_date ?? null},
-      ${data.shares_vested ?? 0}, ${data.shares_unvested ?? null},
-      ${data.cost_per_share ?? null}, ${data.total_cost_basis ?? null},
-      ${data.acquisition_date ?? null}, ${data.is_active ?? true}
-    )
-    RETURNING *
-  `;
-  return rows[0] as MaCapTableEntry;
+  const sb = getSupabaseAdmin();
+  if (!sb) throw new Error("DB not available");
+  const { data: row, error } = await sb
+    .from("ma_cap_table")
+    .insert({
+      portco_id:          data.portco_id!,
+      shareholder_name:   data.shareholder_name!,
+      shareholder_type:   data.shareholder_type ?? null,
+      shareholder_entity: data.shareholder_entity ?? null,
+      share_class:        data.share_class ?? "common",
+      shares_held:        data.shares_held ?? 0,
+      ownership_pct:      data.ownership_pct ?? null,
+      vesting_schedule:   data.vesting_schedule ?? null,
+      vesting_start_date: data.vesting_start_date ?? null,
+      vesting_cliff_date: data.vesting_cliff_date ?? null,
+      vesting_end_date:   data.vesting_end_date ?? null,
+      shares_vested:      data.shares_vested ?? 0,
+      shares_unvested:    data.shares_unvested ?? null,
+      cost_per_share:     data.cost_per_share ?? null,
+      total_cost_basis:   data.total_cost_basis ?? null,
+      acquisition_date:   data.acquisition_date ?? null,
+      is_active:          data.is_active ?? true,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return row as MaCapTableEntry;
 }
 
 // ─── KPIs ─────────────────────────────────────────────────────────────────────
 
 export async function listPortcoKpis(portco_id: string): Promise<MaPortcoKpi[]> {
-  if (!sql) return SEED_KPIS.filter(k => k.portco_id === portco_id);
-  const rows = await sql`
-    SELECT * FROM ma_portco_kpis
-    WHERE portco_id = ${portco_id}
-    ORDER BY reporting_date DESC
-  `;
-  return rows as MaPortcoKpi[];
+  const sb = getSupabaseAdmin();
+  if (!sb) return SEED_KPIS.filter(k => k.portco_id === portco_id);
+  const { data, error } = await sb
+    .from("ma_portco_kpis")
+    .select("*")
+    .eq("portco_id", portco_id)
+    .order("reporting_date", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as MaPortcoKpi[];
 }
 
 export async function upsertPortcoKpi(data: Partial<MaPortcoKpi>): Promise<MaPortcoKpi> {
-  if (!sql) throw new Error("DB not available");
-  const rows = await sql`
-    INSERT INTO ma_portco_kpis (
-      portco_id, reporting_date, year_month,
-      mrr, arr, total_revenue, gross_margin_pct,
-      burn_rate, cash_balance, runway_months,
-      mom_growth_pct, yoy_growth_pct,
-      cac, ltv, ltv_cac_ratio, gmv,
-      active_users, new_users, churn_rate_pct, nps,
-      headcount, product_launched, funding_round_closed,
-      notes, submitted_by
-    ) VALUES (
-      ${data.portco_id!}, ${data.reporting_date!},
-      ${data.year_month ?? null},
-      ${data.mrr ?? null}, ${data.arr ?? null}, ${data.total_revenue ?? null},
-      ${data.gross_margin_pct ?? null},
-      ${data.burn_rate ?? null}, ${data.cash_balance ?? null}, ${data.runway_months ?? null},
-      ${data.mom_growth_pct ?? null}, ${data.yoy_growth_pct ?? null},
-      ${data.cac ?? null}, ${data.ltv ?? null}, ${data.ltv_cac_ratio ?? null},
-      ${data.gmv ?? null},
-      ${data.active_users ?? null}, ${data.new_users ?? null},
-      ${data.churn_rate_pct ?? null}, ${data.nps ?? null},
-      ${data.headcount ?? null}, ${data.product_launched ?? false},
-      ${data.funding_round_closed ?? false},
-      ${data.notes ?? null}, ${data.submitted_by ?? null}
+  const sb = getSupabaseAdmin();
+  if (!sb) throw new Error("DB not available");
+  const { data: row, error } = await sb
+    .from("ma_portco_kpis")
+    .upsert(
+      {
+        portco_id:            data.portco_id!,
+        reporting_date:       data.reporting_date!,
+        year_month:           data.year_month ?? null,
+        mrr:                  data.mrr ?? null,
+        arr:                  data.arr ?? null,
+        total_revenue:        data.total_revenue ?? null,
+        gross_margin_pct:     data.gross_margin_pct ?? null,
+        burn_rate:            data.burn_rate ?? null,
+        cash_balance:         data.cash_balance ?? null,
+        runway_months:        data.runway_months ?? null,
+        mom_growth_pct:       data.mom_growth_pct ?? null,
+        yoy_growth_pct:       data.yoy_growth_pct ?? null,
+        cac:                  data.cac ?? null,
+        ltv:                  data.ltv ?? null,
+        ltv_cac_ratio:        data.ltv_cac_ratio ?? null,
+        gmv:                  data.gmv ?? null,
+        active_users:         data.active_users ?? null,
+        new_users:            data.new_users ?? null,
+        churn_rate_pct:       data.churn_rate_pct ?? null,
+        nps:                  data.nps ?? null,
+        headcount:            data.headcount ?? null,
+        product_launched:     data.product_launched ?? false,
+        funding_round_closed: data.funding_round_closed ?? false,
+        notes:                data.notes ?? null,
+        submitted_by:         data.submitted_by ?? null,
+        updated_at:           new Date().toISOString(),
+      },
+      { onConflict: "portco_id,reporting_date" }
     )
-    ON CONFLICT (portco_id, reporting_date) DO UPDATE SET
-      year_month            = EXCLUDED.year_month,
-      mrr                   = EXCLUDED.mrr,
-      arr                   = EXCLUDED.arr,
-      total_revenue         = EXCLUDED.total_revenue,
-      gross_margin_pct      = EXCLUDED.gross_margin_pct,
-      burn_rate             = EXCLUDED.burn_rate,
-      cash_balance          = EXCLUDED.cash_balance,
-      runway_months         = EXCLUDED.runway_months,
-      mom_growth_pct        = EXCLUDED.mom_growth_pct,
-      yoy_growth_pct        = EXCLUDED.yoy_growth_pct,
-      cac                   = EXCLUDED.cac,
-      ltv                   = EXCLUDED.ltv,
-      ltv_cac_ratio         = EXCLUDED.ltv_cac_ratio,
-      gmv                   = EXCLUDED.gmv,
-      active_users          = EXCLUDED.active_users,
-      new_users             = EXCLUDED.new_users,
-      churn_rate_pct        = EXCLUDED.churn_rate_pct,
-      nps                   = EXCLUDED.nps,
-      headcount             = EXCLUDED.headcount,
-      product_launched      = EXCLUDED.product_launched,
-      funding_round_closed  = EXCLUDED.funding_round_closed,
-      notes                 = EXCLUDED.notes,
-      submitted_by          = EXCLUDED.submitted_by,
-      updated_at            = NOW()
-    RETURNING *
-  `;
-  return rows[0] as MaPortcoKpi;
+    .select()
+    .single();
+  if (error) throw error;
+  return row as MaPortcoKpi;
 }
 
 // ─── Board Meetings ───────────────────────────────────────────────────────────
 
 export async function listBoardMeetings(portco_id: string): Promise<MaBoardMeeting[]> {
-  if (!sql) return SEED_BOARD_MEETINGS.filter(m => m.portco_id === portco_id);
-  const rows = await sql`
-    SELECT * FROM ma_board_meetings
-    WHERE portco_id = ${portco_id}
-    ORDER BY meeting_date DESC
-  `;
-  return rows as MaBoardMeeting[];
+  const sb = getSupabaseAdmin();
+  if (!sb) return SEED_BOARD_MEETINGS.filter(m => m.portco_id === portco_id);
+  const { data, error } = await sb
+    .from("ma_board_meetings")
+    .select("*")
+    .eq("portco_id", portco_id)
+    .order("meeting_date", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as MaBoardMeeting[];
 }
 
 export async function createBoardMeeting(
   data: Partial<MaBoardMeeting>
 ): Promise<MaBoardMeeting> {
-  if (!sql) throw new Error("DB not available");
-  const rows = await sql`
-    INSERT INTO ma_board_meetings (
-      portco_id, meeting_date, meeting_type, agenda,
-      board_deck_url, financial_report_url, other_materials,
-      attendees, awq_representative, minutes_url,
-      resolutions, action_items, status, notes
-    ) VALUES (
-      ${data.portco_id!}, ${data.meeting_date!},
-      ${data.meeting_type ?? 'monthly_review'}, ${data.agenda ?? null},
-      ${data.board_deck_url ?? null}, ${data.financial_report_url ?? null},
-      ${data.other_materials ? JSON.stringify(data.other_materials) : null},
-      ${data.attendees ? JSON.stringify(data.attendees) : null},
-      ${data.awq_representative ?? null}, ${data.minutes_url ?? null},
-      ${data.resolutions ? JSON.stringify(data.resolutions) : null},
-      ${data.action_items ? JSON.stringify(data.action_items) : null},
-      ${data.status ?? 'scheduled'}, ${data.notes ?? null}
-    )
-    RETURNING *
-  `;
-  return rows[0] as MaBoardMeeting;
+  const sb = getSupabaseAdmin();
+  if (!sb) throw new Error("DB not available");
+  const { data: row, error } = await sb
+    .from("ma_board_meetings")
+    .insert({
+      portco_id:            data.portco_id!,
+      meeting_date:         data.meeting_date!,
+      meeting_type:         data.meeting_type ?? "monthly_review",
+      agenda:               data.agenda ?? null,
+      board_deck_url:       data.board_deck_url ?? null,
+      financial_report_url: data.financial_report_url ?? null,
+      other_materials:      data.other_materials ?? null,
+      attendees:            data.attendees ?? null,
+      awq_representative:   data.awq_representative ?? null,
+      minutes_url:          data.minutes_url ?? null,
+      resolutions:          data.resolutions ?? null,
+      action_items:         data.action_items ?? null,
+      status:               data.status ?? "scheduled",
+      notes:                data.notes ?? null,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return row as MaBoardMeeting;
 }
 
 export async function updateBoardMeeting(
   meeting_id: string,
   data: Partial<MaBoardMeeting>
 ): Promise<MaBoardMeeting> {
-  if (!sql) throw new Error("DB not available");
-  const rows = await sql`
-    UPDATE ma_board_meetings SET
-      meeting_date         = COALESCE(${data.meeting_date ?? null}, meeting_date),
-      agenda               = COALESCE(${data.agenda ?? null}, agenda),
-      board_deck_url       = COALESCE(${data.board_deck_url ?? null}, board_deck_url),
-      financial_report_url = COALESCE(${data.financial_report_url ?? null}, financial_report_url),
-      minutes_url          = COALESCE(${data.minutes_url ?? null}, minutes_url),
-      awq_representative   = COALESCE(${data.awq_representative ?? null}, awq_representative),
-      resolutions          = COALESCE(${data.resolutions ? JSON.stringify(data.resolutions) : null}::jsonb, resolutions),
-      action_items         = COALESCE(${data.action_items ? JSON.stringify(data.action_items) : null}::jsonb, action_items),
-      status               = COALESCE(${data.status ?? null}, status),
-      notes                = COALESCE(${data.notes ?? null}, notes),
-      updated_at           = NOW()
-    WHERE meeting_id = ${meeting_id}
-    RETURNING *
-  `;
-  return rows[0] as MaBoardMeeting;
+  const sb = getSupabaseAdmin();
+  if (!sb) throw new Error("DB not available");
+
+  const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (data.meeting_date         != null) updates.meeting_date         = data.meeting_date;
+  if (data.agenda               != null) updates.agenda               = data.agenda;
+  if (data.board_deck_url       != null) updates.board_deck_url       = data.board_deck_url;
+  if (data.financial_report_url != null) updates.financial_report_url = data.financial_report_url;
+  if (data.minutes_url          != null) updates.minutes_url          = data.minutes_url;
+  if (data.awq_representative   != null) updates.awq_representative   = data.awq_representative;
+  if (data.resolutions          != null) updates.resolutions          = data.resolutions;
+  if (data.action_items         != null) updates.action_items         = data.action_items;
+  if (data.status               != null) updates.status               = data.status;
+  if (data.notes                != null) updates.notes                = data.notes;
+
+  const { data: row, error } = await sb
+    .from("ma_board_meetings")
+    .update(updates)
+    .eq("meeting_id", meeting_id)
+    .select()
+    .single();
+  if (error) throw error;
+  return row as MaBoardMeeting;
 }
 
 // ─── Media Deliverables ───────────────────────────────────────────────────────
@@ -902,60 +970,71 @@ export async function updateBoardMeeting(
 export async function listMediaDeliverables(
   portco_id: string
 ): Promise<MaMediaDeliverable[]> {
-  if (!sql) return SEED_MEDIA_DELIVERABLES.filter(m => m.portco_id === portco_id);
-  const rows = await sql`
-    SELECT * FROM ma_media_deliverables
-    WHERE portco_id = ${portco_id}
-    ORDER BY scheduled_delivery_date DESC
-  `;
-  return rows as MaMediaDeliverable[];
+  const sb = getSupabaseAdmin();
+  if (!sb) return SEED_MEDIA_DELIVERABLES.filter(m => m.portco_id === portco_id);
+  const { data, error } = await sb
+    .from("ma_media_deliverables")
+    .select("*")
+    .eq("portco_id", portco_id)
+    .order("scheduled_delivery_date", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as MaMediaDeliverable[];
 }
 
 export async function createMediaDeliverable(
   data: Partial<MaMediaDeliverable>
 ): Promise<MaMediaDeliverable> {
-  if (!sql) throw new Error("DB not available");
-  const rows = await sql`
-    INSERT INTO ma_media_deliverables (
-      portco_id, deliverable_type, description, agreed_value,
-      executing_bu, project_ref,
-      scheduled_delivery_date, actual_delivery_date,
-      status, approved_by_portco, approval_date, approval_notes, deliverable_url
-    ) VALUES (
-      ${data.portco_id!}, ${data.deliverable_type ?? 'other'},
-      ${data.description ?? null}, ${data.agreed_value ?? null},
-      ${data.executing_bu ?? null}, ${data.project_ref ?? null},
-      ${data.scheduled_delivery_date ?? null}, ${data.actual_delivery_date ?? null},
-      ${data.status ?? 'planned'}, ${data.approved_by_portco ?? false},
-      ${data.approval_date ?? null}, ${data.approval_notes ?? null},
-      ${data.deliverable_url ?? null}
-    )
-    RETURNING *
-  `;
-  return rows[0] as MaMediaDeliverable;
+  const sb = getSupabaseAdmin();
+  if (!sb) throw new Error("DB not available");
+  const { data: row, error } = await sb
+    .from("ma_media_deliverables")
+    .insert({
+      portco_id:               data.portco_id!,
+      deliverable_type:        data.deliverable_type ?? "other",
+      description:             data.description ?? null,
+      agreed_value:            data.agreed_value ?? null,
+      executing_bu:            data.executing_bu ?? null,
+      project_ref:             data.project_ref ?? null,
+      scheduled_delivery_date: data.scheduled_delivery_date ?? null,
+      actual_delivery_date:    data.actual_delivery_date ?? null,
+      status:                  data.status ?? "planned",
+      approved_by_portco:      data.approved_by_portco ?? false,
+      approval_date:           data.approval_date ?? null,
+      approval_notes:          data.approval_notes ?? null,
+      deliverable_url:         data.deliverable_url ?? null,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return row as MaMediaDeliverable;
 }
 
 export async function updateMediaDeliverable(
   deliverable_id: string,
   data: Partial<MaMediaDeliverable>
 ): Promise<MaMediaDeliverable> {
-  if (!sql) throw new Error("DB not available");
-  const rows = await sql`
-    UPDATE ma_media_deliverables SET
-      status                  = COALESCE(${data.status ?? null}, status),
-      actual_delivery_date    = COALESCE(${data.actual_delivery_date ?? null}, actual_delivery_date),
-      approved_by_portco      = COALESCE(${data.approved_by_portco ?? null}, approved_by_portco),
-      approval_date           = COALESCE(${data.approval_date ?? null}, approval_date),
-      approval_notes          = COALESCE(${data.approval_notes ?? null}, approval_notes),
-      deliverable_url         = COALESCE(${data.deliverable_url ?? null}, deliverable_url),
-      agreed_value            = COALESCE(${data.agreed_value ?? null}, agreed_value),
-      executing_bu            = COALESCE(${data.executing_bu ?? null}, executing_bu),
-      description             = COALESCE(${data.description ?? null}, description),
-      updated_at              = NOW()
-    WHERE deliverable_id = ${deliverable_id}
-    RETURNING *
-  `;
-  return rows[0] as MaMediaDeliverable;
+  const sb = getSupabaseAdmin();
+  if (!sb) throw new Error("DB not available");
+
+  const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (data.status               != null) updates.status               = data.status;
+  if (data.actual_delivery_date != null) updates.actual_delivery_date = data.actual_delivery_date;
+  if (data.approved_by_portco   != null) updates.approved_by_portco   = data.approved_by_portco;
+  if (data.approval_date        != null) updates.approval_date        = data.approval_date;
+  if (data.approval_notes       != null) updates.approval_notes       = data.approval_notes;
+  if (data.deliverable_url      != null) updates.deliverable_url      = data.deliverable_url;
+  if (data.agreed_value         != null) updates.agreed_value         = data.agreed_value;
+  if (data.executing_bu         != null) updates.executing_bu         = data.executing_bu;
+  if (data.description          != null) updates.description          = data.description;
+
+  const { data: row, error } = await sb
+    .from("ma_media_deliverables")
+    .update(updates)
+    .eq("deliverable_id", deliverable_id)
+    .select()
+    .single();
+  if (error) throw error;
+  return row as MaMediaDeliverable;
 }
 
 // ─── Intercompany Transactions ────────────────────────────────────────────────
@@ -964,7 +1043,8 @@ export async function listIntercompanyTransactions(filters?: {
   from_entity_id?: string;
   to_entity_id?: string;
 }): Promise<MaIntercompanyTransaction[]> {
-  if (!sql) {
+  const sb = getSupabaseAdmin();
+  if (!sb) {
     let rows = [...SEED_INTERCOMPANY];
     if (filters?.from_entity_id)
       rows = rows.filter(r => r.from_entity_id === filters.from_entity_id);
@@ -972,40 +1052,45 @@ export async function listIntercompanyTransactions(filters?: {
       rows = rows.filter(r => r.to_entity_id === filters.to_entity_id);
     return rows;
   }
-  const rows = await sql`
-    SELECT * FROM ma_intercompany_transactions
-    WHERE (${filters?.from_entity_id ?? null}::text IS NULL OR from_entity_id = ${filters?.from_entity_id ?? null})
-      AND (${filters?.to_entity_id ?? null}::text IS NULL OR to_entity_id = ${filters?.to_entity_id ?? null})
-    ORDER BY transaction_date DESC
-  `;
-  return rows as MaIntercompanyTransaction[];
+  let q = sb
+    .from("ma_intercompany_transactions")
+    .select("*")
+    .order("transaction_date", { ascending: false });
+  if (filters?.from_entity_id) q = q.eq("from_entity_id", filters.from_entity_id);
+  if (filters?.to_entity_id)   q = q.eq("to_entity_id", filters.to_entity_id);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []) as MaIntercompanyTransaction[];
 }
 
 export async function createIntercompanyTransaction(
   data: Partial<MaIntercompanyTransaction>
 ): Promise<MaIntercompanyTransaction> {
-  if (!sql) throw new Error("DB not available");
-  const rows = await sql`
-    INSERT INTO ma_intercompany_transactions (
-      transaction_date, transaction_type,
-      from_entity_type, from_entity_id, from_entity_name,
-      to_entity_type, to_entity_id, to_entity_name,
-      amount, debit_account_code, credit_account_code,
-      description, source_system, elimination_status, elimination_date
-    ) VALUES (
-      ${data.transaction_date!}, ${data.transaction_type ?? null},
-      ${data.from_entity_type ?? null}, ${data.from_entity_id ?? null},
-      ${data.from_entity_name ?? null},
-      ${data.to_entity_type ?? null}, ${data.to_entity_id ?? null},
-      ${data.to_entity_name ?? null},
-      ${data.amount ?? 0}, ${data.debit_account_code ?? null},
-      ${data.credit_account_code ?? null},
-      ${data.description ?? null}, ${data.source_system ?? null},
-      ${data.elimination_status ?? 'pending'}, ${data.elimination_date ?? null}
-    )
-    RETURNING *
-  `;
-  return rows[0] as MaIntercompanyTransaction;
+  const sb = getSupabaseAdmin();
+  if (!sb) throw new Error("DB not available");
+  const { data: row, error } = await sb
+    .from("ma_intercompany_transactions")
+    .insert({
+      transaction_date:     data.transaction_date!,
+      transaction_type:     data.transaction_type ?? null,
+      from_entity_type:     data.from_entity_type ?? null,
+      from_entity_id:       data.from_entity_id ?? null,
+      from_entity_name:     data.from_entity_name ?? null,
+      to_entity_type:       data.to_entity_type ?? null,
+      to_entity_id:         data.to_entity_id ?? null,
+      to_entity_name:       data.to_entity_name ?? null,
+      amount:               data.amount ?? 0,
+      debit_account_code:   data.debit_account_code ?? null,
+      credit_account_code:  data.credit_account_code ?? null,
+      description:          data.description ?? null,
+      source_system:        data.source_system ?? null,
+      elimination_status:   data.elimination_status ?? "pending",
+      elimination_date:     data.elimination_date ?? null,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return row as MaIntercompanyTransaction;
 }
 
 // ─── Synergies ────────────────────────────────────────────────────────────────
@@ -1014,129 +1099,151 @@ export async function listSynergies(filters?: {
   portco_id?: string;
   source_bu?: string;
 }): Promise<MaSynergyOpportunity[]> {
-  if (!sql) {
+  const sb = getSupabaseAdmin();
+  if (!sb) {
     let rows = [...SEED_SYNERGIES];
     if (filters?.portco_id) rows = rows.filter(r => r.portco_id === filters.portco_id);
     if (filters?.source_bu) rows = rows.filter(r => r.source_bu === filters.source_bu);
     return rows;
   }
-  const rows = await sql`
-    SELECT * FROM ma_synergy_opportunities
-    WHERE (${filters?.portco_id ?? null}::text IS NULL OR portco_id = ${filters?.portco_id ?? null})
-      AND (${filters?.source_bu ?? null}::text IS NULL OR source_bu = ${filters?.source_bu ?? null})
-    ORDER BY created_at DESC
-  `;
-  return rows as MaSynergyOpportunity[];
+  let q = sb
+    .from("ma_synergy_opportunities")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (filters?.portco_id) q = q.eq("portco_id", filters.portco_id);
+  if (filters?.source_bu) q = q.eq("source_bu", filters.source_bu);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []) as MaSynergyOpportunity[];
 }
 
 export async function createSynergy(
   data: Partial<MaSynergyOpportunity>
 ): Promise<MaSynergyOpportunity> {
-  if (!sql) throw new Error("DB not available");
-  const rows = await sql`
-    INSERT INTO ma_synergy_opportunities (
-      synergy_type, opportunity_name, description,
-      source_bu, target_bu, portco_id,
-      estimated_revenue_impact, estimated_cost_savings,
-      status, identified_date, owner, notes
-    ) VALUES (
-      ${data.synergy_type ?? null}, ${data.opportunity_name ?? null},
-      ${data.description ?? null},
-      ${data.source_bu ?? null}, ${data.target_bu ?? null}, ${data.portco_id ?? null},
-      ${data.estimated_revenue_impact ?? null}, ${data.estimated_cost_savings ?? null},
-      ${data.status ?? 'identified'}, ${data.identified_date ?? null},
-      ${data.owner ?? null}, ${data.notes ?? null}
-    )
-    RETURNING *
-  `;
-  return rows[0] as MaSynergyOpportunity;
+  const sb = getSupabaseAdmin();
+  if (!sb) throw new Error("DB not available");
+  const { data: row, error } = await sb
+    .from("ma_synergy_opportunities")
+    .insert({
+      synergy_type:              data.synergy_type ?? null,
+      opportunity_name:          data.opportunity_name ?? null,
+      description:               data.description ?? null,
+      source_bu:                 data.source_bu ?? null,
+      target_bu:                 data.target_bu ?? null,
+      portco_id:                 data.portco_id ?? null,
+      estimated_revenue_impact:  data.estimated_revenue_impact ?? null,
+      estimated_cost_savings:    data.estimated_cost_savings ?? null,
+      status:                    data.status ?? "identified",
+      identified_date:           data.identified_date ?? null,
+      owner:                     data.owner ?? null,
+      notes:                     data.notes ?? null,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return row as MaSynergyOpportunity;
 }
 
 export async function updateSynergy(
   synergy_id: string,
   data: Partial<MaSynergyOpportunity>
 ): Promise<MaSynergyOpportunity> {
-  if (!sql) throw new Error("DB not available");
-  const rows = await sql`
-    UPDATE ma_synergy_opportunities SET
-      status                   = COALESCE(${data.status ?? null}, status),
-      realization_date         = COALESCE(${data.realization_date ?? null}, realization_date),
-      actual_revenue_impact    = COALESCE(${data.actual_revenue_impact ?? null}, actual_revenue_impact),
-      actual_cost_savings      = COALESCE(${data.actual_cost_savings ?? null}, actual_cost_savings),
-      estimated_revenue_impact = COALESCE(${data.estimated_revenue_impact ?? null}, estimated_revenue_impact),
-      estimated_cost_savings   = COALESCE(${data.estimated_cost_savings ?? null}, estimated_cost_savings),
-      owner                    = COALESCE(${data.owner ?? null}, owner),
-      notes                    = COALESCE(${data.notes ?? null}, notes),
-      updated_at               = NOW()
-    WHERE synergy_id = ${synergy_id}
-    RETURNING *
-  `;
-  return rows[0] as MaSynergyOpportunity;
+  const sb = getSupabaseAdmin();
+  if (!sb) throw new Error("DB not available");
+
+  const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (data.status                   != null) updates.status                   = data.status;
+  if (data.realization_date         != null) updates.realization_date         = data.realization_date;
+  if (data.actual_revenue_impact    != null) updates.actual_revenue_impact    = data.actual_revenue_impact;
+  if (data.actual_cost_savings      != null) updates.actual_cost_savings      = data.actual_cost_savings;
+  if (data.estimated_revenue_impact != null) updates.estimated_revenue_impact = data.estimated_revenue_impact;
+  if (data.estimated_cost_savings   != null) updates.estimated_cost_savings   = data.estimated_cost_savings;
+  if (data.owner                    != null) updates.owner                    = data.owner;
+  if (data.notes                    != null) updates.notes                    = data.notes;
+
+  const { data: row, error } = await sb
+    .from("ma_synergy_opportunities")
+    .update(updates)
+    .eq("synergy_id", synergy_id)
+    .select()
+    .single();
+  if (error) throw error;
+  return row as MaSynergyOpportunity;
 }
 
 // ─── IC Meetings ──────────────────────────────────────────────────────────────
 
 export async function listIcMeetings(): Promise<MaIcMeeting[]> {
-  if (!sql) return [...SEED_IC_MEETINGS];
-  const rows = await sql`
-    SELECT * FROM ma_ic_meetings
-    ORDER BY meeting_date DESC
-  `;
-  return rows as MaIcMeeting[];
+  const sb = getSupabaseAdmin();
+  if (!sb) return [...SEED_IC_MEETINGS];
+  const { data, error } = await sb
+    .from("ma_ic_meetings")
+    .select("*")
+    .order("meeting_date", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as MaIcMeeting[];
 }
 
 export async function createIcMeeting(
   data: Partial<MaIcMeeting>
 ): Promise<MaIcMeeting> {
-  if (!sql) throw new Error("DB not available");
-  const rows = await sql`
-    INSERT INTO ma_ic_meetings (
-      meeting_date, meeting_type, attendees,
-      deals_reviewed, minutes_url, status
-    ) VALUES (
-      ${data.meeting_date!}, ${data.meeting_type ?? 'deal_review'},
-      ${data.attendees ? JSON.stringify(data.attendees) : null},
-      ${data.deals_reviewed ? JSON.stringify(data.deals_reviewed) : null},
-      ${data.minutes_url ?? null}, ${data.status ?? 'scheduled'}
-    )
-    RETURNING *
-  `;
-  return rows[0] as MaIcMeeting;
+  const sb = getSupabaseAdmin();
+  if (!sb) throw new Error("DB not available");
+  const { data: row, error } = await sb
+    .from("ma_ic_meetings")
+    .insert({
+      meeting_date:    data.meeting_date!,
+      meeting_type:    data.meeting_type ?? "deal_review",
+      attendees:       data.attendees ?? null,
+      deals_reviewed:  data.deals_reviewed ?? null,
+      minutes_url:     data.minutes_url ?? null,
+      status:          data.status ?? "scheduled",
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return row as MaIcMeeting;
 }
 
 // ─── IC Decisions ─────────────────────────────────────────────────────────────
 
 export async function listIcDecisions(deal_id?: string): Promise<MaIcDecisionRecord[]> {
-  if (!sql) {
+  const sb = getSupabaseAdmin();
+  if (!sb) {
     if (deal_id) return SEED_IC_DECISIONS.filter(d => d.deal_id === deal_id);
     return [...SEED_IC_DECISIONS];
   }
-  const rows = await sql`
-    SELECT * FROM ma_ic_decisions
-    WHERE (${deal_id ?? null}::text IS NULL OR deal_id = ${deal_id ?? null})
-    ORDER BY decision_date DESC
-  `;
-  return rows as MaIcDecisionRecord[];
+  let q = sb
+    .from("ma_ic_decisions")
+    .select("*")
+    .order("decision_date", { ascending: false });
+  if (deal_id) q = q.eq("deal_id", deal_id);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []) as MaIcDecisionRecord[];
 }
 
 export async function createIcDecision(
   data: Partial<MaIcDecisionRecord>
 ): Promise<MaIcDecisionRecord> {
-  if (!sql) throw new Error("DB not available");
-  const rows = await sql`
-    INSERT INTO ma_ic_decisions (
-      ic_meeting_id, deal_id, decision, decision_date,
-      votes, vote_result, decision_rationale, conditions
-    ) VALUES (
-      ${data.ic_meeting_id ?? null}, ${data.deal_id!},
-      ${data.decision ?? 'deferred'}, ${data.decision_date!},
-      ${data.votes ? JSON.stringify(data.votes) : null},
-      ${data.vote_result ?? null}, ${data.decision_rationale ?? null},
-      ${data.conditions ?? null}
-    )
-    RETURNING *
-  `;
-  return rows[0] as MaIcDecisionRecord;
+  const sb = getSupabaseAdmin();
+  if (!sb) throw new Error("DB not available");
+  const { data: row, error } = await sb
+    .from("ma_ic_decisions")
+    .insert({
+      ic_meeting_id:       data.ic_meeting_id ?? null,
+      deal_id:             data.deal_id!,
+      decision:            data.decision ?? "deferred",
+      decision_date:       data.decision_date!,
+      votes:               data.votes ?? null,
+      vote_result:         data.vote_result ?? null,
+      decision_rationale:  data.decision_rationale ?? null,
+      conditions:          data.conditions ?? null,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return row as MaIcDecisionRecord;
 }
 
 // ─── Dashboard Totals ─────────────────────────────────────────────────────────
