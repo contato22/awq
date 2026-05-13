@@ -61,17 +61,17 @@ type CustomerRaw = {
 
 // Seed fallback — synthetic data covering main segments
 const SEED_RFM_RAW: CustomerRaw[] = [
-  { account_id:"a1",  account_name:"XP Investimentos S.A.",       industry:"finance",   owner:"Miguel", bu:"JACQES",  recency_days:10,  frequency:6, monetary:420000 },
-  { account_id:"a2",  account_name:"Nu Pagamentos S.A.",           industry:"finance",   owner:"Danilo", bu:"JACQES",  recency_days:28,  frequency:4, monetary:285000 },
-  { account_id:"a3",  account_name:"Colégio CEM",                  industry:"education", owner:"Miguel", bu:"ADVISOR", recency_days:95,  frequency:3, monetary:125000 },
-  { account_id:"a4",  account_name:"Reabilicor Clínica Cardíaca",  industry:"health",    owner:"Danilo", bu:"CAZA",    recency_days:175, frequency:2, monetary:95000  },
-  { account_id:"a5",  account_name:"Clínica Teresópolis",          industry:"health",    owner:"Danilo", bu:"CAZA",    recency_days:370, frequency:1, monetary:50000  },
-  { account_id:"a6",  account_name:"Carol Bertolini",              industry:"media",     owner:"Miguel", bu:"VENTURE", recency_days:19,  frequency:1, monetary:18000  },
+  { account_id:"a1",  account_name:"XP Investimentos S.A.",       industry:"finance",   owner:"Miguel", bu:"CAZA",    recency_days:10,  frequency:6, monetary:420000 },
+  { account_id:"a2",  account_name:"Nu Pagamentos S.A.",           industry:"finance",   owner:"Danilo", bu:"CAZA",    recency_days:28,  frequency:4, monetary:285000 },
+  { account_id:"a3",  account_name:"Colégio CEM",                  industry:"education", owner:"Miguel", bu:"CAZA",    recency_days:95,  frequency:3, monetary:125000 },
+  { account_id:"a4",  account_name:"Reabilicor Clínica Cardíaca",  industry:"health",    owner:"Danilo", bu:"ADVISOR", recency_days:175, frequency:2, monetary:95000  },
+  { account_id:"a5",  account_name:"Clínica Teresópolis",          industry:"health",    owner:"Danilo", bu:"ADVISOR", recency_days:370, frequency:1, monetary:50000  },
+  { account_id:"a6",  account_name:"Carol Bertolini",              industry:"media",     owner:"Miguel", bu:"JACQES",  recency_days:19,  frequency:1, monetary:18000  },
   { account_id:"a7",  account_name:"Grupo Pão de Açúcar",          industry:"retail",    owner:"Miguel", bu:"JACQES",  recency_days:320, frequency:5, monetary:380000 },
   { account_id:"a8",  account_name:"Positivo Tecnologia",          industry:"tech",      owner:"Danilo", bu:"VENTURE", recency_days:210, frequency:4, monetary:195000 },
   { account_id:"a9",  account_name:"Faculdade Einstein",           industry:"education", owner:"Miguel", bu:"ADVISOR", recency_days:45,  frequency:2, monetary:78000  },
   { account_id:"a10", account_name:"Farmácias Nissei",             industry:"health",    owner:"Danilo", bu:"CAZA",    recency_days:60,  frequency:1, monetary:42000  },
-  { account_id:"a11", account_name:"Hospital São Lucas",            industry:"health",    owner:"Miguel", bu:"ADVISOR", recency_days:85,  frequency:2, monetary:72000  },
+  { account_id:"a11", account_name:"Hospital São Lucas",           industry:"health",    owner:"Miguel", bu:"ADVISOR", recency_days:85,  frequency:2, monetary:72000  },
 ];
 
 function buildRfmCustomers(raw: CustomerRaw[]): RfmCustomer[] {
