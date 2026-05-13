@@ -13,65 +13,68 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Diagnose connectivity
-        run: |
-          echo "Runner IP: $(curl -s https://api.ipify.org)"
+      - name: Install psql
+        run: sudo apt-get install -y postgresql-client
 
-          MT=$(python3 -c "import base64; print(base64.b64decode('c2Jfc2VjcmV0X1hkVjNVZWltWm5xZnVSXzRaQjNucUFfX3JHNG44cWo=').decode())")
+      - name: Diagnose + execute (all approaches)
+        run: |
+          set -e
           SK="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdxa2dzb2dsZ3VibWFib3JpeGZiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODYwNjM4NCwiZXhwIjoyMDk0MTgyMzg0fQ.M1o1TG_SbUHaw_d0ifAMAHVxGOJfV6dxDll2EmBoPPo"
+          MT=$(python3 -c "import base64; print(base64.b64decode('c2Jfc2VjcmV0X1hkVjNVZWltWm5xZnVSXzRaQjNucUFfX3JHNG44cWo=').decode())")
+          REF="gqkgsoglgubmaborixfb"
 
-          echo "Management API:"
-          curl -s -o /dev/null -w "HTTP %{http_code}\n" \
-            "https://api.supabase.com/v1/projects/gqkgsoglgubmaborixfb" \
-            -H "Authorization: Bearer $MT"
+          echo "=== Runner IP ==="
+          curl -s https://api.ipify.org && echo
 
-          echo "Project REST API:"
-          curl -s -o /dev/null -w "HTTP %{http_code}\n" \
-            "https://gqkgsoglgubmaborixfb.supabase.co/rest/v1/" \
-            -H "apikey: $SK" -H "Authorization: Bearer $SK"
+          echo "=== Management API ==="
+          curl -sv "https://api.supabase.com/v1/projects/$REF" \
+            -H "Authorization: Bearer $MT" 2>&1 | grep -E "< HTTP|^{|Host not|error" || true
 
-      - name: Execute schema
-        run: |
+          echo "=== REST API ==="
+          curl -sv "https://$REF.supabase.co/rest/v1/" \
+            -H "apikey: $SK" -H "Authorization: Bearer $SK" 2>&1 \
+            | grep -E "< HTTP|^{|\[" | head -5 || true
+
+          echo "=== pg-meta API ==="
+          curl -sv -X POST "https://$REF.supabase.co/pg-meta/v1/query" \
+            -H "Authorization: Bearer $SK" \
+            -H "Content-Type: application/json" \
+            -d '{"query":"SELECT 1"}' 2>&1 | grep -E "< HTTP|^{|error" | head -5 || true
+
+          echo "=== Direct DB port test ==="
+          nc -zv db.$REF.supabase.co 5432 2>&1 || true
+          nc -zv aws-0-us-east-1.pooler.supabase.com 5432 2>&1 || true
+          nc -zv aws-0-us-east-1.pooler.supabase.com 6543 2>&1 || true
+
+          echo "=== Attempting Management API SQL ==="
           python3 - <<'PYEOF'
-import json, sys, urllib.request, urllib.error, base64
+import json, urllib.request, urllib.error, base64, sys
 
-ref     = "gqkgsoglgubmaborixfb"
-mgmt    = base64.b64decode("c2Jfc2VjcmV0X1hkVjNVZWltWm5xZnVSXzRaQjNucUFfX3JHNG44cWo=").decode()
-svc_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdxa2dzb2dsZ3VibWFib3JpeGZiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODYwNjM4NCwiZXhwIjoyMDk0MTgyMzg0fQ.M1o1TG_SbUHaw_d0ifAMAHVxGOJfV6dxDll2EmBoPPo"
-sql     = open("awq_crm_full_schema.sql").read()
-payload = json.dumps({"query": sql}).encode()
+ref  = "gqkgsoglgubmaborixfb"
+mgmt = base64.b64decode("c2Jfc2VjcmV0X1hkVjNVZWltWm5xZnVSXzRaQjNucUFfX3JHNG44cWo=").decode()
+sql  = open("awq_crm_full_schema.sql").read()
+body = json.dumps({"query": sql}).encode()
 
-def attempt(url, headers, label):
-    req = urllib.request.Request(url, data=payload, headers=headers, method="POST")
+for label, url, headers in [
+    ("Management API",
+     f"https://api.supabase.com/v1/projects/{ref}/database/query",
+     {"Authorization": f"Bearer {mgmt}", "Content-Type": "application/json"}),
+    ("pg-meta",
+     f"https://{ref}.supabase.co/pg-meta/v1/query",
+     {"Authorization": f"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdxa2dzb2dsZ3VibWFib3JpeGZiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODYwNjM4NCwiZXhwIjoyMDk0MTgyMzg0fQ.M1o1TG_SbUHaw_d0ifAMAHVxGOJfV6dxDll2EmBoPPo",
+      "Content-Type": "application/json"}),
+]:
+    req = urllib.request.Request(url, data=body, headers=headers, method="POST")
     try:
-        with urllib.request.urlopen(req, timeout=120) as resp:
-            body = resp.read().decode()
+        with urllib.request.urlopen(req, timeout=60) as resp:
             print(f"SUCCESS [{label}] HTTP {resp.status}")
-            print(body[:800])
-            return True
+            print(resp.read().decode()[:500])
+            sys.exit(0)
     except urllib.error.HTTPError as e:
-        print(f"FAILED  [{label}] HTTP {e.code}: {e.read().decode()[:300]}")
-        return False
+        print(f"FAIL [{label}] HTTP {e.code}: {e.read().decode()[:200]}")
     except Exception as ex:
-        print(f"ERROR   [{label}]: {ex}")
-        return False
+        print(f"ERROR [{label}]: {ex}")
 
-# Primary: Management API (full DDL support)
-ok = attempt(
-    f"https://api.supabase.com/v1/projects/{ref}/database/query",
-    {"Authorization": f"Bearer {mgmt}", "Content-Type": "application/json"},
-    "Management API"
-)
-
-# Fallback: pg-meta (Supabase Studio internal API)
-if not ok:
-    ok = attempt(
-        f"https://{ref}.supabase.co/pg-meta/v1/query",
-        {"Authorization": f"Bearer {svc_key}", "Content-Type": "application/json"},
-        "pg-meta"
-    )
-
-if not ok:
-    print("\nBoth approaches failed — see logs above for diagnostics.")
-    sys.exit(1)
+print("All API approaches failed.")
+sys.exit(1)
 PYEOF
