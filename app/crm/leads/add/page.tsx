@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
+import { sbCreateLead } from "@/lib/crm-supabase-browser";
 import {
   User, Building2, Mail, Phone, Briefcase,
   BarChart3, CheckCircle2, AlertCircle, ChevronLeft,
@@ -204,32 +205,40 @@ export default function AddLeadPage() {
       if (apiError) throw new Error(apiError);
 
       if (!saved) {
-        const now = new Date().toISOString();
-        const localLead = {
-          lead_id: `local-${Date.now()}`,
-          lead_source: payload.lead_source,
-          company_name: payload.company_name,
-          contact_name: payload.contact_name,
-          email: payload.email,
-          phone: payload.phone,
-          job_title: payload.job_title,
-          bu: payload.bu,
-          lead_score: payload.lead_score,
-          status: payload.status,
-          qualification_notes: payload.qualification_notes,
-          bant_budget: payload.bant_budget,
-          bant_authority: payload.bant_authority,
-          bant_need: payload.bant_need,
-          bant_timeline: payload.bant_timeline,
-          assigned_to: payload.assigned_to,
-          converted_to_opportunity_id: null,
-          converted_at: null,
-          created_at: now,
-          updated_at: now,
-          created_by: payload.assigned_to,
-        };
-        const stored = JSON.parse(localStorage.getItem("awq_local_leads") ?? "[]");
-        localStorage.setItem("awq_local_leads", JSON.stringify([localLead, ...stored]));
+        // Try Supabase directly (works on GitHub Pages)
+        const { action: _action, ...leadData } = payload;
+        const sbResult = await sbCreateLead(leadData as import("@/lib/crm-types").CrmLead);
+        if (sbResult) {
+          saved = true;
+        } else {
+          // Last resort: localStorage
+          const now = new Date().toISOString();
+          const localLead = {
+            lead_id: `local-${Date.now()}`,
+            lead_source: payload.lead_source,
+            company_name: payload.company_name,
+            contact_name: payload.contact_name,
+            email: payload.email,
+            phone: payload.phone,
+            job_title: payload.job_title,
+            bu: payload.bu,
+            lead_score: payload.lead_score,
+            status: payload.status,
+            qualification_notes: payload.qualification_notes,
+            bant_budget: payload.bant_budget,
+            bant_authority: payload.bant_authority,
+            bant_need: payload.bant_need,
+            bant_timeline: payload.bant_timeline,
+            assigned_to: payload.assigned_to,
+            converted_to_opportunity_id: null,
+            converted_at: null,
+            created_at: now,
+            updated_at: now,
+            created_by: payload.assigned_to,
+          };
+          const stored = JSON.parse(localStorage.getItem("awq_local_leads") ?? "[]");
+          localStorage.setItem("awq_local_leads", JSON.stringify([localLead, ...stored]));
+        }
       }
 
       setToast({ message: "Lead criado com sucesso!", type: "success" });

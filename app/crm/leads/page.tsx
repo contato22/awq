@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import type { CrmLead, CrmOpportunity } from "@/lib/crm-types";
 import { SEED_LEADS, SEED_OPPORTUNITIES } from "@/lib/crm-db";
+import { sbListLeads } from "@/lib/crm-supabase-browser";
 import { formatBRL, formatDateBR } from "@/lib/utils";
 
 const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
@@ -104,6 +105,16 @@ export default function LeadsPage() {
           setLeads(applyLocalState(json.data));
         } else throw new Error("api");
       } catch {
+        // API unavailable (GitHub Pages) — try Supabase directly
+        try {
+          const sbLeads = await sbListLeads();
+          if (sbLeads.length > 0) {
+            setLeads(applyLocalState(sbLeads));
+            setIsStatic(true);
+            setLoading(false);
+            return;
+          }
+        } catch { /* Supabase also unavailable */ }
         setLeads(applyLocalState(SEED_LEADS));
         setIsStatic(true);
       } finally {

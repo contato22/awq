@@ -15,6 +15,7 @@ import {
 import type { CrmOpportunity, CrmActivity } from "@/lib/crm-types";
 import { STAGE_LABELS, STAGE_PROBABILITY, BU_OPTIONS, OWNER_OPTIONS, PIPELINE_STAGES } from "@/lib/crm-types";
 import { SEED_OPPORTUNITIES } from "@/lib/crm-db";
+import { sbListOpportunities, sbUpdateOpportunity, sbDeleteOpportunity } from "@/lib/crm-supabase-browser";
 import { formatBRL, formatDateBR } from "@/lib/utils";
 
 const LS_KEY = "crm-opportunities-v3";
@@ -792,7 +793,14 @@ function PipelinePageInner() {
           setOpps(SEED_OPPORTUNITIES);
         }
       })
-      .catch(() => setOpps(SEED_OPPORTUNITIES))
+      .catch(async () => {
+        // API unavailable (GitHub Pages) — fetch from Supabase directly
+        try {
+          const sbOpps = await sbListOpportunities();
+          if (sbOpps.length > 0) { persist(sbOpps); setOpps(sbOpps); return; }
+        } catch { /* Supabase also unavailable */ }
+        setOpps(SEED_OPPORTUNITIES);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -860,7 +868,7 @@ function PipelinePageInner() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "update", opportunity_id: id, stage: toStage }),
-    }).catch(() => undefined);
+    }).catch(() => sbUpdateOpportunity(id, { stage: toStage as CrmOpportunity["stage"] }));
   }
 
   function handleSaveEdit(updated: CrmOpportunity) {
@@ -873,7 +881,7 @@ function PipelinePageInner() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "update", ...updated }),
-    }).catch(() => undefined);
+    }).catch(() => sbUpdateOpportunity(updated.opportunity_id, updated));
   }
 
   function handleDelete(opp: CrmOpportunity) {
@@ -886,7 +894,7 @@ function PipelinePageInner() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "delete", opportunity_id: opp.opportunity_id }),
-    }).catch(() => undefined);
+    }).catch(() => sbDeleteOpportunity(opp.opportunity_id));
   }
 
   const openOpps = opps.filter(o => o.stage !== "closed_won" && o.stage !== "closed_lost");

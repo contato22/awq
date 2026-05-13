@@ -7,6 +7,7 @@ import Header from "@/components/Header";
 import { STAGE_LABELS, STAGE_PROBABILITY, BU_OPTIONS, OWNER_OPTIONS } from "@/lib/crm-types";
 import type { CrmAccount } from "@/lib/crm-types";
 import { SEED_ACCOUNTS } from "@/lib/crm-db";
+import { sbCreateOpportunity } from "@/lib/crm-supabase-browser";
 
 const ACTIVE_STAGES = ["discovery","qualification","proposal","negotiation","closed_won","closed_lost"] as const;
 
@@ -83,39 +84,44 @@ function AddOpportunityPageInner() {
     } catch { /* network error — fall through to localStorage */ }
 
     if (!saved) {
-      const now = new Date().toISOString();
-      const newOpp = {
-        opportunity_id: `local-opp-${Date.now()}`,
-        opportunity_code: `OPP-L${String(Date.now()).slice(-4)}`,
-        opportunity_name: payload.opportunity_name,
-        account_id: payload.account_id,
-        account_name: undefined,
-        contact_id: null,
-        contact_name: null,
-        bu: payload.bu,
-        stage: payload.stage,
-        deal_value: payload.deal_value,
-        probability: STAGE_PROBABILITY[payload.stage as keyof typeof STAGE_PROBABILITY] ?? 25,
-        expected_close_date: payload.expected_close_date,
-        actual_close_date: null,
-        lost_reason: payload.lost_reason,
-        lost_to_competitor: null,
-        win_reason: null,
-        owner: payload.owner,
-        proposal_sent_date: payload.proposal_sent_date,
-        proposal_viewed: false,
-        proposal_accepted: false,
-        synced_to_epm: false,
-        epm_customer_id: null,
-        epm_ar_id: null,
-        created_at: now,
-        updated_at: now,
-        created_by: payload.owner,
-      };
-      try {
-        const stored = JSON.parse(localStorage.getItem("crm-opportunities-v3") ?? "[]");
-        localStorage.setItem("crm-opportunities-v3", JSON.stringify([newOpp, ...stored]));
-      } catch { /* quota exceeded */ }
+      // Try Supabase directly (works on GitHub Pages)
+      const sbResult = await sbCreateOpportunity(payload);
+      if (!sbResult) {
+        // Last resort: localStorage
+        const now = new Date().toISOString();
+        const newOpp = {
+          opportunity_id: `local-opp-${Date.now()}`,
+          opportunity_code: `OPP-L${String(Date.now()).slice(-4)}`,
+          opportunity_name: payload.opportunity_name,
+          account_id: payload.account_id,
+          account_name: undefined,
+          contact_id: null,
+          contact_name: null,
+          bu: payload.bu,
+          stage: payload.stage,
+          deal_value: payload.deal_value,
+          probability: STAGE_PROBABILITY[payload.stage as keyof typeof STAGE_PROBABILITY] ?? 25,
+          expected_close_date: payload.expected_close_date,
+          actual_close_date: null,
+          lost_reason: payload.lost_reason,
+          lost_to_competitor: null,
+          win_reason: null,
+          owner: payload.owner,
+          proposal_sent_date: payload.proposal_sent_date,
+          proposal_viewed: false,
+          proposal_accepted: false,
+          synced_to_epm: false,
+          epm_customer_id: null,
+          epm_ar_id: null,
+          created_at: now,
+          updated_at: now,
+          created_by: payload.owner,
+        };
+        try {
+          const stored = JSON.parse(localStorage.getItem("crm-opportunities-v3") ?? "[]");
+          localStorage.setItem("crm-opportunities-v3", JSON.stringify([newOpp, ...stored]));
+        } catch { /* quota exceeded */ }
+      }
     }
 
     router.push("/crm/opportunities");
