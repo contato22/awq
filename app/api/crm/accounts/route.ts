@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { initCrmDB, listAccounts, getAccount, createAccount, updateAccount, deleteAccount, listContacts, listOpportunities, listActivities } from "@/lib/crm-db";
+import { getForcedBu } from "@/lib/api-guard";
 
 function ok(data: unknown) { return NextResponse.json({ success: true, data }); }
 function err(msg: string, status = 500) { return NextResponse.json({ success: false, error: msg }, { status }); }
@@ -8,6 +9,7 @@ export async function GET(req: NextRequest) {
   try {
     await initCrmDB();
     const p = req.nextUrl.searchParams;
+    const forcedBu = await getForcedBu(req);
     const id = p.get("id");
 
     if (id) {
@@ -17,6 +19,7 @@ export async function GET(req: NextRequest) {
         listOpportunities({ account_id: id }),
       ]);
       if (!account) return err("Not found", 404);
+      if (forcedBu && account.bu !== forcedBu) return err("Not found", 404);
       const [acctActivities, ...oppActivities] = await Promise.all([
         listActivities({ related_to_type: "account", related_to_id: id }),
         ...opportunities.map(o => listActivities({ related_to_type: "opportunity", related_to_id: o.opportunity_id })),
@@ -28,7 +31,7 @@ export async function GET(req: NextRequest) {
 
     const rows = await listAccounts({
       account_type: p.get("account_type") ?? undefined,
-      bu:           p.get("bu")           ?? undefined,
+      bu:           forcedBu ?? p.get("bu") ?? undefined,
       owner:        p.get("owner")        ?? undefined,
       search:       p.get("search")       ?? undefined,
     });

@@ -70,12 +70,12 @@ export async function createAccount(data: Partial<CrmAccount>): Promise<CrmAccou
   const rows = await sql`
     INSERT INTO crm_accounts (account_name, trade_name, document_number, industry, company_size,
       annual_revenue_estimate, website, linkedin_url, address_street, address_city, address_state,
-      address_zip, account_type, owner, health_score, churn_risk, renewal_date, created_by)
+      address_zip, account_type, bu, owner, health_score, churn_risk, renewal_date, created_by)
     VALUES (${data.account_name!}, ${data.trade_name ?? null}, ${data.document_number ?? null},
       ${data.industry ?? null}, ${data.company_size ?? null}, ${data.annual_revenue_estimate ?? null},
       ${data.website ?? null}, ${data.linkedin_url ?? null}, ${data.address_street ?? null},
       ${data.address_city ?? null}, ${data.address_state ?? null}, ${data.address_zip ?? null},
-      ${data.account_type ?? 'prospect'}, ${data.owner ?? 'Miguel'},
+      ${data.account_type ?? 'prospect'}, ${data.bu ?? 'JACQES'}, ${data.owner ?? 'Miguel'},
       ${data.health_score ?? 70}, ${data.churn_risk ?? 'low'}, ${data.renewal_date ?? null},
       ${data.created_by ?? null})
     RETURNING *
@@ -92,6 +92,7 @@ export async function updateAccount(id: string, data: Partial<CrmAccount>): Prom
       industry     = COALESCE(${data.industry ?? null}, industry),
       company_size = COALESCE(${data.company_size ?? null}, company_size),
       account_type = COALESCE(${data.account_type ?? null}, account_type),
+      bu           = COALESCE(${data.bu ?? null}, bu),
       owner        = COALESCE(${data.owner ?? null}, owner),
       health_score = COALESCE(${data.health_score ?? null}, health_score),
       churn_risk   = COALESCE(${data.churn_risk ?? null}, churn_risk),

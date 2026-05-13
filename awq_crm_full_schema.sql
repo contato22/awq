@@ -42,6 +42,8 @@ CREATE TABLE IF NOT EXISTS crm_accounts (
   address_zip              TEXT,
   account_type             TEXT        NOT NULL DEFAULT 'prospect'
                              CHECK (account_type IN ('prospect','customer','partner','former_customer')),
+  bu                       TEXT        NOT NULL DEFAULT 'JACQES'
+                             CHECK (bu IN ('JACQES','CAZA','ADVISOR','VENTURE')),
   owner                    TEXT        NOT NULL DEFAULT 'Miguel',
   health_score             SMALLINT    NOT NULL DEFAULT 70
                              CHECK (health_score BETWEEN 0 AND 100),
@@ -55,6 +57,7 @@ CREATE TABLE IF NOT EXISTS crm_accounts (
 );
 
 CREATE INDEX IF NOT EXISTS idx_crm_accounts_type   ON crm_accounts(account_type);
+CREATE INDEX IF NOT EXISTS idx_crm_accounts_bu     ON crm_accounts(bu);
 CREATE INDEX IF NOT EXISTS idx_crm_accounts_owner  ON crm_accounts(owner);
 
 -- ─── CRM Contacts (People within companies) ──────────────────────────────────
@@ -430,13 +433,13 @@ CREATE POLICY IF NOT EXISTS crm_activities_all      ON crm_activities           
 
 -- ─── Accounts ────────────────────────────────────────────────────────────────
 
-INSERT INTO crm_accounts (account_code, account_name, trade_name, document_number, industry, company_size, account_type, owner, health_score, churn_risk, address_city, address_state, website) VALUES
-  ('ACC-001', 'XP Investimentos S.A.',       'XP Investimentos', '02.332.886/0001-04', 'finance',    '500+',    'customer', 'Miguel', 88, 'low',    'São Paulo',      'SP', 'https://xpi.com.br'),
-  ('ACC-002', 'Nu Pagamentos S.A.',           'Nubank',           '18.236.120/0001-58', 'finance',    '500+',    'customer', 'Danilo', 82, 'low',    'São Paulo',      'SP', 'https://nubank.com.br'),
-  ('ACC-003', 'Colégio CEM',                  'Colégio CEM',      '60.621.457/0001-99', 'education',  '51-200',  'customer', 'Miguel', 75, 'medium', 'São Paulo',      'SP', null),
-  ('ACC-004', 'Reabilicor Clínica Cardíaca',  'Reabilicor',       '12.345.678/0001-00', 'health',     '11-50',   'prospect', 'Danilo', 60, 'medium', 'Rio de Janeiro', 'RJ', null),
-  ('ACC-005', 'Clínica Teresópolis',          'Clínica Teresópolis','98.765.432/0001-11','health',    '11-50',   'customer', 'Danilo', 72, 'low',    'Teresópolis',   'RJ', null),
-  ('ACC-006', 'Carol Bertolini',              'Carol Bertolini',  '11.111.111/0001-22', 'media',      '1-10',    'customer', 'Miguel', 91, 'low',    'São Paulo',      'SP', null)
+INSERT INTO crm_accounts (account_code, account_name, trade_name, document_number, industry, company_size, account_type, bu, owner, health_score, churn_risk, address_city, address_state, website) VALUES
+  ('ACC-001', 'XP Investimentos S.A.',       'XP Investimentos', '02.332.886/0001-04', 'finance',    '500+',    'customer', 'CAZA',    'Miguel', 88, 'low',    'São Paulo',      'SP', 'https://xpi.com.br'),
+  ('ACC-002', 'Nu Pagamentos S.A.',           'Nubank',           '18.236.120/0001-58', 'finance',    '500+',    'customer', 'JACQES',  'Danilo', 82, 'low',    'São Paulo',      'SP', 'https://nubank.com.br'),
+  ('ACC-003', 'Colégio CEM',                  'Colégio CEM',      '60.621.457/0001-99', 'education',  '51-200',  'customer', 'JACQES',  'Miguel', 75, 'medium', 'São Paulo',      'SP', null),
+  ('ACC-004', 'Reabilicor Clínica Cardíaca',  'Reabilicor',       '12.345.678/0001-00', 'health',     '11-50',   'prospect', 'ADVISOR', 'Danilo', 60, 'medium', 'Rio de Janeiro', 'RJ', null),
+  ('ACC-005', 'Clínica Teresópolis',          'Clínica Teresópolis','98.765.432/0001-11','health',    '11-50',   'customer', 'ADVISOR', 'Danilo', 72, 'low',    'Teresópolis',   'RJ', null),
+  ('ACC-006', 'Carol Bertolini',              'Carol Bertolini',  '11.111.111/0001-22', 'media',      '1-10',    'customer', 'CAZA',    'Miguel', 91, 'low',    'São Paulo',      'SP', null)
 ON CONFLICT (account_code) DO NOTHING;
 
 -- ─── Contacts ────────────────────────────────────────────────────────────────

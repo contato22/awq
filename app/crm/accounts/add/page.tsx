@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
-import { OWNER_OPTIONS } from "@/lib/crm-types";
+import { OWNER_OPTIONS, BU_OPTIONS } from "@/lib/crm-types";
 
 export default function AddAccountPage() {
   const router = useRouter();
@@ -14,7 +14,7 @@ export default function AddAccountPage() {
     account_name: "", trade_name: "", document_number: "",
     industry: "", company_size: "", website: "", linkedin_url: "",
     address_street: "", address_city: "", address_state: "", address_zip: "",
-    account_type: "prospect", owner: "Miguel",
+    account_type: "prospect", bu: "JACQES", owner: "Miguel",
     health_score: "70", churn_risk: "low", renewal_date: "",
   });
 
@@ -31,6 +31,7 @@ export default function AddAccountPage() {
       localStorage.setItem("awq_crm_accounts", JSON.stringify([...existing, {
         account_id: `local-${Date.now()}`,
         account_code: `ACC-${Date.now()}`,
+        bu: form.bu,
         ...form,
         health_score: parseInt(form.health_score),
         renewal_date: form.renewal_date || null,
@@ -101,11 +102,16 @@ export default function AddAccountPage() {
 
           <div className="card p-5 space-y-4">
             <h2 className="text-sm font-semibold text-gray-900">Classificação & Owner</h2>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div><label className="block text-xs font-medium text-gray-700 mb-1">Tipo</label>
                 <select value={form.account_type} onChange={e=>set("account_type",e.target.value)}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30">
                   {[["prospect","Prospect"],["customer","Cliente"],["partner","Parceiro"],["former_customer","Ex-Cliente"]].map(([v,l])=><option key={v} value={v}>{l}</option>)}
+                </select></div>
+              <div><label className="block text-xs font-medium text-gray-700 mb-1">BU *</label>
+                <select value={form.bu} onChange={e=>set("bu",e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30">
+                  {BU_OPTIONS.map(b=><option key={b}>{b}</option>)}
                 </select></div>
               <div><label className="block text-xs font-medium text-gray-700 mb-1">Owner</label>
                 <select value={form.owner} onChange={e=>set("owner",e.target.value)}
