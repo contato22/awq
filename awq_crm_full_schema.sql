@@ -531,3 +531,148 @@ INSERT INTO crm_activities (activity_type, related_to_type, related_to_id, subje
   ('task',    'lead',        '00000000-0000-0000-0000-000000000014', 'Follow-up Fintechx — Ana Rocha',  'Enviar material de cases do JACQES',               null,            null,'scheduled', null,                       'Miguel'),
   ('meeting', 'account',     (SELECT account_id FROM crm_accounts WHERE account_code='ACC-001'), 'QBR — XP Investimentos', 'Revisão trimestral da parceria', 'successful', 120, 'completed', NOW() - INTERVAL '7 days', 'Miguel')
 ON CONFLICT DO NOTHING;
+
+-- =============================================================================
+-- 9. USER BU PERMISSIONS (access control)
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS crm_user_bu_permissions (
+  permission_id  UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_email     TEXT        NOT NULL,
+  bu             TEXT        NOT NULL
+                   CHECK (bu IN ('JACQES','CAZA','ADVISOR','VENTURE')),
+  role           TEXT        NOT NULL DEFAULT 'user'
+                   CHECK (role IN ('admin','manager','user')),
+  is_admin       BOOLEAN     NOT NULL DEFAULT FALSE,
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (user_email, bu)
+);
+
+ALTER TABLE crm_user_bu_permissions ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  CREATE POLICY crm_bu_perms_all ON crm_user_bu_permissions FOR ALL USING (TRUE);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- Seed: Miguel is admin (all BUs), Danilo has JACQES access
+INSERT INTO crm_user_bu_permissions (user_email, bu, role, is_admin) VALUES
+  ('miguel@awq.com.br',  'JACQES',  'admin',   TRUE),
+  ('miguel@awq.com.br',  'CAZA',    'admin',   TRUE),
+  ('miguel@awq.com.br',  'ADVISOR', 'admin',   TRUE),
+  ('miguel@awq.com.br',  'VENTURE', 'admin',   TRUE),
+  ('danilo@awq.com.br',  'JACQES',  'manager', FALSE)
+ON CONFLICT (user_email, bu) DO NOTHING;
+
+-- =============================================================================
+-- 10. BU COLUMN ON ACTIVITIES (auto-inherited from related entity)
+-- =============================================================================
+
+ALTER TABLE crm_activities ADD COLUMN IF NOT EXISTS bu TEXT
+  CHECK (bu IN ('JACQES','CAZA','ADVISOR','VENTURE'));
+
+CREATE INDEX IF NOT EXISTS idx_crm_act_bu ON crm_activities(bu);
+
+CREATE OR REPLACE FUNCTION fn_crm_activity_inherit_bu()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.bu IS NULL THEN
+    CASE NEW.related_to_type
+      WHEN 'opportunity' THEN
+        SELECT bu INTO NEW.bu FROM crm_opportunities
+          WHERE opportunity_id = NEW.related_to_id;
+      WHEN 'lead' THEN
+        SELECT bu INTO NEW.bu FROM crm_leads
+          WHERE lead_id = NEW.related_to_id;
+      ELSE NULL;
+    END CASE;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_crm_activity_bu ON crm_activities;
+CREATE TRIGGER trg_crm_activity_bu
+  BEFORE INSERT ON crm_activities
+  FOR EACH ROW EXECUTE FUNCTION fn_crm_activity_inherit_bu();
+
+-- =============================================================================
+-- 11. OPERATIONAL FUNCTIONS
+-- =============================================================================
+
+-- Returns open opportunities with no activity in the last N days.
+CREATE OR REPLACE FUNCTION get_stalled_opportunities(p_days INTEGER DEFAULT 7)
+RETURNS TABLE (
+  opportunity_id      UUID,
+  opportunity_code    TEXT,
+  opportunity_name    TEXT,
+  bu                  TEXT,
+  stage               TEXT,
+  deal_value          NUMERIC,
+  owner               TEXT,
+  expected_close_date DATE,
+  last_activity_at    TIMESTAMPTZ,
+  days_stale          INTEGER
+) LANGUAGE sql STABLE AS $$
+  SELECT
+    o.opportunity_id,
+    o.opportunity_code,
+    o.opportunity_name,
+    o.bu,
+    o.stage,
+    o.deal_value,
+    o.owner,
+    o.expected_close_date,
+    MAX(a.created_at)                                              AS last_activity_at,
+    EXTRACT(DAY FROM NOW() - MAX(a.created_at))::INTEGER          AS days_stale
+  FROM crm_opportunities o
+  LEFT JOIN crm_activities a
+    ON a.related_to_type = 'opportunity' AND a.related_to_id = o.opportunity_id
+  WHERE o.stage NOT IN ('closed_won','closed_lost')
+  GROUP BY
+    o.opportunity_id, o.opportunity_code, o.opportunity_name,
+    o.bu, o.stage, o.deal_value, o.owner, o.expected_close_date
+  HAVING
+    MAX(a.created_at) IS NULL
+    OR MAX(a.created_at) < NOW() - (p_days || ' days')::INTERVAL
+  ORDER BY o.deal_value DESC;
+$$;
+
+-- Returns Σ(deal_value × probability) for open opportunities.
+-- Pass NULL to include all BUs or all owners.
+CREATE OR REPLACE FUNCTION calculate_weighted_forecast(
+  p_bu    TEXT DEFAULT NULL,
+  p_owner TEXT DEFAULT NULL
+)
+RETURNS NUMERIC LANGUAGE sql STABLE AS $$
+  SELECT COALESCE(SUM(deal_value * probability / 100.0), 0)
+  FROM crm_opportunities
+  WHERE stage NOT IN ('closed_won','closed_lost')
+    AND (p_bu    IS NULL OR bu    = p_bu)
+    AND (p_owner IS NULL OR owner = p_owner);
+$$;
+
+-- Returns stage breakdown for a given BU (or all if NULL).
+CREATE OR REPLACE FUNCTION get_pipeline_by_bu(p_bu TEXT DEFAULT NULL)
+RETURNS TABLE (
+  bu           TEXT,
+  stage        TEXT,
+  deal_count   BIGINT,
+  total_value  NUMERIC,
+  weighted     NUMERIC
+) LANGUAGE sql STABLE AS $$
+  SELECT
+    bu,
+    stage,
+    COUNT(*)                              AS deal_count,
+    SUM(deal_value)                       AS total_value,
+    SUM(deal_value * probability / 100.0) AS weighted
+  FROM crm_opportunities
+  WHERE stage NOT IN ('closed_won','closed_lost')
+    AND (p_bu IS NULL OR bu = p_bu)
+  GROUP BY bu, stage
+  ORDER BY bu, CASE stage
+    WHEN 'discovery'     THEN 1
+    WHEN 'qualification' THEN 2
+    WHEN 'proposal'      THEN 3
+    WHEN 'negotiation'   THEN 4
+  END;
+$$;
