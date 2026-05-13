@@ -8,6 +8,7 @@ on:
       - 'awq_ppm_full_schema.sql'
       - 'awq_bpm_full_schema.sql'
       - 'awq_ma_portfolio_full_schema.sql'
+      - 'awq_crm_full_schema.sql'
       - 'awq_caza_full_schema.sql'
       - 'awq_caza_crm_full_schema.sql'
       - 'awq_jacqes_crm_full_schema.sql'
@@ -56,6 +57,12 @@ jobs:
           echo "=== Applying M&A Schema ==="
           psql "$DATABASE_URL" -f awq_ma_portfolio_full_schema.sql
           echo "✅ M&A done"
+
+      - name: Apply CRM Schema
+        run: |
+          echo "=== Applying CRM Schema ==="
+          psql "$DATABASE_URL" -f awq_crm_full_schema.sql
+          echo "✅ CRM done"
 
       - name: Apply Caza Vision Schema
         run: |
