@@ -13,6 +13,8 @@ import {
   listDeals,
   getPortfolioDashboardTotals,
   initMaDB,
+  SEED_DEALS,
+  SEED_PORTCOS,
 } from "@/lib/ma-db";
 
 function fmtR(n: number) {
@@ -69,11 +71,21 @@ const secondaryLinks = [
 export default async function MaCommandCenterPage() {
   await initMaDB();
 
-  const [deals, portcos, totals] = await Promise.all([
-    listDeals(),
-    listPortfolioCompanies(),
-    getPortfolioDashboardTotals(),
-  ]);
+  let deals, portcos, totals;
+  try {
+    [deals, portcos, totals] = await Promise.all([
+      listDeals(),
+      listPortfolioCompanies(),
+      getPortfolioDashboardTotals(),
+    ]);
+  } catch {
+    // DB schema not yet applied — fall back to seed data
+    [deals, portcos, totals] = [
+      SEED_DEALS,
+      SEED_PORTCOS,
+      { total_portcos: 0, active_portcos: 0, total_investment: 0, total_current_value: 0, total_unrealized_gain: 0, weighted_avg_multiple: 0, total_media_committed: 0, total_media_delivered: 0, media_delivery_pct: 0 },
+    ];
+  }
 
   const activeDeals = deals.filter(
     d => d.pipeline_stage !== "closed_won" && d.pipeline_stage !== "closed_lost"
