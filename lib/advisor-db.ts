@@ -1,12 +1,11 @@
 // ─── Advisor — Internal Database Layer ────────────────────────────────────────
 //
-// SOURCE OF TRUTH: Neon Postgres (Vercel deployment).
+// SOURCE OF TRUTH: Supabase Postgres.
 //
 // Tables:
 //   advisor_clients   — client register (consultoria / gestão patrimonial)
 
-import { sql } from "@/lib/db";
-import { randomUUID } from "crypto";
+import { getSupabaseAdmin } from "@/lib/supabase";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -33,129 +32,70 @@ export interface AdvisorClient {
 
 // ─── Schema bootstrap ─────────────────────────────────────────────────────────
 
-export async function initAdvisorDB(): Promise<void> {
-  if (!sql) return;
-
-  await sql`
-    CREATE TABLE IF NOT EXISTS advisor_clients (
-      id                    TEXT PRIMARY KEY,
-      name                  TEXT NOT NULL DEFAULT '',
-      segmento              TEXT NOT NULL DEFAULT '',
-      tipo_servico          TEXT NOT NULL DEFAULT '',
-      aum                   NUMERIC NOT NULL DEFAULT 0,
-      fee_mensal            NUMERIC NOT NULL DEFAULT 0,
-      status                TEXT NOT NULL DEFAULT 'Ativo',
-      since                 TEXT NOT NULL DEFAULT '',
-      responsavel           TEXT NOT NULL DEFAULT '',
-      contato_email         TEXT NOT NULL DEFAULT '',
-      contato_phone         TEXT NOT NULL DEFAULT '',
-      nps                   NUMERIC,
-      imported_from_notion  BOOLEAN NOT NULL DEFAULT false,
-      notion_page_id        TEXT,
-      imported_at           TEXT,
-      last_internal_update  TEXT NOT NULL,
-      sync_status           TEXT NOT NULL DEFAULT 'internal'
-    )
-  `;
-
-  await sql`CREATE INDEX IF NOT EXISTS idx_advisor_cli_status ON advisor_clients(status)`;
-  await sql`CREATE INDEX IF NOT EXISTS idx_advisor_cli_since  ON advisor_clients(since)`;
-}
+export async function initAdvisorDB(): Promise<void> {}
 
 // ─── ID helpers ───────────────────────────────────────────────────────────────
 
 export function newAdvisorClientId() {
-  return `ADV-${randomUUID().slice(0, 8).toUpperCase()}`;
+  return `ADV-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
 }
 
 // ─── Clients ──────────────────────────────────────────────────────────────────
 
 export async function listAdvisorClients(): Promise<AdvisorClient[]> {
-  if (!sql) return [];
-  const rows = await sql`
-    SELECT * FROM advisor_clients ORDER BY name ASC
-  `;
-  return rows.map(coerceClient);
+  const sb = getSupabaseAdmin();
+  if (!sb) return [];
+  const { data } = await sb.from("advisor_clients").select("*").order("name", { ascending: true });
+  return (data ?? []).map(coerceClient);
 }
 
 export async function getAdvisorClient(id: string): Promise<AdvisorClient | null> {
-  if (!sql) return null;
-  const rows = await sql`SELECT * FROM advisor_clients WHERE id = ${id}`;
-  return rows[0] ? coerceClient(rows[0]) : null;
+  const sb = getSupabaseAdmin();
+  if (!sb) return null;
+  const { data: row } = await sb.from("advisor_clients").select("*").eq("id", id).single();
+  return row ? coerceClient(row) : null;
 }
 
 export async function upsertAdvisorClient(
   c: Omit<AdvisorClient, "last_internal_update">
 ): Promise<AdvisorClient> {
-  if (!sql) throw new Error("DB not available");
+  const sb = getSupabaseAdmin();
+  if (!sb) throw new Error("DB not available");
   const now = new Date().toISOString();
-  const rows = await sql`
-    INSERT INTO advisor_clients (
-      id, name, segmento, tipo_servico, aum, fee_mensal, status, since,
-      responsavel, contato_email, contato_phone, nps,
-      imported_from_notion, notion_page_id, imported_at,
-      last_internal_update, sync_status
-    ) VALUES (
-      ${c.id}, ${c.name}, ${c.segmento}, ${c.tipo_servico},
-      ${c.aum}, ${c.fee_mensal}, ${c.status}, ${c.since},
-      ${c.responsavel}, ${c.contato_email}, ${c.contato_phone},
-      ${c.nps ?? null},
-      ${c.imported_from_notion}, ${c.notion_page_id ?? null}, ${c.imported_at ?? null},
-      ${now}, ${c.sync_status}
-    )
-    ON CONFLICT (id) DO UPDATE SET
-      name                 = EXCLUDED.name,
-      segmento             = EXCLUDED.segmento,
-      tipo_servico         = EXCLUDED.tipo_servico,
-      aum                  = EXCLUDED.aum,
-      fee_mensal           = EXCLUDED.fee_mensal,
-      status               = EXCLUDED.status,
-      since                = EXCLUDED.since,
-      responsavel          = EXCLUDED.responsavel,
-      contato_email        = EXCLUDED.contato_email,
-      contato_phone        = EXCLUDED.contato_phone,
-      nps                  = EXCLUDED.nps,
-      last_internal_update = ${now},
-      sync_status          = EXCLUDED.sync_status
-    RETURNING *
-  `;
-  return coerceClient(rows[0]);
+  const { data: row, error } = await sb
+    .from("advisor_clients")
+    .upsert({ ...c, last_internal_update: now }, { onConflict: "id" })
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return coerceClient(row);
 }
 
 export async function updateAdvisorClient(
   id: string,
   updates: Partial<Omit<AdvisorClient, "id" | "imported_from_notion" | "notion_page_id" | "imported_at">>
 ): Promise<AdvisorClient | null> {
-  if (!sql) return null;
+  const sb = getSupabaseAdmin();
+  if (!sb) return null;
   const now = new Date().toISOString();
   const existing = await getAdvisorClient(id);
   if (!existing) return null;
-  const m = { ...existing, ...updates };
-  const rows = await sql`
-    UPDATE advisor_clients SET
-      name                 = ${m.name},
-      segmento             = ${m.segmento},
-      tipo_servico         = ${m.tipo_servico},
-      aum                  = ${m.aum},
-      fee_mensal           = ${m.fee_mensal},
-      status               = ${m.status},
-      since                = ${m.since},
-      responsavel          = ${m.responsavel},
-      contato_email        = ${m.contato_email},
-      contato_phone        = ${m.contato_phone},
-      nps                  = ${m.nps ?? null},
-      last_internal_update = ${now},
-      sync_status          = 'modified'
-    WHERE id = ${id}
-    RETURNING *
-  `;
-  return rows[0] ? coerceClient(rows[0]) : null;
+  const patch = { ...updates, last_internal_update: now, sync_status: "modified" as const };
+  const { data: row, error } = await sb
+    .from("advisor_clients")
+    .update(patch)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) return null;
+  return coerceClient(row);
 }
 
 export async function deleteAdvisorClient(id: string): Promise<boolean> {
-  if (!sql) return false;
-  await sql`DELETE FROM advisor_clients WHERE id = ${id}`;
-  return true;
+  const sb = getSupabaseAdmin();
+  if (!sb) return false;
+  const { error } = await sb.from("advisor_clients").delete().eq("id", id);
+  return !error;
 }
 
 // ─── Coercions (DB rows → typed objects) ──────────────────────────────────────

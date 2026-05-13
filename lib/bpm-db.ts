@@ -3,12 +3,12 @@
 // Persistence adapter for the BPM Workflow Engine.
 //
 // STORAGE:
-//   DATABASE_URL set  → Neon (Postgres) via @neondatabase/serverless
-//   DATABASE_URL unset → In-memory JSON store (local dev / GitHub Pages build)
+//   SUPABASE_SERVICE_ROLE_KEY set  → Supabase (Postgres) via @supabase/supabase-js
+//   SUPABASE_SERVICE_ROLE_KEY unset → In-memory JSON store (local dev / GitHub Pages build)
 //
 // SERVER-ONLY — do not import in client components.
 
-import { sql, USE_DB } from "@/lib/db";
+import { getSupabaseAdmin } from "@/lib/supabase";
 import type {
   ProcessDefinition,
   ProcessInstance,
@@ -50,136 +50,19 @@ function nextInstanceCode() {
   return `PI-${year}-${String(_store.seq++).padStart(4, "0")}`;
 }
 
-// ─── Schema bootstrap (Neon only) ────────────────────────────────────────────
+// ─── Schema bootstrap (Supabase only) ────────────────────────────────────────
 
 export async function initBpmDB(): Promise<void> {
-  if (!sql) return;
-
-  // Process definitions table + seed
-  await sql`
-    CREATE TABLE IF NOT EXISTS process_definitions (
-      process_def_id    UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-      process_code      TEXT        NOT NULL UNIQUE,
-      process_name      TEXT        NOT NULL,
-      process_category  TEXT        NOT NULL,
-      description       TEXT,
-      process_owner     TEXT,
-      workflow_steps    JSONB       NOT NULL,
-      routing_rules     JSONB,
-      default_sla_hours INTEGER     NOT NULL DEFAULT 48,
-      escalation_enabled BOOLEAN    NOT NULL DEFAULT TRUE,
-      escalation_hours  INTEGER     NOT NULL DEFAULT 72,
-      notification_config JSONB,
-      is_active         BOOLEAN     NOT NULL DEFAULT TRUE,
-      version           INTEGER     NOT NULL DEFAULT 1,
-      created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      created_by        TEXT
-    )
-  `;
-
-  await sql`
-    CREATE TABLE IF NOT EXISTS process_instances (
-      instance_id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-      instance_code       TEXT        NOT NULL UNIQUE,
-      process_def_id      UUID        REFERENCES process_definitions(process_def_id),
-      process_code        TEXT        NOT NULL,
-      process_name        TEXT        NOT NULL,
-      related_entity_type TEXT        NOT NULL,
-      related_entity_id   TEXT        NOT NULL,
-      request_data        JSONB       NOT NULL DEFAULT '{}',
-      initiated_by        TEXT        NOT NULL,
-      initiated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      current_step_id     TEXT,
-      current_step_name   TEXT,
-      status              TEXT        NOT NULL DEFAULT 'in_progress',
-      started_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      completed_at        TIMESTAMPTZ,
-      sla_due_date        TIMESTAMPTZ,
-      sla_breached        BOOLEAN     NOT NULL DEFAULT FALSE,
-      final_decision      TEXT,
-      rejection_reason    TEXT,
-      priority            TEXT        NOT NULL DEFAULT 'normal',
-      created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
-  `;
-
-  await sql`
-    CREATE TABLE IF NOT EXISTS process_tasks (
-      task_id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-      instance_id     UUID        NOT NULL REFERENCES process_instances(instance_id) ON DELETE CASCADE,
-      step_id         TEXT        NOT NULL,
-      step_name       TEXT        NOT NULL,
-      assigned_to     TEXT        NOT NULL,
-      assigned_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      task_type       TEXT        NOT NULL DEFAULT 'approval',
-      status          TEXT        NOT NULL DEFAULT 'pending',
-      decision        TEXT,
-      decision_notes  TEXT,
-      decided_by      TEXT,
-      decided_at      TIMESTAMPTZ,
-      sla_hours       INTEGER,
-      sla_due_date    TIMESTAMPTZ,
-      sla_breached    BOOLEAN     NOT NULL DEFAULT FALSE,
-      escalated       BOOLEAN     NOT NULL DEFAULT FALSE,
-      escalated_to    TEXT,
-      escalated_at    TIMESTAMPTZ,
-      task_data       JSONB,
-      created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
-  `;
-
-  await sql`
-    CREATE TABLE IF NOT EXISTS process_history (
-      history_id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-      instance_id         UUID        NOT NULL REFERENCES process_instances(instance_id) ON DELETE CASCADE,
-      action              TEXT        NOT NULL,
-      action_description  TEXT,
-      step_id             TEXT,
-      step_name           TEXT,
-      performed_by        TEXT,
-      performed_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      action_data         JSONB,
-      created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
-  `;
-
-  await sql`
-    CREATE TABLE IF NOT EXISTS bpm_notifications (
-      notification_id     UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-      user_id             TEXT        NOT NULL,
-      notification_type   TEXT        NOT NULL,
-      related_entity_type TEXT,
-      related_entity_id   UUID,
-      title               TEXT        NOT NULL,
-      message             TEXT        NOT NULL,
-      action_url          TEXT,
-      is_read             BOOLEAN     NOT NULL DEFAULT FALSE,
-      read_at             TIMESTAMPTZ,
-      send_email          BOOLEAN     NOT NULL DEFAULT TRUE,
-      email_sent          BOOLEAN     NOT NULL DEFAULT FALSE,
-      email_sent_at       TIMESTAMPTZ,
-      priority            TEXT        NOT NULL DEFAULT 'normal',
-      created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
-  `;
-
-  // Indexes
-  await sql`CREATE INDEX IF NOT EXISTS idx_pi_status       ON process_instances(status)`;
-  await sql`CREATE INDEX IF NOT EXISTS idx_pi_entity       ON process_instances(related_entity_type, related_entity_id)`;
-  await sql`CREATE INDEX IF NOT EXISTS idx_pt_assigned     ON process_tasks(assigned_to)`;
-  await sql`CREATE INDEX IF NOT EXISTS idx_pt_status       ON process_tasks(status)`;
-  await sql`CREATE INDEX IF NOT EXISTS idx_ph_instance     ON process_history(instance_id)`;
-  await sql`CREATE INDEX IF NOT EXISTS idx_bn_user_unread  ON bpm_notifications(user_id, is_read)`;
+  const sb = getSupabaseAdmin();
+  if (!sb) return;
 
   // Seed process definitions
   await _seedProcessDefinitions();
 }
 
 async function _seedProcessDefinitions(): Promise<void> {
-  if (!sql) return;
+  const sb = getSupabaseAdmin();
+  if (!sb) return;
 
   const seeds = [
     {
@@ -254,12 +137,19 @@ async function _seedProcessDefinitions(): Promise<void> {
   ];
 
   for (const s of seeds) {
-    await sql!`
-      INSERT INTO process_definitions
-        (process_code, process_name, process_category, description, workflow_steps, default_sla_hours)
-      VALUES (${s.code}, ${s.name}, ${s.category}, ${s.desc}, ${JSON.stringify(s.steps)}, ${s.sla})
-      ON CONFLICT (process_code) DO NOTHING
-    `;
+    await sb
+      .from("process_definitions")
+      .upsert(
+        {
+          process_code: s.code,
+          process_name: s.name,
+          process_category: s.category,
+          description: s.desc,
+          workflow_steps: s.steps,
+          default_sla_hours: s.sla,
+        },
+        { onConflict: "process_code", ignoreDuplicates: true }
+      );
   }
 }
 
@@ -276,21 +166,30 @@ const PROCESS_DEFS_SEED: ProcessDefinition[] = [
 ];
 
 export async function getAllProcessDefinitions(): Promise<ProcessDefinition[]> {
-  if (USE_DB && sql) {
-    const rows = await sql`
-      SELECT * FROM process_definitions WHERE is_active = TRUE ORDER BY process_category, process_name
-    `;
-    return rows.map(dbRowToProcessDef);
+  const sb = getSupabaseAdmin();
+  if (sb) {
+    const { data } = await sb
+      .from("process_definitions")
+      .select("*")
+      .eq("is_active", true)
+      .order("process_category", { ascending: true })
+      .order("process_name", { ascending: true });
+    return (data ?? []).map(dbRowToProcessDef);
   }
   return PROCESS_DEFS_SEED.filter((d) => d.is_active);
 }
 
 export async function getProcessDefinitionByCode(code: string): Promise<ProcessDefinition | null> {
-  if (USE_DB && sql) {
-    const rows = await sql`
-      SELECT * FROM process_definitions WHERE process_code = ${code} AND is_active = TRUE LIMIT 1
-    `;
-    return rows[0] ? dbRowToProcessDef(rows[0]) : null;
+  const sb = getSupabaseAdmin();
+  if (sb) {
+    const { data } = await sb
+      .from("process_definitions")
+      .select("*")
+      .eq("process_code", code)
+      .eq("is_active", true)
+      .limit(1)
+      .single();
+    return data ? dbRowToProcessDef(data) : null;
   }
   return PROCESS_DEFS_SEED.find((d) => d.process_code === code && d.is_active) ?? null;
 }
@@ -300,21 +199,28 @@ export async function getProcessDefinitionByCode(code: string): Promise<ProcessD
 export async function createProcessInstance(
   data: Omit<ProcessInstance, "instance_id" | "created_at" | "updated_at">
 ): Promise<ProcessInstance> {
-  if (USE_DB && sql) {
-    const rows = await sql`
-      INSERT INTO process_instances
-        (instance_code, process_def_id, process_code, process_name,
-         related_entity_type, related_entity_id, request_data,
-         initiated_by, current_step_id, current_step_name, status,
-         sla_due_date, priority)
-      VALUES
-        (${data.instance_code}, ${data.process_def_id}, ${data.process_code}, ${data.process_name},
-         ${data.related_entity_type}, ${data.related_entity_id}, ${JSON.stringify(data.request_data)},
-         ${data.initiated_by}, ${data.current_step_id}, ${data.current_step_name}, ${data.status},
-         ${data.sla_due_date}, ${data.priority})
-      RETURNING *
-    `;
-    return dbRowToInstance(rows[0]);
+  const sb = getSupabaseAdmin();
+  if (sb) {
+    const { data: row } = await sb
+      .from("process_instances")
+      .insert({
+        instance_code: data.instance_code,
+        process_def_id: data.process_def_id,
+        process_code: data.process_code,
+        process_name: data.process_name,
+        related_entity_type: data.related_entity_type,
+        related_entity_id: data.related_entity_id,
+        request_data: data.request_data,
+        initiated_by: data.initiated_by,
+        current_step_id: data.current_step_id,
+        current_step_name: data.current_step_name,
+        status: data.status,
+        sla_due_date: data.sla_due_date,
+        priority: data.priority,
+      })
+      .select("*")
+      .single();
+    return dbRowToInstance(row!);
   }
   const inst: ProcessInstance = {
     ...data,
@@ -327,9 +233,15 @@ export async function createProcessInstance(
 }
 
 export async function getProcessInstance(instanceId: string): Promise<ProcessInstance | null> {
-  if (USE_DB && sql) {
-    const rows = await sql`SELECT * FROM process_instances WHERE instance_id = ${instanceId} LIMIT 1`;
-    return rows[0] ? dbRowToInstance(rows[0]) : null;
+  const sb = getSupabaseAdmin();
+  if (sb) {
+    const { data } = await sb
+      .from("process_instances")
+      .select("*")
+      .eq("instance_id", instanceId)
+      .limit(1)
+      .single();
+    return data ? dbRowToInstance(data) : null;
   }
   return _store.instances.find((i) => i.instance_id === instanceId) ?? null;
 }
@@ -338,21 +250,23 @@ export async function updateProcessInstance(
   instanceId: string,
   updates: Partial<ProcessInstance>
 ): Promise<ProcessInstance | null> {
-  if (USE_DB && sql) {
-    const rows = await sql`
-      UPDATE process_instances SET
-        status            = COALESCE(${updates.status ?? null}, status),
-        current_step_id   = COALESCE(${updates.current_step_id ?? null}, current_step_id),
-        current_step_name = COALESCE(${updates.current_step_name ?? null}, current_step_name),
-        final_decision    = COALESCE(${updates.final_decision ?? null}, final_decision),
-        rejection_reason  = COALESCE(${updates.rejection_reason ?? null}, rejection_reason),
-        completed_at      = COALESCE(${updates.completed_at ?? null}, completed_at),
-        sla_breached      = COALESCE(${updates.sla_breached ?? null}, sla_breached),
-        updated_at        = NOW()
-      WHERE instance_id = ${instanceId}
-      RETURNING *
-    `;
-    return rows[0] ? dbRowToInstance(rows[0]) : null;
+  const sb = getSupabaseAdmin();
+  if (sb) {
+    const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    if (updates.status !== undefined) patch.status = updates.status;
+    if (updates.current_step_id !== undefined) patch.current_step_id = updates.current_step_id;
+    if (updates.current_step_name !== undefined) patch.current_step_name = updates.current_step_name;
+    if (updates.final_decision !== undefined) patch.final_decision = updates.final_decision;
+    if (updates.rejection_reason !== undefined) patch.rejection_reason = updates.rejection_reason;
+    if (updates.completed_at !== undefined) patch.completed_at = updates.completed_at;
+    if (updates.sla_breached !== undefined) patch.sla_breached = updates.sla_breached;
+    const { data } = await sb
+      .from("process_instances")
+      .update(patch)
+      .eq("instance_id", instanceId)
+      .select("*")
+      .single();
+    return data ? dbRowToInstance(data) : null;
   }
   const idx = _store.instances.findIndex((i) => i.instance_id === instanceId);
   if (idx === -1) return null;
@@ -365,15 +279,17 @@ export async function getAllInstances(filter?: {
   process_code?: string;
   initiated_by?: string;
 }): Promise<ProcessInstance[]> {
-  if (USE_DB && sql) {
-    const rows = await sql`
-      SELECT * FROM process_instances
-      WHERE (${filter?.status ?? null} IS NULL OR status = ${filter?.status ?? null})
-        AND (${filter?.process_code ?? null} IS NULL OR process_code = ${filter?.process_code ?? null})
-        AND (${filter?.initiated_by ?? null} IS NULL OR initiated_by = ${filter?.initiated_by ?? null})
-      ORDER BY created_at DESC
-    `;
-    return rows.map(dbRowToInstance);
+  const sb = getSupabaseAdmin();
+  if (sb) {
+    let query = sb
+      .from("process_instances")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (filter?.status) query = query.eq("status", filter.status);
+    if (filter?.process_code) query = query.eq("process_code", filter.process_code);
+    if (filter?.initiated_by) query = query.eq("initiated_by", filter.initiated_by);
+    const { data } = await query;
+    return (data ?? []).map(dbRowToInstance);
   }
   let list = [..._store.instances];
   if (filter?.status) list = list.filter((i) => i.status === filter.status);
@@ -387,18 +303,24 @@ export async function getAllInstances(filter?: {
 export async function createProcessTask(
   data: Omit<ProcessTask, "task_id" | "created_at" | "updated_at">
 ): Promise<ProcessTask> {
-  if (USE_DB && sql) {
-    const rows = await sql`
-      INSERT INTO process_tasks
-        (instance_id, step_id, step_name, assigned_to, task_type,
-         status, sla_hours, sla_due_date, task_data)
-      VALUES
-        (${data.instance_id}, ${data.step_id}, ${data.step_name}, ${data.assigned_to},
-         ${data.task_type}, ${data.status}, ${data.sla_hours}, ${data.sla_due_date},
-         ${data.task_data ? JSON.stringify(data.task_data) : null})
-      RETURNING *
-    `;
-    return dbRowToTask(rows[0]);
+  const sb = getSupabaseAdmin();
+  if (sb) {
+    const { data: row } = await sb
+      .from("process_tasks")
+      .insert({
+        instance_id: data.instance_id,
+        step_id: data.step_id,
+        step_name: data.step_name,
+        assigned_to: data.assigned_to,
+        task_type: data.task_type,
+        status: data.status,
+        sla_hours: data.sla_hours,
+        sla_due_date: data.sla_due_date,
+        task_data: data.task_data ?? null,
+      })
+      .select("*")
+      .single();
+    return dbRowToTask(row!);
   }
   const task: ProcessTask = {
     ...data,
@@ -411,9 +333,15 @@ export async function createProcessTask(
 }
 
 export async function getProcessTask(taskId: string): Promise<ProcessTask | null> {
-  if (USE_DB && sql) {
-    const rows = await sql`SELECT * FROM process_tasks WHERE task_id = ${taskId} LIMIT 1`;
-    return rows[0] ? dbRowToTask(rows[0]) : null;
+  const sb = getSupabaseAdmin();
+  if (sb) {
+    const { data } = await sb
+      .from("process_tasks")
+      .select("*")
+      .eq("task_id", taskId)
+      .limit(1)
+      .single();
+    return data ? dbRowToTask(data) : null;
   }
   return _store.tasks.find((t) => t.task_id === taskId) ?? null;
 }
@@ -422,23 +350,25 @@ export async function updateProcessTask(
   taskId: string,
   updates: Partial<ProcessTask>
 ): Promise<ProcessTask | null> {
-  if (USE_DB && sql) {
-    const rows = await sql`
-      UPDATE process_tasks SET
-        status         = COALESCE(${updates.status ?? null}, status),
-        decision       = COALESCE(${updates.decision ?? null}, decision),
-        decision_notes = COALESCE(${updates.decision_notes ?? null}, decision_notes),
-        decided_by     = COALESCE(${updates.decided_by ?? null}, decided_by),
-        decided_at     = COALESCE(${updates.decided_at ?? null}, decided_at),
-        sla_breached   = COALESCE(${updates.sla_breached ?? null}, sla_breached),
-        escalated      = COALESCE(${updates.escalated ?? null}, escalated),
-        escalated_to   = COALESCE(${updates.escalated_to ?? null}, escalated_to),
-        escalated_at   = COALESCE(${updates.escalated_at ?? null}, escalated_at),
-        updated_at     = NOW()
-      WHERE task_id = ${taskId}
-      RETURNING *
-    `;
-    return rows[0] ? dbRowToTask(rows[0]) : null;
+  const sb = getSupabaseAdmin();
+  if (sb) {
+    const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    if (updates.status !== undefined) patch.status = updates.status;
+    if (updates.decision !== undefined) patch.decision = updates.decision;
+    if (updates.decision_notes !== undefined) patch.decision_notes = updates.decision_notes;
+    if (updates.decided_by !== undefined) patch.decided_by = updates.decided_by;
+    if (updates.decided_at !== undefined) patch.decided_at = updates.decided_at;
+    if (updates.sla_breached !== undefined) patch.sla_breached = updates.sla_breached;
+    if (updates.escalated !== undefined) patch.escalated = updates.escalated;
+    if (updates.escalated_to !== undefined) patch.escalated_to = updates.escalated_to;
+    if (updates.escalated_at !== undefined) patch.escalated_at = updates.escalated_at;
+    const { data } = await sb
+      .from("process_tasks")
+      .update(patch)
+      .eq("task_id", taskId)
+      .select("*")
+      .single();
+    return data ? dbRowToTask(data) : null;
   }
   const idx = _store.tasks.findIndex((t) => t.task_id === taskId);
   if (idx === -1) return null;
@@ -447,27 +377,70 @@ export async function updateProcessTask(
 }
 
 export async function getPendingTasksForUser(userId: string): Promise<WorkQueueItem[]> {
-  if (USE_DB && sql) {
-    const rows = await sql`
-      SELECT
-        t.task_id, t.instance_id, t.step_id, t.step_name, t.task_type,
-        t.status AS task_status, t.assigned_to, t.assigned_at,
-        t.sla_due_date, t.sla_breached,
-        i.instance_code, i.process_code, i.process_name,
-        i.related_entity_type, i.related_entity_id,
-        i.request_data, i.initiated_by, i.priority,
-        EXTRACT(EPOCH FROM (NOW() - t.assigned_at)) / 3600 AS hours_pending,
-        EXTRACT(EPOCH FROM (t.sla_due_date - NOW())) / 3600 AS sla_hours_remaining
-      FROM process_tasks t
-      JOIN process_instances i ON t.instance_id = i.instance_id
-      WHERE t.assigned_to = ${userId} AND t.status = 'pending'
-      ORDER BY
-        CASE WHEN t.sla_breached THEN 0 ELSE 1 END,
-        CASE WHEN i.priority = 'urgent' THEN 0 WHEN i.priority = 'high' THEN 1
-             WHEN i.priority = 'normal' THEN 2 ELSE 3 END,
-        t.sla_due_date ASC NULLS LAST
-    `;
-    return rows.map(dbRowToWorkQueueItem);
+  const sb = getSupabaseAdmin();
+  if (sb) {
+    const { data: tasks } = await sb
+      .from("process_tasks")
+      .select("*")
+      .eq("assigned_to", userId)
+      .eq("status", "pending");
+
+    if (!tasks || tasks.length === 0) return [];
+
+    const instanceIds = [...new Set(tasks.map((t) => t.instance_id as string))];
+    const { data: instances } = await sb
+      .from("process_instances")
+      .select("*")
+      .in("instance_id", instanceIds);
+
+    const instMap = new Map((instances ?? []).map((i) => [i.instance_id as string, i]));
+    const now = Date.now();
+
+    const items: WorkQueueItem[] = tasks
+      .map((t) => {
+        const inst = instMap.get(t.instance_id as string);
+        if (!inst) return null;
+        const hoursP = t.assigned_at ? (now - new Date(t.assigned_at as string).getTime()) / 3_600_000 : null;
+        const slaTR = t.sla_due_date ? (new Date(t.sla_due_date as string).getTime() - now) / 3_600_000 : null;
+        return {
+          task_id: String(t.task_id),
+          instance_id: String(t.instance_id),
+          step_id: String(t.step_id),
+          step_name: String(t.step_name),
+          task_type: String(t.task_type),
+          task_status: t.status as TaskStatus,
+          assigned_to: String(t.assigned_to),
+          assigned_at: String(t.assigned_at),
+          sla_due_date: t.sla_due_date as string | null,
+          sla_breached: Boolean(t.sla_breached),
+          instance_code: String(inst.instance_code),
+          process_code: String(inst.process_code),
+          process_name: String(inst.process_name),
+          related_entity_type: inst.related_entity_type as EntityType,
+          related_entity_id: String(inst.related_entity_id),
+          request_data: (typeof inst.request_data === "string" ? JSON.parse(inst.request_data) : inst.request_data) as Record<string, unknown> ?? {},
+          initiated_by: String(inst.initiated_by),
+          priority: inst.priority as ProcessPriority,
+          hours_pending: hoursP,
+          sla_hours_remaining: slaTR,
+        } as WorkQueueItem;
+      })
+      .filter(Boolean) as WorkQueueItem[];
+
+    // Sort: breached first, then by priority, then by sla_due_date asc
+    const priorityOrder: Record<string, number> = { urgent: 0, high: 1, normal: 2, low: 3 };
+    items.sort((a, b) => {
+      const breachDiff = (a.sla_breached ? 0 : 1) - (b.sla_breached ? 0 : 1);
+      if (breachDiff !== 0) return breachDiff;
+      const prioA = priorityOrder[a.priority] ?? 2;
+      const prioB = priorityOrder[b.priority] ?? 2;
+      if (prioA !== prioB) return prioA - prioB;
+      if (!a.sla_due_date) return 1;
+      if (!b.sla_due_date) return -1;
+      return a.sla_due_date.localeCompare(b.sla_due_date);
+    });
+
+    return items;
   }
   const pendingTasks = _store.tasks.filter((t) => t.assigned_to === userId && t.status === "pending");
   return pendingTasks.map((t) => {
@@ -491,9 +464,14 @@ export async function getPendingTasksForUser(userId: string): Promise<WorkQueueI
 }
 
 export async function getTasksForInstance(instanceId: string): Promise<ProcessTask[]> {
-  if (USE_DB && sql) {
-    const rows = await sql`SELECT * FROM process_tasks WHERE instance_id = ${instanceId} ORDER BY created_at ASC`;
-    return rows.map(dbRowToTask);
+  const sb = getSupabaseAdmin();
+  if (sb) {
+    const { data } = await sb
+      .from("process_tasks")
+      .select("*")
+      .eq("instance_id", instanceId)
+      .order("created_at", { ascending: true });
+    return (data ?? []).map(dbRowToTask);
   }
   return _store.tasks.filter((t) => t.instance_id === instanceId);
 }
@@ -503,17 +481,23 @@ export async function getTasksForInstance(instanceId: string): Promise<ProcessTa
 export async function addHistoryEntry(
   data: Omit<ProcessHistoryEntry, "history_id" | "created_at">
 ): Promise<ProcessHistoryEntry> {
-  if (USE_DB && sql) {
-    const rows = await sql`
-      INSERT INTO process_history
-        (instance_id, action, action_description, step_id, step_name, performed_by, performed_at, action_data)
-      VALUES
-        (${data.instance_id}, ${data.action}, ${data.action_description},
-         ${data.step_id}, ${data.step_name}, ${data.performed_by},
-         ${data.performed_at}, ${data.action_data ? JSON.stringify(data.action_data) : null})
-      RETURNING *
-    `;
-    return dbRowToHistory(rows[0]);
+  const sb = getSupabaseAdmin();
+  if (sb) {
+    const { data: row } = await sb
+      .from("process_history")
+      .insert({
+        instance_id: data.instance_id,
+        action: data.action,
+        action_description: data.action_description,
+        step_id: data.step_id,
+        step_name: data.step_name,
+        performed_by: data.performed_by,
+        performed_at: data.performed_at,
+        action_data: data.action_data ?? null,
+      })
+      .select("*")
+      .single();
+    return dbRowToHistory(row!);
   }
   const entry: ProcessHistoryEntry = {
     ...data,
@@ -525,11 +509,14 @@ export async function addHistoryEntry(
 }
 
 export async function getInstanceHistory(instanceId: string): Promise<ProcessHistoryEntry[]> {
-  if (USE_DB && sql) {
-    const rows = await sql`
-      SELECT * FROM process_history WHERE instance_id = ${instanceId} ORDER BY performed_at ASC
-    `;
-    return rows.map(dbRowToHistory);
+  const sb = getSupabaseAdmin();
+  if (sb) {
+    const { data } = await sb
+      .from("process_history")
+      .select("*")
+      .eq("instance_id", instanceId)
+      .order("performed_at", { ascending: true });
+    return (data ?? []).map(dbRowToHistory);
   }
   return _store.history
     .filter((h) => h.instance_id === instanceId)
@@ -541,18 +528,24 @@ export async function getInstanceHistory(instanceId: string): Promise<ProcessHis
 export async function createNotification(
   data: Omit<BpmNotification, "notification_id" | "created_at">
 ): Promise<BpmNotification> {
-  if (USE_DB && sql) {
-    const rows = await sql`
-      INSERT INTO bpm_notifications
-        (user_id, notification_type, related_entity_type, related_entity_id,
-         title, message, action_url, priority, send_email)
-      VALUES
-        (${data.user_id}, ${data.notification_type}, ${data.related_entity_type},
-         ${data.related_entity_id}, ${data.title}, ${data.message},
-         ${data.action_url}, ${data.priority}, ${data.send_email})
-      RETURNING *
-    `;
-    return dbRowToNotification(rows[0]);
+  const sb = getSupabaseAdmin();
+  if (sb) {
+    const { data: row } = await sb
+      .from("bpm_notifications")
+      .insert({
+        user_id: data.user_id,
+        notification_type: data.notification_type,
+        related_entity_type: data.related_entity_type,
+        related_entity_id: data.related_entity_id,
+        title: data.title,
+        message: data.message,
+        action_url: data.action_url,
+        priority: data.priority,
+        send_email: data.send_email,
+      })
+      .select("*")
+      .single();
+    return dbRowToNotification(row!);
   }
   const notif: BpmNotification = {
     ...data,
@@ -564,11 +557,16 @@ export async function createNotification(
 }
 
 export async function getUnreadNotifications(userId: string): Promise<BpmNotification[]> {
-  if (USE_DB && sql) {
-    const rows = await sql`
-      SELECT * FROM bpm_notifications WHERE user_id = ${userId} AND is_read = FALSE ORDER BY created_at DESC LIMIT 50
-    `;
-    return rows.map(dbRowToNotification);
+  const sb = getSupabaseAdmin();
+  if (sb) {
+    const { data } = await sb
+      .from("bpm_notifications")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("is_read", false)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    return (data ?? []).map(dbRowToNotification);
   }
   return _store.notifications
     .filter((n) => n.user_id === userId && !n.is_read)
@@ -576,10 +574,12 @@ export async function getUnreadNotifications(userId: string): Promise<BpmNotific
 }
 
 export async function markNotificationRead(notificationId: string): Promise<void> {
-  if (USE_DB && sql) {
-    await sql`
-      UPDATE bpm_notifications SET is_read = TRUE, read_at = NOW() WHERE notification_id = ${notificationId}
-    `;
+  const sb = getSupabaseAdmin();
+  if (sb) {
+    await sb
+      .from("bpm_notifications")
+      .update({ is_read: true, read_at: new Date().toISOString() })
+      .eq("notification_id", notificationId);
     return;
   }
   const n = _store.notifications.find((n) => n.notification_id === notificationId);
@@ -589,9 +589,13 @@ export async function markNotificationRead(notificationId: string): Promise<void
 // ─── Analytics ────────────────────────────────────────────────────────────────
 
 export async function getProcessPerformance(): Promise<ProcessPerformance[]> {
-  if (USE_DB && sql) {
-    const rows = await sql`SELECT * FROM v_process_performance ORDER BY total_instances DESC`;
-    return rows as ProcessPerformance[];
+  const sb = getSupabaseAdmin();
+  if (sb) {
+    const { data } = await sb
+      .from("v_process_performance")
+      .select("*")
+      .order("total_instances", { ascending: false });
+    return (data ?? []) as ProcessPerformance[];
   }
   return PROCESS_DEFS_SEED.map((d) => ({
     process_def_id: d.process_def_id, process_code: d.process_code,
@@ -605,9 +609,10 @@ export async function getProcessPerformance(): Promise<ProcessPerformance[]> {
 }
 
 export async function getSlaDashboard(): Promise<SlaDashboardRow[]> {
-  if (USE_DB && sql) {
-    const rows = await sql`SELECT * FROM v_sla_dashboard`;
-    return rows as SlaDashboardRow[];
+  const sb = getSupabaseAdmin();
+  if (sb) {
+    const { data } = await sb.from("v_sla_dashboard").select("*");
+    return (data ?? []) as SlaDashboardRow[];
   }
   return PROCESS_DEFS_SEED.map((d) => ({
     process_code: d.process_code, process_name: d.process_name,
@@ -620,9 +625,13 @@ export async function getSlaDashboard(): Promise<SlaDashboardRow[]> {
 }
 
 export async function getBottlenecks(): Promise<BottleneckRow[]> {
-  if (USE_DB && sql) {
-    const rows = await sql`SELECT * FROM v_process_bottlenecks LIMIT 20`;
-    return rows as BottleneckRow[];
+  const sb = getSupabaseAdmin();
+  if (sb) {
+    const { data } = await sb
+      .from("v_process_bottlenecks")
+      .select("*")
+      .limit(20);
+    return (data ?? []) as BottleneckRow[];
   }
   return [];
 }
@@ -630,22 +639,23 @@ export async function getBottlenecks(): Promise<BottleneckRow[]> {
 // ─── SLA Check (cron job logic) ───────────────────────────────────────────────
 
 export async function markOverdueTasks(): Promise<number> {
-  if (USE_DB && sql) {
-    const res = await sql`
-      UPDATE process_tasks
-        SET sla_breached = TRUE, updated_at = NOW()
-      WHERE status = 'pending'
-        AND sla_due_date < NOW()
-        AND sla_breached = FALSE
-    `;
-    await sql`
-      UPDATE process_instances
-        SET sla_breached = TRUE, updated_at = NOW()
-      WHERE status = 'in_progress'
-        AND sla_due_date < NOW()
-        AND sla_breached = FALSE
-    `;
-    return res.length ?? 0;
+  const sb = getSupabaseAdmin();
+  if (sb) {
+    const now = new Date().toISOString();
+    const { data: updatedTasks } = await sb
+      .from("process_tasks")
+      .update({ sla_breached: true, updated_at: now })
+      .eq("status", "pending")
+      .eq("sla_breached", false)
+      .lt("sla_due_date", now)
+      .select("task_id");
+    await sb
+      .from("process_instances")
+      .update({ sla_breached: true, updated_at: now })
+      .eq("status", "in_progress")
+      .eq("sla_breached", false)
+      .lt("sla_due_date", now);
+    return updatedTasks?.length ?? 0;
   }
   const now = new Date();
   let count = 0;
@@ -660,13 +670,16 @@ export async function markOverdueTasks(): Promise<number> {
 // ─── Instance code generator ──────────────────────────────────────────────────
 
 export async function generateInstanceCode(): Promise<string> {
-  if (USE_DB && sql) {
-    const rows = await sql`
-      SELECT COUNT(*) AS cnt FROM process_instances
-      WHERE EXTRACT(YEAR FROM created_at) = EXTRACT(YEAR FROM NOW())
-    `;
-    const seq = Number(rows[0].cnt) + 1;
-    return `PI-${new Date().getFullYear()}-${String(seq).padStart(4, "0")}`;
+  const sb = getSupabaseAdmin();
+  if (sb) {
+    const year = new Date().getFullYear();
+    const startOfYear = `${year}-01-01T00:00:00.000Z`;
+    const { count } = await sb
+      .from("process_instances")
+      .select("*", { count: "exact", head: true })
+      .gte("created_at", startOfYear);
+    const seq = (count ?? 0) + 1;
+    return `PI-${year}-${String(seq).padStart(4, "0")}`;
   }
   return nextInstanceCode();
 }
