@@ -20,6 +20,7 @@ on:
     branches:
       - main
       - claude/consolidate-awq-platform-sMoN0
+      - claude/add-validation-error-tests-k7SiF
   pull_request:
     branches:
       - main
@@ -54,6 +55,17 @@ jobs:
       - name: TypeScript check
         run: npx tsc --noEmit
 
+      # ── Micro-testes unitários (sem browser, sem servidor) ─────────────────
+      #
+      # Roda apenas o projeto 'unit' do Playwright — testes de lógica pura:
+      #   cnpj-cpf.test.ts  → validateCNPJ, validateCPF, formatDoc, docPlaceholder
+      #   score.test.ts     → calcScore (BANT), scoreColor, lógica de validate()
+      #   alert-config.test.ts → cores e estrutura dos AlertBanners
+      #
+      # Não inicia servidor nem browser — seguro para CI sem segredos de runtime.
+      - name: Unit tests
+        run: PLAYWRIGHT_PROJECT=unit npx playwright test --reporter=github
+
       # ── SSR build (Vercel runtime — no STATIC_EXPORT) ─────────────────────
       #
       # IMPORTANT: Do NOT pass NEXTAUTH_URL.
@@ -78,6 +90,15 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Testes" >> $GITHUB_STEP_SUMMARY
+          echo "| Suite | Escopo | Runner |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| unit/cnpj-cpf | validateCNPJ/CPF, formatDoc, docPlaceholder | Playwright (sem browser) |" >> $GITHUB_STEP_SUMMARY
+          echo "| unit/score | calcScore BANT, scoreColor, validate() | Playwright (sem browser) |" >> $GITHUB_STEP_SUMMARY
+          echo "| unit/alert-config | classes CSS por tipo de alerta | Playwright (sem browser) |" >> $GITHUB_STEP_SUMMARY
+          echo "| e2e/validation-form | Formulário /crm/leads/add — validação UI | Playwright Chromium (local) |" >> $GITHUB_STEP_SUMMARY
+          echo "| e2e/error-display | AlertBanner, Toast, acessibilidade | Playwright Chromium (local) |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Operational Infrastructure (Vercel Dashboard)" >> $GITHUB_STEP_SUMMARY
           echo "| Variable | Purpose | Required |" >> $GITHUB_STEP_SUMMARY

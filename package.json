@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "PLAYWRIGHT_PROJECT=unit playwright test",
+    "test:unit": "PLAYWRIGHT_PROJECT=unit playwright test",
+    "test:e2e": "PLAYWRIGHT_PROJECT=e2e playwright test",
+    "test:all": "playwright test"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",
