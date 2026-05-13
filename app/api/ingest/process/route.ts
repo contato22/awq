@@ -22,6 +22,7 @@ import { getToken } from "next-auth/jwt";
 import { guard } from "@/lib/security-guard";
 import fs from "fs";
 import path from "path";
+import { initDB } from "@/lib/db";
 import {
   getDocument,
   updateDocumentStatus,
@@ -55,6 +56,8 @@ export async function POST(req: NextRequest): Promise<Response> {
       { status: 403, headers: { "Content-Type": "application/json" } }
     );
   }
+
+  await initDB();
 
   let documentId: string | undefined;
   try {

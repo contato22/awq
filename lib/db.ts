@@ -71,9 +71,16 @@ export async function initDB(): Promise<void> {
       is_intercompany             BOOLEAN NOT NULL DEFAULT false,
       intercompany_match_id       TEXT,
       excluded_from_consolidated  BOOLEAN NOT NULL DEFAULT false,
+      reconciliation_status       TEXT NOT NULL DEFAULT 'pendente',
       extracted_at                TEXT NOT NULL,
       classified_at               TEXT
     )
+  `;
+
+  // Safe migration for tables created before reconciliation_status was added
+  await sql`
+    ALTER TABLE bank_transactions
+      ADD COLUMN IF NOT EXISTS reconciliation_status TEXT NOT NULL DEFAULT 'pendente'
   `;
 
   await sql`CREATE INDEX IF NOT EXISTS idx_bt_document_id ON bank_transactions(document_id)`;
