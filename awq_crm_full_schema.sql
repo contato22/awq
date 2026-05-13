@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS crm_accounts (
   churn_risk               TEXT        NOT NULL DEFAULT 'low'
                              CHECK (churn_risk IN ('low','medium','high')),
   renewal_date             DATE,
-  epm_customer_id          UUID        REFERENCES customers(customer_id) ON DELETE SET NULL,
+  epm_customer_id          UUID,
   created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   created_by               TEXT
@@ -142,8 +142,8 @@ CREATE TABLE IF NOT EXISTS crm_opportunities (
   proposal_viewed     BOOLEAN     NOT NULL DEFAULT FALSE,
   proposal_accepted   BOOLEAN     NOT NULL DEFAULT FALSE,
   synced_to_epm       BOOLEAN     NOT NULL DEFAULT FALSE,
-  epm_customer_id     UUID        REFERENCES customers(customer_id) ON DELETE SET NULL,
-  epm_ar_id           UUID        REFERENCES accounts_receivable(ar_id) ON DELETE SET NULL,
+  epm_customer_id     UUID,
+  epm_ar_id           UUID,
   created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   created_by          TEXT
