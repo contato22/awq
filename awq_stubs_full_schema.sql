@@ -481,3 +481,154 @@ CREATE TABLE IF NOT EXISTS dms_tasks (
 ALTER TABLE dms_tasks ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "allow_all_dms_tasks" ON dms_tasks;
 CREATE POLICY "allow_all_dms_tasks" ON dms_tasks FOR ALL USING (true) WITH CHECK (true);
+
+-- ─── ERP Invoices (Billing) ───────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS erp_invoices (
+  id         TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  customer   TEXT NOT NULL DEFAULT '',
+  order_id   TEXT,
+  issue_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  value      NUMERIC NOT NULL DEFAULT 0,
+  status     TEXT NOT NULL DEFAULT 'Pendente',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+ALTER TABLE erp_invoices ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "allow_all_erp_invoices" ON erp_invoices;
+CREATE POLICY "allow_all_erp_invoices" ON erp_invoices FOR ALL USING (true) WITH CHECK (true);
+
+-- ─── ERP Fulfillment ─────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS erp_fulfillment (
+  id         TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  customer   TEXT NOT NULL DEFAULT '',
+  order_id   TEXT,
+  priority   TEXT NOT NULL DEFAULT 'Normal',
+  status     TEXT NOT NULL DEFAULT 'Aguardando',
+  notes      TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+ALTER TABLE erp_fulfillment ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "allow_all_erp_fulfillment" ON erp_fulfillment;
+CREATE POLICY "allow_all_erp_fulfillment" ON erp_fulfillment FOR ALL USING (true) WITH CHECK (true);
+
+-- ─── ERP Shipments (Shipping) ─────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS erp_shipments (
+  id                TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  carrier           TEXT NOT NULL DEFAULT '',
+  shipment_date     DATE,
+  estimated_delivery DATE,
+  status            TEXT NOT NULL DEFAULT 'Agendado',
+  notes             TEXT NOT NULL DEFAULT '',
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+ALTER TABLE erp_shipments ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "allow_all_erp_shipments" ON erp_shipments;
+CREATE POLICY "allow_all_erp_shipments" ON erp_shipments FOR ALL USING (true) WITH CHECK (true);
+
+-- ─── ERP Asset Disposals ─────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS erp_asset_disposals (
+  id            TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  asset_name    TEXT NOT NULL DEFAULT '',
+  reason        TEXT NOT NULL DEFAULT 'Obsolescência',
+  disposal_date DATE,
+  book_value    NUMERIC NOT NULL DEFAULT 0,
+  sale_price    NUMERIC NOT NULL DEFAULT 0,
+  responsible   TEXT NOT NULL DEFAULT '',
+  result        TEXT NOT NULL DEFAULT 'Perda',
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+ALTER TABLE erp_asset_disposals ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "allow_all_erp_disposals" ON erp_asset_disposals;
+CREATE POLICY "allow_all_erp_disposals" ON erp_asset_disposals FOR ALL USING (true) WITH CHECK (true);
+
+-- ─── ERP Requisitions ────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS erp_requisitions (
+  id          TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  item_name   TEXT NOT NULL DEFAULT '',
+  quantity    NUMERIC NOT NULL DEFAULT 1,
+  requester   TEXT NOT NULL DEFAULT '',
+  needed_date DATE,
+  status      TEXT NOT NULL DEFAULT 'Aberta',
+  notes       TEXT NOT NULL DEFAULT '',
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+ALTER TABLE erp_requisitions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "allow_all_erp_requisitions" ON erp_requisitions;
+CREATE POLICY "allow_all_erp_requisitions" ON erp_requisitions FOR ALL USING (true) WITH CHECK (true);
+
+-- ─── ERP Receiving ───────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS erp_receiving (
+  id            TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  supplier      TEXT NOT NULL DEFAULT '',
+  received_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  item_name     TEXT NOT NULL DEFAULT '',
+  quantity      NUMERIC NOT NULL DEFAULT 1,
+  status        TEXT NOT NULL DEFAULT 'Pendente',
+  notes         TEXT NOT NULL DEFAULT '',
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+ALTER TABLE erp_receiving ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "allow_all_erp_receiving" ON erp_receiving;
+CREATE POLICY "allow_all_erp_receiving" ON erp_receiving FOR ALL USING (true) WITH CHECK (true);
+
+-- ─── ERP Inventory Movements ─────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS erp_inventory_movements (
+  id          TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  type        TEXT NOT NULL DEFAULT 'Entrada',
+  item_name   TEXT NOT NULL DEFAULT '',
+  quantity    NUMERIC NOT NULL DEFAULT 0,
+  date        DATE NOT NULL DEFAULT CURRENT_DATE,
+  origin      TEXT NOT NULL DEFAULT '',
+  destination TEXT NOT NULL DEFAULT '',
+  reference   TEXT NOT NULL DEFAULT '',
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+ALTER TABLE erp_inventory_movements ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "allow_all_erp_movements" ON erp_inventory_movements;
+CREATE POLICY "allow_all_erp_movements" ON erp_inventory_movements FOR ALL USING (true) WITH CHECK (true);
+
+-- ─── ERP Warehouses ──────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS erp_warehouses (
+  id         TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  code       TEXT NOT NULL DEFAULT '',
+  name       TEXT NOT NULL DEFAULT '',
+  address    TEXT NOT NULL DEFAULT '',
+  capacity   TEXT NOT NULL DEFAULT '',
+  manager    TEXT NOT NULL DEFAULT '',
+  status     TEXT NOT NULL DEFAULT 'Ativo',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+ALTER TABLE erp_warehouses ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "allow_all_erp_warehouses" ON erp_warehouses;
+CREATE POLICY "allow_all_erp_warehouses" ON erp_warehouses FOR ALL USING (true) WITH CHECK (true);
+
+-- ─── ERP Contract Obligations ────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS erp_contract_obligations (
+  id            TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  contract_name TEXT NOT NULL DEFAULT '',
+  title         TEXT NOT NULL DEFAULT '',
+  responsible   TEXT NOT NULL DEFAULT '',
+  due_date      DATE,
+  recurrence    TEXT NOT NULL DEFAULT 'Única',
+  status        TEXT NOT NULL DEFAULT 'Pendente',
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+ALTER TABLE erp_contract_obligations ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "allow_all_erp_obligations" ON erp_contract_obligations;
+CREATE POLICY "allow_all_erp_obligations" ON erp_contract_obligations FOR ALL USING (true) WITH CHECK (true);

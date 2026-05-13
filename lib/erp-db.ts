@@ -140,3 +140,174 @@ export async function deleteMaintenance(id: string): Promise<void> {
   if (!sql) return;
   await sql`DELETE FROM erp_asset_maintenance WHERE id=${id}`;
 }
+
+export type ErpInvoice = {
+  id: string; customer: string; order_id: string | null;
+  issue_date: string; value: number; status: string;
+};
+export async function listInvoices(): Promise<ErpInvoice[]> {
+  if (!sql) return [];
+  const rows = await sql`SELECT id,customer,order_id,issue_date::text AS issue_date,value,status FROM erp_invoices ORDER BY issue_date DESC`;
+  return rows as unknown as ErpInvoice[];
+}
+export async function createInvoice(d: Omit<ErpInvoice,"id">): Promise<ErpInvoice> {
+  if (!sql) throw new Error("DB unavailable");
+  const [r] = await sql`INSERT INTO erp_invoices ${sql(d)} RETURNING id,customer,order_id,issue_date::text AS issue_date,value,status`;
+  return r as unknown as ErpInvoice;
+}
+export async function deleteInvoice(id: string): Promise<void> {
+  if (!sql) return;
+  await sql`DELETE FROM erp_invoices WHERE id=${id}`;
+}
+
+export type ErpFulfillment = {
+  id: string; customer: string; order_id: string | null;
+  priority: string; status: string; notes: string;
+};
+export async function listFulfillment(): Promise<ErpFulfillment[]> {
+  if (!sql) return [];
+  const rows = await sql`SELECT id,customer,order_id,priority,status,notes FROM erp_fulfillment ORDER BY created_at DESC`;
+  return rows as unknown as ErpFulfillment[];
+}
+export async function createFulfillment(d: Omit<ErpFulfillment,"id">): Promise<ErpFulfillment> {
+  if (!sql) throw new Error("DB unavailable");
+  const [r] = await sql`INSERT INTO erp_fulfillment ${sql(d)} RETURNING id,customer,order_id,priority,status,notes`;
+  return r as unknown as ErpFulfillment;
+}
+export async function deleteFulfillment(id: string): Promise<void> {
+  if (!sql) return;
+  await sql`DELETE FROM erp_fulfillment WHERE id=${id}`;
+}
+
+export type ErpShipment = {
+  id: string; carrier: string; shipment_date: string | null;
+  estimated_delivery: string | null; status: string; notes: string;
+};
+export async function listShipments(): Promise<ErpShipment[]> {
+  if (!sql) return [];
+  const rows = await sql`SELECT id,carrier,shipment_date::text AS shipment_date,estimated_delivery::text AS estimated_delivery,status,notes FROM erp_shipments ORDER BY shipment_date DESC NULLS LAST`;
+  return rows as unknown as ErpShipment[];
+}
+export async function createShipment(d: Omit<ErpShipment,"id">): Promise<ErpShipment> {
+  if (!sql) throw new Error("DB unavailable");
+  const [r] = await sql`INSERT INTO erp_shipments ${sql(d)} RETURNING id,carrier,shipment_date::text AS shipment_date,estimated_delivery::text AS estimated_delivery,status,notes`;
+  return r as unknown as ErpShipment;
+}
+export async function deleteShipment(id: string): Promise<void> {
+  if (!sql) return;
+  await sql`DELETE FROM erp_shipments WHERE id=${id}`;
+}
+
+export type ErpDisposal = {
+  id: string; asset_name: string; reason: string; disposal_date: string | null;
+  book_value: number; sale_price: number; responsible: string; result: string;
+};
+export async function listDisposals(): Promise<ErpDisposal[]> {
+  if (!sql) return [];
+  const rows = await sql`SELECT id,asset_name,reason,disposal_date::text AS disposal_date,book_value,sale_price,responsible,result FROM erp_asset_disposals ORDER BY disposal_date DESC NULLS LAST`;
+  return rows as unknown as ErpDisposal[];
+}
+export async function createDisposal(d: Omit<ErpDisposal,"id">): Promise<ErpDisposal> {
+  if (!sql) throw new Error("DB unavailable");
+  const [r] = await sql`INSERT INTO erp_asset_disposals ${sql(d)} RETURNING id,asset_name,reason,disposal_date::text AS disposal_date,book_value,sale_price,responsible,result`;
+  return r as unknown as ErpDisposal;
+}
+export async function deleteDisposal(id: string): Promise<void> {
+  if (!sql) return;
+  await sql`DELETE FROM erp_asset_disposals WHERE id=${id}`;
+}
+
+export type ErpRequisition = {
+  id: string; item_name: string; quantity: number;
+  requester: string; needed_date: string | null; status: string; notes: string;
+};
+export async function listRequisitions(): Promise<ErpRequisition[]> {
+  if (!sql) return [];
+  const rows = await sql`SELECT id,item_name,quantity,requester,needed_date::text AS needed_date,status,notes FROM erp_requisitions ORDER BY needed_date ASC NULLS LAST`;
+  return rows as unknown as ErpRequisition[];
+}
+export async function createRequisition(d: Omit<ErpRequisition,"id">): Promise<ErpRequisition> {
+  if (!sql) throw new Error("DB unavailable");
+  const [r] = await sql`INSERT INTO erp_requisitions ${sql(d)} RETURNING id,item_name,quantity,requester,needed_date::text AS needed_date,status,notes`;
+  return r as unknown as ErpRequisition;
+}
+export async function deleteRequisition(id: string): Promise<void> {
+  if (!sql) return;
+  await sql`DELETE FROM erp_requisitions WHERE id=${id}`;
+}
+
+export type ErpReceiving = {
+  id: string; supplier: string; received_date: string;
+  item_name: string; quantity: number; status: string; notes: string;
+};
+export async function listReceiving(): Promise<ErpReceiving[]> {
+  if (!sql) return [];
+  const rows = await sql`SELECT id,supplier,received_date::text AS received_date,item_name,quantity,status,notes FROM erp_receiving ORDER BY received_date DESC`;
+  return rows as unknown as ErpReceiving[];
+}
+export async function createReceiving(d: Omit<ErpReceiving,"id">): Promise<ErpReceiving> {
+  if (!sql) throw new Error("DB unavailable");
+  const [r] = await sql`INSERT INTO erp_receiving ${sql(d)} RETURNING id,supplier,received_date::text AS received_date,item_name,quantity,status,notes`;
+  return r as unknown as ErpReceiving;
+}
+export async function deleteReceiving(id: string): Promise<void> {
+  if (!sql) return;
+  await sql`DELETE FROM erp_receiving WHERE id=${id}`;
+}
+
+export type ErpInventoryMovement = {
+  id: string; type: string; item_name: string; quantity: number;
+  date: string; origin: string; destination: string; reference: string;
+};
+export async function listInventoryMovements(): Promise<ErpInventoryMovement[]> {
+  if (!sql) return [];
+  const rows = await sql`SELECT id,type,item_name,quantity,date::text AS date,origin,destination,reference FROM erp_inventory_movements ORDER BY date DESC`;
+  return rows as unknown as ErpInventoryMovement[];
+}
+export async function createInventoryMovement(d: Omit<ErpInventoryMovement,"id">): Promise<ErpInventoryMovement> {
+  if (!sql) throw new Error("DB unavailable");
+  const [r] = await sql`INSERT INTO erp_inventory_movements ${sql(d)} RETURNING id,type,item_name,quantity,date::text AS date,origin,destination,reference`;
+  return r as unknown as ErpInventoryMovement;
+}
+export async function deleteInventoryMovement(id: string): Promise<void> {
+  if (!sql) return;
+  await sql`DELETE FROM erp_inventory_movements WHERE id=${id}`;
+}
+
+export type ErpWarehouse = {
+  id: string; code: string; name: string; address: string;
+  capacity: string; manager: string; status: string;
+};
+export async function listWarehouses(): Promise<ErpWarehouse[]> {
+  if (!sql) return [];
+  const rows = await sql`SELECT id,code,name,address,capacity,manager,status FROM erp_warehouses ORDER BY name`;
+  return rows as unknown as ErpWarehouse[];
+}
+export async function createWarehouse(d: Omit<ErpWarehouse,"id">): Promise<ErpWarehouse> {
+  if (!sql) throw new Error("DB unavailable");
+  const [r] = await sql`INSERT INTO erp_warehouses ${sql(d)} RETURNING id,code,name,address,capacity,manager,status`;
+  return r as unknown as ErpWarehouse;
+}
+export async function deleteWarehouse(id: string): Promise<void> {
+  if (!sql) return;
+  await sql`DELETE FROM erp_warehouses WHERE id=${id}`;
+}
+
+export type ErpContractObligation = {
+  id: string; contract_name: string; title: string;
+  responsible: string; due_date: string | null; recurrence: string; status: string;
+};
+export async function listContractObligations(): Promise<ErpContractObligation[]> {
+  if (!sql) return [];
+  const rows = await sql`SELECT id,contract_name,title,responsible,due_date::text AS due_date,recurrence,status FROM erp_contract_obligations ORDER BY due_date ASC NULLS LAST`;
+  return rows as unknown as ErpContractObligation[];
+}
+export async function createContractObligation(d: Omit<ErpContractObligation,"id">): Promise<ErpContractObligation> {
+  if (!sql) throw new Error("DB unavailable");
+  const [r] = await sql`INSERT INTO erp_contract_obligations ${sql(d)} RETURNING id,contract_name,title,responsible,due_date::text AS due_date,recurrence,status`;
+  return r as unknown as ErpContractObligation;
+}
+export async function deleteContractObligation(id: string): Promise<void> {
+  if (!sql) return;
+  await sql`DELETE FROM erp_contract_obligations WHERE id=${id}`;
+}
