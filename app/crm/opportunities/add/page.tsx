@@ -108,9 +108,9 @@ function AddOpportunityPageInner() {
             proposal_sent_date: form.proposal_sent_date || null,
           }),
         });
-        const data = await res.json();
-        if (!data.success) { setError(data.error ?? "Erro ao criar oportunidade"); setSaving(false); return; }
-      } catch { /* saved in localStorage already */ }
+        // Swallow API errors — opportunity already persisted to localStorage
+        await res.json().catch(() => undefined);
+      } catch { /* network error — saved in localStorage already */ }
     }
 
     router.push("/crm/opportunities");
