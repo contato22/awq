@@ -8,6 +8,11 @@ on:
       - 'awq_ppm_full_schema.sql'
       - 'awq_bpm_full_schema.sql'
       - 'awq_ma_portfolio_full_schema.sql'
+      - 'awq_caza_full_schema.sql'
+      - 'awq_caza_crm_full_schema.sql'
+      - 'awq_jacqes_crm_full_schema.sql'
+      - 'awq_advisor_full_schema.sql'
+      - 'awq_stubs_full_schema.sql'
       - '.github/workflows/apply-all-schemas.yml'
   workflow_dispatch:
 
@@ -51,6 +56,36 @@ jobs:
           echo "=== Applying M&A Schema ==="
           psql "$DATABASE_URL" -f awq_ma_portfolio_full_schema.sql
           echo "✅ M&A done"
+
+      - name: Apply Caza Vision Schema
+        run: |
+          echo "=== Applying Caza Vision Schema ==="
+          psql "$DATABASE_URL" -f awq_caza_full_schema.sql
+          echo "✅ Caza Vision done"
+
+      - name: Apply Caza CRM Schema
+        run: |
+          echo "=== Applying Caza CRM Schema ==="
+          psql "$DATABASE_URL" -f awq_caza_crm_full_schema.sql
+          echo "✅ Caza CRM done"
+
+      - name: Apply JACQES CRM Schema
+        run: |
+          echo "=== Applying JACQES CRM Schema ==="
+          psql "$DATABASE_URL" -f awq_jacqes_crm_full_schema.sql
+          echo "✅ JACQES CRM done"
+
+      - name: Apply Advisor Schema
+        run: |
+          echo "=== Applying Advisor Schema ==="
+          psql "$DATABASE_URL" -f awq_advisor_full_schema.sql
+          echo "✅ Advisor done"
+
+      - name: Apply Stub Modules Schema
+        run: |
+          echo "=== Applying Stub Modules Schema (BI, CPM, GRC, DMS, ERP, HCM) ==="
+          psql "$DATABASE_URL" -f awq_stubs_full_schema.sql
+          echo "✅ Stubs done"
 
       - name: Verify tables
         run: |
