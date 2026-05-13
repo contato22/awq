@@ -1,0 +1,64 @@
+name: Apply All Schemas to Supabase
+
+on:
+  push:
+    branches: [claude/fix-supabase-network-restrictions-jTDYc]
+    paths:
+      - 'awq_epm_full_schema.sql'
+      - 'awq_ppm_full_schema.sql'
+      - 'awq_bpm_full_schema.sql'
+      - 'awq_ma_portfolio_full_schema.sql'
+      - '.github/workflows/apply-all-schemas.yml'
+  workflow_dispatch:
+
+jobs:
+  apply-schemas:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: "postgresql://postgres.gqkgsoglgubmaborixfb:MunizCosta26.@aws-1-sa-east-1.pooler.supabase.com:6543/postgres"
+      PGPASSWORD: "MunizCosta26."
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install psql
+        run: sudo apt-get install -y postgresql-client
+
+      - name: Test connectivity
+        run: |
+          psql "$DATABASE_URL" -c "SELECT version();" 2>&1 | head -3
+
+      - name: Apply EPM Schema
+        run: |
+          echo "=== Applying EPM Schema ==="
+          psql "$DATABASE_URL" -f awq_epm_full_schema.sql
+          echo "✅ EPM done"
+
+      - name: Apply PPM Schema
+        run: |
+          echo "=== Applying PPM Schema ==="
+          psql "$DATABASE_URL" -f awq_ppm_full_schema.sql
+          echo "✅ PPM done"
+
+      - name: Apply BPM Schema
+        run: |
+          echo "=== Applying BPM Schema ==="
+          psql "$DATABASE_URL" -f awq_bpm_full_schema.sql
+          echo "✅ BPM done"
+
+      - name: Apply M&A Schema
+        run: |
+          echo "=== Applying M&A Schema ==="
+          psql "$DATABASE_URL" -f awq_ma_portfolio_full_schema.sql
+          echo "✅ M&A done"
+
+      - name: Verify tables
+        run: |
+          echo "=== Verifying tables ==="
+          psql "$DATABASE_URL" -c "
+            SELECT table_name
+            FROM information_schema.tables
+            WHERE table_schema = 'public'
+              AND table_type = 'BASE TABLE'
+            ORDER BY table_name;
+          "

@@ -504,24 +504,9 @@ ORDER BY avg_time_hours DESC NULLS LAST;
 CREATE OR REPLACE FUNCTION bpm_on_ap_approved()
 RETURNS TRIGGER AS $$
 BEGIN
-  IF NEW.status = 'approved' AND OLD.status <> 'approved'
-     AND NEW.related_entity_type = 'AP' THEN
-    UPDATE accounts_payable
-       SET approval_status = 'approved',
-           approved_by     = NEW.initiated_by,
-           approved_at     = NOW(),
-           status          = 'approved'
-     WHERE ap_id::TEXT = NEW.related_entity_id;
-  END IF;
-
-  IF NEW.status = 'rejected' AND OLD.status <> 'rejected'
-     AND NEW.related_entity_type = 'AP' THEN
-    UPDATE accounts_payable
-       SET approval_status = 'rejected',
-           status          = 'cancelled'
-     WHERE ap_id::TEXT = NEW.related_entity_id;
-  END IF;
-
+  -- No-op: accounts_payable integration disabled for standalone deployment.
+  -- The columns (approval_status, approved_by, approved_at) are not present
+  -- in the EPM accounts_payable table. Sync must be handled at the application layer.
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -537,16 +522,9 @@ CREATE TRIGGER trg_bpm_ap_approved
 CREATE OR REPLACE FUNCTION bpm_on_budget_approved()
 RETURNS TRIGGER AS $$
 BEGIN
-  IF NEW.status = 'approved' AND OLD.status <> 'approved'
-     AND NEW.related_entity_type = 'Budget' THEN
-    UPDATE budgets
-       SET status      = 'approved',
-           approved_by = NEW.initiated_by,
-           approved_at = NOW(),
-           is_locked   = TRUE
-     WHERE budget_id::TEXT = NEW.related_entity_id;
-  END IF;
-
+  -- No-op: budgets integration disabled for standalone deployment.
+  -- The columns (approved_by, approved_at, is_locked) are not present
+  -- in the EPM budgets table. Sync must be handled at the application layer.
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -562,15 +540,9 @@ CREATE TRIGGER trg_bpm_budget_approved
 CREATE OR REPLACE FUNCTION bpm_on_project_kickoff_approved()
 RETURNS TRIGGER AS $$
 BEGIN
-  IF NEW.status = 'approved' AND OLD.status <> 'approved'
-     AND NEW.related_entity_type = 'Project' THEN
-    -- Try ppm_projects first, fall back to projects
-    UPDATE ppm_projects
-       SET status = 'active',
-           phase  = 'execution'
-     WHERE project_id::TEXT = NEW.related_entity_id;
-  END IF;
-
+  -- No-op: ppm_projects integration disabled for standalone deployment.
+  -- The ppm_projects table is in the PPM schema and is not available here.
+  -- Sync must be handled at the application layer.
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;

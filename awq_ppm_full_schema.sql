@@ -54,8 +54,8 @@ CREATE TABLE IF NOT EXISTS ppm_projects (
   margin_target       NUMERIC(5,4),                               -- 0.73 = 73%
 
   -- People
-  project_manager_id  UUID        REFERENCES users(user_id),
-  account_manager_id  UUID        REFERENCES users(user_id),
+  project_manager_id  UUID,                                          -- ref: users(user_id)
+  account_manager_id  UUID,                                          -- ref: users(user_id)
 
   -- Scope
   description         TEXT,
@@ -88,8 +88,8 @@ CREATE TABLE IF NOT EXISTS ppm_projects (
 
   created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  created_by          UUID        REFERENCES users(user_id),
-  updated_by          UUID        REFERENCES users(user_id)
+  created_by          UUID,                                          -- ref: users(user_id)
+  updated_by          UUID                                           -- ref: users(user_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_ppm_prj_bu      ON ppm_projects(bu_code);
@@ -168,7 +168,7 @@ CREATE TABLE IF NOT EXISTS ppm_tasks (
   wbs_code            TEXT,
   sort_order          INTEGER     NOT NULL DEFAULT 0,
 
-  assigned_to         UUID        REFERENCES users(user_id),
+  assigned_to         UUID,                                          -- ref: users(user_id)
 
   estimated_hours     NUMERIC(10,2),
   actual_hours        NUMERIC(10,2) NOT NULL DEFAULT 0,
@@ -191,7 +191,7 @@ CREATE TABLE IF NOT EXISTS ppm_tasks (
 
   created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  created_by          UUID        REFERENCES users(user_id)
+  created_by          UUID                                           -- ref: users(user_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_ppm_tasks_project  ON ppm_tasks(project_id);
@@ -259,7 +259,7 @@ CREATE TABLE IF NOT EXISTS ppm_milestones (
   payment_percentage  NUMERIC(5,2),
 
   requires_approval   BOOLEAN     NOT NULL DEFAULT FALSE,
-  approved_by         UUID        REFERENCES users(user_id),
+  approved_by         UUID,                                          -- ref: users(user_id)
   approved_at         TIMESTAMPTZ,
 
   notes               TEXT,
@@ -283,7 +283,7 @@ CREATE TABLE IF NOT EXISTS ppm_allocations (
   allocation_id       UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
 
   project_id          UUID        NOT NULL REFERENCES ppm_projects(project_id) ON DELETE CASCADE,
-  user_id             UUID        NOT NULL REFERENCES users(user_id),
+  user_id             UUID        NOT NULL,                          -- ref: users(user_id)
 
   role                TEXT        NOT NULL,
 
@@ -320,7 +320,7 @@ CREATE OR REPLACE TRIGGER trg_ppm_alloc_updated_at
 CREATE TABLE IF NOT EXISTS ppm_time_entries (
   entry_id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
 
-  user_id             UUID        NOT NULL REFERENCES users(user_id),
+  user_id             UUID        NOT NULL,                          -- ref: users(user_id)
   project_id          UUID        NOT NULL REFERENCES ppm_projects(project_id),
   task_id             UUID        REFERENCES ppm_tasks(task_id),
 
@@ -336,7 +336,7 @@ CREATE TABLE IF NOT EXISTS ppm_time_entries (
   status              TEXT        NOT NULL DEFAULT 'draft'
                         CHECK (status IN ('draft','submitted','approved','rejected')),
   submitted_at        TIMESTAMPTZ,
-  approved_by         UUID        REFERENCES users(user_id),
+  approved_by         UUID,                                          -- ref: users(user_id)
   approved_at         TIMESTAMPTZ,
   rejection_reason    TEXT,
 
@@ -384,7 +384,7 @@ CREATE TABLE IF NOT EXISTS ppm_risks (
   mitigation_plan     TEXT,
   contingency_plan    TEXT,
 
-  owner_id            UUID        REFERENCES users(user_id),
+  owner_id            UUID,                                          -- ref: users(user_id)
 
   status              TEXT        NOT NULL DEFAULT 'identified'
                         CHECK (status IN ('identified','mitigating','occurred','closed')),
@@ -434,8 +434,8 @@ CREATE TABLE IF NOT EXISTS ppm_issues (
 
   severity            TEXT        NOT NULL CHECK (severity IN ('low','medium','high','critical')),
 
-  reported_by         UUID        REFERENCES users(user_id),
-  assigned_to         UUID        REFERENCES users(user_id),
+  reported_by         UUID,                                          -- ref: users(user_id)
+  assigned_to         UUID,                                          -- ref: users(user_id)
 
   status              TEXT        NOT NULL DEFAULT 'open'
                         CHECK (status IN ('open','in_progress','resolved','closed')),
@@ -471,7 +471,7 @@ SELECT
   p.bu_code,
   bu.bu_name,
   c.customer_name,
-  u.full_name                                        AS project_manager,
+  p.project_manager_id,
   p.project_type,
   p.service_category,
   p.contract_type,
@@ -534,8 +534,7 @@ SELECT
 
 FROM ppm_projects p
 LEFT JOIN business_units bu ON p.bu_code = bu.bu_code
-LEFT JOIN customers c       ON p.customer_id = c.customer_id
-LEFT JOIN users u           ON p.project_manager_id = u.user_id;
+LEFT JOIN customers c       ON p.customer_id = c.customer_id;
 
 -- ── Project Profitability (EVM) ───────────────────────────────────────────────
 
@@ -594,9 +593,7 @@ FROM ppm_projects p;
 
 CREATE OR REPLACE VIEW v_ppm_resource_utilization AS
 SELECT
-  u.user_id,
-  u.full_name                                                     AS user_name,
-  u.email,
+  a.user_id,
   COALESCE(SUM(a.allocation_pct), 0)                             AS total_allocation_pct,
   CASE
     WHEN COALESCE(SUM(a.allocation_pct), 0) > 100  THEN 'overallocated'
@@ -606,13 +603,12 @@ SELECT
   END                                                             AS utilization_status,
   COUNT(DISTINCT a.project_id)                                   AS active_projects,
   ARRAY_AGG(DISTINCT p.project_name) FILTER (WHERE p.project_name IS NOT NULL) AS project_names
-FROM users u
-LEFT JOIN ppm_allocations a ON u.user_id = a.user_id
-  AND a.status = 'active'
+FROM ppm_allocations a
+LEFT JOIN ppm_projects p ON a.project_id = p.project_id
+WHERE a.status = 'active'
   AND a.start_date <= CURRENT_DATE
   AND (a.end_date IS NULL OR a.end_date >= CURRENT_DATE)
-LEFT JOIN ppm_projects p ON a.project_id = p.project_id
-GROUP BY u.user_id, u.full_name, u.email;
+GROUP BY a.user_id;
 
 -- ── Timesheet Summary ─────────────────────────────────────────────────────────
 

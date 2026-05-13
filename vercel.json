@@ -10,7 +10,8 @@
   },
   "env": {
     "NEXT_PUBLIC_SUPABASE_URL": "https://gqkgsoglgubmaborixfb.supabase.co",
-    "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_pMD7CRvF2ZJdRRVB-SABkw_nA4_GDmF"
+    "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_pMD7CRvF2ZJdRRVB-SABkw_nA4_GDmF",
+    "DATABASE_URL": "postgresql://postgres.gqkgsoglgubmaborixfb:MunizCosta26.@aws-1-sa-east-1.pooler.supabase.com:6543/postgres"
   },
   "build": {
     "env": {
