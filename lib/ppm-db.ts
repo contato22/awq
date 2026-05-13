@@ -320,7 +320,7 @@ export async function listProjects(filters?: {
       AND (${filters?.search        ?? null} IS NULL OR p.project_name ILIKE ${'%' + (filters?.search ?? '') + '%'})
     ORDER BY p.created_at DESC
   `;
-  return rows as PpmProject[];
+  return rows as unknown as PpmProject[];
 }
 
 export async function getProject(project_id: string): Promise<PpmProject | null> {
@@ -431,7 +431,7 @@ export async function listTasks(project_id?: string, filters?: { status?: TaskSt
       AND (${filters?.status ?? null} IS NULL OR t.status = ${filters?.status ?? null})
     ORDER BY t.sort_order
   `;
-  return rows as PpmTask[];
+  return rows as unknown as PpmTask[];
 }
 
 export async function createTask(input: Omit<PpmTask, "task_id" | "actual_hours" | "created_at" | "updated_at">): Promise<PpmTask> {
@@ -492,7 +492,7 @@ export async function listMilestones(project_id?: string): Promise<PpmMilestone[
     WHERE (${project_id ?? null} IS NULL OR m.project_id = ${project_id ?? null})
     ORDER BY m.planned_date
   `;
-  return rows as PpmMilestone[];
+  return rows as unknown as PpmMilestone[];
 }
 
 export async function createMilestone(input: Omit<PpmMilestone, "milestone_id" | "created_at" | "updated_at">): Promise<PpmMilestone> {
@@ -523,7 +523,7 @@ export async function listAllocations(project_id?: string, user_id?: string): Pr
     WHERE (${project_id ?? null} IS NULL OR a.project_id = ${project_id ?? null})
       AND (${user_id ?? null}    IS NULL OR a.user_id    = ${user_id ?? null})
   `;
-  return rows as PpmAllocation[];
+  return rows as unknown as PpmAllocation[];
 }
 
 export async function createAllocation(input: Omit<PpmAllocation, "allocation_id" | "created_at" | "updated_at">): Promise<PpmAllocation> {
@@ -555,7 +555,7 @@ export async function getResourceUtilization(): Promise<{ user_id: string; user_
     }));
   }
   const rows = await sql`SELECT * FROM v_ppm_resource_utilization ORDER BY total_allocation_pct DESC`;
-  return rows as ReturnType<typeof getResourceUtilization> extends Promise<infer T> ? T : never;
+  return rows as unknown as ReturnType<typeof getResourceUtilization> extends Promise<infer T> ? T : never;
 }
 
 // ─── Time Entry CRUD ──────────────────────────────────────────────────────────
@@ -579,7 +579,7 @@ export async function listTimeEntries(filters?: { project_id?: string; user_id?:
       AND (${filters?.status ?? null}     IS NULL OR e.status     = ${filters?.status ?? null})
     ORDER BY e.entry_date DESC
   `;
-  return rows as PpmTimeEntry[];
+  return rows as unknown as PpmTimeEntry[];
 }
 
 export async function createTimeEntry(input: Omit<PpmTimeEntry, "entry_id" | "created_at" | "updated_at">): Promise<PpmTimeEntry> {
@@ -623,7 +623,7 @@ export async function listRisks(project_id?: string): Promise<PpmRisk[]> {
     WHERE (${project_id ?? null} IS NULL OR r.project_id = ${project_id ?? null})
     ORDER BY r.risk_score DESC
   `;
-  return rows as PpmRisk[];
+  return rows as unknown as PpmRisk[];
 }
 
 export async function createRisk(input: Omit<PpmRisk, "risk_id" | "risk_score" | "created_at" | "updated_at">): Promise<PpmRisk> {
@@ -651,7 +651,7 @@ export async function listIssues(project_id?: string): Promise<PpmIssue[]> {
     WHERE (${project_id ?? null} IS NULL OR i.project_id = ${project_id ?? null})
     ORDER BY i.reported_date DESC
   `;
-  return rows as PpmIssue[];
+  return rows as unknown as PpmIssue[];
 }
 
 export async function createIssue(input: Omit<PpmIssue, "issue_id" | "created_at" | "updated_at">): Promise<PpmIssue> {

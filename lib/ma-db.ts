@@ -475,7 +475,7 @@ export async function listDeals(filters?: {
     GROUP BY d.deal_id
     ORDER BY d.created_at DESC
   `;
-  return rows as MaDeal[];
+  return rows as unknown as MaDeal[];
 }
 
 export async function getDeal(deal_id: string): Promise<MaDeal | null> {
@@ -582,7 +582,7 @@ export async function listPortfolioCompanies(filters?: {
     WHERE (${filters?.status ?? null}::text IS NULL OR status = ${filters?.status ?? null})
     ORDER BY investment_date DESC
   `;
-  return rows as MaPortfolioDashboardRow[];
+  return rows as unknown as MaPortfolioDashboardRow[];
 }
 
 export async function getPortfolioCompany(
@@ -680,7 +680,7 @@ export async function listDdItems(deal_id: string): Promise<MaDueDiligenceItem[]
     WHERE deal_id = ${deal_id}
     ORDER BY dd_category, item_name
   `;
-  return rows as MaDueDiligenceItem[];
+  return rows as unknown as MaDueDiligenceItem[];
 }
 
 export async function createDdItem(
@@ -736,7 +736,7 @@ export async function listCapTable(portco_id: string): Promise<MaCapTableEntry[]
     WHERE portco_id = ${portco_id}
     ORDER BY ownership_pct DESC NULLS LAST
   `;
-  return rows as MaCapTableEntry[];
+  return rows as unknown as MaCapTableEntry[];
 }
 
 export async function createCapTableEntry(
@@ -775,7 +775,7 @@ export async function listPortcoKpis(portco_id: string): Promise<MaPortcoKpi[]> 
     WHERE portco_id = ${portco_id}
     ORDER BY reporting_date DESC
   `;
-  return rows as MaPortcoKpi[];
+  return rows as unknown as MaPortcoKpi[];
 }
 
 export async function upsertPortcoKpi(data: Partial<MaPortcoKpi>): Promise<MaPortcoKpi> {
@@ -844,7 +844,7 @@ export async function listBoardMeetings(portco_id: string): Promise<MaBoardMeeti
     WHERE portco_id = ${portco_id}
     ORDER BY meeting_date DESC
   `;
-  return rows as MaBoardMeeting[];
+  return rows as unknown as MaBoardMeeting[];
 }
 
 export async function createBoardMeeting(
@@ -908,7 +908,7 @@ export async function listMediaDeliverables(
     WHERE portco_id = ${portco_id}
     ORDER BY scheduled_delivery_date DESC
   `;
-  return rows as MaMediaDeliverable[];
+  return rows as unknown as MaMediaDeliverable[];
 }
 
 export async function createMediaDeliverable(
@@ -978,7 +978,7 @@ export async function listIntercompanyTransactions(filters?: {
       AND (${filters?.to_entity_id ?? null}::text IS NULL OR to_entity_id = ${filters?.to_entity_id ?? null})
     ORDER BY transaction_date DESC
   `;
-  return rows as MaIntercompanyTransaction[];
+  return rows as unknown as MaIntercompanyTransaction[];
 }
 
 export async function createIntercompanyTransaction(
@@ -1026,7 +1026,7 @@ export async function listSynergies(filters?: {
       AND (${filters?.source_bu ?? null}::text IS NULL OR source_bu = ${filters?.source_bu ?? null})
     ORDER BY created_at DESC
   `;
-  return rows as MaSynergyOpportunity[];
+  return rows as unknown as MaSynergyOpportunity[];
 }
 
 export async function createSynergy(
@@ -1082,7 +1082,7 @@ export async function listIcMeetings(): Promise<MaIcMeeting[]> {
     SELECT * FROM ma_ic_meetings
     ORDER BY meeting_date DESC
   `;
-  return rows as MaIcMeeting[];
+  return rows as unknown as MaIcMeeting[];
 }
 
 export async function createIcMeeting(
@@ -1116,7 +1116,7 @@ export async function listIcDecisions(deal_id?: string): Promise<MaIcDecisionRec
     WHERE (${deal_id ?? null}::text IS NULL OR deal_id = ${deal_id ?? null})
     ORDER BY decision_date DESC
   `;
-  return rows as MaIcDecisionRecord[];
+  return rows as unknown as MaIcDecisionRecord[];
 }
 
 export async function createIcDecision(

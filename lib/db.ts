@@ -1,29 +1,35 @@
-// ─── AWQ Database Client — Neon Serverless Postgres ───────────────────────────
+// ─── AWQ Database Client — Postgres (Supabase / any PostgreSQL) ───────────────
 //
-// Provides a SQL client when DATABASE_URL is set (Vercel + Neon production).
+// Provides a SQL client when DATABASE_URL is set (Vercel + Supabase production).
 // Falls back to null when absent; financial-db.ts detects null and uses
 // JSON-file storage (local dev, GitHub Pages static build).
 //
 // USAGE:
 //   import { sql, initDB } from "@/lib/db";
-//   if (sql) { await sql`SELECT 1`; }  // Neon
+//   if (sql) { await sql`SELECT 1`; }
 //   else { /* filesystem fallback */ }
-//
-// SCHEMA: call initDB() once at startup (or rely on Vercel's build step).
-//   In Next.js App Router, call initDB() in the first server action that needs DB.
-//   CREATE TABLE IF NOT EXISTS is idempotent — safe to call on every cold start.
 
-import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
+import postgres from "postgres";
 
-// Exported null-safe SQL client. null = no DATABASE_URL = use filesystem.
-export const sql: NeonQueryFunction<false, false> | null =
-  process.env.DATABASE_URL ? neon(process.env.DATABASE_URL) : null;
+type SqlClient = ReturnType<typeof postgres> | null;
+
+let _sql: SqlClient = null;
+
+if (process.env.DATABASE_URL) {
+  _sql = postgres(process.env.DATABASE_URL, {
+    ssl: "require",
+    max: 5,
+    idle_timeout: 20,
+    connect_timeout: 10,
+  });
+}
+
+export const sql: SqlClient = _sql;
 
 export const USE_DB = !!process.env.DATABASE_URL;
 export const USE_BLOB = !!process.env.BLOB_READ_WRITE_TOKEN;
 
 // ─── Schema bootstrap ─────────────────────────────────────────────────────────
-// Idempotent — safe to call on every cold start.
 
 export async function initDB(): Promise<void> {
   if (!sql) return;
@@ -82,5 +88,4 @@ export async function initDB(): Promise<void> {
   // ─── Caza Vision tables ──────────────────────────────────────────────────────
   const { initCazaDB } = await import("@/lib/caza-db");
   await initCazaDB();
-
 }

@@ -487,7 +487,7 @@ export async function getPendingTasksForUser(userId: string): Promise<WorkQueueI
       initiated_by: inst.initiated_by, priority: inst.priority,
       hours_pending: hoursP, sla_hours_remaining: slaTR,
     } as WorkQueueItem;
-  }).filter(Boolean) as WorkQueueItem[];
+  }).filter(Boolean) as unknown as WorkQueueItem[];
 }
 
 export async function getTasksForInstance(instanceId: string): Promise<ProcessTask[]> {
@@ -591,7 +591,7 @@ export async function markNotificationRead(notificationId: string): Promise<void
 export async function getProcessPerformance(): Promise<ProcessPerformance[]> {
   if (USE_DB && sql) {
     const rows = await sql`SELECT * FROM v_process_performance ORDER BY total_instances DESC`;
-    return rows as ProcessPerformance[];
+    return rows as unknown as ProcessPerformance[];
   }
   return PROCESS_DEFS_SEED.map((d) => ({
     process_def_id: d.process_def_id, process_code: d.process_code,
@@ -607,7 +607,7 @@ export async function getProcessPerformance(): Promise<ProcessPerformance[]> {
 export async function getSlaDashboard(): Promise<SlaDashboardRow[]> {
   if (USE_DB && sql) {
     const rows = await sql`SELECT * FROM v_sla_dashboard`;
-    return rows as SlaDashboardRow[];
+    return rows as unknown as SlaDashboardRow[];
   }
   return PROCESS_DEFS_SEED.map((d) => ({
     process_code: d.process_code, process_name: d.process_name,
@@ -622,7 +622,7 @@ export async function getSlaDashboard(): Promise<SlaDashboardRow[]> {
 export async function getBottlenecks(): Promise<BottleneckRow[]> {
   if (USE_DB && sql) {
     const rows = await sql`SELECT * FROM v_process_bottlenecks LIMIT 20`;
-    return rows as BottleneckRow[];
+    return rows as unknown as BottleneckRow[];
   }
   return [];
 }
