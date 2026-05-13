@@ -29,7 +29,7 @@ import {
   findDuplicateDocument,
 } from "@/lib/financial-db";
 import { inferEntityFromAccount } from "@/lib/financial-classifier";
-import { USE_BLOB, initDB } from "@/lib/db";
+import { USE_BLOB, USE_DB, initDB } from "@/lib/db";
 import type { BankName, EntityLayer, FinancialDocument } from "@/lib/financial-db";
 
 export const runtime = "nodejs";
@@ -128,19 +128,23 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const docId = newId();
   const safeFilename = `${docId}_${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
 
-  // ── Store PDF: Vercel Blob or filesystem ──
+  // ── Store PDF: Vercel Blob → DB (base64) → local filesystem ──
   let blobUrl: string | null = null;
+  let pdfContent: string | null = null;
 
   if (USE_BLOB) {
-    // Vercel Blob — persistent across deployments
+    // Vercel Blob — preferred when BLOB_READ_WRITE_TOKEN is set
     const { put } = await import("@vercel/blob");
     const result = await put(`financial-pdfs/${safeFilename}`, buffer, {
       access: "private",
       contentType: "application/pdf",
     });
     blobUrl = result.url;
+  } else if (USE_DB) {
+    // DB base64 — persists in Postgres, no external storage needed
+    pdfContent = buffer.toString("base64");
   } else {
-    // Local filesystem (development or single-instance deploy)
+    // Local filesystem fallback (dev without DB)
     try {
       ensurePDFDir();
       fs.writeFileSync(path.join(PDF_DIR, safeFilename), buffer);
@@ -174,6 +178,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     parserConfidence: null,
     extractionNotes: null,
     blobUrl,
+    pdfContent,
   };
   await saveDocument(doc);
 

@@ -106,8 +106,12 @@ export async function POST(req: NextRequest): Promise<Response> {
         // Load PDF: from Vercel Blob or local filesystem
         let pdfBuffer: Buffer;
 
-        if (doc.blobUrl) {
-          // Blob storage (Vercel production) — private blobs require Bearer token
+        if (doc.pdfContent) {
+          // DB storage — base64 encoded PDF stored in Postgres
+          send({ stage: "extracting", message: "Carregando PDF do banco de dados..." });
+          pdfBuffer = Buffer.from(doc.pdfContent, "base64");
+        } else if (doc.blobUrl) {
+          // Vercel Blob — private blobs require Bearer token
           send({ stage: "extracting", message: "Carregando PDF do Blob storage..." });
           const blobHeaders: HeadersInit = {};
           if (process.env.BLOB_READ_WRITE_TOKEN) {
@@ -119,9 +123,9 @@ export async function POST(req: NextRequest): Promise<Response> {
           }
           pdfBuffer = Buffer.from(await res.arrayBuffer());
         } else {
-          // Local filesystem (development)
+          // Local filesystem fallback (dev without DB or Blob)
           if (!fs.existsSync(PDF_DIR)) {
-            throw new Error(`Diretório de PDFs não encontrado (${PDF_DIR}). Nenhum arquivo foi enviado ainda ou o servidor foi reiniciado.`);
+            throw new Error(`PDF não encontrado. O servidor foi reiniciado e o arquivo foi perdido. Envie novamente em /awq/conciliacao.`);
           }
           const pdfFiles = fs.readdirSync(PDF_DIR).filter((f) => f.startsWith(docId));
           if (pdfFiles.length === 0) {

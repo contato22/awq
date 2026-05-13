@@ -194,7 +194,8 @@ export interface FinancialDocument {
   transactionCount: number;
   parserConfidence: "high" | "medium" | "low" | null;
   extractionNotes: string | null;
-  blobUrl: string | null;       // Vercel Blob URL for the PDF (null = filesystem or not set)
+  blobUrl: string | null;       // Vercel Blob URL (set when BLOB_READ_WRITE_TOKEN is available)
+  pdfContent: string | null;    // base64 PDF stored in DB (used when Blob is unavailable)
 }
 
 export interface BankTransaction {
@@ -252,6 +253,7 @@ function rowToDocument(r: Row): FinancialDocument {
     parserConfidence: sn(r.parser_confidence) as FinancialDocument["parserConfidence"],
     extractionNotes:  sn(r.extraction_notes),
     blobUrl:          sn(r.blob_url),
+    pdfContent:       sn(r.pdf_content),
   };
 }
 
@@ -284,23 +286,33 @@ function rowToTransaction(r: Row): BankTransaction {
 
 export async function getAllDocuments(): Promise<FinancialDocument[]> {
   if (USE_DB && sql) {
-    const rows = await sql`SELECT * FROM financial_documents ORDER BY uploaded_at DESC`;
+    // Exclude pdf_content from list queries — too large for list views
+    const rows = await sql`
+      SELECT id, filename, file_hash, bank, account_name, account_number,
+             entity, period_start, period_end, opening_balance, closing_balance,
+             uploaded_at, uploaded_by, status, error_message, transaction_count,
+             parser_confidence, extraction_notes, blob_url,
+             NULL::text AS pdf_content
+      FROM financial_documents ORDER BY uploaded_at DESC
+    `;
     return rows.map(rowToDocument);
   }
   return readJSON<FinancialDocument[]>(DOCS_FILE, []).map((d) => ({
     ...d,
-    blobUrl: (d as FinancialDocument & { blobUrl?: string | null }).blobUrl ?? null,
+    blobUrl:    (d as FinancialDocument & { blobUrl?: string | null }).blobUrl ?? null,
+    pdfContent: null,
   }));
 }
 
 export async function getDocument(id: string): Promise<FinancialDocument | null> {
   if (USE_DB && sql) {
+    // Include pdf_content for single-document fetch (used by process route)
     const rows = await sql`SELECT * FROM financial_documents WHERE id = ${id} LIMIT 1`;
     return rows.length > 0 ? rowToDocument(rows[0]) : null;
   }
   const docs = readJSON<FinancialDocument[]>(DOCS_FILE, []);
   const doc = docs.find((d) => d.id === id);
-  return doc ? { ...doc, blobUrl: doc.blobUrl ?? null } : null;
+  return doc ? { ...doc, blobUrl: doc.blobUrl ?? null, pdfContent: doc.pdfContent ?? null } : null;
 }
 
 export async function saveDocument(doc: FinancialDocument): Promise<void> {
@@ -310,7 +322,7 @@ export async function saveDocument(doc: FinancialDocument): Promise<void> {
         id, filename, file_hash, bank, account_name, account_number,
         entity, period_start, period_end, opening_balance, closing_balance,
         uploaded_at, uploaded_by, status, error_message, transaction_count,
-        parser_confidence, extraction_notes, blob_url
+        parser_confidence, extraction_notes, blob_url, pdf_content
       ) VALUES (
         ${doc.id}, ${doc.filename}, ${doc.fileHash}, ${doc.bank},
         ${doc.accountName}, ${doc.accountNumber},
@@ -318,7 +330,8 @@ export async function saveDocument(doc: FinancialDocument): Promise<void> {
         ${doc.openingBalance}, ${doc.closingBalance},
         ${doc.uploadedAt}, ${doc.uploadedBy}, ${doc.status},
         ${doc.errorMessage}, ${doc.transactionCount},
-        ${doc.parserConfidence}, ${doc.extractionNotes}, ${doc.blobUrl}
+        ${doc.parserConfidence}, ${doc.extractionNotes}, ${doc.blobUrl},
+        ${doc.pdfContent}
       )
       ON CONFLICT (id) DO UPDATE SET
         filename           = EXCLUDED.filename,
@@ -335,7 +348,8 @@ export async function saveDocument(doc: FinancialDocument): Promise<void> {
         transaction_count  = EXCLUDED.transaction_count,
         parser_confidence  = EXCLUDED.parser_confidence,
         extraction_notes   = EXCLUDED.extraction_notes,
-        blob_url           = EXCLUDED.blob_url
+        blob_url           = EXCLUDED.blob_url,
+        pdf_content        = EXCLUDED.pdf_content
     `;
     return;
   }
@@ -387,7 +401,7 @@ export async function findDuplicateDocument(fileHash: string): Promise<Financial
   }
   const docs = readJSON<FinancialDocument[]>(DOCS_FILE, []);
   const doc = docs.find((d) => d.fileHash === fileHash);
-  return doc ? { ...doc, blobUrl: doc.blobUrl ?? null } : null;
+  return doc ? { ...doc, blobUrl: doc.blobUrl ?? null, pdfContent: doc.pdfContent ?? null } : null;
 }
 
 // ─── Transactions CRUD ────────────────────────────────────────────────────────

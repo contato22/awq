@@ -66,9 +66,13 @@ export async function initDB(): Promise<void> {
       transaction_count   INTEGER NOT NULL DEFAULT 0,
       parser_confidence   TEXT,
       extraction_notes    TEXT,
-      blob_url            TEXT
+      blob_url            TEXT,
+      pdf_content         TEXT
     )
   `;
+
+  // Safe migrations for tables created before new columns were added
+  await sql`ALTER TABLE financial_documents ADD COLUMN IF NOT EXISTS pdf_content TEXT`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS bank_transactions (
