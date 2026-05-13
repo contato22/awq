@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS crm_accounts (
   churn_risk               TEXT        NOT NULL DEFAULT 'low'
                              CHECK (churn_risk IN ('low','medium','high')),
   renewal_date             DATE,
-  epm_customer_id          UUID        REFERENCES customers(customer_id) ON DELETE SET NULL,
+  epm_customer_id          UUID,                                            -- link to EPM (no FK, cross-schema)
   created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   created_by               TEXT
@@ -142,8 +142,8 @@ CREATE TABLE IF NOT EXISTS crm_opportunities (
   proposal_viewed     BOOLEAN     NOT NULL DEFAULT FALSE,
   proposal_accepted   BOOLEAN     NOT NULL DEFAULT FALSE,
   synced_to_epm       BOOLEAN     NOT NULL DEFAULT FALSE,
-  epm_customer_id     UUID        REFERENCES customers(customer_id) ON DELETE SET NULL,
-  epm_ar_id           UUID        REFERENCES accounts_receivable(ar_id) ON DELETE SET NULL,
+  epm_customer_id     UUID,                                                 -- link to EPM (no FK, cross-schema)
+  epm_ar_id           UUID,                                                 -- link to EPM (no FK, cross-schema)
   created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   created_by          TEXT
@@ -417,12 +417,24 @@ ALTER TABLE crm_opportunity_stage_history   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE crm_activities                  ENABLE ROW LEVEL SECURITY;
 
 -- Allow all authenticated operations (same pattern as EPM)
-CREATE POLICY IF NOT EXISTS crm_accounts_all        ON crm_accounts              FOR ALL USING (TRUE);
-CREATE POLICY IF NOT EXISTS crm_contacts_all        ON crm_contacts              FOR ALL USING (TRUE);
-CREATE POLICY IF NOT EXISTS crm_leads_all           ON crm_leads                 FOR ALL USING (TRUE);
-CREATE POLICY IF NOT EXISTS crm_opportunities_all   ON crm_opportunities         FOR ALL USING (TRUE);
-CREATE POLICY IF NOT EXISTS crm_stage_hist_all      ON crm_opportunity_stage_history FOR ALL USING (TRUE);
-CREATE POLICY IF NOT EXISTS crm_activities_all      ON crm_activities            FOR ALL USING (TRUE);
+DO $$ BEGIN
+  CREATE POLICY crm_accounts_all      ON crm_accounts                   FOR ALL USING (TRUE);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE POLICY crm_contacts_all      ON crm_contacts                   FOR ALL USING (TRUE);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE POLICY crm_leads_all         ON crm_leads                      FOR ALL USING (TRUE);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE POLICY crm_opportunities_all ON crm_opportunities              FOR ALL USING (TRUE);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE POLICY crm_stage_hist_all    ON crm_opportunity_stage_history  FOR ALL USING (TRUE);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE POLICY crm_activities_all    ON crm_activities                 FOR ALL USING (TRUE);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- =============================================================================
 -- 8. SEED DATA
