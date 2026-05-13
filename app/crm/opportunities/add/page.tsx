@@ -50,31 +50,71 @@ function AddOpportunityPageInner() {
     if (!form.bu) { setError("BU é obrigatória"); return; }
     setSaving(true);
     setError("");
+
+    const probability = STAGE_PROBABILITY[form.stage as keyof typeof STAGE_PROBABILITY] ?? 25;
+    const accountName = form.account_id ? accounts.find(a => a.account_id === form.account_id)?.account_name : undefined;
+
+    // Always persist to localStorage so the pipeline page sees it immediately
     try {
-      const res = await fetch("/api/crm/opportunities", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "create",
+      const existing = JSON.parse(localStorage.getItem("crm-opportunities-v3") ?? "[]");
+      localStorage.setItem("crm-opportunities-v3", JSON.stringify([
+        ...existing,
+        {
+          opportunity_id: `local-${Date.now()}`,
+          opportunity_code: `OPP-${Date.now()}`,
           opportunity_name: form.opportunity_name.trim(),
+          account_id: form.account_id || null,
+          account_name: accountName ?? null,
+          contact_id: null,
+          contact_name: null,
           bu: form.bu,
-          owner: form.owner,
           stage: form.stage,
           deal_value: parseFloat(form.deal_value) || 0,
+          probability,
           expected_close_date: form.expected_close_date || null,
-          account_id: form.account_id || null,
+          actual_close_date: null,
           lost_reason: form.lost_reason || null,
+          lost_to_competitor: null,
+          win_reason: null,
+          owner: form.owner,
           proposal_sent_date: form.proposal_sent_date || null,
-        }),
-      });
-      const data = await res.json();
-      if (data.success) router.push("/crm/opportunities");
-      else setError(data.error ?? "Erro ao criar oportunidade");
-    } catch {
-      setError("Erro de rede — tente novamente");
-    } finally {
-      setSaving(false);
+          proposal_viewed: false,
+          proposal_accepted: false,
+          synced_to_epm: false,
+          epm_customer_id: null,
+          epm_ar_id: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          created_by: form.owner,
+        },
+      ]));
+    } catch { /* ignore */ }
+
+    if (process.env.NEXT_PUBLIC_STATIC_DATA !== "1") {
+      try {
+        const res = await fetch("/api/crm/opportunities", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "create",
+            opportunity_name: form.opportunity_name.trim(),
+            bu: form.bu,
+            owner: form.owner,
+            stage: form.stage,
+            deal_value: parseFloat(form.deal_value) || 0,
+            expected_close_date: form.expected_close_date || null,
+            account_id: form.account_id || null,
+            lost_reason: form.lost_reason || null,
+            proposal_sent_date: form.proposal_sent_date || null,
+          }),
+        });
+        const data = await res.json();
+        if (!data.success) { setError(data.error ?? "Erro ao criar oportunidade"); setSaving(false); return; }
+      } catch { /* saved in localStorage already */ }
     }
+
+    router.push("/crm/opportunities");
+    setSaving(false);
   }
 
   return (
