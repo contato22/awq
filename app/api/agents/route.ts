@@ -133,8 +133,11 @@ export async function POST(req: NextRequest) {
                 (b): b is Anthropic.ToolUseBlock => b.type === "tool_use"
               );
 
-              // Append assistant message with tool_use blocks
-              messages.push({ role: "assistant", content: response.content });
+              // Append assistant message with tool_use blocks (filter empty text blocks)
+              const assistantContent = response.content.filter(
+                (b) => !(b.type === "text" && b.text === "")
+              );
+              messages.push({ role: "assistant", content: assistantContent });
 
               // Execute each tool and collect results
               const toolResults: Anthropic.ToolResultBlockParam[] = [];

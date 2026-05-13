@@ -162,7 +162,10 @@ export async function POST(req: NextRequest) {
               const toolBlocks = response.content.filter(
                 (b): b is Anthropic.ToolUseBlock => b.type === "tool_use"
               );
-              allMessages.push({ role: "assistant", content: response.content });
+              const assistantContent = response.content.filter(
+                (b) => !(b.type === "text" && b.text === "")
+              );
+              allMessages.push({ role: "assistant", content: assistantContent });
 
               const toolResults: Anthropic.ToolResultBlockParam[] = [];
               for (const tb of toolBlocks) {
