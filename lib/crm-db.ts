@@ -250,14 +250,56 @@ export async function convertLead(leadId: string, oppData: Partial<CrmOpportunit
     };
     return newOpp;
   }
+
+  // 1. Fetch lead data to carry company/contact info into the CRM records
+  const leadRows = await sql`SELECT * FROM crm_leads WHERE lead_id = ${leadId}`;
+  const lead = leadRows[0] as CrmLead;
+
+  // 2. Find existing account by name or create a new prospect account
+  let accountId: string | null = null;
+  if (lead?.company_name) {
+    const existing = await sql`
+      SELECT account_id FROM crm_accounts
+      WHERE LOWER(account_name) = LOWER(${lead.company_name})
+      LIMIT 1
+    `;
+    if (existing.length > 0) {
+      accountId = existing[0].account_id as string;
+    } else {
+      const newAcc = await sql`
+        INSERT INTO crm_accounts (account_name, account_type, bu, owner, health_score, churn_risk, created_by)
+        VALUES (${lead.company_name}, 'prospect', ${lead.bu ?? 'JACQES'},
+          ${lead.assigned_to ?? 'Miguel'}, 70, 'low', ${lead.assigned_to ?? 'Miguel'})
+        RETURNING account_id
+      `;
+      accountId = newAcc[0].account_id as string;
+    }
+  }
+
+  // 3. Create primary contact linked to the account
+  let contactId: string | null = null;
+  if (lead?.contact_name && accountId) {
+    const newContact = await sql`
+      INSERT INTO crm_contacts (account_id, full_name, email, phone, job_title, seniority, is_primary_contact)
+      VALUES (${accountId}, ${lead.contact_name}, ${lead.email ?? null},
+        ${lead.phone ?? null}, ${lead.job_title ?? null}, 'manager', true)
+      RETURNING contact_id
+    `;
+    contactId = newContact[0]?.contact_id as string ?? null;
+  }
+
+  // 4. Create opportunity already linked to account and contact
   const opp = await sql`
-    INSERT INTO crm_opportunities (opportunity_name, bu, stage, deal_value, probability,
+    INSERT INTO crm_opportunities (opportunity_name, account_id, contact_id, bu, stage, deal_value, probability,
       expected_close_date, owner, created_by)
-    VALUES (${oppData.opportunity_name!}, ${oppData.bu ?? 'JACQES'}, 'discovery',
+    VALUES (${oppData.opportunity_name!}, ${accountId}, ${contactId},
+      ${oppData.bu ?? lead?.bu ?? 'JACQES'}, 'discovery',
       ${oppData.deal_value ?? 0}, 25, ${oppData.expected_close_date ?? null},
-      ${oppData.owner ?? 'Miguel'}, ${oppData.owner ?? 'Miguel'})
+      ${oppData.owner ?? lead?.assigned_to ?? 'Miguel'}, ${oppData.owner ?? lead?.assigned_to ?? 'Miguel'})
     RETURNING *
   `;
+
+  // 5. Mark lead as converted
   await sql`
     UPDATE crm_leads SET
       status = 'converted',
