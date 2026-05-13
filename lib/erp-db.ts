@@ -115,6 +115,11 @@ export async function createExpense(d: Omit<ErpExpense,"id">): Promise<ErpExpens
   const [r] = await sql`INSERT INTO erp_expenses ${sql(d)} RETURNING id,employee,category,description,amount,date::text AS date,status`;
   return r as unknown as ErpExpense;
 }
+export async function updateExpenseStatus(id: string, status: string): Promise<ErpExpense | null> {
+  if (!sql) return null;
+  const rows = await sql`UPDATE erp_expenses SET status=${status}, updated_at=NOW() WHERE id=${id} RETURNING id,employee,category,description,amount,date::text AS date,status`;
+  return rows[0] as unknown as ErpExpense ?? null;
+}
 export async function deleteExpense(id: string): Promise<void> {
   if (!sql) return;
   await sql`DELETE FROM erp_expenses WHERE id=${id}`;
