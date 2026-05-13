@@ -1,29 +1,47 @@
-// ─── AWQ Database Client — Neon Serverless Postgres ───────────────────────────
+// ─── AWQ Database Client ───────────────────────────────────────────────────────
 //
-// Provides a SQL client when DATABASE_URL is set (Vercel + Neon production).
-// Falls back to null when absent; financial-db.ts detects null and uses
-// JSON-file storage (local dev, GitHub Pages static build).
+// Auto-detects the appropriate Postgres driver based on DATABASE_URL:
 //
-// USAGE:
-//   import { sql, initDB } from "@/lib/db";
-//   if (sql) { await sql`SELECT 1`; }  // Neon
-//   else { /* filesystem fallback */ }
+//   DATABASE_URL contains "neon.tech"  → @neondatabase/serverless (HTTP/WS)
+//   DATABASE_URL is any other Postgres → postgres pkg (TCP/SSL, standard)
+//   DATABASE_URL not set               → null; financial-db falls back to JSON
 //
-// SCHEMA: call initDB() once at startup (or rely on Vercel's build step).
-//   In Next.js App Router, call initDB() in the first server action that needs DB.
-//   CREATE TABLE IF NOT EXISTS is idempotent — safe to call on every cold start.
+// All consumers use the tagged-template `sql` function — API is identical
+// across both drivers.
+//
+// SCHEMA: call initDB() once at startup (idempotent, CREATE TABLE IF NOT EXISTS).
 
-import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
+import type { NeonQueryFunction } from "@neondatabase/serverless";
+import type postgres from "postgres";
 
-// Exported null-safe SQL client. null = no DATABASE_URL = use filesystem.
-export const sql: NeonQueryFunction<false, false> | null =
-  process.env.DATABASE_URL ? neon(process.env.DATABASE_URL) : null;
+// ─── Unified SQL type ─────────────────────────────────────────────────────────
 
-export const USE_DB = !!process.env.DATABASE_URL;
+// Both drivers expose a tagged-template function returning promise<Row[]>.
+// We use the Neon type as the surface type since it's already imported throughout.
+export type SqlClient = NeonQueryFunction<false, false> | postgres.Sql;
+
+// ─── Client bootstrap ─────────────────────────────────────────────────────────
+
+function buildClient(): SqlClient | null {
+  const url = process.env.DATABASE_URL;
+  if (!url) return null;
+
+  if (url.includes("neon.tech")) {
+    // Neon serverless — HTTP-based, works in edge + node runtimes
+    const { neon } = require("@neondatabase/serverless") as typeof import("@neondatabase/serverless");
+    return neon(url) as SqlClient;
+  }
+
+  // Standard Postgres (local dev, Railway, Supabase, etc.)
+  const Postgres = require("postgres") as typeof import("postgres");
+  return Postgres(url, { ssl: url.includes("sslmode=require") ? "require" : false }) as unknown as SqlClient;
+}
+
+export const sql: SqlClient | null = buildClient();
+export const USE_DB  = !!sql;
 export const USE_BLOB = !!process.env.BLOB_READ_WRITE_TOKEN;
 
-// ─── Schema bootstrap ─────────────────────────────────────────────────────────
-// Idempotent — safe to call on every cold start.
+// ─── Schema bootstrap (idempotent) ────────────────────────────────────────────
 
 export async function initDB(): Promise<void> {
   if (!sql) return;
