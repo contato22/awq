@@ -267,8 +267,8 @@ export async function convertLead(leadId: string, oppData: Partial<CrmOpportunit
       accountId = existing[0].account_id as string;
     } else {
       const newAcc = await sql`
-        INSERT INTO crm_accounts (account_name, account_type, bu, owner, health_score, churn_risk, created_by)
-        VALUES (${lead.company_name}, 'prospect', ${lead.bu ?? 'JACQES'},
+        INSERT INTO crm_accounts (account_name, account_type, owner, health_score, churn_risk, created_by)
+        VALUES (${lead.company_name}, 'prospect',
           ${lead.assigned_to ?? 'Miguel'}, 70, 'low', ${lead.assigned_to ?? 'Miguel'})
         RETURNING account_id
       `;
