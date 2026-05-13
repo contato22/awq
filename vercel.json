@@ -7,5 +7,15 @@
     "deploymentEnabled": {
       "gh-pages": false
     }
+  },
+  "env": {
+    "NEXT_PUBLIC_SUPABASE_URL": "https://gqkgsoglgubmaborixfb.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_pMD7CRvF2ZJdRRVB-SABkw_nA4_GDmF"
+  },
+  "build": {
+    "env": {
+      "NEXT_PUBLIC_SUPABASE_URL": "https://gqkgsoglgubmaborixfb.supabase.co",
+      "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_pMD7CRvF2ZJdRRVB-SABkw_nA4_GDmF"
+    }
   }
 }
