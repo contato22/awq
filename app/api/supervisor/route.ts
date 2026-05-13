@@ -112,10 +112,9 @@ export async function POST(req: NextRequest) {
               "Faça seu briefing de supervisão agora. Escanei o estado atual e liste os 3–5 alertas mais críticos.",
           },
         ]
-      : (messages as { role: string; content: string }[]).map((m) => ({
-          role: m.role as "user" | "assistant",
-          content: m.content,
-        }));
+      : (messages as { role: string; content: string }[])
+          .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }))
+          .filter((m) => m.content.trim() !== "");
 
     const client = new Anthropic({ apiKey });
     const encoder = new TextEncoder();

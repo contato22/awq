@@ -135,10 +135,9 @@ export async function POST(req: NextRequest) {
       model: "claude-opus-4-6",
       max_tokens: 1024,
       system: systemPrompt,
-      messages: messages.map((m: { role: string; content: string }) => ({
-        role: m.role as "user" | "assistant",
-        content: m.content,
-      })),
+      messages: (messages as { role: string; content: string }[])
+        .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }))
+        .filter((m) => m.content.trim() !== ""),
     });
 
     const encoder = new TextEncoder();

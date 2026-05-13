@@ -325,7 +325,9 @@ export default function SupervisorWidget() {
 
       if (detectStaticMode()) {
         const liveData = await fetchStaticData();
-        const apiMessages = newMsgs.map((m) => ({ role: m.role, content: m.content }));
+        const apiMessages = newMsgs
+          .map((m) => ({ role: m.role, content: m.content }))
+          .filter((m) => m.content.trim() !== "");
         apiMessages[apiMessages.length - 1].content += liveData;
 
         const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -362,7 +364,9 @@ export default function SupervisorWidget() {
           method: "POST",
           headers: { "Content-Type": "application/json", "x-anthropic-key": apiKey },
           body: JSON.stringify({
-            messages: newMsgs.map((m) => ({ role: m.role, content: m.content })),
+            messages: newMsgs
+              .map((m) => ({ role: m.role, content: m.content }))
+              .filter((m) => m.content.trim() !== ""),
             buContext,
           }),
         });

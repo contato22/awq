@@ -117,7 +117,10 @@ export default function OpenClaw() {
           "Content-Type": "application/json",
           "x-anthropic-key": apiKey,
         },
-        body: JSON.stringify({ messages: newMessages, buContext: BU_CONTEXT }),
+        body: JSON.stringify({
+          messages: newMessages.filter((m) => m.content.trim() !== ""),
+          buContext: BU_CONTEXT,
+        }),
       });
 
       if (!res.ok) {
