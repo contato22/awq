@@ -18,13 +18,14 @@
 //   edge cases documented, persistent storage in place.
 //
 // DASHBOARDS:
-//   All AWQ financial dashboards (awq/financial, awq/cashflow, jacqes/financial,
-//   caza-vision/financial, awq/kpis, etc.) still read from hardcoded snapshots
-//   (lib/awq-group-data.ts, lib/data.ts, lib/caza-data.ts).
-//   The ingest infrastructure was built but NOT YET connected to dashboard reads.
-//   No dashboard currently consumes public/data/financial/*.
-//   This is explicitly NOT a bug — it's the correct sequencing:
-//   ingest real data first, then migrate dashboard reads.
+//   Cash-basis pages (awq/financial, awq/cashflow, awq/kpis, awq/risk,
+//   awq/portfolio, awq/investments) are CONNECTED to financial-query.ts and
+//   render an honest empty state while public/data/financial/ is empty.
+//   Accrual / planning pages (awq/budget, awq/forecast, awq/allocations,
+//   jacqes/*, caza-vision/*, awq-venture/*) still read from hardcoded snapshots
+//   (lib/awq-group-data.ts, lib/data.ts, lib/caza-data.ts) because accrual P&L
+//   requires an invoice/NF pipeline that has not been built yet.
+//   Every snapshot page shows an explicit amber banner in the UI.
 
 // ─── Layer status types ────────────────────────────────────────────────────────
 

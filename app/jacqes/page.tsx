@@ -7,7 +7,7 @@ import TopProductsTable from "@/components/TopProductsTable";
 import RegionTable from "@/components/RegionTable";
 import AlertBanner from "@/components/AlertBanner";
 import { kpis, alerts } from "@/lib/data";
-import { Bell } from "lucide-react";
+import { Bell, AlertTriangle } from "lucide-react";
 
 export default function DashboardPage() {
   return (
@@ -18,6 +18,18 @@ export default function DashboardPage() {
       />
 
       <div className="page-container">
+
+        {/* Snapshot banner */}
+        <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <AlertTriangle size={14} className="text-amber-600 shrink-0 mt-0.5" />
+          <p className="text-xs text-amber-800">
+            <span className="font-semibold">Snapshot Q1 2026</span> — KPIs, receitas e segmentos
+            são dados de planejamento (<code className="font-mono text-[10px]">lib/data.ts</code>).
+            Migração pendente: ingerir extratos Cora JACQES em{" "}
+            <a href="/awq/conciliacao" className="underline font-medium">Conciliação</a>.
+          </p>
+        </div>
+
         {/* KPI Row */}
         <section>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -71,3 +83,4 @@ export default function DashboardPage() {
     </>
   );
 }
+
