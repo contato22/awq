@@ -35,6 +35,7 @@ import { classifyTransaction, inferEntityFromAccount } from "@/lib/financial-cla
 import { reconcileIntercompany, buildConsolidationSummary } from "@/lib/financial-reconciler";
 
 export const runtime = "nodejs";
+export const maxDuration = 120; // seconds — PDF extraction via Claude API needs time
 
 const PDF_DIR = path.join(process.cwd(), "public", "data", "financial", "pdfs");
 
@@ -106,9 +107,13 @@ export async function POST(req: NextRequest): Promise<Response> {
         let pdfBuffer: Buffer;
 
         if (doc.blobUrl) {
-          // Blob storage (Vercel production)
+          // Blob storage (Vercel production) — private blobs require Bearer token
           send({ stage: "extracting", message: "Carregando PDF do Blob storage..." });
-          const res = await fetch(doc.blobUrl);
+          const blobHeaders: HeadersInit = {};
+          if (process.env.BLOB_READ_WRITE_TOKEN) {
+            blobHeaders["Authorization"] = `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}`;
+          }
+          const res = await fetch(doc.blobUrl, { headers: blobHeaders });
           if (!res.ok) {
             throw new Error(`Falha ao carregar PDF do Blob (${res.status}): ${doc.blobUrl}`);
           }

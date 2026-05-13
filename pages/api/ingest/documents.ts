@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getToken } from "next-auth/jwt";
 import { guard } from "@/lib/security-guard";
+import { initDB } from "@/lib/db";
 import { getAllDocuments } from "@/lib/financial-db";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -18,6 +19,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (result === "blocked") {
     return res.status(403).json({ error: "Acesso negado", code: "RBAC_DENIED", reason });
   }
+
+  await initDB();
 
   const { entity, bank, status } = req.query;
 

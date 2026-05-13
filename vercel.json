@@ -3,6 +3,14 @@
   "buildCommand": "next build",
   "outputDirectory": ".next",
   "regions": ["gru1"],
+  "functions": {
+    "app/api/ingest/process/route.ts": {
+      "maxDuration": 120
+    },
+    "app/api/ingest/upload/route.ts": {
+      "maxDuration": 30
+    }
+  },
   "git": {
     "deploymentEnabled": {
       "gh-pages": false
