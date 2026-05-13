@@ -50,31 +50,75 @@ function AddOpportunityPageInner() {
     if (!form.bu) { setError("BU é obrigatória"); return; }
     setSaving(true);
     setError("");
-    try {
-      const res = await fetch("/api/crm/opportunities", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "create",
-          opportunity_name: form.opportunity_name.trim(),
-          bu: form.bu,
-          owner: form.owner,
-          stage: form.stage,
-          deal_value: parseFloat(form.deal_value) || 0,
-          expected_close_date: form.expected_close_date || null,
-          account_id: form.account_id || null,
-          lost_reason: form.lost_reason || null,
-          proposal_sent_date: form.proposal_sent_date || null,
-        }),
-      });
-      const data = await res.json();
-      if (data.success) router.push("/crm/opportunities");
-      else setError(data.error ?? "Erro ao criar oportunidade");
-    } catch {
-      setError("Erro de rede — tente novamente");
-    } finally {
-      setSaving(false);
+
+    const payload = {
+      action: "create",
+      opportunity_name: form.opportunity_name.trim(),
+      bu: form.bu,
+      owner: form.owner,
+      stage: form.stage,
+      deal_value: parseFloat(form.deal_value) || 0,
+      expected_close_date: form.expected_close_date || null,
+      account_id: form.account_id || null,
+      lost_reason: form.lost_reason || null,
+      proposal_sent_date: form.proposal_sent_date || null,
+    };
+
+    const isStaticExport = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
+    let saved = false;
+    let apiError: string | null = null;
+
+    if (!isStaticExport) {
+      try {
+        const res = await fetch("/api/crm/opportunities", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        let json: { success: boolean; error?: string } | null = null;
+        try { json = await res.json(); } catch { /* non-JSON response */ }
+        if (json?.success) {
+          saved = true;
+        } else if (json && res.status >= 400 && res.status < 500) {
+          apiError = json.error ?? "Erro ao criar oportunidade";
+        }
+      } catch { /* network error — fall through to localStorage */ }
     }
+
+    if (apiError) {
+      setError(apiError);
+      setSaving(false);
+      return;
+    }
+
+    if (!saved) {
+      const now = new Date().toISOString();
+      const localOpp = {
+        opportunity_id: `local-${Date.now()}`,
+        opportunity_name: payload.opportunity_name,
+        bu: payload.bu,
+        owner: payload.owner,
+        stage: payload.stage,
+        deal_value: payload.deal_value,
+        expected_close_date: payload.expected_close_date,
+        account_id: payload.account_id,
+        lost_reason: payload.lost_reason,
+        proposal_sent_date: payload.proposal_sent_date,
+        contact_id: null,
+        win_reason: null,
+        synced_to_epm: false,
+        created_at: now,
+        updated_at: now,
+        created_by: payload.owner,
+      };
+      try {
+        const stored = JSON.parse(localStorage.getItem("crm-opportunities-v3") ?? "[]");
+        localStorage.setItem("crm-opportunities-v3", JSON.stringify([localOpp, ...stored]));
+      } catch { /* ignore storage errors */ }
+    }
+
+    setSaving(false);
+    router.push("/crm/opportunities");
   }
 
   return (
