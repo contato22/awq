@@ -7,6 +7,9 @@ import type {
   CrmAccount, CrmContact, CrmLead, CrmOpportunity,
   CrmActivity, CrmDashboardMetrics, CrmPipelineMetrics,
 } from "@/lib/crm-types";
+export {
+  SEED_ACCOUNTS, SEED_CONTACTS, SEED_LEADS, SEED_OPPORTUNITIES, SEED_ACTIVITIES,
+} from "@/lib/crm-seeds";
 
 // ─── Schema Bootstrap ─────────────────────────────────────────────────────────
 export async function initCrmDB(): Promise<void> {
@@ -14,17 +17,6 @@ export async function initCrmDB(): Promise<void> {
   // Tables are created via awq_crm_full_schema.sql run once in Neon.
   // This function is a no-op placeholder kept for API route parity.
 }
-
-// ─── Seed Data (static/no-DB fallback) ───────────────────────────────────────
-export const SEED_ACCOUNTS: CrmAccount[] = [];
-
-export const SEED_CONTACTS: CrmContact[] = [];
-
-export const SEED_LEADS: CrmLead[] = [];
-
-export const SEED_OPPORTUNITIES: CrmOpportunity[] = [];
-
-export const SEED_ACTIVITIES: CrmActivity[] = [];
 
 // ─── Account CRUD ─────────────────────────────────────────────────────────────
 

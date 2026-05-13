@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/utils";
 import type { CrmOpportunity, CrmActivity } from "@/lib/crm-types";
-import { SEED_OPPORTUNITIES, SEED_ACTIVITIES } from "@/lib/crm-db";
+import { SEED_OPPORTUNITIES, SEED_ACTIVITIES } from "@/lib/crm-seeds";
 
 const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 

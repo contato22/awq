@@ -12,6 +12,10 @@ process.env.NEXT_PUBLIC_STATIC_DATA = isStaticExport ? "1" : "0";
 const nextConfig = {
     reactStrictMode: true,
 
+    // postgres (TCP driver) uses native Node.js modules — keep it server-only.
+    // @neondatabase/serverless is excluded too for consistency.
+    serverExternalPackages: ["postgres", "@neondatabase/serverless"],
+
     // Type-checking and linting run as separate CI steps (vercel-deploy.yml).
     // Ignoring here prevents build failures from blocking the static export
     // pipeline (pages.yml) and the Vercel SSR build.

@@ -33,8 +33,13 @@ function buildClient(): SqlClient | null {
   }
 
   // Standard Postgres (local dev, Railway, Supabase, etc.)
+  // Parse NUMERIC/DECIMAL columns as JS numbers (Postgres returns them as strings by default).
   const Postgres = require("postgres") as typeof import("postgres");
-  return Postgres(url, { ssl: url.includes("sslmode=require") ? "require" : false }) as unknown as SqlClient;
+  const numericParser = { to: 0, from: [1700, 700, 701], serialize: String, parse: parseFloat };
+  return Postgres(url, {
+    ssl: url.includes("sslmode=require") ? "require" : false,
+    types: { numeric: numericParser, float4: numericParser, float8: numericParser },
+  }) as unknown as SqlClient;
 }
 
 export const sql: SqlClient | null = buildClient();

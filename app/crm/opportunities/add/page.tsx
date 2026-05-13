@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
 import { STAGE_LABELS, STAGE_PROBABILITY, BU_OPTIONS, OWNER_OPTIONS } from "@/lib/crm-types";
 import type { CrmAccount } from "@/lib/crm-types";
-import { SEED_ACCOUNTS } from "@/lib/crm-db";
+import { SEED_ACCOUNTS } from "@/lib/crm-seeds";
 
 const ACTIVE_STAGES = ["discovery","qualification","proposal","negotiation","closed_won","closed_lost"] as const;
 

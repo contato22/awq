@@ -7,7 +7,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { TrendingUp, DollarSign, Target, Users, BarChart3, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import type { CrmOpportunity } from "@/lib/crm-types";
-import { SEED_OPPORTUNITIES } from "@/lib/crm-db";
+import { SEED_OPPORTUNITIES } from "@/lib/crm-seeds";
 import { formatBRL } from "@/lib/utils";
 
 const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";

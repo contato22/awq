@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import type { CrmOpportunity, CrmActivity } from "@/lib/crm-types";
 import { STAGE_LABELS, STAGE_PROBABILITY, BU_OPTIONS, OWNER_OPTIONS, PIPELINE_STAGES } from "@/lib/crm-types";
-import { SEED_OPPORTUNITIES } from "@/lib/crm-db";
+import { SEED_OPPORTUNITIES } from "@/lib/crm-seeds";
 import { formatBRL, formatDateBR } from "@/lib/utils";
 
 const LS_KEY = "crm-opportunities-v3";

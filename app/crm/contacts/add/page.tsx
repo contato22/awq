@@ -5,7 +5,7 @@ import type { FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
 import type { CrmAccount } from "@/lib/crm-types";
-import { SEED_ACCOUNTS } from "@/lib/crm-db";
+import { SEED_ACCOUNTS } from "@/lib/crm-seeds";
 
 const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 

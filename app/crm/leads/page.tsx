@@ -11,7 +11,7 @@ import {
   BarChart3, ExternalLink, ChevronRight, Trash2, Pencil,
 } from "lucide-react";
 import type { CrmLead, CrmOpportunity } from "@/lib/crm-types";
-import { SEED_LEADS, SEED_OPPORTUNITIES } from "@/lib/crm-db";
+import { SEED_LEADS, SEED_OPPORTUNITIES } from "@/lib/crm-seeds";
 import { formatBRL, formatDateBR } from "@/lib/utils";
 
 const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {

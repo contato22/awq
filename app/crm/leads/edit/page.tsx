@@ -9,7 +9,7 @@ import {
   BarChart3, CheckCircle2, AlertCircle, ChevronLeft,
   DollarSign, Calendar, FileText, Zap, Mail,
 } from "lucide-react";
-import { SEED_LEADS } from "@/lib/crm-db";
+import { SEED_LEADS } from "@/lib/crm-seeds";
 import type { CrmLead } from "@/lib/crm-types";
 
 const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
