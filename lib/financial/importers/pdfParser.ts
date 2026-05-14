@@ -226,8 +226,7 @@ function parseLines(lines: string[]): Pick<ImportResult, "transactions" | "rejec
 // ─── Public entry point ───────────────────────────────────────────────────────
 
 export async function parsePDF(file: File): Promise<ImportResult> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let pdfjsLib: any;
+  let pdfjsLib: any; // pdfjs-dist lacks complete type defs
   try {
     pdfjsLib = await import("pdfjs-dist");
     pdfjsLib.GlobalWorkerOptions.workerSrc =
@@ -245,15 +244,11 @@ export async function parsePDF(file: File): Promise<ImportResult> {
 
   try {
     const loadingTask = pdfjsLib.getDocument({ data: buffer }) as { promise: Promise<unknown> };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const doc = await loadingTask.promise as any;
 
     for (let p = 1; p <= (doc.numPages as number); p++) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const page = await (doc.getPage(p) as Promise<any>);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const content = await (page.getTextContent() as Promise<any>);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const items = content.items.filter((i: any) => typeof i.str === "string") as TextItem[];
       allLines.push(...reconstructLines(items));
     }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import Header from "@/components/Header";
 import SectionHeader from "@/components/SectionHeader";
 import { Users, DollarSign, TrendingUp, Star, AlertTriangle, Filter } from "lucide-react";
@@ -77,8 +77,8 @@ const SEGMENT_META_CLIENT: Record<RfmSegment, { color: string; bg: string }> = {
   "Perdidos":             { color: "#991b1b", bg: "#fecaca" },
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const SEGMENT_ICON: Record<RfmSegment, any> = {
+// pdfjs icon map — typed loosely on purpose
+const SEGMENT_ICON: Record<RfmSegment, React.ElementType> = {
   "Campeões":Star,"Clientes Fiéis":TrendingUp,"Fiéis em Potencial":Users,
   "Novos Clientes":Users,"Clientes Promissores":TrendingUp,
   "Precisam de Atenção":AlertTriangle,"Quase Dormentes":Users,

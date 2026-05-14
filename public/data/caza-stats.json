@@ -1,7 +1,31 @@
 {
-  "kpis": [],
-  "revenueData": [],
-  "pipeline": [],
-  "projectTypeRevenue": [],
+  "kpis": [
+    { "id": "projetos",        "label": "Projetos Ativos",    "value": 12,     "unit": "number",   "icon": "Building2",     "color": "emerald" },
+    { "id": "receita",         "label": "Receita YTD",        "value": 334800, "unit": "currency", "icon": "DollarSign",    "color": "brand"   },
+    { "id": "entregues",       "label": "Projetos Entregues", "value": 8,      "unit": "number",   "icon": "HandshakeIcon", "color": "violet"  },
+    { "id": "ticket",          "label": "Ticket Médio",       "value": 16633,  "unit": "currency", "icon": "TrendingUp",    "color": "amber"   },
+    { "id": "total_projetos",  "label": "Total de Projetos",  "value": 20,     "unit": "number",   "icon": "Film",          "color": "brand"   },
+    { "id": "receita_total",   "label": "Receita Total",      "value": 332660, "unit": "currency", "icon": "DollarSign",    "color": "emerald" },
+    { "id": "taxa_entrega",    "label": "Taxa de Entrega",    "value": 40,     "unit": "percent",  "icon": "CheckCircle",   "color": "violet"  },
+    { "id": "clientes_ativos", "label": "Clientes Ativos",    "value": 6,      "unit": "number",   "icon": "Users",         "color": "amber"   }
+  ],
+  "revenueData": [
+    { "month": "Jan/26", "receita": 48200, "expenses": 21300, "profit": 26900, "orcamento": 50000 },
+    { "month": "Fev/26", "receita": 52100, "expenses": 23400, "profit": 28700, "orcamento": 50000 },
+    { "month": "Mar/26", "receita": 61700, "expenses": 28100, "profit": 33600, "orcamento": 55000 },
+    { "month": "Abr/26", "receita": 27900, "expenses": 14200, "profit": 13700, "orcamento": 55000 }
+  ],
+  "pipeline": [
+    { "stage": "Proposta",   "count": 4 },
+    { "stage": "Negociação", "count": 2 },
+    { "stage": "Briefing",   "count": 3 },
+    { "stage": "Produção",   "count": 3 }
+  ],
+  "projectTypeRevenue": [
+    { "type": "Vídeo",        "projetos": 9, "receita": 198000, "avgValue": 22000 },
+    { "type": "Social Media", "projetos": 6, "receita": 84600,  "avgValue": 14100 },
+    { "type": "Consultoria",  "projetos": 3, "receita": 42000,  "avgValue": 14000 },
+    { "type": "M4E/Deal",     "projetos": 2, "receita": 8060,   "avgValue": 4030  }
+  ],
   "source": "notion"
 }

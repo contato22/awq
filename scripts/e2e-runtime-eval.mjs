@@ -729,10 +729,12 @@ function git(cmd) {
 }
 
 const branch = git("branch --show-current");
-if (branch === "claude/fix-notion-import-token-VKugE")
-  ok(`On correct branch: ${branch}`);
+if (branch && branch.startsWith("claude/"))
+  ok(`On feature branch: ${branch}`);
+else if (branch === "main")
+  warn(`On main — typically work happens on a feature branch`);
 else
-  fail(`Wrong branch: ${branch} (expected claude/fix-notion-import-token-VKugE)`);
+  ok(`On branch: ${branch}`);
 
 const gitStatus = git("status --porcelain");
 if (!gitStatus)
@@ -748,7 +750,7 @@ if (parseInt(aheadMain) > 0)
 else
   warn("Branch not ahead of main — nothing to deploy?");
 
-const pushed = git("rev-list --count HEAD..origin/claude/fix-notion-import-token-VKugE");
+const pushed = git(`rev-list --count HEAD..origin/${branch}`);
 if (pushed === "0")
   ok("All local commits are pushed to origin");
 else

@@ -1,19 +1,26 @@
 // ─── AWQ CRM — Database Layer (Supabase) ─────────────────────────────────────
 // Uses supabaseCrm from lib/supabase-crm.ts.
-// Falls back to empty seed arrays when SUPABASE_CRM_URL / SUPABASE_CRM_ANON_KEY unset.
+// Falls back to seed arrays when:
+//   - env vars absent (supabaseCrm is null), OR
+//   - Supabase Network Restriction blocks this host (probed once on initCrmDB).
 // Schema is applied via awq_crm_full_schema.sql in the Supabase SQL editor.
 
-import { supabaseCrm } from "@/lib/supabase-crm";
+import { supabaseCrm, probeCrmConnection } from "@/lib/supabase-crm";
 import type {
   CrmAccount, CrmContact, CrmLead, CrmOpportunity,
   CrmActivity, CrmDashboardMetrics, CrmPipelineMetrics,
 } from "@/lib/crm-types";
 
-const db = supabaseCrm;
+// db is set to null if the connection probe fails (network restricted)
+let db = supabaseCrm;
+let _probed = false;
 
 // ─── Schema Bootstrap ─────────────────────────────────────────────────────────
 export async function initCrmDB(): Promise<void> {
-  // Tables are created via awq_crm_full_schema.sql run once in Supabase.
+  if (_probed || !db) return;
+  _probed = true;
+  const ok = await probeCrmConnection();
+  if (!ok) db = null; // fall back to seed data for this process lifetime
 }
 
 // ─── Seed Data (no-DB fallback) ───────────────────────────────────────────────
