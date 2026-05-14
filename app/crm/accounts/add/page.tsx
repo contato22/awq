@@ -5,6 +5,7 @@ import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import { OWNER_OPTIONS } from "@/lib/crm-types";
+import { supabase } from "@/lib/supabase-client";
 
 export default function AddAccountPage() {
   const router = useRouter();
@@ -24,43 +25,32 @@ export default function AddAccountPage() {
     e.preventDefault();
     if (!form.account_name.trim()) { setError("Nome da empresa é obrigatório"); return; }
     setSaving(true); setError("");
-
-    // Always persist to localStorage
     try {
-      const existing = JSON.parse(localStorage.getItem("awq_crm_accounts") ?? "[]");
-      localStorage.setItem("awq_crm_accounts", JSON.stringify([...existing, {
-        account_id: `local-${Date.now()}`,
-        account_code: `ACC-${Date.now()}`,
-        ...form,
+      const { error: err } = await supabase.from("crm_accounts").insert({
+        account_name: form.account_name.trim(),
+        trade_name: form.trade_name || null,
+        document_number: form.document_number || null,
+        industry: form.industry || null,
+        company_size: form.company_size || null,
+        website: form.website || null,
+        linkedin_url: form.linkedin_url || null,
+        address_street: form.address_street || null,
+        address_city: form.address_city || null,
+        address_state: form.address_state || null,
+        address_zip: form.address_zip || null,
+        account_type: form.account_type,
+        owner: form.owner,
         health_score: parseInt(form.health_score),
+        churn_risk: form.churn_risk,
         renewal_date: form.renewal_date || null,
-        open_opportunities: 0,
-        last_activity_at: null,
-        epm_customer_id: null,
-        annual_revenue_estimate: null,
-        address_street: null,
-        address_zip: null,
-        linkedin_url: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        created_by: "Miguel",
-      }]));
-    } catch { /* */ }
-
-    if (process.env.NEXT_PUBLIC_STATIC_DATA !== "1") {
-      try {
-        const res = await fetch("/api/crm/accounts", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "create", ...form, health_score: parseInt(form.health_score) }),
-        });
-        const data = await res.json();
-        if (!data.success) { setError(data.error ?? "Erro ao criar conta"); setSaving(false); return; }
-      } catch { /* saved in localStorage already */ }
+        created_by: form.owner,
+      });
+      if (err) throw new Error(err.message);
+      router.push("/crm/accounts");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao criar conta");
+      setSaving(false);
     }
-
-    router.push("/crm/accounts");
-    setSaving(false);
   }
 
   return (
