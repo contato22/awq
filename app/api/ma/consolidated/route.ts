@@ -1,60 +1,60 @@
-import { NextRequest, NextResponse } from "next/server";
-import {
-  initMaDB,
-  listPortfolioCompanies,
-  listIntercompanyTransactions,
-} from "@/lib/ma-db";
+import { NextResponse } from "next/server";
+import { maSupabaseAdmin } from "@/lib/ma-supabase";
+import { SEED_PORTCOS, SEED_INTERCOMPANY, SEED_MEDIA_DELIVERABLES } from "@/lib/ma-db";
 
-function ok(data: unknown) { return NextResponse.json({ success: true, data }); }
+function ok(data: unknown)              { return NextResponse.json({ success: true,  data }); }
 function err(msg: string, status = 500) { return NextResponse.json({ success: false, error: msg }, { status }); }
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   try {
-    await initMaDB();
+    let portcos   = SEED_PORTCOS;
+    let icTxns    = SEED_INTERCOMPANY;
+    let media     = SEED_MEDIA_DELIVERABLES;
 
-    const [portcos, transactions] = await Promise.all([
-      listPortfolioCompanies({}),
-      listIntercompanyTransactions({}),
-    ]);
+    if (maSupabaseAdmin) {
+      const [portcosRes, icRes, mediaRes] = await Promise.all([
+        maSupabaseAdmin.from("ma_portfolio_companies").select("*"),
+        maSupabaseAdmin.from("ma_intercompany_transactions").select("*"),
+        maSupabaseAdmin.from("ma_media_deliverables").select("*"),
+      ]);
+      if (portcosRes.error) throw portcosRes.error;
+      if (icRes.error)      throw icRes.error;
+      if (mediaRes.error)   throw mediaRes.error;
+      portcos = portcosRes.data as typeof portcos;
+      icTxns  = icRes.data  as typeof icTxns;
+      media   = mediaRes.data as typeof media;
+    }
 
-    // Equity portfolio
-    const total_invested      = portcos.reduce((s: number, r: any) => s + (Number(r.entry_valuation)   || 0), 0);
-    const total_current_value = portcos.reduce((s: number, r: any) => s + (Number(r.current_valuation) || 0), 0);
-    const unrealized_gain     = total_current_value - total_invested;
-    const avg_multiple        = total_invested > 0 ? total_current_value / total_invested : 0;
+    const totalInvested      = portcos.reduce((s, p) => s + (p.entry_valuation   ?? 0), 0);
+    const totalCurrentValue  = portcos.reduce((s, p) => s + (p.current_valuation ?? p.entry_valuation ?? 0), 0);
+    const unrealizedGain     = totalCurrentValue - totalInvested;
+    const avgMultiple        = totalInvested > 0 ? totalCurrentValue / totalInvested : 1;
 
-    // Intercompany eliminations
-    const total_transactions  = transactions.length;
-    const total_eliminated    = transactions
-      .filter((t: any) => t.elimination_status === "eliminated")
-      .reduce((s: number, t: any) => s + (Number(t.amount) || 0), 0);
-    const pending_elimination = transactions
-      .filter((t: any) => t.elimination_status !== "eliminated")
-      .reduce((s: number, t: any) => s + (Number(t.amount) || 0), 0);
+    const eliminated         = icTxns.filter(t => t.elimination_status === "eliminated").length;
+    const pending            = icTxns.filter(t => t.elimination_status === "pending").length;
 
-    // Media obligations
-    const total_committed = portcos.reduce((s: number, r: any) => s + (Number(r.media_commitment_value) || 0), 0);
-    const total_delivered = portcos.reduce((s: number, r: any) => s + (Number(r.media_delivered_value)  || 0), 0);
-    const total_remaining = total_committed - total_delivered;
-    const delivery_pct    = total_committed > 0 ? (total_delivered / total_committed) * 100 : 0;
+    const totalCommitted     = portcos.reduce((s, p) => s + (p.media_commitment_value  ?? 0), 0);
+    const totalDelivered     = media.filter(m => m.status === "approved").reduce((s, m) => s + (m.agreed_value ?? 0), 0);
+    const totalRemaining     = totalCommitted - totalDelivered;
+    const deliveryPct        = totalCommitted > 0 ? Math.round((totalDelivered / totalCommitted) * 100) : 0;
 
     return ok({
       equity_portfolio: {
-        total_invested,
-        total_current_value,
-        unrealized_gain,
-        avg_multiple,
+        total_invested:       totalInvested,
+        total_current_value:  totalCurrentValue,
+        unrealized_gain:      unrealizedGain,
+        avg_multiple:         Math.round(avgMultiple * 100) / 100,
       },
       intercompany: {
-        total_transactions,
-        total_eliminated,
-        pending_elimination,
+        total_transactions:  icTxns.length,
+        total_eliminated:    eliminated,
+        pending_elimination: pending,
       },
       media_obligations: {
-        total_committed,
-        total_delivered,
-        total_remaining,
-        delivery_pct,
+        total_committed:  totalCommitted,
+        total_delivered:  totalDelivered,
+        total_remaining:  totalRemaining,
+        delivery_pct:     deliveryPct,
       },
     });
   } catch (e) { return err(String(e)); }
