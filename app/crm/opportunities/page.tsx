@@ -14,10 +14,8 @@ import {
 } from "lucide-react";
 import type { CrmOpportunity, CrmActivity } from "@/lib/crm-types";
 import { STAGE_LABELS, STAGE_PROBABILITY, BU_OPTIONS, OWNER_OPTIONS, PIPELINE_STAGES } from "@/lib/crm-types";
-import { SEED_OPPORTUNITIES } from "@/lib/crm-db";
 import { formatBRL, formatDateBR } from "@/lib/utils";
-
-const LS_KEY = "crm-opportunities-v3";
+import { supabase } from "@/lib/supabase-client";
 
 function daysUntil(d: string | null | undefined): number | null {
   if (!d) return null;
@@ -95,11 +93,12 @@ function OppDetailModal({
 
   useEffect(() => {
     setActLoading(true);
-    fetch(`/api/crm/activities?related_to_id=${opp.opportunity_id}&related_to_type=opportunity`)
-      .then(r => r.json())
-      .then(res => { if (res.success) setActivities(res.data ?? []); })
-      .catch(() => undefined)
-      .finally(() => setActLoading(false));
+    void supabase.from("crm_activities")
+      .select("*")
+      .eq("related_to_type", "opportunity")
+      .eq("related_to_id", opp.opportunity_id)
+      .order("created_at", { ascending: false })
+      .then(({ data }) => { setActivities((data ?? []) as CrmActivity[]); setActLoading(false); }, () => { setActLoading(false); });
   }, [opp.opportunity_id]);
 
   function setField(field: string, value: string) {
@@ -130,42 +129,21 @@ function OppDetailModal({
     if (!actForm.subject.trim()) return;
     setActSaving(true);
     try {
-      const res = await fetch("/api/crm/activities", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "create",
-          activity_type: actForm.activity_type,
-          related_to_type: "opportunity",
-          related_to_id: opp.opportunity_id,
-          subject: actForm.subject.trim(),
-          description: actForm.description.trim() || null,
-          outcome: actForm.outcome || null,
-          scheduled_at: actForm.scheduled_at || null,
-          status: "completed",
-          created_by: opp.owner,
-        }),
-      });
-      const data = await res.json();
-      const newActivity: CrmActivity = data.success
-        ? data.data
-        : {
-            activity_id: crypto.randomUUID(),
-            activity_type: actForm.activity_type as CrmActivity["activity_type"],
-            related_to_type: "opportunity",
-            related_to_id: opp.opportunity_id,
-            subject: actForm.subject.trim(),
-            description: actForm.description.trim() || null,
-            outcome: actForm.outcome as CrmActivity["outcome"] || null,
-            duration_minutes: null,
-            scheduled_at: actForm.scheduled_at || null,
-            completed_at: new Date().toISOString(),
-            status: "completed",
-            created_by: opp.owner,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          };
-      setActivities(prev => [newActivity, ...prev]);
+      const { data: inserted, error } = await supabase.from("crm_activities").insert({
+        activity_type: actForm.activity_type,
+        related_to_type: "opportunity",
+        related_to_id: opp.opportunity_id,
+        subject: actForm.subject.trim(),
+        description: actForm.description.trim() || null,
+        outcome: actForm.outcome || null,
+        scheduled_at: actForm.scheduled_at || null,
+        completed_at: new Date().toISOString(),
+        status: "completed",
+        created_by: opp.owner,
+      }).select().single();
+      if (!error && inserted) {
+        setActivities(prev => [inserted as CrmActivity, ...prev]);
+      }
       setActForm({ activity_type: "call", subject: "", description: "", outcome: "", scheduled_at: new Date().toISOString().slice(0, 16) });
     } catch { /* ignore */ }
     setActSaving(false);
@@ -768,57 +746,25 @@ function PipelinePageInner() {
   const [activityCounts, setActivityCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(LS_KEY);
-      if (stored) {
-        setOpps(JSON.parse(stored));
-        setLoading(false);
-        return;
-      }
-    } catch { /* ignore */ }
-
-    fetch("/api/crm/pipeline")
-      .then(r => r.json())
-      .then(res => {
-        if (res.success) {
-          const all: CrmOpportunity[] = [
-            ...Object.values(res.data.byStage).flat() as CrmOpportunity[],
-            ...res.data.closedWon,
-            ...res.data.closedLost,
-          ];
-          persist(all);
-          setOpps(all);
-        } else {
-          setOpps(SEED_OPPORTUNITIES);
-        }
-      })
-      .catch(() => setOpps(SEED_OPPORTUNITIES))
-      .finally(() => setLoading(false));
+    void supabase.from("crm_opportunities").select("*").order("created_at", { ascending: false })
+      .then(({ data }) => { setOpps((data ?? []) as CrmOpportunity[]); setLoading(false); }, () => { setLoading(false); });
   }, []);
 
-  // Fetch activity counts for all opportunity cards
   useEffect(() => {
-    fetch("/api/crm/activities?related_to_type=opportunity")
-      .then(r => r.json())
-      .then(res => {
-        if (res.success && Array.isArray(res.data)) {
+    void supabase.from("crm_activities").select("related_to_id").eq("related_to_type", "opportunity")
+      .then(({ data }) => {
+        if (data) {
           const counts: Record<string, number> = {};
-          for (const act of res.data as CrmActivity[]) {
+          for (const act of data) {
             counts[act.related_to_id] = (counts[act.related_to_id] ?? 0) + 1;
           }
           setActivityCounts(counts);
         }
-      })
-      .catch(() => undefined);
+      }, () => undefined);
   }, []);
-
-  function persist(data: CrmOpportunity[]) {
-    try { localStorage.setItem(LS_KEY, JSON.stringify(data)); } catch { /* ignore */ }
-  }
 
   function updateOpps(next: CrmOpportunity[]) {
     setOpps(next);
-    persist(next);
   }
 
   function showToast(msg: string, ok: boolean) {
@@ -856,11 +802,10 @@ function PipelinePageInner() {
     updateOpps(next);
     showToast(`Movido para ${STAGE_LABELS[toStage as keyof typeof STAGE_LABELS] ?? toStage}`, true);
 
-    fetch("/api/crm/opportunities", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "update", opportunity_id: id, stage: toStage }),
-    }).catch(() => undefined);
+    supabase.from("crm_opportunities").update({
+      stage: toStage,
+      probability: STAGE_PROBABILITY[toStage as keyof typeof STAGE_PROBABILITY] ?? 25,
+    }).eq("opportunity_id", id).then(() => undefined);
   }
 
   function handleSaveEdit(updated: CrmOpportunity) {
@@ -869,11 +814,17 @@ function PipelinePageInner() {
     setEditingOpp(null);
     showToast("Oportunidade atualizada", true);
 
-    fetch("/api/crm/opportunities", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "update", ...updated }),
-    }).catch(() => undefined);
+    supabase.from("crm_opportunities").update({
+      opportunity_name: updated.opportunity_name,
+      bu: updated.bu,
+      owner: updated.owner,
+      stage: updated.stage,
+      probability: updated.probability,
+      deal_value: updated.deal_value,
+      expected_close_date: updated.expected_close_date,
+      proposal_sent_date: updated.proposal_sent_date,
+      lost_reason: updated.lost_reason,
+    }).eq("opportunity_id", updated.opportunity_id).then(() => undefined);
   }
 
   function handleDelete(opp: CrmOpportunity) {
@@ -882,11 +833,7 @@ function PipelinePageInner() {
     setEditingOpp(null);
     showToast("Oportunidade apagada", true);
 
-    fetch("/api/crm/opportunities", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "delete", opportunity_id: opp.opportunity_id }),
-    }).catch(() => undefined);
+    supabase.from("crm_opportunities").delete().eq("opportunity_id", opp.opportunity_id).then(() => undefined);
   }
 
   const openOpps = opps.filter(o => o.stage !== "closed_won" && o.stage !== "closed_lost");
