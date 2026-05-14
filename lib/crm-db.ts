@@ -15,10 +15,147 @@ export {
 } from "@/lib/crm-seeds";
 
 // ─── Schema Bootstrap ─────────────────────────────────────────────────────────
+// Standalone — FK refs to EPM tables (customers, accounts_receivable) use TEXT.
 export async function initCrmDB(): Promise<void> {
   if (!sql) return;
-  // Tables are created via awq_crm_full_schema.sql run once in Neon.
-  // This function is a no-op placeholder kept for API route parity.
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS crm_accounts (
+      account_id               TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      account_code             TEXT        UNIQUE,
+      account_name             TEXT        NOT NULL,
+      trade_name               TEXT,
+      document_number          TEXT        UNIQUE,
+      industry                 TEXT,
+      company_size             TEXT,
+      annual_revenue_estimate  NUMERIC(15,2),
+      website                  TEXT,
+      linkedin_url             TEXT,
+      address_street           TEXT,
+      address_city             TEXT,
+      address_state            TEXT,
+      address_zip              TEXT,
+      account_type             TEXT        NOT NULL DEFAULT 'prospect',
+      owner                    TEXT        NOT NULL DEFAULT 'Miguel',
+      health_score             SMALLINT    NOT NULL DEFAULT 70,
+      churn_risk               TEXT        NOT NULL DEFAULT 'low',
+      renewal_date             DATE,
+      epm_customer_id          TEXT,
+      created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      created_by               TEXT
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS crm_contacts (
+      contact_id          TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      account_id          TEXT        REFERENCES crm_accounts(account_id) ON DELETE CASCADE,
+      full_name           TEXT        NOT NULL,
+      email               TEXT,
+      phone               TEXT,
+      mobile              TEXT,
+      job_title           TEXT,
+      department          TEXT,
+      seniority           TEXT        NOT NULL DEFAULT 'manager',
+      linkedin_url        TEXT,
+      is_primary_contact  BOOLEAN     NOT NULL DEFAULT FALSE,
+      contact_preferences TEXT[]      NOT NULL DEFAULT '{}',
+      created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_crm_contacts_account ON crm_contacts(account_id)`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS crm_leads (
+      lead_id                      TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      lead_source                  TEXT        NOT NULL DEFAULT 'manual',
+      company_name                 TEXT        NOT NULL,
+      contact_name                 TEXT        NOT NULL,
+      email                        TEXT,
+      phone                        TEXT,
+      job_title                    TEXT,
+      bu                           TEXT        NOT NULL DEFAULT 'JACQES',
+      lead_score                   SMALLINT    NOT NULL DEFAULT 0,
+      status                       TEXT        NOT NULL DEFAULT 'new',
+      qualification_notes          TEXT,
+      bant_budget                  NUMERIC(15,2),
+      bant_authority               BOOLEAN     NOT NULL DEFAULT FALSE,
+      bant_need                    TEXT,
+      bant_timeline                DATE,
+      assigned_to                  TEXT        NOT NULL DEFAULT 'Miguel',
+      converted_to_opportunity_id  TEXT,
+      converted_at                 TIMESTAMPTZ,
+      created_at                   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at                   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      created_by                   TEXT
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_crm_leads_status ON crm_leads(status)`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS crm_opportunities (
+      opportunity_id      TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      opportunity_code    TEXT        UNIQUE,
+      opportunity_name    TEXT        NOT NULL,
+      account_id          TEXT        REFERENCES crm_accounts(account_id) ON DELETE SET NULL,
+      contact_id          TEXT        REFERENCES crm_contacts(contact_id) ON DELETE SET NULL,
+      bu                  TEXT        NOT NULL,
+      stage               TEXT        NOT NULL DEFAULT 'discovery',
+      deal_value          NUMERIC(15,2) NOT NULL DEFAULT 0,
+      probability         SMALLINT    NOT NULL DEFAULT 25,
+      expected_close_date DATE,
+      actual_close_date   DATE,
+      lost_reason         TEXT,
+      lost_to_competitor  TEXT,
+      win_reason          TEXT,
+      owner               TEXT        NOT NULL DEFAULT 'Miguel',
+      proposal_sent_date  DATE,
+      proposal_viewed     BOOLEAN     NOT NULL DEFAULT FALSE,
+      proposal_accepted   BOOLEAN     NOT NULL DEFAULT FALSE,
+      synced_to_epm       BOOLEAN     NOT NULL DEFAULT FALSE,
+      epm_customer_id     TEXT,
+      epm_ar_id           TEXT,
+      created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      created_by          TEXT
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_crm_opps_stage   ON crm_opportunities(stage)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_crm_opps_account ON crm_opportunities(account_id)`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS crm_opportunity_stage_history (
+      history_id      TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      opportunity_id  TEXT        NOT NULL REFERENCES crm_opportunities(opportunity_id) ON DELETE CASCADE,
+      from_stage      TEXT,
+      to_stage        TEXT        NOT NULL,
+      changed_by      TEXT,
+      changed_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS crm_activities (
+      activity_id       TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      activity_type     TEXT        NOT NULL,
+      related_to_type   TEXT        NOT NULL,
+      related_to_id     TEXT        NOT NULL,
+      subject           TEXT        NOT NULL,
+      description       TEXT,
+      outcome           TEXT,
+      duration_minutes  INTEGER,
+      scheduled_at      TIMESTAMPTZ,
+      completed_at      TIMESTAMPTZ,
+      status            TEXT        NOT NULL DEFAULT 'scheduled',
+      assigned_to       TEXT        NOT NULL DEFAULT 'Miguel',
+      created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      created_by        TEXT
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_crm_act_related ON crm_activities(related_to_type, related_to_id)`;
 }
 
 // ─── Account CRUD ─────────────────────────────────────────────────────────────
