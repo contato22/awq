@@ -20,6 +20,7 @@ on:
     branches:
       - main
       - claude/consolidate-awq-platform-sMoN0
+      - claude/setup-supabase-auth-3R5xp
   pull_request:
     branches:
       - main
@@ -70,6 +71,9 @@ jobs:
         run: npm run build
         env:
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
       - name: Summary
         if: always()
@@ -87,5 +91,8 @@ jobs:
           echo "| ANTHROPIC_API_KEY | Claude — PDF text extraction pipeline | Yes |" >> $GITHUB_STEP_SUMMARY
           echo "| NEXTAUTH_SECRET | JWT signing key | Yes |" >> $GITHUB_STEP_SUMMARY
           echo "| NEXTAUTH_URL | https://awq-brown.vercel.app | Yes |" >> $GITHUB_STEP_SUMMARY
+          echo "| NEXT_PUBLIC_SUPABASE_URL | Supabase project URL | Yes |" >> $GITHUB_STEP_SUMMARY
+          echo "| NEXT_PUBLIC_SUPABASE_ANON_KEY | Supabase anon key (public) | Yes |" >> $GITHUB_STEP_SUMMARY
+          echo "| SUPABASE_SERVICE_ROLE_KEY | Supabase admin key (secret) | Yes |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Production URL**: https://awq-brown.vercel.app" >> $GITHUB_STEP_SUMMARY

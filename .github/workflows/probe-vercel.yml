@@ -221,6 +221,12 @@ jobs:
           DONE_COUNT=$(echo "$BODY"    | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('doneDocumentCount','null'))" 2>/dev/null || echo "null")
           TXN_COUNT=$(echo "$BODY"     | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('transactionCount','null'))" 2>/dev/null || echo "null")
           HAS_REAL=$(echo "$BODY"      | python3 -c "import json,sys; d=json.load(sys.stdin); print(str(d.get('hasRealData',False)).lower())" 2>/dev/null || echo "false")
+          SB_URL=$(echo "$BODY"        | python3 -c "import json,sys; d=json.load(sys.stdin); print(str(d.get('supabaseUrl',False)).lower())" 2>/dev/null || echo "false")
+          SB_ANON=$(echo "$BODY"       | python3 -c "import json,sys; d=json.load(sys.stdin); print(str(d.get('supabaseAnon',False)).lower())" 2>/dev/null || echo "false")
+          SB_SVC=$(echo "$BODY"        | python3 -c "import json,sys; d=json.load(sys.stdin); print(str(d.get('supabaseSvc',False)).lower())" 2>/dev/null || echo "false")
+          SB_PING=$(echo "$BODY"       | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('supabasePing','skipped'))" 2>/dev/null || echo "skipped")
+          SB_PING_MS=$(echo "$BODY"    | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('supabasePingMs','null'))" 2>/dev/null || echo "null")
+          SB_USERS=$(echo "$BODY"      | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('supabaseUserCount','null'))" 2>/dev/null || echo "null")
           echo "health_db=$DB"               >> $GITHUB_OUTPUT
           echo "health_blob=$BLOB"           >> $GITHUB_OUTPUT
           echo "health_ai=$AI"               >> $GITHUB_OUTPUT
@@ -232,6 +238,12 @@ jobs:
           echo "health_done_count=$DONE_COUNT"   >> $GITHUB_OUTPUT
           echo "health_txn_count=$TXN_COUNT"     >> $GITHUB_OUTPUT
           echo "health_has_real=$HAS_REAL"       >> $GITHUB_OUTPUT
+          echo "health_sb_url=$SB_URL"           >> $GITHUB_OUTPUT
+          echo "health_sb_anon=$SB_ANON"         >> $GITHUB_OUTPUT
+          echo "health_sb_svc=$SB_SVC"           >> $GITHUB_OUTPUT
+          echo "health_sb_ping=$SB_PING"         >> $GITHUB_OUTPUT
+          echo "health_sb_ping_ms=$SB_PING_MS"   >> $GITHUB_OUTPUT
+          echo "health_sb_users=$SB_USERS"       >> $GITHUB_OUTPUT
           echo ""
           echo "═══ Infrastructure Status ═══"
           echo "  DATABASE_URL          → db=$DB        (adapter: $DBADAPTER)"
@@ -239,6 +251,12 @@ jobs:
           echo "  ANTHROPIC_API_KEY     → ai=$AI"
           echo "  NEXTAUTH_SECRET       → auth=$AUTH"
           echo "  NEXTAUTH_URL          → authUrl=$AUTHURL"
+          echo "═══ Supabase Auth ════════════"
+          echo "  SUPABASE_URL          → $SB_URL"
+          echo "  SUPABASE_ANON_KEY     → $SB_ANON"
+          echo "  SUPABASE_SERVICE_ROLE → $SB_SVC"
+          echo "  supabasePing          → $SB_PING (${SB_PING_MS}ms)"
+          echo "  supabaseUserCount     → $SB_USERS"
           echo "═══ Real Data Counters ════"
           echo "  documentCount:     $DOC_COUNT"
           echo "  doneDocumentCount: $DONE_COUNT"
@@ -379,6 +397,44 @@ jobs:
             exit 1
           fi
 
+      # ── ASSERTION: Supabase Auth env vars + connectivity ─────────────────────
+      - name: "ASSERT — Supabase URL + keys configured (env vars present)"
+        id: assert_supabase_vars
+        continue-on-error: true
+        run: |
+          SB_URL="${{ steps.health_fetch.outputs.health_sb_url }}"
+          SB_ANON="${{ steps.health_fetch.outputs.health_sb_anon }}"
+          SB_SVC="${{ steps.health_fetch.outputs.health_sb_svc }}"
+          echo "supabaseUrl=$SB_URL  supabaseAnon=$SB_ANON  supabaseSvc=$SB_SVC"
+          if [ "$SB_URL" = "true" ] && [ "$SB_ANON" = "true" ] && [ "$SB_SVC" = "true" ]; then
+            echo "PASS: All three Supabase env vars are configured in Vercel"
+          else
+            echo "FAIL: One or more Supabase env vars missing"
+            echo "  NEXT_PUBLIC_SUPABASE_URL      → $SB_URL"
+            echo "  NEXT_PUBLIC_SUPABASE_ANON_KEY → $SB_ANON"
+            echo "  SUPABASE_SERVICE_ROLE_KEY      → $SB_SVC"
+            echo "Action: add missing vars to Vercel dashboard → Settings → Environment Variables"
+            exit 1
+          fi
+
+      - name: "ASSERT — Supabase Auth ping (admin listUsers reachable)"
+        id: assert_supabase_ping
+        continue-on-error: true
+        run: |
+          SB_PING="${{ steps.health_fetch.outputs.health_sb_ping }}"
+          SB_MS="${{ steps.health_fetch.outputs.health_sb_ping_ms }}"
+          SB_USERS="${{ steps.health_fetch.outputs.health_sb_users }}"
+          echo "supabasePing=$SB_PING  pingMs=${SB_MS}ms  userCount=$SB_USERS"
+          if [ "$SB_PING" = "ok" ]; then
+            echo "PASS: Supabase Auth is reachable (${SB_MS}ms) — $SB_USERS user(s) registered"
+          elif [ "$SB_PING" = "skipped" ]; then
+            echo "FAIL: Supabase ping skipped — env vars not configured"
+            exit 1
+          else
+            echo "FAIL: Supabase Auth not reachable — check SUPABASE_SERVICE_ROLE_KEY and project status"
+            exit 1
+          fi
+
       # ── Summary ────────────────────────────────────────────────────────────────
       - name: Summary
         if: always()
@@ -416,7 +472,17 @@ jobs:
           echo "| ANTHROPIC_API_KEY | ${{ steps.health_fetch.outputs.health_ai }} | — | ${{ steps.assert_ai.conclusion }} |" >> $GITHUB_STEP_SUMMARY
           echo "| NEXTAUTH_SECRET | ${{ steps.health_fetch.outputs.health_auth }} | — | ${{ steps.assert_nextauth.conclusion }} |" >> $GITHUB_STEP_SUMMARY
           echo "| NEXTAUTH_URL | ${{ steps.health_fetch.outputs.health_authurl }} | — | ${{ steps.assert_authurl.conclusion }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| NEXT_PUBLIC_SUPABASE_URL | ${{ steps.health_fetch.outputs.health_sb_url }} | — | ${{ steps.assert_supabase_vars.conclusion }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| NEXT_PUBLIC_SUPABASE_ANON_KEY | ${{ steps.health_fetch.outputs.health_sb_anon }} | — | ${{ steps.assert_supabase_vars.conclusion }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| SUPABASE_SERVICE_ROLE_KEY | ${{ steps.health_fetch.outputs.health_sb_svc }} | — | ${{ steps.assert_supabase_vars.conclusion }} |" >> $GITHUB_STEP_SUMMARY
           echo "| /api/health HTTP | ${{ steps.health_fetch.outputs.health_status }} | — | ${{ steps.health_fetch.conclusion }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Supabase Auth Connectivity" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Value | Step conclusion |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| Auth ping (admin listUsers) | ${{ steps.health_fetch.outputs.health_sb_ping }} (${{ steps.health_fetch.outputs.health_sb_ping_ms }}ms) | ${{ steps.assert_supabase_ping.conclusion }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Registered users count | ${{ steps.health_fetch.outputs.health_sb_users }} | — |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### DB Connectivity (Neon)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
