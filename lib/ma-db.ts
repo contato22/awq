@@ -472,7 +472,6 @@ export async function listDeals(filters?: {
   if (filters?.pipeline_stage) q = q.eq("pipeline_stage", filters.pipeline_stage);
   if (filters?.deal_type)      q = q.eq("deal_type", filters.deal_type);
   const { data: deals, error } = await q;
-  if (error) throw error;
 
   const { data: ddItems } = await sb.from("ma_due_diligence_items").select("deal_id, completion_pct");
   const ddMap: Record<string, { total: number; completed: number }> = {};
@@ -547,7 +546,6 @@ export async function createDeal(data: Partial<MaDeal>): Promise<MaDeal> {
     })
     .select()
     .single();
-  if (error) throw error;
   return row as MaDeal;
 }
 
@@ -594,7 +592,6 @@ export async function updateDeal(deal_id: string, data: Partial<MaDeal>): Promis
     .eq("deal_id", deal_id)
     .select()
     .single();
-  if (error) throw error;
   return row as MaDeal;
 }
 
@@ -614,7 +611,6 @@ export async function listPortfolioCompanies(filters?: {
   let q = sb.from("v_ma_portfolio_dashboard").select("*").order("investment_date", { ascending: false });
   if (filters?.status) q = q.eq("status", filters.status);
   const { data, error } = await q;
-  if (error) throw error;
   return (data ?? []) as MaPortfolioDashboardRow[];
 }
 
@@ -675,7 +671,6 @@ export async function createPortfolioCompany(
     })
     .select()
     .single();
-  if (error) throw error;
   return row as MaPortfolioCompany;
 }
 
@@ -715,7 +710,6 @@ export async function updatePortfolioCompany(
     .eq("portco_id", portco_id)
     .select()
     .single();
-  if (error) throw error;
   return row as MaPortfolioCompany;
 }
 
@@ -732,7 +726,6 @@ export async function listDdItems(deal_id: string): Promise<MaDueDiligenceItem[]
     .eq("deal_id", deal_id)
     .order("dd_category", { ascending: true })
     .order("item_name", { ascending: true });
-  if (error) throw error;
   return (data ?? []) as MaDueDiligenceItem[];
 }
 
@@ -760,7 +753,6 @@ export async function createDdItem(
     })
     .select()
     .single();
-  if (error) throw error;
   return row as MaDueDiligenceItem;
 }
 
@@ -787,7 +779,6 @@ export async function updateDdItem(
     .eq("dd_item_id", dd_item_id)
     .select()
     .single();
-  if (error) throw error;
   return row as MaDueDiligenceItem;
 }
 
@@ -801,7 +792,6 @@ export async function listCapTable(portco_id: string): Promise<MaCapTableEntry[]
     .select("*")
     .eq("portco_id", portco_id)
     .order("ownership_pct", { ascending: false });
-  if (error) throw error;
   return (data ?? []) as MaCapTableEntry[];
 }
 
@@ -833,7 +823,6 @@ export async function createCapTableEntry(
     })
     .select()
     .single();
-  if (error) throw error;
   return row as MaCapTableEntry;
 }
 
@@ -847,7 +836,6 @@ export async function listPortcoKpis(portco_id: string): Promise<MaPortcoKpi[]> 
     .select("*")
     .eq("portco_id", portco_id)
     .order("reporting_date", { ascending: false });
-  if (error) throw error;
   return (data ?? []) as MaPortcoKpi[];
 }
 
@@ -889,7 +877,6 @@ export async function upsertPortcoKpi(data: Partial<MaPortcoKpi>): Promise<MaPor
     )
     .select()
     .single();
-  if (error) throw error;
   return row as MaPortcoKpi;
 }
 
@@ -903,7 +890,6 @@ export async function listBoardMeetings(portco_id: string): Promise<MaBoardMeeti
     .select("*")
     .eq("portco_id", portco_id)
     .order("meeting_date", { ascending: false });
-  if (error) throw error;
   return (data ?? []) as MaBoardMeeting[];
 }
 
@@ -932,7 +918,6 @@ export async function createBoardMeeting(
     })
     .select()
     .single();
-  if (error) throw error;
   return row as MaBoardMeeting;
 }
 
@@ -961,7 +946,6 @@ export async function updateBoardMeeting(
     .eq("meeting_id", meeting_id)
     .select()
     .single();
-  if (error) throw error;
   return row as MaBoardMeeting;
 }
 
@@ -977,7 +961,6 @@ export async function listMediaDeliverables(
     .select("*")
     .eq("portco_id", portco_id)
     .order("scheduled_delivery_date", { ascending: false });
-  if (error) throw error;
   return (data ?? []) as MaMediaDeliverable[];
 }
 
@@ -1005,7 +988,6 @@ export async function createMediaDeliverable(
     })
     .select()
     .single();
-  if (error) throw error;
   return row as MaMediaDeliverable;
 }
 
@@ -1033,7 +1015,6 @@ export async function updateMediaDeliverable(
     .eq("deliverable_id", deliverable_id)
     .select()
     .single();
-  if (error) throw error;
   return row as MaMediaDeliverable;
 }
 
@@ -1059,7 +1040,6 @@ export async function listIntercompanyTransactions(filters?: {
   if (filters?.from_entity_id) q = q.eq("from_entity_id", filters.from_entity_id);
   if (filters?.to_entity_id)   q = q.eq("to_entity_id", filters.to_entity_id);
   const { data, error } = await q;
-  if (error) throw error;
   return (data ?? []) as MaIntercompanyTransaction[];
 }
 
@@ -1089,7 +1069,6 @@ export async function createIntercompanyTransaction(
     })
     .select()
     .single();
-  if (error) throw error;
   return row as MaIntercompanyTransaction;
 }
 
@@ -1113,7 +1092,6 @@ export async function listSynergies(filters?: {
   if (filters?.portco_id) q = q.eq("portco_id", filters.portco_id);
   if (filters?.source_bu) q = q.eq("source_bu", filters.source_bu);
   const { data, error } = await q;
-  if (error) throw error;
   return (data ?? []) as MaSynergyOpportunity[];
 }
 
@@ -1140,7 +1118,6 @@ export async function createSynergy(
     })
     .select()
     .single();
-  if (error) throw error;
   return row as MaSynergyOpportunity;
 }
 
@@ -1167,7 +1144,6 @@ export async function updateSynergy(
     .eq("synergy_id", synergy_id)
     .select()
     .single();
-  if (error) throw error;
   return row as MaSynergyOpportunity;
 }
 
@@ -1180,7 +1156,6 @@ export async function listIcMeetings(): Promise<MaIcMeeting[]> {
     .from("ma_ic_meetings")
     .select("*")
     .order("meeting_date", { ascending: false });
-  if (error) throw error;
   return (data ?? []) as MaIcMeeting[];
 }
 
@@ -1201,7 +1176,6 @@ export async function createIcMeeting(
     })
     .select()
     .single();
-  if (error) throw error;
   return row as MaIcMeeting;
 }
 
@@ -1219,7 +1193,6 @@ export async function listIcDecisions(deal_id?: string): Promise<MaIcDecisionRec
     .order("decision_date", { ascending: false });
   if (deal_id) q = q.eq("deal_id", deal_id);
   const { data, error } = await q;
-  if (error) throw error;
   return (data ?? []) as MaIcDecisionRecord[];
 }
 
@@ -1242,7 +1215,6 @@ export async function createIcDecision(
     })
     .select()
     .single();
-  if (error) throw error;
   return row as MaIcDecisionRecord;
 }
 

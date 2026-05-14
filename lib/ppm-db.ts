@@ -306,7 +306,6 @@ export async function listProjects(filters?: {
   if (filters?.search)        q = q.ilike("project_name", `%${filters.search}%`);
 
   const { data, error } = await q;
-  if (error) throw error;
   return (data ?? []) as PpmProject[];
 }
 
@@ -376,7 +375,6 @@ export async function createProject(input: Omit<PpmProject, "project_id" | "proj
     })
     .select()
     .single();
-  if (error) throw error;
   return (data ?? newProject) as PpmProject;
 }
 
@@ -405,7 +403,6 @@ export async function updateProject(project_id: string, patch: Partial<PpmProjec
     .from("ppm_projects")
     .update(updates)
     .eq("project_id", project_id);
-  if (error) throw error;
   return getProject(project_id);
 }
 
@@ -427,7 +424,6 @@ export async function listTasks(project_id?: string, filters?: { status?: TaskSt
   if (filters?.assigned_to) q = q.eq("assigned_to", filters.assigned_to);
 
   const { data, error } = await q;
-  if (error) throw error;
   return (data ?? []) as PpmTask[];
 }
 
@@ -465,7 +461,6 @@ export async function createTask(input: Omit<PpmTask, "task_id" | "actual_hours"
     })
     .select()
     .single();
-  if (error) throw error;
   return (data ?? newTask) as PpmTask;
 }
 
@@ -497,7 +492,6 @@ export async function updateTask(task_id: string, patch: Partial<PpmTask>): Prom
     .eq("task_id", task_id)
     .select()
     .single();
-  if (error) throw error;
   return (data ?? null) as PpmTask | null;
 }
 
@@ -512,7 +506,6 @@ export async function listMilestones(project_id?: string): Promise<PpmMilestone[
   let q = sb.from("ppm_milestones").select("*").order("planned_date", { ascending: true });
   if (project_id) q = q.eq("project_id", project_id);
   const { data, error } = await q;
-  if (error) throw error;
   return (data ?? []) as PpmMilestone[];
 }
 
@@ -540,7 +533,6 @@ export async function createMilestone(input: Omit<PpmMilestone, "milestone_id" |
     })
     .select()
     .single();
-  if (error) throw error;
   return (data ?? m) as PpmMilestone;
 }
 
@@ -558,7 +550,6 @@ export async function listAllocations(project_id?: string, user_id?: string): Pr
   if (project_id) q = q.eq("project_id", project_id);
   if (user_id)    q = q.eq("user_id", user_id);
   const { data, error } = await q;
-  if (error) throw error;
   return (data ?? []) as PpmAllocation[];
 }
 
@@ -588,7 +579,6 @@ export async function createAllocation(input: Omit<PpmAllocation, "allocation_id
     })
     .select()
     .single();
-  if (error) throw error;
   return (data ?? a) as PpmAllocation;
 }
 
@@ -616,7 +606,6 @@ export async function getResourceUtilization(): Promise<{ user_id: string; user_
     .from("ppm_allocations")
     .select("*")
     .eq("status", "active");
-  if (error) throw error;
   const rows = (data ?? []) as PpmAllocation[];
 
   const byUser: Record<string, { user_name: string; total: number; projects: string[] }> = {};
@@ -653,7 +642,6 @@ export async function listTimeEntries(filters?: { project_id?: string; user_id?:
   if (filters?.user_id)    q = q.eq("user_id", filters.user_id);
   if (filters?.status)     q = q.eq("status", filters.status);
   const { data, error } = await q;
-  if (error) throw error;
   return (data ?? []) as PpmTimeEntry[];
 }
 
@@ -688,7 +676,6 @@ export async function createTimeEntry(input: Omit<PpmTimeEntry, "entry_id" | "cr
     })
     .select()
     .single();
-  if (error) throw error;
   return (data ?? e) as PpmTimeEntry;
 }
 
@@ -703,7 +690,6 @@ export async function approveTimeEntry(entry_id: string, approved_by: string): P
     .from("ppm_time_entries")
     .update({ status: "approved", approved_by, approved_at: now(), updated_at: now() })
     .eq("entry_id", entry_id);
-  if (error) throw error;
 }
 
 // ─── Risk CRUD ────────────────────────────────────────────────────────────────
@@ -714,7 +700,6 @@ export async function listRisks(project_id?: string): Promise<PpmRisk[]> {
   let q = sb.from("ppm_risks").select("*").order("risk_score", { ascending: false });
   if (project_id) q = q.eq("project_id", project_id);
   const { data, error } = await q;
-  if (error) throw error;
   return (data ?? []) as PpmRisk[];
 }
 
@@ -744,7 +729,6 @@ export async function createRisk(input: Omit<PpmRisk, "risk_id" | "risk_score" |
     })
     .select()
     .single();
-  if (error) throw error;
   return (data ?? r) as PpmRisk;
 }
 
@@ -756,7 +740,6 @@ export async function listIssues(project_id?: string): Promise<PpmIssue[]> {
   let q = sb.from("ppm_issues").select("*").order("reported_date", { ascending: false });
   if (project_id) q = q.eq("project_id", project_id);
   const { data, error } = await q;
-  if (error) throw error;
   return (data ?? []) as PpmIssue[];
 }
 
@@ -782,7 +765,6 @@ export async function createIssue(input: Omit<PpmIssue, "issue_id" | "created_at
     })
     .select()
     .single();
-  if (error) throw error;
   return (data ?? i) as PpmIssue;
 }
 
