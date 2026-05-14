@@ -2014,11 +2014,11 @@ SELECT
 
   ROUND(AVG(
     EXTRACT(EPOCH FROM (t.decided_at - t.assigned_at)) / 3600
-  ) FILTER (WHERE t.decided_at IS NOT NULL), 1)                              AS avg_time_hours,
+  ) FILTER (WHERE t.decided_at IS NOT NULL)::numeric, 1)                    AS avg_time_hours,
 
-  ROUND(PERCENTILE_CONT(0.5) WITHIN GROUP (
+  ROUND((PERCENTILE_CONT(0.5) WITHIN GROUP (
     ORDER BY EXTRACT(EPOCH FROM (t.decided_at - t.assigned_at)) / 3600
-  ) FILTER (WHERE t.decided_at IS NOT NULL), 1)                              AS median_time_hours
+  ) FILTER (WHERE t.decided_at IS NOT NULL))::numeric, 1)                   AS median_time_hours
 
 FROM process_definitions pd
 JOIN process_instances pi ON pd.process_def_id = pi.process_def_id
