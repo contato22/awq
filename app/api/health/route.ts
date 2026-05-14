@@ -18,6 +18,7 @@
 
 import { NextResponse } from "next/server";
 import { USE_DB, USE_BLOB, sql, initDB } from "@/lib/db";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export const runtime = "nodejs";
 // NOTE: "force-dynamic" removed — incompatible with output: "export" (static build).
@@ -26,11 +27,14 @@ export const runtime = "nodejs";
 export async function GET(): Promise<NextResponse> {
   // ── Presence flags (boolean only — no secret values) ──────────────────────
   const presence = {
-    db:      USE_DB,
-    blob:    USE_BLOB,
-    ai:      !!process.env.ANTHROPIC_API_KEY,
-    auth:    !!process.env.NEXTAUTH_SECRET,
-    authUrl: !!process.env.NEXTAUTH_URL,
+    db:           USE_DB,
+    blob:         USE_BLOB,
+    ai:           !!process.env.ANTHROPIC_API_KEY,
+    auth:         !!process.env.NEXTAUTH_SECRET,
+    authUrl:      !!process.env.NEXTAUTH_URL,
+    supabaseUrl:  !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+    supabaseAnon: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    supabaseSvc:  !!process.env.SUPABASE_SERVICE_ROLE_KEY,
     dbAdapter:   USE_DB   ? "neon-postgres"   : "filesystem-json",
     blobAdapter: USE_BLOB ? "vercel-blob"      : "local-filesystem",
   };
@@ -90,6 +94,30 @@ export async function GET(): Promise<NextResponse> {
     }
   }
 
+  // ── Supabase Auth connectivity ─────────────────────────────────────────────
+  let supabasePing: "ok" | "error" | "skipped" = "skipped";
+  let supabasePingMs: number | null = null;
+  let supabaseUserCount: number | null = null;
+
+  if (presence.supabaseUrl && presence.supabaseSvc) {
+    const t0 = Date.now();
+    try {
+      const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1 });
+      supabasePingMs = Date.now() - t0;
+      if (error) {
+        supabasePing = "error";
+      } else {
+        supabasePing = "ok";
+        // Full count requires a separate call; use total from pagination meta if available
+        const full = await supabaseAdmin.auth.admin.listUsers();
+        supabaseUserCount = full.data?.users?.length ?? data.users.length;
+      }
+    } catch {
+      supabasePing = "error";
+      supabasePingMs = Date.now() - t0;
+    }
+  }
+
   return NextResponse.json({
     // Env var presence
     ...presence,
@@ -98,9 +126,13 @@ export async function GET(): Promise<NextResponse> {
     dbPingMs,
     tablesExist,
     // Real data counters (null = DB unavailable)
-    documentCount,      // total docs in DB (0 = no PDFs uploaded yet)
-    doneDocumentCount,  // docs with status='done' (pipeline completed)
-    transactionCount,   // rows in bank_transactions (0 = no pipeline run)
-    hasRealData,        // true only when real pipeline ran end-to-end
+    documentCount,
+    doneDocumentCount,
+    transactionCount,
+    hasRealData,
+    // Supabase Auth
+    supabasePing,
+    supabasePingMs,
+    supabaseUserCount,
   });
 }

@@ -42,16 +42,10 @@ export default function LoginPage() {
 
     const res = await fetch("/api/auth/session");
     const session = await res.json();
-    const role = session?.user?.role;
 
-    const homeByRole: Record<string, string> = {
-      owner: "/awq",
-      admin: "/awq",
-      analyst: "/jacqes",
-      "cs-ops": "/csops",
-    };
-
-    router.push(homeByRole[role] ?? "/awq");
+    // homeRoute is set in the JWT by NextAuth from Supabase user_metadata / static registry
+    const homeRoute: string = session?.user?.homeRoute ?? "/awq";
+    router.push(homeRoute);
   };
 
   return (
