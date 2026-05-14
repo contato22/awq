@@ -3019,6 +3019,20 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- =============================================================================
+-- 0. USERS (shared identity table referenced by PPM FKs)
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS users (
+  user_id    UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  full_name  TEXT        NOT NULL,
+  email      TEXT        UNIQUE NOT NULL,
+  role       TEXT        NOT NULL DEFAULT 'member',
+  bu_code    TEXT,
+  active     BOOLEAN     NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- =============================================================================
 -- 1. PROJECTS
 -- =============================================================================
 
