@@ -271,32 +271,47 @@ let _risks:       PpmRisk[]       = [...SEED_RISKS];
 let _issues:      PpmIssue[]      = [...SEED_ISSUES];
 const _comments:  PpmComment[]    = [];
 
-// ─── Supabase seed guard ──────────────────────────────────────────────────────
+// ─── Supabase availability guard ─────────────────────────────────────────────
 
-let _sbSeeded = false;
+let _sbSeeded    = false;
+let _sbAvailable = !!supabase; // flips false on first network/auth failure
 
-async function ensureSeeded(): Promise<void> {
-  if (_sbSeeded || !supabase) return;
-  _sbSeeded = true; // set early to avoid double-seed on parallel calls
+/** Call before every Supabase operation. Returns false → use fallback. */
+async function sbReady(): Promise<boolean> {
+  if (!supabase || !_sbAvailable) return false;
 
-  try {
-    const { count } = await supabase
-      .from("ppm_projects")
-      .select("*", { count: "exact", head: true });
+  if (!_sbSeeded) {
+    _sbSeeded = true;
+    try {
+      const { count, error } = await supabase
+        .from("ppm_projects")
+        .select("*", { count: "exact", head: true });
 
-    if ((count ?? 0) > 0) return; // already has data
+      if (error) {
+        // Table missing or network blocked — disable Supabase for this process
+        _sbAvailable = false;
+        _sbSeeded = false;
+        return false;
+      }
 
-    // Seed all tables in dependency order
-    await supabase.from("ppm_projects").insert(SEED_PROJECTS);
-    await supabase.from("ppm_tasks").insert(SEED_TASKS);
-    await supabase.from("ppm_milestones").insert(SEED_MILESTONES);
-    await supabase.from("ppm_allocations").insert(SEED_ALLOCATIONS);
-    await supabase.from("ppm_time_entries").insert(SEED_TIME_ENTRIES);
-    await supabase.from("ppm_risks").insert(SEED_RISKS);
-    await supabase.from("ppm_issues").insert(SEED_ISSUES);
-  } catch {
-    _sbSeeded = false; // allow retry on next call if tables don't exist yet
+      if ((count ?? 0) === 0) {
+        // Tables exist but empty → seed
+        await supabase.from("ppm_projects").insert(SEED_PROJECTS);
+        await supabase.from("ppm_tasks").insert(SEED_TASKS);
+        await supabase.from("ppm_milestones").insert(SEED_MILESTONES);
+        await supabase.from("ppm_allocations").insert(SEED_ALLOCATIONS);
+        await supabase.from("ppm_time_entries").insert(SEED_TIME_ENTRIES);
+        await supabase.from("ppm_risks").insert(SEED_RISKS);
+        await supabase.from("ppm_issues").insert(SEED_ISSUES);
+      }
+    } catch {
+      _sbAvailable = false;
+      _sbSeeded = false;
+      return false;
+    }
   }
+
+  return true;
 }
 
 // ─── DB init ──────────────────────────────────────────────────────────────────
@@ -315,8 +330,7 @@ export async function listProjects(filters?: {
   project_type?: ProjectType;
   search?: string;
 }): Promise<PpmProject[]> {
-  if (supabase) {
-    await ensureSeeded();
+  if (await sbReady()) {
     let q = supabase.from("ppm_projects").select("*").order("created_at", { ascending: false });
     if (filters?.bu_code)       q = q.eq("bu_code", filters.bu_code);
     if (filters?.status)        q = q.eq("status", filters.status);
@@ -367,8 +381,7 @@ export async function listProjects(filters?: {
 }
 
 export async function getProject(project_id: string): Promise<PpmProject | null> {
-  if (supabase) {
-    await ensureSeeded();
+  if (await sbReady()) {
     const { data, error } = await supabase
       .from("ppm_projects")
       .select("*")
@@ -412,8 +425,7 @@ export async function createProject(input: Omit<PpmProject, "project_id" | "proj
     updated_at: now(),
   };
 
-  if (supabase) {
-    await ensureSeeded();
+  if (await sbReady()) {
     const { error } = await supabase.from("ppm_projects").insert(newProject);
     if (error) throw new Error(error.message);
     return newProject;
@@ -450,8 +462,7 @@ export async function createProject(input: Omit<PpmProject, "project_id" | "proj
 }
 
 export async function updateProject(project_id: string, patch: Partial<PpmProject>): Promise<PpmProject | null> {
-  if (supabase) {
-    await ensureSeeded();
+  if (await sbReady()) {
     const { error } = await supabase
       .from("ppm_projects")
       .update({ ...patch, updated_at: now() })
@@ -488,8 +499,7 @@ export async function updateProject(project_id: string, patch: Partial<PpmProjec
 // ─── Task CRUD ────────────────────────────────────────────────────────────────
 
 export async function listTasks(project_id?: string, filters?: { status?: TaskStatus; assigned_to?: string }): Promise<PpmTask[]> {
-  if (supabase) {
-    await ensureSeeded();
+  if (await sbReady()) {
     let q = supabase.from("ppm_tasks").select("*").order("sort_order", { ascending: true });
     if (project_id)           q = q.eq("project_id", project_id);
     if (filters?.status)      q = q.eq("status", filters.status);
@@ -529,8 +539,7 @@ export async function createTask(input: Omit<PpmTask, "task_id" | "actual_hours"
     updated_at: now(),
   };
 
-  if (supabase) {
-    await ensureSeeded();
+  if (await sbReady()) {
     const { error } = await supabase.from("ppm_tasks").insert(newTask);
     if (error) throw new Error(error.message);
     return newTask;
@@ -546,8 +555,7 @@ export async function createTask(input: Omit<PpmTask, "task_id" | "actual_hours"
 }
 
 export async function updateTask(task_id: string, patch: Partial<PpmTask>): Promise<PpmTask | null> {
-  if (supabase) {
-    await ensureSeeded();
+  if (await sbReady()) {
     const updates: Partial<PpmTask> = { ...patch, updated_at: now() };
     if (patch.status === "completed") {
       updates.completion_pct = 100;
@@ -592,8 +600,7 @@ export async function updateTask(task_id: string, patch: Partial<PpmTask>): Prom
 // ─── Milestone CRUD ───────────────────────────────────────────────────────────
 
 export async function listMilestones(project_id?: string): Promise<PpmMilestone[]> {
-  if (supabase) {
-    await ensureSeeded();
+  if (await sbReady()) {
     let q = supabase.from("ppm_milestones").select("*").order("planned_date", { ascending: true });
     if (project_id) q = q.eq("project_id", project_id);
     const { data, error } = await q;
@@ -620,8 +627,7 @@ export async function createMilestone(input: Omit<PpmMilestone, "milestone_id" |
   const milestone_id = randomUUID();
   const m: PpmMilestone = { ...input, milestone_id, created_at: now(), updated_at: now() };
 
-  if (supabase) {
-    await ensureSeeded();
+  if (await sbReady()) {
     const { error } = await supabase.from("ppm_milestones").insert(m);
     if (error) throw new Error(error.message);
     return m;
@@ -639,8 +645,7 @@ export async function createMilestone(input: Omit<PpmMilestone, "milestone_id" |
 // ─── Resource Allocation CRUD ─────────────────────────────────────────────────
 
 export async function listAllocations(project_id?: string, user_id?: string): Promise<PpmAllocation[]> {
-  if (supabase) {
-    await ensureSeeded();
+  if (await sbReady()) {
     let q = supabase.from("ppm_allocations").select("*");
     if (project_id) q = q.eq("project_id", project_id);
     if (user_id)    q = q.eq("user_id", user_id);
@@ -671,8 +676,7 @@ export async function createAllocation(input: Omit<PpmAllocation, "allocation_id
   const allocation_id = randomUUID();
   const a: PpmAllocation = { ...input, allocation_id, created_at: now(), updated_at: now() };
 
-  if (supabase) {
-    await ensureSeeded();
+  if (await sbReady()) {
     const { error } = await supabase.from("ppm_allocations").insert(a);
     if (error) throw new Error(error.message);
     return a;
@@ -688,8 +692,7 @@ export async function createAllocation(input: Omit<PpmAllocation, "allocation_id
 }
 
 export async function getResourceUtilization(): Promise<{ user_id: string; user_name: string; total_allocation_pct: number; utilization_status: string; active_projects: number; project_names: string[] }[]> {
-  if (supabase) {
-    await ensureSeeded();
+  if (await sbReady()) {
     const { data, error } = await supabase
       .from("ppm_allocations")
       .select("*")
@@ -736,8 +739,7 @@ export async function getResourceUtilization(): Promise<{ user_id: string; user_
 // ─── Time Entry CRUD ──────────────────────────────────────────────────────────
 
 export async function listTimeEntries(filters?: { project_id?: string; user_id?: string; status?: TimeEntryStatus }): Promise<PpmTimeEntry[]> {
-  if (supabase) {
-    await ensureSeeded();
+  if (await sbReady()) {
     let q = supabase.from("ppm_time_entries").select("*").order("entry_date", { ascending: false });
     if (filters?.project_id) q = q.eq("project_id", filters.project_id);
     if (filters?.user_id)    q = q.eq("user_id", filters.user_id);
@@ -773,8 +775,7 @@ export async function createTimeEntry(input: Omit<PpmTimeEntry, "entry_id" | "cr
   const entry_id = randomUUID();
   const e: PpmTimeEntry = { ...input, entry_id, created_at: now(), updated_at: now() };
 
-  if (supabase) {
-    await ensureSeeded();
+  if (await sbReady()) {
     const { error } = await supabase.from("ppm_time_entries").insert(e);
     if (error) throw new Error(error.message);
     // Update project actual_hours
@@ -802,7 +803,7 @@ export async function createTimeEntry(input: Omit<PpmTimeEntry, "entry_id" | "cr
 }
 
 export async function approveTimeEntry(entry_id: string, approved_by: string): Promise<void> {
-  if (supabase) {
+  if (await sbReady()) {
     const { error } = await supabase
       .from("ppm_time_entries")
       .update({ status: "approved", approved_by, approved_at: now(), updated_at: now() })
@@ -826,8 +827,7 @@ export async function approveTimeEntry(entry_id: string, approved_by: string): P
 // ─── Risk CRUD ────────────────────────────────────────────────────────────────
 
 export async function listRisks(project_id?: string): Promise<PpmRisk[]> {
-  if (supabase) {
-    await ensureSeeded();
+  if (await sbReady()) {
     let q = supabase.from("ppm_risks").select("*").order("risk_score", { ascending: false });
     if (project_id) q = q.eq("project_id", project_id);
     const { data, error } = await q;
@@ -853,8 +853,7 @@ export async function createRisk(input: Omit<PpmRisk, "risk_id" | "risk_score" |
   const risk_score = calcRiskScore(input.impact, input.probability);
   const r: PpmRisk = { ...input, risk_id, risk_score, created_at: now(), updated_at: now() };
 
-  if (supabase) {
-    await ensureSeeded();
+  if (await sbReady()) {
     const { error } = await supabase.from("ppm_risks").insert(r);
     if (error) throw new Error(error.message);
     return r;
@@ -872,8 +871,7 @@ export async function createRisk(input: Omit<PpmRisk, "risk_id" | "risk_score" |
 // ─── Issue CRUD ───────────────────────────────────────────────────────────────
 
 export async function listIssues(project_id?: string): Promise<PpmIssue[]> {
-  if (supabase) {
-    await ensureSeeded();
+  if (await sbReady()) {
     let q = supabase.from("ppm_issues").select("*").order("reported_date", { ascending: false });
     if (project_id) q = q.eq("project_id", project_id);
     const { data, error } = await q;
@@ -899,8 +897,7 @@ export async function createIssue(input: Omit<PpmIssue, "issue_id" | "created_at
   const issue_id = randomUUID();
   const i: PpmIssue = { ...input, issue_id, created_at: now(), updated_at: now() };
 
-  if (supabase) {
-    await ensureSeeded();
+  if (await sbReady()) {
     const { error } = await supabase.from("ppm_issues").insert(i);
     if (error) throw new Error(error.message);
     return i;
@@ -946,7 +943,7 @@ export async function getPortfolioMetrics(): Promise<PpmPortfolioMetrics> {
 // ─── Comments ─────────────────────────────────────────────────────────────────
 
 export async function listComments(projectId?: string, taskId?: string): Promise<PpmComment[]> {
-  if (supabase) {
+  if (await sbReady()) {
     let q = supabase.from("ppm_comments").select("*").order("created_at", { ascending: true });
     if (taskId)    q = q.eq("task_id", taskId);
     else if (projectId) q = q.eq("project_id", projectId);
@@ -968,7 +965,7 @@ export async function createComment(data: Omit<PpmComment, "comment_id" | "creat
     updated_at: now(),
   };
 
-  if (supabase) {
+  if (await sbReady()) {
     const { error } = await supabase.from("ppm_comments").insert(comment);
     if (error) throw new Error(error.message);
     return comment;
@@ -979,7 +976,7 @@ export async function createComment(data: Omit<PpmComment, "comment_id" | "creat
 }
 
 export async function deleteComment(commentId: string): Promise<boolean> {
-  if (supabase) {
+  if (await sbReady()) {
     const { error } = await supabase
       .from("ppm_comments")
       .delete()
