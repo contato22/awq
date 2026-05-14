@@ -13,12 +13,7 @@ import {
 } from "lucide-react";
 import type { CrmAccount, CrmContact, CrmOpportunity, CrmActivity } from "@/lib/crm-types";
 import { formatBRL, formatDateBR } from "@/lib/utils";
-
-const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
-
-function lsGet<T>(key: string): T[] {
-  try { return JSON.parse(localStorage.getItem(key) ?? "[]"); } catch { return []; }
-}
+import { supabase } from "@/lib/supabase-client";
 
 const STAGE_COLORS: Record<string, string> = {
   discovery:"bg-blue-100 text-blue-700", qualification:"bg-violet-100 text-violet-700",
@@ -48,38 +43,17 @@ export default function AccountDetailClient() {
 
   useEffect(() => {
     if (!id) return;
-
-    function loadFromLocalStorage() {
-      const lsOpps = lsGet<CrmOpportunity>("crm-opportunities-v3").filter(o => o.account_id === id);
-      const oppIds = new Set(lsOpps.map(o => o.opportunity_id));
-      setAccount(lsGet<CrmAccount>("awq_crm_accounts").find(a => a.account_id === id) ?? null);
-      setContacts(lsGet<CrmContact>("awq_local_contacts").filter(c => c.account_id === id));
-      setOpps(lsOpps);
-      setActivities(lsGet<CrmActivity>("awq_crm_activities").filter(a =>
-        (a.related_to_type === "account"     && a.related_to_id === id) ||
-        (a.related_to_type === "opportunity" && oppIds.has(a.related_to_id))
-      ));
-    }
-
-    if (IS_STATIC) {
-      loadFromLocalStorage();
-      setLoading(false);
-      return;
-    }
-
-    fetch(`/api/crm/accounts?id=${id}`)
-      .then(r => r.json())
-      .then(res => {
-        if (res.success && res.data.account) {
-          setAccount(res.data.account);
-          setContacts(res.data.contacts ?? []);
-          setOpps(res.data.opportunities ?? []);
-          setActivities(res.data.activities ?? []);
-        } else {
-          loadFromLocalStorage();
-        }
-      })
-      .catch(() => loadFromLocalStorage())
+    Promise.all([
+      supabase.from("crm_accounts").select("*").eq("account_id", id).single(),
+      supabase.from("crm_contacts").select("*").eq("account_id", id).order("full_name"),
+      supabase.from("crm_opportunities").select("*").eq("account_id", id).order("created_at", { ascending: false }),
+      supabase.from("crm_activities").select("*").or(`related_to_id.eq.${id}`).eq("related_to_type", "account").order("created_at", { ascending: false }),
+    ]).then(([accRes, conRes, oppRes, actRes]) => {
+      setAccount((accRes.data ?? null) as CrmAccount | null);
+      setContacts((conRes.data ?? []) as CrmContact[]);
+      setOpps((oppRes.data ?? []) as CrmOpportunity[]);
+      setActivities((actRes.data ?? []) as CrmActivity[]);
+    }).catch(() => undefined)
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -199,7 +173,7 @@ export default function AccountDetailClient() {
                 }`} style={{ width: `${account.health_score}%` }} />
               </div>
               <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
-                <span>Churn Risk: <span className={`font-medium ${account.churn_risk === "high" ? "text-red-600" : account.churn_risk === "medium" ? "text-amber-600" : "text-emerald-600"}`}>{{"low":"Baixo","medium":"Médio","high":"Alto"}[account.churn_risk] ?? account.churn_risk}</span></span>
+                <span>Churn Risk: <span className={`font-medium ${account.churn_risk === "high" ? "text-red-600" : account.churn_risk === "medium" ? "text-amber-600" : "text-emerald-600"}`}>{"low":"Baixo","medium":"Médio","high":"Alto"}[account.churn_risk] ?? account.churn_risk}</span></span>
                 {account.renewal_date && <span>Renova: {formatDateBR(account.renewal_date)}</span>}
               </div>
             </div>
