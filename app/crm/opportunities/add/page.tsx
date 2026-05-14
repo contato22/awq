@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
 import { STAGE_LABELS, STAGE_PROBABILITY, BU_OPTIONS, OWNER_OPTIONS } from "@/lib/crm-types";
 import type { CrmAccount } from "@/lib/crm-types";
-import { SEED_ACCOUNTS } from "@/lib/crm-db";
+import { supabase } from "@/lib/supabase-client";
 
 const ACTIVE_STAGES = ["discovery","qualification","proposal","negotiation","closed_won","closed_lost"] as const;
 
@@ -32,10 +32,8 @@ function AddOpportunityPageInner() {
   });
 
   useEffect(() => {
-    fetch("/api/crm/accounts")
-      .then(r => r.json())
-      .then(res => setAccounts(res.success ? res.data : SEED_ACCOUNTS))
-      .catch(() => setAccounts(SEED_ACCOUNTS));
+    supabase.from("crm_accounts").select("account_id, account_name, trade_name").order("account_name")
+      .then(({ data }) => setAccounts((data ?? []) as CrmAccount[]));
   }, []);
 
   function set(field: string, value: string) {
@@ -51,74 +49,26 @@ function AddOpportunityPageInner() {
     setSaving(true);
     setError("");
 
-    const payload = {
-      action: "create",
-      opportunity_name: form.opportunity_name.trim(),
-      bu: form.bu,
-      owner: form.owner,
-      stage: form.stage,
-      deal_value: parseFloat(form.deal_value) || 0,
-      expected_close_date: form.expected_close_date || null,
-      account_id: form.account_id || null,
-      lost_reason: form.lost_reason || null,
-      proposal_sent_date: form.proposal_sent_date || null,
-    };
-
-    const isStaticExport = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
-    let saved = false;
-    let apiError: string | null = null;
-
-    if (!isStaticExport) {
-      try {
-        const res = await fetch("/api/crm/opportunities", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        let json: { success: boolean; error?: string } | null = null;
-        try { json = await res.json(); } catch { /* non-JSON response */ }
-        if (json?.success) {
-          saved = true;
-        } else if (json && res.status >= 400 && res.status < 500) {
-          apiError = json.error ?? "Erro ao criar oportunidade";
-        }
-      } catch { /* network error — fall through to localStorage */ }
-    }
-
-    if (apiError) {
-      setError(apiError);
+    try {
+      const { error: err } = await supabase.from("crm_opportunities").insert({
+        opportunity_name: form.opportunity_name.trim(),
+        bu: form.bu,
+        owner: form.owner,
+        stage: form.stage,
+        probability,
+        deal_value: parseFloat(form.deal_value) || 0,
+        expected_close_date: form.expected_close_date || null,
+        account_id: form.account_id || null,
+        lost_reason: form.lost_reason || null,
+        proposal_sent_date: form.proposal_sent_date || null,
+        created_by: form.owner,
+      });
+      if (err) throw new Error(err.message);
+      router.push("/crm/opportunities");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao criar oportunidade");
       setSaving(false);
-      return;
     }
-
-    if (!saved) {
-      const now = new Date().toISOString();
-      const localOpp = {
-        opportunity_id: `local-${Date.now()}`,
-        opportunity_name: payload.opportunity_name,
-        bu: payload.bu,
-        owner: payload.owner,
-        stage: payload.stage,
-        deal_value: payload.deal_value,
-        expected_close_date: payload.expected_close_date,
-        account_id: payload.account_id,
-        lost_reason: payload.lost_reason,
-        proposal_sent_date: payload.proposal_sent_date,
-        contact_id: null,
-        win_reason: null,
-        synced_to_epm: false,
-        created_at: now,
-        updated_at: now,
-        created_by: payload.owner,
-      };
-      try {
-        const stored = JSON.parse(localStorage.getItem("crm-opportunities-v3") ?? "[]");
-        localStorage.setItem("crm-opportunities-v3", JSON.stringify([localOpp, ...stored]));
-      } catch { /* ignore storage errors */ }
-    }
-
-    setSaving(false);
-    router.push("/crm/opportunities");
   }
 
   return (
@@ -133,7 +83,6 @@ function AddOpportunityPageInner() {
             </div>
           )}
 
-          {/* Informações Básicas */}
           <div className="card p-5 space-y-4">
             <h2 className="text-sm font-semibold text-gray-900">Informações Básicas</h2>
 
@@ -166,12 +115,11 @@ function AddOpportunityPageInner() {
               <select value={form.account_id} onChange={e => set("account_id", e.target.value)}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30">
                 <option value="">— Selecionar conta —</option>
-                {accounts.map(a => <option key={a.account_id} value={a.account_id}>{a.account_name}</option>)}
+                {accounts.map(a => <option key={a.account_id} value={a.account_id}>{a.trade_name ?? a.account_name}</option>)}
               </select>
             </div>
           </div>
 
-          {/* Estágio & Valores */}
           <div className="card p-5 space-y-4">
             <h2 className="text-sm font-semibold text-gray-900">Estágio & Valores</h2>
 
@@ -224,7 +172,6 @@ function AddOpportunityPageInner() {
             )}
           </div>
 
-          {/* Actions */}
           <div className="flex gap-3">
             <button type="button" onClick={() => router.back()}
               className="flex-1 py-2.5 border border-gray-300 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-50 transition-colors">
