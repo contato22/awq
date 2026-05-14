@@ -15,7 +15,7 @@
 //   • Complements /awq/conciliacao: provides quick manual balance tracking; ingest provides
 //     the canonical document-backed financial database
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
 import {
@@ -47,10 +47,6 @@ interface BankAccount {
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-
-// localStorage key for this page's local account data.
-// This is intentionally separate from public/data/financial/* (the canonical store).
-const LS_KEY = "awq_bank_accounts";
 
 const BANK_GROUPS: { label: string; banks: string[] }[] = [
   {
@@ -119,14 +115,11 @@ function fmtDate(s: string) {
   return `${d}/${m}/${y}`;
 }
 
-function uid() {
-  return Math.random().toString(36).slice(2) + Date.now().toString(36);
-}
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function BankAccountsPage() {
   const [accounts, setAccounts]     = useState<BankAccount[]>([]);
+  const [loading, setLoading]       = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [search, setSearch]         = useState("");
@@ -135,40 +128,67 @@ export default function BankAccountsPage() {
   const [newName, setNewName]       = useState("");
   const [newBalance, setNewBalance] = useState("");
 
-  // ── Load from localStorage ───────────────────────────────────────────────
+  // ── Load from API ────────────────────────────────────────────────────────
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(LS_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as BankAccount[];
-        setAccounts(parsed);
-        if (parsed.length > 0) setSelectedId(parsed[0].id);
+    Promise.all([
+      fetch("/api/bank/accounts").then(r => r.json()),
+      fetch("/api/bank/transactions").then(r => r.json()),
+    ]).then(([accData, txData]) => {
+      const accts = (accData.data ?? []) as Array<{
+        id: string; bank: string; name: string; color: string;
+        current_balance: number; last_updated: string | null;
+      }>;
+      const txs = (txData.data ?? []) as Array<{
+        id: string; account_id: string; tx_date: string | null;
+        description: string; amount: number; category: string; balance: number | null;
+      }>;
+      const txByAccount = new Map<string, BankTransaction[]>();
+      for (const tx of txs) {
+        if (!txByAccount.has(tx.account_id)) txByAccount.set(tx.account_id, []);
+        txByAccount.get(tx.account_id)!.push({
+          id: tx.id, date: tx.tx_date ?? "", description: tx.description,
+          amount: tx.amount, category: tx.category, balance: tx.balance ?? undefined,
+        });
       }
-    } catch { /* ignore */ }
-  }, []);
-
-  // ── Persist to localStorage ──────────────────────────────────────────────
-  const save = useCallback((updated: BankAccount[]) => {
-    setAccounts(updated);
-    try { localStorage.setItem(LS_KEY, JSON.stringify(updated)); } catch { /* ignore */ }
+      const built: BankAccount[] = accts.map(a => ({
+        id: a.id, bank: a.bank, name: a.name,
+        color: a.color || BANK_COLOR[a.bank] || "bg-gray-500",
+        currentBalance: a.current_balance,
+        lastUpdated: a.last_updated ?? "",
+        transactions: txByAccount.get(a.id) ?? [],
+      }));
+      setAccounts(built);
+      if (built.length > 0) setSelectedId(built[0].id);
+      setLoading(false);
+    }).catch(() => setLoading(false));
   }, []);
 
   const selected = accounts.find((a) => a.id === selectedId) ?? null;
 
   // ── Add account ──────────────────────────────────────────────────────────
-  function handleAddAccount() {
+  async function handleAddAccount() {
     if (!newName.trim()) return;
+    const res = await fetch("/api/bank/accounts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        bank: newBank,
+        name: newName.trim(),
+        color: BANK_COLOR[newBank] ?? "bg-gray-500",
+        current_balance: parseFloat(newBalance) || 0,
+        last_updated: new Date().toISOString().slice(0, 10),
+      }),
+    });
+    const j = await res.json();
+    const row = j.data;
     const acct: BankAccount = {
-      id: uid(),
-      bank: newBank,
-      name: newName.trim(),
-      color: BANK_COLOR[newBank] ?? "bg-gray-500",
-      currentBalance: parseFloat(newBalance) || 0,
-      lastUpdated: new Date().toISOString().slice(0, 10),
+      id: row.id, bank: row.bank, name: row.name,
+      color: row.color || BANK_COLOR[row.bank] || "bg-gray-500",
+      currentBalance: row.current_balance,
+      lastUpdated: row.last_updated ?? "",
       transactions: [],
     };
-    const updated = [...accounts, acct];
-    save(updated);
+    setAccounts(p => [...p, acct]);
     setSelectedId(acct.id);
     setNewBank("Cora");
     setNewName("");
@@ -177,9 +197,14 @@ export default function BankAccountsPage() {
   }
 
   // ── Delete account ───────────────────────────────────────────────────────
-  function handleDelete(id: string) {
+  async function handleDelete(id: string) {
+    await fetch("/api/bank/accounts", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
     const updated = accounts.filter((a) => a.id !== id);
-    save(updated);
+    setAccounts(updated);
     setSelectedId(updated[0]?.id ?? null);
   }
 
@@ -203,9 +228,11 @@ export default function BankAccountsPage() {
     <>
       <Header
         title="Contas de Banco"
-        subtitle="Saldos manuais · Visão de caixa local · Dados em localStorage"
+        subtitle="Saldos manuais · Visão de caixa · Dados persistidos no servidor"
       />
       <div className="px-8 py-6 space-y-5">
+
+        {loading && <div className="text-center py-8 text-sm text-gray-400">Carregando...</div>}
 
         {/* ── Ingest callout ────────────────────────────────────────────────── */}
         <div className="flex items-center justify-between p-3 bg-brand-50 border border-brand-200 rounded-xl">

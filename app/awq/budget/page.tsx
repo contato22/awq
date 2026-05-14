@@ -1,7 +1,6 @@
 import Header from "@/components/Header";
 import {
   Scale,
-  DollarSign,
   TrendingUp,
   BarChart3,
   ArrowUpRight,
@@ -10,13 +9,13 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import {
-  buData,
   operatingBus,
   consolidated,
   budgetVsActual,
-  categoryBudget,
+  categoryBudget as staticCategoryBudget,
   BUDGET_LINES,
 } from "@/lib/awq-derived-metrics";
+import { listCategoryBudget } from "@/lib/bank-db";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -33,7 +32,13 @@ function varPct(actual: number, budget: number) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function AwqBudgetPage() {
+export default async function AwqBudgetPage() {
+  // DB overrides staticCategoryBudget when rows exist
+  const dbCats = await listCategoryBudget().catch(() => []);
+  const categoryBudget = dbCats.length > 0
+    ? dbCats.map(r => ({ category: r.category, budget: r.budget, actual: r.actual, bu: r.bu }))
+    : staticCategoryBudget;
+
   const totalBudget = consolidated.budgetRevenue;
   const totalActual = consolidated.revenue;
   const var_        = budgetVsActual;

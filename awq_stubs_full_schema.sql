@@ -772,3 +772,98 @@ CREATE TABLE IF NOT EXISTS epm_ic_transactions (
 ALTER TABLE epm_ic_transactions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "allow_all_epm_ic_transactions" ON epm_ic_transactions;
 CREATE POLICY "allow_all_epm_ic_transactions" ON epm_ic_transactions FOR ALL USING (true) WITH CHECK (true);
+
+-- ─── AP / AR Items (Contas a Pagar & Receber) ─────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS ap_ar_items (
+  id          TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  item_type   TEXT NOT NULL DEFAULT 'ap',
+  bu          TEXT NOT NULL DEFAULT 'awq',
+  description TEXT NOT NULL DEFAULT '',
+  entity      TEXT NOT NULL DEFAULT '',
+  amount      NUMERIC(15,2) NOT NULL DEFAULT 0,
+  due_date    DATE,
+  status      TEXT NOT NULL DEFAULT 'pending',
+  category    TEXT NOT NULL DEFAULT '',
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+ALTER TABLE ap_ar_items ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "allow_all_ap_ar_items" ON ap_ar_items;
+CREATE POLICY "allow_all_ap_ar_items" ON ap_ar_items FOR ALL USING (true) WITH CHECK (true);
+
+-- ─── Bank Accounts ────────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS bank_accounts (
+  id              TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  bank            TEXT NOT NULL DEFAULT '',
+  name            TEXT NOT NULL DEFAULT '',
+  color           TEXT NOT NULL DEFAULT 'bg-gray-500',
+  current_balance NUMERIC(15,2) NOT NULL DEFAULT 0,
+  last_updated    DATE,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+ALTER TABLE bank_accounts ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "allow_all_bank_accounts" ON bank_accounts;
+CREATE POLICY "allow_all_bank_accounts" ON bank_accounts FOR ALL USING (true) WITH CHECK (true);
+
+-- ─── Bank Transactions ────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS bank_transactions (
+  id          TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  account_id  TEXT NOT NULL,
+  tx_date     DATE,
+  description TEXT NOT NULL DEFAULT '',
+  amount      NUMERIC(15,2) NOT NULL DEFAULT 0,
+  category    TEXT NOT NULL DEFAULT 'outros',
+  balance     NUMERIC(15,2),
+  original    TEXT,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_bank_tx_account ON bank_transactions(account_id);
+ALTER TABLE bank_transactions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "allow_all_bank_transactions" ON bank_transactions;
+CREATE POLICY "allow_all_bank_transactions" ON bank_transactions FOR ALL USING (true) WITH CHECK (true);
+
+-- ─── AWQ Allocation Flags (per BU — strategic decisions) ─────────────────────
+
+CREATE TABLE IF NOT EXISTS awq_alloc_flags (
+  bu_id             TEXT PRIMARY KEY,
+  alloc_flag        TEXT NOT NULL DEFAULT 'maintain',
+  capital_allocated NUMERIC(15,2) NOT NULL DEFAULT 0,
+  updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+ALTER TABLE awq_alloc_flags ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "allow_all_awq_alloc_flags" ON awq_alloc_flags;
+CREATE POLICY "allow_all_awq_alloc_flags" ON awq_alloc_flags FOR ALL USING (true) WITH CHECK (true);
+
+INSERT INTO awq_alloc_flags (bu_id, alloc_flag, capital_allocated) VALUES
+  ('jacqes',  'maintain',  0),
+  ('caza',    'expand',    0),
+  ('advisor', 'expand',    0),
+  ('venture', 'maintain',  15762.62)
+ON CONFLICT (bu_id) DO NOTHING;
+
+-- ─── AWQ Category Budget (expense budget vs actual per category) ──────────────
+
+CREATE TABLE IF NOT EXISTS awq_category_budget (
+  id         TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  category   TEXT NOT NULL UNIQUE,
+  budget     NUMERIC(15,2) NOT NULL DEFAULT 0,
+  actual     NUMERIC(15,2) NOT NULL DEFAULT 0,
+  bu         TEXT NOT NULL DEFAULT 'Grupo',
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+ALTER TABLE awq_category_budget ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "allow_all_awq_category_budget" ON awq_category_budget;
+CREATE POLICY "allow_all_awq_category_budget" ON awq_category_budget FOR ALL USING (true) WITH CHECK (true);
+
+INSERT INTO awq_category_budget (category, budget, actual, bu) VALUES
+  ('Marketing & Growth',    1440000, 1238000, 'Grupo'),
+  ('Salários & Benefícios', 3720000, 3540000, 'Grupo'),
+  ('Tecnologia & Infra',     540000,  462000, 'Grupo'),
+  ('Vendas & Comissões',     960000, 1044000, 'Grupo'),
+  ('G&A Consolidado',        720000,  684000, 'Grupo'),
+  ('Desp. Operacionais',     360000,  396000, 'Grupo')
+ON CONFLICT (category) DO NOTHING;

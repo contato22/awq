@@ -4,7 +4,6 @@ import {
   Wallet,
   TrendingUp,
   BarChart3,
-  DollarSign,
   ArrowUpRight,
   ChevronRight,
   Zap,
@@ -13,11 +12,11 @@ import {
 import {
   buData,
   operatingBus,
-  consolidated,
-  allocFlags,
   flagConfig,
   PAYBACK_ESTIMATES,
+  type AllocFlag,
 } from "@/lib/awq-derived-metrics";
+import { listAllocFlags } from "@/lib/bank-db";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -30,13 +29,26 @@ function fmtR(n: number) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function AwqAllocationsPage() {
-  const totalCap = buData.reduce((s, b) => s + b.capitalAllocated, 0);
+export default async function AwqAllocationsPage() {
+  // Merge DB alloc flags + capital_allocated over static buData
+  const dbFlags = await listAllocFlags().catch(() => []);
+  const allocFlags: Record<string, AllocFlag> = {};
+  const capitalMap: Record<string, number> = {};
+  for (const row of dbFlags) {
+    allocFlags[row.bu_id] = row.flag as AllocFlag;
+    capitalMap[row.bu_id] = row.capital_allocated;
+  }
+  const mergedBuData = buData.map(b => ({
+    ...b,
+    capitalAllocated: capitalMap[b.id] ?? b.capitalAllocated,
+  }));
+
+  const totalCap = mergedBuData.reduce((s, b) => s + b.capitalAllocated, 0);
 
   // Rankings
   const byMargin  = [...operatingBus].sort((a, b) => (b.grossProfit / b.revenue) - (a.grossProfit / a.revenue));
-  const byCash    = [...buData].sort((a, b) => b.cashGenerated - a.cashGenerated);
-  const byRoic    = [...buData].sort((a, b) => b.roic - a.roic);
+  const byCash    = [...mergedBuData].sort((a, b) => b.cashGenerated - a.cashGenerated);
+  const byRoic    = [...mergedBuData].sort((a, b) => b.roic - a.roic);
 
   return (
     <>
@@ -68,14 +80,14 @@ export default function AwqAllocationsPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {(() => {
             const roicMedio     = operatingBus.reduce((s, b) => s + b.roic, 0) / operatingBus.length;
-            const bestRoicBU    = buData.reduce((a, b) => a.roic > b.roic ? a : b);
-            const expandBUs     = buData.filter((b) => allocFlags[b.id] === "expand");
+            const bestRoicBU    = mergedBuData.reduce((a, b) => a.roic > b.roic ? a : b);
+            const expandBUs     = mergedBuData.filter((b) => allocFlags[b.id] === "expand");
             const expandNames   = expandBUs.map((b) => b.name).join(" + ");
             return [
               {
                 label: "Capital Total Alocado",
                 value: fmtR(totalCap),
-                sub:   `${buData.length} BUs`,
+                sub:   `${mergedBuData.length} BUs`,
                 delta: `snapshot Q1 2026`,
                 icon:  Wallet,
                 color: "text-amber-700",
@@ -149,7 +161,7 @@ export default function AwqAllocationsPage() {
                 </tr>
               </thead>
               <tbody>
-                {[...buData].sort((a, b) => b.roic - a.roic).map((bu) => {
+                {[...mergedBuData].sort((a, b) => b.roic - a.roic).map((bu) => {
                   const flag    = allocFlags[bu.id];
                   const flagCfg = flagConfig[flag];
                   const share   = (bu.capitalAllocated / totalCap) * 100;
@@ -230,7 +242,7 @@ export default function AwqAllocationsPage() {
           <h2 className="text-sm font-semibold text-gray-900 mb-4">Distribuição de Capital</h2>
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             <div className="space-y-3">
-              {buData.map((bu) => {
+              {mergedBuData.map((bu) => {
                 const share = (bu.capitalAllocated / totalCap) * 100;
                 const flag  = allocFlags[bu.id];
                 const flagCfg = flagConfig[flag];
@@ -261,7 +273,7 @@ export default function AwqAllocationsPage() {
             <div className="space-y-2">
               <div className="text-xs font-semibold text-gray-900 mb-3">Decisões de Alocação</div>
               {Object.entries(flagConfig).map(([key, cfg]) => {
-                const busWithFlag = buData.filter((b) => allocFlags[b.id] === key);
+                const busWithFlag = mergedBuData.filter((b) => allocFlags[b.id] === key);
                 if (busWithFlag.length === 0) return null;
                 return (
                   <div key={key} className={`p-3 rounded-lg ${cfg.bg}`}>

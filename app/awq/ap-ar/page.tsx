@@ -11,7 +11,7 @@
 //   • Campo "bu" por item — filtragem e agrupamento por Business Unit.
 //   • localStorage("awq_ap_items") — não persistido no servidor (dívida técnica)
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import type { ElementType } from "react";
 import Header from "@/components/Header";
 import {
@@ -72,8 +72,6 @@ interface BankTxSnap {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const LS_KEY = "awq_ap_items";
-
 const BUS: { id: BU; label: string; short: string; color: string; bg: string; dot: string }[] = [
   { id: "awq",     label: "AWQ Holding",  short: "Holding",  color: "text-amber-700",   bg: "bg-amber-50",   dot: "bg-amber-500"   },
   { id: "jacqes",  label: "JACQES",       short: "JACQES",   color: "text-blue-700",    bg: "bg-blue-50",    dot: "bg-blue-500"    },
@@ -119,7 +117,6 @@ function fmtDate(s: string) {
   return `${d}/${m}/${y}`;
 }
 
-function uid() { return Math.random().toString(36).slice(2) + Date.now().toString(36); }
 function today() { return new Date().toISOString().slice(0, 10); }
 
 function computeStatus(dueDate: string, current: ItemStatus): ItemStatus {
@@ -210,6 +207,7 @@ function FinancialLinkBadge({
 
 export default function APARPage() {
   const [items, setItems]         = useState<APARItem[]>([]);
+  const [loading, setLoading]     = useState(true);
   const [activeTab, setActiveTab] = useState<ItemType>("ap");
   const [activeBU, setActiveBU]   = useState<BU | "all">("all");
   const [showForm, setShowForm]   = useState(true);
@@ -227,32 +225,28 @@ export default function APARPage() {
   const [addedFlash, setAddedFlash]     = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
-  // ── Load from localStorage ───────────────────────────────────────────────
+  // ── Load from API ────────────────────────────────────────────────────────
   useEffect(() => {
     const snaps = loadBankSnapshots();
     setBankTxSnaps(snaps);
-    try {
-      const raw = localStorage.getItem(LS_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as APARItem[];
+    fetch("/api/ap-ar")
+      .then(r => r.json())
+      .then(d => {
+        const parsed = (d.data ?? []) as APARItem[];
         const validBUs = new Set(BUS.map((b) => b.id));
         const refreshed = parsed.map((item) => {
           const base = {
             ...item,
             bu: (validBUs.has(item.bu) ? item.bu : "awq") as BU,
-            status: computeStatus(item.dueDate, item.status),
+            status: computeStatus(item.dueDate ?? "", item.status),
           };
-          // Auto-compute heuristic link if not yet AI-verified
-          if (!base.financialLinkStatus || base.financialLinkSource === "heuristic") {
-            const link = computeHeuristicLink(base, snaps);
-            return { ...base, financialLinkStatus: link.status, financialLinkNote: link.note, financialLinkSource: "heuristic" as const };
-          }
-          return base;
+          const link = computeHeuristicLink(base, snaps);
+          return { ...base, financialLinkStatus: link.status, financialLinkNote: link.note, financialLinkSource: "heuristic" as const };
         });
         setItems(refreshed);
-        try { localStorage.setItem(LS_KEY, JSON.stringify(refreshed)); } catch { /* ignore */ }
-      }
-    } catch { /* ignore */ }
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
   }, []);
 
   function clearFilters() {
@@ -276,11 +270,6 @@ export default function APARPage() {
     if (bu !== "all") setForm((f) => ({ ...f, bu }));
   }
 
-  const save = useCallback((updated: APARItem[]) => {
-    setItems(updated);
-    try { localStorage.setItem(LS_KEY, JSON.stringify(updated)); } catch { /* ignore */ }
-  }, []);
-
   // ── Amount helpers ───────────────────────────────────────────────────────
   function parseAmount(s: string): number { return parseFloat(s.replace(",", ".")); }
   function amountValid(s: string): boolean {
@@ -290,38 +279,55 @@ export default function APARPage() {
   function sanitizeAmount(s: string): string { return s.replace(/[^0-9.,]/g, ""); }
 
   // ── Add item ─────────────────────────────────────────────────────────────
-  function handleAdd() {
+  async function handleAdd() {
     if (!form.description.trim() || !amountValid(form.amount) || !form.dueDate) {
       setFormTouched(true);
       return;
     }
-    const item: APARItem = {
-      id: uid(),
-      type: activeTab,
-      bu: form.bu,
-      description: form.description.trim(),
-      entity: form.entity.trim(),
-      amount: parseAmount(form.amount),
-      dueDate: form.dueDate,
-      status: computeStatus(form.dueDate, "pending"),
-      category: form.category || (activeTab === "ap" ? AP_CATEGORIES[0] : AR_CATEGORIES[0]),
-      createdAt: today(),
-    };
-    save([...items, item]);
+    const res = await fetch("/api/ap-ar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: activeTab,
+        bu: form.bu,
+        description: form.description.trim(),
+        entity: form.entity.trim(),
+        amount: parseAmount(form.amount),
+        dueDate: form.dueDate,
+        status: computeStatus(form.dueDate, "pending"),
+        category: form.category || (activeTab === "ap" ? AP_CATEGORIES[0] : AR_CATEGORIES[0]),
+      }),
+    });
+    const j = await res.json();
+    const item = j.data as APARItem;
+    const link = computeHeuristicLink(item, bankTxSnaps);
+    setItems(p => [...p, { ...item, financialLinkStatus: link.status, financialLinkNote: link.note, financialLinkSource: "heuristic" as const }]);
     setForm((f) => ({ ...EMPTY_FORM, bu: f.bu }));
     setFormTouched(false);
     setAddedFlash(true);
     setTimeout(() => setAddedFlash(false), 1800);
   }
 
-  function handleToggleSettle(id: string) {
-    save(items.map((item) => {
-      if (item.id !== id) return item;
-      return { ...item, status: item.status === "settled" ? computeStatus(item.dueDate, "pending") : "settled" };
-    }));
+  async function handleToggleSettle(id: string) {
+    const item = items.find(i => i.id === id);
+    if (!item) return;
+    const newStatus = item.status === "settled" ? computeStatus(item.dueDate, "pending") : "settled";
+    await fetch("/api/ap-ar", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, status: newStatus }),
+    });
+    setItems(p => p.map(i => i.id !== id ? i : { ...i, status: newStatus }));
   }
 
-  function handleDelete(id: string) { save(items.filter((i) => i.id !== id)); }
+  async function handleDelete(id: string) {
+    await fetch("/api/ap-ar", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    setItems(p => p.filter(i => i.id !== id));
+  }
 
   function handleOpenEdit(item: APARItem) {
     setEditingItem(item);
@@ -335,21 +341,33 @@ export default function APARPage() {
     });
   }
 
-  function handleSaveEdit() {
+  async function handleSaveEdit() {
     if (!editingItem) return;
     if (!editForm.description.trim() || !amountValid(editForm.amount) || !editForm.dueDate) return;
-    save(items.map((i) => {
-      if (i.id !== editingItem.id) return i;
-      return {
-        ...i,
+    const newStatus = computeStatus(editForm.dueDate, editingItem.status);
+    await fetch("/api/ap-ar", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: editingItem.id,
         description: editForm.description.trim(),
         entity: editForm.entity.trim(),
         amount: parseAmount(editForm.amount),
         dueDate: editForm.dueDate,
         category: editForm.category,
         bu: editForm.bu,
-        status: computeStatus(editForm.dueDate, i.status),
-      };
+        status: newStatus,
+      }),
+    });
+    setItems(p => p.map(i => i.id !== editingItem.id ? i : {
+      ...i,
+      description: editForm.description.trim(),
+      entity: editForm.entity.trim(),
+      amount: parseAmount(editForm.amount),
+      dueDate: editForm.dueDate,
+      category: editForm.category,
+      bu: editForm.bu as BU,
+      status: newStatus,
     }));
     setEditingItem(null);
   }
@@ -432,7 +450,7 @@ export default function APARPage() {
           financialLinkSource: data.source,
         };
       });
-      save(updated);
+      setItems(updated);
     } catch {
       // Fallback: heuristic for all items
       const snaps = loadBankSnapshots();
@@ -440,7 +458,7 @@ export default function APARPage() {
         const link = computeHeuristicLink(item, snaps);
         return { ...item, financialLinkStatus: link.status, financialLinkNote: link.note, financialLinkSource: "heuristic" as const };
       });
-      save(updated);
+      setItems(updated);
     } finally {
       setLinkChecking(false);
     }
@@ -458,6 +476,8 @@ export default function APARPage() {
     <>
       <Header title="AP & AR" subtitle="Contas a Pagar · Contas a Receber · Tesouraria" />
       <div className="px-8 py-6 space-y-5">
+
+        {loading && <div className="text-center py-8 text-sm text-gray-400">Carregando...</div>}
 
         {/* ── Summary cards ────────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
