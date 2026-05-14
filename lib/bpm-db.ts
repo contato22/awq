@@ -11,6 +11,27 @@
 
 import { sql, USE_DB } from "@/lib/db";
 import { USE_SUPABASE } from "@/lib/supabase";
+
+// Wraps a Supabase call and re-throws only non-connectivity errors.
+// "Host not in allowlist" and network failures fall through to the next adapter.
+async function trySupabase<T>(fn: () => Promise<T>): Promise<T | "__fallback__"> {
+  try {
+    return await fn();
+  } catch (e) {
+    const msg = String(e);
+    if (
+      msg.includes("Host not in allowlist") ||
+      msg.includes("fetch failed") ||
+      msg.includes("ECONNREFUSED") ||
+      msg.includes("ETIMEDOUT") ||
+      msg.includes("NetworkError")
+    ) {
+      console.warn("[bpm-db] Supabase unreachable, falling back:", msg);
+      return "__fallback__";
+    }
+    throw e;
+  }
+}
 import {
   sbGetAllProcessDefinitions,
   sbGetProcessDefinitionByCode,
@@ -303,7 +324,7 @@ const PROCESS_DEFS_SEED: ProcessDefinition[] = [
 ];
 
 export async function getAllProcessDefinitions(): Promise<ProcessDefinition[]> {
-  if (USE_SUPABASE) return sbGetAllProcessDefinitions();
+  if (USE_SUPABASE) { const r = await trySupabase(sbGetAllProcessDefinitions); if (r !== "__fallback__") return r; }
   if (USE_DB && sql) {
     const rows = await sql`
       SELECT * FROM process_definitions WHERE is_active = TRUE ORDER BY process_category, process_name
@@ -314,7 +335,7 @@ export async function getAllProcessDefinitions(): Promise<ProcessDefinition[]> {
 }
 
 export async function getProcessDefinitionByCode(code: string): Promise<ProcessDefinition | null> {
-  if (USE_SUPABASE) return sbGetProcessDefinitionByCode(code);
+  if (USE_SUPABASE) { const r = await trySupabase(() => sbGetProcessDefinitionByCode(code)); if (r !== "__fallback__") return r; }
   if (USE_DB && sql) {
     const rows = await sql`
       SELECT * FROM process_definitions WHERE process_code = ${code} AND is_active = TRUE LIMIT 1
@@ -329,7 +350,7 @@ export async function getProcessDefinitionByCode(code: string): Promise<ProcessD
 export async function createProcessInstance(
   data: Omit<ProcessInstance, "instance_id" | "created_at" | "updated_at">
 ): Promise<ProcessInstance> {
-  if (USE_SUPABASE) return sbCreateProcessInstance(data);
+  if (USE_SUPABASE) { const r = await trySupabase(() => sbCreateProcessInstance(data)); if (r !== "__fallback__") return r; }
   if (USE_DB && sql) {
     const rows = await sql`
       INSERT INTO process_instances
@@ -357,7 +378,7 @@ export async function createProcessInstance(
 }
 
 export async function getProcessInstance(instanceId: string): Promise<ProcessInstance | null> {
-  if (USE_SUPABASE) return sbGetProcessInstance(instanceId);
+  if (USE_SUPABASE) { const r = await trySupabase(() => sbGetProcessInstance(instanceId)); if (r !== "__fallback__") return r; }
   if (USE_DB && sql) {
     const rows = await sql`SELECT * FROM process_instances WHERE instance_id = ${instanceId} LIMIT 1`;
     return rows[0] ? dbRowToInstance(rows[0]) : null;
@@ -369,7 +390,7 @@ export async function updateProcessInstance(
   instanceId: string,
   updates: Partial<ProcessInstance>
 ): Promise<ProcessInstance | null> {
-  if (USE_SUPABASE) return sbUpdateProcessInstance(instanceId, updates);
+  if (USE_SUPABASE) { const r = await trySupabase(() => sbUpdateProcessInstance(instanceId, updates)); if (r !== "__fallback__") return r; }
   if (USE_DB && sql) {
     const rows = await sql`
       UPDATE process_instances SET
@@ -397,7 +418,7 @@ export async function getAllInstances(filter?: {
   process_code?: string;
   initiated_by?: string;
 }): Promise<ProcessInstance[]> {
-  if (USE_SUPABASE) return sbGetAllInstances(filter);
+  if (USE_SUPABASE) { const r = await trySupabase(() => sbGetAllInstances(filter)); if (r !== "__fallback__") return r; }
   if (USE_DB && sql) {
     const rows = await sql`
       SELECT * FROM process_instances
@@ -420,7 +441,7 @@ export async function getAllInstances(filter?: {
 export async function createProcessTask(
   data: Omit<ProcessTask, "task_id" | "created_at" | "updated_at">
 ): Promise<ProcessTask> {
-  if (USE_SUPABASE) return sbCreateProcessTask(data);
+  if (USE_SUPABASE) { const r = await trySupabase(() => sbCreateProcessTask(data)); if (r !== "__fallback__") return r; }
   if (USE_DB && sql) {
     const rows = await sql`
       INSERT INTO process_tasks
@@ -445,7 +466,7 @@ export async function createProcessTask(
 }
 
 export async function getProcessTask(taskId: string): Promise<ProcessTask | null> {
-  if (USE_SUPABASE) return sbGetProcessTask(taskId);
+  if (USE_SUPABASE) { const r = await trySupabase(() => sbGetProcessTask(taskId)); if (r !== "__fallback__") return r; }
   if (USE_DB && sql) {
     const rows = await sql`SELECT * FROM process_tasks WHERE task_id = ${taskId} LIMIT 1`;
     return rows[0] ? dbRowToTask(rows[0]) : null;
@@ -457,7 +478,7 @@ export async function updateProcessTask(
   taskId: string,
   updates: Partial<ProcessTask>
 ): Promise<ProcessTask | null> {
-  if (USE_SUPABASE) return sbUpdateProcessTask(taskId, updates);
+  if (USE_SUPABASE) { const r = await trySupabase(() => sbUpdateProcessTask(taskId, updates)); if (r !== "__fallback__") return r; }
   if (USE_DB && sql) {
     const rows = await sql`
       UPDATE process_tasks SET
@@ -483,7 +504,7 @@ export async function updateProcessTask(
 }
 
 export async function getPendingTasksForUser(userId: string): Promise<WorkQueueItem[]> {
-  if (USE_SUPABASE) return sbGetPendingTasksForUser(userId);
+  if (USE_SUPABASE) { const r = await trySupabase(() => sbGetPendingTasksForUser(userId)); if (r !== "__fallback__") return r; }
   if (USE_DB && sql) {
     const rows = await sql`
       SELECT
@@ -528,7 +549,7 @@ export async function getPendingTasksForUser(userId: string): Promise<WorkQueueI
 }
 
 export async function getTasksForInstance(instanceId: string): Promise<ProcessTask[]> {
-  if (USE_SUPABASE) return sbGetTasksForInstance(instanceId);
+  if (USE_SUPABASE) { const r = await trySupabase(() => sbGetTasksForInstance(instanceId)); if (r !== "__fallback__") return r; }
   if (USE_DB && sql) {
     const rows = await sql`SELECT * FROM process_tasks WHERE instance_id = ${instanceId} ORDER BY created_at ASC`;
     return rows.map(dbRowToTask);
@@ -541,7 +562,7 @@ export async function getTasksForInstance(instanceId: string): Promise<ProcessTa
 export async function addHistoryEntry(
   data: Omit<ProcessHistoryEntry, "history_id" | "created_at">
 ): Promise<ProcessHistoryEntry> {
-  if (USE_SUPABASE) return sbAddHistoryEntry(data);
+  if (USE_SUPABASE) { const r = await trySupabase(() => sbAddHistoryEntry(data)); if (r !== "__fallback__") return r; }
   if (USE_DB && sql) {
     const rows = await sql`
       INSERT INTO process_history
@@ -564,7 +585,7 @@ export async function addHistoryEntry(
 }
 
 export async function getInstanceHistory(instanceId: string): Promise<ProcessHistoryEntry[]> {
-  if (USE_SUPABASE) return sbGetInstanceHistory(instanceId);
+  if (USE_SUPABASE) { const r = await trySupabase(() => sbGetInstanceHistory(instanceId)); if (r !== "__fallback__") return r; }
   if (USE_DB && sql) {
     const rows = await sql`
       SELECT * FROM process_history WHERE instance_id = ${instanceId} ORDER BY performed_at ASC
@@ -581,7 +602,7 @@ export async function getInstanceHistory(instanceId: string): Promise<ProcessHis
 export async function createNotification(
   data: Omit<BpmNotification, "notification_id" | "created_at">
 ): Promise<BpmNotification> {
-  if (USE_SUPABASE) return sbCreateNotification(data);
+  if (USE_SUPABASE) { const r = await trySupabase(() => sbCreateNotification(data)); if (r !== "__fallback__") return r; }
   if (USE_DB && sql) {
     const rows = await sql`
       INSERT INTO bpm_notifications
@@ -605,7 +626,7 @@ export async function createNotification(
 }
 
 export async function getUnreadNotifications(userId: string): Promise<BpmNotification[]> {
-  if (USE_SUPABASE) return sbGetUnreadNotifications(userId);
+  if (USE_SUPABASE) { const r = await trySupabase(() => sbGetUnreadNotifications(userId)); if (r !== "__fallback__") return r; }
   if (USE_DB && sql) {
     const rows = await sql`
       SELECT * FROM bpm_notifications WHERE user_id = ${userId} AND is_read = FALSE ORDER BY created_at DESC LIMIT 50
@@ -618,7 +639,7 @@ export async function getUnreadNotifications(userId: string): Promise<BpmNotific
 }
 
 export async function markNotificationRead(notificationId: string): Promise<void> {
-  if (USE_SUPABASE) return sbMarkNotificationRead(notificationId);
+  if (USE_SUPABASE) { const r = await trySupabase(() => sbMarkNotificationRead(notificationId)); if (r !== "__fallback__") return; }
   if (USE_DB && sql) {
     await sql`
       UPDATE bpm_notifications SET is_read = TRUE, read_at = NOW() WHERE notification_id = ${notificationId}
@@ -632,7 +653,7 @@ export async function markNotificationRead(notificationId: string): Promise<void
 // ─── Analytics ────────────────────────────────────────────────────────────────
 
 export async function getProcessPerformance(): Promise<ProcessPerformance[]> {
-  if (USE_SUPABASE) return sbGetProcessPerformance();
+  if (USE_SUPABASE) { const r = await trySupabase(sbGetProcessPerformance); if (r !== "__fallback__") return r; }
   if (USE_DB && sql) {
     const rows = await sql`SELECT * FROM v_process_performance ORDER BY total_instances DESC`;
     return rows as ProcessPerformance[];
@@ -649,7 +670,7 @@ export async function getProcessPerformance(): Promise<ProcessPerformance[]> {
 }
 
 export async function getSlaDashboard(): Promise<SlaDashboardRow[]> {
-  if (USE_SUPABASE) return sbGetSlaDashboard();
+  if (USE_SUPABASE) { const r = await trySupabase(sbGetSlaDashboard); if (r !== "__fallback__") return r; }
   if (USE_DB && sql) {
     const rows = await sql`SELECT * FROM v_sla_dashboard`;
     return rows as SlaDashboardRow[];
@@ -665,7 +686,7 @@ export async function getSlaDashboard(): Promise<SlaDashboardRow[]> {
 }
 
 export async function getBottlenecks(): Promise<BottleneckRow[]> {
-  if (USE_SUPABASE) return sbGetBottlenecks();
+  if (USE_SUPABASE) { const r = await trySupabase(sbGetBottlenecks); if (r !== "__fallback__") return r; }
   if (USE_DB && sql) {
     const rows = await sql`SELECT * FROM v_process_bottlenecks LIMIT 20`;
     return rows as BottleneckRow[];
@@ -676,7 +697,7 @@ export async function getBottlenecks(): Promise<BottleneckRow[]> {
 // ─── SLA Check (cron job logic) ───────────────────────────────────────────────
 
 export async function markOverdueTasks(): Promise<number> {
-  if (USE_SUPABASE) return sbMarkOverdueTasks();
+  if (USE_SUPABASE) { const r = await trySupabase(sbMarkOverdueTasks); if (r !== "__fallback__") return r; }
   if (USE_DB && sql) {
     const res = await sql`
       UPDATE process_tasks
@@ -707,7 +728,7 @@ export async function markOverdueTasks(): Promise<number> {
 // ─── Instance code generator ──────────────────────────────────────────────────
 
 export async function generateInstanceCode(): Promise<string> {
-  if (USE_SUPABASE) return sbGenerateInstanceCode();
+  if (USE_SUPABASE) { const r = await trySupabase(sbGenerateInstanceCode); if (r !== "__fallback__") return r; }
   if (USE_DB && sql) {
     const rows = await sql`
       SELECT COUNT(*) AS cnt FROM process_instances

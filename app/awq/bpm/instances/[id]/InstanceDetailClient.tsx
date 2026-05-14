@@ -162,7 +162,7 @@ export default function InstanceDetailClient() {
                         {task.decided_at && ` · Decidido em ${new Date(task.decided_at).toLocaleDateString("pt-BR")}`}
                       </div>
                       {task.decision_notes && (
-                        <div className="text-xs text-gray-600 mt-1 italic">"{task.decision_notes}"</div>
+                        <div className="text-xs text-gray-600 mt-1 italic">&ldquo;{task.decision_notes}&rdquo;</div>
                       )}
                     </div>
                   </div>

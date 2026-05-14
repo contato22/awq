@@ -34,3 +34,18 @@ export const supabaseAdmin: SupabaseClient | null = _g.__supabaseAdmin ?? null;
 export function createBrowserClient(): SupabaseClient {
   return createClient(url, anonKey);
 }
+
+// ── Health check ──────────────────────────────────────────────────────────────
+// Returns true when Supabase is reachable and the BPM schema is deployed.
+export async function checkSupabaseHealth(): Promise<{ ok: boolean; error?: string; tablesFound?: number }> {
+  if (!supabaseAdmin) return { ok: false, error: "Supabase not configured" };
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("process_definitions")
+      .select("process_code", { count: "exact", head: true });
+    if (error) return { ok: false, error: error.message };
+    return { ok: true, tablesFound: (data as unknown as null) === null ? 0 : 1 };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
+}
