@@ -2325,6 +2325,7 @@ CREATE TRIGGER trg_ma_portco_updated_at
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Add FK from ma_deals.portco_id
+ALTER TABLE ma_deals DROP CONSTRAINT IF EXISTS fk_ma_deals_portco;
 ALTER TABLE ma_deals
   ADD CONSTRAINT fk_ma_deals_portco
   FOREIGN KEY (portco_id) REFERENCES ma_portfolio_companies(portco_id)
