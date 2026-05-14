@@ -21,8 +21,11 @@ import { USE_DB, USE_BLOB, sql, initDB } from "@/lib/db";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export const runtime = "nodejs";
-// NOTE: "force-dynamic" removed — incompatible with output: "export" (static build).
-// This route is excluded from static export; Vercel SSR handles it dynamically by default.
+// force-dynamic: prevent Next.js from calling this handler at build time.
+// The health route makes live network calls (Neon, Supabase) that are only
+// meaningful at request time, not during static page generation.
+// output:"export" (GitHub Pages) excludes /api/* entirely, so this flag is safe.
+export const dynamic = "force-dynamic";
 
 export async function GET(): Promise<NextResponse> {
   // ── Presence flags (boolean only — no secret values) ──────────────────────
@@ -102,19 +105,19 @@ export async function GET(): Promise<NextResponse> {
   if (presence.supabaseUrl && presence.supabaseSvc) {
     const t0 = Date.now();
     try {
-      const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1 });
+      // Single paginated call — avoids a second unbounded fetch and is safer at build time.
+      // Supabase admin.listUsers returns { data: { users, aaLevel }, error }.
+      const result = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 100 });
       supabasePingMs = Date.now() - t0;
-      if (error) {
+      if (result.error) {
         supabasePing = "error";
       } else {
         supabasePing = "ok";
-        // Full count requires a separate call; use total from pagination meta if available
-        const full = await supabaseAdmin.auth.admin.listUsers();
-        supabaseUserCount = full.data?.users?.length ?? data.users.length;
+        supabaseUserCount = result.data.users.length;
       }
-    } catch {
+    } catch (_err) {
       supabasePing = "error";
-      supabasePingMs = Date.now() - t0;
+      supabasePingMs = supabasePingMs ?? (Date.now() - t0);
     }
   }
 
