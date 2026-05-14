@@ -7,6 +7,9 @@ import type {
   CrmAccount, CrmContact, CrmLead, CrmOpportunity,
   CrmActivity, CrmDashboardMetrics, CrmPipelineMetrics,
 } from "@/lib/crm-types";
+import {
+  SEED_ACCOUNTS, SEED_CONTACTS, SEED_LEADS, SEED_OPPORTUNITIES, SEED_ACTIVITIES,
+} from "@/lib/crm-seeds";
 export {
   SEED_ACCOUNTS, SEED_CONTACTS, SEED_LEADS, SEED_OPPORTUNITIES, SEED_ACTIVITIES,
 } from "@/lib/crm-seeds";
