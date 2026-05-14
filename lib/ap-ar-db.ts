@@ -3,7 +3,7 @@
 // Manages Accounts Payable and Accounts Receivable.
 // Includes Brazilian fiscal retention auto-calculation (IRRF, INSS, ISS, PIS, COFINS).
 //
-// Storage: public/data/epm-ap.json + epm-ar.json (dev) or Neon PostgreSQL (prod).
+// Storage: public/data/epm-ap.json + epm-ar.json (dev) or Supabase Postgres via DATABASE_URL (prod).
 // DO NOT import in client components.
 
 import fs from "fs";

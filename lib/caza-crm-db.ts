@@ -1,6 +1,6 @@
 // ─── Caza Vision — CRM Database Layer ─────────────────────────────────────────
 //
-// SOURCE OF TRUTH: Neon Postgres (Vercel).
+// SOURCE OF TRUTH: Supabase Postgres.
 // GitHub Pages: static JSON snapshots (read-only).
 //
 // Tables — ISOLATED from JACQES CRM (jacqes_crm_*):
@@ -11,7 +11,7 @@
 //
 // Zero imports from jacqes-crm-db — separação total de BU.
 
-import { sql } from "@/lib/db";
+import { supabase } from "@/lib/supabase";
 import { randomUUID } from "crypto";
 
 // ─── Enumerações ──────────────────────────────────────────────────────────────
@@ -119,90 +119,8 @@ export type CazaCrmInteraction = {
 
 // ─── Schema bootstrap ─────────────────────────────────────────────────────────
 
-export async function initCazaCrmDB(): Promise<void> {
-  if (!sql) return;
-
-  await sql`
-    CREATE TABLE IF NOT EXISTS caza_crm_leads (
-      id                TEXT PRIMARY KEY,
-      nome              TEXT NOT NULL DEFAULT '',
-      cargo             TEXT NOT NULL DEFAULT '',
-      empresa           TEXT NOT NULL DEFAULT '',
-      cnpj              TEXT NOT NULL DEFAULT '',
-      contato_principal TEXT NOT NULL DEFAULT '',
-      telefone          TEXT NOT NULL DEFAULT '',
-      email             TEXT NOT NULL DEFAULT '',
-      origem            TEXT NOT NULL DEFAULT '',
-      tipo_servico      TEXT NOT NULL DEFAULT '',
-      interesse         TEXT NOT NULL DEFAULT '',
-      status            TEXT NOT NULL DEFAULT 'Novo',
-      owner             TEXT NOT NULL DEFAULT '',
-      data_entrada      TEXT NOT NULL DEFAULT '',
-      observacoes       TEXT NOT NULL DEFAULT '',
-      created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
-  `;
-  await sql`ALTER TABLE caza_crm_leads ADD COLUMN IF NOT EXISTS cargo TEXT NOT NULL DEFAULT ''`;
-  await sql`ALTER TABLE caza_crm_leads ADD COLUMN IF NOT EXISTS cnpj  TEXT NOT NULL DEFAULT ''`;
-
-  await sql`
-    CREATE TABLE IF NOT EXISTS caza_crm_opportunities (
-      id                 TEXT PRIMARY KEY,
-      lead_id            TEXT,
-      nome_oportunidade  TEXT NOT NULL DEFAULT '',
-      empresa            TEXT NOT NULL DEFAULT '',
-      tipo_servico       TEXT NOT NULL DEFAULT '',
-      valor_estimado     NUMERIC NOT NULL DEFAULT 0,
-      stage              TEXT NOT NULL DEFAULT 'Lead Captado',
-      probabilidade      NUMERIC NOT NULL DEFAULT 0,
-      owner              TEXT NOT NULL DEFAULT '',
-      data_abertura      TEXT NOT NULL DEFAULT '',
-      prazo_estimado     TEXT,
-      proxima_acao       TEXT NOT NULL DEFAULT '',
-      data_proxima_acao  TEXT,
-      risco              TEXT NOT NULL DEFAULT 'Baixo',
-      motivo_perda       TEXT NOT NULL DEFAULT '',
-      observacoes        TEXT NOT NULL DEFAULT '',
-      created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
-  `;
-
-  await sql`
-    CREATE TABLE IF NOT EXISTS caza_crm_proposals (
-      id              TEXT PRIMARY KEY,
-      opportunity_id  TEXT NOT NULL DEFAULT '',
-      versao          INTEGER NOT NULL DEFAULT 1,
-      valor_proposto  NUMERIC NOT NULL DEFAULT 0,
-      escopo          TEXT NOT NULL DEFAULT '',
-      status          TEXT NOT NULL DEFAULT 'Em Elaboração',
-      data_envio      TEXT,
-      data_resposta   TEXT,
-      observacoes     TEXT NOT NULL DEFAULT '',
-      created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
-  `;
-
-  await sql`
-    CREATE TABLE IF NOT EXISTS caza_crm_interactions (
-      id            TEXT PRIMARY KEY,
-      entidade_tipo TEXT NOT NULL DEFAULT '',
-      entidade_id   TEXT NOT NULL DEFAULT '',
-      tipo          TEXT NOT NULL DEFAULT '',
-      descricao     TEXT NOT NULL DEFAULT '',
-      owner         TEXT NOT NULL DEFAULT '',
-      data          TEXT NOT NULL DEFAULT '',
-      observacoes   TEXT NOT NULL DEFAULT '',
-      created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
-  `;
-
-  await sql`CREATE INDEX IF NOT EXISTS idx_caza_crm_leads_status ON caza_crm_leads(status)`;
-  await sql`CREATE INDEX IF NOT EXISTS idx_caza_crm_leads_created ON caza_crm_leads(created_at DESC)`;
-  await sql`CREATE INDEX IF NOT EXISTS idx_caza_crm_opps_stage ON caza_crm_opportunities(stage)`;
-  await sql`CREATE INDEX IF NOT EXISTS idx_caza_crm_opps_created ON caza_crm_opportunities(created_at DESC)`;
-  await sql`CREATE INDEX IF NOT EXISTS idx_caza_crm_props_opp ON caza_crm_proposals(opportunity_id)`;
-  await sql`CREATE INDEX IF NOT EXISTS idx_caza_crm_int_entidade ON caza_crm_interactions(entidade_id)`;
-}
+// Tables are managed via Supabase migrations — this function is a no-op stub.
+export async function initCazaCrmDB(): Promise<void> {}
 
 // ─── ID helpers ───────────────────────────────────────────────────────────────
 
@@ -214,228 +132,291 @@ export const newInteractionId = () => `CV-INT-${randomUUID().slice(0, 6).toUpper
 // ─── Leads ────────────────────────────────────────────────────────────────────
 
 export async function listLeads(): Promise<CazaCrmLead[]> {
-  if (!sql) return [];
-  const rows = await sql`
-    SELECT id, nome, cargo, empresa, cnpj, contato_principal, telefone, email,
-           origem, tipo_servico, interesse, status, owner,
-           data_entrada, observacoes
-    FROM caza_crm_leads ORDER BY created_at DESC
-  `;
-  return rows.map(coerceLead);
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("caza_crm_leads")
+    .select("id, nome, cargo, empresa, cnpj, contato_principal, telefone, email, origem, tipo_servico, interesse, status, owner, data_entrada, observacoes")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(coerceLead);
 }
 
 export async function createLead(l: Omit<CazaCrmLead, "id">): Promise<CazaCrmLead> {
-  if (!sql) throw new Error("DB not available");
+  if (!supabase) throw new Error("DB not available");
   const id = newLeadId();
-  const rows = await sql`
-    INSERT INTO caza_crm_leads (
-      id, nome, cargo, empresa, cnpj, contato_principal, telefone, email,
-      origem, tipo_servico, interesse, status, owner, data_entrada, observacoes
-    ) VALUES (
-      ${id}, ${l.nome}, ${l.cargo}, ${l.empresa}, ${l.cnpj}, ${l.contato_principal},
-      ${l.telefone}, ${l.email}, ${l.origem}, ${l.tipo_servico}, ${l.interesse},
-      ${l.status}, ${l.owner}, ${l.data_entrada}, ${l.observacoes}
-    ) RETURNING id, nome, cargo, empresa, cnpj, contato_principal, telefone, email,
-                origem, tipo_servico, interesse, status, owner, data_entrada, observacoes
-  `;
-  return coerceLead(rows[0]);
+  const { data, error } = await supabase
+    .from("caza_crm_leads")
+    .insert({
+      id,
+      nome:              l.nome,
+      cargo:             l.cargo,
+      empresa:           l.empresa,
+      cnpj:              l.cnpj,
+      contato_principal: l.contato_principal,
+      telefone:          l.telefone,
+      email:             l.email,
+      origem:            l.origem,
+      tipo_servico:      l.tipo_servico,
+      interesse:         l.interesse,
+      status:            l.status,
+      owner:             l.owner,
+      data_entrada:      l.data_entrada,
+      observacoes:       l.observacoes,
+    })
+    .select("id, nome, cargo, empresa, cnpj, contato_principal, telefone, email, origem, tipo_servico, interesse, status, owner, data_entrada, observacoes")
+    .single();
+  if (error) throw error;
+  return coerceLead(data);
 }
 
 export async function updateLead(
   id: string,
   updates: Partial<Omit<CazaCrmLead, "id">>
 ): Promise<CazaCrmLead | null> {
-  if (!sql) return null;
-  const rows = await sql`
-    SELECT id, nome, cargo, empresa, cnpj, contato_principal, telefone, email,
-           origem, tipo_servico, interesse, status, owner, data_entrada, observacoes
-    FROM caza_crm_leads WHERE id = ${id}
-  `;
-  if (!rows[0]) return null;
-  const m = { ...coerceLead(rows[0]), ...updates };
-  const updated = await sql`
-    UPDATE caza_crm_leads SET
-      nome = ${m.nome}, cargo = ${m.cargo}, empresa = ${m.empresa}, cnpj = ${m.cnpj},
-      contato_principal = ${m.contato_principal}, telefone = ${m.telefone},
-      email = ${m.email}, origem = ${m.origem}, tipo_servico = ${m.tipo_servico},
-      interesse = ${m.interesse}, status = ${m.status},
-      owner = ${m.owner}, observacoes = ${m.observacoes}
-    WHERE id = ${id}
-    RETURNING id, nome, cargo, empresa, cnpj, contato_principal, telefone, email,
-              origem, tipo_servico, interesse, status, owner, data_entrada, observacoes
-  `;
-  return updated[0] ? coerceLead(updated[0]) : null;
+  if (!supabase) return null;
+  // Fetch current record to merge defaults
+  const { data: existing, error: fetchError } = await supabase
+    .from("caza_crm_leads")
+    .select("id, nome, cargo, empresa, cnpj, contato_principal, telefone, email, origem, tipo_servico, interesse, status, owner, data_entrada, observacoes")
+    .eq("id", id)
+    .single();
+  if (fetchError || !existing) return null;
+  const m = { ...coerceLead(existing), ...updates };
+  const { data, error } = await supabase
+    .from("caza_crm_leads")
+    .update({
+      nome:              m.nome,
+      cargo:             m.cargo,
+      empresa:           m.empresa,
+      cnpj:              m.cnpj,
+      contato_principal: m.contato_principal,
+      telefone:          m.telefone,
+      email:             m.email,
+      origem:            m.origem,
+      tipo_servico:      m.tipo_servico,
+      interesse:         m.interesse,
+      status:            m.status,
+      owner:             m.owner,
+      observacoes:       m.observacoes,
+    })
+    .eq("id", id)
+    .select("id, nome, cargo, empresa, cnpj, contato_principal, telefone, email, origem, tipo_servico, interesse, status, owner, data_entrada, observacoes")
+    .single();
+  if (error) throw error;
+  return data ? coerceLead(data) : null;
+}
+
+export async function deleteLead(id: string): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase
+    .from("caza_crm_leads")
+    .delete()
+    .eq("id", id);
+  if (error) throw error;
 }
 
 // ─── Opportunities ────────────────────────────────────────────────────────────
 
 export async function listOpportunities(): Promise<CazaCrmOpportunity[]> {
-  if (!sql) return [];
-  const rows = await sql`
-    SELECT id, lead_id, nome_oportunidade, empresa, tipo_servico, valor_estimado,
-           stage, probabilidade, owner, data_abertura, prazo_estimado,
-           proxima_acao, data_proxima_acao, risco, motivo_perda, observacoes
-    FROM caza_crm_opportunities ORDER BY created_at DESC
-  `;
-  return rows.map(coerceOpportunity);
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("caza_crm_opportunities")
+    .select("id, lead_id, nome_oportunidade, empresa, tipo_servico, valor_estimado, stage, probabilidade, owner, data_abertura, prazo_estimado, proxima_acao, data_proxima_acao, risco, motivo_perda, observacoes")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(coerceOpportunity);
 }
 
 export async function createOpportunity(
   o: Omit<CazaCrmOpportunity, "id">
 ): Promise<CazaCrmOpportunity> {
-  if (!sql) throw new Error("DB not available");
+  if (!supabase) throw new Error("DB not available");
   const id = newOpportunityId();
-  const rows = await sql`
-    INSERT INTO caza_crm_opportunities (
-      id, lead_id, nome_oportunidade, empresa, tipo_servico, valor_estimado,
-      stage, probabilidade, owner, data_abertura, prazo_estimado,
-      proxima_acao, data_proxima_acao, risco, motivo_perda, observacoes
-    ) VALUES (
-      ${id}, ${o.lead_id ?? null}, ${o.nome_oportunidade}, ${o.empresa},
-      ${o.tipo_servico}, ${o.valor_estimado}, ${o.stage}, ${o.probabilidade},
-      ${o.owner}, ${o.data_abertura}, ${o.prazo_estimado ?? null},
-      ${o.proxima_acao}, ${o.data_proxima_acao ?? null}, ${o.risco},
-      ${o.motivo_perda}, ${o.observacoes}
-    ) RETURNING id, lead_id, nome_oportunidade, empresa, tipo_servico, valor_estimado,
-                stage, probabilidade, owner, data_abertura, prazo_estimado,
-                proxima_acao, data_proxima_acao, risco, motivo_perda, observacoes
-  `;
-  return coerceOpportunity(rows[0]);
+  const { data, error } = await supabase
+    .from("caza_crm_opportunities")
+    .insert({
+      id,
+      lead_id:           o.lead_id ?? null,
+      nome_oportunidade: o.nome_oportunidade,
+      empresa:           o.empresa,
+      tipo_servico:      o.tipo_servico,
+      valor_estimado:    o.valor_estimado,
+      stage:             o.stage,
+      probabilidade:     o.probabilidade,
+      owner:             o.owner,
+      data_abertura:     o.data_abertura,
+      prazo_estimado:    o.prazo_estimado ?? null,
+      proxima_acao:      o.proxima_acao,
+      data_proxima_acao: o.data_proxima_acao ?? null,
+      risco:             o.risco,
+      motivo_perda:      o.motivo_perda,
+      observacoes:       o.observacoes,
+    })
+    .select("id, lead_id, nome_oportunidade, empresa, tipo_servico, valor_estimado, stage, probabilidade, owner, data_abertura, prazo_estimado, proxima_acao, data_proxima_acao, risco, motivo_perda, observacoes")
+    .single();
+  if (error) throw error;
+  return coerceOpportunity(data);
 }
 
 export async function updateOpportunity(
   id: string,
   updates: Partial<Omit<CazaCrmOpportunity, "id">>
 ): Promise<CazaCrmOpportunity | null> {
-  if (!sql) return null;
-  const rows = await sql`
-    SELECT id, lead_id, nome_oportunidade, empresa, tipo_servico, valor_estimado,
-           stage, probabilidade, owner, data_abertura, prazo_estimado,
-           proxima_acao, data_proxima_acao, risco, motivo_perda, observacoes
-    FROM caza_crm_opportunities WHERE id = ${id}
-  `;
-  if (!rows[0]) return null;
-  const m = { ...coerceOpportunity(rows[0]), ...updates };
-  const updated = await sql`
-    UPDATE caza_crm_opportunities SET
-      lead_id = ${m.lead_id ?? null}, nome_oportunidade = ${m.nome_oportunidade},
-      empresa = ${m.empresa}, tipo_servico = ${m.tipo_servico},
-      valor_estimado = ${m.valor_estimado}, stage = ${m.stage},
-      probabilidade = ${m.probabilidade}, owner = ${m.owner},
-      prazo_estimado = ${m.prazo_estimado ?? null}, proxima_acao = ${m.proxima_acao},
-      data_proxima_acao = ${m.data_proxima_acao ?? null}, risco = ${m.risco},
-      motivo_perda = ${m.motivo_perda}, observacoes = ${m.observacoes}
-    WHERE id = ${id}
-    RETURNING id, lead_id, nome_oportunidade, empresa, tipo_servico, valor_estimado,
-              stage, probabilidade, owner, data_abertura, prazo_estimado,
-              proxima_acao, data_proxima_acao, risco, motivo_perda, observacoes
-  `;
-  return updated[0] ? coerceOpportunity(updated[0]) : null;
+  if (!supabase) return null;
+  const { data: existing, error: fetchError } = await supabase
+    .from("caza_crm_opportunities")
+    .select("id, lead_id, nome_oportunidade, empresa, tipo_servico, valor_estimado, stage, probabilidade, owner, data_abertura, prazo_estimado, proxima_acao, data_proxima_acao, risco, motivo_perda, observacoes")
+    .eq("id", id)
+    .single();
+  if (fetchError || !existing) return null;
+  const m = { ...coerceOpportunity(existing), ...updates };
+  const { data, error } = await supabase
+    .from("caza_crm_opportunities")
+    .update({
+      lead_id:           m.lead_id ?? null,
+      nome_oportunidade: m.nome_oportunidade,
+      empresa:           m.empresa,
+      tipo_servico:      m.tipo_servico,
+      valor_estimado:    m.valor_estimado,
+      stage:             m.stage,
+      probabilidade:     m.probabilidade,
+      owner:             m.owner,
+      prazo_estimado:    m.prazo_estimado ?? null,
+      proxima_acao:      m.proxima_acao,
+      data_proxima_acao: m.data_proxima_acao ?? null,
+      risco:             m.risco,
+      motivo_perda:      m.motivo_perda,
+      observacoes:       m.observacoes,
+    })
+    .eq("id", id)
+    .select("id, lead_id, nome_oportunidade, empresa, tipo_servico, valor_estimado, stage, probabilidade, owner, data_abertura, prazo_estimado, proxima_acao, data_proxima_acao, risco, motivo_perda, observacoes")
+    .single();
+  if (error) throw error;
+  return data ? coerceOpportunity(data) : null;
+}
+
+export async function deleteOpportunity(id: string): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase
+    .from("caza_crm_opportunities")
+    .delete()
+    .eq("id", id);
+  if (error) throw error;
 }
 
 // ─── Proposals ────────────────────────────────────────────────────────────────
 
 export async function listProposals(): Promise<CazaCrmProposal[]> {
-  if (!sql) return [];
-  const rows = await sql`
-    SELECT id, opportunity_id, versao, valor_proposto, escopo,
-           status, data_envio, data_resposta, observacoes
-    FROM caza_crm_proposals ORDER BY created_at DESC
-  `;
-  return rows.map(coerceProposal);
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("caza_crm_proposals")
+    .select("id, opportunity_id, versao, valor_proposto, escopo, status, data_envio, data_resposta, observacoes")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(coerceProposal);
 }
 
 export async function createProposal(
   p: Omit<CazaCrmProposal, "id">
 ): Promise<CazaCrmProposal> {
-  if (!sql) throw new Error("DB not available");
+  if (!supabase) throw new Error("DB not available");
   const id = newProposalId();
-  const rows = await sql`
-    INSERT INTO caza_crm_proposals (
-      id, opportunity_id, versao, valor_proposto, escopo,
-      status, data_envio, data_resposta, observacoes
-    ) VALUES (
-      ${id}, ${p.opportunity_id}, ${p.versao}, ${p.valor_proposto},
-      ${p.escopo}, ${p.status}, ${p.data_envio ?? null},
-      ${p.data_resposta ?? null}, ${p.observacoes}
-    ) RETURNING id, opportunity_id, versao, valor_proposto, escopo,
-                status, data_envio, data_resposta, observacoes
-  `;
-  return coerceProposal(rows[0]);
+  const { data, error } = await supabase
+    .from("caza_crm_proposals")
+    .insert({
+      id,
+      opportunity_id: p.opportunity_id,
+      versao:         p.versao,
+      valor_proposto: p.valor_proposto,
+      escopo:         p.escopo,
+      status:         p.status,
+      data_envio:     p.data_envio ?? null,
+      data_resposta:  p.data_resposta ?? null,
+      observacoes:    p.observacoes,
+    })
+    .select("id, opportunity_id, versao, valor_proposto, escopo, status, data_envio, data_resposta, observacoes")
+    .single();
+  if (error) throw error;
+  return coerceProposal(data);
 }
 
 export async function updateProposal(
   id: string,
   updates: Partial<Omit<CazaCrmProposal, "id">>
 ): Promise<CazaCrmProposal | null> {
-  if (!sql) return null;
-  const rows = await sql`
-    SELECT id, opportunity_id, versao, valor_proposto, escopo,
-           status, data_envio, data_resposta, observacoes
-    FROM caza_crm_proposals WHERE id = ${id}
-  `;
-  if (!rows[0]) return null;
-  const m = { ...coerceProposal(rows[0]), ...updates };
-  const updated = await sql`
-    UPDATE caza_crm_proposals SET
-      valor_proposto = ${m.valor_proposto}, escopo = ${m.escopo},
-      status = ${m.status}, data_envio = ${m.data_envio ?? null},
-      data_resposta = ${m.data_resposta ?? null}, observacoes = ${m.observacoes}
-    WHERE id = ${id}
-    RETURNING id, opportunity_id, versao, valor_proposto, escopo,
-              status, data_envio, data_resposta, observacoes
-  `;
-  return updated[0] ? coerceProposal(updated[0]) : null;
-}
-
-export async function deleteLead(id: string): Promise<void> {
-  if (!sql) return;
-  await sql`DELETE FROM caza_crm_leads WHERE id = ${id}`;
-}
-
-export async function deleteOpportunity(id: string): Promise<void> {
-  if (!sql) return;
-  await sql`DELETE FROM caza_crm_opportunities WHERE id = ${id}`;
+  if (!supabase) return null;
+  const { data: existing, error: fetchError } = await supabase
+    .from("caza_crm_proposals")
+    .select("id, opportunity_id, versao, valor_proposto, escopo, status, data_envio, data_resposta, observacoes")
+    .eq("id", id)
+    .single();
+  if (fetchError || !existing) return null;
+  const m = { ...coerceProposal(existing), ...updates };
+  const { data, error } = await supabase
+    .from("caza_crm_proposals")
+    .update({
+      valor_proposto: m.valor_proposto,
+      escopo:         m.escopo,
+      status:         m.status,
+      data_envio:     m.data_envio ?? null,
+      data_resposta:  m.data_resposta ?? null,
+      observacoes:    m.observacoes,
+    })
+    .eq("id", id)
+    .select("id, opportunity_id, versao, valor_proposto, escopo, status, data_envio, data_resposta, observacoes")
+    .single();
+  if (error) throw error;
+  return data ? coerceProposal(data) : null;
 }
 
 export async function deleteProposal(id: string): Promise<void> {
-  if (!sql) return;
-  await sql`DELETE FROM caza_crm_proposals WHERE id = ${id}`;
+  if (!supabase) return;
+  const { error } = await supabase
+    .from("caza_crm_proposals")
+    .delete()
+    .eq("id", id);
+  if (error) throw error;
 }
 
 // ─── Interactions ─────────────────────────────────────────────────────────────
 
 export async function listInteractions(entidade_id?: string): Promise<CazaCrmInteraction[]> {
-  if (!sql) return [];
-  const rows = entidade_id
-    ? await sql`
-        SELECT id, entidade_tipo, entidade_id, tipo, descricao, owner, data, observacoes
-        FROM caza_crm_interactions
-        WHERE entidade_id = ${entidade_id}
-        ORDER BY created_at DESC
-      `
-    : await sql`
-        SELECT id, entidade_tipo, entidade_id, tipo, descricao, owner, data, observacoes
-        FROM caza_crm_interactions
-        ORDER BY created_at DESC LIMIT 100
-      `;
-  return rows.map(coerceInteraction);
+  if (!supabase) return [];
+  let query = supabase
+    .from("caza_crm_interactions")
+    .select("id, entidade_tipo, entidade_id, tipo, descricao, owner, data, observacoes")
+    .order("created_at", { ascending: false });
+  if (entidade_id) {
+    query = query.eq("entidade_id", entidade_id);
+  } else {
+    query = query.limit(100);
+  }
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []).map(coerceInteraction);
 }
 
 export async function createInteraction(
   i: Omit<CazaCrmInteraction, "id">
 ): Promise<CazaCrmInteraction> {
-  if (!sql) throw new Error("DB not available");
+  if (!supabase) throw new Error("DB not available");
   const id = newInteractionId();
-  const rows = await sql`
-    INSERT INTO caza_crm_interactions (
-      id, entidade_tipo, entidade_id, tipo, descricao, owner, data, observacoes
-    ) VALUES (
-      ${id}, ${i.entidade_tipo}, ${i.entidade_id}, ${i.tipo},
-      ${i.descricao}, ${i.owner}, ${i.data}, ${i.observacoes}
-    ) RETURNING id, entidade_tipo, entidade_id, tipo, descricao, owner, data, observacoes
-  `;
-  return coerceInteraction(rows[0]);
+  const { data, error } = await supabase
+    .from("caza_crm_interactions")
+    .insert({
+      id,
+      entidade_tipo: i.entidade_tipo,
+      entidade_id:   i.entidade_id,
+      tipo:          i.tipo,
+      descricao:     i.descricao,
+      owner:         i.owner,
+      data:          i.data,
+      observacoes:   i.observacoes,
+    })
+    .select("id, entidade_tipo, entidade_id, tipo, descricao, owner, data, observacoes")
+    .single();
+  if (error) throw error;
+  return coerceInteraction(data);
 }
 
 // ─── Coercions (DB rows → typed objects) ──────────────────────────────────────

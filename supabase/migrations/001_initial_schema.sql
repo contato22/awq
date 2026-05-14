@@ -156,6 +156,48 @@ CREATE INDEX IF NOT EXISTS idx_caza_cli_status    ON caza_clients(status);
 
 
 -- =============================================================================
+-- 4. AWQ CORE — Contrapartes (Cadastro de clientes / fornecedores)
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS contrapartes (
+  id               TEXT PRIMARY KEY,
+  tipo             TEXT NOT NULL,
+  papel            TEXT NOT NULL,
+  razao_social     TEXT NOT NULL,
+  nome_fantasia    TEXT,
+  cnpj_cpf         TEXT NOT NULL,
+  ie               TEXT,
+  im               TEXT,
+  regime           TEXT NOT NULL,
+  email_financeiro TEXT,
+  telefone         TEXT,
+  cep              TEXT,
+  logradouro       TEXT,
+  numero           TEXT,
+  complemento      TEXT,
+  bairro           TEXT,
+  cidade           TEXT,
+  uf               TEXT,
+  banco            TEXT,
+  agencia          TEXT,
+  conta            TEXT,
+  pix              TEXT,
+  bu               TEXT NOT NULL,
+  status           TEXT NOT NULL DEFAULT 'ativo',
+  observacoes      TEXT,
+  created_at       TEXT NOT NULL,
+  updated_at       TEXT NOT NULL,
+  deleted_at       TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_contrapartes_papel  ON contrapartes(papel);
+CREATE INDEX IF NOT EXISTS idx_contrapartes_bu     ON contrapartes(bu);
+CREATE INDEX IF NOT EXISTS idx_contrapartes_status ON contrapartes(status);
+
+ALTER TABLE contrapartes ENABLE ROW LEVEL SECURITY;
+CREATE POLICY IF NOT EXISTS contrapartes_all ON contrapartes FOR ALL USING (TRUE);
+
+-- =============================================================================
 -- AWQ GROUP — EPM Full Schema (PostgreSQL / Neon)
 -- =============================================================================
 -- Camadas:
