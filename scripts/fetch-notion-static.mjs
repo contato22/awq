@@ -553,7 +553,9 @@ function buildStatsFromProjects(projects, clients = []) {
 }
 
 const EMPTY_VENTURE = { rows: [], totalFechado: 0, totalLeads: 0, byCategoria: {}, byCanal: [], byQuarter: {}, byQCat: {} };
-const EMPTY_STATS   = { kpis: [], revenueData: [], pipeline: [], projectTypeRevenue: [], source: "empty" };
+// Use buildStatsFromProjects([],[]) so the JSON always has the 8 KPI slots (value=0)
+// rather than an empty kpis array that breaks the eval and the dashboard structure check.
+const EMPTY_STATS   = buildStatsFromProjects([], []);
 
 async function main() {
     mkdirSync(OUT_DIR, { recursive: true });
