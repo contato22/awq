@@ -47,17 +47,17 @@ export function scheduleProgress(project: PpmProject): number {
 /** CPI label and color. */
 export function cpiLabel(cpi: number | null): { label: string; color: string } {
   if (cpi == null) return { label: "N/A", color: "text-gray-400" };
-  if (cpi >= 1.0)  return { label: `${cpi.toFixed(2)} ✓`, color: "text-emerald-600" };
-  if (cpi >= 0.9)  return { label: `${cpi.toFixed(2)} ⚠`, color: "text-amber-600" };
-  return               { label: `${cpi.toFixed(2)} ✗`, color: "text-red-600" };
+  if (cpi >= 0.95) return { label: `${cpi.toFixed(2)} ✓`, color: "text-emerald-600" };
+  if (cpi >= 0.85) return { label: `${cpi.toFixed(2)} ⚠`, color: "text-amber-600" };
+  return                  { label: `${cpi.toFixed(2)} ✗`, color: "text-red-600" };
 }
 
 /** SPI label and color. */
 export function spiLabel(spi: number | null): { label: string; color: string } {
   if (spi == null) return { label: "N/A", color: "text-gray-400" };
-  if (spi >= 1.0)  return { label: `${spi.toFixed(2)} ✓`, color: "text-emerald-600" };
-  if (spi >= 0.9)  return { label: `${spi.toFixed(2)} ⚠`, color: "text-amber-600" };
-  return               { label: `${spi.toFixed(2)} ✗`, color: "text-red-600" };
+  if (spi >= 0.95) return { label: `${spi.toFixed(2)} ✓`, color: "text-emerald-600" };
+  if (spi >= 0.85) return { label: `${spi.toFixed(2)} ⚠`, color: "text-amber-600" };
+  return                  { label: `${spi.toFixed(2)} ✗`, color: "text-red-600" };
 }
 
 // ─── Gantt helpers ────────────────────────────────────────────────────────────

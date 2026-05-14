@@ -99,6 +99,9 @@ function AddProjectPageInner() {
     e.preventDefault();
     if (!form.project_name.trim()) { setError("Nome do projeto é obrigatório"); return; }
     if (!form.planned_end_date)    { setError("Data de término é obrigatória"); return; }
+    if (form.start_date && form.planned_end_date && form.start_date >= form.planned_end_date) {
+      setError("Data de início deve ser anterior à data de término"); return;
+    }
     if (!form.budget_revenue)      { setError("Revenue estimado é obrigatório"); return; }
     if (!form.budget_cost)         { setError("Custo estimado é obrigatório"); return; }
 

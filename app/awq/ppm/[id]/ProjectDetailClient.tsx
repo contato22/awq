@@ -24,7 +24,7 @@ const PHASE_LABEL   = { initiation: "Iniciação", planning: "Planejamento", exe
 const TASK_STATUS_ICON: Record<string, React.ElementType> = { completed: CheckCircle2, in_progress: PlayCircle, blocked: XCircle, cancelled: XCircle, not_started: Circle };
 const TASK_STATUS_COLOR: Record<string, string> = { completed: "text-emerald-600", in_progress: "text-blue-600", blocked: "text-red-500", cancelled: "text-gray-400", not_started: "text-gray-400" };
 const TASK_STATUS_LABEL: Record<string, string> = { completed: "Concluído", in_progress: "Em Andamento", blocked: "Bloqueado", cancelled: "Cancelado", not_started: "A Fazer" };
-const MILESTONE_STATUS_LABEL: Record<string, string> = { achieved: "Alcançado", missed: "Atrasado", pending: "Pendente" };
+const MILESTONE_STATUS_LABEL: Record<string, string> = { achieved: "Alcançado", missed: "Atrasado", pending: "Pendente", upcoming: "Pendente", cancelled: "Cancelado" };
 const RISK_STATUS_LABEL: Record<string, string> = { identified: "Identificado", monitoring: "Monitorando", mitigating: "Mitigando", mitigated: "Mitigado", occurred: "Ocorreu", closed: "Fechado" };
 const ISSUE_STATUS_LABEL: Record<string, string> = { open: "Aberto", in_progress: "Em Progresso", resolved: "Resolvido", closed: "Fechado" };
 const RISK_SCORE_COLOR = (s: number) => s >= 6 ? "bg-red-100 text-red-700" : s >= 3 ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700";

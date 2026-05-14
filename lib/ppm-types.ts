@@ -13,13 +13,13 @@ export type BillingFreq     = "monthly" | "milestone" | "upon_completion";
 
 export type TaskStatus   = "not_started" | "in_progress" | "completed" | "blocked" | "cancelled";
 export type TaskType     = "milestone" | "task" | "phase";
-export type MilestoneStatus = "upcoming" | "achieved" | "missed" | "cancelled";
+export type MilestoneStatus = "upcoming" | "achieved" | "missed" | "cancelled" | "pending";
 
 export type TimeEntryStatus = "draft" | "submitted" | "approved" | "rejected";
-export type AllocationStatus = "active" | "completed" | "cancelled";
+export type AllocationStatus = "active" | "completed" | "cancelled" | "paused";
 export type RiskImpact = "low" | "medium" | "high";
 export type RiskProbability = "low" | "medium" | "high";
-export type RiskStatus = "identified" | "mitigating" | "occurred" | "closed";
+export type RiskStatus = "identified" | "monitoring" | "mitigating" | "mitigated" | "occurred" | "closed";
 export type IssueSeverity = "low" | "medium" | "high" | "critical";
 export type IssueStatus = "open" | "in_progress" | "resolved" | "closed";
 
