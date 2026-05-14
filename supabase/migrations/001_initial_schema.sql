@@ -946,6 +946,8 @@ ALTER TABLE budgets             ENABLE ROW LEVEL SECURITY;
 ALTER TABLE kpi_values          ENABLE ROW LEVEL SECURITY;
 
 -- Public read for authenticated users (adjust for your auth setup)
+DROP POLICY IF EXISTS "Allow select for authenticated" ON general_ledger;
+DROP POLICY IF EXISTS "Allow insert for authenticated" ON general_ledger;
 CREATE POLICY "Allow select for authenticated"
   ON general_ledger FOR SELECT USING (TRUE);
 CREATE POLICY "Allow insert for authenticated"
