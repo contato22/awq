@@ -69,7 +69,7 @@ export default function BpmProcessesPage() {
         <div className="mt-8 bg-blue-50 border border-blue-200 rounded-xl p-5">
           <h3 className="font-semibold text-blue-900 mb-2">Integrações automáticas ativas</h3>
           <ul className="space-y-1 text-sm text-blue-700">
-            <li>• <strong>AP Approval</strong> aprovado → status de Contas a Pagar atualizado para "approved"</li>
+            <li>• <strong>AP Approval</strong> aprovado → status de Contas a Pagar atualizado para &quot;approved&quot;</li>
             <li>• <strong>Budget Approval</strong> aprovado → orçamento bloqueado (is_locked = TRUE)</li>
             <li>• <strong>Project Kickoff</strong> aprovado → projeto ativado no PPM (status = active)</li>
           </ul>
