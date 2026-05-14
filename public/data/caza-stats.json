@@ -1,5 +1,14 @@
 {
-  "kpis": [],
+  "kpis": [
+    { "id": "projetos",        "label": "Projetos Ativos",    "value": 0, "unit": "number",   "icon": "Building2",     "color": "emerald" },
+    { "id": "receita",         "label": "Receita YTD",         "value": 0, "unit": "currency", "icon": "DollarSign",    "color": "brand"   },
+    { "id": "entregues",       "label": "Projetos Entregues",  "value": 0, "unit": "number",   "icon": "HandshakeIcon", "color": "violet"  },
+    { "id": "ticket",          "label": "Ticket Médio",        "value": 0, "unit": "currency", "icon": "TrendingUp",    "color": "amber"   },
+    { "id": "total_projetos",  "label": "Total de Projetos",   "value": 0, "unit": "number",   "icon": "Film",          "color": "brand"   },
+    { "id": "receita_total",   "label": "Receita Total",       "value": 0, "unit": "currency", "icon": "DollarSign",    "color": "emerald" },
+    { "id": "taxa_entrega",    "label": "Taxa de Entrega",     "value": 0, "unit": "percent",  "icon": "CheckCircle",   "color": "violet"  },
+    { "id": "clientes_ativos", "label": "Clientes Ativos",     "value": 0, "unit": "number",   "icon": "Users",         "color": "amber"   }
+  ],
   "revenueData": [],
   "pipeline": [],
   "projectTypeRevenue": [],
