@@ -897,11 +897,11 @@ JOIN business_units b_bu ON b_bu.bu_id   = bud.bu_id
 JOIN accounts         a  ON a.account_id = bud.account_id
 LEFT JOIN (
   SELECT
-    bu_id,
-    period_id,
-    account_id,
-    SUM(CASE WHEN a2.normal_balance = 'CREDIT' THEN credit_amount - debit_amount
-             ELSE debit_amount - credit_amount END) AS actual_amount
+    g2.bu_id,
+    g2.period_id,
+    g2.account_id,
+    SUM(CASE WHEN a2.normal_balance = 'CREDIT' THEN g2.credit_amount - g2.debit_amount
+             ELSE g2.debit_amount - g2.credit_amount END) AS actual_amount
   FROM general_ledger g2
   JOIN accounts a2 ON a2.account_id = g2.account_id
   GROUP BY g2.bu_id, g2.period_id, g2.account_id
