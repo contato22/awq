@@ -632,3 +632,143 @@ CREATE TABLE IF NOT EXISTS erp_contract_obligations (
 ALTER TABLE erp_contract_obligations ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "allow_all_erp_obligations" ON erp_contract_obligations;
 CREATE POLICY "allow_all_erp_obligations" ON erp_contract_obligations FOR ALL USING (true) WITH CHECK (true);
+
+-- ─── EPM: Fixed Assets (simple, no UUID FKs) ─────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS epm_fixed_assets (
+  id                       TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  asset_code               TEXT NOT NULL DEFAULT '',
+  asset_name               TEXT NOT NULL DEFAULT '',
+  asset_category           TEXT NOT NULL DEFAULT 'HARDWARE',
+  bu                       TEXT NOT NULL DEFAULT 'AWQ',
+  acquisition_date         DATE,
+  cost                     NUMERIC(15,2) NOT NULL DEFAULT 0,
+  useful_life_months       INTEGER NOT NULL DEFAULT 60,
+  residual_value           NUMERIC(15,2) NOT NULL DEFAULT 0,
+  accumulated_depreciation NUMERIC(15,2) NOT NULL DEFAULT 0,
+  is_active                BOOLEAN NOT NULL DEFAULT TRUE,
+  notes                    TEXT NOT NULL DEFAULT '',
+  created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at               TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+ALTER TABLE epm_fixed_assets ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "allow_all_epm_fixed_assets" ON epm_fixed_assets;
+CREATE POLICY "allow_all_epm_fixed_assets" ON epm_fixed_assets FOR ALL USING (true) WITH CHECK (true);
+
+-- ─── EPM: Fiscal Period Management ───────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS epm_fiscal_periods (
+  id           TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  period_code  TEXT NOT NULL DEFAULT '',
+  period_type  TEXT NOT NULL DEFAULT 'MONTH',
+  fiscal_year  INTEGER NOT NULL DEFAULT 2026,
+  start_date   DATE,
+  end_date     DATE,
+  status       TEXT NOT NULL DEFAULT 'OPEN',
+  closed_by    TEXT NOT NULL DEFAULT '',
+  closed_at    TIMESTAMPTZ,
+  checklist    JSONB NOT NULL DEFAULT '[]',
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+ALTER TABLE epm_fiscal_periods ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "allow_all_epm_fiscal_periods" ON epm_fiscal_periods;
+CREATE POLICY "allow_all_epm_fiscal_periods" ON epm_fiscal_periods FOR ALL USING (true) WITH CHECK (true);
+
+-- ─── EPM: FX Rates ───────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS epm_fx_rates (
+  id           TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  currency     TEXT NOT NULL DEFAULT '',
+  symbol       TEXT NOT NULL DEFAULT '',
+  flag         TEXT NOT NULL DEFAULT '',
+  rate_brl     NUMERIC(12,6) NOT NULL DEFAULT 0,
+  rate_prev    NUMERIC(12,6) NOT NULL DEFAULT 0,
+  source       TEXT NOT NULL DEFAULT 'BCB PTAX',
+  as_of        DATE,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+ALTER TABLE epm_fx_rates ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "allow_all_epm_fx_rates" ON epm_fx_rates;
+CREATE POLICY "allow_all_epm_fx_rates" ON epm_fx_rates FOR ALL USING (true) WITH CHECK (true);
+
+-- ─── EPM: Foreign Currency Transactions ──────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS epm_fc_transactions (
+  id               TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  date             DATE,
+  entity           TEXT NOT NULL DEFAULT '',
+  description      TEXT NOT NULL DEFAULT '',
+  currency         TEXT NOT NULL DEFAULT 'USD',
+  amount_fc        NUMERIC(15,2) NOT NULL DEFAULT 0,
+  rate_at_booking  NUMERIC(12,6) NOT NULL DEFAULT 0,
+  rate_current     NUMERIC(12,6) NOT NULL DEFAULT 0,
+  type             TEXT NOT NULL DEFAULT 'EXPENSE',
+  category         TEXT NOT NULL DEFAULT '',
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+ALTER TABLE epm_fc_transactions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "allow_all_epm_fc_transactions" ON epm_fc_transactions;
+CREATE POLICY "allow_all_epm_fc_transactions" ON epm_fc_transactions FOR ALL USING (true) WITH CHECK (true);
+
+-- ─── EPM: Budget Scenarios ────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS epm_budget_scenarios (
+  id               TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  version_name     TEXT NOT NULL DEFAULT '',
+  fiscal_year      INTEGER NOT NULL DEFAULT 2026,
+  scenario         TEXT NOT NULL DEFAULT 'BASE',
+  status           TEXT NOT NULL DEFAULT 'DRAFT',
+  approved_by      TEXT NOT NULL DEFAULT '',
+  approved_at      TIMESTAMPTZ,
+  submitted_by     TEXT NOT NULL DEFAULT '',
+  submitted_at     TIMESTAMPTZ,
+  notes            TEXT NOT NULL DEFAULT '',
+  budget_revenue   NUMERIC(15,2) NOT NULL DEFAULT 0,
+  budget_ebitda    NUMERIC(15,2) NOT NULL DEFAULT 0,
+  budget_net       NUMERIC(15,2) NOT NULL DEFAULT 0,
+  growth_vs_ly     NUMERIC(8,2) NOT NULL DEFAULT 0,
+  ebitda_margin    NUMERIC(8,2) NOT NULL DEFAULT 0,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+ALTER TABLE epm_budget_scenarios ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "allow_all_epm_budget_scenarios" ON epm_budget_scenarios;
+CREATE POLICY "allow_all_epm_budget_scenarios" ON epm_budget_scenarios FOR ALL USING (true) WITH CHECK (true);
+
+-- ─── EPM: Cash Forecast Weeks ─────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS epm_cash_forecast (
+  id          TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  week_label  TEXT NOT NULL DEFAULT '',
+  start_date  DATE,
+  inflow      NUMERIC(15,2) NOT NULL DEFAULT 0,
+  outflow     NUMERIC(15,2) NOT NULL DEFAULT 0,
+  type        TEXT NOT NULL DEFAULT 'forecast',
+  notes       TEXT NOT NULL DEFAULT '',
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+ALTER TABLE epm_cash_forecast ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "allow_all_epm_cash_forecast" ON epm_cash_forecast;
+CREATE POLICY "allow_all_epm_cash_forecast" ON epm_cash_forecast FOR ALL USING (true) WITH CHECK (true);
+
+-- ─── EPM: Intercompany Transactions ──────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS epm_ic_transactions (
+  id           TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  date         DATE,
+  from_entity  TEXT NOT NULL DEFAULT '',
+  to_entity    TEXT NOT NULL DEFAULT '',
+  description  TEXT NOT NULL DEFAULT '',
+  amount       NUMERIC(15,2) NOT NULL DEFAULT 0,
+  ic_type      TEXT NOT NULL DEFAULT 'SALES',
+  status       TEXT NOT NULL DEFAULT 'UNMATCHED',
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+ALTER TABLE epm_ic_transactions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "allow_all_epm_ic_transactions" ON epm_ic_transactions;
+CREATE POLICY "allow_all_epm_ic_transactions" ON epm_ic_transactions FOR ALL USING (true) WITH CHECK (true);
