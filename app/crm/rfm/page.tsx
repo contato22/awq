@@ -77,7 +77,6 @@ const SEGMENT_META_CLIENT: Record<RfmSegment, { color: string; bg: string }> = {
   "Perdidos":             { color: "#991b1b", bg: "#fecaca" },
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const SEGMENT_ICON: Record<RfmSegment, any> = {
   "Campeões":Star,"Clientes Fiéis":TrendingUp,"Fiéis em Potencial":Users,
   "Novos Clientes":Users,"Clientes Promissores":TrendingUp,
