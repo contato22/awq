@@ -212,29 +212,13 @@ export default function PpmPortfolioPage() {
       if (filterHealth) params.set("health_status",filterHealth);
       if (filterType)   params.set("project_type", filterType);
 
-      let apiProjects: PpmProject[] = [];
-      let apiMetrics: PpmPortfolioMetrics | null = null;
-
-      try {
-        const res  = await fetch(`/api/ppm/projects?${params}`);
-        let json: { success: boolean; data?: { projects: PpmProject[]; metrics: PpmPortfolioMetrics } } | null = null;
-        try { json = await res.json(); } catch { /* non-JSON response */ }
-        if (json?.success) {
-          apiProjects = json.data?.projects ?? [];
-          apiMetrics  = json.data?.metrics  ?? null;
-        }
-      } catch { /* network error — use localStorage only */ }
-
-      // Merge localStorage projects (created offline / static export)
-      try {
-        const local = JSON.parse(localStorage.getItem("awq_ppm_projects") ?? "[]") as PpmProject[];
-        const apiIds = new Set(apiProjects.map(p => p.project_id));
-        const localOnly = local.filter(p => !apiIds.has(p.project_id));
-        apiProjects = [...localOnly, ...apiProjects];
-      } catch { /* ignore storage errors */ }
-
-      setProjects(apiProjects);
-      if (apiMetrics) setMetrics(apiMetrics);
+      const res  = await fetch(`/api/ppm/projects?${params}`);
+      let json: { success: boolean; data?: { projects: PpmProject[]; metrics: PpmPortfolioMetrics } } | null = null;
+      try { json = await res.json(); } catch { /* ignore non-JSON error bodies */ }
+      if (json?.success) {
+        setProjects(json.data?.projects ?? []);
+        setMetrics(json.data?.metrics   ?? null);
+      }
     } finally {
       setLoading(false);
     }
