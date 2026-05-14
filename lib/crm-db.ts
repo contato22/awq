@@ -87,6 +87,7 @@ export async function createAccount(data: Partial<CrmAccount>): Promise<CrmAccou
       address_state:           data.address_state ?? null,
       address_zip:             data.address_zip ?? null,
       account_type:            data.account_type ?? "prospect",
+      bu:                      data.bu ?? "JACQES",
       owner:                   data.owner ?? "Miguel",
       health_score:            data.health_score ?? 70,
       churn_risk:              data.churn_risk ?? "low",
@@ -107,6 +108,7 @@ export async function updateAccount(id: string, data: Partial<CrmAccount>): Prom
   if (data.industry      != null) patch.industry      = data.industry;
   if (data.company_size  != null) patch.company_size  = data.company_size;
   if (data.account_type  != null) patch.account_type  = data.account_type;
+  if (data.bu            != null) patch.bu            = data.bu;
   if (data.owner         != null) patch.owner         = data.owner;
   if (data.health_score  != null) patch.health_score  = data.health_score;
   if (data.churn_risk    != null) patch.churn_risk    = data.churn_risk;
