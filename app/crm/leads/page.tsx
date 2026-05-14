@@ -54,7 +54,7 @@ function BuBadge({ bu }: { bu: string }) {
   return <span className="badge badge-yellow text-[10px]">{bu}</span>;
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+// ─── Page ────────────────────────────────────────────────────────────────────────────────
 
 export default function LeadsPage() {
   const router = useRouter();
@@ -136,8 +136,8 @@ export default function LeadsPage() {
           created_by: lead.assigned_to,
         };
 
-        const storedOpps: CrmOpportunity[] = JSON.parse(localStorage.getItem("crm-opportunities-v1") ?? "null") ?? SEED_OPPORTUNITIES;
-        localStorage.setItem("crm-opportunities-v1", JSON.stringify([...storedOpps, newOpp]));
+        const storedOpps: CrmOpportunity[] = JSON.parse(localStorage.getItem("crm-opportunities-v3") ?? "null") ?? SEED_OPPORTUNITIES;
+        localStorage.setItem("crm-opportunities-v3", JSON.stringify([...storedOpps, newOpp]));
 
         const converted = JSON.parse(localStorage.getItem("awq_converted_leads") ?? "{}") as Record<string, string>;
         converted[lead.lead_id] = newOppId;
@@ -276,7 +276,7 @@ export default function LeadsPage() {
           </Link>
         </div>
 
-        {/* ── KPI Row ───────────────────────────────────────────────────────── */}
+        {/* ── KPI Row ─────────────────────────────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="card p-4 flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
@@ -316,7 +316,7 @@ export default function LeadsPage() {
           </div>
         </div>
 
-        {/* ── Filter Bar ────────────────────────────────────────────────────── */}
+        {/* ── Filter Bar ──────────────────────────────────────────────────────────────────────── */}
         <div className="card p-4 flex flex-col sm:flex-row gap-3 items-start sm:items-center">
           {/* Status tabs */}
           <div className="flex flex-wrap gap-1 flex-1">
@@ -357,7 +357,7 @@ export default function LeadsPage() {
           </div>
         </div>
 
-        {/* ── Table ─────────────────────────────────────────────────────────── */}
+        {/* ── Table ─────────────────────────────────────────────────────────────────────────────── */}
         <div className="card">
           <div className="p-4 border-b border-gray-100">
             <SectionHeader
@@ -486,4 +486,3 @@ export default function LeadsPage() {
     </>
   );
 }
-

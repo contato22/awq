@@ -5,7 +5,7 @@ import type { FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
 import type { CrmAccount } from "@/lib/crm-types";
-import { SEED_ACCOUNTS } from "@/lib/crm-db";
+
 
 const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 
@@ -23,10 +23,15 @@ function AddContactPageInner() {
   });
 
   useEffect(() => {
+    const local: CrmAccount[] = JSON.parse(localStorage.getItem("awq_local_accounts") ?? "[]");
     fetch("/api/crm/accounts")
-      .then(r=>r.json())
-      .then(res=>setAccounts(res.success ? res.data : SEED_ACCOUNTS))
-      .catch(()=>setAccounts(SEED_ACCOUNTS));
+      .then(r => r.json())
+      .then(res => {
+        const base: CrmAccount[] = res.success ? res.data : [];
+        const merged = [...local, ...base.filter(a => !local.some(l => l.account_id === a.account_id))];
+        setAccounts(merged);
+      })
+      .catch(() => setAccounts(local));
   }, []);
 
   function set(f: string, v: string | boolean) { setForm(p=>({...p,[f]:v})); }

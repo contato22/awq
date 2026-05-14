@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
 import { STAGE_LABELS, STAGE_PROBABILITY, BU_OPTIONS, OWNER_OPTIONS } from "@/lib/crm-types";
 import type { CrmAccount } from "@/lib/crm-types";
-import { SEED_ACCOUNTS } from "@/lib/crm-db";
+
 
 const ACTIVE_STAGES = ["discovery","qualification","proposal","negotiation","closed_won","closed_lost"] as const;
 
@@ -32,10 +32,15 @@ function AddOpportunityPageInner() {
   });
 
   useEffect(() => {
+    const local: CrmAccount[] = JSON.parse(localStorage.getItem("awq_local_accounts") ?? "[]");
     fetch("/api/crm/accounts")
       .then(r => r.json())
-      .then(res => setAccounts(res.success ? res.data : SEED_ACCOUNTS))
-      .catch(() => setAccounts(SEED_ACCOUNTS));
+      .then(res => {
+        const base: CrmAccount[] = res.success ? res.data : [];
+        const merged = [...local, ...base.filter(a => !local.some(l => l.account_id === a.account_id))];
+        setAccounts(merged);
+      })
+      .catch(() => setAccounts(local));
   }, []);
 
   function set(field: string, value: string) {
