@@ -817,7 +817,7 @@ JOIN business_units b  ON b.bu_id       = g.bu_id
 JOIN fiscal_periods fp ON fp.period_id  = g.period_id
 WHERE a.account_type IN ('ASSET','LIABILITY','EQUITY')
 GROUP BY b.bu_code, b.bu_name, fp.period_code,
-         a.account_type, a.account_code, a.account_name, a.level
+         a.account_type, a.account_code, a.account_name, a.level, a.normal_balance
 ORDER BY a.account_code;
 
 -- ─── v_ap_aging — Aging de Contas a Pagar ────────────────────────────────────
