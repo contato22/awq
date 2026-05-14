@@ -4,12 +4,11 @@ import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
-import SectionHeader from "@/components/SectionHeader";
 import EmptyState from "@/components/EmptyState";
 import { Activity, Phone, Mail, Users, CheckCircle2, FileText, Plus, Clock } from "lucide-react";
 import type { CrmActivity } from "@/lib/crm-types";
-import { SEED_ACTIVITIES } from "@/lib/crm-db";
 import { formatDateBR } from "@/lib/utils";
+import { supabase } from "@/lib/supabase-client";
 
 function fmtDatetime(d: string | null | undefined) {
   if (!d) return "—";
@@ -32,7 +31,6 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled:  "bg-gray-100 text-gray-500",
 };
 
-// Group activities by date
 function groupByDate(acts: CrmActivity[]) {
   const groups: Record<string, CrmActivity[]> = {};
   for (const a of acts) {
@@ -51,16 +49,8 @@ export default function ActivitiesPage() {
   const [completing, setCompleting] = useState<string | null>(null);
 
   useEffect(() => {
-    const local: CrmActivity[] = JSON.parse(localStorage.getItem("awq_local_activities") ?? "[]");
-    fetch("/api/crm/activities")
-      .then(r => r.json())
-      .then(res => {
-        const base: CrmActivity[] = res.success ? res.data : [];
-        const merged = [...local, ...base.filter(a => !local.some(l => l.activity_id === a.activity_id))];
-        setActivities(merged);
-      })
-      .catch(() => setActivities(local))
-      .finally(() => setLoading(false));
+    void supabase.from("crm_activities").select("*").order("created_at", { ascending: false })
+      .then(({ data }) => { setActivities((data ?? []) as CrmActivity[]); setLoading(false); }, () => { setLoading(false); });
   }, []);
 
   const filtered = activities.filter(a => {
@@ -76,14 +66,10 @@ export default function ActivitiesPage() {
 
   async function completeActivity(id: string) {
     setCompleting(id);
-    try {
-      await fetch("/api/crm/activities", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "complete", activity_id: id }),
-      });
-      setActivities(prev => prev.map(a => a.activity_id === id ? { ...a, status: "completed", completed_at: new Date().toISOString() } : a));
-    } finally { setCompleting(null); }
+    const completedAt = new Date().toISOString();
+    setActivities(prev => prev.map(a => a.activity_id === id ? { ...a, status: "completed", completed_at: completedAt } : a));
+    await supabase.from("crm_activities").update({ status: "completed", completed_at: completedAt }).eq("activity_id", id);
+    setCompleting(null);
   }
 
   return (
@@ -91,7 +77,6 @@ export default function ActivitiesPage() {
       <Header title="Atividades — CRM AWQ" subtitle="Timeline de interações e tarefas" />
       <div className="page-container">
 
-        {/* KPIs */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
             { label: "Total", value: activities.length, color: "text-gray-700" },
@@ -106,7 +91,6 @@ export default function ActivitiesPage() {
           ))}
         </div>
 
-        {/* Filters + Add */}
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
             {["Todos","call","email","meeting","task","note"].map(t => (
@@ -130,7 +114,6 @@ export default function ActivitiesPage() {
           </Link>
         </div>
 
-        {/* Timeline */}
         {loading ? (
           <div className="card p-8 flex items-center justify-center">
             <div className="w-4 h-4 border-2 border-gray-300 border-t-brand-500 rounded-full animate-spin" />

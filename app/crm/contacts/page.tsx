@@ -6,7 +6,7 @@ import Header from "@/components/Header";
 import EmptyState from "@/components/EmptyState";
 import { Users, Plus, Search, Mail, Phone, Linkedin, Trash2, Check, X as XIcon } from "lucide-react";
 import type { CrmContact } from "@/lib/crm-types";
-import { SEED_CONTACTS } from "@/lib/crm-db";
+import { supabase } from "@/lib/supabase-client";
 
 const SENIORITY_LABELS: Record<string, string> = {
   c_level: "C-Level", director: "Diretor", manager: "Gerente", ic: "Analista/IC",
@@ -15,6 +15,8 @@ const SENIORITY_COLORS: Record<string, string> = {
   c_level: "bg-violet-50 text-violet-700", director: "bg-blue-50 text-blue-700",
   manager: "bg-amber-50 text-amber-700", ic: "bg-gray-100 text-gray-600",
 };
+
+type ContactWithAccount = CrmContact & { crm_accounts?: { account_name: string } | null };
 
 export default function ContactsPage() {
   const [contacts, setContacts] = useState<CrmContact[]>([]);
@@ -28,73 +30,33 @@ export default function ContactsPage() {
     setTimeout(() => setToast(null), 3000);
   }
 
-  function handleDelete(contact: CrmContact) {
+  useEffect(() => {
+    let q = supabase.from("crm_contacts")
+      .select("*, crm_accounts(account_name)")
+      .order("full_name");
+    if (search) q = q.ilike("full_name", `%${search}%`);
+    void q.then(({ data }) => {
+      const rows = (data ?? []).map((c: ContactWithAccount) => ({
+        ...c,
+        account_name: c.crm_accounts?.account_name ?? null,
+      })) as CrmContact[];
+      setContacts(rows);
+      setLoading(false);
+    }, () => { setLoading(false); });
+  }, [search]);
+
+  async function handleDelete(contact: CrmContact) {
     setContacts(prev => prev.filter(c => c.contact_id !== contact.contact_id));
     setDeletingId(null);
-
-    // Remove from localStorage (local contacts)
-    const localContacts = JSON.parse(localStorage.getItem("awq_local_contacts") ?? "[]") as CrmContact[];
-    const updatedLocal = localContacts.filter(c => c.contact_id !== contact.contact_id);
-    localStorage.setItem("awq_local_contacts", JSON.stringify(updatedLocal));
-
-    // Track deleted seed/API contacts so they stay hidden on reload
-    if (!contact.contact_id.startsWith("local-")) {
-      const deleted = JSON.parse(localStorage.getItem("awq_deleted_contacts") ?? "[]") as string[];
-      localStorage.setItem("awq_deleted_contacts", JSON.stringify([...deleted, contact.contact_id]));
-    }
-
+    await supabase.from("crm_contacts").delete().eq("contact_id", contact.contact_id);
     showToast("Contato apagado", true);
-    fetch("/api/crm/contacts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "delete", contact_id: contact.contact_id }),
-    }).catch(() => undefined);
   }
-
-  useEffect(() => {
-    const localContacts = JSON.parse(localStorage.getItem("awq_local_contacts") ?? "[]") as CrmContact[];
-    const deletedIds = new Set<string>(JSON.parse(localStorage.getItem("awq_deleted_contacts") ?? "[]"));
-
-    const p = new URLSearchParams();
-    if (search) p.set("search", search);
-    fetch(`/api/crm/contacts?${p}`)
-      .then(r => r.json())
-      .then(res => {
-        const apiContacts: CrmContact[] = res.success ? res.data : SEED_CONTACTS;
-        const filtered = apiContacts.filter(c => !deletedIds.has(c.contact_id));
-        const apiIds = new Set(filtered.map(c => c.contact_id));
-        const merged = [
-          ...localContacts.filter(c =>
-            !apiIds.has(c.contact_id) &&
-            !deletedIds.has(c.contact_id) &&
-            (!search || c.full_name.toLowerCase().includes(search.toLowerCase()) || (c.email ?? "").toLowerCase().includes(search.toLowerCase()))
-          ),
-          ...filtered,
-        ];
-        setContacts(merged);
-      })
-      .catch(() => {
-        const seedFiltered = SEED_CONTACTS.filter(c => !deletedIds.has(c.contact_id));
-        const seedIds = new Set(seedFiltered.map(c => c.contact_id));
-        const merged = [
-          ...localContacts.filter(c =>
-            !seedIds.has(c.contact_id) &&
-            !deletedIds.has(c.contact_id) &&
-            (!search || c.full_name.toLowerCase().includes(search.toLowerCase()) || (c.email ?? "").toLowerCase().includes(search.toLowerCase()))
-          ),
-          ...seedFiltered,
-        ];
-        setContacts(merged);
-      })
-      .finally(() => setLoading(false));
-  }, [search]);
 
   return (
     <>
       <Header title="Contatos — CRM AWQ" subtitle="Pessoas e decisores" />
       <div className="page-container">
 
-        {/* KPIs */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
             { label: "Total Contatos", value: contacts.length },
@@ -109,7 +71,6 @@ export default function ContactsPage() {
           ))}
         </div>
 
-        {/* Search + Add */}
         <div className="flex items-center gap-3">
           <div className="relative flex-1">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
@@ -122,14 +83,12 @@ export default function ContactsPage() {
           </Link>
         </div>
 
-        {/* Toast */}
         {toast && (
           <div className={`fixed top-4 right-4 z-50 px-4 py-2.5 rounded-xl text-sm font-medium shadow-lg ${toast.ok ? "bg-emerald-600 text-white" : "bg-red-600 text-white"}`}>
             {toast.msg}
           </div>
         )}
 
-        {/* Table */}
         <div className="card">
           <div className="table-scroll">
             <table className="w-full text-sm">
@@ -160,9 +119,7 @@ export default function ContactsPage() {
                         <div className="w-7 h-7 rounded-full bg-brand-100 flex items-center justify-center text-[10px] font-bold text-brand-700 shrink-0">
                           {c.full_name.split(" ").slice(0,2).map(n=>n[0]).join("")}
                         </div>
-                        <div>
-                          <p className="text-[13px] font-medium text-gray-900">{c.full_name}</p>
-                        </div>
+                        <p className="text-[13px] font-medium text-gray-900">{c.full_name}</p>
                       </div>
                     </td>
                     <td className="py-3 px-4">
