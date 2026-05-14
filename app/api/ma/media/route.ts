@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { initMaDB, listMediaDeliverables, createMediaDeliverable, updateMediaDeliverable } from "@/lib/ma-db";
 

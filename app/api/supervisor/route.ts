@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 /**
  * /api/supervisor — BU Supervisor Agent API
  *

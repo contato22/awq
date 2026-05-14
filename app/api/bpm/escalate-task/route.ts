@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // ─── POST /api/bpm/escalate-task ─────────────────────────────────────────────
 // Escalate a pending task to a higher-level approver (CEO/CFO by default).
 // Body: { task_id, escalated_by, escalate_to?, reason? }

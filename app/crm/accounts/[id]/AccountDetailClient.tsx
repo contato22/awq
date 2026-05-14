@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import type { CrmAccount, CrmContact, CrmOpportunity, CrmActivity } from "@/lib/crm-types";
 import { formatBRL, formatDateBR } from "@/lib/utils";
-import { supabase } from "@/lib/supabase-client";
+import { supabaseClient as supabase } from "@/lib/supabase";
 
 const STAGE_COLORS: Record<string, string> = {
   discovery:"bg-blue-100 text-blue-700", qualification:"bg-violet-100 text-violet-700",
@@ -81,9 +81,11 @@ export default function AccountDetailClient() {
   const openOpps  = opportunities.filter((o: CrmOpportunity) => o.stage !== "closed_won" && o.stage !== "closed_lost");
   const pipelineValue = openOpps.reduce((s: number, o: CrmOpportunity) => s + o.deal_value, 0);
 
+  const accountTypeLabel: Record<string, string> = { customer: "Cliente", prospect: "Prospect", partner: "Parceiro", former_customer: "Ex-Cliente" };
+
   return (
     <>
-      <Header title={account.trade_name ?? account.account_name} subtitle={`${account.account_code} · ${{"customer":"Cliente","prospect":"Prospect","partner":"Parceiro","former_customer":"Ex-Cliente"}[account.account_type] ?? account.account_type}`} />
+      <Header title={account.trade_name ?? account.account_name} subtitle={`${account.account_code} · ${accountTypeLabel[account.account_type] ?? account.account_type}`} />
       <div className="page-container">
 
         <div className="flex items-center gap-2 text-xs text-gray-500 -mt-2">

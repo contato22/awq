@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // GET /api/caza/crm/stats — KPIs consolidados do CRM Caza Vision
 // Consumido pela página /caza-vision/crm (overview).
 // ISOLADO de jacqes_crm_* — sem cross-BU.

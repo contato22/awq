@@ -1,11 +1,10 @@
 // ─── AWQ PPM — Data Access Layer ──────────────────────────────────────────────
 //
 // Manages Projects, Tasks, Milestones, Allocations, Time Entries, Risks, Issues.
-// Storage priority: Supabase → Neon PostgreSQL → in-memory seed data.
+// Storage priority: Supabase → in-memory seed data.
 // DO NOT import in client components.
 
 import { randomUUID } from "crypto";
-import { sql } from "@/lib/db";
 import { supabase } from "@/lib/supabase";
 import type {
   PpmProject, PpmTask, PpmMilestone, PpmAllocation, PpmTimeEntry,
@@ -273,7 +272,6 @@ let _issues:      PpmIssue[]      = [...SEED_ISSUES];
 // ─── DB init ──────────────────────────────────────────────────────────────────
 
 export async function initPpmDB(): Promise<void> {
-  if (!sql) return;
   // Tables created via awq_ppm_full_schema.sql — no-op here.
 }
 
@@ -299,27 +297,6 @@ export async function listProjects(filters?: {
     return (data ?? []) as PpmProject[];
   }
 
-  // ── Neon ──────────────────────────────────────────────────────────────────
-  if (sql) {
-    const rows = await sql`
-      SELECT p.*,
-        COALESCE(
-          (SELECT COUNT(*) FROM ppm_tasks t WHERE t.project_id = p.project_id AND t.status = 'completed')::float /
-          NULLIF((SELECT COUNT(*) FROM ppm_tasks t WHERE t.project_id = p.project_id), 0) * 100,
-          0
-        ) AS completion_pct,
-        (SELECT COUNT(DISTINCT user_id) FROM ppm_allocations a WHERE a.project_id = p.project_id AND a.status = 'active') AS team_size
-      FROM ppm_projects p
-      WHERE (${ filters?.bu_code      ?? null} IS NULL OR p.bu_code = ${filters?.bu_code ?? null})
-        AND (${filters?.status        ?? null} IS NULL OR p.status  = ${filters?.status ?? null})
-        AND (${filters?.health_status ?? null} IS NULL OR p.health_status = ${filters?.health_status ?? null})
-        AND (${filters?.project_type  ?? null} IS NULL OR p.project_type  = ${filters?.project_type ?? null})
-        AND (${filters?.search        ?? null} IS NULL OR p.project_name ILIKE ${'%' + (filters?.search ?? '') + '%'})
-      ORDER BY p.created_at DESC
-    `;
-    return rows as PpmProject[];
-  }
-
   // ── In-memory seed ────────────────────────────────────────────────────────
   let rows = [..._projects];
   if (filters?.bu_code)      rows = rows.filter(r => r.bu_code === filters.bu_code);
@@ -339,9 +316,7 @@ export async function getProject(project_id: string): Promise<PpmProject | null>
     if (error) return null;
     return data as PpmProject;
   }
-  if (!sql) return _projects.find(p => p.project_id === project_id) ?? null;
-  const rows = await sql`SELECT p.* FROM ppm_projects p WHERE p.project_id = ${project_id}`;
-  return (rows[0] ?? null) as PpmProject | null;
+  return _projects.find(p => p.project_id === project_id) ?? null;
 }
 
 export async function createProject(input: Omit<PpmProject, "project_id" | "project_code" | "actual_hours" | "actual_cost" | "actual_revenue" | "created_at" | "updated_at">): Promise<PpmProject> {
@@ -399,36 +374,6 @@ export async function createProject(input: Omit<PpmProject, "project_id" | "proj
     return (data ?? newProject) as PpmProject;
   }
 
-  // ── Neon ──────────────────────────────────────────────────────────────────
-  if (sql) {
-    await sql`
-      INSERT INTO ppm_projects (
-        project_id, project_code, project_name, customer_id, bu_code,
-        opportunity_id, project_type, service_category, contract_type,
-        start_date, planned_end_date, baseline_end_date,
-        budget_hours, budget_cost, budget_revenue, margin_target,
-        project_manager_id, description, objectives, scope,
-        phase, status, health_status, priority, billing_frequency,
-        notes, created_at, updated_at, created_by
-      ) VALUES (
-        ${project_id}, ${project_code}, ${input.project_name},
-        ${input.customer_id ?? null}, ${input.bu_code},
-        ${input.opportunity_id ?? null}, ${input.project_type},
-        ${input.service_category ?? null}, ${input.contract_type},
-        ${input.start_date}, ${input.planned_end_date}, ${input.planned_end_date},
-        ${input.budget_hours ?? null}, ${input.budget_cost}, ${input.budget_revenue},
-        ${input.margin_target ?? null},
-        ${input.project_manager_id ?? null},
-        ${input.description ?? null}, ${input.objectives ?? null}, ${input.scope ?? null},
-        ${input.phase ?? "initiation"}, ${input.status ?? "active"},
-        ${input.health_status ?? "green"}, ${input.priority ?? "medium"},
-        ${input.billing_frequency ?? null},
-        ${input.notes ?? null}, ${ts}, ${ts}, ${input.created_by ?? null}
-      )
-    `;
-    return newProject;
-  }
-
   // ── In-memory seed ────────────────────────────────────────────────────────
   _projects.unshift(newProject);
   return newProject;
@@ -445,28 +390,10 @@ export async function updateProject(project_id: string, patch: Partial<PpmProjec
     if (error) throw new Error(error.message);
     return data as PpmProject;
   }
-  if (!sql) {
-    const idx = _projects.findIndex(p => p.project_id === project_id);
-    if (idx === -1) return null;
-    _projects[idx] = { ..._projects[idx], ...patch, updated_at: now() };
-    return _projects[idx];
-  }
-  await sql`
-    UPDATE ppm_projects SET
-      project_name      = COALESCE(${patch.project_name ?? null}, project_name),
-      status            = COALESCE(${patch.status ?? null}, status),
-      health_status     = COALESCE(${patch.health_status ?? null}, health_status),
-      health_notes      = COALESCE(${patch.health_notes ?? null}, health_notes),
-      phase             = COALESCE(${patch.phase ?? null}, phase),
-      planned_end_date  = COALESCE(${patch.planned_end_date ?? null}, planned_end_date),
-      actual_end_date   = COALESCE(${patch.actual_end_date ?? null}, actual_end_date),
-      budget_cost       = COALESCE(${patch.budget_cost ?? null}, budget_cost),
-      budget_revenue    = COALESCE(${patch.budget_revenue ?? null}, budget_revenue),
-      notes             = COALESCE(${patch.notes ?? null}, notes),
-      updated_at        = ${now()}
-    WHERE project_id = ${project_id}
-  `;
-  return getProject(project_id);
+  const idx = _projects.findIndex(p => p.project_id === project_id);
+  if (idx === -1) return null;
+  _projects[idx] = { ..._projects[idx], ...patch, updated_at: now() };
+  return _projects[idx];
 }
 
 // ─── Task CRUD ────────────────────────────────────────────────────────────────
@@ -481,20 +408,11 @@ export async function listTasks(project_id?: string, filters?: { status?: TaskSt
     if (error) throw new Error(error.message);
     return (data ?? []) as PpmTask[];
   }
-  if (!sql) {
-    let rows = [..._tasks];
-    if (project_id)         rows = rows.filter(t => t.project_id === project_id);
-    if (filters?.status)    rows = rows.filter(t => t.status === filters.status);
-    if (filters?.assigned_to) rows = rows.filter(t => t.assigned_to === filters.assigned_to);
-    return rows.sort((a, b) => a.sort_order - b.sort_order);
-  }
-  const rows = await sql`
-    SELECT t.* FROM ppm_tasks t
-    WHERE (${project_id ?? null} IS NULL OR t.project_id = ${project_id ?? null})
-      AND (${filters?.status ?? null} IS NULL OR t.status = ${filters?.status ?? null})
-    ORDER BY t.sort_order
-  `;
-  return rows as PpmTask[];
+  let rows = [..._tasks];
+  if (project_id)         rows = rows.filter(t => t.project_id === project_id);
+  if (filters?.status)    rows = rows.filter(t => t.status === filters.status);
+  if (filters?.assigned_to) rows = rows.filter(t => t.assigned_to === filters.assigned_to);
+  return rows.sort((a, b) => a.sort_order - b.sort_order);
 }
 
 export async function createTask(input: Omit<PpmTask, "task_id" | "actual_hours" | "created_at" | "updated_at">): Promise<PpmTask> {
@@ -506,39 +424,20 @@ export async function createTask(input: Omit<PpmTask, "task_id" | "actual_hours"
     created_at: now(),
     updated_at: now(),
   };
-  if (!sql) { _tasks.push(newTask); return newTask; }
-  await sql`
-    INSERT INTO ppm_tasks (task_id, project_id, parent_task_id, task_name, description, task_type, wbs_code, sort_order, assigned_to, estimated_hours, start_date, due_date, status, completion_pct, is_deliverable, created_at, updated_at)
-    VALUES (${task_id}, ${input.project_id}, ${input.parent_task_id ?? null}, ${input.task_name}, ${input.description ?? null}, ${input.task_type}, ${input.wbs_code ?? null}, ${input.sort_order}, ${input.assigned_to ?? null}, ${input.estimated_hours ?? null}, ${input.start_date ?? null}, ${input.due_date ?? null}, ${input.status}, ${input.completion_pct}, ${input.is_deliverable}, ${now()}, ${now()})
-  `;
+  _tasks.push(newTask);
   return newTask;
 }
 
 export async function updateTask(task_id: string, patch: Partial<PpmTask>): Promise<PpmTask | null> {
-  if (!sql) {
-    const idx = _tasks.findIndex(t => t.task_id === task_id);
-    if (idx === -1) return null;
-    const updated = { ..._tasks[idx], ...patch, updated_at: now() };
-    if (patch.status === "completed" && _tasks[idx].status !== "completed") {
-      updated.completion_pct  = 100;
-      updated.completed_date  = today();
-    }
-    _tasks[idx] = updated;
-    return updated;
+  const idx = _tasks.findIndex(t => t.task_id === task_id);
+  if (idx === -1) return null;
+  const updated = { ..._tasks[idx], ...patch, updated_at: now() };
+  if (patch.status === "completed" && _tasks[idx].status !== "completed") {
+    updated.completion_pct  = 100;
+    updated.completed_date  = today();
   }
-  await sql`
-    UPDATE ppm_tasks SET
-      status         = COALESCE(${patch.status ?? null}, status),
-      completion_pct = COALESCE(${patch.completion_pct ?? null}, completion_pct),
-      completed_date = CASE WHEN ${patch.status ?? null} = 'completed' THEN CURRENT_DATE ELSE completed_date END,
-      assigned_to    = COALESCE(${patch.assigned_to ?? null}, assigned_to),
-      notes          = COALESCE(${patch.notes ?? null}, notes),
-      blocked_reason = COALESCE(${patch.blocked_reason ?? null}, blocked_reason),
-      updated_at     = ${now()}
-    WHERE task_id = ${task_id}
-  `;
-  const rows = await sql`SELECT * FROM ppm_tasks WHERE task_id = ${task_id}`;
-  return (rows[0] ?? null) as PpmTask | null;
+  _tasks[idx] = updated;
+  return updated;
 }
 
 // ─── Milestone CRUD ───────────────────────────────────────────────────────────
@@ -551,26 +450,14 @@ export async function listMilestones(project_id?: string): Promise<PpmMilestone[
     if (error) throw new Error(error.message);
     return (data ?? []) as PpmMilestone[];
   }
-  if (!sql) {
-    const rows = project_id ? _milestones.filter(m => m.project_id === project_id) : [..._milestones];
-    return rows.sort((a, b) => a.planned_date.localeCompare(b.planned_date));
-  }
-  const rows = await sql`
-    SELECT m.* FROM ppm_milestones m
-    WHERE (${project_id ?? null} IS NULL OR m.project_id = ${project_id ?? null})
-    ORDER BY m.planned_date
-  `;
-  return rows as PpmMilestone[];
+  const rows = project_id ? _milestones.filter(m => m.project_id === project_id) : [..._milestones];
+  return rows.sort((a, b) => a.planned_date.localeCompare(b.planned_date));
 }
 
 export async function createMilestone(input: Omit<PpmMilestone, "milestone_id" | "created_at" | "updated_at">): Promise<PpmMilestone> {
   const milestone_id = randomUUID();
   const m: PpmMilestone = { ...input, milestone_id, created_at: now(), updated_at: now() };
-  if (!sql) { _milestones.push(m); return m; }
-  await sql`
-    INSERT INTO ppm_milestones (milestone_id, project_id, milestone_name, description, planned_date, baseline_date, status, triggers_payment, payment_percentage, requires_approval, notes, created_at, updated_at)
-    VALUES (${milestone_id}, ${input.project_id}, ${input.milestone_name}, ${input.description ?? null}, ${input.planned_date}, ${input.planned_date}, ${input.status}, ${input.triggers_payment}, ${input.payment_percentage ?? null}, ${input.requires_approval}, ${input.notes ?? null}, ${now()}, ${now()})
-  `;
+  _milestones.push(m);
   return m;
 }
 
@@ -585,103 +472,59 @@ export async function listAllocations(project_id?: string, user_id?: string): Pr
     if (error) throw new Error(error.message);
     return (data ?? []) as PpmAllocation[];
   }
-  if (!sql) {
-    let rows = [..._allocations];
-    if (project_id) rows = rows.filter(a => a.project_id === project_id);
-    if (user_id)    rows = rows.filter(a => a.user_id === user_id);
-    return rows;
-  }
-  const rows = await sql`
-    SELECT a.* FROM ppm_allocations a
-    WHERE (${project_id ?? null} IS NULL OR a.project_id = ${project_id ?? null})
-      AND (${user_id ?? null}    IS NULL OR a.user_id    = ${user_id ?? null})
-  `;
-  return rows as PpmAllocation[];
+  let rows = [..._allocations];
+  if (project_id) rows = rows.filter(a => a.project_id === project_id);
+  if (user_id)    rows = rows.filter(a => a.user_id === user_id);
+  return rows;
 }
 
 export async function createAllocation(input: Omit<PpmAllocation, "allocation_id" | "created_at" | "updated_at">): Promise<PpmAllocation> {
   const allocation_id = randomUUID();
   const a: PpmAllocation = { ...input, allocation_id, created_at: now(), updated_at: now() };
-  if (!sql) { _allocations.push(a); return a; }
-  await sql`
-    INSERT INTO ppm_allocations (allocation_id, project_id, user_id, role, allocation_pct, hours_per_week, start_date, end_date, billable_rate, cost_rate, is_billable, status, notes, created_at, updated_at)
-    VALUES (${allocation_id}, ${input.project_id}, ${input.user_id}, ${input.role}, ${input.allocation_pct}, ${input.hours_per_week ?? null}, ${input.start_date}, ${input.end_date ?? null}, ${input.billable_rate ?? null}, ${input.cost_rate ?? null}, ${input.is_billable}, ${input.status}, ${input.notes ?? null}, ${now()}, ${now()})
-  `;
+  _allocations.push(a);
   return a;
 }
 
 export async function getResourceUtilization(): Promise<{ user_id: string; user_name: string; total_allocation_pct: number; utilization_status: string; active_projects: number; project_names: string[] }[]> {
-  if (!sql) {
-    const byUser: Record<string, { user_name: string; total: number; projects: string[] }> = {};
-    for (const a of _allocations.filter(x => x.status === "active")) {
-      if (!byUser[a.user_id]) byUser[a.user_id] = { user_name: a.user_name ?? a.user_id, total: 0, projects: [] };
-      byUser[a.user_id].total += a.allocation_pct;
-      if (a.project_name) byUser[a.user_id].projects.push(a.project_name);
-    }
-    return Object.entries(byUser).map(([user_id, v]) => ({
-      user_id,
-      user_name: v.user_name,
-      total_allocation_pct: v.total,
-      utilization_status: v.total > 100 ? "overallocated" : v.total >= 80 ? "fully_allocated" : v.total >= 50 ? "partially_allocated" : "available",
-      active_projects: v.projects.length,
-      project_names: v.projects,
-    }));
+  const byUser: Record<string, { user_name: string; total: number; projects: string[] }> = {};
+  for (const a of _allocations.filter(x => x.status === "active")) {
+    if (!byUser[a.user_id]) byUser[a.user_id] = { user_name: a.user_name ?? a.user_id, total: 0, projects: [] };
+    byUser[a.user_id].total += a.allocation_pct;
+    if (a.project_name) byUser[a.user_id].projects.push(a.project_name);
   }
-  const rows = await sql`SELECT * FROM v_ppm_resource_utilization ORDER BY total_allocation_pct DESC`;
-  return rows as ReturnType<typeof getResourceUtilization> extends Promise<infer T> ? T : never;
+  return Object.entries(byUser).map(([user_id, v]) => ({
+    user_id,
+    user_name: v.user_name,
+    total_allocation_pct: v.total,
+    utilization_status: v.total > 100 ? "overallocated" : v.total >= 80 ? "fully_allocated" : v.total >= 50 ? "partially_allocated" : "available",
+    active_projects: v.projects.length,
+    project_names: v.projects,
+  }));
 }
 
 // ─── Time Entry CRUD ──────────────────────────────────────────────────────────
 
 export async function listTimeEntries(filters?: { project_id?: string; user_id?: string; status?: TimeEntryStatus }): Promise<PpmTimeEntry[]> {
-  if (!sql) {
-    let rows = [..._timeEntries];
-    if (filters?.project_id) rows = rows.filter(e => e.project_id === filters.project_id);
-    if (filters?.user_id)    rows = rows.filter(e => e.user_id    === filters.user_id);
-    if (filters?.status)     rows = rows.filter(e => e.status     === filters.status);
-    return rows.sort((a, b) => b.entry_date.localeCompare(a.entry_date));
-  }
-  const rows = await sql`
-    SELECT e.*, p.project_name, t.task_name, u.full_name AS user_name
-    FROM ppm_time_entries e
-    LEFT JOIN ppm_projects p ON e.project_id = p.project_id
-    LEFT JOIN ppm_tasks t ON e.task_id = t.task_id
-    LEFT JOIN users u ON e.user_id = u.user_id
-    WHERE (${filters?.project_id ?? null} IS NULL OR e.project_id = ${filters?.project_id ?? null})
-      AND (${filters?.user_id ?? null}    IS NULL OR e.user_id    = ${filters?.user_id ?? null})
-      AND (${filters?.status ?? null}     IS NULL OR e.status     = ${filters?.status ?? null})
-    ORDER BY e.entry_date DESC
-  `;
-  return rows as PpmTimeEntry[];
+  let rows = [..._timeEntries];
+  if (filters?.project_id) rows = rows.filter(e => e.project_id === filters.project_id);
+  if (filters?.user_id)    rows = rows.filter(e => e.user_id    === filters.user_id);
+  if (filters?.status)     rows = rows.filter(e => e.status     === filters.status);
+  return rows.sort((a, b) => b.entry_date.localeCompare(a.entry_date));
 }
 
 export async function createTimeEntry(input: Omit<PpmTimeEntry, "entry_id" | "created_at" | "updated_at">): Promise<PpmTimeEntry> {
   const entry_id = randomUUID();
   const e: PpmTimeEntry = { ...input, entry_id, created_at: now(), updated_at: now() };
-  if (!sql) {
-    _timeEntries.unshift(e);
-    // Update project actual_hours
-    const proj = _projects.find(p => p.project_id === input.project_id);
-    if (proj) proj.actual_hours = _timeEntries.filter(t => t.project_id === input.project_id).reduce((s, t) => s + t.hours, 0);
-    return e;
-  }
-  await sql`
-    INSERT INTO ppm_time_entries (entry_id, user_id, project_id, task_id, entry_date, hours, is_billable, billing_rate, cost_rate, description, status, invoiced, created_at, updated_at)
-    VALUES (${entry_id}, ${input.user_id}, ${input.project_id}, ${input.task_id ?? null}, ${input.entry_date}, ${input.hours}, ${input.is_billable}, ${input.billing_rate ?? null}, ${input.cost_rate ?? null}, ${input.description ?? null}, ${input.status}, ${input.invoiced}, ${now()}, ${now()})
-  `;
+  _timeEntries.unshift(e);
+  // Update project actual_hours
+  const proj = _projects.find(p => p.project_id === input.project_id);
+  if (proj) proj.actual_hours = _timeEntries.filter(t => t.project_id === input.project_id).reduce((s, t) => s + t.hours, 0);
   return e;
 }
 
 export async function approveTimeEntry(entry_id: string, approved_by: string): Promise<void> {
-  if (!sql) {
-    const e = _timeEntries.find(x => x.entry_id === entry_id);
-    if (e) { e.status = "approved"; e.approved_by = approved_by; e.approved_at = now(); e.updated_at = now(); }
-    return;
-  }
-  await sql`
-    UPDATE ppm_time_entries SET status = 'approved', approved_by = ${approved_by}, approved_at = ${now()}, updated_at = ${now()}
-    WHERE entry_id = ${entry_id}
-  `;
+  const e = _timeEntries.find(x => x.entry_id === entry_id);
+  if (e) { e.status = "approved"; e.approved_by = approved_by; e.approved_at = now(); e.updated_at = now(); }
 }
 
 // ─── Risk CRUD ────────────────────────────────────────────────────────────────
@@ -694,24 +537,14 @@ export async function listRisks(project_id?: string): Promise<PpmRisk[]> {
     if (error) throw new Error(error.message);
     return (data ?? []) as PpmRisk[];
   }
-  if (!sql) return project_id ? _risks.filter(r => r.project_id === project_id) : [..._risks];
-  const rows = await sql`
-    SELECT r.* FROM ppm_risks r
-    WHERE (${project_id ?? null} IS NULL OR r.project_id = ${project_id ?? null})
-    ORDER BY r.risk_score DESC
-  `;
-  return rows as PpmRisk[];
+  return project_id ? _risks.filter(r => r.project_id === project_id) : [..._risks];
 }
 
 export async function createRisk(input: Omit<PpmRisk, "risk_id" | "risk_score" | "created_at" | "updated_at">): Promise<PpmRisk> {
   const risk_id = randomUUID();
   const risk_score = calcRiskScore(input.impact, input.probability);
   const r: PpmRisk = { ...input, risk_id, risk_score, created_at: now(), updated_at: now() };
-  if (!sql) { _risks.push(r); return r; }
-  await sql`
-    INSERT INTO ppm_risks (risk_id, project_id, risk_description, impact, probability, risk_score, mitigation_plan, contingency_plan, owner_id, status, identified_date, notes, created_at, updated_at)
-    VALUES (${risk_id}, ${input.project_id}, ${input.risk_description}, ${input.impact}, ${input.probability}, ${risk_score}, ${input.mitigation_plan ?? null}, ${input.contingency_plan ?? null}, ${input.owner_id ?? null}, ${input.status}, ${input.identified_date}, ${input.notes ?? null}, ${now()}, ${now()})
-  `;
+  _risks.push(r);
   return r;
 }
 
@@ -725,23 +558,13 @@ export async function listIssues(project_id?: string): Promise<PpmIssue[]> {
     if (error) throw new Error(error.message);
     return (data ?? []) as PpmIssue[];
   }
-  if (!sql) return project_id ? _issues.filter(i => i.project_id === project_id) : [..._issues];
-  const rows = await sql`
-    SELECT i.* FROM ppm_issues i
-    WHERE (${project_id ?? null} IS NULL OR i.project_id = ${project_id ?? null})
-    ORDER BY i.reported_date DESC
-  `;
-  return rows as PpmIssue[];
+  return project_id ? _issues.filter(i => i.project_id === project_id) : [..._issues];
 }
 
 export async function createIssue(input: Omit<PpmIssue, "issue_id" | "created_at" | "updated_at">): Promise<PpmIssue> {
   const issue_id = randomUUID();
   const i: PpmIssue = { ...input, issue_id, created_at: now(), updated_at: now() };
-  if (!sql) { _issues.push(i); return i; }
-  await sql`
-    INSERT INTO ppm_issues (issue_id, project_id, issue_description, severity, reported_by, assigned_to, status, reported_date, notes, created_at, updated_at)
-    VALUES (${issue_id}, ${input.project_id}, ${input.issue_description}, ${input.severity}, ${input.reported_by ?? null}, ${input.assigned_to ?? null}, ${input.status}, ${input.reported_date}, ${input.notes ?? null}, ${now()}, ${now()})
-  `;
+  _issues.push(i);
   return i;
 }
 

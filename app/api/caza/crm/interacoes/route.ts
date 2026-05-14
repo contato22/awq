@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // GET /api/caza/crm/interacoes  — lista interações da Caza Vision
 // POST /api/caza/crm/interacoes — registra nova interação
 

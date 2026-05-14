@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // GET /api/caza/crm/propostas  — lista propostas da Caza Vision
 // POST /api/caza/crm/propostas — cria nova proposta
 

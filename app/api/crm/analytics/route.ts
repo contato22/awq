@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { initCrmDB, getDashboardMetrics, listOpportunities } from "@/lib/crm-db";
 import { BU_OPTIONS } from "@/lib/crm-types";

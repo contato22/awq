@@ -8,7 +8,7 @@ import EmptyState from "@/components/EmptyState";
 import { Activity, Phone, Mail, Users, CheckCircle2, FileText, Plus, Clock } from "lucide-react";
 import type { CrmActivity } from "@/lib/crm-types";
 import { formatDateBR } from "@/lib/utils";
-import { supabase } from "@/lib/supabase-client";
+import { supabaseClient as supabase } from "@/lib/supabase";
 
 function fmtDatetime(d: string | null | undefined) {
   if (!d) return "—";

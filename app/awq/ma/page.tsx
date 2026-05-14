@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // M&A Command Center — server component
 // SSR: queries Neon. Static export: falls back to SEED arrays.
 import Header from "@/components/Header";

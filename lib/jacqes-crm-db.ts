@@ -1,6 +1,6 @@
 // ─── JACQES CRM — Internal Source of Truth ────────────────────────────────────
 //
-// FONTE CANÔNICA: Neon Postgres (Vercel). Seed data quando DB indisponível.
+// FONTE CANÔNICA: Supabase Postgres (via DATABASE_URL direct connection). Seed data quando DB indisponível.
 //
 // Entidades:
 //   jacqes_crm_leads          — leads de prospecção

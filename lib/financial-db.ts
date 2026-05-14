@@ -4,16 +4,16 @@
 //   This module is the canonical server-side store for all ingested financial data.
 //
 // STORAGE ADAPTERS (auto-selected at runtime):
-//   DATABASE_URL set  → Neon (Postgres) via @neondatabase/serverless
-//   DATABASE_URL unset → JSON files in public/data/financial/ (local dev)
+//   SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY set  → Supabase (Postgres) via @supabase/supabase-js
+//   env vars unset → JSON files in public/data/financial/ (local dev)
 //
 // DO NOT import this module in client components — it uses Node's `fs` module
-// (filesystem adapter) or Neon (DB adapter). Both are server-only.
+// (filesystem adapter) or Supabase (DB adapter). Both are server-only.
 
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
-import { sql, USE_DB } from "./db";
+import { supabase } from "@/lib/supabase";
 
 // ─── Directory (filesystem adapter only) ─────────────────────────────────────
 
@@ -283,9 +283,13 @@ function rowToTransaction(r: Row): BankTransaction {
 // ─── Documents CRUD ───────────────────────────────────────────────────────────
 
 export async function getAllDocuments(): Promise<FinancialDocument[]> {
-  if (USE_DB && sql) {
-    const rows = await sql`SELECT * FROM financial_documents ORDER BY uploaded_at DESC`;
-    return rows.map(rowToDocument);
+  if (supabase) {
+    const { data, error } = await supabase
+      .from("financial_documents")
+      .select("*")
+      .order("uploaded_at", { ascending: false });
+    if (error) throw error;
+    return (data as Row[]).map(rowToDocument);
   }
   return readJSON<FinancialDocument[]>(DOCS_FILE, []).map((d) => ({
     ...d,
@@ -294,9 +298,18 @@ export async function getAllDocuments(): Promise<FinancialDocument[]> {
 }
 
 export async function getDocument(id: string): Promise<FinancialDocument | null> {
-  if (USE_DB && sql) {
-    const rows = await sql`SELECT * FROM financial_documents WHERE id = ${id} LIMIT 1`;
-    return rows.length > 0 ? rowToDocument(rows[0]) : null;
+  if (supabase) {
+    const { data, error } = await supabase
+      .from("financial_documents")
+      .select("*")
+      .eq("id", id)
+      .limit(1)
+      .single();
+    if (error) {
+      if (error.code === "PGRST116") return null; // no rows
+      throw error;
+    }
+    return rowToDocument(data as Row);
   }
   const docs = readJSON<FinancialDocument[]>(DOCS_FILE, []);
   const doc = docs.find((d) => d.id === id);
@@ -304,39 +317,36 @@ export async function getDocument(id: string): Promise<FinancialDocument | null>
 }
 
 export async function saveDocument(doc: FinancialDocument): Promise<void> {
-  if (USE_DB && sql) {
-    await sql`
-      INSERT INTO financial_documents (
-        id, filename, file_hash, bank, account_name, account_number,
-        entity, period_start, period_end, opening_balance, closing_balance,
-        uploaded_at, uploaded_by, status, error_message, transaction_count,
-        parser_confidence, extraction_notes, blob_url
-      ) VALUES (
-        ${doc.id}, ${doc.filename}, ${doc.fileHash}, ${doc.bank},
-        ${doc.accountName}, ${doc.accountNumber},
-        ${doc.entity}, ${doc.periodStart}, ${doc.periodEnd},
-        ${doc.openingBalance}, ${doc.closingBalance},
-        ${doc.uploadedAt}, ${doc.uploadedBy}, ${doc.status},
-        ${doc.errorMessage}, ${doc.transactionCount},
-        ${doc.parserConfidence}, ${doc.extractionNotes}, ${doc.blobUrl}
+  if (supabase) {
+    const { error } = await supabase
+      .from("financial_documents")
+      .upsert(
+        {
+          id:                doc.id,
+          filename:          doc.filename,
+          file_hash:         doc.fileHash,
+          bank:              doc.bank,
+          account_name:      doc.accountName,
+          account_number:    doc.accountNumber,
+          entity:            doc.entity,
+          period_start:      doc.periodStart,
+          period_end:        doc.periodEnd,
+          opening_balance:   doc.openingBalance,
+          closing_balance:   doc.closingBalance,
+          uploaded_at:       doc.uploadedAt,
+          uploaded_by:       doc.uploadedBy,
+          status:            doc.status,
+          error_message:     doc.errorMessage,
+          transaction_count: doc.transactionCount,
+          parser_confidence: doc.parserConfidence,
+          extraction_notes:  doc.extractionNotes,
+          blob_url:          doc.blobUrl,
+        },
+        { onConflict: "id" }
       )
-      ON CONFLICT (id) DO UPDATE SET
-        filename           = EXCLUDED.filename,
-        bank               = EXCLUDED.bank,
-        account_name       = EXCLUDED.account_name,
-        account_number     = EXCLUDED.account_number,
-        entity             = EXCLUDED.entity,
-        period_start       = EXCLUDED.period_start,
-        period_end         = EXCLUDED.period_end,
-        opening_balance    = EXCLUDED.opening_balance,
-        closing_balance    = EXCLUDED.closing_balance,
-        status             = EXCLUDED.status,
-        error_message      = EXCLUDED.error_message,
-        transaction_count  = EXCLUDED.transaction_count,
-        parser_confidence  = EXCLUDED.parser_confidence,
-        extraction_notes   = EXCLUDED.extraction_notes,
-        blob_url           = EXCLUDED.blob_url
-    `;
+      .select()
+      .single();
+    if (error) throw error;
     return;
   }
   const all = readJSON<FinancialDocument[]>(DOCS_FILE, []);
@@ -354,23 +364,26 @@ export async function updateDocumentStatus(
   status: DocumentStatus,
   patch?: Partial<FinancialDocument>
 ): Promise<void> {
-  if (USE_DB && sql) {
+  if (supabase) {
     const p = patch ?? {};
-    await sql`
-      UPDATE financial_documents SET
-        status             = ${status},
-        error_message      = COALESCE(${p.errorMessage ?? null}, error_message),
-        period_start       = COALESCE(${p.periodStart ?? null}, period_start),
-        period_end         = COALESCE(${p.periodEnd ?? null}, period_end),
-        opening_balance    = COALESCE(${p.openingBalance ?? null}, opening_balance),
-        closing_balance    = COALESCE(${p.closingBalance ?? null}, closing_balance),
-        account_number     = COALESCE(${p.accountNumber ?? null}, account_number),
-        parser_confidence  = COALESCE(${p.parserConfidence ?? null}, parser_confidence),
-        extraction_notes   = COALESCE(${p.extractionNotes ?? null}, extraction_notes),
-        transaction_count  = COALESCE(${p.transactionCount ?? null}, transaction_count),
-        blob_url           = COALESCE(${p.blobUrl ?? null}, blob_url)
-      WHERE id = ${id}
-    `;
+    const updatePayload: Record<string, unknown> = { status };
+    if (p.errorMessage     !== undefined) updatePayload.error_message     = p.errorMessage;
+    if (p.periodStart      !== undefined) updatePayload.period_start      = p.periodStart;
+    if (p.periodEnd        !== undefined) updatePayload.period_end        = p.periodEnd;
+    if (p.openingBalance   !== undefined) updatePayload.opening_balance   = p.openingBalance;
+    if (p.closingBalance   !== undefined) updatePayload.closing_balance   = p.closingBalance;
+    if (p.accountNumber    !== undefined) updatePayload.account_number    = p.accountNumber;
+    if (p.parserConfidence !== undefined) updatePayload.parser_confidence = p.parserConfidence;
+    if (p.extractionNotes  !== undefined) updatePayload.extraction_notes  = p.extractionNotes;
+    if (p.transactionCount !== undefined) updatePayload.transaction_count = p.transactionCount;
+    if (p.blobUrl          !== undefined) updatePayload.blob_url          = p.blobUrl;
+    const { error } = await supabase
+      .from("financial_documents")
+      .update(updatePayload)
+      .eq("id", id)
+      .select()
+      .single();
+    if (error) throw error;
     return;
   }
   const all = readJSON<FinancialDocument[]>(DOCS_FILE, []);
@@ -381,9 +394,18 @@ export async function updateDocumentStatus(
 }
 
 export async function findDuplicateDocument(fileHash: string): Promise<FinancialDocument | null> {
-  if (USE_DB && sql) {
-    const rows = await sql`SELECT * FROM financial_documents WHERE file_hash = ${fileHash} LIMIT 1`;
-    return rows.length > 0 ? rowToDocument(rows[0]) : null;
+  if (supabase) {
+    const { data, error } = await supabase
+      .from("financial_documents")
+      .select("*")
+      .eq("file_hash", fileHash)
+      .limit(1)
+      .single();
+    if (error) {
+      if (error.code === "PGRST116") return null; // no rows
+      throw error;
+    }
+    return rowToDocument(data as Row);
   }
   const docs = readJSON<FinancialDocument[]>(DOCS_FILE, []);
   const doc = docs.find((d) => d.fileHash === fileHash);
@@ -393,9 +415,13 @@ export async function findDuplicateDocument(fileHash: string): Promise<Financial
 // ─── Transactions CRUD ────────────────────────────────────────────────────────
 
 export async function getAllTransactions(): Promise<BankTransaction[]> {
-  if (USE_DB && sql) {
-    const rows = await sql`SELECT * FROM bank_transactions ORDER BY transaction_date DESC`;
-    return rows.map(rowToTransaction);
+  if (supabase) {
+    const { data, error } = await supabase
+      .from("bank_transactions")
+      .select("*")
+      .order("transaction_date", { ascending: false });
+    if (error) throw error;
+    return (data as Row[]).map(rowToTransaction);
   }
   // Backfill reconciliationStatus for legacy records that don't have it yet.
   return readJSON<BankTransaction[]>(TXN_FILE, []).map((t) => ({
@@ -407,45 +433,73 @@ export async function getAllTransactions(): Promise<BankTransaction[]> {
 }
 
 export async function getTransactionsByDocument(documentId: string): Promise<BankTransaction[]> {
-  if (USE_DB && sql) {
-    const rows = await sql`SELECT * FROM bank_transactions WHERE document_id = ${documentId} ORDER BY transaction_date DESC`;
-    return rows.map(rowToTransaction);
+  if (supabase) {
+    const { data, error } = await supabase
+      .from("bank_transactions")
+      .select("*")
+      .eq("document_id", documentId)
+      .order("transaction_date", { ascending: false });
+    if (error) throw error;
+    return (data as Row[]).map(rowToTransaction);
   }
   return (await getAllTransactions()).filter((t) => t.documentId === documentId);
 }
 
 export async function getTransactionsByEntity(entity: EntityLayer): Promise<BankTransaction[]> {
-  if (USE_DB && sql) {
-    const rows = await sql`SELECT * FROM bank_transactions WHERE entity = ${entity} ORDER BY transaction_date DESC`;
-    return rows.map(rowToTransaction);
+  if (supabase) {
+    const { data, error } = await supabase
+      .from("bank_transactions")
+      .select("*")
+      .eq("entity", entity)
+      .order("transaction_date", { ascending: false });
+    if (error) throw error;
+    return (data as Row[]).map(rowToTransaction);
   }
   return (await getAllTransactions()).filter((t) => t.entity === entity);
 }
 
 export async function saveTransactions(transactions: BankTransaction[]): Promise<void> {
-  if (USE_DB && sql) {
+  if (supabase) {
     if (transactions.length === 0) return;
     const docIds = Array.from(new Set(transactions.map((t) => t.documentId)));
     for (const docId of docIds) {
-      await sql`DELETE FROM bank_transactions WHERE document_id = ${docId}`;
+      const { error: delError } = await supabase
+        .from("bank_transactions")
+        .delete()
+        .eq("document_id", docId);
+      if (delError) throw delError;
     }
     for (const t of transactions) {
-      await sql`
-        INSERT INTO bank_transactions (
-          id, document_id, bank, account_name, entity, transaction_date,
-          description_original, amount, direction, running_balance,
-          counterparty_name, managerial_category, classification_confidence,
-          classification_note, is_intercompany, intercompany_match_id,
-          excluded_from_consolidated, extracted_at, classified_at
-        ) VALUES (
-          ${t.id}, ${t.documentId}, ${t.bank}, ${t.accountName}, ${t.entity},
-          ${t.transactionDate}, ${t.descriptionOriginal}, ${t.amount},
-          ${t.direction}, ${t.runningBalance}, ${t.counterpartyName},
-          ${t.managerialCategory}, ${t.classificationConfidence},
-          ${t.classificationNote}, ${t.isIntercompany}, ${t.intercompanyMatchId},
-          ${t.excludedFromConsolidated}, ${t.extractedAt}, ${t.classifiedAt}
+      const { error } = await supabase
+        .from("bank_transactions")
+        .upsert(
+          {
+            id:                          t.id,
+            document_id:                 t.documentId,
+            bank:                        t.bank,
+            account_name:                t.accountName,
+            entity:                      t.entity,
+            transaction_date:            t.transactionDate,
+            description_original:        t.descriptionOriginal,
+            amount:                      t.amount,
+            direction:                   t.direction,
+            running_balance:             t.runningBalance,
+            counterparty_name:           t.counterpartyName,
+            managerial_category:         t.managerialCategory,
+            classification_confidence:   t.classificationConfidence,
+            classification_note:         t.classificationNote,
+            is_intercompany:             t.isIntercompany,
+            intercompany_match_id:       t.intercompanyMatchId,
+            excluded_from_consolidated:  t.excludedFromConsolidated,
+            reconciliation_status:       t.reconciliationStatus,
+            extracted_at:                t.extractedAt,
+            classified_at:               t.classifiedAt,
+          },
+          { onConflict: "id" }
         )
-      `;
+        .select()
+        .single();
+      if (error) throw error;
     }
     return;
   }
@@ -460,21 +514,25 @@ export async function updateTransaction(
   id: string,
   patch: Partial<BankTransaction>
 ): Promise<void> {
-  if (USE_DB && sql) {
+  if (supabase) {
     const p = patch;
-    await sql`
-      UPDATE bank_transactions SET
-        managerial_category        = COALESCE(${p.managerialCategory ?? null}, managerial_category),
-        classification_confidence  = COALESCE(${p.classificationConfidence ?? null}, classification_confidence),
-        classification_note        = COALESCE(${p.classificationNote ?? null}, classification_note),
-        counterparty_name          = COALESCE(${p.counterpartyName ?? null}, counterparty_name),
-        is_intercompany            = COALESCE(${p.isIntercompany ?? null}, is_intercompany),
-        intercompany_match_id      = COALESCE(${p.intercompanyMatchId ?? null}, intercompany_match_id),
-        excluded_from_consolidated = COALESCE(${p.excludedFromConsolidated ?? null}, excluded_from_consolidated),
-        reconciliation_status      = COALESCE(${p.reconciliationStatus ?? null}, reconciliation_status),
-        classified_at              = COALESCE(${p.classifiedAt ?? null}, classified_at)
-      WHERE id = ${id}
-    `;
+    const updatePayload: Record<string, unknown> = {};
+    if (p.managerialCategory       !== undefined) updatePayload.managerial_category        = p.managerialCategory;
+    if (p.classificationConfidence !== undefined) updatePayload.classification_confidence  = p.classificationConfidence;
+    if (p.classificationNote       !== undefined) updatePayload.classification_note        = p.classificationNote;
+    if (p.counterpartyName         !== undefined) updatePayload.counterparty_name          = p.counterpartyName;
+    if (p.isIntercompany           !== undefined) updatePayload.is_intercompany            = p.isIntercompany;
+    if (p.intercompanyMatchId      !== undefined) updatePayload.intercompany_match_id      = p.intercompanyMatchId;
+    if (p.excludedFromConsolidated !== undefined) updatePayload.excluded_from_consolidated = p.excludedFromConsolidated;
+    if (p.reconciliationStatus     !== undefined) updatePayload.reconciliation_status      = p.reconciliationStatus;
+    if (p.classifiedAt             !== undefined) updatePayload.classified_at              = p.classifiedAt;
+    const { error } = await supabase
+      .from("bank_transactions")
+      .update(updatePayload)
+      .eq("id", id)
+      .select()
+      .single();
+    if (error) throw error;
     return;
   }
   const all = readJSON<BankTransaction[]>(TXN_FILE, []);

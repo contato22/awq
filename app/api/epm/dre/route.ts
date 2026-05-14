@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { getDREByMonth, initAllAPARTables, type BuCode } from "@/lib/ap-ar-db";
 

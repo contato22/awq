@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // GET /api/jacqes/crm/interacoes   — lista interações
 // POST /api/jacqes/crm/interacoes  — cria interação
 import { NextRequest, NextResponse } from "next/server";

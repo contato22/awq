@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { initMaDB, listBoardMeetings, createBoardMeeting, updateBoardMeeting } from "@/lib/ma-db";
 

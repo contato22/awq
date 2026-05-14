@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // ─── GET /api/caza/stats — KPIs Caza Vision
 
 import { NextRequest, NextResponse } from "next/server";

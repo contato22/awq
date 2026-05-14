@@ -1,7 +1,7 @@
 // ─── EPM General Ledger — Data Access Layer ──────────────────────────────────
 //
 // Manages GL journal entries stored in public/data/epm-gl.json (static/dev mode)
-// or Neon PostgreSQL (production via DATABASE_URL).
+// or Supabase Postgres via direct connection (DATABASE_URL).
 //
 // Double-entry bookkeeping: every journal_id must have SUM(debit) = SUM(credit).
 // This layer enforces that constraint on write.

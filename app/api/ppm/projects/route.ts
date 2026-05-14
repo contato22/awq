@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { listProjects, createProject, getPortfolioMetrics } from "@/lib/ppm-db";
 import type { BuCode, ProjectStatus, HealthStatus, ProjectType } from "@/lib/ppm-types";

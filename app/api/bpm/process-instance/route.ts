@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // ─── GET /api/bpm/process-instance?id=&status=&process_code= ─────────────────
 // Fetch a single instance (by id) or list all instances (with optional filters).
 // Response: { success, data: ProcessInstance | ProcessInstance[] }

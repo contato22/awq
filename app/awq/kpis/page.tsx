@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // ─── /awq/kpis — KPI Scorecard ───────────────────────────────────────────────
 //
 // DATA CONTRACT: every metric displayed here is a FinancialMetric<T> with

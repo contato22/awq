@@ -7,7 +7,7 @@ import EmptyState from "@/components/EmptyState";
 import { Building2, Plus, Search, AlertTriangle, CheckCircle2, Trash2 } from "lucide-react";
 import type { CrmAccount } from "@/lib/crm-types";
 import { BU_OPTIONS } from "@/lib/crm-types";
-import { supabase } from "@/lib/supabase-client";
+import { supabaseClient as supabase } from "@/lib/supabase";
 
 const TYPE_LABELS: Record<string, string> = {
   prospect:        "Prospect",

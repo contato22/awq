@@ -9,7 +9,7 @@ import {
   BarChart3, CheckCircle2, AlertCircle, ChevronLeft,
   DollarSign, Calendar, FileText, Zap,
 } from "lucide-react";
-import { supabase } from "@/lib/supabase-client";
+import { supabaseClient as supabase } from "@/lib/supabase";
 
 type FormData = {
   contact_name: string;

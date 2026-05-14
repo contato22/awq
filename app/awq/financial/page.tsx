@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // ─── /awq/financial — Visão de Caixa por BU ──────────────────────────────────
 //
 // DATA SOURCE: financial-db.ts (canonical pipeline store) via financial-query.ts

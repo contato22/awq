@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { initCrmDB, listLeads, createLead, updateLead, convertLead, deleteLead } from "@/lib/crm-db";
 import { getForcedBu } from "@/lib/api-guard";

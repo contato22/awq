@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";

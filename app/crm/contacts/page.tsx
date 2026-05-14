@@ -6,7 +6,7 @@ import Header from "@/components/Header";
 import EmptyState from "@/components/EmptyState";
 import { Users, Plus, Search, Mail, Phone, Linkedin, Trash2, Check, X as XIcon } from "lucide-react";
 import type { CrmContact } from "@/lib/crm-types";
-import { supabase } from "@/lib/supabase-client";
+import { supabaseClient as supabase } from "@/lib/supabase";
 
 const SENIORITY_LABELS: Record<string, string> = {
   c_level: "C-Level", director: "Diretor", manager: "Gerente", ic: "Analista/IC",

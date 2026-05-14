@@ -1,6 +1,6 @@
-// ─── AWQ CRM — Database Layer (Neon Postgres) ────────────────────────────────
-// Mirrors pattern of jacqes-crm-db.ts.
-// Uses sql from lib/db.ts — falls back to seed arrays when DATABASE_URL unset.
+// ─── AWQ CRM — Database Layer (Supabase Postgres via direct connection) ──────
+// Uses sql from lib/db.ts (postgres driver) — requires DATABASE_URL set to the
+// Supabase direct connection string. Falls back to seed arrays when unset.
 
 import { sql } from "@/lib/db";
 import type {
@@ -56,7 +56,7 @@ export async function listAccounts(filters?: { search?: string; account_type?: s
     GROUP BY a.account_id
     ORDER BY a.account_name
   `;
-  return rows as CrmAccount[];
+  return rows as unknown as CrmAccount[];
 }
 
 export async function getAccount(id: string): Promise<CrmAccount | null> {
@@ -132,7 +132,7 @@ export async function listContacts(filters?: { account_id?: string; search?: str
            OR c.email     ILIKE ${'%' + (filters?.search ?? '') + '%'})
     ORDER BY c.full_name
   `;
-  return rows as CrmContact[];
+  return rows as unknown as CrmContact[];
 }
 
 export async function createContact(data: Partial<CrmContact>): Promise<CrmContact> {
@@ -171,7 +171,7 @@ export async function listLeads(filters?: { status?: string; bu?: string; assign
       AND (${filters?.assigned_to ?? null}::text IS NULL OR assigned_to = ${filters?.assigned_to ?? null})
     ORDER BY created_at DESC
   `;
-  return rows as CrmLead[];
+  return rows as unknown as CrmLead[];
 }
 
 export async function getLead(id: string): Promise<CrmLead | null> {
@@ -292,7 +292,7 @@ export async function listOpportunities(filters?: { stage?: string; bu?: string;
       AND (${filters?.account_id ?? null}::uuid IS NULL OR o.account_id = ${filters?.account_id ?? null}::uuid)
     ORDER BY o.created_at DESC
   `;
-  return rows as CrmOpportunity[];
+  return rows as unknown as CrmOpportunity[];
 }
 
 export async function getOpportunity(id: string): Promise<CrmOpportunity | null> {
@@ -363,7 +363,7 @@ export async function listActivities(filters?: { related_to_type?: string; relat
     ORDER BY created_at DESC
     LIMIT 100
   `;
-  return rows as CrmActivity[];
+  return rows as unknown as CrmActivity[];
 }
 
 export async function createActivity(data: Partial<CrmActivity>): Promise<CrmActivity> {

@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // ─── GET /api/caza/financial — monthly financial aggregation
 
 import { NextRequest, NextResponse } from "next/server";

@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // ─── /awq/investments — Área de Investimentos Financeiros ────────────────────
 // DATA SOURCE: investment-reconciliation.ts → buildCanonicalInvestmentPosition()
 //              (Camada 4 canonical layer — handles pipeline-real + empirical fallback)

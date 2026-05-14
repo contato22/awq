@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // ─── /awq/epm/pl — P&L (DRE Gerencial) ──────────────────────────────────────
 //
 // DATA SOURCE: buildDreQuery() from lib/dre-query.ts

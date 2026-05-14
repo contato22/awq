@@ -1,25 +1,26 @@
-// ─── AWQ Database Client — Neon Serverless Postgres ───────────────────────────
+// ─── AWQ Database Client — Supabase Postgres (direct) ────────────────────────
 //
-// Provides a SQL client when DATABASE_URL is set (Vercel + Neon production).
-// Falls back to null when absent; financial-db.ts detects null and uses
-// JSON-file storage (local dev, GitHub Pages static build).
+// Used by modules that require raw SQL (bpm-db, crm-db, jacqes-crm-db, ma-db).
+// Modules migrated to supabase.from() (financial-db, advisor-db, caza-db, ppm-db)
+// import from lib/supabase.ts instead and do NOT use this client.
+//
+// DATABASE_URL must be the Supabase direct connection string:
+//   postgresql://postgres:[PASSWORD]@db.gqkgsoglgubmaborixfb.supabase.co:5432/postgres
+//
+// Falls back to null when absent — each module has its own seed/json fallback.
 //
 // USAGE:
 //   import { sql, initDB } from "@/lib/db";
-//   if (sql) { await sql`SELECT 1`; }  // Neon
-//   else { /* filesystem fallback */ }
-//
-// SCHEMA: call initDB() once at startup (or rely on Vercel's build step).
-//   In Next.js App Router, call initDB() in the first server action that needs DB.
-//   CREATE TABLE IF NOT EXISTS is idempotent — safe to call on every cold start.
+//   if (sql) { const rows = await sql`SELECT 1`; }
 
-import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
+import postgres, { type Sql } from "postgres";
 
-// Exported null-safe SQL client. null = no DATABASE_URL = use filesystem.
-export const sql: NeonQueryFunction<false, false> | null =
-  process.env.DATABASE_URL ? neon(process.env.DATABASE_URL) : null;
+// Exported null-safe SQL client. null = no DATABASE_URL = use local fallback.
+export const sql: Sql | null = process.env.DATABASE_URL
+  ? postgres(process.env.DATABASE_URL, { ssl: "require", max: 5 })
+  : null;
 
-export const USE_DB = !!process.env.DATABASE_URL;
+export const USE_DB   = !!process.env.DATABASE_URL;
 export const USE_BLOB = !!process.env.BLOB_READ_WRITE_TOKEN;
 
 // ─── Schema bootstrap ─────────────────────────────────────────────────────────
@@ -78,9 +79,4 @@ export async function initDB(): Promise<void> {
 
   await sql`CREATE INDEX IF NOT EXISTS idx_bt_document_id ON bank_transactions(document_id)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_bt_entity ON bank_transactions(entity)`;
-
-  // ─── Caza Vision tables ──────────────────────────────────────────────────────
-  const { initCazaDB } = await import("@/lib/caza-db");
-  await initCazaDB();
-
 }

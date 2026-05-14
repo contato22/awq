@@ -1,47 +1,126 @@
 // ─── Contrapartes — repository ────────────────────────────────────────────────
-// Data access layer. All UI components import from here, never from idb directly.
-// Prepared for future migration to Supabase/Neon — swap implementations here only.
+// Data access layer for the counterparty master register.
+// Migrated from IndexedDB to Supabase (anon key — respects RLS).
+// Table: contrapartes (snake_case columns mapped to camelCase TypeScript types)
 
-import { getIDB } from "./idb";
-import type { Contraparte, ContraprtePapel } from "./contraparte-types";
-
-const STORE = "contrapartes" as const;
+import { supabaseClient } from "@/lib/supabase";
+import type { Contraparte, ContraprtePapel, ContraprteTipo, ContraparteRegime, ContraparteStatus } from "./contraparte-types";
 
 function iso(): string { return new Date().toISOString(); }
-function uid(): string { return crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36); }
+function uid(): string { return crypto.randomUUID(); }
+
+// ─── DB row ↔ domain type mappers ─────────────────────────────────────────────
+
+type Row = Record<string, unknown>;
+
+function toRow(c: Contraparte): Row {
+  return {
+    id:               c.id,
+    tipo:             c.tipo,
+    papel:            c.papel,
+    razao_social:     c.razaoSocial,
+    nome_fantasia:    c.nomeFantasia   ?? null,
+    cnpj_cpf:         c.cnpjCpf,
+    ie:               c.ie            ?? null,
+    im:               c.im            ?? null,
+    regime:           c.regime,
+    email_financeiro: c.emailFinanceiro ?? null,
+    telefone:         c.telefone       ?? null,
+    cep:              c.cep            ?? null,
+    logradouro:       c.logradouro     ?? null,
+    numero:           c.numero         ?? null,
+    complemento:      c.complemento   ?? null,
+    bairro:           c.bairro         ?? null,
+    cidade:           c.cidade         ?? null,
+    uf:               c.uf             ?? null,
+    banco:            c.banco          ?? null,
+    agencia:          c.agencia        ?? null,
+    conta:            c.conta          ?? null,
+    pix:              c.pix            ?? null,
+    bu:               c.bu,
+    status:           c.status,
+    observacoes:      c.observacoes    ?? null,
+    created_at:       c.createdAt,
+    updated_at:       c.updatedAt,
+    deleted_at:       c.deletedAt      ?? null,
+  };
+}
+
+function fromRow(r: Row): Contraparte {
+  const s = (v: unknown) => String(v ?? "");
+  const sn = (v: unknown) => (v != null ? String(v) : undefined);
+  return {
+    id:               s(r.id),
+    tipo:             r.tipo    as ContraprteTipo,
+    papel:            r.papel   as ContraprtePapel,
+    razaoSocial:      s(r.razao_social),
+    nomeFantasia:     sn(r.nome_fantasia),
+    cnpjCpf:          s(r.cnpj_cpf),
+    ie:               sn(r.ie),
+    im:               sn(r.im),
+    regime:           r.regime  as ContraparteRegime,
+    emailFinanceiro:  sn(r.email_financeiro),
+    telefone:         sn(r.telefone),
+    cep:              sn(r.cep),
+    logradouro:       sn(r.logradouro),
+    numero:           sn(r.numero),
+    complemento:      sn(r.complemento),
+    bairro:           sn(r.bairro),
+    cidade:           sn(r.cidade),
+    uf:               sn(r.uf),
+    banco:            sn(r.banco),
+    agencia:          sn(r.agencia),
+    conta:            sn(r.conta),
+    pix:              sn(r.pix),
+    bu:               s(r.bu),
+    status:           r.status  as ContraparteStatus,
+    observacoes:      sn(r.observacoes),
+    createdAt:        s(r.created_at),
+    updatedAt:        s(r.updated_at),
+    deletedAt:        sn(r.deleted_at),
+  };
+}
 
 // ─── Read ─────────────────────────────────────────────────────────────────────
 
 export async function listContrapartes(): Promise<Contraparte[]> {
-  const db   = await getIDB();
-  const all  = await db.getAll(STORE);
-  return all.filter((c) => !c.deletedAt);
+  const { data, error } = await supabaseClient
+    .from("contrapartes")
+    .select("*")
+    .is("deleted_at", null)
+    .order("razao_social");
+  if (error) throw error;
+  return (data ?? []).map(fromRow);
 }
 
 export async function getContraparte(id: string): Promise<Contraparte | undefined> {
-  const db = await getIDB();
-  return db.get(STORE, id);
+  const { data, error } = await supabaseClient
+    .from("contrapartes")
+    .select("*")
+    .eq("id", id)
+    .single();
+  if (error) return undefined;
+  return fromRow(data as Row);
 }
 
 export async function searchContrapartes(
   query: string,
   filters?: { papel?: ContraprtePapel | "all"; bu?: string; status?: string }
 ): Promise<Contraparte[]> {
-  const all = await listContrapartes();
-  const q   = query.toLowerCase().trim();
+  let q = supabaseClient
+    .from("contrapartes")
+    .select("*")
+    .is("deleted_at", null);
 
-  return all.filter((c) => {
-    if (c.deletedAt) return false;
+  if (filters?.papel && filters.papel !== "all") q = q.eq("papel", filters.papel);
+  if (filters?.bu    && filters.bu    !== "all") q = q.eq("bu",    filters.bu);
+  if (filters?.status && filters.status !== "all") q = q.eq("status", filters.status);
+  if (query.trim()) q = q.ilike("razao_social", `%${query.trim()}%`);
 
-    if (filters?.papel && filters.papel !== "all" && c.papel !== filters.papel) return false;
-    if (filters?.bu    && filters.bu    !== "all" && c.bu     !== filters.bu)    return false;
-    if (filters?.status && filters.status !== "all" && c.status !== filters.status) return false;
-
-    if (!q) return true;
-    const haystack = [c.razaoSocial, c.nomeFantasia, c.cnpjCpf, c.emailFinanceiro]
-      .filter(Boolean).join(" ").toLowerCase();
-    return haystack.includes(q);
-  });
+  q = q.order("razao_social");
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []).map(fromRow);
 }
 
 // ─── Write ────────────────────────────────────────────────────────────────────
@@ -49,27 +128,32 @@ export async function searchContrapartes(
 export async function createContraparte(
   data: Omit<Contraparte, "id" | "createdAt" | "updatedAt" | "deletedAt">
 ): Promise<Contraparte> {
-  const db = await getIDB();
-  const c: Contraparte = {
-    ...data,
-    id:        uid(),
-    createdAt: iso(),
-    updatedAt: iso(),
-  };
-  await db.put(STORE, c);
-  return c;
+  const now = iso();
+  const c: Contraparte = { ...data, id: uid(), createdAt: now, updatedAt: now };
+  const { data: row, error } = await supabaseClient
+    .from("contrapartes")
+    .insert(toRow(c))
+    .select()
+    .single();
+  if (error) throw error;
+  return fromRow(row as Row);
 }
 
 export async function updateContraparte(
   id: string,
   patch: Partial<Omit<Contraparte, "id" | "createdAt">>
 ): Promise<Contraparte> {
-  const db   = await getIDB();
-  const prev = await db.get(STORE, id);
+  const prev = await getContraparte(id);
   if (!prev) throw new Error(`Contraparte ${id} not found`);
   const updated: Contraparte = { ...prev, ...patch, updatedAt: iso() };
-  await db.put(STORE, updated);
-  return updated;
+  const { data: row, error } = await supabaseClient
+    .from("contrapartes")
+    .update(toRow(updated))
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return fromRow(row as Row);
 }
 
 export async function softDeleteContraparte(id: string): Promise<void> {
