@@ -35,7 +35,7 @@ jobs:
           # DATABASE_URL is intentionally NOT passed here: Neon is the
           # operational DB for Vercel SSR only. The static vitrine must always
           # reflect Notion (the source of truth), not a potentially-stale DB.
-          # ── Notion credentials ─────────────────────────────────────────────
+          # ── Notion credentials ──────────────────────────────────────
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
           NOTION_DATABASE_ID_CAZA_PROPERTIES: ${{ secrets.NOTION_DATABASE_ID_CAZA_PROPERTIES }}
