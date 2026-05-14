@@ -1,6 +1,5 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { supabaseAdmin } from "@/lib/supabase-admin";
 import { findUserByEmail, type Role } from "@/lib/auth-users";
 import { createClient } from "@supabase/supabase-js";
 
@@ -46,7 +45,7 @@ export default NextAuth({
       if (user) {
         token.id = (user as { id: string }).id;
         token.role = (user as { role: string }).role;
-        token.homeRoute = (user as { homeRoute: string }).homeRoute;
+        token.homeRoute = (user as unknown as { homeRoute: string }).homeRoute;
       }
       return token;
     },
