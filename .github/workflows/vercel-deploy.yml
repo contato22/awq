@@ -79,8 +79,11 @@ jobs:
         run: npm run build
         env:
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
-          NEXT_PUBLIC_ERP_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_ERP_SUPABASE_URL }}
-          NEXT_PUBLIC_ERP_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_ERP_SUPABASE_ANON_KEY }}
+          # Shared Supabase project (CRM + ERP — same instance)
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_ERP_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_ERP_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
 
       - name: Summary
         if: always()
