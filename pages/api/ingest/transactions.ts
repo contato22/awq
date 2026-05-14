@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { getToken } from "next-auth/jwt";
+import { getSupabaseTokenFromApiReq } from "@/lib/supabase/server";
 import { guard } from "@/lib/security-guard";
 import { getAllTransactions, getCashPositionByEntity } from "@/lib/financial-db";
 
@@ -9,7 +9,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   // ── RBAC guard: view em dados_infra — owner/admin/finance ──
-  const token   = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  const token   = await getSupabaseTokenFromApiReq(req);
   const user_id = (token?.email as string | undefined) ?? "anonymous";
   const rawRole = (token?.role  as string | undefined) ?? "anonymous";
   const { result, reason } = guard(

@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest } from "next/server";
-import { getToken } from "next-auth/jwt";
+import { getSupabaseToken } from "@/lib/supabase/server";
+
 import { guard } from "@/lib/security-guard";
 
 const SYSTEM_PROMPTS: Record<string, string> = {
@@ -99,7 +100,7 @@ Be analytical, data-driven, and strategic. Reference VC industry benchmarks when
 
 export async function POST(req: NextRequest) {
   // ── RBAC guard: view em ai — owner, admin, finance, operator permitidos ──
-  const token   = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  const token   = await getSupabaseToken(req);
   const user_id = (token?.email as string | undefined) ?? "anonymous";
   const rawRole = (token?.role  as string | undefined) ?? "anonymous";
   const { result: guardResult, reason: guardReason } = guard(

@@ -12,7 +12,8 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest } from "next/server";
-import { getToken } from "next-auth/jwt";
+import { getSupabaseToken } from "@/lib/supabase/server";
+
 import { guard } from "@/lib/security-guard";
 import { normalizeRole } from "@/lib/security-access";
 
@@ -121,7 +122,7 @@ function heuristicLink(item: ItemInput, txs: TxInput[]): LinkResult {
 // ─── Route handler ────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  const token   = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  const token   = await getSupabaseToken(req);
   const user_id = (token?.email as string | undefined) ?? "anonymous";
   const rawRole = (token?.role  as string | undefined) ?? "anonymous";
 

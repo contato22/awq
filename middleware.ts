@@ -1,8 +1,8 @@
-import { withAuth } from "next-auth/middleware";
+import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import { canAccess, findUserByEmail, type Role } from "@/lib/auth-users";
 
-// ── Security headers (aplicados a todas as respostas server-side) ──────────
 function withSecurityHeaders(response: NextResponse): NextResponse {
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("X-Frame-Options", "SAMEORIGIN");
@@ -11,37 +11,57 @@ function withSecurityHeaders(response: NextResponse): NextResponse {
   return response;
 }
 
-export default withAuth(
-  function middleware(req) {
-    const { pathname } = req.nextUrl;
-    const token = req.nextauth.token;
+export async function middleware(request: NextRequest) {
+  let supabaseResponse = NextResponse.next({ request });
 
-    if (!token) {
-      return NextResponse.redirect(new URL("/login", req.url));
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          for (const { name, value } of cookiesToSet) {
+            request.cookies.set(name, value);
+          }
+          supabaseResponse = NextResponse.next({ request });
+          for (const { name, value, options } of cookiesToSet) {
+            supabaseResponse.cookies.set(name, value, options);
+          }
+        },
+      },
     }
+  );
 
-    // Skip RBAC for API routes — each API handler manages its own authorization
-    if (pathname.startsWith("/api/")) {
-      return withSecurityHeaders(NextResponse.next());
-    }
+  // Refresh session — must call getUser() (not getSession()) per Supabase SSR docs
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-    const role = token.role as Role;
+  const { pathname } = request.nextUrl;
 
-    if (!canAccess(role, pathname)) {
-      // Redirect to the user's home route instead of showing a 403
-      const user = findUserByEmail(token.email as string);
-      const home = user?.homeRoute ?? "/login";
-      return NextResponse.redirect(new URL(home, req.url));
-    }
-
-    return withSecurityHeaders(NextResponse.next());
-  },
-  {
-    callbacks: {
-      authorized: ({ token }) => !!token,
-    },
+  if (!user) {
+    return NextResponse.redirect(new URL("/login", request.url));
   }
-);
+
+  // Skip RBAC for API routes — each handler manages its own authorization
+  if (pathname.startsWith("/api/")) {
+    return withSecurityHeaders(supabaseResponse);
+  }
+
+  const appRole = (user.app_metadata?.role as string | undefined);
+  const authUser = findUserByEmail(user.email ?? "");
+  const role = (appRole ?? authUser?.role ?? "analyst") as Role;
+
+  if (!canAccess(role, pathname)) {
+    const home = authUser?.homeRoute ?? "/login";
+    return NextResponse.redirect(new URL(home, request.url));
+  }
+
+  return withSecurityHeaders(supabaseResponse);
+}
 
 export const config = {
   matcher: [

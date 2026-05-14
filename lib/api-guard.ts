@@ -1,7 +1,7 @@
 // ─── AWQ Security — API Guard Helper ─────────────────────────────────────────
 //
 // Wrapper para uso em App Router route handlers.
-// Extrai JWT do cookie de sessão, chama guard(), retorna 403 NextResponse
+// Extrai sessão do cookie Supabase, chama guard(), retorna 403 NextResponse
 // se bloqueado ou null se permitido.
 //
 // USO EM HANDLER:
@@ -19,18 +19,13 @@
 //   - Compatível com Edge Runtime e Node.js runtime
 
 import { NextRequest, NextResponse } from "next/server";
-import { getToken }                  from "next-auth/jwt";
+import { getSupabaseToken }          from "./supabase/server";
 import { guard }                     from "./security-guard";
 import type { SecurityLayer, SecurityAction } from "./security-types";
 
 /**
  * Verifica acesso à API e retorna 403 NextResponse se bloqueado.
  * Retorna null se permitido (o handler deve continuar normalmente).
- *
- * @param req      NextRequest da rota
- * @param action   ação tentada (import, view, create, etc.)
- * @param layer    camada de segurança do recurso
- * @param resource descrição legível do recurso (sem dados sensíveis)
  */
 export async function apiGuard(
   req: NextRequest,
@@ -38,17 +33,15 @@ export async function apiGuard(
   layer: SecurityLayer,
   resource: string
 ): Promise<NextResponse | null> {
-  // During static export builds (output: "export"), NEXTAUTH_SECRET is not set.
-  // API routes are not served in static exports anyway — skip auth entirely.
-  // This prevents Next.js from detecting req.cookies access during pre-rendering
-  // which would otherwise fail the static build with "dynamic = error".
-  const secret = process.env.NEXTAUTH_SECRET;
-  if (!secret) return null;
+  // In static export builds Supabase env vars are not set — API routes are not
+  // served in static exports anyway, so skip auth entirely.
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!supabaseUrl) return null;
 
-  const token   = await getToken({ req, secret });
-  const user_id = (token?.email   as string | undefined) ?? "anonymous";
-  const rawRole = (token?.role    as string | undefined) ?? "anonymous";
-  const path    = new URL(req.url).pathname;
+  const token    = await getSupabaseToken(req);
+  const user_id  = token?.email  ?? "anonymous";
+  const rawRole  = token?.role   ?? "anonymous";
+  const path     = new URL(req.url).pathname;
 
   const { result, reason } = guard(user_id, rawRole, path, layer, action, resource);
 
@@ -74,12 +67,11 @@ const BU_FOR_ROLE: Record<string, string> = { caza: "CAZA" };
 
 /**
  * Retorna o BU forçado para o usuário autenticado, ou null se não houver restrição.
- * Usado nas rotas do CRM para isolar dados por BU sem expor registros de outros grupos.
  */
 export async function getForcedBu(req: NextRequest): Promise<string | null> {
-  const secret = process.env.NEXTAUTH_SECRET;
-  if (!secret) return null;
-  const token = await getToken({ req, secret });
-  const role  = (token?.role as string | undefined) ?? "";
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!supabaseUrl) return null;
+  const token = await getSupabaseToken(req);
+  const role  = token?.role ?? "";
   return BU_FOR_ROLE[role] ?? null;
 }

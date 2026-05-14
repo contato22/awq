@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useSession, signOut } from "next-auth/react";
+import { useSupabaseSession, supabaseSignOut } from "@/components/AuthProvider";
 import {
     LayoutDashboard,
     TrendingUp,
@@ -683,7 +683,7 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 function SidebarFooter() {
-    const { data: session } = useSession();
+    const { data: session } = useSupabaseSession();
     const user = session?.user as { name?: string; email?: string; role?: string } | undefined;
     const name = user?.name ?? user?.email ?? "Usuário";
     const initials = name
@@ -714,7 +714,7 @@ function SidebarFooter() {
                     <div className="text-[10px] text-gray-400 truncate">{user?.email ?? "—"}</div>
                 </div>
                 <button
-                    onClick={() => void signOut({ callbackUrl: "/login" })}
+                    onClick={() => void supabaseSignOut()}
                     className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                     title="Sair"
                 >
@@ -727,7 +727,7 @@ function SidebarFooter() {
 
 // ── Slim footer for icon sidebar ──────────────────────────────────────────────
 function SlimSidebarFooter() {
-    const { data: session } = useSession();
+    const { data: session } = useSupabaseSession();
     const user = session?.user as { name?: string; email?: string } | undefined;
     const name = user?.name ?? user?.email ?? "?";
     const initials =
@@ -736,7 +736,7 @@ function SlimSidebarFooter() {
     return (
         <div className="px-2 py-3 border-t border-gray-100 shrink-0">
             <button
-                onClick={() => void signOut({ callbackUrl: "/login" })}
+                onClick={() => void supabaseSignOut()}
                 title="Sair"
                 className="flex flex-col items-center gap-0.5 w-full py-1.5 rounded-lg hover:bg-red-50 transition-colors group"
             >
@@ -1424,7 +1424,7 @@ function JacqesSidebar({ pathname }: { pathname: string }) {
 }
 
 function CazaSidebar({ pathname }: { pathname: string }) {
-    const { data: session } = useSession();
+    const { data: session } = useSupabaseSession();
     const isCazaOnly = (session?.user as { role?: string } | undefined)?.role === "caza";
     // isCazaOnly: show only overview, no back-to-AWQ
     const modules = isCazaOnly

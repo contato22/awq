@@ -18,7 +18,8 @@
 //   This route uses getToken() to extract the user email from the JWT for audit trail.
 
 import { NextRequest, NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
+import { getSupabaseToken } from "@/lib/supabase/server";
+
 import { guard } from "@/lib/security-guard";
 import fs from "fs";
 import path from "path";
@@ -48,8 +49,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   await initDB();
 
   // ── Auth: extract JWT + RBAC guard ──
-  const token     = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-  const userEmail = (token?.email as string | undefined) ?? "anonymous";
+  const token     = await getSupabaseToken(req);
+  const userEmail = token?.email ?? "anonymous";
   const userRole  = (token?.role  as string | undefined) ?? "anonymous";
 
   const { result: guardResult, reason: guardReason } = guard(

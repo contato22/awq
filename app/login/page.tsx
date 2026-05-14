@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Zap, Eye, EyeOff, Loader2, AlertCircle, ExternalLink } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { findUserByEmail } from "@/lib/auth-users";
 
 // NEXT_PUBLIC_STATIC_DATA is inlined at build time (set to "1" in pages.yml).
 // In static/GitHub Pages mode there is no backend — auth is unavailable.
@@ -28,27 +29,28 @@ export default function LoginPage() {
       return;
     }
 
-    const result = await signIn("credentials", {
+    const supabase = createClient();
+    const { data, error: signInError } = await supabase.auth.signInWithPassword({
       email,
       password,
-      redirect: false,
     });
 
-    if (result?.error) {
+    if (signInError || !data.user) {
       setError("E-mail ou senha incorretos.");
       setLoading(false);
       return;
     }
 
-    const res = await fetch("/api/auth/session");
-    const session = await res.json();
-    const role = session?.user?.role;
+    const appRole = data.user.app_metadata?.role as string | undefined;
+    const authUser = findUserByEmail(email);
+    const role = appRole ?? authUser?.role ?? "analyst";
 
     const homeByRole: Record<string, string> = {
       owner: "/awq",
       admin: "/awq",
       analyst: "/jacqes",
       "cs-ops": "/csops",
+      caza: "/caza-vision",
     };
 
     router.push(homeByRole[role] ?? "/awq");
