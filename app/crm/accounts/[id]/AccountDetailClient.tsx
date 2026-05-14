@@ -173,7 +173,7 @@ export default function AccountDetailClient() {
                 }`} style={{ width: `${account.health_score}%` }} />
               </div>
               <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
-                <span>Churn Risk: <span className={`font-medium ${account.churn_risk === "high" ? "text-red-600" : account.churn_risk === "medium" ? "text-amber-600" : "text-emerald-600"}`}>{"low":"Baixo","medium":"Médio","high":"Alto"}[account.churn_risk] ?? account.churn_risk}</span></span>
+                <span>Churn Risk: <span className={`font-medium ${account.churn_risk === "high" ? "text-red-600" : account.churn_risk === "medium" ? "text-amber-600" : "text-emerald-600"}`}>{{"low":"Baixo","medium":"Médio","high":"Alto"}[account.churn_risk] ?? account.churn_risk}</span></span>
                 {account.renewal_date && <span>Renova: {formatDateBR(account.renewal_date)}</span>}
               </div>
             </div>
