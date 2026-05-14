@@ -763,6 +763,7 @@ CREATE INDEX IF NOT EXISTS idx_kpi_bu     ON kpi_values(bu_id);
 
 -- ─── v_pl_gerencial — DRE Gerencial por BU e Consolidado ────────────────────
 
+DROP VIEW IF EXISTS v_pl_gerencial CASCADE;
 CREATE OR REPLACE VIEW v_pl_gerencial AS
 WITH gl_classified AS (
   SELECT
@@ -801,6 +802,7 @@ GROUP BY b.bu_code, b.bu_name, fp.period_code, fp.fiscal_year;
 
 -- ─── v_balance_sheet — Balanço Patrimonial ───────────────────────────────────
 
+DROP VIEW IF EXISTS v_balance_sheet CASCADE;
 CREATE OR REPLACE VIEW v_balance_sheet AS
 SELECT
   b.bu_code,
@@ -823,6 +825,7 @@ ORDER BY a.account_code;
 
 -- ─── v_ap_aging — Aging de Contas a Pagar ────────────────────────────────────
 
+DROP VIEW IF EXISTS v_ap_aging CASCADE;
 CREATE OR REPLACE VIEW v_ap_aging AS
 SELECT
   ap.ap_id,
@@ -849,6 +852,7 @@ WHERE ap.status NOT IN ('CANCELLED');
 
 -- ─── v_ar_aging — Aging de Contas a Receber ──────────────────────────────────
 
+DROP VIEW IF EXISTS v_ar_aging CASCADE;
 CREATE OR REPLACE VIEW v_ar_aging AS
 SELECT
   ar.ar_id,
@@ -875,6 +879,7 @@ WHERE ar.status NOT IN ('CANCELLED');
 
 -- ─── v_budget_vs_actual ──────────────────────────────────────────────────────
 
+DROP VIEW IF EXISTS v_budget_vs_actual CASCADE;
 CREATE OR REPLACE VIEW v_budget_vs_actual AS
 SELECT
   bv.version_name,
@@ -912,6 +917,7 @@ LEFT JOIN (
 
 -- ─── v_trial_balance — Balancete ─────────────────────────────────────────────
 
+DROP VIEW IF EXISTS v_trial_balance CASCADE;
 CREATE OR REPLACE VIEW v_trial_balance AS
 SELECT
   a.account_code,
@@ -1295,6 +1301,7 @@ CREATE TRIGGER trg_crm_account_code
 
 -- ─── Pipeline Overview ────────────────────────────────────────────────────────
 
+DROP VIEW IF EXISTS v_crm_pipeline_overview CASCADE;
 CREATE OR REPLACE VIEW v_crm_pipeline_overview AS
 SELECT
   o.stage,
@@ -1308,6 +1315,7 @@ GROUP BY o.stage, o.bu;
 
 -- ─── Sales Forecast ──────────────────────────────────────────────────────────
 
+DROP VIEW IF EXISTS v_crm_sales_forecast CASCADE;
 CREATE OR REPLACE VIEW v_crm_sales_forecast AS
 SELECT
   o.bu,
@@ -1324,6 +1332,7 @@ ORDER BY forecast_month, bu;
 
 -- ─── Account Health Dashboard ─────────────────────────────────────────────────
 
+DROP VIEW IF EXISTS v_crm_account_health CASCADE;
 CREATE OR REPLACE VIEW v_crm_account_health AS
 SELECT
   a.account_id,
@@ -1346,6 +1355,7 @@ GROUP BY a.account_id, a.account_code, a.account_name, a.account_type,
 
 -- ─── Conversion Funnel ────────────────────────────────────────────────────────
 
+DROP VIEW IF EXISTS v_crm_conversion_funnel CASCADE;
 CREATE OR REPLACE VIEW v_crm_conversion_funnel AS
 SELECT
   stage,
@@ -1365,6 +1375,7 @@ END;
 
 -- ─── Rep Performance ─────────────────────────────────────────────────────────
 
+DROP VIEW IF EXISTS v_crm_rep_performance CASCADE;
 CREATE OR REPLACE VIEW v_crm_rep_performance AS
 WITH monthly AS (
   SELECT
@@ -1900,6 +1911,7 @@ CREATE INDEX IF NOT EXISTS idx_notifications_date   ON bpm_notifications(created
 
 -- ── Work Queue (My Pending Tasks) ────────────────────────────────────────────
 
+DROP VIEW IF EXISTS v_work_queue CASCADE;
 CREATE OR REPLACE VIEW v_work_queue AS
 SELECT
   t.task_id,
@@ -1939,6 +1951,7 @@ ORDER BY
 
 -- ── Process Performance (last 90 days) ───────────────────────────────────────
 
+DROP VIEW IF EXISTS v_process_performance CASCADE;
 CREATE OR REPLACE VIEW v_process_performance AS
 SELECT
   pd.process_def_id,
@@ -1980,6 +1993,7 @@ GROUP BY pd.process_def_id, pd.process_code, pd.process_name, pd.process_categor
 
 -- ── SLA Dashboard ─────────────────────────────────────────────────────────────
 
+DROP VIEW IF EXISTS v_sla_dashboard CASCADE;
 CREATE OR REPLACE VIEW v_sla_dashboard AS
 SELECT
   pd.process_code,
@@ -2003,6 +2017,7 @@ GROUP BY pd.process_code, pd.process_name;
 
 -- ── Bottleneck Analysis ───────────────────────────────────────────────────────
 
+DROP VIEW IF EXISTS v_process_bottlenecks CASCADE;
 CREATE OR REPLACE VIEW v_process_bottlenecks AS
 SELECT
   pd.process_code,
@@ -2724,6 +2739,7 @@ CREATE INDEX IF NOT EXISTS idx_ma_ic_decisions_meeting ON ma_ic_decisions(ic_mee
 -- 11. CONSOLIDATED VIEWS
 -- =============================================================================
 
+DROP VIEW IF EXISTS v_ma_portfolio_dashboard CASCADE;
 CREATE OR REPLACE VIEW v_ma_portfolio_dashboard AS
 SELECT
   pc.portco_id,
@@ -2764,6 +2780,7 @@ LEFT JOIN LATERAL (
 ) k ON TRUE
 ORDER BY pc.current_valuation DESC;
 
+DROP VIEW IF EXISTS v_ma_deal_pipeline CASCADE;
 CREATE OR REPLACE VIEW v_ma_deal_pipeline AS
 SELECT
   d.*,
@@ -2773,6 +2790,7 @@ FROM ma_deals d
 LEFT JOIN ma_due_diligence_items dd ON dd.deal_id = d.deal_id
 GROUP BY d.deal_id;
 
+DROP VIEW IF EXISTS v_ma_pipeline_funnel CASCADE;
 CREATE OR REPLACE VIEW v_ma_pipeline_funnel AS
 SELECT
   pipeline_stage,
@@ -3476,6 +3494,7 @@ CREATE OR REPLACE TRIGGER trg_ppm_issues_updated_at
 
 -- ── Portfolio Dashboard ───────────────────────────────────────────────────────
 
+DROP VIEW IF EXISTS v_ppm_portfolio CASCADE;
 CREATE OR REPLACE VIEW v_ppm_portfolio AS
 SELECT
   p.project_id,
@@ -3552,6 +3571,7 @@ LEFT JOIN users u           ON p.project_manager_id = u.user_id;
 
 -- ── Project Profitability (EVM) ───────────────────────────────────────────────
 
+DROP VIEW IF EXISTS v_ppm_profitability CASCADE;
 CREATE OR REPLACE VIEW v_ppm_profitability AS
 SELECT
   p.project_id,
@@ -3605,6 +3625,7 @@ FROM ppm_projects p;
 
 -- ── Resource Utilization ──────────────────────────────────────────────────────
 
+DROP VIEW IF EXISTS v_ppm_resource_utilization CASCADE;
 CREATE OR REPLACE VIEW v_ppm_resource_utilization AS
 SELECT
   u.user_id,
@@ -3629,6 +3650,7 @@ GROUP BY u.user_id, u.full_name, u.email;
 
 -- ── Timesheet Summary ─────────────────────────────────────────────────────────
 
+DROP VIEW IF EXISTS v_ppm_timesheet_summary CASCADE;
 CREATE OR REPLACE VIEW v_ppm_timesheet_summary AS
 SELECT
   p.project_id,
