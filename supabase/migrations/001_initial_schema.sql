@@ -3674,7 +3674,7 @@ GROUP BY p.project_id, p.project_code, p.project_name, p.bu_code;
 -- =============================================================================
 
 -- Clear PPM seed tables for idempotency
-DELETE FROM ppm_timesheets;
+DELETE FROM ppm_time_entries;
 DELETE FROM ppm_risks;
 DELETE FROM ppm_tasks;
 DELETE FROM ppm_projects;
