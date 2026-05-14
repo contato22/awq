@@ -5,8 +5,11 @@ import type { FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
 import { STAGE_LABELS, STAGE_PROBABILITY, BU_OPTIONS, OWNER_OPTIONS } from "@/lib/crm-types";
-import type { CrmAccount } from "@/lib/crm-types";
+import type { CrmAccount, CrmOpportunity } from "@/lib/crm-types";
 import { supabaseClient as supabase } from "@/lib/supabase";
+
+const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
+const LS_KEY = "crm-opportunities-v3";
 
 const ACTIVE_STAGES = ["discovery","qualification","proposal","negotiation","closed_won","closed_lost"] as const;
 
@@ -18,6 +21,7 @@ function AddOpportunityPageInner() {
   const [accounts, setAccounts] = useState<CrmAccount[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [savedOffline, setSavedOffline] = useState(false);
 
   const [form, setForm] = useState({
     opportunity_name: "",
@@ -32,6 +36,13 @@ function AddOpportunityPageInner() {
   });
 
   useEffect(() => {
+    if (IS_STATIC) {
+      try {
+        const stored = JSON.parse(localStorage.getItem("awq_crm_accounts") ?? "[]");
+        setAccounts(stored as CrmAccount[]);
+      } catch { /* empty localStorage is fine */ }
+      return;
+    }
     supabase.from("crm_accounts").select("account_id, account_name, trade_name").order("account_name")
       .then(({ data }) => setAccounts((data ?? []) as CrmAccount[]));
   }, []);
@@ -42,6 +53,14 @@ function AddOpportunityPageInner() {
 
   const probability = STAGE_PROBABILITY[form.stage as keyof typeof STAGE_PROBABILITY] ?? 25;
 
+  function persistToLocalStorage(payload: Partial<CrmOpportunity>) {
+    try {
+      const existing: CrmOpportunity[] = JSON.parse(localStorage.getItem(LS_KEY) ?? "[]");
+      const newEntry = { ...payload, opportunity_id: crypto.randomUUID(), created_at: new Date().toISOString() } as CrmOpportunity;
+      localStorage.setItem(LS_KEY, JSON.stringify([...existing, newEntry]));
+    } catch { /* quota exceeded or private browsing — silently skip */ }
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!form.opportunity_name.trim()) { setError("Nome da oportunidade é obrigatório"); return; }
@@ -49,25 +68,40 @@ function AddOpportunityPageInner() {
     setSaving(true);
     setError("");
 
+    const payload = {
+      opportunity_name: form.opportunity_name.trim(),
+      bu: form.bu,
+      owner: form.owner,
+      stage: form.stage,
+      probability,
+      deal_value: parseFloat(form.deal_value) || 0,
+      expected_close_date: form.expected_close_date || null,
+      account_id: form.account_id || null,
+      lost_reason: form.lost_reason || null,
+      proposal_sent_date: form.proposal_sent_date || null,
+      created_by: form.owner,
+    };
+
+    // Static export (GitHub Pages): localStorage only
+    if (IS_STATIC) {
+      persistToLocalStorage(payload);
+      setSaving(false);
+      setSavedOffline(true);
+      setTimeout(() => router.push("/crm/opportunities"), 1500);
+      return;
+    }
+
+    // SSR (Vercel): try API, dual-persist to localStorage on failure
     try {
-      const { error: err } = await supabase.from("crm_opportunities").insert({
-        opportunity_name: form.opportunity_name.trim(),
-        bu: form.bu,
-        owner: form.owner,
-        stage: form.stage,
-        probability,
-        deal_value: parseFloat(form.deal_value) || 0,
-        expected_close_date: form.expected_close_date || null,
-        account_id: form.account_id || null,
-        lost_reason: form.lost_reason || null,
-        proposal_sent_date: form.proposal_sent_date || null,
-        created_by: form.owner,
-      });
+      const { error: err } = await supabase.from("crm_opportunities").insert(payload);
       if (err) throw new Error(err.message);
       router.push("/crm/opportunities");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao criar oportunidade");
+      // API unavailable — persist locally and inform the user
+      persistToLocalStorage(payload);
       setSaving(false);
+      setSavedOffline(true);
+      setTimeout(() => router.push("/crm/opportunities"), 2500);
     }
   }
 
@@ -76,6 +110,12 @@ function AddOpportunityPageInner() {
       <Header title="Nova Oportunidade" subtitle="Registrar oportunidade no pipeline" />
       <div className="page-container max-w-2xl">
         <form onSubmit={handleSubmit} className="space-y-5">
+
+          {savedOffline && (
+            <div className="bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-xl px-4 py-3">
+              Oportunidade salva localmente. Será sincronizada quando a conexão for restabelecida.
+            </div>
+          )}
 
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3">

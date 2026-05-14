@@ -35,7 +35,7 @@ permissions:
 
 jobs:
   ci:
-    name: Lint + TypeScript + Build (SSR)
+    name: TypeScript + Build (SSR)
     runs-on: ubuntu-latest
 
     steps:
