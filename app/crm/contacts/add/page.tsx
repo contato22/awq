@@ -5,9 +5,7 @@ import type { FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
 import type { CrmAccount } from "@/lib/crm-types";
-
-
-const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
+import { supabase } from "@/lib/supabase-client";
 
 function AddContactPageInner() {
   const router = useRouter();
@@ -23,15 +21,8 @@ function AddContactPageInner() {
   });
 
   useEffect(() => {
-    const local: CrmAccount[] = JSON.parse(localStorage.getItem("awq_local_accounts") ?? "[]");
-    fetch("/api/crm/accounts")
-      .then(r => r.json())
-      .then(res => {
-        const base: CrmAccount[] = res.success ? res.data : [];
-        const merged = [...local, ...base.filter(a => !local.some(l => l.account_id === a.account_id))];
-        setAccounts(merged);
-      })
-      .catch(() => setAccounts(local));
+    supabase.from("crm_accounts").select("account_id, account_name, trade_name").order("account_name")
+      .then(({ data }) => setAccounts((data ?? []) as CrmAccount[]));
   }, []);
 
   function set(f: string, v: string | boolean) { setForm(p=>({...p,[f]:v})); }
@@ -41,62 +32,22 @@ function AddContactPageInner() {
     if (!form.full_name.trim()) { setError("Nome completo é obrigatório"); return; }
     setSaving(true); setError("");
     try {
-      const payload = {
-        action: "create",
-        ...form,
+      const { error: err } = await supabase.from("crm_contacts").insert({
         account_id: form.account_id || null,
-      };
-
-      let saved = false;
-      let apiError: string | null = null;
-
-      if (!IS_STATIC) {
-        try {
-          const res = await fetch("/api/crm/contacts", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          });
-          let json: { success: boolean; error?: string } | null = null;
-          try { json = await res.json(); } catch { /* non-JSON */ }
-          if (json?.success) {
-            saved = true;
-          } else if (json && res.status >= 400 && res.status < 500) {
-            apiError = json.error ?? "Erro ao criar contato";
-          }
-        } catch { /* network error — fall through to localStorage */ }
-      }
-
-      if (apiError) throw new Error(apiError);
-
-      if (!saved) {
-        const now = new Date().toISOString();
-        const accountName = accounts.find(a => a.account_id === form.account_id)?.account_name ?? null;
-        const localContact = {
-          contact_id: `local-${Date.now()}`,
-          account_id: form.account_id || null,
-          account_name: accountName,
-          full_name: form.full_name,
-          email: form.email || null,
-          phone: form.phone || null,
-          mobile: form.mobile || null,
-          job_title: form.job_title || null,
-          department: form.department || null,
-          seniority: form.seniority,
-          linkedin_url: form.linkedin_url || null,
-          is_primary_contact: form.is_primary_contact,
-          contact_preferences: [],
-          created_at: now,
-          updated_at: now,
-        };
-        const stored = JSON.parse(localStorage.getItem("awq_local_contacts") ?? "[]");
-        localStorage.setItem("awq_local_contacts", JSON.stringify([localContact, ...stored]));
-      }
-
+        full_name: form.full_name.trim(),
+        email: form.email || null,
+        phone: form.phone || null,
+        mobile: form.mobile || null,
+        job_title: form.job_title || null,
+        department: form.department || null,
+        seniority: form.seniority,
+        linkedin_url: form.linkedin_url || null,
+        is_primary_contact: form.is_primary_contact,
+      });
+      if (err) throw new Error(err.message);
       router.push(form.account_id ? `/crm/accounts/${form.account_id}` : "/crm/contacts");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao criar contato");
-    } finally {
       setSaving(false);
     }
   }
@@ -129,7 +80,7 @@ function AddContactPageInner() {
               <select value={form.account_id} onChange={e=>set("account_id",e.target.value)}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30">
                 <option value="">— Sem empresa —</option>
-                {accounts.map(a=><option key={a.account_id} value={a.account_id}>{a.account_name}</option>)}
+                {accounts.map(a=><option key={a.account_id} value={a.account_id}>{a.trade_name ?? a.account_name}</option>)}
               </select></div>
             <div className="grid grid-cols-2 gap-4">
               <div><label className="block text-xs font-medium text-gray-700 mb-1">Cargo</label>

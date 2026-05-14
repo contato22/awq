@@ -5,6 +5,7 @@ import type { FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
 import type { CrmOpportunity, CrmAccount, CrmLead, CrmContact } from "@/lib/crm-types";
+import { supabase } from "@/lib/supabase-client";
 
 function AddActivityPageInner() {
   const router = useRouter();
@@ -17,11 +18,16 @@ function AddActivityPageInner() {
   const [contacts, setContacts] = useState<CrmContact[]>([]);
 
   useEffect(() => {
-    setOpps(JSON.parse(localStorage.getItem("crm-opportunities-v3") ?? "[]"));
-    setAccounts(JSON.parse(localStorage.getItem("awq_local_accounts") ?? "[]"));
-    setLeads(JSON.parse(localStorage.getItem("awq_local_leads") ?? "[]"));
-    setContacts(JSON.parse(localStorage.getItem("awq_local_contacts") ?? "[]"));
+    supabase.from("crm_opportunities").select("opportunity_id, opportunity_name").order("created_at", { ascending: false })
+      .then(({ data }) => setOpps((data ?? []) as CrmOpportunity[]));
+    supabase.from("crm_accounts").select("account_id, account_name, trade_name").order("account_name")
+      .then(({ data }) => setAccounts((data ?? []) as CrmAccount[]));
+    supabase.from("crm_leads").select("lead_id, contact_name, company_name").order("created_at", { ascending: false })
+      .then(({ data }) => setLeads((data ?? []) as CrmLead[]));
+    supabase.from("crm_contacts").select("contact_id, full_name, account_id").order("full_name")
+      .then(({ data }) => setContacts((data ?? []) as CrmContact[]));
   }, []);
+
   const [form, setForm] = useState({
     activity_type: "call",
     related_to_type: params?.get("related_to_type") ?? "opportunity",
@@ -42,62 +48,25 @@ function AddActivityPageInner() {
     if (!form.subject.trim()) { setError("Assunto é obrigatório"); return; }
     if (!form.related_to_id.trim()) { setError("Selecione a entidade vinculada"); return; }
     setSaving(true); setError("");
-    const payload = {
-      action: "create",
-      ...form,
-      duration_minutes: form.duration_minutes ? parseInt(form.duration_minutes) : null,
-      outcome: form.outcome || null,
-      scheduled_at: form.scheduled_at ? new Date(form.scheduled_at).toISOString() : null,
-    };
-    const isStaticExport = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
-    let saved = false;
-    let apiError: string | null = null;
-
-    if (!isStaticExport) {
-      try {
-        const res = await fetch("/api/crm/activities", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        let json: { success: boolean; error?: string } | null = null;
-        try { json = await res.json(); } catch { /* non-JSON */ }
-        if (json?.success) {
-          saved = true;
-        } else if (json && res.status >= 400 && res.status < 500) {
-          apiError = json.error ?? "Erro ao registrar atividade";
-        }
-      } catch { /* network error — fall through to localStorage */ }
+    try {
+      const { error: err } = await supabase.from("crm_activities").insert({
+        activity_type: form.activity_type,
+        related_to_type: form.related_to_type,
+        related_to_id: form.related_to_id,
+        subject: form.subject.trim(),
+        description: form.description || null,
+        outcome: form.outcome || null,
+        duration_minutes: form.duration_minutes ? parseInt(form.duration_minutes) : null,
+        scheduled_at: form.scheduled_at ? new Date(form.scheduled_at).toISOString() : null,
+        status: form.status,
+        created_by: form.created_by,
+      });
+      if (err) throw new Error(err.message);
+      router.push("/crm/activities");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao registrar atividade");
+      setSaving(false);
     }
-
-    if (apiError) { setError(apiError); setSaving(false); return; }
-
-    if (!saved) {
-      const now = new Date().toISOString();
-      const local = {
-        activity_id: `local-${Date.now()}`,
-        activity_type: payload.activity_type,
-        related_to_type: payload.related_to_type,
-        related_to_id: payload.related_to_id,
-        subject: payload.subject,
-        description: payload.description || null,
-        outcome: payload.outcome,
-        duration_minutes: payload.duration_minutes,
-        scheduled_at: payload.scheduled_at,
-        status: payload.status,
-        created_by: payload.created_by,
-        completed_at: null,
-        created_at: now,
-        updated_at: now,
-      };
-      try {
-        const stored = JSON.parse(localStorage.getItem("awq_local_activities") ?? "[]");
-        localStorage.setItem("awq_local_activities", JSON.stringify([local, ...stored]));
-      } catch { /* ignore */ }
-    }
-
-    setSaving(false);
-    router.push("/crm/activities");
   }
 
   return (
@@ -152,7 +121,7 @@ function AddActivityPageInner() {
                   {form.related_to_type === "lead" && leads.map(l =>
                     <option key={l.lead_id} value={l.lead_id}>{l.contact_name} — {l.company_name}</option>)}
                   {form.related_to_type === "contact" && contacts.map(c =>
-                    <option key={c.contact_id} value={c.contact_id}>{c.full_name} ({c.account_name})</option>)}
+                    <option key={c.contact_id} value={c.contact_id}>{c.full_name}</option>)}
                 </select></div>
             </div>
           </div>

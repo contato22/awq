@@ -5,6 +5,7 @@ import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import { OWNER_OPTIONS } from "@/lib/crm-types";
+import { supabase } from "@/lib/supabase-client";
 
 export default function AddAccountPage() {
   const router = useRouter();
@@ -24,35 +25,8 @@ export default function AddAccountPage() {
     e.preventDefault();
     if (!form.account_name.trim()) { setError("Nome da empresa é obrigatório"); return; }
     setSaving(true); setError("");
-
-    const payload = { action: "create", ...form, health_score: parseInt(form.health_score) };
-    const isStaticExport = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
-    let saved = false;
-    let apiError: string | null = null;
-
-    if (!isStaticExport) {
-      try {
-        const res = await fetch("/api/crm/accounts", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        let json: { success: boolean; error?: string } | null = null;
-        try { json = await res.json(); } catch { /* non-JSON */ }
-        if (json?.success) {
-          saved = true;
-        } else if (json && res.status >= 400 && res.status < 500) {
-          apiError = json.error ?? "Erro ao criar conta";
-        }
-      } catch { /* network error — fall through to localStorage */ }
-    }
-
-    if (apiError) { setError(apiError); setSaving(false); return; }
-
-    if (!saved) {
-      const now = new Date().toISOString();
-      const local = {
-        account_id: `local-${Date.now()}`,
+    try {
+      const { error: err } = await supabase.from("crm_accounts").insert({
         account_name: form.account_name.trim(),
         trade_name: form.trade_name || null,
         document_number: form.document_number || null,
@@ -69,18 +43,14 @@ export default function AddAccountPage() {
         health_score: parseInt(form.health_score),
         churn_risk: form.churn_risk,
         renewal_date: form.renewal_date || null,
-        created_at: now,
-        updated_at: now,
         created_by: form.owner,
-      };
-      try {
-        const stored = JSON.parse(localStorage.getItem("awq_local_accounts") ?? "[]");
-        localStorage.setItem("awq_local_accounts", JSON.stringify([local, ...stored]));
-      } catch { /* ignore */ }
+      });
+      if (err) throw new Error(err.message);
+      router.push("/crm/accounts");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao criar conta");
+      setSaving(false);
     }
-
-    setSaving(false);
-    router.push("/crm/accounts");
   }
 
   return (
@@ -108,7 +78,7 @@ export default function AddAccountPage() {
                 <select value={form.industry} onChange={e=>set("industry",e.target.value)}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30">
                   <option value="">— Selecionar —</option>
-                  {[["tech","Tecnologia"],["finance","Finanças"],["education","Educação"],["health","Saúde"],["media","Mídia"],["retail","Varejo"],["other","Outro"]].map(([v,l])=><option key={v} value={v}>{l}</option>)}
+                  {[["tech","Tecnologia"],["finance","Finanças"],["education","Educação"],["health","Saúde"],["mídia","Mídia"],["retail","Varejo"],["other","Outro"]].map(([v,l])=><option key={v} value={v}>{l}</option>)}
                 </select></div>
               <div><label className="block text-xs font-medium text-gray-700 mb-1">Porte</label>
                 <select value={form.company_size} onChange={e=>set("company_size",e.target.value)}

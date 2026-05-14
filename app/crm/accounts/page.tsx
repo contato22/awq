@@ -7,7 +7,7 @@ import EmptyState from "@/components/EmptyState";
 import { Building2, Plus, Search, AlertTriangle, CheckCircle2, Trash2 } from "lucide-react";
 import type { CrmAccount } from "@/lib/crm-types";
 import { BU_OPTIONS } from "@/lib/crm-types";
-import { SEED_ACCOUNTS } from "@/lib/crm-db";
+import { supabase } from "@/lib/supabase-client";
 
 const TYPE_LABELS: Record<string, string> = {
   prospect:        "Prospect",
@@ -43,47 +43,16 @@ export default function AccountsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
-    async function load() {
-      const deletedIds = new Set<string>(
-        JSON.parse(localStorage.getItem("awq_deleted_accounts") ?? "[]")
-      );
-
-      function applyLocalState(rows: CrmAccount[]): CrmAccount[] {
-        return rows.filter(a => !deletedIds.has(a.account_id));
-      }
-
-      const localAccounts: CrmAccount[] = JSON.parse(localStorage.getItem("awq_local_accounts") ?? "[]");
-      try {
-        const res = await fetch("/api/crm/accounts");
-        const json = await res.json();
-        const base: CrmAccount[] = json.success ? json.data : [];
-        const merged = [...localAccounts, ...base.filter(a => !localAccounts.some(l => l.account_id === a.account_id))];
-        setAllAccounts(applyLocalState(merged));
-      } catch {
-        setAllAccounts(applyLocalState(localAccounts));
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
+    void supabase.from("crm_accounts").select("*").order("account_name")
+      .then(({ data }) => { setAllAccounts((data ?? []) as CrmAccount[]); setLoading(false); }, () => { setLoading(false); });
   }, []);
 
-  function handleDelete(id: string, name: string) {
+  async function handleDelete(id: string, name: string) {
     if (!confirm(`Excluir a conta "${name}"? Esta ação não pode ser desfeita.`)) return;
     setDeletingId(id);
-
-    const deleted = JSON.parse(localStorage.getItem("awq_deleted_accounts") ?? "[]") as string[];
-    if (!deleted.includes(id)) {
-      localStorage.setItem("awq_deleted_accounts", JSON.stringify([...deleted, id]));
-    }
     setAllAccounts(prev => prev.filter(a => a.account_id !== id));
+    await supabase.from("crm_accounts").delete().eq("account_id", id);
     setDeletingId(null);
-
-    fetch("/api/crm/accounts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "delete", account_id: id }),
-    }).catch(() => undefined);
   }
 
   const accounts = useMemo(() => {
@@ -108,7 +77,6 @@ export default function AccountsPage() {
       <Header title="Contas — CRM AWQ" subtitle="Empresas e organizações" />
       <div className="page-container">
 
-        {/* KPIs */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
             { label: "Total Contas", value: accounts.length, color: "text-blue-600",    bg: "bg-blue-50",    icon: Building2 },
@@ -128,7 +96,6 @@ export default function AccountsPage() {
           ))}
         </div>
 
-        {/* Filters + Search */}
         <div className="flex items-center gap-3 flex-wrap">
           <div className="relative flex-1 min-w-[180px]">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
@@ -166,7 +133,6 @@ export default function AccountsPage() {
           </Link>
         </div>
 
-        {/* Table */}
         <div className="card">
           <div className="table-scroll">
             <table className="w-full text-sm">
