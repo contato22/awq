@@ -103,26 +103,70 @@ function AddProjectPageInner() {
     if (!form.budget_cost)         { setError("Custo estimado é obrigatório"); return; }
 
     setSaving(true); setError("");
-    try {
-      const res  = await fetch("/api/ppm/projects", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...form,
-          opportunity_id: form.opportunity_id || undefined,
-          budget_hours:   form.budget_hours  ? parseFloat(form.budget_hours)  : undefined,
-          budget_cost:    parseFloat(form.budget_cost),
-          budget_revenue: parseFloat(form.budget_revenue),
-          margin_target:  marginPct ? parseFloat(marginPct) / 100 : undefined,
-        }),
-      });
-      const json = await res.json();
-      if (!json.success) throw new Error(json.error);
-      router.push(`/awq/ppm/${json.data.project_id}`);
-    } catch (e) {
-      setError((e as Error).message);
-      setSaving(false);
+
+    const payload = {
+      ...form,
+      opportunity_id: form.opportunity_id || undefined,
+      budget_hours:   form.budget_hours  ? parseFloat(form.budget_hours)  : undefined,
+      budget_cost:    parseFloat(form.budget_cost),
+      budget_revenue: parseFloat(form.budget_revenue),
+      margin_target:  marginPct ? parseFloat(marginPct) / 100 : undefined,
+    };
+
+    const isStaticExport = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
+    let projectId: string | null = null;
+    let apiError: string | null = null;
+
+    if (!isStaticExport) {
+      try {
+        const res = await fetch("/api/ppm/projects", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        let json: { success: boolean; data?: { project_id: string }; error?: string } | null = null;
+        try { json = await res.json(); } catch { /* non-JSON response — will fall through to localStorage */ }
+        if (json?.success && json.data?.project_id) {
+          projectId = json.data.project_id;
+        } else if (json && res.status >= 400 && res.status < 500) {
+          apiError = json.error ?? "Erro ao criar projeto";
+        }
+      } catch { /* network error — fall through to localStorage */ }
     }
+
+    if (apiError) {
+      setError(apiError);
+      setSaving(false);
+      return;
+    }
+
+    if (!projectId) {
+      const ts  = Date.now();
+      const id  = `local-${ts}`;
+      const now = new Date(ts).toISOString();
+      const localProject = {
+        project_id:    id,
+        project_code:  `PRJ-${new Date().getFullYear()}-LOCAL`,
+        ...payload,
+        actual_hours:   0,
+        actual_cost:    0,
+        actual_revenue: 0,
+        completion_pct: 0,
+        team_size:      0,
+        phase:          "initiation",
+        status:         "active",
+        health_status:  "green",
+        created_at:     now,
+        updated_at:     now,
+      };
+      try {
+        const stored = JSON.parse(localStorage.getItem("awq_ppm_projects") ?? "[]");
+        localStorage.setItem("awq_ppm_projects", JSON.stringify([localProject, ...stored]));
+      } catch { /* ignore storage errors */ }
+      projectId = id;
+    }
+
+    router.push(`/awq/ppm/${projectId}`);
   }
 
   return (
