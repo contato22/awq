@@ -10,9 +10,10 @@ import {
   Users, Plus, Search, Target, TrendingUp,
   BarChart3, ExternalLink, ChevronRight, Trash2, Pencil,
 } from "lucide-react";
-import type { CrmLead, CrmOpportunity } from "@/lib/crm-types";
-import { SEED_LEADS, SEED_OPPORTUNITIES } from "@/lib/crm-db";
+import type { CrmLead } from "@/lib/crm-types";
+import { STAGE_PROBABILITY } from "@/lib/crm-types";
 import { formatBRL, formatDateBR } from "@/lib/utils";
+import { supabase } from "@/lib/supabase-client";
 
 const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
   new:         { label: "Novo",           cls: "badge badge-blue" },
@@ -54,13 +55,10 @@ function BuBadge({ bu }: { bu: string }) {
   return <span className="badge badge-yellow text-[10px]">{bu}</span>;
 }
 
-// ─── Page ────────────────────────────────────────────────────────────────────────────────
-
 export default function LeadsPage() {
   const router = useRouter();
   const [leads, setLeads] = useState<CrmLead[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isStatic, setIsStatic] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [buFilter, setBuFilter] = useState<string>("Todos");
   const [search, setSearch] = useState("");
@@ -76,113 +74,42 @@ export default function LeadsPage() {
   }, []);
 
   useEffect(() => {
-    async function load() {
-      const localLeads = JSON.parse(localStorage.getItem("awq_local_leads") ?? "[]") as CrmLead[];
-      const leadEdits  = JSON.parse(localStorage.getItem("awq_lead_edits")   ?? "{}") as Record<string, CrmLead>;
-      const converted  = JSON.parse(localStorage.getItem("awq_converted_leads") ?? "{}") as Record<string, string>;
-      const deletedIds = new Set<string>(JSON.parse(localStorage.getItem("awq_deleted_leads") ?? "[]"));
-
-      function applyLocalState(rows: CrmLead[]): CrmLead[] {
-        const localIds = new Set(localLeads.map(l => l.lead_id));
-        return [
-          ...localLeads,
-          ...rows.filter(l => !localIds.has(l.lead_id)),
-        ]
-          .filter(l => !deletedIds.has(l.lead_id))
-          .map(l => leadEdits[l.lead_id] ?? l)
-          .map(l =>
-            converted[l.lead_id]
-              ? { ...l, status: "converted" as const, converted_to_opportunity_id: converted[l.lead_id] }
-              : l
-          );
-      }
-
-      try {
-        const res = await fetch("/api/crm/leads");
-        const json = await res.json();
-        if (json.success) {
-          setLeads(applyLocalState(json.data));
-        } else throw new Error("api");
-      } catch {
-        setLeads(applyLocalState(SEED_LEADS));
-        setIsStatic(true);
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
+    void supabase.from("crm_leads").select("*").order("created_at", { ascending: false })
+      .then(({ data }) => { setLeads((data ?? []) as CrmLead[]); setLoading(false); }, () => { setLoading(false); });
   }, []);
 
   async function handleConvert(lead: CrmLead) {
     if (!confirm(`Converter "${lead.company_name}" em oportunidade?`)) return;
     setConverting(lead.lead_id);
-
-    if (isStatic) {
-      try {
-        const newOppId = `opp-${lead.lead_id}-${Date.now()}`;
-        const newOpp: CrmOpportunity = {
-          opportunity_id: newOppId,
-          opportunity_code: `OPP-L${String(Date.now()).slice(-4)}`,
-          opportunity_name: `${lead.company_name} — ${lead.bu}`,
-          account_id: null, account_name: undefined, contact_id: null, contact_name: null,
-          bu: lead.bu,
-          stage: "discovery", deal_value: lead.bant_budget ?? 0, probability: 25,
-          expected_close_date: null, actual_close_date: null,
-          lost_reason: null, lost_to_competitor: null, win_reason: null,
-          owner: lead.assigned_to,
-          proposal_sent_date: null, proposal_viewed: false, proposal_accepted: false,
-          synced_to_epm: false, epm_customer_id: null, epm_ar_id: null,
-          created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
-          created_by: lead.assigned_to,
-        };
-
-        const storedOpps: CrmOpportunity[] = JSON.parse(localStorage.getItem("crm-opportunities-v3") ?? "null") ?? SEED_OPPORTUNITIES;
-        localStorage.setItem("crm-opportunities-v3", JSON.stringify([...storedOpps, newOpp]));
-
-        const converted = JSON.parse(localStorage.getItem("awq_converted_leads") ?? "{}") as Record<string, string>;
-        converted[lead.lead_id] = newOppId;
-        localStorage.setItem("awq_converted_leads", JSON.stringify(converted));
-
-        const localLeads = JSON.parse(localStorage.getItem("awq_local_leads") ?? "[]") as CrmLead[];
-        const updatedLocal = localLeads.map(l =>
-          l.lead_id === lead.lead_id ? { ...l, status: "converted" as const, converted_to_opportunity_id: newOppId } : l
-        );
-        localStorage.setItem("awq_local_leads", JSON.stringify(updatedLocal));
-
-        setLeads(prev => prev.map(l =>
-          l.lead_id === lead.lead_id ? { ...l, status: "converted" as const, converted_to_opportunity_id: newOppId } : l
-        ));
-        router.push("/crm/opportunities");
-      } catch {
-        alert("Erro ao converter lead localmente");
-      } finally {
-        setConverting(null);
-      }
-      return;
-    }
-
     try {
-      const res = await fetch("/api/crm/leads", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "convert",
-          lead_id: lead.lead_id,
-          opportunity_name: `${lead.company_name} — ${lead.bu}`,
-          bu: lead.bu,
-          owner: lead.assigned_to,
-          deal_value: lead.bant_budget ?? 0,
-        }),
-      });
-      const json = await res.json();
-      if (json.success) {
-        setLeads(prev => prev.map(l => l.lead_id === lead.lead_id ? { ...l, status: "converted" as const } : l));
-        router.push("/crm/opportunities");
-      } else {
-        alert(json.error ?? "Erro ao converter lead");
-      }
-    } catch {
-      alert("Erro de rede — tente novamente");
+      const { data: oppData, error: oppErr } = await supabase.from("crm_opportunities").insert({
+        opportunity_name: `${lead.company_name} — ${lead.bu}`,
+        bu: lead.bu,
+        owner: lead.assigned_to,
+        stage: "discovery",
+        probability: STAGE_PROBABILITY.discovery,
+        deal_value: lead.bant_budget ?? 0,
+        created_by: lead.assigned_to,
+      }).select("opportunity_id").single();
+
+      if (oppErr) throw new Error(oppErr.message);
+
+      const { error: leadErr } = await supabase.from("crm_leads").update({
+        status: "converted",
+        converted_to_opportunity_id: oppData.opportunity_id,
+        converted_at: new Date().toISOString(),
+      }).eq("lead_id", lead.lead_id);
+
+      if (leadErr) throw new Error(leadErr.message);
+
+      setLeads(prev => prev.map(l =>
+        l.lead_id === lead.lead_id
+          ? { ...l, status: "converted" as const, converted_to_opportunity_id: oppData.opportunity_id }
+          : l
+      ));
+      router.push("/crm/opportunities");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Erro ao converter lead");
     } finally {
       setConverting(null);
     }
@@ -191,28 +118,9 @@ export default function LeadsPage() {
   async function handleDelete(lead: CrmLead) {
     if (!confirm(`Apagar o lead "${lead.company_name}" permanentemente?`)) return;
     setDeleting(lead.lead_id);
-
-    // Always persist deletion in localStorage first (works on static + SSR)
-    const localLeads = JSON.parse(localStorage.getItem("awq_local_leads") ?? "[]") as CrmLead[];
-    localStorage.setItem("awq_local_leads", JSON.stringify(localLeads.filter(l => l.lead_id !== lead.lead_id)));
-    const deleted = JSON.parse(localStorage.getItem("awq_deleted_leads") ?? "[]") as string[];
-    if (!deleted.includes(lead.lead_id)) {
-      localStorage.setItem("awq_deleted_leads", JSON.stringify([...deleted, lead.lead_id]));
-    }
-    // Remove any stored edit for this lead
-    const edits = JSON.parse(localStorage.getItem("awq_lead_edits") ?? "{}") as Record<string, CrmLead>;
-    delete edits[lead.lead_id];
-    localStorage.setItem("awq_lead_edits", JSON.stringify(edits));
-
     setLeads(prev => prev.filter(l => l.lead_id !== lead.lead_id));
+    await supabase.from("crm_leads").delete().eq("lead_id", lead.lead_id);
     setDeleting(null);
-
-    // Fire-and-forget to API (no-op on static)
-    fetch("/api/crm/leads", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "delete", lead_id: lead.lead_id }),
-    }).catch(() => undefined);
   }
 
   const filtered = useMemo(() => {
@@ -231,7 +139,6 @@ export default function LeadsPage() {
     });
   }, [leads, statusFilter, buFilter, search]);
 
-  // KPIs
   const kpiTotal     = leads.length;
   const kpiNew       = leads.filter(l => l.status === "new").length;
   const kpiQualified = leads.filter(l => l.status === "qualified").length;
@@ -258,25 +165,13 @@ export default function LeadsPage() {
       <Header title="Leads — CRM AWQ" subtitle="Pipeline de prospecção" />
       <div className="page-container">
 
-        {/* Header actions */}
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          {isStatic && (
-            <span className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
-              Snapshot estático
-            </span>
-          )}
-          {!isStatic && <div />}
-          <Link
-            href="/crm/leads/add"
-            className="btn-primary flex items-center gap-2 text-sm"
-          >
+        <div className="flex items-center justify-end gap-3 flex-wrap">
+          <Link href="/crm/leads/add" className="btn-primary flex items-center gap-2 text-sm">
             <Plus size={14} />
             Adicionar Lead
           </Link>
         </div>
 
-        {/* ── KPI Row ─────────────────────────────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="card p-4 flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
@@ -316,9 +211,7 @@ export default function LeadsPage() {
           </div>
         </div>
 
-        {/* ── Filter Bar ──────────────────────────────────────────────────────────────────────── */}
         <div className="card p-4 flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-          {/* Status tabs */}
           <div className="flex flex-wrap gap-1 flex-1">
             {STATUS_TABS.map(tab => (
               <button
@@ -334,8 +227,6 @@ export default function LeadsPage() {
               </button>
             ))}
           </div>
-
-          {/* BU filter */}
           <select
             value={buFilter}
             onChange={e => setBuFilter(e.target.value)}
@@ -343,8 +234,6 @@ export default function LeadsPage() {
           >
             {BU_LIST.map(b => <option key={b}>{b}</option>)}
           </select>
-
-          {/* Search */}
           <div className="relative">
             <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             <input
@@ -357,7 +246,6 @@ export default function LeadsPage() {
           </div>
         </div>
 
-        {/* ── Table ─────────────────────────────────────────────────────────────────────────────── */}
         <div className="card">
           <div className="p-4 border-b border-gray-100">
             <SectionHeader
@@ -412,17 +300,13 @@ export default function LeadsPage() {
                             <div className="text-[10px] text-gray-400 truncate max-w-[160px]">{lead.job_title}</div>
                           )}
                         </td>
-                        <td className="py-3 px-3">
-                          <BuBadge bu={lead.bu} />
-                        </td>
+                        <td className="py-3 px-3"><BuBadge bu={lead.bu} /></td>
                         <td className="py-3 px-3">
                           <span className={`${statusCfg?.cls ?? "badge badge-gray"} text-[10px]`}>
                             {statusCfg?.label ?? lead.status}
                           </span>
                         </td>
-                        <td className="py-3 px-3">
-                          <ScoreBar score={lead.lead_score} />
-                        </td>
+                        <td className="py-3 px-3"><ScoreBar score={lead.lead_score} /></td>
                         <td className="py-3 px-3">
                           <span className="text-[11px] font-medium text-gray-700">{formatBRL(lead.bant_budget)}</span>
                           {lead.bant_authority && (
@@ -440,9 +324,7 @@ export default function LeadsPage() {
                             <span className="text-[11px] text-gray-600">{lead.assigned_to}</span>
                           </div>
                         </td>
-                        <td className="py-3 px-3 text-[11px] text-gray-400">
-                          {formatDateBR(lead.created_at)}
-                        </td>
+                        <td className="py-3 px-3 text-[11px] text-gray-400">{formatDateBR(lead.created_at)}</td>
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-1.5">
                             <Link href={`/crm/leads/edit?id=${lead.lead_id}`}
