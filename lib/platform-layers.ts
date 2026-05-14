@@ -55,7 +55,7 @@
 export const STORE_LAYER = {
   status: "real" as const,
   pattern: "lib-as-store (direct import, no global state library)",
-  authStore: "next-auth SessionProvider + JWT",
+  authStore: "Supabase Auth — cookie SSR via @supabase/ssr",
   dataStores: {
     "awq-group": "lib/awq-group-data.ts",
     jacqes: "lib/data.ts",
@@ -101,7 +101,7 @@ export const STORE_LAYER = {
 
 export const SECURITY_LAYER = {
   status: "permissive" as const,
-  authentication: "real — next-auth JWT + bcrypt + middleware route guard",
+  authentication: "real — Supabase Auth + middleware route guard (role via lib/auth-users.ts)",
   authorization: "permissive by design — all roles have full access (MVP)",
   users: [
     { email: "alex@awqgroup.com",  role: "owner",   homeRoute: "/awq" },

@@ -187,7 +187,7 @@ export default function SecurityPage() {
           {[
             ["Rotas UI bloqueadas", "Middleware permissivo — modo full é v3"],
             ["SIEM / exportação", "Sem Datadog, Splunk, CloudWatch (v4)"],
-            ["MFA / 2FA enterprise", "Apenas JWT via next-auth (v5)"],
+            ["MFA / 2FA enterprise", "Supabase Auth básico — MFA nativo disponível no dashboard (v5)"],
             ["WAF / rate-limit", "Sem brute-force ou DDoS protection (v4)"],
             ["CSP rígido", "Sem Content-Security-Policy (risco de quebrar Next.js assets)"],
             ["DLP", "Sem inspeção de payloads de resposta (v5)"],

@@ -16,6 +16,14 @@
 import { createClient } from "@supabase/supabase-js";
 import { execSync }     from "child_process";
 
+// Suppress SDK internal stack traces on network errors — we handle them ourselves.
+const _origStderr = process.stderr.write.bind(process.stderr);
+process.stderr.write = (chunk, ...args) => {
+  const s = typeof chunk === "string" ? chunk : chunk.toString();
+  if (s.includes("TypeError: fetch failed") || s.includes("ENOTFOUND")) return true;
+  return _origStderr(chunk, ...args);
+};
+
 const SUPABASE_URL  = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const ANON_KEY      = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const SERVICE_KEY   = process.env.SUPABASE_SERVICE_ROLE_KEY;

@@ -325,7 +325,7 @@ export default async function AwqDataPage() {
               <div className="space-y-1 text-[11px] text-gray-600">
                 <div><code>localStorage</code> — saldos /awq/bank (client-side)</div>
                 <div><code>Notion API</code> — projetos Caza, vendas Venture</div>
-                <div><code>next-auth session</code> — auth em memoria</div>
+                <div><code>Supabase Auth</code> — sessão via cookie SSR</div>
               </div>
               <div className="mt-3 text-[10px] text-gray-500">
                 Nao persistido no servidor. Nao verificavel pelo repositorio.
