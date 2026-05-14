@@ -1,11 +1,13 @@
-// ─── AWQ Database Client — Supabase / Postgres ────────────────────────────────
+// ─── AWQ Database Client — Supabase Postgres (direct) ────────────────────────
 //
-// Provides a SQL tagged-template client when DATABASE_URL is set.
-// DATABASE_URL must point to the Supabase connection pooler (Transaction mode):
-//   postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres
+// Used by modules that require raw SQL (bpm-db, crm-db, jacqes-crm-db, ma-db).
+// Modules migrated to supabase.from() (financial-db, advisor-db, caza-db, ppm-db)
+// import from lib/supabase.ts instead and do NOT use this client.
 //
-// Falls back to null when absent; each *-db.ts module detects null and uses its
-// own local/seed fallback for development.
+// DATABASE_URL must be the Supabase direct connection string:
+//   postgresql://postgres:[PASSWORD]@db.gqkgsoglgubmaborixfb.supabase.co:5432/postgres
+//
+// Falls back to null when absent — each module has its own seed/json fallback.
 //
 // USAGE:
 //   import { sql, initDB } from "@/lib/db";
@@ -77,8 +79,4 @@ export async function initDB(): Promise<void> {
 
   await sql`CREATE INDEX IF NOT EXISTS idx_bt_document_id ON bank_transactions(document_id)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_bt_entity ON bank_transactions(entity)`;
-
-  // ─── Caza Vision tables ──────────────────────────────────────────────────────
-  const { initCazaDB } = await import("@/lib/caza-db");
-  await initCazaDB();
 }

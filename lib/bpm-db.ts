@@ -3,8 +3,8 @@
 // Persistence adapter for the BPM Workflow Engine.
 //
 // STORAGE:
-//   DATABASE_URL set  → Neon (Postgres) via @neondatabase/serverless
-//   DATABASE_URL unset → In-memory JSON store (local dev / GitHub Pages build)
+//   DATABASE_URL set  → Supabase Postgres via direct connection (postgres driver)
+//   DATABASE_URL unset → In-memory JSON store (local dev / static build)
 //
 // SERVER-ONLY — do not import in client components.
 

@@ -1,6 +1,6 @@
-// ─── AWQ CRM — Database Layer (Neon Postgres) ────────────────────────────────
-// Mirrors pattern of jacqes-crm-db.ts.
-// Uses sql from lib/db.ts — falls back to seed arrays when DATABASE_URL unset.
+// ─── AWQ CRM — Database Layer (Supabase Postgres via direct connection) ──────
+// Uses sql from lib/db.ts (postgres driver) — requires DATABASE_URL set to the
+// Supabase direct connection string. Falls back to seed arrays when unset.
 
 import { sql } from "@/lib/db";
 import type {
