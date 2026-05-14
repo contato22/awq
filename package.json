@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "seed:supabase": "tsx scripts/seed-supabase-users.ts"
+    "seed:supabase": "tsx scripts/seed-supabase-users.ts",
+    "test:supabase": "tsx scripts/test-supabase-auth.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",
@@ -37,6 +38,7 @@
     "@types/react": "^18.3.4",
     "@types/react-dom": "^18.3.0",
     "autoprefixer": "^10.4.20",
+    "dotenv": "^17.4.2",
     "eslint": "^8.57.0",
     "eslint-config-next": "14.2.5",
     "playwright": "^1.59.1",
