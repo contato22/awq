@@ -110,7 +110,7 @@ export default async function EpmKpisPage() {
   const [kpis, dre, bs] = await Promise.all([
     getAWQGroupKPIs(),
     buildDreQuery("all"),
-    Promise.resolve(getBalanceSheet()),
+    getBalanceSheet(),
   ]);
 
   // AP/AR outstanding for DSO/DPO/CCC — best-effort (DB may be empty on first run)

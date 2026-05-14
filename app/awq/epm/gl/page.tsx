@@ -28,9 +28,9 @@ const SOURCE_LABELS: Record<string, string> = {
   ar_receipt:  "AR",
 };
 
-export default function GLPage() {
-  const journals = getJournals();
-  const trialBal = getTrialBalance();
+export default async function GLPage() {
+  const journals = await getJournals();
+  const trialBal = await getTrialBalance();
 
   const totalDebits  = trialBal.reduce((s, l) => s + l.total_debits,  0);
   const totalCredits = trialBal.reduce((s, l) => s + l.total_credits, 0);

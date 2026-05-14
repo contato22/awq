@@ -1,7 +1,8 @@
 // ─── EPM General Ledger — Data Access Layer ──────────────────────────────────
 //
-// Manages GL journal entries stored in public/data/epm-gl.json (static/dev mode)
-// or Neon PostgreSQL (production via DATABASE_URL).
+// Storage priority:
+//   1. Supabase EPM project  (NEXT_PUBLIC_SUPABASE_EPM_URL + SUPABASE_EPM_ANON_KEY set)
+//   2. JSON file fallback    (public/data/epm-gl.json — static/dev mode)
 //
 // Double-entry bookkeeping: every journal_id must have SUM(debit) = SUM(credit).
 // This layer enforces that constraint on write.
@@ -15,6 +16,7 @@ export type { AccountType, BuCode, AccountRef } from "./epm-gl-constants";
 export { CHART_OF_ACCOUNTS } from "./epm-gl-constants";
 import type { AccountType, BuCode, AccountRef } from "./epm-gl-constants";
 import { CHART_OF_ACCOUNTS } from "./epm-gl-constants";
+import { USE_SUPABASE_EPM, getSupabaseEpm } from "./supabase-epm";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -94,30 +96,59 @@ function dateToPeriodCode(date: string): string {
   return date.slice(0, 7);
 }
 
+// ─── Supabase helpers ─────────────────────────────────────────────────────────
+
+async function sbGetAllEntries(): Promise<GLEntry[]> {
+  const sb = getSupabaseEpm();
+  const { data, error } = await sb
+    .from("general_ledger")
+    .select("*")
+    .order("transaction_date", { ascending: false });
+  if (error) throw new Error(`Supabase EPM read error: ${error.message}`);
+  return (data ?? []) as GLEntry[];
+}
+
+async function sbInsertEntries(entries: GLEntry[]): Promise<void> {
+  const sb = getSupabaseEpm();
+  const { error } = await sb.from("general_ledger").insert(entries);
+  if (error) throw new Error(`Supabase EPM insert error: ${error.message}`);
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 /** Return all GL entries, newest first. */
-export function getAllGLEntries(): GLEntry[] {
+export async function getAllGLEntries(): Promise<GLEntry[]> {
+  if (USE_SUPABASE_EPM) return sbGetAllEntries();
   const store = readStore();
   return [...store.entries].sort((a, b) => b.transaction_date.localeCompare(a.transaction_date));
 }
 
 /** Return GL entries filtered by optional bu_code and/or period_code. */
-export function getGLEntries(filters?: {
+export async function getGLEntries(filters?: {
   bu_code?:     BuCode;
   period_code?: string;
   account_code?: string;
-}): GLEntry[] {
-  let entries = getAllGLEntries();
-  if (filters?.bu_code)     entries = entries.filter((e) => e.bu_code     === filters.bu_code);
-  if (filters?.period_code) entries = entries.filter((e) => e.period_code === filters.period_code);
-  if (filters?.account_code)entries = entries.filter((e) => e.account_code === filters.account_code);
+}): Promise<GLEntry[]> {
+  if (USE_SUPABASE_EPM) {
+    const sb = getSupabaseEpm();
+    let query = sb.from("general_ledger").select("*").order("transaction_date", { ascending: false });
+    if (filters?.bu_code)      query = query.eq("bu_code",      filters.bu_code);
+    if (filters?.period_code)  query = query.eq("period_code",  filters.period_code);
+    if (filters?.account_code) query = query.eq("account_code", filters.account_code);
+    const { data, error } = await query;
+    if (error) throw new Error(`Supabase EPM filter error: ${error.message}`);
+    return (data ?? []) as GLEntry[];
+  }
+  let entries = await getAllGLEntries();
+  if (filters?.bu_code)      entries = entries.filter((e) => e.bu_code      === filters.bu_code);
+  if (filters?.period_code)  entries = entries.filter((e) => e.period_code  === filters.period_code);
+  if (filters?.account_code) entries = entries.filter((e) => e.account_code === filters.account_code);
   return entries;
 }
 
 /** Return unique journal groups with their two legs balanced. */
-export function getJournals(): { journal_id: string; debit: GLEntry; credit: GLEntry; balanced: boolean }[] {
-  const entries = getAllGLEntries();
+export async function getJournals(): Promise<{ journal_id: string; debit: GLEntry; credit: GLEntry; balanced: boolean }[]> {
+  const entries = await getAllGLEntries();
   const map = new Map<string, GLEntry[]>();
   for (const e of entries) {
     const legs = map.get(e.journal_id) ?? [];
@@ -137,7 +168,7 @@ export function getJournals(): { journal_id: string; debit: GLEntry; credit: GLE
 }
 
 /** Add a double-entry journal. Throws if amounts don't match or account unknown. */
-export function addJournalEntry(input: NewJournalInput): { debit: GLEntry; credit: GLEntry } {
+export async function addJournalEntry(input: NewJournalInput): Promise<{ debit: GLEntry; credit: GLEntry }> {
   if (Math.abs(input.debit_amount - input.credit_amount) > 0.005) {
     throw new Error(`Journal unbalanced: debit ${input.debit_amount} ≠ credit ${input.credit_amount}`);
   }
@@ -191,9 +222,13 @@ export function addJournalEntry(input: NewJournalInput): { debit: GLEntry; credi
     created_by:       input.created_by,
   };
 
-  const store = readStore();
-  store.entries.push(debitEntry, creditEntry);
-  writeStore(store);
+  if (USE_SUPABASE_EPM) {
+    await sbInsertEntries([debitEntry, creditEntry]);
+  } else {
+    const store = readStore();
+    store.entries.push(debitEntry, creditEntry);
+    writeStore(store);
+  }
 
   return { debit: debitEntry, credit: creditEntry };
 }
@@ -208,11 +243,11 @@ export interface TrialBalanceLine {
   net_balance:   number;
 }
 
-export function getTrialBalance(filters?: {
+export async function getTrialBalance(filters?: {
   bu_code?:     BuCode;
   period_code?: string;
-}): TrialBalanceLine[] {
-  const entries = getGLEntries(filters);
+}): Promise<TrialBalanceLine[]> {
+  const entries = await getGLEntries(filters);
   const map = new Map<string, { debit: number; credit: number; account: AccountRef }>();
 
   for (const e of entries) {
@@ -246,8 +281,8 @@ export interface BalanceSheetSummary {
   lines:          TrialBalanceLine[];
 }
 
-export function getBalanceSheet(filters?: { bu_code?: BuCode; period_code?: string }): BalanceSheetSummary {
-  const tb = getTrialBalance(filters);
+export async function getBalanceSheet(filters?: { bu_code?: BuCode; period_code?: string }): Promise<BalanceSheetSummary> {
+  const tb = await getTrialBalance(filters);
   const bsLines = tb.filter((l) => ["ASSET","LIABILITY","EQUITY"].includes(l.account_type));
 
   let totalAssets = 0;
@@ -290,8 +325,8 @@ export interface PLSummary {
   netMarginPct:       number | null;
 }
 
-export function getPLFromGL(filters?: { bu_code?: BuCode; period_code?: string }): PLSummary {
-  const tb = getTrialBalance(filters);
+export async function getPLFromGL(filters?: { bu_code?: BuCode; period_code?: string }): Promise<PLSummary> {
+  const tb = await getTrialBalance(filters);
 
   let totalRevenue      = 0;
   let totalCOGS         = 0;
