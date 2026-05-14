@@ -386,6 +386,7 @@ CREATE TABLE IF NOT EXISTS fiscal_periods (
 );
 
 -- Seed FY 2026 monthly periods
+DELETE FROM fiscal_periods WHERE fiscal_year = 2026;
 INSERT INTO fiscal_periods (period_code, period_type, fiscal_year, start_date, end_date) VALUES
   ('2026-01', 'MONTH', 2026, '2026-01-01', '2026-01-31'),
   ('2026-02', 'MONTH', 2026, '2026-02-01', '2026-02-28'),
@@ -1420,6 +1421,14 @@ CREATE POLICY crm_activities_all    ON crm_activities            FOR ALL USING (
 -- 8. SEED DATA
 -- =============================================================================
 
+-- Clear seed tables to ensure idempotency
+DELETE FROM crm_activities;
+DELETE FROM crm_opportunity_stage_history;
+DELETE FROM crm_opportunities;
+DELETE FROM crm_leads;
+DELETE FROM crm_contacts;
+DELETE FROM crm_accounts;
+
 -- ─── Accounts ────────────────────────────────────────────────────────────────
 
 INSERT INTO crm_accounts (account_code, account_name, trade_name, document_number, industry, company_size, account_type, owner, health_score, churn_risk, address_city, address_state, website) VALUES
@@ -1587,6 +1596,9 @@ CREATE TRIGGER trg_process_defs_updated_at
   FOR EACH ROW EXECUTE FUNCTION bpm_update_updated_at();
 
 -- ── Seed: 6 Critical Workflows ────────────────────────────────────────────────
+
+DELETE FROM process_instances;
+DELETE FROM process_definitions;
 
 INSERT INTO process_definitions
   (process_code, process_name, process_category, description, workflow_steps, default_sla_hours)
@@ -2772,6 +2784,19 @@ ORDER BY CASE pipeline_stage
 -- 12. SEED DATA — Enerdy (first portco, M4E deal March 2026)
 -- =============================================================================
 
+-- Clear M&A seed tables for idempotency
+DELETE FROM ma_ic_decisions;
+DELETE FROM ma_ic_meetings;
+DELETE FROM ma_synergy_opportunities;
+DELETE FROM ma_intercompany_transactions;
+DELETE FROM ma_media_deliverables;
+DELETE FROM ma_board_meetings;
+DELETE FROM ma_portco_kpis;
+DELETE FROM ma_cap_table;
+DELETE FROM ma_due_diligence_items;
+DELETE FROM ma_portfolio_companies;
+DELETE FROM ma_deals;
+
 -- Deal
 INSERT INTO ma_deals (
   deal_code, deal_name, company_name, industry, company_stage, deal_type,
@@ -3603,9 +3628,13 @@ GROUP BY p.project_id, p.project_code, p.project_name, p.bu_code;
 -- 9. SEED DATA
 -- =============================================================================
 
--- Depends on existing business_units, customers, and users tables.
--- Run after inserting those rows (see awq_epm_full_schema.sql and awq_crm_full_schema.sql).
+-- Clear PPM seed tables for idempotency
+DELETE FROM ppm_timesheets;
+DELETE FROM ppm_risks;
+DELETE FROM ppm_tasks;
+DELETE FROM ppm_projects;
 
+-- Depends on existing business_units, customers, and users tables.
 INSERT INTO ppm_projects (
   project_code, project_name, customer_id, bu_code,
   project_type, service_category, contract_type,
