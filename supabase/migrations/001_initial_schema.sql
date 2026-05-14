@@ -20,6 +20,10 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- =============================================================================
 -- 1. AWQ CORE — Documentos Financeiros
 -- =============================================================================
+-- Drop first so re-runs always get the correct schema (no stale column sets).
+
+DROP TABLE IF EXISTS bank_transactions   CASCADE;
+DROP TABLE IF EXISTS financial_documents CASCADE;
 
 CREATE TABLE IF NOT EXISTS financial_documents (
   id                  TEXT PRIMARY KEY,
