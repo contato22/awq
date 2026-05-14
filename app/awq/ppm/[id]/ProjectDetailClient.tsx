@@ -108,15 +108,30 @@ export default function ProjectDetailPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res  = await fetch(`/api/ppm/projects/${id}`);
-      const json = await res.json();
-      if (json.success) {
-        setProject(json.data.project);
-        setTasks(json.data.tasks);
-        setMilestones(json.data.milestones);
-        setAllocations(json.data.allocations);
-        setRisks(json.data.risks);
-        setIssues(json.data.issues);
+      let loaded = false;
+
+      try {
+        const res  = await fetch(`/api/ppm/projects/${id}`);
+        let json: { success: boolean; data?: { project: PpmProject; tasks: PpmTask[]; milestones: PpmMilestone[]; allocations: PpmAllocation[]; risks: PpmRisk[]; issues: PpmIssue[] } } | null = null;
+        try { json = await res.json(); } catch { /* non-JSON response */ }
+        if (json?.success && json.data) {
+          setProject(json.data.project);
+          setTasks(json.data.tasks);
+          setMilestones(json.data.milestones);
+          setAllocations(json.data.allocations);
+          setRisks(json.data.risks);
+          setIssues(json.data.issues);
+          loaded = true;
+        }
+      } catch { /* network error */ }
+
+      // Fallback: look up project in localStorage (offline / static export)
+      if (!loaded) {
+        try {
+          const local = JSON.parse(localStorage.getItem("awq_ppm_projects") ?? "[]") as PpmProject[];
+          const found = local.find(p => p.project_id === id);
+          if (found) setProject(found);
+        } catch { /* ignore */ }
       }
     } finally {
       setLoading(false);
