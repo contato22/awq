@@ -19,9 +19,315 @@ import type {
 } from "@/lib/ma-types";
 
 // ─── Schema Bootstrap ─────────────────────────────────────────────────────────
+// Standalone schema — cross-table FKs use TEXT (no UUID FK constraints) so this
+// bootstraps on any Postgres without external table dependencies.
 export async function initMaDB(): Promise<void> {
-  // Tables and views are created via the M&A SQL schema file run once in Neon.
-  // This function is a no-op placeholder kept for API route parity.
+  if (!sql) return;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS ma_deals (
+      deal_id               TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      deal_code             TEXT        NOT NULL UNIQUE,
+      deal_name             TEXT        NOT NULL,
+      company_name          TEXT        NOT NULL,
+      company_website       TEXT,
+      industry              TEXT,
+      company_stage         TEXT,
+      deal_type             TEXT        NOT NULL DEFAULT 'm4e',
+      pipeline_stage        TEXT        NOT NULL DEFAULT 'sourcing',
+      lead_source           TEXT,
+      lead_source_detail    TEXT,
+      market_score          NUMERIC(5,2) DEFAULT 0,
+      team_score            NUMERIC(5,2) DEFAULT 0,
+      product_score         NUMERIC(5,2) DEFAULT 0,
+      traction_score        NUMERIC(5,2) DEFAULT 0,
+      total_score           NUMERIC(5,2) DEFAULT 0,
+      screening_decision    TEXT,
+      screening_notes       TEXT,
+      dd_status             TEXT        DEFAULT 'not_started',
+      dd_completion_pct     NUMERIC(5,2) DEFAULT 0,
+      dd_start_date         DATE,
+      dd_end_date           DATE,
+      proposed_valuation          NUMERIC(15,2),
+      proposed_investment_amount  NUMERIC(15,2),
+      proposed_equity_pct         NUMERIC(5,2),
+      media_commitment_value      NUMERIC(15,2),
+      media_delivery_period_months INTEGER,
+      board_seat                  BOOLEAN DEFAULT FALSE,
+      observer_rights             BOOLEAN DEFAULT FALSE,
+      vesting_period_years        INTEGER,
+      vesting_cliff_months        INTEGER,
+      ic_memo_url           TEXT,
+      ic_presentation_url   TEXT,
+      ic_meeting_date       DATE,
+      ic_decision           TEXT,
+      ic_decision_date      DATE,
+      ic_decision_notes     TEXT,
+      expected_close_date   DATE,
+      actual_close_date     DATE,
+      close_reason          TEXT,
+      close_notes           TEXT,
+      portco_id             TEXT,
+      deal_lead             TEXT,
+      tags                  JSONB,
+      notes                 TEXT,
+      created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      created_by            TEXT
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_ma_deals_stage  ON ma_deals(pipeline_stage)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_ma_deals_type   ON ma_deals(deal_type)`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS ma_portfolio_companies (
+      portco_id             TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      portco_code           TEXT        NOT NULL UNIQUE,
+      legal_name            TEXT        NOT NULL,
+      trade_name            TEXT,
+      document_number       TEXT,
+      deal_id               TEXT,
+      deal_type             TEXT        DEFAULT 'm4e',
+      investment_date       DATE        NOT NULL,
+      awq_ownership_pct     NUMERIC(5,2),
+      awq_shares_held       BIGINT,
+      total_shares_outstanding BIGINT,
+      entry_valuation       NUMERIC(15,2),
+      current_valuation     NUMERIC(15,2),
+      valuation_date        DATE,
+      media_commitment_value    NUMERIC(15,2),
+      media_delivered_value     NUMERIC(15,2) DEFAULT 0,
+      media_remaining_value     NUMERIC(15,2),
+      media_delivery_start_date DATE,
+      media_delivery_end_date   DATE,
+      board_seat            BOOLEAN DEFAULT FALSE,
+      observer_rights       BOOLEAN DEFAULT FALSE,
+      board_meeting_frequency TEXT,
+      company_stage         TEXT,
+      ceo_name              TEXT,
+      ceo_email             TEXT,
+      ceo_phone             TEXT,
+      website               TEXT,
+      industry              TEXT,
+      sector                TEXT,
+      status                TEXT        NOT NULL DEFAULT 'active',
+      exit_date             DATE,
+      exit_type             TEXT,
+      exit_valuation        NUMERIC(15,2),
+      exit_proceeds         NUMERIC(15,2),
+      tags                  JSONB,
+      notes                 TEXT,
+      created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      created_by            TEXT
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_ma_portco_status ON ma_portfolio_companies(status)`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS ma_due_diligence_items (
+      dd_item_id    TEXT  PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      deal_id       TEXT  NOT NULL REFERENCES ma_deals(deal_id) ON DELETE CASCADE,
+      dd_category   TEXT  NOT NULL,
+      item_name     TEXT  NOT NULL,
+      item_description TEXT,
+      status        TEXT  DEFAULT 'pending',
+      completion_pct NUMERIC(5,2) DEFAULT 0,
+      finding       TEXT,
+      finding_notes TEXT,
+      risk_level    TEXT,
+      documents     JSONB,
+      assigned_to   TEXT,
+      due_date      DATE,
+      completed_date DATE,
+      created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_ma_dd_deal ON ma_due_diligence_items(deal_id)`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS ma_cap_table (
+      cap_table_id    TEXT  PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      portco_id       TEXT  NOT NULL REFERENCES ma_portfolio_companies(portco_id) ON DELETE CASCADE,
+      shareholder_name   TEXT NOT NULL,
+      shareholder_type   TEXT,
+      shareholder_entity TEXT,
+      share_class     TEXT DEFAULT 'common',
+      shares_held     BIGINT NOT NULL,
+      ownership_pct   NUMERIC(5,2),
+      vesting_schedule    TEXT,
+      vesting_start_date  DATE,
+      vesting_cliff_date  DATE,
+      vesting_end_date    DATE,
+      shares_vested       BIGINT DEFAULT 0,
+      shares_unvested     BIGINT,
+      cost_per_share    NUMERIC(15,6),
+      total_cost_basis  NUMERIC(15,2),
+      acquisition_date  DATE,
+      is_active BOOLEAN DEFAULT TRUE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_ma_cap_table_portco ON ma_cap_table(portco_id)`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS ma_portco_kpis (
+      kpi_id          TEXT  PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      portco_id       TEXT  NOT NULL REFERENCES ma_portfolio_companies(portco_id) ON DELETE CASCADE,
+      reporting_date  DATE  NOT NULL,
+      year_month      TEXT,
+      mrr             NUMERIC(15,2),
+      arr             NUMERIC(15,2),
+      total_revenue   NUMERIC(15,2),
+      gross_margin_pct NUMERIC(5,2),
+      burn_rate       NUMERIC(15,2),
+      cash_balance    NUMERIC(15,2),
+      runway_months   NUMERIC(5,1),
+      mom_growth_pct  NUMERIC(5,2),
+      yoy_growth_pct  NUMERIC(5,2),
+      cac             NUMERIC(15,2),
+      ltv             NUMERIC(15,2),
+      ltv_cac_ratio   NUMERIC(5,2),
+      gmv             NUMERIC(15,2),
+      active_users    INTEGER,
+      new_users       INTEGER,
+      churn_rate_pct  NUMERIC(5,2),
+      nps             NUMERIC(5,2),
+      headcount       INTEGER,
+      product_launched        BOOLEAN DEFAULT FALSE,
+      funding_round_closed    BOOLEAN DEFAULT FALSE,
+      notes           TEXT,
+      submitted_by    TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE(portco_id, reporting_date)
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_ma_kpis_portco ON ma_portco_kpis(portco_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_ma_kpis_date   ON ma_portco_kpis(reporting_date)`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS ma_board_meetings (
+      meeting_id      TEXT  PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      portco_id       TEXT  NOT NULL REFERENCES ma_portfolio_companies(portco_id) ON DELETE CASCADE,
+      meeting_date    DATE  NOT NULL,
+      meeting_type    TEXT  DEFAULT 'regular',
+      agenda          TEXT,
+      board_deck_url          TEXT,
+      financial_report_url    TEXT,
+      other_materials         JSONB,
+      attendees               JSONB,
+      awq_representative      TEXT,
+      minutes_url     TEXT,
+      resolutions     JSONB,
+      action_items    JSONB,
+      status          TEXT  DEFAULT 'scheduled',
+      notes           TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_ma_board_portco ON ma_board_meetings(portco_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_ma_board_date   ON ma_board_meetings(meeting_date)`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS ma_media_deliverables (
+      deliverable_id    TEXT  PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      portco_id         TEXT  NOT NULL REFERENCES ma_portfolio_companies(portco_id) ON DELETE CASCADE,
+      deliverable_type  TEXT  NOT NULL,
+      description       TEXT,
+      agreed_value      NUMERIC(15,2),
+      executing_bu      TEXT,
+      project_ref       TEXT,
+      scheduled_delivery_date DATE,
+      actual_delivery_date    DATE,
+      status            TEXT  DEFAULT 'planned',
+      approved_by_portco BOOLEAN DEFAULT FALSE,
+      approval_date      DATE,
+      approval_notes     TEXT,
+      deliverable_url    TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_ma_media_portco ON ma_media_deliverables(portco_id)`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS ma_intercompany_transactions (
+      ic_transaction_id TEXT  PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      transaction_date  DATE  NOT NULL,
+      transaction_type  TEXT,
+      from_entity_type  TEXT,
+      from_entity_id    TEXT,
+      from_entity_name  TEXT,
+      to_entity_type    TEXT,
+      to_entity_id      TEXT,
+      to_entity_name    TEXT,
+      amount            NUMERIC(15,2) NOT NULL,
+      debit_account_code  TEXT,
+      credit_account_code TEXT,
+      description       TEXT,
+      source_system     TEXT,
+      elimination_status TEXT DEFAULT 'pending',
+      elimination_date   DATE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_ma_ic_date ON ma_intercompany_transactions(transaction_date)`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS ma_synergy_opportunities (
+      synergy_id        TEXT  PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      synergy_type      TEXT,
+      opportunity_name  TEXT,
+      description       TEXT,
+      source_bu         TEXT,
+      target_bu         TEXT,
+      portco_id         TEXT,
+      estimated_revenue_impact  NUMERIC(15,2),
+      estimated_cost_savings    NUMERIC(15,2),
+      status            TEXT  DEFAULT 'identified',
+      identified_date   DATE  DEFAULT CURRENT_DATE,
+      realization_date  DATE,
+      actual_revenue_impact  NUMERIC(15,2),
+      actual_cost_savings    NUMERIC(15,2),
+      owner             TEXT,
+      notes             TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS ma_ic_meetings (
+      ic_meeting_id   TEXT  PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      meeting_date    DATE  NOT NULL,
+      meeting_type    TEXT  DEFAULT 'regular',
+      attendees       JSONB,
+      deals_reviewed  JSONB,
+      minutes_url     TEXT,
+      status          TEXT  DEFAULT 'scheduled',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS ma_ic_decisions (
+      ic_decision_id  TEXT  PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      ic_meeting_id   TEXT  REFERENCES ma_ic_meetings(ic_meeting_id),
+      deal_id         TEXT  NOT NULL REFERENCES ma_deals(deal_id),
+      decision        TEXT  NOT NULL,
+      decision_date   DATE  NOT NULL,
+      votes           JSONB,
+      vote_result     TEXT,
+      decision_rationale TEXT,
+      conditions      TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_ma_ic_decisions_deal ON ma_ic_decisions(deal_id)`;
 }
 
 // ─── Seed Data ────────────────────────────────────────────────────────────────
