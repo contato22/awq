@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { listTimeEntries, createTimeEntry, approveTimeEntry } from "@/lib/ppm-db";
+import { initPpmDB, listTimeEntries, createTimeEntry, approveTimeEntry } from "@/lib/ppm-db";
 import type { TimeEntryStatus } from "@/lib/ppm-types";
+
+let _ppmReady = false;
+async function ensurePpm() { if (!_ppmReady) { await initPpmDB(); _ppmReady = true; } }
 
 function ok(data: unknown)          { return NextResponse.json({ success: true,  data }); }
 function err(msg: string, s = 400)  { return NextResponse.json({ success: false, error: msg }, { status: s }); }
 
 export async function GET(req: NextRequest) {
   try {
+    await ensurePpm();
     const p = req.nextUrl.searchParams;
     const entries = await listTimeEntries({
       project_id: p.get("project_id") ?? undefined,
@@ -21,6 +25,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    await ensurePpm();
     const body = await req.json();
     const { action } = body;
 

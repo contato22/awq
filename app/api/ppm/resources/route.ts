@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { listAllocations, createAllocation, getResourceUtilization } from "@/lib/ppm-db";
+import { initPpmDB, listAllocations, createAllocation, getResourceUtilization } from "@/lib/ppm-db";
+
+let _ppmReady = false;
+async function ensurePpm() { if (!_ppmReady) { await initPpmDB(); _ppmReady = true; } }
 
 function ok(data: unknown)          { return NextResponse.json({ success: true,  data }); }
 function err(msg: string, s = 400)  { return NextResponse.json({ success: false, error: msg }, { status: s }); }
 
 export async function GET(req: NextRequest) {
   try {
+    await ensurePpm();
     const p = req.nextUrl.searchParams;
     const mode = p.get("mode"); // "utilization" | "allocations"
 
@@ -26,6 +30,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    await ensurePpm();
     const body = await req.json();
     if (!body.project_id)     return err("project_id is required");
     if (!body.user_id)        return err("user_id is required");

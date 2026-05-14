@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { listTasks, createTask, updateTask } from "@/lib/ppm-db";
+import { initPpmDB, listTasks, createTask, updateTask } from "@/lib/ppm-db";
 import type { TaskStatus } from "@/lib/ppm-types";
+
+let _ppmReady = false;
+async function ensurePpm() { if (!_ppmReady) { await initPpmDB(); _ppmReady = true; } }
 
 function ok(data: unknown)          { return NextResponse.json({ success: true,  data }); }
 function err(msg: string, s = 400)  { return NextResponse.json({ success: false, error: msg }, { status: s }); }
 
 export async function GET(req: NextRequest) {
   try {
+    await ensurePpm();
     const p = req.nextUrl.searchParams;
     const tasks = await listTasks(
       p.get("project_id") ?? undefined,
@@ -20,6 +24,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    await ensurePpm();
     const body = await req.json();
     if (!body.project_id) return err("project_id is required");
     if (!body.task_name)  return err("task_name is required");
@@ -40,6 +45,7 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
+    await ensurePpm();
     const body = await req.json();
     const { task_id, ...patch } = body;
     if (!task_id) return err("task_id is required");

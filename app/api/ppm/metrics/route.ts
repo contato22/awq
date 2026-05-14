@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
-import { getPortfolioMetrics, getResourceUtilization, listProjects } from "@/lib/ppm-db";
+import { initPpmDB, getPortfolioMetrics, getResourceUtilization, listProjects } from "@/lib/ppm-db";
+
+let _ppmReady = false;
+async function ensurePpm() { if (!_ppmReady) { await initPpmDB(); _ppmReady = true; } }
 
 function ok(data: unknown)          { return NextResponse.json({ success: true,  data }); }
 function err(msg: string, s = 400)  { return NextResponse.json({ success: false, error: msg }, { status: s }); }
 
 export async function GET() {
   try {
+    await ensurePpm();
     const [metrics, utilization, projects] = await Promise.all([
       getPortfolioMetrics(),
       getResourceUtilization(),

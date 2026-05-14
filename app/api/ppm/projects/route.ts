@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { listProjects, createProject, getPortfolioMetrics } from "@/lib/ppm-db";
+import { initPpmDB, listProjects, createProject, getPortfolioMetrics } from "@/lib/ppm-db";
 import type { BuCode, ProjectStatus, HealthStatus, ProjectType } from "@/lib/ppm-types";
+
+let _ppmReady = false;
+async function ensurePpm() { if (!_ppmReady) { await initPpmDB(); _ppmReady = true; } }
 
 function ok(data: unknown)              { return NextResponse.json({ success: true,  data }); }
 function err(msg: string, s = 400)     { return NextResponse.json({ success: false, error: msg }, { status: s }); }
 
 export async function GET(req: NextRequest) {
   try {
+    await ensurePpm();
     const p = req.nextUrl.searchParams;
     const [projects, metrics] = await Promise.all([
       listProjects({
@@ -26,6 +30,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    await ensurePpm();
     const body = await req.json();
     const { project_name, bu_code, project_type, contract_type, start_date, planned_end_date, budget_cost, budget_revenue } = body;
 

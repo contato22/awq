@@ -273,7 +273,198 @@ let _issues:      PpmIssue[]      = [...SEED_ISSUES];
 
 export async function initPpmDB(): Promise<void> {
   if (!sql) return;
-  // Tables created via awq_ppm_full_schema.sql — no-op here.
+
+  // Standalone schema — FK refs to users/customers/business_units replaced with TEXT
+  // so this bootstraps without external dependencies.
+  await sql`
+    CREATE TABLE IF NOT EXISTS ppm_projects (
+      project_id          TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      project_code        TEXT        NOT NULL UNIQUE,
+      project_name        TEXT        NOT NULL,
+      customer_id         TEXT,
+      bu_code             TEXT        NOT NULL,
+      opportunity_id      TEXT,
+      project_type        TEXT        NOT NULL CHECK (project_type IN ('one_off','retainer','internal','investment')),
+      service_category    TEXT,
+      contract_type       TEXT        NOT NULL CHECK (contract_type IN ('fixed_price','time_and_materials','retainer')),
+      start_date          DATE        NOT NULL,
+      planned_end_date    DATE        NOT NULL,
+      actual_end_date     DATE,
+      baseline_end_date   DATE,
+      budget_hours        NUMERIC(10,2),
+      actual_hours        NUMERIC(10,2)  NOT NULL DEFAULT 0,
+      budget_cost         NUMERIC(15,2)  NOT NULL DEFAULT 0,
+      actual_cost         NUMERIC(15,2)  NOT NULL DEFAULT 0,
+      budget_revenue      NUMERIC(15,2)  NOT NULL DEFAULT 0,
+      actual_revenue      NUMERIC(15,2)  NOT NULL DEFAULT 0,
+      margin_target       NUMERIC(5,4),
+      project_manager_id  TEXT,
+      account_manager_id  TEXT,
+      description         TEXT,
+      objectives          TEXT,
+      scope               TEXT,
+      success_criteria    TEXT,
+      phase               TEXT        NOT NULL DEFAULT 'initiation',
+      status              TEXT        NOT NULL DEFAULT 'active',
+      health_status       TEXT        NOT NULL DEFAULT 'green',
+      health_notes        TEXT,
+      priority            TEXT        NOT NULL DEFAULT 'medium',
+      strategic_alignment NUMERIC(3,2),
+      roi_estimate        NUMERIC(15,2),
+      billing_frequency   TEXT,
+      next_billing_date   DATE,
+      tags                JSONB,
+      notes               TEXT,
+      created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      created_by          TEXT,
+      updated_by          TEXT
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_ppm_prj_bu     ON ppm_projects(bu_code)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_ppm_prj_status ON ppm_projects(status)`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS ppm_tasks (
+      task_id             TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      project_id          TEXT        NOT NULL REFERENCES ppm_projects(project_id) ON DELETE CASCADE,
+      parent_task_id      TEXT,
+      task_name           TEXT        NOT NULL,
+      description         TEXT,
+      task_type           TEXT        NOT NULL DEFAULT 'task',
+      wbs_code            TEXT,
+      sort_order          INTEGER     NOT NULL DEFAULT 0,
+      assigned_to         TEXT,
+      estimated_hours     NUMERIC(10,2),
+      actual_hours        NUMERIC(10,2) NOT NULL DEFAULT 0,
+      start_date          DATE,
+      due_date            DATE,
+      completed_date      DATE,
+      baseline_due_date   DATE,
+      status              TEXT        NOT NULL DEFAULT 'not_started',
+      completion_pct      NUMERIC(5,2) NOT NULL DEFAULT 0,
+      dependencies        JSONB,
+      is_deliverable      BOOLEAN     NOT NULL DEFAULT FALSE,
+      deliverable_desc    TEXT,
+      blocked_reason      TEXT,
+      notes               TEXT,
+      created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      created_by          TEXT
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_ppm_tasks_project ON ppm_tasks(project_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_ppm_tasks_status  ON ppm_tasks(status)`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS ppm_milestones (
+      milestone_id        TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      project_id          TEXT        NOT NULL REFERENCES ppm_projects(project_id) ON DELETE CASCADE,
+      milestone_name      TEXT        NOT NULL,
+      description         TEXT,
+      due_date            DATE        NOT NULL,
+      completed_date      DATE,
+      status              TEXT        NOT NULL DEFAULT 'pending',
+      owner_id            TEXT,
+      is_client_facing    BOOLEAN     NOT NULL DEFAULT FALSE,
+      deliverable         TEXT,
+      notes               TEXT,
+      created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_ppm_miles_project ON ppm_milestones(project_id)`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS ppm_allocations (
+      allocation_id       TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      project_id          TEXT        NOT NULL REFERENCES ppm_projects(project_id) ON DELETE CASCADE,
+      user_id             TEXT        NOT NULL,
+      role                TEXT        NOT NULL,
+      allocation_pct      NUMERIC(5,2) NOT NULL,
+      hours_per_week      NUMERIC(5,2),
+      start_date          DATE        NOT NULL,
+      end_date            DATE,
+      billable_rate       NUMERIC(10,2),
+      cost_rate           NUMERIC(10,2),
+      is_billable         BOOLEAN     NOT NULL DEFAULT TRUE,
+      status              TEXT        NOT NULL DEFAULT 'active',
+      notes               TEXT,
+      created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_ppm_alloc_project ON ppm_allocations(project_id)`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS ppm_time_entries (
+      entry_id            TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      user_id             TEXT        NOT NULL,
+      user_name           TEXT,
+      project_id          TEXT        NOT NULL REFERENCES ppm_projects(project_id),
+      project_name        TEXT,
+      task_id             TEXT        REFERENCES ppm_tasks(task_id),
+      task_name           TEXT,
+      entry_date          DATE        NOT NULL,
+      hours               NUMERIC(5,2) NOT NULL,
+      is_billable         BOOLEAN     NOT NULL DEFAULT TRUE,
+      billing_rate        NUMERIC(10,2),
+      cost_rate           NUMERIC(10,2),
+      description         TEXT,
+      status              TEXT        NOT NULL DEFAULT 'draft',
+      submitted_at        TIMESTAMPTZ,
+      approved_by         TEXT,
+      approved_at         TIMESTAMPTZ,
+      rejection_reason    TEXT,
+      invoiced            BOOLEAN     NOT NULL DEFAULT FALSE,
+      invoice_id          TEXT,
+      created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_ppm_te_project ON ppm_time_entries(project_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_ppm_te_user    ON ppm_time_entries(user_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_ppm_te_date    ON ppm_time_entries(entry_date)`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS ppm_risks (
+      risk_id             TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      project_id          TEXT        NOT NULL REFERENCES ppm_projects(project_id) ON DELETE CASCADE,
+      risk_description    TEXT        NOT NULL,
+      impact              TEXT        NOT NULL,
+      probability         TEXT        NOT NULL,
+      risk_score          INTEGER,
+      mitigation_plan     TEXT,
+      contingency_plan    TEXT,
+      owner_id            TEXT,
+      status              TEXT        NOT NULL DEFAULT 'identified',
+      identified_date     DATE        NOT NULL DEFAULT CURRENT_DATE,
+      closed_date         DATE,
+      notes               TEXT,
+      created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_ppm_risks_project ON ppm_risks(project_id)`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS ppm_issues (
+      issue_id            TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      project_id          TEXT        NOT NULL REFERENCES ppm_projects(project_id) ON DELETE CASCADE,
+      issue_description   TEXT        NOT NULL,
+      severity            TEXT        NOT NULL,
+      reported_by         TEXT,
+      assigned_to         TEXT,
+      status              TEXT        NOT NULL DEFAULT 'open',
+      resolution          TEXT,
+      reported_date       DATE        NOT NULL DEFAULT CURRENT_DATE,
+      resolved_date       DATE,
+      notes               TEXT,
+      created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_ppm_issues_project ON ppm_issues(project_id)`;
 }
 
 // ─── Project CRUD ─────────────────────────────────────────────────────────────
