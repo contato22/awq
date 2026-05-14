@@ -1,4 +1,4 @@
-name: CI — TypeScript + Build (Vercel Operational)
+name: CI — Lint + TypeScript + Build (Vercel Operational)
 
 # ─── TRIGGER ─────────────────────────────────────────────────────────────────
 #
@@ -8,9 +8,9 @@ name: CI — TypeScript + Build (Vercel Operational)
 #   to main automatically. Production URL: https://awq-brown.vercel.app
 #   No GitHub Secrets or CLI required — the GitHub App has its own auth.
 #
-# This workflow: CI gate (TypeScript check + SSR build) that must pass before
-#   any push is considered deployable. It validates that the code compiles and
-#   the SSR build succeeds in a clean environment, catching build errors early.
+# This workflow: CI gate (lint + TypeScript check + SSR build) that must pass
+#   before any push is considered deployable. Catches lint errors, type errors,
+#   and build failures early in a clean environment.
 #
 # GitHub Pages (pages.yml): STATIC VITRINE only — incompatible with the
 #   operational pipeline (no API routes, no SSR, no ingest capability).
@@ -20,6 +20,7 @@ on:
     branches:
       - main
       - claude/consolidate-awq-platform-sMoN0
+      - claude/setup-erp-auth-UuPpg
   pull_request:
     branches:
       - main
@@ -34,7 +35,7 @@ permissions:
 
 jobs:
   ci:
-    name: TypeScript + Build (SSR)
+    name: Lint + TypeScript + Build (SSR)
     runs-on: ubuntu-latest
 
     steps:
@@ -49,6 +50,10 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      # ── ESLint — must have 0 errors ────────────────────────────────────────
+      - name: Lint
+        run: npm run lint
 
       # ── TypeScript — must have 0 errors ────────────────────────────────────
       - name: TypeScript check
@@ -66,10 +71,16 @@ jobs:
       # DATABASE_URL / BLOB_READ_WRITE_TOKEN are Vercel runtime env vars —
       # set in the Vercel dashboard, not in CI. The adapters detect them at
       # request time (USE_DB / USE_BLOB flags).
+      #
+      # ERP_SUPABASE vars: NEXT_PUBLIC_ vars are embedded at build time.
+      # The anon key is public (safe to store in GitHub Secrets).
+      # ERP_SUPABASE_SERVICE_ROLE_KEY is server-only — NOT needed at build time.
       - name: Build (SSR)
         run: npm run build
         env:
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          NEXT_PUBLIC_ERP_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_ERP_SUPABASE_URL }}
+          NEXT_PUBLIC_ERP_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_ERP_SUPABASE_ANON_KEY }}
 
       - name: Summary
         if: always()
@@ -87,5 +98,8 @@ jobs:
           echo "| ANTHROPIC_API_KEY | Claude — PDF text extraction pipeline | Yes |" >> $GITHUB_STEP_SUMMARY
           echo "| NEXTAUTH_SECRET | JWT signing key | Yes |" >> $GITHUB_STEP_SUMMARY
           echo "| NEXTAUTH_URL | https://awq-brown.vercel.app | Yes |" >> $GITHUB_STEP_SUMMARY
+          echo "| NEXT_PUBLIC_ERP_SUPABASE_URL | ERP Supabase project URL (public) | Yes |" >> $GITHUB_STEP_SUMMARY
+          echo "| NEXT_PUBLIC_ERP_SUPABASE_ANON_KEY | ERP Supabase anon key (public, RLS-enforced) | Yes |" >> $GITHUB_STEP_SUMMARY
+          echo "| ERP_SUPABASE_SERVICE_ROLE_KEY | ERP Supabase service role — server-only, bypasses RLS | Yes |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Production URL**: https://awq-brown.vercel.app" >> $GITHUB_STEP_SUMMARY
