@@ -48,18 +48,18 @@ export async function deleteBankTransaction(id: string): Promise<void> {
 }
 
 export type AllocFlagRow = {
-  id: string; bu_id: string; flag: string; capital_allocated: number;
+  bu_id: string; flag: string; capital_allocated: number;
 };
 
 export async function listAllocFlags(): Promise<AllocFlagRow[]> {
   if (!sql) return [];
-  const rows = await sql`SELECT id,bu_id,flag,capital_allocated FROM awq_alloc_flags ORDER BY bu_id`;
+  const rows = await sql`SELECT bu_id, alloc_flag AS flag, capital_allocated FROM awq_alloc_flags ORDER BY bu_id`;
   return rows as unknown as AllocFlagRow[];
 }
 
 export async function upsertAllocFlag(bu_id: string, flag: string, capital_allocated: number): Promise<AllocFlagRow> {
   if (!sql) throw new Error("DB unavailable");
-  const [r] = await sql`INSERT INTO awq_alloc_flags (bu_id,flag,capital_allocated) VALUES (${bu_id},${flag},${capital_allocated}) ON CONFLICT (bu_id) DO UPDATE SET flag=${flag},capital_allocated=${capital_allocated},updated_at=NOW() RETURNING id,bu_id,flag,capital_allocated`;
+  const [r] = await sql`INSERT INTO awq_alloc_flags (bu_id,alloc_flag,capital_allocated) VALUES (${bu_id},${flag},${capital_allocated}) ON CONFLICT (bu_id) DO UPDATE SET alloc_flag=${flag},capital_allocated=${capital_allocated},updated_at=NOW() RETURNING bu_id, alloc_flag AS flag, capital_allocated`;
   return r as unknown as AllocFlagRow;
 }
 
@@ -75,6 +75,6 @@ export async function listCategoryBudget(): Promise<CategoryBudgetRow[]> {
 
 export async function upsertCategoryBudget(category: string, bu: string, budget: number, actual: number): Promise<CategoryBudgetRow> {
   if (!sql) throw new Error("DB unavailable");
-  const [r] = await sql`INSERT INTO awq_category_budget (category,bu,budget,actual) VALUES (${category},${bu},${budget},${actual}) ON CONFLICT (category,bu) DO UPDATE SET budget=${budget},actual=${actual},updated_at=NOW() RETURNING id,category,bu,budget,actual`;
+  const [r] = await sql`INSERT INTO awq_category_budget (category,bu,budget,actual) VALUES (${category},${bu},${budget},${actual}) ON CONFLICT (category) DO UPDATE SET budget=${budget},actual=${actual},updated_at=NOW() RETURNING id,category,bu,budget,actual`;
   return r as unknown as CategoryBudgetRow;
 }

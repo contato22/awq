@@ -14,6 +14,7 @@ import {
   operatingBus,
   flagConfig,
   PAYBACK_ESTIMATES,
+  allocFlags as staticAllocFlags,
   type AllocFlag,
 } from "@/lib/awq-derived-metrics";
 import { listAllocFlags } from "@/lib/bank-db";
@@ -32,7 +33,8 @@ function fmtR(n: number) {
 export default async function AwqAllocationsPage() {
   // Merge DB alloc flags + capital_allocated over static buData
   const dbFlags = await listAllocFlags().catch(() => []);
-  const allocFlags: Record<string, AllocFlag> = {};
+  // Start from static so page never crashes if DB is empty or partially seeded
+  const allocFlags: Record<string, AllocFlag> = { ...staticAllocFlags };
   const capitalMap: Record<string, number> = {};
   for (const row of dbFlags) {
     allocFlags[row.bu_id] = row.flag as AllocFlag;
