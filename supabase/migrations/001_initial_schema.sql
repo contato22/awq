@@ -1591,6 +1591,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_process_defs_updated_at ON process_definitions;
 CREATE TRIGGER trg_process_defs_updated_at
   BEFORE UPDATE ON process_definitions
   FOR EACH ROW EXECUTE FUNCTION bpm_update_updated_at();
@@ -1734,6 +1735,7 @@ CREATE INDEX IF NOT EXISTS idx_instances_entity       ON process_instances(relat
 CREATE INDEX IF NOT EXISTS idx_instances_initiated_by ON process_instances(initiated_by);
 CREATE INDEX IF NOT EXISTS idx_instances_sla_due      ON process_instances(sla_due_date);
 
+DROP TRIGGER IF EXISTS trg_process_instances_updated_at ON process_instances;
 CREATE TRIGGER trg_process_instances_updated_at
   BEFORE UPDATE ON process_instances
   FOR EACH ROW EXECUTE FUNCTION bpm_update_updated_at();
@@ -1751,6 +1753,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_instance_sla_check ON process_instances;
 CREATE TRIGGER trg_instance_sla_check
   BEFORE UPDATE ON process_instances
   FOR EACH ROW EXECUTE FUNCTION bpm_check_instance_sla();
@@ -1804,6 +1807,7 @@ CREATE INDEX IF NOT EXISTS idx_tasks_assigned   ON process_tasks(assigned_to);
 CREATE INDEX IF NOT EXISTS idx_tasks_status     ON process_tasks(status);
 CREATE INDEX IF NOT EXISTS idx_tasks_sla_due    ON process_tasks(sla_due_date);
 
+DROP TRIGGER IF EXISTS trg_process_tasks_updated_at ON process_tasks;
 CREATE TRIGGER trg_process_tasks_updated_at
   BEFORE UPDATE ON process_tasks
   FOR EACH ROW EXECUTE FUNCTION bpm_update_updated_at();
@@ -1821,6 +1825,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_task_sla_check ON process_tasks;
 CREATE TRIGGER trg_task_sla_check
   BEFORE UPDATE ON process_tasks
   FOR EACH ROW EXECUTE FUNCTION bpm_check_task_sla();
@@ -2053,6 +2058,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_bpm_ap_approved ON process_instances;
 CREATE TRIGGER trg_bpm_ap_approved
   AFTER UPDATE ON process_instances
   FOR EACH ROW
@@ -2078,6 +2084,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_bpm_budget_approved ON process_instances;
 CREATE TRIGGER trg_bpm_budget_approved
   AFTER UPDATE ON process_instances
   FOR EACH ROW
@@ -2102,6 +2109,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_bpm_project_kickoff_approved ON process_instances;
 CREATE TRIGGER trg_bpm_project_kickoff_approved
   AFTER UPDATE ON process_instances
   FOR EACH ROW
