@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { initCrmDB, listActivities, createActivity } from "@/lib/crm-db";
-import { sql } from "@/lib/db";
+import { getSupabaseAdmin } from "@/lib/supabase";
 
 function ok(data: unknown) { return NextResponse.json({ success: true, data }); }
 function err(msg: string, status = 500) { return NextResponse.json({ success: false, error: msg }, { status }); }
@@ -33,14 +33,16 @@ export async function POST(req: NextRequest) {
     if (action === "complete") {
       const { activity_id } = data;
       if (!activity_id) return err("activity_id required", 400);
-      if (sql) {
-        const rows = await sql`
-          UPDATE crm_activities
-          SET status = 'completed', completed_at = NOW(), updated_at = NOW()
-          WHERE activity_id = ${activity_id}
-          RETURNING *
-        `;
-        return ok(rows[0]);
+      const sb = getSupabaseAdmin();
+      if (sb) {
+        const now = new Date().toISOString();
+        const { data: row } = await sb
+          .from("crm_activities")
+          .update({ status: "completed", completed_at: now, updated_at: now })
+          .eq("activity_id", activity_id)
+          .select()
+          .single();
+        return ok(row);
       }
       return ok({ activity_id, status: "completed" });
     }

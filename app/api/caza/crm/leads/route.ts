@@ -4,7 +4,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { apiGuard } from "@/lib/api-guard";
 import { initCazaCrmDB, listLeads, createLead } from "@/lib/caza-crm-db";
-import { sql } from "@/lib/db";
 
 export const runtime = "nodejs";
 
@@ -12,7 +11,6 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const denied = await apiGuard(req, "view", "caza_vision", "CRM Leads Caza Vision");
   if (denied) return denied;
 
-  if (!sql) return NextResponse.json([]);
   await initCazaCrmDB();
   return NextResponse.json(await listLeads());
 }
@@ -21,7 +19,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const denied = await apiGuard(req, "create", "caza_vision", "CRM Leads Caza Vision");
   if (denied) return denied;
 
-  if (!sql) return NextResponse.json({ error: "DB not available" }, { status: 503 });
 
   try {
     const body = await req.json() as Record<string, unknown>;

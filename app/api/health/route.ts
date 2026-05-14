@@ -18,6 +18,7 @@
 
 import { NextResponse } from "next/server";
 import { USE_DB, USE_BLOB, sql, initDB } from "@/lib/db";
+import { getSupabaseAdmin } from "@/lib/supabase";
 
 export const runtime = "nodejs";
 // NOTE: "force-dynamic" removed — incompatible with output: "export" (static build).
@@ -25,17 +26,32 @@ export const runtime = "nodejs";
 
 export async function GET(): Promise<NextResponse> {
   // ── Presence flags (boolean only — no secret values) ──────────────────────
+  const supabase = !!process.env.NEXT_PUBLIC_SUPABASE_URL;
   const presence = {
-    db:      USE_DB,
-    blob:    USE_BLOB,
-    ai:      !!process.env.ANTHROPIC_API_KEY,
-    auth:    !!process.env.NEXTAUTH_SECRET,
-    authUrl: !!process.env.NEXTAUTH_URL,
-    dbAdapter:   USE_DB   ? "neon-postgres"   : "filesystem-json",
-    blobAdapter: USE_BLOB ? "vercel-blob"      : "local-filesystem",
+    db:       USE_DB,
+    supabase,
+    blob:     USE_BLOB,
+    ai:       !!process.env.ANTHROPIC_API_KEY,
+    auth:     !!process.env.NEXTAUTH_SECRET,
+    authUrl:  !!process.env.NEXTAUTH_URL,
+    dbAdapter:    supabase ? "supabase-postgres" : USE_DB ? "neon-postgres" : "filesystem-json",
+    blobAdapter:  USE_BLOB ? "vercel-blob"       : "local-filesystem",
   };
 
-  // ── DB connectivity + live data counters ───────────────────────────────────
+  // ── Supabase connectivity ping ─────────────────────────────────────────────
+  let supabasePing: "ok" | "error" | "skipped" = "skipped";
+  let supabasePingMs: number | null = null;
+  const sb = getSupabaseAdmin();
+  if (sb) {
+    const t0s = Date.now();
+    try {
+      await sb.from("crm_accounts").select("account_id", { count: "exact", head: true });
+      supabasePing = "ok";
+      supabasePingMs = Date.now() - t0s;
+    } catch { supabasePing = "error"; supabasePingMs = Date.now() - t0s; }
+  }
+
+  // ── Neon DB connectivity + live data counters ──────────────────────────────
   let dbPing: "ok" | "error" | "skipped" = "skipped";
   let dbPingMs: number | null = null;
   let tablesExist: { documents: boolean; transactions: boolean } | null = null;
@@ -93,7 +109,10 @@ export async function GET(): Promise<NextResponse> {
   return NextResponse.json({
     // Env var presence
     ...presence,
-    // DB connectivity
+    // Supabase connectivity
+    supabasePing,
+    supabasePingMs,
+    // Neon DB connectivity
     dbPing,
     dbPingMs,
     tablesExist,

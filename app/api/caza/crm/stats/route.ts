@@ -12,7 +12,6 @@ import {
   listInteractions,
   CAZA_PIPELINE_STAGES,
 } from "@/lib/caza-crm-db";
-import { sql } from "@/lib/db";
 
 export const runtime = "nodejs";
 
@@ -20,15 +19,6 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const denied = await apiGuard(req, "view", "caza_vision", "CRM Stats Caza Vision");
   if (denied) return denied;
 
-  if (!sql) {
-    return NextResponse.json({
-      leads_total: 0, leads_ativos: 0, opps_abertas: 0, opps_ganhas: 0,
-      opps_perdidas: 0, valor_pipeline: 0, valor_ganho: 0,
-      propostas_enviadas: 0, propostas_aprovadas: 0,
-      taxa_conversao: 0, ticket_medio_pipeline: 0,
-      pipeline_by_stage: [], interacoes_recentes: [], source: "empty",
-    });
-  }
 
   await initCazaCrmDB();
   const [leads, opps, proposals, interactions] = await Promise.all([

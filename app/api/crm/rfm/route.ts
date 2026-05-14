@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { initCrmDB } from "@/lib/crm-db";
 import { getForcedBu } from "@/lib/api-guard";
-import { sql } from "@/lib/db";
+import { getSupabaseAdmin } from "@/lib/supabase";
 import type { RfmSegment, RfmCustomer, RfmResponse } from "@/lib/crm-rfm-types";
 export type { RfmSegment, RfmCustomer, RfmResponse } from "@/lib/crm-rfm-types";
 
@@ -98,29 +98,61 @@ function buildRfmCustomers(raw: CustomerRaw[]): RfmCustomer[] {
 }
 
 async function fetchFromDb(forcedBu: string | null): Promise<CustomerRaw[] | null> {
-  if (!sql) return null;
+  const sb = getSupabaseAdmin();
+  if (!sb) return null;
+
   const today = new Date();
-  const rows = await sql`
-    SELECT
-      a.account_id,
-      a.account_name,
-      a.industry,
-      a.owner,
-      MAX(o.bu) AS bu,
-      EXTRACT(DAY FROM (${today.toISOString()}::timestamptz - MAX(o.actual_close_date::timestamptz)))::int AS recency_days,
-      COUNT(o.opportunity_id)::int AS frequency,
-      SUM(o.deal_value)::float     AS monetary
-    FROM crm_opportunities o
-    JOIN crm_accounts a ON a.account_id = o.account_id
-    WHERE o.stage = 'closed_won'
-      AND o.actual_close_date IS NOT NULL
-      AND (${forcedBu}::text IS NULL OR o.bu = ${forcedBu})
-    GROUP BY a.account_id, a.account_name, a.industry, a.owner
-    HAVING COUNT(o.opportunity_id) > 0
-    ORDER BY SUM(o.deal_value) DESC
-  `;
-  if (rows.length === 0) return null;
-  return rows as CustomerRaw[];
+
+  let oppQuery = sb
+    .from("crm_opportunities")
+    .select("opportunity_id, account_id, bu, deal_value, actual_close_date")
+    .eq("stage", "closed_won")
+    .not("actual_close_date", "is", null);
+  if (forcedBu) oppQuery = oppQuery.eq("bu", forcedBu);
+
+  const { data: opps } = await oppQuery;
+  if (!opps || opps.length === 0) return null;
+
+  const accountIds = [...new Set(opps.map((o: Record<string, unknown>) => o.account_id as string).filter(Boolean))];
+  const { data: accounts } = await sb
+    .from("crm_accounts")
+    .select("account_id, account_name, industry, owner")
+    .in("account_id", accountIds);
+
+  const accMap = new Map((accounts ?? []).map((a: Record<string, unknown>) => [a.account_id as string, a]));
+
+  const grouped = new Map<string, { account: Record<string, unknown>; opps: typeof opps }>();
+  for (const o of opps) {
+    const accountId = o.account_id as string;
+    const acc = accMap.get(accountId);
+    if (!acc) continue;
+    const entry = grouped.get(accountId) ?? { account: acc, opps: [] };
+    entry.opps.push(o);
+    grouped.set(accountId, entry);
+  }
+
+  const result: CustomerRaw[] = [];
+  for (const [, { account, opps: accountOpps }] of grouped) {
+    const latestClose = accountOpps
+      .map((o: Record<string, unknown>) => new Date(o.actual_close_date as string).getTime())
+      .reduce((max, t) => Math.max(max, t), 0);
+    const recency_days = latestClose > 0
+      ? Math.round((today.getTime() - latestClose) / 86400000)
+      : 9999;
+    const monetary = accountOpps.reduce((s: number, o: Record<string, unknown>) => s + Number(o.deal_value ?? 0), 0);
+    const bu = (accountOpps[accountOpps.length - 1] as Record<string, unknown>).bu as string ?? "";
+    result.push({
+      account_id:   account.account_id as string,
+      account_name: account.account_name as string,
+      industry:     account.industry as string | null,
+      owner:        account.owner as string,
+      bu,
+      recency_days,
+      frequency:    accountOpps.length,
+      monetary,
+    });
+  }
+  return result.length === 0 ? null : result.sort((a, b) => b.monetary - a.monetary);
 }
 
 export async function GET(req: NextRequest) {

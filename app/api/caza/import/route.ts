@@ -18,7 +18,7 @@ import { getToken } from "next-auth/jwt";
 import { apiGuard } from "@/lib/api-guard";
 import { initCazaDB, upsertProject, upsertClient, type CazaProject } from "@/lib/caza-db";
 import { fetchFromNotion, type RawNotionProject } from "@/lib/notion-import";
-import { sql } from "@/lib/db";
+import { getSupabaseAdmin } from "@/lib/supabase";
 
 export const runtime = "nodejs";
 
@@ -57,9 +57,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const denied = await apiGuard(req, "import", "caza_vision", "Importação Notion → Caza Vision DB");
   if (denied) return denied;
 
-  if (!sql) {
+  if (!getSupabaseAdmin()) {
     return NextResponse.json(
-      { error: "DB não disponível. Configure DATABASE_URL no ambiente Vercel." },
+      { error: "DB não disponível. Configure SUPABASE_SERVICE_ROLE_KEY no ambiente Vercel." },
       { status: 503 }
     );
   }

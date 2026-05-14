@@ -3,7 +3,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { apiGuard } from "@/lib/api-guard";
 import { initCazaDB, listProjects } from "@/lib/caza-db";
-import { sql } from "@/lib/db";
 
 export const runtime = "nodejs";
 
@@ -15,7 +14,6 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const denied = await apiGuard(req, "view", "caza_vision", "Financeiro Caza Vision");
   if (denied) return denied;
 
-  if (!sql) return NextResponse.json([]);
   await initCazaDB();
   const projects = await listProjects();
 

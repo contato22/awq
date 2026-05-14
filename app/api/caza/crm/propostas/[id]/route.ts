@@ -4,7 +4,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { apiGuard } from "@/lib/api-guard";
 import { initCazaCrmDB, updateProposal, deleteProposal } from "@/lib/caza-crm-db";
-import { sql } from "@/lib/db";
 
 export const runtime = "nodejs";
 
@@ -19,7 +18,6 @@ export async function PATCH(
   const denied = await apiGuard(req, "update", "caza_vision", "CRM Proposta Caza Vision");
   if (denied) return denied;
 
-  if (!sql) return NextResponse.json({ error: "DB not available" }, { status: 503 });
   await initCazaCrmDB();
 
   const body = await req.json() as Record<string, unknown>;
@@ -44,7 +42,6 @@ export async function DELETE(
   const denied = await apiGuard(req, "delete", "caza_vision", "CRM Proposta Caza Vision");
   if (denied) return denied;
 
-  if (!sql) return NextResponse.json({ error: "DB not available" }, { status: 503 });
   await initCazaCrmDB();
   await deleteProposal(params.id);
   return NextResponse.json({ ok: true });

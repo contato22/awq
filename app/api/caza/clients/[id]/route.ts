@@ -5,7 +5,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { apiGuard } from "@/lib/api-guard";
 import { initCazaDB, getClient, updateClient, deleteClient } from "@/lib/caza-db";
-import { sql } from "@/lib/db";
 
 export const runtime = "nodejs";
 
@@ -20,7 +19,6 @@ export async function GET(
   const denied = await apiGuard(req, "view", "caza_vision", "Cliente Caza Vision");
   if (denied) return denied;
 
-  if (!sql) return NextResponse.json({ error: "DB not available" }, { status: 503 });
   await initCazaDB();
   const client = await getClient(params.id);
   if (!client) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -34,7 +32,6 @@ export async function PUT(
   const denied = await apiGuard(req, "update", "caza_vision", "Cliente Caza Vision");
   if (denied) return denied;
 
-  if (!sql) return NextResponse.json({ error: "DB not available" }, { status: 503 });
   await initCazaDB();
   const body = await req.json() as Record<string, unknown>;
 
@@ -60,7 +57,6 @@ export async function DELETE(
   const denied = await apiGuard(req, "delete", "caza_vision", "Cliente Caza Vision");
   if (denied) return denied;
 
-  if (!sql) return NextResponse.json({ error: "DB not available" }, { status: 503 });
   await initCazaDB();
   await deleteClient(params.id);
   return NextResponse.json({ ok: true });
