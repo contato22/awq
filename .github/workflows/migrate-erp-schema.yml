@@ -1,0 +1,78 @@
+name: Apply ERP Schema (Supabase)
+
+# ─── WHEN ─────────────────────────────────────────────────────────────────────
+# Run manually via workflow_dispatch, or automatically on every push to main
+# so the schema is always up-to-date after a deploy.
+#
+# REQUIRED GitHub Secret:
+#   SUPABASE_DB_URL — Postgres connection string from Supabase dashboard:
+#     Settings → Database → Connection string → URI (direct / pooler)
+#     Example: postgresql://postgres.kkhxxsrgsewjfvnnssyf:[PASSWORD]@aws-0-xx.pooler.supabase.com:6543/postgres
+#
+# The schema uses CREATE TABLE IF NOT EXISTS so re-running is safe (idempotent).
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "awq_erp_full_schema.sql"
+
+permissions:
+  contents: read
+
+jobs:
+  migrate:
+    name: Apply ERP Schema to Supabase
+    runs-on: ubuntu-latest
+    if: ${{ vars.SKIP_ERP_MIGRATE != 'true' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check secret present
+        run: |
+          if [ -z "${{ secrets.SUPABASE_DB_URL }}" ]; then
+            echo "⚠️  SUPABASE_DB_URL secret not set — skipping migration."
+            echo "Add it in: Settings → Secrets and variables → Actions → New repository secret"
+            echo "Value: your Supabase connection string (Settings → Database → URI)"
+            exit 0
+          fi
+          echo "✓ SUPABASE_DB_URL is set — proceeding with migration."
+
+      - name: Install psql client
+        if: ${{ secrets.SUPABASE_DB_URL != '' }}
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client
+
+      - name: Apply ERP schema (idempotent)
+        if: ${{ secrets.SUPABASE_DB_URL != '' }}
+        run: |
+          echo "Applying awq_erp_full_schema.sql …"
+          psql "$SUPABASE_DB_URL" -f awq_erp_full_schema.sql -v ON_ERROR_STOP=1
+          echo "✓ ERP schema applied successfully."
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+
+      - name: Verify tables
+        if: ${{ secrets.SUPABASE_DB_URL != '' }}
+        run: |
+          TABLES=$(psql "$SUPABASE_DB_URL" -t -c "
+            SELECT tablename FROM pg_tables
+            WHERE schemaname = 'public' AND tablename LIKE 'erp_%'
+            ORDER BY tablename;
+          ")
+          echo "ERP tables present:"
+          echo "$TABLES"
+          COUNT=$(echo "$TABLES" | grep -c erp_ || true)
+          echo "Total: $COUNT tables"
+          if [ "$COUNT" -lt 7 ]; then
+            echo "FAIL: expected at least 7 ERP tables, found $COUNT"
+            exit 1
+          fi
+          echo "✓ Schema verification passed."
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
