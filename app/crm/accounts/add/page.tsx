@@ -5,7 +5,7 @@ import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import { OWNER_OPTIONS } from "@/lib/crm-types";
-import { supabase } from "@/lib/supabase-client";
+import { supabaseClient as supabase } from "@/lib/supabase";
 
 export default function AddAccountPage() {
   const router = useRouter();

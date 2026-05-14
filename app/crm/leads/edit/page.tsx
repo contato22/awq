@@ -10,7 +10,7 @@ import {
   DollarSign, Calendar, FileText, Zap, Mail,
 } from "lucide-react";
 import type { CrmLead } from "@/lib/crm-types";
-import { supabase } from "@/lib/supabase-client";
+import { supabaseClient as supabase } from "@/lib/supabase";
 
 type FormData = {
   contact_name: string;

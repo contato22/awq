@@ -13,7 +13,7 @@ import {
 import type { CrmLead } from "@/lib/crm-types";
 import { STAGE_PROBABILITY } from "@/lib/crm-types";
 import { formatBRL, formatDateBR } from "@/lib/utils";
-import { supabase } from "@/lib/supabase-client";
+import { supabaseClient as supabase } from "@/lib/supabase";
 
 const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
   new:         { label: "Novo",           cls: "badge badge-blue" },

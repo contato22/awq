@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import type { CrmAccount, CrmContact, CrmOpportunity, CrmActivity } from "@/lib/crm-types";
 import { formatBRL, formatDateBR } from "@/lib/utils";
-import { supabase } from "@/lib/supabase-client";
+import { supabaseClient as supabase } from "@/lib/supabase";
 
 const STAGE_COLORS: Record<string, string> = {
   discovery:"bg-blue-100 text-blue-700", qualification:"bg-violet-100 text-violet-700",
