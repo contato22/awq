@@ -195,7 +195,8 @@ CREATE INDEX IF NOT EXISTS idx_contrapartes_bu     ON contrapartes(bu);
 CREATE INDEX IF NOT EXISTS idx_contrapartes_status ON contrapartes(status);
 
 ALTER TABLE contrapartes ENABLE ROW LEVEL SECURITY;
-CREATE POLICY IF NOT EXISTS contrapartes_all ON contrapartes FOR ALL USING (TRUE);
+DROP POLICY IF EXISTS contrapartes_all ON contrapartes;
+CREATE POLICY contrapartes_all ON contrapartes FOR ALL USING (TRUE);
 
 -- =============================================================================
 -- AWQ GROUP — EPM Full Schema (PostgreSQL / Neon)
@@ -1396,12 +1397,18 @@ ALTER TABLE crm_opportunity_stage_history   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE crm_activities                  ENABLE ROW LEVEL SECURITY;
 
 -- Allow all authenticated operations (same pattern as EPM)
-CREATE POLICY IF NOT EXISTS crm_accounts_all        ON crm_accounts              FOR ALL USING (TRUE);
-CREATE POLICY IF NOT EXISTS crm_contacts_all        ON crm_contacts              FOR ALL USING (TRUE);
-CREATE POLICY IF NOT EXISTS crm_leads_all           ON crm_leads                 FOR ALL USING (TRUE);
-CREATE POLICY IF NOT EXISTS crm_opportunities_all   ON crm_opportunities         FOR ALL USING (TRUE);
-CREATE POLICY IF NOT EXISTS crm_stage_hist_all      ON crm_opportunity_stage_history FOR ALL USING (TRUE);
-CREATE POLICY IF NOT EXISTS crm_activities_all      ON crm_activities            FOR ALL USING (TRUE);
+DROP POLICY IF EXISTS crm_accounts_all      ON crm_accounts;
+DROP POLICY IF EXISTS crm_contacts_all      ON crm_contacts;
+DROP POLICY IF EXISTS crm_leads_all         ON crm_leads;
+DROP POLICY IF EXISTS crm_opportunities_all ON crm_opportunities;
+DROP POLICY IF EXISTS crm_stage_hist_all    ON crm_opportunity_stage_history;
+DROP POLICY IF EXISTS crm_activities_all    ON crm_activities;
+CREATE POLICY crm_accounts_all      ON crm_accounts              FOR ALL USING (TRUE);
+CREATE POLICY crm_contacts_all      ON crm_contacts              FOR ALL USING (TRUE);
+CREATE POLICY crm_leads_all         ON crm_leads                 FOR ALL USING (TRUE);
+CREATE POLICY crm_opportunities_all ON crm_opportunities         FOR ALL USING (TRUE);
+CREATE POLICY crm_stage_hist_all    ON crm_opportunity_stage_history FOR ALL USING (TRUE);
+CREATE POLICY crm_activities_all    ON crm_activities            FOR ALL USING (TRUE);
 
 -- =============================================================================
 -- 8. SEED DATA
