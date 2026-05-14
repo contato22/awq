@@ -14,7 +14,7 @@
 //   - Middleware enforces JWT auth
 
 import { NextRequest, NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
+import { getRouteUser } from "@/lib/supabase";
 import { apiGuard } from "@/lib/api-guard";
 import { initCazaDB, upsertProject, upsertClient, type CazaProject } from "@/lib/caza-db";
 import { fetchFromNotion, type RawNotionProject } from "@/lib/notion-import";

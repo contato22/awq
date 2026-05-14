@@ -29,8 +29,8 @@ export async function GET(): Promise<NextResponse> {
     db:      USE_DB,
     blob:    USE_BLOB,
     ai:      !!process.env.ANTHROPIC_API_KEY,
-    auth:    !!process.env.NEXTAUTH_SECRET,
-    authUrl: !!process.env.NEXTAUTH_URL,
+    auth:    !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+    authUrl: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     dbAdapter:   USE_DB   ? "neon-postgres"   : "filesystem-json",
     blobAdapter: USE_BLOB ? "vercel-blob"      : "local-filesystem",
   };

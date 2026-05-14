@@ -10,7 +10,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest } from "next/server";
-import { getToken } from "next-auth/jwt";
+import { getRouteUser } from "@/lib/supabase";
 import { guard } from "@/lib/security-guard";
 import { AGENT_TOOLS, executeTool, type NotionEnv } from "@/lib/agent-tools";
 
@@ -56,9 +56,7 @@ List 3–5 alerts, one per line, using this exact format:
 
 export async function POST(req: NextRequest) {
   // ── RBAC guard: approve em system — apenas owner e admin ──
-  const token   = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-  const user_id = (token?.email as string | undefined) ?? "anonymous";
-  const rawRole = (token?.role  as string | undefined) ?? "anonymous";
+  const { email: user_id, role: rawRole } = await getRouteUser(req);
   const { result: guardResult, reason: guardReason } = guard(
     user_id, rawRole, "/api/supervisor", "system", "approve", "BU Supervisor autônomo"
   );

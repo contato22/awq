@@ -15,10 +15,10 @@
 //
 // AUTHENTICATION:
 //   Middleware (middleware.ts) enforces JWT presence for all non-auth routes.
-//   This route uses getToken() to extract the user email from the JWT for audit trail.
+//   This route uses the Supabase session to extract the user email for audit trail.
 
 import { NextRequest, NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
+import { getRouteUser } from "@/lib/supabase";
 import { guard } from "@/lib/security-guard";
 import fs from "fs";
 import path from "path";
@@ -47,10 +47,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   // ── Ensure DB schema exists (idempotent) ──
   await initDB();
 
-  // ── Auth: extract JWT + RBAC guard ──
-  const token     = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-  const userEmail = (token?.email as string | undefined) ?? "anonymous";
-  const userRole  = (token?.role  as string | undefined) ?? "anonymous";
+  // ── Auth: extract Supabase session + RBAC guard ──
+  const { email: userEmail, role: userRole } = await getRouteUser(req);
 
   const { result: guardResult, reason: guardReason } = guard(
     userEmail, userRole, "/api/ingest/upload", "dados_infra", "import", "Extrato bancário PDF"

@@ -1,20 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Zap, Eye, EyeOff, Loader2, AlertCircle, ExternalLink } from "lucide-react";
+import { createClient } from "@/lib/supabase";
+import { findUserByEmail } from "@/lib/auth-users";
 
-// NEXT_PUBLIC_STATIC_DATA is inlined at build time (set to "1" in pages.yml).
-// In static/GitHub Pages mode there is no backend — auth is unavailable.
 const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail]               = useState("");
+  const [password, setPassword]         = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading]           = useState(false);
+  const [error, setError]               = useState<string | null>(null);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -22,36 +21,31 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
 
-    // Static/demo mode — no backend available. Skip auth and go straight to /awq.
     if (IS_STATIC) {
       router.push("/awq");
       return;
     }
 
-    const result = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
+    const supabase = createClient();
+    const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
 
-    if (result?.error) {
+    if (authError) {
       setError("E-mail ou senha incorretos.");
       setLoading(false);
       return;
     }
 
-    const res = await fetch("/api/auth/session");
-    const session = await res.json();
-    const role = session?.user?.role;
-
+    const appUser = findUserByEmail(email);
     const homeByRole: Record<string, string> = {
-      owner: "/awq",
-      admin: "/awq",
-      analyst: "/jacqes",
+      owner:    "/awq",
+      admin:    "/awq",
+      analyst:  "/jacqes",
       "cs-ops": "/csops",
+      caza:     "/caza-vision",
     };
 
-    router.push(homeByRole[role] ?? "/awq");
+    router.push(homeByRole[appUser?.role ?? ""] ?? "/awq");
+    router.refresh();
   };
 
   return (
@@ -70,7 +64,6 @@ export default function LoginPage() {
         <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-executive">
           <h2 className="text-base font-semibold text-gray-900 mb-6">Entrar na plataforma</h2>
 
-          {/* Static/demo mode notice */}
           {IS_STATIC && (
             <div className="mb-5 flex items-start gap-2.5 px-3.5 py-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
               <ExternalLink size={13} className="shrink-0 text-amber-500 mt-0.5" />

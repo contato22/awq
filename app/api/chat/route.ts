@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest } from "next/server";
-import { getToken } from "next-auth/jwt";
+import { getRouteUser } from "@/lib/supabase";
 import { guard } from "@/lib/security-guard";
 
 const SYSTEM_PROMPTS: Record<string, string> = {
@@ -99,9 +99,7 @@ Be analytical, data-driven, and strategic. Reference VC industry benchmarks when
 
 export async function POST(req: NextRequest) {
   // ── RBAC guard: view em ai — owner, admin, finance, operator permitidos ──
-  const token   = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-  const user_id = (token?.email as string | undefined) ?? "anonymous";
-  const rawRole = (token?.role  as string | undefined) ?? "anonymous";
+  const { email: user_id, role: rawRole } = await getRouteUser(req);
   const { result: guardResult, reason: guardReason } = guard(
     user_id, rawRole, "/api/chat", "ai", "view", "OpenClaw — Chat IA"
   );
