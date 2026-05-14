@@ -20,6 +20,7 @@ on:
     branches:
       - main
       - claude/consolidate-awq-platform-sMoN0
+      - claude/setup-supabase-auth-jARSs
   pull_request:
     branches:
       - main
@@ -56,12 +57,9 @@ jobs:
 
       # ── SSR build (Vercel runtime — no STATIC_EXPORT) ─────────────────────
       #
-      # IMPORTANT: Do NOT pass NEXTAUTH_URL.
-      # When a GitHub Secret is unset, Actions evaluates "" (empty string).
-      # NextAuth reads NEXTAUTH_URL at module init: `new URL("")` throws
-      # TypeError: Invalid URL and fails prerendering on every page.
-      # NEXTAUTH_URL is RUNTIME-ONLY (OAuth callback routing) — not needed at
-      # build time. NEXTAUTH_SECRET is safe (plain string, not used as URL).
+      # Supabase: NEXT_PUBLIC_* vars are embedded at build time.
+      # The anon key is safe to expose (Row Level Security enforced on Supabase).
+      # SUPABASE_SERVICE_ROLE_KEY is NOT passed here — never needed at build time.
       #
       # DATABASE_URL / BLOB_READ_WRITE_TOKEN are Vercel runtime env vars —
       # set in the Vercel dashboard, not in CI. The adapters detect them at
@@ -69,7 +67,16 @@ jobs:
       - name: Build (SSR)
         run: npm run build
         env:
-          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
+      # ── Static analysis — no-network tests (lint + git state) ──────────────
+      - name: Lint
+        run: npm run lint
+
+      # ── Operational e2e (no external network required) ─────────────────────
+      - name: E2E Runtime Eval
+        run: node scripts/e2e-runtime-eval.mjs
 
       - name: Summary
         if: always()
@@ -85,7 +92,8 @@ jobs:
           echo "| DATABASE_URL | Neon Postgres — persistent documents + transactions | Yes |" >> $GITHUB_STEP_SUMMARY
           echo "| BLOB_READ_WRITE_TOKEN | Vercel Blob — PDF storage across deployments | Yes |" >> $GITHUB_STEP_SUMMARY
           echo "| ANTHROPIC_API_KEY | Claude — PDF text extraction pipeline | Yes |" >> $GITHUB_STEP_SUMMARY
-          echo "| NEXTAUTH_SECRET | JWT signing key | Yes |" >> $GITHUB_STEP_SUMMARY
-          echo "| NEXTAUTH_URL | https://awq-brown.vercel.app | Yes |" >> $GITHUB_STEP_SUMMARY
+          echo "| NEXT_PUBLIC_SUPABASE_URL | Supabase project URL | Yes |" >> $GITHUB_STEP_SUMMARY
+          echo "| NEXT_PUBLIC_SUPABASE_ANON_KEY | Supabase anon key (safe to expose) | Yes |" >> $GITHUB_STEP_SUMMARY
+          echo "| SUPABASE_SERVICE_ROLE_KEY | Supabase admin key (server-only) | Yes |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Production URL**: https://awq-brown.vercel.app" >> $GITHUB_STEP_SUMMARY
