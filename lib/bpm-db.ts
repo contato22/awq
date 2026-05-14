@@ -2,13 +2,38 @@
 //
 // Persistence adapter for the BPM Workflow Engine.
 //
-// STORAGE:
-//   DATABASE_URL set  → Neon (Postgres) via @neondatabase/serverless
-//   DATABASE_URL unset → In-memory JSON store (local dev / GitHub Pages build)
+// STORAGE PRIORITY:
+//   NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY → Supabase (primary)
+//   DATABASE_URL set                                     → Neon (Postgres)
+//   Neither                                              → In-memory JSON store
 //
 // SERVER-ONLY — do not import in client components.
 
 import { sql, USE_DB } from "@/lib/db";
+import { USE_SUPABASE } from "@/lib/supabase";
+import {
+  sbGetAllProcessDefinitions,
+  sbGetProcessDefinitionByCode,
+  sbCreateProcessInstance,
+  sbGetProcessInstance,
+  sbUpdateProcessInstance,
+  sbGetAllInstances,
+  sbCreateProcessTask,
+  sbGetProcessTask,
+  sbUpdateProcessTask,
+  sbGetPendingTasksForUser,
+  sbGetTasksForInstance,
+  sbAddHistoryEntry,
+  sbGetInstanceHistory,
+  sbCreateNotification,
+  sbGetUnreadNotifications,
+  sbMarkNotificationRead,
+  sbGetProcessPerformance,
+  sbGetSlaDashboard,
+  sbGetBottlenecks,
+  sbMarkOverdueTasks,
+  sbGenerateInstanceCode,
+} from "@/lib/supabase-bpm";
 import type {
   ProcessDefinition,
   ProcessInstance,
@@ -53,6 +78,8 @@ function nextInstanceCode() {
 // ─── Schema bootstrap (Neon only) ────────────────────────────────────────────
 
 export async function initBpmDB(): Promise<void> {
+  // Supabase: schema is managed via awq_bpm_full_schema.sql in the dashboard.
+  if (USE_SUPABASE) return;
   if (!sql) return;
 
   // Process definitions table + seed
@@ -276,6 +303,7 @@ const PROCESS_DEFS_SEED: ProcessDefinition[] = [
 ];
 
 export async function getAllProcessDefinitions(): Promise<ProcessDefinition[]> {
+  if (USE_SUPABASE) return sbGetAllProcessDefinitions();
   if (USE_DB && sql) {
     const rows = await sql`
       SELECT * FROM process_definitions WHERE is_active = TRUE ORDER BY process_category, process_name
@@ -286,6 +314,7 @@ export async function getAllProcessDefinitions(): Promise<ProcessDefinition[]> {
 }
 
 export async function getProcessDefinitionByCode(code: string): Promise<ProcessDefinition | null> {
+  if (USE_SUPABASE) return sbGetProcessDefinitionByCode(code);
   if (USE_DB && sql) {
     const rows = await sql`
       SELECT * FROM process_definitions WHERE process_code = ${code} AND is_active = TRUE LIMIT 1
@@ -300,6 +329,7 @@ export async function getProcessDefinitionByCode(code: string): Promise<ProcessD
 export async function createProcessInstance(
   data: Omit<ProcessInstance, "instance_id" | "created_at" | "updated_at">
 ): Promise<ProcessInstance> {
+  if (USE_SUPABASE) return sbCreateProcessInstance(data);
   if (USE_DB && sql) {
     const rows = await sql`
       INSERT INTO process_instances
@@ -327,6 +357,7 @@ export async function createProcessInstance(
 }
 
 export async function getProcessInstance(instanceId: string): Promise<ProcessInstance | null> {
+  if (USE_SUPABASE) return sbGetProcessInstance(instanceId);
   if (USE_DB && sql) {
     const rows = await sql`SELECT * FROM process_instances WHERE instance_id = ${instanceId} LIMIT 1`;
     return rows[0] ? dbRowToInstance(rows[0]) : null;
@@ -338,6 +369,7 @@ export async function updateProcessInstance(
   instanceId: string,
   updates: Partial<ProcessInstance>
 ): Promise<ProcessInstance | null> {
+  if (USE_SUPABASE) return sbUpdateProcessInstance(instanceId, updates);
   if (USE_DB && sql) {
     const rows = await sql`
       UPDATE process_instances SET
@@ -365,6 +397,7 @@ export async function getAllInstances(filter?: {
   process_code?: string;
   initiated_by?: string;
 }): Promise<ProcessInstance[]> {
+  if (USE_SUPABASE) return sbGetAllInstances(filter);
   if (USE_DB && sql) {
     const rows = await sql`
       SELECT * FROM process_instances
@@ -387,6 +420,7 @@ export async function getAllInstances(filter?: {
 export async function createProcessTask(
   data: Omit<ProcessTask, "task_id" | "created_at" | "updated_at">
 ): Promise<ProcessTask> {
+  if (USE_SUPABASE) return sbCreateProcessTask(data);
   if (USE_DB && sql) {
     const rows = await sql`
       INSERT INTO process_tasks
@@ -411,6 +445,7 @@ export async function createProcessTask(
 }
 
 export async function getProcessTask(taskId: string): Promise<ProcessTask | null> {
+  if (USE_SUPABASE) return sbGetProcessTask(taskId);
   if (USE_DB && sql) {
     const rows = await sql`SELECT * FROM process_tasks WHERE task_id = ${taskId} LIMIT 1`;
     return rows[0] ? dbRowToTask(rows[0]) : null;
@@ -422,6 +457,7 @@ export async function updateProcessTask(
   taskId: string,
   updates: Partial<ProcessTask>
 ): Promise<ProcessTask | null> {
+  if (USE_SUPABASE) return sbUpdateProcessTask(taskId, updates);
   if (USE_DB && sql) {
     const rows = await sql`
       UPDATE process_tasks SET
@@ -447,6 +483,7 @@ export async function updateProcessTask(
 }
 
 export async function getPendingTasksForUser(userId: string): Promise<WorkQueueItem[]> {
+  if (USE_SUPABASE) return sbGetPendingTasksForUser(userId);
   if (USE_DB && sql) {
     const rows = await sql`
       SELECT
@@ -491,6 +528,7 @@ export async function getPendingTasksForUser(userId: string): Promise<WorkQueueI
 }
 
 export async function getTasksForInstance(instanceId: string): Promise<ProcessTask[]> {
+  if (USE_SUPABASE) return sbGetTasksForInstance(instanceId);
   if (USE_DB && sql) {
     const rows = await sql`SELECT * FROM process_tasks WHERE instance_id = ${instanceId} ORDER BY created_at ASC`;
     return rows.map(dbRowToTask);
@@ -503,6 +541,7 @@ export async function getTasksForInstance(instanceId: string): Promise<ProcessTa
 export async function addHistoryEntry(
   data: Omit<ProcessHistoryEntry, "history_id" | "created_at">
 ): Promise<ProcessHistoryEntry> {
+  if (USE_SUPABASE) return sbAddHistoryEntry(data);
   if (USE_DB && sql) {
     const rows = await sql`
       INSERT INTO process_history
@@ -525,6 +564,7 @@ export async function addHistoryEntry(
 }
 
 export async function getInstanceHistory(instanceId: string): Promise<ProcessHistoryEntry[]> {
+  if (USE_SUPABASE) return sbGetInstanceHistory(instanceId);
   if (USE_DB && sql) {
     const rows = await sql`
       SELECT * FROM process_history WHERE instance_id = ${instanceId} ORDER BY performed_at ASC
@@ -541,6 +581,7 @@ export async function getInstanceHistory(instanceId: string): Promise<ProcessHis
 export async function createNotification(
   data: Omit<BpmNotification, "notification_id" | "created_at">
 ): Promise<BpmNotification> {
+  if (USE_SUPABASE) return sbCreateNotification(data);
   if (USE_DB && sql) {
     const rows = await sql`
       INSERT INTO bpm_notifications
@@ -564,6 +605,7 @@ export async function createNotification(
 }
 
 export async function getUnreadNotifications(userId: string): Promise<BpmNotification[]> {
+  if (USE_SUPABASE) return sbGetUnreadNotifications(userId);
   if (USE_DB && sql) {
     const rows = await sql`
       SELECT * FROM bpm_notifications WHERE user_id = ${userId} AND is_read = FALSE ORDER BY created_at DESC LIMIT 50
@@ -576,6 +618,7 @@ export async function getUnreadNotifications(userId: string): Promise<BpmNotific
 }
 
 export async function markNotificationRead(notificationId: string): Promise<void> {
+  if (USE_SUPABASE) return sbMarkNotificationRead(notificationId);
   if (USE_DB && sql) {
     await sql`
       UPDATE bpm_notifications SET is_read = TRUE, read_at = NOW() WHERE notification_id = ${notificationId}
@@ -589,6 +632,7 @@ export async function markNotificationRead(notificationId: string): Promise<void
 // ─── Analytics ────────────────────────────────────────────────────────────────
 
 export async function getProcessPerformance(): Promise<ProcessPerformance[]> {
+  if (USE_SUPABASE) return sbGetProcessPerformance();
   if (USE_DB && sql) {
     const rows = await sql`SELECT * FROM v_process_performance ORDER BY total_instances DESC`;
     return rows as ProcessPerformance[];
@@ -605,6 +649,7 @@ export async function getProcessPerformance(): Promise<ProcessPerformance[]> {
 }
 
 export async function getSlaDashboard(): Promise<SlaDashboardRow[]> {
+  if (USE_SUPABASE) return sbGetSlaDashboard();
   if (USE_DB && sql) {
     const rows = await sql`SELECT * FROM v_sla_dashboard`;
     return rows as SlaDashboardRow[];
@@ -620,6 +665,7 @@ export async function getSlaDashboard(): Promise<SlaDashboardRow[]> {
 }
 
 export async function getBottlenecks(): Promise<BottleneckRow[]> {
+  if (USE_SUPABASE) return sbGetBottlenecks();
   if (USE_DB && sql) {
     const rows = await sql`SELECT * FROM v_process_bottlenecks LIMIT 20`;
     return rows as BottleneckRow[];
@@ -630,6 +676,7 @@ export async function getBottlenecks(): Promise<BottleneckRow[]> {
 // ─── SLA Check (cron job logic) ───────────────────────────────────────────────
 
 export async function markOverdueTasks(): Promise<number> {
+  if (USE_SUPABASE) return sbMarkOverdueTasks();
   if (USE_DB && sql) {
     const res = await sql`
       UPDATE process_tasks
@@ -660,6 +707,7 @@ export async function markOverdueTasks(): Promise<number> {
 // ─── Instance code generator ──────────────────────────────────────────────────
 
 export async function generateInstanceCode(): Promise<string> {
+  if (USE_SUPABASE) return sbGenerateInstanceCode();
   if (USE_DB && sql) {
     const rows = await sql`
       SELECT COUNT(*) AS cnt FROM process_instances
