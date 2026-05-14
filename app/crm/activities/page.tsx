@@ -8,8 +8,7 @@ import SectionHeader from "@/components/SectionHeader";
 import EmptyState from "@/components/EmptyState";
 import { Activity, Phone, Mail, Users, CheckCircle2, FileText, Plus, Clock } from "lucide-react";
 import type { CrmActivity } from "@/lib/crm-types";
-const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
-const LS_ACTIVITIES = "awq_crm_activities";
+import { SEED_ACTIVITIES } from "@/lib/crm-db";
 import { formatDateBR } from "@/lib/utils";
 
 function fmtDatetime(d: string | null | undefined) {
@@ -52,15 +51,15 @@ export default function ActivitiesPage() {
   const [completing, setCompleting] = useState<string | null>(null);
 
   useEffect(() => {
-    if (IS_STATIC) {
-      try { setActivities(JSON.parse(localStorage.getItem(LS_ACTIVITIES) ?? "[]")); } catch { setActivities([]); }
-      setLoading(false);
-      return;
-    }
+    const local: CrmActivity[] = JSON.parse(localStorage.getItem("awq_local_activities") ?? "[]");
     fetch("/api/crm/activities")
       .then(r => r.json())
-      .then(res => setActivities(res.success ? res.data : []))
-      .catch(() => setActivities([]))
+      .then(res => {
+        const base: CrmActivity[] = res.success ? res.data : [];
+        const merged = [...local, ...base.filter(a => !local.some(l => l.activity_id === a.activity_id))];
+        setActivities(merged);
+      })
+      .catch(() => setActivities(local))
       .finally(() => setLoading(false));
   }, []);
 
@@ -77,21 +76,14 @@ export default function ActivitiesPage() {
 
   async function completeActivity(id: string) {
     setCompleting(id);
-    const updated = activities.map(a =>
-      a.activity_id === id ? { ...a, status: "completed" as const, completed_at: new Date().toISOString() } : a
-    );
-    setActivities(updated);
-    try { localStorage.setItem(LS_ACTIVITIES, JSON.stringify(updated)); } catch { /* */ }
-    if (!IS_STATIC) {
-      try {
-        await fetch("/api/crm/activities", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "complete", activity_id: id }),
-        });
-      } catch { /* ignore on static */ }
-    }
-    setCompleting(null);
+    try {
+      await fetch("/api/crm/activities", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "complete", activity_id: id }),
+      });
+      setActivities(prev => prev.map(a => a.activity_id === id ? { ...a, status: "completed", completed_at: new Date().toISOString() } : a));
+    } finally { setCompleting(null); }
   }
 
   return (

@@ -25,42 +25,62 @@ export default function AddAccountPage() {
     if (!form.account_name.trim()) { setError("Nome da empresa é obrigatório"); return; }
     setSaving(true); setError("");
 
-    // Always persist to localStorage
-    try {
-      const existing = JSON.parse(localStorage.getItem("awq_crm_accounts") ?? "[]");
-      localStorage.setItem("awq_crm_accounts", JSON.stringify([...existing, {
-        account_id: `local-${Date.now()}`,
-        account_code: `ACC-${Date.now()}`,
-        ...form,
-        health_score: parseInt(form.health_score),
-        renewal_date: form.renewal_date || null,
-        open_opportunities: 0,
-        last_activity_at: null,
-        epm_customer_id: null,
-        annual_revenue_estimate: null,
-        address_street: null,
-        address_zip: null,
-        linkedin_url: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        created_by: "Miguel",
-      }]));
-    } catch { /* */ }
+    const payload = { action: "create", ...form, health_score: parseInt(form.health_score) };
+    const isStaticExport = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
+    let saved = false;
+    let apiError: string | null = null;
 
-    if (process.env.NEXT_PUBLIC_STATIC_DATA !== "1") {
+    if (!isStaticExport) {
       try {
         const res = await fetch("/api/crm/accounts", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "create", ...form, health_score: parseInt(form.health_score) }),
+          body: JSON.stringify(payload),
         });
-        const data = await res.json();
-        if (!data.success) { setError(data.error ?? "Erro ao criar conta"); setSaving(false); return; }
-      } catch { /* saved in localStorage already */ }
+        let json: { success: boolean; error?: string } | null = null;
+        try { json = await res.json(); } catch { /* non-JSON */ }
+        if (json?.success) {
+          saved = true;
+        } else if (json && res.status >= 400 && res.status < 500) {
+          apiError = json.error ?? "Erro ao criar conta";
+        }
+      } catch { /* network error — fall through to localStorage */ }
     }
 
-    router.push("/crm/accounts");
+    if (apiError) { setError(apiError); setSaving(false); return; }
+
+    if (!saved) {
+      const now = new Date().toISOString();
+      const local = {
+        account_id: `local-${Date.now()}`,
+        account_name: form.account_name.trim(),
+        trade_name: form.trade_name || null,
+        document_number: form.document_number || null,
+        industry: form.industry || null,
+        company_size: form.company_size || null,
+        website: form.website || null,
+        linkedin_url: form.linkedin_url || null,
+        address_street: form.address_street || null,
+        address_city: form.address_city || null,
+        address_state: form.address_state || null,
+        address_zip: form.address_zip || null,
+        account_type: form.account_type,
+        owner: form.owner,
+        health_score: parseInt(form.health_score),
+        churn_risk: form.churn_risk,
+        renewal_date: form.renewal_date || null,
+        created_at: now,
+        updated_at: now,
+        created_by: form.owner,
+      };
+      try {
+        const stored = JSON.parse(localStorage.getItem("awq_local_accounts") ?? "[]");
+        localStorage.setItem("awq_local_accounts", JSON.stringify([local, ...stored]));
+      } catch { /* ignore */ }
+    }
+
     setSaving(false);
+    router.push("/crm/accounts");
   }
 
   return (
