@@ -1,4 +1,3 @@
-export const dynamic = "force-dynamic";
 // ─── AWQ Data Layer Management — /awq/data ──────────────────────────────────
 //
 // Control tower for platform storage / source of truth / data layer governance.

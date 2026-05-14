@@ -1,4 +1,3 @@
-export const dynamic = "force-dynamic";
 // GET /api/jacqes/crm/health — lista snapshots de saúde dos clientes
 import { NextRequest, NextResponse } from "next/server";
 import { apiGuard } from "@/lib/api-guard";

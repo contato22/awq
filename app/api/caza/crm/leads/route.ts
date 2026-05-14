@@ -1,4 +1,3 @@
-export const dynamic = "force-dynamic";
 // GET /api/caza/crm/leads  — lista leads da Caza Vision
 // POST /api/caza/crm/leads — cria novo lead
 

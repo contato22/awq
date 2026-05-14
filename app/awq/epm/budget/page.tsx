@@ -1,4 +1,3 @@
-export const dynamic = "force-dynamic";
 // ─── /awq/epm/budget — Budget vs Actual ──────────────────────────────────────
 //
 // DATA SOURCE: awq-derived-metrics (canonical planning layer)

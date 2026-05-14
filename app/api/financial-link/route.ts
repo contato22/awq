@@ -1,4 +1,3 @@
-export const dynamic = "force-dynamic";
 // ─── /api/financial-link — Vínculo Financeiro AP/AR ─────────────────────────
 //
 // Determina se itens AP/AR estão financeiramente vinculados a transações bancárias.

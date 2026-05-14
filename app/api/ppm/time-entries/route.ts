@@ -1,4 +1,3 @@
-export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { listTimeEntries, createTimeEntry, approveTimeEntry } from "@/lib/ppm-db";
 import type { TimeEntryStatus } from "@/lib/ppm-types";

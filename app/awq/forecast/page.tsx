@@ -1,4 +1,3 @@
-export const dynamic = "force-dynamic";
 // ─── /awq/forecast ────────────────────────────────────────────────────────────
 //
 // DATA INTEGRITY CONTRACT:

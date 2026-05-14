@@ -1,4 +1,3 @@
-export const dynamic = "force-dynamic";
 // ─── /awq/epm/reports/annual — Annual Report ──────────────────────────────────
 //
 // Annual financial report for AWQ Group:

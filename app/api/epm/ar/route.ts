@@ -1,4 +1,3 @@
-export const dynamic = "force-dynamic";
 // ─── API /api/epm/ar — Accounts Receivable CRUD ───────────────────────────────
 // GET  /api/epm/ar?bu_code=&status=&view=kpis
 // POST /api/epm/ar  { ...NewARInput }

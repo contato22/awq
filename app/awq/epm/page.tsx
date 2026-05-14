@@ -1,4 +1,3 @@
-export const dynamic = "force-dynamic";
 // ─── /awq/epm — EPM Overview Dashboard ───────────────────────────────────────
 //
 // Aggregates data from:

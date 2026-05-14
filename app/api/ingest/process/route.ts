@@ -1,4 +1,3 @@
-export const dynamic = "force-dynamic";
 // ─── POST /api/ingest/process ──────────────────────────────────────────────────
 //
 // Runs the full ingestion pipeline for a document and streams progress via SSE:
