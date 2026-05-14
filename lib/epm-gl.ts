@@ -98,6 +98,12 @@ function dateToPeriodCode(date: string): string {
 
 // ─── Supabase helpers ─────────────────────────────────────────────────────────
 
+// Returns true for network-level failures that should trigger a JSON fallback.
+function isNetworkError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return msg.includes("fetch failed") || msg.includes("ENOTFOUND") || msg.includes("ECONNREFUSED");
+}
+
 async function sbGetAllEntries(): Promise<GLEntry[]> {
   const sb = getSupabaseEpm();
   const { data, error } = await sb
@@ -118,7 +124,15 @@ async function sbInsertEntries(entries: GLEntry[]): Promise<void> {
 
 /** Return all GL entries, newest first. */
 export async function getAllGLEntries(): Promise<GLEntry[]> {
-  if (USE_SUPABASE_EPM) return sbGetAllEntries();
+  if (USE_SUPABASE_EPM) {
+    try {
+      return await sbGetAllEntries();
+    } catch (e) {
+      if (isNetworkError(e)) {
+        console.warn("[EPM] Supabase unreachable — falling back to JSON store");
+      } else throw e;
+    }
+  }
   const store = readStore();
   return [...store.entries].sort((a, b) => b.transaction_date.localeCompare(a.transaction_date));
 }
@@ -130,14 +144,20 @@ export async function getGLEntries(filters?: {
   account_code?: string;
 }): Promise<GLEntry[]> {
   if (USE_SUPABASE_EPM) {
-    const sb = getSupabaseEpm();
-    let query = sb.from("general_ledger").select("*").order("transaction_date", { ascending: false });
-    if (filters?.bu_code)      query = query.eq("bu_code",      filters.bu_code);
-    if (filters?.period_code)  query = query.eq("period_code",  filters.period_code);
-    if (filters?.account_code) query = query.eq("account_code", filters.account_code);
-    const { data, error } = await query;
-    if (error) throw new Error(`Supabase EPM filter error: ${error.message}`);
-    return (data ?? []) as GLEntry[];
+    try {
+      const sb = getSupabaseEpm();
+      let query = sb.from("general_ledger").select("*").order("transaction_date", { ascending: false });
+      if (filters?.bu_code)      query = query.eq("bu_code",      filters.bu_code);
+      if (filters?.period_code)  query = query.eq("period_code",  filters.period_code);
+      if (filters?.account_code) query = query.eq("account_code", filters.account_code);
+      const { data, error } = await query;
+      if (error) throw new Error(`Supabase EPM filter error: ${error.message}`);
+      return (data ?? []) as GLEntry[];
+    } catch (e) {
+      if (isNetworkError(e)) {
+        console.warn("[EPM] Supabase unreachable — falling back to JSON store");
+      } else throw e;
+    }
   }
   let entries = await getAllGLEntries();
   if (filters?.bu_code)      entries = entries.filter((e) => e.bu_code      === filters.bu_code);
@@ -223,7 +243,16 @@ export async function addJournalEntry(input: NewJournalInput): Promise<{ debit: 
   };
 
   if (USE_SUPABASE_EPM) {
-    await sbInsertEntries([debitEntry, creditEntry]);
+    try {
+      await sbInsertEntries([debitEntry, creditEntry]);
+    } catch (e) {
+      if (isNetworkError(e)) {
+        console.warn("[EPM] Supabase unreachable — falling back to JSON store for insert");
+        const store = readStore();
+        store.entries.push(debitEntry, creditEntry);
+        writeStore(store);
+      } else throw e;
+    }
   } else {
     const store = readStore();
     store.entries.push(debitEntry, creditEntry);

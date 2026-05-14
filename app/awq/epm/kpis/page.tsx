@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // ─── /awq/epm/kpis — EPM KPI Dashboard ───────────────────────────────────────
 //
 // Aggregates KPIs from:

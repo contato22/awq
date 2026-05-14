@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // ─── /awq/epm/balance-sheet — Balanço Patrimonial ────────────────────────────
 //
 // DATA SOURCE: epm-gl.ts (getBalanceSheet / getTrialBalance)

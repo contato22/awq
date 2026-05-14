@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // ─── /awq/epm/gl — Razão Geral (GL Transactions) ─────────────────────────────
 //
 // Lists all double-entry GL journals from epm-gl.ts (local JSON store).
