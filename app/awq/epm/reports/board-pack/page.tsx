@@ -1,4 +1,3 @@
-export const dynamic = "force-dynamic";
 // ─── /awq/epm/reports/board-pack — Quarterly Board Pack ───────────────────────
 //
 // Quarterly management pack for the AWQ Board:

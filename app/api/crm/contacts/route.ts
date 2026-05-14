@@ -1,4 +1,3 @@
-export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { initCrmDB, listContacts, createContact, deleteContact } from "@/lib/crm-db";
 

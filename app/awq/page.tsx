@@ -1,4 +1,3 @@
-export const dynamic = "force-dynamic";
 import Header from "@/components/Header";
 import SectionHeader from "@/components/SectionHeader";
 import Link from "next/link";

@@ -1,4 +1,3 @@
-export const dynamic = "force-dynamic";
 // ─── /awq/conciliacao — Conciliação Bancária (hub unificado) ─────────────────
 // CAMADA: corporate-treasury (ERP AWQ)
 // SCOPE:  Hub único de conciliação — revisão de transações importadas + verificação manual.

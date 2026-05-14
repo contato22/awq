@@ -1,4 +1,3 @@
-export const dynamic = "force-dynamic";
 // ─── API /api/epm/gl — General Ledger CRUD ───────────────────────────────────
 // GET  /api/epm/gl?bu_code=&period_code=&view=journals|entries|trial-balance
 // POST /api/epm/gl  { ...NewJournalInput }

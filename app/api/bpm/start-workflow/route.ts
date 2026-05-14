@@ -1,4 +1,3 @@
-export const dynamic = "force-dynamic";
 // ─── POST /api/bpm/start-workflow ─────────────────────────────────────────────
 // Starts a new workflow instance for the given process_code and entity.
 // Body: StartWorkflowInput

@@ -1,4 +1,3 @@
-export const dynamic = "force-dynamic";
 // ─── POST /api/bpm/complete-task ─────────────────────────────────────────────
 // Approve or reject a pending task, advance the workflow to the next step,
 // or finalize the instance if no more steps remain.

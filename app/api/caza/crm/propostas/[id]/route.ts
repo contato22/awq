@@ -1,4 +1,3 @@
-export const dynamic = "force-dynamic";
 // PATCH /api/caza/crm/propostas/[id] — editar proposta
 // DELETE /api/caza/crm/propostas/[id] — remover proposta
 

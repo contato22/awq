@@ -1,4 +1,3 @@
-export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { listTasks, createTask, updateTask } from "@/lib/ppm-db";
 import type { TaskStatus } from "@/lib/ppm-types";

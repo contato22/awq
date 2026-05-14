@@ -1,4 +1,3 @@
-export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { getCostCenters, addCostCenter, initCostCentersDB, type BuCode } from "@/lib/ap-ar-db";
 

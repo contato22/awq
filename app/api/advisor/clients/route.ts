@@ -1,4 +1,3 @@
-export const dynamic = "force-dynamic";
 // ─── GET /api/advisor/clients  — list all clients
 // ─── POST /api/advisor/clients — create a new client
 

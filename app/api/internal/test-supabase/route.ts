@@ -3,7 +3,6 @@ import { createClient } from "@supabase/supabase-js";
 
 // Internal diagnostic endpoint — verifies Supabase connectivity from Vercel.
 // Protected: only responds if SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY are set.
-export const dynamic = "force-dynamic";
 
 export async function GET() {
   const url = process.env.SUPABASE_URL;

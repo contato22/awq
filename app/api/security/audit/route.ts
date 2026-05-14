@@ -1,4 +1,3 @@
-export const dynamic = "force-dynamic";
 // ─── GET /api/security/audit — consulta audit log ─────────────────────────────
 //
 // Protegido: view em security — apenas owner/admin.

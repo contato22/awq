@@ -1,4 +1,3 @@
-export const dynamic = "force-dynamic";
 // ─── GET /api/bpm/process-history?instance_id= ───────────────────────────────
 // Returns the full audit trail for a process instance.
 // Response: { success, data: ProcessHistoryEntry[] }

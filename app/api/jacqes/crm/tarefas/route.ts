@@ -1,4 +1,3 @@
-export const dynamic = "force-dynamic";
 // GET /api/jacqes/crm/tarefas   — lista tarefas
 // POST /api/jacqes/crm/tarefas  — cria tarefa
 import { NextRequest, NextResponse } from "next/server";

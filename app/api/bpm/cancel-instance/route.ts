@@ -1,4 +1,3 @@
-export const dynamic = "force-dynamic";
 // ─── POST /api/bpm/cancel-instance ───────────────────────────────────────────
 // Cancel a running process instance (and all pending tasks).
 // Body: { instance_id, cancelled_by, reason? }

@@ -1,4 +1,3 @@
-export const dynamic = "force-dynamic";
 // ─── GET    /api/caza/projects/[id]
 // ─── PUT    /api/caza/projects/[id]
 // ─── DELETE /api/caza/projects/[id]

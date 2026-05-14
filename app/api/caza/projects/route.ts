@@ -1,4 +1,3 @@
-export const dynamic = "force-dynamic";
 // ─── GET /api/caza/projects  — list all projects
 // ─── POST /api/caza/projects — create a new project
 
