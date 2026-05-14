@@ -1,7 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { ShieldCheck, AlertTriangle, FileText, ClipboardList, Lock } from "lucide-react";
+import {
+  ShieldCheck, AlertTriangle, FileText, ClipboardList,
+  Lock, Database, CheckCircle2, XCircle, Loader2,
+} from "lucide-react";
 
 const MODULES = [
   {
@@ -38,7 +42,44 @@ const MODULES = [
   },
 ];
 
+type SetupState = "idle" | "running" | "ok" | "error";
+
 export default function GrcHubPage() {
+  const [setup, setSetup] = useState<SetupState>("idle");
+  const [detail, setDetail] = useState("");
+
+  async function runSetup() {
+    setSetup("running");
+    setDetail("");
+    try {
+      const res = await fetch("/api/grc/setup");
+      const json = await res.json();
+      setSetup(json.ok ? "ok" : "error");
+      setDetail(json.detail ?? "");
+    } catch (e: unknown) {
+      setSetup("error");
+      setDetail(String(e instanceof Error ? e.message : e));
+    }
+  }
+
+  async function runHealth() {
+    setSetup("running");
+    setDetail("Verificando leitura/escrita...");
+    try {
+      const res = await fetch("/api/grc/health");
+      const json = await res.json();
+      const ok = json.status === "ok";
+      setSetup(ok ? "ok" : "error");
+      const tableReport = Object.entries(json.tables as Record<string, { ok: boolean; error?: string }>)
+        .map(([t, v]) => `${v.ok ? "✓" : "✗"} ${t}${v.error ? ` (${v.error})` : ""}`)
+        .join(" · ");
+      setDetail(tableReport);
+    } catch (e: unknown) {
+      setSetup("error");
+      setDetail(String(e instanceof Error ? e.message : e));
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white border-b border-gray-200 px-6 py-5">
@@ -53,7 +94,8 @@ export default function GrcHubPage() {
         </div>
       </div>
 
-      <div className="max-w-screen-xl mx-auto px-6 py-10">
+      <div className="max-w-screen-xl mx-auto px-6 py-8 space-y-6">
+        {/* Módulos */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {MODULES.map(({ href, label, description, icon: Icon, color, bg }) => (
             <Link
@@ -70,6 +112,59 @@ export default function GrcHubPage() {
               </div>
             </Link>
           ))}
+        </div>
+
+        {/* Painel operacional */}
+        <div className="bg-white border border-gray-200 rounded-xl p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Database size={16} className="text-gray-500" />
+            <p className="text-sm font-semibold text-gray-900">Banco de Dados Supabase</p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={runSetup}
+              disabled={setup === "running"}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-700 disabled:opacity-50 transition-colors"
+            >
+              {setup === "running" ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <Database size={14} />
+              )}
+              Inicializar / Migrar Schema
+            </button>
+
+            <button
+              onClick={runHealth}
+              disabled={setup === "running"}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors"
+            >
+              {setup === "running" ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <CheckCircle2 size={14} />
+              )}
+              Verificar Conectividade
+            </button>
+
+            {setup === "ok" && (
+              <span className="flex items-center gap-1.5 text-sm text-green-700 font-medium">
+                <CheckCircle2 size={15} /> OK
+              </span>
+            )}
+            {setup === "error" && (
+              <span className="flex items-center gap-1.5 text-sm text-red-600 font-medium">
+                <XCircle size={15} /> Falhou
+              </span>
+            )}
+          </div>
+
+          {detail && (
+            <p className="mt-3 text-xs text-gray-500 font-mono bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
+              {detail}
+            </p>
+          )}
         </div>
       </div>
     </div>
