@@ -95,9 +95,9 @@ export default async function ManagementPage() {
   const hasDb       = !!process.env.DATABASE_URL;
   const hasBlob     = !!process.env.BLOB_READ_WRITE_TOKEN;
   const hasAI       = !!process.env.ANTHROPIC_API_KEY;
-  const hasAuth     = !!process.env.NEXTAUTH_SECRET;
-  const hasAuthUrl  = !!process.env.NEXTAUTH_URL;
-  const infraComplete = hasDb && hasBlob && hasAI && hasAuth && hasAuthUrl;
+  const hasAuth     = !!process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const hasAuthKey  = !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const infraComplete = hasDb && hasBlob && hasAI && hasAuth && hasAuthKey;
 
   const diag   = await getManagementDiagnostics();
   const snap   = getSnapshotMigrationStatus();
@@ -235,8 +235,8 @@ export default async function ManagementPage() {
                 { key: "DATABASE_URL",          ok: hasDb,      label: "Neon DB",      desc: "Persistência de documentos e transações" },
                 { key: "BLOB_READ_WRITE_TOKEN",  ok: hasBlob,    label: "Vercel Blob",  desc: "Storage de PDFs entre deployments" },
                 { key: "ANTHROPIC_API_KEY",      ok: hasAI,      label: "Claude AI",    desc: "Extração e classificação de transações" },
-                { key: "NEXTAUTH_SECRET",        ok: hasAuth,    label: "Auth Secret",  desc: "Segurança de sessão JWT" },
-                { key: "NEXTAUTH_URL",           ok: hasAuthUrl, label: "Auth URL",     desc: "URL base para callbacks de autenticação" },
+                { key: "NEXT_PUBLIC_SUPABASE_URL",      ok: hasAuth,    label: "Supabase URL",  desc: "URL do projeto Supabase (autenticação)" },
+                { key: "NEXT_PUBLIC_SUPABASE_ANON_KEY", ok: hasAuthKey, label: "Supabase Key",  desc: "Chave anônima Supabase (segura para expor)" },
               ].map(({ key, ok, label, desc }) => (
                 <div key={key} className={`rounded-lg border p-3 ${ok ? "bg-white border-emerald-200" : "bg-red-50 border-red-200"}`}>
                   <div className={`text-[10px] font-bold mb-1 ${ok ? "text-emerald-700" : "text-red-700"}`}>

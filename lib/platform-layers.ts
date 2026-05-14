@@ -35,7 +35,7 @@
 //   lib/platform-registry.ts → Route registry (canonical route table)
 //
 // AUTH STORE:
-//   next-auth SessionProvider (via AuthProvider.tsx) → JWT token in all pages
+//   Supabase Auth (via AuthProvider.tsx) → session cookies managed by @supabase/ssr
 //   lib/auth-users.ts          → User credentials, roles, homeRoutes
 //
 // LOCAL UI STATE:
@@ -55,7 +55,7 @@
 export const STORE_LAYER = {
   status: "real" as const,
   pattern: "lib-as-store (direct import, no global state library)",
-  authStore: "next-auth SessionProvider + JWT",
+  authStore: "Supabase Auth (SSR cookies via @supabase/ssr)",
   dataStores: {
     "awq-group": "lib/awq-group-data.ts",
     jacqes: "lib/data.ts",
@@ -101,7 +101,7 @@ export const STORE_LAYER = {
 
 export const SECURITY_LAYER = {
   status: "permissive" as const,
-  authentication: "real — next-auth JWT + bcrypt + middleware route guard",
+  authentication: "real — Supabase Auth + @supabase/ssr session cookies + middleware route guard",
   authorization: "permissive by design — all roles have full access (MVP)",
   users: [
     { email: "alex@awqgroup.com",  role: "owner",   homeRoute: "/awq" },

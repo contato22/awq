@@ -45,7 +45,7 @@ async function api(method, path, body) {
     method,
     headers: {
       "Content-Type": "application/json",
-      Cookie: `next-auth.session-token=${TOKEN}`,
+      Cookie: `sb-kkhxxsrgsewjfvnnssyf-auth-token=${TOKEN}`,
     },
   };
   if (body) opts.body = JSON.stringify(body);

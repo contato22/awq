@@ -1,23 +1,5 @@
-import NextAuth from "next-auth";
+// Legacy NextAuth type augmentations — kept for backward compatibility
+// with any residual next-auth imports. Auth is now handled by Supabase.
+// See lib/supabase/client.ts and lib/supabase/server.ts.
 
-declare module "next-auth" {
-  interface Session {
-    user: {
-      id: string;
-      name: string;
-      email: string;
-      role: string;
-    };
-  }
-  interface User {
-    id: string;
-    role: string;
-  }
-}
-
-declare module "next-auth/jwt" {
-  interface JWT {
-    id: string;
-    role: string;
-  }
-}
+export {};

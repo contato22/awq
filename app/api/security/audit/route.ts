@@ -12,8 +12,8 @@ import { SECURITY_ENFORCEMENT_MODE } from "@/lib/security-access";
 export const runtime = "nodejs";
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
-  // Static export build: no NEXTAUTH_SECRET → no cookies/searchParams access
-  if (!process.env.NEXTAUTH_SECRET) {
+  // Static export build: no Supabase URL → no cookies/searchParams access
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
     return NextResponse.json({ enforcement_mode: SECURITY_ENFORCEMENT_MODE, stats: {}, events: [], meta: { returned: 0 } });
   }
 

@@ -195,7 +195,7 @@ export const PLATFORM_ROUTES: PlatformRoute[] = [
   // { href: "/advisor/pipeline",   label: "Pipeline",    status: "stub", inSidebar: false }
 
   // ── System ────────────────────────────────────────────────────────────────
-  { href: "/login",    label: "Login",    bu: "system", layer: "system", status: "active", dataSource: "next-auth / lib/auth-users.ts", inSidebar: false, inTabNav: false },
+  { href: "/login",    label: "Login",    bu: "system", layer: "system", status: "active", dataSource: "supabase-auth / lib/auth-users.ts", inSidebar: false, inTabNav: false },
   { href: "/settings", label: "Settings", bu: "system", layer: "system", status: "active", dataSource: "none",                         inSidebar: true,  inTabNav: false },
 
   // ── AI & Agents ───────────────────────────────────────────────────────────
