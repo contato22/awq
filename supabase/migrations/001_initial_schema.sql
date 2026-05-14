@@ -3483,7 +3483,7 @@ SELECT
   p.project_name,
   p.bu_code,
   bu.bu_name,
-  c.customer_name,
+  c.legal_name                                       AS customer_name,
   u.full_name                                        AS project_manager,
   p.project_type,
   p.service_category,
@@ -3666,7 +3666,7 @@ INSERT INTO ppm_projects (
   description, phase, status, health_status, priority
 ) VALUES
   ('PRJ-2026-001', 'XP Investimentos — Campanha Q1 2026',
-   (SELECT customer_id FROM customers WHERE customer_name ILIKE '%XP%' LIMIT 1),
+   (SELECT customer_id FROM customers WHERE legal_name ILIKE '%XP%' LIMIT 1),
    'CAZA', 'one_off', 'video_production', 'fixed_price',
    '2026-01-15', '2026-03-31', '2026-03-31',
    240, 85000, 320000, 0.73,
@@ -3674,7 +3674,7 @@ INSERT INTO ppm_projects (
    'execution', 'active', 'green', 'high'),
 
   ('PRJ-2026-002', 'Nubank — Vídeo Institucional',
-   (SELECT customer_id FROM customers WHERE customer_name ILIKE '%Nubank%' LIMIT 1),
+   (SELECT customer_id FROM customers WHERE legal_name ILIKE '%Nubank%' LIMIT 1),
    'CAZA', 'one_off', 'video_production', 'fixed_price',
    '2026-02-01', '2026-03-15', '2026-03-15',
    80, 28000, 85000, 0.67,
@@ -3682,7 +3682,7 @@ INSERT INTO ppm_projects (
    'planning', 'active', 'yellow', 'medium'),
 
   ('PRJ-2026-003', 'Carol Bertolini — Social Media Mensal',
-   (SELECT customer_id FROM customers WHERE customer_name ILIKE '%Carol%' LIMIT 1),
+   (SELECT customer_id FROM customers WHERE legal_name ILIKE '%Carol%' LIMIT 1),
    'JACQES', 'retainer', 'social_media', 'retainer',
    '2026-01-01', '2026-12-31', '2026-12-31',
    20, 900, 3000, 0.70,
@@ -3690,7 +3690,7 @@ INSERT INTO ppm_projects (
    'execution', 'active', 'green', 'low'),
 
   ('PRJ-2026-004', 'Reabilicor — Consultoria Estratégica',
-   (SELECT customer_id FROM customers WHERE customer_name ILIKE '%Reabilicor%' LIMIT 1),
+   (SELECT customer_id FROM customers WHERE legal_name ILIKE '%Reabilicor%' LIMIT 1),
    'ADVISOR', 'one_off', 'consulting', 'fixed_price',
    '2026-03-01', '2026-06-30', '2026-06-30',
    120, 22000, 95000, 0.77,
