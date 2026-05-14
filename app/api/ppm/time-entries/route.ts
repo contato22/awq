@@ -33,11 +33,11 @@ export async function POST(req: NextRequest) {
     }
 
     // CREATE action
-    if (!body.user_id)    return err("user_id is required");
-    if (!body.project_id) return err("project_id is required");
-    if (!body.entry_date) return err("entry_date is required");
-    if (!body.hours)      return err("hours is required");
-    if (body.hours <= 0 || body.hours > 24) return err("hours must be between 0 and 24");
+    if (!body.user_id)        return err("user_id is required");
+    if (!body.project_id)     return err("project_id is required");
+    if (!body.entry_date)     return err("entry_date is required");
+    if (body.hours == null)   return err("hours is required");
+    if (body.hours <= 0 || body.hours > 24) return err("hours must be between 0.5 and 24");
 
     const entry = await createTimeEntry({
       ...body,
