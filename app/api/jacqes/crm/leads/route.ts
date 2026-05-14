@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // GET /api/jacqes/crm/leads   — lista leads
 // POST /api/jacqes/crm/leads  — cria lead
 import { NextRequest, NextResponse } from "next/server";

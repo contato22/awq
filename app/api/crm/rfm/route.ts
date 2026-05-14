@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { initCrmDB } from "@/lib/crm-db";
 import { getForcedBu } from "@/lib/api-guard";
@@ -120,7 +121,7 @@ async function fetchFromDb(forcedBu: string | null): Promise<CustomerRaw[] | nul
     ORDER BY SUM(o.deal_value) DESC
   `;
   if (rows.length === 0) return null;
-  return rows as CustomerRaw[];
+  return rows as unknown as CustomerRaw[];
 }
 
 export async function GET(req: NextRequest) {

@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // ─── /awq/risk — Risk Management Dashboard ───────────────────────────────────
 //
 // DATA SOURCE:

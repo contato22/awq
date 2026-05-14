@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // PATCH /api/caza/crm/oportunidades/[id] — editar oportunidade
 // DELETE /api/caza/crm/oportunidades/[id] — remover oportunidade
 

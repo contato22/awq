@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // ─── /awq/epm/consolidation — Consolidação Multi-Entidade ────────────────────
 //
 // Shows the AWQ Holding consolidation:

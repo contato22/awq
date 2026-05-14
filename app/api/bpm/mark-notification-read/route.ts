@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // ─── POST /api/bpm/mark-notification-read ────────────────────────────────────
 // Mark one or all notifications as read for a user.
 // Body: { notification_id?: string, user_id?: string, mark_all?: boolean }

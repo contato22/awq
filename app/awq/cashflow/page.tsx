@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // ─── /awq/cashflow — Fluxo de Caixa Operacional ─────────────────────────────
 // DATA SOURCE: financial-db.ts (canonical pipeline store) via financial-query.ts
 // METHODOLOGY: Cash-basis — receipts and disbursements from ingested bank statements.

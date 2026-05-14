@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // ─── GET /api/caza/clients  — list all clients
 // ─── POST /api/caza/clients — create a new client
 

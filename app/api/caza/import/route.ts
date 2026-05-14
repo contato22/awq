@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // ─── POST /api/caza/import ─────────────────────────────────────────────────────
 //
 // Triggers a one-shot import from Notion into the internal Neon DB.

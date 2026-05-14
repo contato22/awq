@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // PATCH /api/caza/crm/leads/[id] — editar lead
 // DELETE /api/caza/crm/leads/[id] — remover lead
 

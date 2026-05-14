@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { createAPInstallments, initAPARDB, type BuCode, type SupplierType } from "@/lib/ap-ar-db";
 

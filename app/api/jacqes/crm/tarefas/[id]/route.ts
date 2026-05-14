@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // PATCH /api/jacqes/crm/tarefas/[id]  — atualiza tarefa
 // DELETE /api/jacqes/crm/tarefas/[id] — remove tarefa
 import { NextRequest, NextResponse } from "next/server";

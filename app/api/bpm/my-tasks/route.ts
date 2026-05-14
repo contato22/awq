@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // ─── GET /api/bpm/my-tasks?user_id=&filter= ───────────────────────────────────
 // Returns pending tasks (work queue) for a given user.
 // Query: user_id (required), filter: all | overdue | today | upcoming

@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // GET /api/jacqes/crm/oportunidades   — lista oportunidades
 // POST /api/jacqes/crm/oportunidades  — cria oportunidade
 import { NextRequest, NextResponse } from "next/server";

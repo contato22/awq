@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 /**
  * /api/agents — Server-side agent runner with tool use (agentic loop).
  *

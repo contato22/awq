@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // GET /api/jacqes/crm/clientes   — lista clientes CRM
 // POST /api/jacqes/crm/clientes  — cria cliente
 import { NextRequest, NextResponse } from "next/server";

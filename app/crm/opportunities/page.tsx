@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import type { CrmOpportunity, CrmActivity } from "@/lib/crm-types";
 import { STAGE_LABELS, STAGE_PROBABILITY, BU_OPTIONS, OWNER_OPTIONS, PIPELINE_STAGES } from "@/lib/crm-types";
-import { SEED_OPPORTUNITIES } from "@/lib/crm-db";
+
 import { formatBRL, formatDateBR } from "@/lib/utils";
 
 const LS_KEY = "crm-opportunities-v3";
@@ -789,10 +789,10 @@ function PipelinePageInner() {
           persist(all);
           setOpps(all);
         } else {
-          setOpps(SEED_OPPORTUNITIES);
+          setOpps([]);
         }
       })
-      .catch(() => setOpps(SEED_OPPORTUNITIES))
+      .catch(() => setOpps([]))
       .finally(() => setLoading(false));
   }, []);
 

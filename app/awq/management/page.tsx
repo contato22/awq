@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // ─── /awq/management — Financial Architecture Governance Hub ─────────────────
 //
 // Server component. Single page that surfaces the full health of the financial

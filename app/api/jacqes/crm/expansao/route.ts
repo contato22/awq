@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // GET /api/jacqes/crm/expansao — lista oportunidades de expansão
 import { NextRequest, NextResponse } from "next/server";
 import { apiGuard } from "@/lib/api-guard";

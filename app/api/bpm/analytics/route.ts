@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // ─── GET /api/bpm/analytics?view= ────────────────────────────────────────────
 // BPM analytics views.
 // Query: view = performance | sla | bottlenecks | all (default: all)

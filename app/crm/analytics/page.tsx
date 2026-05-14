@@ -7,7 +7,6 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { TrendingUp, DollarSign, Target, Users, BarChart3, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import type { CrmOpportunity } from "@/lib/crm-types";
-import { SEED_OPPORTUNITIES } from "@/lib/crm-db";
 import { formatBRL } from "@/lib/utils";
 
 const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
@@ -46,9 +45,9 @@ export default function AnalyticsPage() {
     ])
       .then(([ana, opp]) => {
         setData(ana.success ? ana.data : null);
-        setOpps(opp.success ? opp.data : SEED_OPPORTUNITIES);
+        setOpps(opp.success ? opp.data : []);
       })
-      .catch(() => setOpps(SEED_OPPORTUNITIES))
+      .catch(() => setOpps([]))
       .finally(() => setLoading(false));
   }, []);
 

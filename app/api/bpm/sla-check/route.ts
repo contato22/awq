@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // ─── POST /api/bpm/sla-check ──────────────────────────────────────────────────
 // Cron job endpoint: marks overdue tasks/instances as sla_breached,
 // creates SLA breach notifications.

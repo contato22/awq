@@ -81,9 +81,11 @@ export default function AccountDetailClient() {
   const openOpps  = opportunities.filter((o: CrmOpportunity) => o.stage !== "closed_won" && o.stage !== "closed_lost");
   const pipelineValue = openOpps.reduce((s: number, o: CrmOpportunity) => s + o.deal_value, 0);
 
+  const accountTypeLabel: Record<string, string> = { customer: "Cliente", prospect: "Prospect", partner: "Parceiro", former_customer: "Ex-Cliente" };
+
   return (
     <>
-      <Header title={account.trade_name ?? account.account_name} subtitle={`${account.account_code} · ${{"customer":"Cliente","prospect":"Prospect","partner":"Parceiro","former_customer":"Ex-Cliente"}[account.account_type] ?? account.account_type}`} />
+      <Header title={account.trade_name ?? account.account_name} subtitle={`${account.account_code} · ${accountTypeLabel[account.account_type] ?? account.account_type}`} />
       <div className="page-container">
 
         <div className="flex items-center gap-2 text-xs text-gray-500 -mt-2">
@@ -173,7 +175,7 @@ export default function AccountDetailClient() {
                 }`} style={{ width: `${account.health_score}%` }} />
               </div>
               <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
-                <span>Churn Risk: <span className={`font-medium ${account.churn_risk === "high" ? "text-red-600" : account.churn_risk === "medium" ? "text-amber-600" : "text-emerald-600"}`}>{"low":"Baixo","medium":"Médio","high":"Alto"}[account.churn_risk] ?? account.churn_risk}</span></span>
+                <span>Churn Risk: <span className={`font-medium ${account.churn_risk === "high" ? "text-red-600" : account.churn_risk === "medium" ? "text-amber-600" : "text-emerald-600"}`}>{({"low":"Baixo","medium":"Médio","high":"Alto"} as Record<string,string>)[account.churn_risk] ?? account.churn_risk}</span></span>
                 {account.renewal_date && <span>Renova: {formatDateBR(account.renewal_date)}</span>}
               </div>
             </div>

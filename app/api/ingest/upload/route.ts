@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // ─── POST /api/ingest/upload ───────────────────────────────────────────────────
 //
 // Receives a PDF bank statement via multipart/form-data and:

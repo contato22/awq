@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // GET /api/caza/crm/oportunidades  — lista oportunidades da Caza Vision
 // POST /api/caza/crm/oportunidades — cria nova oportunidade
 
