@@ -129,6 +129,22 @@ function OppDetailModal({
     e.preventDefault();
     if (!actForm.subject.trim()) return;
     setActSaving(true);
+    const localActivity: CrmActivity = {
+      activity_id: crypto.randomUUID(),
+      activity_type: actForm.activity_type as CrmActivity["activity_type"],
+      related_to_type: "opportunity",
+      related_to_id: opp.opportunity_id,
+      subject: actForm.subject.trim(),
+      description: actForm.description.trim() || null,
+      outcome: actForm.outcome as CrmActivity["outcome"] || null,
+      duration_minutes: null,
+      scheduled_at: actForm.scheduled_at || null,
+      completed_at: new Date().toISOString(),
+      status: "completed",
+      created_by: opp.owner,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
     try {
       const res = await fetch("/api/crm/activities", {
         method: "POST",
@@ -147,27 +163,10 @@ function OppDetailModal({
         }),
       });
       const data = await res.json();
-      const newActivity: CrmActivity = data.success
-        ? data.data
-        : {
-            activity_id: crypto.randomUUID(),
-            activity_type: actForm.activity_type as CrmActivity["activity_type"],
-            related_to_type: "opportunity",
-            related_to_id: opp.opportunity_id,
-            subject: actForm.subject.trim(),
-            description: actForm.description.trim() || null,
-            outcome: actForm.outcome as CrmActivity["outcome"] || null,
-            duration_minutes: null,
-            scheduled_at: actForm.scheduled_at || null,
-            completed_at: new Date().toISOString(),
-            status: "completed",
-            created_by: opp.owner,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          };
-      setActivities(prev => [newActivity, ...prev]);
-      setActForm({ activity_type: "call", subject: "", description: "", outcome: "", scheduled_at: new Date().toISOString().slice(0, 16) });
-    } catch { /* ignore */ }
+      if (data.success && data.data) Object.assign(localActivity, data.data);
+    } catch { /* API unavailable, use local activity */ }
+    setActivities(prev => [localActivity, ...prev]);
+    setActForm({ activity_type: "call", subject: "", description: "", outcome: "", scheduled_at: new Date().toISOString().slice(0, 16) });
     setActSaving(false);
   }
 
