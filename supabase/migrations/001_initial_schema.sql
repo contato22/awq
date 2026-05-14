@@ -904,7 +904,7 @@ LEFT JOIN (
              ELSE debit_amount - credit_amount END) AS actual_amount
   FROM general_ledger g2
   JOIN accounts a2 ON a2.account_id = g2.account_id
-  GROUP BY bu_id, period_id, account_id
+  GROUP BY g2.bu_id, g2.period_id, g2.account_id
 ) gl_agg ON gl_agg.bu_id      = bud.bu_id
          AND gl_agg.period_id  = bud.period_id
          AND gl_agg.account_id = bud.account_id;
