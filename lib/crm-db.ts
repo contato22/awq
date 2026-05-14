@@ -1,8 +1,8 @@
-// ─── AWQ CRM — Database Layer (Supabase Postgres via direct connection) ──────
-// Uses sql from lib/db.ts (postgres driver) — requires DATABASE_URL set to the
-// Supabase direct connection string. Falls back to seed arrays when unset.
+// ─── AWQ CRM — Database Layer (Supabase JS SDK) ────────────────────────────
+// Uses supabase from lib/supabase.ts (service role client).
+// Falls back to seed arrays when supabase client is unavailable.
 
-import { sql } from "@/lib/db";
+import { supabase } from "@/lib/supabase";
 import type {
   CrmAccount, CrmContact, CrmLead, CrmOpportunity,
   CrmActivity, CrmDashboardMetrics, CrmPipelineMetrics,
@@ -10,9 +10,8 @@ import type {
 
 // ─── Schema Bootstrap ─────────────────────────────────────────────────────────
 export async function initCrmDB(): Promise<void> {
-  if (!sql) return;
-  // Tables are created via awq_crm_full_schema.sql run once in Neon.
-  // This function is a no-op placeholder kept for API route parity.
+  if (!supabase) return;
+  // Tables already exist in Supabase. This function is a no-op placeholder kept for API route parity.
 }
 
 // ─── Seed Data (static/no-DB fallback) ───────────────────────────────────────
@@ -26,10 +25,23 @@ export const SEED_OPPORTUNITIES: CrmOpportunity[] = [];
 
 export const SEED_ACTIVITIES: CrmActivity[] = [];
 
+// ─── Flatten helpers ──────────────────────────────────────────────────────────
+
+function flattenContact(row: Record<string, unknown>): CrmContact {
+  const acct = row.crm_accounts as Record<string, unknown> | null;
+  return { ...row, account_name: acct ? String(acct.account_name ?? "") : undefined } as unknown as CrmContact;
+}
+
+function flattenOpp(row: Record<string, unknown>): CrmOpportunity {
+  const acct = row.crm_accounts as Record<string, unknown> | null;
+  const cont = row.crm_contacts as Record<string, unknown> | null;
+  return { ...row, account_name: acct ? String(acct.account_name ?? "") : undefined, contact_name: cont ? String(cont.full_name ?? "") : null } as unknown as CrmOpportunity;
+}
+
 // ─── Account CRUD ─────────────────────────────────────────────────────────────
 
 export async function listAccounts(filters?: { search?: string; account_type?: string; bu?: string; owner?: string }): Promise<CrmAccount[]> {
-  if (!sql) {
+  if (!supabase) {
     let rows = [...SEED_ACCOUNTS];
     if (filters?.account_type) rows = rows.filter(r => r.account_type === filters.account_type);
     if (filters?.bu) rows = rows.filter(r => r.bu === filters.bu);
@@ -40,81 +52,79 @@ export async function listAccounts(filters?: { search?: string; account_type?: s
     }
     return rows;
   }
-  const rows = await sql`
-    SELECT a.*,
-      COUNT(DISTINCT o.opportunity_id) FILTER (WHERE o.stage NOT IN ('closed_won','closed_lost')) AS open_opportunities,
-      MAX(act.created_at) AS last_activity_at
-    FROM crm_accounts a
-    LEFT JOIN crm_opportunities o   ON o.account_id = a.account_id
-    LEFT JOIN crm_activities   act  ON act.related_to_type = 'account' AND act.related_to_id = a.account_id
-    WHERE (${filters?.account_type ?? null}::text IS NULL OR a.account_type = ${filters?.account_type ?? null})
-      AND (${filters?.bu ?? null}::text IS NULL OR a.bu = ${filters?.bu ?? null})
-      AND (${filters?.owner ?? null}::text IS NULL OR a.owner = ${filters?.owner ?? null})
-      AND (${filters?.search ?? null}::text IS NULL
-           OR a.account_name ILIKE ${'%' + (filters?.search ?? '') + '%'}
-           OR a.trade_name   ILIKE ${'%' + (filters?.search ?? '') + '%'})
-    GROUP BY a.account_id
-    ORDER BY a.account_name
-  `;
-  return rows as unknown as CrmAccount[];
+  let q = supabase.from("crm_accounts").select("*");
+  if (filters?.account_type) q = q.eq("account_type", filters.account_type);
+  if (filters?.bu) q = q.eq("bu", filters.bu);
+  if (filters?.owner) q = q.eq("owner", filters.owner);
+  if (filters?.search) q = q.or(`account_name.ilike.%${filters.search}%,trade_name.ilike.%${filters.search}%`);
+  const { data, error } = await q.order("account_name");
+  if (error) throw error;
+  return (data ?? []) as unknown as CrmAccount[];
 }
 
 export async function getAccount(id: string): Promise<CrmAccount | null> {
-  if (!sql) return SEED_ACCOUNTS.find(a => a.account_id === id) ?? null;
-  const rows = await sql`SELECT * FROM crm_accounts WHERE account_id = ${id}`;
-  return (rows[0] as CrmAccount) ?? null;
+  if (!supabase) return SEED_ACCOUNTS.find(a => a.account_id === id) ?? null;
+  const { data, error } = await supabase.from("crm_accounts").select("*").eq("account_id", id).single();
+  if (error) throw error;
+  return data as unknown as CrmAccount;
 }
 
 export async function createAccount(data: Partial<CrmAccount>): Promise<CrmAccount> {
-  if (!sql) throw new Error("DB not available");
-  const rows = await sql`
-    INSERT INTO crm_accounts (account_name, trade_name, document_number, industry, company_size,
-      annual_revenue_estimate, website, linkedin_url, address_street, address_city, address_state,
-      address_zip, account_type, owner, health_score, churn_risk, renewal_date, created_by)
-    VALUES (${data.account_name!}, ${data.trade_name ?? null}, ${data.document_number ?? null},
-      ${data.industry ?? null}, ${data.company_size ?? null}, ${data.annual_revenue_estimate ?? null},
-      ${data.website ?? null}, ${data.linkedin_url ?? null}, ${data.address_street ?? null},
-      ${data.address_city ?? null}, ${data.address_state ?? null}, ${data.address_zip ?? null},
-      ${data.account_type ?? 'prospect'}, ${data.owner ?? 'Miguel'},
-      ${data.health_score ?? 70}, ${data.churn_risk ?? 'low'}, ${data.renewal_date ?? null},
-      ${data.created_by ?? null})
-    RETURNING *
-  `;
-  return rows[0] as CrmAccount;
+  if (!supabase) throw new Error("DB not available");
+  const { data: row, error } = await supabase.from("crm_accounts").insert({
+    account_name: data.account_name!,
+    trade_name: data.trade_name ?? null,
+    document_number: data.document_number ?? null,
+    industry: data.industry ?? null,
+    company_size: data.company_size ?? null,
+    annual_revenue_estimate: data.annual_revenue_estimate ?? null,
+    website: data.website ?? null,
+    linkedin_url: data.linkedin_url ?? null,
+    address_street: data.address_street ?? null,
+    address_city: data.address_city ?? null,
+    address_state: data.address_state ?? null,
+    address_zip: data.address_zip ?? null,
+    account_type: data.account_type ?? "prospect",
+    owner: data.owner ?? "Miguel",
+    health_score: data.health_score ?? 70,
+    churn_risk: data.churn_risk ?? "low",
+    renewal_date: data.renewal_date ?? null,
+    created_by: data.created_by ?? null,
+  }).select().single();
+  if (error) throw error;
+  return row as unknown as CrmAccount;
 }
 
 export async function updateAccount(id: string, data: Partial<CrmAccount>): Promise<CrmAccount> {
-  if (!sql) throw new Error("DB not available");
-  const rows = await sql`
-    UPDATE crm_accounts SET
-      account_name = COALESCE(${data.account_name ?? null}, account_name),
-      trade_name   = COALESCE(${data.trade_name ?? null}, trade_name),
-      industry     = COALESCE(${data.industry ?? null}, industry),
-      company_size = COALESCE(${data.company_size ?? null}, company_size),
-      account_type = COALESCE(${data.account_type ?? null}, account_type),
-      owner        = COALESCE(${data.owner ?? null}, owner),
-      health_score = COALESCE(${data.health_score ?? null}, health_score),
-      churn_risk   = COALESCE(${data.churn_risk ?? null}, churn_risk),
-      website      = COALESCE(${data.website ?? null}, website),
-      address_city = COALESCE(${data.address_city ?? null}, address_city),
-      address_state= COALESCE(${data.address_state ?? null}, address_state),
-      renewal_date = COALESCE(${data.renewal_date ?? null}, renewal_date),
-      updated_at   = NOW()
-    WHERE account_id = ${id}
-    RETURNING *
-  `;
-  return rows[0] as CrmAccount;
+  if (!supabase) throw new Error("DB not available");
+  const patch: Record<string, unknown> = {};
+  if (data.account_name !== undefined) patch.account_name = data.account_name;
+  if (data.trade_name !== undefined) patch.trade_name = data.trade_name;
+  if (data.industry !== undefined) patch.industry = data.industry;
+  if (data.company_size !== undefined) patch.company_size = data.company_size;
+  if (data.account_type !== undefined) patch.account_type = data.account_type;
+  if (data.owner !== undefined) patch.owner = data.owner;
+  if (data.health_score !== undefined) patch.health_score = data.health_score;
+  if (data.churn_risk !== undefined) patch.churn_risk = data.churn_risk;
+  if (data.website !== undefined) patch.website = data.website;
+  if (data.address_city !== undefined) patch.address_city = data.address_city;
+  if (data.address_state !== undefined) patch.address_state = data.address_state;
+  if (data.renewal_date !== undefined) patch.renewal_date = data.renewal_date;
+  const { data: row, error } = await supabase.from("crm_accounts").update(patch).eq("account_id", id).select().single();
+  if (error) throw error;
+  return row as unknown as CrmAccount;
 }
 
 export async function deleteAccount(id: string): Promise<void> {
-  if (!sql) throw new Error("DB not available");
-  await sql`DELETE FROM crm_accounts WHERE account_id = ${id}`;
+  if (!supabase) throw new Error("DB not available");
+  const { error } = await supabase.from("crm_accounts").delete().eq("account_id", id);
+  if (error) throw error;
 }
 
 // ─── Contact CRUD ─────────────────────────────────────────────────────────────
 
 export async function listContacts(filters?: { account_id?: string; search?: string }): Promise<CrmContact[]> {
-  if (!sql) {
+  if (!supabase) {
     let rows = [...SEED_CONTACTS];
     if (filters?.account_id) rows = rows.filter(r => r.account_id === filters.account_id);
     if (filters?.search) {
@@ -123,116 +133,120 @@ export async function listContacts(filters?: { account_id?: string; search?: str
     }
     return rows;
   }
-  const rows = await sql`
-    SELECT c.*, a.account_name FROM crm_contacts c
-    LEFT JOIN crm_accounts a ON a.account_id = c.account_id
-    WHERE (${filters?.account_id ?? null}::uuid IS NULL OR c.account_id = ${filters?.account_id ?? null}::uuid)
-      AND (${filters?.search ?? null}::text IS NULL
-           OR c.full_name ILIKE ${'%' + (filters?.search ?? '') + '%'}
-           OR c.email     ILIKE ${'%' + (filters?.search ?? '') + '%'})
-    ORDER BY c.full_name
-  `;
-  return rows as unknown as CrmContact[];
+  let q = supabase.from("crm_contacts").select("*, crm_accounts(account_name)");
+  if (filters?.account_id) q = q.eq("account_id", filters.account_id);
+  if (filters?.search) q = q.or(`full_name.ilike.%${filters.search}%,email.ilike.%${filters.search}%`);
+  const { data, error } = await q.order("full_name");
+  if (error) throw error;
+  return ((data ?? []) as unknown as Record<string, unknown>[]).map(flattenContact);
 }
 
 export async function createContact(data: Partial<CrmContact>): Promise<CrmContact> {
-  if (!sql) throw new Error("DB not available");
-  const rows = await sql`
-    INSERT INTO crm_contacts (account_id, full_name, email, phone, mobile, job_title, department,
-      seniority, linkedin_url, is_primary_contact, contact_preferences)
-    VALUES (${data.account_id ?? null}, ${data.full_name!}, ${data.email ?? null},
-      ${data.phone ?? null}, ${data.mobile ?? null}, ${data.job_title ?? null},
-      ${data.department ?? null}, ${data.seniority ?? 'manager'}, ${data.linkedin_url ?? null},
-      ${data.is_primary_contact ?? false}, ${data.contact_preferences ?? []})
-    RETURNING *
-  `;
-  return rows[0] as CrmContact;
+  if (!supabase) throw new Error("DB not available");
+  const { data: row, error } = await supabase.from("crm_contacts").insert({
+    account_id: data.account_id ?? null,
+    full_name: data.full_name!,
+    email: data.email ?? null,
+    phone: data.phone ?? null,
+    mobile: data.mobile ?? null,
+    job_title: data.job_title ?? null,
+    department: data.department ?? null,
+    seniority: data.seniority ?? "manager",
+    linkedin_url: data.linkedin_url ?? null,
+    is_primary_contact: data.is_primary_contact ?? false,
+    contact_preferences: data.contact_preferences ?? [],
+  }).select().single();
+  if (error) throw error;
+  return row as unknown as CrmContact;
 }
 
 export async function deleteContact(id: string): Promise<void> {
-  if (!sql) throw new Error("DB not available");
-  await sql`DELETE FROM crm_contacts WHERE contact_id = ${id}`;
+  if (!supabase) throw new Error("DB not available");
+  const { error } = await supabase.from("crm_contacts").delete().eq("contact_id", id);
+  if (error) throw error;
 }
 
 // ─── Lead CRUD ────────────────────────────────────────────────────────────────
 
 export async function listLeads(filters?: { status?: string; bu?: string; assigned_to?: string }): Promise<CrmLead[]> {
-  if (!sql) {
+  if (!supabase) {
     let rows = [...SEED_LEADS];
     if (filters?.status) rows = rows.filter(r => r.status === filters.status);
     if (filters?.bu) rows = rows.filter(r => r.bu === filters.bu);
     if (filters?.assigned_to) rows = rows.filter(r => r.assigned_to === filters.assigned_to);
     return rows;
   }
-  const rows = await sql`
-    SELECT * FROM crm_leads
-    WHERE (${filters?.status ?? null}::text IS NULL OR status = ${filters?.status ?? null})
-      AND (${filters?.bu ?? null}::text IS NULL OR bu = ${filters?.bu ?? null})
-      AND (${filters?.assigned_to ?? null}::text IS NULL OR assigned_to = ${filters?.assigned_to ?? null})
-    ORDER BY created_at DESC
-  `;
-  return rows as unknown as CrmLead[];
+  let q = supabase.from("crm_leads").select("*");
+  if (filters?.status) q = q.eq("status", filters.status);
+  if (filters?.bu) q = q.eq("bu", filters.bu);
+  if (filters?.assigned_to) q = q.eq("assigned_to", filters.assigned_to);
+  const { data, error } = await q.order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as unknown as CrmLead[];
 }
 
 export async function getLead(id: string): Promise<CrmLead | null> {
-  if (!sql) return SEED_LEADS.find(l => l.lead_id === id) ?? null;
-  const rows = await sql`SELECT * FROM crm_leads WHERE lead_id = ${id}`;
-  return (rows[0] as CrmLead) ?? null;
+  if (!supabase) return SEED_LEADS.find(l => l.lead_id === id) ?? null;
+  const { data, error } = await supabase.from("crm_leads").select("*").eq("lead_id", id).single();
+  if (error) throw error;
+  return data as unknown as CrmLead;
 }
 
 export async function createLead(data: Partial<CrmLead>): Promise<CrmLead> {
-  if (!sql) throw new Error("DB not available");
-  const rows = await sql`
-    INSERT INTO crm_leads (lead_source, company_name, contact_name, email, phone, job_title,
-      bu, lead_score, status, qualification_notes, bant_budget, bant_authority, bant_need,
-      bant_timeline, assigned_to, created_by)
-    VALUES (${data.lead_source ?? 'manual'}, ${data.company_name!}, ${data.contact_name!},
-      ${data.email ?? null}, ${data.phone ?? null}, ${data.job_title ?? null},
-      ${data.bu ?? 'JACQES'}, ${data.lead_score ?? 0}, ${data.status ?? 'new'},
-      ${data.qualification_notes ?? null}, ${data.bant_budget ?? null},
-      ${data.bant_authority ?? false}, ${data.bant_need ?? null}, ${data.bant_timeline ?? null},
-      ${data.assigned_to ?? 'Miguel'}, ${data.created_by ?? null})
-    RETURNING *
-  `;
-  return rows[0] as CrmLead;
+  if (!supabase) throw new Error("DB not available");
+  const { data: row, error } = await supabase.from("crm_leads").insert({
+    lead_source: data.lead_source ?? "manual",
+    company_name: data.company_name!,
+    contact_name: data.contact_name!,
+    email: data.email ?? null,
+    phone: data.phone ?? null,
+    job_title: data.job_title ?? null,
+    bu: data.bu ?? "JACQES",
+    lead_score: data.lead_score ?? 0,
+    status: data.status ?? "new",
+    qualification_notes: data.qualification_notes ?? null,
+    bant_budget: data.bant_budget ?? null,
+    bant_authority: data.bant_authority ?? false,
+    bant_need: data.bant_need ?? null,
+    bant_timeline: data.bant_timeline ?? null,
+    assigned_to: data.assigned_to ?? "Miguel",
+    created_by: data.created_by ?? null,
+  }).select().single();
+  if (error) throw error;
+  return row as unknown as CrmLead;
 }
 
 export async function updateLead(id: string, data: Partial<CrmLead>): Promise<CrmLead> {
-  if (!sql) throw new Error("DB not available");
-  const rows = await sql`
-    UPDATE crm_leads SET
-      status              = COALESCE(${data.status ?? null}, status),
-      lead_score          = COALESCE(${data.lead_score ?? null}, lead_score),
-      qualification_notes = COALESCE(${data.qualification_notes ?? null}, qualification_notes),
-      bant_budget         = COALESCE(${data.bant_budget ?? null}, bant_budget),
-      bant_authority      = COALESCE(${data.bant_authority ?? null}, bant_authority),
-      bant_need           = COALESCE(${data.bant_need ?? null}, bant_need),
-      bant_timeline       = COALESCE(${data.bant_timeline ?? null}, bant_timeline),
-      assigned_to         = COALESCE(${data.assigned_to ?? null}, assigned_to),
-      updated_at          = NOW()
-    WHERE lead_id = ${id}
-    RETURNING *
-  `;
-  return rows[0] as CrmLead;
+  if (!supabase) throw new Error("DB not available");
+  const patch: Record<string, unknown> = {};
+  if (data.status !== undefined) patch.status = data.status;
+  if (data.lead_score !== undefined) patch.lead_score = data.lead_score;
+  if (data.qualification_notes !== undefined) patch.qualification_notes = data.qualification_notes;
+  if (data.bant_budget !== undefined) patch.bant_budget = data.bant_budget;
+  if (data.bant_authority !== undefined) patch.bant_authority = data.bant_authority;
+  if (data.bant_need !== undefined) patch.bant_need = data.bant_need;
+  if (data.bant_timeline !== undefined) patch.bant_timeline = data.bant_timeline;
+  if (data.assigned_to !== undefined) patch.assigned_to = data.assigned_to;
+  const { data: row, error } = await supabase.from("crm_leads").update(patch).eq("lead_id", id).select().single();
+  if (error) throw error;
+  return row as unknown as CrmLead;
 }
 
 export async function deleteLead(id: string): Promise<void> {
-  if (!sql) throw new Error("DB not available");
-  await sql`DELETE FROM crm_leads WHERE lead_id = ${id}`;
+  if (!supabase) throw new Error("DB not available");
+  const { error } = await supabase.from("crm_leads").delete().eq("lead_id", id);
+  if (error) throw error;
 }
 
 export async function getContact(id: string): Promise<CrmContact | null> {
-  if (!sql) return SEED_CONTACTS.find(c => c.contact_id === id) ?? null;
-  const rows = await sql`
-    SELECT c.*, a.account_name FROM crm_contacts c
-    LEFT JOIN crm_accounts a ON a.account_id = c.account_id
-    WHERE c.contact_id = ${id}
-  `;
-  return (rows[0] as CrmContact) ?? null;
+  if (!supabase) return SEED_CONTACTS.find(c => c.contact_id === id) ?? null;
+  const { data, error } = await supabase.from("crm_contacts").select("*, crm_accounts(account_name)").eq("contact_id", id).single();
+  if (error) throw error;
+  return flattenContact(data as unknown as Record<string, unknown>);
 }
 
 export async function convertLead(leadId: string, oppData: Partial<CrmOpportunity>): Promise<CrmOpportunity> {
-  if (!sql) {
+  if (!supabase) {
     const newOpp: CrmOpportunity = {
       opportunity_id: `opp-${leadId}-${Date.now()}`,
       opportunity_code: `OPP-${String(SEED_OPPORTUNITIES.length + 1).padStart(3, "0")}`,
@@ -250,29 +264,30 @@ export async function convertLead(leadId: string, oppData: Partial<CrmOpportunit
     };
     return newOpp;
   }
-  const opp = await sql`
-    INSERT INTO crm_opportunities (opportunity_name, bu, stage, deal_value, probability,
-      expected_close_date, owner, created_by)
-    VALUES (${oppData.opportunity_name!}, ${oppData.bu ?? 'JACQES'}, 'discovery',
-      ${oppData.deal_value ?? 0}, 25, ${oppData.expected_close_date ?? null},
-      ${oppData.owner ?? 'Miguel'}, ${oppData.owner ?? 'Miguel'})
-    RETURNING *
-  `;
-  await sql`
-    UPDATE crm_leads SET
-      status = 'converted',
-      converted_to_opportunity_id = ${opp[0].opportunity_id},
-      converted_at = NOW(),
-      updated_at   = NOW()
-    WHERE lead_id = ${leadId}
-  `;
-  return opp[0] as CrmOpportunity;
+  const { data: opp, error: oppError } = await supabase.from("crm_opportunities").insert({
+    opportunity_name: oppData.opportunity_name!,
+    bu: oppData.bu ?? "JACQES",
+    stage: "discovery",
+    deal_value: oppData.deal_value ?? 0,
+    probability: 25,
+    expected_close_date: oppData.expected_close_date ?? null,
+    owner: oppData.owner ?? "Miguel",
+    created_by: oppData.owner ?? "Miguel",
+  }).select().single();
+  if (oppError) throw oppError;
+  const { error: leadError } = await supabase.from("crm_leads").update({
+    status: "converted",
+    converted_to_opportunity_id: (opp as unknown as Record<string, unknown>).opportunity_id,
+    converted_at: new Date().toISOString(),
+  }).eq("lead_id", leadId);
+  if (leadError) throw leadError;
+  return opp as unknown as CrmOpportunity;
 }
 
 // ─── Opportunity CRUD ─────────────────────────────────────────────────────────
 
 export async function listOpportunities(filters?: { stage?: string; bu?: string; owner?: string; account_id?: string }): Promise<CrmOpportunity[]> {
-  if (!sql) {
+  if (!supabase) {
     let rows = [...SEED_OPPORTUNITIES];
     if (filters?.stage) rows = rows.filter(r => r.stage === filters.stage);
     if (filters?.bu) rows = rows.filter(r => r.bu === filters.bu);
@@ -280,104 +295,98 @@ export async function listOpportunities(filters?: { stage?: string; bu?: string;
     if (filters?.account_id) rows = rows.filter(r => r.account_id === filters.account_id);
     return rows;
   }
-  const rows = await sql`
-    SELECT o.*, a.account_name,
-      CONCAT(c.full_name) AS contact_name
-    FROM crm_opportunities o
-    LEFT JOIN crm_accounts a ON a.account_id = o.account_id
-    LEFT JOIN crm_contacts c ON c.contact_id = o.contact_id
-    WHERE (${filters?.stage ?? null}::text IS NULL OR o.stage = ${filters?.stage ?? null})
-      AND (${filters?.bu ?? null}::text IS NULL OR o.bu = ${filters?.bu ?? null})
-      AND (${filters?.owner ?? null}::text IS NULL OR o.owner = ${filters?.owner ?? null})
-      AND (${filters?.account_id ?? null}::uuid IS NULL OR o.account_id = ${filters?.account_id ?? null}::uuid)
-    ORDER BY o.created_at DESC
-  `;
-  return rows as unknown as CrmOpportunity[];
+  let q = supabase.from("crm_opportunities").select("*, crm_accounts(account_name), crm_contacts(full_name)");
+  if (filters?.stage) q = q.eq("stage", filters.stage);
+  if (filters?.bu) q = q.eq("bu", filters.bu);
+  if (filters?.owner) q = q.eq("owner", filters.owner);
+  if (filters?.account_id) q = q.eq("account_id", filters.account_id);
+  const { data, error } = await q.order("created_at", { ascending: false });
+  if (error) throw error;
+  return ((data ?? []) as unknown as Record<string, unknown>[]).map(flattenOpp);
 }
 
 export async function getOpportunity(id: string): Promise<CrmOpportunity | null> {
-  if (!sql) return SEED_OPPORTUNITIES.find(o => o.opportunity_id === id) ?? null;
-  const rows = await sql`
-    SELECT o.*, a.account_name, c.full_name AS contact_name
-    FROM crm_opportunities o
-    LEFT JOIN crm_accounts a ON a.account_id = o.account_id
-    LEFT JOIN crm_contacts c ON c.contact_id = o.contact_id
-    WHERE o.opportunity_id = ${id}
-  `;
-  return (rows[0] as CrmOpportunity) ?? null;
+  if (!supabase) return SEED_OPPORTUNITIES.find(o => o.opportunity_id === id) ?? null;
+  const { data, error } = await supabase.from("crm_opportunities").select("*, crm_accounts(account_name), crm_contacts(full_name)").eq("opportunity_id", id).single();
+  if (error) throw error;
+  return flattenOpp(data as unknown as Record<string, unknown>);
 }
 
 export async function createOpportunity(data: Partial<CrmOpportunity>): Promise<CrmOpportunity> {
-  if (!sql) throw new Error("DB not available");
-  const rows = await sql`
-    INSERT INTO crm_opportunities (opportunity_name, account_id, contact_id, bu, stage,
-      deal_value, expected_close_date, owner, proposal_sent_date, created_by)
-    VALUES (${data.opportunity_name!}, ${data.account_id ?? null}, ${data.contact_id ?? null},
-      ${data.bu!}, ${data.stage ?? 'discovery'}, ${data.deal_value ?? 0},
-      ${data.expected_close_date ?? null}, ${data.owner ?? 'Miguel'},
-      ${data.proposal_sent_date ?? null}, ${data.owner ?? 'Miguel'})
-    RETURNING *
-  `;
-  return rows[0] as CrmOpportunity;
+  if (!supabase) throw new Error("DB not available");
+  const { data: row, error } = await supabase.from("crm_opportunities").insert({
+    opportunity_name: data.opportunity_name!,
+    account_id: data.account_id ?? null,
+    contact_id: data.contact_id ?? null,
+    bu: data.bu!,
+    stage: data.stage ?? "discovery",
+    deal_value: data.deal_value ?? 0,
+    expected_close_date: data.expected_close_date ?? null,
+    owner: data.owner ?? "Miguel",
+    proposal_sent_date: data.proposal_sent_date ?? null,
+    created_by: data.owner ?? "Miguel",
+  }).select().single();
+  if (error) throw error;
+  return row as unknown as CrmOpportunity;
 }
 
 export async function updateOpportunity(id: string, data: Partial<CrmOpportunity>): Promise<CrmOpportunity> {
-  if (!sql) throw new Error("DB not available");
-  const rows = await sql`
-    UPDATE crm_opportunities SET
-      stage               = COALESCE(${data.stage ?? null}, stage),
-      deal_value          = COALESCE(${data.deal_value ?? null}, deal_value),
-      expected_close_date = COALESCE(${data.expected_close_date ?? null}, expected_close_date),
-      lost_reason         = COALESCE(${data.lost_reason ?? null}, lost_reason),
-      win_reason          = COALESCE(${data.win_reason ?? null}, win_reason),
-      owner               = COALESCE(${data.owner ?? null}, owner),
-      proposal_sent_date  = COALESCE(${data.proposal_sent_date ?? null}, proposal_sent_date),
-      synced_to_epm       = COALESCE(${data.synced_to_epm ?? null}, synced_to_epm),
-      updated_at          = NOW()
-    WHERE opportunity_id = ${id}
-    RETURNING *
-  `;
-  return rows[0] as CrmOpportunity;
+  if (!supabase) throw new Error("DB not available");
+  const patch: Record<string, unknown> = {};
+  if (data.stage !== undefined) patch.stage = data.stage;
+  if (data.deal_value !== undefined) patch.deal_value = data.deal_value;
+  if (data.expected_close_date !== undefined) patch.expected_close_date = data.expected_close_date;
+  if (data.lost_reason !== undefined) patch.lost_reason = data.lost_reason;
+  if (data.win_reason !== undefined) patch.win_reason = data.win_reason;
+  if (data.owner !== undefined) patch.owner = data.owner;
+  if (data.proposal_sent_date !== undefined) patch.proposal_sent_date = data.proposal_sent_date;
+  if (data.synced_to_epm !== undefined) patch.synced_to_epm = data.synced_to_epm;
+  const { data: row, error } = await supabase.from("crm_opportunities").update(patch).eq("opportunity_id", id).select().single();
+  if (error) throw error;
+  return row as unknown as CrmOpportunity;
 }
 
 export async function deleteOpportunity(id: string): Promise<void> {
-  if (!sql) throw new Error("DB not available");
-  await sql`DELETE FROM crm_opportunities WHERE opportunity_id = ${id}`;
+  if (!supabase) throw new Error("DB not available");
+  const { error } = await supabase.from("crm_opportunities").delete().eq("opportunity_id", id);
+  if (error) throw error;
 }
 
 // ─── Activity CRUD ────────────────────────────────────────────────────────────
 
 export async function listActivities(filters?: { related_to_type?: string; related_to_id?: string; created_by?: string }): Promise<CrmActivity[]> {
-  if (!sql) {
+  if (!supabase) {
     let rows = [...SEED_ACTIVITIES];
     if (filters?.related_to_type) rows = rows.filter(r => r.related_to_type === filters.related_to_type);
     if (filters?.related_to_id)   rows = rows.filter(r => r.related_to_id === filters.related_to_id);
     if (filters?.created_by)      rows = rows.filter(r => r.created_by === filters.created_by);
     return rows.sort((a, b) => b.created_at.localeCompare(a.created_at));
   }
-  const rows = await sql`
-    SELECT * FROM crm_activities
-    WHERE (${filters?.related_to_type ?? null}::text IS NULL OR related_to_type = ${filters?.related_to_type ?? null})
-      AND (${filters?.related_to_id ?? null}::uuid IS NULL OR related_to_id = ${filters?.related_to_id ?? null}::uuid)
-      AND (${filters?.created_by ?? null}::text IS NULL OR created_by = ${filters?.created_by ?? null})
-    ORDER BY created_at DESC
-    LIMIT 100
-  `;
-  return rows as unknown as CrmActivity[];
+  let q = supabase.from("crm_activities").select("*");
+  if (filters?.related_to_type) q = q.eq("related_to_type", filters.related_to_type);
+  if (filters?.related_to_id) q = q.eq("related_to_id", filters.related_to_id);
+  if (filters?.created_by) q = q.eq("created_by", filters.created_by);
+  const { data, error } = await q.order("created_at", { ascending: false }).limit(100);
+  if (error) throw error;
+  return (data ?? []) as unknown as CrmActivity[];
 }
 
 export async function createActivity(data: Partial<CrmActivity>): Promise<CrmActivity> {
-  if (!sql) throw new Error("DB not available");
-  const rows = await sql`
-    INSERT INTO crm_activities (activity_type, related_to_type, related_to_id, subject,
-      description, outcome, duration_minutes, scheduled_at, status, created_by)
-    VALUES (${data.activity_type!}, ${data.related_to_type!}, ${data.related_to_id!},
-      ${data.subject!}, ${data.description ?? null}, ${data.outcome ?? null},
-      ${data.duration_minutes ?? null}, ${data.scheduled_at ?? null},
-      ${data.status ?? 'scheduled'}, ${data.created_by ?? 'Miguel'})
-    RETURNING *
-  `;
-  return rows[0] as CrmActivity;
+  if (!supabase) throw new Error("DB not available");
+  const { data: row, error } = await supabase.from("crm_activities").insert({
+    activity_type: data.activity_type!,
+    related_to_type: data.related_to_type!,
+    related_to_id: data.related_to_id!,
+    subject: data.subject!,
+    description: data.description ?? null,
+    outcome: data.outcome ?? null,
+    duration_minutes: data.duration_minutes ?? null,
+    scheduled_at: data.scheduled_at ?? null,
+    status: data.status ?? "scheduled",
+    created_by: data.created_by ?? "Miguel",
+  }).select().single();
+  if (error) throw error;
+  return row as unknown as CrmActivity;
 }
 
 // ─── Analytics ────────────────────────────────────────────────────────────────
