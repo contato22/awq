@@ -379,6 +379,37 @@ jobs:
             exit 1
           fi
 
+      # ── ASSERTION: ERP Supabase health endpoint ───────────────────────────────
+      # PASS: /api/erp/health returns 200 with { ok: true, configured: true }
+      # FAIL: not configured (env vars missing in Vercel dashboard)
+      # FAIL: connection error (wrong key, network issue)
+      - name: "ASSERT — ERP Supabase configured and reachable (/api/erp/health)"
+        id: assert_erp_supabase
+        continue-on-error: true
+        run: |
+          BODY=$(curl -s --max-time 20 https://awq-brown.vercel.app/api/erp/health 2>/dev/null || true)
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 https://awq-brown.vercel.app/api/erp/health 2>/dev/null || echo "000")
+          ERP_OK=$(echo "$BODY" | python3 -c "import json,sys; d=json.load(sys.stdin); print(str(d.get('ok',False)).lower())" 2>/dev/null || echo "false")
+          ERP_CFG=$(echo "$BODY" | python3 -c "import json,sys; d=json.load(sys.stdin); print(str(d.get('configured',False)).lower())" 2>/dev/null || echo "false")
+          ERP_ERR=$(echo "$BODY" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('error',''))" 2>/dev/null || echo "")
+          echo "erp_status=$STATUS"  >> $GITHUB_OUTPUT
+          echo "erp_ok=$ERP_OK"      >> $GITHUB_OUTPUT
+          echo "erp_cfg=$ERP_CFG"    >> $GITHUB_OUTPUT
+          echo "HTTP $STATUS — ok=$ERP_OK configured=$ERP_CFG"
+          if [ "$STATUS" != "200" ]; then
+            echo "FAIL: /api/erp/health returned HTTP $STATUS"
+            exit 1
+          fi
+          if [ "$ERP_CFG" != "true" ]; then
+            echo "FAIL: ERP Supabase not configured — add NEXT_PUBLIC_ERP_SUPABASE_URL, NEXT_PUBLIC_ERP_SUPABASE_ANON_KEY, ERP_SUPABASE_SERVICE_ROLE_KEY to Vercel env vars"
+            exit 1
+          fi
+          if [ "$ERP_OK" != "true" ]; then
+            echo "FAIL: ERP Supabase configured but unreachable — $ERP_ERR"
+            exit 1
+          fi
+          echo "PASS: ERP Supabase is configured and reachable"
+
       # ── Summary ────────────────────────────────────────────────────────────────
       - name: Summary
         if: always()
@@ -397,6 +428,7 @@ jobs:
           echo "| NEXTAUTH_SECRET configured (/api/auth/csrf → 200+csrfToken) | ${{ steps.assert_nextauth.outputs.csrf_status }} | ${{ steps.assert_nextauth.conclusion }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Middleware active (/awq/management → 307 /login) | ${{ steps.assert_middleware.outputs.management_status }} | ${{ steps.assert_middleware.conclusion }} |" >> $GITHUB_STEP_SUMMARY
           echo "| SSR active (/api/auth/providers → 200) | ${{ steps.assert_ssr.outputs.providers_status }} | ${{ steps.assert_ssr.conclusion }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| ERP Supabase configured + reachable | ${{ steps.assert_erp_supabase.outputs.erp_status }} | ${{ steps.assert_erp_supabase.conclusion }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Informational probes" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY

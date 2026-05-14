@@ -49,34 +49,6 @@ function AddProjectPageInner() {
   const searchParams = useSearchParams();
   const [saving, setSaving] = useState(false);
   const [error,  setError]  = useState("");
-
-  // On GitHub Pages (static export), PPM requires the full Vercel app with DB.
-  // Redirect immediately, preserving all query params.
-  useEffect(() => {
-    if (IS_STATIC) {
-      const qs = searchParams?.toString() ?? "";
-      window.location.replace(`${APP_URL}/awq/ppm/add${qs ? "?" + qs : ""}`);
-    }
-  }, [searchParams]);
-
-  if (IS_STATIC) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center space-y-3">
-          <Briefcase size={32} className="text-brand-600 mx-auto" />
-          <p className="text-sm font-medium text-gray-700">PPM requer a plataforma completa</p>
-          <p className="text-xs text-gray-500">Redirecionando para o app…</p>
-          <a
-            href={`${APP_URL}/awq/ppm/add${searchParams?.toString() ? "?" + searchParams.toString() : ""}`}
-            className="inline-flex items-center gap-1.5 text-sm text-brand-600 underline"
-          >
-            Abrir agora <ExternalLink size={12} />
-          </a>
-        </div>
-      </div>
-    );
-  }
-
   const [form, setForm] = useState({
     project_name:     "",
     customer_name:    "",
@@ -98,8 +70,18 @@ function AddProjectPageInner() {
     notes:            "",
   });
 
+  // On GitHub Pages (static export), PPM requires the full Vercel app with DB.
+  // Redirect immediately, preserving all query params.
+  useEffect(() => {
+    if (IS_STATIC) {
+      const qs = searchParams?.toString() ?? "";
+      window.location.replace(`${APP_URL}/awq/ppm/add${qs ? "?" + qs : ""}`);
+    }
+  }, [searchParams]);
+
   // Pre-fill from CRM opportunity URL params
   useEffect(() => {
+    if (IS_STATIC) return;
     const opp    = searchParams?.get("opportunity_id");
     const cust   = searchParams?.get("customer");
     const rev    = searchParams?.get("revenue");
@@ -114,6 +96,24 @@ function AddProjectPageInner() {
       }));
     }
   }, [searchParams]);
+
+  if (IS_STATIC) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center space-y-3">
+          <Briefcase size={32} className="text-brand-600 mx-auto" />
+          <p className="text-sm font-medium text-gray-700">PPM requer a plataforma completa</p>
+          <p className="text-xs text-gray-500">Redirecionando para o app…</p>
+          <a
+            href={`${APP_URL}/awq/ppm/add${searchParams?.toString() ? "?" + searchParams.toString() : ""}`}
+            className="inline-flex items-center gap-1.5 text-sm text-brand-600 underline"
+          >
+            Abrir agora <ExternalLink size={12} />
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }));

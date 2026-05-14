@@ -88,7 +88,7 @@ export default function ContractRenewalsPage() {
             <span>&gt; 60 dias</span>
           </div>
           <span className="ml-2 flex items-center gap-1">
-            <RefreshCw size={11} className="text-brand-600" /> Botão "Iniciar Renovação" disponível por linha
+            <RefreshCw size={11} className="text-brand-600" /> Botão &quot;Iniciar Renovação&quot; disponível por linha
           </span>
         </div>
       </div>
