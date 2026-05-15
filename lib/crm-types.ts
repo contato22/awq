@@ -139,6 +139,8 @@ export type CrmOpportunity = {
   synced_to_epm: boolean;
   epm_customer_id: string | null;
   epm_ar_id: string | null;
+  ppm_synced: boolean;
+  ppm_project_id: string | null;
   created_at: string;
   updated_at: string;
   created_by: string | null;

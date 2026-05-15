@@ -1,0 +1,99 @@
+name: Apply CRM Schema (Supabase)
+
+# ─── WHEN ─────────────────────────────────────────────────────────────────────
+# Runs automatically on every push to main when awq_crm_full_schema.sql changes,
+# and manually via workflow_dispatch.
+#
+# REQUIRED GitHub Secret:
+#   SUPABASE_DB_URL — Postgres connection string from Supabase dashboard:
+#     Settings → Database → Connection string → URI (direct / pooler)
+#
+# Prerequisites: awq_epm_full_schema.sql must already be applied (CRM FKs
+#   reference customers, accounts_receivable from EPM).
+#
+# The schema uses CREATE TABLE IF NOT EXISTS — re-running is safe (idempotent).
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "awq_crm_full_schema.sql"
+
+permissions:
+  contents: read
+
+jobs:
+  migrate:
+    name: Apply CRM Schema to Supabase
+    runs-on: ubuntu-latest
+    if: ${{ vars.SKIP_CRM_MIGRATE != 'true' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check secret present
+        run: |
+          if [ -z "${{ secrets.SUPABASE_DB_URL }}" ]; then
+            echo "⚠️  SUPABASE_DB_URL secret not set — skipping migration."
+            echo "Add it in: Settings → Secrets and variables → Actions → New repository secret"
+            exit 0
+          fi
+          echo "✓ SUPABASE_DB_URL is set — proceeding with CRM migration."
+
+      - name: Install psql client
+        if: ${{ secrets.SUPABASE_DB_URL != '' }}
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client
+
+      - name: Apply CRM schema (idempotent)
+        if: ${{ secrets.SUPABASE_DB_URL != '' }}
+        run: |
+          echo "Applying awq_crm_full_schema.sql …"
+          psql "$SUPABASE_DB_URL" -f awq_crm_full_schema.sql -v ON_ERROR_STOP=1
+          echo "✓ CRM schema applied successfully."
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+
+      - name: Verify tables
+        if: ${{ secrets.SUPABASE_DB_URL != '' }}
+        run: |
+          TABLES=$(psql "$SUPABASE_DB_URL" -t -c "
+            SELECT tablename FROM pg_tables
+            WHERE schemaname = 'public' AND tablename LIKE 'crm_%'
+            ORDER BY tablename;
+          ")
+          echo "CRM tables present:"
+          echo "$TABLES"
+          COUNT=$(echo "$TABLES" | grep -c crm_ || true)
+          echo "Total: $COUNT tables"
+          if [ "$COUNT" -lt 5 ]; then
+            echo "FAIL: expected at least 5 CRM tables, found $COUNT"
+            exit 1
+          fi
+          echo "✓ CRM schema verification passed."
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+
+      - name: Verify views
+        if: ${{ secrets.SUPABASE_DB_URL != '' }}
+        run: |
+          VIEWS=$(psql "$SUPABASE_DB_URL" -t -c "
+            SELECT viewname FROM pg_views
+            WHERE schemaname = 'public' AND viewname LIKE 'v_crm_%'
+            ORDER BY viewname;
+          ")
+          echo "CRM views:"
+          echo "$VIEWS"
+          VCOUNT=$(echo "$VIEWS" | grep -c v_crm_ || true)
+          echo "Total: $VCOUNT views"
+          if [ "$VCOUNT" -lt 4 ]; then
+            echo "FAIL: expected at least 4 CRM views, found $VCOUNT"
+            exit 1
+          fi
+          echo "✓ CRM view verification passed."
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}

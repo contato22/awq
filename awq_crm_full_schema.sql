@@ -519,3 +519,40 @@ INSERT INTO crm_activities (activity_type, related_to_type, related_to_id, subje
   ('task',    'lead',        '00000000-0000-0000-0000-000000000014', 'Follow-up Fintechx — Ana Rocha',  'Enviar material de cases do JACQES',               null,            null,'scheduled', null,                       'Miguel'),
   ('meeting', 'account',     (SELECT account_id FROM crm_accounts WHERE account_code='ACC-001'), 'QBR — XP Investimentos', 'Revisão trimestral da parceria', 'successful', 120, 'completed', NOW() - INTERVAL '7 days', 'Miguel')
 ON CONFLICT DO NOTHING;
+
+-- =============================================================================
+-- 9. PPM SYNC TRACKING
+-- Adds columns to track when a won opportunity has been converted to a PPM
+-- project. The trigger marks ppm_synced = FALSE whenever stage → closed_won,
+-- signaling the application to call POST /api/crm/ppm-sync.
+-- =============================================================================
+
+-- Add columns (idempotent)
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'crm_opportunities' AND column_name = 'ppm_synced'
+  ) THEN
+    ALTER TABLE crm_opportunities ADD COLUMN ppm_synced     BOOLEAN NOT NULL DEFAULT FALSE;
+    ALTER TABLE crm_opportunities ADD COLUMN ppm_project_id UUID;
+  END IF;
+END $$;
+
+CREATE OR REPLACE FUNCTION fn_crm_opp_flag_ppm_sync()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.stage = 'closed_won' AND (OLD.stage IS DISTINCT FROM 'closed_won') THEN
+    NEW.ppm_synced := FALSE;
+  END IF;
+  IF NEW.stage != 'closed_won' AND OLD.stage = 'closed_won' THEN
+    NEW.ppm_synced     := FALSE;
+    NEW.ppm_project_id := NULL;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_crm_opp_ppm_sync_flag ON crm_opportunities;
+CREATE TRIGGER trg_crm_opp_ppm_sync_flag
+  BEFORE UPDATE OF stage ON crm_opportunities
+  FOR EACH ROW EXECUTE FUNCTION fn_crm_opp_flag_ppm_sync();

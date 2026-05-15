@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS ppm_projects (
   -- Relationships
   customer_id         UUID        REFERENCES customers(customer_id),
   bu_code             TEXT        NOT NULL REFERENCES business_units(bu_code),
-  opportunity_id      UUID,                                        -- FK → crm_opportunities
+  opportunity_id      UUID        REFERENCES crm_opportunities(opportunity_id) ON DELETE SET NULL,
 
   -- Classification
   project_type        TEXT        NOT NULL CHECK (project_type IN ('one_off','retainer','internal','investment')),
@@ -681,3 +681,24 @@ INSERT INTO ppm_projects (
    'execution', 'active', 'green', 'high')
 
 ON CONFLICT (project_code) DO NOTHING;
+
+-- =============================================================================
+-- 10. IDEMPOTENT FK PATCH
+-- Adds the FK from ppm_projects.opportunity_id → crm_opportunities.opportunity_id
+-- on databases created before this constraint existed. Safe to re-run.
+-- =============================================================================
+
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints
+    WHERE constraint_name = 'ppm_projects_opportunity_id_fkey'
+      AND table_name      = 'ppm_projects'
+      AND constraint_type = 'FOREIGN KEY'
+  ) THEN
+    ALTER TABLE ppm_projects
+      ADD CONSTRAINT ppm_projects_opportunity_id_fkey
+      FOREIGN KEY (opportunity_id)
+      REFERENCES crm_opportunities(opportunity_id)
+      ON DELETE SET NULL;
+  END IF;
+END $$;

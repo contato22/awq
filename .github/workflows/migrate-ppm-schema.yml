@@ -1,0 +1,119 @@
+name: Apply PPM Schema (Supabase)
+
+# ─── WHEN ─────────────────────────────────────────────────────────────────────
+# Runs automatically on every push to main when awq_ppm_full_schema.sql changes,
+# and manually via workflow_dispatch.
+#
+# REQUIRED GitHub Secret:
+#   SUPABASE_DB_URL — Postgres connection string from Supabase dashboard:
+#     Settings → Database → Connection string → URI (direct / pooler)
+#
+# Prerequisites (run in order):
+#   1. awq_epm_full_schema.sql  (provides business_units, customers, users)
+#   2. awq_crm_full_schema.sql  (provides crm_opportunities — FK target)
+#   3. awq_ppm_full_schema.sql  (this file)
+#
+# The schema uses CREATE TABLE IF NOT EXISTS — re-running is safe (idempotent).
+# The FK patch at the end (ppm_projects → crm_opportunities) is also idempotent.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "awq_ppm_full_schema.sql"
+
+permissions:
+  contents: read
+
+jobs:
+  migrate:
+    name: Apply PPM Schema to Supabase
+    runs-on: ubuntu-latest
+    if: ${{ vars.SKIP_PPM_MIGRATE != 'true' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check secret present
+        run: |
+          if [ -z "${{ secrets.SUPABASE_DB_URL }}" ]; then
+            echo "⚠️  SUPABASE_DB_URL secret not set — skipping migration."
+            echo "Add it in: Settings → Secrets and variables → Actions → New repository secret"
+            exit 0
+          fi
+          echo "✓ SUPABASE_DB_URL is set — proceeding with PPM migration."
+
+      - name: Install psql client
+        if: ${{ secrets.SUPABASE_DB_URL != '' }}
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client
+
+      - name: Verify prerequisites (EPM + CRM must exist)
+        if: ${{ secrets.SUPABASE_DB_URL != '' }}
+        run: |
+          echo "Checking prerequisite tables …"
+          MISSING=""
+          for table in business_units customers users crm_opportunities; do
+            EXISTS=$(psql "$SUPABASE_DB_URL" -t -c \
+              "SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='$table';" | tr -d ' ')
+            if [ "$EXISTS" != "1" ]; then
+              MISSING="$MISSING $table"
+            fi
+          done
+          if [ -n "$MISSING" ]; then
+            echo "FAIL: missing prerequisite tables:$MISSING"
+            echo "Run ERP schema first (migrate-erp-schema.yml), then CRM (migrate-crm-schema.yml)."
+            exit 1
+          fi
+          echo "✓ All prerequisites satisfied."
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+
+      - name: Apply PPM schema (idempotent)
+        if: ${{ secrets.SUPABASE_DB_URL != '' }}
+        run: |
+          echo "Applying awq_ppm_full_schema.sql …"
+          psql "$SUPABASE_DB_URL" -f awq_ppm_full_schema.sql -v ON_ERROR_STOP=1
+          echo "✓ PPM schema applied successfully."
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+
+      - name: Verify tables
+        if: ${{ secrets.SUPABASE_DB_URL != '' }}
+        run: |
+          TABLES=$(psql "$SUPABASE_DB_URL" -t -c "
+            SELECT tablename FROM pg_tables
+            WHERE schemaname = 'public' AND tablename LIKE 'ppm_%'
+            ORDER BY tablename;
+          ")
+          echo "PPM tables present:"
+          echo "$TABLES"
+          COUNT=$(echo "$TABLES" | grep -c ppm_ || true)
+          echo "Total: $COUNT tables"
+          if [ "$COUNT" -lt 7 ]; then
+            echo "FAIL: expected at least 7 PPM tables, found $COUNT"
+            exit 1
+          fi
+          echo "✓ PPM schema verification passed."
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+
+      - name: Verify FK from ppm_projects to crm_opportunities
+        if: ${{ secrets.SUPABASE_DB_URL != '' }}
+        run: |
+          FK=$(psql "$SUPABASE_DB_URL" -t -c "
+            SELECT 1 FROM information_schema.table_constraints
+            WHERE constraint_name = 'ppm_projects_opportunity_id_fkey'
+              AND table_name = 'ppm_projects';
+          " | tr -d ' ')
+          if [ "$FK" = "1" ]; then
+            echo "✓ FK ppm_projects.opportunity_id → crm_opportunities verified."
+          else
+            echo "WARN: FK constraint not found — may need manual patch."
+          fi
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
