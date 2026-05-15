@@ -17,8 +17,6 @@ import { STAGE_LABELS, STAGE_PROBABILITY, BU_OPTIONS, OWNER_OPTIONS, PIPELINE_ST
 
 import { formatBRL, formatDateBR } from "@/lib/utils";
 
-const LS_KEY = "crm-opportunities-v3";
-
 function daysUntil(d: string | null | undefined): number | null {
   if (!d) return null;
   const diff = new Date(d).getTime() - Date.now();
@@ -778,16 +776,9 @@ function PipelinePageInner() {
   const [activityCounts, setActivityCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
-    // Show cached data instantly while the API loads
-    try {
-      const stored = localStorage.getItem(LS_KEY);
-      if (stored) {
-        setOpps(JSON.parse(stored));
-        setLoading(false);
-      }
-    } catch { /* ignore */ }
+    // Clear any stale localStorage cache from previous versions
+    try { localStorage.removeItem("crm-opportunities-v3"); } catch { /* ignore */ }
 
-    // Always fetch fresh data from the API
     fetch("/api/crm/pipeline")
       .then(r => r.json())
       .then(res => {
@@ -797,11 +788,12 @@ function PipelinePageInner() {
             ...res.data.closedWon,
             ...res.data.closedLost,
           ];
-          persist(all);
           setOpps(all);
+        } else {
+          setOpps([]);
         }
       })
-      .catch(() => undefined)
+      .catch(() => setOpps([]))
       .finally(() => setLoading(false));
   }, []);
 
@@ -821,13 +813,8 @@ function PipelinePageInner() {
       .catch(() => undefined);
   }, []);
 
-  function persist(data: CrmOpportunity[]) {
-    try { localStorage.setItem(LS_KEY, JSON.stringify(data)); } catch { /* ignore */ }
-  }
-
   function updateOpps(next: CrmOpportunity[]) {
     setOpps(next);
-    persist(next);
   }
 
   function showToast(msg: string, ok: boolean) {
