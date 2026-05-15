@@ -1,4 +1,4 @@
-export type Role = "owner" | "admin" | "analyst" | "cs-ops" | "caza";
+export type Role = "owner" | "admin" | "analyst" | "cs-ops" | "caza" | "enrd";
 
 export interface AuthUser {
   id: string;
@@ -59,6 +59,14 @@ export const USERS: AuthUser[] = [
     role: "caza",
     homeRoute: "/caza-vision",
   },
+  {
+    id: "7",
+    name: "Kazadem",
+    email: "Kazadem2@gmail.com",
+    passwordHash: "$2b$10$GsdHM8of19be3dKaFRNU4umIXN6fMANar/wNKzWwEKywoZMPz7zxi",
+    role: "enrd",
+    homeRoute: "/enrd",
+  },
 ];
 
 // ── RBAC route prefixes ───────────────────────────────────────────────────────
@@ -69,16 +77,18 @@ export const USERS: AuthUser[] = [
 //   admin:   ["/"]                           — all routes
 //   analyst: ["/"]                           — full access (permissive, MVP)
 //   cs-ops:  ["/"]                           — full access (permissive, MVP)
-//   caza:    ["/caza-vision"]                — Caza Vision BU only; no holding, no other BUs
+//   caza:    ["/caza-vision", "/crm"]        — Caza Vision BU only; no holding, no other BUs
+//   enrd:    ["/enrd", "/crm", "/awq/ppm"]  — ENRD BU + CRM + PPM compartilhados
 //
-// CLASSIFICATION: Security layer = authentication REAL, authorization ENFORCED for "caza".
+// CLASSIFICATION: Security layer = authentication REAL, authorization ENFORCED for "caza" and "enrd".
 //
 export const ROLE_ALLOWED_PREFIXES: Record<Role, string[]> = {
   owner:    ["/"],             // unrestricted
   admin:    ["/"],             // full access — permissive by design (MVP)
   analyst:  ["/"],             // full access — permissive by design (MVP)
   "cs-ops": ["/"],             // full access — permissive by design (MVP)
-  caza:     ["/caza-vision", "/crm"],  // Caza Vision BU + CRM compartilhado
+  caza:     ["/caza-vision", "/crm"],           // Caza Vision BU + CRM compartilhado
+  enrd:     ["/enrd", "/crm", "/awq/ppm"],      // ENRD BU + CRM + PPM compartilhados
 };
 
 export function canAccess(role: Role, pathname: string): boolean {
