@@ -429,15 +429,23 @@ export async function createTask(input: Omit<PpmTask, "task_id" | "actual_hours"
 }
 
 export async function updateTask(task_id: string, patch: Partial<PpmTask>): Promise<PpmTask | null> {
+  if (patch.status === "completed") {
+    patch = { ...patch, completion_pct: 100, completed_date: today() };
+  }
+  if (supabase) {
+    const { data, error } = await supabase
+      .from("ppm_tasks")
+      .update({ ...patch, updated_at: now() })
+      .eq("task_id", task_id)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data as PpmTask | null;
+  }
   const idx = _tasks.findIndex(t => t.task_id === task_id);
   if (idx === -1) return null;
-  const updated = { ..._tasks[idx], ...patch, updated_at: now() };
-  if (patch.status === "completed" && _tasks[idx].status !== "completed") {
-    updated.completion_pct  = 100;
-    updated.completed_date  = today();
-  }
-  _tasks[idx] = updated;
-  return updated;
+  _tasks[idx] = { ..._tasks[idx], ...patch, updated_at: now() };
+  return _tasks[idx];
 }
 
 // ─── Milestone CRUD ───────────────────────────────────────────────────────────
