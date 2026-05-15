@@ -56,9 +56,12 @@ export function formatDateBR(d: string | null | undefined): string {
 
 export function formatBRL(n: number | null | undefined): string {
   if (n == null) return "—";
-  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  if (n >= 1_000)     return "R$" + (n / 1_000).toFixed(1) + "K";
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 }).format(n);
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(n);
 }
 
 export function getDeltaColor(delta: number): string {
