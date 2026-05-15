@@ -130,7 +130,7 @@ export default function GanttPage() {
               className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none"
             >
               <option value="">Todas BUs</option>
-              {["JACQES","CAZA","ADVISOR","VENTURE"].map(b => <option key={b} value={b}>{b}</option>)}
+              {["JACQES","CAZA","ADVISOR","VENTURE","ENRD"].map(b => <option key={b} value={b}>{b}</option>)}
             </select>
             <button onClick={() => void load()} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
               <RefreshCw size={15} className={loading ? "animate-spin" : ""} />

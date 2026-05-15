@@ -10,7 +10,7 @@ import { ArrowLeft, Save, Briefcase, ExternalLink } from "lucide-react";
 const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 const APP_URL   = process.env.NEXT_PUBLIC_APP_URL ?? "https://awq-brown.vercel.app";
 
-const BU_OPTIONS    = ["JACQES","CAZA","ADVISOR","VENTURE","AWQ"] as const;
+const BU_OPTIONS    = ["JACQES","CAZA","ADVISOR","VENTURE","ENRD","AWQ"] as const;
 const TYPE_OPTIONS  = [
   { value: "one_off",    label: "One-off (projeto único)"    },
   { value: "retainer",   label: "Retainer (recorrente)"      },
@@ -92,7 +92,7 @@ function AddProjectPageInner() {
         opportunity_id:   opp   ?? f.opportunity_id,
         customer_name:    cust  ?? f.customer_name,
         budget_revenue:   rev   ?? f.budget_revenue,
-        bu_code:          (bu && ["JACQES","CAZA","ADVISOR","VENTURE","AWQ"].includes(bu)) ? bu : f.bu_code,
+        bu_code:          (bu && ["JACQES","CAZA","ADVISOR","VENTURE","ENRD","AWQ"].includes(bu)) ? bu : f.bu_code,
       }));
     }
   }, [searchParams]);

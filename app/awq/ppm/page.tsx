@@ -325,7 +325,7 @@ export default function PpmPortfolioPage() {
               />
             </div>
             {[
-              { value: filterBU, setter: setFilterBU, label: "BU", opts: [["","Todas BUs"],["JACQES","JACQES"],["CAZA","Caza Vision"],["ADVISOR","Advisor"],["VENTURE","Venture"]] },
+              { value: filterBU, setter: setFilterBU, label: "BU", opts: [["","Todas BUs"],["JACQES","JACQES"],["CAZA","Caza Vision"],["ADVISOR","Advisor"],["VENTURE","Venture"],["ENRD","ENRD"]] },
               { value: filterStatus, setter: setFilterStatus, label: "Status", opts: [["","Todos Status"],["active","Ativo"],["on_hold","Em Pausa"],["completed","Concluído"],["cancelled","Cancelado"]] },
               { value: filterHealth, setter: setFilterHealth, label: "Health", opts: [["","Todos"],["green","🟢 On Track"],["yellow","🟡 At Risk"],["red","🔴 Off Track"]] },
               { value: filterType, setter: setFilterType, label: "Tipo", opts: [["","Todos Tipos"],["one_off","One-off"],["retainer","Retainer"],["internal","Interno"]] },
