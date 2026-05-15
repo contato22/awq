@@ -6,6 +6,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Save, Briefcase, ExternalLink } from "lucide-react";
+import { formatPct } from "@/lib/utils";
 
 const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 const APP_URL   = process.env.NEXT_PUBLIC_APP_URL ?? "https://awq-brown.vercel.app";
@@ -122,7 +123,7 @@ function AddProjectPageInner() {
     const rev  = parseFloat(form.budget_revenue) || 0;
     const cost = parseFloat(form.budget_cost)    || 0;
     if (rev <= 0) return null;
-    return ((rev - cost) / rev * 100).toFixed(1);
+    return (rev - cost) / rev * 100;
   })();
 
   async function handleSubmit(e: React.FormEvent) {
@@ -143,7 +144,7 @@ function AddProjectPageInner() {
           budget_hours:   form.budget_hours  ? parseFloat(form.budget_hours)  : undefined,
           budget_cost:    parseFloat(form.budget_cost),
           budget_revenue: parseFloat(form.budget_revenue),
-          margin_target:  marginPct ? parseFloat(marginPct) / 100 : undefined,
+          margin_target:  marginPct != null ? marginPct / 100 : undefined,
         }),
       });
       let json: { success: boolean; data?: { project_id: string }; error?: string } | null = null;
@@ -267,9 +268,9 @@ function AddProjectPageInner() {
                 <input type="number" value={form.budget_hours} onChange={set("budget_hours")} placeholder="240" className={INPUT} />
               </Field>
             </div>
-            {marginPct && (
+            {marginPct != null && (
               <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-2 text-sm text-emerald-700">
-                Margem projetada: <strong>{marginPct}%</strong>
+                Margem projetada: <strong>{formatPct(marginPct)}</strong>
               </div>
             )}
           </div>

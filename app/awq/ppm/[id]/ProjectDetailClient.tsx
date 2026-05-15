@@ -12,7 +12,7 @@ import {
   Calendar, TrendingUp, TrendingDown, Flag, Pencil, Plus, RefreshCw,
   XCircle, Circle, PlayCircle,
 } from "lucide-react";
-import { formatBRL, formatDateBR } from "@/lib/utils";
+import { formatBRL, formatDateBR, formatPct } from "@/lib/utils";
 import type { PpmProject, PpmTask, PpmMilestone, PpmAllocation, PpmRisk, PpmIssue } from "@/lib/ppm-types";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -26,8 +26,6 @@ const TASK_STATUS_COLOR: Record<string, string> = { completed: "text-emerald-600
 const RISK_SCORE_COLOR = (s: number) => s >= 6 ? "bg-red-100 text-red-700" : s >= 3 ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700";
 const SEV_COLOR: Record<string, string> = { critical: "bg-red-100 text-red-700", high: "bg-orange-100 text-orange-700", medium: "bg-amber-100 text-amber-700", low: "bg-gray-100 text-gray-600" };
 const ISSUE_STATUS_COLOR: Record<string, string> = { open: "bg-red-100 text-red-700", in_progress: "bg-blue-100 text-blue-700", resolved: "bg-emerald-100 text-emerald-700", closed: "bg-gray-100 text-gray-600" };
-
-function fmtPct(n: number) { return n.toFixed(1) + "%"; }
 
 // ─── Gantt Chart (CSS-based) ──────────────────────────────────────────────────
 
@@ -286,8 +284,8 @@ export default function ProjectDetailPage() {
               <Stat label="Completion"  value={`${(project.completion_pct ?? 0).toFixed(0)}%`} sub={`${tasks.filter(t=>t.status==="completed").length}/${tasks.length} tarefas`} color="text-brand-600" />
               <Stat label="Revenue"     value={formatBRL(project.budget_revenue)} sub={`Realizado: ${formatBRL(project.actual_revenue)}`} />
               <Stat label="Custo"       value={formatBRL(project.budget_cost)}    sub={`Realizado: ${formatBRL(project.actual_cost)}`} />
-              <Stat label="Margem Budget" value={fmtPct(budgetMarginPct)} sub={formatBRL(budgetMargin)} color={budgetMarginPct >= 40 ? "text-emerald-600" : "text-amber-600"} />
-              <Stat label="Margem Real" value={project.actual_revenue > 0 ? fmtPct(actualMarginPct) : "—"} sub={project.actual_revenue > 0 ? formatBRL(actualMargin) : "sem receita"} color={actualMarginPct >= 40 ? "text-emerald-600" : "text-amber-600"} />
+              <Stat label="Margem Budget" value={formatPct(budgetMarginPct)} sub={formatBRL(budgetMargin)} color={budgetMarginPct >= 40 ? "text-emerald-600" : "text-amber-600"} />
+              <Stat label="Margem Real" value={project.actual_revenue > 0 ? formatPct(actualMarginPct) : "—"} sub={project.actual_revenue > 0 ? formatBRL(actualMargin) : "sem receita"} color={actualMarginPct >= 40 ? "text-emerald-600" : "text-amber-600"} />
               <Stat label="Horas"       value={`${project.actual_hours}h`} sub={`Budget: ${project.budget_hours ?? "—"}h`} color="text-gray-900" />
             </div>
 

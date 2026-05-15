@@ -59,7 +59,7 @@ export default function KPICard({ kpi }: KPICardProps) {
           ) : (
             <ArrowDownRight size={11} />
           )}
-          {formatPercent(Math.abs(delta), 1).replace("+", "")}
+          {formatPercent(Math.abs(delta), 1)}
         </div>
       </div>
 

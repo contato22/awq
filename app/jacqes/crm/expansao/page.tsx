@@ -15,14 +15,7 @@ import {
 } from "@/lib/jacqes-crm-db";
 import { fetchCRM } from "@/lib/jacqes-crm-query";
 import { IS_STATIC, crmCreate, crmUpdate, crmDelete } from "@/lib/jacqes-crm-store";
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function fmtCurrency(n: number): string {
-  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  if (n >= 1_000) return "R$" + Math.round(n / 1_000) + "K";
-  return "R$" + n;
-}
+import { formatBRL } from "@/lib/utils";
 
 const TIPO_FILTERS = ["Todos", "Upsell", "Cross-sell", "Upgrade", "Projeto Extra", "Reativação"] as const;
 type TipoFilter = (typeof TIPO_FILTERS)[number];
@@ -130,7 +123,7 @@ function ExpansionCard({
       <div className="flex items-center justify-between">
         <div>
           <div className="text-[11px] text-gray-400 uppercase tracking-wide">Valor Potencial</div>
-          <div className="text-lg font-bold text-gray-900">{fmtCurrency(expansion.valor_potencial)}</div>
+          <div className="text-lg font-bold text-gray-900">{formatBRL(expansion.valor_potencial)}</div>
         </div>
         <div className="text-right">
           <div className="text-[11px] text-gray-400 uppercase tracking-wide">Owner</div>
@@ -283,7 +276,7 @@ export default function ExpansaoPage() {
           />
           <KpiCard
             label="Valor Total Potencial"
-            value={fmtCurrency(totalPotencial)}
+            value={formatBRL(totalPotencial)}
             sub="receita incremental"
             icon={TrendingUp}
             color="bg-emerald-50 border border-emerald-200 text-emerald-600"
@@ -379,8 +372,8 @@ export default function ExpansaoPage() {
                 Potencial vs MRR Atual
               </div>
               <div className="text-xs text-gray-500 mt-0.5">
-                {fmtCurrency(totalPotencial)} potencial /{" "}
-                {fmtCurrency(totalMrr)} MRR atual
+                {formatBRL(totalPotencial)} potencial /{" "}
+                {formatBRL(totalMrr)} MRR atual
               </div>
             </div>
           </div>

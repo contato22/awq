@@ -11,7 +11,7 @@ import {
   BarChart3, Briefcase, Calendar, ChevronRight, RefreshCw,
   GanttChart, ClipboardList,
 } from "lucide-react";
-import { formatBRL, formatDateBR } from "@/lib/utils";
+import { formatBRL, formatDateBR, formatPct } from "@/lib/utils";
 import type { PpmProject, PpmPortfolioMetrics } from "@/lib/ppm-types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -51,7 +51,6 @@ const BU_CHIP: Record<string, string> = {
   AWQ:     "bg-gray-100   text-gray-600",
 };
 
-function fmtPct(n: number) { return n.toFixed(1) + "%"; }
 function marginColor(pct: number) {
   if (pct >= 60) return "text-emerald-600";
   if (pct >= 30) return "text-amber-600";
@@ -163,7 +162,7 @@ function ProjectRow({ project }: { project: PpmProject }) {
         <div className="text-xs text-gray-400">Budget</div>
       </td>
       <td className={`px-4 py-3 whitespace-nowrap text-sm font-semibold ${marginColor(margPct)}`}>
-        {fmtPct(margPct)}
+        {formatPct(margPct)}
       </td>
       <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-500">
         {formatDateBR(project.planned_end_date)}
@@ -276,7 +275,7 @@ export default function PpmPortfolioPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
           <KpiCard label="Projetos Ativos"  value={String(metrics?.active_projects ?? 0)}  sub={`${metrics?.total_projects ?? 0} total`}  icon={Briefcase}   color="bg-brand-600" />
           <KpiCard label="Revenue Total"    value={formatBRL(totalRevenue)}  sub={`Realizado: ${formatBRL(totalActual)}`} icon={DollarSign}  color="bg-emerald-600" />
-          <KpiCard label="Margem Média"     value={fmtPct(avgMargin)}        sub="Portfolio ativo"                         icon={TrendingUp}  color="bg-violet-600" />
+          <KpiCard label="Margem Média"     value={formatPct(avgMargin)}        sub="Portfolio ativo"                         icon={TrendingUp}  color="bg-violet-600" />
           <KpiCard label="Time Alocado"     value={String(metrics?.total_team_members ?? 0)} sub="pessoas ativas"          icon={Users}       color="bg-amber-600" />
           <HealthSummary g={metrics?.green_count ?? 0} y={metrics?.yellow_count ?? 0} r={metrics?.red_count ?? 0} />
         </div>

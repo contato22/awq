@@ -10,14 +10,7 @@ import {
 } from "lucide-react";
 import type { CrmClient, CrmExpansion } from "@/lib/jacqes-crm-db";
 import { fetchCRM } from "@/lib/jacqes-crm-query";
-
-// ─── helpers ─────────────────────────────────────────────────────────────────
-
-function fmtCurrency(n: number): string {
-  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  if (n >= 1_000)     return "R$" + Math.round(n / 1_000) + "K";
-  return "R$" + n;
-}
+import { formatBRL } from "@/lib/utils";
 
 function initials(nome: string): string {
   return nome
@@ -97,12 +90,12 @@ export default function CarteiraActivaPage() {
               sub: `${clientes.length} total`,
             },
             {
-              label: "MRR Contratado",     value: fmtCurrency(mrr),
+              label: "MRR Contratado",     value: formatBRL(mrr),
               icon: DollarSign,  color: "text-emerald-600", bg: "bg-emerald-50",
               sub: "Soma dos FEEs mensais",
             },
             {
-              label: "Recebido",           value: fmtCurrency(recebido),
+              label: "Recebido",           value: formatBRL(recebido),
               icon: CheckCircle2,color: "text-emerald-700", bg: "bg-emerald-50",
               sub: `${ativos.length} clientes sem pendências`,
             },
@@ -111,10 +104,10 @@ export default function CarteiraActivaPage() {
               icon: Percent,
               color: taxaColeta >= 80 ? "text-emerald-600" : "text-amber-600",
               bg:    taxaColeta >= 80 ? "bg-emerald-50"    : "bg-amber-50",
-              sub:   fmtCurrency(mrr - recebido) + " pendente",
+              sub:   formatBRL(mrr - recebido) + " pendente",
             },
             {
-              label: "Expansão Aberta",    value: fmtCurrency(expansaoTotal),
+              label: "Expansão Aberta",    value: formatBRL(expansaoTotal),
               icon: TrendingUp,  color: "text-teal-600",    bg: "bg-teal-50",
               sub:  `${expansion.filter(e => e.status !== "Fechado").length} oportunidades`,
             },
@@ -178,7 +171,7 @@ export default function CarteiraActivaPage() {
                         <div className="text-[11px] text-gray-400 mt-0.5">{c.produto_ativo}</div>
                       </div>
                       <div className="text-right shrink-0">
-                        <div className="text-xl font-bold text-gray-900">{fmtCurrency(c.ticket_mensal)}</div>
+                        <div className="text-xl font-bold text-gray-900">{formatBRL(c.ticket_mensal)}</div>
                         <div className="text-[10px] text-gray-400">/ mês</div>
                       </div>
                     </div>
@@ -221,7 +214,7 @@ export default function CarteiraActivaPage() {
                         <ArrowUpRight size={13} className="shrink-0" />
                         <span className="font-semibold">{exp.tipo}</span>
                         <span className="text-teal-500">·</span>
-                        <span className="font-bold">{fmtCurrency(exp.valor_potencial)}</span>
+                        <span className="font-bold">{formatBRL(exp.valor_potencial)}</span>
                         <span className="text-teal-500 ml-auto">Potencial</span>
                       </div>
                     )}
@@ -246,7 +239,7 @@ export default function CarteiraActivaPage() {
                 { label: "Em Risco",    value: mrrRisco,    count: emRisco.length,   color: "bg-red-500",     text: "text-red-600",     bg: "bg-red-50"      },
               ].map(row => (
                 <div key={row.label} className={`rounded-xl ${row.bg} px-4 py-3 text-center`}>
-                  <div className={`text-xl font-bold ${row.text}`}>{fmtCurrency(row.value)}</div>
+                  <div className={`text-xl font-bold ${row.text}`}>{formatBRL(row.value)}</div>
                   <div className="text-[11px] text-gray-500 mt-0.5">{row.label}</div>
                   <div className="text-[10px] text-gray-400">{row.count} cliente{row.count !== 1 ? "s" : ""}</div>
                 </div>
@@ -274,7 +267,7 @@ export default function CarteiraActivaPage() {
                   {l.label}
                 </div>
               ))}
-              <span className="ml-auto text-sm font-bold text-gray-900">Total: {fmtCurrency(mrr)}</span>
+              <span className="ml-auto text-sm font-bold text-gray-900">Total: {formatBRL(mrr)}</span>
             </div>
           </div>
         )}

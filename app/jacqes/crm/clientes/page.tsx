@@ -10,14 +10,7 @@ import {
 import type { CrmClient } from "@/lib/jacqes-crm-db";
 import { fetchCRM } from "@/lib/jacqes-crm-query";
 import { IS_STATIC, crmCreate, crmUpdate, crmDelete } from "@/lib/jacqes-crm-store";
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function fmtCurrency(n: number): string {
-  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  if (n >= 1_000)     return "R$" + Math.round(n / 1_000) + "K";
-  return "R$" + n;
-}
+import { formatBRL } from "@/lib/utils";
 
 type StatusFilter = "Todos" | "Ativo" | "Em Atenção" | "Em Risco";
 
@@ -177,9 +170,9 @@ export default function ClientesPage() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             { label: "Clientes Ativos",   value: String(ativos.length), icon: Users,      color: "text-brand-600",   bg: "bg-brand-50"   },
-            { label: "MRR Total",          value: fmtCurrency(mrr),      icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
+            { label: "MRR Total",          value: formatBRL(mrr),      icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
             { label: "Health Médio",       value: String(healthMedia),   icon: Heart,      color: healthMedia >= 80 ? "text-emerald-600" : healthMedia >= 60 ? "text-amber-600" : "text-red-600", bg: healthMedia >= 80 ? "bg-emerald-50" : healthMedia >= 60 ? "bg-amber-50" : "bg-red-50" },
-            { label: "Expansão Potencial", value: fmtCurrency(expansao), icon: TrendingUp, color: "text-teal-600",    bg: "bg-teal-50"    },
+            { label: "Expansão Potencial", value: formatBRL(expansao), icon: TrendingUp, color: "text-teal-600",    bg: "bg-teal-50"    },
           ].map(card => {
             const Icon = card.icon;
             return (
@@ -239,7 +232,7 @@ export default function ClientesPage() {
                       </td>
                       <td className="px-3 py-3 text-xs text-gray-600">{c.segmento}</td>
                       <td className="px-3 py-3 text-xs text-gray-600">{c.produto_ativo}</td>
-                      <td className="px-3 py-3"><span className="font-bold text-gray-900">{fmtCurrency(c.ticket_mensal)}</span></td>
+                      <td className="px-3 py-3"><span className="font-bold text-gray-900">{formatBRL(c.ticket_mensal)}</span></td>
                       <td className="px-3 py-3">
                         <span className={`inline-flex text-[11px] font-semibold px-2 py-0.5 rounded-full border ${STATUS_COLORS[c.status_conta] ?? "bg-gray-100 text-gray-500 border-gray-200"}`}>
                           {c.status_conta}
@@ -256,7 +249,7 @@ export default function ClientesPage() {
                           {c.churn_risk}
                         </span>
                       </td>
-                      <td className="px-3 py-3 text-xs font-semibold text-teal-600">{fmtCurrency(c.potencial_expansao ?? 0)}</td>
+                      <td className="px-3 py-3 text-xs font-semibold text-teal-600">{formatBRL(c.potencial_expansao ?? 0)}</td>
                       <td className="px-3 py-3 text-xs text-gray-600">{c.owner}</td>
                       <td className="px-3 py-3 max-w-[180px] relative">
                         <span className="text-xs text-gray-500 truncate block cursor-default" title={c.observacoes}

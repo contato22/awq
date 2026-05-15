@@ -11,14 +11,6 @@ import {
 import type { CrmHealthSnapshot, CrmClient } from "@/lib/jacqes-crm-db";
 import { fetchCRM } from "@/lib/jacqes-crm-query";
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function fmtCurrency(n: number): string {
-  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  if (n >= 1_000) return "R$" + Math.round(n / 1_000) + "K";
-  return "R$" + n;
-}
-
 function daysAgo(dateStr: string | null): number {
   if (!dateStr) return 999;
   return Math.round((Date.now() - new Date(dateStr).getTime()) / 86_400_000);

@@ -12,13 +12,14 @@ export function formatCurrency(
 ): string {
   if (compact) {
     const sym = currency === "BRL" ? "R$" : "$";
-    if (value >= 1_000_000) return `${sym}${(value / 1_000_000).toFixed(1)}M`;
+    if (value >= 1_000_000) return `${sym}${(value / 1_000_000).toFixed(2)}M`;
     if (value >= 1_000) return `${sym}${(value / 1_000).toFixed(1)}K`;
   }
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency,
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(value);
 }
 
@@ -27,11 +28,16 @@ export function formatNumber(value: number, compact = false): string {
     if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
     if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
   }
-  return new Intl.NumberFormat("en-US").format(value);
+  return new Intl.NumberFormat("pt-BR").format(value);
 }
 
-export function formatPercent(value: number, decimals = 1): string {
-  return `${value >= 0 ? "+" : ""}${value.toFixed(decimals)}%`;
+export function formatPercent(value: number, decimals = 1, showSign = false): string {
+  return `${showSign && value >= 0 ? "+" : ""}${value.toFixed(decimals)}%`;
+}
+
+export function formatPct(n: number | null | undefined, decimals = 1): string {
+  if (n == null) return "—";
+  return n.toFixed(decimals) + "%";
 }
 
 export function formatDate(date: Date | string): string {
@@ -50,9 +56,9 @@ export function formatDateBR(d: string | null | undefined): string {
 
 export function formatBRL(n: number | null | undefined): string {
   if (n == null) return "—";
-  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(1) + "M";
-  if (n >= 1_000)     return "R$" + (n / 1_000).toFixed(0) + "K";
-  return "R$" + n.toLocaleString("pt-BR");
+  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
+  if (n >= 1_000)     return "R$" + (n / 1_000).toFixed(1) + "K";
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 }).format(n);
 }
 
 export function getDeltaColor(delta: number): string {

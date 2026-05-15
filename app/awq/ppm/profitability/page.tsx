@@ -5,7 +5,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { ArrowLeft, TrendingUp, TrendingDown, RefreshCw, DollarSign, Download } from "lucide-react";
-import { formatBRL } from "@/lib/utils";
+import { formatBRL, formatPct } from "@/lib/utils";
 
 interface ProfitRow {
   project_id: string; project_code: string; project_name: string; bu_code: string; status: string;
@@ -23,7 +23,6 @@ interface Metrics {
   total_budget_cost: number; total_actual_cost: number; avg_margin_pct: number;
 }
 
-function fmtPct(n: number | null) { if (n == null) return "—"; return n.toFixed(1) + "%"; }
 function fmtInd(n: number | null) {
   if (n == null) return <span className="text-gray-400">—</span>;
   const ok = n >= 1;
@@ -198,12 +197,12 @@ export default function ProfitabilityPage() {
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-700">{formatBRL(row.budget_revenue)}</td>
                       <td className="px-4 py-3 text-sm text-gray-700">{row.actual_revenue > 0 ? formatBRL(row.actual_revenue) : <span className="text-gray-300">—</span>}</td>
-                      <td className="px-4 py-3 text-sm font-semibold text-gray-700">{fmtPct(row.budget_margin_pct)}</td>
+                      <td className="px-4 py-3 text-sm font-semibold text-gray-700">{formatPct(row.budget_margin_pct)}</td>
                       <td className="px-4 py-3">
                         {row.actual_revenue > 0 ? (
                           <div className="flex items-center gap-1">
                             {marginOk ? <TrendingUp size={12} className="text-emerald-500" /> : <TrendingDown size={12} className="text-red-500" />}
-                            <span className={`text-sm font-bold ${marginOk ? "text-emerald-600" : "text-red-600"}`}>{fmtPct(row.actual_margin_pct)}</span>
+                            <span className={`text-sm font-bold ${marginOk ? "text-emerald-600" : "text-red-600"}`}>{formatPct(row.actual_margin_pct)}</span>
                           </div>
                         ) : <span className="text-gray-300 text-xs">sem receita</span>}
                       </td>
