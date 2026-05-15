@@ -786,46 +786,60 @@ function PipelinePageInner() {
   const [activityCounts, setActivityCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
-    try { localStorage.removeItem("crm-opportunities-v3"); } catch { /* ignore */ }
-
     if (!SUPABASE_URL || !SUPABASE_ANON) {
       setApiError("Variáveis NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY não estão configuradas no Vercel. Acesse: Vercel Dashboard → Project → Settings → Environment Variables");
       setLoading(false);
       return;
     }
 
-    supabase
-      .from("crm_opportunities")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .then(async ({ data: oppsData, error: oppsError }) => {
-        if (oppsError) { setApiError(oppsError.message); setOpps([]); return; }
-        const opps = (oppsData ?? []) as CrmOpportunity[];
+    async function load() {
+      // One-time migration: move legacy localStorage data into Supabase before discarding it.
+      try {
+        const raw = localStorage.getItem("crm-opportunities-v3");
+        if (raw) {
+          const legacy = JSON.parse(raw) as CrmOpportunity[];
+          if (legacy.length > 0) {
+            // Strip computed/virtual fields that don't exist as columns.
+            const rows = legacy.map(({ account_name: _a, contact_name: _c, ...o }) => o);
+            await supabase.from("crm_opportunities").upsert(rows, { onConflict: "opportunity_id" });
+          }
+        }
+      } catch { /* ignore — migration is best-effort */ } finally {
+        try { localStorage.removeItem("crm-opportunities-v3"); } catch { /* ignore */ }
+      }
 
-        const accountIds = [...new Set(opps.map(o => o.account_id).filter(Boolean))] as string[];
-        const contactIds = [...new Set(opps.map(o => o.contact_id).filter(Boolean))] as string[];
+      const { data: oppsData, error: oppsError } = await supabase
+        .from("crm_opportunities")
+        .select("*")
+        .order("created_at", { ascending: false });
 
-        const [acctRes, contRes] = await Promise.all([
-          accountIds.length > 0
-            ? supabase.from("crm_accounts").select("account_id, account_name").in("account_id", accountIds)
-            : Promise.resolve({ data: [] }),
-          contactIds.length > 0
-            ? supabase.from("crm_contacts").select("contact_id, full_name").in("contact_id", contactIds)
-            : Promise.resolve({ data: [] }),
-        ]);
+      if (oppsError) { setApiError(oppsError.message); setOpps([]); return; }
+      const opps = (oppsData ?? []) as CrmOpportunity[];
 
-        const acctMap = Object.fromEntries((acctRes.data ?? []).map((a: Record<string, string>) => [a.account_id, a.account_name]));
-        const contMap = Object.fromEntries((contRes.data ?? []).map((c: Record<string, string>) => [c.contact_id, c.full_name]));
+      const accountIds = [...new Set(opps.map(o => o.account_id).filter(Boolean))] as string[];
+      const contactIds = [...new Set(opps.map(o => o.contact_id).filter(Boolean))] as string[];
 
-        setOpps(opps.map(o => ({
-          ...o,
-          account_name: o.account_id ? (acctMap[o.account_id] ?? o.account_name) : o.account_name,
-          contact_name: o.contact_id ? (contMap[o.contact_id] ?? o.contact_name) : o.contact_name,
-        })));
-        setApiError(null);
-      })
-      .catch(e => { setApiError(String(e)); setOpps([]); })
-      .finally(() => setLoading(false));
+      const [acctRes, contRes] = await Promise.all([
+        accountIds.length > 0
+          ? supabase.from("crm_accounts").select("account_id, account_name").in("account_id", accountIds)
+          : Promise.resolve({ data: [] }),
+        contactIds.length > 0
+          ? supabase.from("crm_contacts").select("contact_id, full_name").in("contact_id", contactIds)
+          : Promise.resolve({ data: [] }),
+      ]);
+
+      const acctMap = Object.fromEntries((acctRes.data ?? []).map((a: Record<string, string>) => [a.account_id, a.account_name]));
+      const contMap = Object.fromEntries((contRes.data ?? []).map((c: Record<string, string>) => [c.contact_id, c.full_name]));
+
+      setOpps(opps.map(o => ({
+        ...o,
+        account_name: o.account_id ? (acctMap[o.account_id] ?? o.account_name) : o.account_name,
+        contact_name: o.contact_id ? (contMap[o.contact_id] ?? o.contact_name) : o.contact_name,
+      })));
+      setApiError(null);
+    }
+
+    load().catch(e => { setApiError(String(e)); setOpps([]); }).finally(() => setLoading(false));
   }, []);
 
   // Fetch activity counts directly from Supabase
