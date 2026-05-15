@@ -245,6 +245,7 @@ export async function convertLead(leadId: string, oppData: Partial<CrmOpportunit
       owner: oppData.owner ?? "Miguel",
       proposal_sent_date: null, proposal_viewed: false, proposal_accepted: false,
       synced_to_epm: false, epm_customer_id: null, epm_ar_id: null,
+      ppm_synced: false, ppm_project_id: null,
       created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
       created_by: oppData.owner ?? "Miguel",
     };
