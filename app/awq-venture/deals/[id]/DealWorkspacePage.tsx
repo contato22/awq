@@ -13,15 +13,7 @@ import {
   User, Calendar, ArrowRight, TrendingUp, Trash2, X, ChevronDown,
   Pencil, Plus, Minus,
 } from "lucide-react";
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function fmtR(n: number | null): string {
-  if (n === null || n === undefined) return "—";
-  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(1) + "M";
-  if (n >= 1_000)     return "R$" + (n / 1_000).toFixed(0) + "K";
-  return "R$" + n.toLocaleString("pt-BR");
-}
+import { formatBRL } from "@/lib/utils";
 
 function fmtPct(n: number | null): string {
   if (n === null || n === undefined) return "—";
@@ -217,7 +209,7 @@ function PreviewCliente({ deal }: { deal: DealWorkspace }) {
             <div className="text-[11px] text-gray-400">Faixa de Valuation</div>
           </div>
           <div className="text-center">
-            <div className="text-lg font-bold text-amber-600">{fmtR(fin.estimatedInvestment)}</div>
+            <div className="text-lg font-bold text-amber-600">{formatBRL(fin.estimatedInvestment)}</div>
             <div className="text-[11px] text-gray-400">Investimento Estimado</div>
           </div>
           <div className="text-center">
@@ -309,11 +301,11 @@ function PreviewInterno({ deal }: { deal: DealWorkspace }) {
         {/* KPIs */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {[
-            ["Valuation Pedido",   fmtR(deal.financials.askValuation)],
-            ["Valuation Proposto", fmtR(deal.financials.proposedValuation)],
-            ["Investimento",       fmtR(deal.financials.estimatedInvestment)],
-            ["Receita Est.",       fmtR(deal.financials.estimatedRevenue)],
-            ["EBITDA Est.",        fmtR(deal.financials.estimatedEbitda)],
+            ["Valuation Pedido",   formatBRL(deal.financials.askValuation)],
+            ["Valuation Proposto", formatBRL(deal.financials.proposedValuation)],
+            ["Investimento",       formatBRL(deal.financials.estimatedInvestment)],
+            ["Receita Est.",       formatBRL(deal.financials.estimatedRevenue)],
+            ["EBITDA Est.",        formatBRL(deal.financials.estimatedEbitda)],
             ["Upside Esp.",        fmtPct(deal.financials.expectedUpside)],
             ["Múltiplo",           deal.financials.impliedMultiple ? deal.financials.impliedMultiple.toFixed(2) + "×" : "—"],
             ["Participação",       deal.financials.targetOwnership + "%"],
@@ -606,7 +598,7 @@ function EditableNumber({
 
   function display() {
     if (effective === null || effective === undefined) return "—";
-    if (format === "currency") return fmtR(effective);
+    if (format === "currency") return formatBRL(effective);
     if (format === "percent")  return effective.toFixed(1) + "%";
     if (format === "multiple") return effective.toFixed(2) + "×";
     return String(effective);
@@ -939,9 +931,9 @@ function StickySidebar({
       <div className="card p-4 space-y-2">
         <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Financeiro</div>
         {[
-          ["Valuation Proposto", fmtR(deal.financials.proposedValuation)],
-          ["Receita Estimada",   fmtR(deal.financials.estimatedRevenue)],
-          ["Investimento",       fmtR(deal.financials.estimatedInvestment)],
+          ["Valuation Proposto", formatBRL(deal.financials.proposedValuation)],
+          ["Receita Estimada",   formatBRL(deal.financials.estimatedRevenue)],
+          ["Investimento",       formatBRL(deal.financials.estimatedInvestment)],
           ["Participação",       deal.financials.targetOwnership + "%"],
           ["Upside Esperado",    fmtPct(deal.financials.expectedUpside)],
         ].map(([l, v]) => (
@@ -1079,7 +1071,7 @@ export default function DealWorkspacePage({
 
           <div className="flex items-center gap-3 shrink-0">
             <div className="text-right">
-              <div className="text-2xl font-bold text-amber-600">{fmtR(deal.proposedValue)}</div>
+              <div className="text-2xl font-bold text-amber-600">{formatBRL(deal.proposedValue)}</div>
               <div className="text-[11px] text-gray-400">Valor Proposto</div>
             </div>
             <ScoreRing score={deal.dealScore} />
@@ -1137,14 +1129,14 @@ export default function DealWorkspacePage({
           <SectionCard id="indicadores" icon={TrendingUp} title="Indicadores do Deal">
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
               {[
-                { label: "Valuation Pedido",    value: fmtR(deal.financials.askValuation),          color: "text-amber-600"   },
-                { label: "Valuation Proposto",  value: fmtR(deal.financials.proposedValuation),         color: "text-emerald-600" },
-                { label: "Receita Estimada",    value: fmtR(deal.financials.estimatedRevenue),      color: "text-blue-600"    },
-                { label: "EBITDA Estimado",     value: fmtR(deal.financials.estimatedEbitda),       color: "text-violet-600"  },
+                { label: "Valuation Pedido",    value: formatBRL(deal.financials.askValuation),          color: "text-amber-600"   },
+                { label: "Valuation Proposto",  value: formatBRL(deal.financials.proposedValuation),         color: "text-emerald-600" },
+                { label: "Receita Estimada",    value: formatBRL(deal.financials.estimatedRevenue),      color: "text-blue-600"    },
+                { label: "EBITDA Estimado",     value: formatBRL(deal.financials.estimatedEbitda),       color: "text-violet-600"  },
                 { label: "Margem EBITDA",       value: fmtPct(deal.financials.ebitdaMargin),        color: "text-gray-700"    },
                 { label: "Múltiplo Implícito",  value: deal.financials.impliedMultiple ? deal.financials.impliedMultiple.toFixed(2) + "×" : "—", color: "text-gray-700" },
                 { label: "Participação",        value: deal.financials.targetOwnership + "%",       color: "text-brand-600"   },
-                { label: "Investimento Est.",   value: fmtR(deal.financials.estimatedInvestment),   color: "text-amber-600"   },
+                { label: "Investimento Est.",   value: formatBRL(deal.financials.estimatedInvestment),   color: "text-amber-600"   },
                 { label: "Upside Esperado",     value: fmtPct(deal.financials.expectedUpside),      color: "text-emerald-600" },
                 { label: "Score do Deal",       value: deal.dealScore.toFixed(1) + "/10",           color: deal.dealScore >= 8 ? "text-emerald-600" : deal.dealScore >= 7 ? "text-amber-600" : "text-red-500" },
                 { label: "Readiness (média)",   value: readiness.toFixed(1) + "/5",                 color: "text-gray-700"    },

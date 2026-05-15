@@ -25,20 +25,13 @@ import type {
   DataQuality,
   CommercialProposal,
 } from "@/lib/venture-commercial-types";
+import { formatBRL } from "@/lib/utils";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function fmtR(n: number | null, quality: DataQuality): string {
   if (n === null || quality === "sem_dado") return "—";
-  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(1) + "M";
-  if (n >= 1_000)     return "R$" + (n / 1_000).toFixed(0) + "K";
-  return "R$" + n.toLocaleString("pt-BR");
-}
-
-function fmtRaw(n: number): string {
-  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(1) + "M";
-  if (n >= 1_000)     return "R$" + (n / 1_000).toFixed(0) + "K";
-  return "R$" + n.toLocaleString("pt-BR");
+  return formatBRL(n);
 }
 
 // ─── Badges de qualidade de dado ──────────────────────────────────────────────
@@ -296,7 +289,7 @@ export default function ComercialPage() {
           },
           {
             label:   "MRR Contratado",
-            value:   kpis.mrr > 0 ? fmtRaw(kpis.mrr) : "—",
+            value:   kpis.mrr > 0 ? formatBRL(kpis.mrr) : "—",
             quality: kpis.mrr > 0 ? kpis.mrrQuality : null,
             icon:    DollarSign,
             color:   "text-amber-700",
@@ -304,7 +297,7 @@ export default function ComercialPage() {
           },
           {
             label:   "ARR Contratado",
-            value:   kpis.arr > 0 ? fmtRaw(kpis.arr) : "—",
+            value:   kpis.arr > 0 ? formatBRL(kpis.arr) : "—",
             quality: kpis.arr > 0 ? kpis.arrQuality : null,
             icon:    TrendingUp,
             color:   "text-amber-700",
@@ -312,7 +305,7 @@ export default function ComercialPage() {
           },
           {
             label:   "Upside Potencial",
-            value:   kpis.upsidePotential !== null ? fmtRaw(kpis.upsidePotential) : "Sem dado",
+            value:   kpis.upsidePotential !== null ? formatBRL(kpis.upsidePotential) : "Sem dado",
             quality: kpis.upsidePotential !== null ? "estimado" : null,
             icon:    BarChart3,
             color:   "text-gray-400",
@@ -399,7 +392,7 @@ export default function ComercialPage() {
                       {o.economics.monthlyFee !== null && o.economics.monthlyFeeQuality !== "sem_dado" ? (
                         <>
                           <div className="text-sm font-bold text-amber-600">
-                            {fmtRaw(o.economics.monthlyFee)}/mês
+                            {formatBRL(o.economics.monthlyFee)}/mês
                           </div>
                           <QualityBadge q={o.economics.monthlyFeeQuality} />
                         </>
@@ -485,7 +478,7 @@ export default function ComercialPage() {
                       {o.economics.monthlyFee !== null && o.economics.monthlyFeeQuality !== "sem_dado" ? (
                         <div>
                           <div className="text-sm font-bold text-amber-600 tabular-nums">
-                            {fmtRaw(o.economics.monthlyFee)}
+                            {formatBRL(o.economics.monthlyFee)}
                           </div>
                           <QualityBadge q={o.economics.monthlyFeeQuality} />
                         </div>
@@ -497,7 +490,7 @@ export default function ComercialPage() {
                       {o.economics.arr !== null && o.economics.arrQuality !== "sem_dado" ? (
                         <div>
                           <div className="text-sm font-bold text-gray-700 tabular-nums">
-                            {fmtRaw(o.economics.arr)}
+                            {formatBRL(o.economics.arr)}
                           </div>
                           <QualityBadge q={o.economics.arrQuality} />
                         </div>
@@ -509,7 +502,7 @@ export default function ComercialPage() {
                       {o.economics.contractValue !== null && o.economics.contractValueQuality !== "sem_dado" ? (
                         <div>
                           <div className="text-sm font-bold text-gray-700 tabular-nums">
-                            {fmtRaw(o.economics.contractValue)}
+                            {formatBRL(o.economics.contractValue)}
                           </div>
                           <QualityBadge q={o.economics.contractValueQuality} />
                         </div>

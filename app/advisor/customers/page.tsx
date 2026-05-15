@@ -11,14 +11,7 @@ import Header from "@/components/Header";
 import { Users, DollarSign, Star, BarChart3, Database } from "lucide-react";
 import { advisorClients } from "@/lib/advisor-clients-data";
 import type { AdvisorClientSeed as AdvisorClientRow } from "@/lib/advisor-clients-data";
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function fmtR(n: number) {
-  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  if (n >= 1_000)     return "R$" + (n / 1_000).toFixed(0) + "K";
-  return "R$" + n;
-}
+import { formatBRL } from "@/lib/utils";
 
 const statusBadge: Record<string, string> = {
   "Ativo":         "badge badge-green",
@@ -56,7 +49,7 @@ export default function AdvisorCustomersPage() {
           {[
             { label: "Clientes Ativos",  value: String(ativos),                         color: "text-violet-600", icon: Users      },
             { label: "Total Carteira",   value: String(clients.length),                 color: "text-gray-900",   icon: BarChart3  },
-            { label: "AUM Total",        value: totalAum > 0 ? fmtR(totalAum) : "—",   color: "text-violet-600", icon: DollarSign },
+            { label: "AUM Total",        value: totalAum > 0 ? formatBRL(totalAum) : "—",   color: "text-violet-600", icon: DollarSign },
             { label: "NPS Médio",        value: avgNps != null ? String(avgNps) : "—", color: "text-amber-600",  icon: Star       },
           ].map((s) => {
             const Icon = s.icon;
@@ -110,12 +103,12 @@ export default function AdvisorCustomersPage() {
                       <td className="py-2.5 px-3 text-xs text-gray-500">{c.segmento || "—"}</td>
                       <td className="py-2.5 px-3 text-right text-xs">
                         {(c.aum ?? 0) > 0
-                          ? <span className="text-gray-900 font-semibold">{fmtR(c.aum)}</span>
+                          ? <span className="text-gray-900 font-semibold">{formatBRL(c.aum)}</span>
                           : <span className="text-gray-400">—</span>}
                       </td>
                       <td className="py-2.5 px-3 text-right text-xs">
                         {(c.fee_mensal ?? 0) > 0
-                          ? <span className="text-violet-600 font-semibold">{fmtR(c.fee_mensal)}</span>
+                          ? <span className="text-violet-600 font-semibold">{formatBRL(c.fee_mensal)}</span>
                           : <span className="text-gray-400">—</span>}
                       </td>
                       <td className="py-2.5 px-3 text-right text-xs">

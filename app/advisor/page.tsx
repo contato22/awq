@@ -7,12 +7,7 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import { Briefcase, Users, DollarSign, TrendingUp, Star, ChevronRight } from "lucide-react";
 import { advisorClients } from "@/lib/advisor-clients-data";
-
-function fmtR(n: number) {
-  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  if (n >= 1_000)     return "R$" + (n / 1_000).toFixed(0) + "K";
-  return "R$" + n;
-}
+import { formatBRL } from "@/lib/utils";
 
 export default function AdvisorPage() {
   const clients  = advisorClients;
@@ -25,7 +20,7 @@ export default function AdvisorPage() {
 
   const kpis = [
     { label: "Clientes Ativos", value: String(ativos),                         icon: Users      },
-    { label: "AUM Total",       value: totalAum > 0 ? fmtR(totalAum) : "—",   icon: DollarSign },
+    { label: "AUM Total",       value: totalAum > 0 ? formatBRL(totalAum) : "—",   icon: DollarSign },
     { label: "Retorno Médio",   value: "—",                                    icon: TrendingUp },
     { label: "NPS Médio",       value: avgNps != null ? String(avgNps) : "—", icon: Star       },
   ];
@@ -79,7 +74,7 @@ export default function AdvisorPage() {
                   </div>
                   <div className="flex items-center gap-3">
                     {(c.aum ?? 0) > 0 && (
-                      <span className="text-xs text-gray-500">{fmtR(c.aum)}</span>
+                      <span className="text-xs text-gray-500">{formatBRL(c.aum)}</span>
                     )}
                     <span className={c.status === "Ativo" ? "badge badge-green" : "badge badge-yellow"}>
                       {c.status}
