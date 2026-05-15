@@ -258,8 +258,6 @@ export const buData: BuData[] = [
     hrefUnitEcon:     "/awq-venture",
     hrefBudget:       "/awq-venture",
   },
-];
-
   {
     id:               "enrd",
     name:             "ENRD",
