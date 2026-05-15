@@ -417,9 +417,12 @@ export async function listTasks(project_id?: string, filters?: { status?: TaskSt
 
 export async function createTask(input: Omit<PpmTask, "task_id" | "actual_hours" | "created_at" | "updated_at">): Promise<PpmTask> {
   const task_id = randomUUID();
+  const project_name = input.project_name
+    ?? _projects.find(p => p.project_id === input.project_id)?.project_name;
   const newTask: PpmTask = {
     ...input,
     task_id,
+    project_name,
     actual_hours: 0,
     created_at: now(),
     updated_at: now(),

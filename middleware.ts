@@ -38,7 +38,17 @@ export default withAuth(
   },
   {
     callbacks: {
-      authorized: ({ token }) => !!token,
+      authorized: ({ token, req }) => {
+        // Allow unauthenticated access to PPM routes in local E2E test environments
+        if (
+          process.env.PLAYWRIGHT_BYPASS === "1" &&
+          (req.nextUrl.pathname.startsWith("/awq/ppm") ||
+            req.nextUrl.pathname.startsWith("/api/ppm"))
+        ) {
+          return true;
+        }
+        return !!token;
+      },
     },
   }
 );

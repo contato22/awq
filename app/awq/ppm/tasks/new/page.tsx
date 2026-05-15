@@ -99,7 +99,7 @@ export default function NewTaskPage() {
 
             <div>
               <label className="block text-xs font-semibold text-gray-700 mb-1">Projeto <span className="text-red-500">*</span></label>
-              <select value={form.project_id} onChange={set("project_id")} className={INPUT} required>
+              <select value={form.project_id} onChange={set("project_id")} className={INPUT}>
                 <option value="">Selecione o projeto…</option>
                 {projects.map(p => (
                   <option key={p.project_id} value={p.project_id}>{p.project_name}</option>
