@@ -30,7 +30,7 @@ type Analytics = {
 };
 
 export default function AnalyticsPage() {
-  const lockedBU = useLockedBU();
+  const { lockedBU, sessionLoading } = useLockedBU();
   const [data, setData] = useState<Analytics | null>(null);
   const [allOpps, setAllOpps] = useState<CrmOpportunity[]>([]);
   const [loading, setLoading] = useState(true);

@@ -306,7 +306,7 @@ function SegmentLegend({
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function RfmPage() {
-  const lockedBU = useLockedBU();
+  const { lockedBU, sessionLoading } = useLockedBU();
   const [data, setData]               = useState<RfmResponse | null>(null);
   const [loading, setLoading]         = useState(true);
   const [selectedSegment, setSelectedSegment] = useState<RfmSegment | null>(null);

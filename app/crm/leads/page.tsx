@@ -58,7 +58,7 @@ function BuBadge({ bu }: { bu: string }) {
 
 export default function LeadsPage() {
   const router = useRouter();
-  const lockedBU = useLockedBU();
+  const { lockedBU, sessionLoading } = useLockedBU();
   const [leads, setLeads] = useState<CrmLead[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("all");

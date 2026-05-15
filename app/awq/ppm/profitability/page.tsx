@@ -38,7 +38,7 @@ const BU_CHIP: Record<string, string> = {
 };
 
 export default function ProfitabilityPage() {
-  const lockedBU = useLockedBU();
+  const { lockedBU, sessionLoading } = useLockedBU();
   const [rows,    setRows]    = useState<ProfitRow[]>([]);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -89,7 +89,7 @@ export default function ProfitabilityPage() {
     }
   }, [lockedBU]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { if (!sessionLoading) void load(); }, [load, sessionLoading]);
 
   function toggleSort(col: keyof ProfitRow) {
     if (sort === col) setAsc(a => !a);
