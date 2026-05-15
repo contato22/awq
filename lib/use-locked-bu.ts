@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react";
 
 const ROLE_BU_LOCK: Record<string, string> = {
+  enrd: "ENRD",
   caza: "CAZA",
 };
 
