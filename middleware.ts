@@ -2,6 +2,8 @@ import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
 import { canAccess, findUserByEmail, type Role } from "@/lib/auth-users";
 
+const ROLE_BU_LOCK: Record<string, string> = { enrd: "ENRD", caza: "CAZA" };
+
 // ── Security headers (aplicados a todas as respostas server-side) ──────────
 function withSecurityHeaders(response: NextResponse): NextResponse {
   response.headers.set("X-Content-Type-Options", "nosniff");
@@ -20,15 +22,18 @@ export default withAuth(
       return NextResponse.redirect(new URL("/login", req.url));
     }
 
-    // Skip RBAC for API routes — each API handler manages its own authorization
-    if (pathname.startsWith("/api/")) {
-      return withSecurityHeaders(NextResponse.next());
-    }
-
     const role = token.role as Role;
 
+    // For API routes: inject x-bu-lock header so handlers can enforce BU isolation
+    // without needing to re-decrypt the JWT (which fails in App Router API routes).
+    if (pathname.startsWith("/api/")) {
+      const res = NextResponse.next();
+      const lockedBU = ROLE_BU_LOCK[role];
+      if (lockedBU) res.headers.set("x-bu-lock", lockedBU);
+      return withSecurityHeaders(res);
+    }
+
     if (!canAccess(role, pathname)) {
-      // Redirect to the user's home route instead of showing a 403
       const user = findUserByEmail(token.email as string);
       const home = user?.homeRoute ?? "/login";
       return NextResponse.redirect(new URL(home, req.url));
