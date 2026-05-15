@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from "react";
 import type { DragEvent, FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
+import { useLockedBU } from "@/lib/use-locked-bu";
 import Link from "next/link";
 import Header from "@/components/Header";
 import SectionHeader from "@/components/SectionHeader";
@@ -774,11 +775,16 @@ function KanbanColumn({
 
 function PipelinePageInner() {
   const searchParams = useSearchParams();
+  const lockedBU = useLockedBU();
   const [opps, setOpps] = useState<CrmOpportunity[]>([]);
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
   const urlBu = searchParams?.get("bu") ?? null;
-  const [filterBU, setFilterBU] = useState(urlBu && BU_OPTIONS.includes(urlBu as typeof BU_OPTIONS[number]) ? urlBu : "Todos");
+  const [filterBU, setFilterBU] = useState(
+    lockedBU ?? (urlBu && BU_OPTIONS.includes(urlBu as typeof BU_OPTIONS[number]) ? urlBu : "Todos")
+  );
+
+  useEffect(() => { if (lockedBU) setFilterBU(lockedBU); }, [lockedBU]);
   const [filterOwner, setFilterOwner] = useState("Todos");
   const [dragOverStage, setDragOverStage] = useState<string | null>(null);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
@@ -999,14 +1005,18 @@ function PipelinePageInner() {
 
         {/* Filters */}
         <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
-            {["Todos","JACQES","CAZA","ADVISOR","VENTURE","ENRD"].map(bu => (
-              <button key={bu} onClick={() => setFilterBU(bu)}
-                className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${filterBU === bu ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
-                {bu}
-              </button>
-            ))}
-          </div>
+          {lockedBU ? (
+            <span className="px-3 py-1.5 bg-orange-50 border border-orange-200 rounded-lg text-xs font-semibold text-orange-700">{lockedBU}</span>
+          ) : (
+            <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+              {["Todos","JACQES","CAZA","ADVISOR","VENTURE","ENRD"].map(bu => (
+                <button key={bu} onClick={() => setFilterBU(bu)}
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${filterBU === bu ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
+                  {bu}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
             {["Todos","Miguel","Danilo"].map(o => (
               <button key={o} onClick={() => setFilterOwner(o)}

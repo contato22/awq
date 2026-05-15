@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import { useLockedBU } from "@/lib/use-locked-bu";
 import Header from "@/components/Header";
 import SectionHeader from "@/components/SectionHeader";
 import { Users, DollarSign, TrendingUp, Star, AlertTriangle, Filter } from "lucide-react";
@@ -305,10 +306,13 @@ function SegmentLegend({
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function RfmPage() {
+  const lockedBU = useLockedBU();
   const [data, setData]               = useState<RfmResponse | null>(null);
   const [loading, setLoading]         = useState(true);
   const [selectedSegment, setSelectedSegment] = useState<RfmSegment | null>(null);
-  const [bu, setBu]                   = useState<BuFilter>("Todos");
+  const [bu, setBu]                   = useState<BuFilter>((lockedBU as BuFilter) ?? "Todos");
+
+  useEffect(() => { if (lockedBU) setBu(lockedBU as BuFilter); }, [lockedBU]);
 
   useEffect(() => {
     setLoading(true);
@@ -359,7 +363,9 @@ export default function RfmPage() {
         <div className="flex items-center gap-2 flex-wrap">
           <Filter size={13} className="text-gray-400 shrink-0" />
           <span className="text-[11px] text-gray-500 shrink-0">Filtrar por BU:</span>
-          {BUS.map(b => (
+          {lockedBU ? (
+            <span className="px-3 py-1 rounded-full text-[11px] font-semibold bg-orange-100 text-orange-700">{lockedBU}</span>
+          ) : BUS.map(b => (
             <button
               key={b}
               onClick={() => { setBu(b); setSelectedSegment(null); }}

@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { ArrowLeft, RefreshCw, Calendar } from "lucide-react";
+import { useLockedBU } from "@/lib/use-locked-bu";
 import { formatDateBR } from "@/lib/utils";
 import type { PpmProject, PpmTask } from "@/lib/ppm-types";
 
@@ -59,11 +60,14 @@ function monthsBetween(start: Date, end: Date): string[] {
 }
 
 export default function GanttPage() {
+  const lockedBU = useLockedBU();
   const [projects, setProjects] = useState<PpmProject[]>([]);
   const [tasksByProject, setTasksByProject] = useState<Record<string, PpmTask[]>>({});
   const [loading, setLoading]   = useState(true);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const [filterBU, setFilterBU] = useState("");
+  const [filterBU, setFilterBU] = useState(lockedBU ?? "");
+
+  useEffect(() => { if (lockedBU) setFilterBU(lockedBU); }, [lockedBU]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -126,12 +130,16 @@ export default function GanttPage() {
             </div>
           </div>
           <div className="flex gap-2">
-            <select value={filterBU} onChange={e => setFilterBU(e.target.value)}
-              className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none"
-            >
-              <option value="">Todas BUs</option>
-              {["JACQES","CAZA","ADVISOR","VENTURE","ENRD"].map(b => <option key={b} value={b}>{b}</option>)}
-            </select>
+            {lockedBU ? (
+              <span className="px-3 py-2 bg-orange-50 border border-orange-200 rounded-lg text-sm font-semibold text-orange-700">{lockedBU}</span>
+            ) : (
+              <select value={filterBU} onChange={e => setFilterBU(e.target.value)}
+                className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none"
+              >
+                <option value="">Todas BUs</option>
+                {["JACQES","CAZA","ADVISOR","VENTURE","ENRD"].map(b => <option key={b} value={b}>{b}</option>)}
+              </select>
+            )}
             <button onClick={() => void load()} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
               <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
             </button>

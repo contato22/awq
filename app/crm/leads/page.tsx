@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useLockedBU } from "@/lib/use-locked-bu";
 import Header from "@/components/Header";
 import SectionHeader from "@/components/SectionHeader";
 import EmptyState from "@/components/EmptyState";
@@ -57,21 +58,23 @@ function BuBadge({ bu }: { bu: string }) {
 
 export default function LeadsPage() {
   const router = useRouter();
+  const lockedBU = useLockedBU();
   const [leads, setLeads] = useState<CrmLead[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [buFilter, setBuFilter] = useState<string>("Todos");
+  const [buFilter, setBuFilter] = useState<string>(lockedBU ?? "Todos");
   const [search, setSearch] = useState("");
   const [converting, setConverting] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
 
   useEffect(() => {
+    if (lockedBU) { setBuFilter(lockedBU); return; }
     const params = new URLSearchParams(window.location.search);
     const urlBu = params.get("bu");
     if (urlBu && BU_LIST.includes(urlBu as typeof BU_LIST[number])) {
       setBuFilter(urlBu);
     }
-  }, []);
+  }, [lockedBU]);
 
   useEffect(() => {
     void supabase.from("crm_leads").select("*").order("created_at", { ascending: false })
@@ -227,13 +230,17 @@ export default function LeadsPage() {
               </button>
             ))}
           </div>
-          <select
-            value={buFilter}
-            onChange={e => setBuFilter(e.target.value)}
-            className="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
-          >
-            {BU_LIST.map(b => <option key={b}>{b}</option>)}
-          </select>
+          {lockedBU ? (
+            <span className="px-3 py-1.5 bg-orange-50 border border-orange-200 rounded-lg text-sm font-semibold text-orange-700">{lockedBU}</span>
+          ) : (
+            <select
+              value={buFilter}
+              onChange={e => setBuFilter(e.target.value)}
+              className="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
+            >
+              {BU_LIST.map(b => <option key={b}>{b}</option>)}
+            </select>
+          )}
           <div className="relative">
             <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             <input

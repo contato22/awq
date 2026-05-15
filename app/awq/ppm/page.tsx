@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useLockedBU } from "@/lib/use-locked-bu";
 import {
   LayoutDashboard, Plus, Search, Filter, TrendingUp, TrendingDown,
   DollarSign, Clock, Users, CheckCircle2, AlertTriangle, XCircle,
@@ -193,14 +194,17 @@ function ProjectRow({ project }: { project: PpmProject }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function PpmPortfolioPage() {
+  const lockedBU = useLockedBU();
   const [projects,  setProjects]  = useState<PpmProject[]>([]);
   const [metrics,   setMetrics]   = useState<PpmPortfolioMetrics | null>(null);
   const [loading,   setLoading]   = useState(true);
   const [search,    setSearch]    = useState("");
-  const [filterBU,      setFilterBU]      = useState("");
+  const [filterBU,      setFilterBU]      = useState(lockedBU ?? "");
   const [filterStatus,  setFilterStatus]  = useState("");
   const [filterHealth,  setFilterHealth]  = useState("");
   const [filterType,    setFilterType]    = useState("");
+
+  useEffect(() => { if (lockedBU) setFilterBU(lockedBU); }, [lockedBU]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -324,8 +328,17 @@ export default function PpmPortfolioPage() {
                 className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/30"
               />
             </div>
+            {lockedBU ? (
+              <span className="px-3 py-2 bg-orange-50 border border-orange-200 rounded-lg text-sm font-semibold text-orange-700">{lockedBU}</span>
+            ) : (
+              <select
+                value={filterBU} onChange={e => setFilterBU(e.target.value)}
+                className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/30 bg-white text-gray-700"
+              >
+                {[["","Todas BUs"],["JACQES","JACQES"],["CAZA","Caza Vision"],["ADVISOR","Advisor"],["VENTURE","Venture"],["ENRD","ENRD"]].map(([v,l]) => <option key={v} value={v}>{l}</option>)}
+              </select>
+            )}
             {[
-              { value: filterBU, setter: setFilterBU, label: "BU", opts: [["","Todas BUs"],["JACQES","JACQES"],["CAZA","Caza Vision"],["ADVISOR","Advisor"],["VENTURE","Venture"],["ENRD","ENRD"]] },
               { value: filterStatus, setter: setFilterStatus, label: "Status", opts: [["","Todos Status"],["active","Ativo"],["on_hold","Em Pausa"],["completed","Concluído"],["cancelled","Cancelado"]] },
               { value: filterHealth, setter: setFilterHealth, label: "Health", opts: [["","Todos"],["green","🟢 On Track"],["yellow","🟡 At Risk"],["red","🔴 Off Track"]] },
               { value: filterType, setter: setFilterType, label: "Tipo", opts: [["","Todos Tipos"],["one_off","One-off"],["retainer","Retainer"],["internal","Interno"]] },

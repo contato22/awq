@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useLockedBU } from "@/lib/use-locked-bu";
 import { ArrowLeft, TrendingUp, TrendingDown, RefreshCw, DollarSign, Download } from "lucide-react";
 import { formatBRL } from "@/lib/utils";
 
@@ -37,6 +38,7 @@ const BU_CHIP: Record<string, string> = {
 };
 
 export default function ProfitabilityPage() {
+  const lockedBU = useLockedBU();
   const [rows,    setRows]    = useState<ProfitRow[]>([]);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -78,13 +80,14 @@ export default function ProfitabilityPage() {
       const res  = await fetch("/api/ppm/metrics");
       const json = await res.json();
       if (json.success) {
-        setRows(json.data.profitability);
+        const allRows: ProfitRow[] = json.data.profitability;
+        setRows(lockedBU ? allRows.filter(r => r.bu_code === lockedBU) : allRows);
         setMetrics(json.data.metrics);
       }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [lockedBU]);
 
   useEffect(() => { void load(); }, [load]);
 

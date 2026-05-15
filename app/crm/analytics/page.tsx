@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import { useLockedBU } from "@/lib/use-locked-bu";
 import Header from "@/components/Header";
 import SectionHeader from "@/components/SectionHeader";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
@@ -29,13 +30,14 @@ type Analytics = {
 };
 
 export default function AnalyticsPage() {
+  const lockedBU = useLockedBU();
   const [data, setData] = useState<Analytics | null>(null);
-  const [opps, setOpps] = useState<CrmOpportunity[]>([]);
+  const [allOpps, setAllOpps] = useState<CrmOpportunity[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (IS_STATIC) {
-      try { setOpps(JSON.parse(localStorage.getItem("crm-opportunities-v3") ?? "[]")); } catch { setOpps([]); }
+      try { setAllOpps(JSON.parse(localStorage.getItem("crm-opportunities-v3") ?? "[]")); } catch { setAllOpps([]); }
       setLoading(false);
       return;
     }
@@ -45,14 +47,18 @@ export default function AnalyticsPage() {
     ])
       .then(([ana, opp]) => {
         setData(ana.success ? ana.data : null);
-        setOpps(opp.success ? opp.data : []);
+        setAllOpps(opp.success ? opp.data : []);
       })
-      .catch(() => setOpps([]))
+      .catch(() => setAllOpps([]))
       .finally(() => setLoading(false));
   }, []);
 
+  const opps = useMemo(() =>
+    lockedBU ? allOpps.filter(o => o.bu === lockedBU) : allOpps
+  , [allOpps, lockedBU]);
+
   const metrics = useMemo(() => {
-    if (data) return data;
+    if (data && !lockedBU) return data;
     const open = opps.filter(o=>o.stage!=="closed_won"&&o.stage!=="closed_lost");
     const won  = opps.filter(o=>o.stage==="closed_won");
     const closed = opps.filter(o=>o.stage==="closed_won"||o.stage==="closed_lost");
@@ -77,12 +83,13 @@ export default function AnalyticsPage() {
     color: ["#3b82f6","#8b5cf6","#f59e0b","#f97316"][["discovery","qualification","proposal","negotiation"].indexOf(s)],
   })), [data, opps]);
 
-  const buData = useMemo(() => ["JACQES","CAZA","ADVISOR","VENTURE","ENRD"].map(bu => ({
+  const buList = lockedBU ? [lockedBU] : ["JACQES","CAZA","ADVISOR","VENTURE","ENRD"];
+  const buData = useMemo(() => buList.map(bu => ({
     bu,
-    value: data?.byBU[bu]?.value ?? opps.filter(o=>o.bu===bu&&o.stage!=="closed_won"&&o.stage!=="closed_lost").reduce((s,o)=>s+o.deal_value,0),
-    count: data?.byBU[bu]?.count ?? opps.filter(o=>o.bu===bu&&o.stage!=="closed_won"&&o.stage!=="closed_lost").length,
-    color: BU_COLORS[bu],
-  })), [data, opps]);
+    value: (!lockedBU && data?.byBU[bu]?.value) || opps.filter(o=>o.bu===bu&&o.stage!=="closed_won"&&o.stage!=="closed_lost").reduce((s,o)=>s+o.deal_value,0),
+    count: (!lockedBU && data?.byBU[bu]?.count) || opps.filter(o=>o.bu===bu&&o.stage!=="closed_won"&&o.stage!=="closed_lost").length,
+    color: BU_COLORS[bu] ?? "#ea580c",
+  })), [data, opps, lockedBU]);
 
   const reps = useMemo(() => ["Miguel","Danilo"].map(r => {
     const myOpps = opps.filter(o=>o.owner===r);
