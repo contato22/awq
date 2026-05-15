@@ -48,8 +48,7 @@ interface BankAccount {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-// localStorage key for this page's local account data.
-// This is intentionally separate from public/data/financial/* (the canonical store).
+const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 const LS_KEY = "awq_bank_accounts";
 
 const BANK_GROUPS: { label: string; banks: string[] }[] = [
@@ -135,22 +134,60 @@ export default function BankAccountsPage() {
   const [newName, setNewName]       = useState("");
   const [newBalance, setNewBalance] = useState("");
 
-  // ── Load from localStorage ───────────────────────────────────────────────
+  // ── Load ─────────────────────────────────────────────────────────────────
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(LS_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as BankAccount[];
-        setAccounts(parsed);
-        if (parsed.length > 0) setSelectedId(parsed[0].id);
-      }
-    } catch { /* ignore */ }
+    if (IS_STATIC) {
+      try {
+        const raw = localStorage.getItem(LS_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw) as BankAccount[];
+          setAccounts(parsed);
+          if (parsed.length > 0) setSelectedId(parsed[0].id);
+        }
+      } catch { /* ignore */ }
+    } else {
+      fetch("/api/bank/accounts")
+        .then((r) => r.ok ? r.json() : { success: false, data: [] })
+        .then((j: { success: boolean; data: BankAccount[] }) => {
+          const rows = (j.data ?? []).map((r) => ({
+            id:             r.id,
+            bank:           r.bank,
+            name:           r.name,
+            color:          r.color,
+            currentBalance: Number((r as unknown as Record<string,unknown>).current_balance ?? r.currentBalance ?? 0),
+            lastUpdated:    String((r as unknown as Record<string,unknown>).last_updated ?? r.lastUpdated ?? ""),
+            transactions:   Array.isArray((r as unknown as Record<string,unknown>).transactions) ? (r as unknown as Record<string,unknown>).transactions as BankTransaction[] : r.transactions ?? [],
+          }));
+          setAccounts(rows);
+          if (rows.length > 0) setSelectedId(rows[0].id);
+        })
+        .catch(() => undefined);
+    }
   }, []);
 
-  // ── Persist to localStorage ──────────────────────────────────────────────
+  // ── Persist ───────────────────────────────────────────────────────────────
   const save = useCallback((updated: BankAccount[]) => {
     setAccounts(updated);
-    try { localStorage.setItem(LS_KEY, JSON.stringify(updated)); } catch { /* ignore */ }
+    if (IS_STATIC) {
+      try { localStorage.setItem(LS_KEY, JSON.stringify(updated)); } catch { /* ignore */ }
+    } else {
+      fetch("/api/bank/accounts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "upsert_all",
+          accounts: updated.map((a) => ({
+            id:              a.id,
+            bank:            a.bank,
+            name:            a.name,
+            color:           a.color,
+            current_balance: a.currentBalance,
+            last_updated:    a.lastUpdated,
+            transactions:    a.transactions,
+          })),
+        }),
+      }).catch(() => undefined);
+    }
   }, []);
 
   const selected = accounts.find((a) => a.id === selectedId) ?? null;
@@ -179,8 +216,17 @@ export default function BankAccountsPage() {
   // ── Delete account ───────────────────────────────────────────────────────
   function handleDelete(id: string) {
     const updated = accounts.filter((a) => a.id !== id);
-    save(updated);
+    setAccounts(updated);
     setSelectedId(updated[0]?.id ?? null);
+    if (IS_STATIC) {
+      try { localStorage.setItem(LS_KEY, JSON.stringify(updated)); } catch { /* ignore */ }
+    } else {
+      fetch("/api/bank/accounts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "delete", id }),
+      }).catch(() => undefined);
+    }
   }
 
   // ── Derived totals ───────────────────────────────────────────────────────
@@ -203,7 +249,7 @@ export default function BankAccountsPage() {
     <>
       <Header
         title="Contas de Banco"
-        subtitle="Saldos manuais · Visão de caixa local · Dados em localStorage"
+        subtitle="Saldos manuais · Visão de caixa · Rastreio manual de contas bancárias"
       />
       <div className="px-8 py-6 space-y-5">
 

@@ -418,14 +418,31 @@ export interface DealOverride {
   overriddenAt?: string;
 }
 
+const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
+
 function overrideKey(id: string) { return `awq_deal_override_${id}`; }
-function loadOverride(id: string): DealOverride {
+function loadOverrideLocal(id: string): DealOverride {
   if (typeof window === "undefined") return {};
   try { return JSON.parse(localStorage.getItem(overrideKey(id)) ?? "{}"); } catch { return {}; }
 }
-function saveOverride(id: string, data: DealOverride) {
+function saveOverrideLocal(id: string, data: DealOverride) {
   if (typeof window === "undefined") return;
   localStorage.setItem(overrideKey(id), JSON.stringify(data));
+}
+async function loadOverrideAPI(id: string): Promise<DealOverride> {
+  try {
+    const res = await fetch(`/api/venture/deal-overrides/${id}`);
+    if (!res.ok) return {};
+    const json = await res.json() as { data: DealOverride };
+    return json.data ?? {};
+  } catch { return {}; }
+}
+function saveOverrideAPI(id: string, data: DealOverride) {
+  fetch(`/api/venture/deal-overrides/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  }).catch(() => undefined);
 }
 
 const ALL_STAGES: DealStage[] = [
@@ -971,12 +988,23 @@ export default function DealWorkspacePage({
   const [showStatusModal,   setShowStatusModal]   = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  useEffect(() => { setOverride(loadOverride(deal.id)); }, [deal.id]);
+  useEffect(() => {
+    if (IS_STATIC) {
+      setOverride(loadOverrideLocal(deal.id));
+    } else {
+      loadOverrideAPI(deal.id).then(setOverride);
+    }
+  }, [deal.id]);
+
+  function persistOverride(id: string, data: DealOverride) {
+    saveOverrideLocal(id, data);
+    if (!IS_STATIC) saveOverrideAPI(id, data);
+  }
 
   function applyOverride(patch: Partial<DealOverride>) {
     setOverride((prev) => {
       const next = { ...prev, ...patch, overriddenAt: new Date().toISOString() };
-      saveOverride(deal.id, next);
+      persistOverride(deal.id, next);
       return next;
     });
   }
@@ -985,7 +1013,7 @@ export default function DealWorkspacePage({
     setOverride((prev) => {
       const log = [...(prev.historyLog ?? []), { timestamp: new Date().toISOString(), field: key, from: prev.fields?.[key] ?? "—", to: val }];
       const next = { ...prev, fields: { ...(prev.fields ?? {}), [key]: val }, historyLog: log, overriddenAt: new Date().toISOString() };
-      saveOverride(deal.id, next);
+      persistOverride(deal.id, next);
       return next;
     });
   }
@@ -994,7 +1022,7 @@ export default function DealWorkspacePage({
     setOverride((prev) => {
       const log = [...(prev.historyLog ?? []), { timestamp: new Date().toISOString(), field: key, from: String(prev.numericFields?.[key] ?? "—"), to: String(val) }];
       const next = { ...prev, numericFields: { ...(prev.numericFields ?? {}), [key]: val }, historyLog: log, overriddenAt: new Date().toISOString() };
-      saveOverride(deal.id, next);
+      persistOverride(deal.id, next);
       return next;
     });
   }
@@ -1003,7 +1031,7 @@ export default function DealWorkspacePage({
     setOverride((prev) => {
       const log = [...(prev.historyLog ?? []), { timestamp: new Date().toISOString(), field: key, from: (prev.arrayFields?.[key] ?? []).join("; ") || "—", to: arr.join("; ") }];
       const next = { ...prev, arrayFields: { ...(prev.arrayFields ?? {}), [key]: arr }, historyLog: log, overriddenAt: new Date().toISOString() };
-      saveOverride(deal.id, next);
+      persistOverride(deal.id, next);
       return next;
     });
   }

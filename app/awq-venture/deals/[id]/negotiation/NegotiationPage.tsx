@@ -14,14 +14,32 @@ import type { DealOverride } from "../DealWorkspacePage";
 
 // ─── Persistence helpers (shared with DealWorkspacePage) ──────────────────────
 
+const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
+
 function overrideKey(id: string) { return `awq_deal_override_${id}`; }
-function loadOverride(id: string): DealOverride {
+function loadOverrideLocal(id: string): DealOverride {
   if (typeof window === "undefined") return {};
   try { return JSON.parse(localStorage.getItem(overrideKey(id)) ?? "{}"); } catch { return {}; }
 }
-function saveOverride(id: string, data: DealOverride) {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(overrideKey(id), JSON.stringify(data));
+async function loadOverrideAPI(id: string): Promise<DealOverride> {
+  try {
+    const res = await fetch(`/api/venture/deal-overrides/${id}`);
+    if (!res.ok) return {};
+    const json = await res.json() as { data: DealOverride };
+    return json.data ?? {};
+  } catch { return {}; }
+}
+function persistOverride(id: string, data: DealOverride) {
+  if (typeof window !== "undefined") {
+    localStorage.setItem(overrideKey(id), JSON.stringify(data));
+  }
+  if (!IS_STATIC) {
+    fetch(`/api/venture/deal-overrides/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    }).catch(() => undefined);
+  }
 }
 
 // ─── Client response types (must mirror share/SharePage.tsx) ─────────────────
@@ -45,9 +63,18 @@ interface NegotiationRound {
 
 const CLIENT_RESPONSES_KEY = (id: string) => `awq_deal_client_responses_${id}`;
 
-function loadClientRounds(id: string): NegotiationRound[] {
+function loadClientRoundsLocal(id: string): NegotiationRound[] {
   if (typeof window === "undefined") return [];
   try { return JSON.parse(localStorage.getItem(CLIENT_RESPONSES_KEY(id)) ?? "[]"); } catch { return []; }
+}
+
+async function loadClientRoundsAPI(id: string): Promise<NegotiationRound[]> {
+  try {
+    const res = await fetch(`/api/venture/deal-responses/${id}`);
+    if (!res.ok) return [];
+    const json = await res.json() as { data: NegotiationRound[] };
+    return Array.isArray(json.data) ? json.data : [];
+  } catch { return []; }
 }
 
 const sectionLabels = [
@@ -93,8 +120,13 @@ export default function NegotiationPage({ params }: { params: { id: string } }) 
   const [openRound, setOpenRound]       = useState<number | null>(null);
 
   useEffect(() => {
-    setOverride(loadOverride(deal.id));
-    setClientRounds(loadClientRounds(deal.id));
+    if (IS_STATIC) {
+      setOverride(loadOverrideLocal(deal.id));
+      setClientRounds(loadClientRoundsLocal(deal.id));
+    } else {
+      loadOverrideAPI(deal.id).then(setOverride);
+      loadClientRoundsAPI(deal.id).then(setClientRounds);
+    }
   }, [deal.id]);
 
   function addNote() {
@@ -108,14 +140,14 @@ export default function NegotiationPage({ params }: { params: { id: string } }) 
     };
     const updated = { ...override, internalNotes: [...(override.internalNotes ?? []), note] };
     setOverride(updated);
-    saveOverride(deal.id, updated);
+    persistOverride(deal.id, updated);
     setNewNote("");
   }
 
   function deleteNote(id: string) {
     const updated = { ...override, internalNotes: (override.internalNotes ?? []).filter((n: any) => n.id !== id) };
     setOverride(updated);
-    saveOverride(deal.id, updated);
+    persistOverride(deal.id, updated);
   }
 
   const notes = (override.internalNotes ?? []) as any[];

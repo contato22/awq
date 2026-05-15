@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 
 // ─── Types & utils ────────────────────────────────────────────────────────────
-import { loadCustomDeals, saveCustomDeals } from "../custom-deal-utils";
+import { loadCustomDeals, saveCustomDeals, persistCustomDeal, deleteCustomDeal } from "../custom-deal-utils";
 import type { CustomDeal } from "../custom-deal-utils";
 
 // ─── Field helpers ────────────────────────────────────────────────────────────
@@ -70,11 +70,14 @@ export default function NovoDealPage() {
 
   function handleSave() {
     if (!form.companyName.trim()) return;
+    const updated = { ...form, updatedAt: new Date().toISOString() };
+    // localStorage (static mode)
     const all = loadCustomDeals();
     const idx = all.findIndex((d) => d.id === form.id);
-    const updated = { ...form, updatedAt: new Date().toISOString() };
     if (idx >= 0) all[idx] = updated; else all.unshift(updated);
     saveCustomDeals(all);
+    // Supabase (non-static mode)
+    persistCustomDeal(updated);
     setSaved(true);
     setTimeout(() => { router.push("/awq-venture/deals"); }, 1000);
   }
@@ -82,6 +85,7 @@ export default function NovoDealPage() {
   function handleDelete() {
     const all = loadCustomDeals().filter((d) => d.id !== form.id);
     saveCustomDeals(all);
+    deleteCustomDeal(form.id);
     router.push("/awq-venture/deals");
   }
 

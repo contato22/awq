@@ -72,6 +72,7 @@ interface BankTxSnap {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
+const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 const LS_KEY = "awq_ap_items";
 
 const BUS: { id: BU; label: string; short: string; color: string; bg: string; dot: string }[] = [
@@ -227,32 +228,59 @@ export default function APARPage() {
   const [addedFlash, setAddedFlash]     = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
-  // ── Load from localStorage ───────────────────────────────────────────────
+  // ── Load ─────────────────────────────────────────────────────────────────
   useEffect(() => {
     const snaps = loadBankSnapshots();
     setBankTxSnaps(snaps);
-    try {
-      const raw = localStorage.getItem(LS_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as APARItem[];
-        const validBUs = new Set(BUS.map((b) => b.id));
-        const refreshed = parsed.map((item) => {
-          const base = {
-            ...item,
-            bu: (validBUs.has(item.bu) ? item.bu : "awq") as BU,
-            status: computeStatus(item.dueDate, item.status),
-          };
-          // Auto-compute heuristic link if not yet AI-verified
-          if (!base.financialLinkStatus || base.financialLinkSource === "heuristic") {
-            const link = computeHeuristicLink(base, snaps);
-            return { ...base, financialLinkStatus: link.status, financialLinkNote: link.note, financialLinkSource: "heuristic" as const };
-          }
-          return base;
-        });
-        setItems(refreshed);
-        try { localStorage.setItem(LS_KEY, JSON.stringify(refreshed)); } catch { /* ignore */ }
-      }
-    } catch { /* ignore */ }
+
+    function applyRefresh(parsed: APARItem[]) {
+      const validBUs = new Set(BUS.map((b) => b.id));
+      return parsed.map((item) => {
+        const base = {
+          ...item,
+          bu: (validBUs.has(item.bu) ? item.bu : "awq") as BU,
+          status: computeStatus(item.dueDate, item.status),
+        };
+        if (!base.financialLinkStatus || base.financialLinkSource === "heuristic") {
+          const link = computeHeuristicLink(base, snaps);
+          return { ...base, financialLinkStatus: link.status, financialLinkNote: link.note, financialLinkSource: "heuristic" as const };
+        }
+        return base;
+      });
+    }
+
+    if (IS_STATIC) {
+      try {
+        const raw = localStorage.getItem(LS_KEY);
+        if (raw) {
+          const refreshed = applyRefresh(JSON.parse(raw) as APARItem[]);
+          setItems(refreshed);
+          try { localStorage.setItem(LS_KEY, JSON.stringify(refreshed)); } catch { /* ignore */ }
+        }
+      } catch { /* ignore */ }
+    } else {
+      fetch("/api/apar/items")
+        .then((r) => r.ok ? r.json() : { success: false, data: [] })
+        .then((j: { success: boolean; data: Record<string, unknown>[] }) => {
+          const rows: APARItem[] = (j.data ?? []).map((r) => ({
+            id:                   String(r.id ?? ""),
+            type:                 String(r.type ?? "ap") as APARItem["type"],
+            bu:                   String(r.bu ?? "awq") as BU,
+            description:          String(r.description ?? ""),
+            entity:               String(r.entity ?? ""),
+            amount:               Number(r.amount ?? 0),
+            dueDate:              String(r.due_date ?? ""),
+            status:               String(r.status ?? "pending") as APARItem["status"],
+            category:             String(r.category ?? ""),
+            createdAt:            String(r.created_at ?? ""),
+            financialLinkStatus:  r.financial_link_status as APARItem["financialLinkStatus"],
+            financialLinkNote:    r.financial_link_note as string | undefined,
+            financialLinkSource:  r.financial_link_source as APARItem["financialLinkSource"],
+          }));
+          setItems(applyRefresh(rows));
+        })
+        .catch(() => undefined);
+    }
   }, []);
 
   function clearFilters() {
@@ -276,9 +304,46 @@ export default function APARPage() {
     if (bu !== "all") setForm((f) => ({ ...f, bu }));
   }
 
+  function persistItem(item: APARItem) {
+    if (!IS_STATIC) {
+      fetch("/api/apar/items", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "upsert",
+          id:                    item.id,
+          type:                  item.type,
+          bu:                    item.bu,
+          description:           item.description,
+          entity:                item.entity,
+          amount:                item.amount,
+          due_date:              item.dueDate,
+          status:                item.status,
+          category:              item.category,
+          created_at:            item.createdAt,
+          financial_link_status: item.financialLinkStatus,
+          financial_link_note:   item.financialLinkNote,
+          financial_link_source: item.financialLinkSource,
+        }),
+      }).catch(() => undefined);
+    }
+  }
+
+  function destroyItem(id: string) {
+    if (!IS_STATIC) {
+      fetch("/api/apar/items", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "delete", id }),
+      }).catch(() => undefined);
+    }
+  }
+
   const save = useCallback((updated: APARItem[]) => {
     setItems(updated);
-    try { localStorage.setItem(LS_KEY, JSON.stringify(updated)); } catch { /* ignore */ }
+    if (IS_STATIC) {
+      try { localStorage.setItem(LS_KEY, JSON.stringify(updated)); } catch { /* ignore */ }
+    }
   }, []);
 
   // ── Amount helpers ───────────────────────────────────────────────────────
@@ -308,6 +373,7 @@ export default function APARPage() {
       createdAt: today(),
     };
     save([...items, item]);
+    persistItem(item);
     setForm((f) => ({ ...EMPTY_FORM, bu: f.bu }));
     setFormTouched(false);
     setAddedFlash(true);
@@ -315,13 +381,19 @@ export default function APARPage() {
   }
 
   function handleToggleSettle(id: string) {
-    save(items.map((item) => {
+    const updated = items.map((item) => {
       if (item.id !== id) return item;
       return { ...item, status: item.status === "settled" ? computeStatus(item.dueDate, "pending") : "settled" };
-    }));
+    });
+    save(updated);
+    const changed = updated.find((i) => i.id === id);
+    if (changed) persistItem(changed);
   }
 
-  function handleDelete(id: string) { save(items.filter((i) => i.id !== id)); }
+  function handleDelete(id: string) {
+    save(items.filter((i) => i.id !== id));
+    destroyItem(id);
+  }
 
   function handleOpenEdit(item: APARItem) {
     setEditingItem(item);
@@ -338,9 +410,10 @@ export default function APARPage() {
   function handleSaveEdit() {
     if (!editingItem) return;
     if (!editForm.description.trim() || !amountValid(editForm.amount) || !editForm.dueDate) return;
-    save(items.map((i) => {
+    let changedItem: APARItem | undefined;
+    const updated = items.map((i) => {
       if (i.id !== editingItem.id) return i;
-      return {
+      changedItem = {
         ...i,
         description: editForm.description.trim(),
         entity: editForm.entity.trim(),
@@ -350,7 +423,10 @@ export default function APARPage() {
         bu: editForm.bu,
         status: computeStatus(editForm.dueDate, i.status),
       };
-    }));
+      return changedItem;
+    });
+    save(updated);
+    if (changedItem) persistItem(changedItem);
     setEditingItem(null);
   }
 
@@ -433,6 +509,7 @@ export default function APARPage() {
         };
       });
       save(updated);
+      updated.forEach((item) => { if (linkMap.has(item.id)) persistItem(item); });
     } catch {
       // Fallback: heuristic for all items
       const snaps = loadBankSnapshots();
@@ -441,6 +518,7 @@ export default function APARPage() {
         return { ...item, financialLinkStatus: link.status, financialLinkNote: link.note, financialLinkSource: "heuristic" as const };
       });
       save(updated);
+      updated.forEach(persistItem);
     } finally {
       setLinkChecking(false);
     }

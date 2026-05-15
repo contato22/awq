@@ -10,14 +10,34 @@ import {
 } from "lucide-react";
 import type { DealOverride } from "../DealWorkspacePage";
 
+const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
+
 function overrideKey(id: string) { return `awq_deal_override_${id}`; }
-function loadOverride(id: string): DealOverride {
+function loadOverrideLocal(id: string): DealOverride {
   if (typeof window === "undefined") return {};
   try { return JSON.parse(localStorage.getItem(overrideKey(id)) ?? "{}"); } catch { return {}; }
 }
-function saveOverride(id: string, data: DealOverride) {
+function saveOverrideLocal(id: string, data: DealOverride) {
   if (typeof window === "undefined") return;
   localStorage.setItem(overrideKey(id), JSON.stringify(data));
+}
+async function loadOverrideAPI(id: string): Promise<DealOverride> {
+  try {
+    const res = await fetch(`/api/venture/deal-overrides/${id}`);
+    if (!res.ok) return {};
+    const json = await res.json() as { data: DealOverride };
+    return json.data ?? {};
+  } catch { return {}; }
+}
+function persistOverride(id: string, data: DealOverride) {
+  saveOverrideLocal(id, data);
+  if (!IS_STATIC) {
+    fetch(`/api/venture/deal-overrides/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    }).catch(() => undefined);
+  }
 }
 
 function fieldLabel(key: string): string {
@@ -51,17 +71,23 @@ export default function HistoryPage({ params }: { params: { id: string } }) {
 
   const [override, setOverride] = useState<DealOverride>({});
 
-  useEffect(() => { setOverride(loadOverride(deal.id)); }, [deal.id]);
+  useEffect(() => {
+    if (IS_STATIC) {
+      setOverride(loadOverrideLocal(deal.id));
+    } else {
+      loadOverrideAPI(deal.id).then(setOverride);
+    }
+  }, [deal.id]);
 
   function clearOverrides() {
     const cleared = { internalNotes: override.internalNotes, historyLog: override.historyLog };
     setOverride(cleared);
-    saveOverride(deal.id, cleared);
+    persistOverride(deal.id, cleared);
   }
 
   function clearAll() {
     setOverride({});
-    saveOverride(deal.id, {});
+    persistOverride(deal.id, {});
   }
 
   const historyLog = (override.historyLog ?? []) as { timestamp: string; field: string; from: string; to: string }[];
@@ -139,7 +165,7 @@ export default function HistoryPage({ params }: { params: { id: string } }) {
                 {fieldCount} campo{fieldCount !== 1 ? "s" : ""} com override local
               </div>
               <div className="text-xs text-gray-500 mt-0.5">
-                Alterações salvas em localStorage. Não sincronizadas com nenhuma base de dados.
+                Alterações salvas {IS_STATIC ? "localmente" : "no Supabase"}.
               </div>
             </div>
             <div className="flex gap-2 shrink-0">
@@ -229,7 +255,7 @@ export default function HistoryPage({ params }: { params: { id: string } }) {
                         ? "bg-amber-50 text-amber-700 border border-amber-200"
                         : "bg-brand-50 text-brand-700 border border-brand-200"
                     }`}>
-                      {e.source === "override" ? "Edit Local" : "Governança"}
+                      {e.source === "override" ? "Edit" : "Governança"}
                     </span>
                     <span className="text-[10px] text-gray-400 flex items-center gap-1">
                       <User size={9} /> {e.by}

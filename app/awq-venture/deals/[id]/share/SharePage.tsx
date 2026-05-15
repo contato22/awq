@@ -38,6 +38,7 @@ interface NegotiationRound {
   submittedAt:    string;
 }
 
+const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 const STORAGE_KEY = (id: string) => `awq_deal_client_responses_${id}`;
 
 const BLOCK_LABELS = [
@@ -53,14 +54,34 @@ const BLOCK_LABELS = [
   "Decisão Solicitada",
 ];
 
-function loadRounds(dealId: string): NegotiationRound[] {
+function loadRoundsLocal(dealId: string): NegotiationRound[] {
   if (typeof window === "undefined") return [];
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY(dealId)) ?? "[]"); } catch { return []; }
 }
 
-function saveRounds(dealId: string, rounds: NegotiationRound[]) {
+function saveRoundsLocal(dealId: string, rounds: NegotiationRound[]) {
   if (typeof window === "undefined") return;
   localStorage.setItem(STORAGE_KEY(dealId), JSON.stringify(rounds));
+}
+
+async function loadRoundsAPI(dealId: string): Promise<NegotiationRound[]> {
+  try {
+    const res = await fetch(`/api/venture/deal-responses/${dealId}`);
+    if (!res.ok) return [];
+    const json = await res.json() as { data: NegotiationRound[] };
+    return Array.isArray(json.data) ? json.data : [];
+  } catch { return []; }
+}
+
+function persistRounds(dealId: string, rounds: NegotiationRound[]) {
+  saveRoundsLocal(dealId, rounds);
+  if (!IS_STATIC) {
+    fetch(`/api/venture/deal-responses/${dealId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(rounds),
+    }).catch(() => undefined);
+  }
 }
 
 // ─── Block metadata ───────────────────────────────────────────────────────────
@@ -717,11 +738,15 @@ export default function DealSharePage({ params }: { params: { id: string } }) {
   const [currentRound, setCurrentRound] = useState(1);
 
   useEffect(() => {
-    const saved = loadRounds(deal.id);
-    if (saved.length > 0) {
-      setRounds(saved);
-      setCurrentRound(saved.length + 1);
-    }
+    const load = IS_STATIC
+      ? Promise.resolve(loadRoundsLocal(deal.id))
+      : loadRoundsAPI(deal.id);
+    load.then((saved) => {
+      if (saved.length > 0) {
+        setRounds(saved);
+        setCurrentRound(saved.length + 1);
+      }
+    });
   }, [deal.id]);
 
   function updateSection(idx: number, r: SectionResponse) {
@@ -750,7 +775,7 @@ export default function DealSharePage({ params }: { params: { id: string } }) {
     };
     const updated = [...rounds, round];
     setRounds(updated);
-    saveRounds(deal.id, updated);
+    persistRounds(deal.id, updated);
     setSubmitted(true);
     setShowSuccess(true);
   }
