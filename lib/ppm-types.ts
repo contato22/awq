@@ -300,6 +300,43 @@ export interface ResourceUtilization {
   project_names:        string[];
 }
 
+// ─── Historical Snapshot ─────────────────────────────────────────────────────
+
+export type SnapshotGranularity = "day" | "month" | "year";
+
+export interface PpmSnapshot {
+  snapshot_id:          string;
+  snapshot_date:        string;    // YYYY-MM-DD (the date the snapshot was taken)
+  granularity:          SnapshotGranularity;
+  period_label:         string;    // '2026-05-15' | '2026-05' | '2026'
+  bu_code?:             string;    // null = entire portfolio
+
+  total_projects:       number;
+  active_projects:      number;
+  completed_projects:   number;
+  on_hold_projects:     number;
+
+  total_budget_revenue: number;
+  total_actual_revenue: number;
+  total_budget_cost:    number;
+  total_actual_cost:    number;
+  total_budget_margin:  number;
+  total_actual_margin:  number;
+  avg_margin_pct:       number;
+
+  green_count:          number;
+  yellow_count:         number;
+  red_count:            number;
+
+  total_budget_hours:   number;
+  total_actual_hours:   number;
+
+  total_team_members:   number;
+  overdue_tasks:        number;
+
+  created_at:           string;
+}
+
 // ─── EVM Metrics ─────────────────────────────────────────────────────────────
 
 export interface PpmEvm {

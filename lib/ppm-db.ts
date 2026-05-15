@@ -8,7 +8,7 @@ import { randomUUID } from "crypto";
 import { supabase } from "@/lib/supabase";
 import type {
   PpmProject, PpmTask, PpmMilestone, PpmAllocation, PpmTimeEntry,
-  PpmRisk, PpmIssue, PpmPortfolioMetrics, BuCode,
+  PpmRisk, PpmIssue, PpmPortfolioMetrics, PpmSnapshot, SnapshotGranularity, BuCode,
   ProjectType, ContractType, ProjectPhase, ProjectStatus, HealthStatus,
   Priority, TaskStatus, TaskType, MilestoneStatus, AllocationStatus,
   TimeEntryStatus, RiskImpact, RiskProbability, RiskStatus,
@@ -17,7 +17,7 @@ import type {
 
 export type {
   PpmProject, PpmTask, PpmMilestone, PpmAllocation, PpmTimeEntry,
-  PpmRisk, PpmIssue, PpmPortfolioMetrics,
+  PpmRisk, PpmIssue, PpmPortfolioMetrics, PpmSnapshot, SnapshotGranularity,
   BuCode, ProjectType, ContractType, ProjectPhase, ProjectStatus,
   HealthStatus, Priority, TaskStatus, TaskType, MilestoneStatus,
   AllocationStatus, TimeEntryStatus, RiskImpact, RiskProbability,
@@ -417,25 +417,64 @@ export async function listTasks(project_id?: string, filters?: { status?: TaskSt
 
 export async function createTask(input: Omit<PpmTask, "task_id" | "actual_hours" | "created_at" | "updated_at">): Promise<PpmTask> {
   const task_id = randomUUID();
+  const ts = now();
   const newTask: PpmTask = {
     ...input,
     task_id,
     actual_hours: 0,
-    created_at: now(),
-    updated_at: now(),
+    created_at: ts,
+    updated_at: ts,
   };
+
+  if (supabase) {
+    const { data, error } = await supabase.from("ppm_tasks").insert({
+      task_id,
+      project_id:     input.project_id,
+      parent_task_id: input.parent_task_id ?? null,
+      task_name:      input.task_name,
+      description:    input.description ?? null,
+      task_type:      input.task_type,
+      wbs_code:       input.wbs_code ?? null,
+      sort_order:     input.sort_order,
+      estimated_hours:input.estimated_hours ?? null,
+      actual_hours:   0,
+      start_date:     input.start_date ?? null,
+      due_date:       input.due_date ?? null,
+      status:         input.status,
+      completion_pct: input.completion_pct,
+      is_deliverable: input.is_deliverable,
+      notes:          input.notes ?? null,
+      created_at:     ts,
+      updated_at:     ts,
+    }).select().single();
+    if (error) throw new Error(error.message);
+    return (data ?? newTask) as PpmTask;
+  }
+
   _tasks.push(newTask);
   return newTask;
 }
 
 export async function updateTask(task_id: string, patch: Partial<PpmTask>): Promise<PpmTask | null> {
+  const ts = now();
+  const completionPatch = patch.status === "completed"
+    ? { completion_pct: 100, completed_date: today() }
+    : {};
+
+  if (supabase) {
+    const { data, error } = await supabase
+      .from("ppm_tasks")
+      .update({ ...patch, ...completionPatch, updated_at: ts })
+      .eq("task_id", task_id)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data as PpmTask;
+  }
+
   const idx = _tasks.findIndex(t => t.task_id === task_id);
   if (idx === -1) return null;
-  const updated = { ..._tasks[idx], ...patch, updated_at: now() };
-  if (patch.status === "completed" && _tasks[idx].status !== "completed") {
-    updated.completion_pct  = 100;
-    updated.completed_date  = today();
-  }
+  const updated = { ..._tasks[idx], ...patch, ...completionPatch, updated_at: ts };
   _tasks[idx] = updated;
   return updated;
 }
@@ -456,7 +495,30 @@ export async function listMilestones(project_id?: string): Promise<PpmMilestone[
 
 export async function createMilestone(input: Omit<PpmMilestone, "milestone_id" | "created_at" | "updated_at">): Promise<PpmMilestone> {
   const milestone_id = randomUUID();
-  const m: PpmMilestone = { ...input, milestone_id, created_at: now(), updated_at: now() };
+  const ts = now();
+  const m: PpmMilestone = { ...input, milestone_id, created_at: ts, updated_at: ts };
+
+  if (supabase) {
+    const { data, error } = await supabase.from("ppm_milestones").insert({
+      milestone_id,
+      project_id:         input.project_id,
+      milestone_name:     input.milestone_name,
+      description:        input.description ?? null,
+      planned_date:       input.planned_date,
+      actual_date:        input.actual_date ?? null,
+      status:             input.status,
+      triggers_payment:   input.triggers_payment,
+      payment_amount:     input.payment_amount ?? null,
+      payment_percentage: input.payment_percentage ?? null,
+      requires_approval:  input.requires_approval,
+      notes:              input.notes ?? null,
+      created_at:         ts,
+      updated_at:         ts,
+    }).select().single();
+    if (error) throw new Error(error.message);
+    return (data ?? m) as PpmMilestone;
+  }
+
   _milestones.push(m);
   return m;
 }
@@ -480,12 +542,58 @@ export async function listAllocations(project_id?: string, user_id?: string): Pr
 
 export async function createAllocation(input: Omit<PpmAllocation, "allocation_id" | "created_at" | "updated_at">): Promise<PpmAllocation> {
   const allocation_id = randomUUID();
-  const a: PpmAllocation = { ...input, allocation_id, created_at: now(), updated_at: now() };
+  const ts = now();
+  const a: PpmAllocation = { ...input, allocation_id, created_at: ts, updated_at: ts };
+
+  if (supabase) {
+    const { data, error } = await supabase.from("ppm_allocations").insert({
+      allocation_id,
+      project_id:     input.project_id,
+      user_id:        input.user_id,
+      role:           input.role,
+      allocation_pct: input.allocation_pct,
+      hours_per_week: input.hours_per_week ?? null,
+      start_date:     input.start_date,
+      end_date:       input.end_date ?? null,
+      billable_rate:  input.billable_rate ?? null,
+      cost_rate:      input.cost_rate ?? null,
+      is_billable:    input.is_billable,
+      status:         input.status,
+      notes:          input.notes ?? null,
+      created_at:     ts,
+      updated_at:     ts,
+    }).select().single();
+    if (error) throw new Error(error.message);
+    return (data ?? a) as PpmAllocation;
+  }
+
   _allocations.push(a);
   return a;
 }
 
 export async function getResourceUtilization(): Promise<{ user_id: string; user_name: string; total_allocation_pct: number; utilization_status: string; active_projects: number; project_names: string[] }[]> {
+  if (supabase) {
+    const { data, error } = await supabase
+      .from("ppm_allocations")
+      .select("user_id, user_name, project_name, allocation_pct")
+      .eq("status", "active");
+    if (error) throw new Error(error.message);
+    const byUser: Record<string, { user_name: string; total: number; projects: string[] }> = {};
+    for (const a of (data ?? [])) {
+      if (!byUser[a.user_id]) byUser[a.user_id] = { user_name: a.user_name ?? a.user_id, total: 0, projects: [] };
+      byUser[a.user_id].total += a.allocation_pct;
+      if (a.project_name) byUser[a.user_id].projects.push(a.project_name);
+    }
+    return Object.entries(byUser).map(([user_id, v]) => ({
+      user_id,
+      user_name: v.user_name,
+      total_allocation_pct: v.total,
+      utilization_status: v.total > 100 ? "overallocated" : v.total >= 80 ? "fully_allocated" : v.total >= 50 ? "partially_allocated" : "available",
+      active_projects: v.projects.length,
+      project_names: v.projects,
+    }));
+  }
+
   const byUser: Record<string, { user_name: string; total: number; projects: string[] }> = {};
   for (const a of _allocations.filter(x => x.status === "active")) {
     if (!byUser[a.user_id]) byUser[a.user_id] = { user_name: a.user_name ?? a.user_id, total: 0, projects: [] };
@@ -505,6 +613,15 @@ export async function getResourceUtilization(): Promise<{ user_id: string; user_
 // ─── Time Entry CRUD ──────────────────────────────────────────────────────────
 
 export async function listTimeEntries(filters?: { project_id?: string; user_id?: string; status?: TimeEntryStatus }): Promise<PpmTimeEntry[]> {
+  if (supabase) {
+    let q = supabase.from("ppm_time_entries").select("*").order("entry_date", { ascending: false });
+    if (filters?.project_id) q = q.eq("project_id", filters.project_id);
+    if (filters?.user_id)    q = q.eq("user_id",    filters.user_id);
+    if (filters?.status)     q = q.eq("status",     filters.status);
+    const { data, error } = await q;
+    if (error) throw new Error(error.message);
+    return (data ?? []) as PpmTimeEntry[];
+  }
   let rows = [..._timeEntries];
   if (filters?.project_id) rows = rows.filter(e => e.project_id === filters.project_id);
   if (filters?.user_id)    rows = rows.filter(e => e.user_id    === filters.user_id);
@@ -514,17 +631,50 @@ export async function listTimeEntries(filters?: { project_id?: string; user_id?:
 
 export async function createTimeEntry(input: Omit<PpmTimeEntry, "entry_id" | "created_at" | "updated_at">): Promise<PpmTimeEntry> {
   const entry_id = randomUUID();
-  const e: PpmTimeEntry = { ...input, entry_id, created_at: now(), updated_at: now() };
+  const ts = now();
+  const e: PpmTimeEntry = { ...input, entry_id, created_at: ts, updated_at: ts };
+
+  if (supabase) {
+    const { data, error } = await supabase.from("ppm_time_entries").insert({
+      entry_id,
+      user_id:     input.user_id,
+      project_id:  input.project_id,
+      task_id:     input.task_id ?? null,
+      entry_date:  input.entry_date,
+      hours:       input.hours,
+      is_billable: input.is_billable,
+      billing_rate:input.billing_rate ?? null,
+      cost_rate:   input.cost_rate ?? null,
+      description: input.description ?? null,
+      status:      input.status,
+      invoiced:    input.invoiced,
+      created_at:  ts,
+      updated_at:  ts,
+    }).select().single();
+    if (error) throw new Error(error.message);
+    return (data ?? e) as PpmTimeEntry;
+  }
+
   _timeEntries.unshift(e);
-  // Update project actual_hours
   const proj = _projects.find(p => p.project_id === input.project_id);
   if (proj) proj.actual_hours = _timeEntries.filter(t => t.project_id === input.project_id).reduce((s, t) => s + t.hours, 0);
   return e;
 }
 
 export async function approveTimeEntry(entry_id: string, approved_by: string): Promise<void> {
+  const ts = now();
+
+  if (supabase) {
+    const { error } = await supabase
+      .from("ppm_time_entries")
+      .update({ status: "approved", approved_by, approved_at: ts, updated_at: ts })
+      .eq("entry_id", entry_id);
+    if (error) throw new Error(error.message);
+    return;
+  }
+
   const e = _timeEntries.find(x => x.entry_id === entry_id);
-  if (e) { e.status = "approved"; e.approved_by = approved_by; e.approved_at = now(); e.updated_at = now(); }
+  if (e) { e.status = "approved"; e.approved_by = approved_by; e.approved_at = ts; e.updated_at = ts; }
 }
 
 // ─── Risk CRUD ────────────────────────────────────────────────────────────────
@@ -543,7 +693,29 @@ export async function listRisks(project_id?: string): Promise<PpmRisk[]> {
 export async function createRisk(input: Omit<PpmRisk, "risk_id" | "risk_score" | "created_at" | "updated_at">): Promise<PpmRisk> {
   const risk_id = randomUUID();
   const risk_score = calcRiskScore(input.impact, input.probability);
-  const r: PpmRisk = { ...input, risk_id, risk_score, created_at: now(), updated_at: now() };
+  const ts = now();
+  const r: PpmRisk = { ...input, risk_id, risk_score, created_at: ts, updated_at: ts };
+
+  if (supabase) {
+    const { data, error } = await supabase.from("ppm_risks").insert({
+      risk_id,
+      project_id:       input.project_id,
+      risk_description: input.risk_description,
+      impact:           input.impact,
+      probability:      input.probability,
+      risk_score,
+      mitigation_plan:  input.mitigation_plan ?? null,
+      contingency_plan: input.contingency_plan ?? null,
+      status:           input.status,
+      identified_date:  input.identified_date,
+      notes:            input.notes ?? null,
+      created_at:       ts,
+      updated_at:       ts,
+    }).select().single();
+    if (error) throw new Error(error.message);
+    return (data ?? r) as PpmRisk;
+  }
+
   _risks.push(r);
   return r;
 }
@@ -563,9 +735,138 @@ export async function listIssues(project_id?: string): Promise<PpmIssue[]> {
 
 export async function createIssue(input: Omit<PpmIssue, "issue_id" | "created_at" | "updated_at">): Promise<PpmIssue> {
   const issue_id = randomUUID();
-  const i: PpmIssue = { ...input, issue_id, created_at: now(), updated_at: now() };
+  const ts = now();
+  const i: PpmIssue = { ...input, issue_id, created_at: ts, updated_at: ts };
+
+  if (supabase) {
+    const { data, error } = await supabase.from("ppm_issues").insert({
+      issue_id,
+      project_id:        input.project_id,
+      issue_description: input.issue_description,
+      severity:          input.severity,
+      reported_by:       input.reported_by ?? null,
+      assigned_to:       input.assigned_to ?? null,
+      status:            input.status,
+      resolution:        input.resolution ?? null,
+      reported_date:     input.reported_date,
+      resolved_date:     input.resolved_date ?? null,
+      notes:             input.notes ?? null,
+      created_at:        ts,
+      updated_at:        ts,
+    }).select().single();
+    if (error) throw new Error(error.message);
+    return (data ?? i) as PpmIssue;
+  }
+
   _issues.push(i);
   return i;
+}
+
+// ─── Historical Snapshots ─────────────────────────────────────────────────────
+
+function periodLabel(date: Date, granularity: SnapshotGranularity): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  if (granularity === "year")  return `${y}`;
+  if (granularity === "month") return `${y}-${m}`;
+  return `${y}-${m}-${d}`;
+}
+
+export async function saveSnapshot(granularity: SnapshotGranularity, bu_code?: BuCode): Promise<PpmSnapshot> {
+  const projects = await listProjects(bu_code ? { bu_code } : undefined);
+  const tasks    = await listTasks();
+  const active   = projects.filter(p => p.status === "active");
+  const now_date = new Date();
+  const snap_date = now_date.toISOString().slice(0, 10);
+  const label     = periodLabel(now_date, granularity);
+
+  const total_budget_revenue = projects.reduce((s, p) => s + p.budget_revenue, 0);
+  const total_actual_revenue = projects.reduce((s, p) => s + p.actual_revenue, 0);
+  const total_budget_cost    = projects.reduce((s, p) => s + p.budget_cost, 0);
+  const total_actual_cost    = projects.reduce((s, p) => s + p.actual_cost, 0);
+  const total_budget_margin  = total_budget_revenue - total_budget_cost;
+  const total_actual_margin  = total_actual_revenue - total_actual_cost;
+  const avg_margin_pct = active.length === 0 ? 0 : active.reduce((s, p) => {
+    const rev = p.actual_revenue > 0 ? p.actual_revenue : p.budget_revenue;
+    const cost = p.actual_revenue > 0 ? p.actual_cost : p.budget_cost;
+    return s + (rev > 0 ? ((rev - cost) / rev) * 100 : 0);
+  }, 0) / active.length;
+
+  const overdue = tasks.filter(t =>
+    t.status !== "completed" && t.status !== "cancelled" && t.due_date && t.due_date < snap_date
+  );
+
+  let total_team_members = 0;
+  if (supabase) {
+    const { data } = await supabase
+      .from("ppm_allocations")
+      .select("user_id")
+      .eq("status", "active");
+    total_team_members = new Set((data ?? []).map((r: { user_id: string }) => r.user_id)).size;
+  } else {
+    total_team_members = [...new Set(_allocations.filter(a => a.status === "active").map(a => a.user_id))].length;
+  }
+
+  const row = {
+    snapshot_id:          randomUUID(),
+    snapshot_date:        snap_date,
+    granularity,
+    period_label:         label,
+    bu_code:              bu_code ?? null,
+    total_projects:       projects.length,
+    active_projects:      active.length,
+    completed_projects:   projects.filter(p => p.status === "completed").length,
+    on_hold_projects:     projects.filter(p => p.status === "on_hold").length,
+    total_budget_revenue,
+    total_actual_revenue,
+    total_budget_cost,
+    total_actual_cost,
+    total_budget_margin,
+    total_actual_margin,
+    avg_margin_pct:       Math.round(avg_margin_pct * 100) / 100,
+    green_count:          projects.filter(p => p.health_status === "green").length,
+    yellow_count:         projects.filter(p => p.health_status === "yellow").length,
+    red_count:            projects.filter(p => p.health_status === "red").length,
+    total_budget_hours:   projects.reduce((s, p) => s + (p.budget_hours ?? 0), 0),
+    total_actual_hours:   projects.reduce((s, p) => s + p.actual_hours, 0),
+    total_team_members,
+    overdue_tasks:        overdue.length,
+    created_at:           new Date().toISOString(),
+  };
+
+  if (supabase) {
+    const { data, error } = await supabase
+      .from("ppm_snapshots")
+      .upsert(row, { onConflict: "snapshot_date,granularity,bu_code" })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return (data ?? row) as PpmSnapshot;
+  }
+
+  return row as PpmSnapshot;
+}
+
+export async function listSnapshots(filters?: {
+  granularity?: SnapshotGranularity;
+  bu_code?: BuCode;
+  from_date?: string;
+  to_date?: string;
+  limit?: number;
+}): Promise<PpmSnapshot[]> {
+  if (!supabase) return [];
+
+  let q = supabase.from("ppm_snapshots").select("*").order("snapshot_date", { ascending: false });
+  if (filters?.granularity) q = q.eq("granularity", filters.granularity);
+  if (filters?.bu_code)     q = q.eq("bu_code",     filters.bu_code);
+  if (filters?.from_date)   q = q.gte("snapshot_date", filters.from_date);
+  if (filters?.to_date)     q = q.lte("snapshot_date", filters.to_date);
+  if (filters?.limit)       q = q.limit(filters.limit);
+
+  const { data, error } = await q;
+  if (error) throw new Error(error.message);
+  return (data ?? []) as PpmSnapshot[];
 }
 
 // ─── Portfolio Metrics ────────────────────────────────────────────────────────
