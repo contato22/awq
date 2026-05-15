@@ -242,7 +242,8 @@ INSERT INTO business_units (bu_code, bu_name, economic_type) VALUES
   ('JACQES',  'JACQES',                'operating'),
   ('CAZA',    'Caza Vision',           'operating'),
   ('ADVISOR', 'Advisor',               'pre_revenue'),
-  ('VENTURE', 'AWQ Venture',           'hybrid_investment')
+  ('VENTURE', 'AWQ Venture',           'hybrid_investment'),
+  ('ENRD',    'ENRD',                  'operating')
 ON CONFLICT (bu_code) DO NOTHING;
 
 -- ─── Chart of Accounts (Plano de Contas) ─────────────────────────────────────

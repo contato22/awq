@@ -260,6 +260,33 @@ export const buData: BuData[] = [
   },
 ];
 
+  {
+    id:               "enrd",
+    name:             "ENRD",
+    sub:              "Agência Solar · AWQ Group",
+    color:            "bg-orange-600",
+    accentColor:      "text-orange-400",
+    status:           "Ativo",
+    economicType:     "operational",
+    revenue:          0,
+    grossProfit:      0,
+    ebitda:           0,
+    netIncome:        0,
+    cashGenerated:    0,
+    cashBalance:      0,
+    customers:        0,
+    ftes:             0,
+    capitalAllocated: 0,
+    roic:             0,
+    budgetRevenue:    0,
+    hrefOverview:     "/enrd",
+    hrefFinancial:    "/enrd/financial",
+    hrefCustomers:    "/enrd/customers",
+    hrefUnitEcon:     "/enrd",
+    hrefBudget:       "/enrd",
+  },
+];
+
 // ─── AWQ Holding own cash (not allocated to any BU) ─────────────────────────
 // SOURCE: PR #10 — caixa da holding confirmado empiricamente
 export const holdingCash = 25_000;

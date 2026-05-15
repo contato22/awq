@@ -336,6 +336,7 @@ const businessUnits = [
   { id: "caza",    label: "Caza Vision", sub: "Produtora",      href: "/caza-vision",  color: "bg-emerald-600" },
   { id: "venture", label: "AWQ Venture", sub: "Investimentos",  href: "/awq-venture",  color: "bg-amber-600" },
   { id: "advisor", label: "Advisor",     sub: "Consultoria",    href: "/advisor",      color: "bg-violet-600" },
+  { id: "enrd",    label: "ENRD",        sub: "Agência Solar",  href: "/enrd",         color: "bg-orange-600" },
 ];
 
 // ── Helpers ──────────────────────────────────────────────────────────────
