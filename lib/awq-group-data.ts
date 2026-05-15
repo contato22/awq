@@ -452,6 +452,7 @@ export const allocFlags: Record<string, AllocFlag> = {
   caza:    "expand",
   advisor: "expand",
   venture: "maintain",
+  enrd:    "expand",
 };
 
 export const flagConfig: Record<AllocFlag, { label: string; color: string; bg: string }> = {
