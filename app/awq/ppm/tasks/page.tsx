@@ -6,7 +6,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import type { DragEvent, FormEvent } from "react";
 import Link from "next/link";
 import {
-  ArrowLeft, Plus, CheckCircle2, Circle, PlayCircle,
+  ArrowLeft, CheckCircle2, Circle, PlayCircle,
   AlertTriangle, X, Save, Pencil,
 } from "lucide-react";
 import { formatDateBR } from "@/lib/utils";
@@ -80,7 +80,7 @@ function TaskEditModal({
         </div>
 
         {/* Form */}
-        <form onSubmit={e => void handleSubmit(e)} className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+        <form id="task-edit-form" onSubmit={e => void handleSubmit(e)} className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Nome da tarefa</label>
             <input
@@ -177,7 +177,8 @@ function TaskEditModal({
             Cancelar
           </button>
           <button
-            onClick={e => { e.preventDefault(); void handleSubmit(e as unknown as FormEvent); }}
+            type="submit"
+            form="task-edit-form"
             disabled={saving}
             className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-50 transition-colors"
           >
@@ -194,12 +195,10 @@ function TaskEditModal({
 
 function TaskCard({
   task,
-  onUpdate,
   onEdit,
   onDragStart,
 }: {
   task: PpmTask;
-  onUpdate: () => void;
   onEdit: (task: PpmTask) => void;
   onDragStart: (e: DragEvent<HTMLDivElement>, taskId: string) => void;
 }) {
@@ -293,8 +292,11 @@ export default function TasksPage() {
     setDragOver(status);
   }
 
-  function handleDragLeave() {
-    setDragOver(null);
+  function handleDragLeave(e: DragEvent<HTMLDivElement>) {
+    // Only clear when leaving the column entirely (not moving to a child element)
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setDragOver(null);
+    }
   }
 
   async function handleDrop(e: DragEvent<HTMLDivElement>, status: TaskStatus) {
@@ -369,7 +371,7 @@ export default function TasksPage() {
                 <div
                   key={col.status}
                   onDragOver={e => handleDragOver(e, col.status)}
-                  onDragLeave={handleDragLeave}
+                  onDragLeave={e => handleDragLeave(e)}
                   onDrop={e => void handleDrop(e, col.status)}
                   className={`rounded-xl border p-4 transition-colors ${col.color} ${
                     isOver ? "ring-2 ring-brand-400 ring-offset-1 bg-brand-50/30" : ""
@@ -387,7 +389,6 @@ export default function TasksPage() {
                       <TaskCard
                         key={t.task_id}
                         task={t}
-                        onUpdate={() => void load()}
                         onEdit={setEditTask}
                         onDragStart={handleDragStart}
                       />
