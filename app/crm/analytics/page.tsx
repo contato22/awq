@@ -8,6 +8,7 @@ import { TrendingUp, DollarSign, Target, Users, BarChart3, ArrowRight } from "lu
 import Link from "next/link";
 import type { CrmOpportunity } from "@/lib/crm-types";
 import { formatBRL } from "@/lib/utils";
+import { supabaseClient } from "@/lib/supabase";
 
 const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 
@@ -35,8 +36,10 @@ export default function AnalyticsPage() {
 
   useEffect(() => {
     if (IS_STATIC) {
-      try { setOpps(JSON.parse(localStorage.getItem("crm-opportunities-v3") ?? "[]")); } catch { setOpps([]); }
-      setLoading(false);
+      supabaseClient.from("crm_opportunities").select("*")
+        .then(({ data }) => setOpps((data ?? []) as CrmOpportunity[]))
+        .catch(() => setOpps([]))
+        .finally(() => setLoading(false));
       return;
     }
     Promise.all([

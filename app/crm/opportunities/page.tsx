@@ -793,21 +793,6 @@ function PipelinePageInner() {
     }
 
     async function load() {
-      // One-time migration: move legacy localStorage data into Supabase before discarding it.
-      try {
-        const raw = localStorage.getItem("crm-opportunities-v3");
-        if (raw) {
-          const legacy = JSON.parse(raw) as CrmOpportunity[];
-          if (legacy.length > 0) {
-            // Strip computed/virtual fields that don't exist as columns.
-            const rows = legacy.map(({ account_name: _a, contact_name: _c, ...o }) => o);
-            await supabase.from("crm_opportunities").upsert(rows, { onConflict: "opportunity_id" });
-          }
-        }
-      } catch { /* ignore — migration is best-effort */ } finally {
-        try { localStorage.removeItem("crm-opportunities-v3"); } catch { /* ignore */ }
-      }
-
       const { data: oppsData, error: oppsError } = await supabase
         .from("crm_opportunities")
         .select("*")

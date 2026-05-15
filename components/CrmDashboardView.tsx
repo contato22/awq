@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/utils";
 import type { CrmOpportunity, CrmActivity } from "@/lib/crm-types";
-import { SEED_OPPORTUNITIES, SEED_ACTIVITIES } from "@/lib/crm-db";
+import { supabaseClient } from "@/lib/supabase";
 
 const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 
@@ -134,44 +134,42 @@ export default function CrmDashboardView({ buFilter: externalBu }: Props) {
     : "Controle de pipeline e vendas · AWQ Group";
 
   useEffect(() => {
-    function loadFromSeed(bf: string | undefined) {
-      // Read from localStorage (canonical store for static sites)
-      let allOpps: CrmOpportunity[] = [];
-      let allActs: CrmActivity[] = [];
-      try { allOpps = JSON.parse(localStorage.getItem("crm-opportunities-v3") ?? "[]"); } catch { /* */ }
-      try { allActs = JSON.parse(localStorage.getItem("awq_crm_activities") ?? "[]"); } catch { /* */ }
-
-      const filteredOpps = bf ? allOpps.filter(o => o.bu === bf) : allOpps;
-
-      const filteredOppIds = new Set(filteredOpps.map(o => o.opportunity_id));
-      const filteredActs = bf
-        ? allActs.filter(
-            a => a.related_to_type !== "opportunity" || filteredOppIds.has(a.related_to_id)
-          )
-        : allActs;
-
-      const openSeed = filteredOpps.filter(o => o.stage !== "closed_won" && o.stage !== "closed_lost");
-      const wonSeed  = filteredOpps.filter(o => o.stage === "closed_won");
-      const lostSeed = filteredOpps.filter(o => o.stage === "closed_lost");
-      const total = wonSeed.length + lostSeed.length;
-
-      setOpps(filteredOpps as CrmOpportunity[]);
-      setActivities(filteredActs as CrmActivity[]);
-      setAnalytics({
-        leadsNew: bf ? (filteredOpps.length > 0 ? 1 : 0) : 3,
-        openOpportunities: openSeed.length,
-        pipelineValue: openSeed.reduce((s, o) => s + o.deal_value, 0),
-        weightedForecast: Math.round(openSeed.reduce((s, o) => s + o.deal_value * o.probability / 100, 0)),
-        closedWonThisMonth: wonSeed.reduce((s, o) => s + o.deal_value, 0),
-        winRate: total > 0 ? Math.round((wonSeed.length / total) * 100) : 0,
-        tasksToday: 0,
-      });
-      setIsStatic(true);
-      setLoading(false);
-    }
-
     if (IS_STATIC) {
-      loadFromSeed(buFilter);
+      async function loadStatic(bf: string | undefined) {
+        let oppsQuery = supabaseClient.from("crm_opportunities").select("*");
+        if (bf) oppsQuery = oppsQuery.eq("bu", bf);
+        const [oppsRes, actsRes] = await Promise.all([
+          oppsQuery,
+          supabaseClient.from("crm_activities").select("*"),
+        ]);
+        const allOpps  = (oppsRes.data  ?? []) as CrmOpportunity[];
+        const allActs  = (actsRes.data  ?? []) as CrmActivity[];
+
+        const oppIds     = new Set(allOpps.map(o => o.opportunity_id));
+        const filteredActs = bf
+          ? allActs.filter(a => a.related_to_type !== "opportunity" || oppIds.has(a.related_to_id))
+          : allActs;
+
+        const open  = allOpps.filter(o => o.stage !== "closed_won" && o.stage !== "closed_lost");
+        const won   = allOpps.filter(o => o.stage === "closed_won");
+        const lost  = allOpps.filter(o => o.stage === "closed_lost");
+        const total = won.length + lost.length;
+
+        setOpps(allOpps);
+        setActivities(filteredActs);
+        setAnalytics({
+          leadsNew: bf ? (allOpps.length > 0 ? 1 : 0) : 3,
+          openOpportunities: open.length,
+          pipelineValue: open.reduce((s, o) => s + o.deal_value, 0),
+          weightedForecast: Math.round(open.reduce((s, o) => s + o.deal_value * o.probability / 100, 0)),
+          closedWonThisMonth: won.reduce((s, o) => s + o.deal_value, 0),
+          winRate: total > 0 ? Math.round((won.length / total) * 100) : 0,
+          tasksToday: 0,
+        });
+        setIsStatic(true);
+        setLoading(false);
+      }
+      loadStatic(buFilter).catch(() => setLoading(false));
       return;
     }
 
@@ -226,7 +224,7 @@ export default function CrmDashboardView({ buFilter: externalBu }: Props) {
           throw new Error("API error");
         }
       } catch {
-        loadFromSeed(buFilter);
+        setLoading(false);
         return;
       }
       setLoading(false);

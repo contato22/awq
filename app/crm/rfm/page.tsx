@@ -7,6 +7,7 @@ import { Users, DollarSign, TrendingUp, Star, AlertTriangle, Filter } from "luci
 import { formatBRL } from "@/lib/utils";
 import type { RfmCustomer, RfmResponse, RfmSegment } from "@/lib/crm-rfm-types";
 import type { CrmOpportunity, CrmAccount } from "@/lib/crm-types";
+import { supabaseClient } from "@/lib/supabase";
 
 const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 
@@ -85,7 +86,7 @@ const SEGMENT_ICON: Record<RfmSegment, any> = {
   "Hibernando":Users,"Perdidos":AlertTriangle,
 };
 
-// ─── Build RFM from localStorage ─────────────────────────────────────────────
+// ─── Build RFM from data ──────────────────────────────────────────────────────
 function assignScores(vals: number[], higherIsBetter: boolean): number[] {
   const n = vals.length;
   if (n === 0) return [];
@@ -98,12 +99,7 @@ function assignScores(vals: number[], higherIsBetter: boolean): number[] {
   });
 }
 
-function buildRfmFromLocalStorage(buFilter: BuFilter = "Todos"): RfmResponse {
-  let opps: CrmOpportunity[] = [];
-  let accts: CrmAccount[] = [];
-  try { opps = JSON.parse(localStorage.getItem("crm-opportunities-v3") ?? "[]"); } catch { /* */ }
-  try { accts = JSON.parse(localStorage.getItem("awq_crm_accounts") ?? "[]"); } catch { /* */ }
-
+function buildRfm(opps: CrmOpportunity[], accts: CrmAccount[], buFilter: BuFilter = "Todos"): RfmResponse {
   const filtered = buFilter !== "Todos" ? opps.filter(o => o.bu === buFilter) : opps;
   const acctMap = new Map(accts.map(a => [a.account_id, a]));
 
@@ -167,9 +163,6 @@ function buildRfmFromLocalStorage(buFilter: BuFilter = "Todos"): RfmResponse {
   };
 }
 
-function buildSeedResponse(buFilter: BuFilter = "Todos"): RfmResponse {
-  return buildRfmFromLocalStorage(buFilter);
-}
 
 // ─── Score dots ───────────────────────────────────────────────────────────────
 function ScoreDot({ score, max = 5 }: { score: number; max?: number }) {
@@ -313,15 +306,24 @@ export default function RfmPage() {
   useEffect(() => {
     setLoading(true);
     if (IS_STATIC) {
-      setData(buildRfmFromLocalStorage(bu));
-      setLoading(false);
+      Promise.all([
+        supabaseClient.from("crm_opportunities").select("*"),
+        supabaseClient.from("crm_accounts").select("*"),
+      ]).then(([oppsRes, acctsRes]) => {
+        setData(buildRfm(
+          (oppsRes.data ?? []) as CrmOpportunity[],
+          (acctsRes.data ?? []) as CrmAccount[],
+          bu,
+        ));
+      }).catch(() => setData(buildRfm([], [], bu)))
+        .finally(() => setLoading(false));
       return;
     }
     const buParam = bu !== "Todos" ? `?bu=${bu}` : "";
     fetch(`/api/crm/rfm${buParam}`)
       .then(r => r.json())
-      .then(json => { setData(json.success ? json.data : buildRfmFromLocalStorage(bu)); })
-      .catch(() => { setData(buildRfmFromLocalStorage(bu)); })
+      .then(json => { setData(json.success ? json.data : buildRfm([], [], bu)); })
+      .catch(() => { setData(buildRfm([], [], bu)); })
       .finally(() => setLoading(false));
   }, [bu]);
 
