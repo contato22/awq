@@ -9,7 +9,7 @@ name: Apply ERP Schema (Supabase)
 #     Settings → Database → Connection string → URI (direct / pooler)
 #     Example: postgresql://postgres.kkhxxsrgsewjfvnnssyf:[PASSWORD]@aws-0-xx.pooler.supabase.com:6543/postgres
 #
-# The schema uses CREATE TABLE IF NOT EXISTS so re-running is safe (idempotent).
+# All SQL files use CREATE TABLE IF NOT EXISTS / ON CONFLICT DO NOTHING — idempotent.
 
 on:
   workflow_dispatch:
@@ -18,6 +18,7 @@ on:
       - main
     paths:
       - "awq_erp_full_schema.sql"
+      - "supabase/migrations/**"
 
 permissions:
   contents: read
@@ -54,6 +55,17 @@ jobs:
           echo "Applying awq_erp_full_schema.sql …"
           psql "$SUPABASE_DB_URL" -f awq_erp_full_schema.sql -v ON_ERROR_STOP=1
           echo "✓ ERP schema applied successfully."
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+
+      - name: Apply Supabase migrations (idempotent, ordered)
+        if: ${{ secrets.SUPABASE_DB_URL != '' }}
+        run: |
+          for f in $(ls supabase/migrations/*.sql | sort); do
+            echo "Applying $f …"
+            psql "$SUPABASE_DB_URL" -f "$f" -v ON_ERROR_STOP=1
+            echo "✓ $f applied."
+          done
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
 
