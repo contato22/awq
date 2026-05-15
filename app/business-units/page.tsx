@@ -19,6 +19,7 @@ const jacqes = buData.find((b) => b.id === "jacqes")!;
 const caza   = buData.find((b) => b.id === "caza")!;
 const venture = buData.find((b) => b.id === "venture");
 const advisor = buData.find((b) => b.id === "advisor");
+const enrd    = buData.find((b) => b.id === "enrd");
 
 const BUS = [
   {
@@ -88,6 +89,23 @@ const BUS = [
     ],
     status: advisor?.status ?? "Em construção",
     statusColor: "bg-violet-100 text-violet-600 border-violet-200",
+  },
+  {
+    id: "enrd",
+    label: "ENRD",
+    sub: "Agência Solar",
+    href: "/enrd",
+    bgColor: "bg-orange-50",
+    textColor: "text-orange-700",
+    badgeColor: "bg-orange-100 text-orange-600 border-orange-200",
+    icon: Zap,
+    kpis: [
+      { label: "Receita",  value: fmtR(enrd?.revenue ?? 0) },
+      { label: "Clientes", value: String(enrd?.customers ?? 0) },
+      { label: "EBITDA %", value: "—" },
+    ],
+    status: enrd?.status ?? "Em construção",
+    statusColor: "bg-orange-100 text-orange-600 border-orange-200",
   },
 ];
 

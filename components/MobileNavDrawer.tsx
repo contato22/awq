@@ -63,6 +63,7 @@ const JACQES_PREFIXES  = ["/jacqes"];
 const CAZA_PREFIXES    = ["/caza-vision"];
 const ADVISOR_PREFIXES = ["/advisor"];
 const VENTURE_PREFIXES = ["/awq-venture"];
+const ENRD_PREFIXES    = ["/enrd"];
 const CRM_PREFIXES     = ["/crm"];
 const EPM_PREFIXES     = ["/awq/epm"];
 const PPM_PREFIXES     = ["/awq/ppm"];
@@ -73,6 +74,7 @@ function isJacqesRoute(p: string)   { return JACQES_PREFIXES.some((x)   => p.sta
 function isCazaRoute(p: string)     { return CAZA_PREFIXES.some((x)     => p.startsWith(x)); }
 function isAdvisorRoute(p: string)  { return ADVISOR_PREFIXES.some((x)  => p.startsWith(x)); }
 function isVentureRoute(p: string)  { return VENTURE_PREFIXES.some((x)  => p.startsWith(x)); }
+function isEnrdRoute(p: string)     { return ENRD_PREFIXES.some((x)     => p.startsWith(x)); }
 function isCrmRoute(p: string)      { return CRM_PREFIXES.some((x)      => p === x || p.startsWith(x + "/")); }
 function isEpmRoute(p: string)      { return EPM_PREFIXES.some((x)      => p === x || p.startsWith(x + "/")); }
 function isPpmRoute(p: string)      { return PPM_PREFIXES.some((x)      => p === x || p.startsWith(x + "/")); }
@@ -336,6 +338,7 @@ const businessUnits = [
   { id: "caza",    label: "Caza Vision", sub: "Produtora",      href: "/caza-vision",  color: "bg-emerald-600" },
   { id: "venture", label: "AWQ Venture", sub: "Investimentos",  href: "/awq-venture",  color: "bg-amber-600" },
   { id: "advisor", label: "Advisor",     sub: "Consultoria",    href: "/advisor",      color: "bg-violet-600" },
+  { id: "enrd",    label: "ENRD",        sub: "Agência Solar",  href: "/enrd",         color: "bg-orange-600" },
 ];
 
 // ── Helpers ──────────────────────────────────────────────────────────────
@@ -443,13 +446,14 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
   const cazaMode     = isCazaRoute(pathname);
   const advisorMode  = isAdvisorRoute(pathname);
   const ventureMode  = isVentureRoute(pathname);
+  const enrdMode     = isEnrdRoute(pathname);
   const crmMode      = isCrmRoute(pathname);
   const epmMode      = isEpmRoute(pathname);
   const ppmMode      = isPpmRoute(pathname);
   const biMode       = isBiRoute(pathname);
   const settingsMode = isSettingsRoute(pathname);
 
-  const isBuMode = jacqesMode || cazaMode || advisorMode || ventureMode;
+  const isBuMode = jacqesMode || cazaMode || advisorMode || ventureMode || enrdMode;
   const isTowerMode = crmMode || epmMode || ppmMode || biMode || settingsMode;
 
   let buContext: React.ReactNode = null;
@@ -487,6 +491,15 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
         label="AWQ Venture"
         sub="Investimentos · AWQ Group"
         colorClass="bg-amber-50 border-amber-200 text-amber-700"
+        onNavigate={onClose}
+      />
+    );
+  } else if (enrdMode) {
+    buContext = (
+      <BUContextBar
+        label="ENRD"
+        sub="Agência Solar · AWQ Group"
+        colorClass="bg-orange-50 border-orange-200 text-orange-700"
         onNavigate={onClose}
       />
     );
@@ -661,6 +674,20 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
                 {venturePpmNav.map((item) => (
                   <NavLink key={item.href} {...item} active={isActive(item.href)} onNavigate={onClose} />
                 ))}
+              </div>
+            </>
+          )}
+
+          {/* ── ENRD ─────────────────────────────────────── */}
+          {enrdMode && (
+            <>
+              <SectionLabel>EPM · Financeiro & Performance</SectionLabel>
+              <div className="space-y-0.5">
+                <NavLink href="/enrd/financial" icon={DollarSign} label="Financial" active={isActive("/enrd/financial")} onNavigate={onClose} />
+              </div>
+              <SectionLabel>CRM · Clientes & Relacionamento</SectionLabel>
+              <div className="space-y-0.5">
+                <NavLink href="/enrd/customers" icon={Users} label="Clientes" active={isActive("/enrd/customers")} onNavigate={onClose} />
               </div>
             </>
           )}

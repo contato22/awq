@@ -70,6 +70,7 @@ const JACQES_PREFIXES = ["/jacqes"];
 const CAZA_PREFIXES = ["/caza-vision"];
 const ADVISOR_PREFIXES = ["/advisor"];
 const VENTURE_PREFIXES = ["/awq-venture"];
+const ENRD_PREFIXES = ["/enrd"];
 const CRM_PREFIXES = ["/crm"];
 function isJacqesRoute(pathname: string) {
     return JACQES_PREFIXES.some((prefix) => pathname.startsWith(prefix));
@@ -82,6 +83,9 @@ function isAdvisorRoute(pathname: string) {
 }
 function isVentureRoute(pathname: string) {
     return VENTURE_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
+function isEnrdRoute(pathname: string) {
+    return ENRD_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 function isCrmRoute(pathname: string) {
     return CRM_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(prefix + "/"));
@@ -280,6 +284,14 @@ const businessUnits = [
         href: "/advisor",
         icon: Briefcase,
         color: "bg-violet-600",
+    },
+    {
+        id: "enrd",
+        label: "ENRD",
+        sub: "Agência Solar · AWQ Group",
+        href: "/enrd",
+        icon: Zap,
+        color: "bg-orange-600",
     },
 ];
 
@@ -1076,6 +1088,7 @@ const BU_COLORS: Record<string, BUColors> = {
     caza:    { iconBg: "bg-emerald-600",  activeBg: "bg-emerald-50", activeText: "text-emerald-700" },
     advisor: { iconBg: "bg-violet-600",   activeBg: "bg-violet-50",  activeText: "text-violet-700"  },
     venture: { iconBg: "bg-amber-600",    activeBg: "bg-amber-50",   activeText: "text-amber-700"   },
+    enrd:    { iconBg: "bg-orange-600",   activeBg: "bg-orange-50",  activeText: "text-orange-700"  },
 };
 
 // ── Module configs — only existing BU routes, no new pages ────────────────────
@@ -1218,6 +1231,27 @@ const VENTURE_MODULES: BUModule[] = [
         icon: Briefcase,
         items: [
             { label: "Portfólio", href: "/awq-venture/portfolio", icon: Briefcase },
+        ],
+    },
+];
+
+const ENRD_MODULES: BUModule[] = [
+    {
+        id: "epm",
+        label: "EPM",
+        description: "Financeiro & Performance",
+        icon: DollarSign,
+        items: [
+            { label: "Financial", href: "/enrd/financial", icon: DollarSign },
+        ],
+    },
+    {
+        id: "crm",
+        label: "CRM",
+        description: "Clientes & Relacionamento",
+        icon: Users,
+        items: [
+            { label: "Clientes", href: "/enrd/customers", icon: Users },
         ],
     },
 ];
@@ -1468,6 +1502,19 @@ function AwqVentureSidebar({ pathname }: { pathname: string }) {
             homeHref="/awq-venture"
             headerIcon={TrendingUp}
             modules={VENTURE_MODULES}
+            pathname={pathname}
+        />
+    );
+}
+
+function EnrdSidebar({ pathname }: { pathname: string }) {
+    return (
+        <BUSidebar
+            buId="enrd"
+            label="ENRD"
+            homeHref="/enrd"
+            headerIcon={Zap}
+            modules={ENRD_MODULES}
             pathname={pathname}
         />
     );
@@ -1841,6 +1888,7 @@ export default function Sidebar() {
     const cazaMode     = isCazaRoute(pathname);
     const advisorMode  = isAdvisorRoute(pathname);
     const ventureMode  = isVentureRoute(pathname);
+    const enrdMode     = isEnrdRoute(pathname);
     const crmMode      = isCrmRoute(pathname);
     const epmMode      = isEpmRoute(pathname);
     const ppmMode      = isPpmRoute(pathname);
@@ -1856,6 +1904,8 @@ export default function Sidebar() {
                 <AdvisorSidebar pathname={pathname} />
             ) : ventureMode ? (
                 <AwqVentureSidebar pathname={pathname} />
+            ) : enrdMode ? (
+                <EnrdSidebar pathname={pathname} />
             ) : crmMode ? (
                 <CrmSidebar pathname={pathname} />
             ) : epmMode ? (
