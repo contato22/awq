@@ -9,31 +9,40 @@ export async function GET(req: NextRequest) {
     const db = supabase ?? supabaseClient;
     const forcedBu = await getForcedBu(req);
 
+    // Simple select without embedded joins to avoid PostgREST schema cache issues
     let query = db
       .from("crm_opportunities")
-      .select(`
-        *,
-        crm_accounts ( account_name ),
-        crm_contacts ( full_name )
-      `)
+      .select("*")
       .order("created_at", { ascending: false });
 
     if (forcedBu) query = query.eq("bu", forcedBu);
 
-    const { data, error } = await query;
-    if (error) throw new Error(error.message);
+    const { data: oppsData, error: oppsError } = await query;
+    if (oppsError) throw new Error(oppsError.message);
 
-    const allOpps: CrmOpportunity[] = (data ?? []).map((row: Record<string, unknown>) => {
-      const acct = row.crm_accounts as { account_name?: string } | null;
-      const cont = row.crm_contacts as { full_name?: string } | null;
-      return {
-        ...row,
-        account_name: acct?.account_name ?? undefined,
-        contact_name: cont?.full_name ?? null,
-        crm_accounts: undefined,
-        crm_contacts: undefined,
-      } as unknown as CrmOpportunity;
-    });
+    const opps = (oppsData ?? []) as CrmOpportunity[];
+
+    // Fetch account names separately
+    const accountIds = [...new Set(opps.map(o => o.account_id).filter(Boolean))];
+    const contactIds = [...new Set(opps.map(o => o.contact_id).filter(Boolean))];
+
+    const [acctRes, contRes] = await Promise.all([
+      accountIds.length > 0
+        ? db.from("crm_accounts").select("account_id, account_name").in("account_id", accountIds as string[])
+        : Promise.resolve({ data: [], error: null }),
+      contactIds.length > 0
+        ? db.from("crm_contacts").select("contact_id, full_name").in("contact_id", contactIds as string[])
+        : Promise.resolve({ data: [], error: null }),
+    ]);
+
+    const acctMap = Object.fromEntries((acctRes.data ?? []).map((a: Record<string, string>) => [a.account_id, a.account_name]));
+    const contMap = Object.fromEntries((contRes.data ?? []).map((c: Record<string, string>) => [c.contact_id, c.full_name]));
+
+    const allOpps: CrmOpportunity[] = opps.map(o => ({
+      ...o,
+      account_name: o.account_id ? (acctMap[o.account_id] ?? o.account_name) : o.account_name,
+      contact_name: o.contact_id ? (contMap[o.contact_id] ?? o.contact_name) : o.contact_name,
+    }));
 
     const activeStages = ["discovery", "qualification", "proposal", "negotiation"] as const;
     const byStage: Record<string, CrmOpportunity[]> = {};

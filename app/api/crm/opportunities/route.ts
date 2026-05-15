@@ -7,20 +7,6 @@ import type { CrmOpportunity } from "@/lib/crm-types";
 function ok(data: unknown) { return NextResponse.json({ success: true, data }); }
 function err(msg: string, status = 500) { return NextResponse.json({ success: false, error: msg }, { status }); }
 
-function mapRow(row: Record<string, unknown>): CrmOpportunity {
-  const acct = row.crm_accounts as { account_name?: string } | null;
-  const cont = row.crm_contacts as { full_name?: string } | null;
-  return {
-    ...row,
-    account_name: acct?.account_name ?? undefined,
-    contact_name: cont?.full_name ?? null,
-    crm_accounts: undefined,
-    crm_contacts: undefined,
-  } as unknown as CrmOpportunity;
-}
-
-const SELECT = `*, crm_accounts ( account_name ), crm_contacts ( full_name )`;
-
 export async function GET(req: NextRequest) {
   const db = supabase ?? supabaseClient;
   try {
@@ -31,16 +17,16 @@ export async function GET(req: NextRequest) {
     if (id) {
       const { data, error } = await db
         .from("crm_opportunities")
-        .select(SELECT)
+        .select("*")
         .eq("opportunity_id", id)
         .single();
       if (error || !data) return err("Not found", 404);
-      const row = mapRow(data as Record<string, unknown>);
+      const row = data as CrmOpportunity;
       if (forcedBu && row.bu !== forcedBu) return err("Not found", 404);
       return ok(row);
     }
 
-    let query = db.from("crm_opportunities").select(SELECT).order("created_at", { ascending: false });
+    let query = db.from("crm_opportunities").select("*").order("created_at", { ascending: false });
     if (forcedBu ?? p.get("bu")) query = query.eq("bu", forcedBu ?? p.get("bu")!);
     if (p.get("stage"))      query = query.eq("stage", p.get("stage")!);
     if (p.get("owner"))      query = query.eq("owner", p.get("owner")!);
@@ -48,7 +34,7 @@ export async function GET(req: NextRequest) {
 
     const { data, error } = await query;
     if (error) throw new Error(error.message);
-    return ok((data ?? []).map((r: Record<string, unknown>) => mapRow(r)));
+    return ok(data ?? []);
   } catch (e) { return err(String(e)); }
 }
 
@@ -76,10 +62,10 @@ export async function POST(req: NextRequest) {
           proposal_sent_date: data.proposal_sent_date ?? null,
           created_by: data.owner ?? "Miguel",
         })
-        .select(SELECT)
+        .select("*")
         .single();
       if (error) throw new Error(error.message);
-      return ok(mapRow(row as Record<string, unknown>));
+      return ok(row);
     }
 
     if (action === "update" || action === "close") {
@@ -90,10 +76,10 @@ export async function POST(req: NextRequest) {
         .from("crm_opportunities")
         .update(rest)
         .eq("opportunity_id", opportunity_id)
-        .select(SELECT)
+        .select("*")
         .single();
       if (error) throw new Error(error.message);
-      return ok(mapRow(row as Record<string, unknown>));
+      return ok(row);
     }
 
     if (action === "delete") {
