@@ -10,7 +10,7 @@ import EmptyState from "@/components/EmptyState";
 import {
   Target, DollarSign, TrendingUp, Plus, X,
   Calendar, Building2, AlertCircle, Phone, Mail, Users,
-  CheckCircle2, FileText, MessageSquare, Clock, Trash2,
+  CheckCircle2, FileText, MessageSquare, Clock, Trash2, User,
 } from "lucide-react";
 import type { CrmOpportunity, CrmActivity } from "@/lib/crm-types";
 import { STAGE_LABELS, STAGE_PROBABILITY, BU_OPTIONS, OWNER_OPTIONS, PIPELINE_STAGES } from "@/lib/crm-types";
@@ -587,11 +587,21 @@ function OppCard({
         {opp.opportunity_name}
       </p>
 
-      {/* Account */}
-      {opp.account_name && (
-        <div className="flex items-center gap-1 mb-2">
-          <Building2 size={10} className="text-gray-400 shrink-0" />
-          <span className="text-[10px] text-gray-500 truncate">{opp.account_name}</span>
+      {/* Account + Contact */}
+      {(opp.account_name || opp.contact_name) && (
+        <div className="flex flex-col gap-0.5 mb-2">
+          {opp.account_name && (
+            <div className="flex items-center gap-1">
+              <Building2 size={10} className="text-gray-400 shrink-0" />
+              <span className="text-[10px] text-gray-500 truncate">{opp.account_name}</span>
+            </div>
+          )}
+          {opp.contact_name && (
+            <div className="flex items-center gap-1">
+              <User size={10} className="text-gray-400 shrink-0" />
+              <span className="text-[10px] text-gray-500 truncate">{opp.contact_name}</span>
+            </div>
+          )}
         </div>
       )}
 
@@ -768,15 +778,16 @@ function PipelinePageInner() {
   const [activityCounts, setActivityCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
+    // Show cached data instantly while the API loads
     try {
       const stored = localStorage.getItem(LS_KEY);
       if (stored) {
         setOpps(JSON.parse(stored));
         setLoading(false);
-        return;
       }
     } catch { /* ignore */ }
 
+    // Always fetch fresh data from the API
     fetch("/api/crm/pipeline")
       .then(r => r.json())
       .then(res => {
@@ -788,11 +799,9 @@ function PipelinePageInner() {
           ];
           persist(all);
           setOpps(all);
-        } else {
-          setOpps([]);
         }
       })
-      .catch(() => setOpps([]))
+      .catch(() => undefined)
       .finally(() => setLoading(false));
   }, []);
 
