@@ -5,7 +5,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { ArrowLeft, TrendingUp, TrendingDown, RefreshCw, DollarSign, Download } from "lucide-react";
-import { formatBRL, formatPct } from "@/lib/utils";
+import { formatBRL, formatPct, formatIndex } from "@/lib/utils";
 
 interface ProfitRow {
   project_id: string; project_code: string; project_name: string; bu_code: string; status: string;
@@ -26,7 +26,7 @@ interface Metrics {
 function fmtInd(n: number | null) {
   if (n == null) return <span className="text-gray-400">—</span>;
   const ok = n >= 1;
-  return <span className={ok ? "text-emerald-600 font-semibold" : "text-red-600 font-semibold"}>{n.toFixed(2)}</span>;
+  return <span className={ok ? "text-emerald-600 font-semibold" : "text-red-600 font-semibold"}>{formatIndex(n)}</span>;
 }
 
 const BU_CHIP: Record<string, string> = {

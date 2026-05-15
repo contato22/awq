@@ -12,7 +12,7 @@ import {
   Calendar, TrendingUp, TrendingDown, Flag, Pencil, Plus, RefreshCw,
   XCircle, Circle, PlayCircle,
 } from "lucide-react";
-import { formatBRL, formatDateBR, formatPct } from "@/lib/utils";
+import { formatBRL, formatDateBR, formatPct, formatIndex } from "@/lib/utils";
 import type { PpmProject, PpmTask, PpmMilestone, PpmAllocation, PpmRisk, PpmIssue } from "@/lib/ppm-types";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -292,8 +292,8 @@ export default function ProjectDetailPage() {
             {/* EVM */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {[
-                { label: "CPI (Cost Performance)", value: cpi != null ? cpi.toFixed(2) : "—", note: cpi != null ? (cpi >= 1 ? "Dentro do orçamento" : "Acima do orçamento") : "Sem custo registrado", good: cpi == null || cpi >= 1 },
-                { label: "SPI (Schedule Performance)", value: spi != null ? spi.toFixed(2) : "—", note: spi != null ? (spi >= 1 ? "Dentro do prazo" : "Atrasado") : "Sem receita registrada", good: spi == null || spi >= 1 },
+                { label: "CPI (Cost Performance)", value: formatIndex(cpi), note: cpi != null ? (cpi >= 1 ? "Dentro do orçamento" : "Acima do orçamento") : "Sem custo registrado", good: cpi == null || cpi >= 1 },
+                { label: "SPI (Schedule Performance)", value: formatIndex(spi), note: spi != null ? (spi >= 1 ? "Dentro do prazo" : "Atrasado") : "Sem receita registrada", good: spi == null || spi >= 1 },
                 { label: "Earned Value (EV)", value: formatBRL(ev), note: `PV: ${formatBRL(pv)} · AC: ${formatBRL(ac)}`, good: ev >= ac },
               ].map(({ label, value, note, good }) => (
                 <div key={label} className={`rounded-xl border p-4 ${good ? "bg-emerald-50 border-emerald-200" : "bg-red-50 border-red-200"}`}>

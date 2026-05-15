@@ -40,6 +40,11 @@ export function formatPct(n: number | null | undefined, decimals = 1): string {
   return n.toFixed(decimals) + "%";
 }
 
+export function formatIndex(n: number | null | undefined, decimals = 2): string {
+  if (n == null) return "—";
+  return n.toLocaleString("pt-BR", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+}
+
 export function formatDate(date: Date | string): string {
   return new Intl.DateTimeFormat("en-US", {
     year: "numeric",
