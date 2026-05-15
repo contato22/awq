@@ -1251,7 +1251,34 @@ const ENRD_MODULES: BUModule[] = [
         description: "Clientes & Relacionamento",
         icon: Users,
         items: [
-            { label: "Clientes", href: "/enrd/customers", icon: Users },
+            { label: "Clientes",      href: "/enrd/customers", icon: Users   },
+            { label: "Dashboard CRM", href: "/crm",            icon: Target  },
+            { label: "Leads",         href: "/crm/leads?bu=ENRD", icon: UserPlus },
+            { label: "Pipeline",      href: "/crm/pipeline",   icon: Activity },
+        ],
+    },
+    {
+        id: "ppm",
+        label: "PPM",
+        description: "Projetos & Portfólio",
+        icon: Briefcase,
+        items: [
+            { label: "Portfolio",  href: "/awq/ppm?bu=ENRD",   icon: Briefcase    },
+            { label: "Gantt",      href: "/awq/ppm/gantt",     icon: GanttChart   },
+            { label: "Tarefas",    href: "/awq/ppm/tasks",     icon: ClipboardList},
+            { label: "Timesheets", href: "/awq/ppm/timesheets",icon: Clock        },
+            { label: "Novo Projeto",href: "/awq/ppm/add?bu=ENRD", icon: FolderOpen },
+        ],
+    },
+    {
+        id: "bi",
+        label: "BI",
+        description: "Analytics & Relatórios",
+        icon: PieChart,
+        items: [
+            { label: "Analytics",  href: "/crm/analytics",    icon: BarChart3  },
+            { label: "Pipeline",   href: "/crm/pipeline",     icon: Activity   },
+            { label: "RFM",        href: "/crm/rfm",          icon: PieChart   },
         ],
     },
 ];

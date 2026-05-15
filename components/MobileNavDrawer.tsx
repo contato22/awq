@@ -687,7 +687,23 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
               </div>
               <SectionLabel>CRM · Clientes & Relacionamento</SectionLabel>
               <div className="space-y-0.5">
-                <NavLink href="/enrd/customers" icon={Users} label="Clientes" active={isActive("/enrd/customers")} onNavigate={onClose} />
+                <NavLink href="/enrd/customers"    icon={Users}    label="Clientes"      active={isActive("/enrd/customers")}    onNavigate={onClose} />
+                <NavLink href="/crm"               icon={Target}   label="Dashboard CRM" active={isActive("/crm")}               onNavigate={onClose} />
+                <NavLink href="/crm/leads?bu=ENRD" icon={UserPlus} label="Leads"         active={isActive("/crm/leads")}        onNavigate={onClose} />
+                <NavLink href="/crm/pipeline"      icon={Activity} label="Pipeline"      active={isActive("/crm/pipeline")}     onNavigate={onClose} />
+              </div>
+              <SectionLabel>PPM · Projetos & Portfólio</SectionLabel>
+              <div className="space-y-0.5">
+                <NavLink href="/awq/ppm?bu=ENRD"    icon={Briefcase}    label="Portfolio"    active={isActive("/awq/ppm")}            onNavigate={onClose} />
+                <NavLink href="/awq/ppm/gantt"      icon={GanttChart}   label="Gantt"        active={isActive("/awq/ppm/gantt")}      onNavigate={onClose} />
+                <NavLink href="/awq/ppm/tasks"      icon={ClipboardList}label="Tarefas"      active={isActive("/awq/ppm/tasks")}      onNavigate={onClose} />
+                <NavLink href="/awq/ppm/timesheets" icon={Clock}        label="Timesheets"   active={isActive("/awq/ppm/timesheets")} onNavigate={onClose} />
+              </div>
+              <SectionLabel>BI · Analytics & Relatórios</SectionLabel>
+              <div className="space-y-0.5">
+                <NavLink href="/crm/analytics" icon={BarChart3} label="Analytics"  active={isActive("/crm/analytics")} onNavigate={onClose} />
+                <NavLink href="/crm/pipeline"  icon={Activity}  label="Pipeline"   active={isActive("/crm/pipeline")}  onNavigate={onClose} />
+                <NavLink href="/crm/rfm"       icon={PieChart}  label="RFM"        active={isActive("/crm/rfm")}       onNavigate={onClose} />
               </div>
             </>
           )}
