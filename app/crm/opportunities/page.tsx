@@ -61,18 +61,26 @@ const ACTIVITY_TYPE_CONFIG: Record<string, { icon: React.ElementType; label: str
 };
 
 const ACTIVE_STAGES = ["discovery","qualification","proposal","negotiation","closed_won","closed_lost"] as const;
+const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
+
+async function apiPost(path: string, body: Record<string, unknown>) {
+  const res = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  return res.json();
+}
 
 // ─── Detail Modal (Detalhes + Atividades) ────────────────────────────────────
 
 function OppDetailModal({
   opp,
   initialTab,
+  isStatic,
   onSave,
   onDelete,
   onClose,
 }: {
   opp: CrmOpportunity;
   initialTab: "edit" | "activity";
+  isStatic: boolean;
   onSave: (updated: CrmOpportunity) => void;
   onDelete: (opp: CrmOpportunity) => void;
   onClose: () => void;
@@ -103,16 +111,24 @@ function OppDetailModal({
 
   useEffect(() => {
     setActLoading(true);
-    supabase
-      .from("crm_activities")
-      .select("*")
-      .eq("related_to_id", opp.opportunity_id)
-      .eq("related_to_type", "opportunity")
-      .order("created_at", { ascending: false })
-      .then(({ data }) => { if (data) setActivities(data as CrmActivity[]); })
-      .catch(() => undefined)
-      .finally(() => setActLoading(false));
-  }, [opp.opportunity_id]);
+    if (isStatic) {
+      supabase
+        .from("crm_activities")
+        .select("*")
+        .eq("related_to_id", opp.opportunity_id)
+        .eq("related_to_type", "opportunity")
+        .order("created_at", { ascending: false })
+        .then(({ data }) => { if (data) setActivities(data as CrmActivity[]); })
+        .catch(() => undefined)
+        .finally(() => setActLoading(false));
+    } else {
+      fetch(`/api/crm/activities?related_to_type=opportunity&related_to_id=${opp.opportunity_id}`)
+        .then(r => r.json())
+        .then(json => { if (json.success) setActivities(json.data as CrmActivity[]); })
+        .catch(() => undefined)
+        .finally(() => setActLoading(false));
+    }
+  }, [opp.opportunity_id, isStatic]);
 
   function setField(field: string, value: string) {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -142,7 +158,7 @@ function OppDetailModal({
     if (!actForm.subject.trim()) return;
     setActSaving(true);
     try {
-      const { data, error } = await supabase.from("crm_activities").insert({
+      const payload = {
         activity_type: actForm.activity_type,
         related_to_type: "opportunity",
         related_to_id: opp.opportunity_id,
@@ -152,26 +168,33 @@ function OppDetailModal({
         scheduled_at: actForm.scheduled_at || null,
         status: "completed",
         created_by: opp.owner,
-      }).select("*").single();
+      };
 
-      const newActivity: CrmActivity = (!error && data)
-        ? data as CrmActivity
-        : {
-            activity_id: crypto.randomUUID(),
-            activity_type: actForm.activity_type as CrmActivity["activity_type"],
-            related_to_type: "opportunity",
-            related_to_id: opp.opportunity_id,
-            subject: actForm.subject.trim(),
-            description: actForm.description.trim() || null,
-            outcome: actForm.outcome as CrmActivity["outcome"] || null,
-            duration_minutes: null,
-            scheduled_at: actForm.scheduled_at || null,
-            completed_at: new Date().toISOString(),
-            status: "completed",
-            created_by: opp.owner,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          };
+      let saved: CrmActivity | null = null;
+      if (isStatic) {
+        const { data, error } = await supabase.from("crm_activities").insert(payload).select("*").single();
+        if (!error && data) saved = data as CrmActivity;
+      } else {
+        const json = await apiPost("/api/crm/activities", { action: "create", ...payload });
+        if (json.success) saved = json.data as CrmActivity;
+      }
+
+      const newActivity: CrmActivity = saved ?? {
+        activity_id: crypto.randomUUID(),
+        activity_type: actForm.activity_type as CrmActivity["activity_type"],
+        related_to_type: "opportunity",
+        related_to_id: opp.opportunity_id,
+        subject: actForm.subject.trim(),
+        description: actForm.description.trim() || null,
+        outcome: actForm.outcome as CrmActivity["outcome"] || null,
+        duration_minutes: null,
+        scheduled_at: actForm.scheduled_at || null,
+        completed_at: new Date().toISOString(),
+        status: "completed",
+        created_by: opp.owner,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
       setActivities(prev => [newActivity, ...prev]);
       setActForm({ activity_type: "call", subject: "", description: "", outcome: "", scheduled_at: new Date().toISOString().slice(0, 16) });
     } catch { /* ignore */ }
@@ -786,62 +809,62 @@ function PipelinePageInner() {
   const [activityCounts, setActivityCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
-    if (!SUPABASE_URL || !SUPABASE_ANON) {
-      setApiError("Variáveis NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY não estão configuradas no Vercel. Acesse: Vercel Dashboard → Project → Settings → Environment Variables");
-      setLoading(false);
-      return;
-    }
-
     async function load() {
-      const { data: oppsData, error: oppsError } = await supabase
-        .from("crm_opportunities")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (oppsError) { setApiError(oppsError.message); setOpps([]); return; }
-      const opps = (oppsData ?? []) as CrmOpportunity[];
-
-      const accountIds = [...new Set(opps.map(o => o.account_id).filter(Boolean))] as string[];
-      const contactIds = [...new Set(opps.map(o => o.contact_id).filter(Boolean))] as string[];
-
-      const [acctRes, contRes] = await Promise.all([
-        accountIds.length > 0
-          ? supabase.from("crm_accounts").select("account_id, account_name").in("account_id", accountIds)
-          : Promise.resolve({ data: [] }),
-        contactIds.length > 0
-          ? supabase.from("crm_contacts").select("contact_id, full_name").in("contact_id", contactIds)
-          : Promise.resolve({ data: [] }),
-      ]);
-
-      const acctMap = Object.fromEntries((acctRes.data ?? []).map((a: Record<string, string>) => [a.account_id, a.account_name]));
-      const contMap = Object.fromEntries((contRes.data ?? []).map((c: Record<string, string>) => [c.contact_id, c.full_name]));
-
-      setOpps(opps.map(o => ({
-        ...o,
-        account_name: o.account_id ? (acctMap[o.account_id] ?? o.account_name) : o.account_name,
-        contact_name: o.contact_id ? (contMap[o.contact_id] ?? o.contact_name) : o.contact_name,
-      })));
+      if (IS_STATIC) {
+        if (!SUPABASE_URL || !SUPABASE_ANON) {
+          setApiError("Variáveis NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY não estão configuradas. Acesse: Vercel Dashboard → Project → Settings → Environment Variables");
+          return;
+        }
+        const { data: oppsData, error: oppsError } = await supabase
+          .from("crm_opportunities").select("*").order("created_at", { ascending: false });
+        if (oppsError) { setApiError(oppsError.message); setOpps([]); return; }
+        const opps = (oppsData ?? []) as CrmOpportunity[];
+        const accountIds = [...new Set(opps.map(o => o.account_id).filter(Boolean))] as string[];
+        const contactIds = [...new Set(opps.map(o => o.contact_id).filter(Boolean))] as string[];
+        const [acctRes, contRes] = await Promise.all([
+          accountIds.length > 0 ? supabase.from("crm_accounts").select("account_id, account_name").in("account_id", accountIds) : Promise.resolve({ data: [] }),
+          contactIds.length > 0 ? supabase.from("crm_contacts").select("contact_id, full_name").in("contact_id", contactIds) : Promise.resolve({ data: [] }),
+        ]);
+        const acctMap = Object.fromEntries((acctRes.data ?? []).map((a: Record<string, string>) => [a.account_id, a.account_name]));
+        const contMap = Object.fromEntries((contRes.data ?? []).map((c: Record<string, string>) => [c.contact_id, c.full_name]));
+        setOpps(opps.map(o => ({
+          ...o,
+          account_name: o.account_id ? (acctMap[o.account_id] ?? o.account_name) : o.account_name,
+          contact_name: o.contact_id ? (contMap[o.contact_id] ?? o.contact_name) : o.contact_name,
+        })));
+      } else {
+        // Vercel: server-side API route (uses SUPABASE_URL + service role key)
+        const res = await fetch("/api/crm/pipeline");
+        const json = await res.json();
+        if (!json.success) throw new Error(json.error ?? "API error");
+        const allOpps: CrmOpportunity[] = [
+          ...Object.values(json.data.byStage as Record<string, CrmOpportunity[]>).flat(),
+          ...(json.data.closedWon as CrmOpportunity[]),
+          ...(json.data.closedLost as CrmOpportunity[]),
+        ];
+        setOpps(allOpps);
+      }
       setApiError(null);
     }
-
     load().catch(e => { setApiError(String(e)); setOpps([]); }).finally(() => setLoading(false));
   }, []);
 
-  // Fetch activity counts directly from Supabase
   useEffect(() => {
-    supabase
-      .from("crm_activities")
-      .select("related_to_id")
-      .eq("related_to_type", "opportunity")
-      .then(({ data }) => {
-        if (!data) return;
-        const counts: Record<string, number> = {};
-        for (const act of data as { related_to_id: string }[]) {
-          counts[act.related_to_id] = (counts[act.related_to_id] ?? 0) + 1;
-        }
-        setActivityCounts(counts);
-      })
-      .catch(() => undefined);
+    function toCounts(data: { related_to_id: string }[]) {
+      const counts: Record<string, number> = {};
+      for (const act of data) counts[act.related_to_id] = (counts[act.related_to_id] ?? 0) + 1;
+      setActivityCounts(counts);
+    }
+    if (IS_STATIC) {
+      supabase.from("crm_activities").select("related_to_id").eq("related_to_type", "opportunity")
+        .then(({ data }) => { if (data) toCounts(data as { related_to_id: string }[]); })
+        .catch(() => undefined);
+    } else {
+      fetch("/api/crm/activities?related_to_type=opportunity")
+        .then(r => r.json())
+        .then(json => { if (json.success) toCounts(json.data); })
+        .catch(() => undefined);
+    }
   }, []);
 
   function updateOpps(next: CrmOpportunity[]) {
@@ -883,10 +906,12 @@ function PipelinePageInner() {
     updateOpps(next);
     showToast(`Movido para ${STAGE_LABELS[toStage as keyof typeof STAGE_LABELS] ?? toStage}`, true);
 
-    supabase.from("crm_opportunities")
-      .update({ stage: toStage, probability: STAGE_PROBABILITY[toStage as keyof typeof STAGE_PROBABILITY] ?? opp.probability })
-      .eq("opportunity_id", id)
-      .catch(() => undefined);
+    const prob = STAGE_PROBABILITY[toStage as keyof typeof STAGE_PROBABILITY] ?? opp.probability;
+    if (IS_STATIC) {
+      supabase.from("crm_opportunities").update({ stage: toStage, probability: prob }).eq("opportunity_id", id).catch(() => undefined);
+    } else {
+      apiPost("/api/crm/opportunities", { action: "update", opportunity_id: id, stage: toStage, probability: prob }).catch(() => undefined);
+    }
   }
 
   function handleSaveEdit(updated: CrmOpportunity) {
@@ -896,7 +921,11 @@ function PipelinePageInner() {
     showToast("Oportunidade atualizada", true);
 
     const { opportunity_id, account_name, contact_name, opportunity_code, created_at, updated_at, ...fields } = updated;
-    supabase.from("crm_opportunities").update(fields).eq("opportunity_id", opportunity_id).catch(() => undefined);
+    if (IS_STATIC) {
+      supabase.from("crm_opportunities").update(fields).eq("opportunity_id", opportunity_id).catch(() => undefined);
+    } else {
+      apiPost("/api/crm/opportunities", { action: "update", opportunity_id, ...fields }).catch(() => undefined);
+    }
   }
 
   function handleDelete(opp: CrmOpportunity) {
@@ -905,7 +934,11 @@ function PipelinePageInner() {
     setEditingOpp(null);
     showToast("Oportunidade apagada", true);
 
-    supabase.from("crm_opportunities").delete().eq("opportunity_id", opp.opportunity_id).catch(() => undefined);
+    if (IS_STATIC) {
+      supabase.from("crm_opportunities").delete().eq("opportunity_id", opp.opportunity_id).catch(() => undefined);
+    } else {
+      apiPost("/api/crm/opportunities", { action: "delete", opportunity_id: opp.opportunity_id }).catch(() => undefined);
+    }
   }
 
   const openOpps = opps.filter(o => o.stage !== "closed_won" && o.stage !== "closed_lost");
@@ -962,6 +995,7 @@ function PipelinePageInner() {
           <OppDetailModal
             opp={editingOpp}
             initialTab={editingTab}
+            isStatic={IS_STATIC}
             onSave={handleSaveEdit}
             onDelete={handleDelete}
             onClose={() => setEditingOpp(null)}
