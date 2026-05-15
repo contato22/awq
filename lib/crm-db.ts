@@ -334,6 +334,8 @@ export async function updateOpportunity(id: string, data: Partial<CrmOpportunity
       owner               = COALESCE(${data.owner ?? null}, owner),
       proposal_sent_date  = COALESCE(${data.proposal_sent_date ?? null}, proposal_sent_date),
       synced_to_epm       = COALESCE(${data.synced_to_epm ?? null}, synced_to_epm),
+      ppm_synced          = COALESCE(${data.ppm_synced ?? null}, ppm_synced),
+      ppm_project_id      = COALESCE(${data.ppm_project_id ?? null}, ppm_project_id),
       updated_at          = NOW()
     WHERE opportunity_id = ${id}
     RETURNING *

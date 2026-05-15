@@ -544,6 +544,7 @@ function OppCard({
   onClick,
   onActivityClick,
   onDeleteClick,
+  onPpmSynced,
 }: {
   opp: CrmOpportunity;
   activityCount?: number;
@@ -551,8 +552,10 @@ function OppCard({
   onClick: () => void;
   onActivityClick: (e: React.MouseEvent) => void;
   onDeleteClick: (e: React.MouseEvent) => void;
+  onPpmSynced?: (opportunityId: string, projectId: string) => void;
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [syncingPpm, setSyncingPpm] = useState(false);
   const days = daysUntil(opp.expected_close_date);
   const isUrgent = days !== null && days <= 7 && days >= 0;
   const isOverdue = days !== null && days < 0;
@@ -640,13 +643,38 @@ function OppCard({
         </div>
       )}
 
-      {opp.stage === "closed_won" && (
+      {opp.stage === "closed_won" && !opp.ppm_synced && (
+        <button
+          type="button"
+          disabled={syncingPpm}
+          onClick={async e => {
+            e.stopPropagation();
+            setSyncingPpm(true);
+            try {
+              const res = await fetch("/api/crm/ppm-sync", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ opportunity_id: opp.opportunity_id }),
+              });
+              const json = await res.json() as { success: boolean; data?: { project_id: string; already_synced?: boolean }; error?: string };
+              if (json.success && json.data?.project_id) {
+                onPpmSynced?.(opp.opportunity_id, json.data.project_id);
+              }
+            } catch { /* network error — leave button active */ }
+            setSyncingPpm(false);
+          }}
+          className="mt-2 flex items-center justify-center gap-1 w-full text-[10px] font-semibold text-brand-600 bg-brand-50 border border-brand-200 rounded-lg py-1 hover:bg-brand-100 transition-colors disabled:opacity-50 disabled:cursor-wait"
+        >
+          {syncingPpm ? "Criando…" : "🚀 Criar Projeto PPM"}
+        </button>
+      )}
+      {opp.stage === "closed_won" && opp.ppm_synced && opp.ppm_project_id && (
         <Link
-          href={`/awq/ppm/add?opportunity_id=${opp.opportunity_id}&customer=${encodeURIComponent(opp.account_name ?? "")}&revenue=${opp.deal_value}&bu=${opp.bu}`}
-          className="mt-2 flex items-center justify-center gap-1 w-full text-[10px] font-semibold text-brand-600 bg-brand-50 border border-brand-200 rounded-lg py-1 hover:bg-brand-100 transition-colors"
+          href={`/awq/ppm/${opp.ppm_project_id}`}
+          className="mt-2 flex items-center justify-center gap-1 w-full text-[10px] font-semibold text-green-700 bg-green-50 border border-green-200 rounded-lg py-1 hover:bg-green-100 transition-colors"
           onClick={e => e.stopPropagation()}
         >
-          🚀 Criar Projeto PPM
+          ✅ Ver Projeto PPM
         </Link>
       )}
 
@@ -672,7 +700,7 @@ function OppCard({
 // ─── Column ───────────────────────────────────────────────────────────────────
 
 function KanbanColumn({
-  stage, opps, activityCounts, onDrop, onDragOver, onDragLeave, isDragOver, onCardClick, onActivityClick, onDeleteClick,
+  stage, opps, activityCounts, onDrop, onDragOver, onDragLeave, isDragOver, onCardClick, onActivityClick, onDeleteClick, onPpmSynced,
 }: {
   stage: string;
   opps: CrmOpportunity[];
@@ -684,6 +712,7 @@ function KanbanColumn({
   onCardClick: (opp: CrmOpportunity) => void;
   onActivityClick: (opp: CrmOpportunity) => void;
   onDeleteClick: (opp: CrmOpportunity) => void;
+  onPpmSynced?: (opportunityId: string, projectId: string) => void;
 }) {
   const cfg = STAGE_CONFIG[stage]!;
   const total = opps.reduce((s, o) => s + o.deal_value, 0);
@@ -728,6 +757,7 @@ function KanbanColumn({
             onClick={() => onCardClick(o)}
             onActivityClick={e => { e.stopPropagation(); onActivityClick(o); }}
             onDeleteClick={e => { e.stopPropagation(); onDeleteClick(o); }}
+            onPpmSynced={onPpmSynced}
           />
         ))}
         {opps.length === 0 && (
@@ -889,6 +919,16 @@ function PipelinePageInner() {
     }).catch(() => undefined);
   }
 
+  function handlePpmSynced(opportunityId: string, projectId: string) {
+    const next = opps.map(o =>
+      o.opportunity_id === opportunityId
+        ? { ...o, ppm_synced: true, ppm_project_id: projectId }
+        : o
+    );
+    updateOpps(next);
+    showToast("Projeto PPM criado com sucesso!", true);
+  }
+
   const openOpps = opps.filter(o => o.stage !== "closed_won" && o.stage !== "closed_lost");
   const totalPipeline = openOpps.reduce((s, o) => s + o.deal_value, 0);
   const weightedForecast = openOpps.reduce((s, o) => s + o.deal_value * o.probability / 100, 0);
@@ -993,6 +1033,7 @@ function PipelinePageInner() {
                 onCardClick={opp => openCard(opp, "edit")}
                 onActivityClick={opp => openCard(opp, "activity")}
                 onDeleteClick={handleDelete}
+                onPpmSynced={handlePpmSynced}
               />
             ))}
           </div>

@@ -149,7 +149,23 @@ function AddProjectPageInner() {
       let json: { success: boolean; data?: { project_id: string }; error?: string } | null = null;
       try { json = await res.json(); } catch { /* ignore non-JSON error bodies */ }
       if (!json?.success) throw new Error(json?.error ?? `HTTP ${res.status}`);
-      router.push(`/awq/ppm/${json.data!.project_id}`);
+      const createdProjectId = json.data!.project_id;
+
+      // Write-back: mark CRM opportunity as PPM-synced
+      if (form.opportunity_id) {
+        await fetch("/api/crm/opportunities", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "update",
+            opportunity_id: form.opportunity_id,
+            ppm_synced: true,
+            ppm_project_id: createdProjectId,
+          }),
+        }).catch(() => undefined);
+      }
+
+      router.push(`/awq/ppm/${createdProjectId}`);
     } catch (e) {
       setError((e as Error).message);
       setSaving(false);

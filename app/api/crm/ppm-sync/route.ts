@@ -85,7 +85,8 @@ export async function POST(req: NextRequest) {
 
     // Mark opportunity as PPM-synced
     await updateOpportunity(opportunity_id, {
-      synced_to_epm: opp.synced_to_epm,
+      ppm_synced:     true,
+      ppm_project_id: project.project_id,
     });
 
     return ok({
