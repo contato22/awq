@@ -3,13 +3,9 @@ import Link from "next/link";
 import { BarChart3, Building2, TrendingUp, ChevronRight, Users, DollarSign, Briefcase, Zap, CheckCircle2 } from "lucide-react";
 import { buData, consolidated, ventureFeeMRR, ventureFeeARR } from "@/lib/awq-derived-metrics";
 import { getAWQGroupKPIs, fmtBRL } from "@/lib/financial-metric-query";
+import { formatBRL } from "@/lib/utils";
 
 // ── Formatters ──────────────────────────────────────────────────────────────
-function fmtR(n: number): string {
-  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  if (n >= 1_000)     return "R$" + (n / 1_000).toFixed(0) + "K";
-  return "R$" + n.toLocaleString("pt-BR");
-}
 function fmtPct(n: number): string {
   return n.toFixed(1) + "%";
 }
@@ -31,7 +27,7 @@ const BUS = [
     badgeColor: "bg-brand-100 text-brand-600 border-brand-200",
     icon: BarChart3,
     kpis: [
-      { label: "Receita",  value: fmtR(jacqes.revenue)                },
+      { label: "Receita",  value: formatBRL(jacqes.revenue)                },
       { label: "Clientes", value: String(jacqes.customers)            },
       { label: "EBITDA %", value: fmtPct((jacqes.ebitda / jacqes.revenue) * 100) },
     ],
@@ -48,7 +44,7 @@ const BUS = [
     badgeColor: "bg-emerald-100 text-emerald-600 border-emerald-200",
     icon: Building2,
     kpis: [
-      { label: "Receita",  value: fmtR(caza.revenue)                },
+      { label: "Receita",  value: formatBRL(caza.revenue)                },
       { label: "Clientes", value: String(caza.customers)            },
       { label: "EBITDA %", value: fmtPct((caza.ebitda / caza.revenue) * 100) },
     ],
@@ -65,9 +61,9 @@ const BUS = [
     badgeColor: "bg-amber-100 text-amber-600 border-amber-200",
     icon: TrendingUp,
     kpis: [
-      { label: "Fee MRR",   value: fmtR(ventureFeeMRR) },
-      { label: "CDB DI",    value: fmtR(venture?.capitalAllocated ?? 0) },
-      { label: "Fee ARR",   value: fmtR(ventureFeeARR) },
+      { label: "Fee MRR",   value: formatBRL(ventureFeeMRR) },
+      { label: "CDB DI",    value: formatBRL(venture?.capitalAllocated ?? 0) },
+      { label: "Fee ARR",   value: formatBRL(ventureFeeARR) },
     ],
     status: venture?.status ?? "Em construção",
     statusColor: "bg-amber-100 text-amber-600 border-amber-200",

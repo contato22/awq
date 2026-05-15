@@ -14,15 +14,7 @@ import {
   TrendingUp,
   AlertTriangle,
 } from "lucide-react";
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function fmtR(n: number) {
-  if (n >= 1_000_000_000) return "R$" + (n / 1_000_000_000).toFixed(2) + "B";
-  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  if (n >= 1_000) return "R$" + (n / 1_000).toFixed(0) + "K";
-  return "R$" + n.toLocaleString("pt-BR");
-}
+import { formatBRL } from "@/lib/utils";
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
@@ -69,7 +61,7 @@ export default function AwqVenturePipelinePage() {
     <>
       <Header
         title="Pipeline — AWQ Venture"
-        subtitle={`${deals.length} deals em avaliação · ${fmtR(totalTicket)} em ticket potencial`}
+        subtitle={`${deals.length} deals em avaliação · ${formatBRL(totalTicket)} em ticket potencial`}
       />
       <div className="page-container">
 
@@ -77,7 +69,7 @@ export default function AwqVenturePipelinePage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             { label: "Deals Ativos",       value: deals.length,    icon: TrendingUp,  color: "text-amber-400",  bg: "bg-amber-500/10"  },
-            { label: "Ticket Potencial",   value: fmtR(totalTicket), icon: DollarSign, color: "text-emerald-400",bg: "bg-emerald-500/10" },
+            { label: "Ticket Potencial",   value: formatBRL(totalTicket), icon: DollarSign, color: "text-emerald-400",bg: "bg-emerald-500/10" },
             { label: "Due Diligence",      value: ddDeals,         icon: FileText,    color: "text-brand-400",  bg: "bg-brand-500/10"  },
             { label: "Term Sheet Enviados",value: termSheetDeals,  icon: CheckCircle2,color: "text-violet-400", bg: "bg-violet-500/10" },
           ].map((s) => {
@@ -136,7 +128,7 @@ export default function AwqVenturePipelinePage() {
                       </div>
                       <p className="text-[10px] text-gray-500 leading-relaxed">{deal.description}</p>
                       <div className="flex items-center justify-between pt-1 border-t border-gray-800">
-                        <span className="text-[10px] font-bold text-amber-400">{fmtR(deal.ticket)}</span>
+                        <span className="text-[10px] font-bold text-amber-400">{formatBRL(deal.ticket)}</span>
                         <span className="text-[10px] text-gray-600">{deal.eta}</span>
                       </div>
                       <div className="flex items-center justify-between">
@@ -185,7 +177,7 @@ export default function AwqVenturePipelinePage() {
                           <span className="text-gray-300">{d.stage}</span>
                         </span>
                       </td>
-                      <td className="py-2.5 px-3 text-right text-xs font-bold text-amber-400">{fmtR(d.ticket)}</td>
+                      <td className="py-2.5 px-3 text-right text-xs font-bold text-amber-400">{formatBRL(d.ticket)}</td>
                       <td className="py-2.5 px-3 text-right">
                         <span className={`text-xs font-bold ${d.score >= 8 ? "text-emerald-400" : d.score >= 7 ? "text-amber-400" : "text-gray-400"}`}>
                           {d.score.toFixed(1)}

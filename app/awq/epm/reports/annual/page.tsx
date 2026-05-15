@@ -1,3 +1,4 @@
+import { formatBRL } from "@/lib/utils";
 // ─── /awq/epm/reports/annual — Annual Report ──────────────────────────────────
 //
 // Annual financial report for AWQ Group:
@@ -17,14 +18,6 @@ import {
 } from "lucide-react";
 import { buildDreQuery } from "@/lib/dre-query";
 import { consolidated, consolidatedMargins, buData } from "@/lib/awq-derived-metrics";
-
-function fmtBRL(n: number): string {
-  const abs  = Math.abs(n);
-  const sign = n < 0 ? "-" : "";
-  if (abs >= 1_000_000) return sign + "R$" + (abs / 1_000_000).toFixed(2) + "M";
-  if (abs >= 1_000)     return sign + "R$" + (abs / 1_000).toFixed(0)     + "K";
-  return sign + "R$" + abs.toLocaleString("pt-BR", { minimumFractionDigits: 0 });
-}
 
 // 3-year trend (FY2024, FY2025, FY2026 YTD)
 const TREND_DATA = [
@@ -123,8 +116,8 @@ export default async function AnnualReportPage() {
           </p>
           <div className="grid grid-cols-4 gap-4">
             {[
-              { label: "Receita FY2025",   value: fmtBRL(3_210_000) },
-              { label: "EBITDA FY2025",    value: fmtBRL(240_000)   },
+              { label: "Receita FY2025",   value: formatBRL(3_210_000) },
+              { label: "EBITDA FY2025",    value: formatBRL(240_000)   },
               { label: "Business Units",   value: "4 BUs"           },
               { label: "Colaboradores",    value: "7 FTEs"          },
             ].map((card) => (
@@ -165,17 +158,17 @@ export default async function AnnualReportPage() {
                   return (
                     <tr key={row.year} className={`border-b border-gray-50 hover:bg-gray-50 ${row.year.includes("YTD") ? "bg-brand-50/30" : ""}`}>
                       <td className="py-2.5 px-3 font-bold text-gray-900">{row.year}</td>
-                      <td className="py-2.5 px-3 text-right tabular-nums text-gray-900 font-semibold">{fmtBRL(row.revenue)}</td>
+                      <td className="py-2.5 px-3 text-right tabular-nums text-gray-900 font-semibold">{formatBRL(row.revenue)}</td>
                       <td className={`py-2.5 px-3 text-right tabular-nums font-semibold ${growth !== null && growth >= 0 ? "text-emerald-600" : "text-gray-400"}`}>
                         {growth !== null ? (growth >= 0 ? "+" : "") + growth.toFixed(1) + "%" : "—"}
                       </td>
                       <td className={`py-2.5 px-3 text-right tabular-nums font-semibold ${row.ebitda >= 0 ? "text-emerald-700" : "text-red-700"}`}>
-                        {fmtBRL(row.ebitda)}
+                        {formatBRL(row.ebitda)}
                       </td>
                       <td className="py-2.5 px-3 text-right tabular-nums text-gray-500">
                         {row.revenue > 0 ? margin.toFixed(1) + "%" : "—"}
                       </td>
-                      <td className="py-2.5 px-3 text-right tabular-nums text-brand-700 font-semibold">{fmtBRL(row.cashEnd)}</td>
+                      <td className="py-2.5 px-3 text-right tabular-nums text-brand-700 font-semibold">{formatBRL(row.cashEnd)}</td>
                       <td className="py-2.5 px-3 text-right text-gray-700">{row.employees}</td>
                     </tr>
                   );
@@ -228,11 +221,11 @@ export default async function AnnualReportPage() {
                     <tr key={row.line} className={`border-b border-gray-50 hover:bg-gray-50 ${isBold ? "bg-gray-50 font-bold" : ""}`}>
                       <td className={`py-2 px-3 ${isBold ? "text-gray-900 font-bold" : "text-gray-600"}`}>{row.line}</td>
                       <td className={`py-2 px-3 text-right tabular-nums font-semibold ${row.amount >= 0 ? "text-gray-900" : "text-red-700"}`}>
-                        {fmtBRL(row.amount)}
+                        {formatBRL(row.amount)}
                       </td>
-                      <td className="py-2 px-3 text-right tabular-nums text-gray-400">{fmtBRL(row.budget)}</td>
+                      <td className="py-2 px-3 text-right tabular-nums text-gray-400">{formatBRL(row.budget)}</td>
                       <td className={`py-2 px-3 text-right tabular-nums font-semibold ${positive ? "text-emerald-600" : "text-red-600"}`}>
-                        {varR >= 0 ? "+" : ""}{fmtBRL(varR)}
+                        {varR >= 0 ? "+" : ""}{formatBRL(varR)}
                       </td>
                       <td className={`py-2 px-3 text-right tabular-nums text-xs ${positive ? "text-emerald-600" : "text-red-600"}`}>
                         {varPct >= 0 ? "+" : ""}{varPct.toFixed(1)}%
@@ -260,27 +253,27 @@ export default async function AnnualReportPage() {
                 {Object.entries(BS_DATA.assets.current).map(([k, v]) => (
                   <div key={k} className="flex justify-between text-xs pl-3">
                     <span className="text-gray-600 capitalize">{k === "ar" ? "Contas a Receber" : k === "cash" ? "Caixa" : k === "prepaid" ? "Adiantamentos" : "Outros"}</span>
-                    <span className="font-semibold tabular-nums text-gray-900">{fmtBRL(v)}</span>
+                    <span className="font-semibold tabular-nums text-gray-900">{formatBRL(v)}</span>
                   </div>
                 ))}
                 <div className="flex justify-between text-xs pl-3 border-t border-gray-100 pt-1 font-semibold">
                   <span className="text-gray-700">Total Circulante</span>
-                  <span className="text-brand-700 tabular-nums">{fmtBRL(totalCurrentAssets)}</span>
+                  <span className="text-brand-700 tabular-nums">{formatBRL(totalCurrentAssets)}</span>
                 </div>
                 <div className="text-[11px] text-gray-500 font-semibold mt-3 mb-1">Ativo Não Circulante</div>
                 {Object.entries(BS_DATA.assets.nonCurrent).map(([k, v]) => (
                   <div key={k} className="flex justify-between text-xs pl-3">
                     <span className="text-gray-600 capitalize">{k === "fixed" ? "Imobilizado" : k === "intangible" ? "Intangível" : "Investimentos LP"}</span>
-                    <span className="font-semibold tabular-nums text-gray-900">{fmtBRL(v)}</span>
+                    <span className="font-semibold tabular-nums text-gray-900">{formatBRL(v)}</span>
                   </div>
                 ))}
                 <div className="flex justify-between text-xs pl-3 border-t border-gray-100 pt-1 font-semibold">
                   <span className="text-gray-700">Total Não Circulante</span>
-                  <span className="text-brand-700 tabular-nums">{fmtBRL(totalNonCurrentAssets)}</span>
+                  <span className="text-brand-700 tabular-nums">{formatBRL(totalNonCurrentAssets)}</span>
                 </div>
                 <div className="flex justify-between text-sm pl-0 border-t-2 border-brand-300 pt-2 font-bold">
                   <span className="text-brand-800">ATIVO TOTAL</span>
-                  <span className="text-brand-800 tabular-nums">{fmtBRL(totalAssets)}</span>
+                  <span className="text-brand-800 tabular-nums">{formatBRL(totalAssets)}</span>
                 </div>
               </div>
             </div>
@@ -292,32 +285,32 @@ export default async function AnnualReportPage() {
                 {Object.entries(BS_DATA.liabilities.current).map(([k, v]) => (
                   <div key={k} className="flex justify-between text-xs pl-3">
                     <span className="text-gray-600 capitalize">{k === "ap" ? "Fornecedores" : k === "taxes" ? "Obrigações Fiscais" : k === "payroll" ? "Obrigações Trabalhistas" : "Outros"}</span>
-                    <span className="font-semibold tabular-nums text-gray-900">{fmtBRL(v)}</span>
+                    <span className="font-semibold tabular-nums text-gray-900">{formatBRL(v)}</span>
                   </div>
                 ))}
                 <div className="flex justify-between text-xs pl-3 border-t border-gray-100 pt-1 font-semibold">
                   <span className="text-gray-700">Total Passivo Circulante</span>
-                  <span className="text-red-700 tabular-nums">{fmtBRL(totalCurrentLiab)}</span>
+                  <span className="text-red-700 tabular-nums">{formatBRL(totalCurrentLiab)}</span>
                 </div>
                 <div className="text-[11px] text-gray-500 font-semibold mt-3 mb-1">Passivo Não Circulante</div>
                 <div className="flex justify-between text-xs pl-3">
                   <span className="text-gray-600">Outros LP</span>
-                  <span className="font-semibold tabular-nums text-gray-900">{fmtBRL(BS_DATA.liabilities.longTerm.other)}</span>
+                  <span className="font-semibold tabular-nums text-gray-900">{formatBRL(BS_DATA.liabilities.longTerm.other)}</span>
                 </div>
                 <div className="text-[11px] text-emerald-600 font-semibold mt-3 mb-1">Patrimônio Líquido</div>
                 {Object.entries(BS_DATA.equity).map(([k, v]) => (
                   <div key={k} className="flex justify-between text-xs pl-3">
                     <span className="text-gray-600 capitalize">{k === "capital" ? "Capital Social" : k === "reserves" ? "Reservas" : "Lucros Acumulados"}</span>
-                    <span className="font-semibold tabular-nums text-gray-900">{fmtBRL(v)}</span>
+                    <span className="font-semibold tabular-nums text-gray-900">{formatBRL(v)}</span>
                   </div>
                 ))}
                 <div className="flex justify-between text-xs pl-3 border-t border-gray-100 pt-1 font-semibold">
                   <span className="text-emerald-700">Total PL</span>
-                  <span className="text-emerald-700 tabular-nums">{fmtBRL(totalEquity)}</span>
+                  <span className="text-emerald-700 tabular-nums">{formatBRL(totalEquity)}</span>
                 </div>
                 <div className="flex justify-between text-sm pl-0 border-t-2 border-brand-300 pt-2 font-bold">
                   <span className="text-brand-800">PASSIVO + PL TOTAL</span>
-                  <span className="text-brand-800 tabular-nums">{fmtBRL(totalLiabilities + totalEquity)}</span>
+                  <span className="text-brand-800 tabular-nums">{formatBRL(totalLiabilities + totalEquity)}</span>
                 </div>
                 <div className={`flex items-center gap-1.5 text-xs mt-2 ${Math.abs(totalAssets - totalLiabilities - totalEquity) < 1 ? "text-emerald-700" : "text-red-700"}`}>
                   <CheckCircle2 size={11} />
@@ -350,7 +343,7 @@ export default async function AnnualReportPage() {
                     <div className={`flex justify-between text-xs px-3 py-2 rounded ${SECTION_STYLE[row.section]}`}>
                       <span className={row.section === "total" || row.section === "subtotal" ? "" : "pl-2"}>{row.label}</span>
                       <span className={`tabular-nums font-semibold ${row.amount >= 0 ? "text-emerald-700" : "text-red-700"}`}>
-                        {row.amount >= 0 ? "+" : ""}{fmtBRL(row.amount)}
+                        {row.amount >= 0 ? "+" : ""}{formatBRL(row.amount)}
                       </span>
                     </div>
                   </div>

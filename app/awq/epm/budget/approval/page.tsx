@@ -1,3 +1,4 @@
+import { formatBRL } from "@/lib/utils";
 // ─── /awq/epm/budget/approval — Budget Approval Workflow ──────────────────────
 //
 // Shows budget versions (Bear/Base/Bull) with approval workflow:
@@ -10,14 +11,6 @@ import {
   Target, CheckCircle2, Clock, Lock, Archive,
   AlertTriangle, GitBranch, FileText, TrendingUp,
 } from "lucide-react";
-
-function fmtBRL(n: number): string {
-  const abs  = Math.abs(n);
-  const sign = n < 0 ? "-" : "";
-  if (abs >= 1_000_000) return sign + "R$" + (abs / 1_000_000).toFixed(2) + "M";
-  if (abs >= 1_000)     return sign + "R$" + (abs / 1_000).toFixed(0)     + "K";
-  return sign + "R$" + abs.toLocaleString("pt-BR", { minimumFractionDigits: 0 });
-}
 
 type BudgetStatus = "DRAFT" | "SUBMITTED" | "APPROVED" | "LOCKED" | "ARCHIVED";
 
@@ -163,8 +156,8 @@ export default function BudgetApprovalPage() {
             <div>
               <strong>Budget operacional ativo:</strong> {approved.version_name} — aprovado por{" "}
               {approved.approved_by} em {approved.approved_at?.slice(0, 10)}.
-              Receita target: <strong>{fmtBRL(approved.budgetRevenue)}</strong> ·
-              EBITDA target: <strong>{fmtBRL(approved.budgetEBITDA)}</strong>
+              Receita target: <strong>{formatBRL(approved.budgetRevenue)}</strong> ·
+              EBITDA target: <strong>{formatBRL(approved.budgetEBITDA)}</strong>
             </div>
           </div>
         )}
@@ -198,9 +191,9 @@ export default function BudgetApprovalPage() {
 
                 <div className="space-y-2 mb-3">
                   {[
-                    { label: "Receita Target",  value: fmtBRL(v.budgetRevenue)   },
-                    { label: "EBITDA Target",   value: fmtBRL(v.budgetEBITDA)    },
-                    { label: "Resultado Líq.",  value: fmtBRL(v.budgetNetIncome)  },
+                    { label: "Receita Target",  value: formatBRL(v.budgetRevenue)   },
+                    { label: "EBITDA Target",   value: formatBRL(v.budgetEBITDA)    },
+                    { label: "Resultado Líq.",  value: formatBRL(v.budgetNetIncome)  },
                     { label: "Cresc. vs LY",    value: "+" + v.growthVsLY.toFixed(1) + "%" },
                     { label: "Margem EBITDA",   value: v.ebitdaMargin.toFixed(1) + "%" },
                   ].map((row) => (

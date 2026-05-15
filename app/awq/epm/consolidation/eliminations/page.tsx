@@ -1,3 +1,4 @@
+import { formatBRL } from "@/lib/utils";
 // ─── /awq/epm/consolidation/eliminations — Intercompany Eliminations ──────────
 //
 // Full intercompany elimination logic:
@@ -12,14 +13,6 @@ import {
   GitMerge, CheckCircle2, AlertTriangle, ArrowLeftRight,
   Building2, XCircle, BarChart3,
 } from "lucide-react";
-
-function fmtBRL(n: number): string {
-  const abs  = Math.abs(n);
-  const sign = n < 0 ? "-" : "";
-  if (abs >= 1_000_000) return sign + "R$" + (abs / 1_000_000).toFixed(2) + "M";
-  if (abs >= 1_000)     return sign + "R$" + (abs / 1_000).toFixed(0)     + "K";
-  return sign + "R$" + abs.toLocaleString("pt-BR", { minimumFractionDigits: 0 });
-}
 
 // ── Intercompany transaction register ─────────────────────────────────────────
 interface ICTransaction {
@@ -195,7 +188,7 @@ export default function EliminationsPage() {
         {/* ── Summary KPIs ──────────────────────────────────────────── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
-            { label: "Total Eliminado",     value: fmtBRL(totalElim),    color: "text-emerald-700", icon: CheckCircle2 },
+            { label: "Total Eliminado",     value: formatBRL(totalElim),    color: "text-emerald-700", icon: CheckCircle2 },
             { label: "Pares Entidade",      value: entityPairs.length,   color: "text-brand-700",   icon: ArrowLeftRight },
             { label: "Transações IC",       value: eliminated.length,    color: "text-gray-700",    icon: GitMerge    },
             { label: "Não Reconciliados",   value: unmatched.length,     color: unmatched.length > 0 ? "text-red-700" : "text-emerald-700", icon: unmatched.length > 0 ? AlertTriangle : CheckCircle2 },
@@ -219,7 +212,7 @@ export default function EliminationsPage() {
             <div className="flex items-center gap-2 mb-3">
               <AlertTriangle size={14} className="text-amber-600" />
               <span className="text-sm font-semibold text-amber-800">
-                {unmatched.length} Item(ns) Sem Contrapartida — {fmtBRL(totalUnmatch)} não eliminado
+                {unmatched.length} Item(ns) Sem Contrapartida — {formatBRL(totalUnmatch)} não eliminado
               </span>
             </div>
             <div className="space-y-2">
@@ -233,7 +226,7 @@ export default function EliminationsPage() {
                       <div className="text-[11px] text-gray-400">{t.from_entity} → {t.to_entity} · {t.date}</div>
                     </div>
                     <div className="text-right shrink-0">
-                      <div className="text-sm font-bold text-amber-700 tabular-nums">{fmtBRL(t.amount)}</div>
+                      <div className="text-sm font-bold text-amber-700 tabular-nums">{formatBRL(t.amount)}</div>
                       <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${scfg.bg} ${scfg.color}`}>
                         {scfg.label}
                       </span>
@@ -273,7 +266,7 @@ export default function EliminationsPage() {
                         </span>
                       ))}
                     </div>
-                    <span className="text-xs font-bold text-gray-900 tabular-nums">{fmtBRL(pair.total)}</span>
+                    <span className="text-xs font-bold text-gray-900 tabular-nums">{formatBRL(pair.total)}</span>
                   </div>
                   <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                     <div
@@ -313,11 +306,11 @@ export default function EliminationsPage() {
                   return (
                     <tr key={row.label} className="border-b border-gray-50 hover:bg-gray-50">
                       <td className="py-2.5 px-3 text-gray-700 font-medium">{row.label}</td>
-                      <td className="py-2.5 px-3 text-right tabular-nums text-gray-500">{fmtBRL(row.pre)}</td>
+                      <td className="py-2.5 px-3 text-right tabular-nums text-gray-500">{formatBRL(row.pre)}</td>
                       <td className={`py-2.5 px-3 text-right tabular-nums font-semibold ${elim < 0 ? "text-red-600" : "text-emerald-600"}`}>
-                        {elim >= 0 ? "+" : ""}{fmtBRL(elim)}
+                        {elim >= 0 ? "+" : ""}{formatBRL(elim)}
                       </td>
-                      <td className="py-2.5 px-3 text-right tabular-nums font-bold text-gray-900">{fmtBRL(row.post)}</td>
+                      <td className="py-2.5 px-3 text-right tabular-nums font-bold text-gray-900">{formatBRL(row.post)}</td>
                       <td className={`py-2.5 px-3 text-right tabular-nums text-xs ${pctChg < 0 ? "text-red-600" : "text-emerald-600"}`}>
                         {pctChg >= 0 ? "+" : ""}{pctChg.toFixed(1)}%
                       </td>
@@ -367,7 +360,7 @@ export default function EliminationsPage() {
                           {TYPE_LABELS[t.type] ?? t.type}
                         </span>
                       </td>
-                      <td className="py-2 px-3 text-right tabular-nums font-bold text-gray-900">{fmtBRL(t.amount)}</td>
+                      <td className="py-2 px-3 text-right tabular-nums font-bold text-gray-900">{formatBRL(t.amount)}</td>
                       <td className="py-2 px-3">
                         <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${scfg.bg} ${scfg.color}`}>
                           {scfg.label}
@@ -380,10 +373,10 @@ export default function EliminationsPage() {
               <tfoot>
                 <tr className="border-t-2 border-gray-200 bg-gray-50 font-bold">
                   <td className="py-2.5 px-3 text-xs text-gray-700" colSpan={6}>
-                    Total IC · Eliminado: {fmtBRL(totalElim)} · Pendente: {fmtBRL(totalUnmatch)}
+                    Total IC · Eliminado: {formatBRL(totalElim)} · Pendente: {formatBRL(totalUnmatch)}
                   </td>
                   <td className="py-2.5 px-3 text-right text-xs tabular-nums text-gray-900">
-                    {fmtBRL(totalElim + totalUnmatch)}
+                    {formatBRL(totalElim + totalUnmatch)}
                   </td>
                   <td />
                 </tr>

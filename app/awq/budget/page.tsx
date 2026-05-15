@@ -17,14 +17,7 @@ import {
   categoryBudget,
   BUDGET_LINES,
 } from "@/lib/awq-derived-metrics";
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function fmtR(n: number) {
-  if (Math.abs(n) >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  if (Math.abs(n) >= 1_000)     return "R$" + (n / 1_000).toFixed(0) + "K";
-  return "R$" + n.toLocaleString("pt-BR");
-}
+import { formatBRL } from "@/lib/utils";
 
 function varPct(actual: number, budget: number) {
   if (budget === 0) return 0;
@@ -82,9 +75,9 @@ export default function AwqBudgetPage() {
           {[
             {
               label: "Budget Receita YTD",
-              value: fmtR(totalBudget),
+              value: formatBRL(totalBudget),
               sub:   "Ops. consolidado",
-              delta: `Real: ${fmtR(totalActual)}`,
+              delta: `Real: ${formatBRL(totalActual)}`,
               up:    true,
               icon:  Scale,
               color: "text-brand-600",
@@ -93,7 +86,7 @@ export default function AwqBudgetPage() {
             {
               label: "Var. Receita vs Budget",
               value: `+${var_.toFixed(1)}%`,
-              sub:   `+${fmtR(totalActual - totalBudget)} acima`,
+              sub:   `+${formatBRL(totalActual - totalBudget)} acima`,
               delta: "Acima do plano",
               up:    true,
               icon:  TrendingUp,
@@ -177,14 +170,14 @@ export default function AwqBudgetPage() {
                   return (
                     <tr key={row.line} className="border-b border-gray-100 hover:bg-gray-50/80 transition-colors">
                       <td className="py-2.5 px-3 text-xs font-semibold text-gray-900">{row.line}</td>
-                      <td className="py-2.5 px-3 text-right text-xs text-gray-500">{fmtR(row.jacquesBudg)}</td>
-                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-gray-900">{fmtR(row.jacquesActual)}</td>
+                      <td className="py-2.5 px-3 text-right text-xs text-gray-500">{formatBRL(row.jacquesBudg)}</td>
+                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-gray-900">{formatBRL(row.jacquesActual)}</td>
                       <td className="py-2.5 px-3 text-right">{varCell(vJ, row.isExpense)}</td>
-                      <td className="py-2.5 px-3 text-right text-xs text-gray-500">{fmtR(row.cazaBudg)}</td>
-                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-gray-900">{fmtR(row.cazaActual)}</td>
+                      <td className="py-2.5 px-3 text-right text-xs text-gray-500">{formatBRL(row.cazaBudg)}</td>
+                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-gray-900">{formatBRL(row.cazaActual)}</td>
                       <td className="py-2.5 px-3 text-right">{varCell(vC, row.isExpense)}</td>
-                      <td className="py-2.5 px-3 text-right text-xs text-gray-500">{fmtR(row.advisorBudg)}</td>
-                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-gray-900">{fmtR(row.advisorActual)}</td>
+                      <td className="py-2.5 px-3 text-right text-xs text-gray-500">{formatBRL(row.advisorBudg)}</td>
+                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-gray-900">{formatBRL(row.advisorActual)}</td>
                       <td className="py-2.5 px-3 text-right">{varCell(vA, row.isExpense)}</td>
                     </tr>
                   );
@@ -212,9 +205,9 @@ export default function AwqBudgetPage() {
                       <span className="text-xs text-gray-500">{cat.category}</span>
                     </div>
                     <div className="flex items-center gap-3 text-[11px]">
-                      <span className="text-gray-500">Budget: {fmtR(cat.budget)}</span>
+                      <span className="text-gray-500">Budget: {formatBRL(cat.budget)}</span>
                       <span className={`font-semibold ${overBudget ? "text-red-600" : "text-emerald-600"}`}>
-                        Real: {fmtR(cat.actual)}
+                        Real: {formatBRL(cat.actual)}
                       </span>
                       <span className={`font-bold ${overBudget ? "text-red-600" : "text-emerald-600"}`}>
                         {v >= 0 ? "+" : ""}{v.toFixed(1)}%
@@ -253,11 +246,11 @@ export default function AwqBudgetPage() {
                   <div className="space-y-1.5 text-xs">
                     <div className="flex justify-between">
                       <span className="text-gray-500">Budget YTD</span>
-                      <span className="text-gray-400">{fmtR(bu.budgetRevenue)}</span>
+                      <span className="text-gray-400">{formatBRL(bu.budgetRevenue)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Realizado YTD</span>
-                      <span className="text-gray-900 font-semibold">{fmtR(bu.revenue)}</span>
+                      <span className="text-gray-900 font-semibold">{formatBRL(bu.revenue)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Exec. do Budget Anual</span>

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import { Network, Plus, TrendingUp, DollarSign, CheckCircle2, Clock, AlertTriangle } from "lucide-react";
 import { SEED_SYNERGIES } from "@/lib/ma-seed-data";
+import { formatBRL } from "@/lib/utils";
 
 const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 
@@ -24,13 +25,6 @@ interface Synergy {
   actual_cost_savings?: number;
   owner?: string;
   notes?: string;
-}
-
-function fmtR(n?: number | null) {
-  if (n == null) return "—";
-  if (Math.abs(n) >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  if (Math.abs(n) >= 1_000) return "R$" + (n / 1_000).toFixed(0) + "K";
-  return "R$" + n.toLocaleString("pt-BR");
 }
 
 function fmtDate(d?: string | null) {
@@ -134,8 +128,8 @@ export default function SynergiesPage() {
           {[
             { label: "Total Sinergias", value: String(synergies.length), color: "text-white" },
             { label: "Em Andamento", value: String(synergies.filter(s => s.status === "in_progress").length), color: "text-amber-400" },
-            { label: "Valor Estimado", value: fmtR(totalEstimated), color: "text-blue-400" },
-            { label: "Valor Realizado", value: fmtR(totalRealized), color: "text-green-400" },
+            { label: "Valor Estimado", value: formatBRL(totalEstimated), color: "text-blue-400" },
+            { label: "Valor Realizado", value: formatBRL(totalRealized), color: "text-green-400" },
           ].map(c => (
             <div key={c.label} className="bg-gray-800/50 rounded-xl border border-gray-700 p-4">
               <div className="text-xs text-gray-500 mb-1">{c.label}</div>
@@ -272,17 +266,17 @@ export default function SynergiesPage() {
                 <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-700">
                   <div>
                     <div className="text-[10px] text-gray-600">Impacto Receita Est.</div>
-                    <div className="text-sm font-semibold text-blue-400">{fmtR(s.estimated_revenue_impact)}</div>
+                    <div className="text-sm font-semibold text-blue-400">{formatBRL(s.estimated_revenue_impact)}</div>
                   </div>
                   <div>
                     <div className="text-[10px] text-gray-600">Economia Estimada</div>
-                    <div className="text-sm font-semibold text-green-400">{fmtR(s.estimated_cost_savings)}</div>
+                    <div className="text-sm font-semibold text-green-400">{formatBRL(s.estimated_cost_savings)}</div>
                   </div>
                   {s.status === "realized" && (
                     <>
                       <div>
                         <div className="text-[10px] text-gray-600">Receita Realizada</div>
-                        <div className="text-sm font-semibold text-emerald-400">{fmtR(s.actual_revenue_impact)}</div>
+                        <div className="text-sm font-semibold text-emerald-400">{formatBRL(s.actual_revenue_impact)}</div>
                       </div>
                       <div>
                         <div className="text-[10px] text-gray-600">Realização</div>

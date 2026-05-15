@@ -11,14 +11,10 @@ import {
   BarChart3, Database, CloudOff, Users,
   Briefcase, Target, Wallet, FileText,
 } from "lucide-react";
+import { formatBRL } from "@/lib/utils";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function fmtCurrency(n: number) {
-  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  if (n >= 1_000)     return "R$" + (n / 1_000).toFixed(0) + "K";
-  return "R$" + n;
-}
 function fmtNumber(n: number) { return n.toLocaleString("pt-BR"); }
 function pct(cur: number, prev: number) {
   if (!prev) return "0.0";
@@ -169,7 +165,7 @@ export default function CazaVisionPage() {
                 const Icon   = kpiIconMap[kpi.icon] ?? Building2;
                 const colors = kpiColorMap[kpi.color] ?? kpiColorMap.emerald;
                 const displayValue =
-                  kpi.unit === "currency" ? fmtCurrency(kpi.value)
+                  kpi.unit === "currency" ? formatBRL(kpi.value)
                   : kpi.unit === "percent" ? kpi.value.toFixed(1) + "%"
                   : fmtNumber(kpi.value);
                 return (
@@ -192,7 +188,7 @@ export default function CazaVisionPage() {
                   const Icon   = kpiIconMap[kpi.icon] ?? Building2;
                   const colors = kpiColorMap[kpi.color] ?? kpiColorMap.emerald;
                   const displayValue =
-                    kpi.unit === "currency" ? fmtCurrency(kpi.value)
+                    kpi.unit === "currency" ? formatBRL(kpi.value)
                     : kpi.unit === "percent" ? kpi.value.toFixed(1) + "%"
                     : fmtNumber(kpi.value);
                   return (
@@ -242,7 +238,7 @@ export default function CazaVisionPage() {
                       <div key={pt.type} className="text-center p-2 rounded-lg bg-gray-50">
                         <div className="text-sm font-bold text-gray-900">{pt.projetos}</div>
                         <div className="text-[11px] text-gray-500 mt-0.5 font-medium">{pt.type.split(" ")[0]}</div>
-                        <div className="text-[11px] text-emerald-600 font-semibold">{fmtCurrency(pt.receita)}</div>
+                        <div className="text-[11px] text-emerald-600 font-semibold">{formatBRL(pt.receita)}</div>
                       </div>
                     ))}
                   </div>
@@ -282,10 +278,10 @@ export default function CazaVisionPage() {
                 return (
                   <div key={m.month} className="p-4 rounded-lg bg-gray-50 border border-gray-100">
                     <div className="text-xs text-gray-500 mb-2 font-medium">{m.month}</div>
-                    <div className="text-lg font-bold text-gray-900 tabular-nums">{fmtCurrency(m.receita)}</div>
+                    <div className="text-lg font-bold text-gray-900 tabular-nums">{formatBRL(m.receita)}</div>
                     <div className="text-[11px] text-emerald-600 font-medium mt-1">Receita</div>
                     <div className="mt-3 pt-3 border-t border-gray-200/60 flex justify-between text-[11px]">
-                      <span className="text-red-600 font-medium">{fmtCurrency(m.expenses)} despesas</span>
+                      <span className="text-red-600 font-medium">{formatBRL(m.expenses)} despesas</span>
                       <span className="text-gray-500 font-medium">{margin}% margem</span>
                     </div>
                   </div>

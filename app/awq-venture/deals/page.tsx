@@ -10,6 +10,7 @@ import Header from "@/components/Header";
 import { dealWorkspaces } from "@/lib/deal-data";
 import type { CustomDeal } from "./custom-deal-utils";
 import { loadCustomDeals } from "./custom-deal-utils";
+import { formatBRL } from "@/lib/utils";
 import {
   TrendingUp,
   DollarSign,
@@ -22,14 +23,6 @@ import {
   ShieldCheck,
   Plus,
 } from "lucide-react";
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function fmtR(n: number) {
-  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(1) + "M";
-  if (n >= 1_000)     return "R$" + (n / 1_000).toFixed(0) + "K";
-  return "R$" + n.toLocaleString("pt-BR");
-}
 
 const stageColor: Record<string, string> = {
   "Triagem":        "text-gray-500 bg-gray-100",
@@ -92,14 +85,14 @@ export default function DealsIndexPage() {
     <>
       <Header
         title="Deals — AWQ Venture"
-        subtitle={`${deals.length + customDeals.length} propostas de aquisição · ${fmtR(totalTicket)} em valor potencial`}
+        subtitle={`${deals.length + customDeals.length} propostas de aquisição · ${formatBRL(totalTicket)} em valor potencial`}
       />
 
       {/* ── Summary KPIs ─────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {[
           { label: "Deals Ativos",     value: activeDeals.length + customDeals.filter(d => d.stage !== "Cancelado" && d.stage !== "Fechado").length,   icon: TrendingUp,  color: "text-brand-600", bg: "bg-brand-50"   },
-          { label: "Ticket Total",     value: fmtR(totalTicket),    icon: DollarSign,  color: "text-amber-700", bg: "bg-amber-50"   },
+          { label: "Ticket Total",     value: formatBRL(totalTicket),    icon: DollarSign,  color: "text-amber-700", bg: "bg-amber-50"   },
           { label: "Em Avaliação Avançada", value: advancedDeals.length, icon: FileText, color: "text-blue-600", bg: "bg-blue-50" },
           { label: "Propostas Ativas", value: readyToSend.length,   icon: ShieldCheck, color: "text-emerald-700", bg: "bg-emerald-50" },
         ].map((s) => {
@@ -169,7 +162,7 @@ export default function DealsIndexPage() {
                       </span>
                     </td>
                     <td className="py-3 px-4 text-right font-bold text-amber-600 text-sm tabular-nums">
-                      {fmtR(d.proposedValue)}
+                      {formatBRL(d.proposedValue)}
                     </td>
                     <td className="py-3 px-4 text-right">
                       <span className={`text-sm font-bold tabular-nums ${d.dealScore >= 8 ? "text-emerald-600" : d.dealScore >= 7 ? "text-amber-600" : "text-gray-500"}`}>
@@ -219,7 +212,7 @@ export default function DealsIndexPage() {
                       </span>
                     </td>
                     <td className="py-3 px-4 text-right font-bold text-amber-600 text-sm tabular-nums">
-                      {d.ticket > 0 ? fmtR(d.ticket) : "—"}
+                      {d.ticket > 0 ? formatBRL(d.ticket) : "—"}
                     </td>
                     <td className="py-3 px-4 text-right">
                       <span className="text-sm text-gray-400">—</span>

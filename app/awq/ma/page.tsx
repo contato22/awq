@@ -14,13 +14,7 @@ import {
   getPortfolioDashboardTotals,
   initMaDB,
 } from "@/lib/ma-db";
-
-function fmtR(n: number) {
-  if (Math.abs(n) >= 1_000_000_000) return "R$" + (n / 1_000_000_000).toFixed(1) + "B";
-  if (Math.abs(n) >= 1_000_000)     return "R$" + (n / 1_000_000).toFixed(1) + "M";
-  if (Math.abs(n) >= 1_000)         return "R$" + (n / 1_000).toFixed(0) + "K";
-  return "R$" + n.toLocaleString("pt-BR");
-}
+import { formatBRL } from "@/lib/utils";
 
 const STAGE_LABELS: Record<string, string> = {
   sourcing:      "Sourcing",
@@ -104,7 +98,7 @@ export default async function MaCommandCenterPage() {
     },
     {
       label:  "Total Investido",
-      value:  totalInvested ? fmtR(totalInvested) : "—",
+      value:  totalInvested ? formatBRL(totalInvested) : "—",
       sub:    "capital comprometido",
       icon:   DollarSign,
       accent: "border-l-blue-500",
@@ -112,8 +106,8 @@ export default async function MaCommandCenterPage() {
     },
     {
       label:  "Valor Atual",
-      value:  currentValue ? fmtR(currentValue) : "—",
-      sub:    unrealizedGain >= 0 ? `+${fmtR(unrealizedGain)} ganho` : `${fmtR(unrealizedGain)} perda`,
+      value:  currentValue ? formatBRL(currentValue) : "—",
+      sub:    unrealizedGain >= 0 ? `+${formatBRL(unrealizedGain)} ganho` : `${formatBRL(unrealizedGain)} perda`,
       icon:   TrendingUp,
       accent: unrealizedGain >= 0 ? "border-l-emerald-500" : "border-l-red-500",
       val:    unrealizedGain >= 0 ? "text-emerald-600" : "text-red-600",
@@ -325,7 +319,7 @@ export default async function MaCommandCenterPage() {
                       </div>
                       <div>
                         <div className="text-[9px] text-gray-400 uppercase font-medium">MRR</div>
-                        <div className="text-xs font-bold text-emerald-600">{mrr ? fmtR(mrr) : "—"}</div>
+                        <div className="text-xs font-bold text-emerald-600">{mrr ? formatBRL(mrr) : "—"}</div>
                       </div>
                       <div>
                         <div className="text-[9px] text-gray-400 uppercase font-medium">Runway</div>

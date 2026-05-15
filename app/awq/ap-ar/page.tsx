@@ -13,6 +13,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import type { ElementType } from "react";
+import { formatBRL } from "@/lib/utils";
 import Header from "@/components/Header";
 import {
   ArrowDownLeft,
@@ -101,15 +102,6 @@ const STATUS_CONFIG: Record<ItemStatus, { label: string; color: string; icon: El
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function fmtR(n: number) {
-  if (!isFinite(n) || isNaN(n)) return "R$0,00";
-  const abs = Math.abs(n);
-  const sign = n < 0 ? "-" : "";
-  if (abs >= 1_000_000) return sign + "R$" + (abs / 1_000_000).toFixed(2) + "M";
-  if (abs >= 1_000)     return sign + "R$" + (abs / 1_000).toFixed(1) + "K";
-  return sign + "R$" + abs.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
 
 function fmtDate(s: string) {
   if (!s) return "—";
@@ -462,10 +454,10 @@ export default function APARPage() {
         {/* ── Summary cards ────────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: "Total a Pagar (AP)", value: fmtR(totalAP), icon: TrendingDown, color: "text-red-600",    bg: "bg-red-50",    delta: `${apAll.filter((i) => buFilter(i) && i.status !== "settled").length} obrigação(ões)` },
-            { label: "Total a Receber (AR)", value: fmtR(totalAR), icon: TrendingUp, color: "text-emerald-600", bg: "bg-emerald-50", delta: `${arAll.filter((i) => buFilter(i) && i.status !== "settled").length} direito(s)` },
-            { label: "AP Vencido",  value: fmtR(overdueAP), icon: AlertTriangle, color: "text-orange-600", bg: "bg-orange-50", delta: `${apAll.filter((i) => buFilter(i) && i.status === "overdue").length} item(ns) em atraso` },
-            { label: "AR Vencido",  value: fmtR(overdueAR), icon: CalendarDays,  color: "text-amber-700",  bg: "bg-amber-50",  delta: `${arAll.filter((i) => buFilter(i) && i.status === "overdue").length} recebível(is) em atraso` },
+            { label: "Total a Pagar (AP)", value: formatBRL(totalAP), icon: TrendingDown, color: "text-red-600",    bg: "bg-red-50",    delta: `${apAll.filter((i) => buFilter(i) && i.status !== "settled").length} obrigação(ões)` },
+            { label: "Total a Receber (AR)", value: formatBRL(totalAR), icon: TrendingUp, color: "text-emerald-600", bg: "bg-emerald-50", delta: `${arAll.filter((i) => buFilter(i) && i.status !== "settled").length} direito(s)` },
+            { label: "AP Vencido",  value: formatBRL(overdueAP), icon: AlertTriangle, color: "text-orange-600", bg: "bg-orange-50", delta: `${apAll.filter((i) => buFilter(i) && i.status === "overdue").length} item(ns) em atraso` },
+            { label: "AR Vencido",  value: formatBRL(overdueAR), icon: CalendarDays,  color: "text-amber-700",  bg: "bg-amber-50",  delta: `${arAll.filter((i) => buFilter(i) && i.status === "overdue").length} recebível(is) em atraso` },
           ].map((c) => {
             const Icon = c.icon;
             return (
@@ -531,8 +523,8 @@ export default function APARPage() {
                 >
                   <span className={`w-2 h-2 rounded-full ${bu.dot} shrink-0`} />
                   <span className={`text-xs font-bold ${bu.color}`}>{bu.short}</span>
-                  <span className="text-[10px] text-red-500 font-semibold">AP {fmtR(bu.ap)}</span>
-                  <span className="text-[10px] text-emerald-600 font-semibold">AR {fmtR(bu.ar)}</span>
+                  <span className="text-[10px] text-red-500 font-semibold">AP {formatBRL(bu.ap)}</span>
+                  <span className="text-[10px] text-emerald-600 font-semibold">AR {formatBRL(bu.ar)}</span>
                 </button>
               ))}
             </div>
@@ -952,7 +944,7 @@ export default function APARPage() {
                                   />
                                 </td>
                                 <td className={`py-2.5 px-3 text-right text-xs font-bold ${activeTab === "ap" ? "text-red-600" : "text-emerald-600"}`}>
-                                  {activeTab === "ap" ? "-" : "+"}{fmtR(item.amount)}
+                                  {activeTab === "ap" ? "-" : "+"}{formatBRL(item.amount)}
                                 </td>
                                 <td className="py-2.5 px-3">
                                   <div className="flex items-center gap-1 justify-end">
@@ -995,7 +987,7 @@ export default function APARPage() {
                             Total em aberto{activeBU !== "all" ? ` — ${BU_MAP[activeBU].label}` : ""}
                           </td>
                           <td className={`py-2.5 px-3 text-right text-sm font-bold ${activeTab === "ap" ? "text-red-600" : "text-emerald-600"}`}>
-                            {activeTab === "ap" ? "-" : "+"}{fmtR(openItems.reduce((s, i) => s + i.amount, 0))}
+                            {activeTab === "ap" ? "-" : "+"}{formatBRL(openItems.reduce((s, i) => s + i.amount, 0))}
                           </td>
                           <td />
                         </tr>
@@ -1042,7 +1034,7 @@ export default function APARPage() {
                                     source={item.financialLinkSource}
                                   />
                                 </td>
-                                <td className="py-2 px-3 text-right text-xs font-medium text-gray-400">{fmtR(item.amount)}</td>
+                                <td className="py-2 px-3 text-right text-xs font-medium text-gray-400">{formatBRL(item.amount)}</td>
                                 <td className="py-2 px-3">
                                   <div className="flex items-center gap-1 justify-end">
                                     <button onClick={() => handleOpenEdit(item)} title="Editar" className="p-1.5 text-gray-300 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors">

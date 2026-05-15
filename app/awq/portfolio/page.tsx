@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import Link from "next/link";
 import { SEED_PORTCOS, computePortfolioTotals } from "@/lib/ma-seed-data";
+import { formatBRL } from "@/lib/utils";
 
 const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 import {
@@ -19,14 +20,6 @@ import {
 } from "lucide-react";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function fmtR(n: number | null | undefined) {
-  if (n == null || isNaN(n)) return "—";
-  if (Math.abs(n) >= 1_000_000_000) return "R$" + (n / 1_000_000_000).toFixed(2) + "B";
-  if (Math.abs(n) >= 1_000_000)     return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  if (Math.abs(n) >= 1_000)         return "R$" + (n / 1_000).toFixed(0) + "K";
-  return "R$" + n.toLocaleString("pt-BR");
-}
 
 function fmtPct(n: number | null | undefined) {
   if (n == null || isNaN(n)) return "—";
@@ -94,21 +87,21 @@ export default function PortfolioDashboardPage() {
     },
     {
       label: "Total Investido",
-      value: fmtR(totals?.total_investment),
+      value: formatBRL(totals?.total_investment),
       icon:  DollarSign,
       color: "text-emerald-400",
       bg:    "bg-emerald-500/10",
     },
     {
       label: "Valor Atual",
-      value: fmtR(totals?.total_current_value),
+      value: formatBRL(totals?.total_current_value),
       icon:  TrendingUp,
       color: "text-amber-400",
       bg:    "bg-amber-500/10",
     },
     {
       label: "Ganho Não-Realizado",
-      value: fmtR(totals?.total_unrealized_gain),
+      value: formatBRL(totals?.total_unrealized_gain),
       icon:  ArrowUpRight,
       color: (totals?.total_unrealized_gain ?? 0) >= 0 ? "text-emerald-400" : "text-red-400",
       bg:    (totals?.total_unrealized_gain ?? 0) >= 0 ? "bg-emerald-500/10" : "bg-red-500/10",
@@ -249,16 +242,16 @@ export default function PortfolioDashboardPage() {
                             {fmtPct(row.awq_ownership_pct)}
                           </td>
                           <td className="py-3 px-4 text-right text-gray-500">
-                            {fmtR(row.entry_valuation)}
+                            {formatBRL(row.entry_valuation)}
                           </td>
                           <td className="py-3 px-4 text-right text-gray-900 font-bold">
-                            {fmtR(row.current_valuation ?? row.entry_valuation)}
+                            {formatBRL(row.current_valuation ?? row.entry_valuation)}
                           </td>
                           <td className={`py-3 px-4 text-right font-bold ${multColor(multiple)}`}>
                             {multiple != null ? multiple.toFixed(2) + "×" : "—"}
                           </td>
                           <td className="py-3 px-4 text-right text-gray-600 font-medium">
-                            {fmtR(row.latest_mrr)}
+                            {formatBRL(row.latest_mrr)}
                           </td>
                           <td className={`py-3 px-4 text-right font-bold ${runwayColor(runway)}`}>
                             {runway != null ? runway + " m" : "—"}

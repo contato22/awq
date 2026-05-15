@@ -6,6 +6,7 @@
 import { useEffect } from "react";
 import { notFound } from "next/navigation";
 import { getDealById } from "@/lib/deal-data";
+import { formatBRL } from "@/lib/utils";
 import type { ProposalMetrica, ProposalTrancheItem } from "@/lib/deal-types";
 
 // ─── CSS completo (screen + print) ───────────────────────────────────────────
@@ -258,7 +259,7 @@ export default function ProposalPDFPage({ params }: { params: { id: string } }) 
                 ["Deal ID",         deal.id],
                 ["Setor",           deal.identification.sector],
                 ["Estágio",         deal.stage],
-                ["Ticket avaliado", `R$ ${(deal.proposedValue/1_000_000).toFixed(1)}M`],
+                ["Ticket avaliado", formatBRL(deal.proposedValue)],
                 ["Score interno",   `${deal.dealScore.toFixed(1)} / 10.0`],
                 ["Versão",          `${B.versao}.0 — ${today}`],
               ] as [string,string][]).map(([k,v]) => (

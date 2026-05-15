@@ -35,15 +35,7 @@ import {
   forecastAccuracyHistory,
   buForecastScenarios,
 } from "@/lib/awq-derived-metrics";
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function fmtR(n: number) {
-  if (Math.abs(n) >= 1_000_000_000) return "R$" + (n / 1_000_000_000).toFixed(2) + "B";
-  if (Math.abs(n) >= 1_000_000)     return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  if (Math.abs(n) >= 1_000)         return "R$" + (n / 1_000).toFixed(0) + "K";
-  return "R$" + n.toLocaleString("pt-BR");
-}
+import { formatBRL } from "@/lib/utils";
 
 // ─── Source metadata badge ────────────────────────────────────────────────────
 
@@ -187,7 +179,7 @@ export default async function AwqForecastPage() {
                   title="Referência de planejamento Q1 · awq-group-data.ts monthlyRevenue · NÃO é forecast"
                 />
               </div>
-              <div className="text-2xl font-bold text-gray-900">{fmtR(q1SnapshotTotal)}</div>
+              <div className="text-2xl font-bold text-gray-900">{formatBRL(q1SnapshotTotal)}</div>
               <div className="text-xs font-medium text-gray-400 mt-0.5">Q1 2026 — Referência de Planejamento</div>
               <div className="text-[10px] text-gray-500 mt-1">
                 Jan + Fev + Mar · accrual snapshot · base=bull=bear (sem modelo de cenários)
@@ -285,7 +277,7 @@ export default async function AwqForecastPage() {
                       className="border-b border-gray-100 hover:bg-gray-50/80 transition-colors"
                     >
                       <td className="py-2.5 px-3 text-xs font-medium text-gray-500">{row.month}</td>
-                      <td className="py-2.5 px-3 text-right text-xs font-medium text-amber-700">{fmtR(row.base)}</td>
+                      <td className="py-2.5 px-3 text-right text-xs font-medium text-amber-700">{formatBRL(row.base)}</td>
                       {/* Realized column: always blocked — no ingested bank statements */}
                       <td className="py-2.5 px-3 text-right">
                         <span className="text-gray-300 text-xs" title="Aguardando extrato bancário ingerido">—</span>
@@ -303,7 +295,7 @@ export default async function AwqForecastPage() {
                 <tfoot>
                   <tr className="border-t border-gray-300">
                     <td className="py-2.5 px-3 text-xs font-bold text-gray-400">Q1 TOTAL</td>
-                    <td className="py-2.5 px-3 text-right text-xs font-bold text-amber-700">{fmtR(q1SnapshotTotal)}</td>
+                    <td className="py-2.5 px-3 text-right text-xs font-bold text-amber-700">{formatBRL(q1SnapshotTotal)}</td>
                     <td className="py-2.5 px-3 text-right text-xs text-gray-300">—</td>
                     <td />
                   </tr>
@@ -362,7 +354,7 @@ export default async function AwqForecastPage() {
                           <div className="flex items-center justify-between mb-1">
                             <span className="text-xs text-gray-500">{row.month}</span>
                             <div className="flex items-center gap-2 text-[11px]">
-                              <span className="text-gray-400">Plan: {fmtR(row.forecast)}</span>
+                              <span className="text-gray-400">Plan: {formatBRL(row.forecast)}</span>
                               <span className={`font-bold ${isPos ? "text-emerald-600" : "text-red-600"}`}>
                                 {row.error >= 0 ? "+" : ""}{row.error}%
                               </span>
@@ -446,21 +438,21 @@ export default async function AwqForecastPage() {
                       <div className="flex items-center justify-between mb-2 rounded bg-gray-50 px-2 py-1">
                         <span className="text-[10px] text-gray-500">YTD (snapshot)</span>
                         <div className="flex items-center gap-1">
-                          <span className="text-[10px] font-bold text-amber-700">{fmtR(bu.ytd)}</span>
+                          <span className="text-[10px] font-bold text-amber-700">{formatBRL(bu.ytd)}</span>
                           <SourceBadge variant="snapshot" label="SNAP" title="YTD de planejamento derivado de buData" />
                         </div>
                       </div>
                       <div className="grid grid-cols-3 gap-1 text-center">
                         <div>
-                          <div className="text-xs font-bold text-emerald-600">{fmtR(bu.fullYearBull)}</div>
+                          <div className="text-xs font-bold text-emerald-600">{formatBRL(bu.fullYearBull)}</div>
                           <div className="text-[9px] text-gray-400">Bull</div>
                         </div>
                         <div>
-                          <div className="text-xs font-bold text-gray-900">{fmtR(bu.fullYearBase)}</div>
+                          <div className="text-xs font-bold text-gray-900">{formatBRL(bu.fullYearBase)}</div>
                           <div className="text-[9px] text-gray-400">Base</div>
                         </div>
                         <div>
-                          <div className="text-xs font-bold text-red-600">{fmtR(bu.fullYearBear)}</div>
+                          <div className="text-xs font-bold text-red-600">{formatBRL(bu.fullYearBear)}</div>
                           <div className="text-[9px] text-gray-400">Bear</div>
                         </div>
                       </div>

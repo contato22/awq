@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import EmptyState from "@/components/EmptyState";
+import { formatBRL } from "@/lib/utils";
 import { Film, CheckCircle2, Clock, Clapperboard, Database, CloudOff, AlertCircle, TrendingUp, BarChart3 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -26,11 +27,6 @@ interface ProjetoRow {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function fmtR(n: number) {
-  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  if (n >= 1_000)     return "R$" + (n / 1_000).toFixed(0) + "K";
-  return "R$" + n;
-}
 function fmtDate(d: string) {
   if (!d) return "—";
   const [y, m, day] = d.split("-");
@@ -150,10 +146,10 @@ export default function ProjetosPage() {
             { label: "Em Aberto",       value: emAberto,                 color: "text-brand-600",   fmt: String },
             { label: "Recebidos",       value: entregues,                color: "text-emerald-600", fmt: String },
             { label: "Taxa Entrega",    value: taxaEntrega + "%",        color: "text-violet-600",  fmt: (v: string) => v },
-            { label: "Orçamento Total", value: totalValor,               color: "text-gray-900",    fmt: fmtR   },
-            { label: "Despesas",        value: totalDespesas,            color: "text-red-600",     fmt: fmtR   },
-            { label: "Lucro Líquido",   value: totalLucro,               color: "text-emerald-600", fmt: fmtR   },
-            { label: "Ticket Médio",    value: ticketMedio,              color: "text-amber-700",   fmt: fmtR   },
+            { label: "Orçamento Total", value: totalValor,               color: "text-gray-900",    fmt: formatBRL },
+            { label: "Despesas",        value: totalDespesas,            color: "text-red-600",     fmt: formatBRL },
+            { label: "Lucro Líquido",   value: totalLucro,               color: "text-emerald-600", fmt: formatBRL },
+            { label: "Ticket Médio",    value: ticketMedio,              color: "text-amber-700",   fmt: formatBRL },
           ].map((s) => (
             <div key={s.label} className="card p-4 text-center">
               <div className={`text-2xl font-bold ${s.color} tabular-nums`}>{s.fmt(s.value as never)}</div>
@@ -180,7 +176,7 @@ export default function ProjetosPage() {
                         <div className="h-full bg-brand-500 rounded-full" style={{ width: `${Math.max(pct, 2)}%` }} />
                       </div>
                       <span className="text-xs font-bold text-gray-900 w-6 text-right shrink-0 tabular-nums">{t.count}</span>
-                      <span className="text-[11px] text-gray-400 w-16 text-right shrink-0">{fmtR(t.receita)}</span>
+                      <span className="text-[11px] text-gray-400 w-16 text-right shrink-0">{formatBRL(t.receita)}</span>
                       <span className="text-[10px] text-gray-400 w-8 text-right shrink-0">{pct}%</span>
                     </div>
                   );
@@ -243,7 +239,7 @@ export default function ProjetosPage() {
                       <span className={`text-[11px] font-bold w-10 text-right shrink-0 ${margin >= 60 ? "text-emerald-600" : margin >= 40 ? "text-amber-700" : "text-red-600"}`}>
                         {margin.toFixed(0)}%
                       </span>
-                      <span className="text-[10px] text-gray-400 w-16 text-right shrink-0">{fmtR(lucro)}</span>
+                      <span className="text-[10px] text-gray-400 w-16 text-right shrink-0">{formatBRL(lucro)}</span>
                     </div>
                   );
                 })}
@@ -293,16 +289,16 @@ export default function ProjetosPage() {
                           : <span className="text-gray-400">—</span>}
                       </td>
                       <td className="py-2.5 px-3 text-right text-gray-900 font-semibold text-xs">
-                        {p.valor > 0 ? fmtR(p.valor) : <span className="text-gray-400">—</span>}
+                        {p.valor > 0 ? formatBRL(p.valor) : <span className="text-gray-400">—</span>}
                       </td>
                       <td className="py-2.5 px-3 text-right text-xs text-red-600">
-                        {p.alimentacao > 0 ? fmtR(p.alimentacao) : <span className="text-gray-400">—</span>}
+                        {p.alimentacao > 0 ? formatBRL(p.alimentacao) : <span className="text-gray-400">—</span>}
                       </td>
                       <td className="py-2.5 px-3 text-right text-xs text-red-600">
-                        {p.gasolina > 0 ? fmtR(p.gasolina) : <span className="text-gray-400">—</span>}
+                        {p.gasolina > 0 ? formatBRL(p.gasolina) : <span className="text-gray-400">—</span>}
                       </td>
                       <td className="py-2.5 px-3 text-right text-xs font-semibold text-emerald-600">
-                        {p.lucro > 0 ? fmtR(p.lucro) : <span className="text-gray-400">—</span>}
+                        {p.lucro > 0 ? formatBRL(p.lucro) : <span className="text-gray-400">—</span>}
                       </td>
                       <td className="py-2.5 px-3 text-xs text-gray-500">{p.diretor || <span className="text-gray-400">—</span>}</td>
                       <td className="py-2.5 px-3 text-xs text-gray-500">{fmtDate(p.prazo)}</td>
@@ -324,10 +320,10 @@ export default function ProjetosPage() {
                   <tr className="border-t border-gray-300">
                     <td className="py-2.5 px-3 text-xs font-bold text-gray-400">TOTAL</td>
                     <td /><td />
-                    <td className="py-2.5 px-3 text-right text-gray-900 font-bold text-xs">{fmtR(totalValor)}</td>
-                    <td className="py-2.5 px-3 text-right text-red-600 font-bold text-xs">{totalDespesas > 0 ? fmtR(totalDespesas) : "—"}</td>
+                    <td className="py-2.5 px-3 text-right text-gray-900 font-bold text-xs">{formatBRL(totalValor)}</td>
+                    <td className="py-2.5 px-3 text-right text-red-600 font-bold text-xs">{totalDespesas > 0 ? formatBRL(totalDespesas) : "—"}</td>
                     <td />
-                    <td className="py-2.5 px-3 text-right text-emerald-600 font-bold text-xs">{fmtR(totalLucro)}</td>
+                    <td className="py-2.5 px-3 text-right text-emerald-600 font-bold text-xs">{formatBRL(totalLucro)}</td>
                     <td colSpan={3} />
                   </tr>
                 </tfoot>

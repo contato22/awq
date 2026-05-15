@@ -1,3 +1,4 @@
+import { formatBRL } from "@/lib/utils";
 // ─── /awq/epm/forecast — Cash Forecast + Driver-Based Forecasting ─────────────
 //
 // Two sections:
@@ -10,14 +11,6 @@ import {
   TrendingUp, DollarSign, BarChart3, Target,
   Activity, AlertTriangle, Calculator,
 } from "lucide-react";
-
-function fmtBRL(n: number): string {
-  const abs  = Math.abs(n);
-  const sign = n < 0 ? "-" : "";
-  if (abs >= 1_000_000) return sign + "R$" + (abs / 1_000_000).toFixed(2) + "M";
-  if (abs >= 1_000)     return sign + "R$" + (abs / 1_000).toFixed(0)     + "K";
-  return sign + "R$" + abs.toLocaleString("pt-BR", { minimumFractionDigits: 0 });
-}
 
 // ── Rolling 13-week cash forecast ──────────────────────────────────────────────
 // Base: current cash position R$412K (snapshot)
@@ -155,10 +148,10 @@ export default function ForecastPage() {
         {/* ── Cash forecast summary ──────────────────────────────────── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
-            { label: "Caixa Atual",          value: fmtBRL(412_000),    color: "text-brand-700"   },
-            { label: "Caixa Projetado (13w)", value: fmtBRL(endCash),   color: endCash > 300_000 ? "text-emerald-700" : "text-red-700" },
-            { label: "Mínimo Projetado",      value: fmtBRL(minCash),   color: minCash < 150_000 ? "text-red-700" : "text-amber-700" },
-            { label: "Máximo Projetado",      value: fmtBRL(maxCash),   color: "text-gray-700"    },
+            { label: "Caixa Atual",          value: formatBRL(412_000),    color: "text-brand-700"   },
+            { label: "Caixa Projetado (13w)", value: formatBRL(endCash),   color: endCash > 300_000 ? "text-emerald-700" : "text-red-700" },
+            { label: "Mínimo Projetado",      value: formatBRL(minCash),   color: minCash < 150_000 ? "text-red-700" : "text-amber-700" },
+            { label: "Máximo Projetado",      value: formatBRL(maxCash),   color: "text-gray-700"    },
           ].map((card) => (
             <div key={card.label} className="card p-4">
               <div className={`text-xl font-bold tabular-nums ${card.color}`}>{card.value}</div>
@@ -170,7 +163,7 @@ export default function ForecastPage() {
         {isCashRisk && (
           <div className="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
             <AlertTriangle size={13} className="shrink-0" />
-            <strong>Alerta de caixa:</strong> projeção atinge mínimo de {fmtBRL(minCash)} — abaixo do buffer mínimo recomendado de R$150K.
+            <strong>Alerta de caixa:</strong> projeção atinge mínimo de {formatBRL(minCash)} — abaixo do buffer mínimo recomendado de R$150K.
           </div>
         )}
 
@@ -181,7 +174,7 @@ export default function ForecastPage() {
             <span className="text-sm font-semibold text-gray-900">
               Rolling 13-Week Cash Forecast
             </span>
-            <span className="ml-auto text-xs text-gray-400">Base: {fmtBRL(412_000)} em 28/04/2026</span>
+            <span className="ml-auto text-xs text-gray-400">Base: {formatBRL(412_000)} em 28/04/2026</span>
           </div>
 
           {/* Bar chart */}
@@ -202,7 +195,7 @@ export default function ForecastPage() {
                         : "bg-brand-200"
                     }`}
                     style={{ height: `${barH}%` }}
-                    title={`${w.week}: ${fmtBRL(w.cumulative_cash)}`}
+                    title={`${w.week}: ${formatBRL(w.cumulative_cash)}`}
                   />
                 </div>
               );
@@ -259,13 +252,13 @@ export default function ForecastPage() {
                     <tr key={w.week} className={`border-b border-gray-50 hover:bg-gray-50 ${cashLow ? "bg-red-50/50" : ""}`}>
                       <td className="py-2 px-3 font-semibold text-gray-700">{w.week}</td>
                       <td className="py-2 px-3 text-gray-500">{w.start_date}</td>
-                      <td className="py-2 px-3 text-right tabular-nums text-emerald-600 font-semibold">{fmtBRL(w.inflow)}</td>
-                      <td className="py-2 px-3 text-right tabular-nums text-red-600 font-semibold">{fmtBRL(w.outflow)}</td>
+                      <td className="py-2 px-3 text-right tabular-nums text-emerald-600 font-semibold">{formatBRL(w.inflow)}</td>
+                      <td className="py-2 px-3 text-right tabular-nums text-red-600 font-semibold">{formatBRL(w.outflow)}</td>
                       <td className={`py-2 px-3 text-right tabular-nums font-bold ${netPos ? "text-emerald-700" : "text-red-700"}`}>
-                        {netPos ? "+" : ""}{fmtBRL(w.net)}
+                        {netPos ? "+" : ""}{formatBRL(w.net)}
                       </td>
                       <td className={`py-2 px-3 text-right tabular-nums font-bold ${cashLow ? "text-red-700" : "text-gray-900"}`}>
-                        {fmtBRL(w.cumulative_cash)}
+                        {formatBRL(w.cumulative_cash)}
                         {cashLow && <AlertTriangle size={10} className="inline ml-1 text-red-500" />}
                       </td>
                       <td className="py-2 px-3">
@@ -303,9 +296,9 @@ export default function ForecastPage() {
                 {/* Projected outcomes */}
                 <div className="grid grid-cols-3 gap-2 mb-4">
                   {[
-                    { label: "Receita",  value: fmtBRL(s.projectedRevenue)  },
-                    { label: "EBITDA",   value: fmtBRL(s.projectedEBITDA)   },
-                    { label: "Caixa YE", value: fmtBRL(s.projectedCash)     },
+                    { label: "Receita",  value: formatBRL(s.projectedRevenue)  },
+                    { label: "EBITDA",   value: formatBRL(s.projectedEBITDA)   },
+                    { label: "Caixa YE", value: formatBRL(s.projectedCash)     },
                   ].map((m) => (
                     <div key={m.label} className="bg-gray-50 rounded-xl p-2.5 text-center">
                       <div className={`text-xs font-bold tabular-nums ${s.color}`}>{m.value}</div>
@@ -327,7 +320,7 @@ export default function ForecastPage() {
                       </div>
                       <div className="text-right">
                         <span className={`font-bold tabular-nums ${s.color}`}>
-                          {d.unit === "R$/mês" ? fmtBRL(d.value) : d.value}
+                          {d.unit === "R$/mês" ? formatBRL(d.value) : d.value}
                         </span>
                         <span className="text-gray-400 ml-1">{d.unit !== "R$/mês" ? d.unit : "/mês"}</span>
                       </div>
@@ -362,28 +355,28 @@ export default function ForecastPage() {
                   <td className="py-2 px-3 text-center text-red-600 font-bold">1</td>
                   <td className="py-2 px-3 text-center text-brand-700 font-bold bg-brand-50">3</td>
                   <td className="py-2 px-3 text-center text-emerald-700 font-bold">6</td>
-                  <td className="py-2 px-3 text-right text-gray-700">~{fmtBRL(420_000)}/ano</td>
+                  <td className="py-2 px-3 text-right text-gray-700">~{formatBRL(420_000)}/ano</td>
                 </tr>
                 <tr className="border-b border-gray-50 hover:bg-gray-50">
                   <td className="py-2 px-3 text-gray-700">Ticket médio</td>
                   <td className="py-2 px-3 text-center text-red-600 font-bold">R$28K</td>
                   <td className="py-2 px-3 text-center text-brand-700 font-bold bg-brand-50">R$35K</td>
                   <td className="py-2 px-3 text-center text-emerald-700 font-bold">R$45K</td>
-                  <td className="py-2 px-3 text-right text-gray-700">+R$1K = +{fmtBRL(36_000)}/ano</td>
+                  <td className="py-2 px-3 text-right text-gray-700">+R$1K = +{formatBRL(36_000)}/ano</td>
                 </tr>
                 <tr className="border-b border-gray-50 hover:bg-gray-50">
                   <td className="py-2 px-3 text-gray-700">Churn anual</td>
                   <td className="py-2 px-3 text-center text-red-600 font-bold">8%</td>
                   <td className="py-2 px-3 text-center text-brand-700 font-bold bg-brand-50">5%</td>
                   <td className="py-2 px-3 text-center text-emerald-700 font-bold">2%</td>
-                  <td className="py-2 px-3 text-right text-gray-700">-1pp = +{fmtBRL(50_000)}/ano</td>
+                  <td className="py-2 px-3 text-right text-gray-700">-1pp = +{formatBRL(50_000)}/ano</td>
                 </tr>
                 <tr className="border-b border-gray-50 hover:bg-gray-50">
                   <td className="py-2 px-3 text-gray-700">COGS %</td>
                   <td className="py-2 px-3 text-center text-red-600 font-bold">55%</td>
                   <td className="py-2 px-3 text-center text-brand-700 font-bold bg-brand-50">45%</td>
                   <td className="py-2 px-3 text-center text-emerald-700 font-bold">38%</td>
-                  <td className="py-2 px-3 text-right text-gray-700">-1pp = +{fmtBRL(50_400)} EBITDA</td>
+                  <td className="py-2 px-3 text-right text-gray-700">-1pp = +{formatBRL(50_400)} EBITDA</td>
                 </tr>
               </tbody>
             </table>

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import { Film, Plus, CheckCircle2, Clock, Play, Package, ExternalLink } from "lucide-react";
 import { SEED_PORTCOS, SEED_MEDIA_DELIVERABLES } from "@/lib/ma-seed-data";
+import { formatBRL } from "@/lib/utils";
 
 const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 
@@ -31,13 +32,6 @@ interface MediaDeliverable {
   approval_date?: string;
   approval_notes?: string;
   deliverable_url?: string;
-}
-
-function fmtR(n?: number | null) {
-  if (n == null) return "R$0";
-  if (Math.abs(n) >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  if (Math.abs(n) >= 1_000) return "R$" + (n / 1_000).toFixed(0) + "K";
-  return "R$" + n.toLocaleString("pt-BR");
 }
 
 function fmtDate(d?: string | null) {
@@ -198,17 +192,17 @@ export default function MediaDeliverablesPage() {
               <div>
                 <div className="text-xs text-gray-500 mb-1">Comprometido</div>
                 <div className="text-lg font-bold text-white">
-                  {fmtR(currentPortco.media_commitment_value ?? totalCommitted)}
+                  {formatBRL(currentPortco.media_commitment_value ?? totalCommitted)}
                 </div>
               </div>
               <div>
                 <div className="text-xs text-gray-500 mb-1">Aprovado / Entregue</div>
-                <div className="text-lg font-bold text-green-400">{fmtR(totalApproved)}</div>
+                <div className="text-lg font-bold text-green-400">{formatBRL(totalApproved)}</div>
               </div>
               <div>
                 <div className="text-xs text-gray-500 mb-1">Restante</div>
                 <div className="text-lg font-bold text-orange-400">
-                  {fmtR((currentPortco.media_commitment_value ?? totalCommitted) - totalApproved)}
+                  {formatBRL((currentPortco.media_commitment_value ?? totalCommitted) - totalApproved)}
                 </div>
               </div>
             </div>
@@ -320,7 +314,7 @@ export default function MediaDeliverablesPage() {
                           </span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-sm text-white font-medium text-right">{fmtR(d.agreed_value)}</td>
+                      <td className="px-4 py-3 text-sm text-white font-medium text-right">{formatBRL(d.agreed_value)}</td>
                       <td className="px-4 py-3 text-sm text-gray-400">{fmtDate(d.scheduled_delivery_date)}</td>
                       <td className="px-4 py-3">
                         <span className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full w-fit ${meta.color}`}>

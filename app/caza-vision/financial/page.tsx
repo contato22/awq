@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import EmptyState from "@/components/EmptyState";
+import { formatBRL } from "@/lib/utils";
 import {
   DollarSign,
   TrendingUp,
@@ -27,12 +28,6 @@ interface MonthRow {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function fmtR(n: number) {
-  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  if (n >= 1_000)     return "R$" + (n / 1_000).toFixed(0) + "K";
-  return "R$" + n.toLocaleString("pt-BR");
-}
 
 function variance(actual: number, budget: number) {
   if (budget === 0) return 0;
@@ -117,7 +112,7 @@ export default function CazaFinancialPage() {
   const summaryCards = [
     {
       label: `Receita YTD 20${currentYear}`,
-      value: fmtR(totalReceita),
+      value: formatBRL(totalReceita),
       sub:   `${summary.length} meses`,
       icon:  DollarSign,
       color: "text-emerald-600",
@@ -127,7 +122,7 @@ export default function CazaFinancialPage() {
     },
     {
       label: "Despesas YTD",
-      value: fmtR(totalDespesas),
+      value: formatBRL(totalDespesas),
       sub:   "Alim. + Gasolina",
       icon:  BarChart3,
       color: "text-red-600",
@@ -137,7 +132,7 @@ export default function CazaFinancialPage() {
     },
     {
       label: "Lucro Líquido YTD",
-      value: fmtR(totalLucro),
+      value: formatBRL(totalLucro),
       sub:   `Margem ${margem}%`,
       icon:  TrendingUp,
       color: "text-brand-600",
@@ -147,8 +142,8 @@ export default function CazaFinancialPage() {
     },
     {
       label: lastRow ? `Receita — ${lastRow.month}` : "Último Mês",
-      value: lastRow ? fmtR(lastRow.receita) : "—",
-      sub:   lastRow ? `Lucro: ${fmtR(lastRow.profit)}` : "",
+      value: lastRow ? formatBRL(lastRow.receita) : "—",
+      sub:   lastRow ? `Lucro: ${formatBRL(lastRow.profit)}` : "",
       icon:  DollarSign,
       color: "text-violet-700",
       bg:    "bg-violet-50",
@@ -253,15 +248,15 @@ export default function CazaFinancialPage() {
                     return (
                       <tr key={row.month} className="border-b border-gray-100 hover:bg-gray-50/80 transition-colors">
                         <td className="py-2.5 px-3 text-gray-700 font-medium text-xs">{row.month}</td>
-                        <td className="py-2.5 px-3 text-right text-gray-900 font-semibold text-xs">{fmtR(row.receita)}</td>
+                        <td className="py-2.5 px-3 text-right text-gray-900 font-semibold text-xs">{formatBRL(row.receita)}</td>
                         <td className="py-2.5 px-3 text-right text-red-600 text-xs">
-                          {row.alimentacao > 0 ? fmtR(row.alimentacao) : <span className="text-gray-400">—</span>}
+                          {row.alimentacao > 0 ? formatBRL(row.alimentacao) : <span className="text-gray-400">—</span>}
                         </td>
                         <td className="py-2.5 px-3 text-right text-red-600 text-xs">
-                          {row.gasolina > 0 ? fmtR(row.gasolina) : <span className="text-gray-400">—</span>}
+                          {row.gasolina > 0 ? formatBRL(row.gasolina) : <span className="text-gray-400">—</span>}
                         </td>
-                        <td className="py-2.5 px-3 text-right text-red-600 font-semibold text-xs">{fmtR(row.expenses)}</td>
-                        <td className="py-2.5 px-3 text-right text-emerald-600 font-semibold text-xs">{fmtR(row.profit)}</td>
+                        <td className="py-2.5 px-3 text-right text-red-600 font-semibold text-xs">{formatBRL(row.expenses)}</td>
+                        <td className="py-2.5 px-3 text-right text-emerald-600 font-semibold text-xs">{formatBRL(row.profit)}</td>
                         <td className="py-2.5 px-3 text-right">
                           <span className="badge badge-green text-[10px]">{margin}%</span>
                         </td>
@@ -272,11 +267,11 @@ export default function CazaFinancialPage() {
                 <tfoot>
                   <tr className="border-t border-gray-300">
                     <td className="py-2.5 px-3 text-xs font-bold text-gray-400">TOTAL</td>
-                    <td className="py-2.5 px-3 text-right text-gray-900 font-bold text-xs">{fmtR(rows.reduce((s, r) => s + r.receita, 0))}</td>
-                    <td className="py-2.5 px-3 text-right text-red-600 font-bold text-xs">{fmtR(rows.reduce((s, r) => s + r.alimentacao, 0))}</td>
-                    <td className="py-2.5 px-3 text-right text-red-600 font-bold text-xs">{fmtR(rows.reduce((s, r) => s + r.gasolina, 0))}</td>
-                    <td className="py-2.5 px-3 text-right text-red-600 font-bold text-xs">{fmtR(rows.reduce((s, r) => s + r.expenses, 0))}</td>
-                    <td className="py-2.5 px-3 text-right text-emerald-600 font-bold text-xs">{fmtR(rows.reduce((s, r) => s + r.profit, 0))}</td>
+                    <td className="py-2.5 px-3 text-right text-gray-900 font-bold text-xs">{formatBRL(rows.reduce((s, r) => s + r.receita, 0))}</td>
+                    <td className="py-2.5 px-3 text-right text-red-600 font-bold text-xs">{formatBRL(rows.reduce((s, r) => s + r.alimentacao, 0))}</td>
+                    <td className="py-2.5 px-3 text-right text-red-600 font-bold text-xs">{formatBRL(rows.reduce((s, r) => s + r.gasolina, 0))}</td>
+                    <td className="py-2.5 px-3 text-right text-red-600 font-bold text-xs">{formatBRL(rows.reduce((s, r) => s + r.expenses, 0))}</td>
+                    <td className="py-2.5 px-3 text-right text-emerald-600 font-bold text-xs">{formatBRL(rows.reduce((s, r) => s + r.profit, 0))}</td>
                     <td />
                   </tr>
                 </tfoot>

@@ -17,6 +17,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { formatBRL } from "@/lib/utils";
 import Header from "@/components/Header";
 import {
   Building2, Plus, Trash2, Search, X, Wallet,
@@ -104,14 +105,6 @@ const CATEGORY_COLOR: Record<string, string> = {
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function fmtR(n: number) {
-  const abs = Math.abs(n);
-  const sign = n < 0 ? "-" : "";
-  if (abs >= 1_000_000) return sign + "R$" + (abs / 1_000_000).toFixed(2) + "M";
-  if (abs >= 1_000)     return sign + "R$" + (abs / 1_000).toFixed(1) + "K";
-  return sign + "R$" + abs.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
 
 function fmtDate(s: string) {
   if (!s) return "—";
@@ -226,9 +219,9 @@ export default function BankAccountsPage() {
         {/* ── Summary cards ────────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: "Saldo Total",    value: fmtR(totalBalance),        icon: Wallet,      color: "text-brand-600",   bg: "bg-brand-50",   delta: `${accounts.length} conta${accounts.length !== 1 ? "s" : ""}` },
-            { label: "Entradas (YTD)", value: fmtR(totalCredits),        icon: TrendingUp,  color: "text-emerald-600", bg: "bg-emerald-50", delta: `${allTx.filter(t => t.amount > 0).length} créditos` },
-            { label: "Saídas (YTD)",   value: fmtR(totalDebits),         icon: TrendingDown,color: "text-red-600",     bg: "bg-red-50",     delta: `${allTx.filter(t => t.amount < 0).length} débitos` },
+            { label: "Saldo Total",    value: formatBRL(totalBalance),        icon: Wallet,      color: "text-brand-600",   bg: "bg-brand-50",   delta: `${accounts.length} conta${accounts.length !== 1 ? "s" : ""}` },
+            { label: "Entradas (YTD)", value: formatBRL(totalCredits),        icon: TrendingUp,  color: "text-emerald-600", bg: "bg-emerald-50", delta: `${allTx.filter(t => t.amount > 0).length} créditos` },
+            { label: "Saídas (YTD)",   value: formatBRL(totalDebits),         icon: TrendingDown,color: "text-red-600",     bg: "bg-red-50",     delta: `${allTx.filter(t => t.amount < 0).length} débitos` },
             { label: "Transações",     value: allTx.length.toString(),   icon: BarChart3,   color: "text-amber-700",   bg: "bg-amber-50",   delta: `em ${accounts.length} conta${accounts.length !== 1 ? "s" : ""}` },
           ].map((c) => {
             const Icon = c.icon;
@@ -335,10 +328,10 @@ export default function BankAccountsPage() {
                       <Trash2 size={12} />
                     </button>
                   </div>
-                  <div className="text-base font-bold text-gray-900">{fmtR(acct.currentBalance)}</div>
+                  <div className="text-base font-bold text-gray-900">{formatBRL(acct.currentBalance)}</div>
                   <div className="flex gap-3 mt-1 text-[10px]">
-                    <span className="text-emerald-600">↑ {fmtR(credits)}</span>
-                    <span className="text-red-500">↓ {fmtR(debits)}</span>
+                    <span className="text-emerald-600">↑ {formatBRL(credits)}</span>
+                    <span className="text-red-500">↓ {formatBRL(debits)}</span>
                     <span className="text-gray-400 ml-auto">{acct.transactions.length} tx</span>
                   </div>
                 </div>
@@ -366,16 +359,16 @@ export default function BankAccountsPage() {
                     <div className="text-sm text-gray-500">{selected.bank} · Atualizado {fmtDate(selected.lastUpdated)}</div>
                   </div>
                   <div className="text-right mr-4">
-                    <div className="text-2xl font-bold text-gray-900">{fmtR(selected.currentBalance)}</div>
+                    <div className="text-2xl font-bold text-gray-900">{formatBRL(selected.currentBalance)}</div>
                     <div className="text-xs text-gray-500">saldo atual</div>
                   </div>
                   <div className="flex gap-3 text-xs">
                     <div className="text-center">
-                      <div className="font-bold text-emerald-600">{fmtR(acctCredits)}</div>
+                      <div className="font-bold text-emerald-600">{formatBRL(acctCredits)}</div>
                       <div className="text-gray-400">entradas</div>
                     </div>
                     <div className="text-center">
-                      <div className="font-bold text-red-600">{fmtR(acctDebits)}</div>
+                      <div className="font-bold text-red-600">{formatBRL(acctDebits)}</div>
                       <div className="text-gray-400">saídas</div>
                     </div>
                     <div className="text-center">
@@ -393,9 +386,9 @@ export default function BankAccountsPage() {
                   </div>
                   <div className="grid grid-cols-3 gap-3">
                     {[
-                      { label: "Saldo da Conta",   value: fmtR(selected.currentBalance), icon: Wallet,          color: "text-brand-600",   bg: "bg-brand-50"   },
-                      { label: "Entradas",          value: fmtR(acctCredits),             icon: ArrowUpRight,    color: "text-emerald-600", bg: "bg-emerald-50" },
-                      { label: "Saídas",            value: fmtR(Math.abs(acctDebits)),    icon: ArrowDownRight,  color: "text-red-600",     bg: "bg-red-50"     },
+                      { label: "Saldo da Conta",   value: formatBRL(selected.currentBalance), icon: Wallet,          color: "text-brand-600",   bg: "bg-brand-50"   },
+                      { label: "Entradas",          value: formatBRL(acctCredits),             icon: ArrowUpRight,    color: "text-emerald-600", bg: "bg-emerald-50" },
+                      { label: "Saídas",            value: formatBRL(Math.abs(acctDebits)),    icon: ArrowDownRight,  color: "text-red-600",     bg: "bg-red-50"     },
                     ].map((item) => {
                       const Icon = item.icon;
                       return (
@@ -486,10 +479,10 @@ export default function BankAccountsPage() {
                                 </span>
                               </td>
                               <td className={`py-2.5 px-3 text-right text-xs font-bold ${tx.amount >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-                                {tx.amount >= 0 ? "+" : ""}{fmtR(tx.amount)}
+                                {tx.amount >= 0 ? "+" : ""}{formatBRL(tx.amount)}
                               </td>
                               <td className="py-2.5 px-3 text-right text-xs text-gray-500">
-                                {tx.balance != null ? fmtR(tx.balance) : "—"}
+                                {tx.balance != null ? formatBRL(tx.balance) : "—"}
                               </td>
                             </tr>
                           ))}

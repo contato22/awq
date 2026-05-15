@@ -1,3 +1,4 @@
+import { formatBRL } from "@/lib/utils";
 // ─── /awq/epm — EPM Overview Dashboard ───────────────────────────────────────
 //
 // Aggregates data from:
@@ -19,14 +20,6 @@ import {
 import { buildDreQuery } from "@/lib/dre-query";
 import { getAllGLEntries, getBalanceSheet } from "@/lib/epm-gl";
 import { budgetVsActual, consolidated, consolidatedMargins } from "@/lib/awq-derived-metrics";
-
-function fmtBRL(n: number) {
-  const abs = Math.abs(n);
-  const sign = n < 0 ? "-" : "";
-  if (abs >= 1_000_000) return sign + "R$" + (abs / 1_000_000).toFixed(2) + "M";
-  if (abs >= 1_000)     return sign + "R$" + (abs / 1_000).toFixed(0)     + "K";
-  return sign + "R$" + abs.toLocaleString("pt-BR", { minimumFractionDigits: 0 });
-}
 
 // ─── Module Card ─────────────────────────────────────────────────────────────
 
@@ -131,11 +124,11 @@ export default async function EpmOverviewPage() {
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {[
-              { label: "Receita",        value: fmtBRL(revenue),   icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
-              { label: "COGS",           value: fmtBRL(dre.hasData ? dre.dreCOGS : snapCogs),               icon: BarChart3, color: "text-red-600",     bg: "bg-red-50"     },
-              { label: "Lucro Bruto",    value: fmtBRL(dre.hasData ? dre.dreGrossProfit : snap.grossProfit), icon: TrendingUp, color: "text-brand-600", bg: "bg-brand-50" },
+              { label: "Receita",        value: formatBRL(revenue),   icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
+              { label: "COGS",           value: formatBRL(dre.hasData ? dre.dreCOGS : snapCogs),               icon: BarChart3, color: "text-red-600",     bg: "bg-red-50"     },
+              { label: "Lucro Bruto",    value: formatBRL(dre.hasData ? dre.dreGrossProfit : snap.grossProfit), icon: TrendingUp, color: "text-brand-600", bg: "bg-brand-50" },
               { label: "Margem Bruta",   value: gmPct !== null ? ((gmPct) * 100).toFixed(1) + "%" : "—",         icon: PieChart,   color: "text-brand-600",   bg: "bg-brand-50"   },
-              { label: "EBITDA",         value: fmtBRL(ebitda),    icon: Target,     color: ebitda >= 0 ? "text-emerald-600" : "text-red-600", bg: ebitda >= 0 ? "bg-emerald-50" : "bg-red-50" },
+              { label: "EBITDA",         value: formatBRL(ebitda),    icon: Target,     color: ebitda >= 0 ? "text-emerald-600" : "text-red-600", bg: ebitda >= 0 ? "bg-emerald-50" : "bg-red-50" },
               { label: "Margem EBITDA",  value: ebitdaPct !== null ? ((ebitdaPct) * 100).toFixed(1) + "%" : "—", icon: Layers,     color: "text-violet-600",  bg: "bg-violet-50"  },
             ].map((card) => {
               const Icon = card.icon;
@@ -166,9 +159,9 @@ export default async function EpmOverviewPage() {
             </div>
             <div className="grid grid-cols-3 gap-4 text-center">
               {[
-                { label: "Ativo Total",      value: fmtBRL(balanceSheet.totalAssets),      color: "text-brand-700"   },
-                { label: "Passivo Total",     value: fmtBRL(balanceSheet.totalLiabilities), color: "text-red-700"     },
-                { label: "Patrimônio Líquido",value: fmtBRL(balanceSheet.totalEquity),      color: "text-emerald-700" },
+                { label: "Ativo Total",      value: formatBRL(balanceSheet.totalAssets),      color: "text-brand-700"   },
+                { label: "Passivo Total",     value: formatBRL(balanceSheet.totalLiabilities), color: "text-red-700"     },
+                { label: "Patrimônio Líquido",value: formatBRL(balanceSheet.totalEquity),      color: "text-emerald-700" },
               ].map((item) => (
                 <div key={item.label} className="bg-gray-50 rounded-xl py-4">
                   <div className={`text-lg font-bold tabular-nums ${item.color}`}>{item.value}</div>
@@ -201,9 +194,9 @@ export default async function EpmOverviewPage() {
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             {[
-              { label: "Receita Real",    value: fmtBRL(snap.revenue),               color: "text-emerald-700" },
-              { label: "Receita Budget",  value: fmtBRL(snap.budgetRevenue),          color: "text-gray-700"    },
-              { label: "Variância R$",    value: fmtBRL(snapRevenueVariance),
+              { label: "Receita Real",    value: formatBRL(snap.revenue),               color: "text-emerald-700" },
+              { label: "Receita Budget",  value: formatBRL(snap.budgetRevenue),          color: "text-gray-700"    },
+              { label: "Variância R$",    value: formatBRL(snapRevenueVariance),
                 color: snapRevenueVariance >= 0 ? "text-emerald-600" : "text-red-600" },
               { label: "Variância %",     value: (bva >= 0 ? "+" : "") + bva.toFixed(1) + "%",
                 color: bva >= 0 ? "text-emerald-600" : "text-red-600" },
@@ -258,8 +251,8 @@ export default async function EpmOverviewPage() {
                     <span className="text-[10px] text-gray-400 shrink-0">{e.account_code}</span>
                   </div>
                   <div className="text-right shrink-0 ml-3">
-                    {e.debit_amount  > 0 && <span className="text-red-600 font-semibold tabular-nums">D {fmtBRL(e.debit_amount)}</span>}
-                    {e.credit_amount > 0 && <span className="text-emerald-600 font-semibold tabular-nums">C {fmtBRL(e.credit_amount)}</span>}
+                    {e.debit_amount  > 0 && <span className="text-red-600 font-semibold tabular-nums">D {formatBRL(e.debit_amount)}</span>}
+                    {e.credit_amount > 0 && <span className="text-emerald-600 font-semibold tabular-nums">C {formatBRL(e.credit_amount)}</span>}
                   </div>
                 </div>
               ))}

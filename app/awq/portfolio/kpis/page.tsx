@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Link from "next/link";
 import { SEED_PORTCOS, SEED_KPIS } from "@/lib/ma-seed-data";
+import { formatBRL } from "@/lib/utils";
 
 const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 import { BarChart3, TrendingUp, ArrowLeft, CheckCircle2 } from "lucide-react";
@@ -30,13 +31,6 @@ interface KpiRow {
   mom_growth_pct?: number;
   headcount?: number;
   notes?: string;
-}
-
-function fmtR(n?: number | null) {
-  if (n == null) return "—";
-  if (Math.abs(n) >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  if (Math.abs(n) >= 1_000) return "R$" + (n / 1_000).toFixed(0) + "K";
-  return "R$" + n.toLocaleString("pt-BR");
 }
 
 export default function PortcoKpisPage() {
@@ -264,12 +258,12 @@ export default function PortcoKpisPage() {
                   {kpis.map(k => (
                     <tr key={k.kpi_id} className="hover:bg-blue-50/40">
                       <td className="px-4 py-3 font-bold text-gray-800">{k.year_month ?? k.reporting_date.slice(0, 7)}</td>
-                      <td className="px-4 py-3 font-semibold text-emerald-600">{fmtR(k.mrr)}</td>
-                      <td className="px-4 py-3 text-gray-500">{fmtR(k.arr)}</td>
+                      <td className="px-4 py-3 font-semibold text-emerald-600">{formatBRL(k.mrr)}</td>
+                      <td className="px-4 py-3 text-gray-500">{formatBRL(k.arr)}</td>
                       <td className={`px-4 py-3 font-semibold ${(k.burn_rate ?? 0) < 0 ? "text-red-500" : "text-emerald-600"}`}>
-                        {fmtR(k.burn_rate)}
+                        {formatBRL(k.burn_rate)}
                       </td>
-                      <td className="px-4 py-3 text-gray-600">{fmtR(k.cash_balance)}</td>
+                      <td className="px-4 py-3 text-gray-600">{formatBRL(k.cash_balance)}</td>
                       <td className={`px-4 py-3 font-bold ${(k.runway_months ?? 99) < 6 ? "text-red-500" : (k.runway_months ?? 99) < 12 ? "text-amber-600" : "text-gray-700"}`}>
                         {k.runway_months != null ? k.runway_months.toFixed(1) + "m" : "—"}
                       </td>

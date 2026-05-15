@@ -1,3 +1,4 @@
+import { formatBRL } from "@/lib/utils";
 // ─── /awq/epm/currency — Currency Translation ─────────────────────────────────
 //
 // Multi-currency support for AWQ Group:
@@ -17,14 +18,6 @@ import {
   DollarSign, TrendingUp, TrendingDown, AlertTriangle,
   RefreshCw, BarChart3, ArrowUpDown,
 } from "lucide-react";
-
-function fmtBRL(n: number): string {
-  const abs  = Math.abs(n);
-  const sign = n < 0 ? "-" : "";
-  if (abs >= 1_000_000) return sign + "R$" + (abs / 1_000_000).toFixed(2) + "M";
-  if (abs >= 1_000)     return sign + "R$" + (abs / 1_000).toFixed(0)     + "K";
-  return sign + "R$" + abs.toLocaleString("pt-BR", { minimumFractionDigits: 0 });
-}
 
 function fmtFX(n: number, decimals = 4): string {
   return n.toLocaleString("pt-BR", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
@@ -131,9 +124,9 @@ export default function CurrencyPage() {
         {/* ── Summary ───────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
-            { label: "Receitas em Moeda Estrangeira", value: fmtBRL(totalFCRevenueBRL), color: "text-emerald-700" },
-            { label: "Despesas em Moeda Estrangeira", value: fmtBRL(totalFCExpenseBRL), color: "text-red-700"     },
-            { label: "Ganho/Perda de Câmbio (YTD)",   value: fmtBRL(totalGainLoss),    color: totalGainLoss >= 0 ? "text-emerald-700" : "text-red-700" },
+            { label: "Receitas em Moeda Estrangeira", value: formatBRL(totalFCRevenueBRL), color: "text-emerald-700" },
+            { label: "Despesas em Moeda Estrangeira", value: formatBRL(totalFCExpenseBRL), color: "text-red-700"     },
+            { label: "Ganho/Perda de Câmbio (YTD)",   value: formatBRL(totalGainLoss),    color: totalGainLoss >= 0 ? "text-emerald-700" : "text-red-700" },
             { label: "Moedas com Exposição",           value: new Set(FC_TRANSACTIONS.map((t) => t.currency)).size, color: "text-brand-700" },
           ].map((card) => (
             <div key={card.label} className="card p-4">
@@ -207,16 +200,16 @@ export default function CurrencyPage() {
                         </div>
                       </td>
                       <td className="py-2.5 px-3 text-right tabular-nums text-emerald-700 font-semibold">
-                        {row.revenue > 0 ? fmtBRL(row.revenue) : "—"}
+                        {row.revenue > 0 ? formatBRL(row.revenue) : "—"}
                       </td>
                       <td className="py-2.5 px-3 text-right tabular-nums text-red-700 font-semibold">
-                        {row.expense > 0 ? fmtBRL(row.expense) : "—"}
+                        {row.expense > 0 ? formatBRL(row.expense) : "—"}
                       </td>
                       <td className="py-2.5 px-3 text-right tabular-nums text-brand-700">
-                        {row.asset > 0 ? fmtBRL(row.asset) : "—"}
+                        {row.asset > 0 ? formatBRL(row.asset) : "—"}
                       </td>
                       <td className={`py-2.5 px-3 text-right tabular-nums font-bold ${glPos ? "text-emerald-700" : "text-red-700"}`}>
-                        {glPos ? "+" : ""}{fmtBRL(row.gainLoss)}
+                        {glPos ? "+" : ""}{formatBRL(row.gainLoss)}
                       </td>
                     </tr>
                   );
@@ -225,13 +218,13 @@ export default function CurrencyPage() {
               <tfoot>
                 <tr className="border-t-2 border-gray-200 bg-gray-50 font-bold text-xs">
                   <td className="py-2.5 px-3 text-gray-700">Total</td>
-                  <td className="py-2.5 px-3 text-right tabular-nums text-emerald-700">{fmtBRL(totalFCRevenueBRL)}</td>
-                  <td className="py-2.5 px-3 text-right tabular-nums text-red-700">{fmtBRL(totalFCExpenseBRL)}</td>
+                  <td className="py-2.5 px-3 text-right tabular-nums text-emerald-700">{formatBRL(totalFCRevenueBRL)}</td>
+                  <td className="py-2.5 px-3 text-right tabular-nums text-red-700">{formatBRL(totalFCExpenseBRL)}</td>
                   <td className="py-2.5 px-3 text-right tabular-nums text-brand-700">
-                    {fmtBRL(FC_TRANSACTIONS.filter((t) => t.type === "ASSET").reduce((s, t) => s + t.amount_fc * t.rate_current, 0))}
+                    {formatBRL(FC_TRANSACTIONS.filter((t) => t.type === "ASSET").reduce((s, t) => s + t.amount_fc * t.rate_current, 0))}
                   </td>
                   <td className={`py-2.5 px-3 text-right tabular-nums ${totalGainLoss >= 0 ? "text-emerald-700" : "text-red-700"}`}>
-                    {totalGainLoss >= 0 ? "+" : ""}{fmtBRL(totalGainLoss)}
+                    {totalGainLoss >= 0 ? "+" : ""}{formatBRL(totalGainLoss)}
                   </td>
                 </tr>
               </tfoot>
@@ -285,10 +278,10 @@ export default function CurrencyPage() {
                       <td className="py-2 px-3 text-right tabular-nums text-gray-400">
                         {fmtFX(t.rate_at_booking, 4)}
                       </td>
-                      <td className="py-2 px-3 text-right tabular-nums text-gray-600">{fmtBRL(brlBooking)}</td>
-                      <td className="py-2 px-3 text-right tabular-nums font-semibold text-gray-900">{fmtBRL(brlCurrent)}</td>
+                      <td className="py-2 px-3 text-right tabular-nums text-gray-600">{formatBRL(brlBooking)}</td>
+                      <td className="py-2 px-3 text-right tabular-nums font-semibold text-gray-900">{formatBRL(brlCurrent)}</td>
                       <td className={`py-2 px-3 text-right tabular-nums font-bold text-xs ${glPos ? "text-emerald-600" : "text-red-600"}`}>
-                        {glPos ? "+" : ""}{fmtBRL(gl)}
+                        {glPos ? "+" : ""}{formatBRL(gl)}
                       </td>
                     </tr>
                   );

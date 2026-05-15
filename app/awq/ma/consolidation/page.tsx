@@ -7,6 +7,7 @@ import {
   CheckCircle2, AlertTriangle, DollarSign, Layers,
 } from "lucide-react";
 import { SEED_CONSOLIDATED, SEED_INTERCOMPANY } from "@/lib/ma-seed-data";
+import { formatBRL } from "@/lib/utils";
 
 const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 
@@ -44,13 +45,6 @@ interface IcTransaction {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function fmtR(n?: number | null) {
-  if (n == null) return "R$0";
-  if (Math.abs(n) >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  if (Math.abs(n) >= 1_000) return "R$" + (n / 1_000).toFixed(0) + "K";
-  return "R$" + n.toLocaleString("pt-BR");
-}
 
 function fmtDate(d?: string | null) {
   if (!d) return "—";
@@ -120,9 +114,9 @@ export default function ConsolidationPage() {
               </h2>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
-                  { label: "Total Investido", value: fmtR(snapshot.equity_portfolio.total_invested), icon: DollarSign, color: "text-blue-400" },
-                  { label: "Valor Atual", value: fmtR(snapshot.equity_portfolio.total_current_value), icon: TrendingUp, color: "text-green-400" },
-                  { label: "Ganho Não Realizado", value: fmtR(snapshot.equity_portfolio.unrealized_gain), icon: BarChart3, color: "text-purple-400" },
+                  { label: "Total Investido", value: formatBRL(snapshot.equity_portfolio.total_invested), icon: DollarSign, color: "text-blue-400" },
+                  { label: "Valor Atual", value: formatBRL(snapshot.equity_portfolio.total_current_value), icon: TrendingUp, color: "text-green-400" },
+                  { label: "Ganho Não Realizado", value: formatBRL(snapshot.equity_portfolio.unrealized_gain), icon: BarChart3, color: "text-purple-400" },
                   { label: "Múltiplo Médio", value: snapshot.equity_portfolio.avg_multiple.toFixed(2) + "×", icon: Layers, color: "text-amber-400" },
                 ].map(c => {
                   const Icon = c.icon;
@@ -150,21 +144,21 @@ export default function ConsolidationPage() {
                     <ArrowUpDown size={14} className="text-gray-400" />
                     <span className="text-xs text-gray-500">Total Transações IC</span>
                   </div>
-                  <div className="text-xl font-bold text-white">{fmtR(snapshot.intercompany.total_transactions)}</div>
+                  <div className="text-xl font-bold text-white">{formatBRL(snapshot.intercompany.total_transactions)}</div>
                 </div>
                 <div className="bg-green-500/5 rounded-xl border border-green-700/30 p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <CheckCircle2 size={14} className="text-green-400" />
                     <span className="text-xs text-gray-500">Eliminado</span>
                   </div>
-                  <div className="text-xl font-bold text-green-400">{fmtR(snapshot.intercompany.total_eliminated)}</div>
+                  <div className="text-xl font-bold text-green-400">{formatBRL(snapshot.intercompany.total_eliminated)}</div>
                 </div>
                 <div className="bg-amber-500/5 rounded-xl border border-amber-700/30 p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <AlertTriangle size={14} className="text-amber-400" />
                     <span className="text-xs text-gray-500">Pendente Eliminação</span>
                   </div>
-                  <div className="text-xl font-bold text-amber-400">{fmtR(snapshot.intercompany.pending_elimination)}</div>
+                  <div className="text-xl font-bold text-amber-400">{formatBRL(snapshot.intercompany.pending_elimination)}</div>
                 </div>
               </div>
             </div>
@@ -178,15 +172,15 @@ export default function ConsolidationPage() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                   <div>
                     <div className="text-xs text-gray-500 mb-1">Comprometido</div>
-                    <div className="text-lg font-bold text-white">{fmtR(snapshot.media_obligations.total_committed)}</div>
+                    <div className="text-lg font-bold text-white">{formatBRL(snapshot.media_obligations.total_committed)}</div>
                   </div>
                   <div>
                     <div className="text-xs text-gray-500 mb-1">Entregue</div>
-                    <div className="text-lg font-bold text-green-400">{fmtR(snapshot.media_obligations.total_delivered)}</div>
+                    <div className="text-lg font-bold text-green-400">{formatBRL(snapshot.media_obligations.total_delivered)}</div>
                   </div>
                   <div>
                     <div className="text-xs text-gray-500 mb-1">Restante</div>
-                    <div className="text-lg font-bold text-orange-400">{fmtR(snapshot.media_obligations.total_remaining)}</div>
+                    <div className="text-lg font-bold text-orange-400">{formatBRL(snapshot.media_obligations.total_remaining)}</div>
                   </div>
                   <div>
                     <div className="text-xs text-gray-500 mb-1">% Entregue</div>
@@ -244,7 +238,7 @@ export default function ConsolidationPage() {
                       <td className="px-4 py-3 text-xs text-gray-400">{t.transaction_type ?? "—"}</td>
                       <td className="px-4 py-3 text-sm text-gray-300">{t.from_entity_name ?? "—"}</td>
                       <td className="px-4 py-3 text-sm text-gray-300">{t.to_entity_name ?? "—"}</td>
-                      <td className="px-4 py-3 text-sm font-medium text-white text-right">{fmtR(t.amount)}</td>
+                      <td className="px-4 py-3 text-sm font-medium text-white text-right">{formatBRL(t.amount)}</td>
                       <td className="px-4 py-3">
                         <span className={`text-xs px-2 py-1 rounded-full ${elimColors[t.elimination_status] ?? "bg-gray-700 text-gray-400"}`}>
                           {t.elimination_status}

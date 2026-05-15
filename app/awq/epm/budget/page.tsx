@@ -1,3 +1,4 @@
+import { formatBRL } from "@/lib/utils";
 // ─── /awq/epm/budget — Budget vs Actual ──────────────────────────────────────
 //
 // DATA SOURCE: awq-derived-metrics (canonical planning layer)
@@ -15,14 +16,6 @@ import {
   operatingBus,
 } from "@/lib/awq-derived-metrics";
 import { buildDreQuery } from "@/lib/dre-query";
-
-function fmtBRL(n: number): string {
-  const abs  = Math.abs(n);
-  const sign = n < 0 ? "-" : "";
-  if (abs >= 1_000_000) return sign + "R$" + (abs / 1_000_000).toFixed(2) + "M";
-  if (abs >= 1_000)     return sign + "R$" + (abs / 1_000).toFixed(0)     + "K";
-  return sign + "R$" + abs.toLocaleString("pt-BR", { minimumFractionDigits: 0 });
-}
 
 function VarBadge({ pct }: { pct: number }) {
   const positive = pct >= 0;
@@ -53,13 +46,13 @@ function BudgetRow({
         {label}
       </td>
       <td className="py-2 px-3 text-right text-xs tabular-nums font-semibold text-gray-900">
-        {fmtBRL(actual)}
+        {formatBRL(actual)}
       </td>
       <td className="py-2 px-3 text-right text-xs tabular-nums text-gray-500">
-        {fmtBRL(budget)}
+        {formatBRL(budget)}
       </td>
       <td className={`py-2 px-3 text-right text-xs tabular-nums font-semibold ${over ? "text-emerald-600" : "text-red-600"}`}>
-        {variance >= 0 ? "+" : ""}{fmtBRL(variance)}
+        {variance >= 0 ? "+" : ""}{formatBRL(variance)}
       </td>
       <td className="py-2 px-3 text-right">
         <VarBadge pct={variancePct} />
@@ -132,10 +125,10 @@ export default async function EpmBudgetPage() {
                 <div className="text-[10px] text-gray-400 font-semibold uppercase tracking-widest mb-2">
                   {l.label}
                 </div>
-                <div className="text-2xl font-bold text-gray-900 tabular-nums">{fmtBRL(l.actual)}</div>
-                <div className="text-xs text-gray-400 mt-1">Budget: {fmtBRL(l.budget)}</div>
+                <div className="text-2xl font-bold text-gray-900 tabular-nums">{formatBRL(l.actual)}</div>
+                <div className="text-xs text-gray-400 mt-1">Budget: {formatBRL(l.budget)}</div>
                 <div className={`text-sm font-bold mt-1 ${positive ? "text-emerald-600" : "text-red-600"}`}>
-                  {positive ? "+" : ""}{fmtBRL(variance)} ({positive ? "+" : ""}{variancePct.toFixed(1)}%)
+                  {positive ? "+" : ""}{formatBRL(variance)} ({positive ? "+" : ""}{variancePct.toFixed(1)}%)
                 </div>
               </div>
             );
@@ -209,8 +202,8 @@ export default async function EpmBudgetPage() {
                       <span className="text-xs font-semibold text-gray-800">{bu.name}</span>
                     </div>
                     <div className="flex items-center gap-3 text-xs">
-                      <span className="text-gray-400">Actual: {fmtBRL(actRev)}</span>
-                      <span className="text-gray-400">Budget: {fmtBRL(budgRev)}</span>
+                      <span className="text-gray-400">Actual: {formatBRL(actRev)}</span>
+                      <span className="text-gray-400">Budget: {formatBRL(budgRev)}</span>
                       <VarBadge pct={varPct} />
                     </div>
                   </div>
@@ -251,10 +244,10 @@ export default async function EpmBudgetPage() {
                     <tr key={cb.category} className="border-b border-gray-50 hover:bg-gray-50">
                       <td className="py-2 px-2 text-xs text-gray-700">{cb.category}</td>
                       <td className="py-2 px-2 text-right text-xs tabular-nums font-semibold">
-                        {fmtBRL(cb.actual)}
+                        {formatBRL(cb.actual)}
                       </td>
                       <td className="py-2 px-2 text-right text-xs tabular-nums text-gray-500">
-                        {fmtBRL(cb.budget)}
+                        {formatBRL(cb.budget)}
                       </td>
                       <td className="py-2 px-2 text-right">
                         <VarBadge pct={varPct} />

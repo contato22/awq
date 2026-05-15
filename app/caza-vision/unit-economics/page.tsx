@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import EmptyState from "@/components/EmptyState";
+import { formatBRL } from "@/lib/utils";
 import {
   DollarSign,
   TrendingUp,
@@ -29,14 +30,6 @@ interface ProjetoRow {
   lucro:      number;
   status:     string;
   tipo?:      string;
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function fmtR(n: number) {
-  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  if (n >= 1_000) return "R$" + (n / 1_000).toFixed(0) + "K";
-  return "R$" + n.toLocaleString("pt-BR");
 }
 
 // ─── Data source abstraction ──────────────────────────────────────────────────
@@ -163,8 +156,8 @@ export default function CazaUnitEconomicsPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             { label: "Total de Projetos",   value: String(totalProjetos), color: "text-gray-900",    icon: Clapperboard },
-            { label: "Receita Total",        value: fmtR(totalReceita),   color: "text-brand-600",   icon: DollarSign   },
-            { label: "Ticket Médio",         value: fmtR(avgTicket),      color: "text-amber-700",   icon: TrendingUp   },
+            { label: "Receita Total",        value: formatBRL(totalReceita),   color: "text-brand-600",   icon: DollarSign   },
+            { label: "Ticket Médio",         value: formatBRL(avgTicket),      color: "text-amber-700",   icon: TrendingUp   },
             { label: "Margem Média",         value: `${avgMargem}%`,      color: "text-emerald-600", icon: ArrowUpRight },
           ].map((s) => {
             const Icon = s.icon;
@@ -207,8 +200,8 @@ export default function CazaUnitEconomicsPage() {
                             <span className="text-[10px] text-gray-400">{t.projetos}p</span>
                           </div>
                           <div className="flex items-center gap-3 text-[11px]">
-                            <span className="text-gray-500">ticket: {fmtR(t.avgValue)}</span>
-                            <span className="text-gray-900 font-semibold">{fmtR(t.receita)}</span>
+                            <span className="text-gray-500">ticket: {formatBRL(t.avgValue)}</span>
+                            <span className="text-gray-900 font-semibold">{formatBRL(t.receita)}</span>
                             <span className="text-gray-500">{pct.toFixed(0)}%</span>
                           </div>
                         </div>
@@ -221,7 +214,7 @@ export default function CazaUnitEconomicsPage() {
                 </div>
                 <div className="mt-4 pt-3 border-t border-gray-200 flex items-center justify-between">
                   <span className="text-xs text-gray-500">{totalProjetos} projetos · ticket médio</span>
-                  <span className="text-xs font-bold text-gray-900">{fmtR(avgTicket)}</span>
+                  <span className="text-xs font-bold text-gray-900">{formatBRL(avgTicket)}</span>
                 </div>
               </div>
 
@@ -249,12 +242,12 @@ export default function CazaUnitEconomicsPage() {
                             <tr key={d.name} className="border-b border-gray-100 hover:bg-gray-50/80 transition-colors">
                               <td className="py-2.5 px-3 text-xs font-medium text-gray-700">{d.name}</td>
                               <td className="py-2.5 px-3 text-right text-xs text-gray-500">{d.projetos}</td>
-                              <td className="py-2.5 px-3 text-right text-xs font-semibold text-gray-900">{fmtR(d.receita)}</td>
+                              <td className="py-2.5 px-3 text-right text-xs font-semibold text-gray-900">{formatBRL(d.receita)}</td>
                               <td className="py-2.5 px-3 text-right text-xs">
-                                <span className="text-emerald-600 font-semibold">{fmtR(d.lucro)}</span>
+                                <span className="text-emerald-600 font-semibold">{formatBRL(d.lucro)}</span>
                                 <span className="text-[10px] text-gray-400 ml-1">{margin}%</span>
                               </td>
-                              <td className="py-2.5 px-3 text-right text-xs text-gray-500">{fmtR(d.ticketMedio)}</td>
+                              <td className="py-2.5 px-3 text-right text-xs text-gray-500">{formatBRL(d.ticketMedio)}</td>
                             </tr>
                           );
                         })}
@@ -266,10 +259,10 @@ export default function CazaUnitEconomicsPage() {
                             {directorEconomics.reduce((s, d) => s + d.projetos, 0)}
                           </td>
                           <td className="py-2.5 px-3 text-right text-xs font-bold text-gray-900">
-                            {fmtR(directorEconomics.reduce((s, d) => s + d.receita, 0))}
+                            {formatBRL(directorEconomics.reduce((s, d) => s + d.receita, 0))}
                           </td>
                           <td className="py-2.5 px-3 text-right text-xs font-bold text-emerald-600">
-                            {fmtR(directorEconomics.reduce((s, d) => s + d.lucro, 0))}
+                            {formatBRL(directorEconomics.reduce((s, d) => s + d.lucro, 0))}
                           </td>
                           <td />
                         </tr>
@@ -309,7 +302,7 @@ export default function CazaUnitEconomicsPage() {
                         <span className={`text-[11px] font-bold w-10 text-right shrink-0 ${margin >= 60 ? "text-emerald-600" : margin >= 40 ? "text-amber-700" : "text-red-600"}`}>
                           {margin.toFixed(0)}%
                         </span>
-                        <span className="text-[10px] text-gray-400 w-16 text-right shrink-0">{fmtR(p.lucro ?? 0)}</span>
+                        <span className="text-[10px] text-gray-400 w-16 text-right shrink-0">{formatBRL(p.lucro ?? 0)}</span>
                       </div>
                     );
                   })}

@@ -15,14 +15,7 @@ import {
 import { buildFinancialQuery, fmtBRL, ENTITY_LABELS } from "@/lib/financial-query";
 import { buildDreQuery } from "@/lib/dre-query";
 import { buData, consolidated, consolidatedMargins } from "@/lib/awq-derived-metrics";
-
-function fmtR(n: number): string {
-  const abs  = Math.abs(n);
-  const sign = n < 0 ? "-" : "";
-  if (abs >= 1_000_000) return sign + "R$" + (abs / 1_000_000).toFixed(2) + "M";
-  if (abs >= 1_000)     return sign + "R$" + (abs / 1_000).toFixed(0)     + "K";
-  return sign + "R$" + abs.toLocaleString("pt-BR", { minimumFractionDigits: 0 });
-}
+import { formatBRL } from "@/lib/utils";
 
 const BU_COLORS: Record<string, string> = {
   jacqes:  "bg-brand-500",
@@ -76,7 +69,7 @@ export default async function ConsolidationPage() {
           ].map((card) => (
             <div key={card.label} className="card p-4">
               <div className={`text-xl font-bold tabular-nums ${card.color}`}>
-                {(card as { isStr?: boolean }).isStr ? String(card.value) : fmtR(Number(card.value))}
+                {(card as { isStr?: boolean }).isStr ? String(card.value) : formatBRL(Number(card.value))}
               </div>
               <div className="text-xs text-gray-400 mt-1">{card.label}</div>
             </div>
@@ -210,10 +203,10 @@ export default async function ConsolidationPage() {
                       </div>
                     </td>
                     <td className="py-2.5 px-3 text-right tabular-nums font-semibold text-emerald-600">
-                      {fmtR(bu.revenue)}
+                      {formatBRL(bu.revenue)}
                     </td>
                     <td className={`py-2.5 px-3 text-right tabular-nums font-semibold ${bu.ebitda >= 0 ? "text-gray-800" : "text-red-600"}`}>
-                      {fmtR(bu.ebitda)}
+                      {formatBRL(bu.ebitda)}
                     </td>
                     <td className={`py-2.5 px-3 text-right ${buEbitdaMargin >= 15 ? "text-emerald-600" : buEbitdaMargin >= 0 ? "text-amber-600" : "text-red-600"}`}>
                       {bu.economicType === "pre_revenue" ? "—" : `${buEbitdaMargin.toFixed(0)}%`}
@@ -222,19 +215,19 @@ export default async function ConsolidationPage() {
                       {bu.roic > 0 ? `${bu.roic.toFixed(0)}%` : "—"}
                     </td>
                     <td className="py-2.5 px-3 text-right tabular-nums text-gray-700">
-                      {fmtR(bu.capitalAllocated)}
+                      {formatBRL(bu.capitalAllocated)}
                     </td>
                   </tr>
                 );
                 })}
                 <tr className="border-t-2 border-gray-300 bg-gray-50 font-bold">
                   <td className="py-2.5 px-3 text-gray-900">AWQ Consolidado</td>
-                  <td className="py-2.5 px-3 text-right tabular-nums text-emerald-700">{fmtR(snap.revenue)}</td>
-                  <td className="py-2.5 px-3 text-right tabular-nums text-gray-900">{fmtR(snap.ebitda)}</td>
+                  <td className="py-2.5 px-3 text-right tabular-nums text-emerald-700">{formatBRL(snap.revenue)}</td>
+                  <td className="py-2.5 px-3 text-right tabular-nums text-gray-900">{formatBRL(snap.ebitda)}</td>
                   <td className="py-2.5 px-3 text-right text-gray-700">{(consolidatedMargins.ebitdaMargin * 100).toFixed(1)}%</td>
                   <td className="py-2.5 px-3 text-right text-gray-700">—</td>
                   <td className="py-2.5 px-3 text-right tabular-nums text-gray-900">
-                    {fmtR(buData.reduce((s, b) => s + b.capitalAllocated, 0))}
+                    {formatBRL(buData.reduce((s, b) => s + b.capitalAllocated, 0))}
                   </td>
                 </tr>
               </tbody>

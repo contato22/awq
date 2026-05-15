@@ -7,16 +7,13 @@ import {
   AlertTriangle, Info, Activity,
 } from "lucide-react";
 import { buData, monthlyRevenue, JACQES_MRR, JACQES_MRR_Q1 } from "@/lib/awq-group-data";
+import { formatBRL } from "@/lib/utils";
 import { JACQES_CLIENTS } from "@/lib/jacqes-customers";
 
 // ─── Source of truth ──────────────────────────────────────────────────────────
 const _jacqes = buData.find((b) => b.id === "jacqes")!;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-function fmtR(n: number) {
-  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  return "R$" + n.toLocaleString("pt-BR");
-}
 
 const SEL_CLS =
   "border border-gray-200 rounded-lg px-2 py-1.5 text-[11px] text-gray-700 bg-white " +
@@ -197,9 +194,9 @@ export default function FpaPage() {
           <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { label: "MRR Atual (Abr/26)",    value: fmtR(JACQES_MRR),           sub: "4 clientes · Notion CRM",    icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
-                { label: "Receita YTD (Jan–Abr)", value: fmtR(_jacqes.revenue),       sub: "6.490×3 + 8.280 confirmado", icon: BarChart3,  color: "text-brand-600",   bg: "bg-brand-50"   },
-                { label: "ARR Projetado",          value: fmtR(arr),                   sub: "MRR × 12 · referência",      icon: TrendingUp, color: "text-violet-700",  bg: "bg-violet-50"  },
+                { label: "MRR Atual (Abr/26)",    value: formatBRL(JACQES_MRR),           sub: "4 clientes · Notion CRM",    icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
+                { label: "Receita YTD (Jan–Abr)", value: formatBRL(_jacqes.revenue),       sub: "6.490×3 + 8.280 confirmado", icon: BarChart3,  color: "text-brand-600",   bg: "bg-brand-50"   },
+                { label: "ARR Projetado",          value: formatBRL(arr),                   sub: "MRR × 12 · referência",      icon: TrendingUp, color: "text-violet-700",  bg: "bg-violet-50"  },
                 { label: "Clientes Ativos",        value: String(_jacqes.customers),   sub: "CEM · Carol · André · Tati", icon: Users,      color: "text-cyan-700",    bg: "bg-cyan-50"    },
               ].map((c) => {
                 const Icon = c.icon;
@@ -245,10 +242,10 @@ export default function FpaPage() {
                       <tr key={row.tipo} className="border-b border-gray-100">
                         <td className="py-2 px-3 text-xs text-gray-700">{row.tipo}</td>
                         <td className={`py-2 px-3 text-right text-xs ${row.ok ? "font-semibold text-emerald-700" : "text-gray-300"}`}>
-                          {row.ok ? fmtR(row.mrr) : "—"}
+                          {row.ok ? formatBRL(row.mrr) : "—"}
                         </td>
                         <td className={`py-2 px-3 text-right text-xs ${row.ok ? "font-semibold text-gray-900" : "text-gray-300"}`}>
-                          {row.ok ? fmtR(row.ytd) : "—"}
+                          {row.ok ? formatBRL(row.ytd) : "—"}
                         </td>
                         <td className="py-2 px-3 text-right">
                           {row.ok
@@ -261,8 +258,8 @@ export default function FpaPage() {
                   <tfoot>
                     <tr className="border-t border-gray-200">
                       <td className="py-2.5 px-3 text-xs font-bold text-gray-700">Total Bruto</td>
-                      <td className="py-2.5 px-3 text-right text-xs font-bold text-brand-700">{fmtR(JACQES_MRR)}</td>
-                      <td className="py-2.5 px-3 text-right text-xs font-bold text-brand-700">{fmtR(_jacqes.revenue)}</td>
+                      <td className="py-2.5 px-3 text-right text-xs font-bold text-brand-700">{formatBRL(JACQES_MRR)}</td>
+                      <td className="py-2.5 px-3 text-right text-xs font-bold text-brand-700">{formatBRL(_jacqes.revenue)}</td>
                       <td />
                     </tr>
                   </tfoot>
@@ -293,7 +290,7 @@ export default function FpaPage() {
                       <tr key={row.tipo} className="border-b border-gray-100">
                         <td className="py-2 px-3 text-xs text-gray-700">{row.tipo}</td>
                         <td className={`py-2 px-3 text-right text-xs ${row.valor > 0 ? "font-semibold text-amber-700" : "text-gray-300"}`}>
-                          {row.valor > 0 ? fmtR(row.valor) : "—"}
+                          {row.valor > 0 ? formatBRL(row.valor) : "—"}
                         </td>
                         <td className="py-2 px-3 text-right">
                           <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded ${
@@ -306,7 +303,7 @@ export default function FpaPage() {
                   <tfoot>
                     <tr className="border-t border-gray-200">
                       <td className="py-2.5 px-3 text-xs font-bold text-gray-700">Total Deduções *</td>
-                      <td className="py-2.5 px-3 text-right text-xs font-bold text-amber-700">{fmtR(totalPend)}</td>
+                      <td className="py-2.5 px-3 text-right text-xs font-bold text-amber-700">{formatBRL(totalPend)}</td>
                       <td />
                     </tr>
                   </tfoot>
@@ -330,7 +327,7 @@ export default function FpaPage() {
                         <tr key={c.nome} className="border-b border-gray-100">
                           <td className="py-1.5 px-3 text-xs text-gray-700">{c.nome}</td>
                           <td className={`py-1.5 px-3 text-right text-xs font-semibold ${c.status === "Pago" ? "text-emerald-700" : "text-amber-700"}`}>
-                            {fmtR(c.fee)}
+                            {formatBRL(c.fee)}
                           </td>
                           <td className="py-1.5 px-3 text-right">
                             {c.status === "Pago"
@@ -343,7 +340,7 @@ export default function FpaPage() {
                     <tfoot>
                       <tr className="border-t border-gray-200">
                         <td className="py-2 px-3 text-xs font-bold text-gray-700">Total</td>
-                        <td className="py-2 px-3 text-right text-xs font-bold text-brand-700">{fmtR(JACQES_MRR)}</td>
+                        <td className="py-2 px-3 text-right text-xs font-bold text-brand-700">{formatBRL(JACQES_MRR)}</td>
                         <td />
                       </tr>
                     </tfoot>
@@ -378,7 +375,7 @@ export default function FpaPage() {
                       <div className="h-full bg-gradient-to-r from-brand-600 to-brand-400 rounded-full"
                         style={{ width: `${(row.mrr / maxMrr) * 100}%` }} />
                     </div>
-                    <span className="text-xs font-semibold text-gray-900 w-20 text-right shrink-0">{fmtR(row.mrr)}</span>
+                    <span className="text-xs font-semibold text-gray-900 w-20 text-right shrink-0">{formatBRL(row.mrr)}</span>
                   </div>
                 ))}
               </div>
@@ -417,7 +414,7 @@ export default function FpaPage() {
               <h3 className="text-sm font-semibold text-gray-900 mb-4">3. Lucro Bruto</h3>
               <div className="rounded-lg bg-gray-50 border border-gray-200 px-4 py-4 mb-4 font-mono text-xs text-gray-600 space-y-1">
                 <p>Lucro Bruto = Receita Líquida − COGS</p>
-                <p>= {fmtR(JACQES_MRR)} (MRR) − <span className="text-gray-400">[COGS pendente]</span></p>
+                <p>= {formatBRL(JACQES_MRR)} (MRR) − <span className="text-gray-400">[COGS pendente]</span></p>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 {[
@@ -651,8 +648,8 @@ export default function FpaPage() {
                         const rv=row.real[mi],pv=row.prev[mi];
                         const rc=rv===0?"text-gray-300":isReceita?"text-emerald-700 font-semibold":isSubtotal?"font-bold text-gray-900":"text-gray-700";
                         return [
-                          ...(dreView!=="real"?[<td key={`p${mi}`} className="py-2 px-3 text-right border-l border-gray-100 text-gray-400">{pv===0?"—":fmtR(pv)}</td>]:[]),
-                          ...(dreView!=="prev"?[<td key={`r${mi}`} className={`py-2 px-3 text-right ${rc}`}>{fmtR(rv)}</td>]:[]),
+                          ...(dreView!=="real"?[<td key={`p${mi}`} className="py-2 px-3 text-right border-l border-gray-100 text-gray-400">{pv===0?"—":formatBRL(pv)}</td>]:[]),
+                          ...(dreView!=="prev"?[<td key={`r${mi}`} className={`py-2 px-3 text-right ${rc}`}>{formatBRL(rv)}</td>]:[]),
                         ];
                       });
 
@@ -662,8 +659,8 @@ export default function FpaPage() {
                         const pv=yMIs.reduce((s,mi)=>s+row.prev[mi],0);
                         const rc=rv===0?"text-gray-300":isReceita?"text-emerald-700 font-semibold":isSubtotal?"font-bold text-gray-900":"text-gray-700";
                         return [
-                          ...(dreView!=="real"?[<td key={`py${y}`} className="py-2 px-3 text-right border-l border-gray-100 text-gray-400">{pv===0?"—":fmtR(pv)}</td>]:[]),
-                          ...(dreView!=="prev"?[<td key={`ry${y}`} className={`py-2 px-3 text-right ${rc}`}>{rv===0?"—":fmtR(rv)}</td>]:[]),
+                          ...(dreView!=="real"?[<td key={`py${y}`} className="py-2 px-3 text-right border-l border-gray-100 text-gray-400">{pv===0?"—":formatBRL(pv)}</td>]:[]),
+                          ...(dreView!=="prev"?[<td key={`ry${y}`} className={`py-2 px-3 text-right ${rc}`}>{rv===0?"—":formatBRL(rv)}</td>]:[]),
                         ];
                       });
 
@@ -677,8 +674,8 @@ export default function FpaPage() {
                             {row.label}
                           </td>
                           {gran==="ano"?yearCols:monthCols}
-                          {dreView!=="real"&&<td className="py-2 px-3 text-right border-l border-gray-200 text-gray-400">{totalPrev===0?"—":fmtR(totalPrev)}</td>}
-                          {dreView!=="prev"&&<td className={`py-2 px-3 text-right ${totalRc}`}>{totalReal===0?"—":fmtR(totalReal)}</td>}
+                          {dreView!=="real"&&<td className="py-2 px-3 text-right border-l border-gray-200 text-gray-400">{totalPrev===0?"—":formatBRL(totalPrev)}</td>}
+                          {dreView!=="prev"&&<td className={`py-2 px-3 text-right ${totalRc}`}>{totalReal===0?"—":formatBRL(totalReal)}</td>}
                         </tr>
                       );
                     })}
@@ -719,7 +716,7 @@ export default function FpaPage() {
           <div className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {[
-                { label: "Contas a Receber", value: fmtR(totalPend), note: "Carol R$1.790 + André R$1.500", badge: "parcial CRM", badgeCls: "bg-amber-100 text-amber-700", valueCls: "text-amber-700" },
+                { label: "Contas a Receber", value: formatBRL(totalPend), note: "Carol R$1.790 + André R$1.500", badge: "parcial CRM", badgeCls: "bg-amber-100 text-amber-700", valueCls: "text-amber-700" },
                 { label: "Contas a Pagar",   value: "—",             note: "Pendente de classificação",    badge: "sem dado",    badgeCls: "bg-gray-100 text-gray-400",   valueCls: "text-gray-400" },
                 { label: "Capital de Giro Líquido", value: "—",      note: "A/R − A/P (A/P pendente)",    badge: "incompleto",  badgeCls: "bg-gray-100 text-gray-400",   valueCls: "text-gray-400" },
               ].map((c) => (
@@ -747,7 +744,7 @@ export default function FpaPage() {
                   {clientes.filter((c) => c.status === "Pendente").map((c) => (
                     <tr key={c.nome} className="border-b border-gray-100">
                       <td className="py-2.5 px-3 text-xs font-semibold text-gray-900">{c.nome}</td>
-                      <td className="py-2.5 px-3 text-right text-xs font-bold text-amber-700">{fmtR(c.fee)}</td>
+                      <td className="py-2.5 px-3 text-right text-xs font-bold text-amber-700">{formatBRL(c.fee)}</td>
                       <td className="py-2.5 px-3 text-right text-xs text-gray-400">Abr/26</td>
                       <td className="py-2.5 px-3 text-right">
                         <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">pendente</span>
@@ -758,7 +755,7 @@ export default function FpaPage() {
                 <tfoot>
                   <tr className="border-t border-gray-300">
                     <td className="py-2.5 px-3 text-xs font-bold text-gray-700">Total A/R</td>
-                    <td className="py-2.5 px-3 text-right text-xs font-bold text-amber-700">{fmtR(totalPend)}</td>
+                    <td className="py-2.5 px-3 text-right text-xs font-bold text-amber-700">{formatBRL(totalPend)}</td>
                     <td colSpan={2} />
                   </tr>
                 </tfoot>
@@ -772,8 +769,8 @@ export default function FpaPage() {
           <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { label: "MRR Atual (Abr/26)", value: fmtR(JACQES_MRR), sub: "4 clientes FEE",      icon: DollarSign, color: "text-brand-600",   bg: "bg-brand-50"   },
-                { label: "ARR Projetado",       value: fmtR(arr),         sub: "MRR × 12",            icon: TrendingUp, color: "text-emerald-600", bg: "bg-emerald-50" },
+                { label: "MRR Atual (Abr/26)", value: formatBRL(JACQES_MRR), sub: "4 clientes FEE",      icon: DollarSign, color: "text-brand-600",   bg: "bg-brand-50"   },
+                { label: "ARR Projetado",       value: formatBRL(arr),         sub: "MRR × 12",            icon: TrendingUp, color: "text-emerald-600", bg: "bg-emerald-50" },
                 { label: "MoM (Mar→Abr)",       value: `+${mrrGrowth}%`,  sub: "Tati Simões entrou", icon: TrendingUp, color: "text-amber-700",   bg: "bg-amber-50"   },
                 { label: "CAC",                 value: "—",               sub: "pipeline de vendas", icon: BarChart3,  color: "text-gray-400",    bg: "bg-gray-50"    },
               ].map((c) => {
@@ -809,7 +806,7 @@ export default function FpaPage() {
                     {clientes.map((c) => (
                       <tr key={c.nome} className="border-b border-gray-100 hover:bg-gray-50/80">
                         <td className="py-2.5 px-3 text-xs font-semibold text-gray-900">{c.nome}</td>
-                        <td className="py-2.5 px-3 text-right text-xs font-bold text-gray-900">{fmtR(c.fee)}</td>
+                        <td className="py-2.5 px-3 text-right text-xs font-bold text-gray-900">{formatBRL(c.fee)}</td>
                         <td className="py-2.5 px-3 text-right text-xs text-gray-500">
                           {((c.fee / JACQES_MRR) * 100).toFixed(1)}%
                         </td>
@@ -869,7 +866,7 @@ export default function FpaPage() {
                     return (
                       <tr key={c.nome} className="border-b border-gray-100 hover:bg-gray-50/80 transition-colors">
                         <td className="py-2.5 px-3 text-xs font-semibold text-gray-900">{c.nome}</td>
-                        <td className="py-2.5 px-3 text-right text-xs font-bold text-gray-900">{fmtR(c.fee)}</td>
+                        <td className="py-2.5 px-3 text-right text-xs font-bold text-gray-900">{formatBRL(c.fee)}</td>
                         <td className="py-2.5 px-3 text-right text-xs text-gray-500">{((c.fee/JACQES_MRR)*100).toFixed(1)}%</td>
                         <td className="py-2.5 px-3 text-right">
                           {c.status === "Pago"

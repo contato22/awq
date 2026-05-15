@@ -8,18 +8,11 @@ import {
   Loader2, ChevronRight, BarChart3, GitMerge,
 } from "lucide-react";
 import { SEED_DEALS } from "@/lib/ma-seed-data";
+import { formatBRL } from "@/lib/utils";
 
 const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function fmtR(n: number | null | undefined) {
-  if (n == null || isNaN(n)) return "—";
-  if (Math.abs(n) >= 1_000_000_000) return "R$" + (n / 1_000_000_000).toFixed(1) + "B";
-  if (Math.abs(n) >= 1_000_000)     return "R$" + (n / 1_000_000).toFixed(1) + "M";
-  if (Math.abs(n) >= 1_000)         return "R$" + (n / 1_000).toFixed(0) + "K";
-  return "R$" + n.toLocaleString("pt-BR");
-}
 
 const DEAL_TYPE_LABELS: Record<string, string> = {
   m4e:               "M4E",
@@ -122,10 +115,10 @@ function DealCard({ deal }: { deal: any }) {
             <span className={`text-[9px] font-bold tabular-nums ${scoreText}`}>{score}</span>
           </div>
           {deal.proposed_investment_amount && (
-            <span className="text-[10px] text-gray-400 font-medium ml-auto">{fmtR(deal.proposed_investment_amount)}</span>
+            <span className="text-[10px] text-gray-400 font-medium ml-auto">{formatBRL(deal.proposed_investment_amount)}</span>
           )}
           {deal.media_commitment_value && !deal.proposed_investment_amount && (
-            <span className="text-[10px] text-cyan-600 font-semibold ml-auto">{fmtR(deal.media_commitment_value)} mídia</span>
+            <span className="text-[10px] text-cyan-600 font-semibold ml-auto">{formatBRL(deal.media_commitment_value)} mídia</span>
           )}
         </div>
 
@@ -226,7 +219,7 @@ export default function DealPipelinePage() {
                       <div>
                         <p className="text-xs font-bold text-gray-800">{stage.label}</p>
                         {totalVal > 0 && (
-                          <p className="text-[9px] text-gray-500 font-medium mt-0.5">{fmtR(totalVal)}</p>
+                          <p className="text-[9px] text-gray-500 font-medium mt-0.5">{formatBRL(totalVal)}</p>
                         )}
                       </div>
                     </div>
@@ -286,7 +279,7 @@ export default function DealPipelinePage() {
                       </div>
                       <div className="flex items-center gap-1.5">
                         {d.proposed_investment_amount && (
-                          <span className="text-[10px] font-bold text-emerald-600">{fmtR(d.proposed_investment_amount)}</span>
+                          <span className="text-[10px] font-bold text-emerald-600">{formatBRL(d.proposed_investment_amount)}</span>
                         )}
                         <ChevronRight size={11} className="text-gray-300" />
                       </div>

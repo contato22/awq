@@ -1,3 +1,4 @@
+import { formatBRL } from "@/lib/utils";
 // ─── /awq/epm/fixed-assets — Ativo Imobilizado ────────────────────────────────
 //
 // Fixed Asset Register with:
@@ -12,14 +13,6 @@ import {
   Building2, TrendingDown, DollarSign, BarChart3,
   AlertTriangle, CheckCircle2, Package,
 } from "lucide-react";
-
-function fmtBRL(n: number): string {
-  const abs  = Math.abs(n);
-  const sign = n < 0 ? "-" : "";
-  if (abs >= 1_000_000) return sign + "R$" + (abs / 1_000_000).toFixed(2) + "M";
-  if (abs >= 1_000)     return sign + "R$" + (abs / 1_000).toFixed(0)     + "K";
-  return sign + "R$" + abs.toLocaleString("pt-BR", { minimumFractionDigits: 0 });
-}
 
 interface FixedAsset {
   asset_code:              string;
@@ -130,10 +123,10 @@ export default function FixedAssetsPage() {
         {/* ── Summary KPIs ─────────────────────────────────────────── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
-            { label: "Custo Total (CAPEX)",    value: fmtBRL(totalCost),         color: "text-gray-900"    },
-            { label: "Valor Contábil Líquido", value: fmtBRL(totalBV),           color: "text-brand-700"   },
-            { label: "Depreciação Acumulada",  value: fmtBRL(totalDepr),         color: "text-red-700"     },
-            { label: "Depr. Mensal Corrente",  value: fmtBRL(monthlyDeprTotal),  color: "text-amber-700"   },
+            { label: "Custo Total (CAPEX)",    value: formatBRL(totalCost),         color: "text-gray-900"    },
+            { label: "Valor Contábil Líquido", value: formatBRL(totalBV),           color: "text-brand-700"   },
+            { label: "Depreciação Acumulada",  value: formatBRL(totalDepr),         color: "text-red-700"     },
+            { label: "Depr. Mensal Corrente",  value: formatBRL(monthlyDeprTotal),  color: "text-amber-700"   },
           ].map((card) => (
             <div key={card.label} className="card p-4">
               <div className={`text-xl font-bold tabular-nums ${card.color}`}>{card.value}</div>
@@ -182,10 +175,10 @@ export default function FixedAssetsPage() {
                         </span>
                       </td>
                       <td className="py-2 px-3 text-gray-500">{a.bu}</td>
-                      <td className="py-2 px-3 text-right tabular-nums text-gray-700">{fmtBRL(a.cost)}</td>
-                      <td className="py-2 px-3 text-right tabular-nums text-red-600">{fmtBRL(a.accumulated_depreciation)}</td>
-                      <td className="py-2 px-3 text-right tabular-nums font-semibold text-brand-700">{fmtBRL(bv)}</td>
-                      <td className="py-2 px-3 text-right tabular-nums text-amber-700">{fmtBRL(md)}</td>
+                      <td className="py-2 px-3 text-right tabular-nums text-gray-700">{formatBRL(a.cost)}</td>
+                      <td className="py-2 px-3 text-right tabular-nums text-red-600">{formatBRL(a.accumulated_depreciation)}</td>
+                      <td className="py-2 px-3 text-right tabular-nums font-semibold text-brand-700">{formatBRL(bv)}</td>
+                      <td className="py-2 px-3 text-right tabular-nums text-amber-700">{formatBRL(md)}</td>
                       <td className="py-2 px-3 w-28">
                         <div className="flex items-center gap-1.5">
                           <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
@@ -207,10 +200,10 @@ export default function FixedAssetsPage() {
               <tfoot>
                 <tr className="border-t-2 border-gray-200 bg-gray-50 font-bold">
                   <td className="py-2.5 px-3 text-xs text-gray-700" colSpan={4}>Total</td>
-                  <td className="py-2.5 px-3 text-right text-xs tabular-nums text-gray-900">{fmtBRL(totalCost)}</td>
-                  <td className="py-2.5 px-3 text-right text-xs tabular-nums text-red-700">{fmtBRL(totalDepr)}</td>
-                  <td className="py-2.5 px-3 text-right text-xs tabular-nums text-brand-700">{fmtBRL(totalBV)}</td>
-                  <td className="py-2.5 px-3 text-right text-xs tabular-nums text-amber-700">{fmtBRL(monthlyDeprTotal)}</td>
+                  <td className="py-2.5 px-3 text-right text-xs tabular-nums text-gray-900">{formatBRL(totalCost)}</td>
+                  <td className="py-2.5 px-3 text-right text-xs tabular-nums text-red-700">{formatBRL(totalDepr)}</td>
+                  <td className="py-2.5 px-3 text-right text-xs tabular-nums text-brand-700">{formatBRL(totalBV)}</td>
+                  <td className="py-2.5 px-3 text-right text-xs tabular-nums text-amber-700">{formatBRL(monthlyDeprTotal)}</td>
                   <td />
                 </tr>
               </tfoot>
@@ -232,7 +225,7 @@ export default function FixedAssetsPage() {
               <div key={row.month} className={`rounded-xl p-3 text-center ${i === 0 ? "bg-brand-50 border border-brand-200" : "bg-gray-50"}`}>
                 <div className="text-[10px] text-gray-400 font-semibold mb-1">{row.month}</div>
                 <div className={`text-sm font-bold tabular-nums ${i === 0 ? "text-brand-700" : "text-red-600"}`}>
-                  {fmtBRL(row.amount)}
+                  {formatBRL(row.amount)}
                 </div>
               </div>
             ))}
@@ -240,7 +233,7 @@ export default function FixedAssetsPage() {
           <div className="mt-3 text-xs text-gray-400">
             Total depreciação projetada 12 meses:{" "}
             <strong className="text-gray-700">
-              {fmtBRL(depSchedule.reduce((s, r) => s + r.amount, 0))}
+              {formatBRL(depSchedule.reduce((s, r) => s + r.amount, 0))}
             </strong>
           </div>
         </div>
@@ -261,8 +254,8 @@ export default function FixedAssetsPage() {
                       <span className="text-xs font-semibold text-gray-800">{b.bu}</span>
                       <div className="flex items-center gap-3 text-xs">
                         <span className="text-gray-400">{b.count} ativos</span>
-                        <span className="text-gray-700 font-semibold">{fmtBRL(b.totalBV)}</span>
-                        <span className="text-gray-400">/ {fmtBRL(b.totalCost)}</span>
+                        <span className="text-gray-700 font-semibold">{formatBRL(b.totalBV)}</span>
+                        <span className="text-gray-400">/ {formatBRL(b.totalCost)}</span>
                       </div>
                     </div>
                     <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
@@ -303,8 +296,8 @@ export default function FixedAssetsPage() {
                         </span>
                       </td>
                       <td className="py-2 px-2 text-right text-gray-500">{c.count}</td>
-                      <td className="py-2 px-2 text-right tabular-nums text-gray-700">{fmtBRL(c.totalCost)}</td>
-                      <td className="py-2 px-2 text-right tabular-nums font-semibold text-brand-700">{fmtBRL(c.totalBV)}</td>
+                      <td className="py-2 px-2 text-right tabular-nums text-gray-700">{formatBRL(c.totalCost)}</td>
+                      <td className="py-2 px-2 text-right tabular-nums font-semibold text-brand-700">{formatBRL(c.totalBV)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -321,7 +314,7 @@ export default function FixedAssetsPage() {
             Para registrar a depreciação mensal no Razão Geral, crie um lançamento GL
             debitando <strong>6.1.09 Depreciação e Amortização</strong> e creditando{" "}
             <strong>1.2.01 Imobilizado (líquido)</strong> pelo valor de{" "}
-            <strong>{fmtBRL(monthlyDeprTotal)}/mês</strong>.{" "}
+            <strong>{formatBRL(monthlyDeprTotal)}/mês</strong>.{" "}
             <Link href="/awq/epm/gl/add" className="underline font-semibold ml-1">
               Criar lançamento →
             </Link>

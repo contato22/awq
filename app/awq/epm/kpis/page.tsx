@@ -16,6 +16,7 @@ import {
   fmtBRL,
   fmtPct,
 } from "@/lib/financial-metric-query";
+import { formatBRL } from "@/lib/utils";
 import { initAllAPARTables, getAllAP, getAllAR } from "@/lib/ap-ar-db";
 import { MetricSourceBadge, MetricDetail } from "@/components/MetricSourceBadge";
 import { buildDreQuery } from "@/lib/dre-query";
@@ -29,13 +30,6 @@ import {
   ventureFeeARR,
 } from "@/lib/awq-derived-metrics";
 
-function fmtR(n: number): string {
-  const abs  = Math.abs(n);
-  const sign = n < 0 ? "-" : "";
-  if (abs >= 1_000_000) return sign + "R$" + (abs / 1_000_000).toFixed(2) + "M";
-  if (abs >= 1_000)     return sign + "R$" + (abs / 1_000).toFixed(0)     + "K";
-  return sign + "R$" + abs.toLocaleString("pt-BR", { minimumFractionDigits: 0 });
-}
 
 interface KpiCard {
   label:        string;
@@ -144,14 +138,14 @@ export default async function EpmKpisPage() {
   const plKpis: KpiCard[] = [
     {
       label: "Receita Total",
-      value: fmtR(revenue),
+      value: formatBRL(revenue),
       sub:   dre.hasData ? `${dre.periodStart?.slice(0,7)} → ${dre.periodEnd?.slice(0,7)}` : "Snapshot YTD",
       status: "neutral",
       sourceType: dre.hasData ? "real" : "snapshot",
     },
     {
       label: "EBITDA",
-      value: fmtR(ebitda),
+      value: formatBRL(ebitda),
       sub:   `Margem: ${ebitdaMargin.toFixed(1)}%`,
       status: ebitdaMargin >= 15 ? "good" : ebitdaMargin >= 5 ? "warn" : "bad",
       sourceType: dre.hasData ? "real" : "snapshot",
@@ -160,7 +154,7 @@ export default async function EpmKpisPage() {
     {
       label: "Margem Bruta",
       value: `${grossMargin.toFixed(1)}%`,
-      sub:   dre.hasData ? `COGS: ${fmtR(dre.dreCOGS)}` : undefined,
+      sub:   dre.hasData ? `COGS: ${formatBRL(dre.dreCOGS)}` : undefined,
       status: grossMargin >= 50 ? "good" : grossMargin >= 30 ? "warn" : "bad",
       sourceType: dre.hasData ? "real" : "snapshot",
       threshold: "≥50%",
@@ -182,14 +176,14 @@ export default async function EpmKpisPage() {
   const recurringKpis: KpiCard[] = [
     {
       label: "MRR",
-      value: fmtR(mrr),
+      value: formatBRL(mrr),
       sub:   "Fee recorrente Venture",
       status: mrr > 0 ? "good" : "warn",
       sourceType: "snapshot",
     },
     {
       label: "ARR",
-      value: fmtR(arr),
+      value: formatBRL(arr),
       sub:   "MRR × 12",
       status: arr > 0 ? "good" : "warn",
       sourceType: "snapshot",
@@ -197,7 +191,7 @@ export default async function EpmKpisPage() {
     {
       label: "Budget Var. Receita",
       value: `${revenueVarPct >= 0 ? "+" : ""}${revenueVarPct.toFixed(1)}%`,
-      sub:   `Actual ${fmtR(snap.revenue)} vs Budget ${fmtR(snap.budgetRevenue)}`,
+      sub:   `Actual ${formatBRL(snap.revenue)} vs Budget ${formatBRL(snap.budgetRevenue)}`,
       status: revenueVarPct >= 0 ? "good" : revenueVarPct > -10 ? "warn" : "bad",
       sourceType: "snapshot",
       threshold: "≥0%",
@@ -221,14 +215,14 @@ export default async function EpmKpisPage() {
   const cashKpis: KpiCard[] = [
     {
       label: "Caixa Consolidado",
-      value: kpis.totalCashBalance.value !== null ? fmtR(kpis.totalCashBalance.value) : "—",
+      value: kpis.totalCashBalance.value !== null ? formatBRL(kpis.totalCashBalance.value) : "—",
       sub:   "Saldo total por extrato",
       status: kpis.totalCashBalance.value !== null && kpis.totalCashBalance.value > 0 ? "good" : "neutral",
       sourceType: kpis.totalCashBalance.value !== null ? "real" : "empty",
     },
     {
       label: "FCO Líquido",
-      value: kpis.operationalNetCash.value !== null ? fmtR(kpis.operationalNetCash.value) : "—",
+      value: kpis.operationalNetCash.value !== null ? formatBRL(kpis.operationalNetCash.value) : "—",
       sub:   "Entradas − Saídas operacionais",
       status: kpis.operationalNetCash.value !== null
         ? ((kpis.operationalNetCash.value as number) >= 0 ? "good" : "bad")
@@ -245,7 +239,7 @@ export default async function EpmKpisPage() {
     },
     {
       label: "Capital de Giro",
-      value: workingCap !== null ? fmtR(workingCap) : "—",
+      value: workingCap !== null ? formatBRL(workingCap) : "—",
       sub:   bs.hasData ? "Ativo Circ. − Passivo Circ." : "Sem dados GL",
       status: workingCap === null ? "neutral" : workingCap > 0 ? "good" : "bad",
       sourceType: bs.hasData ? "real" : "empty",
@@ -265,7 +259,7 @@ export default async function EpmKpisPage() {
     {
       label:      "DSO",
       value:      hasAPARData ? `${DSO.toFixed(1)} d` : "—",
-      sub:        hasAPARData ? `AR: ${fmtR(arOutstanding)}` : "Sem lançamentos AR",
+      sub:        hasAPARData ? `AR: ${formatBRL(arOutstanding)}` : "Sem lançamentos AR",
       status:     !hasAPARData ? "neutral" : DSO <= 30 ? "good" : DSO <= 60 ? "warn" : "bad",
       sourceType: hasAPARData ? "real" : "empty",
       threshold:  "≤30 dias",
@@ -273,7 +267,7 @@ export default async function EpmKpisPage() {
     {
       label:      "DPO",
       value:      hasAPARData ? `${DPO.toFixed(1)} d` : "—",
-      sub:        hasAPARData ? `AP: ${fmtR(apOutstanding)}` : "Sem lançamentos AP",
+      sub:        hasAPARData ? `AP: ${formatBRL(apOutstanding)}` : "Sem lançamentos AP",
       status:     !hasAPARData ? "neutral" : DPO >= 30 ? "good" : DPO >= 15 ? "warn" : "bad",
       sourceType: hasAPARData ? "real" : "empty",
       threshold:  "≥30 dias",
@@ -288,7 +282,7 @@ export default async function EpmKpisPage() {
     },
     {
       label:      "AR em Aberto",
-      value:      hasAPARData ? fmtR(arOutstanding) : "—",
+      value:      hasAPARData ? formatBRL(arOutstanding) : "—",
       sub:        "PENDING + OVERDUE",
       status:     !hasAPARData ? "neutral" : arOutstanding > 0 ? "warn" : "good",
       sourceType: hasAPARData ? "real" : "empty",
@@ -321,7 +315,7 @@ export default async function EpmKpisPage() {
     },
     {
       label: "Rev. por FTE",
-      value: fmtR((snap.ftes ?? 1) > 0 ? revenue / (snap.ftes ?? 1) : 0),
+      value: formatBRL((snap.ftes ?? 1) > 0 ? revenue / (snap.ftes ?? 1) : 0),
       sub:   "Receita / FTE",
       status: "neutral",
       sourceType: dre.hasData ? "real" : "snapshot",

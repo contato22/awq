@@ -10,13 +10,7 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 import { BuData, allocFlags, flagConfig } from "@/lib/awq-group-data";
-
-function fmtR(n: number) {
-  if (Math.abs(n) >= 1_000_000_000) return "R$" + (n / 1_000_000_000).toFixed(2) + "B";
-  if (Math.abs(n) >= 1_000_000)     return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  if (Math.abs(n) >= 1_000)         return "R$" + (n / 1_000).toFixed(0) + "K";
-  return "R$" + n.toLocaleString("pt-BR");
-}
+import { formatBRL } from "@/lib/utils";
 
 interface MobileBUScoreboardProps {
   buData: BuData[];
@@ -64,7 +58,7 @@ export default function MobileBUScoreboard({ buData }: MobileBUScoreboardProps) 
                     <div className="text-[10px] text-gray-400 flex items-center gap-1">
                       <DollarSign size={10} /> Receita
                     </div>
-                    <div className="text-sm font-bold text-gray-900">{fmtR(bu.revenue)}</div>
+                    <div className="text-sm font-bold text-gray-900">{formatBRL(bu.revenue)}</div>
                   </div>
                   <div>
                     <div className="text-[10px] text-gray-400 flex items-center gap-1">
@@ -78,7 +72,7 @@ export default function MobileBUScoreboard({ buData }: MobileBUScoreboardProps) 
                 <div className="text-[10px] text-gray-400 flex items-center gap-1">
                   <ArrowUpRight size={10} /> Lucro Líq.
                 </div>
-                <div className="text-sm font-bold text-gray-900">{fmtR(bu.netIncome)}</div>
+                <div className="text-sm font-bold text-gray-900">{formatBRL(bu.netIncome)}</div>
               </div>
               <div>
                 <div className="text-[10px] text-gray-400 flex items-center gap-1">

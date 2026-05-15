@@ -10,15 +10,7 @@ import {
   ArrowDownRight,
   ExternalLink,
 } from "lucide-react";
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function fmtR(n: number) {
-  if (n >= 1_000_000_000) return "R$" + (n / 1_000_000_000).toFixed(2) + "B";
-  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  if (n >= 1_000) return "R$" + (n / 1_000).toFixed(0) + "K";
-  return "R$" + n.toLocaleString("pt-BR");
-}
+import { formatBRL } from "@/lib/utils";
 
 function fmtMult(x: number) {
   return x.toFixed(2) + "×";
@@ -149,26 +141,26 @@ export default function AwqVenturePortfolioPage() {
                   <div className="grid grid-cols-3 gap-2 pt-1 border-t border-gray-800">
                     <div>
                       <div className="text-[10px] text-gray-600 mb-0.5">Fee Mensal</div>
-                      <div className="text-xs font-bold text-amber-400">{fmtR((p as typeof p & { contractFee?: number }).contractFee ?? 0)}</div>
+                      <div className="text-xs font-bold text-amber-400">{formatBRL((p as typeof p & { contractFee?: number }).contractFee ?? 0)}</div>
                     </div>
                     <div>
                       <div className="text-[10px] text-gray-600 mb-0.5">ARR Advisory</div>
-                      <div className="text-xs font-bold text-emerald-400">{fmtR(((p as typeof p & { contractFee?: number }).contractFee ?? 0) * 12)}</div>
+                      <div className="text-xs font-bold text-emerald-400">{formatBRL(((p as typeof p & { contractFee?: number }).contractFee ?? 0) * 12)}</div>
                     </div>
                     <div>
                       <div className="text-[10px] text-gray-600 mb-0.5">Contrato Total</div>
-                      <div className="text-xs font-bold text-white">{fmtR(p.currentVal)}</div>
+                      <div className="text-xs font-bold text-white">{formatBRL(p.currentVal)}</div>
                     </div>
                   </div>
                 ) : (
                 <div className="grid grid-cols-4 gap-2 pt-1 border-t border-gray-800">
                   <div>
                     <div className="text-[10px] text-gray-600 mb-0.5">Investido</div>
-                    <div className="text-xs font-bold text-white">{fmtR(p.invested)}</div>
+                    <div className="text-xs font-bold text-white">{formatBRL(p.invested)}</div>
                   </div>
                   <div>
                     <div className="text-[10px] text-gray-600 mb-0.5">{p.status === "Exitado" ? "Retornado" : "Valor Atual"}</div>
-                    <div className={`text-xs font-bold ${p.status === "Exitado" ? "text-violet-400" : "text-white"}`}>{fmtR(val)}</div>
+                    <div className={`text-xs font-bold ${p.status === "Exitado" ? "text-violet-400" : "text-white"}`}>{formatBRL(val)}</div>
                   </div>
                   <div>
                     <div className="text-[10px] text-gray-600 mb-0.5">MOIC</div>

@@ -8,6 +8,7 @@ import {
   Clock, CheckCircle2, AlertTriangle,
 } from "lucide-react";
 import { SEED_PORTCOS, SEED_CAP_TABLE } from "@/lib/ma-seed-data";
+import { formatBRL } from "@/lib/utils";
 
 const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 
@@ -47,13 +48,6 @@ interface Portco {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function fmtR(n?: number | null) {
-  if (n == null) return "—";
-  if (Math.abs(n) >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  if (Math.abs(n) >= 1_000) return "R$" + (n / 1_000).toFixed(0) + "K";
-  return "R$" + n.toLocaleString("pt-BR");
-}
 
 function fmtNum(n?: number | null) {
   if (n == null) return "—";
@@ -179,8 +173,8 @@ export default function CapTablePage() {
             {[
               { label: "Participação AWQ", value: fmtPct(currentPortco.awq_ownership_pct), icon: PieChart, color: "text-blue-400" },
               { label: "Total Shares", value: fmtNum(currentPortco.total_shares_outstanding), icon: Users, color: "text-green-400" },
-              { label: "Valuation Atual", value: fmtR(currentPortco.current_valuation), icon: TrendingUp, color: "text-purple-400" },
-              { label: "Valor Stake AWQ", value: fmtR((currentPortco.awq_ownership_pct ?? 0) / 100 * (currentPortco.current_valuation ?? 0)), icon: PieChart, color: "text-amber-400" },
+              { label: "Valuation Atual", value: formatBRL(currentPortco.current_valuation), icon: TrendingUp, color: "text-purple-400" },
+              { label: "Valor Stake AWQ", value: formatBRL((currentPortco.awq_ownership_pct ?? 0) / 100 * (currentPortco.current_valuation ?? 0)), icon: PieChart, color: "text-amber-400" },
             ].map(c => {
               const Icon = c.icon;
               return (
@@ -242,7 +236,7 @@ export default function CapTablePage() {
                       <td className="px-4 py-3 text-sm text-gray-400 text-right">
                         {entry.cost_per_share != null ? `R$${entry.cost_per_share.toFixed(2)}` : "—"}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-300 text-right">{fmtR(entry.total_cost_basis)}</td>
+                      <td className="px-4 py-3 text-sm text-gray-300 text-right">{formatBRL(entry.total_cost_basis)}</td>
                       <td className="px-4 py-3 text-sm text-gray-400">{fmtDate(entry.acquisition_date)}</td>
                     </tr>
                   ))}
@@ -334,7 +328,7 @@ export default function CapTablePage() {
               <div className="mt-3 p-3 bg-orange-500/10 rounded-lg">
                 <p className="text-xs text-orange-400">
                   Diluição de {fmtPct((awqEntry.ownership_pct ?? 0) - awqDilutedPct)} na participação AWQ.
-                  Valor stake: {fmtR(awqDilutedPct / 100 * totalValue)} ({fmtPct(awqDilutedPct)})
+                  Valor stake: {formatBRL(awqDilutedPct / 100 * totalValue)} ({fmtPct(awqDilutedPct)})
                 </p>
               </div>
             )}

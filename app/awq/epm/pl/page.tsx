@@ -1,3 +1,4 @@
+import { formatBRL } from "@/lib/utils";
 // ─── /awq/epm/pl — P&L (DRE Gerencial) ──────────────────────────────────────
 //
 // DATA SOURCE: buildDreQuery() from lib/dre-query.ts
@@ -20,14 +21,6 @@ import { buildDreQuery, type DreResult } from "@/lib/dre-query";
 import { consolidated, consolidatedMargins, BUDGET_LINES } from "@/lib/awq-derived-metrics";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function fmtBRL(n: number): string {
-  const abs = Math.abs(n);
-  const sign = n < 0 ? "-" : "";
-  if (abs >= 1_000_000) return sign + "R$" + (abs / 1_000_000).toFixed(2) + "M";
-  if (abs >= 1_000)     return sign + "R$" + (abs / 1_000).toFixed(0) + "K";
-  return sign + "R$" + abs.toLocaleString("pt-BR", { minimumFractionDigits: 0 });
-}
 
 function pctFmt(n: number | null): string {
   if (n === null) return "—";
@@ -68,7 +61,7 @@ function DRE_Row({
         {sub && <span className="text-[10px] text-gray-400 ml-1.5">{sub}</span>}
       </div>
       <div className={`text-xs font-${bold ? "bold" : "semibold"} tabular-nums ${colorClass}`}>
-        {value < 0 ? `(${fmtBRL(Math.abs(value))})` : fmtBRL(value)}{pct}
+        {value < 0 ? `(${formatBRL(Math.abs(value))})` : formatBRL(value)}{pct}
       </div>
     </div>
   );
@@ -101,7 +94,7 @@ function CategoryBreakdown({
                 />
               </div>
               <span className="text-[11px] font-semibold tabular-nums text-gray-600 w-20 text-right">
-                {fmtBRL(line.amount)}
+                {formatBRL(line.amount)}
               </span>
             </div>
           </div>
@@ -314,10 +307,10 @@ function BudgetComparison() {
               return (
                 <tr key={row.label} className="border-b border-gray-100 hover:bg-gray-50">
                   <td className="py-2 px-2 font-medium text-gray-800">{row.label}</td>
-                  <td className="py-2 px-2 text-right font-semibold tabular-nums">{fmtBRL(row.actual)}</td>
-                  <td className="py-2 px-2 text-right text-gray-500 tabular-nums">{fmtBRL(row.budget)}</td>
+                  <td className="py-2 px-2 text-right font-semibold tabular-nums">{formatBRL(row.actual)}</td>
+                  <td className="py-2 px-2 text-right text-gray-500 tabular-nums">{formatBRL(row.budget)}</td>
                   <td className={`py-2 px-2 text-right font-semibold tabular-nums ${positive ? "text-emerald-600" : "text-red-600"}`}>
-                    {positive ? "+" : ""}{fmtBRL(row.variance)}
+                    {positive ? "+" : ""}{formatBRL(row.variance)}
                   </td>
                   <td className={`py-2 px-2 text-right font-semibold ${positive ? "text-emerald-600" : "text-red-600"}`}>
                     {positive ? "+" : ""}{row.variancePct.toFixed(1)}%
@@ -360,7 +353,7 @@ export default async function EpmPLPage() {
             const Icon = card.icon;
             const display = (card as { isString?: boolean }).isString
               ? String(card.value)
-              : fmtBRL(Number(card.value));
+              : formatBRL(Number(card.value));
             return (
               <div key={card.label} className="card p-4 flex items-start gap-3">
                 <div className={`w-9 h-9 rounded-xl ${card.bg} flex items-center justify-center shrink-0`}>

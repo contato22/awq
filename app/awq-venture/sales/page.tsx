@@ -11,14 +11,9 @@ import {
   Database,
   CloudOff,
 } from "lucide-react";
+import { formatBRL } from "@/lib/utils";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function fmtR(n: number) {
-  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  if (n >= 1_000) return "R$" + (n / 1_000).toFixed(0) + "K";
-  return "R$" + n.toLocaleString("pt-BR");
-}
 
 function fmtDate(d: string) {
   return new Date(d).toLocaleDateString("pt-BR", {
@@ -79,9 +74,9 @@ export default function VentureSalesPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {[
               { label: "Deals Fechados", value: String(data.rows.length || data.byQuarter.Q1 ? "8" : "—"), icon: BarChart3, color: "text-brand-600", bg: "bg-brand-50" },
-              { label: "Total Q1 Fechado", value: fmtR(data.totalFechado), icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
+              { label: "Total Q1 Fechado", value: formatBRL(data.totalFechado), icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
               { label: "Total Leads", value: String(data.totalLeads), icon: Users, color: "text-amber-700", bg: "bg-amber-50" },
-              { label: "Integração Solar", value: fmtR(totalIntegracao), icon: TrendingUp, color: "text-cyan-700", bg: "bg-cyan-50" },
+              { label: "Integração Solar", value: formatBRL(totalIntegracao), icon: TrendingUp, color: "text-cyan-700", bg: "bg-cyan-50" },
             ].map((kpi) => (
               <div key={kpi.label} className="card p-5 flex items-start gap-3">
                 <div className={`w-9 h-9 rounded-lg ${kpi.bg} flex items-center justify-center shrink-0`}>
@@ -116,7 +111,7 @@ export default function VentureSalesPage() {
                       <span className="text-gray-600 font-medium">{cat.label}</span>
                       <div className="flex items-center gap-2">
                         <span className="text-gray-400">{pct.toFixed(1)}%</span>
-                        <span className="font-semibold text-gray-900 tabular-nums">{fmtR(cat.value)}</span>
+                        <span className="font-semibold text-gray-900 tabular-nums">{formatBRL(cat.value)}</span>
                       </div>
                     </div>
                     <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
@@ -148,7 +143,7 @@ export default function VentureSalesPage() {
                       <div className="text-xs text-gray-400">{c.leads} leads</div>
                     </div>
                     <div className="text-sm font-semibold text-gray-900 tabular-nums w-24 text-right">
-                      {fmtR(c.valor)}
+                      {formatBRL(c.valor)}
                     </div>
                     <div className="text-xs text-gray-400 w-8 text-right">{c.pct}%</div>
                   </div>
@@ -183,7 +178,7 @@ export default function VentureSalesPage() {
                       <td className="px-5 py-3 font-medium text-gray-800">{row.nome}</td>
                       <td className="px-5 py-3 text-gray-500">{row.categoria}</td>
                       <td className="px-5 py-3 text-gray-500">{row.canal}</td>
-                      <td className="px-5 py-3 text-right font-semibold text-gray-900 tabular-nums">{fmtR(row.valor)}</td>
+                      <td className="px-5 py-3 text-right font-semibold text-gray-900 tabular-nums">{formatBRL(row.valor)}</td>
                       <td className="px-5 py-3 text-right text-gray-400 text-xs">{fmtDate(row.data)}</td>
                     </tr>
                   ))}

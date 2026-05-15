@@ -1,3 +1,4 @@
+import { formatBRL } from "@/lib/utils";
 // ─── /awq/epm/balance-sheet — Balanço Patrimonial ────────────────────────────
 //
 // DATA SOURCE: epm-gl.ts (getBalanceSheet / getTrialBalance)
@@ -10,14 +11,6 @@ import Header from "@/components/Header";
 import Link from "next/link";
 import { Scale, AlertTriangle, CheckCircle2, Database, ListOrdered } from "lucide-react";
 import { getBalanceSheet, getTrialBalance } from "@/lib/epm-gl";
-
-function fmtBRL(n: number): string {
-  const abs  = Math.abs(n);
-  const sign = n < 0 ? "-" : "";
-  if (abs >= 1_000_000) return sign + "R$" + (abs / 1_000_000).toFixed(2) + "M";
-  if (abs >= 1_000)     return sign + "R$" + (abs / 1_000).toFixed(0) + "K";
-  return sign + "R$" + abs.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
-}
 
 // Group labels
 const GROUP_LABEL: Record<string, string> = {
@@ -89,7 +82,7 @@ export default function BalanceSheetPage() {
               : "Equação DESEQUILIBRADA — verifique lançamentos GL:"}
           </span>
           <span className="ml-auto tabular-nums text-xs font-bold">
-            Ativo {fmtBRL(bs.totalAssets)} = Passivo {fmtBRL(bs.totalLiabilities)} + PL {fmtBRL(bs.totalEquity)}
+            Ativo {formatBRL(bs.totalAssets)} = Passivo {formatBRL(bs.totalLiabilities)} + PL {formatBRL(bs.totalEquity)}
           </span>
         </div>
 
@@ -102,7 +95,7 @@ export default function BalanceSheetPage() {
           ].map((item) => (
             <div key={item.label} className={`card p-5 text-center ${item.bg}`}>
               <div className={`text-2xl font-bold tabular-nums ${item.color}`}>
-                {fmtBRL(item.value)}
+                {formatBRL(item.value)}
               </div>
               <div className="text-xs text-gray-500 mt-1 font-medium">{item.label}</div>
             </div>
@@ -125,14 +118,14 @@ export default function BalanceSheetPage() {
                       <span className="text-gray-700">{line.account_name}</span>
                     </div>
                     <span className={`font-semibold tabular-nums ${balance >= 0 ? "text-brand-700" : "text-red-600"}`}>
-                      {fmtBRL(balance)}
+                      {formatBRL(balance)}
                     </span>
                   </div>
                 );
               })}
               <div className="flex items-center justify-between pt-2 font-bold text-sm border-t border-gray-300 mt-1">
                 <span className="text-gray-900">Total Ativo</span>
-                <span className="text-brand-700 tabular-nums">{fmtBRL(bs.totalAssets)}</span>
+                <span className="text-brand-700 tabular-nums">{formatBRL(bs.totalAssets)}</span>
               </div>
             </div>
           </div>
@@ -151,14 +144,14 @@ export default function BalanceSheetPage() {
                         <span className="text-gray-700">{line.account_name}</span>
                       </div>
                       <span className={`font-semibold tabular-nums ${balance >= 0 ? "text-red-600" : "text-emerald-600"}`}>
-                        {fmtBRL(balance)}
+                        {formatBRL(balance)}
                       </span>
                     </div>
                   );
                 })}
                 <div className="flex items-center justify-between pt-2 font-bold text-sm border-t border-gray-300 mt-1">
                   <span className="text-gray-900">Total Passivo</span>
-                  <span className="text-red-700 tabular-nums">{fmtBRL(bs.totalLiabilities)}</span>
+                  <span className="text-red-700 tabular-nums">{formatBRL(bs.totalLiabilities)}</span>
                 </div>
               </div>
             </div>
@@ -175,14 +168,14 @@ export default function BalanceSheetPage() {
                         <span className="text-gray-700">{line.account_name}</span>
                       </div>
                       <span className={`font-semibold tabular-nums ${balance >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-                        {fmtBRL(balance)}
+                        {formatBRL(balance)}
                       </span>
                     </div>
                   );
                 })}
                 <div className="flex items-center justify-between pt-2 font-bold text-sm border-t border-gray-300 mt-1">
                   <span className="text-gray-900">Total PL</span>
-                  <span className="text-emerald-700 tabular-nums">{fmtBRL(bs.totalEquity)}</span>
+                  <span className="text-emerald-700 tabular-nums">{formatBRL(bs.totalEquity)}</span>
                 </div>
               </div>
             </div>
@@ -191,7 +184,7 @@ export default function BalanceSheetPage() {
               <div className="flex items-center justify-between text-sm font-bold">
                 <span className="text-gray-900">Total Passivo + PL</span>
                 <span className={`tabular-nums ${bs.isBalanced ? "text-emerald-700" : "text-red-700"}`}>
-                  {fmtBRL(bs.totalLiabilities + bs.totalEquity)}
+                  {formatBRL(bs.totalLiabilities + bs.totalEquity)}
                 </span>
               </div>
             </div>
@@ -220,23 +213,23 @@ export default function BalanceSheetPage() {
                       <span className="text-gray-700">{line.account_name}</span>
                     </td>
                     <td className="py-2 px-2 text-gray-400">{line.account_type}</td>
-                    <td className="py-2 px-2 text-right tabular-nums text-red-600">{fmtBRL(line.total_debits)}</td>
-                    <td className="py-2 px-2 text-right tabular-nums text-emerald-600">{fmtBRL(line.total_credits)}</td>
+                    <td className="py-2 px-2 text-right tabular-nums text-red-600">{formatBRL(line.total_debits)}</td>
+                    <td className="py-2 px-2 text-right tabular-nums text-emerald-600">{formatBRL(line.total_credits)}</td>
                     <td className={`py-2 px-2 text-right font-semibold tabular-nums ${line.net_balance >= 0 ? "text-gray-800" : "text-red-700"}`}>
-                      {fmtBRL(line.net_balance)}
+                      {formatBRL(line.net_balance)}
                     </td>
                   </tr>
                 ))}
                 <tr className="border-t-2 border-gray-300 bg-gray-50 font-bold">
                   <td className="py-2 px-2 text-gray-900" colSpan={2}>TOTAIS</td>
                   <td className="py-2 px-2 text-right tabular-nums text-red-700">
-                    {fmtBRL(tb.reduce((s, l) => s + l.total_debits, 0))}
+                    {formatBRL(tb.reduce((s, l) => s + l.total_debits, 0))}
                   </td>
                   <td className="py-2 px-2 text-right tabular-nums text-emerald-700">
-                    {fmtBRL(tb.reduce((s, l) => s + l.total_credits, 0))}
+                    {formatBRL(tb.reduce((s, l) => s + l.total_credits, 0))}
                   </td>
                   <td className="py-2 px-2 text-right tabular-nums text-gray-700">
-                    {fmtBRL(tb.reduce((s, l) => s + l.net_balance, 0))}
+                    {formatBRL(tb.reduce((s, l) => s + l.net_balance, 0))}
                   </td>
                 </tr>
               </tbody>

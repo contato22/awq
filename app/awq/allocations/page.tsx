@@ -18,15 +18,7 @@ import {
   flagConfig,
   PAYBACK_ESTIMATES,
 } from "@/lib/awq-derived-metrics";
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function fmtR(n: number) {
-  if (Math.abs(n) >= 1_000_000_000) return "R$" + (n / 1_000_000_000).toFixed(2) + "B";
-  if (Math.abs(n) >= 1_000_000)     return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  if (Math.abs(n) >= 1_000)         return "R$" + (n / 1_000).toFixed(0) + "K";
-  return "R$" + n.toLocaleString("pt-BR");
-}
+import { formatBRL } from "@/lib/utils";
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -74,7 +66,7 @@ export default function AwqAllocationsPage() {
             return [
               {
                 label: "Capital Total Alocado",
-                value: fmtR(totalCap),
+                value: formatBRL(totalCap),
                 sub:   `${buData.length} BUs`,
                 delta: `snapshot Q1 2026`,
                 icon:  Wallet,
@@ -163,9 +155,9 @@ export default function AwqAllocationsPage() {
                         </div>
                         <div className="text-[10px] text-gray-400 ml-4">{bu.sub.split(" · ")[0]}</div>
                       </td>
-                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-gray-900">{fmtR(bu.capitalAllocated)}</td>
+                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-gray-900">{formatBRL(bu.capitalAllocated)}</td>
                       <td className="py-2.5 px-3 text-right text-xs text-gray-500">{share.toFixed(0)}%</td>
-                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-gray-900">{fmtR(bu.netIncome)}</td>
+                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-gray-900">{formatBRL(bu.netIncome)}</td>
                       <td className="py-2.5 px-3 text-right text-xs font-bold">
                         <span className={bu.roic >= 50 ? "text-emerald-600" : bu.roic >= 20 ? "text-amber-700" : "text-red-600"}>
                           {bu.roic.toFixed(1)}%
@@ -178,7 +170,7 @@ export default function AwqAllocationsPage() {
                           </span>
                         ) : <span className="text-gray-400">—</span>}
                       </td>
-                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-emerald-600">{fmtR(bu.cashGenerated)}</td>
+                      <td className="py-2.5 px-3 text-right text-xs font-semibold text-emerald-600">{formatBRL(bu.cashGenerated)}</td>
                       <td className="py-2.5 px-3">
                         <span className={`text-xs font-bold px-2 py-1 rounded-full ${flagCfg.bg} ${flagCfg.color}`}>
                           {flagCfg.label}
@@ -201,7 +193,7 @@ export default function AwqAllocationsPage() {
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           {[
             { title: "Ranking por Margem Bruta", items: byMargin, getValue: (b: typeof buData[0]) => b.revenue > 0 ? `${((b.grossProfit / b.revenue) * 100).toFixed(0)}%` : "—" },
-            { title: "Ranking por Cash Generation", items: byCash, getValue: (b: typeof buData[0]) => fmtR(b.cashGenerated) },
+            { title: "Ranking por Cash Generation", items: byCash, getValue: (b: typeof buData[0]) => formatBRL(b.cashGenerated) },
             { title: "Ranking por ROIC", items: byRoic, getValue: (b: typeof buData[0]) => `${b.roic.toFixed(0)}%` },
           ].map((ranking) => (
             <div key={ranking.title} className="card p-5">
@@ -246,7 +238,7 @@ export default function AwqAllocationsPage() {
                         <span className={`text-xs font-bold ${bu.roic >= 30 ? "text-emerald-600" : "text-amber-700"}`}>
                           ROIC {bu.roic.toFixed(0)}%
                         </span>
-                        <span className="text-xs text-gray-900 font-semibold">{fmtR(bu.capitalAllocated)}</span>
+                        <span className="text-xs text-gray-900 font-semibold">{formatBRL(bu.capitalAllocated)}</span>
                         <span className="text-[10px] text-gray-400">{share.toFixed(0)}%</span>
                       </div>
                     </div>
@@ -270,7 +262,7 @@ export default function AwqAllocationsPage() {
                       {busWithFlag.map((b) => b.name).join(", ")}
                     </div>
                     <div className={`text-[10px] mt-1 ${cfg.color} opacity-70`}>
-                      Capital: {fmtR(busWithFlag.reduce((s, b) => s + b.capitalAllocated, 0))}
+                      Capital: {formatBRL(busWithFlag.reduce((s, b) => s + b.capitalAllocated, 0))}
                     </div>
                   </div>
                 );

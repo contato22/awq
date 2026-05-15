@@ -7,6 +7,7 @@ import SectionHeader from "@/components/SectionHeader";
 import EmptyState from "@/components/EmptyState";
 import { lsGet, lsSet } from "@/lib/caza-crm-local";
 import { fetchCazaCRM } from "@/lib/caza-crm-query";
+import { formatBRL } from "@/lib/utils";
 import {
   Users, DollarSign, TrendingUp, Film, Briefcase,
   X, Pencil, ExternalLink, BarChart3, Building2, Target,
@@ -40,12 +41,6 @@ async function loadProjetos(): Promise<CazaProject[]> {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function fmtR(n: number) {
-  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  if (n >= 1_000)     return "R$" + (n / 1_000).toFixed(0) + "K";
-  return "R$" + n.toLocaleString("pt-BR");
-}
 
 function fmtDate(s: string) {
   if (!s) return "—";
@@ -232,9 +227,9 @@ export default function ContasPage() {
 
         {/* ── KPI strip ──────────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <KpiCard icon={DollarSign}   color="text-emerald-600" value={fmtR(totalLtv)}     label="LTV Total da Carteira" />
+          <KpiCard icon={DollarSign}   color="text-emerald-600" value={formatBRL(totalLtv)}     label="LTV Total da Carteira" />
           <KpiCard icon={Users}        color="text-brand-600"   value={ativos}              label="Clientes Ativos" />
-          <KpiCard icon={BarChart3}    color="text-amber-600"   value={fmtR(avgLtv)}        label="LTV Médio por Cliente" />
+          <KpiCard icon={BarChart3}    color="text-amber-600"   value={formatBRL(avgLtv)}        label="LTV Médio por Cliente" />
           <KpiCard icon={Target}       color="text-violet-600"  value={comOppAtiva}         label="Com Opp Ativa no CRM" />
         </div>
 
@@ -301,7 +296,7 @@ export default function ContasPage() {
                           </td>
                           {!sel && <td className="px-4 py-3 text-xs text-gray-500">{c.segmento || "—"}</td>}
                           {!sel && <td className="px-4 py-3 text-xs text-gray-500">{c.modelo_contrato || "—"}</td>}
-                          <td className="px-4 py-3 text-right text-xs font-bold text-gray-800">{fmtR(st.ltv)}</td>
+                          <td className="px-4 py-3 text-right text-xs font-bold text-gray-800">{formatBRL(st.ltv)}</td>
                           <td className="px-4 py-3 text-center">
                             <div className="flex items-center justify-center gap-1">
                               <Film size={10} className="text-gray-400" />
@@ -364,10 +359,10 @@ export default function ContasPage() {
                 {/* Quick metrics */}
                 <div className="grid grid-cols-4 gap-1 pt-3 border-t border-gray-100">
                   {[
-                    { value: fmtR(selSt.ltv),      label: "LTV",       color: "text-gray-900" },
+                    { value: formatBRL(selSt.ltv),      label: "LTV",       color: "text-gray-900" },
                     { value: String(selSt.projs.length), label: "Projetos", color: "text-gray-900" },
-                    { value: fmtR(selSt.recebido),  label: "Recebido",  color: "text-emerald-600" },
-                    { value: fmtR(selSt.pendente),  label: "Pendente",  color: selSt.pendente > 0 ? "text-amber-600" : "text-gray-400" },
+                    { value: formatBRL(selSt.recebido),  label: "Recebido",  color: "text-emerald-600" },
+                    { value: formatBRL(selSt.pendente),  label: "Pendente",  color: selSt.pendente > 0 ? "text-amber-600" : "text-gray-400" },
                   ].map(m => (
                     <div key={m.label} className="text-center">
                       <div className={`text-xs font-bold ${m.color}`}>{m.value}</div>
@@ -518,7 +513,7 @@ export default function ContasPage() {
                             </div>
                           </div>
                           <div className="text-right shrink-0">
-                            <div className="text-xs font-bold text-gray-800">{fmtR(p.valor)}</div>
+                            <div className="text-xs font-bold text-gray-800">{formatBRL(p.valor)}</div>
                             <div className={`text-[9px] mt-0.5 font-medium ${p.recebido ? "text-emerald-600" : "text-amber-600"}`}>
                               {p.recebido ? "✓ Recebido" : "Pendente"}
                             </div>
@@ -529,16 +524,16 @@ export default function ContasPage() {
                     {/* Financial summary — computed, never stored separately */}
                     <div className="mt-3 grid grid-cols-3 gap-2 bg-gray-50 rounded-xl p-3">
                       <div className="text-center">
-                        <div className="text-xs font-bold text-gray-800">{fmtR(selSt.ltv)}</div>
+                        <div className="text-xs font-bold text-gray-800">{formatBRL(selSt.ltv)}</div>
                         <div className="text-[9px] text-gray-400 mt-0.5">Total</div>
                       </div>
                       <div className="text-center border-x border-gray-200">
-                        <div className="text-xs font-bold text-emerald-700">{fmtR(selSt.recebido)}</div>
+                        <div className="text-xs font-bold text-emerald-700">{formatBRL(selSt.recebido)}</div>
                         <div className="text-[9px] text-gray-400 mt-0.5">Recebido</div>
                       </div>
                       <div className="text-center">
                         <div className={`text-xs font-bold ${selSt.pendente > 0 ? "text-amber-700" : "text-gray-400"}`}>
-                          {fmtR(selSt.pendente)}
+                          {formatBRL(selSt.pendente)}
                         </div>
                         <div className="text-[9px] text-gray-400 mt-0.5">Pendente</div>
                       </div>
@@ -577,7 +572,7 @@ export default function ContasPage() {
                               )}
                             </div>
                           </div>
-                          <div className="text-xs font-bold text-gray-700 shrink-0">{fmtR(o.valor_estimado)}</div>
+                          <div className="text-xs font-bold text-gray-700 shrink-0">{formatBRL(o.valor_estimado)}</div>
                         </div>
                       );
                     })}

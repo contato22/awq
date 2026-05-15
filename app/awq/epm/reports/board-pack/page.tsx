@@ -1,3 +1,4 @@
+import { formatBRL } from "@/lib/utils";
 // ─── /awq/epm/reports/board-pack — Quarterly Board Pack ───────────────────────
 //
 // Quarterly management pack for the AWQ Board:
@@ -17,14 +18,6 @@ import {
 } from "lucide-react";
 import { buildDreQuery } from "@/lib/dre-query";
 import { consolidated, consolidatedMargins, budgetVsActual } from "@/lib/awq-derived-metrics";
-
-function fmtBRL(n: number): string {
-  const abs  = Math.abs(n);
-  const sign = n < 0 ? "-" : "";
-  if (abs >= 1_000_000) return sign + "R$" + (abs / 1_000_000).toFixed(2) + "M";
-  if (abs >= 1_000)     return sign + "R$" + (abs / 1_000).toFixed(0)     + "K";
-  return sign + "R$" + abs.toLocaleString("pt-BR", { minimumFractionDigits: 0 });
-}
 
 function pct(n: number): string {
   return (n * 100).toFixed(1) + "%";
@@ -116,8 +109,8 @@ export default async function BoardPackPage() {
           </div>
           <div className="grid grid-cols-3 gap-4 mt-6">
             {[
-              { label: "Receita YTD",    value: fmtBRL(revenue),  color: "text-white" },
-              { label: "EBITDA YTD",     value: fmtBRL(ebitda),   color: ebitda >= 0 ? "text-emerald-300" : "text-red-300" },
+              { label: "Receita YTD",    value: formatBRL(revenue),  color: "text-white" },
+              { label: "EBITDA YTD",     value: formatBRL(ebitda),   color: ebitda >= 0 ? "text-emerald-300" : "text-red-300" },
               { label: "Budget Var.",    value: (budgetVar >= 0 ? "+" : "") + budgetVar.toFixed(1) + "%", color: budgetVar >= 0 ? "text-emerald-300" : "text-red-300" },
             ].map((card) => (
               <div key={card.label} className="bg-white/10 rounded-xl p-3 text-center">
@@ -137,10 +130,10 @@ export default async function BoardPackPage() {
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             {[
-              { label: "Receita Bruta",   value: fmtBRL(revenue),      color: "text-emerald-700" },
-              { label: "Lucro Bruto",     value: fmtBRL(grossProfit),   color: "text-brand-700"   },
+              { label: "Receita Bruta",   value: formatBRL(revenue),      color: "text-emerald-700" },
+              { label: "Lucro Bruto",     value: formatBRL(grossProfit),   color: "text-brand-700"   },
               { label: "Margem Bruta",    value: pct(gmPct ?? 0),       color: "text-brand-700"   },
-              { label: "EBITDA",          value: fmtBRL(ebitda),        color: ebitda >= 0 ? "text-emerald-700" : "text-red-700" },
+              { label: "EBITDA",          value: formatBRL(ebitda),        color: ebitda >= 0 ? "text-emerald-700" : "text-red-700" },
               { label: "Margem EBITDA",   value: pct(ebitdaPct ?? 0),   color: ebitdaPct !== null && ebitdaPct >= 0.1 ? "text-emerald-700" : "text-amber-700" },
             ].map((card) => (
               <div key={card.label} className="bg-gray-50 rounded-xl p-4 text-center">
@@ -159,8 +152,8 @@ export default async function BoardPackPage() {
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             {[
-              { label: "Caixa Disponível",  value: fmtBRL(cashBalance),   color: "text-emerald-700" },
-              { label: "Burn Rate Mensal",  value: fmtBRL(burnRate),      color: "text-red-700"     },
+              { label: "Caixa Disponível",  value: formatBRL(cashBalance),   color: "text-emerald-700" },
+              { label: "Burn Rate Mensal",  value: formatBRL(burnRate),      color: "text-red-700"     },
               { label: "Cash Runway",       value: runway + " meses",     color: runway > 6 ? "text-emerald-700" : "text-red-700" },
               { label: "DSO (AR)",          value: "32 dias",             color: "text-brand-700"   },
             ].map((card) => (
@@ -187,7 +180,7 @@ export default async function BoardPackPage() {
               { label: "MRR JACQES",        value: "R$420K", target: "R$350K", status: "good" as const },
               { label: "Margem Bruta",      value: pct(gmPct ?? 0), target: ">50%", status: (gmPct ?? 0) >= 0.5 ? "good" as const : "warn" as const },
               { label: "DSO",               value: "32d",    target: "<45d", status: "good" as const  },
-              { label: "Burn Rate",         value: fmtBRL(burnRate), target: "<R$90K", status: "good" as const },
+              { label: "Burn Rate",         value: formatBRL(burnRate), target: "<R$90K", status: "good" as const },
             ].map((kpi) => {
               const color = kpi.status === "good" ? "text-emerald-700" : kpi.status === "warn" ? "text-amber-700" : "text-red-700";
               const bg    = kpi.status === "good" ? "bg-emerald-50" : kpi.status === "warn" ? "bg-amber-50" : "bg-red-50";
@@ -238,13 +231,13 @@ export default async function BoardPackPage() {
                   return (
                     <tr key={row.bu} className="border-b border-gray-50 hover:bg-gray-50">
                       <td className="py-2.5 px-3 font-bold text-gray-900">{row.bu}</td>
-                      <td className="py-2.5 px-3 text-right tabular-nums text-gray-900 font-semibold">{fmtBRL(row.revenue)}</td>
-                      <td className="py-2.5 px-3 text-right tabular-nums text-gray-400">{row.budget > 0 ? fmtBRL(row.budget) : "—"}</td>
+                      <td className="py-2.5 px-3 text-right tabular-nums text-gray-900 font-semibold">{formatBRL(row.revenue)}</td>
+                      <td className="py-2.5 px-3 text-right tabular-nums text-gray-400">{row.budget > 0 ? formatBRL(row.budget) : "—"}</td>
                       <td className={`py-2.5 px-3 text-right tabular-nums font-semibold ${varPct >= 0 ? "text-emerald-600" : "text-red-600"}`}>
                         {row.budget > 0 ? (varPct >= 0 ? "+" : "") + varPct.toFixed(1) + "%" : "—"}
                       </td>
                       <td className={`py-2.5 px-3 text-right tabular-nums font-semibold ${row.ebitda >= 0 ? "text-emerald-700" : "text-red-700"}`}>
-                        {fmtBRL(row.ebitda)}
+                        {formatBRL(row.ebitda)}
                       </td>
                       <td className="py-2.5 px-3 text-right tabular-nums text-gray-500">
                         {row.revenue > 0 ? margin.toFixed(1) + "%" : "—"}
@@ -342,13 +335,13 @@ export default async function BoardPackPage() {
             {[
               {
                 label: "Receita Projetada",
-                value: fmtBRL(1_400_000),
+                value: formatBRL(1_400_000),
                 note: "+12% vs Q1 · 2 novos contratos pipeline",
                 color: "text-emerald-700",
               },
               {
                 label: "EBITDA Projetado",
-                value: fmtBRL(210_000),
+                value: formatBRL(210_000),
                 note: "Margem 15% · Headcount estável",
                 color: "text-brand-700",
               },

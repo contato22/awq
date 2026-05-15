@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   AlertTriangle,
 } from "lucide-react";
+import { formatBRL } from "@/lib/utils";
 
 // ─── /awq-venture/financial — AWQ Venture · Posição Empírica ─────────────────
 //
@@ -22,12 +23,6 @@ import {
 // IMPORTANT: o portfólio anterior (TechFlow R$22.4M, Verde R$31.2M, Saúde Digital
 // exit R$18.5M, etc.) era FICTÍCIO — R$40.5M investidos sem nenhum respaldo
 // bancário. Removido completamente.
-
-function fmtR(n: number) {
-  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  if (n >= 1_000) return "R$" + (n / 1_000).toFixed(2) + "K";
-  return "R$" + n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
 
 // ─── Empirical data — sourced from bank print 02/04/2026 ─────────────────────
 const cdbDI = {
@@ -67,7 +62,7 @@ export default function AwqVentureFinancialPage() {
           {[
             {
               label: "CDB DI — Capital Investido",
-              value: fmtR(cdbDI.saldoInvestido),
+              value: formatBRL(cdbDI.saldoInvestido),
               sub:   `${cdbDI.banco} · ${cdbDI.instrumento}`,
               icon:  TrendingUp,
               color: "text-emerald-600",
@@ -77,7 +72,7 @@ export default function AwqVentureFinancialPage() {
             },
             {
               label: "Conta Corrente (não investido)",
-              value: fmtR(cdbDI.contaCorrente),
+              value: formatBRL(cdbDI.contaCorrente),
               sub:   "Saldo disponível em conta — NÃO investido",
               icon:  DollarSign,
               color: "text-brand-600",
@@ -87,7 +82,7 @@ export default function AwqVentureFinancialPage() {
             },
             {
               label: "Total de Liquidez",
-              value: fmtR(cdbDI.totalLiquidez),
+              value: formatBRL(cdbDI.totalLiquidez),
               sub:   `CDB DI + conta corrente · ref. ${cdbDI.dataReferencia}`,
               icon:  DollarSign,
               color: "text-amber-700",
@@ -145,7 +140,7 @@ export default function AwqVentureFinancialPage() {
                     <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 font-medium">Investimento</span>
                   </td>
                   <td className="py-2.5 px-3 text-right text-xs font-bold text-emerald-600">
-                    {fmtR(cdbDI.saldoInvestido)}
+                    {formatBRL(cdbDI.saldoInvestido)}
                   </td>
                   <td className="py-2.5 px-3">
                     <span className="badge badge-green">Ativo</span>
@@ -161,7 +156,7 @@ export default function AwqVentureFinancialPage() {
                     <span className="text-[10px] px-2 py-0.5 rounded bg-gray-100 text-gray-500 font-medium">Caixa</span>
                   </td>
                   <td className="py-2.5 px-3 text-right text-xs font-bold text-gray-900">
-                    {fmtR(cdbDI.contaCorrente)}
+                    {formatBRL(cdbDI.contaCorrente)}
                   </td>
                   <td className="py-2.5 px-3">
                     <span className="badge badge-green">Disponível</span>
@@ -173,7 +168,7 @@ export default function AwqVentureFinancialPage() {
                   <td className="py-2.5 px-3 text-xs font-bold text-gray-400">TOTAL</td>
                   <td colSpan={2} />
                   <td className="py-2.5 px-3 text-right text-xs font-bold text-amber-700">
-                    {fmtR(cdbDI.totalLiquidez)}
+                    {formatBRL(cdbDI.totalLiquidez)}
                   </td>
                   <td />
                 </tr>
@@ -206,7 +201,7 @@ export default function AwqVentureFinancialPage() {
         {/* ── KPIs ─────────────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
-            { label: "Capital Investido",   value: fmtR(cdbDI.saldoInvestido), sub: "CDB DI confirmado"  },
+            { label: "Capital Investido",   value: formatBRL(cdbDI.saldoInvestido), sub: "CDB DI confirmado"  },
             { label: "Portfólio Startups",  value: "0",                         sub: "Sem aportes"       },
             { label: "Exits Realizados",    value: "0",                         sub: "Sem saídas"        },
             { label: "IRR / MOIC",          value: "—",                         sub: "Sem histórico"     },

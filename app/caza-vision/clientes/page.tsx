@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import EmptyState from "@/components/EmptyState";
 import { lsGet, lsSet, lsLocalId } from "@/lib/caza-crm-local";
+import { formatBRL } from "@/lib/utils";
 import {
   Tag, TrendingUp, Users, Building2, Database, CloudOff, HardDrive,
   AlertCircle, BarChart3, DollarSign, Plus, X, Pencil, Trash2,
@@ -12,12 +13,6 @@ import {
 interface ClienteRow {
   id: string; name: string; email: string; phone: string; type: string;
   budget_anual: number; status: string; segmento: string; since: string;
-}
-
-function fmtR(n: number) {
-  if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";
-  if (n >= 1_000) return "R$" + (n / 1_000).toFixed(0) + "K";
-  return "R$" + n;
 }
 
 const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
@@ -275,8 +270,8 @@ export default function ClientesPage() {
           {[
             { label: "Total de Clientes",      value: String(total),      color: "text-gray-900",    icon: Users      },
             { label: "Ativos / Em Proposta",   value: String(ativos),     color: "text-emerald-600", icon: BarChart3  },
-            { label: "Wallet Total (Ativos)",  value: fmtR(ativosWallet), color: "text-brand-600",   icon: DollarSign },
-            { label: "Budget Médio / Cliente", value: fmtR(avgBudget),    color: "text-amber-700",   icon: TrendingUp },
+            { label: "Wallet Total (Ativos)",  value: formatBRL(ativosWallet), color: "text-brand-600",   icon: DollarSign },
+            { label: "Budget Médio / Cliente", value: formatBRL(avgBudget),    color: "text-amber-700",   icon: TrendingUp },
           ].map((s) => {
             const Icon = s.icon;
             return (
@@ -305,7 +300,7 @@ export default function ClientesPage() {
                     <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
                       <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${share}%` }} />
                     </div>
-                    <span className="text-xs font-semibold text-gray-900 w-16 text-right shrink-0">{fmtR(c.budget_anual)}</span>
+                    <span className="text-xs font-semibold text-gray-900 w-16 text-right shrink-0">{formatBRL(c.budget_anual)}</span>
                     <span className="text-[10px] text-gray-400 w-10 text-right shrink-0">{share.toFixed(0)}%</span>
                     <span className={`${statusCfg[c.status] ?? "badge"} shrink-0`}>{c.status}</span>
                   </div>
@@ -355,7 +350,7 @@ export default function ClientesPage() {
                           </div>
                         </td>
                         <td className="py-2.5 px-3 text-right text-gray-900 font-semibold text-xs">
-                          {c.budget_anual > 0 ? fmtR(c.budget_anual) : <span className="text-gray-400">—</span>}
+                          {c.budget_anual > 0 ? formatBRL(c.budget_anual) : <span className="text-gray-400">—</span>}
                         </td>
                         <td className="py-2.5 px-3 text-right text-xs">
                           {c.budget_anual > 0 && totalWallet > 0

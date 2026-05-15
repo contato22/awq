@@ -23,20 +23,11 @@ import {
   Minus,
 } from "lucide-react";
 import { SEED_PORTCOS, SEED_CAP_TABLE, SEED_KPIS, SEED_BOARD_MEETINGS, SEED_MEDIA_DELIVERABLES } from "@/lib/ma-seed-data";
+import { formatBRL } from "@/lib/utils";
 
 const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function fmtR(n: number | null | undefined) {
-  if (n == null || isNaN(n)) return "—";
-  const abs = Math.abs(n);
-  const sign = n < 0 ? "−" : "";
-  if (abs >= 1_000_000_000) return sign + "R$" + (abs / 1_000_000_000).toFixed(2) + "B";
-  if (abs >= 1_000_000)     return sign + "R$" + (abs / 1_000_000).toFixed(2) + "M";
-  if (abs >= 1_000)         return sign + "R$" + (abs / 1_000).toFixed(0) + "K";
-  return sign + "R$" + abs.toLocaleString("pt-BR");
-}
 
 function fmtPct(n: number | null | undefined) {
   if (n == null || isNaN(n)) return "—";
@@ -246,7 +237,7 @@ export default function PortcoDetailClient({ params }: { params: { portco_id: st
     },
     {
       label:  "Valuation Atual",
-      value:  fmtR(portco.current_valuation ?? portco.entry_valuation),
+      value:  formatBRL(portco.current_valuation ?? portco.entry_valuation),
       sub:    valuationDelta != null
         ? { text: (valuationDelta >= 0 ? "+" : "") + valuationDelta.toFixed(1) + "% vs entrada", up: valuationDelta >= 0 }
         : null,
@@ -259,7 +250,7 @@ export default function PortcoDetailClient({ params }: { params: { portco_id: st
       label:  "Mídia Entregue",
       value:  mediaPct != null ? fmtPct(mediaPct) : "N/A",
       sub:    mediaPct != null
-        ? { text: `${fmtR(portco.media_delivered_value)} de ${fmtR(portco.media_commitment_value)}`, up: true }
+        ? { text: `${formatBRL(portco.media_delivered_value)} de ${formatBRL(portco.media_commitment_value)}`, up: true }
         : null,
       icon:   Tv2,
       color:  "text-cyan-600",
@@ -268,7 +259,7 @@ export default function PortcoDetailClient({ params }: { params: { portco_id: st
     },
     {
       label:  "MRR Mais Recente",
-      value:  fmtR(latestMrr),
+      value:  formatBRL(latestMrr),
       sub:    kpis.length > 1 && kpis[0]?.mom_growth_pct != null
         ? { text: (kpis[0].mom_growth_pct >= 0 ? "+" : "") + kpis[0].mom_growth_pct.toFixed(1) + "% MoM", up: kpis[0].mom_growth_pct >= 0 }
         : null,
@@ -353,10 +344,10 @@ export default function PortcoDetailClient({ params }: { params: { portco_id: st
               <div className="divide-y divide-gray-100">
                 {[
                   { label: "Data de Entrada",       value: fmtDate(portco.investment_date) },
-                  { label: "Valuation de Entrada",   value: fmtR(portco.entry_valuation)   },
-                  { label: "Valuation Atual",         value: fmtR(portco.current_valuation) },
+                  { label: "Valuation de Entrada",   value: formatBRL(portco.entry_valuation)   },
+                  { label: "Valuation Atual",         value: formatBRL(portco.current_valuation) },
                   { label: "Runway (meses)",          value: portco.runway_months != null ? portco.runway_months + " m" : null },
-                  { label: "Burn Rate Mensal",        value: portco.monthly_burn_rate != null ? fmtR(portco.monthly_burn_rate) : null },
+                  { label: "Burn Rate Mensal",        value: portco.monthly_burn_rate != null ? formatBRL(portco.monthly_burn_rate) : null },
                   { label: "Headcount",               value: portco.headcount != null ? portco.headcount + " pessoas" : null },
                 ].map(({ label, value }) => (
                   <div key={label} className="flex justify-between items-center px-5 py-2.5">
@@ -378,9 +369,9 @@ export default function PortcoDetailClient({ params }: { params: { portco_id: st
               </div>
               <div className="divide-y divide-gray-100">
                 {[
-                  { label: "Comprometimento Total",  value: fmtR(portco.media_commitment_value)                                                                   },
-                  { label: "Entregue",               value: fmtR(portco.media_delivered_value)                                                                    },
-                  { label: "Restante",               value: fmtR((portco.media_commitment_value ?? 0) - (portco.media_delivered_value ?? 0))                      },
+                  { label: "Comprometimento Total",  value: formatBRL(portco.media_commitment_value)                                                                   },
+                  { label: "Entregue",               value: formatBRL(portco.media_delivered_value)                                                                    },
+                  { label: "Restante",               value: formatBRL((portco.media_commitment_value ?? 0) - (portco.media_delivered_value ?? 0))                      },
                   { label: "Prazo (meses)",          value: portco.media_delivery_period_months != null ? portco.media_delivery_period_months + " m" : null       },
                 ].map(({ label, value }) => (
                   <div key={label} className="flex justify-between items-center px-5 py-2.5">
@@ -444,9 +435,9 @@ export default function PortcoDetailClient({ params }: { params: { portco_id: st
                           <td className="py-2.5 px-3 text-gray-500">
                             {k.kpi_date ? fmtDate(k.kpi_date) : <span className="text-gray-300 italic">s/ data</span>}
                           </td>
-                          <td className="py-2.5 px-3 text-right font-bold text-gray-900">{fmtR(k.mrr)}</td>
-                          <td className="py-2.5 px-3 text-right text-gray-700">{fmtR(k.arr)}</td>
-                          <td className="py-2.5 px-3 text-right text-red-500 font-medium">{fmtR(k.burn_rate)}</td>
+                          <td className="py-2.5 px-3 text-right font-bold text-gray-900">{formatBRL(k.mrr)}</td>
+                          <td className="py-2.5 px-3 text-right text-gray-700">{formatBRL(k.arr)}</td>
+                          <td className="py-2.5 px-3 text-right text-red-500 font-medium">{formatBRL(k.burn_rate)}</td>
                           <td className={`py-2.5 px-3 text-right font-semibold ${(k.runway_months ?? 99) < 6 ? "text-red-500" : "text-emerald-600"}`}>
                             {k.runway_months != null ? k.runway_months + " m" : "—"}
                           </td>
@@ -595,8 +586,8 @@ export default function PortcoDetailClient({ params }: { params: { portco_id: st
                   />
                 </div>
                 <div className="flex justify-between text-[10px] text-gray-400 mt-1.5">
-                  <span>{fmtR(portco.media_delivered_value)} entregue</span>
-                  <span>Meta: {fmtR(portco.media_commitment_value)}</span>
+                  <span>{formatBRL(portco.media_delivered_value)} entregue</span>
+                  <span>Meta: {formatBRL(portco.media_commitment_value)}</span>
                 </div>
               </div>
             )}
@@ -636,7 +627,7 @@ export default function PortcoDetailClient({ params }: { params: { portco_id: st
                               )}
                             </td>
                             <td className="py-2.5 px-3 text-gray-700 max-w-[220px] truncate">{m.description ?? "—"}</td>
-                            <td className="py-2.5 px-3 text-right font-bold text-gray-900">{fmtR(m.value)}</td>
+                            <td className="py-2.5 px-3 text-right font-bold text-gray-900">{formatBRL(m.value)}</td>
                             <td className="py-2.5 px-3">
                               {m.executing_bu ? (
                                 <span className="text-[10px] font-semibold bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full">

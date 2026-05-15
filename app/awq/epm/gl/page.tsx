@@ -1,3 +1,4 @@
+import { formatBRL } from "@/lib/utils";
 // ─── /awq/epm/gl — Razão Geral (GL Transactions) ─────────────────────────────
 //
 // Lists all double-entry GL journals from epm-gl.ts (local JSON store).
@@ -7,14 +8,6 @@ import Header from "@/components/Header";
 import Link from "next/link";
 import { ListOrdered, Plus, Database, CheckCircle2, AlertTriangle } from "lucide-react";
 import { getJournals, getTrialBalance, CHART_OF_ACCOUNTS } from "@/lib/epm-gl";
-
-function fmtBRL(n: number): string {
-  const abs  = Math.abs(n);
-  const sign = n < 0 ? "-" : "";
-  if (abs >= 1_000_000) return sign + "R$" + (abs / 1_000_000).toFixed(2) + "M";
-  if (abs >= 1_000)     return sign + "R$" + (abs / 1_000).toFixed(0)     + "K";
-  return sign + "R$" + abs.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
-}
 
 function fmtDate(d: string): string {
   const [y, m, day] = d.split("-");
@@ -56,8 +49,8 @@ export default function GLPage() {
               : <AlertTriangle size={12} />}
             <span>
               {balanced
-                ? `Razão balanceado · D:${fmtBRL(totalDebits)} = C:${fmtBRL(totalCredits)}`
-                : `DESEQUILIBRADO · D:${fmtBRL(totalDebits)} ≠ C:${fmtBRL(totalCredits)}`}
+                ? `Razão balanceado · D:${formatBRL(totalDebits)} = C:${formatBRL(totalCredits)}`
+                : `DESEQUILIBRADO · D:${formatBRL(totalDebits)} ≠ C:${formatBRL(totalCredits)}`}
             </span>
           </div>
           <Link
@@ -129,7 +122,7 @@ export default function GLPage() {
                         <div className="text-gray-700 truncate">{credit.account_name}</div>
                       </td>
                       <td className="py-2.5 px-3 text-right tabular-nums font-semibold text-gray-800">
-                        {fmtBRL(debit.debit_amount)}
+                        {formatBRL(debit.debit_amount)}
                       </td>
                       <td className="py-2.5 px-3 text-center">
                         <span className="text-[10px] text-gray-400">
@@ -172,10 +165,10 @@ export default function GLPage() {
                         {l.account_name}
                       </td>
                       <td className="py-1.5 px-2 text-gray-400 text-[10px]">{l.account_type}</td>
-                      <td className="py-1.5 px-2 text-right tabular-nums text-red-600">{fmtBRL(l.total_debits)}</td>
-                      <td className="py-1.5 px-2 text-right tabular-nums text-emerald-600">{fmtBRL(l.total_credits)}</td>
+                      <td className="py-1.5 px-2 text-right tabular-nums text-red-600">{formatBRL(l.total_debits)}</td>
+                      <td className="py-1.5 px-2 text-right tabular-nums text-emerald-600">{formatBRL(l.total_credits)}</td>
                       <td className={`py-1.5 px-2 text-right font-semibold tabular-nums ${l.net_balance >= 0 ? "text-gray-800" : "text-red-600"}`}>
-                        {fmtBRL(l.net_balance)}
+                        {formatBRL(l.net_balance)}
                       </td>
                     </tr>
                   ))}
