@@ -786,55 +786,42 @@ function PipelinePageInner() {
   useEffect(() => {
     try { localStorage.removeItem("crm-opportunities-v3"); } catch { /* ignore */ }
 
-    supabase
-      .from("crm_opportunities")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .then(async ({ data: oppsData, error: oppsError }) => {
-        if (oppsError) { setApiError(oppsError.message); setOpps([]); return; }
-        const opps = (oppsData ?? []) as CrmOpportunity[];
+    Promise.all([
+      supabase
+        .from("crm_opportunities")
+        .select("*, crm_accounts(account_name), crm_contacts(full_name)")
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("crm_activities")
+        .select("related_to_id")
+        .eq("related_to_type", "opportunity"),
+    ])
+      .then(([oppsRes, actRes]) => {
+        if (oppsRes.error) { setApiError(oppsRes.error.message); setOpps([]); return; }
 
-        const accountIds = [...new Set(opps.map(o => o.account_id).filter(Boolean))] as string[];
-        const contactIds = [...new Set(opps.map(o => o.contact_id).filter(Boolean))] as string[];
-
-        const [acctRes, contRes] = await Promise.all([
-          accountIds.length > 0
-            ? supabase.from("crm_accounts").select("account_id, account_name").in("account_id", accountIds)
-            : Promise.resolve({ data: [] }),
-          contactIds.length > 0
-            ? supabase.from("crm_contacts").select("contact_id, full_name").in("contact_id", contactIds)
-            : Promise.resolve({ data: [] }),
-        ]);
-
-        const acctMap = Object.fromEntries((acctRes.data ?? []).map((a: Record<string, string>) => [a.account_id, a.account_name]));
-        const contMap = Object.fromEntries((contRes.data ?? []).map((c: Record<string, string>) => [c.contact_id, c.full_name]));
-
-        setOpps(opps.map(o => ({
+        type OppRow = CrmOpportunity & {
+          crm_accounts: { account_name: string } | null;
+          crm_contacts: { full_name: string } | null;
+        };
+        setOpps((oppsRes.data ?? []).map((o: OppRow) => ({
           ...o,
-          account_name: o.account_id ? (acctMap[o.account_id] ?? o.account_name) : o.account_name,
-          contact_name: o.contact_id ? (contMap[o.contact_id] ?? o.contact_name) : o.contact_name,
-        })));
+          account_name: o.crm_accounts?.account_name ?? o.account_name,
+          contact_name: o.crm_contacts?.full_name ?? o.contact_name,
+          crm_accounts: undefined,
+          crm_contacts: undefined,
+        })) as CrmOpportunity[]);
         setApiError(null);
+
+        if (actRes.data) {
+          const counts: Record<string, number> = {};
+          for (const act of actRes.data as { related_to_id: string }[]) {
+            counts[act.related_to_id] = (counts[act.related_to_id] ?? 0) + 1;
+          }
+          setActivityCounts(counts);
+        }
       })
       .catch(e => { setApiError(String(e)); setOpps([]); })
       .finally(() => setLoading(false));
-  }, []);
-
-  // Fetch activity counts directly from Supabase
-  useEffect(() => {
-    supabase
-      .from("crm_activities")
-      .select("related_to_id")
-      .eq("related_to_type", "opportunity")
-      .then(({ data }) => {
-        if (!data) return;
-        const counts: Record<string, number> = {};
-        for (const act of data as { related_to_id: string }[]) {
-          counts[act.related_to_id] = (counts[act.related_to_id] ?? 0) + 1;
-        }
-        setActivityCounts(counts);
-      })
-      .catch(() => undefined);
   }, []);
 
   function updateOpps(next: CrmOpportunity[]) {
