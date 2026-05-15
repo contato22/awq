@@ -16,7 +16,16 @@ import type { CrmOpportunity, CrmActivity } from "@/lib/crm-types";
 import { STAGE_LABELS, STAGE_PROBABILITY, BU_OPTIONS, OWNER_OPTIONS, PIPELINE_STAGES } from "@/lib/crm-types";
 
 import { formatBRL, formatDateBR } from "@/lib/utils";
-import { supabaseClient as supabase } from "@/lib/supabase";
+import { createClient } from "@supabase/supabase-js";
+
+const SUPABASE_URL  = process.env.NEXT_PUBLIC_SUPABASE_URL  ?? "";
+const SUPABASE_ANON = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+                   ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+                   ?? "";
+const supabase = createClient(
+  SUPABASE_URL  || "https://placeholder.supabase.co",
+  SUPABASE_ANON || "placeholder",
+);
 
 function daysUntil(d: string | null | undefined): number | null {
   if (!d) return null;
@@ -779,7 +788,12 @@ function PipelinePageInner() {
   useEffect(() => {
     try { localStorage.removeItem("crm-opportunities-v3"); } catch { /* ignore */ }
 
-    // Fetch directly from Supabase in the browser (avoids server-side env var issues)
+    if (!SUPABASE_URL || !SUPABASE_ANON) {
+      setApiError("Variáveis NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY não estão configuradas no Vercel. Acesse: Vercel Dashboard → Project → Settings → Environment Variables");
+      setLoading(false);
+      return;
+    }
+
     supabase
       .from("crm_opportunities")
       .select("*")
@@ -923,9 +937,12 @@ function PipelinePageInner() {
         <div className="card p-6 border border-red-200 bg-red-50">
           <div className="flex items-start gap-3">
             <AlertCircle size={18} className="text-red-500 shrink-0 mt-0.5" />
-            <div>
+            <div className="flex-1">
               <p className="text-sm font-semibold text-red-700">Erro ao carregar pipeline</p>
               <p className="text-xs text-red-600 mt-1 font-mono break-all">{apiError}</p>
+              <div className="mt-2 text-[11px] text-red-500 font-mono">
+                URL: {SUPABASE_URL || "(não configurada)"} | Key: {SUPABASE_ANON ? "✓ presente" : "✗ ausente"}
+              </div>
               <button onClick={() => window.location.reload()} className="mt-3 px-3 py-1.5 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-700 transition-colors">
                 Tentar novamente
               </button>
