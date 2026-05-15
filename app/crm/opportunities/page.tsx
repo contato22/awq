@@ -766,6 +766,7 @@ function PipelinePageInner() {
   const searchParams = useSearchParams();
   const [opps, setOpps] = useState<CrmOpportunity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState<string | null>(null);
   const urlBu = searchParams?.get("bu") ?? null;
   const [filterBU, setFilterBU] = useState(urlBu && BU_OPTIONS.includes(urlBu as typeof BU_OPTIONS[number]) ? urlBu : "Todos");
   const [filterOwner, setFilterOwner] = useState("Todos");
@@ -789,11 +790,13 @@ function PipelinePageInner() {
             ...res.data.closedLost,
           ];
           setOpps(all);
+          setApiError(null);
         } else {
+          setApiError(res.error ?? "Erro desconhecido na API");
           setOpps([]);
         }
       })
-      .catch(() => setOpps([]))
+      .catch(e => { setApiError(String(e)); setOpps([]); })
       .finally(() => setLoading(false));
   }, []);
 
@@ -900,6 +903,26 @@ function PipelinePageInner() {
           <div className="flex items-center gap-3 text-gray-500">
             <div className="w-4 h-4 border-2 border-gray-300 border-t-brand-500 rounded-full animate-spin" />
             <span className="text-sm">Carregando pipeline…</span>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
+  if (apiError) return (
+    <>
+      <Header title="Pipeline — CRM AWQ" subtitle="Visão kanban do funil de vendas" />
+      <div className="page-container">
+        <div className="card p-6 border border-red-200 bg-red-50">
+          <div className="flex items-start gap-3">
+            <AlertCircle size={18} className="text-red-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-red-700">Erro ao carregar pipeline</p>
+              <p className="text-xs text-red-600 mt-1 font-mono break-all">{apiError}</p>
+              <button onClick={() => window.location.reload()} className="mt-3 px-3 py-1.5 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-700 transition-colors">
+                Tentar novamente
+              </button>
+            </div>
           </div>
         </div>
       </div>

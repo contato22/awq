@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabase, supabaseClient } from "@/lib/supabase";
 import type { CrmActivity } from "@/lib/crm-types";
 
 function ok(data: unknown) { return NextResponse.json({ success: true, data }); }
 function err(msg: string, status = 500) { return NextResponse.json({ success: false, error: msg }, { status }); }
 
 export async function GET(req: NextRequest) {
-  if (!supabase) return err("Supabase not configured", 503);
+  const db = supabase ?? supabaseClient;
   try {
     const p = req.nextUrl.searchParams;
-    let query = supabase
+    let query = db
       .from("crm_activities")
       .select("*")
       .order("created_at", { ascending: false });
@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  if (!supabase) return err("Supabase not configured", 503);
+  const db = supabase ?? supabaseClient;
   try {
     const body = await req.json();
     const { action, ...data } = body;
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     if (action === "create") {
       if (!data.activity_type || !data.related_to_type || !data.related_to_id || !data.subject)
         return err("activity_type, related_to_type, related_to_id and subject required", 400);
-      const { data: row, error } = await supabase
+      const { data: row, error } = await db
         .from("crm_activities")
         .insert({
           activity_type:   data.activity_type,
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
     if (action === "complete") {
       const { activity_id } = data;
       if (!activity_id) return err("activity_id required", 400);
-      const { data: row, error } = await supabase
+      const { data: row, error } = await db
         .from("crm_activities")
         .update({ status: "completed", completed_at: new Date().toISOString() })
         .eq("activity_id", activity_id)

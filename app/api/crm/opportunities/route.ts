@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabase, supabaseClient } from "@/lib/supabase";
 import { getForcedBu } from "@/lib/api-guard";
 import { STAGE_PROBABILITY } from "@/lib/crm-types";
 import type { CrmOpportunity } from "@/lib/crm-types";
@@ -22,14 +22,14 @@ function mapRow(row: Record<string, unknown>): CrmOpportunity {
 const SELECT = `*, crm_accounts ( account_name ), crm_contacts ( full_name )`;
 
 export async function GET(req: NextRequest) {
-  if (!supabase) return err("Supabase not configured", 503);
+  const db = supabase ?? supabaseClient;
   try {
     const p = req.nextUrl.searchParams;
     const forcedBu = await getForcedBu(req);
     const id = p.get("id");
 
     if (id) {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from("crm_opportunities")
         .select(SELECT)
         .eq("opportunity_id", id)
@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
       return ok(row);
     }
 
-    let query = supabase.from("crm_opportunities").select(SELECT).order("created_at", { ascending: false });
+    let query = db.from("crm_opportunities").select(SELECT).order("created_at", { ascending: false });
     if (forcedBu ?? p.get("bu")) query = query.eq("bu", forcedBu ?? p.get("bu")!);
     if (p.get("stage"))      query = query.eq("stage", p.get("stage")!);
     if (p.get("owner"))      query = query.eq("owner", p.get("owner")!);
@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  if (!supabase) return err("Supabase not configured", 503);
+  const db = supabase ?? supabaseClient;
   try {
     const body = await req.json();
     const { action, ...data } = body;
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
     if (action === "create") {
       if (!data.opportunity_name || !data.bu) return err("opportunity_name and bu required", 400);
       const stage = data.stage ?? "discovery";
-      const { data: row, error } = await supabase
+      const { data: row, error } = await db
         .from("crm_opportunities")
         .insert({
           opportunity_name: data.opportunity_name,
@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
       const { opportunity_id, ...rest } = data;
       if (!opportunity_id) return err("opportunity_id required", 400);
       if (rest.stage) rest.probability = STAGE_PROBABILITY[rest.stage as keyof typeof STAGE_PROBABILITY] ?? rest.probability;
-      const { data: row, error } = await supabase
+      const { data: row, error } = await db
         .from("crm_opportunities")
         .update(rest)
         .eq("opportunity_id", opportunity_id)
@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
     if (action === "delete") {
       const { opportunity_id } = data;
       if (!opportunity_id) return err("opportunity_id required", 400);
-      const { error } = await supabase
+      const { error } = await db
         .from("crm_opportunities")
         .delete()
         .eq("opportunity_id", opportunity_id);

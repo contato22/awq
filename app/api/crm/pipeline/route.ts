@@ -1,18 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabase, supabaseClient } from "@/lib/supabase";
 import { getForcedBu } from "@/lib/api-guard";
 import type { CrmOpportunity } from "@/lib/crm-types";
 import { STAGE_PROBABILITY } from "@/lib/crm-types";
 
 export async function GET(req: NextRequest) {
   try {
-    if (!supabase) {
-      return NextResponse.json({ success: false, error: "Supabase not configured" }, { status: 503 });
-    }
-
+    const db = supabase ?? supabaseClient;
     const forcedBu = await getForcedBu(req);
 
-    let query = supabase
+    let query = db
       .from("crm_opportunities")
       .select(`
         *,
