@@ -25,7 +25,7 @@ export const STAGE_LABELS: Record<PipelineStage, string> = {
   closed_lost:   "Perdido",
 };
 
-export const BU_OPTIONS = ["JACQES", "CAZA", "ADVISOR", "VENTURE"] as const;
+export const BU_OPTIONS = ["JACQES", "CAZA", "ADVISOR", "VENTURE", "ENRD"] as const;
 export type BuCode = typeof BU_OPTIONS[number];
 
 export const OWNER_OPTIONS = ["Miguel", "Danilo"] as const;

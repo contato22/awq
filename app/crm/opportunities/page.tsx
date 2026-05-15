@@ -50,6 +50,7 @@ const BU_COLORS: Record<string, string> = {
   CAZA:    "bg-violet-100 text-violet-700",
   ADVISOR: "bg-emerald-100 text-emerald-700",
   VENTURE: "bg-amber-100 text-amber-700",
+  ENRD:    "bg-orange-100 text-orange-700",
 };
 
 const ACTIVITY_TYPE_CONFIG: Record<string, { icon: React.ElementType; label: string; color: string }> = {
@@ -999,7 +1000,7 @@ function PipelinePageInner() {
         {/* Filters */}
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
-            {["Todos","JACQES","CAZA","ADVISOR","VENTURE"].map(bu => (
+            {["Todos","JACQES","CAZA","ADVISOR","VENTURE","ENRD"].map(bu => (
               <button key={bu} onClick={() => setFilterBU(bu)}
                 className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${filterBU === bu ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
                 {bu}

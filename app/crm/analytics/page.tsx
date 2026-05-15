@@ -18,7 +18,7 @@ const STAGE_COLORS: Record<string, string> = {
   discovery:"#3b82f6", qualification:"#8b5cf6", proposal:"#f59e0b", negotiation:"#f97316", closed_won:"#10b981", closed_lost:"#ef4444",
 };
 const BU_COLORS: Record<string, string> = {
-  JACQES:"#3b82f6", CAZA:"#8b5cf6", ADVISOR:"#10b981", VENTURE:"#f59e0b",
+  JACQES:"#3b82f6", CAZA:"#8b5cf6", ADVISOR:"#10b981", VENTURE:"#f59e0b", ENRD:"#ea580c",
 };
 
 type Analytics = {
@@ -77,7 +77,7 @@ export default function AnalyticsPage() {
     color: ["#3b82f6","#8b5cf6","#f59e0b","#f97316"][["discovery","qualification","proposal","negotiation"].indexOf(s)],
   })), [data, opps]);
 
-  const buData = useMemo(() => ["JACQES","CAZA","ADVISOR","VENTURE"].map(bu => ({
+  const buData = useMemo(() => ["JACQES","CAZA","ADVISOR","VENTURE","ENRD"].map(bu => ({
     bu,
     value: data?.byBU[bu]?.value ?? opps.filter(o=>o.bu===bu&&o.stage!=="closed_won"&&o.stage!=="closed_lost").reduce((s,o)=>s+o.deal_value,0),
     count: data?.byBU[bu]?.count ?? opps.filter(o=>o.bu===bu&&o.stage!=="closed_won"&&o.stage!=="closed_lost").length,

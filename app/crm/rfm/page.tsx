@@ -11,7 +11,7 @@ import type { CrmOpportunity, CrmAccount } from "@/lib/crm-types";
 const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 
 // ─── BU filter ────────────────────────────────────────────────────────────────
-const BUS = ["Todos", "JACQES", "CAZA", "ADVISOR", "VENTURE"] as const;
+const BUS = ["Todos", "JACQES", "CAZA", "ADVISOR", "VENTURE", "ENRD"] as const;
 type BuFilter = typeof BUS[number];
 
 // ─── 5×5 grid segment mapping ─────────────────────────────────────────────────

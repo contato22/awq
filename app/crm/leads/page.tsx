@@ -23,7 +23,7 @@ const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
   converted:   { label: "Convertido",     cls: "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-violet-50 text-violet-700 ring-1 ring-violet-200/60" },
 };
 
-const BU_LIST = ["Todos", "JACQES", "CAZA", "ADVISOR", "VENTURE"] as const;
+const BU_LIST = ["Todos", "JACQES", "CAZA", "ADVISOR", "VENTURE", "ENRD"] as const;
 const STATUS_TABS = [
   { key: "all", label: "Todos" },
   { key: "new", label: "Novo" },
