@@ -29,7 +29,12 @@ const CATEGORY_OPTIONS = [
   { value: "m4e_deal",         label: "M4E / Deal"        },
   { value: "other",            label: "Outro"             },
 ];
-const PRIORITY_OPTIONS = ["low","medium","high","critical"] as const;
+const PRIORITY_OPTIONS: { value: string; label: string }[] = [
+  { value: "low",      label: "Baixa"    },
+  { value: "medium",   label: "Média"    },
+  { value: "high",     label: "Alta"     },
+  { value: "critical", label: "Crítica"  },
+];
 
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
@@ -224,7 +229,7 @@ function AddProjectPageInner() {
               </Field>
               <Field label="Prioridade">
                 <select value={form.priority} onChange={set("priority")} className={INPUT}>
-                  {PRIORITY_OPTIONS.map(p => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
+                  {PRIORITY_OPTIONS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
                 </select>
               </Field>
             </div>

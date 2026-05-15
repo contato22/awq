@@ -251,7 +251,7 @@ export default function TimesheetsPage() {
         {/* Table */}
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-100">
+            <table className="min-w-max w-full divide-y divide-gray-100">
               <thead className="bg-gray-50">
                 <tr>
                   {["Data","Pessoa","Projeto","Tarefa","Horas","Billable","Valor","Descrição","Status",""].map(h => (
