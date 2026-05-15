@@ -60,7 +60,7 @@ function monthsBetween(start: Date, end: Date): string[] {
 }
 
 export default function GanttPage() {
-  const lockedBU = useLockedBU();
+  const { lockedBU, sessionLoading } = useLockedBU();
   const [projects, setProjects] = useState<PpmProject[]>([]);
   const [tasksByProject, setTasksByProject] = useState<Record<string, PpmTask[]>>({});
   const [loading, setLoading]   = useState(true);
@@ -97,7 +97,7 @@ export default function GanttPage() {
     }
   }, [filterBU]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { if (!sessionLoading) void load(); }, [load, sessionLoading]);
 
   // Determine global date range
   const allDates = projects.flatMap(p => [p.start_date, p.planned_end_date]).filter(Boolean);

@@ -775,7 +775,7 @@ function KanbanColumn({
 
 function PipelinePageInner() {
   const searchParams = useSearchParams();
-  const lockedBU = useLockedBU();
+  const { lockedBU, sessionLoading } = useLockedBU();
   const [opps, setOpps] = useState<CrmOpportunity[]>([]);
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);

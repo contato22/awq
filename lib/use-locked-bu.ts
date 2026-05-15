@@ -8,11 +8,16 @@ const ROLE_BU_LOCK: Record<string, string> = {
 };
 
 /**
- * Returns the BU this user is locked to (e.g. "ENRD"), or null for unrestricted roles.
- * Use to pre-set and lock BU filters so scoped users only see their own data.
+ * Returns [lockedBU, sessionLoading].
+ * lockedBU is the BU this role is restricted to (e.g. "ENRD"), or null for unrestricted roles.
+ * sessionLoading is true while the session is still being fetched — callers should
+ * delay data loads until sessionLoading is false to avoid fetching unfiltered data.
  */
-export function useLockedBU(): string | null {
-  const { data: session } = useSession();
+export function useLockedBU(): { lockedBU: string | null; sessionLoading: boolean } {
+  const { data: session, status } = useSession();
   const role = (session?.user as { role?: string })?.role ?? "";
-  return ROLE_BU_LOCK[role] ?? null;
+  return {
+    lockedBU: ROLE_BU_LOCK[role] ?? null,
+    sessionLoading: status === "loading",
+  };
 }

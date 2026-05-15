@@ -194,7 +194,7 @@ function ProjectRow({ project }: { project: PpmProject }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function PpmPortfolioPage() {
-  const lockedBU = useLockedBU();
+  const { lockedBU, sessionLoading } = useLockedBU();
   const [projects,  setProjects]  = useState<PpmProject[]>([]);
   const [metrics,   setMetrics]   = useState<PpmPortfolioMetrics | null>(null);
   const [loading,   setLoading]   = useState(true);
@@ -228,7 +228,7 @@ export default function PpmPortfolioPage() {
     }
   }, [search, filterBU, filterStatus, filterHealth, filterType]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { if (!sessionLoading) void load(); }, [load, sessionLoading]);
 
   const totalRevenue = metrics?.total_budget_revenue ?? 0;
   const totalActual  = metrics?.total_actual_revenue ?? 0;
