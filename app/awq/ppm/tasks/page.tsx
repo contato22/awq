@@ -2,38 +2,61 @@
 
 // ─── /awq/ppm/tasks — Tasks Kanban ───────────────────────────────────────────
 
-import { useState, useEffect, useCallback, DragEvent } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, Circle, PlayCircle, AlertTriangle, GripVertical } from "lucide-react";
+import {
+  ArrowLeft, CheckCircle2, Circle, PlayCircle,
+  AlertTriangle, GripVertical,
+} from "lucide-react";
 import { formatDateBR } from "@/lib/utils";
 import type { PpmTask } from "@/lib/ppm-types";
 
 type TaskStatus = "not_started" | "in_progress" | "completed" | "blocked" | "cancelled";
 
-const COLUMNS: { status: TaskStatus; label: string; bg: string; border: string; icon: React.ElementType; iconColor: string }[] = [
-  { status: "not_started", label: "A Fazer",      bg: "bg-gray-50",      border: "border-gray-200",   icon: Circle,        iconColor: "text-gray-400"    },
-  { status: "in_progress", label: "Em Andamento", bg: "bg-blue-50",      border: "border-blue-200",   icon: PlayCircle,    iconColor: "text-blue-500"    },
-  { status: "blocked",     label: "Bloqueado",    bg: "bg-red-50",       border: "border-red-200",    icon: AlertTriangle, iconColor: "text-red-500"     },
-  { status: "completed",   label: "Concluído",    bg: "bg-emerald-50",   border: "border-emerald-200",icon: CheckCircle2,  iconColor: "text-emerald-500" },
+interface Column {
+  status: TaskStatus;
+  label: string;
+  bg: string;
+  border: string;
+  icon: React.ElementType;
+  iconColor: string;
+  badgeCls: string;
+}
+
+const COLUMNS: Column[] = [
+  {
+    status: "not_started", label: "A Fazer",
+    bg: "bg-gray-50", border: "border-gray-200",
+    icon: Circle, iconColor: "text-gray-400",
+    badgeCls: "bg-gray-100 text-gray-600",
+  },
+  {
+    status: "in_progress", label: "Em Andamento",
+    bg: "bg-blue-50", border: "border-blue-200",
+    icon: PlayCircle, iconColor: "text-blue-500",
+    badgeCls: "bg-blue-100 text-blue-700",
+  },
+  {
+    status: "blocked", label: "Bloqueado",
+    bg: "bg-red-50", border: "border-red-200",
+    icon: AlertTriangle, iconColor: "text-red-500",
+    badgeCls: "bg-red-100 text-red-700",
+  },
+  {
+    status: "completed", label: "Concluído",
+    bg: "bg-emerald-50", border: "border-emerald-200",
+    icon: CheckCircle2, iconColor: "text-emerald-500",
+    badgeCls: "bg-emerald-100 text-emerald-700",
+  },
 ];
 
-const STATUS_BADGE: Record<TaskStatus, string> = {
-  not_started: "bg-gray-100 text-gray-600",
-  in_progress:  "bg-blue-100 text-blue-700",
-  blocked:      "bg-red-100 text-red-700",
-  completed:    "bg-emerald-100 text-emerald-700",
-  cancelled:    "bg-gray-100 text-gray-400",
-};
-
-function TaskCard({
-  task,
-  onDragStart,
-  onMove,
-}: {
+interface TaskCardProps {
   task: PpmTask;
-  onDragStart: (e: DragEvent, id: string) => void;
+  onDragStart: (e: React.DragEvent<HTMLDivElement>, id: string) => void;
   onMove: (id: string, status: TaskStatus) => void;
-}) {
+}
+
+function TaskCard({ task, onDragStart, onMove }: TaskCardProps) {
   const overdue =
     task.due_date &&
     task.due_date < new Date().toISOString().slice(0, 10) &&
@@ -45,9 +68,8 @@ function TaskCard({
     <div
       draggable
       onDragStart={(e) => onDragStart(e, task.task_id)}
-      className="bg-white border border-gray-200 rounded-xl p-3 shadow-sm hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing group"
+      className="bg-white border border-gray-200 rounded-xl p-3 shadow-sm hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing group select-none"
     >
-      {/* Header */}
       <div className="flex items-start gap-1.5 mb-1.5">
         <GripVertical size={12} className="text-gray-300 mt-0.5 shrink-0 group-hover:text-gray-400 transition-colors" />
         <div className="flex-1 min-w-0">
@@ -72,7 +94,9 @@ function TaskCard({
           </div>
         )}
         {task.estimated_hours ? (
-          <div className="text-[10px] text-gray-400">⏱ {task.estimated_hours}h est. · {task.actual_hours ?? 0}h real</div>
+          <div className="text-[10px] text-gray-400">
+            ⏱ {task.estimated_hours}h est. · {task.actual_hours ?? 0}h real
+          </div>
         ) : null}
       </div>
 
@@ -80,24 +104,27 @@ function TaskCard({
         <div className="mb-2 pl-5">
           <div className="flex items-center gap-1.5">
             <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-              <div className="h-full bg-brand-500 rounded-full transition-all" style={{ width: `${task.completion_pct}%` }} />
+              <div
+                className="h-full bg-brand-500 rounded-full transition-all"
+                style={{ width: `${task.completion_pct}%` }}
+              />
             </div>
             <span className="text-[9px] text-gray-400 shrink-0">{task.completion_pct}%</span>
           </div>
         </div>
       )}
 
-      {/* Quick move buttons — all target statuses */}
-      <div className="flex gap-1 flex-wrap pl-5">
+      {/* Quick-move buttons — all target statuses */}
+      <div className="flex gap-1 flex-wrap pl-5 mt-2">
         {others.map((c) => {
           const Icon = c.icon;
           return (
             <button
               key={c.status}
+              type="button"
               onClick={() => onMove(task.task_id, c.status)}
               title={`Mover para ${c.label}`}
-              className={`flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full border transition-colors
-                ${STATUS_BADGE[c.status]} border-current/20 hover:opacity-80`}
+              className={`flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full transition-opacity hover:opacity-75 ${c.badgeCls}`}
             >
               <Icon size={9} />
               {c.label}
@@ -115,7 +142,7 @@ export default function TasksPage() {
   const [projectFilter, setProjectFilter] = useState("");
   const [dragOverStatus, setDragOverStatus] = useState<TaskStatus | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -123,7 +150,7 @@ export default function TasksPage() {
       const params = new URLSearchParams();
       if (projectFilter) params.set("project_id", projectFilter);
       const res = await fetch(`/api/ppm/tasks?${params}`);
-      const json = await res.json();
+      const json = (await res.json()) as { success: boolean; data: PpmTask[] };
       if (json.success) setTasks(json.data);
     } finally {
       setLoading(false);
@@ -132,8 +159,8 @@ export default function TasksPage() {
 
   useEffect(() => { void load(); }, [load]);
 
-  function showToast(msg: string) {
-    setToast(msg);
+  function showToast(msg: string, ok = true) {
+    setToast({ msg, ok });
     setTimeout(() => setToast(null), 2500);
   }
 
@@ -153,33 +180,40 @@ export default function TasksPage() {
     );
     showToast(`Movido para "${colLabel}"`);
 
-    // Persist
     fetch("/api/ppm/tasks", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ task_id: taskId, status: toStatus }),
-    }).catch(() => {
-      // Revert on error
-      setTasks((prev) =>
-        prev.map((t) => (t.task_id === taskId ? { ...t, status: task.status } : t))
-      );
-      showToast("Erro ao salvar — alteração revertida");
-    });
+    })
+      .then(async (res) => {
+        const json = await res.json() as { success: boolean; error?: string };
+        if (!res.ok || !json.success) {
+          throw new Error(json.error ?? `HTTP ${res.status}`);
+        }
+      })
+      .catch((e: Error) => {
+        console.error("[moveTask] failed:", e.message);
+        // Revert on failure
+        setTasks((prev) =>
+          prev.map((t) => (t.task_id === taskId ? { ...t, status: task.status } : t))
+        );
+        showToast(`Erro: ${e.message}`, false);
+      });
   }
 
-  function handleDragStart(e: DragEvent, taskId: string) {
+  function handleDragStart(e: React.DragEvent<HTMLDivElement>, taskId: string) {
     e.dataTransfer.setData("text/plain", taskId);
     e.dataTransfer.effectAllowed = "move";
     setDraggingId(taskId);
   }
 
-  function handleDragOver(e: DragEvent, status: TaskStatus) {
+  function handleDragOver(e: React.DragEvent<HTMLDivElement>, status: TaskStatus) {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
     setDragOverStatus(status);
   }
 
-  function handleDrop(e: DragEvent, toStatus: TaskStatus) {
+  function handleDrop(e: React.DragEvent<HTMLDivElement>, toStatus: TaskStatus) {
     e.preventDefault();
     setDragOverStatus(null);
     setDraggingId(null);
@@ -193,7 +227,11 @@ export default function TasksPage() {
   }
 
   const byStatus = (status: TaskStatus) => tasks.filter((t) => t.status === status);
-  const projects = [...new Map(tasks.map((t) => [t.project_id, t.project_name])).entries()];
+  const projects = [
+    ...new Map(tasks.map((t) => [t.project_id, t.project_name] as [string, string])).entries(),
+  ];
+
+  const draggingTask = tasks.find((t) => t.task_id === draggingId);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -209,7 +247,9 @@ export default function TasksPage() {
             </Link>
             <div>
               <h1 className="text-lg font-bold text-gray-900">Tarefas — Kanban</h1>
-              <p className="text-xs text-gray-500">{tasks.length} tarefas · arraste ou clique para mover</p>
+              <p className="text-xs text-gray-500">
+                {tasks.length} tarefas · arraste ou use os botões para mover
+              </p>
             </div>
           </div>
           <select
@@ -235,8 +275,7 @@ export default function TasksPage() {
               const colTasks = byStatus(col.status);
               const Icon = col.icon;
               const isOver = dragOverStatus === col.status;
-              const draggingTask = tasks.find((t) => t.task_id === draggingId);
-              const canDrop = draggingTask && draggingTask.status !== col.status;
+              const canDrop = draggingTask != null && draggingTask.status !== col.status;
 
               return (
                 <div
@@ -244,13 +283,14 @@ export default function TasksPage() {
                   onDragOver={(e) => handleDragOver(e, col.status)}
                   onDragLeave={() => setDragOverStatus(null)}
                   onDrop={(e) => handleDrop(e, col.status)}
-                  className={`rounded-xl border-2 p-4 transition-all ${col.bg}
-                    ${isOver && canDrop
-                      ? `${col.border} ring-2 ring-inset ring-current scale-[1.01]`
-                      : `${col.border}`
-                    }`}
+                  className={[
+                    "rounded-xl border-2 p-4 transition-all duration-150",
+                    col.bg,
+                    isOver && canDrop
+                      ? `${col.border} ring-2 ring-inset scale-[1.01] shadow-md`
+                      : col.border,
+                  ].join(" ")}
                 >
-                  {/* Column header */}
                   <div className="flex items-center gap-2 mb-3">
                     <Icon size={14} className={col.iconColor} />
                     <span className="text-sm font-semibold text-gray-700">{col.label}</span>
@@ -259,14 +299,14 @@ export default function TasksPage() {
                     </span>
                   </div>
 
-                  {/* Drop hint */}
                   {isOver && canDrop && (
-                    <div className={`mb-2 rounded-lg border-2 border-dashed ${col.border} py-3 text-center text-[10px] font-semibold ${col.iconColor} opacity-70`}>
+                    <div
+                      className={`mb-2 rounded-lg border-2 border-dashed py-3 text-center text-[10px] font-semibold opacity-70 ${col.border} ${col.iconColor}`}
+                    >
                       Soltar aqui
                     </div>
                   )}
 
-                  {/* Cards */}
                   <div className="space-y-2">
                     {colTasks.map((t) => (
                       <TaskCard
@@ -291,8 +331,12 @@ export default function TasksPage() {
 
       {/* Toast */}
       {toast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs font-medium px-4 py-2 rounded-full shadow-lg animate-fade-in z-50">
-          {toast}
+        <div
+          className={`fixed bottom-6 left-1/2 -translate-x-1/2 text-white text-xs font-medium px-4 py-2 rounded-full shadow-lg z-50 transition-all ${
+            toast.ok ? "bg-gray-900" : "bg-red-600"
+          }`}
+        >
+          {toast.msg}
         </div>
       )}
     </div>

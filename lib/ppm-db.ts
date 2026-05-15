@@ -433,14 +433,19 @@ export async function updateTask(task_id: string, patch: Partial<PpmTask>): Prom
     patch = { ...patch, completion_pct: 100, completed_date: today() };
   }
   if (supabase) {
+    // Use maybeSingle() to avoid throwing when no rows match
     const { data, error } = await supabase
       .from("ppm_tasks")
       .update({ ...patch, updated_at: now() })
       .eq("task_id", task_id)
       .select()
-      .single();
-    if (error) throw new Error(error.message);
-    return data as PpmTask | null;
+      .maybeSingle();
+    if (error) {
+      console.error("[updateTask] Supabase error:", error.message, { task_id, patch });
+      throw new Error(error.message);
+    }
+    // If task not found in Supabase, fall through to in-memory
+    if (data) return data as PpmTask;
   }
   const idx = _tasks.findIndex(t => t.task_id === task_id);
   if (idx === -1) return null;

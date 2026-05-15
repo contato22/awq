@@ -40,13 +40,16 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const body = await req.json();
+    const body = await req.json() as Record<string, unknown>;
     const { task_id, ...patch } = body;
     if (!task_id) return err("task_id is required");
-    const updated = await updateTask(task_id, patch);
+    console.log("[PATCH /api/ppm/tasks]", { task_id, patch });
+    const updated = await updateTask(task_id as string, patch as Partial<import("@/lib/ppm-types").PpmTask>);
+    console.log("[PATCH /api/ppm/tasks] result:", updated ? "ok" : "not found");
     if (!updated) return err("Task not found", 404);
     return ok(updated);
   } catch (e) {
+    console.error("[PATCH /api/ppm/tasks] error:", (e as Error).message);
     return err((e as Error).message, 500);
   }
 }
