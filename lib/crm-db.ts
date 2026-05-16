@@ -325,7 +325,10 @@ export async function updateOpportunity(id: string, data: Partial<CrmOpportunity
   if (!sql) throw new Error("DB not available");
   const rows = await sql`
     UPDATE crm_opportunities SET
+      opportunity_name    = COALESCE(${data.opportunity_name ?? null}, opportunity_name),
+      bu                  = COALESCE(${data.bu ?? null}, bu),
       stage               = COALESCE(${data.stage ?? null}, stage),
+      probability         = COALESCE(${data.probability ?? null}, probability),
       deal_value          = COALESCE(${data.deal_value ?? null}, deal_value),
       expected_close_date = COALESCE(${data.expected_close_date ?? null}, expected_close_date),
       lost_reason         = COALESCE(${data.lost_reason ?? null}, lost_reason),
