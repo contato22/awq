@@ -17,7 +17,6 @@ import type { CrmOpportunity, CrmActivity } from "@/lib/crm-types";
 import { STAGE_LABELS, STAGE_PROBABILITY, BU_OPTIONS, OWNER_OPTIONS, PIPELINE_STAGES } from "@/lib/crm-types";
 
 import { formatBRL, formatDateBR } from "@/lib/utils";
-import { supabaseClient as supabase } from "@/lib/supabase";
 
 function daysUntil(d: string | null | undefined): number | null {
   if (!d) return null;
@@ -96,13 +95,9 @@ function OppDetailModal({
 
   useEffect(() => {
     setActLoading(true);
-    supabase
-      .from("crm_activities")
-      .select("*")
-      .eq("related_to_id", opp.opportunity_id)
-      .eq("related_to_type", "opportunity")
-      .order("created_at", { ascending: false })
-      .then(({ data }) => { if (data) setActivities(data as CrmActivity[]); })
+    fetch(`/api/crm/activities?related_to_id=${opp.opportunity_id}&related_to_type=opportunity`)
+      .then(r => r.json())
+      .then(json => { if (json.data) setActivities(json.data as CrmActivity[]); })
       .catch(() => undefined)
       .finally(() => setActLoading(false));
   }, [opp.opportunity_id]);
@@ -135,20 +130,25 @@ function OppDetailModal({
     if (!actForm.subject.trim()) return;
     setActSaving(true);
     try {
-      const { data, error } = await supabase.from("crm_activities").insert({
-        activity_type: actForm.activity_type,
-        related_to_type: "opportunity",
-        related_to_id: opp.opportunity_id,
-        subject: actForm.subject.trim(),
-        description: actForm.description.trim() || null,
-        outcome: actForm.outcome || null,
-        scheduled_at: actForm.scheduled_at || null,
-        status: "completed",
-        created_by: opp.owner,
-      }).select("*").single();
-
-      const newActivity: CrmActivity = (!error && data)
-        ? data as CrmActivity
+      const res = await fetch("/api/crm/activities", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "create",
+          activity_type: actForm.activity_type,
+          related_to_type: "opportunity",
+          related_to_id: opp.opportunity_id,
+          subject: actForm.subject.trim(),
+          description: actForm.description.trim() || null,
+          outcome: actForm.outcome || null,
+          scheduled_at: actForm.scheduled_at || null,
+          status: "completed",
+          created_by: opp.owner,
+        }),
+      });
+      const json = await res.json();
+      const newActivity: CrmActivity = (json.success && json.data)
+        ? json.data as CrmActivity
         : {
             activity_id: crypto.randomUUID(),
             activity_type: actForm.activity_type as CrmActivity["activity_type"],
@@ -786,50 +786,30 @@ function PipelinePageInner() {
   useEffect(() => {
     try { localStorage.removeItem("crm-opportunities-v3"); } catch { /* ignore */ }
 
-    supabase
-      .from("crm_opportunities")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .then(async ({ data: oppsData, error: oppsError }) => {
-        if (oppsError) { setApiError(oppsError.message); setOpps([]); return; }
-        const opps = (oppsData ?? []) as CrmOpportunity[];
-
-        const accountIds = [...new Set(opps.map(o => o.account_id).filter(Boolean))] as string[];
-        const contactIds = [...new Set(opps.map(o => o.contact_id).filter(Boolean))] as string[];
-
-        const [acctRes, contRes] = await Promise.all([
-          accountIds.length > 0
-            ? supabase.from("crm_accounts").select("account_id, account_name").in("account_id", accountIds)
-            : Promise.resolve({ data: [] }),
-          contactIds.length > 0
-            ? supabase.from("crm_contacts").select("contact_id, full_name").in("contact_id", contactIds)
-            : Promise.resolve({ data: [] }),
-        ]);
-
-        const acctMap = Object.fromEntries((acctRes.data ?? []).map((a: Record<string, string>) => [a.account_id, a.account_name]));
-        const contMap = Object.fromEntries((contRes.data ?? []).map((c: Record<string, string>) => [c.contact_id, c.full_name]));
-
-        setOpps(opps.map(o => ({
-          ...o,
-          account_name: o.account_id ? (acctMap[o.account_id] ?? o.account_name) : o.account_name,
-          contact_name: o.contact_id ? (contMap[o.contact_id] ?? o.contact_name) : o.contact_name,
-        })));
+    fetch("/api/crm/pipeline")
+      .then(r => r.json())
+      .then((json: { success: boolean; data?: { byStage: Record<string, CrmOpportunity[]>; closedWon: CrmOpportunity[]; closedLost: CrmOpportunity[] }; error?: string }) => {
+        if (!json.success) throw new Error(json.error ?? "API error");
+        const d = json.data!;
+        const allOpps: CrmOpportunity[] = [
+          ...Object.values(d.byStage).flat(),
+          ...(d.closedWon ?? []),
+          ...(d.closedLost ?? []),
+        ];
+        setOpps(allOpps);
         setApiError(null);
       })
       .catch(e => { setApiError(String(e)); setOpps([]); })
       .finally(() => setLoading(false));
   }, []);
 
-  // Fetch activity counts directly from Supabase
   useEffect(() => {
-    supabase
-      .from("crm_activities")
-      .select("related_to_id")
-      .eq("related_to_type", "opportunity")
-      .then(({ data }) => {
-        if (!data) return;
+    fetch("/api/crm/activities?related_to_type=opportunity")
+      .then(r => r.json())
+      .then(json => {
+        if (!json.data) return;
         const counts: Record<string, number> = {};
-        for (const act of data as { related_to_id: string }[]) {
+        for (const act of json.data as { related_to_id: string }[]) {
           counts[act.related_to_id] = (counts[act.related_to_id] ?? 0) + 1;
         }
         setActivityCounts(counts);
@@ -876,10 +856,11 @@ function PipelinePageInner() {
     updateOpps(next);
     showToast(`Movido para ${STAGE_LABELS[toStage as keyof typeof STAGE_LABELS] ?? toStage}`, true);
 
-    supabase.from("crm_opportunities")
-      .update({ stage: toStage, probability: STAGE_PROBABILITY[toStage as keyof typeof STAGE_PROBABILITY] ?? opp.probability })
-      .eq("opportunity_id", id)
-      .catch(() => undefined);
+    fetch("/api/crm/opportunities", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "update", opportunity_id: id, stage: toStage, probability: STAGE_PROBABILITY[toStage as keyof typeof STAGE_PROBABILITY] ?? opp.probability }),
+    }).catch(() => undefined);
   }
 
   function handleSaveEdit(updated: CrmOpportunity) {
@@ -889,7 +870,11 @@ function PipelinePageInner() {
     showToast("Oportunidade atualizada", true);
 
     const { opportunity_id, account_name, contact_name, opportunity_code, created_at, updated_at, ...fields } = updated;
-    supabase.from("crm_opportunities").update(fields).eq("opportunity_id", opportunity_id).catch(() => undefined);
+    fetch("/api/crm/opportunities", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "update", opportunity_id, ...fields }),
+    }).catch(() => undefined);
   }
 
   function handleDelete(opp: CrmOpportunity) {
@@ -898,7 +883,11 @@ function PipelinePageInner() {
     setEditingOpp(null);
     showToast("Oportunidade apagada", true);
 
-    supabase.from("crm_opportunities").delete().eq("opportunity_id", opp.opportunity_id).catch(() => undefined);
+    fetch("/api/crm/opportunities", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "delete", opportunity_id: opp.opportunity_id }),
+    }).catch(() => undefined);
   }
 
   const openOpps = opps.filter(o => o.stage !== "closed_won" && o.stage !== "closed_lost");
