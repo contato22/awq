@@ -1,5 +1,7 @@
 "use client";
 
+const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
+
 import { useEffect, useState, Suspense } from "react";
 import type { DragEvent, FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
@@ -94,6 +96,7 @@ function OppDetailModal({
   });
 
   useEffect(() => {
+    if (IS_STATIC) { setActLoading(false); return; }
     setActLoading(true);
     fetch(`/api/crm/activities?related_to_id=${opp.opportunity_id}&related_to_type=opportunity`)
       .then(r => r.json())
@@ -130,41 +133,43 @@ function OppDetailModal({
     if (!actForm.subject.trim()) return;
     setActSaving(true);
     try {
-      const res = await fetch("/api/crm/activities", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "create",
-          activity_type: actForm.activity_type,
-          related_to_type: "opportunity",
-          related_to_id: opp.opportunity_id,
-          subject: actForm.subject.trim(),
-          description: actForm.description.trim() || null,
-          outcome: actForm.outcome || null,
-          scheduled_at: actForm.scheduled_at || null,
-          status: "completed",
-          created_by: opp.owner,
-        }),
-      });
-      const json = await res.json();
-      const newActivity: CrmActivity = (json.success && json.data)
-        ? json.data as CrmActivity
-        : {
-            activity_id: crypto.randomUUID(),
-            activity_type: actForm.activity_type as CrmActivity["activity_type"],
+      const localActivity: CrmActivity = {
+        activity_id: crypto.randomUUID(),
+        activity_type: actForm.activity_type as CrmActivity["activity_type"],
+        related_to_type: "opportunity",
+        related_to_id: opp.opportunity_id,
+        subject: actForm.subject.trim(),
+        description: actForm.description.trim() || null,
+        outcome: actForm.outcome as CrmActivity["outcome"] || null,
+        duration_minutes: null,
+        scheduled_at: actForm.scheduled_at || null,
+        completed_at: new Date().toISOString(),
+        status: "completed",
+        created_by: opp.owner,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      let newActivity: CrmActivity = localActivity;
+      if (!IS_STATIC) {
+        const res = await fetch("/api/crm/activities", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "create",
+            activity_type: actForm.activity_type,
             related_to_type: "opportunity",
             related_to_id: opp.opportunity_id,
             subject: actForm.subject.trim(),
             description: actForm.description.trim() || null,
-            outcome: actForm.outcome as CrmActivity["outcome"] || null,
-            duration_minutes: null,
+            outcome: actForm.outcome || null,
             scheduled_at: actForm.scheduled_at || null,
-            completed_at: new Date().toISOString(),
             status: "completed",
             created_by: opp.owner,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          };
+          }),
+        });
+        const json = await res.json();
+        if (json.success && json.data) newActivity = json.data as CrmActivity;
+      }
       setActivities(prev => [newActivity, ...prev]);
       setActForm({ activity_type: "call", subject: "", description: "", outcome: "", scheduled_at: new Date().toISOString().slice(0, 16) });
     } catch { /* ignore */ }
@@ -784,6 +789,15 @@ function PipelinePageInner() {
   const [activityCounts, setActivityCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
+    if (IS_STATIC) {
+      try {
+        const stored = localStorage.getItem("crm-opportunities-v3");
+        setOpps(stored ? (JSON.parse(stored) as CrmOpportunity[]) : []);
+      } catch { setOpps([]); }
+      setLoading(false);
+      return;
+    }
+
     try { localStorage.removeItem("crm-opportunities-v3"); } catch { /* ignore */ }
 
     fetch("/api/crm/pipeline")
@@ -804,6 +818,7 @@ function PipelinePageInner() {
   }, []);
 
   useEffect(() => {
+    if (IS_STATIC) return;
     fetch("/api/crm/activities?related_to_type=opportunity")
       .then(r => r.json())
       .then(json => {
@@ -819,6 +834,9 @@ function PipelinePageInner() {
 
   function updateOpps(next: CrmOpportunity[]) {
     setOpps(next);
+    if (IS_STATIC) {
+      try { localStorage.setItem("crm-opportunities-v3", JSON.stringify(next)); } catch { /* ignore */ }
+    }
   }
 
   function showToast(msg: string, ok: boolean) {
@@ -856,11 +874,13 @@ function PipelinePageInner() {
     updateOpps(next);
     showToast(`Movido para ${STAGE_LABELS[toStage as keyof typeof STAGE_LABELS] ?? toStage}`, true);
 
-    fetch("/api/crm/opportunities", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "update", opportunity_id: id, stage: toStage, probability: STAGE_PROBABILITY[toStage as keyof typeof STAGE_PROBABILITY] ?? opp.probability }),
-    }).catch(() => undefined);
+    if (!IS_STATIC) {
+      fetch("/api/crm/opportunities", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "update", opportunity_id: id, stage: toStage, probability: STAGE_PROBABILITY[toStage as keyof typeof STAGE_PROBABILITY] ?? opp.probability }),
+      }).catch(() => undefined);
+    }
   }
 
   function handleSaveEdit(updated: CrmOpportunity) {
@@ -869,12 +889,14 @@ function PipelinePageInner() {
     setEditingOpp(null);
     showToast("Oportunidade atualizada", true);
 
-    const { opportunity_id, account_name, contact_name, opportunity_code, created_at, updated_at, ...fields } = updated;
-    fetch("/api/crm/opportunities", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "update", opportunity_id, ...fields }),
-    }).catch(() => undefined);
+    if (!IS_STATIC) {
+      const { opportunity_id, account_name, contact_name, opportunity_code, created_at, updated_at, ...fields } = updated;
+      fetch("/api/crm/opportunities", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "update", opportunity_id, ...fields }),
+      }).catch(() => undefined);
+    }
   }
 
   function handleDelete(opp: CrmOpportunity) {
@@ -883,11 +905,13 @@ function PipelinePageInner() {
     setEditingOpp(null);
     showToast("Oportunidade apagada", true);
 
-    fetch("/api/crm/opportunities", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "delete", opportunity_id: opp.opportunity_id }),
-    }).catch(() => undefined);
+    if (!IS_STATIC) {
+      fetch("/api/crm/opportunities", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "delete", opportunity_id: opp.opportunity_id }),
+      }).catch(() => undefined);
+    }
   }
 
   const openOpps = opps.filter(o => o.stage !== "closed_won" && o.stage !== "closed_lost");
