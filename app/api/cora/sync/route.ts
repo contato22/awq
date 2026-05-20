@@ -63,12 +63,14 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     entity?: string;
     startDate?: string;
     endDate?: string;
+    force?: boolean;
   };
 
   const accountName = body.accountName ?? "Conta PJ AWQ Holding";
   const entity      = (body.entity ?? "AWQ_Holding") as EntityLayer;
   const startDate   = isValidDate(body.startDate ?? "") ? body.startDate! : daysAgo(30);
   const endDate     = isValidDate(body.endDate   ?? "") ? body.endDate!   : today();
+  const force       = body.force === true;
 
   // ── Fetch from Cora ───────────────────────────────────────────────────────
   let coraEntries: Awaited<ReturnType<typeof fetchCoraStatement>>;
@@ -94,7 +96,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   for (const entry of coraEntries) {
     const txId = `cora-${entry.id}`;
-    if (existingIds.has(txId)) { skipped++; continue; }
+    // force=true bypasses dedup so existing Cora entries are re-imported with correct values
+    if (!force && existingIds.has(txId)) { skipped++; continue; }
 
     const classification = classifyTransaction(
       entry.description,

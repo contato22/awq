@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
-import { fetchCoraBalance, isCoraConfigured, fetchCoraBalanceForAccount } from "@/lib/cora-api";
+import { fetchCoraBalance, isCoraConfigured, fetchCoraBalanceForAccount, isCoraJacqesConfigured } from "@/lib/cora-api";
 
 export const runtime = "nodejs";
 
@@ -32,7 +32,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       ? await fetchCoraBalanceForAccount("JACQES")
       : await fetchCoraBalance();
 
-    return NextResponse.json({ account, ...balance });
+    // isFallback: true means JACQES has no own credentials — same Cora account as AWQ Holding
+    const isFallback = account === "JACQES" && !isCoraJacqesConfigured();
+    return NextResponse.json({ account, ...balance, isFallback });
   } catch (err) {
     console.error("[GET /api/cora/balance]", err);
     return NextResponse.json(
