@@ -485,36 +485,39 @@ export async function saveTransactions(transactions: BankTransaction[]): Promise
         .eq("document_id", docId);
       if (delError) throw delError;
     }
+    // Also delete any existing rows with the same IDs but different document_id
+    // (happens when force re-importing with a different date range than the original sync)
+    const ids = transactions.map((t) => t.id);
+    const { error: delByIdError } = await supabase
+      .from("bank_transactions")
+      .delete()
+      .in("id", ids);
+    if (delByIdError) throw delByIdError;
     for (const t of transactions) {
       const { error } = await supabase
         .from("bank_transactions")
-        .upsert(
-          {
-            id:                          t.id,
-            document_id:                 t.documentId,
-            bank:                        t.bank,
-            account_name:                t.accountName,
-            entity:                      t.entity,
-            transaction_date:            t.transactionDate,
-            description_original:        t.descriptionOriginal,
-            amount:                      t.amount,
-            direction:                   t.direction,
-            running_balance:             t.runningBalance,
-            counterparty_name:           t.counterpartyName,
-            managerial_category:         t.managerialCategory,
-            classification_confidence:   t.classificationConfidence,
-            classification_note:         t.classificationNote,
-            is_intercompany:             t.isIntercompany,
-            intercompany_match_id:       t.intercompanyMatchId,
-            excluded_from_consolidated:  t.excludedFromConsolidated,
-            reconciliation_status:       t.reconciliationStatus,
-            extracted_at:                t.extractedAt,
-            classified_at:               t.classifiedAt,
-          },
-          { onConflict: "id" }
-        )
-        .select()
-        .single();
+        .insert({
+          id:                          t.id,
+          document_id:                 t.documentId,
+          bank:                        t.bank,
+          account_name:                t.accountName,
+          entity:                      t.entity,
+          transaction_date:            t.transactionDate,
+          description_original:        t.descriptionOriginal,
+          amount:                      t.amount,
+          direction:                   t.direction,
+          running_balance:             t.runningBalance,
+          counterparty_name:           t.counterpartyName,
+          managerial_category:         t.managerialCategory,
+          classification_confidence:   t.classificationConfidence,
+          classification_note:         t.classificationNote,
+          is_intercompany:             t.isIntercompany,
+          intercompany_match_id:       t.intercompanyMatchId,
+          excluded_from_consolidated:  t.excludedFromConsolidated,
+          reconciliation_status:       t.reconciliationStatus,
+          extracted_at:                t.extractedAt,
+          classified_at:               t.classifiedAt,
+        });
       if (error) throw error;
     }
     return;
