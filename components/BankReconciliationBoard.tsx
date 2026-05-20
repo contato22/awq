@@ -26,13 +26,18 @@ import type {
   ManagerialCategory,
   ReconciliationStatus,
 } from "@/lib/financial-db";
+import type { ImportResult, ImportedTransaction } from "@/lib/financial/importers/types";
 import {
+  AlertTriangle,
   Building2,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   CheckCircle2,
+  Loader2,
   Search,
+  Upload,
   X,
 } from "lucide-react";
 
@@ -186,6 +191,34 @@ function lsSet(key: string, v: unknown) {
   try { localStorage.setItem(key, JSON.stringify(v)); } catch { /* ignore */ }
 }
 
+// ─── Import helper ────────────────────────────────────────────────────────────
+
+function importedToBankTx(t: ImportedTransaction): BankTransaction {
+  const direction = t.amount >= 0 ? "credit" : "debit";
+  return {
+    id: t.id,
+    documentId: "manual-import",
+    bank: "Manual",
+    accountName: "Importado",
+    entity: "Unknown",
+    transactionDate: t.date,
+    descriptionOriginal: t.description,
+    amount: Math.abs(t.amount),
+    direction,
+    runningBalance: null,
+    counterpartyName: null,
+    managerialCategory: direction === "credit" ? "recebimento_ambiguo" : "despesa_ambigua",
+    classificationConfidence: "ambiguous",
+    classificationNote: `Importado via ${t.source.toUpperCase()}`,
+    isIntercompany: false,
+    intercompanyMatchId: null,
+    excludedFromConsolidated: false,
+    reconciliationStatus: "pendente",
+    extractedAt: new Date().toISOString(),
+    classifiedAt: null,
+  };
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function BankReconciliationBoard({
@@ -208,8 +241,12 @@ export default function BankReconciliationBoard({
   const [selectedIds, setSelectedIds]   = useState<Set<string>>(new Set());
   const [savingId, setSavingId]         = useState<string | null>(null);
   const [toast, setToast]               = useState<{ kind: "ok" | "err" | "info"; msg: string } | null>(null);
+  const [importResult, setImportResult] = useState<ImportResult | null>(null);
+  const [isImporting, setIsImporting]   = useState(false);
+  const [showRejected, setShowRejected] = useState(false);
   const [, startTransition]             = useTransition();
-  const searchRef = useRef<HTMLInputElement>(null);
+  const searchRef   = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── Bootstrap from localStorage (static mode) ──────────────────────────────
   useEffect(() => {
@@ -410,6 +447,47 @@ export default function BankReconciliationBoard({
     });
   }
 
+  // ── Import ───────────────────────────────────────────────────────────────────
+  async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    setIsImporting(true);
+    setImportResult(null);
+    setShowRejected(false);
+    try {
+      const { importFinancialFile } = await import("@/lib/financial/importers");
+      const result = await importFinancialFile(file);
+      setImportResult(result);
+    } catch {
+      showToast("err", "Falha ao processar o arquivo. Verifique o formato e tente novamente.");
+    } finally {
+      setIsImporting(false);
+    }
+  }
+
+  function confirmImport() {
+    if (!importResult) return;
+    const newTxs = importResult.transactions.map(importedToBankTx);
+    const existingIds = new Set(transactions.map((t) => t.id));
+    const fresh = newTxs.filter((t) => !existingIds.has(t.id));
+    if (fresh.length === 0) {
+      showToast("info", "Todas as transações do arquivo já estão na lista.");
+      setImportResult(null);
+      return;
+    }
+    if (isStatic) {
+      const stored = lsGet<BankTransaction[]>(LS_MANUAL, []);
+      const storedIds = new Set(stored.map((t) => t.id));
+      const toStore = fresh.filter((t) => !storedIds.has(t.id));
+      lsSet(LS_MANUAL, [...stored, ...toStore]);
+    }
+    startTransition(() => setTransactions((prev) => [...prev, ...fresh]));
+    setImportResult(null);
+    setActiveTab("pendentes");
+    showToast("ok", `${fresh.length} transação(ões) importada(s) com sucesso.`);
+  }
+
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-4">
@@ -426,6 +504,109 @@ export default function BankReconciliationBoard({
           }
         >
           {toast.msg}
+        </div>
+      )}
+
+      {/* Hidden file input for import */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".csv,.ofx,.txt,.pdf"
+        className="hidden"
+        onChange={(e) => void handleFileSelect(e)}
+      />
+
+      {/* ── Import result panel ──────────────────────────────────────────────── */}
+      {importResult && (
+        <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4 space-y-3">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-indigo-900">
+                {importResult.transactions.length} transação(ões) encontrada(s)
+                <span className="ml-2 font-normal text-indigo-700 text-xs">— {importResult.fileName}</span>
+              </p>
+              {importResult.warnings.length > 0 && (
+                <div className="mt-1 space-y-0.5">
+                  {importResult.warnings.map((w, i) => (
+                    <p key={i} className="text-xs text-amber-800 flex items-start gap-1">
+                      <AlertTriangle size={12} className="shrink-0 mt-0.5" />
+                      {w}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button onClick={() => setImportResult(null)} className="text-indigo-400 hover:text-indigo-600">
+              <X size={16} />
+            </button>
+          </div>
+
+          {importResult.transactions.length > 0 && (
+            <div className="overflow-x-auto rounded-lg border border-indigo-200 bg-white">
+              <table className="min-w-full text-xs">
+                <thead className="bg-indigo-50 text-[10px] uppercase tracking-wide text-indigo-600">
+                  <tr>
+                    <th className="px-3 py-1.5 text-left">Data</th>
+                    <th className="px-3 py-1.5 text-left">Descrição</th>
+                    <th className="px-3 py-1.5 text-right">Valor</th>
+                    <th className="px-3 py-1.5 text-left">Tipo</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-indigo-50">
+                  {importResult.transactions.slice(0, 5).map((t) => (
+                    <tr key={t.id}>
+                      <td className="px-3 py-1.5 whitespace-nowrap text-gray-700">{t.date}</td>
+                      <td className="px-3 py-1.5 max-w-xs truncate text-gray-900" title={t.description}>{t.description}</td>
+                      <td className={"px-3 py-1.5 text-right font-mono whitespace-nowrap " + (t.amount >= 0 ? "text-emerald-700" : "text-rose-700")}>
+                        {fmtBRL(Math.abs(t.amount))}
+                      </td>
+                      <td className="px-3 py-1.5 text-gray-500 capitalize">{t.type}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {importResult.transactions.length > 5 && (
+                <p className="px-3 py-1.5 text-[10px] text-gray-500 border-t border-indigo-100">
+                  + {importResult.transactions.length - 5} linha(s) adicionais
+                </p>
+              )}
+            </div>
+          )}
+
+          {importResult.rejectedRows.length > 0 && (
+            <div>
+              <button
+                onClick={() => setShowRejected((v) => !v)}
+                className="flex items-center gap-1 text-[11px] text-amber-700 hover:underline"
+              >
+                {showRejected ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                {importResult.rejectedRows.length} linha(s) não reconhecida(s)
+              </button>
+              {showRejected && (
+                <ul className="mt-1 max-h-24 overflow-y-auto text-[10px] text-gray-600 space-y-0.5">
+                  {importResult.rejectedRows.map((r, i) => (
+                    <li key={i} className="font-mono truncate" title={r}>{r}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+
+          <div className="flex gap-2 pt-1">
+            <button
+              onClick={confirmImport}
+              disabled={importResult.transactions.length === 0}
+              className="px-4 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-medium hover:bg-indigo-700 disabled:opacity-40 transition-colors"
+            >
+              Confirmar importação
+            </button>
+            <button
+              onClick={() => setImportResult(null)}
+              className="px-4 py-1.5 rounded-lg border border-gray-300 text-gray-700 text-xs font-medium hover:bg-gray-50 transition-colors"
+            >
+              Cancelar
+            </button>
+          </div>
         </div>
       )}
 
@@ -454,6 +635,14 @@ export default function BankReconciliationBoard({
           <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 transition-colors">
             <Building2 size={13} className="text-blue-500" />
             Fluxo de caixa
+          </button>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isImporting}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-indigo-300 bg-indigo-50 text-sm text-indigo-700 hover:bg-indigo-100 disabled:opacity-50 transition-colors"
+          >
+            {isImporting ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
+            {isImporting ? "Processando…" : "Importar CSV / PDF"}
           </button>
         </div>
 
