@@ -16,8 +16,6 @@
 import type { CommercialOpportunity, CommercialKPIs } from "./venture-commercial-types";
 import { ventureContracts } from "./awq-group-data";
 
-// Único contrato operacional confirmado da Venture.
-// Fonte: evidência de contrato fornecida pelo usuário (awq-group-data.ts).
 const enerdy = ventureContracts[0];
 
 // ─── Pipeline Comercial ───────────────────────────────────────────────────────

@@ -10,14 +10,8 @@ import {
   Zap,
   AlertTriangle,
 } from "lucide-react";
-import {
-  buData,
-  operatingBus,
-  consolidated,
-  allocFlags,
-  flagConfig,
-  PAYBACK_ESTIMATES,
-} from "@/lib/awq-derived-metrics";
+import { getBUData, getOperatingBUs, getAllocFlags } from "@/lib/epm-planning-db";
+import { flagConfig, PAYBACK_ESTIMATES } from "@/lib/awq-derived-metrics";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -30,7 +24,13 @@ function fmtR(n: number) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function AwqAllocationsPage() {
+export default async function AwqAllocationsPage() {
+  const [buData, operatingBus, allocFlags] = await Promise.all([
+    getBUData(),
+    getOperatingBUs(),
+    getAllocFlags(),
+  ]);
+
   const totalCap = buData.reduce((s, b) => s + b.capitalAllocated, 0);
 
   // Rankings

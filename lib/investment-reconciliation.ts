@@ -33,10 +33,7 @@ import {
   type InvestmentQueryResult,
 } from "./investment-query";
 
-import {
-  holdingTreasurySnapshot,
-  type HoldingTreasurySnapshot,
-} from "./awq-derived-metrics";
+import { getHoldingTreasury, type HoldingTreasurySnapshot } from "./epm-planning-db";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -223,7 +220,10 @@ function fromEmpiricalSnapshot(s: HoldingTreasurySnapshot): CanonicalInvestmentP
  */
 export async function buildCanonicalInvestmentPosition(): Promise<CanonicalInvestmentPosition> {
   // ── Tier 1: Real pipeline ─────────────────────────────────────────────────
-  const q = await buildInvestmentQuery();
+  const [q, holdingTreasurySnapshot] = await Promise.all([
+    buildInvestmentQuery(),
+    getHoldingTreasury(),
+  ]);
 
   if (q.hasData && q.hasInvestmentData) {
     const position = fromPipeline(q);
@@ -256,7 +256,7 @@ export async function buildCanonicalInvestmentPosition(): Promise<CanonicalInves
   }
 
   // ── Tier 2: Empirical snapshot ────────────────────────────────────────────
-  return fromEmpiricalSnapshot(holdingTreasurySnapshot);
+  return fromEmpiricalSnapshot(holdingTreasurySnapshot as HoldingTreasurySnapshot);
 }
 
 // ─── Formatting helpers ───────────────────────────────────────────────────────

@@ -36,13 +36,17 @@ import {
   ENTITY_LABELS,
 } from "@/lib/financial-metric-query";
 import { MetricSourceBadge, MetricDetail, MetricEmpty } from "@/components/MetricSourceBadge";
-import { buData, operatingBus } from "@/lib/awq-derived-metrics";
+import { getBUData, getOperatingBUs } from "@/lib/epm-planning-db";
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function AwqKpisPage() {
-  const kpis    = await getAWQGroupKPIs();
-  const entities = await getEntityCashMetrics();
+  const [kpis, entities, buData, operatingBus] = await Promise.all([
+    getAWQGroupKPIs(),
+    getEntityCashMetrics(),
+    getBUData(),
+    getOperatingBUs(),
+  ]);
 
   // ── Real KPI cards (cash-basis, from bank pipeline) ─────────────────────────
   const realCards = [

@@ -16,7 +16,7 @@ import {
   Building2, Layers, CheckCircle2, Calendar,
 } from "lucide-react";
 import { buildDreQuery } from "@/lib/dre-query";
-import { consolidated, consolidatedMargins, buData } from "@/lib/awq-derived-metrics";
+import { getConsolidated } from "@/lib/epm-planning-db";
 
 function fmtBRL(n: number): string {
   const abs  = Math.abs(n);
@@ -98,8 +98,10 @@ const SECTION_STYLE: Record<string, string> = {
 };
 
 export default async function AnnualReportPage() {
-  const dre  = await buildDreQuery("all");
-  const snap = consolidated;
+  const [dre, snap] = await Promise.all([
+    buildDreQuery("all"),
+    getConsolidated(),
+  ]);
 
   const ytdRevenue = dre.hasData ? dre.dreRevenue : snap.revenue;
   const ytdEBITDA  = dre.hasData ? dre.dreEBITDA  : snap.ebitda;

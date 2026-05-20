@@ -179,6 +179,16 @@ export function getDefaultFiscalRates(type: SupplierType): FiscalRates {
   return { ...FISCAL_DEFAULTS[type] };
 }
 
+export async function getDefaultFiscalRatesAsync(type: SupplierType): Promise<FiscalRates> {
+  try {
+    const { getFiscalRates } = await import("./epm-planning-db");
+    const rates = await getFiscalRates();
+    return rates[type] ?? { ...FISCAL_DEFAULTS[type] };
+  } catch {
+    return { ...FISCAL_DEFAULTS[type] };
+  }
+}
+
 export function calcAPFiscal(
   gross: number,
   type: SupplierType,

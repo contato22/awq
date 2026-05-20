@@ -21,13 +21,12 @@ import { MetricSourceBadge, MetricDetail } from "@/components/MetricSourceBadge"
 import { buildDreQuery } from "@/lib/dre-query";
 import { getBalanceSheet } from "@/lib/epm-gl";
 import {
-  consolidated,
-  consolidatedMargins,
-  consolidatedRoic,
-  budgetVsActual,
-  ventureFeeMRR,
-  ventureFeeARR,
-} from "@/lib/awq-derived-metrics";
+  getConsolidated,
+  getConsolidatedMargins,
+  getBudgetVsActual,
+  getVentureFeeMRR,
+  getVentureFeeARR,
+} from "@/lib/epm-planning-db";
 
 function fmtR(n: number): string {
   const abs  = Math.abs(n);
@@ -107,10 +106,19 @@ function Section({ title, icon: Icon, children }: {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function EpmKpisPage() {
-  const [kpis, dre, bs] = await Promise.all([
+  const [kpis, dre, bs, snap, consolidatedMargins, consolidatedRoicVal, budgetVsActualVal, mrr, arr] = await Promise.all([
     getAWQGroupKPIs(),
     buildDreQuery("all"),
     Promise.resolve(getBalanceSheet()),
+    getConsolidated(),
+    getConsolidatedMargins(),
+    (async () => {
+      const c = await getConsolidated();
+      return c.capitalAllocated > 0 ? (c.netIncome / c.capitalAllocated) * 100 : 0;
+    })(),
+    getBudgetVsActual(),
+    getVentureFeeMRR(),
+    getVentureFeeARR(),
   ]);
 
   // AP/AR outstanding for DSO/DPO/CCC — best-effort (DB may be empty on first run)
@@ -125,8 +133,6 @@ export default async function EpmKpisPage() {
       .filter((i) => i.status === "PENDING" || i.status === "OVERDUE")
       .reduce((s, i) => s + i.net_amount, 0);
   } catch { /* DB unavailable — leave at 0 */ }
-
-  const snap = consolidated;
 
   // ── P&L KPIs ──────────────────────────────────────────────────────────────
   const revenue      = dre.hasData ? dre.dreRevenue        : snap.revenue;
@@ -174,10 +180,7 @@ export default async function EpmKpisPage() {
   ];
 
   // ── Recurring Revenue KPIs ─────────────────────────────────────────────────
-  const mrr = ventureFeeMRR;
-  const arr = ventureFeeARR;
-
-  const revenueVarPct = budgetVsActual; // number: (actual - budget) / budget * 100
+  const revenueVarPct = budgetVsActualVal;
 
   const recurringKpis: KpiCard[] = [
     {
@@ -197,7 +200,7 @@ export default async function EpmKpisPage() {
     {
       label: "Budget Var. Receita",
       value: `${revenueVarPct >= 0 ? "+" : ""}${revenueVarPct.toFixed(1)}%`,
-      sub:   `Actual ${fmtR(snap.revenue)} vs Budget ${fmtR(snap.budgetRevenue)}`,
+      sub:   `Actual ${fmtR(snap.revenue)} vs Budget ${fmtR(snap.budgetRevenue ?? 0)}`,
       status: revenueVarPct >= 0 ? "good" : revenueVarPct > -10 ? "warn" : "bad",
       sourceType: "snapshot",
       threshold: "≥0%",
@@ -253,7 +256,7 @@ export default async function EpmKpisPage() {
   ];
 
   // ── Working Capital — DSO / DPO / CCC ────────────────────────────────────
-  const monthlyRevenue  = dre.hasData && dre.dreRevenue > 0  ? dre.dreRevenue  : snap.revenue;
+  const monthlyRevenue  = dre.hasData && dre.dreRevenue > 0 ? dre.dreRevenue : snap.revenue;
   const monthlyExpenses = dre.hasData && dre.dreOperatingExpenses > 0
     ? dre.dreOperatingExpenses : Math.max(snap.revenue - snap.ebitda, 1);
   const DSO = monthlyRevenue  > 0 ? (arOutstanding / monthlyRevenue)  * 30 : 0;
@@ -299,9 +302,9 @@ export default async function EpmKpisPage() {
   const efficiencyKpis: KpiCard[] = [
     {
       label: "ROIC",
-      value: `${consolidatedRoic.toFixed(0)}%`,
+      value: `${consolidatedRoicVal.toFixed(0)}%`,
       sub:   "Return on Invested Capital",
-      status: consolidatedRoic >= 20 ? "good" : consolidatedRoic >= 10 ? "warn" : "bad",
+      status: consolidatedRoicVal >= 20 ? "good" : consolidatedRoicVal >= 10 ? "warn" : "bad",
       sourceType: "snapshot",
       threshold: "≥20%",
     },

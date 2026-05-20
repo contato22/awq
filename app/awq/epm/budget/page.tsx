@@ -8,12 +8,12 @@ import Header from "@/components/Header";
 import Link from "next/link";
 import { Target, AlertTriangle, TrendingUp, BarChart3 } from "lucide-react";
 import {
-  budgetVsActual,
-  consolidated,
-  BUDGET_LINES,
-  categoryBudget,
-  operatingBus,
-} from "@/lib/awq-derived-metrics";
+  getBudgetVsActual,
+  getConsolidated,
+  getBudgetLines,
+  getCategoryBudget,
+  getOperatingBUs,
+} from "@/lib/epm-planning-db";
 import { buildDreQuery } from "@/lib/dre-query";
 
 function fmtBRL(n: number): string {
@@ -79,8 +79,13 @@ function BudgetRow({
 }
 
 export default async function EpmBudgetPage() {
-  const dre  = await buildDreQuery("all");
-  const snap = consolidated;
+  const [dre, snap, BUDGET_LINES, categoryBudget, operatingBus] = await Promise.all([
+    buildDreQuery("all"),
+    getConsolidated(),
+    getBudgetLines(),
+    getCategoryBudget(),
+    getOperatingBUs(),
+  ]);
 
   function sumBudgLine(name: string) {
     const bl = BUDGET_LINES.find((l) => l.line === name);

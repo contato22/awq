@@ -16,7 +16,7 @@ import {
   Building2, Calendar,
 } from "lucide-react";
 import { buildDreQuery } from "@/lib/dre-query";
-import { consolidated, consolidatedMargins, budgetVsActual } from "@/lib/awq-derived-metrics";
+import { getConsolidated, getConsolidatedMargins, getBudgetVsActual } from "@/lib/epm-planning-db";
 
 function fmtBRL(n: number): string {
   const abs  = Math.abs(n);
@@ -75,15 +75,18 @@ const RISK_COLORS = {
 };
 
 export default async function BoardPackPage() {
-  const dre  = await buildDreQuery("all");
-  const snap = consolidated;
+  const [dre, snap, consolidatedMargins, budgetVar] = await Promise.all([
+    buildDreQuery("all"),
+    getConsolidated(),
+    getConsolidatedMargins(),
+    getBudgetVsActual(),
+  ]);
 
   const revenue      = dre.hasData ? dre.dreRevenue      : snap.revenue;
   const ebitda       = dre.hasData ? dre.dreEBITDA        : snap.ebitda;
   const grossProfit  = dre.hasData ? dre.dreGrossProfit   : snap.grossProfit;
   const gmPct        = revenue > 0 ? grossProfit / revenue : consolidatedMargins.grossMargin;
   const ebitdaPct    = revenue > 0 ? ebitda / revenue      : consolidatedMargins.ebitdaMargin;
-  const budgetVar    = budgetVsActual;
 
   const cashBalance  = 412_000;  // from snapshot / bank
   const burnRate     = 78_000;   // monthly

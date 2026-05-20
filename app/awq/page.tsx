@@ -7,7 +7,8 @@ import {
   ChevronRight, ShieldAlert, Activity, Wallet, Target, Building2,
   Scale, CheckCircle, AlertTriangle, Database, Clock, GitMerge, Layers,
 } from "lucide-react";
-import { riskSignals, buData, allocFlags, flagConfig } from "@/lib/awq-derived-metrics";
+import { getRiskSignals, getBUData, getAllocFlags } from "@/lib/epm-planning-db";
+import { flagConfig } from "@/lib/awq-group-data";
 import { MetricSourceBadge } from "@/components/MetricSourceBadge";
 import {
   buildFinancialQuery,
@@ -153,7 +154,12 @@ function EntityCashCard({ e }: { e: EntitySummary }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function AwqGroupPage() {
-  const q = await buildFinancialQuery();
+  const [q, riskSignals, buData, allocFlags] = await Promise.all([
+    buildFinancialQuery(),
+    getRiskSignals(),
+    getBUData(),
+    getAllocFlags(),
+  ]);
   const highRisks   = riskSignals.filter((r) => r.severity === "high").length;
   const mediumRisks = riskSignals.filter((r) => r.severity === "medium").length;
 

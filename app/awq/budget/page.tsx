@@ -10,13 +10,13 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import {
-  buData,
-  operatingBus,
-  consolidated,
-  budgetVsActual,
-  categoryBudget,
-  BUDGET_LINES,
-} from "@/lib/awq-derived-metrics";
+  getBUData,
+  getOperatingBUs,
+  getConsolidated,
+  getBudgetVsActual,
+  getCategoryBudget,
+  getBudgetLines,
+} from "@/lib/epm-planning-db";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -33,7 +33,15 @@ function varPct(actual: number, budget: number) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function AwqBudgetPage() {
+export default async function AwqBudgetPage() {
+  const [consolidated, operatingBus, budgetVsActual, categoryBudget, BUDGET_LINES] = await Promise.all([
+    getConsolidated(),
+    getOperatingBUs(),
+    getBudgetVsActual(),
+    getCategoryBudget(),
+    getBudgetLines(),
+  ]);
+
   const totalBudget = consolidated.budgetRevenue;
   const totalActual = consolidated.revenue;
   const var_        = budgetVsActual;

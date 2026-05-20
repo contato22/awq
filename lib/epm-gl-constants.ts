@@ -19,6 +19,11 @@ export interface AccountRef {
   level:          number;
 }
 
+export async function getChartOfAccountsFromDB(): Promise<AccountRef[]> {
+  const { getChartOfAccounts } = await import("./epm-planning-db");
+  return getChartOfAccounts();
+}
+
 export const CHART_OF_ACCOUNTS: AccountRef[] = [
   { account_code: "1.1.01", account_name: "Caixa e Equivalentes",            account_type: "ASSET",              normal_balance: "DEBIT",  level: 3 },
   { account_code: "1.1.02", account_name: "Contas a Receber",                 account_type: "ASSET",              normal_balance: "DEBIT",  level: 3 },

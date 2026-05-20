@@ -17,7 +17,7 @@ import {
   TrendingUp, DollarSign, BarChart3, Target,
 } from "lucide-react";
 import { buildDreQuery, type DreResult } from "@/lib/dre-query";
-import { consolidated, consolidatedMargins, BUDGET_LINES } from "@/lib/awq-derived-metrics";
+import { getConsolidated, getConsolidatedMargins, getBudgetLines } from "@/lib/epm-planning-db";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -131,9 +131,11 @@ function SnapshotBanner() {
 
 // ─── Main DRE waterfall ───────────────────────────────────────────────────────
 
-function DreWaterfall({ dre, snapRevenue }: { dre: DreResult; snapRevenue: number }) {
+type SnapConsolidated = { revenue: number; grossProfit: number; ebitda: number; netIncome: number; budgetRevenue: number };
+type BudgetLinesType = { line: string; jacquesBudg: number; jacquesActual: number; cazaBudg: number; cazaActual: number; advisorBudg: number; advisorActual: number; isExpense: boolean }[];
+
+function DreWaterfall({ dre, snapRevenue, snap }: { dre: DreResult; snapRevenue: number; snap: SnapConsolidated }) {
   const revenue = dre.hasData ? dre.dreRevenue : snapRevenue;
-  const snap = consolidated;
 
   const cogs      = dre.hasData ? dre.dreCOGS            : snap.revenue - snap.grossProfit;
   const grossProfit= dre.hasData ? dre.dreGrossProfit     : snap.grossProfit;
@@ -265,9 +267,7 @@ function DreWaterfall({ dre, snapRevenue }: { dre: DreResult; snapRevenue: numbe
 
 // ─── Budget comparison ────────────────────────────────────────────────────────
 
-function BudgetComparison() {
-  const snap = consolidated;
-
+function BudgetComparison({ snap, BUDGET_LINES }: { snap: SnapConsolidated; BUDGET_LINES: BudgetLinesType }) {
   function sumBudg(name: string) {
     const bl = BUDGET_LINES.find((l) => l.line === name);
     return bl ? bl.jacquesBudg + bl.cazaBudg + bl.advisorBudg : 0;
@@ -335,7 +335,12 @@ function BudgetComparison() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function EpmPLPage() {
-  const dre = await buildDreQuery("all");
+  const [dre, snap, consolidatedMargins, BUDGET_LINES] = await Promise.all([
+    buildDreQuery("all"),
+    getConsolidated(),
+    getConsolidatedMargins(),
+    getBudgetLines(),
+  ]);
 
   return (
     <>
@@ -352,9 +357,9 @@ export default async function EpmPLPage() {
         {/* ── Header metrics ─────────────────────────────────────────── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
-            { label: "Receita Bruta",  value: dre.hasData ? dre.dreRevenue        : consolidated.revenue,   icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
+            { label: "Receita Bruta",  value: dre.hasData ? dre.dreRevenue        : snap.revenue,   icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
             { label: "Margem Bruta",   value: dre.hasData ? (dre.dreGrossMargin != null ? `${(dre.dreGrossMargin*100).toFixed(1)}%` : "—") : `${(consolidatedMargins.grossMargin*100).toFixed(1)}%`, icon: BarChart3, color: "text-brand-600", bg: "bg-brand-50", isString: true },
-            { label: "EBITDA",         value: dre.hasData ? dre.dreEBITDA          : consolidated.ebitda,    icon: Target,     color: (dre.hasData ? dre.dreEBITDA : consolidated.ebitda) >= 0 ? "text-emerald-600" : "text-red-600", bg: (dre.hasData ? dre.dreEBITDA : consolidated.ebitda) >= 0 ? "bg-emerald-50" : "bg-red-50" },
+            { label: "EBITDA",         value: dre.hasData ? dre.dreEBITDA          : snap.ebitda,    icon: Target,     color: (dre.hasData ? dre.dreEBITDA : snap.ebitda) >= 0 ? "text-emerald-600" : "text-red-600", bg: (dre.hasData ? dre.dreEBITDA : snap.ebitda) >= 0 ? "bg-emerald-50" : "bg-red-50" },
             { label: "Margem EBITDA",  value: dre.hasData ? (dre.dreEBITDAMargin != null ? `${(dre.dreEBITDAMargin*100).toFixed(1)}%` : "—") : `${(consolidatedMargins.ebitdaMargin*100).toFixed(1)}%`, icon: TrendingUp, color: "text-violet-600", bg: "bg-violet-50", isString: true },
           ].map((card) => {
             const Icon = card.icon;
@@ -376,10 +381,10 @@ export default async function EpmPLPage() {
         </div>
 
         {/* ── DRE Waterfall ──────────────────────────────────────────── */}
-        <DreWaterfall dre={dre} snapRevenue={consolidated.revenue} />
+        <DreWaterfall dre={dre} snapRevenue={snap.revenue} snap={snap} />
 
         {/* ── Budget vs Actual ───────────────────────────────────────── */}
-        <BudgetComparison />
+        <BudgetComparison snap={snap} BUDGET_LINES={BUDGET_LINES} />
 
         {/* ── Data quality ───────────────────────────────────────────── */}
         {dre.hasData && dre.ambiguousCount > 0 && (

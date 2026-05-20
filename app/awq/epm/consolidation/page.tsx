@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { buildFinancialQuery, fmtBRL, ENTITY_LABELS } from "@/lib/financial-query";
 import { buildDreQuery } from "@/lib/dre-query";
-import { buData, consolidated, consolidatedMargins } from "@/lib/awq-derived-metrics";
+import { getBUData, getConsolidated, getConsolidatedMargins } from "@/lib/epm-planning-db";
 
 function fmtR(n: number): string {
   const abs  = Math.abs(n);
@@ -33,16 +33,17 @@ const BU_COLORS: Record<string, string> = {
 };
 
 export default async function ConsolidationPage() {
-  const [q, dreAll] = await Promise.all([
+  const [q, dreAll, snap, consolidatedMargins, buData] = await Promise.all([
     buildFinancialQuery(),
     buildDreQuery("all"),
+    getConsolidated(),
+    getConsolidatedMargins(),
+    getBUData(),
   ]);
 
   const opEntities = q.entities.filter((e) =>
     ["AWQ_Holding", "JACQES", "Caza_Vision"].includes(e.entity)
   );
-
-  const snap = consolidated;
 
   return (
     <>

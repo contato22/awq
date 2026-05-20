@@ -6,7 +6,8 @@ import {
   DollarSign, TrendingUp, Users, BarChart3,
   AlertTriangle, Info, Activity,
 } from "lucide-react";
-import { buData, monthlyRevenue, JACQES_MRR, JACQES_MRR_Q1 } from "@/lib/awq-group-data";
+import { buData, monthlyRevenue } from "@/lib/awq-derived-metrics";
+import { JACQES_MRR, JACQES_MRR_Q1 } from "@/lib/awq-group-data";
 import { JACQES_CLIENTS } from "@/lib/jacqes-customers";
 
 // ─── Source of truth ──────────────────────────────────────────────────────────

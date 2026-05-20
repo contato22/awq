@@ -20,12 +20,7 @@ import {
   Building2,
   ChevronRight,
 } from "lucide-react";
-import {
-  riskSignals,
-  riskCategories,
-  buData,
-  type RiskCategory,
-} from "@/lib/awq-derived-metrics";
+import { getRiskSignals, getRiskCategories, getBUData, type RiskCategory } from "@/lib/epm-planning-db";
 import { getAWQGroupKPIs, getEntityCashMetrics, fmtBRL, ENTITY_LABELS, fmtR } from "@/lib/financial-metric-query";
 
 // ─── Icon mapping (UI concern — maps canonical iconKey → Lucide component) ───
@@ -55,24 +50,7 @@ const severityConfig = {
   low:    { color: "text-brand-600", bg: "bg-brand-50", border: "border-brand-500/30", dot: "bg-brand-500", badge: "bg-brand-50 text-brand-600 border-brand-200"  },
 };
 
-// ─── Summary derivations from canonical data (no hardcoding) ─────────────────
-
 const severityOrder = { high: 0, medium: 1, low: 2 };
-const sortedRisks   = [...riskCategories].sort(
-  (a, b) => severityOrder[a.severity] - severityOrder[b.severity]
-);
-
-const highCount   = riskCategories.filter((r) => r.severity === "high").length;
-const mediumCount = riskCategories.filter((r) => r.severity === "medium").length;
-const lowCount    = riskCategories.filter((r) => r.severity === "low").length;
-
-// Derived from canonical data — no hardcoded monetary values in this file
-const receivablesTotal = (riskCategories.find((r) => r.id === "receivables")?.details ?? [])
-  .reduce((s, d) => s + d.mrr, 0);
-
-const mrrAtRisk = riskCategories
-  .find((r) => r.id === "concentration")?.details
-  .find((d) => d.isTotal)?.mrr ?? 0;
 
 // ─── Risk card component ──────────────────────────────────────────────────────
 
@@ -150,8 +128,20 @@ function RiskCard({ risk }: { risk: RiskCategory }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function AwqRiskPage() {
-  const kpis     = await getAWQGroupKPIs();
-  const entities = await getEntityCashMetrics();
+  const [kpis, entities, riskSignals, riskCategories, buData] = await Promise.all([
+    getAWQGroupKPIs(),
+    getEntityCashMetrics(),
+    getRiskSignals(),
+    getRiskCategories(),
+    getBUData(),
+  ]);
+
+  const sortedRisks     = [...riskCategories].sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
+  const highCount       = riskCategories.filter((r) => r.severity === "high").length;
+  const mediumCount     = riskCategories.filter((r) => r.severity === "medium").length;
+  const lowCount        = riskCategories.filter((r) => r.severity === "low").length;
+  const receivablesTotal = (riskCategories.find((r) => r.id === "receivables")?.details ?? []).reduce((s, d) => s + d.mrr, 0);
+  const mrrAtRisk       = riskCategories.find((r) => r.id === "concentration")?.details.find((d) => d.isTotal)?.mrr ?? 0;
 
   // Risk score derived from severity counts (simple weighted formula)
   const riskScore = ((highCount * 3 + mediumCount * 2 + lowCount * 1) /

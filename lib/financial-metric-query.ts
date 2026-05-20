@@ -32,22 +32,18 @@ import {
 } from "./financial-query";
 
 import {
-  consolidated,
-  consolidatedMargins,
-  consolidatedRoic,
-  budgetVsActual,
-  operatingBus,
-  buData,
-  riskSignals,
-  ventureFeeMRR,
-  ventureFeeARR,
-  ventureContractValueRemaining,
-} from "./awq-derived-metrics";
+  getConsolidated,
+  getConsolidatedMargins,
+  getBudgetVsActual,
+  getBUData,
+  getVentureFeeMRR,
+  getVentureFeeARR,
+  getVentureContractValueRemaining,
+} from "./epm-planning-db";
 
 import {
   realMetric,
   snapshotMetric,
-  fallbackMetric,
   emptyMetric,
   type FinancialMetric,
   type ReconciliationStatus,
@@ -89,7 +85,12 @@ export interface AWQGroupKPIs {
 }
 
 export async function getAWQGroupKPIs(): Promise<AWQGroupKPIs> {
-  const q = await buildFinancialQuery();
+  const [q, consolidated, consolidatedMargins, budgetVsActual] = await Promise.all([
+    buildFinancialQuery(),
+    getConsolidated(),
+    getConsolidatedMargins(),
+    getBudgetVsActual(),
+  ]);
   const c = q.consolidated;
   const has = q.hasData;
 
@@ -191,10 +192,15 @@ export async function getAWQGroupKPIs(): Promise<AWQGroupKPIs> {
       calculation_rule: "SUM(buData.ftes FOR operating BUs)",
     }),
 
-    roic: snapshotMetric(consolidatedRoic, {
-      entity:           "AWQ Group",
-      calculation_rule: "(consolidated.netIncome / consolidated.capitalAllocated) × 100",
-    }),
+    roic: snapshotMetric(
+      consolidated.capitalAllocated > 0
+        ? (consolidated.netIncome / consolidated.capitalAllocated) * 100
+        : 0,
+      {
+        entity:           "AWQ Group",
+        calculation_rule: "(consolidated.netIncome / consolidated.capitalAllocated) × 100",
+      }
+    ),
 
     budgetVariance: snapshotMetric(budgetVsActual, {
       entity:           "AWQ Group (BUs operacionais)",
@@ -285,7 +291,10 @@ export interface PortfolioMetrics {
 }
 
 export async function getPortfolioMetrics(): Promise<PortfolioMetrics> {
-  const q = await buildFinancialQuery();
+  const [q, buData] = await Promise.all([
+    buildFinancialQuery(),
+    getBUData(),
+  ]);
   const totalCap      = buData.reduce((s, b) => s + b.capitalAllocated, 0);
   const totalNetIncome= buData.reduce((s, b) => s + b.netIncome, 0);
 
@@ -307,10 +316,13 @@ export async function getPortfolioMetrics(): Promise<PortfolioMetrics> {
           calculation_rule: "SUM(closingBalance ingested accounts)",
         })
       : emptyMetric("SUM(closingBalance)", "AWQ Group"),
-    roic: snapshotMetric(consolidatedRoic, {
-      entity:           "AWQ Group",
-      calculation_rule: "(netIncome / capitalAllocated) × 100",
-    }),
+    roic: snapshotMetric(
+      totalCap > 0 ? (totalNetIncome / totalCap) * 100 : 0,
+      {
+        entity:           "AWQ Group",
+        calculation_rule: "(netIncome / capitalAllocated) × 100",
+      }
+    ),
     buCount: snapshotMetric(buData.length, {
       entity:           "AWQ Group",
       calculation_rule: "COUNT(buData)",
@@ -446,7 +458,13 @@ export interface VentureFeeMetrics {
   advisorEconomicStatus:   string;
 }
 
-export function getVentureFeeMetrics(): VentureFeeMetrics {
+export async function getVentureFeeMetrics(): Promise<VentureFeeMetrics> {
+  const [buData, ventureFeeMRR, ventureFeeARR, ventureContractValueRemaining] = await Promise.all([
+    getBUData(),
+    getVentureFeeMRR(),
+    getVentureFeeARR(),
+    getVentureContractValueRemaining(),
+  ]);
   const advisor = buData.find((b) => b.id === "advisor");
   return {
     feeMRR: snapshotMetric(ventureFeeMRR, {

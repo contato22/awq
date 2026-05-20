@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { buildDreQuery } from "@/lib/dre-query";
 import { getAllGLEntries, getBalanceSheet } from "@/lib/epm-gl";
-import { budgetVsActual, consolidated, consolidatedMargins } from "@/lib/awq-derived-metrics";
+import { getConsolidated, getConsolidatedMargins, getBudgetVsActual } from "@/lib/epm-planning-db";
 
 function fmtBRL(n: number) {
   const abs = Math.abs(n);
@@ -70,15 +70,16 @@ const EPM_MODULES: ModuleCard[] = [
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function EpmOverviewPage() {
-  const [dre, balanceSheet, glEntries] = await Promise.all([
+  const [dre, balanceSheet, glEntries, snap, consolidatedMargins, bva] = await Promise.all([
     buildDreQuery("all"),
     Promise.resolve(getBalanceSheet()),
     Promise.resolve(getAllGLEntries()),
+    getConsolidated(),
+    getConsolidatedMargins(),
+    getBudgetVsActual(),
   ]);
-
-  const bva       = budgetVsActual;
-  const snap      = consolidated;
   const glCount   = glEntries.length;
+  // consolidatedMargins and bva already loaded above
   const glPeriods = [...new Set(glEntries.map((e) => e.period_code))].sort().reverse();
 
   // Derive summary numbers: prefer real DRE data, fall back to snapshot

@@ -35,7 +35,7 @@ import {
   fmtInvestmentConfidence,
   fmtReconciliationStatus,
 } from "@/lib/investment-reconciliation";
-import { holdingTreasurySnapshot } from "@/lib/awq-derived-metrics";
+import { getHoldingTreasury } from "@/lib/epm-planning-db";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -80,8 +80,7 @@ function ConfidenceChip({ level }: { level: InvestmentEntry["classificationConfi
 // Source: holdingTreasurySnapshot — confirmed by bank prints.
 // Clearly labeled as empirical snapshot, not pipeline data.
 
-function EmpiricalInvestmentPanel() {
-  const s = holdingTreasurySnapshot;
+function EmpiricalInvestmentPanel({ s }: { s: Awaited<ReturnType<typeof getHoldingTreasury>> }) {
   return (
     <div className="rounded-xl border border-amber-300 bg-amber-50 p-5">
       <div className="flex items-start gap-3 mb-4">
@@ -355,9 +354,10 @@ function EntityCard({ s }: { s: EntityInvestmentSummary }) {
 export default async function AwqInvestmentsPage() {
   // ── Camada 4 canonical position (primary source for investment display) ──────
   // Priority: pipeline real → empirical snapshot → SEM DADO CONFIÁVEL
-  const [q, canonical] = await Promise.all([
+  const [q, canonical, holdingTreasurySnapshot] = await Promise.all([
     buildInvestmentQuery(),
     buildCanonicalInvestmentPosition(),
+    getHoldingTreasury(),
   ]);
 
   const periodLabel = q.periodStart && q.periodEnd
@@ -395,7 +395,7 @@ export default async function AwqInvestmentsPage() {
               gaps={q.coverageGaps}
             />
             {/* Show empirical snapshot from bank prints while pipeline is empty */}
-            <EmpiricalInvestmentPanel />
+            <EmpiricalInvestmentPanel s={holdingTreasurySnapshot} />
           </>
         )}
 
