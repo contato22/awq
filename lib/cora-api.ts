@@ -11,7 +11,7 @@
 //
 // Endpoints (matls-clients.api.cora.com.br):
 //   POST /token                           → OAuth2 token
-//   GET  /bank-balance                    → saldo disponível
+//   GET  /third-party/account/balance     → saldo disponível
 //   GET  /bank-statement/statement        → extrato (?start=&end=)
 //
 // Docs: https://developers.cora.com.br/docs/instrucoes-iniciais
@@ -238,7 +238,7 @@ async function fetchBalance(creds: CoraCredentials): Promise<CoraBalance> {
   const token = await getAccessToken(creds);
   const { status, body } = await httpsRequest(
     "GET",
-    `${BASE}/bank-balance`,
+    `${BASE}/third-party/account/balance`,
     { "Authorization": `Bearer ${token}`, "Accept": "application/json" },
     creds,
   );
