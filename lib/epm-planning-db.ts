@@ -1,12 +1,12 @@
 // ─── EPM Planning Data Access Layer ──────────────────────────────────────────
 //
 // Async read/write for all EPM planning/KPI data.
-// When USE_DB=true: reads/writes from Supabase Postgres.
-// When USE_DB=false: falls back to static data from awq-group-data / epm-gl-constants.
+// When USE_SUPABASE=true: reads/writes from Supabase via JS client (.from() API).
+// When USE_SUPABASE=false: falls back to static data from awq-group-data / epm-gl-constants.
 //
 // DO NOT import in client components.
 
-import { sql, USE_DB } from "./db";
+import { supabase, USE_SUPABASE } from "./supabase";
 import {
   buData as staticBuData,
   ventureContracts as staticVentureContracts,
@@ -30,7 +30,7 @@ import {
 } from "./awq-group-data";
 import { CHART_OF_ACCOUNTS as staticChartOfAccounts, type AccountRef } from "./epm-gl-constants";
 
-export type { BuData, VentureContract, MonthlyPoint, CategoryBudgetItem, HoldingTreasurySnapshot, AccountRef };
+export type { BuData, VentureContract, MonthlyPoint, CategoryBudgetItem, HoldingTreasurySnapshot, AccountRef, RiskSignal, RiskCategory, AllocFlag };
 
 // ─── Fiscal Rates (inlined from ap-ar-db to avoid circular deps) ─────────────
 
@@ -150,212 +150,239 @@ function rowToFiscalRates(r: Record<string, unknown>): FiscalRates {
 // ─── BU Data ─────────────────────────────────────────────────────────────────
 
 export async function getBUData(): Promise<BuData[]> {
-  if (sql && USE_DB) {
-    const rows = await sql`SELECT * FROM epm_bu_data ORDER BY id`;
-    if (rows.length > 0) return rows.map((r) => rowToBU(r as Record<string, unknown>));
+  if (supabase && USE_SUPABASE) {
+    const { data, error } = await supabase.from("epm_bu_data").select("*").order("id");
+    if (error) throw error;
+    if (data && data.length > 0) return data.map((r) => rowToBU(r as Record<string, unknown>));
   }
   return staticBuData;
 }
 
 export async function upsertBUData(data: BuData): Promise<void> {
-  if (!sql) throw new Error("Database not configured");
+  if (!supabase) throw new Error("Supabase not configured");
   const now = new Date().toISOString();
-  await sql`
-    INSERT INTO epm_bu_data (
-      id, name, sub, color, accent_color, status, economic_type,
-      revenue, gross_profit, ebitda, net_income, cash_generated, cash_balance,
-      customers, ftes, capital_allocated, roic, budget_revenue,
-      href_overview, href_financial, href_customers, href_unit_econ, href_budget, updated_at
-    ) VALUES (
-      ${data.id}, ${data.name}, ${data.sub}, ${data.color}, ${data.accentColor},
-      ${data.status}, ${data.economicType}, ${data.revenue}, ${data.grossProfit},
-      ${data.ebitda}, ${data.netIncome}, ${data.cashGenerated}, ${data.cashBalance},
-      ${data.customers}, ${data.ftes}, ${data.capitalAllocated}, ${data.roic},
-      ${data.budgetRevenue}, ${data.hrefOverview}, ${data.hrefFinancial},
-      ${data.hrefCustomers}, ${data.hrefUnitEcon}, ${data.hrefBudget}, ${now}
-    )
-    ON CONFLICT (id) DO UPDATE SET
-      name = EXCLUDED.name, sub = EXCLUDED.sub, color = EXCLUDED.color,
-      accent_color = EXCLUDED.accent_color, status = EXCLUDED.status,
-      economic_type = EXCLUDED.economic_type, revenue = EXCLUDED.revenue,
-      gross_profit = EXCLUDED.gross_profit, ebitda = EXCLUDED.ebitda,
-      net_income = EXCLUDED.net_income, cash_generated = EXCLUDED.cash_generated,
-      cash_balance = EXCLUDED.cash_balance, customers = EXCLUDED.customers,
-      ftes = EXCLUDED.ftes, capital_allocated = EXCLUDED.capital_allocated,
-      roic = EXCLUDED.roic, budget_revenue = EXCLUDED.budget_revenue,
-      href_overview = EXCLUDED.href_overview, href_financial = EXCLUDED.href_financial,
-      href_customers = EXCLUDED.href_customers, href_unit_econ = EXCLUDED.href_unit_econ,
-      href_budget = EXCLUDED.href_budget, updated_at = EXCLUDED.updated_at
-  `;
+  const row = {
+    id:               data.id,
+    name:             data.name,
+    sub:              data.sub,
+    color:            data.color,
+    accent_color:     data.accentColor,
+    status:           data.status,
+    economic_type:    data.economicType,
+    revenue:          data.revenue,
+    gross_profit:     data.grossProfit,
+    ebitda:           data.ebitda,
+    net_income:       data.netIncome,
+    cash_generated:   data.cashGenerated,
+    cash_balance:     data.cashBalance,
+    customers:        data.customers,
+    ftes:             data.ftes,
+    capital_allocated: data.capitalAllocated,
+    roic:             data.roic,
+    budget_revenue:   data.budgetRevenue,
+    href_overview:    data.hrefOverview,
+    href_financial:   data.hrefFinancial,
+    href_customers:   data.hrefCustomers,
+    href_unit_econ:   data.hrefUnitEcon,
+    href_budget:      data.hrefBudget,
+    updated_at:       now,
+  };
+  const { error } = await supabase.from("epm_bu_data").upsert(row, { onConflict: "id" });
+  if (error) throw error;
 }
 
 export async function seedBUData(): Promise<void> {
-  for (const bu of staticBuData) {
-    if (!sql) throw new Error("Database not configured");
-    const now = new Date().toISOString();
-    await sql`
-      INSERT INTO epm_bu_data (
-        id, name, sub, color, accent_color, status, economic_type,
-        revenue, gross_profit, ebitda, net_income, cash_generated, cash_balance,
-        customers, ftes, capital_allocated, roic, budget_revenue,
-        href_overview, href_financial, href_customers, href_unit_econ, href_budget, updated_at
-      ) VALUES (
-        ${bu.id}, ${bu.name}, ${bu.sub}, ${bu.color}, ${bu.accentColor},
-        ${bu.status}, ${bu.economicType}, ${bu.revenue}, ${bu.grossProfit},
-        ${bu.ebitda}, ${bu.netIncome}, ${bu.cashGenerated}, ${bu.cashBalance},
-        ${bu.customers}, ${bu.ftes}, ${bu.capitalAllocated}, ${bu.roic},
-        ${bu.budgetRevenue}, ${bu.hrefOverview}, ${bu.hrefFinancial},
-        ${bu.hrefCustomers}, ${bu.hrefUnitEcon}, ${bu.hrefBudget}, ${now}
-      )
-      ON CONFLICT (id) DO NOTHING
-    `;
-  }
+  if (!supabase) throw new Error("Supabase not configured");
+  const now = new Date().toISOString();
+  const rows = staticBuData.map((bu) => ({
+    id:               bu.id,
+    name:             bu.name,
+    sub:              bu.sub,
+    color:            bu.color,
+    accent_color:     bu.accentColor,
+    status:           bu.status,
+    economic_type:    bu.economicType,
+    revenue:          bu.revenue,
+    gross_profit:     bu.grossProfit,
+    ebitda:           bu.ebitda,
+    net_income:       bu.netIncome,
+    cash_generated:   bu.cashGenerated,
+    cash_balance:     bu.cashBalance,
+    customers:        bu.customers,
+    ftes:             bu.ftes,
+    capital_allocated: bu.capitalAllocated,
+    roic:             bu.roic,
+    budget_revenue:   bu.budgetRevenue,
+    href_overview:    bu.hrefOverview,
+    href_financial:   bu.hrefFinancial,
+    href_customers:   bu.hrefCustomers,
+    href_unit_econ:   bu.hrefUnitEcon,
+    href_budget:      bu.hrefBudget,
+    updated_at:       now,
+  }));
+  const { error } = await supabase.from("epm_bu_data").upsert(rows, { onConflict: "id" });
+  if (error) throw error;
 }
 
 // ─── Venture Contracts ───────────────────────────────────────────────────────
 
 export async function getVentureContracts(): Promise<(VentureContract & { id: string })[]> {
-  if (sql && USE_DB) {
-    const rows = await sql`SELECT * FROM epm_venture_contracts ORDER BY counterparty`;
-    if (rows.length > 0) return rows.map((r) => rowToContract(r as Record<string, unknown>));
+  if (supabase && USE_SUPABASE) {
+    const { data, error } = await supabase.from("epm_venture_contracts").select("*").order("counterparty");
+    if (error) throw error;
+    if (data && data.length > 0) return data.map((r) => rowToContract(r as Record<string, unknown>));
   }
   return staticVentureContracts.map((c, i) => ({ ...c, id: `static-${i}` }));
 }
 
 export async function upsertVentureContract(data: VentureContract & { id?: string }): Promise<void> {
-  if (!sql) throw new Error("Database not configured");
+  if (!supabase) throw new Error("Supabase not configured");
   const now = new Date().toISOString();
+  const row: Record<string, unknown> = {
+    counterparty:         data.counterparty,
+    monthly_fee:          data.monthlyFee,
+    duration_months:      data.durationMonths,
+    total_contract_value: data.totalContractValue,
+    arr:                  data.arr,
+    start_date:           data.startDate ?? null,
+    status:               data.status,
+    note:                 data.note,
+    updated_at:           now,
+  };
   if (data.id) {
-    await sql`
-      INSERT INTO epm_venture_contracts (
-        id, counterparty, monthly_fee, duration_months, total_contract_value,
-        arr, start_date, status, note, created_at, updated_at
-      ) VALUES (
-        ${data.id}, ${data.counterparty}, ${data.monthlyFee}, ${data.durationMonths},
-        ${data.totalContractValue}, ${data.arr}, ${data.startDate ?? null},
-        ${data.status}, ${data.note}, ${now}, ${now}
-      )
-      ON CONFLICT (id) DO UPDATE SET
-        counterparty = EXCLUDED.counterparty, monthly_fee = EXCLUDED.monthly_fee,
-        duration_months = EXCLUDED.duration_months,
-        total_contract_value = EXCLUDED.total_contract_value, arr = EXCLUDED.arr,
-        start_date = EXCLUDED.start_date, status = EXCLUDED.status,
-        note = EXCLUDED.note, updated_at = EXCLUDED.updated_at
-    `;
+    row.id = data.id;
+    row.created_at = now;
+    const { error } = await supabase.from("epm_venture_contracts").upsert(row, { onConflict: "id" });
+    if (error) throw error;
   } else {
-    await sql`
-      INSERT INTO epm_venture_contracts (
-        counterparty, monthly_fee, duration_months, total_contract_value,
-        arr, start_date, status, note, created_at, updated_at
-      ) VALUES (
-        ${data.counterparty}, ${data.monthlyFee}, ${data.durationMonths},
-        ${data.totalContractValue}, ${data.arr}, ${data.startDate ?? null},
-        ${data.status}, ${data.note}, ${now}, ${now}
-      )
-    `;
+    row.created_at = now;
+    const { error } = await supabase.from("epm_venture_contracts").insert(row);
+    if (error) throw error;
   }
 }
 
 export async function seedVentureContracts(): Promise<void> {
-  for (const c of staticVentureContracts) {
-    if (!sql) throw new Error("Database not configured");
-    const now = new Date().toISOString();
-    await sql`
-      INSERT INTO epm_venture_contracts (
-        counterparty, monthly_fee, duration_months, total_contract_value,
-        arr, start_date, status, note, created_at, updated_at
-      ) VALUES (
-        ${c.counterparty}, ${c.monthlyFee}, ${c.durationMonths}, ${c.totalContractValue},
-        ${c.arr}, ${c.startDate ?? null}, ${c.status}, ${c.note}, ${now}, ${now}
-      )
-      ON CONFLICT DO NOTHING
-    `;
+  if (!supabase) throw new Error("Supabase not configured");
+  const now = new Date().toISOString();
+  // Delete all and re-insert (contracts have no stable natural key)
+  await supabase.from("epm_venture_contracts").delete().neq("id", "");
+  const rows = staticVentureContracts.map((c) => ({
+    counterparty:         c.counterparty,
+    monthly_fee:          c.monthlyFee,
+    duration_months:      c.durationMonths,
+    total_contract_value: c.totalContractValue,
+    arr:                  c.arr,
+    start_date:           c.startDate ?? null,
+    status:               c.status,
+    note:                 c.note,
+    created_at:           now,
+    updated_at:           now,
+  }));
+  if (rows.length > 0) {
+    const { error } = await supabase.from("epm_venture_contracts").insert(rows);
+    if (error) throw error;
   }
 }
 
 // ─── Monthly Revenue ─────────────────────────────────────────────────────────
 
 export async function getMonthlyRevenue(): Promise<MonthlyPoint[]> {
-  if (sql && USE_DB) {
-    const rows = await sql`SELECT * FROM epm_monthly_revenue ORDER BY month`;
-    if (rows.length > 0) return rows.map((r) => rowToMonthly(r as Record<string, unknown>));
+  if (supabase && USE_SUPABASE) {
+    const { data, error } = await supabase.from("epm_monthly_revenue").select("*").order("month");
+    if (error) throw error;
+    if (data && data.length > 0) return data.map((r) => rowToMonthly(r as Record<string, unknown>));
   }
   return staticMonthlyRevenue;
 }
 
 export async function upsertMonthlyRevenue(data: MonthlyPoint): Promise<void> {
-  if (!sql) throw new Error("Database not configured");
+  if (!supabase) throw new Error("Supabase not configured");
   const now = new Date().toISOString();
-  await sql`
-    INSERT INTO epm_monthly_revenue (month, jacqes, caza, advisor, is_forecast, updated_at)
-    VALUES (${data.month}, ${data.jacqes}, ${data.caza}, ${data.advisor}, ${data.is_forecast ?? false}, ${now})
-    ON CONFLICT (month) DO UPDATE SET
-      jacqes = EXCLUDED.jacqes, caza = EXCLUDED.caza, advisor = EXCLUDED.advisor,
-      is_forecast = EXCLUDED.is_forecast, updated_at = EXCLUDED.updated_at
-  `;
+  const row = {
+    month:       data.month,
+    jacqes:      data.jacqes,
+    caza:        data.caza,
+    advisor:     data.advisor,
+    is_forecast: data.is_forecast ?? false,
+    updated_at:  now,
+  };
+  const { error } = await supabase.from("epm_monthly_revenue").upsert(row, { onConflict: "month" });
+  if (error) throw error;
 }
 
 export async function seedMonthlyRevenue(): Promise<void> {
-  for (const m of staticMonthlyRevenue) {
-    if (!sql) throw new Error("Database not configured");
-    const now = new Date().toISOString();
-    await sql`
-      INSERT INTO epm_monthly_revenue (month, jacqes, caza, advisor, is_forecast, updated_at)
-      VALUES (${m.month}, ${m.jacqes}, ${m.caza}, ${m.advisor}, ${m.is_forecast ?? false}, ${now})
-      ON CONFLICT (month) DO NOTHING
-    `;
-  }
+  if (!supabase) throw new Error("Supabase not configured");
+  const now = new Date().toISOString();
+  const rows = staticMonthlyRevenue.map((m) => ({
+    month:       m.month,
+    jacqes:      m.jacqes,
+    caza:        m.caza,
+    advisor:     m.advisor,
+    is_forecast: m.is_forecast ?? false,
+    updated_at:  now,
+  }));
+  const { error } = await supabase.from("epm_monthly_revenue").upsert(rows, { onConflict: "month" });
+  if (error) throw error;
 }
 
 // ─── Category Budget ─────────────────────────────────────────────────────────
 
 export async function getCategoryBudget(): Promise<(CategoryBudgetItem & { id: string })[]> {
-  if (sql && USE_DB) {
-    const rows = await sql`SELECT * FROM epm_category_budget ORDER BY category`;
-    if (rows.length > 0) return rows.map((r) => rowToCategory(r as Record<string, unknown>));
+  if (supabase && USE_SUPABASE) {
+    const { data, error } = await supabase.from("epm_category_budget").select("*").order("category");
+    if (error) throw error;
+    if (data && data.length > 0) return data.map((r) => rowToCategory(r as Record<string, unknown>));
   }
   return staticCategoryBudget.map((c, i) => ({ ...c, id: `static-${i}` }));
 }
 
 export async function upsertCategoryBudgetItem(data: CategoryBudgetItem & { id?: string }): Promise<void> {
-  if (!sql) throw new Error("Database not configured");
+  if (!supabase) throw new Error("Supabase not configured");
   const now = new Date().toISOString();
+  const row: Record<string, unknown> = {
+    category:   data.category,
+    budget:     data.budget,
+    actual:     data.actual,
+    bu:         data.bu,
+    updated_at: now,
+  };
   if (data.id) {
-    await sql`
-      INSERT INTO epm_category_budget (id, category, budget, actual, bu, updated_at)
-      VALUES (${data.id}, ${data.category}, ${data.budget}, ${data.actual}, ${data.bu}, ${now})
-      ON CONFLICT (id) DO UPDATE SET
-        category = EXCLUDED.category, budget = EXCLUDED.budget,
-        actual = EXCLUDED.actual, bu = EXCLUDED.bu, updated_at = EXCLUDED.updated_at
-    `;
+    row.id = data.id;
+    const { error } = await supabase.from("epm_category_budget").upsert(row, { onConflict: "id" });
+    if (error) throw error;
   } else {
-    await sql`
-      INSERT INTO epm_category_budget (category, budget, actual, bu, updated_at)
-      VALUES (${data.category}, ${data.budget}, ${data.actual}, ${data.bu}, ${now})
-    `;
+    const { error } = await supabase.from("epm_category_budget").insert(row);
+    if (error) throw error;
   }
 }
 
 export async function seedCategoryBudget(): Promise<void> {
-  for (const c of staticCategoryBudget) {
-    if (!sql) throw new Error("Database not configured");
-    const now = new Date().toISOString();
-    await sql`
-      INSERT INTO epm_category_budget (category, budget, actual, bu, updated_at)
-      VALUES (${c.category}, ${c.budget}, ${c.actual}, ${c.bu}, ${now})
-      ON CONFLICT DO NOTHING
-    `;
+  if (!supabase) throw new Error("Supabase not configured");
+  const now = new Date().toISOString();
+  // Delete all and re-insert (no stable natural key for category budget)
+  await supabase.from("epm_category_budget").delete().neq("id", "");
+  const rows = staticCategoryBudget.map((c) => ({
+    category:   c.category,
+    budget:     c.budget,
+    actual:     c.actual,
+    bu:         c.bu,
+    updated_at: now,
+  }));
+  if (rows.length > 0) {
+    const { error } = await supabase.from("epm_category_budget").insert(rows);
+    if (error) throw error;
   }
 }
 
 // ─── Alloc Flags ─────────────────────────────────────────────────────────────
 
 export async function getAllocFlags(): Promise<Record<string, string>> {
-  if (sql && USE_DB) {
-    const rows = await sql`SELECT * FROM epm_alloc_flags`;
-    if (rows.length > 0) {
+  if (supabase && USE_SUPABASE) {
+    const { data, error } = await supabase.from("epm_alloc_flags").select("*");
+    if (error) throw error;
+    if (data && data.length > 0) {
       const result: Record<string, string> = {};
-      for (const r of rows) {
+      for (const r of data) {
         result[String(r.bu_id)] = String(r.flag);
       }
       return result;
@@ -365,34 +392,38 @@ export async function getAllocFlags(): Promise<Record<string, string>> {
 }
 
 export async function upsertAllocFlag(buId: string, flag: string): Promise<void> {
-  if (!sql) throw new Error("Database not configured");
+  if (!supabase) throw new Error("Supabase not configured");
   const now = new Date().toISOString();
-  await sql`
-    INSERT INTO epm_alloc_flags (bu_id, flag, updated_at)
-    VALUES (${buId}, ${flag}, ${now})
-    ON CONFLICT (bu_id) DO UPDATE SET flag = EXCLUDED.flag, updated_at = EXCLUDED.updated_at
-  `;
+  const { error } = await supabase.from("epm_alloc_flags").upsert(
+    { bu_id: buId, flag, updated_at: now },
+    { onConflict: "bu_id" },
+  );
+  if (error) throw error;
 }
 
 export async function seedAllocFlags(): Promise<void> {
-  for (const [buId, flag] of Object.entries(staticAllocFlags)) {
-    if (!sql) throw new Error("Database not configured");
-    const now = new Date().toISOString();
-    await sql`
-      INSERT INTO epm_alloc_flags (bu_id, flag, updated_at)
-      VALUES (${buId}, ${flag}, ${now})
-      ON CONFLICT (bu_id) DO NOTHING
-    `;
-  }
+  if (!supabase) throw new Error("Supabase not configured");
+  const now = new Date().toISOString();
+  const rows = Object.entries(staticAllocFlags).map(([buId, flag]) => ({
+    bu_id:      buId,
+    flag:       flag as string,
+    updated_at: now,
+  }));
+  const { error } = await supabase.from("epm_alloc_flags").upsert(rows, { onConflict: "bu_id" });
+  if (error) throw error;
 }
 
 // ─── Holding Treasury ────────────────────────────────────────────────────────
 
 export async function getHoldingTreasury(): Promise<HoldingTreasurySnapshot> {
-  if (sql && USE_DB) {
-    const rows = await sql`SELECT * FROM epm_holding_treasury WHERE id = 'current'`;
-    if (rows.length > 0) {
-      const r = rows[0] as Record<string, unknown>;
+  if (supabase && USE_SUPABASE) {
+    const { data, error } = await supabase
+      .from("epm_holding_treasury")
+      .select("*")
+      .eq("id", "current")
+      .single();
+    if (!error && data) {
+      const r = data as Record<string, unknown>;
       return {
         asOf:                  String(r.as_of),
         source:                String(r.source),
@@ -420,104 +451,112 @@ export async function getHoldingTreasury(): Promise<HoldingTreasurySnapshot> {
 }
 
 export async function upsertHoldingTreasury(data: HoldingTreasurySnapshot): Promise<void> {
-  if (!sql) throw new Error("Database not configured");
+  if (!supabase) throw new Error("Supabase not configured");
   const now = new Date().toISOString();
-  await sql`
-    INSERT INTO epm_holding_treasury (
-      id, as_of, source, total_invested_real, last_application_amount, last_application_date,
-      investment_type, investment_bank, investment_account_cash, bank_fees,
-      operational_cash, card_limit_total, card_limit_committed, card_reserve_deposited,
-      intercompany_total, partner_withdrawals, confidence, note, updated_at
-    ) VALUES (
-      'current', ${data.asOf}, ${data.source}, ${data.totalInvestedReal},
-      ${data.lastApplicationAmount}, ${data.lastApplicationDate}, ${data.investmentType},
-      ${data.investmentBank}, ${data.investmentAccountCash}, ${data.bankFees},
-      ${data.operationalCash}, ${data.cardLimitTotal}, ${data.cardLimitCommitted},
-      ${data.cardReserveDeposited}, ${data.intercompanyTotal}, ${data.partnerWithdrawals},
-      ${data.confidence}, ${data.note}, ${now}
-    )
-    ON CONFLICT (id) DO UPDATE SET
-      as_of = EXCLUDED.as_of, source = EXCLUDED.source,
-      total_invested_real = EXCLUDED.total_invested_real,
-      last_application_amount = EXCLUDED.last_application_amount,
-      last_application_date = EXCLUDED.last_application_date,
-      investment_type = EXCLUDED.investment_type, investment_bank = EXCLUDED.investment_bank,
-      investment_account_cash = EXCLUDED.investment_account_cash,
-      bank_fees = EXCLUDED.bank_fees, operational_cash = EXCLUDED.operational_cash,
-      card_limit_total = EXCLUDED.card_limit_total,
-      card_limit_committed = EXCLUDED.card_limit_committed,
-      card_reserve_deposited = EXCLUDED.card_reserve_deposited,
-      intercompany_total = EXCLUDED.intercompany_total,
-      partner_withdrawals = EXCLUDED.partner_withdrawals,
-      confidence = EXCLUDED.confidence, note = EXCLUDED.note, updated_at = EXCLUDED.updated_at
-  `;
+  const row = {
+    id:                       "current",
+    as_of:                    data.asOf,
+    source:                   data.source,
+    total_invested_real:      data.totalInvestedReal,
+    last_application_amount:  data.lastApplicationAmount,
+    last_application_date:    data.lastApplicationDate,
+    investment_type:          data.investmentType,
+    investment_bank:          data.investmentBank,
+    investment_account_cash:  data.investmentAccountCash,
+    bank_fees:                data.bankFees,
+    operational_cash:         data.operationalCash,
+    card_limit_total:         data.cardLimitTotal,
+    card_limit_committed:     data.cardLimitCommitted,
+    card_reserve_deposited:   data.cardReserveDeposited,
+    intercompany_total:       data.intercompanyTotal,
+    partner_withdrawals:      data.partnerWithdrawals,
+    confidence:               data.confidence,
+    note:                     data.note,
+    updated_at:               now,
+  };
+  const { error } = await supabase.from("epm_holding_treasury").upsert(row, { onConflict: "id" });
+  if (error) throw error;
 }
 
 export async function seedHoldingTreasury(): Promise<void> {
-  if (!sql) throw new Error("Database not configured");
+  if (!supabase) throw new Error("Supabase not configured");
   const now = new Date().toISOString();
   const d = staticHoldingTreasury;
-  await sql`
-    INSERT INTO epm_holding_treasury (
-      id, as_of, source, total_invested_real, last_application_amount, last_application_date,
-      investment_type, investment_bank, investment_account_cash, bank_fees,
-      operational_cash, card_limit_total, card_limit_committed, card_reserve_deposited,
-      intercompany_total, partner_withdrawals, confidence, note, updated_at
-    ) VALUES (
-      'current', ${d.asOf}, ${d.source}, ${d.totalInvestedReal},
-      ${d.lastApplicationAmount}, ${d.lastApplicationDate}, ${d.investmentType},
-      ${d.investmentBank}, ${d.investmentAccountCash}, ${d.bankFees},
-      ${d.operationalCash}, ${d.cardLimitTotal}, ${d.cardLimitCommitted},
-      ${d.cardReserveDeposited}, ${d.intercompanyTotal}, ${d.partnerWithdrawals},
-      ${d.confidence}, ${d.note}, ${now}
-    )
-    ON CONFLICT (id) DO NOTHING
-  `;
+  const row = {
+    id:                       "current",
+    as_of:                    d.asOf,
+    source:                   d.source,
+    total_invested_real:      d.totalInvestedReal,
+    last_application_amount:  d.lastApplicationAmount,
+    last_application_date:    d.lastApplicationDate,
+    investment_type:          d.investmentType,
+    investment_bank:          d.investmentBank,
+    investment_account_cash:  d.investmentAccountCash,
+    bank_fees:                d.bankFees,
+    operational_cash:         d.operationalCash,
+    card_limit_total:         d.cardLimitTotal,
+    card_limit_committed:     d.cardLimitCommitted,
+    card_reserve_deposited:   d.cardReserveDeposited,
+    intercompany_total:       d.intercompanyTotal,
+    partner_withdrawals:      d.partnerWithdrawals,
+    confidence:               d.confidence,
+    note:                     d.note,
+    updated_at:               now,
+  };
+  const { error } = await supabase.from("epm_holding_treasury").upsert(row, { onConflict: "id" });
+  if (error) throw error;
 }
 
 // ─── Chart of Accounts ───────────────────────────────────────────────────────
 
 export async function getChartOfAccounts(): Promise<AccountRef[]> {
-  if (sql && USE_DB) {
-    const rows = await sql`SELECT * FROM epm_chart_of_accounts ORDER BY account_code`;
-    if (rows.length > 0) return rows.map((r) => rowToAccount(r as Record<string, unknown>));
+  if (supabase && USE_SUPABASE) {
+    const { data, error } = await supabase.from("epm_chart_of_accounts").select("*").order("account_code");
+    if (error) throw error;
+    if (data && data.length > 0) return data.map((r) => rowToAccount(r as Record<string, unknown>));
   }
   return staticChartOfAccounts;
 }
 
 export async function upsertAccount(data: AccountRef): Promise<void> {
-  if (!sql) throw new Error("Database not configured");
+  if (!supabase) throw new Error("Supabase not configured");
   const now = new Date().toISOString();
-  await sql`
-    INSERT INTO epm_chart_of_accounts (account_code, account_name, account_type, normal_balance, level, updated_at)
-    VALUES (${data.account_code}, ${data.account_name}, ${data.account_type}, ${data.normal_balance}, ${data.level}, ${now})
-    ON CONFLICT (account_code) DO UPDATE SET
-      account_name = EXCLUDED.account_name, account_type = EXCLUDED.account_type,
-      normal_balance = EXCLUDED.normal_balance, level = EXCLUDED.level,
-      updated_at = EXCLUDED.updated_at
-  `;
+  const row = {
+    account_code:   data.account_code,
+    account_name:   data.account_name,
+    account_type:   data.account_type,
+    normal_balance: data.normal_balance,
+    level:          data.level,
+    updated_at:     now,
+  };
+  const { error } = await supabase.from("epm_chart_of_accounts").upsert(row, { onConflict: "account_code" });
+  if (error) throw error;
 }
 
 export async function seedChartOfAccounts(): Promise<void> {
-  for (const a of staticChartOfAccounts) {
-    if (!sql) throw new Error("Database not configured");
-    const now = new Date().toISOString();
-    await sql`
-      INSERT INTO epm_chart_of_accounts (account_code, account_name, account_type, normal_balance, level, updated_at)
-      VALUES (${a.account_code}, ${a.account_name}, ${a.account_type}, ${a.normal_balance}, ${a.level}, ${now})
-      ON CONFLICT (account_code) DO NOTHING
-    `;
-  }
+  if (!supabase) throw new Error("Supabase not configured");
+  const now = new Date().toISOString();
+  const rows = staticChartOfAccounts.map((a) => ({
+    account_code:   a.account_code,
+    account_name:   a.account_name,
+    account_type:   a.account_type,
+    normal_balance: a.normal_balance,
+    level:          a.level,
+    updated_at:     now,
+  }));
+  const { error } = await supabase.from("epm_chart_of_accounts").upsert(rows, { onConflict: "account_code" });
+  if (error) throw error;
 }
 
 // ─── Fiscal Rates ────────────────────────────────────────────────────────────
 
 export async function getFiscalRates(): Promise<Record<SupplierType, FiscalRates>> {
-  if (sql && USE_DB) {
-    const rows = await sql`SELECT * FROM epm_fiscal_rates`;
-    if (rows.length > 0) {
+  if (supabase && USE_SUPABASE) {
+    const { data, error } = await supabase.from("epm_fiscal_rates").select("*");
+    if (error) throw error;
+    if (data && data.length > 0) {
       const result = { ...FISCAL_DEFAULTS };
-      for (const r of rows) {
+      for (const r of data) {
         result[String(r.supplier_type) as SupplierType] = rowToFiscalRates(r as Record<string, unknown>);
       }
       return result;
@@ -527,28 +566,35 @@ export async function getFiscalRates(): Promise<Record<SupplierType, FiscalRates
 }
 
 export async function upsertFiscalRate(supplierType: SupplierType, rates: FiscalRates): Promise<void> {
-  if (!sql) throw new Error("Database not configured");
+  if (!supabase) throw new Error("Supabase not configured");
   const now = new Date().toISOString();
-  await sql`
-    INSERT INTO epm_fiscal_rates (supplier_type, irrf_rate, inss_rate, iss_rate, pis_rate, cofins_rate, updated_at)
-    VALUES (${supplierType}, ${rates.irrf_rate}, ${rates.inss_rate}, ${rates.iss_rate}, ${rates.pis_rate}, ${rates.cofins_rate}, ${now})
-    ON CONFLICT (supplier_type) DO UPDATE SET
-      irrf_rate = EXCLUDED.irrf_rate, inss_rate = EXCLUDED.inss_rate,
-      iss_rate = EXCLUDED.iss_rate, pis_rate = EXCLUDED.pis_rate,
-      cofins_rate = EXCLUDED.cofins_rate, updated_at = EXCLUDED.updated_at
-  `;
+  const row = {
+    supplier_type: supplierType,
+    irrf_rate:     rates.irrf_rate,
+    inss_rate:     rates.inss_rate,
+    iss_rate:      rates.iss_rate,
+    pis_rate:      rates.pis_rate,
+    cofins_rate:   rates.cofins_rate,
+    updated_at:    now,
+  };
+  const { error } = await supabase.from("epm_fiscal_rates").upsert(row, { onConflict: "supplier_type" });
+  if (error) throw error;
 }
 
 export async function seedFiscalRates(): Promise<void> {
-  for (const [type, rates] of Object.entries(FISCAL_DEFAULTS)) {
-    if (!sql) throw new Error("Database not configured");
-    const now = new Date().toISOString();
-    await sql`
-      INSERT INTO epm_fiscal_rates (supplier_type, irrf_rate, inss_rate, iss_rate, pis_rate, cofins_rate, updated_at)
-      VALUES (${type}, ${rates.irrf_rate}, ${rates.inss_rate}, ${rates.iss_rate}, ${rates.pis_rate}, ${rates.cofins_rate}, ${now})
-      ON CONFLICT (supplier_type) DO NOTHING
-    `;
-  }
+  if (!supabase) throw new Error("Supabase not configured");
+  const now = new Date().toISOString();
+  const rows = Object.entries(FISCAL_DEFAULTS).map(([type, rates]) => ({
+    supplier_type: type,
+    irrf_rate:     rates.irrf_rate,
+    inss_rate:     rates.inss_rate,
+    iss_rate:      rates.iss_rate,
+    pis_rate:      rates.pis_rate,
+    cofins_rate:   rates.cofins_rate,
+    updated_at:    now,
+  }));
+  const { error } = await supabase.from("epm_fiscal_rates").upsert(rows, { onConflict: "supplier_type" });
+  if (error) throw error;
 }
 
 // ─── Seed all ────────────────────────────────────────────────────────────────
