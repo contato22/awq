@@ -10,9 +10,9 @@
 //   If unset, JACQES calls fall back to the primary credentials.
 //
 // Endpoints (matls-clients.api.cora.com.br):
-//   POST /token                        → OAuth2 token
-//   GET  /third-party/account/balance  → saldo disponível
-//   GET  /bank-statement/statement     → extrato (startDate, endDate)
+//   POST /token                           → OAuth2 token
+//   GET  /bank-balance                    → saldo disponível
+//   GET  /bank-statement/statement        → extrato (?start=&end=)
 //
 // Docs: https://developers.cora.com.br/docs/instrucoes-iniciais
 //
@@ -167,14 +167,14 @@ function parseDate(raw: unknown): string {
 }
 
 function parseEntry(raw: CoraRawEntry): CoraStatementEntry {
-  const rawType = String(raw.type ?? raw.nature ?? "").toUpperCase();
+  const rawType = String(raw.type ?? raw.nature ?? raw.entry_type ?? "").toUpperCase();
   const direction: "credit" | "debit" = rawType.includes("DEBIT") ? "debit" : "credit";
-  const rawAmount = Number(raw.amount ?? raw.value ?? 0);
+  const rawAmount = Number(raw.amount ?? raw.value ?? raw.total_amount ?? 0);
 
   return {
     id:          String(raw.id ?? raw.transaction_id ?? raw.entry_id ?? ""),
-    date:        parseDate(raw.date ?? raw.created_at ?? raw.transaction_date),
-    description: String(raw.description ?? raw.title ?? raw.memo ?? ""),
+    date:        parseDate(raw.date ?? raw.created_at ?? raw.transaction_date ?? raw.competence_date),
+    description: String(raw.description ?? raw.title ?? raw.memo ?? raw.name ?? ""),
     amount:      Math.abs(rawAmount),
     direction,
     balance:     raw.balance != null ? Number(raw.balance) : null,
@@ -195,6 +195,7 @@ function extractItems(json: unknown): CoraRawEntry[] {
   if (Array.isArray(obj.items))        return obj.items as CoraRawEntry[];
   if (Array.isArray(obj.transactions)) return obj.transactions as CoraRawEntry[];
   if (Array.isArray(obj.data))         return obj.data as CoraRawEntry[];
+  if (Array.isArray(obj.entries))      return obj.entries as CoraRawEntry[];
   return [];
 }
 
@@ -206,7 +207,8 @@ export async function fetchCoraStatement(
   const creds = credsForAccount(account);
   const token = await getAccessToken(creds);
 
-  const url = `${BASE}/bank-statement/statement?startDate=${startDate}&endDate=${endDate}`;
+  // Cora uses 'start' and 'end' (not 'startDate'/'endDate')
+  const url = `${BASE}/bank-statement/statement?start=${startDate}&end=${endDate}&perPage=200`;
   const { status, body } = await httpsRequest(
     "GET",
     url,
@@ -234,7 +236,7 @@ async function fetchBalance(creds: CoraCredentials): Promise<CoraBalance> {
   const token = await getAccessToken(creds);
   const { status, body } = await httpsRequest(
     "GET",
-    `${BASE}/third-party/account/balance`,
+    `${BASE}/bank-balance`,
     { "Authorization": `Bearer ${token}`, "Accept": "application/json" },
     creds,
   );
@@ -244,11 +246,17 @@ async function fetchBalance(creds: CoraCredentials): Promise<CoraBalance> {
   }
 
   const json = JSON.parse(body) as Record<string, unknown>;
+  // Cora may return amounts in centavos (integer) or reais (float)
+  // Detect centavos: if available > 100_000 and has no decimal, assume centavos
+  const raw = Number(json.available ?? json.balance ?? json.available_amount ?? json.availableAmount ?? 0);
+  const rawBlocked = json.blocked != null ? Number(json.blocked) : (json.blocked_amount != null ? Number(json.blocked_amount) : null);
+  const rawTotal   = json.total   != null ? Number(json.total)   : null;
+
   return {
-    available: Number(json.available ?? json.balance ?? 0),
-    blocked:   json.blocked != null ? Number(json.blocked)  : null,
-    total:     json.total   != null ? Number(json.total)    : null,
-    updatedAt: String(json.updated_at ?? json.updatedAt ?? new Date().toISOString()),
+    available: raw,
+    blocked:   rawBlocked,
+    total:     rawTotal,
+    updatedAt: String(json.updated_at ?? json.updatedAt ?? json.timestamp ?? new Date().toISOString()),
   };
 }
 
