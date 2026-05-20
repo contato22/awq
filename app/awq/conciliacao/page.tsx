@@ -14,6 +14,7 @@
 import Link from "next/link";
 import Header from "@/components/Header";
 import BankReconciliationBoard from "@/components/BankReconciliationBoard";
+import CoraStatusPanel from "@/components/CoraStatusPanel";
 import { getAllTransactions, getAllDocuments } from "@/lib/financial-db";
 import {
   AlertCircle,
@@ -28,7 +29,12 @@ import {
   Zap,
 } from "lucide-react";
 
-const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
+const IS_STATIC       = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
+const CORA_CONFIGURED = !!(
+  process.env.CORA_CLIENT_ID &&
+  process.env.CORA_CERT &&
+  process.env.CORA_KEY
+);
 
 function KpiCard({
   label,
@@ -161,10 +167,16 @@ export default async function ConciliacaoPage() {
             </div>
           )}
 
+          {/* ── Painel Cora (quando integração está configurada) ── */}
+          {CORA_CONFIGURED && (
+            <CoraStatusPanel transactions={transactions} />
+          )}
+
           {/* Painel de conciliação — layout lado a lado (banco vs. sistema) */}
           <BankReconciliationBoard
             initialTransactions={transactions}
             isStatic={IS_STATIC}
+            coraConfigured={CORA_CONFIGURED}
           />
         </section>
 
