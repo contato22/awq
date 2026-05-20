@@ -37,7 +37,7 @@ const API_BASE = CORA_ENV === "stage"
 
 const TOKEN_BASE = CORA_ENV === "stage"
   ? "https://api.stage.cora.com.br"
-  : "https://api.cora.com.br";
+  : "https://matls-clients.api.cora.com.br";
 
 // ─── Per-account credentials ──────────────────────────────────────────────────
 
