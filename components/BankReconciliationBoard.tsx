@@ -36,6 +36,7 @@ import {
   ChevronUp,
   CheckCircle2,
   Loader2,
+  RefreshCw,
   Search,
   Upload,
   X,
@@ -224,9 +225,11 @@ function importedToBankTx(t: ImportedTransaction): BankTransaction {
 export default function BankReconciliationBoard({
   initialTransactions,
   isStatic = false,
+  coraConfigured = false,
 }: {
   initialTransactions: BankTransaction[];
   isStatic?: boolean;
+  coraConfigured?: boolean;
 }) {
   const [transactions, setTransactions] = useState<BankTransaction[]>(initialTransactions);
   const [apArSnaps, setApArSnaps]       = useState<ApArSnap[]>([]);
@@ -235,6 +238,13 @@ export default function BankReconciliationBoard({
   const [search, setSearch]             = useState("");
   const [selectedAccount, setSelectedAccount] = useState("todos");
   const [selectedMonth, setSelectedMonth]     = useState(() => {
+    // Default to the most recent month with transactions, or current month if none
+    const dates = initialTransactions.map((t) => t.transactionDate).filter(Boolean).sort();
+    if (dates.length > 0) {
+      const last = dates[dates.length - 1];
+      const d = new Date(last + "T12:00:00");
+      return { year: d.getFullYear(), month: d.getMonth() };
+    }
     const n = new Date();
     return { year: n.getFullYear(), month: n.getMonth() };
   });
@@ -244,6 +254,7 @@ export default function BankReconciliationBoard({
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [isImporting, setIsImporting]   = useState(false);
   const [showRejected, setShowRejected] = useState(false);
+  const [isSyncing, setIsSyncing]       = useState(false);
   const [, startTransition]             = useTransition();
   const searchRef   = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -488,6 +499,38 @@ export default function BankReconciliationBoard({
     showToast("ok", `${fresh.length} transação(ões) importada(s) com sucesso.`);
   }
 
+  // ── Cora API sync ────────────────────────────────────────────────────────────
+  async function handleCoraSync() {
+    setIsSyncing(true);
+    try {
+      // Determine which account to sync based on current selection
+      const isJacqes = selectedAccount.includes("JACQES");
+      const res = await fetch("/api/cora/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          accountName: isJacqes ? "Conta PJ JACQES" : "Conta PJ AWQ Holding",
+          entity:      isJacqes ? "JACQES" : "AWQ_Holding",
+          startDate:   `${selectedMonth.year}-${String(selectedMonth.month + 1).padStart(2, "0")}-01`,
+          endDate:     new Date(selectedMonth.year, selectedMonth.month + 1, 0).toISOString().slice(0, 10),
+        }),
+      });
+      const data = await res.json() as { synced?: number; skipped?: number; error?: string };
+      if (!res.ok) throw new Error(data.error ?? "Falha na sincronização");
+      if (data.synced === 0) {
+        showToast("info", `Nenhuma transação nova. ${data.skipped ?? 0} já sincronizadas.`);
+      } else {
+        showToast("ok", `${data.synced} transação(ões) sincronizada(s) da Cora.`);
+        // Reload the page to show the new transactions from the server
+        window.location.reload();
+      }
+    } catch (err) {
+      showToast("err", err instanceof Error ? err.message : "Falha ao sincronizar com Cora");
+    } finally {
+      setIsSyncing(false);
+    }
+  }
+
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-4">
@@ -644,6 +687,16 @@ export default function BankReconciliationBoard({
             {isImporting ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
             {isImporting ? "Processando…" : "Importar CSV / PDF"}
           </button>
+          {coraConfigured && (
+            <button
+              onClick={() => void handleCoraSync()}
+              disabled={isSyncing}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-emerald-300 bg-emerald-50 text-sm text-emerald-700 hover:bg-emerald-100 disabled:opacity-50 transition-colors"
+            >
+              {isSyncing ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
+              {isSyncing ? "Sincronizando…" : "Sincronizar Cora"}
+            </button>
+          )}
         </div>
 
         {/* Right: month navigation + balance summary */}
