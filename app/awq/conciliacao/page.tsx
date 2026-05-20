@@ -14,6 +14,7 @@
 import Link from "next/link";
 import Header from "@/components/Header";
 import BankReconciliationBoard from "@/components/BankReconciliationBoard";
+import CoraStatusPanel from "@/components/CoraStatusPanel";
 import { getAllTransactions, getAllDocuments } from "@/lib/financial-db";
 import {
   AlertCircle,
@@ -164,6 +165,11 @@ export default async function ConciliacaoPage() {
                 {docsDone} extrato(s) processado(s) · {counts.total} transações extraídas
               </span>
             </div>
+          )}
+
+          {/* ── Painel Cora (quando integração está configurada) ── */}
+          {CORA_CONFIGURED && (
+            <CoraStatusPanel transactions={transactions} />
           )}
 
           {/* Painel de conciliação — layout lado a lado (banco vs. sistema) */}

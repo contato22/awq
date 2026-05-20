@@ -73,7 +73,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   // ── Fetch from Cora ───────────────────────────────────────────────────────
   let coraEntries: Awaited<ReturnType<typeof fetchCoraStatement>>;
   try {
-    coraEntries = await fetchCoraStatement(startDate, endDate);
+    coraEntries = await fetchCoraStatement(startDate, endDate, entity as "AWQ_Holding" | "JACQES");
   } catch (err) {
     console.error("[POST /api/cora/sync] fetch failed", err);
     return NextResponse.json(
