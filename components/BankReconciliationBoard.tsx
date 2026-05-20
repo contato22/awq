@@ -238,6 +238,13 @@ export default function BankReconciliationBoard({
   const [search, setSearch]             = useState("");
   const [selectedAccount, setSelectedAccount] = useState("todos");
   const [selectedMonth, setSelectedMonth]     = useState(() => {
+    // Default to the most recent month with transactions, or current month if none
+    const dates = initialTransactions.map((t) => t.transactionDate).filter(Boolean).sort();
+    if (dates.length > 0) {
+      const last = dates[dates.length - 1];
+      const d = new Date(last + "T12:00:00");
+      return { year: d.getFullYear(), month: d.getMonth() };
+    }
     const n = new Date();
     return { year: n.getFullYear(), month: n.getMonth() };
   });
