@@ -239,7 +239,7 @@ async function fetchBalance(creds: CoraCredentials): Promise<CoraBalance> {
   const { status, body } = await httpsRequest(
     "GET",
     `${BASE}/third-party/account/balance`,
-    { "Authorization": `Bearer ${token}`, "Accept": "application/json" },
+    { "Authorization": `Bearer ${token}`, "Accept": "application/json", "Content-Type": "application/json" },
     creds,
   );
 
@@ -250,14 +250,17 @@ async function fetchBalance(creds: CoraCredentials): Promise<CoraBalance> {
   }
 
   const json = JSON.parse(body) as Record<string, unknown>;
-  const raw = Number(json.available ?? json.balance ?? json.available_amount ?? json.availableAmount ?? 0);
-  const rawBlocked = json.blocked != null ? Number(json.blocked) : (json.blocked_amount != null ? Number(json.blocked_amount) : null);
-  const rawTotal   = json.total   != null ? Number(json.total)   : null;
+  // Cora returns amounts in centavos → divide by 100 to get BRL
+  // Response fields: balance (available), blockedBalance
+  const rawBalance = Number(json.balance ?? json.available ?? json.available_amount ?? json.availableAmount ?? 0) / 100;
+  const rawBlocked = json.blockedBalance != null ? Number(json.blockedBalance) / 100
+    : json.blocked != null ? Number(json.blocked) / 100
+    : null;
 
   return {
-    available: raw,
+    available: rawBalance,
     blocked:   rawBlocked,
-    total:     rawTotal,
+    total:     rawBlocked != null ? rawBalance + rawBlocked : null,
     updatedAt: String(json.updated_at ?? json.updatedAt ?? json.timestamp ?? new Date().toISOString()),
   };
 }
