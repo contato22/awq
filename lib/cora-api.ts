@@ -169,23 +169,42 @@ function parseDate(raw: unknown): string {
 function parseEntry(raw: CoraRawEntry): CoraStatementEntry {
   const rawType = String(raw.type ?? raw.nature ?? raw.entry_type ?? "").toUpperCase();
   const direction: "credit" | "debit" = rawType.includes("DEBIT") ? "debit" : "credit";
-  const rawAmount = Number(raw.amount ?? raw.value ?? raw.total_amount ?? 0);
+
+  // Cora amounts are in centavos → divide by 100
+  const rawAmount = Number(raw.amount ?? raw.value ?? raw.total_amount ?? 0) / 100;
+
+  // Cora nests description, counterparty, and category inside transaction{}
+  const tx = raw.transaction as Record<string, unknown> | undefined ?? {} as Record<string, unknown>;
+  const cp = tx.counterParty as Record<string, unknown> | undefined ?? {} as Record<string, unknown>;
+  const cat = tx.category as Record<string, unknown> | undefined ?? {} as Record<string, unknown>;
+
+  const description = String(
+    (tx.description && String(tx.description)) ||
+    (raw.description && String(raw.description)) ||
+    (tx.type && String(tx.type)) ||
+    raw.title || raw.memo || raw.name || "",
+  );
+
+  const counterparty =
+    (cp.name ? String(cp.name) : null) ??
+    (raw.counterparty ? String(raw.counterparty) : null) ??
+    (raw.payer ? String(raw.payer) : null) ??
+    (raw.recipient ? String(raw.recipient) : null);
+
+  const category =
+    (cat.main ? String(cat.main) : null) ??
+    (cat.sub  ? String(cat.sub)  : null) ??
+    (raw.category ? String(raw.category) : null);
 
   return {
     id:          String(raw.id ?? raw.transaction_id ?? raw.entry_id ?? ""),
-    date:        parseDate(raw.date ?? raw.created_at ?? raw.transaction_date ?? raw.competence_date),
-    description: String(raw.description ?? raw.title ?? raw.memo ?? raw.name ?? ""),
+    date:        parseDate(raw.createdAt ?? raw.date ?? raw.created_at ?? raw.transaction_date),
+    description,
     amount:      Math.abs(rawAmount),
     direction,
-    balance:     raw.balance != null ? Number(raw.balance) : null,
-    counterparty: raw.counterparty
-      ? String(raw.counterparty)
-      : raw.payer
-        ? String(raw.payer)
-        : raw.recipient
-          ? String(raw.recipient)
-          : null,
-    category: raw.category ? String(raw.category) : null,
+    balance:     null, // Cora does not provide per-entry running balance
+    counterparty,
+    category,
   };
 }
 
