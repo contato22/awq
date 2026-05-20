@@ -16,6 +16,7 @@
 //   "stage"      → api.stage.cora.com.br   (sandbox, use stage credentials)
 //   "production" → matls-clients.api.cora.com.br  (live data)
 //
+// Token endpoint: POST /token (not /oauth/token)
 // Docs: https://developers.cora.com.br/docs/instrucoes-iniciais
 //
 // NOTE: Node.js fetch does not support mTLS agents — this module uses
@@ -31,11 +32,7 @@ function env(key: string) {
 
 const CORA_ENV = (process.env.CORA_ENV ?? "production") as "stage" | "production";
 
-const API_BASE = CORA_ENV === "stage"
-  ? "https://api.stage.cora.com.br"
-  : "https://matls-clients.api.cora.com.br";
-
-const TOKEN_BASE = CORA_ENV === "stage"
+const BASE = CORA_ENV === "stage"
   ? "https://api.stage.cora.com.br"
   : "https://matls-clients.api.cora.com.br";
 
@@ -52,7 +49,6 @@ function credsForAccount(account: "AWQ_Holding" | "JACQES" = "AWQ_Holding"): Cor
     const jId   = env("CORA_JACQES_CLIENT_ID");
     const jCert = env("CORA_JACQES_CERT");
     const jKey  = env("CORA_JACQES_KEY");
-    // Fall back to primary credentials if JACQES-specific ones are not set
     if (jId && jCert && jKey) return { clientId: jId, cert: jCert, key: jKey };
   }
   return {
@@ -127,7 +123,7 @@ async function getAccessToken(creds: CoraCredentials): Promise<string> {
 
   const { status, body } = await httpsRequest(
     "POST",
-    `${TOKEN_BASE}/oauth/token`,
+    `${BASE}/token`,
     {
       "Content-Type": "application/x-www-form-urlencoded",
       "Accept":       "application/json",
@@ -216,7 +212,7 @@ export async function fetchCoraStatement(
   const creds = credsForAccount(account);
   const token = await getAccessToken(creds);
 
-  const url = `${API_BASE}/bank-statement/statement?startDate=${startDate}&endDate=${endDate}`;
+  const url = `${BASE}/bank-statement/statement?startDate=${startDate}&endDate=${endDate}`;
   const { status, body } = await httpsRequest(
     "GET",
     url,
@@ -244,7 +240,7 @@ async function fetchBalance(creds: CoraCredentials): Promise<CoraBalance> {
   const token = await getAccessToken(creds);
   const { status, body } = await httpsRequest(
     "GET",
-    `${API_BASE}/bank-statement/balance`,
+    `${BASE}/bank-statement/balance`,
     { "Authorization": `Bearer ${token}`, "Accept": "application/json" },
     creds,
   );
