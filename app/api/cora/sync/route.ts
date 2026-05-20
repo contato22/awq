@@ -24,6 +24,7 @@ import { fetchCoraStatement, isCoraConfigured } from "@/lib/cora-api";
 import { getAllTransactions, saveTransactions } from "@/lib/financial-db";
 import { classifyTransaction } from "@/lib/financial-classifier";
 import type { BankTransaction, EntityLayer } from "@/lib/financial-db";
+import { USE_SUPABASE } from "@/lib/supabase";
 
 export const runtime = "nodejs";
 
@@ -52,6 +53,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       {
         error: "Integração Cora não configurada.",
         hint: "Configure as variáveis CORA_CLIENT_ID, CORA_CERT e CORA_KEY no painel do Vercel (ou .env.local).",
+      },
+      { status: 501 },
+    );
+  }
+
+  // ── Database configured? ──────────────────────────────────────────────────
+  if (!USE_SUPABASE) {
+    return NextResponse.json(
+      {
+        error: "Banco de dados não configurado.",
+        hint: "Configure SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY no painel do Vercel. Sem isso, os dados não podem ser salvos (o filesystem do Vercel é read-only).",
       },
       { status: 501 },
     );
