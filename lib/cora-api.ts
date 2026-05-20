@@ -216,6 +216,8 @@ export async function fetchCoraStatement(
     creds,
   );
 
+  console.error("[cora statement raw]", status, body.slice(0, 2000));
+
   if (status !== 200) {
     throw new Error(`Cora statement error (HTTP ${status}): ${body}`);
   }
@@ -240,6 +242,8 @@ async function fetchBalance(creds: CoraCredentials): Promise<CoraBalance> {
     { "Authorization": `Bearer ${token}`, "Accept": "application/json" },
     creds,
   );
+
+  console.error("[cora balance raw]", status, body);
 
   if (status !== 200) {
     throw new Error(`Cora balance error (HTTP ${status}): ${body}`);
