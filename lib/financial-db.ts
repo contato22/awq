@@ -512,9 +512,7 @@ export async function saveTransactions(transactions: BankTransaction[]): Promise
             classified_at:               t.classifiedAt,
           },
           { onConflict: "id" }
-        )
-        .select()
-        .single();
+        );
       if (error) throw error;
     }
     return;
