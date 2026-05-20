@@ -11,7 +11,7 @@
 //
 // Endpoints (matls-clients.api.cora.com.br):
 //   POST /token                           → OAuth2 token
-//   GET  /bank-balance                    → saldo disponível
+//   GET  /third-party/account/balance     → saldo disponível
 //   GET  /bank-statement/statement        → extrato (?start=&end=)
 //
 // Docs: https://developers.cora.com.br/docs/instrucoes-iniciais
@@ -238,7 +238,7 @@ async function fetchBalance(creds: CoraCredentials): Promise<CoraBalance> {
   const token = await getAccessToken(creds);
   const { status, body } = await httpsRequest(
     "GET",
-    `${BASE}/bank-balance`,
+    `${BASE}/third-party/account/balance`,
     { "Authorization": `Bearer ${token}`, "Accept": "application/json" },
     creds,
   );
@@ -250,8 +250,6 @@ async function fetchBalance(creds: CoraCredentials): Promise<CoraBalance> {
   }
 
   const json = JSON.parse(body) as Record<string, unknown>;
-  // Cora may return amounts in centavos (integer) or reais (float)
-  // Detect centavos: if available > 100_000 and has no decimal, assume centavos
   const raw = Number(json.available ?? json.balance ?? json.available_amount ?? json.availableAmount ?? 0);
   const rawBlocked = json.blocked != null ? Number(json.blocked) : (json.blocked_amount != null ? Number(json.blocked_amount) : null);
   const rawTotal   = json.total   != null ? Number(json.total)   : null;

@@ -88,7 +88,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     // 2. Get balance (raw)
     const balRes = await httpsRequest(
       "GET",
-      `${BASE}/bank-balance`,
+      `${BASE}/third-party/account/balance`,
       { "Authorization": `Bearer ${token}`, "Accept": "application/json" },
       cert,
       key,
