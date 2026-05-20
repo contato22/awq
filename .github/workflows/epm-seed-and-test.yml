@@ -47,25 +47,24 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Check secret present
+      - name: Seed EPM tables (idempotente)
         run: |
-          if [ -z "${{ secrets.SUPABASE_DB_URL }}" ]; then
-            echo "⚠️  SUPABASE_DB_URL secret não configurado — skipping seed e testes."
+          if [ -z "$DATABASE_URL" ]; then
+            echo "⚠️  SUPABASE_DB_URL secret não configurado — skipping seed."
             echo "Adicione em: Settings → Secrets → Actions → SUPABASE_DB_URL"
-            echo "Valor: postgresql://postgres:[SENHA]@db.gqkgsoglgubmaborixfb.supabase.co:5432/postgres"
             exit 0
           fi
-          echo "✓ SUPABASE_DB_URL disponível — rodando seed + testes contra Supabase real."
-
-      - name: Seed EPM tables (idempotente)
-        if: ${{ secrets.SUPABASE_DB_URL != '' }}
-        run: npm run seed:epm
+          echo "✓ DATABASE_URL disponível — seedando tabelas EPM..."
+          npm run seed:epm
         env:
           DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
 
       - name: Run EPM read/write tests
-        if: ${{ secrets.SUPABASE_DB_URL != '' }}
-        run: npm run test:epm
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "⚠️  SUPABASE_DB_URL não configurado — rodando apenas testes de fallback estático."
+          fi
+          npm run test:epm
         env:
           DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
 
