@@ -141,8 +141,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       await saveTransactions(newTransactions);
     } catch (err) {
       console.error("[POST /api/cora/sync] save failed", err);
+      const detail = err instanceof Error ? err.message : JSON.stringify(err);
       return NextResponse.json(
-        { error: "Transações recebidas da Cora mas falha ao salvar no banco de dados." },
+        { error: `Falha ao salvar no banco de dados: ${detail}` },
         { status: 500 },
       );
     }
