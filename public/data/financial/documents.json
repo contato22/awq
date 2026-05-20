@@ -1,1 +1,44 @@
-[]
+[
+  {
+    "id": "doc-cora-awq-2026-04",
+    "filename": "extrato-cora-awq-holding-mar-abr-2026.pdf",
+    "fileHash": "seed-cora-awq-holding-2026-04",
+    "bank": "Cora",
+    "accountName": "Conta PJ AWQ Holding",
+    "accountNumber": null,
+    "entity": "AWQ_Holding",
+    "periodStart": "2026-03-01",
+    "periodEnd": "2026-04-03",
+    "openingBalance": null,
+    "closingBalance": 8460.00,
+    "uploadedAt": "2026-04-03T21:39:00.000Z",
+    "uploadedBy": "seed",
+    "status": "done",
+    "errorMessage": null,
+    "transactionCount": 13,
+    "parserConfidence": "high",
+    "extractionNotes": "Extrato Cora AWQ Holding Mar–Abr 2026. Saldo confirmado por print bancário 03/04/2026 18:39.",
+    "blobUrl": null
+  },
+  {
+    "id": "doc-cora-jacqes-2026-04",
+    "filename": "extrato-cora-jacqes-mar-abr-2026.pdf",
+    "fileHash": "seed-cora-jacqes-2026-04",
+    "bank": "Cora",
+    "accountName": "Conta PJ JACQES",
+    "accountNumber": null,
+    "entity": "JACQES",
+    "periodStart": "2026-03-01",
+    "periodEnd": "2026-04-30",
+    "openingBalance": null,
+    "closingBalance": null,
+    "uploadedAt": "2026-04-30T18:00:00.000Z",
+    "uploadedBy": "seed",
+    "status": "done",
+    "errorMessage": null,
+    "transactionCount": 9,
+    "parserConfidence": "medium",
+    "extractionNotes": "Extrato Cora JACQES Mar–Abr 2026. Receitas baseadas em MRR confirmado via Notion CRM.",
+    "blobUrl": null
+  }
+]

@@ -289,7 +289,15 @@ export async function getAllDocuments(): Promise<FinancialDocument[]> {
       .select("*")
       .order("uploaded_at", { ascending: false });
     if (error) throw error;
-    return (data as Row[]).map(rowToDocument);
+    const rows = (data as Row[]).map(rowToDocument);
+    // Seed fallback: fresh Supabase deployment — return local JSON seed until real data is ingested
+    if (rows.length === 0) {
+      return readJSON<FinancialDocument[]>(DOCS_FILE, []).map((d) => ({
+        ...d,
+        blobUrl: (d as FinancialDocument & { blobUrl?: string | null }).blobUrl ?? null,
+      }));
+    }
+    return rows;
   }
   return readJSON<FinancialDocument[]>(DOCS_FILE, []).map((d) => ({
     ...d,
@@ -421,7 +429,15 @@ export async function getAllTransactions(): Promise<BankTransaction[]> {
       .select("*")
       .order("transaction_date", { ascending: false });
     if (error) throw error;
-    return (data as Row[]).map(rowToTransaction);
+    const rows = (data as Row[]).map(rowToTransaction);
+    // Seed fallback: fresh Supabase deployment — return local JSON seed until real data is ingested
+    if (rows.length === 0) {
+      return readJSON<BankTransaction[]>(TXN_FILE, []).map((t) => ({
+        ...t,
+        reconciliationStatus: t.reconciliationStatus ?? "pendente",
+      }));
+    }
+    return rows;
   }
   // Backfill reconciliationStatus for legacy records that don't have it yet.
   return readJSON<BankTransaction[]>(TXN_FILE, []).map((t) => ({
