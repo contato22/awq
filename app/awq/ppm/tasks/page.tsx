@@ -878,7 +878,7 @@ export default function TasksPage() {
             <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center"><Search size={20} className="text-gray-400" /></div>
             <div className="text-center">
               <p className="text-sm font-semibold text-gray-700">Nenhuma tarefa encontrada</p>
-              <p className="text-xs text-gray-400 mt-1">Sem resultados para <span className="font-medium text-gray-600">"{search}"</span></p>
+              <p className="text-xs text-gray-400 mt-1">Sem resultados para <span className="font-medium text-gray-600">&quot;{search}&quot;</span></p>
             </div>
             <button onClick={() => setSearch("")} className="text-sm text-brand-600 hover:underline">Limpar busca</button>
           </div>
