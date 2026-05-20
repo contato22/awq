@@ -17,12 +17,14 @@ on:
   push:
     branches:
       - main
+      - claude/check-epm-supabase-CYkWN
     paths:
       - "lib/epm-planning-db.ts"
       - "lib/db.ts"
       - "scripts/seed-epm-planning.ts"
       - "scripts/test-epm-db.ts"
       - "app/api/epm/planning/**"
+      - ".github/workflows/epm-seed-and-test.yml"
 
 permissions:
   contents: read
