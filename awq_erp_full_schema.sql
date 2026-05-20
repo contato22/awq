@@ -13,6 +13,8 @@
 --   7. erp_purchases       — Pedidos de Compra
 --   8. erp_contracts       — Contratos
 --   9. erp_time_entries    — Registro de Horas
+--  10. financial_documents — Documentos de Extrato Bancário (Cora API sync)
+--  11. bank_transactions   — Transações Bancárias (Cora API sync)
 --
 -- Projeto Supabase: kkhxxsrgsewjfvnnssyf
 -- Usuários: TEXT IDs mapeados de lib/auth-users.ts ("1"–"6")
@@ -310,3 +312,65 @@ CREATE POLICY erp_sales_orders_read         ON erp_sales_orders         FOR SELE
 CREATE POLICY erp_purchases_read            ON erp_purchases            FOR SELECT USING (true);
 CREATE POLICY erp_contracts_read            ON erp_contracts            FOR SELECT USING (true);
 CREATE POLICY erp_time_entries_read         ON erp_time_entries         FOR SELECT USING (true);
+
+-- =============================================================================
+-- 10. DOCUMENTOS FINANCEIROS + TRANSAÇÕES BANCÁRIAS (Cora API sync)
+-- =============================================================================
+-- These tables live in this project (kkhxxsrgsewjfvnnssyf) because the dedicated
+-- financial-DB project (gqkgsoglgubmaborixfb) has no service-role key configured
+-- in Vercel. The anon key for THIS project IS available (NEXT_PUBLIC_SUPABASE_ANON_KEY),
+-- so financial-db.ts falls back to supabaseClient (anon) when supabase (service role)
+-- is null. No RLS — access is controlled by explicit GRANT statements below.
+
+CREATE TABLE IF NOT EXISTS financial_documents (
+  id                  TEXT PRIMARY KEY,
+  filename            TEXT NOT NULL,
+  file_hash           TEXT NOT NULL UNIQUE,
+  bank                TEXT NOT NULL,
+  account_name        TEXT NOT NULL,
+  account_number      TEXT,
+  entity              TEXT NOT NULL,
+  period_start        TEXT,
+  period_end          TEXT,
+  opening_balance     NUMERIC,
+  closing_balance     NUMERIC,
+  uploaded_at         TEXT NOT NULL,
+  uploaded_by         TEXT NOT NULL,
+  status              TEXT NOT NULL DEFAULT 'received',
+  error_message       TEXT,
+  transaction_count   INTEGER NOT NULL DEFAULT 0,
+  parser_confidence   TEXT,
+  extraction_notes    TEXT,
+  blob_url            TEXT
+);
+
+CREATE TABLE IF NOT EXISTS bank_transactions (
+  id                          TEXT PRIMARY KEY,
+  document_id                 TEXT NOT NULL REFERENCES financial_documents(id),
+  bank                        TEXT NOT NULL,
+  account_name                TEXT NOT NULL,
+  entity                      TEXT NOT NULL,
+  transaction_date            TEXT NOT NULL,
+  description_original        TEXT NOT NULL,
+  amount                      NUMERIC NOT NULL,
+  direction                   TEXT NOT NULL,
+  running_balance             NUMERIC,
+  counterparty_name           TEXT,
+  managerial_category         TEXT NOT NULL,
+  classification_confidence   TEXT NOT NULL,
+  classification_note         TEXT,
+  is_intercompany             BOOLEAN NOT NULL DEFAULT false,
+  intercompany_match_id       TEXT,
+  excluded_from_consolidated  BOOLEAN NOT NULL DEFAULT false,
+  reconciliation_status       TEXT NOT NULL DEFAULT 'pendente',
+  extracted_at                TEXT NOT NULL,
+  classified_at               TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_fin_bt_document_id ON bank_transactions(document_id);
+CREATE INDEX IF NOT EXISTS idx_fin_bt_entity       ON bank_transactions(entity);
+CREATE INDEX IF NOT EXISTS idx_fin_bt_date         ON bank_transactions(transaction_date);
+
+-- Grant full access to anon and authenticated roles (no RLS — API routes handle auth via NextAuth).
+GRANT ALL ON financial_documents TO anon, authenticated;
+GRANT ALL ON bank_transactions   TO anon, authenticated;

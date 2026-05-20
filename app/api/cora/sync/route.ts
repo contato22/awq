@@ -24,7 +24,7 @@ import { fetchCoraStatement, isCoraConfigured } from "@/lib/cora-api";
 import { getAllTransactions, saveTransactions } from "@/lib/financial-db";
 import { classifyTransaction } from "@/lib/financial-classifier";
 import type { BankTransaction, EntityLayer } from "@/lib/financial-db";
-import { USE_SUPABASE } from "@/lib/supabase";
+import { USE_SUPABASE, USE_ANON_CLIENT } from "@/lib/supabase";
 import { USE_DB } from "@/lib/db";
 
 export const runtime = "nodejs";
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 
   // ── Database configured? ──────────────────────────────────────────────────────────────────────
-  if (!USE_SUPABASE && !USE_DB) {
+  if (!USE_SUPABASE && !USE_ANON_CLIENT && !USE_DB) {
     return NextResponse.json(
       {
         error: "Banco de dados não configurado.",
