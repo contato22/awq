@@ -14,8 +14,11 @@
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
-import { supabase } from "@/lib/supabase";
+import { supabase, anonClient } from "@/lib/supabase";
 import { sql } from "@/lib/db";
+
+// Prefer service role → anon key fallback → direct postgres → JSON (local only).
+const db = supabase ?? anonClient;
 
 // ─── Directory (filesystem adapter only) ─────────────────────────────────────
 
@@ -285,8 +288,8 @@ function rowToTransaction(r: Row): BankTransaction {
 // ─── Documents CRUD ───────────────────────────────────────────────────────────
 
 export async function getAllDocuments(): Promise<FinancialDocument[]> {
-  if (supabase) {
-    const { data, error } = await supabase
+  if (db) {
+    const { data, error } = await db!
       .from("financial_documents")
       .select("*")
       .order("uploaded_at", { ascending: false });
@@ -308,8 +311,8 @@ export async function getAllDocuments(): Promise<FinancialDocument[]> {
 }
 
 export async function getDocument(id: string): Promise<FinancialDocument | null> {
-  if (supabase) {
-    const { data, error } = await supabase
+  if (db) {
+    const { data, error } = await db!
       .from("financial_documents")
       .select("*")
       .eq("id", id)
@@ -327,8 +330,8 @@ export async function getDocument(id: string): Promise<FinancialDocument | null>
 }
 
 export async function saveDocument(doc: FinancialDocument): Promise<void> {
-  if (supabase) {
-    const { error } = await supabase
+  if (db) {
+    const { error } = await db!
       .from("financial_documents")
       .upsert(
         {
@@ -374,7 +377,7 @@ export async function updateDocumentStatus(
   status: DocumentStatus,
   patch?: Partial<FinancialDocument>
 ): Promise<void> {
-  if (supabase) {
+  if (db) {
     const p = patch ?? {};
     const updatePayload: Record<string, unknown> = { status };
     if (p.errorMessage     !== undefined) updatePayload.error_message     = p.errorMessage;
@@ -387,7 +390,7 @@ export async function updateDocumentStatus(
     if (p.extractionNotes  !== undefined) updatePayload.extraction_notes  = p.extractionNotes;
     if (p.transactionCount !== undefined) updatePayload.transaction_count = p.transactionCount;
     if (p.blobUrl          !== undefined) updatePayload.blob_url          = p.blobUrl;
-    const { error } = await supabase
+    const { error } = await db!
       .from("financial_documents")
       .update(updatePayload)
       .eq("id", id)
@@ -404,8 +407,8 @@ export async function updateDocumentStatus(
 }
 
 export async function findDuplicateDocument(fileHash: string): Promise<FinancialDocument | null> {
-  if (supabase) {
-    const { data, error } = await supabase
+  if (db) {
+    const { data, error } = await db!
       .from("financial_documents")
       .select("*")
       .eq("file_hash", fileHash)
@@ -425,8 +428,8 @@ export async function findDuplicateDocument(fileHash: string): Promise<Financial
 // ─── Transactions CRUD ────────────────────────────────────────────────────────
 
 export async function getAllTransactions(): Promise<BankTransaction[]> {
-  if (supabase) {
-    const { data, error } = await supabase
+  if (db) {
+    const { data, error } = await db!
       .from("bank_transactions")
       .select("*")
       .order("transaction_date", { ascending: false });
@@ -455,8 +458,8 @@ export async function getAllTransactions(): Promise<BankTransaction[]> {
 }
 
 export async function getTransactionsByDocument(documentId: string): Promise<BankTransaction[]> {
-  if (supabase) {
-    const { data, error } = await supabase
+  if (db) {
+    const { data, error } = await db!
       .from("bank_transactions")
       .select("*")
       .eq("document_id", documentId)
@@ -468,8 +471,8 @@ export async function getTransactionsByDocument(documentId: string): Promise<Ban
 }
 
 export async function getTransactionsByEntity(entity: EntityLayer): Promise<BankTransaction[]> {
-  if (supabase) {
-    const { data, error } = await supabase
+  if (db) {
+    const { data, error } = await db!
       .from("bank_transactions")
       .select("*")
       .eq("entity", entity)
@@ -488,8 +491,8 @@ async function ensureCoraDocument(docId: string, transactions: BankTransaction[]
   const count = transactions.filter((t) => t.documentId === docId).length;
   const fileHash = crypto.createHash("sha256").update(docId).digest("hex");
 
-  if (supabase) {
-    const { error } = await supabase.from("financial_documents").upsert(
+  if (db) {
+    const { error } = await db!.from("financial_documents").upsert(
       {
         id:                docId,
         filename:          "cora-api-sync",
@@ -525,20 +528,20 @@ export async function saveTransactions(transactions: BankTransaction[]): Promise
   const docIds = Array.from(new Set(transactions.map((t) => t.documentId)));
   const now = new Date().toISOString();
 
-  if (supabase) {
+  if (db) {
     // Ensure financial_documents rows exist for Cora API synthetic document IDs (FK requirement)
     for (const docId of docIds) {
       await ensureCoraDocument(docId, transactions, now);
     }
     for (const docId of docIds) {
-      const { error: delError } = await supabase
+      const { error: delError } = await db!
         .from("bank_transactions")
         .delete()
         .eq("document_id", docId);
       if (delError) throw delError;
     }
     for (const t of transactions) {
-      const { error } = await supabase
+      const { error } = await db!
         .from("bank_transactions")
         .upsert(
           {
@@ -617,7 +620,7 @@ export async function updateTransaction(
   id: string,
   patch: Partial<BankTransaction>
 ): Promise<void> {
-  if (supabase) {
+  if (db) {
     const p = patch;
     const updatePayload: Record<string, unknown> = {};
     if (p.managerialCategory       !== undefined) updatePayload.managerial_category        = p.managerialCategory;
@@ -629,7 +632,7 @@ export async function updateTransaction(
     if (p.excludedFromConsolidated !== undefined) updatePayload.excluded_from_consolidated = p.excludedFromConsolidated;
     if (p.reconciliationStatus     !== undefined) updatePayload.reconciliation_status      = p.reconciliationStatus;
     if (p.classifiedAt             !== undefined) updatePayload.classified_at              = p.classifiedAt;
-    const { error } = await supabase
+    const { error } = await db!
       .from("bank_transactions")
       .update(updatePayload)
       .eq("id", id)
