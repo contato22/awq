@@ -22,7 +22,163 @@ import {
   Building2, Plus, Trash2, Search, X, Wallet,
   TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight,
   CreditCard, ChevronDown, ChevronUp, BarChart3, FileUp,
+  ExternalLink, Loader2, RefreshCw, AlertTriangle, Wifi,
 } from "lucide-react";
+
+// ─── Cora live balance section ────────────────────────────────────────────────
+
+interface CoraBalance {
+  account: string;
+  available: number;
+  blocked: number | null;
+  total: number | null;
+  updatedAt: string;
+  error?: string;
+}
+
+const CORA_ACCOUNTS = [
+  { key: "AWQ_Holding", label: "Conta PJ AWQ Holding", entity: "AWQ_Holding" },
+  { key: "JACQES",      label: "Conta PJ JACQES",      entity: "JACQES"      },
+] as const;
+
+function CoraLiveBalances() {
+  const [balances, setBalances]   = useState<Record<string, CoraBalance | null>>({});
+  const [loading, setLoading]     = useState<Record<string, boolean>>({ AWQ_Holding: true, JACQES: true });
+  const [errors, setErrors]       = useState<Record<string, string | null>>({});
+  const [lastUpdate, setLastUpdate] = useState<string | null>(null);
+
+  async function fetchAll() {
+    setLoading({ AWQ_Holding: true, JACQES: true });
+    setErrors({});
+    for (const acc of CORA_ACCOUNTS) {
+      try {
+        const res  = await fetch(`/api/cora/balance?account=${acc.key}`);
+        const data = await res.json() as CoraBalance;
+        if (!res.ok) throw new Error(data.error ?? "Erro ao buscar saldo");
+        setBalances((p) => ({ ...p, [acc.key]: data }));
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Falha ao buscar saldo";
+        setErrors((p) => ({ ...p, [acc.key]: msg }));
+        setBalances((p) => ({ ...p, [acc.key]: null }));
+      } finally {
+        setLoading((p) => ({ ...p, [acc.key]: false }));
+      }
+    }
+    setLastUpdate(new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }));
+  }
+
+  useEffect(() => { void fetchAll(); }, []);
+
+  const totalAvailable = Object.values(balances).reduce(
+    (s, b) => s + (b?.available ?? 0), 0
+  );
+  const anyLoaded = Object.values(balances).some((b) => b !== null);
+
+  return (
+    <div className="rounded-xl border border-emerald-200 bg-white overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 py-3 bg-emerald-50 border-b border-emerald-200">
+        <div className="flex items-center gap-2.5">
+          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <Wifi size={14} className="text-emerald-600" />
+          <span className="text-sm font-bold text-emerald-900">Cora Bank — Saldo em Tempo Real</span>
+        </div>
+        <div className="flex items-center gap-3">
+          {lastUpdate && (
+            <span className="text-[11px] text-gray-400">Atualizado às {lastUpdate}</span>
+          )}
+          <button
+            onClick={() => void fetchAll()}
+            disabled={Object.values(loading).some(Boolean)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-300 bg-white text-emerald-700 text-xs font-semibold hover:bg-emerald-50 disabled:opacity-50 transition-colors"
+          >
+            {Object.values(loading).some(Boolean)
+              ? <Loader2 size={12} className="animate-spin" />
+              : <RefreshCw size={12} />}
+            Atualizar
+          </button>
+          <a
+            href="https://app.cora.com.br"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-colors"
+          >
+            <ExternalLink size={12} /> Abrir Cora
+          </a>
+        </div>
+      </div>
+
+      <div className="p-5 grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Total across accounts */}
+        {anyLoaded && (
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 flex flex-col justify-between">
+            <div className="text-[11px] font-semibold text-emerald-700 uppercase tracking-wide mb-1">
+              Total em Cora
+            </div>
+            <div className="text-2xl font-bold text-emerald-900">
+              {totalAvailable.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+            </div>
+            <div className="text-[11px] text-emerald-600 mt-1">Soma de todas as contas</div>
+          </div>
+        )}
+
+        {/* Per-account cards */}
+        {CORA_ACCOUNTS.map((acc) => {
+          const bal  = balances[acc.key];
+          const err  = errors[acc.key];
+          const load = loading[acc.key];
+
+          return (
+            <div key={acc.key} className="rounded-xl border border-gray-200 bg-white p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-bold text-gray-900">{acc.label}</div>
+                  <div className="text-[10px] text-gray-400 mt-0.5">Cora Bank · CoraPro</div>
+                </div>
+                <a
+                  href="https://app.cora.com.br"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg border border-gray-200 text-gray-500 hover:text-emerald-600 hover:border-emerald-300 hover:bg-emerald-50 text-[11px] transition-colors"
+                  title="Abrir no Cora"
+                >
+                  <ExternalLink size={11} /> Portal
+                </a>
+              </div>
+
+              {load ? (
+                <div className="flex items-center gap-2 text-emerald-600 text-sm">
+                  <Loader2 size={14} className="animate-spin" />
+                  <span className="text-xs text-gray-500">Buscando saldo…</span>
+                </div>
+              ) : err ? (
+                <div className="flex items-start gap-2 p-2 bg-amber-50 rounded-lg">
+                  <AlertTriangle size={13} className="text-amber-500 shrink-0 mt-0.5" />
+                  <span className="text-[11px] text-amber-700 leading-snug">{err}</span>
+                </div>
+              ) : bal ? (
+                <>
+                  <div>
+                    <div className="text-xl font-bold text-gray-900">
+                      {bal.available.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                    </div>
+                    <div className="text-[11px] text-gray-400 mt-0.5">Disponível</div>
+                  </div>
+                  {bal.blocked != null && bal.blocked > 0 && (
+                    <div className="text-[11px] text-gray-500">
+                      Bloqueado:{" "}
+                      <strong>{bal.blocked.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong>
+                    </div>
+                  )}
+                </>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -206,6 +362,9 @@ export default function BankAccountsPage() {
         subtitle="Saldos manuais · Visão de caixa local · Dados em localStorage"
       />
       <div className="px-8 py-6 space-y-5">
+
+        {/* ── Cora live balances ───────────────────────────────────────────── */}
+        <CoraLiveBalances />
 
         {/* ── Ingest callout ────────────────────────────────────────────────── */}
         <div className="flex items-center justify-between p-3 bg-brand-50 border border-brand-200 rounded-xl">
