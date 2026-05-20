@@ -28,7 +28,12 @@ import {
   Zap,
 } from "lucide-react";
 
-const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
+const IS_STATIC       = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
+const CORA_CONFIGURED = !!(
+  process.env.CORA_CLIENT_ID &&
+  process.env.CORA_CERT &&
+  process.env.CORA_KEY
+);
 
 function KpiCard({
   label,
@@ -165,6 +170,7 @@ export default async function ConciliacaoPage() {
           <BankReconciliationBoard
             initialTransactions={transactions}
             isStatic={IS_STATIC}
+            coraConfigured={CORA_CONFIGURED}
           />
         </section>
 
