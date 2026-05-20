@@ -9,14 +9,11 @@
 //   - CORA_JACQES_CLIENT_ID / CORA_JACQES_CERT / CORA_JACQES_KEY
 //   If unset, JACQES calls fall back to the primary credentials.
 //
-// Credentials are issued by Cora in the app: Conta → Integrações via APIs.
-// Requires CoraPro plan (R$44,90/mês).
+// Endpoints (matls-clients.api.cora.com.br):
+//   POST /token                        → OAuth2 token
+//   GET  /third-party/account/balance  → saldo disponível
+//   GET  /bank-statement/statement     → extrato (startDate, endDate)
 //
-// Environments (CORA_ENV env var):
-//   "stage"      → api.stage.cora.com.br   (sandbox, use stage credentials)
-//   "production" → matls-clients.api.cora.com.br  (live data)
-//
-// Token endpoint: POST /token (not /oauth/token)
 // Docs: https://developers.cora.com.br/docs/instrucoes-iniciais
 //
 // NOTE: Node.js fetch does not support mTLS agents — this module uses
@@ -201,9 +198,6 @@ function extractItems(json: unknown): CoraRawEntry[] {
   return [];
 }
 
-/**
- * Fetch bank statement from Cora API for the given account.
- */
 export async function fetchCoraStatement(
   startDate: string,
   endDate: string,
@@ -240,7 +234,7 @@ async function fetchBalance(creds: CoraCredentials): Promise<CoraBalance> {
   const token = await getAccessToken(creds);
   const { status, body } = await httpsRequest(
     "GET",
-    `${BASE}/bank-statement/balance`,
+    `${BASE}/third-party/account/balance`,
     { "Authorization": `Bearer ${token}`, "Accept": "application/json" },
     creds,
   );
@@ -258,12 +252,10 @@ async function fetchBalance(creds: CoraCredentials): Promise<CoraBalance> {
   };
 }
 
-/** Fetch balance for the primary (AWQ Holding) Cora account. */
 export async function fetchCoraBalance(): Promise<CoraBalance> {
   return fetchBalance(credsForAccount("AWQ_Holding"));
 }
 
-/** Fetch balance for the specified account. Falls back to primary creds for JACQES if not configured. */
 export async function fetchCoraBalanceForAccount(
   account: "AWQ_Holding" | "JACQES",
 ): Promise<CoraBalance> {
