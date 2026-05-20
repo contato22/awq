@@ -80,3 +80,132 @@ export async function initDB(): Promise<void> {
   await sql`CREATE INDEX IF NOT EXISTS idx_bt_document_id ON bank_transactions(document_id)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_bt_entity ON bank_transactions(entity)`;
 }
+
+// ─── EPM Planning schema bootstrap ───────────────────────────────────────────
+// Idempotent — safe to call on every cold start.
+
+export async function initEPMPlanningDB(): Promise<void> {
+  if (!sql) return;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS epm_bu_data (
+      id                TEXT PRIMARY KEY,
+      name              TEXT NOT NULL,
+      sub               TEXT NOT NULL,
+      color             TEXT NOT NULL,
+      accent_color      TEXT NOT NULL,
+      status            TEXT NOT NULL,
+      economic_type     TEXT NOT NULL,
+      revenue           NUMERIC NOT NULL DEFAULT 0,
+      gross_profit      NUMERIC NOT NULL DEFAULT 0,
+      ebitda            NUMERIC NOT NULL DEFAULT 0,
+      net_income        NUMERIC NOT NULL DEFAULT 0,
+      cash_generated    NUMERIC NOT NULL DEFAULT 0,
+      cash_balance      NUMERIC NOT NULL DEFAULT 0,
+      customers         INTEGER NOT NULL DEFAULT 0,
+      ftes              INTEGER NOT NULL DEFAULT 0,
+      capital_allocated NUMERIC NOT NULL DEFAULT 0,
+      roic              NUMERIC NOT NULL DEFAULT 0,
+      budget_revenue    NUMERIC NOT NULL DEFAULT 0,
+      href_overview     TEXT NOT NULL DEFAULT '',
+      href_financial    TEXT NOT NULL DEFAULT '',
+      href_customers    TEXT NOT NULL DEFAULT '',
+      href_unit_econ    TEXT NOT NULL DEFAULT '',
+      href_budget       TEXT NOT NULL DEFAULT '',
+      updated_at        TEXT NOT NULL
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS epm_venture_contracts (
+      id                   TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
+      counterparty         TEXT NOT NULL,
+      monthly_fee          NUMERIC NOT NULL DEFAULT 0,
+      duration_months      INTEGER NOT NULL DEFAULT 0,
+      total_contract_value NUMERIC NOT NULL DEFAULT 0,
+      arr                  NUMERIC NOT NULL DEFAULT 0,
+      start_date           TEXT,
+      status               TEXT NOT NULL DEFAULT 'active',
+      note                 TEXT NOT NULL DEFAULT '',
+      created_at           TEXT NOT NULL,
+      updated_at           TEXT NOT NULL
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS epm_monthly_revenue (
+      month       TEXT PRIMARY KEY,
+      jacqes      NUMERIC NOT NULL DEFAULT 0,
+      caza        NUMERIC NOT NULL DEFAULT 0,
+      advisor     NUMERIC NOT NULL DEFAULT 0,
+      is_forecast BOOLEAN NOT NULL DEFAULT false,
+      updated_at  TEXT NOT NULL
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS epm_category_budget (
+      id         TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
+      category   TEXT NOT NULL,
+      budget     NUMERIC NOT NULL DEFAULT 0,
+      actual     NUMERIC NOT NULL DEFAULT 0,
+      bu         TEXT NOT NULL DEFAULT '',
+      updated_at TEXT NOT NULL
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS epm_alloc_flags (
+      bu_id      TEXT PRIMARY KEY,
+      flag       TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS epm_holding_treasury (
+      id                        TEXT PRIMARY KEY DEFAULT 'current',
+      as_of                     TEXT NOT NULL,
+      source                    TEXT NOT NULL,
+      total_invested_real       NUMERIC NOT NULL DEFAULT 0,
+      last_application_amount   NUMERIC NOT NULL DEFAULT 0,
+      last_application_date     TEXT NOT NULL DEFAULT '',
+      investment_type           TEXT NOT NULL DEFAULT '',
+      investment_bank           TEXT NOT NULL DEFAULT '',
+      investment_account_cash   NUMERIC NOT NULL DEFAULT 0,
+      bank_fees                 NUMERIC NOT NULL DEFAULT 0,
+      operational_cash          NUMERIC NOT NULL DEFAULT 0,
+      card_limit_total          NUMERIC NOT NULL DEFAULT 0,
+      card_limit_committed      NUMERIC NOT NULL DEFAULT 0,
+      card_reserve_deposited    NUMERIC NOT NULL DEFAULT 0,
+      intercompany_total        NUMERIC NOT NULL DEFAULT 0,
+      partner_withdrawals       NUMERIC NOT NULL DEFAULT 0,
+      confidence                TEXT NOT NULL DEFAULT 'estimated',
+      note                      TEXT NOT NULL DEFAULT '',
+      updated_at                TEXT NOT NULL
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS epm_chart_of_accounts (
+      account_code   TEXT PRIMARY KEY,
+      account_name   TEXT NOT NULL,
+      account_type   TEXT NOT NULL,
+      normal_balance TEXT NOT NULL,
+      level          INTEGER NOT NULL DEFAULT 3,
+      updated_at     TEXT NOT NULL
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS epm_fiscal_rates (
+      supplier_type TEXT PRIMARY KEY,
+      irrf_rate     NUMERIC NOT NULL DEFAULT 0,
+      inss_rate     NUMERIC NOT NULL DEFAULT 0,
+      iss_rate      NUMERIC NOT NULL DEFAULT 0,
+      pis_rate      NUMERIC NOT NULL DEFAULT 0,
+      cofins_rate   NUMERIC NOT NULL DEFAULT 0,
+      updated_at    TEXT NOT NULL
+    )
+  `;
+}
