@@ -5,6 +5,7 @@
 //
 // STORAGE ADAPTERS (auto-selected at runtime):
 //   SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY set  → Supabase (Postgres) via @supabase/supabase-js
+//   DATABASE_URL set (no service role key)        → Direct postgres via postgres.js
 //   env vars unset → JSON files in public/data/financial/ (local dev)
 //
 // DO NOT import this module in client components — it uses Node's `fs` module
@@ -14,6 +15,7 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 import { supabase } from "@/lib/supabase";
+import { sql } from "@/lib/db";
 
 // ─── Directory (filesystem adapter only) ─────────────────────────────────────
 
@@ -439,6 +441,10 @@ export async function getAllTransactions(): Promise<BankTransaction[]> {
     }
     return rows;
   }
+  if (sql) {
+    const rows = await sql`SELECT * FROM bank_transactions ORDER BY transaction_date DESC`;
+    return rows.map((r) => rowToTransaction(r as Row));
+  }
   // Backfill reconciliationStatus for legacy records that don't have it yet.
   return readJSON<BankTransaction[]>(TXN_FILE, []).map((t) => ({
     ...t,
@@ -474,10 +480,56 @@ export async function getTransactionsByEntity(entity: EntityLayer): Promise<Bank
   return (await getAllTransactions()).filter((t) => t.entity === entity);
 }
 
-export async function saveTransactions(transactions: BankTransaction[]): Promise<void> {
+// Upsert a synthetic financial_documents row for Cora API syncs so the FK constraint is satisfied.
+async function ensureCoraDocument(docId: string, transactions: BankTransaction[], now: string): Promise<void> {
+  if (!docId.startsWith("cora-api-")) return;
+  const sample = transactions.find((t) => t.documentId === docId);
+  if (!sample) return;
+  const count = transactions.filter((t) => t.documentId === docId).length;
+  const fileHash = crypto.createHash("sha256").update(docId).digest("hex");
+
   if (supabase) {
-    if (transactions.length === 0) return;
-    const docIds = Array.from(new Set(transactions.map((t) => t.documentId)));
+    const { error } = await supabase.from("financial_documents").upsert(
+      {
+        id:                docId,
+        filename:          "cora-api-sync",
+        file_hash:         fileHash,
+        bank:              sample.bank,
+        account_name:      sample.accountName,
+        entity:            sample.entity,
+        uploaded_at:       now,
+        uploaded_by:       "system",
+        status:            "done",
+        transaction_count: count,
+      },
+      { onConflict: "id" },
+    );
+    if (error) throw error;
+    return;
+  }
+  if (sql) {
+    await sql`
+      INSERT INTO financial_documents
+        (id, filename, file_hash, bank, account_name, entity, uploaded_at, uploaded_by, status, transaction_count)
+      VALUES
+        (${docId}, 'cora-api-sync', ${fileHash}, ${sample.bank}, ${sample.accountName},
+         ${sample.entity}, ${now}, 'system', 'done', ${count})
+      ON CONFLICT (id) DO UPDATE SET transaction_count = EXCLUDED.transaction_count, status = 'done'
+    `;
+  }
+}
+
+export async function saveTransactions(transactions: BankTransaction[]): Promise<void> {
+  if (transactions.length === 0) return;
+
+  const docIds = Array.from(new Set(transactions.map((t) => t.documentId)));
+  const now = new Date().toISOString();
+
+  if (supabase) {
+    // Ensure financial_documents rows exist for Cora API synthetic document IDs (FK requirement)
+    for (const docId of docIds) {
+      await ensureCoraDocument(docId, transactions, now);
+    }
     for (const docId of docIds) {
       const { error: delError } = await supabase
         .from("bank_transactions")
@@ -517,10 +569,47 @@ export async function saveTransactions(transactions: BankTransaction[]): Promise
     }
     return;
   }
+
+  if (sql) {
+    // Direct postgres fallback when SUPABASE_SERVICE_ROLE_KEY is not configured
+    for (const docId of docIds) {
+      await ensureCoraDocument(docId, transactions, now);
+    }
+    await sql`DELETE FROM bank_transactions WHERE document_id = ANY(${docIds})`;
+    for (const t of transactions) {
+      await sql`
+        INSERT INTO bank_transactions
+          (id, document_id, bank, account_name, entity, transaction_date, description_original,
+           amount, direction, running_balance, counterparty_name, managerial_category,
+           classification_confidence, classification_note, is_intercompany, intercompany_match_id,
+           excluded_from_consolidated, reconciliation_status, extracted_at, classified_at)
+        VALUES
+          (${t.id}, ${t.documentId}, ${t.bank}, ${t.accountName}, ${t.entity}, ${t.transactionDate},
+           ${t.descriptionOriginal}, ${t.amount}, ${t.direction}, ${t.runningBalance ?? null},
+           ${t.counterpartyName ?? null}, ${t.managerialCategory}, ${t.classificationConfidence},
+           ${t.classificationNote ?? null}, ${t.isIntercompany}, ${t.intercompanyMatchId ?? null},
+           ${t.excludedFromConsolidated}, ${t.reconciliationStatus}, ${t.extractedAt},
+           ${t.classifiedAt ?? null})
+        ON CONFLICT (id) DO UPDATE SET
+          document_id                = EXCLUDED.document_id,
+          managerial_category        = EXCLUDED.managerial_category,
+          classification_confidence  = EXCLUDED.classification_confidence,
+          classification_note        = EXCLUDED.classification_note,
+          counterparty_name          = EXCLUDED.counterparty_name,
+          is_intercompany            = EXCLUDED.is_intercompany,
+          intercompany_match_id      = EXCLUDED.intercompany_match_id,
+          excluded_from_consolidated = EXCLUDED.excluded_from_consolidated,
+          reconciliation_status      = EXCLUDED.reconciliation_status,
+          classified_at              = EXCLUDED.classified_at
+      `;
+    }
+    return;
+  }
+
+  // JSON fallback (local dev only — Vercel filesystem is read-only)
   const all = readJSON<BankTransaction[]>(TXN_FILE, []);
-  // Replace existing transactions for these documentIds, then prepend new ones
-  const docIds = new Set(transactions.map((t) => t.documentId));
-  const kept = all.filter((t) => !docIds.has(t.documentId));
+  const docIdSet = new Set(docIds);
+  const kept = all.filter((t) => !docIdSet.has(t.documentId));
   writeJSON(TXN_FILE, [...transactions, ...kept]);
 }
 

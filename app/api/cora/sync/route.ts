@@ -25,6 +25,7 @@ import { getAllTransactions, saveTransactions } from "@/lib/financial-db";
 import { classifyTransaction } from "@/lib/financial-classifier";
 import type { BankTransaction, EntityLayer } from "@/lib/financial-db";
 import { USE_SUPABASE } from "@/lib/supabase";
+import { USE_DB } from "@/lib/db";
 
 export const runtime = "nodejs";
 
@@ -59,11 +60,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 
   // ── Database configured? ──────────────────────────────────────────────────────────────────────
-  if (!USE_SUPABASE) {
+  if (!USE_SUPABASE && !USE_DB) {
     return NextResponse.json(
       {
         error: "Banco de dados não configurado.",
-        hint: "Configure SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY no painel do Vercel. Sem isso, os dados não podem ser salvos (o filesystem do Vercel é read-only).",
+        hint: "Configure SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY (ou DATABASE_URL) no painel do Vercel.",
       },
       { status: 501 },
     );
