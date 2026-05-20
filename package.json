@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "seed:epm": "tsx --env-file=.env.local scripts/seed-epm-planning.ts",
+    "seed:epm": "tsx scripts/seed-epm-planning.ts",
     "test:epm": "tsx scripts/test-epm-db.ts"
   },
   "dependencies": {

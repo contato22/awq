@@ -1,0 +1,78 @@
+name: EPM Planning — Seed + Test (Supabase)
+
+# ─── WHEN ─────────────────────────────────────────────────────────────────────
+# Trigger manually from Actions tab, or automatically when epm-planning-db.ts
+# or the seed/test scripts change on main.
+#
+# REQUIRED GitHub Secret:
+#   SUPABASE_DB_URL — Postgres connection string (same secret used by migrate-erp-schema.yml)
+#     Settings → Secrets → Actions → SUPABASE_DB_URL
+#     Value: postgresql://postgres:[PASSWORD]@db.gqkgsoglgubmaborixfb.supabase.co:5432/postgres
+#
+# The seed is idempotent (CREATE TABLE IF NOT EXISTS + ON CONFLICT DO UPDATE).
+# Safe to run multiple times.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "lib/epm-planning-db.ts"
+      - "lib/db.ts"
+      - "scripts/seed-epm-planning.ts"
+      - "scripts/test-epm-db.ts"
+      - "app/api/epm/planning/**"
+
+permissions:
+  contents: read
+
+jobs:
+  seed-and-test:
+    name: Seed EPM tables + run read/write tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check secret present
+        run: |
+          if [ -z "${{ secrets.SUPABASE_DB_URL }}" ]; then
+            echo "⚠️  SUPABASE_DB_URL secret não configurado."
+            echo "Adicione em: Settings → Secrets → Actions → SUPABASE_DB_URL"
+            exit 1
+          fi
+          echo "✓ SUPABASE_DB_URL disponível."
+
+      - name: Seed EPM tables (idempotente)
+        run: npm run seed:epm
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
+
+      - name: Run EPM read/write tests
+        run: npm run test:epm
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## EPM Supabase — Seed + Test" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Etapa | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| Tabelas criadas (idempotente) | ${{ job.status }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Dados seedados | ${{ job.status }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Testes read/write | ${{ job.status }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Supabase**: https://gqkgsoglgubmaborixfb.supabase.co" >> $GITHUB_STEP_SUMMARY
