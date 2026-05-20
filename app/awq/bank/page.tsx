@@ -110,17 +110,24 @@ function CoraLiveBalances() {
 
       <div className="p-5 grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Total across accounts */}
-        {anyLoaded && (
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 flex flex-col justify-between">
-            <div className="text-[11px] font-semibold text-emerald-700 uppercase tracking-wide mb-1">
-              Total em Cora
-            </div>
-            <div className="text-2xl font-bold text-emerald-900">
-              {totalAvailable.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-            </div>
-            <div className="text-[11px] text-emerald-600 mt-1">Soma de todas as contas</div>
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 flex flex-col justify-between">
+          <div className="text-[11px] font-semibold text-emerald-700 uppercase tracking-wide mb-1">
+            Total em Cora
           </div>
-        )}
+          {Object.values(loading).some(Boolean) ? (
+            <div className="flex items-center gap-2 text-emerald-600">
+              <Loader2 size={16} className="animate-spin" />
+              <span className="text-sm">Calculando…</span>
+            </div>
+          ) : (
+            <>
+              <div className="text-2xl font-bold text-emerald-900">
+                {totalAvailable.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+              </div>
+              <div className="text-[11px] text-emerald-600 mt-1">Soma de todas as contas</div>
+            </>
+          )}
+        </div>
 
         {/* Per-account cards */}
         {CORA_ACCOUNTS.map((acc) => {
