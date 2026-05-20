@@ -110,7 +110,7 @@ export default async function ConciliacaoPage() {
                 <div>
                   <p className="text-sm font-semibold text-amber-800">Nenhuma transação para conciliar</p>
                   <p className="text-xs text-amber-700 mt-1">
-                    Use o botão <strong>Importar CSV / PDF</strong> acima para carregar um extrato bancário.
+                    Use o botão <strong>Importar CSV / PDF</strong> no painel de conciliação abaixo para carregar um extrato bancário.
                   </p>
                 </div>
               </div>
