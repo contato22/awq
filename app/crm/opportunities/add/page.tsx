@@ -6,7 +6,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
 import { STAGE_LABELS, STAGE_PROBABILITY, BU_OPTIONS, OWNER_OPTIONS } from "@/lib/crm-types";
 import type { CrmAccount } from "@/lib/crm-types";
-import { supabaseClient as supabase } from "@/lib/supabase";
 
 const ACTIVE_STAGES = ["discovery","qualification","proposal","negotiation","closed_won","closed_lost"] as const;
 
@@ -32,8 +31,10 @@ function AddOpportunityPageInner() {
   });
 
   useEffect(() => {
-    supabase.from("crm_accounts").select("account_id, account_name, trade_name").order("account_name")
-      .then(({ data }) => setAccounts((data ?? []) as CrmAccount[]));
+    fetch("/api/crm/accounts")
+      .then(r => r.json())
+      .then(json => { if (json.success && json.data) setAccounts(json.data as CrmAccount[]); })
+      .catch(() => undefined);
   }, []);
 
   function set(field: string, value: string) {
@@ -50,20 +51,25 @@ function AddOpportunityPageInner() {
     setError("");
 
     try {
-      const { error: err } = await supabase.from("crm_opportunities").insert({
-        opportunity_name: form.opportunity_name.trim(),
-        bu: form.bu,
-        owner: form.owner,
-        stage: form.stage,
-        probability,
-        deal_value: parseFloat(form.deal_value) || 0,
-        expected_close_date: form.expected_close_date || null,
-        account_id: form.account_id || null,
-        lost_reason: form.lost_reason || null,
-        proposal_sent_date: form.proposal_sent_date || null,
-        created_by: form.owner,
+      const res = await fetch("/api/crm/opportunities", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "create",
+          opportunity_name: form.opportunity_name.trim(),
+          bu: form.bu,
+          owner: form.owner,
+          stage: form.stage,
+          probability,
+          deal_value: parseFloat(form.deal_value) || 0,
+          expected_close_date: form.expected_close_date || null,
+          account_id: form.account_id || null,
+          lost_reason: form.lost_reason || null,
+          proposal_sent_date: form.proposal_sent_date || null,
+        }),
       });
-      if (err) throw new Error(err.message);
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error ?? "Erro ao criar oportunidade");
       router.push("/crm/opportunities");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao criar oportunidade");
