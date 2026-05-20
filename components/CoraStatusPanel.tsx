@@ -124,7 +124,7 @@ export default function CoraStatusPanel({
   }, [loadBalance]);
 
   // ── Sync one account ──────────────────────────────────────────────────────
-  async function syncAccount(account: Account) {
+  async function syncAccount(account: Account, force = false) {
     setSyncingAccount(account.key);
     const startDate = showCustom ? customStart : daysAgo(Number(syncRange));
     const endDate   = showCustom ? customEnd   : today();
@@ -137,6 +137,7 @@ export default function CoraStatusPanel({
           accountName: account.name,
           startDate,
           endDate,
+          force,
         }),
       });
       const data = await res.json() as SyncResult;
@@ -144,15 +145,13 @@ export default function CoraStatusPanel({
 
       setLastResults((p) => ({ ...p, [account.key]: data }));
 
-      if (data.synced === 0) {
+      if (data.synced === 0 && !force) {
         showToast("info", `${account.name}: nenhuma transação nova. ${data.skipped} já importadas.`);
       } else {
-        showToast("ok", `${account.name}: ${data.synced} transação(ões) nova(s) importadas.`);
-        // Reload after short delay to show the toast first
+        showToast("ok", `${account.name}: ${data.synced} transação(ões) importadas${force ? " (re-importação)" : ""}.`);
         setTimeout(() => window.location.reload(), 1800);
       }
 
-      // Refresh balance after sync
       void loadBalance(account.key);
     } catch (err) {
       showToast("err", err instanceof Error ? err.message : `Falha ao sincronizar ${account.name}`);
@@ -397,18 +396,28 @@ export default function CoraStatusPanel({
                   )}
                 </div>
 
-                {/* Sync button */}
-                <button
-                  onClick={() => void syncAccount(acc)}
-                  disabled={isSyncing}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-300 bg-white text-emerald-700 text-[11px] font-semibold hover:bg-emerald-50 disabled:opacity-50 transition-colors whitespace-nowrap"
-                >
-                  {isSyncingThis
-                    ? <Loader2 size={12} className="animate-spin" />
-                    : <RefreshCw size={12} />
-                  }
-                  {isSyncingThis ? "Sincronizando…" : `Sincronizar (${showCustom ? "período" : syncRange + "d"})`}
-                </button>
+                {/* Sync buttons */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => void syncAccount(acc)}
+                    disabled={isSyncing}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-300 bg-white text-emerald-700 text-[11px] font-semibold hover:bg-emerald-50 disabled:opacity-50 transition-colors whitespace-nowrap"
+                  >
+                    {isSyncingThis
+                      ? <Loader2 size={12} className="animate-spin" />
+                      : <RefreshCw size={12} />
+                    }
+                    {isSyncingThis ? "Sincronizando…" : `Sincronizar (${showCustom ? "período" : syncRange + "d"})`}
+                  </button>
+                  <button
+                    onClick={() => void syncAccount(acc, true)}
+                    disabled={isSyncing}
+                    title="Re-importa todas as transações do período, substituindo as existentes"
+                    className="px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-500 text-[11px] font-semibold hover:bg-gray-50 hover:border-gray-300 disabled:opacity-50 transition-colors whitespace-nowrap"
+                  >
+                    Re-importar
+                  </button>
+                </div>
               </div>
             </div>
           );

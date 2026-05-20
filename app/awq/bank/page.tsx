@@ -33,6 +33,7 @@ interface CoraBalance {
   blocked: number | null;
   total: number | null;
   updatedAt: string;
+  isFallback?: boolean;
   error?: string;
 }
 
@@ -69,8 +70,9 @@ function CoraLiveBalances() {
 
   useEffect(() => { void fetchAll(); }, []);
 
+  // Only sum accounts that have their own credentials (isFallback accounts share the same Cora account)
   const totalAvailable = Object.values(balances).reduce(
-    (s, b) => s + (b?.available ?? 0), 0
+    (s, b) => s + (b && !b.isFallback ? b.available : 0), 0
   );
   const anyLoaded = Object.values(balances).some((b) => b !== null);
 
@@ -169,7 +171,9 @@ function CoraLiveBalances() {
                     <div className="text-xl font-bold text-gray-900">
                       {bal.available.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                     </div>
-                    <div className="text-[11px] text-gray-400 mt-0.5">Disponível</div>
+                    <div className="text-[11px] text-gray-400 mt-0.5">
+                      {bal.isFallback ? "Mesma conta Cora (AWQ Holding)" : "Disponível"}
+                    </div>
                   </div>
                   {bal.blocked != null && bal.blocked > 0 && (
                     <div className="text-[11px] text-gray-500">
