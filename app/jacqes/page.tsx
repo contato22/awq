@@ -6,10 +6,25 @@ import CustomerSegmentChart from "@/components/CustomerSegmentChart";
 import TopProductsTable from "@/components/TopProductsTable";
 import RegionTable from "@/components/RegionTable";
 import AlertBanner from "@/components/AlertBanner";
-import { kpis, alerts } from "@/lib/data";
+import { getBUData, getJACQESMRR } from "@/lib/epm-planning-db";
 import { Bell } from "lucide-react";
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const [buData, jacqesMRRData] = await Promise.all([
+    getBUData(),
+    getJACQESMRR(),
+  ]);
+  const _jacqes = buData.find((b) => b.id === "jacqes")!;
+  const JACQES_MRR = jacqesMRRData.current;
+
+  const kpis = [
+    { id: "revenue",   label: "MRR Atual",     value: JACQES_MRR,        previousValue: 0, unit: "currency" as const, icon: "DollarSign", color: "brand"   },
+    { id: "customers", label: "Contas Ativas",  value: _jacqes.customers, previousValue: 0, unit: "number"   as const, icon: "Users",      color: "emerald" },
+    { id: "nps",       label: "NPS Médio",      value: 0,                 previousValue: 0, unit: "percent"  as const, suffix: "",          icon: "TrendingUp", color: "blue"   },
+    { id: "margin",    label: "Margem Bruta",   value: 0,                 previousValue: 0, unit: "percent"  as const, suffix: "%",         icon: "TrendingUp", color: "purple" },
+  ];
+  const alerts: never[] = [];
+
   return (
     <>
       <Header
@@ -55,7 +70,7 @@ export default function DashboardPage() {
                   <p className="text-sm text-gray-400 text-center py-6">Nenhum alerta ativo</p>
                 ) : (
                   alerts.map((alert) => (
-                    <AlertBanner key={alert.id} alert={alert} />
+                    <AlertBanner key={(alert as { id: string }).id} alert={alert} />
                   ))
                 )}
               </div>

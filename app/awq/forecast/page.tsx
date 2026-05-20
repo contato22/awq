@@ -30,11 +30,8 @@ import {
   XCircle,
 } from "lucide-react";
 import { buildFinancialQuery } from "@/lib/financial-query";
-import {
-  revenueForecasts,
-  forecastAccuracyHistory,
-  buForecastScenarios,
-} from "@/lib/awq-derived-metrics";
+import { getMonthlyRevenue } from "@/lib/epm-planning-db";
+import type { ForecastAccuracyPoint, BuForecastScenario } from "@/lib/awq-group-data";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -82,18 +79,6 @@ function SourceBadge({
   );
 }
 
-// ─── Derived from canonical stores ───────────────────────────────────────────
-
-// Guard: forecastAccuracyHistory may be empty (cleared when historical data was invalid).
-const hasAccuracyHistory = forecastAccuracyHistory.length > 0;
-const avgError    = hasAccuracyHistory
-  ? forecastAccuracyHistory.reduce((s, r) => s + Math.abs(r.error), 0) / forecastAccuracyHistory.length
-  : null;
-const avgAccuracy = avgError !== null ? 100 - avgError : null;
-
-// Q1 snapshot reference total (Jan + Fev + Mar — base=bull=bear, no model run)
-const q1SnapshotTotal = revenueForecasts.reduce((s, r) => s + r.base, 0);
-
 // Forecast requirements — every condition that must be met before projections can exist
 const FORECAST_REQUIREMENTS = [
   { id: "hist",   label: "Base histórica real",          desc: "≥ 6 meses de extratos bancários ingeridos (status=done)"  },
@@ -111,8 +96,31 @@ const FORECAST_REQUIREMENTS = [
 export default async function AwqForecastPage() {
   // Real pipeline — queried only for status display. No real numbers available
   // until bank statements are ingested via /awq/conciliacao.
-  const q = await buildFinancialQuery();
+  const [q, monthlyRev] = await Promise.all([
+    buildFinancialQuery(),
+    getMonthlyRevenue(),
+  ]);
   const hasRealData = q.hasData;
+
+  const forecastAccuracyHistory: ForecastAccuracyPoint[] = [];
+  const buForecastScenarios: BuForecastScenario[] = [];
+
+  const revenueForecasts = monthlyRev.slice(0, 3).map((m) => ({
+    month: m.month,
+    base: m.total ?? (m.jacqes + m.caza + m.advisor),
+    bull: m.total ?? (m.jacqes + m.caza + m.advisor),
+    bear: m.total ?? (m.jacqes + m.caza + m.advisor),
+  }));
+
+  // Guard: forecastAccuracyHistory may be empty (cleared when historical data was invalid).
+  const hasAccuracyHistory = forecastAccuracyHistory.length > 0;
+  const avgError    = hasAccuracyHistory
+    ? forecastAccuracyHistory.reduce((s, r) => s + Math.abs(r.error), 0) / forecastAccuracyHistory.length
+    : null;
+  const avgAccuracy = avgError !== null ? 100 - avgError : null;
+
+  // Q1 snapshot reference total (Jan + Fev + Mar — base=bull=bear, no model run)
+  const q1SnapshotTotal = revenueForecasts.reduce((s, r) => s + r.base, 0);
 
   return (
     <>

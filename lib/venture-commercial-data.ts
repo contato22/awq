@@ -14,9 +14,13 @@
 //   Não confundir pipeline comercial com patrimônio real.
 
 import type { CommercialOpportunity, CommercialKPIs } from "./venture-commercial-types";
-import { ventureContracts } from "./awq-group-data";
 
-const enerdy = ventureContracts[0];
+const enerdy = {
+  monthlyFee:         2_000,
+  arr:               24_000,
+  totalContractValue: 72_000,
+  note: "Fee recorrente de advisory/incubação. Confirmed by user. Único contrato operacional confirmado da Venture.",
+};
 
 // ─── Pipeline Comercial ───────────────────────────────────────────────────────
 
