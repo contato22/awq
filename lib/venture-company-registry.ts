@@ -11,7 +11,6 @@
 //   - Não misturar empresas entre si.
 //   - Não confundir contrato ativo com pipeline ou investimento patrimonial.
 
-import { ventureContracts } from "./awq-group-data";
 
 export type CompanyRelationshipType =
   | "advisory"            // AWQ presta advisory
@@ -68,7 +67,13 @@ export interface VentureCompany {
 // Apenas empresas com relacionamento real, confirmado ou em andamento.
 // Não criar entradas para empresas sem base factual.
 
-const enerdy = ventureContracts[0]; // único contrato confirmado
+// Hardcoded Enerdy contract values (stable, seeded to DB — matches ventureContracts[0])
+const enerdy = {
+  monthlyFee:         2_000,
+  arr:               24_000,
+  totalContractValue: 72_000,
+  note: "Fee recorrente de advisory/incubação. Confirmed by user. Único contrato operacional confirmado da Venture.",
+};
 
 export const ventureCompanies: VentureCompany[] = [
   // ── ENERDY ────────────────────────────────────────────────────────────────

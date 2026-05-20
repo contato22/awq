@@ -7,8 +7,10 @@ import {
   AlertTriangle, Info, Activity,
 } from "lucide-react";
 import type { BuData, MonthlyPoint } from "@/lib/epm-planning-db";
-import { JACQES_MRR_Q1 } from "@/lib/awq-group-data";
 import { JACQES_CLIENTS } from "@/lib/jacqes-customers";
+
+// Hardcoded Q1 MRR (Jan/Fev/Mar/26 — 3 clientes, sem Tati) — stable, seeded to DB
+const JACQES_MRR_Q1 = 6_490;
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 interface FpaClientProps {
