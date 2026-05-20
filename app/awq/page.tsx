@@ -7,7 +7,7 @@ import {
   ChevronRight, ShieldAlert, Activity, Wallet, Target, Building2,
   Scale, CheckCircle, AlertTriangle, Database, Clock, GitMerge, Layers,
 } from "lucide-react";
-import { getRiskSignals, getBUData, getAllocFlags } from "@/lib/epm-planning-db";
+import { getRiskSignals, getBUData, getAllocFlags, type AllocFlag } from "@/lib/epm-planning-db";
 import { flagConfig } from "@/lib/awq-group-data";
 import { MetricSourceBadge } from "@/components/MetricSourceBadge";
 import {
@@ -465,7 +465,7 @@ export default async function AwqGroupPage() {
             <div className="space-y-3.5">
               {[...buData].sort((a, b) => b.roic - a.roic).map((bu) => {
                 const flag    = allocFlags[bu.id];
-                const flagCfg = flagConfig[flag];
+                const flagCfg = flagConfig[flag as AllocFlag];
                 const totalCap = buData.reduce((s, b) => s + b.capitalAllocated, 0);
                 const share    = (bu.capitalAllocated / totalCap) * 100;
                 return (

@@ -10,7 +10,7 @@ import {
   Zap,
   AlertTriangle,
 } from "lucide-react";
-import { getBUData, getOperatingBUs, getAllocFlags } from "@/lib/epm-planning-db";
+import { getBUData, getOperatingBUs, getAllocFlags, type AllocFlag } from "@/lib/epm-planning-db";
 import { flagConfig, PAYBACK_ESTIMATES } from "@/lib/awq-derived-metrics";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -151,7 +151,7 @@ export default async function AwqAllocationsPage() {
               <tbody>
                 {[...buData].sort((a, b) => b.roic - a.roic).map((bu) => {
                   const flag    = allocFlags[bu.id];
-                  const flagCfg = flagConfig[flag];
+                  const flagCfg = flagConfig[flag as AllocFlag];
                   const share   = (bu.capitalAllocated / totalCap) * 100;
                   const pb      = PAYBACK_ESTIMATES[bu.id];
                   return (
@@ -209,7 +209,7 @@ export default async function AwqAllocationsPage() {
               <div className="space-y-2.5">
                 {ranking.items.map((bu, i) => {
                   const flag    = allocFlags[bu.id];
-                  const flagCfg = flagConfig[flag];
+                  const flagCfg = flagConfig[flag as AllocFlag];
                   return (
                     <div key={bu.id} className="flex items-center gap-3 py-1.5 border-b border-gray-100 last:border-0">
                       <span className="text-sm font-bold text-gray-400 w-5 shrink-0">#{i + 1}</span>
@@ -233,7 +233,7 @@ export default async function AwqAllocationsPage() {
               {buData.map((bu) => {
                 const share = (bu.capitalAllocated / totalCap) * 100;
                 const flag  = allocFlags[bu.id];
-                const flagCfg = flagConfig[flag];
+                const flagCfg = flagConfig[flag as AllocFlag];
                 return (
                   <div key={bu.id}>
                     <div className="flex items-center justify-between mb-1">
