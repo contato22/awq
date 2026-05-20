@@ -16,6 +16,8 @@ import { buildFinancialQuery, fmtBRL, ENTITY_LABELS } from "@/lib/financial-quer
 import { buildDreQuery } from "@/lib/dre-query";
 import { getBUData, getConsolidated, getConsolidatedMargins } from "@/lib/epm-planning-db";
 
+export const dynamic = 'force-dynamic';
+
 function fmtR(n: number): string {
   const abs  = Math.abs(n);
   const sign = n < 0 ? "-" : "";

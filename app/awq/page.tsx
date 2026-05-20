@@ -18,6 +18,8 @@ import {
   type EntitySummary,
 } from "@/lib/financial-query";
 
+export const dynamic = 'force-dynamic';
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function pct(n: number) { return (n * 100).toFixed(1) + "%"; }

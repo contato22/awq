@@ -38,6 +38,8 @@ import {
 import { MetricSourceBadge, MetricDetail, MetricEmpty } from "@/components/MetricSourceBadge";
 import { getBUData, getOperatingBUs } from "@/lib/epm-planning-db";
 
+export const dynamic = 'force-dynamic';
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function AwqKpisPage() {

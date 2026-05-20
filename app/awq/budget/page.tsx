@@ -18,6 +18,8 @@ import {
   getBudgetLines,
 } from "@/lib/epm-planning-db";
 
+export const dynamic = 'force-dynamic';
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function fmtR(n: number) {

@@ -4,6 +4,8 @@ import { BarChart3, Building2, TrendingUp, ChevronRight, Users, DollarSign, Brie
 import { getBUData, getConsolidated, getVentureFeeMRR, getVentureFeeARR } from "@/lib/epm-planning-db";
 import { getAWQGroupKPIs, fmtBRL } from "@/lib/financial-metric-query";
 
+export const dynamic = 'force-dynamic';
+
 // ── Formatters ──────────────────────────────────────────────────────────────
 function fmtR(n: number): string {
   if (n >= 1_000_000) return "R$" + (n / 1_000_000).toFixed(2) + "M";

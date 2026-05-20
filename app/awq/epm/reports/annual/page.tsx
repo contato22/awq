@@ -18,6 +18,8 @@ import {
 import { buildDreQuery } from "@/lib/dre-query";
 import { getConsolidated } from "@/lib/epm-planning-db";
 
+export const dynamic = 'force-dynamic';
+
 function fmtBRL(n: number): string {
   const abs  = Math.abs(n);
   const sign = n < 0 ? "-" : "";

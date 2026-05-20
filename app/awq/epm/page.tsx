@@ -20,6 +20,8 @@ import { buildDreQuery } from "@/lib/dre-query";
 import { getAllGLEntries, getBalanceSheet } from "@/lib/epm-gl";
 import { getConsolidated, getConsolidatedMargins, getBudgetVsActual } from "@/lib/epm-planning-db";
 
+export const dynamic = 'force-dynamic';
+
 function fmtBRL(n: number) {
   const abs = Math.abs(n);
   const sign = n < 0 ? "-" : "";

@@ -37,6 +37,8 @@ import {
 } from "@/lib/investment-reconciliation";
 import { getHoldingTreasury } from "@/lib/epm-planning-db";
 
+export const dynamic = 'force-dynamic';
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function ConfidenceBadge({ status }: { status: InvestmentEntry["reconciledStatus"] }) {

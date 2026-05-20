@@ -19,6 +19,8 @@ import {
 import { buildDreQuery, type DreResult } from "@/lib/dre-query";
 import { getConsolidated, getConsolidatedMargins, getBudgetLines } from "@/lib/epm-planning-db";
 
+export const dynamic = 'force-dynamic';
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function fmtBRL(n: number): string {
