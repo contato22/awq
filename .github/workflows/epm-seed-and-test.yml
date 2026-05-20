@@ -2,20 +2,15 @@ name: EPM Planning — Seed + Test (Supabase)
 
 # ─── WHEN ─────────────────────────────────────────────────────────────────────
 # Trigger manually from Actions tab, or automatically when epm-planning-db.ts
-# or the seed/test scripts change on main.
+# or the seed/test scripts change on main / feature branch.
 #
-# REQUIRED GitHub Secrets:
-#   NEXT_PUBLIC_SUPABASE_URL     — Supabase project URL (already set for build)
-#   SUPABASE_SERVICE_ROLE_KEY    — Service role key (bypasses RLS)
-#     Settings → Secrets → Actions → SUPABASE_SERVICE_ROLE_KEY
-#
-# OPTIONAL GitHub Secrets:
-#   SUPABASE_DB_URL              — Postgres direct connection string
-#     (only needed to create tables via SQL; skip if tables already exist)
+# REQUIRED GitHub Secret:
+#   SUPABASE_DB_URL — Postgres direct connection string
 #     Settings → Secrets → Actions → SUPABASE_DB_URL
 #     Value: postgresql://postgres:[PASSWORD]@db.gqkgsoglgubmaborixfb.supabase.co:5432/postgres
 #
-# The seed is idempotent (ON CONFLICT DO UPDATE). Safe to run multiple times.
+# The seed is idempotent (CREATE TABLE IF NOT EXISTS + ON CONFLICT DO UPDATE).
+# Safe to run multiple times.
 
 on:
   workflow_dispatch:
@@ -26,7 +21,6 @@ on:
     paths:
       - "lib/epm-planning-db.ts"
       - "lib/db.ts"
-      - "lib/supabase.ts"
       - "scripts/seed-epm-planning.ts"
       - "scripts/test-epm-db.ts"
       - "app/api/epm/planning/**"
@@ -55,30 +49,24 @@ jobs:
 
       - name: Check secret present
         run: |
-          if [ -z "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" ]; then
-            echo "⚠️  SUPABASE_SERVICE_ROLE_KEY secret não configurado."
-            echo "Adicione em: Settings → Secrets → Actions → SUPABASE_SERVICE_ROLE_KEY"
-            echo "O seed e os testes requerem acesso ao Supabase via JS client."
+          if [ -z "${{ secrets.SUPABASE_DB_URL }}" ]; then
+            echo "⚠️  SUPABASE_DB_URL secret não configurado — skipping seed e testes."
+            echo "Adicione em: Settings → Secrets → Actions → SUPABASE_DB_URL"
+            echo "Valor: postgresql://postgres:[SENHA]@db.gqkgsoglgubmaborixfb.supabase.co:5432/postgres"
             exit 0
           fi
-          echo "✓ SUPABASE_SERVICE_ROLE_KEY disponível."
+          echo "✓ SUPABASE_DB_URL disponível — rodando seed + testes contra Supabase real."
 
       - name: Seed EPM tables (idempotente)
-        if: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY != '' }}
+        if: ${{ secrets.SUPABASE_DB_URL != '' }}
         run: npm run seed:epm
         env:
-          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
 
       - name: Run EPM read/write tests
-        if: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY != '' }}
+        if: ${{ secrets.SUPABASE_DB_URL != '' }}
         run: npm run test:epm
         env:
-          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
 
       - name: Summary

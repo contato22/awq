@@ -18,7 +18,7 @@ import {
   upsertBUData, upsertMonthlyRevenue, upsertAllocFlag, upsertFiscalRate,
   type FiscalRates, type SupplierType,
 } from "../lib/epm-planning-db";
-import { USE_SUPABASE } from "../lib/supabase";
+import { USE_DB } from "../lib/db";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -44,7 +44,7 @@ function ok(cond: boolean, msg: string) {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
-  console.log(`\n━━ EPM Planning DB — ${USE_SUPABASE ? "Supabase (live)" : "static fallback"} ━━\n`);
+  console.log(`\n━━ EPM Planning DB — ${USE_DB ? "Supabase (live)" : "static fallback"} ━━\n`);
 
   // ── READ ────────────────────────────────────────────────────────────────────
   console.log("🔍  READ — shape e valores mínimos");
@@ -188,7 +188,7 @@ async function main() {
   });
 
   // ── WRITE ────────────────────────────────────────────────────────────────────
-  if (USE_SUPABASE) {
+  if (USE_DB) {
     console.log("\n✏️   WRITE — upsert e leitura de volta");
 
     await t("upsertBUData: altera revenue e lê de volta", async () => {
@@ -237,8 +237,8 @@ async function main() {
       await upsertFiscalRate(type, orig); // restaura
     });
   } else {
-    console.log("\n⚠️   WRITE tests pulados — SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY não definidos (fallback estático ativo)");
-    console.log("    Para testar escrita real: SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... npx tsx scripts/test-epm-db.ts\n");
+    console.log("\n⚠️   WRITE tests pulados — DATABASE_URL não definida (fallback estático ativo)");
+    console.log("    Para testar escrita real: DATABASE_URL=... npx tsx scripts/test-epm-db.ts\n");
   }
 
   // ── Resultado ─────────────────────────────────────────────────────────────
