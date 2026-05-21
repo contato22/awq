@@ -16,9 +16,17 @@
 import postgres, { type Sql } from "postgres";
 
 // Exported null-safe SQL client. null = no DATABASE_URL = use local fallback.
-export const sql: Sql | null = process.env.DATABASE_URL
-  ? postgres(process.env.DATABASE_URL, { ssl: "require", max: 5 })
-  : null;
+// Wrapped in IIFE so a malformed DATABASE_URL (missing "://") doesn't throw at
+// module import time and crash every server component that imports lib/db.ts.
+export const sql: Sql | null = (() => {
+  if (!process.env.DATABASE_URL) return null;
+  try {
+    return postgres(process.env.DATABASE_URL, { ssl: "require", max: 5 });
+  } catch {
+    console.error("[db] Invalid DATABASE_URL — SQL client disabled:", process.env.DATABASE_URL?.slice(0, 30));
+    return null;
+  }
+})();
 
 export const USE_DB   = !!process.env.DATABASE_URL;
 export const USE_BLOB = !!process.env.BLOB_READ_WRITE_TOKEN;
