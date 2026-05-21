@@ -155,6 +155,27 @@ export async function deleteContact(id: string): Promise<void> {
   await sql`DELETE FROM crm_contacts WHERE contact_id = ${id}`;
 }
 
+export async function updateContact(id: string, data: Partial<CrmContact>): Promise<CrmContact> {
+  if (!sql) throw new Error("DB not available");
+  const rows = await sql`
+    UPDATE crm_contacts SET
+      full_name           = COALESCE(${data.full_name           ?? null}, full_name),
+      email               = COALESCE(${data.email               ?? null}, email),
+      phone               = COALESCE(${data.phone               ?? null}, phone),
+      mobile              = COALESCE(${data.mobile              ?? null}, mobile),
+      job_title           = COALESCE(${data.job_title           ?? null}, job_title),
+      department          = COALESCE(${data.department          ?? null}, department),
+      seniority           = COALESCE(${data.seniority           ?? null}, seniority),
+      linkedin_url        = COALESCE(${data.linkedin_url        ?? null}, linkedin_url),
+      is_primary_contact  = COALESCE(${data.is_primary_contact  ?? null}, is_primary_contact),
+      contact_preferences = COALESCE(${data.contact_preferences ?? null}, contact_preferences),
+      updated_at          = NOW()
+    WHERE contact_id = ${id}
+    RETURNING *
+  `;
+  return rows[0] as CrmContact;
+}
+
 // ─── Lead CRUD ────────────────────────────────────────────────────────────────
 
 export async function listLeads(filters?: { status?: string; bu?: string; assigned_to?: string }): Promise<CrmLead[]> {
@@ -382,6 +403,29 @@ export async function createActivity(data: Partial<CrmActivity>): Promise<CrmAct
     RETURNING *
   `;
   return rows[0] as CrmActivity;
+}
+
+export async function updateActivity(id: string, data: Partial<CrmActivity>): Promise<CrmActivity> {
+  if (!sql) throw new Error("DB not available");
+  const rows = await sql`
+    UPDATE crm_activities SET
+      subject          = COALESCE(${data.subject          ?? null}, subject),
+      description      = COALESCE(${data.description      ?? null}, description),
+      outcome          = COALESCE(${data.outcome          ?? null}, outcome),
+      duration_minutes = COALESCE(${data.duration_minutes ?? null}, duration_minutes),
+      scheduled_at     = COALESCE(${data.scheduled_at     ?? null}::timestamptz, scheduled_at),
+      completed_at     = COALESCE(${data.completed_at     ?? null}::timestamptz, completed_at),
+      status           = COALESCE(${data.status           ?? null}, status),
+      updated_at       = NOW()
+    WHERE activity_id = ${id}
+    RETURNING *
+  `;
+  return rows[0] as CrmActivity;
+}
+
+export async function deleteActivity(id: string): Promise<void> {
+  if (!sql) throw new Error("DB not available");
+  await sql`DELETE FROM crm_activities WHERE activity_id = ${id}`;
 }
 
 // ─── Analytics ────────────────────────────────────────────────────────────────
