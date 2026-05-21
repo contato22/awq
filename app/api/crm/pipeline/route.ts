@@ -4,6 +4,8 @@ import { listOpportunities } from "@/lib/crm-db";
 import { STAGE_PROBABILITY } from "@/lib/crm-types";
 import type { CrmOpportunity } from "@/lib/crm-types";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   try {
     const forcedBu = await getForcedBu(req);

@@ -5,6 +5,8 @@ import { apiGuard } from "@/lib/api-guard";
 import { initCazaDB, listProjects } from "@/lib/caza-db";
 import { sql } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 export const runtime = "nodejs";
 
 const MONTH_NAMES = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];

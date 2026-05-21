@@ -14,6 +14,8 @@ import {
 } from "@/lib/caza-crm-db";
 import { sql } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 export const runtime = "nodejs";
 
 export async function GET(req: NextRequest): Promise<NextResponse> {

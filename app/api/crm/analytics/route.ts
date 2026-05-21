@@ -3,6 +3,8 @@ import { initCrmDB, getDashboardMetrics, listOpportunities } from "@/lib/crm-db"
 import { BU_OPTIONS } from "@/lib/crm-types";
 import { getForcedBu } from "@/lib/api-guard";
 
+export const dynamic = "force-dynamic";
+
 type Bucket = { count: number; value: number; weighted: number };
 const emptyBucket = (): Bucket => ({ count: 0, value: 0, weighted: 0 });
 
