@@ -4,7 +4,7 @@
 
 import { test, expect, type Page } from "@playwright/test";
 
-const EMAIL    = process.env.E2E_EMAIL    ?? "";
+const EMAIL = process.env.E2E_EMAIL ?? "";
 const PASSWORD = process.env.E2E_PASSWORD ?? "";
 
 const hasCredentials = !!EMAIL && !!PASSWORD;
@@ -35,7 +35,9 @@ test.describe("Login flow", () => {
     // Should stay on login or show an error
     await page.waitForTimeout(2000);
     const url = page.url();
-    const hasError = url.includes("/login") || await page.locator("[role=alert], .error, [data-error]").isVisible();
+    const hasError =
+      url.includes("/login") ||
+      (await page.locator("[role=alert], .error, [data-error]").isVisible());
     expect(hasError).toBe(true);
   });
 });
@@ -80,17 +82,19 @@ test.describe("Protected routes — authenticated", () => {
     expect(body.user).toHaveProperty("role");
   });
 
-  test("/api/chat rejects unauthenticated requests with 401 or 403", async ({ request }) => {
+  test("/api/chat rejects unauthenticated requests", async ({ request }) => {
     const res = await request.post("/api/chat", {
       data: { messages: [{ role: "user", content: "hello" }], buContext: "awq" },
     });
-    expect([401, 403]).toContain(res.status());
+    // Next.js middleware issues 307 redirect to /login; route handler may return 401/403
+    expect([307, 401, 403]).toContain(res.status());
   });
 });
 
 test.describe("RBAC isolation", () => {
-  test("/api/security/audit returns 401 when unauthenticated", async ({ request }) => {
+  test("/api/security/audit is not accessible unauthenticated", async ({ request }) => {
     const res = await request.get("/api/security/audit");
-    expect([401, 403]).toContain(res.status());
+    // Middleware issues 307 redirect; route handler may return 401/403 directly
+    expect([307, 401, 403]).toContain(res.status());
   });
 });

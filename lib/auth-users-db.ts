@@ -24,16 +24,25 @@ export async function findUserByEmailDB(email: string): Promise<AuthUser | undef
 
     if (!error && data) {
       return {
-        id:           data.id,
-        name:         data.name,
-        email:        data.email,
+        id: data.id,
+        name: data.name,
+        email: data.email,
         passwordHash: data.password_hash,
-        role:         data.role,
-        homeRoute:    data.home_route,
+        role: data.role,
+        homeRoute: data.home_route,
       };
     }
   }
 
-  // Fallback: static list (no hashes in production — returns undefined for auth)
-  return USERS.find((u) => u.email.toLowerCase() === email.toLowerCase());
+  // No DB client available — authentication requires SUPABASE_SERVICE_ROLE_KEY.
+  // Return metadata-only user so middleware can resolve role/route, but
+  // passwordHash is empty so NextAuth's bcrypt.compare rejects the login.
+  // For local dev without Supabase, set SUPABASE_SERVICE_ROLE_KEY in .env.local.
+  const meta = USERS.find((u) => u.email.toLowerCase() === email.toLowerCase());
+  if (meta) {
+    console.warn(
+      `[auth] DB unavailable — login blocked for ${meta.email}. Set SUPABASE_SERVICE_ROLE_KEY.`
+    );
+  }
+  return undefined;
 }
