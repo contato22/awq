@@ -226,22 +226,40 @@ export async function fetchCoraStatement(
   const creds = credsForAccount(account);
   const token = await getAccessToken(creds);
 
-  // Cora uses 'start' and 'end' (not 'startDate'/'endDate')
-  const url = `${BASE}/bank-statement/statement?start=${startDate}&end=${endDate}&perPage=200`;
-  const { status, body } = await httpsRequest(
-    "GET",
-    url,
-    { "Authorization": `Bearer ${token}`, "Accept": "application/json" },
-    creds,
-  );
+  const PER_PAGE = 200;
+  const all: CoraStatementEntry[] = [];
+  let page = 1;
 
-  console.error("[cora statement raw]", status, body.slice(0, 2000));
+  while (true) {
+    const url = `${BASE}/bank-statement/statement?start=${startDate}&end=${endDate}&perPage=${PER_PAGE}&page=${page}`;
+    const { status, body } = await httpsRequest(
+      "GET",
+      url,
+      { "Authorization": `Bearer ${token}`, "Accept": "application/json" },
+      creds,
+    );
 
-  if (status !== 200) {
-    throw new Error(`Cora statement error (HTTP ${status}): ${body}`);
+    if (page === 1) console.error("[cora statement raw p1]", status, body.slice(0, 2000));
+
+    if (status !== 200) {
+      throw new Error(`Cora statement error (HTTP ${status}): ${body}`);
+    }
+
+    const json = JSON.parse(body) as Record<string, unknown>;
+    const items = extractItems(json).map(parseEntry).filter((e) => e.id && e.date);
+    all.push(...items);
+
+    // Stop when this page is not full — no more pages
+    if (items.length < PER_PAGE) break;
+
+    // Also stop if the API tells us total explicitly
+    const total = Number((json as Record<string, unknown>).total ?? (json as Record<string, unknown>).totalItems ?? NaN);
+    if (!isNaN(total) && all.length >= total) break;
+
+    page++;
   }
 
-  return extractItems(JSON.parse(body)).map(parseEntry).filter((e) => e.id && e.date);
+  return all;
 }
 
 // ─── Account balance ──────────────────────────────────────────────────────────
