@@ -3,10 +3,11 @@ import { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { guard } from "@/lib/security-guard";
 import { rateLimit, rateLimitHeaders } from "@/lib/rate-limit";
+import { logError, logRequest } from "@/lib/monitoring";
 
 // 20 messages per user per minute
-const CHAT_LIMIT    = 20;
-const CHAT_WINDOW   = 60 * 1000;
+const CHAT_LIMIT = 20;
+const CHAT_WINDOW = 60 * 1000;
 
 const SYSTEM_PROMPTS: Record<string, string> = {
   awq: `You are OpenClaw, an AI business intelligence assistant for AWQ Group — a holding company with four business units.
@@ -104,11 +105,16 @@ Be analytical, data-driven, and strategic. Reference VC industry benchmarks when
 
 export async function POST(req: NextRequest) {
   // ── RBAC guard: view em ai — owner, admin, finance, operator permitidos ──
-  const token   = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   const user_id = (token?.email as string | undefined) ?? "anonymous";
-  const rawRole = (token?.role  as string | undefined) ?? "anonymous";
+  const rawRole = (token?.role as string | undefined) ?? "anonymous";
   const { result: guardResult, reason: guardReason } = guard(
-    user_id, rawRole, "/api/chat", "ai", "view", "OpenClaw — Chat IA"
+    user_id,
+    rawRole,
+    "/api/chat",
+    "ai",
+    "view",
+    "OpenClaw — Chat IA"
   );
   if (guardResult === "blocked") {
     return new Response(
@@ -121,8 +127,14 @@ export async function POST(req: NextRequest) {
   const rl = rateLimit(`chat:${user_id}`, CHAT_LIMIT, CHAT_WINDOW);
   if (!rl.allowed) {
     return new Response(
-      JSON.stringify({ error: "Muitas requisições. Aguarde um momento antes de continuar.", code: "RATE_LIMITED" }),
-      { status: 429, headers: { "Content-Type": "application/json", ...rateLimitHeaders(rl, CHAT_LIMIT) } }
+      JSON.stringify({
+        error: "Muitas requisições. Aguarde um momento antes de continuar.",
+        code: "RATE_LIMITED",
+      }),
+      {
+        status: 429,
+        headers: { "Content-Type": "application/json", ...rateLimitHeaders(rl, CHAT_LIMIT) },
+      }
     );
   }
 
@@ -135,10 +147,10 @@ export async function POST(req: NextRequest) {
     const apiKey = clientKey || (serverKey !== "sk-ant-api03-placeholder" ? serverKey : null);
 
     if (!apiKey) {
-      return new Response(
-        JSON.stringify({ error: "API_KEY_REQUIRED" }),
-        { status: 401, headers: { "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "API_KEY_REQUIRED" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     const systemPrompt = SYSTEM_PROMPTS[buContext as string] ?? SYSTEM_PROMPTS.jacqes;
@@ -162,10 +174,7 @@ export async function POST(req: NextRequest) {
       async start(controller) {
         try {
           for await (const event of stream) {
-            if (
-              event.type === "content_block_delta" &&
-              event.delta.type === "text_delta"
-            ) {
+            if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
               controller.enqueue(
                 encoder.encode(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`)
               );
@@ -176,9 +185,7 @@ export async function POST(req: NextRequest) {
         } catch (err) {
           // Send error as SSE event so the client can display it gracefully
           const msg = err instanceof Error ? err.message : "Erro no servidor";
-          controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify({ error: msg })}\n\n`)
-          );
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: msg })}\n\n`));
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));
           controller.close();
         }
@@ -193,11 +200,12 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("OpenClaw API error:", error);
+    logError("/api/chat", error, user_id);
+    logRequest("/api/chat", 500, 0, user_id);
     const msg = error instanceof Error ? error.message : "Failed to process request";
-    return new Response(
-      JSON.stringify({ error: msg }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: msg }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 }
