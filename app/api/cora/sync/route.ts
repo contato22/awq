@@ -24,7 +24,7 @@ import { fetchCoraStatement, isCoraConfigured } from "@/lib/cora-api";
 import { getAllTransactions, saveTransactions } from "@/lib/financial-db";
 import { classifyTransaction } from "@/lib/financial-classifier";
 import type { BankTransaction, EntityLayer } from "@/lib/financial-db";
-import { USE_SUPABASE, USE_ANON_CLIENT } from "@/lib/supabase";
+import { USE_SUPABASE, USE_ERP_ADMIN, USE_ANON_CLIENT } from "@/lib/supabase";
 import { USE_DB } from "@/lib/db";
 
 export const runtime = "nodejs";
@@ -60,11 +60,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 
   // ── Database configured? ──────────────────────────────────────────────────────────────────────
-  if (!USE_SUPABASE && !USE_ANON_CLIENT && !USE_DB) {
+  if (!USE_SUPABASE && !USE_ERP_ADMIN && !USE_ANON_CLIENT && !USE_DB) {
     return NextResponse.json(
       {
         error: "Banco de dados não configurado.",
-        hint: "Configure SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY (ou DATABASE_URL) no painel do Vercel.",
+        hint: "Configure ERP_SUPABASE_SERVICE_ROLE_KEY no painel do Vercel (Supabase → kkhxxsrgsewjfvnnssyf → Settings → API → service_role).",
       },
       { status: 501 },
     );
