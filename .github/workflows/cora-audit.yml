@@ -15,6 +15,7 @@ on:
       - '.github/workflows/cora-audit.yml'
       - 'app/api/cora/audit-probe/**'
       - 'app/api/cora/sync-probe/**'
+      - 'middleware.ts'
 
 permissions:
   contents: read
@@ -26,6 +27,29 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # ── 0. Aguarda Vercel implantar o código ──────────────────────────────
+      - name: "WAIT — aguardar deploy do Vercel (até 3 min)"
+        id: wait
+        run: |
+          echo "Aguardando endpoint /api/cora/audit-probe ficar disponível..."
+          MAX=18
+          for i in $(seq 1 $MAX); do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 \
+              "https://awq-brown.vercel.app/api/cora/audit-probe?startDate=2026-01-01&endDate=2026-01-01" \
+              2>/dev/null || echo "000")
+            echo "  tentativa $i/$MAX → HTTP $STATUS"
+            if [ "$STATUS" = "200" ] || [ "$STATUS" = "501" ]; then
+              echo "Vercel pronto (HTTP $STATUS)"
+              echo "ready=true" >> $GITHUB_OUTPUT
+              break
+            fi
+            if [ "$i" = "$MAX" ]; then
+              echo "Timeout — Vercel não respondeu em tempo hábil"
+              echo "ready=false" >> $GITHUB_OUTPUT
+            fi
+            sleep 10
+          done
+
       # ── 1. Health — infraestrutura e contagem total no banco ─────────────────
       - name: "FETCH — /api/health (infraestrutura + erpTransactionCount)"
         id: health
@@ -67,8 +91,8 @@ jobs:
           START="2026-01-01"
           END=$(date -u +%Y-%m-%d)
           URL="https://awq-brown.vercel.app/api/cora/audit-probe?startDate=${START}&endDate=${END}"
-          BODY=$(curl -s --max-time 55 "$URL" 2>/dev/null || echo "{}")
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 55 "$URL" 2>/dev/null || echo "000")
+          BODY=$(curl -s --max-time 58 "$URL" 2>/dev/null || echo "{}")
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 58 "$URL" 2>/dev/null || echo "000")
           echo "status=$STATUS" >> $GITHUB_OUTPUT
 
           echo "HTTP $STATUS | Body: ${BODY:0:2000}"
@@ -92,8 +116,8 @@ jobs:
             echo "db_total=$DB_TOTAL"           >> $GITHUB_OUTPUT
             echo "raw=$BODY"                    >> $GITHUB_OUTPUT
             echo "═══ Resultado auditoria ═══"
-            echo "  Cora total:       $CORA_TOTAL"
-            echo "  Banco total:      $DB_TOTAL"
+            echo "  Cora total:        $CORA_TOTAL"
+            echo "  Banco total:       $DB_TOTAL"
             echo "  Faltando no banco: $TOTAL_MISSING"
           else
             echo "total_missing=erro_$STATUS" >> $GITHUB_OUTPUT
@@ -162,7 +186,7 @@ jobs:
             else
               AUDIT_LINE="❌ **$TOTAL_MISSING** lançamento(s) na Cora NÃO estavam no banco"
               if [ "$SYNC_STATUS" = "200" ]; then
-                SYNC_LINE="🔄 **Sync automático**: $SYNCED lançamentos importados"
+                SYNC_LINE="🔄 **Sync automático executado**: $SYNCED lançamentos importados"
               elif [ -n "$SYNC_STATUS" ]; then
                 SYNC_LINE="⚠️ Sync automático falhou (HTTP $SYNC_STATUS)"
               else
