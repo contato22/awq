@@ -28,62 +28,36 @@ import {
 // ─── Cora live balance section ────────────────────────────────────────────────
 
 interface CoraBalance {
-  account: string;
   available: number;
   blocked: number | null;
-  total: number | null;
-  updatedAt: string;
-  isFallback?: boolean;
   error?: string;
 }
 
-const CORA_ACCOUNTS = [
-  { key: "AWQ_Holding", label: "AWQ Holding", entity: "AWQ_Holding" },
-  { key: "JACQES",      label: "JACQES",      entity: "JACQES"      },
-] as const;
-
 function CoraLiveBalances() {
-  const [balances, setBalances]     = useState<Record<string, CoraBalance | null>>({});
+  const [balance, setBalance]       = useState<CoraBalance | null>(null);
   const [loading, setLoading]       = useState(true);
   const [hasError, setHasError]     = useState(false);
   const [errorMsg, setErrorMsg]     = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<string | null>(null);
 
-  async function fetchAll() {
+  async function fetchBalance() {
     setLoading(true);
     setHasError(false);
     setErrorMsg(null);
-
-    let anyError = false;
-    let firstError: string | null = null;
-
-    for (const acc of CORA_ACCOUNTS) {
-      try {
-        const res  = await fetch(`/api/cora/balance?account=${acc.key}`);
-        const data = await res.json() as CoraBalance;
-        if (!res.ok) throw new Error(data.error ?? "Erro ao buscar saldo");
-        setBalances((p) => ({ ...p, [acc.key]: data }));
-      } catch (err) {
-        anyError = true;
-        if (!firstError) firstError = err instanceof Error ? err.message : "Falha ao buscar saldo";
-        setBalances((p) => ({ ...p, [acc.key]: null }));
-      }
-    }
-
-    if (anyError) {
+    try {
+      const res  = await fetch("/api/cora/balance");
+      const data = await res.json() as CoraBalance;
+      if (!res.ok) throw new Error(data.error ?? "Erro ao buscar saldo");
+      setBalance(data);
+    } catch (err) {
       setHasError(true);
-      setErrorMsg(firstError);
+      setErrorMsg(err instanceof Error ? err.message : "Falha ao buscar saldo");
     }
     setLoading(false);
     setLastUpdate(new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }));
   }
 
-  useEffect(() => { void fetchAll(); }, []);
-
-  // Sum only accounts with their own credentials (isFallback shares the same Cora account)
-  const totalAvailable = Object.values(balances).reduce(
-    (s, b) => s + (b && !b.isFallback ? b.available : 0), 0,
-  );
+  useEffect(() => { void fetchBalance(); }, []);
 
   const fmtBRL = (n: number) =>
     n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -93,7 +67,6 @@ function CoraLiveBalances() {
       {/* Top bar */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
         <div className="flex items-center gap-3">
-          {/* Cora pink dot */}
           <div className="w-9 h-9 rounded-xl bg-rose-50 flex items-center justify-center">
             <div className="w-4 h-4 rounded-full bg-rose-500" />
           </div>
@@ -115,13 +88,11 @@ function CoraLiveBalances() {
 
         <div className="flex items-center gap-2">
           <button
-            onClick={() => void fetchAll()}
+            onClick={() => void fetchBalance()}
             disabled={loading}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 text-xs font-semibold hover:bg-gray-50 hover:border-gray-300 disabled:opacity-50 transition-colors"
           >
-            {loading
-              ? <Loader2 size={12} className="animate-spin" />
-              : <RefreshCw size={12} />}
+            {loading ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
             Atualizar
           </button>
           <a
@@ -150,29 +121,31 @@ function CoraLiveBalances() {
               <div className="text-xs text-amber-600 mt-0.5">{errorMsg}</div>
             </div>
           </div>
-        ) : (
+        ) : balance ? (
           <div className="flex items-end justify-between">
             <div>
               <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
                 Saldo Disponível
               </div>
               <div className="text-4xl font-bold text-gray-900 tracking-tight">
-                {fmtBRL(totalAvailable)}
+                {fmtBRL(balance.available)}
               </div>
-              <div className="text-xs text-gray-400 mt-1.5">Conta PJ Cora · Saldo consolidado</div>
+              <div className="flex items-center gap-3 mt-1.5">
+                <span className="text-xs text-gray-400">Conta PJ · AWQ Group</span>
+                {balance.blocked != null && balance.blocked > 0 && (
+                  <span className="text-xs text-amber-600 font-medium">
+                    {fmtBRL(balance.blocked)} bloqueado
+                  </span>
+                )}
+              </div>
             </div>
-            {/* Visual accent */}
             <div className="hidden sm:flex items-center gap-1 pb-1">
               {[40, 60, 50, 80, 65, 90, 75].map((h, i) => (
-                <div
-                  key={i}
-                  className="w-1.5 rounded-full bg-rose-200"
-                  style={{ height: `${h * 0.5}px` }}
-                />
+                <div key={i} className="w-1.5 rounded-full bg-rose-200" style={{ height: `${h * 0.5}px` }} />
               ))}
             </div>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );
