@@ -9,10 +9,11 @@ import type {
 } from "@/lib/crm-types";
 
 // ─── Schema Bootstrap ─────────────────────────────────────────────────────────
+// Tables are owned by Supabase migrations (007, 009). This runs as a
+// lightweight health-check — it will throw if the DB is unreachable.
 export async function initCrmDB(): Promise<void> {
   if (!sql) return;
-  // Tables are created via awq_crm_full_schema.sql run once in Neon.
-  // This function is a no-op placeholder kept for API route parity.
+  await sql`SELECT 1 FROM crm_accounts LIMIT 0`;
 }
 
 // ─── Seed Data (static/no-DB fallback) ───────────────────────────────────────
