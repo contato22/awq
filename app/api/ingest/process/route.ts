@@ -20,8 +20,13 @@
 import { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { guard } from "@/lib/security-guard";
+import { rateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import fs from "fs";
 import path from "path";
+
+// 10 PDF processings per user per hour (each call hits Anthropic API)
+const INGEST_LIMIT  = 10;
+const INGEST_WINDOW = 60 * 60 * 1000;
 import {
   getDocument,
   updateDocumentStatus,
@@ -53,6 +58,15 @@ export async function POST(req: NextRequest): Promise<Response> {
     return new Response(
       JSON.stringify({ error: "Acesso negado", code: "RBAC_DENIED", reason: guardReason }),
       { status: 403, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
+  // Rate limit: 10 PDF processings per user per hour
+  const rl = rateLimit(`ingest:${user_id}`, INGEST_LIMIT, INGEST_WINDOW);
+  if (!rl.allowed) {
+    return new Response(
+      JSON.stringify({ error: "Limite de processamento atingido. Tente novamente em 1 hora.", code: "RATE_LIMITED" }),
+      { status: 429, headers: { "Content-Type": "application/json", ...rateLimitHeaders(rl, INGEST_LIMIT) } }
     );
   }
 

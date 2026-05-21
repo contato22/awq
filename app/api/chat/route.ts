@@ -2,6 +2,11 @@ import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { guard } from "@/lib/security-guard";
+import { rateLimit, rateLimitHeaders } from "@/lib/rate-limit";
+
+// 20 messages per user per minute
+const CHAT_LIMIT    = 20;
+const CHAT_WINDOW   = 60 * 1000;
 
 const SYSTEM_PROMPTS: Record<string, string> = {
   awq: `You are OpenClaw, an AI business intelligence assistant for AWQ Group — a holding company with four business units.
@@ -109,6 +114,15 @@ export async function POST(req: NextRequest) {
     return new Response(
       JSON.stringify({ error: "Acesso negado", code: "RBAC_DENIED", reason: guardReason }),
       { status: 403, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
+  // Rate limit: 20 requests/min per user
+  const rl = rateLimit(`chat:${user_id}`, CHAT_LIMIT, CHAT_WINDOW);
+  if (!rl.allowed) {
+    return new Response(
+      JSON.stringify({ error: "Muitas requisições. Aguarde um momento antes de continuar.", code: "RATE_LIMITED" }),
+      { status: 429, headers: { "Content-Type": "application/json", ...rateLimitHeaders(rl, CHAT_LIMIT) } }
     );
   }
 
