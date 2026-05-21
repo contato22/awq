@@ -465,6 +465,45 @@ export async function createInteraction(
   return coerceInteraction(data);
 }
 
+export async function updateInteraction(
+  id: string,
+  updates: Partial<Omit<CazaCrmInteraction, "id">>
+): Promise<CazaCrmInteraction | null> {
+  if (!supabase) return null;
+  const { data: existing, error: fetchError } = await supabase
+    .from("caza_crm_interactions")
+    .select("id, entidade_tipo, entidade_id, tipo, descricao, owner, data, observacoes")
+    .eq("id", id)
+    .single();
+  if (fetchError || !existing) return null;
+  const m = { ...coerceInteraction(existing), ...updates };
+  const { data, error } = await supabase
+    .from("caza_crm_interactions")
+    .update({
+      entidade_tipo: m.entidade_tipo,
+      entidade_id:   m.entidade_id,
+      tipo:          m.tipo,
+      descricao:     m.descricao,
+      owner:         m.owner,
+      data:          m.data,
+      observacoes:   m.observacoes,
+    })
+    .eq("id", id)
+    .select("id, entidade_tipo, entidade_id, tipo, descricao, owner, data, observacoes")
+    .single();
+  if (error) throw error;
+  return data ? coerceInteraction(data) : null;
+}
+
+export async function deleteInteraction(id: string): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase
+    .from("caza_crm_interactions")
+    .delete()
+    .eq("id", id);
+  if (error) throw error;
+}
+
 // ─── Coercions (DB rows → typed objects) ──────────────────────────────────────
 
 function coerceLead(r: Record<string, unknown>): CazaCrmLead {
