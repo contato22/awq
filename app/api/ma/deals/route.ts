@@ -4,6 +4,7 @@ import {
   listDeals,
   createDeal,
   updateDeal,
+  deleteDeal,
   createPortfolioCompany,
 } from "@/lib/ma-db";
 
@@ -86,6 +87,13 @@ export async function POST(req: NextRequest) {
       });
 
       return ok({ deal: updatedDeal, portco_id: portco_id ?? null });
+    }
+
+    if (action === "delete") {
+      const { deal_id } = data;
+      if (!deal_id) return err("deal_id required", 400);
+      await deleteDeal(deal_id);
+      return ok({ deleted: true });
     }
 
     return err("Unknown action", 400);

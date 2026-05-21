@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 
 // ─── Types & utils ────────────────────────────────────────────────────────────
-import { loadCustomDeals, saveCustomDeals } from "../custom-deal-utils";
+import { loadCustomDeals, loadCustomDealsLocal, saveCustomDeal, deleteCustomDeal } from "../custom-deal-utils";
 import type { CustomDeal } from "../custom-deal-utils";
 
 // ─── Field helpers ────────────────────────────────────────────────────────────
@@ -52,6 +52,7 @@ export default function NovoDealPage() {
   const router = useRouter();
   const [form, setForm]     = useState<CustomDeal>(blank());
   const [saved, setSaved]   = useState(false);
+  const [saving, setSaving] = useState(false);
   const [editMode, setEditMode] = useState(false);
 
   // Detect ?id=CUSTOM-xxx on client
@@ -59,8 +60,13 @@ export default function NovoDealPage() {
     const params = new URLSearchParams(window.location.search);
     const id = params.get("id");
     if (id) {
-      const existing = loadCustomDeals().find((d) => d.id === id);
-      if (existing) { setForm(existing); setEditMode(true); }
+      // Check localStorage first (instant), then API
+      const localExisting = loadCustomDealsLocal().find((d) => d.id === id);
+      if (localExisting) { setForm(localExisting); setEditMode(true); }
+      loadCustomDeals().then((deals) => {
+        const existing = deals.find((d) => d.id === id);
+        if (existing) { setForm(existing); setEditMode(true); }
+      }).catch(() => undefined);
     }
   }, []);
 
@@ -68,20 +74,21 @@ export default function NovoDealPage() {
     setForm((f) => ({ ...f, [field]: val }));
   }
 
-  function handleSave() {
-    if (!form.companyName.trim()) return;
-    const all = loadCustomDeals();
-    const idx = all.findIndex((d) => d.id === form.id);
-    const updated = { ...form, updatedAt: new Date().toISOString() };
-    if (idx >= 0) all[idx] = updated; else all.unshift(updated);
-    saveCustomDeals(all);
-    setSaved(true);
-    setTimeout(() => { router.push("/awq-venture/deals"); }, 1000);
+  async function handleSave() {
+    if (!form.companyName.trim() || saving) return;
+    setSaving(true);
+    try {
+      const updated = { ...form, updatedAt: new Date().toISOString() };
+      await saveCustomDeal(updated);
+      setSaved(true);
+      setTimeout(() => { router.push("/awq-venture/deals"); }, 1000);
+    } catch {
+      setSaving(false);
+    }
   }
 
-  function handleDelete() {
-    const all = loadCustomDeals().filter((d) => d.id !== form.id);
-    saveCustomDeals(all);
+  async function handleDelete() {
+    await deleteCustomDeal(form.id);
     router.push("/awq-venture/deals");
   }
 
@@ -106,10 +113,10 @@ export default function NovoDealPage() {
             )}
             <button
               onClick={handleSave}
-              disabled={!form.companyName.trim() || saved}
+              disabled={!form.companyName.trim() || saved || saving}
               className="flex items-center gap-1.5 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 disabled:opacity-40 px-4 py-2 rounded-xl transition-colors"
             >
-              {saved ? <><Check size={12} /> Salvo!</> : <><Save size={12} /> {editMode ? "Atualizar" : "Salvar"} Deal</>}
+              {saved ? <><Check size={12} /> Salvo!</> : saving ? <><div className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Salvando…</> : <><Save size={12} /> {editMode ? "Atualizar" : "Salvar"} Deal</>}
             </button>
           </div>
         </div>
@@ -249,7 +256,7 @@ export default function NovoDealPage() {
             <textarea className={inputCls} rows={4} value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="Informações adicionais, contexto do deal, alertas internos, origem do contato…" />
           </Field>
           <div className="text-[10px] text-gray-400 bg-gray-50 rounded-lg px-3 py-2">
-            Deal salvo localmente em localStorage. Para sincronização com pipeline e base, integrar com API.
+            Deal salvo no banco de dados (Supabase). Se o banco não estiver disponível, armazenado localmente.
           </div>
         </div>
 
@@ -260,10 +267,10 @@ export default function NovoDealPage() {
           </Link>
           <button
             onClick={handleSave}
-            disabled={!form.companyName.trim() || saved}
+            disabled={!form.companyName.trim() || saved || saving}
             className="flex items-center gap-2 text-sm font-bold text-white bg-amber-600 hover:bg-amber-700 disabled:opacity-40 px-5 py-2.5 rounded-xl transition-colors"
           >
-            {saved ? <><Check size={14} /> Salvo com sucesso!</> : <><Save size={14} /> {editMode ? "Atualizar" : "Salvar"} Deal</>}
+            {saved ? <><Check size={14} /> Salvo com sucesso!</> : saving ? <><div className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Salvando…</> : <><Save size={14} /> {editMode ? "Atualizar" : "Salvar"} Deal</>}
           </button>
         </div>
       </div>

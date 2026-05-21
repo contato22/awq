@@ -526,6 +526,15 @@ export async function createDeal(data: Partial<MaDeal>): Promise<MaDeal> {
   return row as MaDeal;
 }
 
+export async function deleteDeal(deal_id: string): Promise<void> {
+  if (!supabase) throw new Error("DB not available");
+  const { error } = await supabase
+    .from("ma_deals")
+    .delete()
+    .eq("deal_id", deal_id);
+  if (error) throw error;
+}
+
 export async function updateDeal(deal_id: string, data: Partial<MaDeal>): Promise<MaDeal> {
   if (!supabase) throw new Error("DB not available");
   const patch: Record<string, unknown> = {};

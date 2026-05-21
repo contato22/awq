@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import { dealWorkspaces } from "@/lib/deal-data";
 import type { CustomDeal } from "./custom-deal-utils";
-import { loadCustomDeals } from "./custom-deal-utils";
+import { loadCustomDeals, loadCustomDealsLocal } from "./custom-deal-utils";
 import {
   TrendingUp,
   DollarSign,
@@ -78,7 +78,10 @@ export default function DealsIndexPage() {
   const [customDeals, setCustomDeals] = useState<CustomDeal[]>([]);
 
   useEffect(() => {
-    setCustomDeals(loadCustomDeals());
+    // Load from localStorage immediately for instant render
+    setCustomDeals(loadCustomDealsLocal());
+    // Then fetch from API (Supabase) and update if available
+    loadCustomDeals().then(setCustomDeals).catch(() => undefined);
   }, []);
 
   const deals = dealWorkspaces;
