@@ -9,7 +9,7 @@ import AlertBanner from "@/components/AlertBanner";
 import { getBUData, getJACQESMRR } from "@/lib/epm-planning-db";
 import { Bell } from "lucide-react";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = process.env.STATIC_EXPORT === "1" ? "auto" : "force-dynamic";
 
 export default async function DashboardPage() {
   const [buData, jacqesMRRData] = await Promise.all([

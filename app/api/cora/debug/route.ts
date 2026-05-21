@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 
 export const runtime = "nodejs";
+export const dynamic = "force-static";
 
 function env(key: string) {
   return (process.env[key] ?? "").replace(/\\n/g, "\n");

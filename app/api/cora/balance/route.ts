@@ -9,6 +9,7 @@ import { getToken } from "next-auth/jwt";
 import { fetchCoraBalance, isCoraConfigured, fetchCoraBalanceForAccount, isCoraJacqesConfigured } from "@/lib/cora-api";
 
 export const runtime = "nodejs";
+export const dynamic = "force-static";
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   const authToken = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });

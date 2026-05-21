@@ -4,7 +4,7 @@ import { BarChart3, Building2, TrendingUp, ChevronRight, Users, DollarSign, Brie
 import { getBUData, getConsolidated, getVentureFeeMRR, getVentureFeeARR } from "@/lib/epm-planning-db";
 import { getAWQGroupKPIs, fmtBRL } from "@/lib/financial-metric-query";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = process.env.STATIC_EXPORT === "1" ? "auto" : "force-dynamic";
 
 // ── Formatters ──────────────────────────────────────────────────────────────
 function fmtR(n: number): string {

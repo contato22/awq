@@ -28,7 +28,7 @@ import {
 } from "@/lib/bank-account-registry";
 import { getAllDocuments } from "@/lib/financial-db";
 
-export const dynamic = "force-dynamic";
+export const dynamic = process.env.STATIC_EXPORT === "1" ? "auto" : "force-dynamic";
 
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

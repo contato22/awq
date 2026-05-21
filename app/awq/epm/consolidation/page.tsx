@@ -16,7 +16,7 @@ import { buildFinancialQuery, fmtBRL, ENTITY_LABELS } from "@/lib/financial-quer
 import { buildDreQuery } from "@/lib/dre-query";
 import { getBUData, getConsolidated, getConsolidatedMargins } from "@/lib/epm-planning-db";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = process.env.STATIC_EXPORT === "1" ? "auto" : "force-dynamic";
 
 function fmtR(n: number): string {
   const abs  = Math.abs(n);

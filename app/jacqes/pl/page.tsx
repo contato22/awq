@@ -3,7 +3,7 @@ import { TrendingUp, AlertTriangle } from "lucide-react";
 import { getBUData, getMonthlyRevenue, getJACQESMRR } from "@/lib/epm-planning-db";
 import { JACQES_CLIENTS } from "@/lib/jacqes-customers";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = process.env.STATIC_EXPORT === "1" ? "auto" : "force-dynamic";
 
 function fmt(n: number) {
   return "R$ " + n.toLocaleString("pt-BR");

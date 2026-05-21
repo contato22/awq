@@ -23,7 +23,7 @@ import {
   type FinancialQueryResult,
 } from "@/lib/financial-query";
 
-export const dynamic = "force-dynamic";
+export const dynamic = process.env.STATIC_EXPORT === "1" ? "auto" : "force-dynamic";
 // DataSourceBanner removed — page is fully on financial-query pipeline.
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

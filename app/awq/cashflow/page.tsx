@@ -26,7 +26,7 @@ import {
   type EntityLayer,
 } from "@/lib/financial-query";
 
-export const dynamic = "force-dynamic";
+export const dynamic = process.env.STATIC_EXPORT === "1" ? "auto" : "force-dynamic";
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 

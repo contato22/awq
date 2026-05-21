@@ -12,6 +12,11 @@
 
 import { createClient } from "@supabase/supabase-js";
 
+// In static export builds (GitHub Pages), ALL clients are null so no network
+// calls happen during prerender. Client-side code that needs Supabase should
+// check USE_SUPABASE / USE_ERP_ADMIN before calling.
+const IS_STATIC = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
+
 // ── Financial DB (gqkgsoglgubmaborixfb) ──────────────────────────────────────
 const url     = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const svcKey  = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
@@ -19,9 +24,9 @@ const anonKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
              || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
              || "";
 
-export const supabase       = url && svcKey  ? createClient(url, svcKey)  : null;
-export const supabaseClient = url && anonKey ? createClient(url, anonKey) : null;
-export const anonClient     = url && anonKey && !svcKey ? createClient(url, anonKey) : null;
+export const supabase       = !IS_STATIC && url && svcKey  ? createClient(url, svcKey)  : null;
+export const supabaseClient = !IS_STATIC && url && anonKey ? createClient(url, anonKey) : null;
+export const anonClient     = !IS_STATIC && url && anonKey && !svcKey ? createClient(url, anonKey) : null;
 
 // ── ERP DB (kkhxxsrgsewjfvnnssyf) ────────────────────────────────────────────
 // Anon key is public (already in pages.yml build config) — hardcoded as fallback.
@@ -32,9 +37,9 @@ const ERP_ANON_KEY = process.env.NEXT_PUBLIC_ERP_SUPABASE_ANON_KEY
                   || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtraHh4c3Jnc2V3amZ2bm5zc3lmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MjU5MDMsImV4cCI6MjA5NDIwMTkwM30.snYJ697SXGqcKc-I__w0kYMat71LbnusEjOdg27EOvs";
 
 // erpAdmin bypasses RLS — requires ERP_SUPABASE_SERVICE_ROLE_KEY in Vercel env vars.
-export const erpAdmin = ERP_URL && ERP_SVC_KEY ? createClient(ERP_URL, ERP_SVC_KEY) : null;
-// erpAnon is subject to RLS — works only when RLS is disabled on target tables.
-export const erpAnon  = createClient(ERP_URL, ERP_ANON_KEY);
+export const erpAdmin = !IS_STATIC && ERP_URL && ERP_SVC_KEY ? createClient(ERP_URL, ERP_SVC_KEY) : null;
+// erpAnon: null in static builds to prevent prerender connections; initialized at runtime only.
+export const erpAnon  = IS_STATIC ? null : createClient(ERP_URL, ERP_ANON_KEY);
 
 export const USE_SUPABASE      = !!supabase;
 export const USE_ERP_ADMIN     = !!erpAdmin;

@@ -9,8 +9,6 @@ import { apiGuard } from "@/lib/api-guard";
 import { getRecentAuditEvents, getAuditStats } from "@/lib/security-audit";
 import { SECURITY_ENFORCEMENT_MODE } from "@/lib/security-access";
 
-export const dynamic = "force-dynamic";
-
 export const runtime = "nodejs";
 
 export async function GET(req: NextRequest): Promise<NextResponse> {

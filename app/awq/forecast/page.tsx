@@ -33,7 +33,7 @@ import { buildFinancialQuery } from "@/lib/financial-query";
 import { getMonthlyRevenue } from "@/lib/epm-planning-db";
 import type { ForecastAccuracyPoint, BuForecastScenario } from "@/lib/awq-group-data";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = process.env.STATIC_EXPORT === "1" ? "auto" : "force-dynamic";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

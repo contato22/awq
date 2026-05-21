@@ -5,8 +5,6 @@ import { apiGuard } from "@/lib/api-guard";
 import { initCazaDB, listProjects, listClients } from "@/lib/caza-db";
 import { sql } from "@/lib/db";
 
-export const dynamic = "force-dynamic";
-
 export const runtime = "nodejs";
 
 const currentYear = new Date().getFullYear();

@@ -30,7 +30,7 @@ import {
   Zap,
 } from "lucide-react";
 
-export const dynamic = "force-dynamic";
+export const dynamic = process.env.STATIC_EXPORT === "1" ? "auto" : "force-dynamic";
 
 const IS_STATIC       = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 const CORA_CONFIGURED = !!(

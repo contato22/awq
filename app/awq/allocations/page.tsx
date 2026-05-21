@@ -13,7 +13,7 @@ import {
 import { getBUData, getOperatingBUs, getAllocFlags, type AllocFlag } from "@/lib/epm-planning-db";
 import { flagConfig, PAYBACK_ESTIMATES } from "@/lib/awq-derived-metrics";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = process.env.STATIC_EXPORT === "1" ? "auto" : "force-dynamic";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

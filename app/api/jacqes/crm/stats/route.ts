@@ -7,8 +7,6 @@ import {
   PIPELINE_STAGES,
 } from "@/lib/jacqes-crm-db";
 
-export const dynamic = "force-dynamic";
-
 export const runtime = "nodejs";
 
 export async function GET(req: NextRequest): Promise<NextResponse> {

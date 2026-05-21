@@ -20,7 +20,7 @@ import {
 import { PLATFORM_ROUTES } from "@/lib/platform-registry";
 import { SNAPSHOT_REGISTRY, getSnapshotMigrationStatus } from "@/lib/snapshot-registry";
 
-export const dynamic = "force-dynamic";
+export const dynamic = process.env.STATIC_EXPORT === "1" ? "auto" : "force-dynamic";
 
 
 // ─── Local types ─────────────────────────────────────────────────────────────

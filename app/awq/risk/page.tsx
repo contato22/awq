@@ -23,7 +23,7 @@ import {
 import { getRiskSignals, getRiskCategories, getBUData, type RiskCategory } from "@/lib/epm-planning-db";
 import { getAWQGroupKPIs, getEntityCashMetrics, fmtBRL, ENTITY_LABELS, fmtR } from "@/lib/financial-metric-query";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = process.env.STATIC_EXPORT === "1" ? "auto" : "force-dynamic";
 
 // ─── Icon mapping (UI concern — maps canonical iconKey → Lucide component) ───
 

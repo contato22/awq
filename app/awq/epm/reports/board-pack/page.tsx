@@ -18,7 +18,7 @@ import {
 import { buildDreQuery } from "@/lib/dre-query";
 import { getConsolidated, getConsolidatedMargins, getBudgetVsActual } from "@/lib/epm-planning-db";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = process.env.STATIC_EXPORT === "1" ? "auto" : "force-dynamic";
 
 function fmtBRL(n: number): string {
   const abs  = Math.abs(n);

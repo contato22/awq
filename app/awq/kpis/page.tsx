@@ -38,7 +38,7 @@ import {
 import { MetricSourceBadge, MetricDetail, MetricEmpty } from "@/components/MetricSourceBadge";
 import { getBUData, getOperatingBUs } from "@/lib/epm-planning-db";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = process.env.STATIC_EXPORT === "1" ? "auto" : "force-dynamic";
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
