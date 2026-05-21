@@ -18,6 +18,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 jobs:
   probe:
@@ -232,6 +233,14 @@ jobs:
           echo "health_done_count=$DONE_COUNT"   >> $GITHUB_OUTPUT
           echo "health_txn_count=$TXN_COUNT"     >> $GITHUB_OUTPUT
           echo "health_has_real=$HAS_REAL"       >> $GITHUB_OUTPUT
+          ALL_GREEN=$(echo "$BODY" | python3 -c "import json,sys; d=json.load(sys.stdin); print(str(d.get('allGreen',False)).lower())" 2>/dev/null || echo "false")
+          CORA_READY=$(echo "$BODY" | python3 -c "import json,sys; d=json.load(sys.stdin); print(str(d.get('coraReady',False)).lower())" 2>/dev/null || echo "false")
+          SYNC_READY=$(echo "$BODY" | python3 -c "import json,sys; d=json.load(sys.stdin); print(str(d.get('syncReady',False)).lower())" 2>/dev/null || echo "false")
+          ERP_PING=$(echo "$BODY"   | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('erpPing','?'))" 2>/dev/null || echo "?")
+          echo "health_all_green=$ALL_GREEN"   >> $GITHUB_OUTPUT
+          echo "health_cora_ready=$CORA_READY" >> $GITHUB_OUTPUT
+          echo "health_sync_ready=$SYNC_READY" >> $GITHUB_OUTPUT
+          echo "health_erp_ping=$ERP_PING"     >> $GITHUB_OUTPUT
           echo ""
           echo "═══ Infrastructure Status ═══"
           echo "  DATABASE_URL          → db=$DB        (adapter: $DBADAPTER)"
@@ -467,3 +476,65 @@ jobs:
           echo "| doneDocumentCount | ${{ steps.health_fetch.outputs.health_done_count }} | PDFs fully processed |" >> $GITHUB_STEP_SUMMARY
           echo "| transactionCount | ${{ steps.health_fetch.outputs.health_txn_count }} | transactions in Neon |" >> $GITHUB_STEP_SUMMARY
           echo "| hasRealData | ${{ steps.health_fetch.outputs.health_has_real }} | pipeline ran end-to-end |" >> $GITHUB_STEP_SUMMARY
+
+      # ── Deploy notification — abre um GitHub Issue com o resultado ────────────
+      # Legível via mcp__github__list_issues com label "deploy-status"
+      - name: Notificar resultado do deploy via Issue
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          SHORT="${{ github.sha }}"
+          SHORT="${SHORT:0:7}"
+          ALL_GREEN="${{ steps.health_fetch.outputs.health_all_green }}"
+          CORA="${{ steps.health_fetch.outputs.health_cora_ready }}"
+          SYNC="${{ steps.health_fetch.outputs.health_sync_ready }}"
+          ERP="${{ steps.health_fetch.outputs.health_erp_ping }}"
+          APP="${{ steps.assert_login.outputs.login_status }}"
+          AUTH="${{ steps.assert_nextauth.outputs.csrf_status }}"
+
+          # Cria o label se ainda não existir
+          gh label create "deploy-status" \
+            --color "0075ca" \
+            --description "Resultado automático de cada deploy Vercel" \
+            --repo "${{ github.repository }}" 2>/dev/null || true
+
+          if [ "$ALL_GREEN" = "true" ]; then
+            TITLE="✅ Deploy OK: ${SHORT}"
+            BODY="**Commit**: \`${{ github.sha }}\`
+          **Branch**: \`${{ github.ref_name }}\`
+          **Hora**: $(date -u '+%Y-%m-%dT%H:%M:%SZ')
+
+          | Check | Resultado |
+          |---|---|
+          | allGreen | ✅ true |
+          | coraReady | $CORA |
+          | syncReady | $SYNC |
+          | erpPing | $ERP |
+          | /login HTTP | $APP |
+          | /api/auth/csrf HTTP | $AUTH |
+
+          Deploy concluído com sucesso — pode testar o sync agora."
+          else
+            TITLE="❌ Deploy com problemas: ${SHORT}"
+            BODY="**Commit**: \`${{ github.sha }}\`
+          **Branch**: \`${{ github.ref_name }}\`
+          **Hora**: $(date -u '+%Y-%m-%dT%H:%M:%SZ')
+
+          | Check | Resultado |
+          |---|---|
+          | allGreen | ❌ $ALL_GREEN |
+          | coraReady | $CORA |
+          | syncReady | $SYNC |
+          | erpPing | $ERP |
+          | /login HTTP | $APP |
+          | /api/auth/csrf HTTP | $AUTH |
+
+          Verifique o [log da action](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) para detalhes."
+          fi
+
+          gh issue create \
+            --title "$TITLE" \
+            --body "$BODY" \
+            --label "deploy-status" \
+            --repo "${{ github.repository }}"
