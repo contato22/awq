@@ -297,9 +297,11 @@ export async function getAllDocuments(): Promise<FinancialDocument[]> {
       .from("financial_documents")
       .select("*")
       .order("uploaded_at", { ascending: false });
-    if (error) throw error;
-    const rows = (data as Row[]).map(rowToDocument);
-    return rows;
+    if (error) {
+      console.error("[getAllDocuments] DB error, falling back to JSON:", error);
+    } else {
+      return (data as Row[]).map(rowToDocument);
+    }
   }
   return readJSON<FinancialDocument[]>(DOCS_FILE, []).map((d) => ({
     ...d,
@@ -436,8 +438,12 @@ export async function getAllTransactions(): Promise<BankTransaction[]> {
     return rows;
   }
   if (sql) {
-    const rows = await sql`SELECT * FROM bank_transactions ORDER BY transaction_date DESC`;
-    return rows.map((r) => rowToTransaction(r as Row));
+    try {
+      const rows = await sql`SELECT * FROM bank_transactions ORDER BY transaction_date DESC`;
+      return rows.map((r) => rowToTransaction(r as Row));
+    } catch (err) {
+      console.error("[getAllTransactions] SQL error, falling back to JSON:", err);
+    }
   }
   // Backfill reconciliationStatus for legacy records that don't have it yet.
   return readJSON<BankTransaction[]>(TXN_FILE, []).map((t) => ({

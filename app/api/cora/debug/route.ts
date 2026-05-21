@@ -102,12 +102,12 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     const monthAgoIso = new Date(Date.now() - 30 * 86400_000).toISOString().slice(0, 10);
     const stmtRes = await httpsRequest(
       "GET",
-      `${BASE}/bank-statement/statement?start=${monthAgoIso}T00:00:00Z&end=${todayIso}T23:59:59Z&perPage=5`,
+      `${BASE}/bank-statement/statement?start=${monthAgoIso}&end=${todayIso}&perPage=5`,
       { "Authorization": `Bearer ${token}`, "Accept": "application/json" },
       cert,
       key,
     );
-    results.statement_url = `${BASE}/bank-statement/statement?start=${monthAgoIso}T00:00:00Z&end=${todayIso}T23:59:59Z&perPage=5`;
+    results.statement_url = `${BASE}/bank-statement/statement?start=${monthAgoIso}&end=${todayIso}&perPage=5`;
     results.statement_status = stmtRes.status;
     try { results.statement_raw = JSON.parse(stmtRes.body); } catch { results.statement_body = stmtRes.body.slice(0, 2000); }
   } catch (err) {
