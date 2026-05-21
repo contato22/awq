@@ -10,6 +10,7 @@ import { fetchCoraStatement, isCoraConfigured, isCoraJacqesConfigured } from "@/
 import { getAllTransactions } from "@/lib/financial-db";
 
 export const runtime     = "nodejs";
+export const dynamic     = "force-dynamic";
 export const maxDuration = 60;
 
 function today() {
