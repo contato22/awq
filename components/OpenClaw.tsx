@@ -82,7 +82,7 @@ function SetupScreen({ onSave }: { onSave: (key: string) => void }) {
 }
 
 export default function OpenClaw() {
-  const { data: session } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
   const isOwner = (session?.user as { role?: string })?.role === "owner";
 
   const [apiKey, setApiKey] = useState<string | null>(null);
@@ -194,6 +194,14 @@ export default function OpenClaw() {
     e.target.style.height = "auto";
     e.target.style.height = `${Math.min(e.target.scrollHeight, 160)}px`;
   };
+
+  if (sessionStatus === "loading") {
+    return (
+      <div className="flex flex-col h-full items-center justify-center">
+        <Loader2 size={20} className="text-gray-400 animate-spin" />
+      </div>
+    );
+  }
 
   if (!apiKey && !isOwner) {
     return (

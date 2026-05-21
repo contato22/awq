@@ -119,7 +119,7 @@ function SetupScreen({ onSave }: { onSave: (key: string) => void }) {
 
 // ── Main widget ────────────────────────────────────────────────────────────────
 export default function OpenClawWidget() {
-  const { data: session } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
   const isOwner = (session?.user as { role?: string })?.role === "owner";
 
   const [open, setOpen] = useState(false);
@@ -231,7 +231,7 @@ export default function OpenClawWidget() {
     } finally {
       setLoading(false);
     }
-  }, [messages, loading, apiKey, buContext]);
+  }, [messages, loading, apiKey, buContext, isOwner]);
 
   if (pathname === "/openclaw") return null;
 
@@ -291,7 +291,11 @@ export default function OpenClawWidget() {
           </div>
 
           {/* Setup screen or chat */}
-          {!apiKey && !isOwner ? (
+          {sessionStatus === "loading" ? (
+            <div className="flex flex-1 items-center justify-center">
+              <Loader2 size={16} className="text-gray-400 animate-spin" />
+            </div>
+          ) : !apiKey && !isOwner ? (
             <SetupScreen onSave={setApiKey} />
           ) : (
             <>

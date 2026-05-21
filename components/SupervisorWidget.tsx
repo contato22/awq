@@ -416,7 +416,7 @@ export default function SupervisorWidget() {
     } finally {
       setLoading(false);
     }
-  }, [messages, loading, apiKey, buContext]);
+  }, [messages, loading, apiKey, buContext, isOwner]);
 
   const markAllRead = () => setAlerts((prev) => prev.map((a) => ({ ...a, read: true })));
   const clearAlerts = () => { setAlerts([]); localStorage.removeItem(LS_ALERTS); };

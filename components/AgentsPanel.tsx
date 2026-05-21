@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useSession } from "next-auth/react";
 import {
   Bot, Play, RefreshCw, Loader2, CheckCircle2,
   AlertCircle, Monitor, TrendingUp, Film,
@@ -168,6 +169,9 @@ function NoKeyScreen({ onSave }: { onSave: (k: string) => void }) {
 
 // ── Main panel ─────────────────────────────────────────────────────────────────
 export default function AgentsPanel() {
+  const { data: session, status: sessionStatus } = useSession();
+  const isOwner = (session?.user as { role?: string })?.role === "owner";
+
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [agents, setAgents] = useState<AgentResult[]>([]);
   const [runningAll, setRunningAll] = useState(false);
@@ -191,7 +195,7 @@ export default function AgentsPanel() {
 
   const runAgent = useCallback(async (agentId: string, key?: string) => {
     const activeKey = key ?? apiKey;
-    if (!activeKey) return;
+    if (!activeKey && !isOwner) return;
 
     setAgents((prev) =>
       prev.map((a) =>
@@ -250,9 +254,11 @@ export default function AgentsPanel() {
           }
         }
       } else {
+        const agentHeaders: Record<string, string> = { "Content-Type": "application/json" };
+        if (activeKey) agentHeaders["x-anthropic-key"] = activeKey;
         const res = await fetch("/api/agents", {
           method: "POST",
-          headers: { "Content-Type": "application/json", "x-anthropic-key": activeKey },
+          headers: agentHeaders,
           body: JSON.stringify({ agentId }),
         });
 
@@ -301,18 +307,24 @@ export default function AgentsPanel() {
         prev.map((a) => (a.id === agentId ? { ...a, status: "error", errorMsg: msg } : a))
       );
     }
-  }, [apiKey]);
+  }, [apiKey, isOwner]);
 
   const runAllAgents = async () => {
-    if (!apiKey || runningAll) return;
+    if ((!apiKey && !isOwner) || runningAll) return;
     setRunningAll(true);
     await Promise.all(BU_AGENTS.map((id) => runAgent(id)));
     await runAgent("awq-master");
     setRunningAll(false);
   };
 
-  // Only block rendering if there's truly no key available anywhere
-  if (!apiKey) return <NoKeyScreen onSave={(k) => setApiKey(k)} />;
+  if (sessionStatus === "loading") {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 size={20} className="text-gray-400 animate-spin" />
+      </div>
+    );
+  }
+  if (!apiKey && !isOwner) return <NoKeyScreen onSave={(k) => setApiKey(k)} />;
 
   const buAgents = agents.filter((a) => BU_AGENTS.includes(a.id));
   const masterAgent = agents.find((a) => a.id === "awq-master");
@@ -329,7 +341,7 @@ export default function AgentsPanel() {
         </div>
         <button
           onClick={runAllAgents}
-          disabled={runningAll || !apiKey}
+          disabled={runningAll || (!apiKey && !isOwner)}
           className="btn-primary flex items-center gap-2 text-xs disabled:opacity-50"
         >
           {runningAll ? (
