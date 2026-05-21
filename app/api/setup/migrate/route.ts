@@ -71,6 +71,33 @@ GRANT ALL ON bank_transactions   TO anon, authenticated;
 -- Disable RLS so anon key can insert/select without policies
 ALTER TABLE financial_documents DISABLE ROW LEVEL SECURITY;
 ALTER TABLE bank_transactions   DISABLE ROW LEVEL SECURITY;
+
+-- ── Cora Billets (Cobrança / Boleto) ─────────────────────────────────────────
+-- Stores boletos emitted via Cora API, linked to CRM opportunities.
+
+CREATE TABLE IF NOT EXISTS cora_billets (
+  billet_id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  opportunity_id   TEXT NOT NULL,
+  cora_invoice_id  TEXT NOT NULL UNIQUE,
+  cora_account     TEXT NOT NULL DEFAULT 'AWQ_Holding',
+  amount           NUMERIC NOT NULL,
+  due_date         TEXT NOT NULL,
+  status           TEXT NOT NULL DEFAULT 'PENDING',
+  barcode          TEXT,
+  pix_key          TEXT,
+  pdf_url          TEXT,
+  payer_name       TEXT NOT NULL,
+  payer_document   TEXT NOT NULL,
+  description      TEXT,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+  paid_at          TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_cb_opportunity ON cora_billets(opportunity_id);
+CREATE INDEX IF NOT EXISTS idx_cb_status      ON cora_billets(status);
+
+GRANT ALL ON cora_billets TO anon, authenticated;
+ALTER TABLE cora_billets DISABLE ROW LEVEL SECURITY;
 `;
 
 export async function GET(req: NextRequest): Promise<NextResponse> {

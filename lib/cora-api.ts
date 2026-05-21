@@ -372,3 +372,174 @@ export async function fetchCoraBalanceForAccount(
 ): Promise<CoraBalance> {
   return fetchBalance(credsForAccount(account));
 }
+
+// ─── Billing / Boleto ───────────────────────────────────────────────────────
+// Endpoint: POST /billing/invoice  (Cora Cobrança API)
+// Docs: https://developers.cora.com.br/reference/criar-cobranca
+
+export interface CoraBilletPayer {
+  name: string;
+  document: string;         // CPF (11 digits) or CNPJ (14 digits), digits only
+  document_type?: "CPF" | "CNPJ";
+  email?: string;
+  address?: {
+    street: string;
+    number: string;
+    district: string;
+    city: string;
+    state: string;          // 2-letter UF
+    zip_code: string;       // 8 digits
+  };
+}
+
+export interface CreateCoraBilletParams {
+  amount: number;           // BRL value — will be converted to centavos
+  due_date: string;         // YYYY-MM-DD
+  payer: CoraBilletPayer;
+  description?: string;
+  reference_code?: string;  // your internal reference (opportunity_id etc.)
+  account?: "AWQ_Holding" | "JACQES";
+}
+
+export interface CoraBilletResult {
+  id: string;
+  status: "PENDING" | "PAID" | "CANCELLED" | "OVERDUE" | "EXPIRED";
+  amount: number;           // BRL
+  due_date: string;
+  barcode: string | null;
+  pix_key: string | null;
+  pdf_url: string | null;
+  payer_name: string;
+  payer_document: string;
+  created_at: string;
+  paid_at: string | null;
+}
+
+function parseBilletResponse(body: string): CoraBilletResult {
+  const j = JSON.parse(body) as Record<string, unknown>;
+  const rawAmount = Number(j.amount ?? j.total_amount ?? j.value ?? 0);
+  // Cora returns amounts in centavos
+  const amount = rawAmount > 0 ? rawAmount / 100 : 0;
+
+  const customer = (j.customer ?? {}) as Record<string, unknown>;
+  const doc = (customer.document ?? {}) as Record<string, unknown>;
+  const terms = (j.payment_terms ?? {}) as Record<string, unknown>;
+
+  const pix = (j.pix ?? {}) as Record<string, unknown>;
+
+  return {
+    id:             String(j.id ?? ""),
+    status:         (String(j.status ?? "PENDING").toUpperCase()) as CoraBilletResult["status"],
+    amount,
+    due_date:       String(terms.due_date ?? j.due_date ?? ""),
+    barcode:        j.barcode ? String(j.barcode) : null,
+    pix_key:        pix.key ? String(pix.key) : (j.pix_key ? String(j.pix_key) : null),
+    pdf_url:        j.pdf_url ? String(j.pdf_url) : (j.url ? String(j.url) : null),
+    payer_name:     String(customer.name ?? j.payer_name ?? ""),
+    payer_document: String(doc.identity ?? customer.document ?? j.payer_document ?? ""),
+    created_at:     String(j.created_at ?? j.createdAt ?? new Date().toISOString()),
+    paid_at:        j.paid_at ? String(j.paid_at) : (j.paidAt ? String(j.paidAt) : null),
+  };
+}
+
+export async function createCoraBillet(params: CreateCoraBilletParams): Promise<CoraBilletResult> {
+  const acct = params.account ?? "AWQ_Holding";
+  const creds = credsForAccount(acct);
+  const token = await getAccessToken(creds);
+
+  const docType = params.payer.document_type
+    ?? (params.payer.document.replace(/\D/g, "").length === 11 ? "CPF" : "CNPJ");
+
+  const payload = {
+    code: params.reference_code,
+    customer: {
+      name:  params.payer.name,
+      email: params.payer.email,
+      document: {
+        identity: params.payer.document.replace(/\D/g, ""),
+        type:     docType,
+      },
+      ...(params.payer.address ? { address: params.payer.address } : {}),
+    },
+    services: [
+      {
+        description: params.description ?? "Serviço AWQ",
+        amount:      Math.round(params.amount * 100), // centavos
+        quantity:    1,
+      },
+    ],
+    payment_terms: {
+      due_date: params.due_date.slice(0, 10),
+    },
+  };
+
+  const { status, body } = await httpsRequest(
+    "POST",
+    `${BASE}/billing/invoice`,
+    {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type":  "application/json",
+      "Accept":        "application/json",
+    },
+    creds,
+    JSON.stringify(payload),
+  );
+
+  console.error("[cora billet create]", status, body.slice(0, 1000));
+
+  if (status !== 200 && status !== 201) {
+    throw new Error(`Cora billing error (HTTP ${status}): ${body}`);
+  }
+
+  return parseBilletResponse(body);
+}
+
+export async function getCoraBillet(
+  id: string,
+  account: "AWQ_Holding" | "JACQES" = "AWQ_Holding",
+): Promise<CoraBilletResult> {
+  const creds = credsForAccount(account);
+  const token = await getAccessToken(creds);
+
+  const { status, body } = await httpsRequest(
+    "GET",
+    `${BASE}/billing/invoice/${id}`,
+    {
+      "Authorization": `Bearer ${token}`,
+      "Accept":        "application/json",
+    },
+    creds,
+  );
+
+  console.error("[cora billet get]", id, status, body.slice(0, 500));
+
+  if (status !== 200) {
+    throw new Error(`Cora billing get error (HTTP ${status}): ${body}`);
+  }
+
+  return parseBilletResponse(body);
+}
+
+export async function cancelCoraBillet(
+  id: string,
+  account: "AWQ_Holding" | "JACQES" = "AWQ_Holding",
+): Promise<void> {
+  const creds = credsForAccount(account);
+  const token = await getAccessToken(creds);
+
+  const { status, body } = await httpsRequest(
+    "DELETE",
+    `${BASE}/billing/invoice/${id}`,
+    {
+      "Authorization": `Bearer ${token}`,
+      "Accept":        "application/json",
+    },
+    creds,
+  );
+
+  console.error("[cora billet cancel]", id, status, body.slice(0, 500));
+
+  if (status !== 200 && status !== 204) {
+    throw new Error(`Cora billing cancel error (HTTP ${status}): ${body}`);
+  }
+}

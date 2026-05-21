@@ -12,8 +12,9 @@ import {
   Target, DollarSign, TrendingUp, Plus, X,
   Calendar, Building2, AlertCircle, Phone, Mail, Users,
   CheckCircle2, FileText, MessageSquare, Clock, Trash2, User,
+  Receipt, RefreshCw, Copy, ExternalLink, XCircle,
 } from "lucide-react";
-import type { CrmOpportunity, CrmActivity } from "@/lib/crm-types";
+import type { CrmOpportunity, CrmActivity, CoraBillet } from "@/lib/crm-types";
 import { STAGE_LABELS, STAGE_PROBABILITY, BU_OPTIONS, OWNER_OPTIONS, PIPELINE_STAGES } from "@/lib/crm-types";
 
 import { formatBRL, formatDateBR } from "@/lib/utils";
@@ -64,12 +65,12 @@ function OppDetailModal({
   onClose,
 }: {
   opp: CrmOpportunity;
-  initialTab: "edit" | "activity";
+  initialTab: "edit" | "activity" | "cobranca";
   onSave: (updated: CrmOpportunity) => void;
   onDelete: (opp: CrmOpportunity) => void;
   onClose: () => void;
 }) {
-  const [tab, setTab] = useState<"edit" | "activity">(initialTab);
+  const [tab, setTab] = useState<"edit" | "activity" | "cobranca">(initialTab);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [form, setForm] = useState({
     opportunity_name: opp.opportunity_name,
@@ -93,6 +94,22 @@ function OppDetailModal({
     scheduled_at: new Date().toISOString().slice(0, 16),
   });
 
+  // ── Cobrança state ──
+  const [billets, setBillets] = useState<CoraBillet[]>([]);
+  const [billetLoading, setBilletLoading] = useState(false);
+  const [billetSaving, setBilletSaving] = useState(false);
+  const [billetError, setBilletError] = useState<string | null>(null);
+  const [showBilletForm, setShowBilletForm] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [billetForm, setBilletForm] = useState({
+    amount: String(opp.deal_value || ""),
+    due_date: "",
+    payer_name: opp.account_name ?? "",
+    payer_document: "",
+    description: opp.opportunity_name,
+    account: "AWQ_Holding" as "AWQ_Holding" | "JACQES",
+  });
+
   useEffect(() => {
     setActLoading(true);
     fetch(`/api/crm/activities?related_to_id=${opp.opportunity_id}&related_to_type=opportunity`)
@@ -101,6 +118,16 @@ function OppDetailModal({
       .catch(() => undefined)
       .finally(() => setActLoading(false));
   }, [opp.opportunity_id]);
+
+  useEffect(() => {
+    if (tab !== "cobranca") return;
+    setBilletLoading(true);
+    fetch(`/api/cora/billet?opportunity_id=${opp.opportunity_id}`)
+      .then(r => r.json())
+      .then(json => { if (json.data) setBillets(json.data as CoraBillet[]); })
+      .catch(() => undefined)
+      .finally(() => setBilletLoading(false));
+  }, [tab, opp.opportunity_id]);
 
   function setField(field: string, value: string) {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -173,6 +200,70 @@ function OppDetailModal({
 
   const noActivities = !actLoading && activities.length === 0;
 
+  async function handleCreateBillet(e: React.FormEvent) {
+    e.preventDefault();
+    setBilletSaving(true);
+    setBilletError(null);
+    try {
+      const res = await fetch("/api/cora/billet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "create",
+          opportunity_id: opp.opportunity_id,
+          amount: parseFloat(billetForm.amount),
+          due_date: billetForm.due_date,
+          payer_name: billetForm.payer_name.trim(),
+          payer_document: billetForm.payer_document.replace(/\D/g, ""),
+          description: billetForm.description.trim() || undefined,
+          account: billetForm.account,
+        }),
+      });
+      const json = await res.json() as { success: boolean; data?: CoraBillet; error?: string };
+      if (!json.success) throw new Error(json.error ?? "Erro ao emitir boleto");
+      if (json.data) setBillets(prev => [json.data!, ...prev]);
+      setShowBilletForm(false);
+    } catch (err) {
+      setBilletError(err instanceof Error ? err.message : String(err));
+    }
+    setBilletSaving(false);
+  }
+
+  async function handleCancelBillet(billetId: string) {
+    if (!confirm("Cancelar este boleto na Cora?")) return;
+    try {
+      const res = await fetch("/api/cora/billet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "cancel", billet_id: billetId }),
+      });
+      const json = await res.json() as { success: boolean; data?: CoraBillet; error?: string };
+      if (!json.success) throw new Error(json.error ?? "Erro ao cancelar");
+      if (json.data) setBillets(prev => prev.map(b => b.billet_id === billetId ? json.data! : b));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  async function handleRefreshBillet(billetId: string) {
+    try {
+      const res = await fetch("/api/cora/billet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "refresh", billet_id: billetId }),
+      });
+      const json = await res.json() as { success: boolean; data?: CoraBillet; error?: string };
+      if (json.data) setBillets(prev => prev.map(b => b.billet_id === billetId ? json.data! : b));
+    } catch { /* ignore */ }
+  }
+
+  function copyToClipboard(text: string, id: string) {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
+    }).catch(() => undefined);
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[92vh] flex flex-col">
@@ -213,6 +304,25 @@ function OppDetailModal({
             {activities.length > 0 && (
               <span className="text-[9px] font-bold text-brand-600 bg-brand-50 rounded-full px-1.5 py-0.5">
                 {activities.length}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setTab("cobranca")}
+            className={`py-2.5 text-xs font-semibold flex items-center gap-1.5 border-b-2 transition-colors ${
+              tab === "cobranca" ? "border-brand-500 text-brand-600" : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            <Receipt size={11} />
+            Cobrança
+            {billets.filter(b => b.status === "PENDING").length > 0 && (
+              <span className="text-[9px] font-bold text-amber-600 bg-amber-50 rounded-full px-1.5 py-0.5">
+                {billets.filter(b => b.status === "PENDING").length}
+              </span>
+            )}
+            {billets.filter(b => b.status === "PAID").length > 0 && (
+              <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 rounded-full px-1.5 py-0.5">
+                ✓ {billets.filter(b => b.status === "PAID").length}
               </span>
             )}
           </button>
@@ -529,6 +639,258 @@ function OppDetailModal({
               </div>
             </div>
           )}
+
+          {/* ── Cobrança Tab ─────────────────────────────────────── */}
+          {tab === "cobranca" && (
+            <div className="p-5 space-y-4">
+
+              {/* Header actions */}
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
+                  <Receipt size={13} className="text-brand-500" />
+                  Boletos emitidos ({billets.length})
+                </p>
+                <button
+                  onClick={() => { setShowBilletForm(v => !v); setBilletError(null); }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 text-white text-xs font-semibold rounded-lg hover:bg-brand-700 transition-colors"
+                >
+                  <Plus size={11} />
+                  Emitir Boleto
+                </button>
+              </div>
+
+              {/* New billet form */}
+              {showBilletForm && (
+                <div className="border border-brand-200 rounded-xl overflow-hidden bg-brand-50/30">
+                  <div className="bg-brand-500 px-4 py-2.5">
+                    <p className="text-xs font-semibold text-white flex items-center gap-1.5">
+                      <Receipt size={11} /> Novo boleto via Cora
+                    </p>
+                  </div>
+                  <form onSubmit={handleCreateBillet} className="p-4 space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-medium text-gray-700 mb-1">
+                          Valor (R$) <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="number" min="0.01" step="0.01" required
+                          value={billetForm.amount}
+                          onChange={e => setBilletForm(p => ({ ...p, amount: e.target.value }))}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-medium text-gray-700 mb-1">
+                          Vencimento <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="date" required
+                          value={billetForm.due_date}
+                          onChange={e => setBilletForm(p => ({ ...p, due_date: e.target.value }))}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-medium text-gray-700 mb-1">
+                        Nome do pagador <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text" required
+                        value={billetForm.payer_name}
+                        onChange={e => setBilletForm(p => ({ ...p, payer_name: e.target.value }))}
+                        placeholder="Razão social ou nome completo"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-medium text-gray-700 mb-1">
+                          CPF / CNPJ <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text" required
+                          value={billetForm.payer_document}
+                          onChange={e => setBilletForm(p => ({ ...p, payer_document: e.target.value }))}
+                          placeholder="Somente números"
+                          className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-medium text-gray-700 mb-1">Conta Cora</label>
+                        <select
+                          value={billetForm.account}
+                          onChange={e => setBilletForm(p => ({ ...p, account: e.target.value as "AWQ_Holding" | "JACQES" }))}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+                        >
+                          <option value="AWQ_Holding">AWQ Holding</option>
+                          <option value="JACQES">JACQES</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-medium text-gray-700 mb-1">Descrição</label>
+                      <input
+                        type="text"
+                        value={billetForm.description}
+                        onChange={e => setBilletForm(p => ({ ...p, description: e.target.value }))}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+                      />
+                    </div>
+
+                    {billetError && (
+                      <div className="flex items-start gap-2 p-2.5 bg-red-50 border border-red-200 rounded-lg">
+                        <AlertCircle size={13} className="text-red-500 shrink-0 mt-0.5" />
+                        <p className="text-[11px] text-red-700 break-all">{billetError}</p>
+                      </div>
+                    )}
+
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowBilletForm(false)}
+                        className="flex-1 py-1.5 border border-gray-300 text-gray-700 text-xs font-medium rounded-lg hover:bg-white transition-colors"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={billetSaving}
+                        className="flex-1 py-1.5 bg-brand-600 text-white text-xs font-semibold rounded-lg hover:bg-brand-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-1.5"
+                      >
+                        {billetSaving ? (
+                          <><div className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Emitindo…</>
+                        ) : (
+                          <><Receipt size={11} /> Emitir</>
+                        )}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
+              {/* Billet list */}
+              {billetLoading && (
+                <div className="flex items-center gap-2 py-6 justify-center text-gray-400">
+                  <div className="w-3 h-3 border-2 border-gray-300 border-t-gray-500 rounded-full animate-spin" />
+                  <span className="text-xs">Carregando boletos…</span>
+                </div>
+              )}
+
+              {!billetLoading && billets.length === 0 && !showBilletForm && (
+                <div className="text-center py-8 text-gray-400">
+                  <Receipt size={28} className="mx-auto mb-2 opacity-25" />
+                  <p className="text-xs">Nenhum boleto emitido</p>
+                  <p className="text-[11px] text-gray-400 mt-0.5">Clique em "Emitir Boleto" para criar</p>
+                </div>
+              )}
+
+              {!billetLoading && billets.length > 0 && (
+                <div className="space-y-3">
+                  {billets.map(b => {
+                    const statusConfig: Record<string, { label: string; cls: string }> = {
+                      PENDING:   { label: "Pendente",  cls: "bg-amber-50 text-amber-700 border-amber-200" },
+                      PAID:      { label: "Pago",      cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+                      OVERDUE:   { label: "Vencido",   cls: "bg-red-50 text-red-700 border-red-200" },
+                      CANCELLED: { label: "Cancelado", cls: "bg-gray-100 text-gray-500 border-gray-200" },
+                      EXPIRED:   { label: "Expirado",  cls: "bg-gray-100 text-gray-500 border-gray-200" },
+                    };
+                    const sc = statusConfig[b.status] ?? statusConfig.PENDING;
+                    const canCancel = b.status === "PENDING" || b.status === "OVERDUE";
+
+                    return (
+                      <div key={b.billet_id} className="border border-gray-200 rounded-xl p-3 space-y-2.5 bg-white">
+                        {/* Top row */}
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="text-xs font-semibold text-gray-900">{formatBRL(b.amount)}</p>
+                            <p className="text-[11px] text-gray-500">Venc. {formatDateBR(b.due_date)}</p>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${sc.cls}`}>
+                              {sc.label}
+                            </span>
+                            <button
+                              onClick={() => handleRefreshBillet(b.billet_id)}
+                              title="Atualizar status"
+                              className="p-1 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"
+                            >
+                              <RefreshCw size={11} />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Payer */}
+                        <p className="text-[11px] text-gray-600">
+                          <span className="font-medium">Pagador:</span> {b.payer_name} · {b.payer_document}
+                        </p>
+
+                        {/* Barcode */}
+                        {b.barcode && (
+                          <div className="flex items-center gap-1.5 p-2 bg-gray-50 rounded-lg border border-gray-200">
+                            <p className="text-[10px] font-mono text-gray-600 flex-1 truncate">{b.barcode}</p>
+                            <button
+                              onClick={() => copyToClipboard(b.barcode!, b.billet_id + "_bar")}
+                              className="p-1 rounded text-gray-400 hover:text-brand-600 transition-colors shrink-0"
+                              title="Copiar código de barras"
+                            >
+                              {copiedId === b.billet_id + "_bar" ? <CheckCircle2 size={12} className="text-emerald-500" /> : <Copy size={12} />}
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Pix key */}
+                        {b.pix_key && (
+                          <div className="flex items-center gap-1.5 p-2 bg-blue-50 rounded-lg border border-blue-100">
+                            <p className="text-[10px] font-mono text-blue-700 flex-1 truncate">PIX: {b.pix_key}</p>
+                            <button
+                              onClick={() => copyToClipboard(b.pix_key!, b.billet_id + "_pix")}
+                              className="p-1 rounded text-blue-400 hover:text-blue-700 transition-colors shrink-0"
+                              title="Copiar chave Pix"
+                            >
+                              {copiedId === b.billet_id + "_pix" ? <CheckCircle2 size={12} className="text-emerald-500" /> : <Copy size={12} />}
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-2 pt-0.5">
+                          {b.pdf_url && (
+                            <a
+                              href={b.pdf_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1 text-[11px] text-brand-600 hover:text-brand-800 font-medium"
+                            >
+                              <ExternalLink size={11} /> Ver PDF
+                            </a>
+                          )}
+                          {b.paid_at && (
+                            <span className="text-[11px] text-emerald-600 font-medium">
+                              Pago em {formatDateBR(b.paid_at.slice(0, 10))}
+                            </span>
+                          )}
+                          {canCancel && (
+                            <button
+                              onClick={() => handleCancelBillet(b.billet_id)}
+                              className="ml-auto flex items-center gap-1 text-[11px] text-red-500 hover:text-red-700 font-medium"
+                            >
+                              <XCircle size={11} /> Cancelar
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
         </div>
       </div>
     </div>
@@ -780,7 +1142,7 @@ function PipelinePageInner() {
   const [dragOverStage, setDragOverStage] = useState<string | null>(null);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const [editingOpp, setEditingOpp] = useState<CrmOpportunity | null>(null);
-  const [editingTab, setEditingTab] = useState<"edit" | "activity">("edit");
+  const [editingTab, setEditingTab] = useState<"edit" | "activity" | "cobranca">("edit");
   const [activityCounts, setActivityCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {

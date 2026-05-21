@@ -195,6 +195,28 @@ export type CrmDashboardMetrics = {
   tasksToday: CrmActivity[];
 };
 
+// ─── Cora Billet (Cobrança / Boleto) ─────────────────────────────────────────
+
+export type CoraBilletStatus = "PENDING" | "PAID" | "CANCELLED" | "OVERDUE" | "EXPIRED";
+
+export type CoraBillet = {
+  billet_id: string;
+  opportunity_id: string;
+  cora_invoice_id: string;
+  cora_account: "AWQ_Holding" | "JACQES";
+  amount: number;
+  due_date: string;         // YYYY-MM-DD
+  status: CoraBilletStatus;
+  barcode: string | null;
+  pix_key: string | null;
+  pdf_url: string | null;
+  payer_name: string;
+  payer_document: string;
+  description: string | null;
+  created_at: string;
+  paid_at: string | null;
+};
+
 // ─── API Response ─────────────────────────────────────────────────────────────
 
 export type ApiResponse<T = unknown> = {
