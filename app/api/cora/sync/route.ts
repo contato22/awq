@@ -1,4 +1,4 @@
-// ─── POST /api/cora/sync ───────────────────────────────────────────────────────
+// ─── POST /api/cora/sync —————————————————————————————————————————————————
 //
 // Synchronises bank statement data from the Cora API into the financial DB.
 //
@@ -24,7 +24,7 @@ import { fetchCoraStatement, isCoraConfigured } from "@/lib/cora-api";
 import { getAllTransactions, saveTransactions } from "@/lib/financial-db";
 import { classifyTransaction } from "@/lib/financial-classifier";
 import type { BankTransaction, EntityLayer } from "@/lib/financial-db";
-import { USE_SUPABASE, USE_ERP_ADMIN, USE_ANON_CLIENT } from "@/lib/supabase";
+import { USE_SUPABASE, USE_ERP_ADMIN } from "@/lib/supabase";
 import { USE_DB } from "@/lib/db";
 
 export const runtime = "nodejs";
@@ -42,13 +42,13 @@ function isValidDate(s: string) {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  // ── Auth ──────────────────────────────────────────────────────────────────
+  // ── Auth —————————————————————————————————————————————————————————
   const authToken = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   if (!authToken) {
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   }
 
-  // ── Cora configured? ──────────────────────────────────────────────────────────────────────────
+  // ── Cora configured? ———————————————————————————————————————————————————————————————
   if (!isCoraConfigured()) {
     return NextResponse.json(
       {
@@ -59,8 +59,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     );
   }
 
-  // ── Database configured? ──────────────────────────────────────────────────────────────────────
-  if (!USE_SUPABASE && !USE_ERP_ADMIN && !USE_ANON_CLIENT && !USE_DB) {
+  // ── Database configured? ———————————————————————————————————————————————————————————————
+  // Require service role (SUPABASE or ERP_ADMIN) or direct postgres — anon alone cannot bypass RLS.
+  if (!USE_SUPABASE && !USE_ERP_ADMIN && !USE_DB) {
     return NextResponse.json(
       {
         error: "Banco de dados não configurado.",
@@ -70,7 +71,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     );
   }
 
-  // ── Parse request ─────────────────────────────────────────────────────────
+  // ── Parse request ——————————————————————————————————————————————————————————
   const body = await req.json().catch(() => ({})) as {
     accountName?: string;
     entity?: string;
@@ -85,7 +86,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const endDate     = isValidDate(body.endDate   ?? "") ? body.endDate!   : today();
   const force       = body.force === true;
 
-  // ── Fetch from Cora ───────────────────────────────────────────────────────
+  // ── Fetch from Cora —————————————————————————————————————————————————————————
   let coraEntries: Awaited<ReturnType<typeof fetchCoraStatement>>;
   try {
     coraEntries = await fetchCoraStatement(startDate, endDate, entity as "AWQ_Holding" | "JACQES");
@@ -97,7 +98,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     );
   }
 
-  // ── Deduplication ─────────────────────────────────────────────────────────
+  // ── Deduplication ———————————————————————————————————————————————————————————
   const existing = await getAllTransactions();
   const existingIds = new Set(existing.map((t) => t.id));
 
@@ -148,7 +149,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     });
   }
 
-  // ── Save ──────────────────────────────────────────────────────────────────
+  // ── Save ————————————————————————————————————————————————————————————————————
   if (newTransactions.length > 0) {
     try {
       await saveTransactions(newTransactions);
