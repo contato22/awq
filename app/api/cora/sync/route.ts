@@ -87,9 +87,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const force       = body.force === true;
 
   // ── Fetch from Cora —————————————————————————————————————————————————————————
-  let coraEntries: Awaited<ReturnType<typeof fetchCoraStatement>>;
+  let coraResult: Awaited<ReturnType<typeof fetchCoraStatement>>;
   try {
-    coraEntries = await fetchCoraStatement(startDate, endDate, entity as "AWQ_Holding" | "JACQES");
+    coraResult = await fetchCoraStatement(startDate, endDate, entity as "AWQ_Holding" | "JACQES");
   } catch (err) {
     console.error("[POST /api/cora/sync] fetch failed", err);
     return NextResponse.json(
@@ -97,6 +97,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       { status: 502 },
     );
   }
+
+  const coraEntries = coraResult.entries;
 
   // ── Deduplication ———————————————————————————————————————————————————————————
   const existing = await getAllTransactions();
@@ -168,5 +170,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     skipped,
     total:   coraEntries.length,
     period:  { startDate, endDate },
+    ...(coraEntries.length === 0 ? { _debug: coraResult._debug } : {}),
   });
 }

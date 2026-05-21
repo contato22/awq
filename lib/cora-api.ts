@@ -196,13 +196,23 @@ function parseEntry(raw: CoraRawEntry): CoraStatementEntry {
     (cat.sub  ? String(cat.sub)  : null) ??
     (raw.category ? String(raw.category) : null);
 
+  const id = String(
+    raw.id ?? raw.transaction_id ?? raw.entry_id ?? raw.movementId ??
+    raw.movement_id ?? raw.statementId ?? raw.statement_id ?? raw.externalId ?? "",
+  );
+
+  const rawDate =
+    raw.createdAt ?? raw.date ?? raw.created_at ?? raw.transaction_date ??
+    raw.eventAt ?? raw.event_at ?? raw.settledAt ?? raw.settled_at ??
+    raw.processedAt ?? raw.processed_at ?? raw.dateTime ?? raw.datetime;
+
   return {
-    id:          String(raw.id ?? raw.transaction_id ?? raw.entry_id ?? ""),
-    date:        parseDate(raw.createdAt ?? raw.date ?? raw.created_at ?? raw.transaction_date),
+    id,
+    date: parseDate(rawDate),
     description,
     amount:      Math.abs(rawAmount),
     direction,
-    balance:     null, // Cora does not provide per-entry running balance
+    balance:     null,
     counterparty,
     category,
   };
@@ -210,25 +220,48 @@ function parseEntry(raw: CoraRawEntry): CoraStatementEntry {
 
 function extractItems(json: unknown): CoraRawEntry[] {
   if (Array.isArray(json)) return json as CoraRawEntry[];
+  if (!json || typeof json !== "object") return [];
   const obj = json as Record<string, unknown>;
-  if (Array.isArray(obj.items))        return obj.items as CoraRawEntry[];
-  if (Array.isArray(obj.transactions)) return obj.transactions as CoraRawEntry[];
-  if (Array.isArray(obj.data))         return obj.data as CoraRawEntry[];
-  if (Array.isArray(obj.entries))      return obj.entries as CoraRawEntry[];
+  // Direct array fields — ordered by likelihood
+  for (const k of ["items", "transactions", "data", "entries", "results", "records", "statement", "movements"]) {
+    if (Array.isArray(obj[k])) return obj[k] as CoraRawEntry[];
+  }
+  // Nested: if a top-level value is an object, recurse one level
+  for (const k of Object.keys(obj)) {
+    const v = obj[k];
+    if (v && typeof v === "object" && !Array.isArray(v)) {
+      const nested = extractItems(v);
+      if (nested.length > 0) return nested;
+    }
+  }
   return [];
+}
+
+export interface CoraStatementResult {
+  entries: CoraStatementEntry[];
+  /** Raw first-page JSON for diagnostics (keys + sample). Only set when entries === 0. */
+  _debug?: {
+    status: number;
+    topLevelKeys: string[];
+    rawItemsCount: number | null;
+    rawSample: unknown;
+    parsedBeforeFilter: number;
+    filteredOut: number;
+  };
 }
 
 export async function fetchCoraStatement(
   startDate: string,
   endDate: string,
   account: "AWQ_Holding" | "JACQES" = "AWQ_Holding",
-): Promise<CoraStatementEntry[]> {
+): Promise<CoraStatementResult> {
   const creds = credsForAccount(account);
   const token = await getAccessToken(creds);
 
   const PER_PAGE = 200;
   const all: CoraStatementEntry[] = [];
   let page = 1;
+  let firstPageDebug: CoraStatementResult["_debug"] | undefined;
 
   while (true) {
     const url = `${BASE}/bank-statement/statement?start=${startDate}&end=${endDate}&perPage=${PER_PAGE}&page=${page}`;
@@ -239,27 +272,50 @@ export async function fetchCoraStatement(
       creds,
     );
 
-    if (page === 1) console.error("[cora statement raw p1]", status, body.slice(0, 2000));
+    console.error("[cora statement p" + page + "]", status, body.slice(0, 3000));
 
     if (status !== 200) {
       throw new Error(`Cora statement error (HTTP ${status}): ${body}`);
     }
 
-    const json = JSON.parse(body) as Record<string, unknown>;
-    const items = extractItems(json).map(parseEntry).filter((e) => e.id && e.date);
-    all.push(...items);
+    let json: Record<string, unknown>;
+    try {
+      json = JSON.parse(body) as Record<string, unknown>;
+    } catch {
+      throw new Error(`Cora statement JSON parse error: ${body.slice(0, 500)}`);
+    }
 
-    // Stop when this page is not full — no more pages
-    if (items.length < PER_PAGE) break;
+    const rawItems = extractItems(json);
+    const parsed = rawItems.map(parseEntry);
+    const filtered = parsed.filter((e) => e.id && e.date);
 
-    // Also stop if the API tells us total explicitly
-    const total = Number((json as Record<string, unknown>).total ?? (json as Record<string, unknown>).totalItems ?? NaN);
+    if (page === 1 && filtered.length === 0) {
+      // Capture debug info for the first page when nothing comes through
+      const firstRaw = rawItems[0] ?? null;
+      firstPageDebug = {
+        status,
+        topLevelKeys: Object.keys(json),
+        rawItemsCount: rawItems.length,
+        rawSample: firstRaw,
+        parsedBeforeFilter: parsed.length,
+        filteredOut: parsed.filter((e) => !e.id || !e.date).length,
+      };
+    }
+
+    all.push(...filtered);
+
+    if (filtered.length < PER_PAGE) break;
+
+    const total = Number(json.total ?? json.totalItems ?? json.totalCount ?? NaN);
     if (!isNaN(total) && all.length >= total) break;
 
     page++;
   }
 
-  return all;
+  return {
+    entries: all,
+    ...(all.length === 0 ? { _debug: firstPageDebug } : {}),
+  };
 }
 
 // ─── Account balance ────────────────────────────────────────────────────────────────────

@@ -26,6 +26,7 @@ interface SyncResult {
   total: number;
   period: { startDate: string; endDate: string };
   error?: string;
+  _debug?: unknown;
 }
 
 type AccountKey = "AWQ_Holding" | "JACQES";
@@ -125,6 +126,9 @@ export default function CoraStatusPanel({
         const data = await res.json() as SyncResult & { error?: string };
         if (res.ok) {
           totalSynced += data.synced;
+          if (data.total === 0 && data._debug) {
+            console.error("[CoraSync] 0 entradas da API Cora para", acc.key, data.period, data._debug);
+          }
           void loadBalance(acc.key);
         } else {
           if (isMounted.current) setSyncError(data.error ?? "Falha ao sincronizar");

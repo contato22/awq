@@ -3,10 +3,9 @@
 
 import https from "node:https";
 import { NextRequest, NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
 
 export const runtime = "nodejs";
-export const dynamic = "force-static";
+export const dynamic = "force-dynamic";
 
 function env(key: string) {
   return (process.env[key] ?? "").replace(/\\n/g, "\n");
@@ -45,8 +44,9 @@ function httpsRequest(
 }
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
-  const authToken = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-  if (!authToken) {
+  // Uses middleware-injected header (same pattern as /api/cora/sync and /api/cora/balance)
+  const userEmail = req.headers.get("x-user-email");
+  if (!userEmail) {
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   }
 
