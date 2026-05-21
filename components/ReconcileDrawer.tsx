@@ -140,7 +140,7 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
   const [createDesc, setCreateDesc]   = useState(tx.descriptionOriginal);
   const [createParty, setCreateParty] = useState(tx.counterpartyName ?? "");
   const [createDue, setCreateDue]     = useState(tx.transactionDate);
-  const [createAmt, setCreateAmt]     = useState(String(Math.abs(tx.amount) / 100));
+  const [createAmt, setCreateAmt]     = useState(String(Math.abs(tx.amount)));
   const [createCat, setCreateCat]     = useState(tx.managerialCategory === "unclassified" ? "" : (CAT_LABELS[tx.managerialCategory] ?? ""));
   const [creating, setCreating]       = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -260,7 +260,7 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
             id: selectedItem.id,
             action,
             [dateField]: tx.transactionDate,
-            [amtField]: Math.abs(tx.amount) / 100,
+            [amtField]: Math.abs(tx.amount),
             [refField]: tx.id,
           }),
         });
@@ -333,7 +333,7 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
 
   // ── Render ────────────────────────────────────────────────────────────────────
 
-  const txAmt = Math.abs(tx.amount) / 100;
+  const txAmt = Math.abs(tx.amount); // already in reais (cora-api.ts divides by 100 at source)
   const catLabel = CAT_LABELS[tx.managerialCategory] ?? tx.managerialCategory;
 
   return (
