@@ -22,11 +22,12 @@ import { sql, initDB } from "@/lib/db";
 
 // Priority: financial service role → ERP service role → financial anon → ERP anon → JSON.
 // supabase/erpAdmin bypass RLS (require service role keys in Vercel).
-// anonClient uses financial DB anon key — works if tables have RLS disabled + anon grants
-//   (initDB disables RLS and grants ALL to anon, so this is the default fallback).
-// erpAnon uses ERP DB anon key — fallback if financial DB URL is not configured.
+// erpAnon uses ERP DB anon key (hardcoded, always available) — financial tables live in
+//   kkhxxsrgsewjfvnnssyf (awq-tower-crm); migration must be run once in that project's
+//   SQL Editor (see /api/setup/migrate). RLS is disabled + anon granted by the migration.
+// anonClient uses financial DB anon key — only as last resort if ERP DB is unavailable.
 // sql (DATABASE_URL direct postgres) is used only for initDB schema migration.
-const db = supabase ?? erpAdmin ?? anonClient ?? erpAnon;
+const db = supabase ?? erpAdmin ?? erpAnon ?? anonClient;
 
 // ─── Directory (filesystem adapter only) ─────────────────────────────────────
 
