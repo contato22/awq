@@ -17,8 +17,11 @@ import crypto from "crypto";
 import { supabase, anonClient } from "@/lib/supabase";
 import { sql, initDB } from "@/lib/db";
 
-// Prefer service role → anon key fallback → direct postgres → JSON (local only).
-const db = supabase ?? anonClient;
+// Priority: service role → direct postgres (sql) → anon key → JSON.
+// anonClient is skipped when sql is available because both DATABASE_URL and
+// anonClient may point to different Supabase projects; sql and initDB() are
+// always co-located (same DATABASE_URL), so sql must win over anonClient.
+const db = supabase ?? (sql ? null : anonClient);
 
 // ─── Directory (filesystem adapter only) ─────────────────────────────────────
 
