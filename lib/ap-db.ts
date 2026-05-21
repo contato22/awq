@@ -7,8 +7,12 @@ import path from "path";
 import crypto from "crypto";
 import { supabase, erpAdmin, erpAnon, anonClient } from "@/lib/supabase";
 import type { EntityLayer } from "@/lib/financial-db";
-import type { APStatus, APEntry, APSummary, CreateAPEntryInput, UpdateAPEntryInput } from "@/lib/ap-shared";
+import type {
+  APStatus, APEntry, APSummary,
+  CreateAPEntryInput, UpdateAPEntryInput,
+} from "@/lib/ap-shared";
 import { effectiveStatus } from "@/lib/ap-shared";
+
 export type { APStatus, APEntry, APSummary, CreateAPEntryInput, UpdateAPEntryInput } from "@/lib/ap-shared";
 export { effectiveStatus } from "@/lib/ap-shared";
 
@@ -32,14 +36,12 @@ function writeJsonFallback(entries: APEntry[]): void {
   fs.writeFileSync(AP_FILE, JSON.stringify(entries, null, 2));
 }
 
-import type { APStatus, APEntry, APSummary, CreateAPEntryInput, UpdateAPEntryInput } from "@/lib/ap-shared";
-
 function fromRow(row: Record<string, unknown>): APEntry {
   return {
     id:                 row.id as string,
     accountCode:        row.account_code as string,
     accountDescription: row.account_description as string,
-    managerialCategory: row.managerial_category as ManagerialCategory,
+    managerialCategory: row.managerial_category as APEntry["managerialCategory"],
     supplierName:       row.supplier_name as string,
     supplierDocument:   (row.supplier_document as string) ?? null,
     entity:             row.entity as EntityLayer,
@@ -64,9 +66,7 @@ function fromRow(row: Record<string, unknown>): APEntry {
 // ── CRUD ───────────────────────────────────────────────────────────────────────
 
 export async function getAllAPEntries(): Promise<APEntry[]> {
-  if (!db) {
-    return readJsonFallback();
-  }
+  if (!db) return readJsonFallback();
   try {
     const { data, error } = await db
       .from("ap_entries")
@@ -187,7 +187,7 @@ export async function deleteAPEntry(id: string): Promise<void> {
   if (error) throw new Error(`AP delete failed: ${error.message}`);
 }
 
-// ── Aggregations (for dashboard + CI/CD with financial reports) ────────────────
+// ── Aggregations (dashboard + CI/CD integration with DRE / DFC / Balanço) ──────
 
 export async function getAPSummary(entity: EntityLayer | "all" = "all"): Promise<APSummary> {
   const entries = await getAPEntriesByEntity(entity);
@@ -200,7 +200,7 @@ export async function getAPSummary(entity: EntityLayer | "all" = "all"): Promise
     byCategory: [],
   };
 
-  const catMap = new Map<string, { total: number; count: number }>();
+  const catMap = new Map<APEntry["managerialCategory"], { total: number; count: number }>();
 
   for (const e of entries) {
     const eff = effectiveStatus(e, today);
@@ -241,19 +241,19 @@ export async function getOpenAPForBalanco(entity: EntityLayer | "all" = "all"): 
   });
 }
 
-// Returns paid APs for DFC (as planned cash outflows, excluding linked bank txns)
+// Returns paid APs for DFC (cash outflows)
 export async function getPaidAPForDFC(entity: EntityLayer | "all" = "all"): Promise<APEntry[]> {
   const entries = await getAPEntriesByEntity(entity);
   return entries.filter(e => e.status === "pago" && e.paymentDate);
 }
 
-// Returns AP accruals for DRE (expense recognized at issue_date, regime competência)
+// Returns AP accruals for DRE by managerialCategory (regime competência)
 export async function getAPAccrualsForDRE(
   entity: EntityLayer | "all" = "all",
   period?: { start: string; end: string }
-): Promise<Array<{ category: string; total: number }>> {
+): Promise<Array<{ category: APEntry["managerialCategory"]; total: number }>> {
   const entries = await getAPEntriesByEntity(entity);
-  const catMap = new Map<string, number>();
+  const catMap = new Map<APEntry["managerialCategory"], number>();
 
   for (const e of entries) {
     if (e.status === "cancelado") continue;
