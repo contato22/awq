@@ -26,24 +26,20 @@ export const USERS: AuthUser[] = [
 
 // ── RBAC route prefixes ───────────────────────────────────────────────────────
 //
-// POLICY: Mostly permissive (MVP), with strict isolation for BU-scoped roles.
-//
-//   owner:   ["/"]                           — all routes
-//   admin:   ["/"]                           — all routes
-//   analyst: ["/"]                           — full access (permissive, MVP)
-//   cs-ops:  ["/"]                           — full access (permissive, MVP)
-//   caza:    ["/caza-vision", "/crm"]        — Caza Vision BU only; no holding, no other BUs
-//   enrd:    ["/enrd", "/crm", "/awq/ppm"]  — ENRD BU + CRM + PPM compartilhados
-//
-// CLASSIFICATION: Security layer = authentication REAL, authorization ENFORCED for "caza" and "enrd".
+//   owner:   ["/"]                                  — all routes
+//   admin:   ["/"]                                  — all routes
+//   analyst: JACQES only (no financials, no holding)
+//   cs-ops:  JACQES CS Ops only
+//   caza:    ["/caza-vision", "/crm"]               — Caza Vision BU only
+//   enrd:    ["/enrd", "/crm", "/awq/ppm"]          — ENRD BU + CRM + PPM
 //
 export const ROLE_ALLOWED_PREFIXES: Record<Role, string[]> = {
-  owner:    ["/"],             // unrestricted
-  admin:    ["/"],             // full access — permissive by design (MVP)
-  analyst:  ["/"],             // full access — permissive by design (MVP)
-  "cs-ops": ["/"],             // full access — permissive by design (MVP)
-  caza:     ["/caza-vision", "/crm"],           // Caza Vision BU + CRM compartilhado
-  enrd:     ["/enrd", "/crm", "/awq/ppm"],      // ENRD BU + CRM + PPM compartilhados
+  owner:    ["/"],
+  admin:    ["/"],
+  analyst:  ["/jacqes", "/api/crm", "/api/epm", "/api/bpm", "/carreira", "/settings"],
+  "cs-ops": ["/jacqes/csops", "/jacqes/crm", "/api/crm", "/api/bpm", "/settings"],
+  caza:     ["/caza-vision", "/crm"],
+  enrd:     ["/enrd", "/crm", "/awq/ppm"],
 };
 
 export function canAccess(role: Role, pathname: string): boolean {
