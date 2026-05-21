@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import Header from "@/components/Header";
-import { Settings, Bell, Shield, Database, Check } from "lucide-react";
+import { Settings, Bell, Shield, Database, Check, Sparkles, Eye, EyeOff, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface SettingsSectionProps {
@@ -77,7 +78,64 @@ function FormField({ label, children }: { label: string; children: React.ReactNo
 const inputClass = "w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20 focus:bg-white transition-all placeholder:text-gray-400";
 
 export default function SettingsPage() {
+  const { data: session } = useSession();
+  const isOwner = (session?.user as { role?: string })?.role === "owner";
+
   const [saved, setSaved] = useState(false);
+
+  // ── AI key state (owner only) ─────────────────────────────────────────────
+  const [aiConfigured, setAiConfigured] = useState(false);
+  const [aiKey, setAiKey] = useState("");
+  const [aiShow, setAiShow] = useState(false);
+  const [aiSaving, setAiSaving] = useState(false);
+  const [aiMsg, setAiMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  useEffect(() => {
+    if (!isOwner) return;
+    fetch("/api/settings/ai-key")
+      .then((r) => r.json())
+      .then((d) => setAiConfigured(d.configured))
+      .catch(() => {});
+  }, [isOwner]);
+
+  const handleSaveAiKey = async () => {
+    if (!aiKey.trim()) return;
+    setAiSaving(true);
+    setAiMsg(null);
+    try {
+      const res = await fetch("/api/settings/ai-key", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: aiKey.trim() }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setAiConfigured(true);
+        setAiKey("");
+        setAiMsg({ ok: true, text: "Chave salva. OpenClaw ativo para todos os owners." });
+      } else {
+        setAiMsg({ ok: false, text: data.error ?? "Erro ao salvar." });
+      }
+    } catch {
+      setAiMsg({ ok: false, text: "Erro de rede." });
+    } finally {
+      setAiSaving(false);
+    }
+  };
+
+  const handleClearAiKey = async () => {
+    setAiSaving(true);
+    setAiMsg(null);
+    try {
+      await fetch("/api/settings/ai-key", { method: "DELETE" });
+      setAiConfigured(false);
+      setAiMsg({ ok: true, text: "Chave removida." });
+    } catch {
+      setAiMsg({ ok: false, text: "Erro de rede." });
+    } finally {
+      setAiSaving(false);
+    }
+  };
 
   const handleSave = () => {
     setSaved(true);
@@ -190,6 +248,75 @@ export default function SettingsPage() {
             ))}
           </div>
         </SettingsSection>
+
+        {/* AI Key — owner only */}
+        {isOwner && (
+          <SettingsSection
+            icon={Sparkles}
+            title="OpenClaw — Chave da API"
+            description="Configure a chave Anthropic usada pelo servidor para todos os owners"
+          >
+            <div className="flex items-center gap-3 py-1">
+              <div className={cn(
+                "w-2 h-2 rounded-full shrink-0",
+                aiConfigured ? "bg-emerald-500" : "bg-gray-300"
+              )} />
+              <span className="text-sm text-gray-700">
+                {aiConfigured ? "Chave configurada — OpenClaw ativo" : "Nenhuma chave configurada"}
+              </span>
+              {aiConfigured && (
+                <button
+                  onClick={handleClearAiKey}
+                  disabled={aiSaving}
+                  className="ml-auto flex items-center gap-1.5 text-xs text-red-500 hover:text-red-600 transition-colors disabled:opacity-40"
+                >
+                  <Trash2 size={12} />
+                  Remover
+                </button>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-xs font-medium text-gray-600">
+                {aiConfigured ? "Substituir chave existente" : "Adicionar chave Anthropic"}
+              </label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <input
+                    type={aiShow ? "text" : "password"}
+                    value={aiKey}
+                    onChange={(e) => setAiKey(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleSaveAiKey()}
+                    placeholder="sk-ant-api03-..."
+                    className={inputClass}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setAiShow((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {aiShow ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
+                <button
+                  onClick={handleSaveAiKey}
+                  disabled={aiSaving || !aiKey.trim()}
+                  className="btn-primary text-xs px-4 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {aiSaving ? "Salvando…" : "Salvar"}
+                </button>
+              </div>
+              {aiMsg && (
+                <p className={cn("text-xs font-medium", aiMsg.ok ? "text-emerald-600" : "text-red-500")}>
+                  {aiMsg.text}
+                </p>
+              )}
+              <p className="text-[11px] text-gray-400 leading-relaxed">
+                A chave é armazenada em cookie httpOnly no servidor — nunca exposta ao browser. Funciona em todas as sessões sem precisar configurar por dispositivo.
+              </p>
+            </div>
+          </SettingsSection>
+        )}
 
         {/* Save button */}
         <div className="flex justify-end">

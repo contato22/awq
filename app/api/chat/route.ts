@@ -115,10 +115,11 @@ export async function POST(req: NextRequest) {
   try {
     const { messages, buContext } = await req.json();
 
-    // Accept API key from client header (localStorage flow) or server env
+    // Accept API key from client header, httpOnly cookie (owner setting), or server env
     const clientKey = req.headers.get("x-anthropic-key");
+    const cookieKey = req.cookies.get("awq_ai_key")?.value;
     const serverKey = process.env.ANTHROPIC_API_KEY;
-    const apiKey = clientKey || (serverKey !== "sk-ant-api03-placeholder" ? serverKey : null);
+    const apiKey = clientKey || cookieKey || (serverKey !== "sk-ant-api03-placeholder" ? serverKey : null);
 
     if (!apiKey) {
       return new Response(
