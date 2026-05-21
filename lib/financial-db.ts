@@ -15,7 +15,7 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 import { supabase, anonClient } from "@/lib/supabase";
-import { sql } from "@/lib/db";
+import { sql, initDB } from "@/lib/db";
 
 // Prefer service role → anon key fallback → direct postgres → JSON (local only).
 const db = supabase ?? anonClient;
@@ -428,6 +428,7 @@ export async function findDuplicateDocument(fileHash: string): Promise<Financial
 // ─── Transactions CRUD ────────────────────────────────────────────────────────
 
 export async function getAllTransactions(): Promise<BankTransaction[]> {
+  await initDB();
   if (db) {
     const { data, error } = await db!
       .from("bank_transactions")
@@ -524,6 +525,7 @@ async function ensureCoraDocument(docId: string, transactions: BankTransaction[]
 
 export async function saveTransactions(transactions: BankTransaction[]): Promise<void> {
   if (transactions.length === 0) return;
+  await initDB();
 
   const docIds = Array.from(new Set(transactions.map((t) => t.documentId)));
   const now = new Date().toISOString();
@@ -532,13 +534,6 @@ export async function saveTransactions(transactions: BankTransaction[]): Promise
     // Ensure financial_documents rows exist for Cora API synthetic document IDs (FK requirement)
     for (const docId of docIds) {
       await ensureCoraDocument(docId, transactions, now);
-    }
-    for (const docId of docIds) {
-      const { error: delError } = await db!
-        .from("bank_transactions")
-        .delete()
-        .eq("document_id", docId);
-      if (delError) throw delError;
     }
     for (const t of transactions) {
       const { error } = await db!
@@ -578,7 +573,6 @@ export async function saveTransactions(transactions: BankTransaction[]): Promise
     for (const docId of docIds) {
       await ensureCoraDocument(docId, transactions, now);
     }
-    await sql`DELETE FROM bank_transactions WHERE document_id = ANY(${docIds})`;
     for (const t of transactions) {
       await sql`
         INSERT INTO bank_transactions

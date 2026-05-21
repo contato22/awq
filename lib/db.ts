@@ -26,7 +26,17 @@ export const USE_BLOB = !!process.env.BLOB_READ_WRITE_TOKEN;
 // ─── Schema bootstrap ─────────────────────────────────────────────────────────
 // Idempotent — safe to call on every cold start.
 
-export async function initDB(): Promise<void> {
+let _initPromise: Promise<void> | null = null;
+
+// Call once per process — subsequent calls are no-ops (returns the same promise).
+export function initDB(): Promise<void> {
+  if (!sql) return Promise.resolve();
+  if (_initPromise) return _initPromise;
+  _initPromise = _runMigration();
+  return _initPromise;
+}
+
+async function _runMigration(): Promise<void> {
   if (!sql) return;
 
   await sql`
@@ -72,11 +82,22 @@ export async function initDB(): Promise<void> {
       is_intercompany             BOOLEAN NOT NULL DEFAULT false,
       intercompany_match_id       TEXT,
       excluded_from_consolidated  BOOLEAN NOT NULL DEFAULT false,
+      reconciliation_status       TEXT NOT NULL DEFAULT 'pendente',
       extracted_at                TEXT NOT NULL,
       classified_at               TEXT
     )
   `;
 
+  // reconciliation_status may be missing in older deployments — add it if absent
+  await sql`
+    ALTER TABLE bank_transactions
+      ADD COLUMN IF NOT EXISTS reconciliation_status TEXT NOT NULL DEFAULT 'pendente'
+  `;
+
   await sql`CREATE INDEX IF NOT EXISTS idx_bt_document_id ON bank_transactions(document_id)`;
-  await sql`CREATE INDEX IF NOT EXISTS idx_bt_entity ON bank_transactions(entity)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_bt_entity       ON bank_transactions(entity)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_bt_date         ON bank_transactions(transaction_date)`;
+
+  await sql`GRANT ALL ON financial_documents TO anon, authenticated`;
+  await sql`GRANT ALL ON bank_transactions   TO anon, authenticated`;
 }
