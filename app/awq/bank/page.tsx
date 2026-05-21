@@ -22,7 +22,7 @@ import {
   Building2, Plus, Trash2, Search, X, Wallet,
   TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight,
   CreditCard, ChevronDown, ChevronUp, BarChart3, FileUp,
-  ExternalLink, Loader2, RefreshCw, AlertTriangle, Wifi,
+  ExternalLink, Loader2, RefreshCw, AlertTriangle,
 } from "lucide-react";
 
 // ─── Cora live balance section ────────────────────────────────────────────────
@@ -38,19 +38,25 @@ interface CoraBalance {
 }
 
 const CORA_ACCOUNTS = [
-  { key: "AWQ_Holding", label: "Conta PJ AWQ Holding", entity: "AWQ_Holding" },
-  { key: "JACQES",      label: "Conta PJ JACQES",      entity: "JACQES"      },
+  { key: "AWQ_Holding", label: "AWQ Holding", entity: "AWQ_Holding" },
+  { key: "JACQES",      label: "JACQES",      entity: "JACQES"      },
 ] as const;
 
 function CoraLiveBalances() {
-  const [balances, setBalances]   = useState<Record<string, CoraBalance | null>>({});
-  const [loading, setLoading]     = useState<Record<string, boolean>>({ AWQ_Holding: true, JACQES: true });
-  const [errors, setErrors]       = useState<Record<string, string | null>>({});
+  const [balances, setBalances]     = useState<Record<string, CoraBalance | null>>({});
+  const [loading, setLoading]       = useState(true);
+  const [hasError, setHasError]     = useState(false);
+  const [errorMsg, setErrorMsg]     = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<string | null>(null);
 
   async function fetchAll() {
-    setLoading({ AWQ_Holding: true, JACQES: true });
-    setErrors({});
+    setLoading(true);
+    setHasError(false);
+    setErrorMsg(null);
+
+    let anyError = false;
+    let firstError: string | null = null;
+
     for (const acc of CORA_ACCOUNTS) {
       try {
         const res  = await fetch(`/api/cora/balance?account=${acc.key}`);
@@ -58,43 +64,62 @@ function CoraLiveBalances() {
         if (!res.ok) throw new Error(data.error ?? "Erro ao buscar saldo");
         setBalances((p) => ({ ...p, [acc.key]: data }));
       } catch (err) {
-        const msg = err instanceof Error ? err.message : "Falha ao buscar saldo";
-        setErrors((p) => ({ ...p, [acc.key]: msg }));
+        anyError = true;
+        if (!firstError) firstError = err instanceof Error ? err.message : "Falha ao buscar saldo";
         setBalances((p) => ({ ...p, [acc.key]: null }));
-      } finally {
-        setLoading((p) => ({ ...p, [acc.key]: false }));
       }
     }
+
+    if (anyError) {
+      setHasError(true);
+      setErrorMsg(firstError);
+    }
+    setLoading(false);
     setLastUpdate(new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }));
   }
 
   useEffect(() => { void fetchAll(); }, []);
 
-  // Only sum accounts that have their own credentials (isFallback accounts share the same Cora account)
+  // Sum only accounts with their own credentials (isFallback shares the same Cora account)
   const totalAvailable = Object.values(balances).reduce(
-    (s, b) => s + (b && !b.isFallback ? b.available : 0), 0
+    (s, b) => s + (b && !b.isFallback ? b.available : 0), 0,
   );
-  const anyLoaded = Object.values(balances).some((b) => b !== null);
+
+  const fmtBRL = (n: number) =>
+    n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   return (
-    <div className="rounded-xl border border-emerald-200 bg-white overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 py-3 bg-emerald-50 border-b border-emerald-200">
-        <div className="flex items-center gap-2.5">
-          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <Wifi size={14} className="text-emerald-600" />
-          <span className="text-sm font-bold text-emerald-900">Cora Bank — Saldo em Tempo Real</span>
-        </div>
+    <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden" style={{ boxShadow: "var(--shadow-card)" }}>
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
         <div className="flex items-center gap-3">
-          {lastUpdate && (
-            <span className="text-[11px] text-gray-400">Atualizado às {lastUpdate}</span>
-          )}
+          {/* Cora pink dot */}
+          <div className="w-9 h-9 rounded-xl bg-rose-50 flex items-center justify-center">
+            <div className="w-4 h-4 rounded-full bg-rose-500" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-gray-900">Cora Bank</span>
+              {!loading && !hasError && (
+                <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-[10px] font-semibold text-emerald-700">Ao vivo</span>
+                </span>
+              )}
+            </div>
+            <div className="text-[11px] text-gray-400 mt-0.5">
+              {lastUpdate ? `Atualizado às ${lastUpdate}` : "Buscando saldo…"}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
           <button
             onClick={() => void fetchAll()}
-            disabled={Object.values(loading).some(Boolean)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-300 bg-white text-emerald-700 text-xs font-semibold hover:bg-emerald-50 disabled:opacity-50 transition-colors"
+            disabled={loading}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 text-xs font-semibold hover:bg-gray-50 hover:border-gray-300 disabled:opacity-50 transition-colors"
           >
-            {Object.values(loading).some(Boolean)
+            {loading
               ? <Loader2 size={12} className="animate-spin" />
               : <RefreshCw size={12} />}
             Atualizar
@@ -103,89 +128,51 @@ function CoraLiveBalances() {
             href="https://app.cora.com.br"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-500 hover:bg-rose-600 text-white text-xs font-semibold transition-colors"
           >
             <ExternalLink size={12} /> Abrir Cora
           </a>
         </div>
       </div>
 
-      <div className="p-5 grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Total across accounts */}
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 flex flex-col justify-between">
-          <div className="text-[11px] font-semibold text-emerald-700 uppercase tracking-wide mb-1">
-            Total em Cora
+      {/* Balance display */}
+      <div className="px-6 py-6">
+        {loading ? (
+          <div className="space-y-2">
+            <div className="h-10 w-56 bg-gray-100 rounded-xl animate-pulse" />
+            <div className="h-4 w-36 bg-gray-100 rounded-lg animate-pulse" />
           </div>
-          {Object.values(loading).some(Boolean) ? (
-            <div className="flex items-center gap-2 text-emerald-600">
-              <Loader2 size={16} className="animate-spin" />
-              <span className="text-sm">Calculando…</span>
+        ) : hasError ? (
+          <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+            <AlertTriangle size={16} className="text-amber-500 shrink-0 mt-0.5" />
+            <div>
+              <div className="text-sm font-semibold text-amber-800">Não foi possível carregar o saldo</div>
+              <div className="text-xs text-amber-600 mt-0.5">{errorMsg}</div>
             </div>
-          ) : (
-            <>
-              <div className="text-2xl font-bold text-emerald-900">
-                {totalAvailable.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+          </div>
+        ) : (
+          <div className="flex items-end justify-between">
+            <div>
+              <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
+                Saldo Disponível
               </div>
-              <div className="text-[11px] text-emerald-600 mt-1">Soma de todas as contas</div>
-            </>
-          )}
-        </div>
-
-        {/* Per-account cards */}
-        {CORA_ACCOUNTS.map((acc) => {
-          const bal  = balances[acc.key];
-          const err  = errors[acc.key];
-          const load = loading[acc.key];
-
-          return (
-            <div key={acc.key} className="rounded-xl border border-gray-200 bg-white p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-xs font-bold text-gray-900">{acc.label}</div>
-                  <div className="text-[10px] text-gray-400 mt-0.5">Cora Bank · CoraPro</div>
-                </div>
-                <a
-                  href="https://app.cora.com.br"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 px-2 py-1 rounded-lg border border-gray-200 text-gray-500 hover:text-emerald-600 hover:border-emerald-300 hover:bg-emerald-50 text-[11px] transition-colors"
-                  title="Abrir no Cora"
-                >
-                  <ExternalLink size={11} /> Portal
-                </a>
+              <div className="text-4xl font-bold text-gray-900 tracking-tight">
+                {fmtBRL(totalAvailable)}
               </div>
-
-              {load ? (
-                <div className="flex items-center gap-2 text-emerald-600 text-sm">
-                  <Loader2 size={14} className="animate-spin" />
-                  <span className="text-xs text-gray-500">Buscando saldo…</span>
-                </div>
-              ) : err ? (
-                <div className="flex items-start gap-2 p-2 bg-amber-50 rounded-lg">
-                  <AlertTriangle size={13} className="text-amber-500 shrink-0 mt-0.5" />
-                  <span className="text-[11px] text-amber-700 leading-snug">{err}</span>
-                </div>
-              ) : bal ? (
-                <>
-                  <div>
-                    <div className="text-xl font-bold text-gray-900">
-                      {bal.available.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                    </div>
-                    <div className="text-[11px] text-gray-400 mt-0.5">
-                      {bal.isFallback ? "Mesma conta Cora (AWQ Holding)" : "Disponível"}
-                    </div>
-                  </div>
-                  {bal.blocked != null && bal.blocked > 0 && (
-                    <div className="text-[11px] text-gray-500">
-                      Bloqueado:{" "}
-                      <strong>{bal.blocked.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong>
-                    </div>
-                  )}
-                </>
-              ) : null}
+              <div className="text-xs text-gray-400 mt-1.5">Conta PJ Cora · Saldo consolidado</div>
             </div>
-          );
-        })}
+            {/* Visual accent */}
+            <div className="hidden sm:flex items-center gap-1 pb-1">
+              {[40, 60, 50, 80, 65, 90, 75].map((h, i) => (
+                <div
+                  key={i}
+                  className="w-1.5 rounded-full bg-rose-200"
+                  style={{ height: `${h * 0.5}px` }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -215,8 +202,6 @@ interface BankAccount {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-// localStorage key for this page's local account data.
-// This is intentionally separate from public/data/financial/* (the canonical store).
 const LS_KEY = "awq_bank_accounts";
 
 const BANK_GROUPS: { label: string; banks: string[] }[] = [
@@ -232,7 +217,7 @@ const BANK_GROUPS: { label: string; banks: string[] }[] = [
 ];
 
 const BANK_COLOR: Record<string, string> = {
-  "Cora":            "bg-brand-600",
+  "Cora":            "bg-rose-500",
   "Nubank":          "bg-purple-600",
   "Inter":           "bg-orange-500",
   "C6 Bank":         "bg-gray-800",
@@ -247,6 +232,15 @@ const BANK_COLOR: Record<string, string> = {
   "Sicoob":          "bg-green-700",
   "Sicredi":         "bg-green-800",
   "Outro":           "bg-gray-500",
+};
+
+const BANK_COLOR_LIGHT: Record<string, string> = {
+  "Cora":            "bg-rose-50 text-rose-700 border-rose-200",
+  "Nubank":          "bg-purple-50 text-purple-700 border-purple-200",
+  "Inter":           "bg-orange-50 text-orange-700 border-orange-200",
+  "BTG Empresas":    "bg-blue-50 text-blue-700 border-blue-200",
+  "Itaú":            "bg-orange-50 text-orange-700 border-orange-200",
+  "Bradesco":        "bg-red-50 text-red-700 border-red-200",
 };
 
 const CATEGORY_LABEL: Record<string, string> = {
@@ -273,7 +267,7 @@ const CATEGORY_COLOR: Record<string, string> = {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function fmtR(n: number) {
-  const abs = Math.abs(n);
+  const abs  = Math.abs(n);
   const sign = n < 0 ? "-" : "";
   if (abs >= 1_000_000) return sign + "R$" + (abs / 1_000_000).toFixed(2) + "M";
   if (abs >= 1_000)     return sign + "R$" + (abs / 1_000).toFixed(1) + "K";
@@ -302,7 +296,6 @@ export default function BankAccountsPage() {
   const [newName, setNewName]       = useState("");
   const [newBalance, setNewBalance] = useState("");
 
-  // ── Load from localStorage ───────────────────────────────────────────────
   useEffect(() => {
     try {
       const raw = localStorage.getItem(LS_KEY);
@@ -314,7 +307,6 @@ export default function BankAccountsPage() {
     } catch { /* ignore */ }
   }, []);
 
-  // ── Persist to localStorage ──────────────────────────────────────────────
   const save = useCallback((updated: BankAccount[]) => {
     setAccounts(updated);
     try { localStorage.setItem(LS_KEY, JSON.stringify(updated)); } catch { /* ignore */ }
@@ -322,7 +314,6 @@ export default function BankAccountsPage() {
 
   const selected = accounts.find((a) => a.id === selectedId) ?? null;
 
-  // ── Add account ──────────────────────────────────────────────────────────
   function handleAddAccount() {
     if (!newName.trim()) return;
     const acct: BankAccount = {
@@ -343,14 +334,12 @@ export default function BankAccountsPage() {
     setShowAddForm(false);
   }
 
-  // ── Delete account ───────────────────────────────────────────────────────
   function handleDelete(id: string) {
     const updated = accounts.filter((a) => a.id !== id);
     save(updated);
     setSelectedId(updated[0]?.id ?? null);
   }
 
-  // ── Derived totals ───────────────────────────────────────────────────────
   const totalBalance = accounts.reduce((s, a) => s + a.currentBalance, 0);
   const allTx        = accounts.flatMap((a) => a.transactions);
   const totalCredits = allTx.filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0);
@@ -359,7 +348,7 @@ export default function BankAccountsPage() {
   const filteredTx = (selected?.transactions ?? [])
     .filter((t) =>
       t.description.toLowerCase().includes(search.toLowerCase()) ||
-      (CATEGORY_LABEL[t.category] ?? "").toLowerCase().includes(search.toLowerCase())
+      (CATEGORY_LABEL[t.category] ?? "").toLowerCase().includes(search.toLowerCase()),
     )
     .sort((a, b) => sortAsc ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date));
 
@@ -370,74 +359,88 @@ export default function BankAccountsPage() {
     <>
       <Header
         title="Contas de Banco"
-        subtitle="Saldos manuais · Visão de caixa local · Dados em localStorage"
+        subtitle="Visão de caixa · Saldos e transações manuais"
       />
-      <div className="px-8 py-6 space-y-5">
+      <div className="px-8 py-6 space-y-6">
 
-        {/* ── Cora live balances ───────────────────────────────────────────── */}
+        {/* ── Cora live balance ──────────────────────────────────────────────── */}
         <CoraLiveBalances />
-
-        {/* ── Ingest callout ────────────────────────────────────────────────── */}
-        <div className="flex items-center justify-between p-3 bg-brand-50 border border-brand-200 rounded-xl">
-          <div className="flex items-center gap-2 text-sm text-brand-800">
-            <FileUp size={14} className="text-brand-600 shrink-0" />
-            <span>
-              Para importar extratos PDF com rastreabilidade, classificação e reconciliação:
-            </span>
-          </div>
-          <Link
-            href="/awq/conciliacao"
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-semibold transition-colors shrink-0"
-          >
-            <FileUp size={12} /> Ingestão de Extratos
-          </Link>
-        </div>
 
         {/* ── Summary cards ────────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: "Saldo Total",    value: fmtR(totalBalance),        icon: Wallet,      color: "text-brand-600",   bg: "bg-brand-50",   delta: `${accounts.length} conta${accounts.length !== 1 ? "s" : ""}` },
-            { label: "Entradas (YTD)", value: fmtR(totalCredits),        icon: TrendingUp,  color: "text-emerald-600", bg: "bg-emerald-50", delta: `${allTx.filter(t => t.amount > 0).length} créditos` },
-            { label: "Saídas (YTD)",   value: fmtR(totalDebits),         icon: TrendingDown,color: "text-red-600",     bg: "bg-red-50",     delta: `${allTx.filter(t => t.amount < 0).length} débitos` },
-            { label: "Transações",     value: allTx.length.toString(),   icon: BarChart3,   color: "text-amber-700",   bg: "bg-amber-50",   delta: `em ${accounts.length} conta${accounts.length !== 1 ? "s" : ""}` },
+            {
+              label: "Saldo Total",
+              value: fmtR(totalBalance),
+              sub: `${accounts.length} conta${accounts.length !== 1 ? "s" : ""}`,
+              icon: Wallet,
+              accent: "brand",
+            },
+            {
+              label: "Entradas",
+              value: fmtR(totalCredits),
+              sub: `${allTx.filter((t) => t.amount > 0).length} crédito${allTx.filter((t) => t.amount > 0).length !== 1 ? "s" : ""}`,
+              icon: TrendingUp,
+              accent: "emerald",
+            },
+            {
+              label: "Saídas",
+              value: fmtR(Math.abs(totalDebits)),
+              sub: `${allTx.filter((t) => t.amount < 0).length} débito${allTx.filter((t) => t.amount < 0).length !== 1 ? "s" : ""}`,
+              icon: TrendingDown,
+              accent: "red",
+            },
+            {
+              label: "Transações",
+              value: allTx.length.toString(),
+              sub: `em ${accounts.length} conta${accounts.length !== 1 ? "s" : ""}`,
+              icon: BarChart3,
+              accent: "amber",
+            },
           ].map((c) => {
             const Icon = c.icon;
+            const colorMap: Record<string, { bg: string; icon: string; val: string }> = {
+              brand:   { bg: "bg-brand-50",   icon: "text-brand-600",   val: "text-brand-700"   },
+              emerald: { bg: "bg-emerald-50", icon: "text-emerald-600", val: "text-emerald-700" },
+              red:     { bg: "bg-red-50",     icon: "text-red-500",     val: "text-red-700"     },
+              amber:   { bg: "bg-amber-50",   icon: "text-amber-600",   val: "text-amber-700"   },
+            };
+            const col = colorMap[c.accent];
             return (
-              <div key={c.label} className="card p-5 flex items-start gap-4">
-                <div className={`w-10 h-10 rounded-xl ${c.bg} flex items-center justify-center shrink-0`}>
-                  <Icon size={18} className={c.color} />
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-gray-900">{c.value}</div>
-                  <div className="text-xs text-gray-500 mt-0.5">{c.label}</div>
-                  <div className="flex items-center gap-1 mt-1">
-                    <span className="text-[10px] text-gray-400">{c.delta}</span>
+              <div key={c.label} className="card p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{c.label}</span>
+                  <div className={`w-8 h-8 rounded-lg ${col.bg} flex items-center justify-center`}>
+                    <Icon size={15} className={col.icon} />
                   </div>
                 </div>
+                <div className={`text-2xl font-bold ${col.val}`}>{c.value}</div>
+                <div className="text-[11px] text-gray-400 mt-1">{c.sub}</div>
               </div>
             );
           })}
         </div>
 
-        <div className="flex gap-5">
+        <div className="flex gap-5 items-start">
 
-          {/* ── Account sidebar ──────────────────────────────────────────────── */}
-          <div className="w-72 shrink-0 space-y-2">
+          {/* ── Account sidebar ────────────────────────────────────────────── */}
+          <div className="w-64 shrink-0 space-y-2.5">
+
             <button
               onClick={() => setShowAddForm((v) => !v)}
-              className="w-full flex items-center gap-2 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-colors"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white rounded-xl text-sm font-semibold transition-colors"
             >
-              <Plus size={15} /> Nova Conta
+              <Plus size={14} /> Nova Conta
             </button>
 
             {/* Add account form */}
             {showAddForm && (
-              <div className="card p-4 space-y-3">
-                <div className="text-xs font-semibold text-gray-700 mb-1">Nova Conta</div>
+              <div className="card p-4 space-y-3 animate-slide-in">
+                <div className="text-xs font-bold text-gray-700">Adicionar Conta</div>
                 <select
                   value={newBank}
                   onChange={(e) => setNewBank(e.target.value)}
-                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none focus:border-brand-500"
+                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400"
                 >
                   {BANK_GROUPS.map((group) => (
                     <optgroup key={group.label} label={group.label}>
@@ -447,130 +450,163 @@ export default function BankAccountsPage() {
                 </select>
                 <input
                   type="text"
-                  placeholder="Nome da conta (ex: Conta PJ)"
+                  placeholder="Nome da conta"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-500"
                   onKeyDown={(e) => e.key === "Enter" && handleAddAccount()}
+                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400"
                 />
                 <input
                   type="number"
                   placeholder="Saldo inicial (opcional)"
                   value={newBalance}
                   onChange={(e) => setNewBalance(e.target.value)}
-                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-500"
+                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400"
                 />
                 <div className="flex gap-2">
-                  <button onClick={handleAddAccount} className="flex-1 px-3 py-2 bg-brand-600 text-white rounded-lg text-xs font-semibold hover:bg-brand-700 transition-colors">
+                  <button
+                    onClick={handleAddAccount}
+                    disabled={!newName.trim()}
+                    className="flex-1 px-3 py-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-40 text-white rounded-lg text-xs font-semibold transition-colors"
+                  >
                     Adicionar
                   </button>
-                  <button onClick={() => setShowAddForm(false)} className="px-3 py-2 bg-gray-100 text-gray-600 rounded-lg text-xs font-semibold hover:bg-gray-200 transition-colors">
+                  <button
+                    onClick={() => setShowAddForm(false)}
+                    className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg text-xs font-semibold transition-colors"
+                  >
                     Cancelar
                   </button>
                 </div>
               </div>
             )}
 
-            {/* Account list */}
+            {/* Empty state */}
             {accounts.length === 0 && !showAddForm && (
               <div className="card p-6 text-center">
-                <CreditCard size={28} className="text-gray-300 mx-auto mb-2" />
-                <div className="text-sm font-semibold text-gray-500">Nenhuma conta</div>
-                <div className="text-xs text-gray-400 mt-1">Clique em &quot;Nova Conta&quot; para começar</div>
+                <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-3">
+                  <CreditCard size={22} className="text-gray-400" />
+                </div>
+                <div className="text-sm font-semibold text-gray-600">Nenhuma conta</div>
+                <div className="text-xs text-gray-400 mt-1 leading-relaxed">
+                  Adicione contas para acompanhar saldos localmente
+                </div>
               </div>
             )}
 
+            {/* Account cards */}
             {accounts.map((acct) => {
               const isSelected = acct.id === selectedId;
-              const credits = acct.transactions.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
-              const debits  = acct.transactions.filter(t => t.amount < 0).reduce((s, t) => s + t.amount, 0);
+              const credits = acct.transactions.filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0);
+              const debits  = acct.transactions.filter((t) => t.amount < 0).reduce((s, t) => s + t.amount, 0);
+              const bankTag = BANK_COLOR_LIGHT[acct.bank];
               return (
                 <div
                   key={acct.id}
                   onClick={() => setSelectedId(acct.id)}
-                  className={`card p-4 cursor-pointer transition-all ${isSelected ? "border-brand-300 bg-brand-50" : "hover:border-gray-300"}`}
+                  className={`card p-4 cursor-pointer transition-all ${
+                    isSelected
+                      ? "border-brand-300 bg-brand-50 shadow-card-hover"
+                      : "hover:border-gray-300 hover:shadow-card-hover"
+                  }`}
                 >
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className={`w-9 h-9 rounded-xl ${acct.color} flex items-center justify-center shrink-0`}>
-                      <Building2 size={15} className="text-white" />
+                  <div className="flex items-start gap-3">
+                    <div className={`w-8 h-8 rounded-xl ${acct.color} flex items-center justify-center shrink-0`}>
+                      <Building2 size={14} className="text-white" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs font-bold text-gray-900 truncate">{acct.name}</div>
-                      <div className="text-[10px] text-gray-500">{acct.bank}</div>
+                      <div className="flex items-center gap-1.5">
+                        <div className="text-xs font-bold text-gray-900 truncate">{acct.name}</div>
+                      </div>
+                      {bankTag ? (
+                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded border text-[10px] font-semibold mt-0.5 ${bankTag}`}>
+                          {acct.bank}
+                        </span>
+                      ) : (
+                        <div className="text-[10px] text-gray-400 mt-0.5">{acct.bank}</div>
+                      )}
                     </div>
                     <button
                       onClick={(e) => { e.stopPropagation(); handleDelete(acct.id); }}
-                      className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                      className="p-1 text-gray-300 hover:text-red-400 hover:bg-red-50 rounded-lg transition-colors shrink-0"
+                      title="Excluir conta"
                     >
-                      <Trash2 size={12} />
+                      <Trash2 size={11} />
                     </button>
                   </div>
-                  <div className="text-base font-bold text-gray-900">{fmtR(acct.currentBalance)}</div>
-                  <div className="flex gap-3 mt-1 text-[10px]">
-                    <span className="text-emerald-600">↑ {fmtR(credits)}</span>
-                    <span className="text-red-500">↓ {fmtR(debits)}</span>
-                    <span className="text-gray-400 ml-auto">{acct.transactions.length} tx</span>
+
+                  <div className="mt-3 pt-3 border-t border-gray-100">
+                    <div className="text-base font-bold text-gray-900">{fmtR(acct.currentBalance)}</div>
+                    <div className="flex items-center gap-3 mt-1">
+                      <span className="text-[10px] text-emerald-600 font-semibold">↑ {fmtR(credits)}</span>
+                      <span className="text-[10px] text-red-500 font-semibold">↓ {fmtR(Math.abs(debits))}</span>
+                      <span className="text-[10px] text-gray-400 ml-auto">{acct.transactions.length} tx</span>
+                    </div>
                   </div>
                 </div>
               );
             })}
+
+            {/* Ingest link */}
+            <div className="p-3 rounded-xl bg-brand-50 border border-brand-100">
+              <div className="flex items-center gap-2 text-[11px] text-brand-700 mb-2">
+                <FileUp size={11} className="shrink-0" />
+                <span className="font-medium">Importar extrato PDF?</span>
+              </div>
+              <Link
+                href="/awq/conciliacao"
+                className="flex items-center justify-center gap-1.5 w-full px-3 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-semibold transition-colors"
+              >
+                Ingestão de Extratos
+              </Link>
+            </div>
           </div>
 
-          {/* ── Main area ────────────────────────────────────────────────────── */}
+          {/* ── Main content area ──────────────────────────────────────────── */}
           <div className="flex-1 min-w-0 space-y-4">
             {!selected ? (
               <div className="card p-16 text-center">
-                <Wallet size={40} className="text-gray-300 mx-auto mb-3" />
-                <div className="text-base font-semibold text-gray-500">Selecione uma conta</div>
-                <div className="text-sm text-gray-400 mt-1">ou adicione uma nova conta no painel esquerdo</div>
+                <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                  <Wallet size={24} className="text-gray-400" />
+                </div>
+                <div className="text-sm font-bold text-gray-600">Selecione uma conta</div>
+                <div className="text-xs text-gray-400 mt-1.5">
+                  Escolha uma conta no painel ao lado ou adicione uma nova
+                </div>
               </div>
             ) : (
               <>
-                {/* Account header */}
-                <div className="card p-5 flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-2xl ${selected.color} flex items-center justify-center shrink-0`}>
-                    <Building2 size={20} className="text-white" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-lg font-bold text-gray-900">{selected.name}</div>
-                    <div className="text-sm text-gray-500">{selected.bank} · Atualizado {fmtDate(selected.lastUpdated)}</div>
-                  </div>
-                  <div className="text-right mr-4">
-                    <div className="text-2xl font-bold text-gray-900">{fmtR(selected.currentBalance)}</div>
-                    <div className="text-xs text-gray-500">saldo atual</div>
-                  </div>
-                  <div className="flex gap-3 text-xs">
-                    <div className="text-center">
-                      <div className="font-bold text-emerald-600">{fmtR(acctCredits)}</div>
-                      <div className="text-gray-400">entradas</div>
+                {/* Account header card */}
+                <div className="card p-5">
+                  <div className="flex items-center gap-4">
+                    <div className={`w-12 h-12 rounded-2xl ${selected.color} flex items-center justify-center shrink-0`}>
+                      <Building2 size={20} className="text-white" />
                     </div>
-                    <div className="text-center">
-                      <div className="font-bold text-red-600">{fmtR(acctDebits)}</div>
-                      <div className="text-gray-400">saídas</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-base font-bold text-gray-900">{selected.name}</div>
+                      <div className="text-xs text-gray-500 mt-0.5">
+                        {selected.bank} · Atualizado {fmtDate(selected.lastUpdated)}
+                      </div>
                     </div>
-                    <div className="text-center">
-                      <div className="font-bold text-gray-700">{selected.transactions.length}</div>
-                      <div className="text-gray-400">transações</div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-gray-900">{fmtR(selected.currentBalance)}</div>
+                      <div className="text-[11px] text-gray-400 mt-0.5">saldo atual</div>
                     </div>
                   </div>
-                </div>
 
-                {/* Reconciliation strip */}
-                <div className="card p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <BarChart3 size={13} className="text-gray-400" />
-                    <span className="text-xs font-semibold text-gray-700">Posição da Conta</span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-3">
+                  {/* Mini stats row */}
+                  <div className="grid grid-cols-3 gap-3 mt-4 pt-4 border-t border-gray-100">
                     {[
-                      { label: "Saldo da Conta",   value: fmtR(selected.currentBalance), icon: Wallet,          color: "text-brand-600",   bg: "bg-brand-50"   },
-                      { label: "Entradas",          value: fmtR(acctCredits),             icon: ArrowUpRight,    color: "text-emerald-600", bg: "bg-emerald-50" },
-                      { label: "Saídas",            value: fmtR(Math.abs(acctDebits)),    icon: ArrowDownRight,  color: "text-red-600",     bg: "bg-red-50"     },
+                      { label: "Entradas",    value: fmtR(acctCredits),           icon: ArrowUpRight,   color: "text-emerald-600", bg: "bg-emerald-50" },
+                      { label: "Saídas",      value: fmtR(Math.abs(acctDebits)),  icon: ArrowDownRight, color: "text-red-500",     bg: "bg-red-50"     },
+                      { label: "Transações",  value: String(selected.transactions.length), icon: BarChart3, color: "text-brand-600", bg: "bg-brand-50" },
                     ].map((item) => {
                       const Icon = item.icon;
                       return (
-                        <div key={item.label} className={`${item.bg} rounded-xl p-3 flex items-center gap-3`}>
-                          <Icon size={15} className={item.color} />
+                        <div key={item.label} className={`${item.bg} rounded-xl p-3 flex items-center gap-2.5`}>
+                          <div className="w-7 h-7 rounded-lg bg-white/70 flex items-center justify-center">
+                            <Icon size={14} className={item.color} />
+                          </div>
                           <div>
                             <div className={`text-sm font-bold ${item.color}`}>{item.value}</div>
                             <div className="text-[10px] text-gray-500">{item.label}</div>
@@ -584,22 +620,25 @@ export default function BankAccountsPage() {
                 {/* Transactions table */}
                 <div className="card p-5">
                   <div className="flex items-center justify-between mb-4 gap-3">
-                    <h3 className="text-sm font-semibold text-gray-900">
-                      Transações
+                    <div>
+                      <span className="text-sm font-bold text-gray-900">Transações</span>
                       <span className="ml-2 text-xs font-normal text-gray-400">({filteredTx.length})</span>
-                    </h3>
-                    <div className="flex items-center gap-2 flex-1 max-w-xs">
-                      <div className="relative flex-1">
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="relative">
                         <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                         <input
                           type="text"
                           value={search}
                           onChange={(e) => setSearch(e.target.value)}
-                          placeholder="Buscar transações…"
-                          className="w-full pl-8 pr-3 py-2 text-xs border border-gray-200 rounded-lg bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-400"
+                          placeholder="Buscar…"
+                          className="w-44 pl-8 pr-3 py-2 text-xs border border-gray-200 rounded-lg bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400"
                         />
                         {search && (
-                          <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                          <button
+                            onClick={() => setSearch("")}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                          >
                             <X size={11} />
                           </button>
                         )}
@@ -615,16 +654,18 @@ export default function BankAccountsPage() {
                   </div>
 
                   {filteredTx.length === 0 ? (
-                    <div className="text-center py-12 space-y-2">
-                      <Wallet size={28} className="text-gray-200 mx-auto" />
-                      <div className="text-sm font-semibold text-gray-400">
+                    <div className="text-center py-14">
+                      <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-3">
+                        <Wallet size={20} className="text-gray-400" />
+                      </div>
+                      <div className="text-sm font-semibold text-gray-500">
                         {selected.transactions.length === 0
                           ? "Nenhuma transação nesta conta"
-                          : "Nenhuma transação com este filtro"}
+                          : "Nenhum resultado para esta busca"}
                       </div>
                       {selected.transactions.length === 0 && (
-                        <div className="text-xs text-gray-400 mt-1">
-                          Para importar extratos PDF com rastreabilidade completa, acesse{" "}
+                        <div className="text-xs text-gray-400 mt-1.5 max-w-xs mx-auto leading-relaxed">
+                          Para importar extratos com rastreabilidade completa, acesse{" "}
                           <Link href="/awq/conciliacao" className="text-brand-600 hover:underline font-medium">
                             Ingestão de Extratos
                           </Link>
@@ -632,33 +673,36 @@ export default function BankAccountsPage() {
                       )}
                     </div>
                   ) : (
-                    <div className="table-scroll">
+                    <div className="overflow-x-auto -mx-1">
                       <table className="w-full text-sm">
                         <thead>
-                          <tr className="border-b border-gray-200 text-gray-500">
-                            <th className="text-left py-2 px-3 text-xs font-semibold">Data</th>
-                            <th className="text-left py-2 px-3 text-xs font-semibold">Descrição</th>
-                            <th className="text-left py-2 px-3 text-xs font-semibold">Categoria</th>
-                            <th className="text-right py-2 px-3 text-xs font-semibold">Valor</th>
-                            <th className="text-right py-2 px-3 text-xs font-semibold">Saldo</th>
+                          <tr className="border-b border-gray-100">
+                            <th className="text-left py-2 px-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Data</th>
+                            <th className="text-left py-2 px-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Descrição</th>
+                            <th className="text-left py-2 px-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Categoria</th>
+                            <th className="text-right py-2 px-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Valor</th>
+                            <th className="text-right py-2 px-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Saldo</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {filteredTx.map((tx) => (
-                            <tr key={tx.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                              <td className="py-2.5 px-3 text-xs text-gray-500 whitespace-nowrap">{fmtDate(tx.date)}</td>
-                              <td className="py-2.5 px-3 text-xs text-gray-900 max-w-xs">
+                          {filteredTx.map((tx, idx) => (
+                            <tr
+                              key={tx.id}
+                              className={`border-b border-gray-50 hover:bg-gray-50/70 transition-colors ${idx === filteredTx.length - 1 ? "border-b-0" : ""}`}
+                            >
+                              <td className="py-3 px-3 text-xs text-gray-500 whitespace-nowrap">{fmtDate(tx.date)}</td>
+                              <td className="py-3 px-3 text-xs text-gray-900 max-w-xs">
                                 <div className="truncate">{tx.description}</div>
                               </td>
-                              <td className="py-2.5 px-3">
+                              <td className="py-3 px-3">
                                 <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${CATEGORY_COLOR[tx.category] ?? "bg-gray-100 text-gray-600"}`}>
                                   {CATEGORY_LABEL[tx.category] ?? tx.category}
                                 </span>
                               </td>
-                              <td className={`py-2.5 px-3 text-right text-xs font-bold ${tx.amount >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                              <td className={`py-3 px-3 text-right text-xs font-bold tabular-nums ${tx.amount >= 0 ? "text-emerald-600" : "text-red-500"}`}>
                                 {tx.amount >= 0 ? "+" : ""}{fmtR(tx.amount)}
                               </td>
-                              <td className="py-2.5 px-3 text-right text-xs text-gray-500">
+                              <td className="py-3 px-3 text-right text-xs text-gray-400 tabular-nums">
                                 {tx.balance != null ? fmtR(tx.balance) : "—"}
                               </td>
                             </tr>
