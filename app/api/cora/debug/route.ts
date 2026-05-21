@@ -114,5 +114,29 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     results.error = err instanceof Error ? err.message : String(err);
   }
 
+  // 4. DB diagnostics — check if erpAnon can reach the financial tables
+  try {
+    const { erpAnon } = await import("@/lib/supabase");
+    if (!erpAnon) {
+      results.db_status = "erpAnon=null (IS_STATIC?)";
+    } else {
+      const { count: docCount, error: docErr } = await erpAnon
+        .from("financial_documents")
+        .select("*", { count: "exact", head: true });
+      const { count: txnCount, error: txnErr } = await erpAnon
+        .from("bank_transactions")
+        .select("*", { count: "exact", head: true });
+      results.db_status = "ok";
+      results.db_financial_documents = docErr
+        ? { error: docErr.message, code: docErr.code }
+        : { count: docCount };
+      results.db_bank_transactions   = txnErr
+        ? { error: txnErr.message, code: txnErr.code }
+        : { count: txnCount };
+    }
+  } catch (dbErr) {
+    results.db_status = dbErr instanceof Error ? dbErr.message : String(dbErr);
+  }
+
   return NextResponse.json(results, { status: 200 });
 }
