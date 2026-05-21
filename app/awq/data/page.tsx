@@ -148,9 +148,14 @@ function PriorityBadge({ p }: { p: ActionItem["priority"] }) {
 
 export default async function AwqDataPage() {
   // ── Real data from canonical infrastructure ──────────────────────────────
-  const docs   = await getAllDocuments();
-  const txns   = await getAllTransactions();
-  const q      = await buildFinancialQuery();
+  let docs: Awaited<ReturnType<typeof getAllDocuments>> = [];
+  let txns: Awaited<ReturnType<typeof getAllTransactions>> = [];
+  try {
+    [docs, txns] = await Promise.all([getAllDocuments(), getAllTransactions()]);
+  } catch (err) {
+    console.error("[/awq/data] DB unavailable:", err);
+  }
+  const q = await buildFinancialQuery();
 
   const doneDocs      = docs.filter((d) => d.status === "done");
   const errorDocs     = docs.filter((d) => d.status === "error");

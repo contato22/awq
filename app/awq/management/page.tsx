@@ -107,7 +107,9 @@ export default async function ManagementPage() {
   const awqRoutes = PLATFORM_ROUTES.filter((r) => r.bu === "awq" && r.status === "active");
 
   // Bank registry coverage
-  const doneDocs = (await getAllDocuments()).filter((d) => d.status === "done");
+  let doneDocs: Awaited<ReturnType<typeof getAllDocuments>> = [];
+  try { doneDocs = (await getAllDocuments()).filter((d) => d.status === "done"); }
+  catch (err) { console.error("[/awq/management] DB unavailable:", err); }
   const accountCoverage = buildAccountCoverageReport(doneDocs);
 
   // Categorise pages by data regime

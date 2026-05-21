@@ -441,9 +441,14 @@ function buildEntitySummary(entity: EntityLayer, accounts: CashAccount[]): Entit
 // ─── Main export ──────────────────────────────────────────────────────────────
 
 export async function buildFinancialQuery(): Promise<FinancialQueryResult> {
-  const allDocs  = await getAllDocuments();
+  let allDocs: FinancialDocument[] = [];
+  let allTxns: BankTransaction[]   = [];
+  try {
+    [allDocs, allTxns] = await Promise.all([getAllDocuments(), getAllTransactions()]);
+  } catch (err) {
+    console.error("[buildFinancialQuery] DB unavailable:", err);
+  }
   const doneDocs = allDocs.filter((d) => d.status === "done");
-  const allTxns  = await getAllTransactions();
 
   const empty: FinancialQueryResult = {
     hasData: false,

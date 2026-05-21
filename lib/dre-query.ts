@@ -307,7 +307,13 @@ function sumLines(lines: DreCategoryLine[]): number {
 export async function buildDreQuery(
   entityFilter: EntityLayer | "all" = "all"
 ): Promise<DreResult> {
-  const allTxns = await getAllTransactions();
+  let allTxns: BankTransaction[];
+  try {
+    allTxns = await getAllTransactions();
+  } catch (err) {
+    console.error("[buildDreQuery] DB unavailable:", err);
+    allTxns = [];
+  }
 
   // ── Filter by entity and exclude intercompany from DRE ───────────────────
   const txns: BankTransaction[] = allTxns.filter((t) => {

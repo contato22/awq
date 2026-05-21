@@ -66,7 +66,9 @@ const GL_FILE = path.join(process.cwd(), "public", "data", "epm-gl.json");
 
 function ensureDir() {
   const dir = path.dirname(GL_FILE);
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  if (!fs.existsSync(dir)) {
+    try { fs.mkdirSync(dir, { recursive: true }); } catch { /* read-only FS (Vercel) */ }
+  }
 }
 
 function readStore(): GLStore {
