@@ -8,7 +8,7 @@ import {
   Scale, CheckCircle, AlertTriangle, Database, Clock, GitMerge, Layers,
 } from "lucide-react";
 import { getRiskSignals, getBUData, getAllocFlags, type AllocFlag } from "@/lib/epm-planning-db";
-import { flagConfig } from "@/lib/awq-group-data";
+import { flagConfig } from "@/lib/awq-derived-metrics";
 import { MetricSourceBadge } from "@/components/MetricSourceBadge";
 import {
   buildFinancialQuery,

@@ -31,7 +31,7 @@ import {
 } from "lucide-react";
 import { buildFinancialQuery } from "@/lib/financial-query";
 import { getMonthlyRevenue } from "@/lib/epm-planning-db";
-import type { ForecastAccuracyPoint, BuForecastScenario } from "@/lib/awq-group-data";
+import type { ForecastAccuracyPoint, BuForecastScenario } from "@/lib/awq-derived-metrics";
 
 export const dynamic = process.env.STATIC_EXPORT === "1" ? "auto" : "force-dynamic";
 
