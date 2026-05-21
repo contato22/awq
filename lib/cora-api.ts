@@ -1,4 +1,4 @@
-// ─── Cora Bank API Client ──────────────────────────────────────────────────────
+// ─── Cora Bank API Client ──────────────────────────────────────────────
 //
 // Authentication: OAuth 2.0 Client Credentials + mTLS (mutual TLS)
 //   - client_id   → CORA_CLIENT_ID env var  (AWQ Holding)
@@ -12,13 +12,7 @@
 // Endpoints (matls-clients.api.cora.com.br):
 //   POST /token                           → OAuth2 token
 //   GET  /third-party/account/balance     → saldo disponível
-//   GET  /bank-statement/statement        → extrato (?start=&end=)
-//
-// Response structure (confirmed):
-//   balance:  { balance: <centavos>, blockedBalance: <centavos> }
-//   statement:{ entries: [{ id, type, amount(centavos), createdAt,
-//                           transaction: { description, counterParty: { name }, category: { main } } }],
-//               start: { balance }, end: { balance } }
+//   GET  /bank-statement/statement        → extrato (?start=&end=&page=&perPage=)
 //
 // Docs: https://developers.cora.com.br/docs/instrucoes-iniciais
 //
@@ -27,7 +21,7 @@
 
 import https from "node:https";
 
-// ─── Config ───────────────────────────────────────────────────────────────────
+// ─── Config ─────────────────────────────────────────────────────────────────────────
 
 function env(key: string) {
   return (process.env[key] ?? "").replace(/\\n/g, "\n");
@@ -39,7 +33,7 @@ const BASE = CORA_ENV === "stage"
   ? "https://api.stage.cora.com.br"
   : "https://matls-clients.api.cora.com.br";
 
-// ─── Per-account credentials ──────────────────────────────────────────────────
+// ─── Per-account credentials ──────────────────────────────────────────────────────────────
 
 interface CoraCredentials {
   clientId: string;
@@ -73,7 +67,7 @@ export function isCoraJacqesConfigured(): boolean {
   return !!(jId && jCert && jKey);
 }
 
-// ─── Low-level HTTPS helper (supports mTLS) ───────────────────────────────────
+// ─── Low-level HTTPS helper (supports mTLS) ──────────────────────────────────────────────
 
 interface RawResponse {
   status: number;
@@ -111,7 +105,7 @@ function httpsRequest(
   });
 }
 
-// ─── Token cache — keyed by clientId ──────────────────────────────────────────
+// ─── Token cache — keyed by clientId ──────────────────────────────────────────────────────
 
 const _tokenCache = new Map<string, { token: string; expiresAt: number }>();
 
@@ -147,13 +141,13 @@ async function getAccessToken(creds: CoraCredentials): Promise<string> {
   return json.access_token;
 }
 
-// ─── Statement (Extrato) ──────────────────────────────────────────────────────
+// ─── Statement (Extrato) ────────────────────────────────────────────────────────────
 
 export interface CoraStatementEntry {
   id: string;
   date: string;           // YYYY-MM-DD (normalised from API response)
   description: string;
-  amount: number;         // positive value in BRL; use direction for sign
+  amount: number;         // positive value; use direction for sign
   direction: "credit" | "debit";
   balance: number | null;
   counterparty: string | null;
@@ -232,25 +226,43 @@ export async function fetchCoraStatement(
   const creds = credsForAccount(account);
   const token = await getAccessToken(creds);
 
-  // Cora uses 'start' and 'end' (not 'startDate'/'endDate')
-  const url = `${BASE}/bank-statement/statement?start=${startDate}&end=${endDate}&perPage=200`;
-  const { status, body } = await httpsRequest(
-    "GET",
-    url,
-    { "Authorization": `Bearer ${token}`, "Accept": "application/json" },
-    creds,
-  );
+  const PER_PAGE = 200;
+  const all: CoraStatementEntry[] = [];
+  let page = 1;
 
-  console.error("[cora statement raw]", status, body.slice(0, 2000));
+  while (true) {
+    const url = `${BASE}/bank-statement/statement?start=${startDate}&end=${endDate}&perPage=${PER_PAGE}&page=${page}`;
+    const { status, body } = await httpsRequest(
+      "GET",
+      url,
+      { "Authorization": `Bearer ${token}`, "Accept": "application/json" },
+      creds,
+    );
 
-  if (status !== 200) {
-    throw new Error(`Cora statement error (HTTP ${status}): ${body}`);
+    if (page === 1) console.error("[cora statement raw p1]", status, body.slice(0, 2000));
+
+    if (status !== 200) {
+      throw new Error(`Cora statement error (HTTP ${status}): ${body}`);
+    }
+
+    const json = JSON.parse(body) as Record<string, unknown>;
+    const items = extractItems(json).map(parseEntry).filter((e) => e.id && e.date);
+    all.push(...items);
+
+    // Stop when this page is not full — no more pages
+    if (items.length < PER_PAGE) break;
+
+    // Also stop if the API tells us total explicitly
+    const total = Number((json as Record<string, unknown>).total ?? (json as Record<string, unknown>).totalItems ?? NaN);
+    if (!isNaN(total) && all.length >= total) break;
+
+    page++;
   }
 
-  return extractItems(JSON.parse(body)).map(parseEntry).filter((e) => e.id && e.date);
+  return all;
 }
 
-// ─── Account balance ──────────────────────────────────────────────────────────
+// ─── Account balance ────────────────────────────────────────────────────────────────────
 
 export interface CoraBalance {
   available: number;
