@@ -291,15 +291,26 @@ export default function BankReconciliationBoard({
 
   // ── Derived: unique accounts ────────────────────────────────────────────────
   const accounts = useMemo(() => {
-    const map = new Map<string, string>();
+    const map = new Map<string, { label: string; bank: string }>();
     for (const t of transactions) {
       const k = `${t.bank}::${t.accountName}`;
-      if (!map.has(k)) map.set(k, `${t.accountName} · ${t.bank}`);
+      if (!map.has(k)) map.set(k, { label: t.accountName ?? t.bank, bank: t.bank ?? "" });
     }
     return [
-      { key: "todos", label: "Todas as contas" },
-      ...Array.from(map.entries()).map(([key, label]) => ({ key, label })),
+      { key: "todos", label: "Todas", bank: "" },
+      ...Array.from(map.entries()).map(([key, v]) => ({ key, label: v.label, bank: v.bank })),
     ];
+  }, [transactions]);
+
+  const pendingPerAccount = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const t of transactions) {
+      if (t.reconciliationStatus !== "conciliado" && t.reconciliationStatus !== "descartado") {
+        const k = `${t.bank}::${t.accountName}`;
+        map.set(k, (map.get(k) ?? 0) + 1);
+      }
+    }
+    return map;
   }, [transactions]);
 
   // ── Derived: balance stats (all months, selected account) ──────────────────
@@ -701,21 +712,40 @@ export default function BankReconciliationBoard({
         {/* Left: account + actions */}
         <div className="flex flex-wrap items-center gap-2">
           {/* Account segmented control */}
-          <div className="flex flex-wrap items-center gap-1 p-1 rounded-xl bg-gray-100 border border-gray-200">
-            {accounts.map((a) => (
-              <button
-                key={a.key}
-                onClick={() => setSelectedAccount(a.key)}
-                className={
-                  "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap " +
-                  (selectedAccount === a.key
-                    ? "bg-white text-gray-900 shadow-sm border border-gray-200"
-                    : "text-gray-500 hover:text-gray-700")
-                }
-              >
-                {a.label}
-              </button>
-            ))}
+          <div className="flex items-center gap-0.5 p-1 rounded-xl bg-gray-100 border border-gray-200">
+            {accounts.map((a) => {
+              const isActive = selectedAccount === a.key;
+              const pendingCount = a.key === "todos"
+                ? Array.from(pendingPerAccount.values()).reduce((s, n) => s + n, 0)
+                : (pendingPerAccount.get(a.key) ?? 0);
+              return (
+                <button
+                  key={a.key}
+                  onClick={() => setSelectedAccount(a.key)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                    isActive
+                      ? "bg-white shadow-sm text-gray-900 border border-gray-200"
+                      : "text-gray-500 hover:text-gray-700 hover:bg-white/60"
+                  }`}
+                >
+                  {a.bank && (
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold uppercase tracking-wide leading-none ${
+                      isActive ? "bg-blue-100 text-blue-700" : "bg-gray-200 text-gray-500"
+                    }`}>
+                      {a.bank}
+                    </span>
+                  )}
+                  <span>{a.label}</span>
+                  {pendingCount > 0 && (
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold leading-none ${
+                      isActive ? "bg-amber-100 text-amber-700" : "bg-amber-50 text-amber-500"
+                    }`}>
+                      {pendingCount}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
           <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 transition-colors">
