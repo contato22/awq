@@ -130,15 +130,12 @@ const CAT_LABEL: Partial<Record<ManagerialCategory, string>> = {
 
 // ─── Match quality config ─────────────────────────────────────────────────────
 
-const MATCH_CFG: Record<
-  MatchQuality,
-  { label: string; bg: string; text: string; border: string }
-> = {
+const MATCH_CFG = {
   perfeito:  { label: "Match perfeito", bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-300" },
   quase:     { label: "Quase lá",       bg: "bg-amber-50",  text: "text-amber-700",   border: "border-amber-300"   },
   ambiguo:   { label: "Revisar",        bg: "bg-orange-50", text: "text-orange-700",  border: "border-orange-300"  },
   sem_match: { label: "Sem match",      bg: "bg-gray-50",   text: "text-gray-500",    border: "border-gray-200"    },
-};
+} satisfies Record<MatchQuality, { label: string; bg: string; text: string; border: string }>;
 
 // ─── Match computation ────────────────────────────────────────────────────────
 
@@ -345,15 +342,17 @@ export default function BankReconciliationBoard({
 
   // ── Most-recent dates for info line ────────────────────────────────────────
   const lastExtracted = useMemo(() => {
-    const dates = transactions.map((t) => t.extractedAt).filter(Boolean).sort().reverse();
-    if (!dates[0]) return null;
-    const d = new Date(dates[0]);
+    const max = transactions.reduce<string | null>((best, t) =>
+      t.extractedAt && (!best || t.extractedAt > best) ? t.extractedAt : best, null);
+    if (!max) return null;
+    const d = new Date(max);
     return `${d.toLocaleDateString("pt-BR")} às ${d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
   }, [transactions]);
 
   const lastImported = useMemo(() => {
-    const dates = transactions.map((t) => t.transactionDate).filter(Boolean).sort().reverse();
-    return dates[0] ? fmtDate(dates[0]).short : null;
+    const max = transactions.reduce<string | null>((best, t) =>
+      t.transactionDate && (!best || t.transactionDate > best) ? t.transactionDate : best, null);
+    return max ? fmtDate(max).short : null;
   }, [transactions]);
 
   // ── Month-filtered transactions ─────────────────────────────────────────────
@@ -405,6 +404,13 @@ export default function BankReconciliationBoard({
     recebimentos: tabTxns.filter((t) => t.direction === "credit").reduce((s, t) => s + t.amount, 0),
     pagamentos:   tabTxns.filter((t) => t.direction === "debit").reduce((s, t) => s + t.amount, 0),
   }), [tabTxns]);
+
+  // Cache computeMatch per transaction — O(n×m) only when filtered list or AP/AR snaps change
+  const matchCache = useMemo(() => {
+    const m = new Map<string, ReturnType<typeof computeMatch>>();
+    for (const tx of filtered) m.set(tx.id, computeMatch(tx, apArSnaps));
+    return m;
+  }, [filtered, apArSnaps]);
 
   // ── Toast ───────────────────────────────────────────────────────────────────
   function showToast(kind: "ok" | "err" | "info", msg: string) {
@@ -1064,7 +1070,7 @@ export default function BankReconciliationBoard({
       {/* ── Reconciliation items ─────────────────────────────────────────────── */}
       <div className="space-y-3">
         {filtered.map((tx) => {
-          const { quality, diffAmount } = computeMatch(tx, apArSnaps);
+          const { quality, diffAmount } = matchCache.get(tx.id) ?? computeMatch(tx, apArSnaps);
           const matchCfg   = MATCH_CFG[quality];
           const isCredit   = tx.direction === "credit";
           const dateInfo   = fmtDate(tx.transactionDate);

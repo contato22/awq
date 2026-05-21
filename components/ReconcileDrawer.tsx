@@ -4,9 +4,10 @@
 // Opens when user clicks "Vincular" on a pending bank transaction.
 // Flow: suggest matches → select or create AP/AR → mark as conciliado
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { X, Search, Plus, ChevronDown, Check, Loader2, ArrowUpRight, ArrowDownRight, AlertCircle } from "lucide-react";
 import type { BankTransaction, ManagerialCategory } from "@/lib/financial-db";
+import { fmtDate } from "@/lib/financial-query";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -34,7 +35,6 @@ interface Props {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const fmtBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const fmtDate = (s: string) => { const [y,m,d] = s.split("-"); return `${d}/${m}/${y}`; };
 
 const CAT_LABELS: Partial<Record<ManagerialCategory, string>> = {
   receita_recorrente: "Receita Recorrente", receita_projeto: "Receita de Projeto",
@@ -60,44 +60,16 @@ const CAT_LABELS: Partial<Record<ManagerialCategory, string>> = {
   unclassified: "Não classificado",
 };
 
-const ALL_CATS: { value: ManagerialCategory; label: string }[] = [
-  { value: "receita_recorrente",           label: "Receita Recorrente" },
-  { value: "receita_projeto",              label: "Receita de Projeto" },
-  { value: "receita_consultoria",          label: "Consultoria" },
-  { value: "receita_producao",             label: "Produção" },
-  { value: "receita_social_media",         label: "Social Media" },
-  { value: "receita_revenue_share",        label: "Revenue Share" },
-  { value: "receita_fee_venture",          label: "Fee Venture" },
-  { value: "receita_eventual",             label: "Receita Eventual" },
-  { value: "rendimento_financeiro",        label: "Rendimento Financeiro" },
-  { value: "aporte_socio",                 label: "Aporte de Sócio" },
-  { value: "transferencia_interna_recebida", label: "Transf. Interna Recebida" },
-  { value: "ajuste_bancario_credito",      label: "Ajuste Bancário" },
-  { value: "recebimento_ambiguo",          label: "Recebimento (Revisar)" },
-  { value: "fornecedor_operacional",       label: "Fornecedor" },
-  { value: "freelancer_terceiro",          label: "Freelancer" },
-  { value: "folha_remuneracao",            label: "Folha de Pagamento" },
-  { value: "prolabore_retirada",           label: "Pró-labore" },
-  { value: "imposto_tributo",              label: "Impostos/Tributos" },
-  { value: "juros_multa_iof",              label: "Juros/Multa/IOF" },
-  { value: "tarifa_bancaria",              label: "Tarifa Bancária" },
-  { value: "software_assinatura",          label: "Software/Assinatura" },
-  { value: "marketing_midia",              label: "Marketing/Mídia" },
-  { value: "deslocamento_combustivel",     label: "Deslocamento" },
-  { value: "alimentacao_representacao",    label: "Alimentação" },
-  { value: "viagem_hospedagem",            label: "Viagem/Hospedagem" },
-  { value: "aluguel_locacao",              label: "Aluguel/Locação" },
-  { value: "energia_agua_internet",        label: "Energia/Água/Internet" },
-  { value: "servicos_contabeis_juridicos", label: "Contábil/Jurídico" },
-  { value: "cartao_compra_operacional",    label: "Cartão Operacional" },
-  { value: "despesa_pessoal_misturada",    label: "Despesa Pessoal" },
-  { value: "aplicacao_financeira",         label: "Aplicação Financeira" },
-  { value: "resgate_financeiro",           label: "Resgate Financeiro" },
-  { value: "transferencia_interna_enviada","label": "Transf. Interna Enviada" },
-  { value: "reserva_limite_cartao",        label: "Reserva Cartão" },
-  { value: "despesa_ambigua",              label: "Despesa (Revisar)" },
-  { value: "unclassified",                 label: "Não classificado" },
-];
+const ALL_CATS = (Object.entries(CAT_LABELS) as [ManagerialCategory, string][])
+  .map(([value, label]) => ({ value, label }));
+
+function getName(item: APARItem): string {
+  return item._type === "AP" ? (item as APItem).supplier_name : (item as ARItem).customer_name;
+}
+
+function getDueDate(item: APARItem): string {
+  return item._type === "AP" ? (item as APItem).due_date : (item as ARItem).due_date;
+}
 
 function scoreCandidate(tx: BankTransaction, item: APARItem): Candidate {
   const txAmt = Math.abs(tx.amount);
@@ -107,7 +79,7 @@ function scoreCandidate(tx: BankTransaction, item: APARItem): Candidate {
   const amtDiff = Math.abs(txAmt - itemAmt);
   const amtRatio = amtDiff / Math.max(txAmt, 1);
   const txDate = new Date(tx.transactionDate + "T12:00:00").getTime();
-  const dueDate = new Date((item._type === "AP" ? (item as APItem).due_date : (item as ARItem).due_date) + "T12:00:00").getTime();
+  const dueDate = new Date(getDueDate(item) + "T12:00:00").getTime();
   const daysDiff = Math.abs(txDate - dueDate) / (1000 * 86400);
   const score = (1 - Math.min(amtRatio, 1)) * 0.7 + (1 - Math.min(daysDiff / 30, 1)) * 0.3;
   return { item, score, amtDiff, daysDiff };
@@ -118,8 +90,6 @@ function scoreCandidate(tx: BankTransaction, item: APARItem): Candidate {
 export default function ReconcileDrawer({ transaction: tx, isStatic = false, onClose, onConciliado }: Props) {
   const isCredit = tx.direction === "credit";
 
-  // AP/AR data
-  const [candidates, setCandidates]   = useState<Candidate[]>([]);
   const [allItems, setAllItems]       = useState<APARItem[]>([]);
   const [loading, setLoading]         = useState(true);
   const [fetchErr, setFetchErr]       = useState<string | null>(null);
@@ -162,16 +132,7 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
         const ars: APARItem[] = (arData?.data ?? [])
           .filter((a) => a.status !== "RECEIVED" && a.status !== "CANCELLED")
           .map((a) => ({ ...a, _type: "AR" as const }));
-        const all: APARItem[] = [...aps, ...ars];
-        setAllItems(all);
-
-        // Expected: credit → AR (receivable), debit → AP (payable)
-        const expected = isCredit ? "AR" : "AP";
-        const scored = all
-          .filter((item) => item._type === expected)
-          .map((item) => scoreCandidate(tx, item))
-          .sort((a, b) => b.score - a.score);
-        setCandidates(scored);
+        setAllItems([...aps, ...ars]);
       } catch (e) {
         setFetchErr(e instanceof Error ? e.message : "Erro ao buscar AP/AR");
       } finally {
@@ -186,31 +147,51 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
     if (filterTab === "todos") searchRef.current?.focus();
   }, [filterTab]);
 
-  // Filtered list for "todos" tab
-  const filteredAll = allItems.filter((item) => {
+  const filteredAll = useMemo(() => {
     const q = search.toLowerCase();
-    const name = item._type === "AP" ? (item as APItem).supplier_name : (item as ARItem).customer_name;
-    return (
-      !q ||
-      name.toLowerCase().includes(q) ||
+    if (!q) return allItems;
+    return allItems.filter((item) =>
+      getName(item).toLowerCase().includes(q) ||
       item.description.toLowerCase().includes(q) ||
       String(item.gross_amount).includes(q)
     );
-  });
+  }, [search, allItems]);
 
   const selectedItem = allItems.find((i) => i.id === selectedItemId) ?? null;
 
+  // Score all items once; reused in both "sugeridos" and "todos" tabs
+  const scoreMap = useMemo(() => {
+    const m = new Map<string, { score: number; amtDiff: number; daysDiff: number }>();
+    for (const item of allItems) {
+      const { score, amtDiff, daysDiff } = scoreCandidate(tx, item);
+      m.set(item.id, { score, amtDiff, daysDiff });
+    }
+    return m;
+  }, [allItems]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const candidates = useMemo(() => {
+    const expected = isCredit ? "AR" : "AP";
+    return allItems
+      .filter((item) => item._type === expected)
+      .map((item) => ({ item, ...(scoreMap.get(item.id) ?? { score: 0, amtDiff: 0, daysDiff: 0 }) }))
+      .sort((a, b) => b.score - a.score);
+  }, [allItems, scoreMap, isCredit]);
+
   // ── Actions ──────────────────────────────────────────────────────────────────
+
+  function buildPatch(): Partial<BankTransaction> {
+    return {
+      reconciliationStatus: "conciliado",
+      managerialCategory: category,
+      counterpartyName: counterparty || tx.counterpartyName,
+      classifiedAt: new Date().toISOString(),
+    };
+  }
 
   async function handleConciliarDireto() {
     setSaving(true); setSaveErr(null);
     try {
-      const patch: Partial<BankTransaction> = {
-        reconciliationStatus: "conciliado",
-        managerialCategory: category,
-        counterpartyName: counterparty || tx.counterpartyName,
-        classifiedAt: new Date().toISOString(),
-      };
+      const patch = buildPatch();
       if (!isStatic) {
         const res = await fetch(`/api/transactions/${tx.id}`, {
           method: "PATCH",
@@ -232,12 +213,7 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
     if (!selectedItem) return;
     setSaving(true); setSaveErr(null);
     try {
-      const patch: Partial<BankTransaction> = {
-        reconciliationStatus: "conciliado",
-        managerialCategory: category,
-        counterpartyName: counterparty || tx.counterpartyName,
-        classifiedAt: new Date().toISOString(),
-      };
+      const patch = buildPatch();
       if (!isStatic) {
         // 1. Update bank transaction
         const txRes = await fetch(`/api/transactions/${tx.id}`, {
@@ -506,10 +482,10 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
                 <p className="text-sm text-gray-500 text-center py-6">Nenhum AP/AR aberto encontrado.</p>
               )}
               {filteredAll.map((item) => {
-                const { score, amtDiff, daysDiff } = scoreCandidate(tx, item);
+                const s = scoreMap.get(item.id) ?? { score: 0, amtDiff: 0, daysDiff: 0 };
                 return (
                   <CandidateCard
-                    key={item.id} item={item} score={score} amtDiff={amtDiff} daysDiff={daysDiff}
+                    key={item.id} item={item} score={s.score} amtDiff={s.amtDiff} daysDiff={s.daysDiff}
                     selected={selectedItemId === item.id}
                     onSelect={() => setSelectedItemId(selectedItemId === item.id ? null : item.id)}
                   />
@@ -651,9 +627,9 @@ function CandidateCard({
   item: APARItem; score: number; amtDiff: number; daysDiff: number;
   selected: boolean; onSelect: () => void;
 }) {
-  const isAP = item._type === "AP";
-  const name = isAP ? (item as APItem).supplier_name : (item as ARItem).customer_name;
-  const dueDate = isAP ? (item as APItem).due_date : (item as ARItem).due_date;
+  const isAP    = item._type === "AP";
+  const name    = getName(item);
+  const dueDate = getDueDate(item);
   const netAmt = item.net_amount;
   const pct = Math.round(score * 100);
 
