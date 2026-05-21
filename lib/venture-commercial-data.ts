@@ -219,8 +219,7 @@ export const commercialOpportunities: CommercialOpportunity[] = [
 // A qualidade de cada KPI reflete a qualidade dos dados de origem.
 // Campos com quality "sem_dado" NÃO entram nos totais.
 
-export function getCommercialKPIs(): CommercialKPIs {
-  const opps = commercialOpportunities;
+export function computeCommercialKPIs(opps: CommercialOpportunity[]): CommercialKPIs {
 
   const activeContracts = opps.filter(
     (o) =>
@@ -289,14 +288,19 @@ export function getCommercialKPIs(): CommercialKPIs {
   };
 }
 
+// Wrappers over the static array — preserved for backward compat.
+export function getCommercialKPIs(): CommercialKPIs {
+  return computeCommercialKPIs(commercialOpportunities);
+}
+
 // ─── Query helpers ────────────────────────────────────────────────────────────
 
 export function getCommercialOpportunityById(id: string): CommercialOpportunity | null {
   return commercialOpportunities.find((o) => o.id === id) ?? null;
 }
 
-export function getActiveCommercialContracts(): CommercialOpportunity[] {
-  return commercialOpportunities.filter(
+export function filterActiveContracts(opps: CommercialOpportunity[]): CommercialOpportunity[] {
+  return opps.filter(
     (o) =>
       o.stage === "Fee Recorrente" ||
       o.stage === "Contrato Ativo" ||
@@ -304,6 +308,14 @@ export function getActiveCommercialContracts(): CommercialOpportunity[] {
   );
 }
 
+export function filterOppsWithProposals(opps: CommercialOpportunity[]): CommercialOpportunity[] {
+  return opps.filter((o) => o.proposal !== null);
+}
+
+export function getActiveCommercialContracts(): CommercialOpportunity[] {
+  return filterActiveContracts(commercialOpportunities);
+}
+
 export function getOpportunitiesWithProposals(): CommercialOpportunity[] {
-  return commercialOpportunities.filter((o) => o.proposal !== null);
+  return filterOppsWithProposals(commercialOpportunities);
 }

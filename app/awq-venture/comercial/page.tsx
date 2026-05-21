@@ -1,11 +1,11 @@
 "use client";
 // ─── /awq-venture/comercial ─ Área Comercial da AWQ Venture ───────────────────
 // ISOLAMENTO: exclusivo da AWQ Venture.
-// DADOS: venture-commercial-data.ts (única fonte de verdade)
+// DADOS: /api/venture/comercial (Supabase) · fallback: venture-commercial-data.ts
 // VISÃO INTERNA: pipeline, KPIs, gestão de oportunidades
 // VISÃO CLIENTE: acessar via /awq-venture/deals/[id]/share (separado)
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { ElementType } from "react";
 import Header from "@/components/Header";
 import Link from "next/link";
@@ -15,10 +15,10 @@ import {
   BarChart3, Activity, Info, ArrowRight,
 } from "lucide-react";
 import {
-  commercialOpportunities,
-  getCommercialKPIs,
-  getActiveCommercialContracts,
-  getOpportunitiesWithProposals,
+  commercialOpportunities as staticOpps,
+  computeCommercialKPIs,
+  filterActiveContracts,
+  filterOppsWithProposals,
 } from "@/lib/venture-commercial-data";
 import type {
   CommercialOpportunity,
@@ -253,11 +253,20 @@ type Section = "overview" | "pipeline" | "propostas";
 export default function ComercialPage() {
   const [section, setSection] = useState<Section>("overview");
   const [previewOpp, setPreviewOpp] = useState<CommercialOpportunity | null>(null);
+  const [opps, setOpps] = useState<CommercialOpportunity[]>(staticOpps);
 
-  const kpis = getCommercialKPIs();
-  const opps = commercialOpportunities;
-  const activeContracts = getActiveCommercialContracts();
-  const oppsWithProposals = getOpportunitiesWithProposals();
+  useEffect(() => {
+    fetch("/api/venture/comercial")
+      .then((r) => r.ok ? r.json() : null)
+      .then((data: CommercialOpportunity[] | null) => {
+        if (Array.isArray(data) && data.length > 0) setOpps(data);
+      })
+      .catch(() => undefined);
+  }, []);
+
+  const kpis = computeCommercialKPIs(opps);
+  const activeContracts = filterActiveContracts(opps);
+  const oppsWithProposals = filterOppsWithProposals(opps);
 
   const sectionTabs: { key: Section; label: string; icon: ElementType }[] = [
     { key: "overview",  label: "Visão Executiva", icon: BarChart3   },
