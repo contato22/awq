@@ -242,6 +242,7 @@ export interface CoraStatementResult {
   /** Raw first-page JSON for diagnostics (keys + sample). Only set when entries === 0. */
   _debug?: {
     status: number;
+    rawBodySample: string;
     topLevelKeys: string[];
     rawItemsCount: number | null;
     rawSample: unknown;
@@ -290,10 +291,10 @@ export async function fetchCoraStatement(
     const filtered = parsed.filter((e) => e.id && e.date);
 
     if (page === 1 && filtered.length === 0) {
-      // Capture debug info for the first page when nothing comes through
       const firstRaw = rawItems[0] ?? null;
       firstPageDebug = {
         status,
+        rawBodySample: body.slice(0, 800),
         topLevelKeys: Object.keys(json),
         rawItemsCount: rawItems.length,
         rawSample: firstRaw,
