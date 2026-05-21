@@ -528,6 +528,12 @@ export default function BankReconciliationBoard({
       const data = await res.json() as { synced?: number; skipped?: number; error?: string };
       if (!res.ok) throw new Error(data.error ?? "Falha na sincronização");
       if (data.synced === 0) {
+        // If DB has data but local state is empty, reload to pick it up from the server.
+        const hasLocalData = transactions.length > 0;
+        if ((data.skipped ?? 0) > 0 && !hasLocalData) {
+          window.location.reload();
+          return;
+        }
         showToast("info", `Nenhuma transação nova. ${data.skipped ?? 0} já sincronizadas.`);
       } else {
         showToast("ok", `${data.synced} transação(ões) sincronizada(s) da Cora.`);
