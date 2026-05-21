@@ -18,6 +18,7 @@
 --
 -- Projeto Supabase: kkhxxsrgsewjfvnnssyf
 -- Usuários: TEXT IDs mapeados de lib/auth-users.ts ("1"–"6")
+-- Atualizado: 2026-05-21 — financial tables + GRANT para anon/authenticated
 -- =============================================================================
 
 -- =============================================================================
@@ -299,10 +300,6 @@ ALTER TABLE erp_purchases             ENABLE ROW LEVEL SECURITY;
 ALTER TABLE erp_contracts             ENABLE ROW LEVEL SECURITY;
 ALTER TABLE erp_time_entries          ENABLE ROW LEVEL SECURITY;
 
--- Service role bypasses RLS automatically.
--- Anon key: read-only on all tables (the app never exposes write ops to anon).
--- All mutations go through API routes that use the service role key.
-
 CREATE POLICY erp_assets_read               ON erp_assets               FOR SELECT USING (true);
 CREATE POLICY erp_expenses_read             ON erp_expenses             FOR SELECT USING (true);
 CREATE POLICY erp_inventory_warehouses_read ON erp_inventory_warehouses FOR SELECT USING (true);
@@ -316,11 +313,10 @@ CREATE POLICY erp_time_entries_read         ON erp_time_entries         FOR SELE
 -- =============================================================================
 -- 10. DOCUMENTOS FINANCEIROS + TRANSAÇÕES BANCÁRIAS (Cora API sync)
 -- =============================================================================
--- These tables live in this project (kkhxxsrgsewjfvnnssyf) because the dedicated
--- financial-DB project (gqkgsoglgubmaborixfb) has no service-role key configured
--- in Vercel. The anon key for THIS project IS available (NEXT_PUBLIC_SUPABASE_ANON_KEY),
--- so financial-db.ts falls back to supabaseClient (anon) when supabase (service role)
--- is null. No RLS — access is controlled by explicit GRANT statements below.
+-- Estas tabelas ficam neste projeto (kkhxxsrgsewjfvnnssyf) porque o projeto
+-- financeiro dedicado (gqkgsoglgubmaborixfb) não tem service-role key no Vercel.
+-- A anon key deste projeto está disponível em Vercel via fallback hardcoded em
+-- lib/supabase.ts. Sem RLS — acesso controlado pelos GRANTs abaixo.
 
 CREATE TABLE IF NOT EXISTS financial_documents (
   id                  TEXT PRIMARY KEY,
@@ -371,6 +367,6 @@ CREATE INDEX IF NOT EXISTS idx_fin_bt_document_id ON bank_transactions(document_
 CREATE INDEX IF NOT EXISTS idx_fin_bt_entity       ON bank_transactions(entity);
 CREATE INDEX IF NOT EXISTS idx_fin_bt_date         ON bank_transactions(transaction_date);
 
--- Grant full access to anon and authenticated roles (no RLS — API routes handle auth via NextAuth).
+-- Acesso total para anon e authenticated (sem RLS — auth feita via NextAuth nas rotas)
 GRANT ALL ON financial_documents TO anon, authenticated;
 GRANT ALL ON bank_transactions   TO anon, authenticated;
