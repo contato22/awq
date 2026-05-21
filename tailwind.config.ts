@@ -22,12 +22,14 @@ const config: Config = {
           900: "#312e81",
         },
         awq: {
-          gold:     "#C9A84C",
+          gold:         "#C9A84C",
           "gold-light": "#E8D59A",
           "gold-dark":  "#A68A3A",
-          dark:     "#1A1A2E",
-          "dark-600": "#252542",
-          "dark-400": "#3A3A5C",
+          dark:         "#1A1A2E",
+          "dark-600":   "#252542",
+          "dark-400":   "#3A3A5C",
+          navy:         "#0a1929",
+          panel:        "#102030",
         },
         surface: {
           DEFAULT: "#FFFFFF",
