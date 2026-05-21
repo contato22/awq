@@ -1,19 +1,17 @@
-// ─── GET /api/cora/balance ─────────────────────────────────────────────────────────────────
+// ─── GET /api/cora/balance —————————————————————————————————————————————————————————————
 // Returns the current available balance from the Cora bank account.
 // Supports both the main account (AWQ Holding) and the JACQES account
 // via separate env var sets (CORA_JACQES_*).
 // Returns isFallback=true when JACQES has no own credentials (shares AWQ Holding account).
 
 import { NextRequest, NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
 import { fetchCoraBalance, isCoraConfigured, fetchCoraBalanceForAccount, isCoraJacqesConfigured } from "@/lib/cora-api";
 
 export const runtime = "nodejs";
-export const dynamic = "force-static";
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
-  const authToken = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-  if (!authToken) {
+  // Auth — middleware injects x-user-email after verifying the session
+  if (!req.headers.get("x-user-email")) {
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   }
 
