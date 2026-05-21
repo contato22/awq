@@ -2,6 +2,7 @@ name: EPM Planning — Seed + Test (Supabase)
 
 # ─── WHEN ─────────────────────────────────────────────────────────────────────
 # Trigger manually from Actions tab, or automatically when relevant files change.
+# SUPABASE_SERVICE_ROLE_KEY adicionado em 2026-05-21 — write tests ativos.
 #
 # REQUIRED GitHub Secrets:
 #   SUPABASE_DB_URL          — Postgres direct connection string
