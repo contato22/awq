@@ -11,8 +11,7 @@
  *   npm run seed:epm
  */
 
-import { initEPMPlanningDB } from "../lib/db";
-import { seedAllEPMPlanningData } from "../lib/epm-planning-db";
+import { initEPMPlanningDB, seedAllEPMPlanningData } from "../lib/epm-planning-db";
 
 if (!process.env.DATABASE_URL) {
   console.error("❌  DATABASE_URL não definida. Configure .env.local ou passe via variável de ambiente.");

@@ -751,3 +751,54 @@ export async function getVentureContractValueRemaining(): Promise<number> {
   const contracts = await getVentureContracts();
   return contracts.filter((c) => c.status === "active").reduce((s, c) => s + c.totalContractValue, 0);
 }
+
+// ─── Schema bootstrap ─────────────────────────────────────────────────────────
+
+export async function initEPMPlanningDB(): Promise<void> {
+  if (!sql) return;
+
+  await sql`CREATE TABLE IF NOT EXISTS epm_bu_data (
+    id TEXT PRIMARY KEY, name TEXT NOT NULL, sub TEXT, color TEXT, accent_color TEXT,
+    status TEXT, economic_type TEXT, revenue NUMERIC DEFAULT 0, gross_profit NUMERIC DEFAULT 0,
+    ebitda NUMERIC DEFAULT 0, net_income NUMERIC DEFAULT 0, cash_generated NUMERIC DEFAULT 0,
+    cash_balance NUMERIC DEFAULT 0, customers INTEGER DEFAULT 0, ftes INTEGER DEFAULT 0,
+    capital_allocated NUMERIC DEFAULT 0, roic NUMERIC DEFAULT 0, budget_revenue NUMERIC DEFAULT 0,
+    href_overview TEXT, href_financial TEXT, href_customers TEXT,
+    href_unit_econ TEXT, href_budget TEXT, updated_at TEXT
+  )`;
+
+  await sql`CREATE TABLE IF NOT EXISTS epm_venture_contracts (
+    id TEXT PRIMARY KEY, counterparty TEXT NOT NULL, type TEXT, status TEXT,
+    start_date TEXT, end_date TEXT, monthly_fee NUMERIC DEFAULT 0,
+    arr NUMERIC DEFAULT 0, total_contract_value NUMERIC DEFAULT 0,
+    remaining_months INTEGER DEFAULT 0, note TEXT, updated_at TEXT
+  )`;
+
+  await sql`CREATE TABLE IF NOT EXISTS epm_monthly_revenue (
+    month TEXT PRIMARY KEY, jacqes NUMERIC DEFAULT 0, caza NUMERIC DEFAULT 0,
+    advisor NUMERIC DEFAULT 0, venture NUMERIC DEFAULT 0, enrd NUMERIC DEFAULT 0, updated_at TEXT
+  )`;
+
+  await sql`CREATE TABLE IF NOT EXISTS epm_category_budget (
+    category TEXT PRIMARY KEY, budget NUMERIC DEFAULT 0, actual NUMERIC DEFAULT 0, updated_at TEXT
+  )`;
+
+  await sql`CREATE TABLE IF NOT EXISTS epm_alloc_flags (
+    bu_id TEXT PRIMARY KEY, flag TEXT NOT NULL, updated_at TEXT
+  )`;
+
+  await sql`CREATE TABLE IF NOT EXISTS epm_holding_treasury (
+    id INTEGER PRIMARY KEY DEFAULT 1, as_of TEXT, total_invested_real NUMERIC DEFAULT 0,
+    operational_cash NUMERIC DEFAULT 0, updated_at TEXT
+  )`;
+
+  await sql`CREATE TABLE IF NOT EXISTS epm_chart_of_accounts (
+    account_code TEXT PRIMARY KEY, account_name TEXT NOT NULL,
+    account_type TEXT NOT NULL, normal_balance TEXT NOT NULL, level INTEGER DEFAULT 3
+  )`;
+
+  await sql`CREATE TABLE IF NOT EXISTS epm_fiscal_rates (
+    supplier_type TEXT PRIMARY KEY, irrf_rate NUMERIC DEFAULT 0, inss_rate NUMERIC DEFAULT 0,
+    iss_rate NUMERIC DEFAULT 0, pis_rate NUMERIC DEFAULT 0, cofins_rate NUMERIC DEFAULT 0
+  )`;
+}

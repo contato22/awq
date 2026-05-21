@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { seedAllEPMPlanningData } from "@/lib/epm-planning-db";
-import { initEPMPlanningDB } from "@/lib/db";
+import { initEPMPlanningDB, seedAllEPMPlanningData } from "@/lib/epm-planning-db";
 
 export async function POST() {
   await initEPMPlanningDB();
