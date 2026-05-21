@@ -1,13 +1,14 @@
 name: EPM Planning — Seed + Test (Supabase)
 
 # ─── WHEN ─────────────────────────────────────────────────────────────────────
-# Trigger manually from Actions tab, or automatically when epm-planning-db.ts
-# or the seed/test scripts change on main / feature branch.
+# Trigger manually from Actions tab, or automatically when relevant files change.
 #
-# REQUIRED GitHub Secret:
-#   SUPABASE_DB_URL — Postgres direct connection string
-#     Settings → Secrets → Actions → SUPABASE_DB_URL
-#     Value: postgresql://postgres:[PASSWORD]@db.gqkgsoglgubmaborixfb.supabase.co:5432/postgres
+# REQUIRED GitHub Secrets:
+#   SUPABASE_DB_URL          — Postgres direct connection string
+#   SUPABASE_SERVICE_ROLE_KEY — Service role JWT (bypasses RLS)
+#
+# OPTIONAL:
+#   NEXT_PUBLIC_SUPABASE_ANON_KEY — Anon JWT (for client-side modules)
 #
 # The seed is idempotent (CREATE TABLE IF NOT EXISTS + ON CONFLICT DO UPDATE).
 # Safe to run multiple times.
@@ -21,6 +22,15 @@ on:
     paths:
       - "lib/epm-planning-db.ts"
       - "lib/db.ts"
+      - "lib/supabase.ts"
+      - "lib/financial-db.ts"
+      - "lib/ppm-db.ts"
+      - "lib/advisor-db.ts"
+      - "lib/ma-db.ts"
+      - "lib/caza-crm-db.ts"
+      - "lib/crm-db.ts"
+      - "lib/bpm-db.ts"
+      - "lib/ap-ar-db.ts"
       - "scripts/seed-epm-planning.ts"
       - "scripts/test-epm-db.ts"
       - "app/api/epm/planning/**"
@@ -50,8 +60,7 @@ jobs:
       - name: Seed EPM tables (idempotente)
         run: |
           if [ -z "$DATABASE_URL" ]; then
-            echo "⚠️  SUPABASE_DB_URL secret não configurado — skipping seed."
-            echo "Adicione em: Settings → Secrets → Actions → SUPABASE_DB_URL"
+            echo "⚠️  SUPABASE_DB_URL não configurado — skipping seed."
             exit 0
           fi
           echo "✓ DATABASE_URL disponível — seedando tabelas EPM..."
@@ -66,7 +75,11 @@ jobs:
           fi
           npm run test:epm
         env:
-          DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
+          DATABASE_URL:                   ${{ secrets.SUPABASE_DB_URL }}
+          SUPABASE_URL:                   https://gqkgsoglgubmaborixfb.supabase.co
+          SUPABASE_SERVICE_ROLE_KEY:      ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL:       https://gqkgsoglgubmaborixfb.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY:  ${{ secrets.SUPABASE_ANON_KEY }}
 
       - name: Summary
         if: always()
