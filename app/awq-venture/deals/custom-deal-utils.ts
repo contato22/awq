@@ -67,7 +67,6 @@ const DEAL_TYPE_TO_DB: Record<string, string> = {
 
 // ─── MaDeal row → CustomDeal ──────────────────────────────────────────────────
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function rowToCustomDeal(row: Record<string, any>): CustomDeal {
   const tags: Record<string, string> = row.tags ?? {};
   return {
@@ -158,7 +157,6 @@ export async function loadCustomDeals(): Promise<CustomDeal[]> {
     if (!res.ok) throw new Error("API unavailable");
     const json = await res.json();
     if (!json.success) throw new Error(json.error ?? "API error");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const rows: CustomDeal[] = (json.data as Record<string, any>[])
       .filter((r) => r.tags?.is_venture_custom === true)
       .map(rowToCustomDeal);

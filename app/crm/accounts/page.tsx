@@ -43,7 +43,7 @@ export default function AccountsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
-    void supabase.from("crm_accounts").select("*").order("account_name")
+    void supabase!.from("crm_accounts").select("*").order("account_name")
       .then(({ data }) => { setAllAccounts((data ?? []) as CrmAccount[]); setLoading(false); }, () => { setLoading(false); });
   }, []);
 
@@ -51,7 +51,7 @@ export default function AccountsPage() {
     if (!confirm(`Excluir a conta "${name}"? Esta ação não pode ser desfeita.`)) return;
     setDeletingId(id);
     setAllAccounts(prev => prev.filter(a => a.account_id !== id));
-    await supabase.from("crm_accounts").delete().eq("account_id", id);
+    await supabase!.from("crm_accounts").delete().eq("account_id", id);
     setDeletingId(null);
   }
 

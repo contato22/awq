@@ -21,7 +21,7 @@ function AddContactPageInner() {
   });
 
   useEffect(() => {
-    supabase.from("crm_accounts").select("account_id, account_name, trade_name").order("account_name")
+    supabase!.from("crm_accounts").select("account_id, account_name, trade_name").order("account_name")
       .then(({ data }) => setAccounts((data ?? []) as CrmAccount[]));
   }, []);
 
@@ -32,7 +32,7 @@ function AddContactPageInner() {
     if (!form.full_name.trim()) { setError("Nome completo é obrigatório"); return; }
     setSaving(true); setError("");
     try {
-      const { error: err } = await supabase.from("crm_contacts").insert({
+      const { error: err } = await supabase!.from("crm_contacts").insert({
         account_id: form.account_id || null,
         full_name: form.full_name.trim(),
         email: form.email || null,

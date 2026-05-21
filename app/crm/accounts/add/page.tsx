@@ -26,7 +26,7 @@ export default function AddAccountPage() {
     if (!form.account_name.trim()) { setError("Nome da empresa é obrigatório"); return; }
     setSaving(true); setError("");
     try {
-      const { error: err } = await supabase.from("crm_accounts").insert({
+      const { error: err } = await supabase!.from("crm_accounts").insert({
         account_name: form.account_name.trim(),
         trade_name: form.trade_name || null,
         document_number: form.document_number || null,

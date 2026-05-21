@@ -142,7 +142,7 @@ export default function AddLeadPage() {
     if (!validate()) return;
     setSubmitting(true);
     try {
-      const { error: err } = await supabase.from("crm_leads").insert({
+      const { error: err } = await supabase!.from("crm_leads").insert({
         contact_name: form.contact_name.trim(),
         company_name: form.company_name.trim(),
         email: form.email || null,

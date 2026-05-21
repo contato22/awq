@@ -18,13 +18,13 @@ function AddActivityPageInner() {
   const [contacts, setContacts] = useState<CrmContact[]>([]);
 
   useEffect(() => {
-    supabase.from("crm_opportunities").select("opportunity_id, opportunity_name").order("created_at", { ascending: false })
+    supabase!.from("crm_opportunities").select("opportunity_id, opportunity_name").order("created_at", { ascending: false })
       .then(({ data }) => setOpps((data ?? []) as CrmOpportunity[]));
-    supabase.from("crm_accounts").select("account_id, account_name, trade_name").order("account_name")
+    supabase!.from("crm_accounts").select("account_id, account_name, trade_name").order("account_name")
       .then(({ data }) => setAccounts((data ?? []) as CrmAccount[]));
-    supabase.from("crm_leads").select("lead_id, contact_name, company_name").order("created_at", { ascending: false })
+    supabase!.from("crm_leads").select("lead_id, contact_name, company_name").order("created_at", { ascending: false })
       .then(({ data }) => setLeads((data ?? []) as CrmLead[]));
-    supabase.from("crm_contacts").select("contact_id, full_name, account_id").order("full_name")
+    supabase!.from("crm_contacts").select("contact_id, full_name, account_id").order("full_name")
       .then(({ data }) => setContacts((data ?? []) as CrmContact[]));
   }, []);
 
@@ -49,7 +49,7 @@ function AddActivityPageInner() {
     if (!form.related_to_id.trim()) { setError("Selecione a entidade vinculada"); return; }
     setSaving(true); setError("");
     try {
-      const { error: err } = await supabase.from("crm_activities").insert({
+      const { error: err } = await supabase!.from("crm_activities").insert({
         activity_type: form.activity_type,
         related_to_type: form.related_to_type,
         related_to_id: form.related_to_id,

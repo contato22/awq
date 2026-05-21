@@ -44,10 +44,10 @@ export default function AccountDetailClient() {
   useEffect(() => {
     if (!id) return;
     Promise.all([
-      supabase.from("crm_accounts").select("*").eq("account_id", id).single(),
-      supabase.from("crm_contacts").select("*").eq("account_id", id).order("full_name"),
-      supabase.from("crm_opportunities").select("*").eq("account_id", id).order("created_at", { ascending: false }),
-      supabase.from("crm_activities").select("*").or(`related_to_id.eq.${id}`).eq("related_to_type", "account").order("created_at", { ascending: false }),
+      supabase!.from("crm_accounts").select("*").eq("account_id", id).single(),
+      supabase!.from("crm_contacts").select("*").eq("account_id", id).order("full_name"),
+      supabase!.from("crm_opportunities").select("*").eq("account_id", id).order("created_at", { ascending: false }),
+      supabase!.from("crm_activities").select("*").or(`related_to_id.eq.${id}`).eq("related_to_type", "account").order("created_at", { ascending: false }),
     ]).then(([accRes, conRes, oppRes, actRes]) => {
       setAccount((accRes.data ?? null) as CrmAccount | null);
       setContacts((conRes.data ?? []) as CrmContact[]);

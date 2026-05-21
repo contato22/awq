@@ -77,7 +77,7 @@ export default function LeadsPage() {
   }, [lockedBU]);
 
   useEffect(() => {
-    void supabase.from("crm_leads").select("*").order("created_at", { ascending: false })
+    void supabase!.from("crm_leads").select("*").order("created_at", { ascending: false })
       .then(({ data }) => { setLeads((data ?? []) as CrmLead[]); setLoading(false); }, () => { setLoading(false); });
   }, []);
 
@@ -85,7 +85,7 @@ export default function LeadsPage() {
     if (!confirm(`Converter "${lead.company_name}" em oportunidade?`)) return;
     setConverting(lead.lead_id);
     try {
-      const { data: oppData, error: oppErr } = await supabase.from("crm_opportunities").insert({
+      const { data: oppData, error: oppErr } = await supabase!.from("crm_opportunities").insert({
         opportunity_name: `${lead.company_name} — ${lead.bu}`,
         bu: lead.bu,
         owner: lead.assigned_to,
@@ -97,7 +97,7 @@ export default function LeadsPage() {
 
       if (oppErr) throw new Error(oppErr.message);
 
-      const { error: leadErr } = await supabase.from("crm_leads").update({
+      const { error: leadErr } = await supabase!.from("crm_leads").update({
         status: "converted",
         converted_to_opportunity_id: oppData.opportunity_id,
         converted_at: new Date().toISOString(),
@@ -122,7 +122,7 @@ export default function LeadsPage() {
     if (!confirm(`Apagar o lead "${lead.company_name}" permanentemente?`)) return;
     setDeleting(lead.lead_id);
     setLeads(prev => prev.filter(l => l.lead_id !== lead.lead_id));
-    await supabase.from("crm_leads").delete().eq("lead_id", lead.lead_id);
+    await supabase!.from("crm_leads").delete().eq("lead_id", lead.lead_id);
     setDeleting(null);
   }
 

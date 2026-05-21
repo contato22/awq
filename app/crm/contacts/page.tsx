@@ -31,7 +31,7 @@ export default function ContactsPage() {
   }
 
   useEffect(() => {
-    let q = supabase.from("crm_contacts")
+    let q = supabase!.from("crm_contacts")
       .select("*, crm_accounts(account_name)")
       .order("full_name");
     if (search) q = q.ilike("full_name", `%${search}%`);
@@ -48,7 +48,7 @@ export default function ContactsPage() {
   async function handleDelete(contact: CrmContact) {
     setContacts(prev => prev.filter(c => c.contact_id !== contact.contact_id));
     setDeletingId(null);
-    await supabase.from("crm_contacts").delete().eq("contact_id", contact.contact_id);
+    await supabase!.from("crm_contacts").delete().eq("contact_id", contact.contact_id);
     showToast("Contato apagado", true);
   }
 

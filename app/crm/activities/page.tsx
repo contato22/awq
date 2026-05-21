@@ -49,7 +49,7 @@ export default function ActivitiesPage() {
   const [completing, setCompleting] = useState<string | null>(null);
 
   useEffect(() => {
-    void supabase.from("crm_activities").select("*").order("created_at", { ascending: false })
+    void supabase!.from("crm_activities").select("*").order("created_at", { ascending: false })
       .then(({ data }) => { setActivities((data ?? []) as CrmActivity[]); setLoading(false); }, () => { setLoading(false); });
   }, []);
 
@@ -68,7 +68,7 @@ export default function ActivitiesPage() {
     setCompleting(id);
     const completedAt = new Date().toISOString();
     setActivities(prev => prev.map(a => a.activity_id === id ? { ...a, status: "completed", completed_at: completedAt } : a));
-    await supabase.from("crm_activities").update({ status: "completed", completed_at: completedAt }).eq("activity_id", id);
+    await supabase!.from("crm_activities").update({ status: "completed", completed_at: completedAt }).eq("activity_id", id);
     setCompleting(null);
   }
 

@@ -84,7 +84,7 @@ function fromRow(r: Row): Contraparte {
 // ─── Read ─────────────────────────────────────────────────────────────────────
 
 export async function listContrapartes(): Promise<Contraparte[]> {
-  const { data, error } = await supabaseClient
+  const { data, error } = await supabaseClient!
     .from("contrapartes")
     .select("*")
     .is("deleted_at", null)
@@ -94,7 +94,7 @@ export async function listContrapartes(): Promise<Contraparte[]> {
 }
 
 export async function getContraparte(id: string): Promise<Contraparte | undefined> {
-  const { data, error } = await supabaseClient
+  const { data, error } = await supabaseClient!
     .from("contrapartes")
     .select("*")
     .eq("id", id)
@@ -107,7 +107,7 @@ export async function searchContrapartes(
   query: string,
   filters?: { papel?: ContraprtePapel | "all"; bu?: string; status?: string }
 ): Promise<Contraparte[]> {
-  let q = supabaseClient
+  let q = supabaseClient!
     .from("contrapartes")
     .select("*")
     .is("deleted_at", null);
@@ -130,7 +130,7 @@ export async function createContraparte(
 ): Promise<Contraparte> {
   const now = iso();
   const c: Contraparte = { ...data, id: uid(), createdAt: now, updatedAt: now };
-  const { data: row, error } = await supabaseClient
+  const { data: row, error } = await supabaseClient!
     .from("contrapartes")
     .insert(toRow(c))
     .select()
@@ -146,7 +146,7 @@ export async function updateContraparte(
   const prev = await getContraparte(id);
   if (!prev) throw new Error(`Contraparte ${id} not found`);
   const updated: Contraparte = { ...prev, ...patch, updatedAt: iso() };
-  const { data: row, error } = await supabaseClient
+  const { data: row, error } = await supabaseClient!
     .from("contrapartes")
     .update(toRow(updated))
     .eq("id", id)

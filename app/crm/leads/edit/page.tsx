@@ -114,7 +114,7 @@ function EditLeadPageInner() {
 
   useEffect(() => {
     if (!leadId) { setNotFound(true); setLoading(false); return; }
-    supabase.from("crm_leads").select("*").eq("lead_id", leadId).single()
+    supabase!.from("crm_leads").select("*").eq("lead_id", leadId).single()
       .then(({ data, error }) => {
         if (error || !data) { setNotFound(true); setLoading(false); return; }
         const lead = data as CrmLead;
@@ -161,7 +161,7 @@ function EditLeadPageInner() {
     if (!validate()) return;
     setSubmitting(true);
     try {
-      const { error: err } = await supabase.from("crm_leads").update({
+      const { error: err } = await supabase!.from("crm_leads").update({
         contact_name: form.contact_name,
         company_name: form.company_name,
         email: form.email || null,
