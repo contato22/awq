@@ -213,10 +213,16 @@ export default function OpenClawWidget() {
         }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao conectar");
+      const msg = err instanceof Error ? err.message : "Erro ao conectar";
+      setError(msg);
       setMessages((prev) => {
         const last = prev[prev.length - 1];
-        return last?.role === "assistant" && !last.content ? prev.slice(0, -1) : prev;
+        if (last?.role === "assistant" && !last.content) {
+          const updated = [...prev];
+          updated[updated.length - 1] = { role: "assistant", content: `⚠️ ${msg}` };
+          return updated;
+        }
+        return prev;
       });
     } finally {
       setLoading(false);

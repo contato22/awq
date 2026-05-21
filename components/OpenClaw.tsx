@@ -166,7 +166,12 @@ export default function OpenClaw() {
       setError(msg);
       setMessages((prev) => {
         const last = prev[prev.length - 1];
-        return last?.role === "assistant" && !last.content ? prev.slice(0, -1) : prev;
+        if (last?.role === "assistant" && !last.content) {
+          const updated = [...prev];
+          updated[updated.length - 1] = { role: "assistant", content: `⚠️ ${msg}` };
+          return updated;
+        }
+        return prev;
       });
     } finally {
       setLoading(false);
