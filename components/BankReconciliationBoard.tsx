@@ -331,12 +331,14 @@ export default function BankReconciliationBoard({
   [accountTxns, selectedMonth]);
 
   // ── Tab split ───────────────────────────────────────────────────────────────
+  // Pendentes: TODOS os meses — item sai da fila apenas quando conciliado de fato
   const pendentes = useMemo(() =>
-    monthTxns.filter((t) =>
+    accountTxns.filter((t) =>
       t.reconciliationStatus !== "conciliado" && t.reconciliationStatus !== "descartado"
     ),
-  [monthTxns]);
+  [accountTxns]);
 
+  // Movimentações: filtradas pelo mês selecionado (já conciliadas)
   const movimentacoes = useMemo(() =>
     monthTxns.filter((t) => t.reconciliationStatus === "conciliado"),
   [monthTxns]);
