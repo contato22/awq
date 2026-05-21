@@ -15,7 +15,7 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import BankReconciliationBoard from "@/components/BankReconciliationBoard";
 import CoraStatusPanel from "@/components/CoraStatusPanel";
-import { getAllTransactions, getAllDocuments } from "@/lib/financial-db";
+import { getAllTransactions, getAllDocuments, type BankTransaction, type FinancialDocument } from "@/lib/financial-db";
 import {
 
   AlertCircle,
@@ -69,10 +69,19 @@ function KpiCard({
 }
 
 export default async function ConciliacaoPage() {
-  const [transactions, documents] = await Promise.all([
-    getAllTransactions(),
-    getAllDocuments(),
-  ]);
+  let transactions: BankTransaction[] = [];
+  let documents:    FinancialDocument[] = [];
+  let loadError: string | null = null;
+
+  try {
+    [transactions, documents] = await Promise.all([
+      getAllTransactions(),
+      getAllDocuments(),
+    ]);
+  } catch (err) {
+    console.error("[ConciliacaoPage] DB load error:", err);
+    loadError = err instanceof Error ? err.message : "Erro ao carregar dados do banco";
+  }
 
   const counts = {
     total:      transactions.length,
@@ -102,6 +111,17 @@ export default async function ConciliacaoPage() {
         subtitle="Hub unificado — revisão de transações importadas e verificação manual. DFC, DRE e KPIs recalculam automaticamente."
       />
       <div className="p-6 space-y-8">
+
+        {/* ── Erro temporário de carregamento ── */}
+        {loadError && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 flex items-start gap-3">
+            <AlertCircle size={16} className="text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-amber-800">Falha ao carregar dados — recarregando automaticamente</p>
+              <p className="text-[11px] text-amber-700 mt-0.5 font-mono">{loadError}</p>
+            </div>
+          </div>
+        )}
 
         {/* ── Seção 1: KPIs de conciliação (transações importadas) ── */}
         <section className="space-y-4">
