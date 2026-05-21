@@ -35,12 +35,14 @@ import {
   ChevronRight,
   ChevronUp,
   CheckCircle2,
+  Link2,
   Loader2,
   RefreshCw,
   Search,
   Upload,
   X,
 } from "lucide-react";
+import ReconcileDrawer from "@/components/ReconcileDrawer";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -250,6 +252,7 @@ export default function BankReconciliationBoard({
   });
   const [selectedIds, setSelectedIds]   = useState<Set<string>>(new Set());
   const [savingId, setSavingId]         = useState<string | null>(null);
+  const [drawerTx, setDrawerTx]         = useState<BankTransaction | null>(null);
   const [toast, setToast]               = useState<{ kind: "ok" | "err" | "info"; msg: string } | null>(null);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [isImporting, setIsImporting]   = useState(false);
@@ -401,7 +404,7 @@ export default function BankReconciliationBoard({
     [isStatic]
   );
 
-  // ── Conciliar ───────────────────────────────────────────────────────────────
+  // ── Conciliar (direto, sem drawer) ─────────────────────────────────────────
   async function handleReconcile(id: string) {
     const patch = { reconciliationStatus: "conciliado" as ReconciliationStatus };
     if (isStatic) {
@@ -417,16 +420,20 @@ export default function BankReconciliationBoard({
         body: JSON.stringify(patch),
       });
       if (!res.ok) throw new Error("Falha ao salvar");
-      const updated = (await res.json()) as BankTransaction;
-      startTransition(() =>
-        setTransactions((prev) => prev.map((t) => (t.id === id ? updated : t)))
-      );
+      applyPatch(id, patch);
       showToast("ok", "Conciliado com sucesso.");
     } catch (e) {
       showToast("err", e instanceof Error ? e.message : "Falha ao salvar");
     } finally {
       setSavingId(null);
     }
+  }
+
+  // ── Drawer conciliation callback ────────────────────────────────────────────
+  function handleDrawerConciliado(id: string, updatedTx?: Partial<BankTransaction>) {
+    applyPatch(id, { reconciliationStatus: "conciliado", ...updatedTx });
+    showToast("ok", "Conciliado com sucesso.");
+    setDrawerTx(null);
   }
 
   // ── Ignorar ──────────────────────────────────────────────────────────────────
@@ -561,6 +568,14 @@ export default function BankReconciliationBoard({
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-4">
+      {drawerTx && (
+        <ReconcileDrawer
+          transaction={drawerTx}
+          isStatic={isStatic}
+          onClose={() => setDrawerTx(null)}
+          onConciliado={handleDrawerConciliado}
+        />
+      )}
 
       {/* Toast */}
       {toast && (
@@ -1031,13 +1046,23 @@ export default function BankReconciliationBoard({
                   {matchCfg.label}
                 </span>
                 {activeTab === "pendentes" ? (
-                  <button
-                    disabled={isSaving}
-                    onClick={() => void handleReconcile(tx.id)}
-                    className="w-full px-2 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold disabled:opacity-50 transition-colors"
-                  >
-                    {isSaving ? "…" : "Conciliar"}
-                  </button>
+                  <div className="w-full flex flex-col gap-1">
+                    <button
+                      disabled={isSaving}
+                      onClick={() => setDrawerTx(tx)}
+                      className="w-full flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold disabled:opacity-50 transition-colors"
+                    >
+                      <Link2 size={11} />
+                      {isSaving ? "…" : "Vincular"}
+                    </button>
+                    <button
+                      disabled={isSaving}
+                      onClick={() => void handleReconcile(tx.id)}
+                      className="w-full px-2 py-1 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 text-gray-600 text-[10px] disabled:opacity-50 transition-colors"
+                    >
+                      {isSaving ? "…" : "Conciliar direto"}
+                    </button>
+                  </div>
                 ) : (
                   <span className="text-[10px] px-2 py-0.5 rounded-full border font-semibold bg-emerald-50 text-emerald-700 border-emerald-200">
                     ✓ Conciliado
