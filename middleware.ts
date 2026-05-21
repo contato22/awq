@@ -24,12 +24,14 @@ export default withAuth(
 
     const role = token.role as Role;
 
-    // For API routes: inject x-bu-lock header so handlers can enforce BU isolation
-    // without needing to re-decrypt the JWT (which fails in App Router API routes).
+    // For API routes: inject identity headers so handlers don't need to re-decrypt
+    // the JWT (getToken() fails in App Router API routes after NextResponse.next()).
     if (pathname.startsWith("/api/")) {
       const res = NextResponse.next();
       const lockedBU = ROLE_BU_LOCK[role];
       if (lockedBU) res.headers.set("x-bu-lock", lockedBU);
+      if (token.email) res.headers.set("x-user-email", token.email as string);
+      if (token.role)  res.headers.set("x-user-role",  token.role  as string);
       return withSecurityHeaders(res);
     }
 

@@ -19,7 +19,6 @@
 //   { synced: number, skipped: number, total: number, period: { startDate, endDate } }
 
 import { NextRequest, NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
 import { fetchCoraStatement, isCoraConfigured } from "@/lib/cora-api";
 import { getAllTransactions, saveTransactions } from "@/lib/financial-db";
 import { classifyTransaction } from "@/lib/financial-classifier";
@@ -42,9 +41,9 @@ function isValidDate(s: string) {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  // ── Auth —————————————————————————————————————————————————————————
-  const authToken = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-  if (!authToken) {
+  // ── Auth — middleware injects x-user-email after verifying the session ──────────
+  const userEmail = req.headers.get("x-user-email");
+  if (!userEmail) {
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   }
 
