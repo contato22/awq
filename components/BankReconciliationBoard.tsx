@@ -259,7 +259,9 @@ export default function BankReconciliationBoard({
   const searchRef   = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // ── Bootstrap from localStorage (static mode) ──────────────────────────────
+  // ── Sync state when server refreshes props (e.g., after Cora sync + router.refresh()) ──
+  // useState only runs once on mount; this effect merges new server-side transactions
+  // into local state without overwriting local edits already in progress.
   useEffect(() => {
     if (isStatic) {
       const overrides = lsGet<Record<string, Partial<BankTransaction>>>(LS_OVERRIDES, {});
@@ -272,10 +274,17 @@ export default function BankReconciliationBoard({
         .filter((t) => !existingIds.has(t.id))
         .map((t) => overrides[t.id] ? { ...t, ...overrides[t.id] } : t);
       setTransactions([...base, ...newManual]);
+    } else {
+      // Non-static: add only IDs not yet in local state (preserves in-progress edits)
+      setTransactions((prev) => {
+        const existingIds = new Set(prev.map((t) => t.id));
+        const fresh = initialTransactions.filter((t) => !existingIds.has(t.id));
+        return fresh.length > 0 ? [...fresh, ...prev] : prev;
+      });
     }
     setApArSnaps(lsGet<ApArSnap[]>("awq_ap_items", []));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isStatic]);
+  }, [initialTransactions]);
 
   // ── Derived: unique accounts ────────────────────────────────────────────────
   const accounts = useMemo(() => {
