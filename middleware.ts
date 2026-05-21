@@ -26,12 +26,16 @@ export default withAuth(
 
     // For API routes: inject identity headers so handlers don't need to re-decrypt
     // the JWT (getToken() fails in App Router API routes after NextResponse.next()).
+    // Must use NextResponse.next({ request: { headers } }) — setting headers on the
+    // response object only adds them to the browser response, not the request seen
+    // by the API handler.
     if (pathname.startsWith("/api/")) {
-      const res = NextResponse.next();
+      const requestHeaders = new Headers(req.headers);
       const lockedBU = ROLE_BU_LOCK[role];
-      if (lockedBU) res.headers.set("x-bu-lock", lockedBU);
-      if (token.email) res.headers.set("x-user-email", token.email as string);
-      if (token.role)  res.headers.set("x-user-role",  token.role  as string);
+      if (lockedBU)    requestHeaders.set("x-bu-lock",    lockedBU);
+      if (token.email) requestHeaders.set("x-user-email", token.email as string);
+      if (token.role)  requestHeaders.set("x-user-role",  token.role  as string);
+      const res = NextResponse.next({ request: { headers: requestHeaders } });
       return withSecurityHeaders(res);
     }
 
