@@ -28,6 +28,9 @@ import {
 } from "@/lib/bank-account-registry";
 import { getAllDocuments } from "@/lib/financial-db";
 
+export const dynamic = "force-dynamic";
+
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function pct(n: number, d: number): string {

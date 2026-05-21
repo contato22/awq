@@ -17,6 +17,7 @@ import BankReconciliationBoard from "@/components/BankReconciliationBoard";
 import CoraStatusPanel from "@/components/CoraStatusPanel";
 import { getAllTransactions, getAllDocuments } from "@/lib/financial-db";
 import {
+
   AlertCircle,
   ArrowDownRight,
   ArrowUpRight,
@@ -28,6 +29,8 @@ import {
   LineChart,
   Zap,
 } from "lucide-react";
+
+export const dynamic = "force-dynamic";
 
 const IS_STATIC       = process.env.NEXT_PUBLIC_STATIC_DATA === "1";
 const CORA_CONFIGURED = !!(

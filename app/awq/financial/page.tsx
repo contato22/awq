@@ -14,6 +14,7 @@ import {
   Database, AlertTriangle, GitMerge, ChevronRight,
 } from "lucide-react";
 import {
+
   buildFinancialQuery,
   fmtBRL,
   ENTITY_LABELS,
@@ -21,6 +22,8 @@ import {
   type EntitySummary,
   type FinancialQueryResult,
 } from "@/lib/financial-query";
+
+export const dynamic = "force-dynamic";
 // DataSourceBanner removed — page is fully on financial-query pipeline.
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

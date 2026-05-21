@@ -20,6 +20,9 @@ import {
 import { PLATFORM_ROUTES } from "@/lib/platform-registry";
 import { SNAPSHOT_REGISTRY, getSnapshotMigrationStatus } from "@/lib/snapshot-registry";
 
+export const dynamic = "force-dynamic";
+
+
 // ─── Local types ─────────────────────────────────────────────────────────────
 
 type SourceType =

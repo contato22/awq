@@ -17,6 +17,7 @@ import {
   Activity,
 } from "lucide-react";
 import {
+
   buildFinancialQuery,
   fmtBRL,
   fmtDate,
@@ -24,6 +25,8 @@ import {
   type MonthlyEntry,
   type EntityLayer,
 } from "@/lib/financial-query";
+
+export const dynamic = "force-dynamic";
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 

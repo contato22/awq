@@ -9,11 +9,14 @@ import {
   ArrowUpRight, Plus, Users,
 } from "lucide-react";
 import {
+
   listPortfolioCompanies,
   listDeals,
   getPortfolioDashboardTotals,
   initMaDB,
 } from "@/lib/ma-db";
+
+export const dynamic = "force-dynamic";
 
 function fmtR(n: number) {
   if (Math.abs(n) >= 1_000_000_000) return "R$" + (n / 1_000_000_000).toFixed(1) + "B";
