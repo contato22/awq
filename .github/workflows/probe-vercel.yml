@@ -234,13 +234,17 @@ jobs:
           echo "health_txn_count=$TXN_COUNT"     >> $GITHUB_OUTPUT
           echo "health_has_real=$HAS_REAL"       >> $GITHUB_OUTPUT
           ALL_GREEN=$(echo "$BODY" | python3 -c "import json,sys; d=json.load(sys.stdin); print(str(d.get('allGreen',False)).lower())" 2>/dev/null || echo "false")
-          CORA_READY=$(echo "$BODY" | python3 -c "import json,sys; d=json.load(sys.stdin); print(str(d.get('coraReady',False)).lower())" 2>/dev/null || echo "false")
-          SYNC_READY=$(echo "$BODY" | python3 -c "import json,sys; d=json.load(sys.stdin); print(str(d.get('syncReady',False)).lower())" 2>/dev/null || echo "false")
-          ERP_PING=$(echo "$BODY"   | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('erpPing','?'))" 2>/dev/null || echo "?")
-          echo "health_all_green=$ALL_GREEN"   >> $GITHUB_OUTPUT
-          echo "health_cora_ready=$CORA_READY" >> $GITHUB_OUTPUT
-          echo "health_sync_ready=$SYNC_READY" >> $GITHUB_OUTPUT
-          echo "health_erp_ping=$ERP_PING"     >> $GITHUB_OUTPUT
+          CORA_READY=$(echo "$BODY"   | python3 -c "import json,sys; d=json.load(sys.stdin); print(str(d.get('coraReady',False)).lower())" 2>/dev/null || echo "false")
+          CORA_JACQES=$(echo "$BODY" | python3 -c "import json,sys; d=json.load(sys.stdin); print(str(d.get('coraJacqes',False)).lower())" 2>/dev/null || echo "false")
+          SYNC_READY=$(echo "$BODY"  | python3 -c "import json,sys; d=json.load(sys.stdin); print(str(d.get('syncReady',False)).lower())" 2>/dev/null || echo "false")
+          ERP_PING=$(echo "$BODY"    | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('erpPing','?'))" 2>/dev/null || echo "?")
+          ERP_TXN=$(echo "$BODY"     | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('erpTransactionCount','null'))" 2>/dev/null || echo "null")
+          echo "health_all_green=$ALL_GREEN"       >> $GITHUB_OUTPUT
+          echo "health_cora_ready=$CORA_READY"     >> $GITHUB_OUTPUT
+          echo "health_cora_jacqes=$CORA_JACQES"   >> $GITHUB_OUTPUT
+          echo "health_sync_ready=$SYNC_READY"     >> $GITHUB_OUTPUT
+          echo "health_erp_ping=$ERP_PING"         >> $GITHUB_OUTPUT
+          echo "health_erp_txn_count=$ERP_TXN"     >> $GITHUB_OUTPUT
           echo ""
           echo "═══ Infrastructure Status ═══"
           echo "  DATABASE_URL          → db=$DB        (adapter: $DBADAPTER)"
@@ -488,8 +492,11 @@ jobs:
           SHORT="${SHORT:0:7}"
           ALL_GREEN="${{ steps.health_fetch.outputs.health_all_green }}"
           CORA="${{ steps.health_fetch.outputs.health_cora_ready }}"
+          CORA_JACQES="${{ steps.health_fetch.outputs.health_cora_jacqes }}"
           SYNC="${{ steps.health_fetch.outputs.health_sync_ready }}"
           ERP="${{ steps.health_fetch.outputs.health_erp_ping }}"
+          ERP_TXN="${{ steps.health_fetch.outputs.health_erp_txn_count }}"
+          DB_ADAPTER="${{ steps.health_fetch.outputs.health_dbadapter }}"
           APP="${{ steps.assert_login.outputs.login_status }}"
           AUTH="${{ steps.assert_nextauth.outputs.csrf_status }}"
 
@@ -508,9 +515,12 @@ jobs:
           | Check | Resultado |
           |---|---|
           | allGreen | ✅ true |
-          | coraReady | $CORA |
+          | coraHolding | $CORA |
+          | coraJacqes | $CORA_JACQES |
           | syncReady | $SYNC |
+          | dbAdapter | $DB_ADAPTER |
           | erpPing | $ERP |
+          | erpTransactionCount | $ERP_TXN |
           | /login HTTP | $APP |
           | /api/auth/csrf HTTP | $AUTH |
 
