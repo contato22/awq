@@ -12,11 +12,10 @@ process.env.NEXT_PUBLIC_STATIC_DATA = isStaticExport ? "1" : "0";
 const nextConfig = {
     reactStrictMode: true,
 
-    // Type-checking and linting run as separate CI steps (vercel-deploy.yml).
-    // Ignoring here prevents build failures from blocking the static export
-    // pipeline (pages.yml) and the Vercel SSR build.
-    typescript: { ignoreBuildErrors: true },
-    eslint:     { ignoreDuringBuilds: true },
+    // Static export (GitHub Pages) skips the tsc CI step — keep ignoring there.
+    // SSR build (Vercel) has a dedicated tsc --noEmit step in CI, so enforce types.
+    typescript: { ignoreBuildErrors: isStaticExport },
+    eslint:     { ignoreDuringBuilds: true }, // ESLint runs as a separate CI step
 
     ...(isStaticExport
             ? {
