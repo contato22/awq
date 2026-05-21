@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useSession } from "next-auth/react";
 import {
   Sparkles, X, Send, Bot, User, Loader2, AlertCircle,
   Minimize2, Key, Eye, EyeOff, ExternalLink, RotateCcw,
@@ -118,6 +119,9 @@ function SetupScreen({ onSave }: { onSave: (key: string) => void }) {
 
 // ── Main widget ────────────────────────────────────────────────────────────────
 export default function OpenClawWidget() {
+  const { data: session } = useSession();
+  const isOwner = (session?.user as { role?: string })?.role === "owner";
+
   const [open, setOpen] = useState(false);
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -153,7 +157,7 @@ export default function OpenClawWidget() {
 
   const sendMessage = useCallback(async (text: string) => {
     const userMsg = text.trim();
-    if (!userMsg || loading || !apiKey) return;
+    if (!userMsg || loading || (!apiKey && !isOwner)) return;
 
     const newMessages: Message[] = [...messages.filter((m) => m.content.trim() !== ""), { role: "user", content: userMsg }];
     setMessages(newMessages);
@@ -162,13 +166,13 @@ export default function OpenClawWidget() {
     setError(null);
     if (textareaRef.current) textareaRef.current.style.height = "auto";
 
+    const reqHeaders: Record<string, string> = { "Content-Type": "application/json" };
+    if (apiKey) reqHeaders["x-anthropic-key"] = apiKey;
+
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-anthropic-key": apiKey,
-        },
+        headers: reqHeaders,
         body: JSON.stringify({ messages: newMessages, buContext }),
       });
 
@@ -287,7 +291,7 @@ export default function OpenClawWidget() {
           </div>
 
           {/* Setup screen or chat */}
-          {!apiKey ? (
+          {!apiKey && !isOwner ? (
             <SetupScreen onSave={setApiKey} />
           ) : (
             <>

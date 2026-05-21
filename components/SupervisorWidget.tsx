@@ -9,6 +9,7 @@
  */
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useSession } from "next-auth/react";
 import {
   ShieldAlert, X, Send, Loader2, AlertCircle,
   Zap, Database, FileCode, ChevronDown, Bell,
@@ -207,6 +208,8 @@ Apenas liste os alertas, sem mais texto.`;
 export default function SupervisorWidget() {
   const pathname = usePathname() ?? "";
   const buContext = getBuContext(pathname);
+  const { data: session } = useSession();
+  const isOwner = (session?.user as { role?: string })?.role === "owner";
 
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -245,7 +248,7 @@ export default function SupervisorWidget() {
 
   // ── Auto-briefing on mount ──────────────────────────────────────────────────
   const runBriefing = useCallback(async () => {
-    if (!apiKey || briefingDone) return;
+    if ((!apiKey && !isOwner) || briefingDone) return;
     const last = localStorage.getItem(LS_LAST_BRIEF);
     if (last && Date.now() - parseInt(last, 10) < BRIEF_INTERVAL_MS) {
       setBriefingDone(true);
@@ -284,9 +287,11 @@ export default function SupervisorWidget() {
           }
         }
       } else {
+        const briefHeaders: Record<string, string> = { "Content-Type": "application/json" };
+        if (apiKey) briefHeaders["x-anthropic-key"] = apiKey;
         const res = await fetch("/api/supervisor", {
           method: "POST",
-          headers: { "Content-Type": "application/json", "x-anthropic-key": apiKey },
+          headers: briefHeaders,
           body: JSON.stringify({ messages: [], buContext, briefing: true }),
         });
         if (!res.ok) return;
@@ -301,16 +306,16 @@ export default function SupervisorWidget() {
         setAlerts((prev) => [...parsed, ...prev].slice(0, 20));
       }
     } catch { /* silently skip briefing on error */ }
-  }, [apiKey, briefingDone, buContext]);
+  }, [apiKey, isOwner, briefingDone, buContext]);
 
   useEffect(() => {
-    if (apiKey && !briefingDone) runBriefing();
-  }, [apiKey, briefingDone, runBriefing]);
+    if ((apiKey || isOwner) && !briefingDone) runBriefing();
+  }, [apiKey, isOwner, briefingDone, runBriefing]);
 
   // ── Send chat message ──────────────────────────────────────────────────────
   const sendMessage = useCallback(async (text: string) => {
     const userMsg = text.trim();
-    if (!userMsg || loading || !apiKey) return;
+    if (!userMsg || loading || (!apiKey && !isOwner)) return;
 
     const newMsgs: ChatMessage[] = [...messages.filter((m) => m.content.trim() !== ""), { role: "user", content: userMsg }];
     setMessages(newMsgs);
@@ -358,9 +363,11 @@ export default function SupervisorWidget() {
           }
         }
       } else {
+        const chatHeaders: Record<string, string> = { "Content-Type": "application/json" };
+        if (apiKey) chatHeaders["x-anthropic-key"] = apiKey;
         const res = await fetch("/api/supervisor", {
           method: "POST",
-          headers: { "Content-Type": "application/json", "x-anthropic-key": apiKey },
+          headers: chatHeaders,
           body: JSON.stringify({
             messages: newMsgs.map((m) => ({ role: m.role, content: m.content })),
             buContext,

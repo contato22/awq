@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { Send, Bot, User, Loader2, AlertCircle, Sparkles, Key, Eye, EyeOff, ExternalLink, RotateCcw } from "lucide-react";
 
 interface Message {
@@ -81,6 +82,9 @@ function SetupScreen({ onSave }: { onSave: (key: string) => void }) {
 }
 
 export default function OpenClaw() {
+  const { data: session } = useSession();
+  const isOwner = (session?.user as { role?: string })?.role === "owner";
+
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -100,7 +104,7 @@ export default function OpenClaw() {
 
   const sendMessage = async (text: string) => {
     const userMsg = text.trim();
-    if (!userMsg || loading || !apiKey) return;
+    if (!userMsg || loading || (!apiKey && !isOwner)) return;
 
     const newMessages: Message[] = [...messages.filter((m) => m.content.trim() !== ""), { role: "user", content: userMsg }];
     setMessages(newMessages);
@@ -110,13 +114,13 @@ export default function OpenClaw() {
 
     if (textareaRef.current) textareaRef.current.style.height = "auto";
 
+    const reqHeaders: Record<string, string> = { "Content-Type": "application/json" };
+    if (apiKey) reqHeaders["x-anthropic-key"] = apiKey;
+
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-anthropic-key": apiKey,
-        },
+        headers: reqHeaders,
         body: JSON.stringify({ messages: newMessages, buContext: BU_CONTEXT }),
       });
 
@@ -191,7 +195,7 @@ export default function OpenClaw() {
     e.target.style.height = `${Math.min(e.target.scrollHeight, 160)}px`;
   };
 
-  if (!apiKey) {
+  if (!apiKey && !isOwner) {
     return (
       <div className="flex flex-col h-full">
         <SetupScreen onSave={setApiKey} />
