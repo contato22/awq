@@ -312,7 +312,7 @@ export default function SupervisorWidget() {
     const userMsg = text.trim();
     if (!userMsg || loading || !apiKey) return;
 
-    const newMsgs: ChatMessage[] = [...messages, { role: "user", content: userMsg }];
+    const newMsgs: ChatMessage[] = [...messages.filter((m) => m.content.trim() !== ""), { role: "user", content: userMsg }];
     setMessages(newMsgs);
     setInput("");
     setLoading(true);

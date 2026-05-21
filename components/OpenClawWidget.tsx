@@ -155,7 +155,7 @@ export default function OpenClawWidget() {
     const userMsg = text.trim();
     if (!userMsg || loading || !apiKey) return;
 
-    const newMessages: Message[] = [...messages, { role: "user", content: userMsg }];
+    const newMessages: Message[] = [...messages.filter((m) => m.content.trim() !== ""), { role: "user", content: userMsg }];
     setMessages(newMessages);
     setInput("");
     setLoading(true);
