@@ -30,7 +30,7 @@ interface SyncResult {
   _debug?: unknown;
 }
 
-type AccountKey = "AWQ_Holding" | "JACQES";
+type AccountKey = "AWQ_Holding";
 
 interface Account {
   key: AccountKey;
@@ -40,7 +40,6 @@ interface Account {
 
 const ACCOUNTS: Account[] = [
   { key: "AWQ_Holding", name: "Conta PJ AWQ Holding", entity: "AWQ_Holding" },
-  { key: "JACQES",      name: "Conta PJ JACQES",      entity: "JACQES"      },
 ];
 
 const LIVE_INTERVAL_MS  = 5 * 60 * 1000;
@@ -71,9 +70,9 @@ export default function CoraStatusPanel({
 }: {
   transactions: BankTransaction[];
 }) {
-  const [balances, setBalances]             = useState<Record<AccountKey, CoraBalance | null>>({ AWQ_Holding: null, JACQES: null });
-  const [balanceErrors, setBalanceErrors]   = useState<Record<AccountKey, string | null>>({ AWQ_Holding: null, JACQES: null });
-  const [loadingBalance, setLoadingBalance] = useState<Record<AccountKey, boolean>>({ AWQ_Holding: true, JACQES: true });
+  const [balances, setBalances]             = useState<Record<AccountKey, CoraBalance | null>>({ AWQ_Holding: null });
+  const [balanceErrors, setBalanceErrors]   = useState<Record<AccountKey, string | null>>({ AWQ_Holding: null });
+  const [loadingBalance, setLoadingBalance] = useState<Record<AccountKey, boolean>>({ AWQ_Holding: true });
   const [syncing, setSyncing]               = useState(false);
   const [lastSyncAt, setLastSyncAt]         = useState<Date | null>(null);
   const [lastSyncedCount, setLastSyncedCount] = useState(0);
@@ -168,7 +167,6 @@ export default function CoraStatusPanel({
 
   useEffect(() => {
     void loadBalance("AWQ_Holding");
-    void loadBalance("JACQES");
     void runSync(INITIAL_START_DATE);
     const timer = setInterval(() => void runSync(daysAgo(LIVE_WINDOW_DAYS)), LIVE_INTERVAL_MS);
     return () => clearInterval(timer);
@@ -257,7 +255,7 @@ export default function CoraStatusPanel({
       )}
 
       {/* Account cards */}
-      <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="p-5 grid grid-cols-1 gap-4">
         {ACCOUNTS.map((acc) => {
           const bal        = balances[acc.key];
           const balErr     = balanceErrors[acc.key];
