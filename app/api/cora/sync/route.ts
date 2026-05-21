@@ -26,7 +26,8 @@ import type { BankTransaction, EntityLayer } from "@/lib/financial-db";
 import { USE_SUPABASE, USE_ERP_ADMIN } from "@/lib/supabase";
 import { USE_DB } from "@/lib/db";
 
-export const runtime = "nodejs";
+export const runtime    = "nodejs";
+export const maxDuration = 60; // sync de períodos longos (até 5+ meses)
 
 function today() {
   return new Date().toISOString().slice(0, 10);

@@ -28,7 +28,7 @@ interface SyncResult {
   error?: string;
 }
 
-type SyncRange = "7" | "30" | "90";
+type SyncRange = "7" | "30" | "90" | "ano";
 
 function fmtBRL(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -62,6 +62,10 @@ export default function CoraStatusPanel({
   const [showCustom, setShowCustom]   = useState(false);
   const [customStart, setCustomStart] = useState(daysAgo(30));
   const [customEnd, setCustomEnd]     = useState(today());
+
+  function yearStart() {
+    return `${new Date().getFullYear()}-01-01`;
+  }
   const [toast, setToast]             = useState<{ kind: "ok" | "err" | "info"; msg: string } | null>(null);
   const [lastResult, setLastResult]   = useState<SyncResult | null>(null);
 
@@ -89,8 +93,10 @@ export default function CoraStatusPanel({
 
   async function sync(force = false) {
     setSyncing(true);
-    const startDate = showCustom ? customStart : daysAgo(Number(syncRange));
-    const endDate   = showCustom ? customEnd   : today();
+    const startDate = showCustom ? customStart
+                    : syncRange === "ano" ? yearStart()
+                    : daysAgo(Number(syncRange));
+    const endDate   = showCustom ? customEnd : today();
     try {
       const res = await fetch("/api/cora/sync", {
         method: "POST",
@@ -165,6 +171,17 @@ export default function CoraStatusPanel({
                 {d}d
               </button>
             ))}
+            <button
+              onClick={() => { setSyncRange("ano"); setShowCustom(false); }}
+              className={
+                "px-3 py-1.5 transition-colors " +
+                (!showCustom && syncRange === "ano"
+                  ? "bg-emerald-600 text-white"
+                  : "text-emerald-700 hover:bg-emerald-100")
+              }
+            >
+              Este ano
+            </button>
             <button
               onClick={() => setShowCustom((v) => !v)}
               className={
@@ -304,7 +321,7 @@ export default function CoraStatusPanel({
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-300 bg-white text-emerald-700 text-[11px] font-semibold hover:bg-emerald-50 disabled:opacity-50 transition-colors whitespace-nowrap"
               >
                 {syncing ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-                {syncing ? "Sincronizando…" : `Sincronizar (${showCustom ? "período" : syncRange + "d"})`}
+                {syncing ? "Sincronizando…" : `Sincronizar (${showCustom ? "período" : syncRange === "ano" ? "este ano" : syncRange + "d"})`}
               </button>
               <button
                 onClick={() => void sync(true)}
