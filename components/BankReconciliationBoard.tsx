@@ -302,7 +302,11 @@ export default function BankReconciliationBoard({
     const map = new Map<string, { label: string; bank: string }>();
     for (const t of transactions) {
       const k = `${t.bank}::${t.accountName}`;
-      if (!map.has(k)) map.set(k, { label: t.accountName ?? t.bank, bank: t.bank ?? "" });
+      if (!map.has(k)) {
+        const raw = t.accountName ?? t.bank ?? "";
+        const label = raw.replace(/^Conta\s+PJ\s+/i, "").trim() || raw;
+        map.set(k, { label, bank: t.bank ?? "" });
+      }
     }
     return [
       { key: "todos", label: "Todas", bank: "" },
@@ -923,6 +927,14 @@ export default function BankReconciliationBoard({
           }
         >
           Movimentações
+          {movimentacoes.length > 0 && (
+            <span className={
+              "ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-bold " +
+              (activeTab === "movimentacoes" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-600")
+            }>
+              {movimentacoes.length}
+            </span>
+          )}
         </button>
       </div>
 
