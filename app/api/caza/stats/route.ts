@@ -6,6 +6,7 @@ import { initCazaDB, listProjects, listClients } from "@/lib/caza-db";
 import { sql } from "@/lib/db";
 
 export const runtime = "nodejs";
+export const dynamic = process.env.STATIC_EXPORT === "1" ? "force-static" : "force-dynamic";
 
 const currentYear = new Date().getFullYear();
 

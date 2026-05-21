@@ -8,6 +8,7 @@ import {
 } from "@/lib/jacqes-crm-db";
 
 export const runtime = "nodejs";
+export const dynamic = process.env.STATIC_EXPORT === "1" ? "force-static" : "force-dynamic";
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   // ── RBAC guard: view em jacqes ──

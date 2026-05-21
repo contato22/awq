@@ -15,6 +15,7 @@ import {
 import { sql } from "@/lib/db";
 
 export const runtime = "nodejs";
+export const dynamic = process.env.STATIC_EXPORT === "1" ? "force-static" : "force-dynamic";
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   const denied = await apiGuard(req, "view", "caza_vision", "CRM Stats Caza Vision");

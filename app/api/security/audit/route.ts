@@ -10,6 +10,7 @@ import { getRecentAuditEvents, getAuditStats } from "@/lib/security-audit";
 import { SECURITY_ENFORCEMENT_MODE } from "@/lib/security-access";
 
 export const runtime = "nodejs";
+export const dynamic = process.env.STATIC_EXPORT === "1" ? "force-static" : "force-dynamic";
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   // Static export build: no NEXTAUTH_SECRET → no cookies/searchParams access

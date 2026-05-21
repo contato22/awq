@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { fetchCoraBalance, isCoraConfigured, fetchCoraBalanceForAccount, isCoraJacqesConfigured } from "@/lib/cora-api";
 
 export const runtime = "nodejs";
+export const dynamic = process.env.STATIC_EXPORT === "1" ? "force-static" : "force-dynamic";
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   // Auth — middleware injects x-user-email after verifying the session

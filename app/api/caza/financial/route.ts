@@ -6,6 +6,7 @@ import { initCazaDB, listProjects } from "@/lib/caza-db";
 import { sql } from "@/lib/db";
 
 export const runtime = "nodejs";
+export const dynamic = process.env.STATIC_EXPORT === "1" ? "force-static" : "force-dynamic";
 
 const MONTH_NAMES = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 function monthLabel(isoDate: string): string { const p = isoDate.split("-"); return `${MONTH_NAMES[parseInt(p[1],10)-1]}/${p[0].slice(2)}`; }
