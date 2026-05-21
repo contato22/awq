@@ -427,15 +427,19 @@ export async function findDuplicateDocument(fileHash: string): Promise<Financial
 // ─── Transactions CRUD ────────────────────────────────────────────────────────
 
 export async function getAllTransactions(): Promise<BankTransaction[]> {
-  await initDB();
+  try { await initDB(); } catch (err) {
+    console.error("[getAllTransactions] initDB failed:", err);
+  }
   if (db) {
     const { data, error } = await db!
       .from("bank_transactions")
       .select("*")
       .order("transaction_date", { ascending: false });
-    if (error) throw error;
-    const rows = (data as Row[]).map(rowToTransaction);
-    return rows;
+    if (error) {
+      console.error("[getAllTransactions] DB query failed:", error);
+    } else {
+      return (data as Row[]).map(rowToTransaction);
+    }
   }
   if (sql) {
     try {

@@ -101,7 +101,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const coraEntries = coraResult.entries;
 
   // ── Deduplication ———————————————————————————————————————————————————————————
-  const existing = await getAllTransactions();
+  let existing: Awaited<ReturnType<typeof getAllTransactions>> = [];
+  try { existing = await getAllTransactions(); } catch { /* no prior transactions */ }
   const existingIds = new Set(existing.map((t) => t.id));
 
   const docId = `cora-api-${startDate}-${endDate}`;
