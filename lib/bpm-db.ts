@@ -1,11 +1,7 @@
 // ─── AWQ BPM — Database Layer ─────────────────────────────────────────────────
 //
 // Persistence adapter for the BPM Workflow Engine.
-//
-// STORAGE:
-//   DATABASE_URL set  → Supabase Postgres via direct connection (postgres driver)
-//   DATABASE_URL unset → In-memory JSON store (local dev / static build)
-//
+// Tables created by migration 011. Returns empty state when DATABASE_URL unset.
 // SERVER-ONLY — do not import in client components.
 
 import { sql, USE_DB } from "@/lib/db";
@@ -28,29 +24,7 @@ import type {
   NotificationType,
 } from "@/lib/bpm-types";
 
-// ─── In-memory store (fallback when no DATABASE_URL) ─────────────────────────
-// Persisted on globalThis so it survives Next.js dev-mode module reloads.
-
-type BpmMemStore = {
-  instances: ProcessInstance[];
-  tasks: ProcessTask[];
-  history: ProcessHistoryEntry[];
-  notifications: BpmNotification[];
-  seq: number;
-};
-
-const _g = globalThis as typeof globalThis & { __bpmStore?: BpmMemStore };
-if (!_g.__bpmStore) {
-  _g.__bpmStore = { instances: [], tasks: [], history: [], notifications: [], seq: 1 };
-}
-const _store = _g.__bpmStore;
-
-function nextInstanceCode() {
-  const year = new Date().getFullYear();
-  return `PI-${year}-${String(_store.seq++).padStart(4, "0")}`;
-}
-
-// ─── Schema bootstrap (Neon only) ────────────────────────────────────────────
+// ─── Schema bootstrap ────────────────────────────────────────────────────────
 
 export async function initBpmDB(): Promise<void> {
   if (!sql) return;
@@ -265,34 +239,20 @@ async function _seedProcessDefinitions(): Promise<void> {
 
 // ─── Process Definitions ──────────────────────────────────────────────────────
 
-// In-memory seed for non-DB mode
-const PROCESS_DEFS_SEED: ProcessDefinition[] = [
-  { process_def_id: "pd-po", process_code: "PO_APPROVAL", process_name: "Purchase Order Approval", process_category: "procurement", description: "Aprovação de ordens de compra", process_owner: "5", workflow_steps: [{ step_id: "1", step_name: "Manager Review", step_type: "approval", approver_role: "manager", sla_hours: 24, conditions: { amount: { operator: ">=", value: 1000 } } }, { step_id: "2", step_name: "Finance Approval", step_type: "approval", approver_role: "finance_manager", sla_hours: 48, conditions: { amount: { operator: ">=", value: 5000 } } }, { step_id: "3", step_name: "CEO Approval", step_type: "approval", approver_role: "ceo", sla_hours: 72, conditions: { amount: { operator: ">=", value: 10000 } } }], routing_rules: null, default_sla_hours: 72, escalation_enabled: true, escalation_hours: 72, notification_config: null, is_active: true, version: 1, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), created_by: "5" },
-  { process_def_id: "pd-exp", process_code: "EXPENSE_APPROVAL", process_name: "Expense Approval", process_category: "finance", description: "Aprovação de despesas", process_owner: "5", workflow_steps: [{ step_id: "1", step_name: "Manager Approval", step_type: "approval", approver_role: "manager", sla_hours: 24, conditions: { amount: { operator: "<", value: 1000 } } }, { step_id: "2", step_name: "CFO Approval", step_type: "approval", approver_role: "cfo", sla_hours: 48, conditions: { amount: { operator: ">=", value: 1000 } } }], routing_rules: null, default_sla_hours: 48, escalation_enabled: true, escalation_hours: 72, notification_config: null, is_active: true, version: 1, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), created_by: "5" },
-  { process_def_id: "pd-ap", process_code: "AP_APPROVAL", process_name: "Accounts Payable Approval", process_category: "finance", description: "Aprovação de contas a pagar", process_owner: "5", workflow_steps: [{ step_id: "1", step_name: "Finance Manager Review", step_type: "approval", approver_role: "finance_manager", sla_hours: 48 }, { step_id: "2", step_name: "CFO Approval", step_type: "approval", approver_role: "cfo", sla_hours: 48, conditions: { amount: { operator: ">=", value: 5000 } } }], routing_rules: null, default_sla_hours: 48, escalation_enabled: true, escalation_hours: 72, notification_config: null, is_active: true, version: 1, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), created_by: "5" },
-  { process_def_id: "pd-bud", process_code: "BUDGET_APPROVAL", process_name: "Budget Approval", process_category: "finance", description: "Aprovação do orçamento", process_owner: "5", workflow_steps: [{ step_id: "1", step_name: "BU Lead Review", step_type: "approval", approver_role: "bu_lead", sla_hours: 72 }, { step_id: "2", step_name: "CFO Review", step_type: "approval", approver_role: "cfo", sla_hours: 96 }, { step_id: "3", step_name: "CEO Final Approval", step_type: "approval", approver_role: "ceo", sla_hours: 120 }], routing_rules: null, default_sla_hours: 240, escalation_enabled: true, escalation_hours: 72, notification_config: null, is_active: true, version: 1, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), created_by: "5" },
-  { process_def_id: "pd-con", process_code: "CONTRACT_APPROVAL", process_name: "Contract Approval", process_category: "legal", description: "Aprovação de contratos", process_owner: "5", workflow_steps: [{ step_id: "1", step_name: "Legal Review", step_type: "approval", approver_role: "legal", sla_hours: 96 }, { step_id: "2", step_name: "Finance Review", step_type: "approval", approver_role: "finance_manager", sla_hours: 48 }, { step_id: "3", step_name: "CEO Signature", step_type: "approval", approver_role: "ceo", sla_hours: 72 }], routing_rules: null, default_sla_hours: 168, escalation_enabled: true, escalation_hours: 72, notification_config: null, is_active: true, version: 1, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), created_by: "5" },
-  { process_def_id: "pd-prj", process_code: "PROJECT_KICKOFF", process_name: "Project Kickoff Approval", process_category: "project_management", description: "Aprovação para iniciar projeto", process_owner: "5", workflow_steps: [{ step_id: "1", step_name: "PM Review", step_type: "approval", approver_role: "pm", sla_hours: 24 }, { step_id: "2", step_name: "CFO Budget Approval", step_type: "approval", approver_role: "cfo", sla_hours: 48, conditions: { budget: { operator: ">=", value: 50000 } } }], routing_rules: null, default_sla_hours: 72, escalation_enabled: true, escalation_hours: 72, notification_config: null, is_active: true, version: 1, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), created_by: "5" },
-];
-
 export async function getAllProcessDefinitions(): Promise<ProcessDefinition[]> {
-  if (USE_DB && sql) {
-    const rows = await sql`
-      SELECT * FROM process_definitions WHERE is_active = TRUE ORDER BY process_category, process_name
-    `;
-    return rows.map(dbRowToProcessDef);
-  }
-  return PROCESS_DEFS_SEED.filter((d) => d.is_active);
+  if (!(USE_DB && sql)) return [];
+  const rows = await sql`
+    SELECT * FROM process_definitions WHERE is_active = TRUE ORDER BY process_category, process_name
+  `;
+  return rows.map(dbRowToProcessDef);
 }
 
 export async function getProcessDefinitionByCode(code: string): Promise<ProcessDefinition | null> {
-  if (USE_DB && sql) {
-    const rows = await sql`
-      SELECT * FROM process_definitions WHERE process_code = ${code} AND is_active = TRUE LIMIT 1
-    `;
-    return rows[0] ? dbRowToProcessDef(rows[0]) : null;
-  }
-  return PROCESS_DEFS_SEED.find((d) => d.process_code === code && d.is_active) ?? null;
+  if (!(USE_DB && sql)) return null;
+  const rows = await sql`
+    SELECT * FROM process_definitions WHERE process_code = ${code} AND is_active = TRUE LIMIT 1
+  `;
+  return rows[0] ? dbRowToProcessDef(rows[0]) : null;
 }
 
 // ─── Process Instances ────────────────────────────────────────────────────────
@@ -300,64 +260,48 @@ export async function getProcessDefinitionByCode(code: string): Promise<ProcessD
 export async function createProcessInstance(
   data: Omit<ProcessInstance, "instance_id" | "created_at" | "updated_at">
 ): Promise<ProcessInstance> {
-  if (USE_DB && sql) {
-    const rows = await sql`
-      INSERT INTO process_instances
-        (instance_code, process_def_id, process_code, process_name,
-         related_entity_type, related_entity_id, request_data,
-         initiated_by, current_step_id, current_step_name, status,
-         sla_due_date, priority)
-      VALUES
-        (${data.instance_code}, ${data.process_def_id}, ${data.process_code}, ${data.process_name},
-         ${data.related_entity_type}, ${data.related_entity_id}, ${JSON.stringify(data.request_data)},
-         ${data.initiated_by}, ${data.current_step_id}, ${data.current_step_name}, ${data.status},
-         ${data.sla_due_date}, ${data.priority})
-      RETURNING *
-    `;
-    return dbRowToInstance(rows[0]);
-  }
-  const inst: ProcessInstance = {
-    ...data,
-    instance_id: crypto.randomUUID(),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
-  _store.instances.push(inst);
-  return inst;
+  if (!(USE_DB && sql)) throw new Error("DB unavailable");
+  const rows = await sql`
+    INSERT INTO process_instances
+      (instance_code, process_def_id, process_code, process_name,
+       related_entity_type, related_entity_id, request_data,
+       initiated_by, current_step_id, current_step_name, status,
+       sla_due_date, priority)
+    VALUES
+      (${data.instance_code}, ${data.process_def_id}, ${data.process_code}, ${data.process_name},
+       ${data.related_entity_type}, ${data.related_entity_id}, ${JSON.stringify(data.request_data)},
+       ${data.initiated_by}, ${data.current_step_id}, ${data.current_step_name}, ${data.status},
+       ${data.sla_due_date}, ${data.priority})
+    RETURNING *
+  `;
+  return dbRowToInstance(rows[0]);
 }
 
 export async function getProcessInstance(instanceId: string): Promise<ProcessInstance | null> {
-  if (USE_DB && sql) {
-    const rows = await sql`SELECT * FROM process_instances WHERE instance_id = ${instanceId} LIMIT 1`;
-    return rows[0] ? dbRowToInstance(rows[0]) : null;
-  }
-  return _store.instances.find((i) => i.instance_id === instanceId) ?? null;
+  if (!(USE_DB && sql)) return null;
+  const rows = await sql`SELECT * FROM process_instances WHERE instance_id = ${instanceId} LIMIT 1`;
+  return rows[0] ? dbRowToInstance(rows[0]) : null;
 }
 
 export async function updateProcessInstance(
   instanceId: string,
   updates: Partial<ProcessInstance>
 ): Promise<ProcessInstance | null> {
-  if (USE_DB && sql) {
-    const rows = await sql`
-      UPDATE process_instances SET
-        status            = COALESCE(${updates.status ?? null}, status),
-        current_step_id   = COALESCE(${updates.current_step_id ?? null}, current_step_id),
-        current_step_name = COALESCE(${updates.current_step_name ?? null}, current_step_name),
-        final_decision    = COALESCE(${updates.final_decision ?? null}, final_decision),
-        rejection_reason  = COALESCE(${updates.rejection_reason ?? null}, rejection_reason),
-        completed_at      = COALESCE(${updates.completed_at ?? null}, completed_at),
-        sla_breached      = COALESCE(${updates.sla_breached ?? null}, sla_breached),
-        updated_at        = NOW()
-      WHERE instance_id = ${instanceId}
-      RETURNING *
-    `;
-    return rows[0] ? dbRowToInstance(rows[0]) : null;
-  }
-  const idx = _store.instances.findIndex((i) => i.instance_id === instanceId);
-  if (idx === -1) return null;
-  _store.instances[idx] = { ..._store.instances[idx], ...updates, updated_at: new Date().toISOString() };
-  return _store.instances[idx];
+  if (!(USE_DB && sql)) return null;
+  const rows = await sql`
+    UPDATE process_instances SET
+      status            = COALESCE(${updates.status ?? null}, status),
+      current_step_id   = COALESCE(${updates.current_step_id ?? null}, current_step_id),
+      current_step_name = COALESCE(${updates.current_step_name ?? null}, current_step_name),
+      final_decision    = COALESCE(${updates.final_decision ?? null}, final_decision),
+      rejection_reason  = COALESCE(${updates.rejection_reason ?? null}, rejection_reason),
+      completed_at      = COALESCE(${updates.completed_at ?? null}, completed_at),
+      sla_breached      = COALESCE(${updates.sla_breached ?? null}, sla_breached),
+      updated_at        = NOW()
+    WHERE instance_id = ${instanceId}
+    RETURNING *
+  `;
+  return rows[0] ? dbRowToInstance(rows[0]) : null;
 }
 
 export async function getAllInstances(filter?: {
@@ -365,21 +309,15 @@ export async function getAllInstances(filter?: {
   process_code?: string;
   initiated_by?: string;
 }): Promise<ProcessInstance[]> {
-  if (USE_DB && sql) {
-    const rows = await sql`
-      SELECT * FROM process_instances
-      WHERE (${filter?.status ?? null} IS NULL OR status = ${filter?.status ?? null})
-        AND (${filter?.process_code ?? null} IS NULL OR process_code = ${filter?.process_code ?? null})
-        AND (${filter?.initiated_by ?? null} IS NULL OR initiated_by = ${filter?.initiated_by ?? null})
-      ORDER BY created_at DESC
-    `;
-    return rows.map(dbRowToInstance);
-  }
-  let list = [..._store.instances];
-  if (filter?.status) list = list.filter((i) => i.status === filter.status);
-  if (filter?.process_code) list = list.filter((i) => i.process_code === filter.process_code);
-  if (filter?.initiated_by) list = list.filter((i) => i.initiated_by === filter.initiated_by);
-  return list.sort((a, b) => b.created_at.localeCompare(a.created_at));
+  if (!(USE_DB && sql)) return [];
+  const rows = await sql`
+    SELECT * FROM process_instances
+    WHERE (${filter?.status ?? null} IS NULL OR status = ${filter?.status ?? null})
+      AND (${filter?.process_code ?? null} IS NULL OR process_code = ${filter?.process_code ?? null})
+      AND (${filter?.initiated_by ?? null} IS NULL OR initiated_by = ${filter?.initiated_by ?? null})
+    ORDER BY created_at DESC
+  `;
+  return rows.map(dbRowToInstance);
 }
 
 // ─── Process Tasks ────────────────────────────────────────────────────────────
@@ -387,115 +325,77 @@ export async function getAllInstances(filter?: {
 export async function createProcessTask(
   data: Omit<ProcessTask, "task_id" | "created_at" | "updated_at">
 ): Promise<ProcessTask> {
-  if (USE_DB && sql) {
-    const rows = await sql`
-      INSERT INTO process_tasks
-        (instance_id, step_id, step_name, assigned_to, task_type,
-         status, sla_hours, sla_due_date, task_data)
-      VALUES
-        (${data.instance_id}, ${data.step_id}, ${data.step_name}, ${data.assigned_to},
-         ${data.task_type}, ${data.status}, ${data.sla_hours}, ${data.sla_due_date},
-         ${data.task_data ? JSON.stringify(data.task_data) : null})
-      RETURNING *
-    `;
-    return dbRowToTask(rows[0]);
-  }
-  const task: ProcessTask = {
-    ...data,
-    task_id: crypto.randomUUID(),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
-  _store.tasks.push(task);
-  return task;
+  if (!(USE_DB && sql)) throw new Error("DB unavailable");
+  const rows = await sql`
+    INSERT INTO process_tasks
+      (instance_id, step_id, step_name, assigned_to, task_type,
+       status, sla_hours, sla_due_date, task_data)
+    VALUES
+      (${data.instance_id}, ${data.step_id}, ${data.step_name}, ${data.assigned_to},
+       ${data.task_type}, ${data.status}, ${data.sla_hours}, ${data.sla_due_date},
+       ${data.task_data ? JSON.stringify(data.task_data) : null})
+    RETURNING *
+  `;
+  return dbRowToTask(rows[0]);
 }
 
 export async function getProcessTask(taskId: string): Promise<ProcessTask | null> {
-  if (USE_DB && sql) {
-    const rows = await sql`SELECT * FROM process_tasks WHERE task_id = ${taskId} LIMIT 1`;
-    return rows[0] ? dbRowToTask(rows[0]) : null;
-  }
-  return _store.tasks.find((t) => t.task_id === taskId) ?? null;
+  if (!(USE_DB && sql)) return null;
+  const rows = await sql`SELECT * FROM process_tasks WHERE task_id = ${taskId} LIMIT 1`;
+  return rows[0] ? dbRowToTask(rows[0]) : null;
 }
 
 export async function updateProcessTask(
   taskId: string,
   updates: Partial<ProcessTask>
 ): Promise<ProcessTask | null> {
-  if (USE_DB && sql) {
-    const rows = await sql`
-      UPDATE process_tasks SET
-        status         = COALESCE(${updates.status ?? null}, status),
-        decision       = COALESCE(${updates.decision ?? null}, decision),
-        decision_notes = COALESCE(${updates.decision_notes ?? null}, decision_notes),
-        decided_by     = COALESCE(${updates.decided_by ?? null}, decided_by),
-        decided_at     = COALESCE(${updates.decided_at ?? null}, decided_at),
-        sla_breached   = COALESCE(${updates.sla_breached ?? null}, sla_breached),
-        escalated      = COALESCE(${updates.escalated ?? null}, escalated),
-        escalated_to   = COALESCE(${updates.escalated_to ?? null}, escalated_to),
-        escalated_at   = COALESCE(${updates.escalated_at ?? null}, escalated_at),
-        updated_at     = NOW()
-      WHERE task_id = ${taskId}
-      RETURNING *
-    `;
-    return rows[0] ? dbRowToTask(rows[0]) : null;
-  }
-  const idx = _store.tasks.findIndex((t) => t.task_id === taskId);
-  if (idx === -1) return null;
-  _store.tasks[idx] = { ..._store.tasks[idx], ...updates, updated_at: new Date().toISOString() };
-  return _store.tasks[idx];
+  if (!(USE_DB && sql)) return null;
+  const rows = await sql`
+    UPDATE process_tasks SET
+      status         = COALESCE(${updates.status ?? null}, status),
+      decision       = COALESCE(${updates.decision ?? null}, decision),
+      decision_notes = COALESCE(${updates.decision_notes ?? null}, decision_notes),
+      decided_by     = COALESCE(${updates.decided_by ?? null}, decided_by),
+      decided_at     = COALESCE(${updates.decided_at ?? null}, decided_at),
+      sla_breached   = COALESCE(${updates.sla_breached ?? null}, sla_breached),
+      escalated      = COALESCE(${updates.escalated ?? null}, escalated),
+      escalated_to   = COALESCE(${updates.escalated_to ?? null}, escalated_to),
+      escalated_at   = COALESCE(${updates.escalated_at ?? null}, escalated_at),
+      updated_at     = NOW()
+    WHERE task_id = ${taskId}
+    RETURNING *
+  `;
+  return rows[0] ? dbRowToTask(rows[0]) : null;
 }
 
 export async function getPendingTasksForUser(userId: string): Promise<WorkQueueItem[]> {
-  if (USE_DB && sql) {
-    const rows = await sql`
-      SELECT
-        t.task_id, t.instance_id, t.step_id, t.step_name, t.task_type,
-        t.status AS task_status, t.assigned_to, t.assigned_at,
-        t.sla_due_date, t.sla_breached,
-        i.instance_code, i.process_code, i.process_name,
-        i.related_entity_type, i.related_entity_id,
-        i.request_data, i.initiated_by, i.priority,
-        EXTRACT(EPOCH FROM (NOW() - t.assigned_at)) / 3600 AS hours_pending,
-        EXTRACT(EPOCH FROM (t.sla_due_date - NOW())) / 3600 AS sla_hours_remaining
-      FROM process_tasks t
-      JOIN process_instances i ON t.instance_id = i.instance_id
-      WHERE t.assigned_to = ${userId} AND t.status = 'pending'
-      ORDER BY
-        CASE WHEN t.sla_breached THEN 0 ELSE 1 END,
-        CASE WHEN i.priority = 'urgent' THEN 0 WHEN i.priority = 'high' THEN 1
-             WHEN i.priority = 'normal' THEN 2 ELSE 3 END,
-        t.sla_due_date ASC NULLS LAST
-    `;
-    return rows.map(dbRowToWorkQueueItem);
-  }
-  const pendingTasks = _store.tasks.filter((t) => t.assigned_to === userId && t.status === "pending");
-  return pendingTasks.map((t) => {
-    const inst = _store.instances.find((i) => i.instance_id === t.instance_id);
-    if (!inst) return null;
-    const now = Date.now();
-    const hoursP = t.assigned_at ? (now - new Date(t.assigned_at).getTime()) / 3_600_000 : null;
-    const slaTR = t.sla_due_date ? (new Date(t.sla_due_date).getTime() - now) / 3_600_000 : null;
-    return {
-      task_id: t.task_id, instance_id: t.instance_id, step_id: t.step_id,
-      step_name: t.step_name, task_type: t.task_type, task_status: t.status,
-      assigned_to: t.assigned_to, assigned_at: t.assigned_at,
-      sla_due_date: t.sla_due_date, sla_breached: t.sla_breached,
-      instance_code: inst.instance_code, process_code: inst.process_code,
-      process_name: inst.process_name, related_entity_type: inst.related_entity_type,
-      related_entity_id: inst.related_entity_id, request_data: inst.request_data,
-      initiated_by: inst.initiated_by, priority: inst.priority,
-      hours_pending: hoursP, sla_hours_remaining: slaTR,
-    } as WorkQueueItem;
-  }).filter(Boolean) as WorkQueueItem[];
+  if (!(USE_DB && sql)) return [];
+  const rows = await sql`
+    SELECT
+      t.task_id, t.instance_id, t.step_id, t.step_name, t.task_type,
+      t.status AS task_status, t.assigned_to, t.assigned_at,
+      t.sla_due_date, t.sla_breached,
+      i.instance_code, i.process_code, i.process_name,
+      i.related_entity_type, i.related_entity_id,
+      i.request_data, i.initiated_by, i.priority,
+      EXTRACT(EPOCH FROM (NOW() - t.assigned_at)) / 3600 AS hours_pending,
+      EXTRACT(EPOCH FROM (t.sla_due_date - NOW())) / 3600 AS sla_hours_remaining
+    FROM process_tasks t
+    JOIN process_instances i ON t.instance_id = i.instance_id
+    WHERE t.assigned_to = ${userId} AND t.status = 'pending'
+    ORDER BY
+      CASE WHEN t.sla_breached THEN 0 ELSE 1 END,
+      CASE WHEN i.priority = 'urgent' THEN 0 WHEN i.priority = 'high' THEN 1
+           WHEN i.priority = 'normal' THEN 2 ELSE 3 END,
+      t.sla_due_date ASC NULLS LAST
+  `;
+  return rows.map(dbRowToWorkQueueItem);
 }
 
 export async function getTasksForInstance(instanceId: string): Promise<ProcessTask[]> {
-  if (USE_DB && sql) {
-    const rows = await sql`SELECT * FROM process_tasks WHERE instance_id = ${instanceId} ORDER BY created_at ASC`;
-    return rows.map(dbRowToTask);
-  }
-  return _store.tasks.filter((t) => t.instance_id === instanceId);
+  if (!(USE_DB && sql)) return [];
+  const rows = await sql`SELECT * FROM process_tasks WHERE instance_id = ${instanceId} ORDER BY created_at ASC`;
+  return rows.map(dbRowToTask);
 }
 
 // ─── Process History ──────────────────────────────────────────────────────────
@@ -503,37 +403,25 @@ export async function getTasksForInstance(instanceId: string): Promise<ProcessTa
 export async function addHistoryEntry(
   data: Omit<ProcessHistoryEntry, "history_id" | "created_at">
 ): Promise<ProcessHistoryEntry> {
-  if (USE_DB && sql) {
-    const rows = await sql`
-      INSERT INTO process_history
-        (instance_id, action, action_description, step_id, step_name, performed_by, performed_at, action_data)
-      VALUES
-        (${data.instance_id}, ${data.action}, ${data.action_description},
-         ${data.step_id}, ${data.step_name}, ${data.performed_by},
-         ${data.performed_at}, ${data.action_data ? JSON.stringify(data.action_data) : null})
-      RETURNING *
-    `;
-    return dbRowToHistory(rows[0]);
-  }
-  const entry: ProcessHistoryEntry = {
-    ...data,
-    history_id: crypto.randomUUID(),
-    created_at: new Date().toISOString(),
-  };
-  _store.history.push(entry);
-  return entry;
+  if (!(USE_DB && sql)) throw new Error("DB unavailable");
+  const rows = await sql`
+    INSERT INTO process_history
+      (instance_id, action, action_description, step_id, step_name, performed_by, performed_at, action_data)
+    VALUES
+      (${data.instance_id}, ${data.action}, ${data.action_description},
+       ${data.step_id}, ${data.step_name}, ${data.performed_by},
+       ${data.performed_at}, ${data.action_data ? JSON.stringify(data.action_data) : null})
+    RETURNING *
+  `;
+  return dbRowToHistory(rows[0]);
 }
 
 export async function getInstanceHistory(instanceId: string): Promise<ProcessHistoryEntry[]> {
-  if (USE_DB && sql) {
-    const rows = await sql`
-      SELECT * FROM process_history WHERE instance_id = ${instanceId} ORDER BY performed_at ASC
-    `;
-    return rows.map(dbRowToHistory);
-  }
-  return _store.history
-    .filter((h) => h.instance_id === instanceId)
-    .sort((a, b) => a.performed_at.localeCompare(b.performed_at));
+  if (!(USE_DB && sql)) return [];
+  const rows = await sql`
+    SELECT * FROM process_history WHERE instance_id = ${instanceId} ORDER BY performed_at ASC
+  `;
+  return rows.map(dbRowToHistory);
 }
 
 // ─── Notifications ────────────────────────────────────────────────────────────
@@ -541,134 +429,86 @@ export async function getInstanceHistory(instanceId: string): Promise<ProcessHis
 export async function createNotification(
   data: Omit<BpmNotification, "notification_id" | "created_at">
 ): Promise<BpmNotification> {
-  if (USE_DB && sql) {
-    const rows = await sql`
-      INSERT INTO bpm_notifications
-        (user_id, notification_type, related_entity_type, related_entity_id,
-         title, message, action_url, priority, send_email)
-      VALUES
-        (${data.user_id}, ${data.notification_type}, ${data.related_entity_type},
-         ${data.related_entity_id}, ${data.title}, ${data.message},
-         ${data.action_url}, ${data.priority}, ${data.send_email})
-      RETURNING *
-    `;
-    return dbRowToNotification(rows[0]);
-  }
-  const notif: BpmNotification = {
-    ...data,
-    notification_id: crypto.randomUUID(),
-    created_at: new Date().toISOString(),
-  };
-  _store.notifications.push(notif);
-  return notif;
+  if (!(USE_DB && sql)) throw new Error("DB unavailable");
+  const rows = await sql`
+    INSERT INTO bpm_notifications
+      (user_id, notification_type, related_entity_type, related_entity_id,
+       title, message, action_url, priority, send_email)
+    VALUES
+      (${data.user_id}, ${data.notification_type}, ${data.related_entity_type},
+       ${data.related_entity_id}, ${data.title}, ${data.message},
+       ${data.action_url}, ${data.priority}, ${data.send_email})
+    RETURNING *
+  `;
+  return dbRowToNotification(rows[0]);
 }
 
 export async function getUnreadNotifications(userId: string): Promise<BpmNotification[]> {
-  if (USE_DB && sql) {
-    const rows = await sql`
-      SELECT * FROM bpm_notifications WHERE user_id = ${userId} AND is_read = FALSE ORDER BY created_at DESC LIMIT 50
-    `;
-    return rows.map(dbRowToNotification);
-  }
-  return _store.notifications
-    .filter((n) => n.user_id === userId && !n.is_read)
-    .sort((a, b) => b.created_at.localeCompare(a.created_at));
+  if (!(USE_DB && sql)) return [];
+  const rows = await sql`
+    SELECT * FROM bpm_notifications WHERE user_id = ${userId} AND is_read = FALSE ORDER BY created_at DESC LIMIT 50
+  `;
+  return rows.map(dbRowToNotification);
 }
 
 export async function markNotificationRead(notificationId: string): Promise<void> {
-  if (USE_DB && sql) {
-    await sql`
-      UPDATE bpm_notifications SET is_read = TRUE, read_at = NOW() WHERE notification_id = ${notificationId}
-    `;
-    return;
-  }
-  const n = _store.notifications.find((n) => n.notification_id === notificationId);
-  if (n) { n.is_read = true; n.read_at = new Date().toISOString(); }
+  if (!(USE_DB && sql)) return;
+  await sql`
+    UPDATE bpm_notifications SET is_read = TRUE, read_at = NOW() WHERE notification_id = ${notificationId}
+  `;
 }
 
 // ─── Analytics ────────────────────────────────────────────────────────────────
 
 export async function getProcessPerformance(): Promise<ProcessPerformance[]> {
-  if (USE_DB && sql) {
-    const rows = await sql`SELECT * FROM v_process_performance ORDER BY total_instances DESC`;
-    return rows as unknown as ProcessPerformance[];
-  }
-  return PROCESS_DEFS_SEED.map((d) => ({
-    process_def_id: d.process_def_id, process_code: d.process_code,
-    process_name: d.process_name, process_category: d.process_category,
-    total_instances: _store.instances.filter((i) => i.process_code === d.process_code).length,
-    approved_count: _store.instances.filter((i) => i.process_code === d.process_code && i.status === "approved").length,
-    rejected_count: _store.instances.filter((i) => i.process_code === d.process_code && i.status === "rejected").length,
-    in_progress_count: _store.instances.filter((i) => i.process_code === d.process_code && i.status === "in_progress").length,
-    approval_rate_pct: 0, avg_cycle_time_hours: null, sla_breaches: 0, sla_compliance_pct: 100,
-  }));
+  if (!(USE_DB && sql)) return [];
+  const rows = await sql`SELECT * FROM v_process_performance ORDER BY total_instances DESC`;
+  return rows as unknown as ProcessPerformance[];
 }
 
 export async function getSlaDashboard(): Promise<SlaDashboardRow[]> {
-  if (USE_DB && sql) {
-    const rows = await sql`SELECT * FROM v_sla_dashboard`;
-    return rows as unknown as SlaDashboardRow[];
-  }
-  return PROCESS_DEFS_SEED.map((d) => ({
-    process_code: d.process_code, process_name: d.process_name,
-    active_tasks: _store.tasks.filter((t) => {
-      const inst = _store.instances.find((i) => i.instance_id === t.instance_id);
-      return inst?.process_code === d.process_code && t.status === "pending";
-    }).length,
-    breached_tasks: 0, at_risk_tasks: 0, avg_response_hours: null,
-  }));
+  if (!(USE_DB && sql)) return [];
+  const rows = await sql`SELECT * FROM v_sla_dashboard`;
+  return rows as unknown as SlaDashboardRow[];
 }
 
 export async function getBottlenecks(): Promise<BottleneckRow[]> {
-  if (USE_DB && sql) {
-    const rows = await sql`SELECT * FROM v_process_bottlenecks LIMIT 20`;
-    return rows as unknown as BottleneckRow[];
-  }
-  return [];
+  if (!(USE_DB && sql)) return [];
+  const rows = await sql`SELECT * FROM v_process_bottlenecks LIMIT 20`;
+  return rows as unknown as BottleneckRow[];
 }
 
 // ─── SLA Check (cron job logic) ───────────────────────────────────────────────
 
 export async function markOverdueTasks(): Promise<number> {
-  if (USE_DB && sql) {
-    const res = await sql`
-      UPDATE process_tasks
-        SET sla_breached = TRUE, updated_at = NOW()
-      WHERE status = 'pending'
-        AND sla_due_date < NOW()
-        AND sla_breached = FALSE
-    `;
-    await sql`
-      UPDATE process_instances
-        SET sla_breached = TRUE, updated_at = NOW()
-      WHERE status = 'in_progress'
-        AND sla_due_date < NOW()
-        AND sla_breached = FALSE
-    `;
-    return res.length ?? 0;
-  }
-  const now = new Date();
-  let count = 0;
-  for (const t of _store.tasks) {
-    if (t.status === "pending" && t.sla_due_date && new Date(t.sla_due_date) < now && !t.sla_breached) {
-      t.sla_breached = true; count++;
-    }
-  }
-  return count;
+  if (!(USE_DB && sql)) return 0;
+  const res = await sql`
+    UPDATE process_tasks
+      SET sla_breached = TRUE, updated_at = NOW()
+    WHERE status = 'pending'
+      AND sla_due_date < NOW()
+      AND sla_breached = FALSE
+  `;
+  await sql`
+    UPDATE process_instances
+      SET sla_breached = TRUE, updated_at = NOW()
+    WHERE status = 'in_progress'
+      AND sla_due_date < NOW()
+      AND sla_breached = FALSE
+  `;
+  return res.length ?? 0;
 }
 
 // ─── Instance code generator ──────────────────────────────────────────────────
 
 export async function generateInstanceCode(): Promise<string> {
-  if (USE_DB && sql) {
-    const rows = await sql`
-      SELECT COUNT(*) AS cnt FROM process_instances
-      WHERE EXTRACT(YEAR FROM created_at) = EXTRACT(YEAR FROM NOW())
-    `;
-    const seq = Number(rows[0].cnt) + 1;
-    return `PI-${new Date().getFullYear()}-${String(seq).padStart(4, "0")}`;
-  }
-  return nextInstanceCode();
+  if (!(USE_DB && sql)) throw new Error("DB unavailable");
+  const rows = await sql`
+    SELECT COUNT(*) AS cnt FROM process_instances
+    WHERE EXTRACT(YEAR FROM created_at) = EXTRACT(YEAR FROM NOW())
+  `;
+  const seq = Number(rows[0].cnt) + 1;
+  return `PI-${new Date().getFullYear()}-${String(seq).padStart(4, "0")}`;
 }
 
 // ─── Row mappers ──────────────────────────────────────────────────────────────

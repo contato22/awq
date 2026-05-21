@@ -3,11 +3,10 @@
 // Manages Accounts Payable and Accounts Receivable.
 // Includes Brazilian fiscal retention auto-calculation (IRRF, INSS, ISS, PIS, COFINS).
 //
-// Storage: public/data/epm-ap.json + epm-ar.json (dev) or Supabase Postgres via DATABASE_URL (prod).
+// Storage: Supabase Postgres via DATABASE_URL (tables created by migration 005).
+// Returns empty arrays when DATABASE_URL is not set (static build / GitHub Pages).
 // DO NOT import in client components.
 
-import fs from "fs";
-import path from "path";
 import { randomUUID } from "crypto";
 import { sql } from "./db";
 
@@ -217,45 +216,6 @@ function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
-// ─── JSON file persistence (dev fallback) ────────────────────────────────────
-
-const AP_FILE = path.join(process.cwd(), "public", "data", "epm-ap.json");
-const AR_FILE = path.join(process.cwd(), "public", "data", "epm-ar.json");
-
-function ensureDir(file: string) {
-  const dir = path.dirname(file);
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-}
-
-function readJSONFile<T>(file: string, empty: T): T {
-  ensureDir(file);
-  if (!fs.existsSync(file)) return empty;
-  try { return JSON.parse(fs.readFileSync(file, "utf-8")) as T; }
-  catch { return empty; }
-}
-
-function writeJSONFile<T>(file: string, data: T) {
-  ensureDir(file);
-  fs.writeFileSync(file, JSON.stringify(data, null, 2), "utf-8");
-}
-
-interface APStore { items: APItem[]; last_updated: string }
-interface ARStore { items: ARItem[]; last_updated: string }
-
-function readAPStore(): APStore {
-  return readJSONFile(AP_FILE, { items: [], last_updated: new Date().toISOString() });
-}
-function writeAPStore(store: APStore) {
-  store.last_updated = new Date().toISOString();
-  writeJSONFile(AP_FILE, store);
-}
-function readARStore(): ARStore {
-  return readJSONFile(AR_FILE, { items: [], last_updated: new Date().toISOString() });
-}
-function writeARStore(store: ARStore) {
-  store.last_updated = new Date().toISOString();
-  writeJSONFile(AR_FILE, store);
-}
 
 // ─── DB schema init ───────────────────────────────────────────────────────────
 
@@ -438,11 +398,7 @@ export async function getAllAP(filters?: { bu_code?: BuCode; status?: APStatus }
     }
     return rows.map((r) => rowToAP(r as Record<string, unknown>));
   }
-  const store = readAPStore();
-  let items = [...store.items].sort((a, b) => b.due_date.localeCompare(a.due_date));
-  if (filters?.bu_code) items = items.filter((i) => i.bu_code === filters.bu_code);
-  if (filters?.status)  items = items.filter((i) => i.status  === filters.status);
-  return items;
+  return [];
 }
 
 export async function addAP(input: NewAPInput): Promise<APItem> {
@@ -510,10 +466,6 @@ export async function addAP(input: NewAPInput): Promise<APItem> {
         ${item.source_system}, ${item.created_at}, ${item.created_by ?? null}
       )
     `;
-  } else {
-    const store = readAPStore();
-    store.items.push(item);
-    writeAPStore(store);
   }
 
   return item;
@@ -531,12 +483,7 @@ export async function payAP(
     `;
     return rows[0] ? rowToAP(rows[0] as Record<string, unknown>) : null;
   }
-  const store = readAPStore();
-  const idx   = store.items.findIndex((i) => i.id === id);
-  if (idx === -1) return null;
-  store.items[idx] = { ...store.items[idx], status: "PAID", ...data };
-  writeAPStore(store);
-  return store.items[idx];
+  return null;
 }
 
 export async function cancelAP(id: string): Promise<boolean> {
@@ -544,12 +491,7 @@ export async function cancelAP(id: string): Promise<boolean> {
     await sql`UPDATE epm_ap SET status='CANCELLED' WHERE id=${id}`;
     return true;
   }
-  const store = readAPStore();
-  const idx   = store.items.findIndex((i) => i.id === id);
-  if (idx === -1) return false;
-  store.items[idx] = { ...store.items[idx], status: "CANCELLED" };
-  writeAPStore(store);
-  return true;
+  return false;
 }
 
 export async function deleteAP(id: string): Promise<boolean> {
@@ -557,11 +499,7 @@ export async function deleteAP(id: string): Promise<boolean> {
     await sql`DELETE FROM epm_ap WHERE id=${id}`;
     return true;
   }
-  const store = readAPStore();
-  const before = store.items.length;
-  store.items = store.items.filter((i) => i.id !== id);
-  writeAPStore(store);
-  return store.items.length < before;
+  return false;
 }
 
 export async function updateAP(
@@ -581,12 +519,7 @@ export async function updateAP(
     `;
     return rows[0] ? rowToAP(rows[0] as Record<string, unknown>) : null;
   }
-  const store = readAPStore();
-  const idx   = store.items.findIndex((i) => i.id === id);
-  if (idx === -1) return null;
-  store.items[idx] = { ...store.items[idx], ...updates };
-  writeAPStore(store);
-  return store.items[idx];
+  return null;
 }
 
 // ─── AR API ───────────────────────────────────────────────────────────────────
@@ -607,11 +540,7 @@ export async function getAllAR(filters?: { bu_code?: BuCode; status?: ARStatus }
     }
     return rows.map((r) => rowToAR(r as Record<string, unknown>));
   }
-  const store = readARStore();
-  let items = [...store.items].sort((a, b) => b.due_date.localeCompare(a.due_date));
-  if (filters?.bu_code) items = items.filter((i) => i.bu_code === filters.bu_code);
-  if (filters?.status)  items = items.filter((i) => i.status  === filters.status);
-  return items;
+  return [];
 }
 
 export async function addAR(input: NewARInput): Promise<ARItem> {
@@ -667,10 +596,6 @@ export async function addAR(input: NewARInput): Promise<ARItem> {
         ${item.status}, ${item.source_system}, ${item.created_at}, ${item.created_by ?? null}
       )
     `;
-  } else {
-    const store = readARStore();
-    store.items.push(item);
-    writeARStore(store);
   }
 
   return item;
@@ -688,12 +613,7 @@ export async function receiveAR(
     `;
     return rows[0] ? rowToAR(rows[0] as Record<string, unknown>) : null;
   }
-  const store = readARStore();
-  const idx   = store.items.findIndex((i) => i.id === id);
-  if (idx === -1) return null;
-  store.items[idx] = { ...store.items[idx], status: "RECEIVED", ...data };
-  writeARStore(store);
-  return store.items[idx];
+  return null;
 }
 
 export async function cancelAR(id: string): Promise<boolean> {
@@ -701,12 +621,7 @@ export async function cancelAR(id: string): Promise<boolean> {
     await sql`UPDATE epm_ar SET status='CANCELLED' WHERE id=${id}`;
     return true;
   }
-  const store = readARStore();
-  const idx   = store.items.findIndex((i) => i.id === id);
-  if (idx === -1) return false;
-  store.items[idx] = { ...store.items[idx], status: "CANCELLED" };
-  writeARStore(store);
-  return true;
+  return false;
 }
 
 export async function deleteAR(id: string): Promise<boolean> {
@@ -714,11 +629,7 @@ export async function deleteAR(id: string): Promise<boolean> {
     await sql`DELETE FROM epm_ar WHERE id=${id}`;
     return true;
   }
-  const store = readARStore();
-  const before = store.items.length;
-  store.items = store.items.filter((i) => i.id !== id);
-  writeARStore(store);
-  return store.items.length < before;
+  return false;
 }
 
 export async function updateAR(
@@ -738,12 +649,7 @@ export async function updateAR(
     `;
     return rows[0] ? rowToAR(rows[0] as Record<string, unknown>) : null;
   }
-  const store = readARStore();
-  const idx   = store.items.findIndex((i) => i.id === id);
-  if (idx === -1) return null;
-  store.items[idx] = { ...store.items[idx], ...updates };
-  writeARStore(store);
-  return store.items[idx];
+  return null;
 }
 
 // ─── KPIs ─────────────────────────────────────────────────────────────────────
@@ -853,9 +759,7 @@ export async function getSuppliers(): Promise<EpmSupplier[]> {
       created_at: String(r.created_at),
     }));
   }
-  return readJSONFile<{ items: EpmSupplier[] }>(
-    path.join(process.cwd(), "public", "data", "epm-suppliers.json"), { items: [] }
-  ).items;
+  return [];
 }
 
 export async function addSupplier(input: Omit<EpmSupplier, "id" | "created_at">): Promise<EpmSupplier> {
@@ -863,12 +767,6 @@ export async function addSupplier(input: Omit<EpmSupplier, "id" | "created_at">)
   if (sql) {
     await sql`INSERT INTO epm_suppliers (id,name,doc,email,phone,supplier_type,bank_info,notes,created_at)
       VALUES (${item.id},${item.name},${item.doc??null},${item.email??null},${item.phone??null},${item.supplier_type},${item.bank_info??null},${item.notes??null},${item.created_at})`;
-  } else {
-    const store = readJSONFile<{ items: EpmSupplier[] }>(
-      path.join(process.cwd(), "public", "data", "epm-suppliers.json"), { items: [] }
-    );
-    store.items.push(item);
-    writeJSONFile(path.join(process.cwd(), "public", "data", "epm-suppliers.json"), store);
   }
   return item;
 }
@@ -917,9 +815,7 @@ export async function getCustomers(): Promise<EpmCustomer[]> {
       is_active: Boolean(r.is_active), created_at: String(r.created_at),
     }));
   }
-  return readJSONFile<{ items: EpmCustomer[] }>(
-    path.join(process.cwd(), "public", "data", "epm-customers.json"), { items: [] }
-  ).items;
+  return [];
 }
 
 export async function addCustomer(input: Omit<EpmCustomer, "id" | "created_at" | "is_active">): Promise<EpmCustomer> {
@@ -927,12 +823,6 @@ export async function addCustomer(input: Omit<EpmCustomer, "id" | "created_at" |
   if (sql) {
     await sql`INSERT INTO epm_customers (id,name,doc,email,phone,address,notes,is_active,created_at)
       VALUES (${item.id},${item.name},${item.doc??null},${item.email??null},${item.phone??null},${item.address??null},${item.notes??null},true,${item.created_at})`;
-  } else {
-    const store = readJSONFile<{ items: EpmCustomer[] }>(
-      path.join(process.cwd(), "public", "data", "epm-customers.json"), { items: [] }
-    );
-    store.items.push(item);
-    writeJSONFile(path.join(process.cwd(), "public", "data", "epm-customers.json"), store);
   }
   return item;
 }
@@ -972,11 +862,6 @@ export async function addCollectionLog(input: Omit<ARCollection, "id" | "created
   if (sql) {
     await sql`INSERT INTO epm_ar_collections (id,ar_id,collection_date,method,outcome,next_followup,notes,created_at)
       VALUES (${item.id},${item.ar_id},${item.collection_date},${item.method},${item.outcome},${item.next_followup??null},${item.notes??null},${item.created_at})`;
-  } else {
-    const f = path.join(process.cwd(), "public", "data", "epm-ar-collections.json");
-    const store = readJSONFile<{ items: ARCollection[] }>(f, { items: [] });
-    store.items.push(item);
-    writeJSONFile(f, store);
   }
   return item;
 }
@@ -992,9 +877,7 @@ export async function getCollectionLog(ar_id: string): Promise<ARCollection[]> {
       notes: r.notes ? String(r.notes) : undefined, created_at: String(r.created_at),
     }));
   }
-  const f = path.join(process.cwd(), "public", "data", "epm-ar-collections.json");
-  const store = readJSONFile<{ items: ARCollection[] }>(f, { items: [] });
-  return store.items.filter((i) => i.ar_id === ar_id).sort((a, b) => b.collection_date.localeCompare(a.collection_date));
+  return [];
 }
 
 // ─── AP Installments ──────────────────────────────────────────────────────────
@@ -1123,9 +1006,7 @@ export async function getContracts(activeOnly = true): Promise<ARContract[]> {
       created_at: String(r.created_at),
     }));
   }
-  const f = path.join(process.cwd(), "public", "data", "epm-ar-contracts.json");
-  const store = readJSONFile<{ items: ARContract[] }>(f, { items: [] });
-  return activeOnly ? store.items.filter((c) => c.is_active) : store.items;
+  return [];
 }
 
 export async function addContract(input: Omit<ARContract, "id" | "created_at">): Promise<ARContract> {
@@ -1136,11 +1017,6 @@ export async function addContract(input: Omit<ARContract, "id" | "created_at">):
       VALUES (${item.id},${item.customer_name},${item.customer_doc??null},${item.description},${item.bu_code},
         ${item.category},${item.monthly_amount},${item.billing_day},${item.is_active},${item.start_date},
         ${item.end_date??null},${item.iss_rate},${item.next_invoice??null},${item.created_at})`;
-  } else {
-    const f = path.join(process.cwd(), "public", "data", "epm-ar-contracts.json");
-    const store = readJSONFile<{ items: ARContract[] }>(f, { items: [] });
-    store.items.push(item);
-    writeJSONFile(f, store);
   }
   return item;
 }
@@ -1305,9 +1181,7 @@ export async function getCostCenters(bu_code?: BuCode): Promise<EpmCostCenter[]>
       created_at: String(r.created_at),
     }));
   }
-  const f = path.join(process.cwd(), "public", "data", "epm-cost-centers.json");
-  const store = readJSONFile<{ items: EpmCostCenter[] }>(f, { items: [] });
-  return bu_code ? store.items.filter((i) => i.bu_code === bu_code) : store.items;
+  return [];
 }
 
 export async function addCostCenter(input: Omit<EpmCostCenter, "id" | "created_at">): Promise<EpmCostCenter> {
@@ -1315,11 +1189,6 @@ export async function addCostCenter(input: Omit<EpmCostCenter, "id" | "created_a
   if (sql) {
     await sql`INSERT INTO epm_cost_centers (id,code,name,bu_code,description,created_at)
       VALUES (${item.id},${item.code},${item.name},${item.bu_code},${item.description??null},${item.created_at})`;
-  } else {
-    const f = path.join(process.cwd(), "public", "data", "epm-cost-centers.json");
-    const store = readJSONFile<{ items: EpmCostCenter[] }>(f, { items: [] });
-    store.items.push(item);
-    writeJSONFile(f, store);
   }
   return item;
 }
@@ -1372,11 +1241,7 @@ export async function getRevenueRecognitions(filters?: { ar_id?: string; period?
       notes: r.notes ? String(r.notes) : undefined, created_at: String(r.created_at),
     }));
   }
-  const f = path.join(process.cwd(), "public", "data", "epm-revenue-recognition.json");
-  let items = readJSONFile<{ items: RevenueRecognition[] }>(f, { items: [] }).items;
-  if (filters?.ar_id) items = items.filter((i) => i.ar_id === filters.ar_id);
-  if (filters?.period) items = items.filter((i) => i.period === filters.period);
-  return items.sort((a, b) => b.period.localeCompare(a.period));
+  return [];
 }
 
 export async function recognizeRevenue(input: Omit<RevenueRecognition, "id" | "created_at">): Promise<RevenueRecognition> {
@@ -1384,11 +1249,6 @@ export async function recognizeRevenue(input: Omit<RevenueRecognition, "id" | "c
   if (sql) {
     await sql`INSERT INTO epm_revenue_recognition (id,ar_id,period,recognized_amount,recognition_method,notes,created_at)
       VALUES (${item.id},${item.ar_id},${item.period},${item.recognized_amount},${item.recognition_method},${item.notes??null},${item.created_at})`;
-  } else {
-    const f = path.join(process.cwd(), "public", "data", "epm-revenue-recognition.json");
-    const store = readJSONFile<{ items: RevenueRecognition[] }>(f, { items: [] });
-    store.items.push(item);
-    writeJSONFile(f, store);
   }
   return item;
 }
@@ -1459,11 +1319,7 @@ export async function getBankTransactions(filters?: { status?: BankTxnStatus; bu
     if (filters?.bu_code) result = result.filter((r) => r.bu_code === filters.bu_code);
     return result;
   }
-  const f = path.join(process.cwd(), "public", "data", "epm-bank-transactions.json");
-  let items = readJSONFile<{ items: BankTransaction[] }>(f, { items: [] }).items;
-  if (filters?.status)  items = items.filter((i) => i.status === filters.status);
-  if (filters?.bu_code) items = items.filter((i) => i.bu_code === filters.bu_code);
-  return items.sort((a, b) => b.txn_date.localeCompare(a.txn_date));
+  return [];
 }
 
 export async function addBankTransaction(input: Omit<BankTransaction, "id" | "created_at" | "status" | "matched_id" | "matched_type">): Promise<BankTransaction> {
@@ -1471,11 +1327,6 @@ export async function addBankTransaction(input: Omit<BankTransaction, "id" | "cr
   if (sql) {
     await sql`INSERT INTO epm_bank_transactions (id,txn_date,description,amount,txn_type,bank_ref,status,bu_code,created_at)
       VALUES (${item.id},${item.txn_date},${item.description},${item.amount},${item.txn_type},${item.bank_ref??null},'unmatched',${item.bu_code??null},${item.created_at})`;
-  } else {
-    const f = path.join(process.cwd(), "public", "data", "epm-bank-transactions.json");
-    const store = readJSONFile<{ items: BankTransaction[] }>(f, { items: [] });
-    store.items.push(item);
-    writeJSONFile(f, store);
   }
   return item;
 }
@@ -1495,13 +1346,7 @@ export async function matchBankTransaction(txn_id: string, matched_id: string, m
       created_at: String(r.created_at),
     };
   }
-  const f = path.join(process.cwd(), "public", "data", "epm-bank-transactions.json");
-  const store = readJSONFile<{ items: BankTransaction[] }>(f, { items: [] });
-  const idx = store.items.findIndex((i) => i.id === txn_id);
-  if (idx === -1) return null;
-  store.items[idx] = { ...store.items[idx], status: "matched", matched_id, matched_type };
-  writeJSONFile(f, store);
-  return store.items[idx];
+  return null;
 }
 
 export async function ignoreBankTransaction(txn_id: string): Promise<boolean> {
@@ -1509,13 +1354,7 @@ export async function ignoreBankTransaction(txn_id: string): Promise<boolean> {
     await sql`UPDATE epm_bank_transactions SET status='ignored' WHERE id=${txn_id}`;
     return true;
   }
-  const f = path.join(process.cwd(), "public", "data", "epm-bank-transactions.json");
-  const store = readJSONFile<{ items: BankTransaction[] }>(f, { items: [] });
-  const idx = store.items.findIndex((i) => i.id === txn_id);
-  if (idx === -1) return false;
-  store.items[idx] = { ...store.items[idx], status: "ignored" };
-  writeJSONFile(f, store);
-  return true;
+  return false;
 }
 
 export async function findBankMatchCandidates(txn: BankTransaction): Promise<BankMatchCandidate[]> {
