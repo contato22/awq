@@ -431,9 +431,7 @@ export async function findDuplicateDocument(fileHash: string): Promise<Financial
 // ─── Transactions CRUD ────────────────────────────────────────────────────────
 
 export async function getAllTransactions(): Promise<BankTransaction[]> {
-  try { await initDB(); } catch (err) {
-    console.error("[getAllTransactions] initDB failed:", err);
-  }
+  await initDB(); // never throws — errors logged inside initDB()
   if (db) {
     const { data, error } = await db!
       .from("bank_transactions")

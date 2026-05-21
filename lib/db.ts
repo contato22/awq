@@ -37,10 +37,15 @@ export const USE_BLOB = !!process.env.BLOB_READ_WRITE_TOKEN;
 let _initPromise: Promise<void> | null = null;
 
 // Call once per process — subsequent calls are no-ops (returns the same promise).
+// Never rejects — callers do not need try/catch; migration failure is logged and
+// skipped so the rest of the request can fall back to Supabase REST or JSON.
 export function initDB(): Promise<void> {
   if (!sql) return Promise.resolve();
   if (_initPromise) return _initPromise;
-  _initPromise = _runMigration();
+  _initPromise = _runMigration().catch((err) => {
+    console.error("[initDB] schema migration failed (DATABASE_URL credentials?):", err);
+    _initPromise = null; // allow retry on next cold start
+  });
   return _initPromise;
 }
 
