@@ -370,3 +370,6 @@ CREATE INDEX IF NOT EXISTS idx_fin_bt_date         ON bank_transactions(transact
 -- Acesso total para anon e authenticated (sem RLS — auth feita via NextAuth nas rotas)
 GRANT ALL ON financial_documents TO anon, authenticated;
 GRANT ALL ON bank_transactions   TO anon, authenticated;
+
+ALTER TABLE financial_documents DISABLE ROW LEVEL SECURITY;
+ALTER TABLE bank_transactions   DISABLE ROW LEVEL SECURITY;

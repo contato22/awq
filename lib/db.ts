@@ -100,4 +100,7 @@ async function _runMigration(): Promise<void> {
 
   await sql`GRANT ALL ON financial_documents TO anon, authenticated`;
   await sql`GRANT ALL ON bank_transactions   TO anon, authenticated`;
+
+  await sql`ALTER TABLE financial_documents DISABLE ROW LEVEL SECURITY`;
+  await sql`ALTER TABLE bank_transactions   DISABLE ROW LEVEL SECURITY`;
 }
