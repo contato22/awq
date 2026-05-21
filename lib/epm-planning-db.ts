@@ -808,15 +808,17 @@ export async function initEPMPlanningDB(): Promise<void> {
   )`;
 
   await sql`CREATE TABLE IF NOT EXISTS epm_venture_contracts (
-    id TEXT PRIMARY KEY, counterparty TEXT NOT NULL, type TEXT, status TEXT,
+    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    counterparty TEXT NOT NULL, type TEXT, status TEXT,
     start_date TEXT, end_date TEXT, monthly_fee NUMERIC DEFAULT 0,
     arr NUMERIC DEFAULT 0, total_contract_value NUMERIC DEFAULT 0,
-    remaining_months INTEGER DEFAULT 0, note TEXT, updated_at TEXT
+    duration_months INTEGER DEFAULT 0, note TEXT, created_at TEXT, updated_at TEXT
   )`;
 
   await sql`CREATE TABLE IF NOT EXISTS epm_monthly_revenue (
     month TEXT PRIMARY KEY, jacqes NUMERIC DEFAULT 0, caza NUMERIC DEFAULT 0,
-    advisor NUMERIC DEFAULT 0, venture NUMERIC DEFAULT 0, enrd NUMERIC DEFAULT 0, updated_at TEXT
+    advisor NUMERIC DEFAULT 0, venture NUMERIC DEFAULT 0, enrd NUMERIC DEFAULT 0,
+    is_forecast BOOLEAN DEFAULT false, updated_at TEXT
   )`;
 
   await sql`CREATE TABLE IF NOT EXISTS epm_category_budget (
@@ -830,18 +832,26 @@ export async function initEPMPlanningDB(): Promise<void> {
   )`;
 
   await sql`CREATE TABLE IF NOT EXISTS epm_holding_treasury (
-    id INTEGER PRIMARY KEY DEFAULT 1, as_of TEXT, total_invested_real NUMERIC DEFAULT 0,
-    operational_cash NUMERIC DEFAULT 0, updated_at TEXT
+    id TEXT PRIMARY KEY, as_of TEXT, source TEXT,
+    total_invested_real NUMERIC DEFAULT 0, last_application_amount NUMERIC DEFAULT 0,
+    last_application_date TEXT, investment_type TEXT, investment_bank TEXT,
+    investment_account_cash NUMERIC DEFAULT 0, bank_fees NUMERIC DEFAULT 0,
+    operational_cash NUMERIC DEFAULT 0, card_limit_total NUMERIC DEFAULT 0,
+    card_limit_committed NUMERIC DEFAULT 0, card_reserve_deposited NUMERIC DEFAULT 0,
+    intercompany_total NUMERIC DEFAULT 0, partner_withdrawals NUMERIC DEFAULT 0,
+    confidence TEXT, note TEXT, updated_at TEXT
   )`;
 
   await sql`CREATE TABLE IF NOT EXISTS epm_chart_of_accounts (
     account_code TEXT PRIMARY KEY, account_name TEXT NOT NULL,
-    account_type TEXT NOT NULL, normal_balance TEXT NOT NULL, level INTEGER DEFAULT 3
+    account_type TEXT NOT NULL, normal_balance TEXT NOT NULL,
+    level INTEGER DEFAULT 3, updated_at TEXT
   )`;
 
   await sql`CREATE TABLE IF NOT EXISTS epm_fiscal_rates (
     supplier_type TEXT PRIMARY KEY, irrf_rate NUMERIC DEFAULT 0, inss_rate NUMERIC DEFAULT 0,
-    iss_rate NUMERIC DEFAULT 0, pis_rate NUMERIC DEFAULT 0, cofins_rate NUMERIC DEFAULT 0
+    iss_rate NUMERIC DEFAULT 0, pis_rate NUMERIC DEFAULT 0, cofins_rate NUMERIC DEFAULT 0,
+    updated_at TEXT
   )`;
 
   await sql`CREATE TABLE IF NOT EXISTS epm_gl_entries (
