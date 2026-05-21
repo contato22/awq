@@ -398,6 +398,38 @@ export async function createLead(data: Omit<CrmLead, "id">): Promise<CrmLead> {
   return row as unknown as CrmLead;
 }
 
+export async function updateLead(id: string, patch: Partial<Omit<CrmLead, "id">>): Promise<CrmLead | null> {
+  if (!sql) throw new Error("DB unavailable");
+  await initCrmDB();
+  const rows = await sql`
+    UPDATE jacqes_crm_leads SET
+      nome              = COALESCE(${patch.nome              ?? null}, nome),
+      empresa           = COALESCE(${patch.empresa           ?? null}, empresa),
+      contato_principal = COALESCE(${patch.contato_principal ?? null}, contato_principal),
+      telefone          = COALESCE(${patch.telefone          ?? null}, telefone),
+      email             = COALESCE(${patch.email             ?? null}, email),
+      origem            = COALESCE(${patch.origem            ?? null}, origem),
+      segmento          = COALESCE(${patch.segmento          ?? null}, segmento),
+      canal             = COALESCE(${patch.canal             ?? null}, canal),
+      interesse         = COALESCE(${patch.interesse         ?? null}, interesse),
+      status            = COALESCE(${patch.status            ?? null}, status),
+      owner             = COALESCE(${patch.owner             ?? null}, owner),
+      observacoes       = COALESCE(${patch.observacoes       ?? null}, observacoes)
+    WHERE id = ${id}
+    RETURNING id, nome, empresa, contato_principal, telefone, email, origem,
+              segmento, canal, interesse, status, owner,
+              data_entrada::text AS data_entrada, observacoes
+  `;
+  return rows.length ? (rows[0] as unknown as CrmLead) : null;
+}
+
+export async function deleteLead(id: string): Promise<boolean> {
+  if (!sql) throw new Error("DB unavailable");
+  await initCrmDB();
+  const rows = await sql`DELETE FROM jacqes_crm_leads WHERE id = ${id} RETURNING id`;
+  return rows.length > 0;
+}
+
 // ─── CRUD — Opportunities ─────────────────────────────────────────────────────
 
 export async function listOpportunities(): Promise<CrmOpportunity[]> {
@@ -436,6 +468,45 @@ export async function createOpportunity(data: Omit<CrmOpportunity, "id">): Promi
   return row as unknown as CrmOpportunity;
 }
 
+export async function updateOpportunity(id: string, patch: Partial<Omit<CrmOpportunity, "id">>): Promise<CrmOpportunity | null> {
+  if (!sql) throw new Error("DB unavailable");
+  await initCrmDB();
+  const rows = await sql`
+    UPDATE jacqes_crm_opportunities SET
+      nome_oportunidade        = COALESCE(${patch.nome_oportunidade        ?? null}, nome_oportunidade),
+      empresa                  = COALESCE(${patch.empresa                  ?? null}, empresa),
+      segmento                 = COALESCE(${patch.segmento                 ?? null}, segmento),
+      produto                  = COALESCE(${patch.produto                  ?? null}, produto),
+      ticket_estimado          = COALESCE(${patch.ticket_estimado          ?? null}, ticket_estimado),
+      valor_potencial          = COALESCE(${patch.valor_potencial          ?? null}, valor_potencial),
+      stage                    = COALESCE(${patch.stage                    ?? null}, stage),
+      probabilidade            = COALESCE(${patch.probabilidade            ?? null}, probabilidade),
+      owner                    = COALESCE(${patch.owner                    ?? null}, owner),
+      proxima_acao             = COALESCE(${patch.proxima_acao             ?? null}, proxima_acao),
+      data_proxima_acao        = COALESCE(${patch.data_proxima_acao        ?? null}::date, data_proxima_acao),
+      risco                    = COALESCE(${patch.risco                    ?? null}, risco),
+      motivo_perda             = COALESCE(${patch.motivo_perda             ?? null}, motivo_perda),
+      data_fechamento_prevista = COALESCE(${patch.data_fechamento_prevista ?? null}::date, data_fechamento_prevista),
+      observacoes              = COALESCE(${patch.observacoes              ?? null}, observacoes),
+      lead_id                  = COALESCE(${patch.lead_id                  ?? null}, lead_id),
+      cliente_id               = COALESCE(${patch.cliente_id               ?? null}, cliente_id)
+    WHERE id = ${id}
+    RETURNING id, lead_id, cliente_id, nome_oportunidade, empresa, segmento, produto,
+              ticket_estimado::float, valor_potencial::float, stage, probabilidade, owner,
+              data_abertura::text AS data_abertura, proxima_acao,
+              data_proxima_acao::text AS data_proxima_acao, risco, motivo_perda,
+              data_fechamento_prevista::text AS data_fechamento_prevista, observacoes
+  `;
+  return rows.length ? (rows[0] as unknown as CrmOpportunity) : null;
+}
+
+export async function deleteOpportunity(id: string): Promise<boolean> {
+  if (!sql) throw new Error("DB unavailable");
+  await initCrmDB();
+  const rows = await sql`DELETE FROM jacqes_crm_opportunities WHERE id = ${id} RETURNING id`;
+  return rows.length > 0;
+}
+
 // ─── CRUD — Clients ───────────────────────────────────────────────────────────
 
 export async function listCrmClients(): Promise<CrmClient[]> {
@@ -470,6 +541,40 @@ export async function createCrmClient(data: Omit<CrmClient, "id">): Promise<CrmC
   return row as unknown as CrmClient;
 }
 
+export async function updateCrmClient(id: string, patch: Partial<Omit<CrmClient, "id">>): Promise<CrmClient | null> {
+  if (!sql) throw new Error("DB unavailable");
+  await initCrmDB();
+  const rows = await sql`
+    UPDATE jacqes_crm_clients SET
+      nome               = COALESCE(${patch.nome               ?? null}, nome),
+      razao_social       = COALESCE(${patch.razao_social       ?? null}, razao_social),
+      cnpj               = COALESCE(${patch.cnpj               ?? null}, cnpj),
+      segmento           = COALESCE(${patch.segmento           ?? null}, segmento),
+      produto_ativo      = COALESCE(${patch.produto_ativo      ?? null}, produto_ativo),
+      ticket_mensal      = COALESCE(${patch.ticket_mensal      ?? null}, ticket_mensal),
+      inicio_relacao     = COALESCE(${patch.inicio_relacao     ?? null}::date, inicio_relacao),
+      owner              = COALESCE(${patch.owner              ?? null}, owner),
+      status_conta       = COALESCE(${patch.status_conta       ?? null}, status_conta),
+      health_score       = COALESCE(${patch.health_score       ?? null}, health_score),
+      churn_risk         = COALESCE(${patch.churn_risk         ?? null}, churn_risk),
+      potencial_expansao = COALESCE(${patch.potencial_expansao ?? null}, potencial_expansao),
+      observacoes        = COALESCE(${patch.observacoes        ?? null}, observacoes)
+    WHERE id = ${id}
+    RETURNING id, nome, razao_social, cnpj, segmento, produto_ativo,
+              ticket_mensal::float, inicio_relacao::text AS inicio_relacao,
+              owner, status_conta, health_score, churn_risk,
+              potencial_expansao::float, observacoes
+  `;
+  return rows.length ? (rows[0] as unknown as CrmClient) : null;
+}
+
+export async function deleteCrmClient(id: string): Promise<boolean> {
+  if (!sql) throw new Error("DB unavailable");
+  await initCrmDB();
+  const rows = await sql`DELETE FROM jacqes_crm_clients WHERE id = ${id} RETURNING id`;
+  return rows.length > 0;
+}
+
 // ─── CRUD — Interactions ──────────────────────────────────────────────────────
 
 export async function listInteractions(): Promise<CrmInteraction[]> {
@@ -498,6 +603,37 @@ export async function createInteraction(data: Omit<CrmInteraction, "id">): Promi
     RETURNING *
   `;
   return row as unknown as CrmInteraction;
+}
+
+export async function updateInteraction(id: string, patch: Partial<Omit<CrmInteraction, "id">>): Promise<CrmInteraction | null> {
+  if (!sql) throw new Error("DB unavailable");
+  await initCrmDB();
+  const rows = await sql`
+    UPDATE jacqes_crm_interactions SET
+      tipo                 = COALESCE(${patch.tipo                 ?? null}, tipo),
+      canal                = COALESCE(${patch.canal                ?? null}, canal),
+      data                 = COALESCE(${patch.data                 ?? null}::date, data),
+      resumo               = COALESCE(${patch.resumo               ?? null}, resumo),
+      proximo_passo        = COALESCE(${patch.proximo_passo        ?? null}, proximo_passo),
+      responsavel          = COALESCE(${patch.responsavel          ?? null}, responsavel),
+      satisfacao_percebida = COALESCE(${patch.satisfacao_percebida ?? null}, satisfacao_percebida),
+      risco_percebido      = COALESCE(${patch.risco_percebido      ?? null}, risco_percebido),
+      cliente_id           = COALESCE(${patch.cliente_id           ?? null}, cliente_id),
+      opportunity_id       = COALESCE(${patch.opportunity_id       ?? null}, opportunity_id),
+      lead_id              = COALESCE(${patch.lead_id              ?? null}, lead_id)
+    WHERE id = ${id}
+    RETURNING id, cliente_id, opportunity_id, lead_id, tipo, canal,
+              data::text AS data, resumo, proximo_passo, responsavel,
+              satisfacao_percebida, risco_percebido
+  `;
+  return rows.length ? (rows[0] as unknown as CrmInteraction) : null;
+}
+
+export async function deleteInteraction(id: string): Promise<boolean> {
+  if (!sql) throw new Error("DB unavailable");
+  await initCrmDB();
+  const rows = await sql`DELETE FROM jacqes_crm_interactions WHERE id = ${id} RETURNING id`;
+  return rows.length > 0;
 }
 
 // ─── CRUD — Tasks ─────────────────────────────────────────────────────────────
@@ -586,6 +722,45 @@ export async function listExpansion(): Promise<CrmExpansion[]> {
   return rows.length ? (rows as unknown as CrmExpansion[]) : SEED_EXPANSION;
 }
 
+export async function createExpansion(data: Omit<CrmExpansion, "id">): Promise<CrmExpansion> {
+  if (!sql) throw new Error("DB unavailable");
+  await initCrmDB();
+  const [row] = await sql`
+    INSERT INTO jacqes_crm_expansion
+      (cliente_id, tipo, valor_potencial, status, owner, proxima_acao, observacoes)
+    VALUES
+      (${data.cliente_id}, ${data.tipo}, ${data.valor_potencial},
+       ${data.status}, ${data.owner}, ${data.proxima_acao}, ${data.observacoes})
+    RETURNING id, cliente_id, tipo, valor_potencial::float, status, owner, proxima_acao, observacoes
+  `;
+  return row as unknown as CrmExpansion;
+}
+
+export async function updateExpansion(id: string, patch: Partial<Omit<CrmExpansion, "id">>): Promise<CrmExpansion | null> {
+  if (!sql) throw new Error("DB unavailable");
+  await initCrmDB();
+  const rows = await sql`
+    UPDATE jacqes_crm_expansion SET
+      tipo            = COALESCE(${patch.tipo            ?? null}, tipo),
+      valor_potencial = COALESCE(${patch.valor_potencial ?? null}, valor_potencial),
+      status          = COALESCE(${patch.status          ?? null}, status),
+      owner           = COALESCE(${patch.owner           ?? null}, owner),
+      proxima_acao    = COALESCE(${patch.proxima_acao    ?? null}, proxima_acao),
+      observacoes     = COALESCE(${patch.observacoes     ?? null}, observacoes),
+      cliente_id      = COALESCE(${patch.cliente_id      ?? null}, cliente_id)
+    WHERE id = ${id}
+    RETURNING id, cliente_id, tipo, valor_potencial::float, status, owner, proxima_acao, observacoes
+  `;
+  return rows.length ? (rows[0] as unknown as CrmExpansion) : null;
+}
+
+export async function deleteExpansion(id: string): Promise<boolean> {
+  if (!sql) throw new Error("DB unavailable");
+  await initCrmDB();
+  const rows = await sql`DELETE FROM jacqes_crm_expansion WHERE id = ${id} RETURNING id`;
+  return rows.length > 0;
+}
+
 // ─── CRUD — Health ────────────────────────────────────────────────────────────
 
 export async function listHealth(): Promise<CrmHealthSnapshot[]> {
@@ -600,9 +775,79 @@ export async function listHealth(): Promise<CrmHealthSnapshot[]> {
   return rows.length ? (rows as unknown as CrmHealthSnapshot[]) : SEED_HEALTH;
 }
 
-// ─── Proposals ────────────────────────────────────────────────────────────────
+export async function createHealthSnapshot(data: Omit<CrmHealthSnapshot, "id">): Promise<CrmHealthSnapshot> {
+  if (!sql) throw new Error("DB unavailable");
+  await initCrmDB();
+  const [row] = await sql`
+    INSERT INTO jacqes_crm_health_snapshot
+      (cliente_id, periodo, health_score, churn_risk, ultima_interacao,
+       followups_em_dia, pendencias, expansao_aberta)
+    VALUES
+      (${data.cliente_id}, ${data.periodo}, ${data.health_score}, ${data.churn_risk},
+       ${data.ultima_interacao}, ${data.followups_em_dia}, ${data.pendencias},
+       ${data.expansao_aberta})
+    RETURNING id, cliente_id, periodo, health_score, churn_risk,
+              ultima_interacao::text AS ultima_interacao,
+              followups_em_dia, pendencias, expansao_aberta
+  `;
+  return row as unknown as CrmHealthSnapshot;
+}
 
-export async function listProposals(): Promise<CrmProposal[]> {
+// ─── CRUD — Visits ────────────────────────────────────────────────────────────
+
+export async function listVisits(clienteId?: string): Promise<CrmVisit[]> {
+  if (!sql) return [];
+  await initCrmDB();
+  const rows = await sql`
+    SELECT id, cliente_id, data::text AS data, objetivo, resultado, proximo_passo, responsavel
+    FROM jacqes_crm_visits
+    WHERE (${clienteId ?? null}::text IS NULL OR cliente_id = ${clienteId ?? null})
+    ORDER BY data DESC, created_at DESC
+  `;
+  return rows as unknown as CrmVisit[];
+}
+
+export async function createVisit(data: Omit<CrmVisit, "id">): Promise<CrmVisit> {
+  if (!sql) throw new Error("DB unavailable");
+  await initCrmDB();
+  const [row] = await sql`
+    INSERT INTO jacqes_crm_visits
+      (cliente_id, data, objetivo, resultado, proximo_passo, responsavel)
+    VALUES
+      (${data.cliente_id}, ${data.data}, ${data.objetivo},
+       ${data.resultado}, ${data.proximo_passo}, ${data.responsavel})
+    RETURNING id, cliente_id, data::text AS data, objetivo, resultado, proximo_passo, responsavel
+  `;
+  return row as unknown as CrmVisit;
+}
+
+export async function updateVisit(id: string, patch: Partial<Omit<CrmVisit, "id">>): Promise<CrmVisit | null> {
+  if (!sql) throw new Error("DB unavailable");
+  await initCrmDB();
+  const rows = await sql`
+    UPDATE jacqes_crm_visits SET
+      cliente_id    = COALESCE(${patch.cliente_id    ?? null}, cliente_id),
+      data          = COALESCE(${patch.data          ?? null}::date, data),
+      objetivo      = COALESCE(${patch.objetivo      ?? null}, objetivo),
+      resultado     = COALESCE(${patch.resultado     ?? null}, resultado),
+      proximo_passo = COALESCE(${patch.proximo_passo ?? null}, proximo_passo),
+      responsavel   = COALESCE(${patch.responsavel   ?? null}, responsavel)
+    WHERE id = ${id}
+    RETURNING id, cliente_id, data::text AS data, objetivo, resultado, proximo_passo, responsavel
+  `;
+  return rows.length ? (rows[0] as unknown as CrmVisit) : null;
+}
+
+export async function deleteVisit(id: string): Promise<boolean> {
+  if (!sql) throw new Error("DB unavailable");
+  await initCrmDB();
+  const rows = await sql`DELETE FROM jacqes_crm_visits WHERE id = ${id} RETURNING id`;
+  return rows.length > 0;
+}
+
+// ─── CRUD — Proposals ────────────────────────────────────────────────────────
+
+export async function listProposals(opportunityId?: string): Promise<CrmProposal[]> {
   if (!sql) return SEED_PROPOSALS;
   await initCrmDB();
   const rows = await sql`
@@ -611,7 +856,55 @@ export async function listProposals(): Promise<CrmProposal[]> {
            data_envio::text AS data_envio,
            data_resposta::text AS data_resposta,
            contraproposta::float AS contraproposta, observacoes
-    FROM jacqes_crm_proposals ORDER BY created_at DESC
+    FROM jacqes_crm_proposals
+    WHERE (${opportunityId ?? null}::text IS NULL OR opportunity_id = ${opportunityId ?? null})
+    ORDER BY created_at DESC
   `;
   return rows.length ? (rows as unknown as CrmProposal[]) : SEED_PROPOSALS;
+}
+
+export async function createProposal(data: Omit<CrmProposal, "id">): Promise<CrmProposal> {
+  if (!sql) throw new Error("DB unavailable");
+  await initCrmDB();
+  const [row] = await sql`
+    INSERT INTO jacqes_crm_proposals
+      (opportunity_id, versao, valor_proposto, escopo, status,
+       data_envio, data_resposta, contraproposta, observacoes)
+    VALUES
+      (${data.opportunity_id}, ${data.versao}, ${data.valor_proposto}, ${data.escopo},
+       ${data.status}, ${data.data_envio}, ${data.data_resposta},
+       ${data.contraproposta}, ${data.observacoes})
+    RETURNING id, opportunity_id, versao, valor_proposto::float, escopo, status,
+              data_envio::text AS data_envio, data_resposta::text AS data_resposta,
+              contraproposta::float AS contraproposta, observacoes
+  `;
+  return row as unknown as CrmProposal;
+}
+
+export async function updateProposal(id: string, patch: Partial<Omit<CrmProposal, "id">>): Promise<CrmProposal | null> {
+  if (!sql) throw new Error("DB unavailable");
+  await initCrmDB();
+  const rows = await sql`
+    UPDATE jacqes_crm_proposals SET
+      versao         = COALESCE(${patch.versao         ?? null}, versao),
+      valor_proposto = COALESCE(${patch.valor_proposto ?? null}, valor_proposto),
+      escopo         = COALESCE(${patch.escopo         ?? null}, escopo),
+      status         = COALESCE(${patch.status         ?? null}, status),
+      data_envio     = COALESCE(${patch.data_envio     ?? null}::date, data_envio),
+      data_resposta  = COALESCE(${patch.data_resposta  ?? null}::date, data_resposta),
+      contraproposta = COALESCE(${patch.contraproposta ?? null}, contraproposta),
+      observacoes    = COALESCE(${patch.observacoes    ?? null}, observacoes)
+    WHERE id = ${id}
+    RETURNING id, opportunity_id, versao, valor_proposto::float, escopo, status,
+              data_envio::text AS data_envio, data_resposta::text AS data_resposta,
+              contraproposta::float AS contraproposta, observacoes
+  `;
+  return rows.length ? (rows[0] as unknown as CrmProposal) : null;
+}
+
+export async function deleteProposal(id: string): Promise<boolean> {
+  if (!sql) throw new Error("DB unavailable");
+  await initCrmDB();
+  const rows = await sql`DELETE FROM jacqes_crm_proposals WHERE id = ${id} RETURNING id`;
+  return rows.length > 0;
 }
