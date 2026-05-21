@@ -151,8 +151,10 @@ function rowToFiscalRates(r: Record<string, unknown>): FiscalRates {
 
 export async function getBUData(): Promise<BuData[]> {
   if (sql && USE_DB) {
-    const rows = await sql`SELECT * FROM epm_bu_data ORDER BY id`;
-    if (rows.length > 0) return rows.map((r) => rowToBU(r as Record<string, unknown>));
+    try {
+      const rows = await sql`SELECT * FROM epm_bu_data ORDER BY id`;
+      if (rows.length > 0) return rows.map((r) => rowToBU(r as Record<string, unknown>));
+    } catch { /* DB unavailable — fall through to static data */ }
   }
   return staticBuData;
 }
@@ -216,8 +218,10 @@ export async function seedBUData(): Promise<void> {
 
 export async function getVentureContracts(): Promise<(VentureContract & { id: string })[]> {
   if (sql && USE_DB) {
-    const rows = await sql`SELECT * FROM epm_venture_contracts ORDER BY counterparty`;
-    if (rows.length > 0) return rows.map((r) => rowToContract(r as Record<string, unknown>));
+    try {
+      const rows = await sql`SELECT * FROM epm_venture_contracts ORDER BY counterparty`;
+      if (rows.length > 0) return rows.map((r) => rowToContract(r as Record<string, unknown>));
+    } catch { /* DB unavailable — fall through to static data */ }
   }
   return staticVentureContracts.map((c, i) => ({ ...c, id: `static-${i}` }));
 }
@@ -277,8 +281,10 @@ export async function seedVentureContracts(): Promise<void> {
 
 export async function getMonthlyRevenue(): Promise<MonthlyPoint[]> {
   if (sql && USE_DB) {
-    const rows = await sql`SELECT * FROM epm_monthly_revenue ORDER BY month`;
-    if (rows.length > 0) return rows.map((r) => rowToMonthly(r as Record<string, unknown>));
+    try {
+      const rows = await sql`SELECT * FROM epm_monthly_revenue ORDER BY month`;
+      if (rows.length > 0) return rows.map((r) => rowToMonthly(r as Record<string, unknown>));
+    } catch { /* DB unavailable — fall through to static data */ }
   }
   return staticMonthlyRevenue;
 }
@@ -311,8 +317,10 @@ export async function seedMonthlyRevenue(): Promise<void> {
 
 export async function getCategoryBudget(): Promise<(CategoryBudgetItem & { id: string })[]> {
   if (sql && USE_DB) {
-    const rows = await sql`SELECT * FROM epm_category_budget ORDER BY category`;
-    if (rows.length > 0) return rows.map((r) => rowToCategory(r as Record<string, unknown>));
+    try {
+      const rows = await sql`SELECT * FROM epm_category_budget ORDER BY category`;
+      if (rows.length > 0) return rows.map((r) => rowToCategory(r as Record<string, unknown>));
+    } catch { /* DB unavailable — fall through to static data */ }
   }
   return staticCategoryBudget.map((c, i) => ({ ...c, id: `static-${i}` }));
 }
@@ -352,14 +360,16 @@ export async function seedCategoryBudget(): Promise<void> {
 
 export async function getAllocFlags(): Promise<Record<string, string>> {
   if (sql && USE_DB) {
-    const rows = await sql`SELECT * FROM epm_alloc_flags`;
-    if (rows.length > 0) {
-      const result: Record<string, string> = {};
-      for (const r of rows) {
-        result[String(r.bu_id)] = String(r.flag);
+    try {
+      const rows = await sql`SELECT * FROM epm_alloc_flags`;
+      if (rows.length > 0) {
+        const result: Record<string, string> = {};
+        for (const r of rows) {
+          result[String(r.bu_id)] = String(r.flag);
+        }
+        return result;
       }
-      return result;
-    }
+    } catch { /* DB unavailable — fall through to static data */ }
   }
   return staticAllocFlags as Record<string, string>;
 }
@@ -390,31 +400,33 @@ export async function seedAllocFlags(): Promise<void> {
 
 export async function getHoldingTreasury(): Promise<HoldingTreasurySnapshot> {
   if (sql && USE_DB) {
-    const rows = await sql`SELECT * FROM epm_holding_treasury WHERE id = 'current'`;
-    if (rows.length > 0) {
-      const r = rows[0] as Record<string, unknown>;
-      return {
-        asOf:                  String(r.as_of),
-        source:                String(r.source),
-        totalInvestedReal:     Number(r.total_invested_real),
-        lastApplicationAmount: Number(r.last_application_amount),
-        lastApplicationDate:   String(r.last_application_date),
-        investmentType:        String(r.investment_type),
-        investmentBank:        String(r.investment_bank),
-        investmentAccountCash: Number(r.investment_account_cash),
-        bankFees:              Number(r.bank_fees),
-        operationalCash:       Number(r.operational_cash),
-        cardLimitTotal:        Number(r.card_limit_total),
-        cardLimitCommitted:    Number(r.card_limit_committed),
-        cardReserveDeposited:  Number(r.card_reserve_deposited),
-        intercompanyTotal:     Number(r.intercompany_total),
-        partnerWithdrawals:    Number(r.partner_withdrawals),
-        confidence:            String(r.confidence) as HoldingTreasurySnapshot["confidence"],
-        reconciledWith:        [],
-        NOT_investment:        [],
-        note:                  String(r.note),
-      };
-    }
+    try {
+      const rows = await sql`SELECT * FROM epm_holding_treasury WHERE id = 'current'`;
+      if (rows.length > 0) {
+        const r = rows[0] as Record<string, unknown>;
+        return {
+          asOf:                  String(r.as_of),
+          source:                String(r.source),
+          totalInvestedReal:     Number(r.total_invested_real),
+          lastApplicationAmount: Number(r.last_application_amount),
+          lastApplicationDate:   String(r.last_application_date),
+          investmentType:        String(r.investment_type),
+          investmentBank:        String(r.investment_bank),
+          investmentAccountCash: Number(r.investment_account_cash),
+          bankFees:              Number(r.bank_fees),
+          operationalCash:       Number(r.operational_cash),
+          cardLimitTotal:        Number(r.card_limit_total),
+          cardLimitCommitted:    Number(r.card_limit_committed),
+          cardReserveDeposited:  Number(r.card_reserve_deposited),
+          intercompanyTotal:     Number(r.intercompany_total),
+          partnerWithdrawals:    Number(r.partner_withdrawals),
+          confidence:            String(r.confidence) as HoldingTreasurySnapshot["confidence"],
+          reconciledWith:        [],
+          NOT_investment:        [],
+          note:                  String(r.note),
+        };
+      }
+    } catch { /* DB unavailable — fall through to static data */ }
   }
   return staticHoldingTreasury;
 }

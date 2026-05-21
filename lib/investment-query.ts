@@ -213,9 +213,14 @@ function maxDate(a: string | null, b: string | null): string | null {
 // ─── Main export ──────────────────────────────────────────────────────────────
 
 export async function buildInvestmentQuery(): Promise<InvestmentQueryResult> {
-  const allDocs  = await getAllDocuments();
+  let allDocs: Awaited<ReturnType<typeof getAllDocuments>> = [];
+  let allTxns: Awaited<ReturnType<typeof getAllTransactions>> = [];
+  try {
+    [allDocs, allTxns] = await Promise.all([getAllDocuments(), getAllTransactions()]);
+  } catch (err) {
+    console.error("[buildInvestmentQuery] DB unavailable:", err);
+  }
   const doneDocs = allDocs.filter((d) => d.status === "done");
-  const allTxns  = await getAllTransactions();
 
   // Compute operational reference for separation display
   // (lightweight — avoid importing buildFinancialQuery to prevent circular deps)
