@@ -158,9 +158,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       await saveTransactions(newTransactions);
     } catch (err) {
       console.error("[POST /api/cora/sync] save failed", err);
-      const detail = err instanceof Error ? err.message : JSON.stringify(err);
+      // PostgrestError is a plain object {message, code, details, hint}, not instanceof Error
+      const pgErr = err as { message?: string; code?: string };
+      const detail = pgErr?.message ?? (err instanceof Error ? err.message : JSON.stringify(err));
+      const isMissingTable = pgErr?.code === "42P01" || detail.includes("does not exist");
       return NextResponse.json(
-        { error: `Falha ao salvar no banco de dados: ${detail}` },
+        {
+          error: isMissingTable
+            ? "Tabelas financeiras não encontradas no banco. Execute a migração SQL no Supabase → SQL Editor antes de sincronizar."
+            : `Falha ao salvar no banco de dados: ${detail}`,
+          missingMigration: isMissingTable,
+        },
         { status: 500 },
       );
     }
