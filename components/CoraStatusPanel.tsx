@@ -77,6 +77,7 @@ export default function CoraStatusPanel({
   const [lastSyncAt, setLastSyncAt]         = useState<Date | null>(null);
   const [lastSyncedCount, setLastSyncedCount] = useState(0);
   const [syncError, setSyncError]           = useState<string | null>(null);
+  const [diagInfo, setDiagInfo]             = useState<{ account: string; debug: unknown } | null>(null);
   const isMounted = useRef(true);
   const router = useRouter();
 
@@ -127,7 +128,8 @@ export default function CoraStatusPanel({
         if (res.ok) {
           totalSynced += data.synced;
           if (data.total === 0 && data._debug) {
-            console.error("[CoraSync] 0 entradas da API Cora para", acc.key, data.period, data._debug);
+            console.error("[CoraSync] 0 entradas para", acc.key, data.period, data._debug);
+            if (isMounted.current) setDiagInfo({ account: acc.key, debug: data._debug });
           }
           void loadBalance(acc.key);
         } else {
@@ -213,6 +215,19 @@ export default function CoraStatusPanel({
         <div className="flex items-start gap-2 px-5 py-2.5 text-xs border-b bg-red-50 border-red-200 text-red-800">
           <AlertTriangle size={13} className="shrink-0 mt-0.5" />
           {syncError}
+        </div>
+      )}
+
+      {/* Diagnóstico — aparece quando sync retorna 0 transações da API Cora */}
+      {diagInfo && (
+        <div className="px-5 py-3 border-b bg-amber-50 border-amber-200 text-xs space-y-1">
+          <div className="flex items-center gap-1.5 font-semibold text-amber-800">
+            <AlertTriangle size={13} className="shrink-0" />
+            Cora API retornou 0 transações para &quot;{diagInfo.account}&quot;. Resposta bruta:
+          </div>
+          <pre className="bg-white border border-amber-200 rounded p-2 text-[10px] text-gray-700 overflow-x-auto max-h-40 leading-relaxed whitespace-pre-wrap">
+            {JSON.stringify(diagInfo.debug, null, 2)}
+          </pre>
         </div>
       )}
 
