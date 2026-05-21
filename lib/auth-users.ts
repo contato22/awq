@@ -10,63 +10,18 @@ export interface AuthUser {
   homeRoute: string;
 }
 
+// Password hashes removed from source code — stored in awq_users table (Supabase).
+// This list is used only as a metadata fallback for role/route resolution when
+// SUPABASE_SERVICE_ROLE_KEY is absent (static export, CI without DB access).
+// Authentication via findUserByEmailDB() in lib/auth-users-db.ts.
 export const USERS: AuthUser[] = [
-  {
-    id: "1",
-    name: "Alex Whitmore",
-    email: "alex@awqgroup.com",
-    passwordHash: "$2b$10$3DCcHvoCK2b5jFkXLX1hvuE0b98RPVQjR8fUYa4z7A..AwbjW5YFC",
-    role: "owner",
-    homeRoute: "/awq",
-  },
-  {
-    id: "2",
-    name: "Sam Chen",
-    email: "s.chen@jacqes.com",
-    passwordHash: "$2b$10$cPH8UGnkUGbDt84IeHvqTuLE.5ilSjFTjK8NZnHENQXEEMGLgD/M.",
-    role: "admin",
-    homeRoute: "/awq",
-  },
-  {
-    id: "3",
-    name: "Priya Nair",
-    email: "p.nair@jacqes.com",
-    passwordHash: "$2b$10$iDy4eveRpiC7Zdl0.wYL6eh976tMUW8ii1S9s.vWGbw7T5GkKfOS6",
-    role: "analyst",
-    homeRoute: "/jacqes",
-  },
-  {
-    id: "4",
-    name: "Danilo",
-    email: "danilo@jacqes.com",
-    passwordHash: "$2b$10$tb9af2CBLLhGzv4FzCiDKe9TKMAIDeiyrUPI9ornKfUCNsFh8cmfO",
-    role: "cs-ops",
-    homeRoute: "/jacqes/csops",  // canonical route — /csops redirects here
-  },
-  {
-    id: "5",
-    name: "Miguel",
-    email: "contato@awq.com.br",
-    passwordHash: "$2b$10$2FbtWd3diTZ8Hp5BV5QqbONApQ7VcRBmwbN.JQKrjQNNaORBmwKOm",
-    role: "owner",
-    homeRoute: "/awq",
-  },
-  {
-    id: "6",
-    name: "Daniel Chiappetta",
-    email: "danielcchiappetta@live.com",
-    passwordHash: "$2b$10$Y9gcPY4r6AbbIi5fz131GeSCmuu5nTiL7gZ4wTjJJQeb3KsdKsO92",
-    role: "caza",
-    homeRoute: "/caza-vision",
-  },
-  {
-    id: "7",
-    name: "Kazadem",
-    email: "Kazadem2@gmail.com",
-    passwordHash: "$2b$10$GsdHM8of19be3dKaFRNU4umIXN6fMANar/wNKzWwEKywoZMPz7zxi",
-    role: "enrd",
-    homeRoute: "/enrd",
-  },
+  { id: "1", name: "Alex Whitmore",     email: "alex@awqgroup.com",          passwordHash: "", role: "owner",   homeRoute: "/awq" },
+  { id: "2", name: "Sam Chen",          email: "s.chen@jacqes.com",          passwordHash: "", role: "admin",   homeRoute: "/awq" },
+  { id: "3", name: "Priya Nair",        email: "p.nair@jacqes.com",          passwordHash: "", role: "analyst", homeRoute: "/jacqes" },
+  { id: "4", name: "Danilo",            email: "danilo@jacqes.com",          passwordHash: "", role: "cs-ops",  homeRoute: "/jacqes/csops" },
+  { id: "5", name: "Miguel",            email: "contato@awq.com.br",         passwordHash: "", role: "owner",   homeRoute: "/awq" },
+  { id: "6", name: "Daniel Chiappetta", email: "danielcchiappetta@live.com", passwordHash: "", role: "caza",    homeRoute: "/caza-vision" },
+  { id: "7", name: "Kazadem",           email: "Kazadem2@gmail.com",         passwordHash: "", role: "enrd",    homeRoute: "/enrd" },
 ];
 
 // ── RBAC route prefixes ───────────────────────────────────────────────────────
