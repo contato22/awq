@@ -264,8 +264,12 @@ export async function fetchCoraStatement(
   let page = 1;
   let firstPageDebug: CoraStatementResult["_debug"] | undefined;
 
+  // Cora accepts both YYYY-MM-DD and full ISO timestamps; send full timestamps to be safe
+  const startTs = startDate.length === 10 ? `${startDate}T00:00:00Z` : startDate;
+  const endTs   = endDate.length   === 10 ? `${endDate}T23:59:59Z`   : endDate;
+
   while (true) {
-    const url = `${BASE}/bank-statement/statement?start=${startDate}&end=${endDate}&perPage=${PER_PAGE}&page=${page}`;
+    const url = `${BASE}/bank-statement/statement?start=${startTs}&end=${endTs}&perPage=${PER_PAGE}&page=${page}`;
     const { status, body } = await httpsRequest(
       "GET",
       url,

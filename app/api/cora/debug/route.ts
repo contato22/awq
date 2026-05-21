@@ -97,16 +97,17 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     results.balance_status = balRes.status;
     try { results.balance_raw = JSON.parse(balRes.body); } catch { results.balance_body = balRes.body; }
 
-    // 3. Get statement (raw, last 30 days)
-    const today = new Date().toISOString().slice(0, 10);
-    const monthAgo = new Date(Date.now() - 30 * 86400_000).toISOString().slice(0, 10);
+    // 3. Get statement (raw, last 30 days) — try both date formats
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const monthAgoIso = new Date(Date.now() - 30 * 86400_000).toISOString().slice(0, 10);
     const stmtRes = await httpsRequest(
       "GET",
-      `${BASE}/bank-statement/statement?start=${monthAgo}&end=${today}&perPage=5`,
+      `${BASE}/bank-statement/statement?start=${monthAgoIso}T00:00:00Z&end=${todayIso}T23:59:59Z&perPage=5`,
       { "Authorization": `Bearer ${token}`, "Accept": "application/json" },
       cert,
       key,
     );
+    results.statement_url = `${BASE}/bank-statement/statement?start=${monthAgoIso}T00:00:00Z&end=${todayIso}T23:59:59Z&perPage=5`;
     results.statement_status = stmtRes.status;
     try { results.statement_raw = JSON.parse(stmtRes.body); } catch { results.statement_body = stmtRes.body.slice(0, 2000); }
   } catch (err) {
