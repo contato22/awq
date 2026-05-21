@@ -5,7 +5,8 @@
 //
 // STORAGE ADAPTERS (auto-selected at runtime):
 //   SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY set  → Supabase (Postgres) via @supabase/supabase-js
-//   DATABASE_URL set (no service role key)        → Direct postgres via postgres.js
+//   ERP_SUPABASE_SERVICE_ROLE_KEY set             → ERP Supabase (bypasses RLS)
+//   DATABASE_URL set                              → Direct postgres via postgres.js
 //   env vars unset → JSON files in public/data/financial/ (local dev)
 //
 // DO NOT import this module in client components — it uses Node's `fs` module
@@ -14,14 +15,14 @@
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
-import { supabase, anonClient } from "@/lib/supabase";
+import { supabase, erpAdmin, erpAnon } from "@/lib/supabase";
 import { sql, initDB } from "@/lib/db";
 
-// Priority: service role → direct postgres (sql) → anon key → JSON.
-// anonClient is skipped when sql is available because both DATABASE_URL and
-// anonClient may point to different Supabase projects; sql and initDB() are
-// always co-located (same DATABASE_URL), so sql must win over anonClient.
-const db = supabase ?? (sql ? null : anonClient);
+// Priority: financial service role → ERP service role → direct postgres → ERP anon → JSON.
+// erpAdmin bypasses RLS (requires ERP_SUPABASE_SERVICE_ROLE_KEY in Vercel).
+// erpAnon is subject to RLS — only works if RLS is disabled on the tables.
+// sql bypasses RLS via direct postgres connection (requires DATABASE_URL in Vercel).
+const db = supabase ?? erpAdmin ?? (sql ? null : erpAnon);
 
 // ─── Directory (filesystem adapter only) ─────────────────────────────────────
 
