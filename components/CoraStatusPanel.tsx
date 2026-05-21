@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { BankTransaction } from "@/lib/financial-db";
 import {
   Activity,
@@ -40,9 +41,9 @@ const ACCOUNTS: Account[] = [
   { key: "JACQES",      name: "Conta PJ JACQES",      entity: "JACQES"      },
 ];
 
-const LIVE_INTERVAL_MS = 5 * 60 * 1000;
-const LIVE_WINDOW_DAYS = 7;
-const INITIAL_DAYS     = 30;
+const LIVE_INTERVAL_MS  = 5 * 60 * 1000;
+const LIVE_WINDOW_DAYS  = 7;
+const INITIAL_START_DATE = "2026-01-01";
 
 function fmtBRL(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -76,6 +77,7 @@ export default function CoraStatusPanel({
   const [lastSyncedCount, setLastSyncedCount] = useState(0);
   const [syncError, setSyncError]           = useState<string | null>(null);
   const isMounted = useRef(true);
+  const router = useRouter();
 
   useEffect(() => {
     isMounted.current = true;
@@ -101,12 +103,11 @@ export default function CoraStatusPanel({
     }
   }, []);
 
-  const runSync = useCallback(async (windowDays: number) => {
+  const runSync = useCallback(async (startDate: string) => {
     if (!isMounted.current) return;
     setSyncing(true);
     setSyncError(null);
-    const startDate = daysAgo(windowDays);
-    const endDate   = today();
+    const endDate = today();
     let totalSynced = 0;
 
     for (const acc of ACCOUNTS) {
@@ -138,14 +139,16 @@ export default function CoraStatusPanel({
     setSyncing(false);
     setLastSyncAt(new Date());
     setLastSyncedCount(totalSynced);
-    if (totalSynced > 0) setTimeout(() => window.location.reload(), 1000);
-  }, [loadBalance]);
+    // router.refresh() atualiza dados server-side sem resetar estado client-side
+    // (não perde filtros, seleções ou itens em processo de conciliação)
+    if (totalSynced > 0) router.refresh();
+  }, [loadBalance, router]);
 
   useEffect(() => {
     void loadBalance("AWQ_Holding");
     void loadBalance("JACQES");
-    void runSync(INITIAL_DAYS);
-    const timer = setInterval(() => void runSync(LIVE_WINDOW_DAYS), LIVE_INTERVAL_MS);
+    void runSync(INITIAL_START_DATE);
+    const timer = setInterval(() => void runSync(daysAgo(LIVE_WINDOW_DAYS)), LIVE_INTERVAL_MS);
     return () => clearInterval(timer);
   }, [loadBalance, runSync]);
 
