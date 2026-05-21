@@ -258,7 +258,9 @@ export default function BankReconciliationBoard({
   const [isImporting, setIsImporting]   = useState(false);
   const [showRejected, setShowRejected] = useState(false);
   const [isSyncing, setIsSyncing]       = useState(false);
+  const [showSyncMenu, setShowSyncMenu] = useState(false);
   const [, startTransition]             = useTransition();
+  const syncMenuRef = useRef<HTMLDivElement>(null);
   const searchRef   = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -288,6 +290,15 @@ export default function BankReconciliationBoard({
     setApArSnaps(lsGet<ApArSnap[]>("awq_ap_items", []));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialTransactions]);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (syncMenuRef.current && !syncMenuRef.current.contains(e.target as Node))
+        setShowSyncMenu(false);
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // ── Derived: unique accounts ────────────────────────────────────────────────
   const accounts = useMemo(() => {
@@ -388,6 +399,11 @@ export default function BankReconciliationBoard({
     todos:        tabTxns.length,
     recebimentos: tabTxns.filter((t) => t.direction === "credit").length,
     pagamentos:   tabTxns.filter((t) => t.direction === "debit").length,
+  }), [tabTxns]);
+
+  const amounts = useMemo(() => ({
+    recebimentos: tabTxns.filter((t) => t.direction === "credit").reduce((s, t) => s + t.amount, 0),
+    pagamentos:   tabTxns.filter((t) => t.direction === "debit").reduce((s, t) => s + t.amount, 0),
   }), [tabTxns]);
 
   // ── Toast ───────────────────────────────────────────────────────────────────
@@ -748,72 +764,112 @@ export default function BankReconciliationBoard({
             })}
           </div>
 
-          <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-            Ações da conta <ChevronDown size={13} className="text-gray-400" />
-          </button>
-          <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-            <Building2 size={13} className="text-blue-500" />
-            Fluxo de caixa
-          </button>
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={isImporting}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-indigo-300 bg-indigo-50 text-sm text-indigo-700 hover:bg-indigo-100 disabled:opacity-50 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
           >
             {isImporting ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
-            {isImporting ? "Processando…" : "Importar CSV / PDF"}
+            {isImporting ? "Processando…" : "Importar"}
           </button>
           {coraConfigured && (
-            <>
-              <button
-                onClick={handleCoraSync}
-                disabled={isSyncing}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-emerald-300 bg-emerald-50 text-sm text-emerald-700 hover:bg-emerald-100 disabled:opacity-50 transition-colors"
-              >
-                {isSyncing ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
-                {isSyncing ? "Sincronizando…" : "Sincronizar mês"}
-              </button>
-              <button
-                onClick={handleCoraSyncYear}
-                disabled={isSyncing}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-teal-300 bg-teal-50 text-sm text-teal-700 hover:bg-teal-100 disabled:opacity-50 transition-colors"
-              >
-                {isSyncing ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
-                {isSyncing ? "Sincronizando…" : `Sincronizar ${selectedMonth.year} completo`}
-              </button>
-            </>
+            <div ref={syncMenuRef} className="relative">
+              <div className="flex items-stretch rounded-xl border border-emerald-300 bg-emerald-50 overflow-hidden">
+                <button
+                  onClick={handleCoraSync}
+                  disabled={isSyncing}
+                  className="flex items-center gap-1.5 px-3 py-2 text-sm text-emerald-700 hover:bg-emerald-100 disabled:opacity-50 transition-colors"
+                >
+                  {isSyncing ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
+                  {isSyncing ? "Sincronizando…" : "Sincronizar"}
+                </button>
+                <div className="w-px bg-emerald-200" />
+                <button
+                  onClick={() => setShowSyncMenu((v) => !v)}
+                  disabled={isSyncing}
+                  className="flex items-center px-2 py-2 text-emerald-700 hover:bg-emerald-100 disabled:opacity-50 transition-colors"
+                  title="Mais opções de sincronização"
+                >
+                  <ChevronDown size={13} className={`transition-transform ${showSyncMenu ? "rotate-180" : ""}`} />
+                </button>
+              </div>
+              {showSyncMenu && (
+                <div className="absolute left-0 top-full mt-1 z-20 bg-white border border-gray-200 rounded-xl shadow-lg py-1 min-w-[210px]">
+                  <button
+                    onClick={() => { handleCoraSync(); setShowSyncMenu(false); }}
+                    disabled={isSyncing}
+                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors text-left"
+                  >
+                    <RefreshCw size={13} className="text-emerald-600 shrink-0" />
+                    <div>
+                      <div className="font-medium">Sincronizar mês</div>
+                      <div className="text-[11px] text-gray-400">{MONTH_NAMES[selectedMonth.month]} de {selectedMonth.year}</div>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => { handleCoraSyncYear(); setShowSyncMenu(false); }}
+                    disabled={isSyncing}
+                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors text-left"
+                  >
+                    <RefreshCw size={13} className="text-teal-600 shrink-0" />
+                    <div>
+                      <div className="font-medium">Sincronizar ano completo</div>
+                      <div className="text-[11px] text-gray-400">Jan — Dez {selectedMonth.year}</div>
+                    </div>
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </div>
 
         {/* Right: month navigation + balance summary */}
-        <div className="flex flex-col items-end gap-1.5">
+        <div className="flex flex-col items-end gap-2">
           <div className="flex items-center gap-1">
             <button
               onClick={() => navigateMonth(-1)}
-              className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-600"
+              className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-500"
+              aria-label="Mês anterior"
             >
               <ChevronLeft size={16} />
             </button>
-            <div className="flex items-center gap-1 px-3 py-1.5 rounded-xl border border-gray-300 bg-white text-sm font-medium text-gray-800 min-w-[170px] justify-center select-none">
+            <span className="px-3 py-1.5 rounded-xl border border-gray-300 bg-white text-sm font-semibold text-gray-800 min-w-[170px] text-center select-none">
               {MONTH_NAMES[selectedMonth.month]} de {selectedMonth.year}
-              <ChevronDown size={13} className="text-gray-400 ml-1" />
-            </div>
+            </span>
             <button
               onClick={() => navigateMonth(1)}
-              className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-600"
+              className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-500"
+              aria-label="Próximo mês"
             >
               <ChevronRight size={16} />
             </button>
+            {(() => {
+              const now = new Date();
+              const isCurrentMonth = selectedMonth.year === now.getFullYear() && selectedMonth.month === now.getMonth();
+              return !isCurrentMonth ? (
+                <button
+                  onClick={() => setSelectedMonth({ year: now.getFullYear(), month: now.getMonth() })}
+                  className="px-2 py-1.5 rounded-lg text-[11px] font-medium text-blue-600 hover:bg-blue-50 transition-colors border border-blue-200"
+                >
+                  Hoje
+                </button>
+              ) : null;
+            })()}
           </div>
-          <div className="flex items-center gap-5 text-xs">
-            <div>
-              <span className="text-gray-500">Saldo atual no sistema</span>
-              <span className="ml-2 font-bold text-gray-900">{fmtBRL(Math.abs(balanceConciliado))}</span>
+          <div className="flex items-center gap-4 text-xs">
+            <div className="flex items-center gap-1.5">
+              <span className="text-gray-400">Saldo conciliado</span>
+              <span className={`font-bold ${balanceConciliado >= 0 ? "text-emerald-700" : "text-red-600"}`}>
+                {balanceConciliado >= 0 ? "+" : ""}{fmtBRL(balanceConciliado)}
+              </span>
             </div>
-            <div>
-              <span className="text-gray-500">Valor pendente de conciliação</span>
-              <span className="ml-2 font-bold text-amber-700">{fmtBRL(pendingAmount)}</span>
-            </div>
+            {pendingAmount > 0 && (
+              <div className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                <span className="text-gray-400">Pendente</span>
+                <span className="font-bold text-amber-700">{fmtBRL(pendingAmount)}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -896,11 +952,6 @@ export default function BankReconciliationBoard({
             <X size={12} /> Limpar filtros
           </button>
         )}
-        {activeTab === "pendentes" && (
-          <button className="ml-auto text-xs text-gray-600 border border-gray-300 rounded-xl px-3 py-2 hover:bg-gray-50 transition-colors">
-            Ver lançamentos ignorados
-          </button>
-        )}
       </div>
 
       {/* ── Direction tabs + action bar ──────────────────────────────────────── */}
@@ -909,24 +960,31 @@ export default function BankReconciliationBoard({
         {/* Direction filter tabs */}
         <div className="flex rounded-xl border border-gray-200 bg-white overflow-hidden divide-x divide-gray-200">
           {(["todos", "recebimentos", "pagamentos"] as DirectionFilter[]).map((f) => {
-            const label   = f === "todos" ? "Todos" : f === "recebimentos" ? "Recebimentos" : "Pagamentos";
-            const count   = counts[f];
-            const active  = dirFilter === f;
+            const label  = f === "todos" ? "Todos" : f === "recebimentos" ? "Recebimentos" : "Pagamentos";
+            const count  = counts[f];
+            const active = dirFilter === f;
             const numColor =
               f === "recebimentos" ? "text-emerald-600" :
               f === "pagamentos"   ? "text-red-600" :
                                      "text-gray-700";
+            const amtStr =
+              f === "recebimentos" ? fmtBRL(amounts.recebimentos) :
+              f === "pagamentos"   ? fmtBRL(amounts.pagamentos) :
+                                     null;
             return (
               <button
                 key={f}
                 onClick={() => setDirFilter(f)}
                 className={
-                  "px-5 py-2 text-xs font-medium transition-colors text-center min-w-[80px] " +
+                  "px-5 py-2 text-xs font-medium transition-colors text-center min-w-[100px] " +
                   (active ? "bg-gray-100 text-gray-900" : "text-gray-500 hover:bg-gray-50")
                 }
               >
-                <div>{label}</div>
-                <div className={`text-lg font-bold mt-0.5 ${numColor}`}>{count}</div>
+                <div className="text-[11px] text-gray-500">{label}</div>
+                <div className={`text-lg font-bold mt-0.5 leading-none ${numColor}`}>{count}</div>
+                {amtStr && (
+                  <div className={`text-[10px] mt-0.5 font-medium ${numColor} opacity-75`}>{amtStr}</div>
+                )}
               </button>
             );
           })}
