@@ -514,29 +514,43 @@ export default function BankReconciliationBoard({
   async function runCoraSync(startDate: string, endDate: string) {
     setIsSyncing(true);
     try {
-      const isJacqes = selectedAccount.includes("JACQES");
-      const res = await fetch("/api/cora/sync", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          accountName: isJacqes ? "Conta PJ JACQES" : "Conta PJ AWQ Holding",
-          entity:      isJacqes ? "JACQES" : "AWQ_Holding",
-          startDate,
-          endDate,
-        }),
-      });
-      const data = await res.json() as { synced?: number; skipped?: number; error?: string };
-      if (!res.ok) throw new Error(data.error ?? "Falha na sincronização");
-      if (data.synced === 0) {
-        // If DB has data but local state is empty, reload to pick it up from the server.
+      // When "todos" is selected, sync both accounts; otherwise sync only the selected one.
+      const syncTargets: Array<{ accountName: string; entity: string }> =
+        selectedAccount === "todos" || selectedAccount === "all"
+          ? [
+              { accountName: "Conta PJ AWQ Holding", entity: "AWQ_Holding" },
+              { accountName: "Conta PJ JACQES",      entity: "JACQES"      },
+            ]
+          : [
+              {
+                accountName: selectedAccount.includes("JACQES") ? "Conta PJ JACQES" : "Conta PJ AWQ Holding",
+                entity:      selectedAccount.includes("JACQES") ? "JACQES" : "AWQ_Holding",
+              },
+            ];
+
+      let totalSynced = 0;
+      let totalSkipped = 0;
+      for (const target of syncTargets) {
+        const res = await fetch("/api/cora/sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...target, startDate, endDate }),
+        });
+        const data = await res.json() as { synced?: number; skipped?: number; error?: string };
+        if (!res.ok) throw new Error(data.error ?? "Falha na sincronização");
+        totalSynced  += data.synced  ?? 0;
+        totalSkipped += data.skipped ?? 0;
+      }
+
+      if (totalSynced === 0) {
         const hasLocalData = transactions.length > 0;
-        if ((data.skipped ?? 0) > 0 && !hasLocalData) {
+        if (totalSkipped > 0 && !hasLocalData) {
           window.location.reload();
           return;
         }
-        showToast("info", `Nenhuma transação nova. ${data.skipped ?? 0} já sincronizadas.`);
+        showToast("info", `Nenhuma transação nova. ${totalSkipped} já sincronizadas.`);
       } else {
-        showToast("ok", `${data.synced} transação(ões) sincronizada(s) da Cora.`);
+        showToast("ok", `${totalSynced} transação(ões) sincronizada(s) da Cora.`);
         window.location.reload();
       }
     } catch (err) {

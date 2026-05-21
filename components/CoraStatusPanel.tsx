@@ -11,6 +11,7 @@ import {
   FlaskConical,
   Loader2,
   RefreshCw,
+  ScanSearch,
   Wifi,
   WifiOff,
 } from "lucide-react";
@@ -28,6 +29,22 @@ interface SyncResult {
   period: { startDate: string; endDate: string };
   error?: string;
   _debug?: unknown;
+}
+
+interface AuditAccountResult {
+  entity: string;
+  accountName: string;
+  coraTotal: number;
+  dbTotal: number;
+  missing: number;
+  missingIds: string[];
+  error?: string;
+}
+
+interface AuditResult {
+  period: { startDate: string; endDate: string };
+  totalMissing: number;
+  accounts: AuditAccountResult[];
 }
 
 type AccountKey = "AWQ_Holding" | "JACQES";
@@ -81,6 +98,8 @@ export default function CoraStatusPanel({
   const [diagInfo, setDiagInfo]             = useState<{ account: string; debug: unknown } | null>(null);
   const [coraDebug, setCoraDebug]           = useState<unknown | null>(null);
   const [loadingDebug, setLoadingDebug]     = useState(false);
+  const [auditResult, setAuditResult]       = useState<AuditResult | null>(null);
+  const [loadingAudit, setLoadingAudit]     = useState(false);
   const isMounted = useRef(true);
   const router = useRouter();
 
@@ -94,6 +113,29 @@ export default function CoraStatusPanel({
       if (isMounted.current) setCoraDebug({ error: err instanceof Error ? err.message : "Falha" });
     } finally {
       if (isMounted.current) setLoadingDebug(false);
+    }
+  }, []);
+
+  const runAudit = useCallback(async (onMissingFound?: () => void) => {
+    if (!isMounted.current) return;
+    setLoadingAudit(true);
+    setAuditResult(null);
+    const startDate = INITIAL_START_DATE;
+    const endDate   = today();
+    try {
+      const res = await fetch(`/api/cora/audit?startDate=${startDate}&endDate=${endDate}&entity=all`);
+      const data = await res.json() as AuditResult & { error?: string };
+      if (!res.ok) throw new Error((data as { error?: string }).error ?? "Falha na varredura");
+      if (isMounted.current) setAuditResult(data);
+      if (data.totalMissing > 0) onMissingFound?.();
+    } catch (err) {
+      if (isMounted.current) setAuditResult({
+        period: { startDate, endDate },
+        totalMissing: -1,
+        accounts: [{ entity: "erro", accountName: "Erro", coraTotal: 0, dbTotal: 0, missing: 0, missingIds: [], error: err instanceof Error ? err.message : "Falha" }],
+      });
+    } finally {
+      if (isMounted.current) setLoadingAudit(false);
     }
   }, []);
 
@@ -224,6 +266,15 @@ export default function CoraStatusPanel({
           ) : null}
           <span className="text-gray-400">sync a cada 5 min</span>
           <button
+            onClick={() => void runAudit(() => void runSync(INITIAL_START_DATE))}
+            disabled={loadingAudit || syncing}
+            className="flex items-center gap-1 px-2 py-0.5 rounded border border-gray-200 hover:border-violet-400 hover:bg-violet-50 text-gray-500 hover:text-violet-700 transition-colors disabled:opacity-50"
+            title="Varredura: compara extrato da Cora com o banco para detectar lançamentos faltantes"
+          >
+            {loadingAudit ? <Loader2 size={10} className="animate-spin" /> : <ScanSearch size={10} />}
+            <span className="text-[10px]">Varredura</span>
+          </button>
+          <button
             onClick={() => void runCoraDebug()}
             disabled={loadingDebug}
             className="flex items-center gap-1 px-2 py-0.5 rounded border border-gray-200 hover:border-amber-400 hover:bg-amber-50 text-gray-500 hover:text-amber-700 transition-colors disabled:opacity-50"
@@ -253,6 +304,39 @@ export default function CoraStatusPanel({
           <pre className="bg-white border border-amber-200 rounded p-2 text-[10px] text-gray-700 overflow-x-auto max-h-64 leading-relaxed whitespace-pre-wrap">
             {JSON.stringify(coraDebug ?? diagInfo?.debug, null, 2)}
           </pre>
+        </div>
+      )}
+
+      {/* Painel de resultado da varredura */}
+      {auditResult && (
+        <div className={`px-5 py-3 border-b text-xs space-y-2 ${auditResult.totalMissing > 0 ? "bg-red-50 border-red-200" : auditResult.totalMissing === 0 ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200"}`}>
+          <div className={`flex items-center gap-1.5 font-semibold ${auditResult.totalMissing > 0 ? "text-red-800" : auditResult.totalMissing === 0 ? "text-emerald-800" : "text-amber-800"}`}>
+            <ScanSearch size={13} className="shrink-0" />
+            {auditResult.totalMissing === -1
+              ? "Varredura encontrou erros"
+              : auditResult.totalMissing === 0
+              ? `Varredura concluída — nenhum lançamento faltando (${auditResult.period.startDate} → ${auditResult.period.endDate})`
+              : `Varredura: ${auditResult.totalMissing} lançamento(s) faltando na base! Sincronização iniciada…`}
+          </div>
+          <div className="space-y-1">
+            {auditResult.accounts.map((acc) => (
+              <div key={acc.entity} className="flex items-center gap-3 text-[11px]">
+                <span className="font-medium text-gray-700 min-w-[180px]">{acc.accountName}:</span>
+                {acc.error ? (
+                  <span className="text-amber-700">{acc.error}</span>
+                ) : (
+                  <>
+                    <span className="text-gray-600">Cora: <strong>{acc.coraTotal}</strong></span>
+                    <span className="text-gray-600">Base: <strong>{acc.dbTotal}</strong></span>
+                    {acc.missing > 0
+                      ? <span className="px-1.5 py-0.5 rounded-full bg-red-100 border border-red-200 text-red-700 font-semibold">{acc.missing} faltando</span>
+                      : <span className="px-1.5 py-0.5 rounded-full bg-emerald-100 border border-emerald-200 text-emerald-700 font-semibold">Em dia</span>
+                    }
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
