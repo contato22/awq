@@ -511,10 +511,9 @@ export default function BankReconciliationBoard({
   }
 
   // ── Cora API sync ────────────────────────────────────────────────────────────
-  async function handleCoraSync() {
+  async function runCoraSync(startDate: string, endDate: string) {
     setIsSyncing(true);
     try {
-      // Determine which account to sync based on current selection
       const isJacqes = selectedAccount.includes("JACQES");
       const res = await fetch("/api/cora/sync", {
         method: "POST",
@@ -522,8 +521,8 @@ export default function BankReconciliationBoard({
         body: JSON.stringify({
           accountName: isJacqes ? "Conta PJ JACQES" : "Conta PJ AWQ Holding",
           entity:      isJacqes ? "JACQES" : "AWQ_Holding",
-          startDate:   `${selectedMonth.year}-${String(selectedMonth.month + 1).padStart(2, "0")}-01`,
-          endDate:     new Date(selectedMonth.year, selectedMonth.month + 1, 0).toISOString().slice(0, 10),
+          startDate,
+          endDate,
         }),
       });
       const data = await res.json() as { synced?: number; skipped?: number; error?: string };
@@ -532,7 +531,6 @@ export default function BankReconciliationBoard({
         showToast("info", `Nenhuma transação nova. ${data.skipped ?? 0} já sincronizadas.`);
       } else {
         showToast("ok", `${data.synced} transação(ões) sincronizada(s) da Cora.`);
-        // Reload the page to show the new transactions from the server
         window.location.reload();
       }
     } catch (err) {
@@ -540,6 +538,18 @@ export default function BankReconciliationBoard({
     } finally {
       setIsSyncing(false);
     }
+  }
+
+  function handleCoraSync() {
+    const start = `${selectedMonth.year}-${String(selectedMonth.month + 1).padStart(2, "0")}-01`;
+    const end   = new Date(selectedMonth.year, selectedMonth.month + 1, 0).toISOString().slice(0, 10);
+    void runCoraSync(start, end);
+  }
+
+  function handleCoraSyncYear() {
+    const start = `${selectedMonth.year}-01-01`;
+    const end   = new Date().toISOString().slice(0, 10);
+    void runCoraSync(start, end);
   }
 
   // ── Render ───────────────────────────────────────────────────────────────────
@@ -699,14 +709,24 @@ export default function BankReconciliationBoard({
             {isImporting ? "Processando…" : "Importar CSV / PDF"}
           </button>
           {coraConfigured && (
-            <button
-              onClick={() => void handleCoraSync()}
-              disabled={isSyncing}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-emerald-300 bg-emerald-50 text-sm text-emerald-700 hover:bg-emerald-100 disabled:opacity-50 transition-colors"
-            >
-              {isSyncing ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
-              {isSyncing ? "Sincronizando…" : "Sincronizar Cora"}
-            </button>
+            <>
+              <button
+                onClick={handleCoraSync}
+                disabled={isSyncing}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-emerald-300 bg-emerald-50 text-sm text-emerald-700 hover:bg-emerald-100 disabled:opacity-50 transition-colors"
+              >
+                {isSyncing ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
+                {isSyncing ? "Sincronizando…" : "Sincronizar mês"}
+              </button>
+              <button
+                onClick={handleCoraSyncYear}
+                disabled={isSyncing}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-teal-300 bg-teal-50 text-sm text-teal-700 hover:bg-teal-100 disabled:opacity-50 transition-colors"
+              >
+                {isSyncing ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
+                {isSyncing ? "Sincronizando…" : `Sincronizar ${selectedMonth.year} completo`}
+              </button>
+            </>
           )}
         </div>
 
