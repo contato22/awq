@@ -17,5 +17,11 @@ export default defineConfig({
 
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    // Authenticated project — only runs when E2E_EMAIL/E2E_PASSWORD are set
+    {
+      name: "chromium-auth",
+      use: { ...devices["Desktop Chrome"] },
+      testMatch: "**/auth.spec.ts",
+    },
   ],
 });
