@@ -1,7 +1,7 @@
 name: Auditoria Cora vs Banco
 
 # Compara quantas transações estão na Cora vs no banco ERP.
-# Lê /api/health (público) e /api/cora/audit-probe (público com token).
+# Se houver gaps, dispara sync automático via /api/cora/sync-probe.
 # Resultado publicado como GitHub Issue com label "cora-audit".
 #
 # Disparo: manual (workflow_dispatch) ou automático via push no main.
@@ -13,6 +13,8 @@ on:
       - main
     paths:
       - '.github/workflows/cora-audit.yml'
+      - 'app/api/cora/audit-probe/**'
+      - 'app/api/cora/sync-probe/**'
 
 permissions:
   contents: read
@@ -20,7 +22,7 @@ permissions:
 
 jobs:
   audit:
-    name: Auditar transações Cora vs Supabase ERP
+    name: Auditar e sincronizar transações Cora vs Supabase ERP
     runs-on: ubuntu-latest
 
     steps:
@@ -32,8 +34,6 @@ jobs:
           BODY=$(curl -s --max-time 30 https://awq-brown.vercel.app/api/health 2>/dev/null || echo "{}")
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 https://awq-brown.vercel.app/api/health 2>/dev/null || echo "000")
           echo "status=$STATUS" >> $GITHUB_OUTPUT
-          echo "HTTP $STATUS"
-          echo "Body: $BODY"
 
           parse() { echo "$BODY" | python3 -c "import json,sys; d=json.load(sys.stdin); print($1)" 2>/dev/null || echo "$2"; }
 
@@ -43,7 +43,6 @@ jobs:
           JACQES=$(parse    "str(d.get('coraJacqes',False)).lower()"         "false")
           SYNC=$(parse      "str(d.get('syncReady',False)).lower()"          "false")
           DB_ADAPTER=$(parse "d.get('dbAdapter','unknown')"                  "unknown")
-          ALL_GREEN=$(parse  "str(d.get('allGreen',False)).lower()"          "false")
 
           echo "erp_ping=$ERP_PING"       >> $GITHUB_OUTPUT
           echo "erp_txn=$ERP_TXN"         >> $GITHUB_OUTPUT
@@ -51,19 +50,16 @@ jobs:
           echo "jacqes=$JACQES"           >> $GITHUB_OUTPUT
           echo "sync=$SYNC"               >> $GITHUB_OUTPUT
           echo "db_adapter=$DB_ADAPTER"   >> $GITHUB_OUTPUT
-          echo "all_green=$ALL_GREEN"     >> $GITHUB_OUTPUT
 
-          echo ""
-          echo "═══ Resultado /api/health ═══"
+          echo "═══ /api/health ═══"
           echo "  erpPing:             $ERP_PING"
           echo "  erpTransactionCount: $ERP_TXN"
           echo "  coraReady:           $CORA"
           echo "  coraJacqes:          $JACQES"
           echo "  syncReady:           $SYNC"
           echo "  dbAdapter:           $DB_ADAPTER"
-          echo "  allGreen:            $ALL_GREEN"
 
-      # ── 2. Audit — chama /api/cora/audit-probe se disponível ────────────────
+      # ── 2. Audit — chama /api/cora/audit-probe ────────────────────────────
       - name: "FETCH — /api/cora/audit-probe (Cora vs banco por conta)"
         id: audit
         continue-on-error: true
@@ -74,19 +70,67 @@ jobs:
           BODY=$(curl -s --max-time 55 "$URL" 2>/dev/null || echo "{}")
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 55 "$URL" 2>/dev/null || echo "000")
           echo "status=$STATUS" >> $GITHUB_OUTPUT
-          echo "HTTP $STATUS | Body: ${BODY:0:1000}"
+
+          echo "HTTP $STATUS | Body: ${BODY:0:2000}"
 
           if [ "$STATUS" = "200" ]; then
-            TOTAL_MISSING=$(echo "$BODY" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('totalMissing','null'))" 2>/dev/null || echo "null")
+            TOTAL_MISSING=$(echo "$BODY" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('totalMissing',0))" 2>/dev/null || echo "0")
+            CORA_TOTAL=$(echo "$BODY" | python3 -c "
+          import json,sys
+          d=json.load(sys.stdin)
+          accs=d.get('accounts',[])
+          print(sum(a.get('coraTotal',0) for a in accs))
+          " 2>/dev/null || echo "?")
+            DB_TOTAL=$(echo "$BODY" | python3 -c "
+          import json,sys
+          d=json.load(sys.stdin)
+          accs=d.get('accounts',[])
+          print(sum(a.get('dbTotal',0) for a in accs))
+          " 2>/dev/null || echo "?")
             echo "total_missing=$TOTAL_MISSING" >> $GITHUB_OUTPUT
+            echo "cora_total=$CORA_TOTAL"       >> $GITHUB_OUTPUT
+            echo "db_total=$DB_TOTAL"           >> $GITHUB_OUTPUT
             echo "raw=$BODY"                    >> $GITHUB_OUTPUT
-            echo "Lançamentos faltando: $TOTAL_MISSING"
+            echo "═══ Resultado auditoria ═══"
+            echo "  Cora total:       $CORA_TOTAL"
+            echo "  Banco total:      $DB_TOTAL"
+            echo "  Faltando no banco: $TOTAL_MISSING"
           else
-            echo "total_missing=endpoint_indisponivel" >> $GITHUB_OUTPUT
-            echo "INFO: /api/cora/audit-probe retornou $STATUS (endpoint não existe ainda)"
+            echo "total_missing=erro_$STATUS" >> $GITHUB_OUTPUT
+            echo "cora_total=?"               >> $GITHUB_OUTPUT
+            echo "db_total=?"                 >> $GITHUB_OUTPUT
           fi
 
-      # ── 3. Publicar issue com resultado ─────────────────────────────────────
+      # ── 3. Sync automático se houver gaps ─────────────────────────────────
+      - name: "POST — /api/cora/sync-probe (importar lançamentos faltantes)"
+        id: sync
+        if: steps.audit.outputs.total_missing != '0' && steps.audit.outputs.status == '200'
+        continue-on-error: true
+        run: |
+          START="2026-01-01"
+          END=$(date -u +%Y-%m-%d)
+          URL="https://awq-brown.vercel.app/api/cora/sync-probe"
+          BODY=$(curl -s --max-time 58 -X POST "$URL" \
+            -H "Content-Type: application/json" \
+            -d "{\"startDate\":\"$START\",\"endDate\":\"$END\"}" \
+            2>/dev/null || echo "{}")
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 58 -X POST "$URL" \
+            -H "Content-Type: application/json" \
+            -d "{\"startDate\":\"$START\",\"endDate\":\"$END\"}" \
+            2>/dev/null || echo "000")
+          echo "status=$STATUS" >> $GITHUB_OUTPUT
+
+          echo "HTTP $STATUS | Body: ${BODY:0:2000}"
+
+          if [ "$STATUS" = "200" ]; then
+            SYNCED=$(echo "$BODY" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('totalSynced',0))" 2>/dev/null || echo "?")
+            echo "synced=$SYNCED" >> $GITHUB_OUTPUT
+            echo "  Sincronizados: $SYNCED lançamentos"
+          else
+            echo "synced=erro_$STATUS" >> $GITHUB_OUTPUT
+          fi
+
+      # ── 4. Publicar resultado ─────────────────────────────────────────────
       - name: "Publicar resultado da auditoria como Issue"
         if: always()
         env:
@@ -101,18 +145,33 @@ jobs:
           DB_ADAPTER="${{ steps.health.outputs.db_adapter }}"
           AUDIT_STATUS="${{ steps.audit.outputs.status }}"
           TOTAL_MISSING="${{ steps.audit.outputs.total_missing }}"
+          CORA_TOTAL="${{ steps.audit.outputs.cora_total }}"
+          DB_TOTAL="${{ steps.audit.outputs.db_total }}"
+          SYNC_STATUS="${{ steps.sync.outputs.status }}"
+          SYNCED="${{ steps.sync.outputs.synced }}"
 
           gh label create "cora-audit" \
             --color "7057ff" \
             --description "Resultado da auditoria Cora vs banco" \
             --repo "${{ github.repository }}" 2>/dev/null || true
 
-          if [ "$TOTAL_MISSING" = "0" ]; then
-            AUDIT_LINE="✅ Nenhum lançamento faltando — banco em dia com a Cora"
-          elif [ "$TOTAL_MISSING" = "null" ] || [ "$TOTAL_MISSING" = "endpoint_indisponivel" ]; then
-            AUDIT_LINE="⚠️ Auditoria detalhada indisponível (endpoint /api/cora/audit-probe não existe)"
+          if [ "$AUDIT_STATUS" = "200" ]; then
+            if [ "$TOTAL_MISSING" = "0" ]; then
+              AUDIT_LINE="✅ Nenhum lançamento faltando — banco em dia com a Cora"
+              SYNC_LINE=""
+            else
+              AUDIT_LINE="❌ **$TOTAL_MISSING** lançamento(s) na Cora NÃO estavam no banco"
+              if [ "$SYNC_STATUS" = "200" ]; then
+                SYNC_LINE="🔄 **Sync automático**: $SYNCED lançamentos importados"
+              elif [ -n "$SYNC_STATUS" ]; then
+                SYNC_LINE="⚠️ Sync automático falhou (HTTP $SYNC_STATUS)"
+              else
+                SYNC_LINE=""
+              fi
+            fi
           else
-            AUDIT_LINE="❌ $TOTAL_MISSING lançamento(s) na Cora faltando no banco"
+            AUDIT_LINE="⚠️ Auditoria retornou HTTP $AUDIT_STATUS"
+            SYNC_LINE=""
           fi
 
           BODY="## Auditoria Cora vs Banco — $HORA
@@ -121,14 +180,19 @@ jobs:
           | Check | Valor |
           |---|---|
           | erpPing (Supabase ERP) | $ERP_PING |
-          | erpTransactionCount | $ERP_TXN |
+          | erpTransactionCount (total) | $ERP_TXN |
           | coraHolding configurado | $CORA |
           | coraJacqes configurado | $JACQES |
           | syncReady (service role) | $SYNC |
           | dbAdapter | $DB_ADAPTER |
 
-          ### Auditoria Cora (/api/cora/audit-probe HTTP $AUDIT_STATUS)
+          ### Auditoria Cora (2026-01-01 → $( date -u +%Y-%m-%d ))
+          | Conta | Cora | Banco | Gap |
+          |---|---|---|---|
+          | AWQ_Holding | $CORA_TOTAL | $DB_TOTAL | $TOTAL_MISSING |
+
           $AUDIT_LINE
+          $SYNC_LINE
 
           ---
           *Gerado automaticamente pelo workflow cora-audit.yml*"
