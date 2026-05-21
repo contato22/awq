@@ -16,11 +16,11 @@ import { createClient } from "@supabase/supabase-js";
 const ERP_URL      = "https://kkhxxsrgsewjfvnnssyf.supabase.co";
 const ERP_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtraHh4c3Jnc2V3amZ2bm5zc3lmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MjU5MDMsImV4cCI6MjA5NDIwMTkwM30.snYJ697SXGqcKc-I__w0kYMat71LbnusEjOdg27EOvs";
 
-const url     = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL ?? ERP_URL;
-const svcKey  = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+const url     = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || ERP_URL;
+const svcKey  = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-             ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-             ?? ERP_ANON_KEY;
+             || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+             || ERP_ANON_KEY;
 
 // Server-side — service role key bypasses Row Level Security.
 export const supabase       = url && svcKey  ? createClient(url, svcKey)  : null;
