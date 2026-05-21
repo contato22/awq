@@ -3,11 +3,13 @@
 // SOURCE OF TRUTH CLASSIFICATION:
 //   This module is the canonical server-side store for all ingested financial data.
 //
-// STORAGE ADAPTERS (auto-selected at runtime):
-//   SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY set  → Supabase (Postgres) via @supabase/supabase-js
+// STORAGE ADAPTERS (auto-selected at runtime, in priority order):
+//   SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY set  → Supabase financial DB (bypasses RLS)
 //   ERP_SUPABASE_SERVICE_ROLE_KEY set             → ERP Supabase (bypasses RLS)
-//   DATABASE_URL set                              → Direct postgres via postgres.js
-//   env vars unset → JSON files in public/data/financial/ (local dev)
+//   NEXT_PUBLIC_SUPABASE_URL + anon key set       → financial DB anon (works when RLS disabled)
+//   ERP anon key available                        → ERP Supabase anon (works when RLS disabled)
+//   DATABASE_URL set                              → initDB schema migration only (not used for reads/writes)
+//   none of the above                            → JSON files in public/data/financial/ (local dev)
 //
 // DO NOT import this module in client components — it uses Node's `fs` module
 // (filesystem adapter) or Supabase (DB adapter). Both are server-only.
@@ -15,14 +17,16 @@
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
-import { supabase, erpAdmin, erpAnon } from "@/lib/supabase";
+import { supabase, erpAdmin, erpAnon, anonClient } from "@/lib/supabase";
 import { sql, initDB } from "@/lib/db";
 
-// Priority: financial service role → ERP service role → direct postgres → ERP anon → JSON.
-// erpAdmin bypasses RLS (requires ERP_SUPABASE_SERVICE_ROLE_KEY in Vercel).
-// erpAnon is subject to RLS — only works if RLS is disabled on the tables.
-// sql bypasses RLS via direct postgres connection (requires DATABASE_URL in Vercel).
-const db = supabase ?? erpAdmin ?? (sql ? null : erpAnon);
+// Priority: financial service role → ERP service role → financial anon → ERP anon → JSON.
+// supabase/erpAdmin bypass RLS (require service role keys in Vercel).
+// anonClient uses financial DB anon key — works if tables have RLS disabled + anon grants
+//   (initDB disables RLS and grants ALL to anon, so this is the default fallback).
+// erpAnon uses ERP DB anon key — fallback if financial DB URL is not configured.
+// sql (DATABASE_URL direct postgres) is used only for initDB schema migration.
+const db = supabase ?? erpAdmin ?? anonClient ?? erpAnon;
 
 // ─── Directory (filesystem adapter only) ─────────────────────────────────────
 
