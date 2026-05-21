@@ -104,6 +104,7 @@ export interface ARItem {
   cost_center?:   string;
   reference_doc?: string;
   project_id?:    string;  // PPM project link
+  account_code?:  string;  // CoA: e.g. "1.1.2.1.1.1" (AR — JACQES Tier 1)
   issue_date:     string;
   due_date:       string;
   gross_amount:   number;
@@ -133,6 +134,7 @@ export interface NewARInput {
   cost_center?:   string;
   reference_doc?: string;
   project_id?:    string;  // PPM project link
+  account_code?:  string;  // CoA leaf account (e.g. "1.1.2.1.1.1")
   issue_date:     string;
   due_date:       string;
   gross_amount:   number;
@@ -333,12 +335,13 @@ export async function initAPARDB(): Promise<void> {
   await sql`CREATE INDEX IF NOT EXISTS idx_epm_ar_bu_code    ON epm_ar(bu_code)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_epm_ar_status     ON epm_ar(status)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_epm_ar_due_date   ON epm_ar(due_date)`;
-  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS customer_id TEXT`;
-  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS cost_center TEXT`;
-  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS pis_rate    NUMERIC NOT NULL DEFAULT 0`;
-  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS pis_amount  NUMERIC NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS customer_id   TEXT`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS cost_center   TEXT`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS pis_rate      NUMERIC NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS pis_amount    NUMERIC NOT NULL DEFAULT 0`;
   await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS cofins_rate   NUMERIC NOT NULL DEFAULT 0`;
   await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS cofins_amount NUMERIC NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE epm_ar ADD COLUMN IF NOT EXISTS account_code  TEXT`;
 }
 
 // ─── Aging helper ─────────────────────────────────────────────────────────────
@@ -404,6 +407,7 @@ function rowToAR(row: Record<string, unknown>): ARItem {
     category:         String(row.category),
     cost_center:      row.cost_center ? String(row.cost_center) : undefined,
     reference_doc:    row.reference_doc ? String(row.reference_doc) : undefined,
+    account_code:     row.account_code ? String(row.account_code) : undefined,
     issue_date:       String(row.issue_date),
     due_date:         String(row.due_date),
     gross_amount:     Number(row.gross_amount),
@@ -635,6 +639,7 @@ export async function addAR(input: NewARInput): Promise<ARItem> {
     cost_center:    input.cost_center,
     reference_doc:  input.reference_doc,
     project_id:     input.project_id,
+    account_code:   input.account_code,
     issue_date:     input.issue_date,
     due_date:       input.due_date,
     gross_amount:   input.gross_amount,
@@ -655,13 +660,14 @@ export async function addAR(input: NewARInput): Promise<ARItem> {
     await sql`
       INSERT INTO epm_ar (
         id, bu_code, customer_id, customer_name, customer_doc, description, category,
-        cost_center, reference_doc, issue_date, due_date, gross_amount,
+        cost_center, reference_doc, account_code, issue_date, due_date, gross_amount,
         iss_rate, iss_amount, pis_rate, pis_amount, cofins_rate, cofins_amount,
         net_amount, status, source_system, created_at, created_by
       ) VALUES (
         ${item.id}, ${item.bu_code}, ${item.customer_id ?? null}, ${item.customer_name},
         ${item.customer_doc ?? null}, ${item.description}, ${item.category},
-        ${item.cost_center ?? null}, ${item.reference_doc ?? null}, ${item.issue_date}, ${item.due_date}, ${item.gross_amount},
+        ${item.cost_center ?? null}, ${item.reference_doc ?? null}, ${item.account_code ?? null},
+        ${item.issue_date}, ${item.due_date}, ${item.gross_amount},
         ${item.iss_rate}, ${item.iss_amount}, ${item.pis_rate}, ${item.pis_amount},
         ${item.cofins_rate}, ${item.cofins_amount}, ${item.net_amount},
         ${item.status}, ${item.source_system}, ${item.created_at}, ${item.created_by ?? null}

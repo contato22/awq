@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import ARTabNav from "@/components/ARTabNav";
 import type { ARContract, BuCode } from "@/lib/ap-ar-db";
 
 const BUS: BuCode[] = ["AWQ", "JACQES", "CAZA", "ADVISOR", "VENTURE"];
@@ -85,6 +86,7 @@ export default function ContractsPage() {
 
   return (
     <div className="p-6 space-y-6 max-w-5xl mx-auto">
+      <ARTabNav />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Contratos Recorrentes</h1>

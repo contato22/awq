@@ -16,6 +16,7 @@ import Header from "@/components/Header";
 import BankReconciliationBoard from "@/components/BankReconciliationBoard";
 import CoraStatusPanel from "@/components/CoraStatusPanel";
 import { getAllTransactions, getAllDocuments, type BankTransaction, type FinancialDocument } from "@/lib/financial-db";
+import { getAllAR, initAPARDB } from "@/lib/ap-ar-db";
 import {
 
   AlertCircle,
@@ -72,6 +73,20 @@ export default async function ConciliacaoPage() {
   let transactions: BankTransaction[] = [];
   let documents:    FinancialDocument[] = [];
   let loadError: string | null = null;
+
+  // Expected AR receipts (EPM system — separate from bank_transactions)
+  let arPending: { id: string; customer_name: string; net_amount: number; due_date: string; account_code?: string }[] = [];
+  try {
+    await initAPARDB();
+    const arItems = await getAllAR();
+    const today = new Date().toISOString().slice(0, 10);
+    arPending = arItems
+      .filter((i) => (i.status === "PENDING" || i.status === "PARTIAL") && i.due_date <= new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10))
+      .sort((a, b) => a.due_date.localeCompare(b.due_date))
+      .slice(0, 8)
+      .map((i) => ({ id: i.id, customer_name: i.customer_name, net_amount: i.net_amount, due_date: i.due_date, account_code: i.account_code }));
+    void today;
+  } catch { /* AR EPM unavailable — show empty state */ }
 
   try {
     [transactions, documents] = await Promise.all([
@@ -202,6 +217,55 @@ export default async function ConciliacaoPage() {
             coraConfigured={CORA_CONFIGURED}
           />
         </section>
+
+        {/* ── AR: Recebimentos Esperados (pipeline EPM) ── */}
+        {arPending.length > 0 && (
+          <section className="rounded-xl border border-brand-200 bg-brand-50 p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-brand-900">Recebimentos Esperados (AR)</h3>
+                <p className="text-[11px] text-brand-700 mt-0.5">
+                  Faturas pendentes no EPM — associe ao crédito bancário correspondente
+                </p>
+              </div>
+              <Link href="/awq/epm/ar/cadastro" className="text-xs text-brand-600 hover:underline flex items-center gap-1">
+                Cadastro AR <ArrowUpRight size={11} />
+              </Link>
+            </div>
+            <div className="grid gap-1.5">
+              {arPending.map((item) => {
+                const today = new Date().toISOString().slice(0, 10);
+                const overdue = item.due_date < today;
+                const [y, m, d] = item.due_date.split("-");
+                return (
+                  <div key={item.id}
+                    className={`flex items-center justify-between text-xs rounded-lg px-3 py-2 ${overdue ? "bg-red-50 border border-red-200" : "bg-white border border-brand-100"}`}>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <CheckCircle2 size={11} className={overdue ? "text-red-500 shrink-0" : "text-brand-400 shrink-0"} />
+                      <span className="font-medium text-gray-700 truncate">{item.customer_name}</span>
+                      {item.account_code && (
+                        <span className="text-[9px] font-mono text-gray-400 hidden sm:inline">{item.account_code}</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className={`tabular-nums font-semibold ${overdue ? "text-red-700" : "text-emerald-700"}`}>
+                        {item.net_amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                      </span>
+                      <span className={`text-[10px] ${overdue ? "text-red-500 font-semibold" : "text-gray-400"}`}>
+                        {`${d}/${m}/${y}`}{overdue ? " ⚠ vencido" : ""}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="text-[10px] text-brand-600">
+              Ao receber o crédito bancário, registre em{" "}
+              <Link href="/awq/epm/ar" className="underline">AR Lançamentos</Link>
+              {" "}para atualizar DFC, DRE e Balanço automaticamente.
+            </p>
+          </section>
+        )}
 
         {/* ── Seção 2: Impacto da Conciliação ── */}
         <section className="rounded-xl border border-gray-200 bg-white p-5">

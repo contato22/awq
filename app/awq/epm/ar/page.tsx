@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Header from "@/components/Header";
 import Link from "next/link";
+import ARTabNav from "@/components/ARTabNav";
 import {
   ArrowUpRight, Plus, X, CheckCircle2, Trash2, Search,
   ChevronDown, ChevronUp, Receipt, Pencil,
@@ -268,6 +269,7 @@ export default function ARPage() {
         subtitle={`EPM · AWQ Group · ${outstanding.length} em aberto${kpis?.dso != null ? ` · DSO ${kpis.dso}d` : ""}${kpis?.ccc != null ? ` · CCC ${kpis.ccc}d` : ""}`}
       />
       <div className="page-container">
+        <ARTabNav />
 
         {/* ── KPI cards ─────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
