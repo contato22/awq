@@ -1,0 +1,140 @@
+name: Auditoria Cora vs Banco
+
+# Compara quantas transações estão na Cora vs no banco ERP.
+# Lê /api/health (público) e /api/cora/audit-probe (público com token).
+# Resultado publicado como GitHub Issue com label "cora-audit".
+#
+# Disparo: manual (workflow_dispatch) ou automático via push no main.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/cora-audit.yml'
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  audit:
+    name: Auditar transações Cora vs Supabase ERP
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── 1. Health — infraestrutura e contagem total no banco ─────────────────
+      - name: "FETCH — /api/health (infraestrutura + erpTransactionCount)"
+        id: health
+        continue-on-error: true
+        run: |
+          BODY=$(curl -s --max-time 30 https://awq-brown.vercel.app/api/health 2>/dev/null || echo "{}")
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 https://awq-brown.vercel.app/api/health 2>/dev/null || echo "000")
+          echo "status=$STATUS" >> $GITHUB_OUTPUT
+          echo "HTTP $STATUS"
+          echo "Body: $BODY"
+
+          parse() { echo "$BODY" | python3 -c "import json,sys; d=json.load(sys.stdin); print($1)" 2>/dev/null || echo "$2"; }
+
+          ERP_PING=$(parse  "d.get('erpPing','?')"                          "?")
+          ERP_TXN=$(parse   "d.get('erpTransactionCount','null')"            "null")
+          CORA=$(parse      "str(d.get('coraReady',False)).lower()"          "false")
+          JACQES=$(parse    "str(d.get('coraJacqes',False)).lower()"         "false")
+          SYNC=$(parse      "str(d.get('syncReady',False)).lower()"          "false")
+          DB_ADAPTER=$(parse "d.get('dbAdapter','unknown')"                  "unknown")
+          ALL_GREEN=$(parse  "str(d.get('allGreen',False)).lower()"          "false")
+
+          echo "erp_ping=$ERP_PING"       >> $GITHUB_OUTPUT
+          echo "erp_txn=$ERP_TXN"         >> $GITHUB_OUTPUT
+          echo "cora=$CORA"               >> $GITHUB_OUTPUT
+          echo "jacqes=$JACQES"           >> $GITHUB_OUTPUT
+          echo "sync=$SYNC"               >> $GITHUB_OUTPUT
+          echo "db_adapter=$DB_ADAPTER"   >> $GITHUB_OUTPUT
+          echo "all_green=$ALL_GREEN"     >> $GITHUB_OUTPUT
+
+          echo ""
+          echo "═══ Resultado /api/health ═══"
+          echo "  erpPing:             $ERP_PING"
+          echo "  erpTransactionCount: $ERP_TXN"
+          echo "  coraReady:           $CORA"
+          echo "  coraJacqes:          $JACQES"
+          echo "  syncReady:           $SYNC"
+          echo "  dbAdapter:           $DB_ADAPTER"
+          echo "  allGreen:            $ALL_GREEN"
+
+      # ── 2. Audit — chama /api/cora/audit-probe se disponível ────────────────
+      - name: "FETCH — /api/cora/audit-probe (Cora vs banco por conta)"
+        id: audit
+        continue-on-error: true
+        run: |
+          START="2026-01-01"
+          END=$(date -u +%Y-%m-%d)
+          URL="https://awq-brown.vercel.app/api/cora/audit-probe?startDate=${START}&endDate=${END}"
+          BODY=$(curl -s --max-time 55 "$URL" 2>/dev/null || echo "{}")
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 55 "$URL" 2>/dev/null || echo "000")
+          echo "status=$STATUS" >> $GITHUB_OUTPUT
+          echo "HTTP $STATUS | Body: ${BODY:0:1000}"
+
+          if [ "$STATUS" = "200" ]; then
+            TOTAL_MISSING=$(echo "$BODY" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('totalMissing','null'))" 2>/dev/null || echo "null")
+            echo "total_missing=$TOTAL_MISSING" >> $GITHUB_OUTPUT
+            echo "raw=$BODY"                    >> $GITHUB_OUTPUT
+            echo "Lançamentos faltando: $TOTAL_MISSING"
+          else
+            echo "total_missing=endpoint_indisponivel" >> $GITHUB_OUTPUT
+            echo "INFO: /api/cora/audit-probe retornou $STATUS (endpoint não existe ainda)"
+          fi
+
+      # ── 3. Publicar issue com resultado ─────────────────────────────────────
+      - name: "Publicar resultado da auditoria como Issue"
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          HORA=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+          ERP_PING="${{ steps.health.outputs.erp_ping }}"
+          ERP_TXN="${{ steps.health.outputs.erp_txn }}"
+          CORA="${{ steps.health.outputs.cora }}"
+          JACQES="${{ steps.health.outputs.jacqes }}"
+          SYNC="${{ steps.health.outputs.sync }}"
+          DB_ADAPTER="${{ steps.health.outputs.db_adapter }}"
+          AUDIT_STATUS="${{ steps.audit.outputs.status }}"
+          TOTAL_MISSING="${{ steps.audit.outputs.total_missing }}"
+
+          gh label create "cora-audit" \
+            --color "7057ff" \
+            --description "Resultado da auditoria Cora vs banco" \
+            --repo "${{ github.repository }}" 2>/dev/null || true
+
+          if [ "$TOTAL_MISSING" = "0" ]; then
+            AUDIT_LINE="✅ Nenhum lançamento faltando — banco em dia com a Cora"
+          elif [ "$TOTAL_MISSING" = "null" ] || [ "$TOTAL_MISSING" = "endpoint_indisponivel" ]; then
+            AUDIT_LINE="⚠️ Auditoria detalhada indisponível (endpoint /api/cora/audit-probe não existe)"
+          else
+            AUDIT_LINE="❌ $TOTAL_MISSING lançamento(s) na Cora faltando no banco"
+          fi
+
+          BODY="## Auditoria Cora vs Banco — $HORA
+
+          ### Infraestrutura (/api/health)
+          | Check | Valor |
+          |---|---|
+          | erpPing (Supabase ERP) | $ERP_PING |
+          | erpTransactionCount | $ERP_TXN |
+          | coraHolding configurado | $CORA |
+          | coraJacqes configurado | $JACQES |
+          | syncReady (service role) | $SYNC |
+          | dbAdapter | $DB_ADAPTER |
+
+          ### Auditoria Cora (/api/cora/audit-probe HTTP $AUDIT_STATUS)
+          $AUDIT_LINE
+
+          ---
+          *Gerado automaticamente pelo workflow cora-audit.yml*"
+
+          gh issue create \
+            --title "🔍 Auditoria Cora — $HORA" \
+            --body "$BODY" \
+            --label "cora-audit" \
+            --repo "${{ github.repository }}"
