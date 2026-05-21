@@ -27,9 +27,9 @@ const GROUP_LABEL: Record<string, string> = {
 };
 const GROUP_ORDER = ["ASSET", "LIABILITY", "EQUITY"];
 
-export default function BalanceSheetPage() {
-  const bs = getBalanceSheet();
-  const tb = getTrialBalance();
+export default async function BalanceSheetPage() {
+  const bs = await getBalanceSheet();
+  const tb = await getTrialBalance();
 
   if (!bs.hasData) {
     return (

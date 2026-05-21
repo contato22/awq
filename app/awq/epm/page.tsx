@@ -74,8 +74,8 @@ const EPM_MODULES: ModuleCard[] = [
 export default async function EpmOverviewPage() {
   const [dre, balanceSheet, glEntries, snap, consolidatedMargins, bva] = await Promise.all([
     buildDreQuery("all"),
-    Promise.resolve(getBalanceSheet()),
-    Promise.resolve(getAllGLEntries()),
+    getBalanceSheet(),
+    getAllGLEntries(),
     getConsolidated(),
     getConsolidatedMargins(),
     getBudgetVsActual(),

@@ -309,10 +309,50 @@ export async function seedMonthlyRevenue(): Promise<void> {
 
 // ─── Category Budget ─────────────────────────────────────────────────────────
 
+// Maps budget category names → bank_transactions.managerial_category values
+const CATEGORY_MANAGERIAL_MAP: Record<string, string[]> = {
+  "Marketing & Growth":    ["marketing_midia"],
+  "Salários & Benefícios": ["folha_remuneracao", "prolabore_retirada"],
+  "Tecnologia & Infra":    ["software_assinatura"],
+  "Vendas & Comissões":    ["freelancer_terceiro"],
+  "G&A Consolidado":       ["servicos_contabeis_juridicos", "tarifa_bancaria", "imposto_tributo"],
+  "Desp. Operacionais":    [
+    "cartao_compra_operacional", "despesa_pessoal_misturada", "aluguel_locacao",
+    "energia_agua_internet", "deslocamento_combustivel", "alimentacao_representacao",
+    "viagem_hospedagem", "despesa_ambigua",
+  ],
+};
+
 export async function getCategoryBudget(): Promise<(CategoryBudgetItem & { id: string })[]> {
   if (sql && USE_DB) {
-    const rows = await sql`SELECT * FROM epm_category_budget ORDER BY category`;
-    if (rows.length > 0) return rows.map((r) => rowToCategory(r as Record<string, unknown>));
+    // Load budget rows (or fall back to static if table empty)
+    const budgetRows = await sql`SELECT * FROM epm_category_budget ORDER BY category`;
+    const base = budgetRows.length > 0
+      ? budgetRows.map((r) => rowToCategory(r as Record<string, unknown>))
+      : staticCategoryBudget.map((c, i) => ({ ...c, id: `static-${i}` }));
+
+    // Compute actuals from bank_transactions
+    try {
+      const allCats = Object.values(CATEGORY_MANAGERIAL_MAP).flat();
+      const txnRows = await sql`
+        SELECT managerial_category, SUM(ABS(amount)) AS total
+        FROM bank_transactions
+        WHERE direction = 'debit'
+          AND excluded_from_consolidated = false
+          AND managerial_category = ANY(${allCats})
+        GROUP BY managerial_category
+      `;
+      const catTotals: Record<string, number> = {};
+      for (const r of txnRows) catTotals[String(r.managerial_category)] = Number(r.total);
+
+      return base.map((item) => {
+        const managerialCats = CATEGORY_MANAGERIAL_MAP[item.category] ?? [];
+        const actual = managerialCats.reduce((sum, mc) => sum + (catTotals[mc] ?? 0), 0);
+        return { ...item, actual };
+      });
+    } catch {
+      return base;
+    }
   }
   return staticCategoryBudget.map((c, i) => ({ ...c, id: `static-${i}` }));
 }
@@ -780,8 +820,10 @@ export async function initEPMPlanningDB(): Promise<void> {
   )`;
 
   await sql`CREATE TABLE IF NOT EXISTS epm_category_budget (
-    category TEXT PRIMARY KEY, budget NUMERIC DEFAULT 0, actual NUMERIC DEFAULT 0, updated_at TEXT
+    category TEXT PRIMARY KEY, budget NUMERIC DEFAULT 0, actual NUMERIC DEFAULT 0,
+    bu TEXT DEFAULT 'Grupo', updated_at TEXT
   )`;
+  await sql`ALTER TABLE epm_category_budget ADD COLUMN IF NOT EXISTS bu TEXT DEFAULT 'Grupo'`;
 
   await sql`CREATE TABLE IF NOT EXISTS epm_alloc_flags (
     bu_id TEXT PRIMARY KEY, flag TEXT NOT NULL, updated_at TEXT
@@ -801,4 +843,16 @@ export async function initEPMPlanningDB(): Promise<void> {
     supplier_type TEXT PRIMARY KEY, irrf_rate NUMERIC DEFAULT 0, inss_rate NUMERIC DEFAULT 0,
     iss_rate NUMERIC DEFAULT 0, pis_rate NUMERIC DEFAULT 0, cofins_rate NUMERIC DEFAULT 0
   )`;
+
+  await sql`CREATE TABLE IF NOT EXISTS epm_gl_entries (
+    gl_id TEXT PRIMARY KEY, journal_id TEXT NOT NULL,
+    transaction_date TEXT NOT NULL, period_code TEXT NOT NULL, bu_code TEXT NOT NULL,
+    account_code TEXT NOT NULL, account_name TEXT NOT NULL, account_type TEXT NOT NULL,
+    debit_amount NUMERIC NOT NULL DEFAULT 0, credit_amount NUMERIC NOT NULL DEFAULT 0,
+    description TEXT NOT NULL, reference_doc TEXT, source_system TEXT NOT NULL DEFAULT 'manual',
+    is_intercompany BOOLEAN NOT NULL DEFAULT false, created_at TEXT NOT NULL, created_by TEXT
+  )`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_gl_journal ON epm_gl_entries(journal_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_gl_period  ON epm_gl_entries(period_code)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_gl_bu      ON epm_gl_entries(bu_code)`;
 }

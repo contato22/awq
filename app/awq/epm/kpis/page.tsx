@@ -111,7 +111,7 @@ export default async function EpmKpisPage() {
   const [kpis, dre, bs, snap, consolidatedMargins, consolidatedRoicVal, budgetVsActualVal, mrr, arr] = await Promise.all([
     getAWQGroupKPIs(),
     buildDreQuery("all"),
-    Promise.resolve(getBalanceSheet()),
+    getBalanceSheet(),
     getConsolidated(),
     getConsolidatedMargins(),
     (async () => {

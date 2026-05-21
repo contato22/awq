@@ -16,11 +16,13 @@
 import postgres, { type Sql } from "postgres";
 
 // Exported null-safe SQL client. null = no DATABASE_URL = use local fallback.
-export const sql: Sql | null = process.env.DATABASE_URL
-  ? postgres(process.env.DATABASE_URL, { ssl: "require", max: 5 })
+// SUPABASE_DB_URL is an alias used by GitHub Actions workflows — accept both.
+const _dbUrl = process.env.DATABASE_URL || process.env.SUPABASE_DB_URL;
+export const sql: Sql | null = _dbUrl
+  ? postgres(_dbUrl, { ssl: "require", max: 5 })
   : null;
 
-export const USE_DB   = !!process.env.DATABASE_URL;
+export const USE_DB   = !!_dbUrl;
 export const USE_BLOB = !!process.env.BLOB_READ_WRITE_TOKEN;
 
 // ─── Schema bootstrap ─────────────────────────────────────────────────────────

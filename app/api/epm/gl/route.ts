@@ -35,15 +35,15 @@ export async function GET(req: NextRequest) {
     }
 
     if (view === "trial-balance") {
-      return ok(getTrialBalance({ bu_code, period_code }));
+      return ok(await getTrialBalance({ bu_code, period_code }));
     }
 
     if (view === "entries") {
-      return ok(getGLEntries({ bu_code, period_code }));
+      return ok(await getGLEntries({ bu_code, period_code }));
     }
 
     // default: journals (paired debit+credit view)
-    let journals = getJournals();
+    let journals = await getJournals();
     if (bu_code)     journals = journals.filter((j) => j.debit.bu_code     === bu_code);
     if (period_code) journals = journals.filter((j) => j.debit.period_code === period_code);
     return ok(journals);
@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(transaction_date))
       return err("transaction_date must be YYYY-MM-DD");
 
-    const result = addJournalEntry({
+    const result = await addJournalEntry({
       transaction_date,
       bu_code,
       description,

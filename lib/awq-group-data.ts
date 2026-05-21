@@ -606,13 +606,16 @@ export interface CategoryBudgetItem {
   bu:       string;
 }
 
+// Actuals zeroed — computed live from bank_transactions when USE_DB=true.
+// Budget targets zeroed — previous values were based on fabricated revenue scale.
+// Set real annual targets via the EPM Budget UI (/awq/epm/budget).
 export const categoryBudget: CategoryBudgetItem[] = [
-  { category: "Marketing & Growth",    budget: 1_440_000, actual: 1_238_000, bu: "Grupo" },
-  { category: "Salários & Benefícios", budget: 3_720_000, actual: 3_540_000, bu: "Grupo" },
-  { category: "Tecnologia & Infra",    budget:   540_000, actual:   462_000, bu: "Grupo" },
-  { category: "Vendas & Comissões",    budget:   960_000, actual: 1_044_000, bu: "Grupo" },
-  { category: "G&A Consolidado",       budget:   720_000, actual:   684_000, bu: "Grupo" },
-  { category: "Desp. Operacionais",    budget:   360_000, actual:   396_000, bu: "Grupo" },
+  { category: "Marketing & Growth",    budget: 0, actual: 0, bu: "Grupo" },
+  { category: "Salários & Benefícios", budget: 0, actual: 0, bu: "Grupo" },
+  { category: "Tecnologia & Infra",    budget: 0, actual: 0, bu: "Grupo" },
+  { category: "Vendas & Comissões",    budget: 0, actual: 0, bu: "Grupo" },
+  { category: "G&A Consolidado",       budget: 0, actual: 0, bu: "Grupo" },
+  { category: "Desp. Operacionais",    budget: 0, actual: 0, bu: "Grupo" },
 ];
 
 // ─── Forecast accuracy history ────────────────────────────────────────────────
