@@ -19,7 +19,7 @@ export const runtime = "nodejs";
 async function pingErpSupabase(): Promise<{ ok: boolean; rls: boolean | null; rowCount: number | null; ms: number }> {
   const t0 = Date.now();
   try {
-    const { data, error } = await erpAnon
+    const { data, error } = await erpAnon!
       .from("bank_transactions")
       .select("id", { count: "exact", head: false })
       .limit(1);
@@ -30,7 +30,7 @@ async function pingErpSupabase(): Promise<{ ok: boolean; rls: boolean | null; ro
       const rls = error.code === "42501";
       return { ok: false, rls, rowCount: null, ms };
     }
-    const { count } = await erpAnon
+    const { count } = await erpAnon!
       .from("bank_transactions")
       .select("*", { count: "exact", head: true });
     return { ok: true, rls: false, rowCount: count ?? (data?.length ?? 0), ms };
