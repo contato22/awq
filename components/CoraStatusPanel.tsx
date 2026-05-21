@@ -8,6 +8,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock,
+  FlaskConical,
   Loader2,
   RefreshCw,
   Wifi,
@@ -78,8 +79,23 @@ export default function CoraStatusPanel({
   const [lastSyncedCount, setLastSyncedCount] = useState(0);
   const [syncError, setSyncError]           = useState<string | null>(null);
   const [diagInfo, setDiagInfo]             = useState<{ account: string; debug: unknown } | null>(null);
+  const [coraDebug, setCoraDebug]           = useState<unknown | null>(null);
+  const [loadingDebug, setLoadingDebug]     = useState(false);
   const isMounted = useRef(true);
   const router = useRouter();
+
+  const runCoraDebug = useCallback(async () => {
+    setLoadingDebug(true);
+    try {
+      const res = await fetch("/api/cora/debug");
+      const data = await res.json() as unknown;
+      if (isMounted.current) setCoraDebug(data);
+    } catch (err) {
+      if (isMounted.current) setCoraDebug({ error: err instanceof Error ? err.message : "Falha" });
+    } finally {
+      if (isMounted.current) setLoadingDebug(false);
+    }
+  }, []);
 
   useEffect(() => {
     isMounted.current = true;
@@ -207,6 +223,15 @@ export default function CoraStatusPanel({
             </span>
           ) : null}
           <span className="text-gray-400">sync a cada 5 min</span>
+          <button
+            onClick={() => void runCoraDebug()}
+            disabled={loadingDebug}
+            className="flex items-center gap-1 px-2 py-0.5 rounded border border-gray-200 hover:border-amber-400 hover:bg-amber-50 text-gray-500 hover:text-amber-700 transition-colors disabled:opacity-50"
+            title="Testar conexão Cora e ver resposta bruta da API"
+          >
+            {loadingDebug ? <Loader2 size={10} className="animate-spin" /> : <FlaskConical size={10} />}
+            <span className="text-[10px]">Debug</span>
+          </button>
         </div>
       </div>
 
@@ -218,15 +243,15 @@ export default function CoraStatusPanel({
         </div>
       )}
 
-      {/* Diagnóstico — aparece quando sync retorna 0 transações da API Cora */}
-      {diagInfo && (
+      {/* Painel de diagnóstico bruto — clique em Debug ou sync retornou 0 */}
+      {(coraDebug || diagInfo) && (
         <div className="px-5 py-3 border-b bg-amber-50 border-amber-200 text-xs space-y-1">
           <div className="flex items-center gap-1.5 font-semibold text-amber-800">
             <AlertTriangle size={13} className="shrink-0" />
-            Cora API retornou 0 transações para &quot;{diagInfo.account}&quot;. Resposta bruta:
+            {coraDebug ? "Diagnóstico Cora — resposta bruta da API:" : `Cora API retornou 0 transações para "${diagInfo?.account}":`}
           </div>
-          <pre className="bg-white border border-amber-200 rounded p-2 text-[10px] text-gray-700 overflow-x-auto max-h-40 leading-relaxed whitespace-pre-wrap">
-            {JSON.stringify(diagInfo.debug, null, 2)}
+          <pre className="bg-white border border-amber-200 rounded p-2 text-[10px] text-gray-700 overflow-x-auto max-h-64 leading-relaxed whitespace-pre-wrap">
+            {JSON.stringify(coraDebug ?? diagInfo?.debug, null, 2)}
           </pre>
         </div>
       )}
