@@ -25,6 +25,7 @@ import {
   type MonthlyEntry,
   type EntityLayer,
 } from "@/lib/financial-query";
+import { HOLDING_OPERATIONAL_ENTITIES } from "@/lib/dre-query";
 
 export const dynamic = process.env.STATIC_EXPORT === "1" ? "auto" : "force-dynamic";
 
@@ -257,7 +258,7 @@ export default async function AwqCashflowPage() {
 
   // ── Entity summary rows ──────────────────────────────────────────────────────
   const operationalEntities = q.entities.filter((e) =>
-    ["AWQ_Holding", "JACQES", "Caza_Vision"].includes(e.entity)
+    HOLDING_OPERATIONAL_ENTITIES.includes(e.entity)
   );
 
   return (

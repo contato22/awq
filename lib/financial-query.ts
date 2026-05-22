@@ -21,6 +21,7 @@
 //
 // DO NOT import in client components — calls financial-db which uses Node fs.
 
+import { HOLDING_OPERATIONAL_ENTITIES } from "./dre-query";
 import {
   getAllDocuments,
   getAllTransactions,
@@ -504,10 +505,8 @@ export async function buildFinancialQuery(): Promise<FinancialQueryResult> {
   );
 
   // ── Consolidated (operational BUs, intercompany eliminated) ───────────────
-  // Only include AWQ_Holding, JACQES, Caza_Vision in operational consolidated.
-  // Intercompany and Socio_PF are shown separately but excluded from totals.
   const operationalEntities = entities.filter((e) =>
-    ["AWQ_Holding", "JACQES", "Caza_Vision"].includes(e.entity)
+    HOLDING_OPERATIONAL_ENTITIES.includes(e.entity)
   );
 
   const intercompanyEliminated = entities
