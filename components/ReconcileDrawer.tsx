@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 import { X, Search, Plus, ChevronDown, Check, Loader2, ArrowUpRight, ArrowDownRight, AlertCircle } from "lucide-react";
 import type { BankTransaction, ManagerialCategory } from "@/lib/financial-db";
-import { fmtDate } from "@/lib/financial-query";
+import { fmtDate } from "@/lib/fmt";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
