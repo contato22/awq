@@ -476,7 +476,6 @@ const JACQES_MODULES: BUModule[] = [
         { label: "Mini P&L",       href: "/jacqes/pl",             icon: LineChart  },
         { label: "Receita",        href: "/jacqes/revenue",        icon: TrendingUp },
         { label: "Unit Economics", href: "/jacqes/unit-economics", icon: Calculator },
-        { label: "FP&A",           href: "/jacqes/fpa",            icon: BarChart3  },
     ]},
     { id: "ops",  label: "Gestão", description: "Carreira & Operações",     icon: Briefcase,  items: [
         { label: "Modo Carreira", href: "/jacqes/carreira", icon: Briefcase },

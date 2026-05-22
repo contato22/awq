@@ -123,7 +123,7 @@ tbody tr:nth-child(even) td{background:#f8fafc}
 .dc-t{font-size:7.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5pt}
 .dc-ap .dc-t{color:#15803d}
 .dc-aj .dc-t{color:#b45309}
-.dc-co .dc-t{color:#7c3aed}
+.dc-co .dc-t{color:#1476c6}
 .dc-d{font-size:9pt;color:#374151;line-height:1.5}
 
 /* Footer */

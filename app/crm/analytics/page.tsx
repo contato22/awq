@@ -16,10 +16,10 @@ const STAGE_PT: Record<string, string> = {
   discovery:"Discovery", qualification:"Qualif.", proposal:"Proposta", negotiation:"Negoc.", closed_won:"Ganho", closed_lost:"Perdido",
 };
 const STAGE_COLORS: Record<string, string> = {
-  discovery:"#3b82f6", qualification:"#8b5cf6", proposal:"#f59e0b", negotiation:"#f97316", closed_won:"#10b981", closed_lost:"#ef4444",
+  discovery:"#3b82f6", qualification:"#1476c6", proposal:"#f59e0b", negotiation:"#f97316", closed_won:"#10b981", closed_lost:"#ef4444",
 };
 const BU_COLORS: Record<string, string> = {
-  JACQES:"#3b82f6", CAZA:"#8b5cf6", ADVISOR:"#10b981", VENTURE:"#f59e0b", ENRD:"#ea580c",
+  JACQES:"#3b82f6", CAZA:"#1476c6", ADVISOR:"#10b981", VENTURE:"#f59e0b", ENRD:"#ea580c",
 };
 
 type Analytics = {
@@ -80,7 +80,7 @@ export default function AnalyticsPage() {
     value: data?.byStage[s]?.value ?? opps.filter(o=>o.stage===s).reduce((sum,o)=>sum+o.deal_value,0),
     count: data?.byStage[s]?.count ?? opps.filter(o=>o.stage===s).length,
     weighted: data?.byStage[s]?.weighted ?? opps.filter(o=>o.stage===s).reduce((sum,o)=>sum+o.deal_value*o.probability/100,0),
-    color: ["#3b82f6","#8b5cf6","#f59e0b","#f97316"][["discovery","qualification","proposal","negotiation"].indexOf(s)],
+    color: ["#3b82f6","#1476c6","#f59e0b","#f97316"][["discovery","qualification","proposal","negotiation"].indexOf(s)],
   })), [data, opps]);
 
   const buList = lockedBU ? [lockedBU] : ["JACQES","CAZA","ADVISOR","VENTURE","ENRD"];

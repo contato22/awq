@@ -104,7 +104,7 @@ const receitaAnual2026 = [
   { mes: "Dez", total: null,  om: null,  seguro: null, meta: 120000 },
 ];
 
-const CANAL_COLORS = ["#312e81", "#ef4444", "#9ca3af", "#374151", "#f97316", "#16a34a", "#7c3aed"];
+const CANAL_COLORS = ["#1476c6", "#ef4444", "#9ca3af", "#374151", "#f97316", "#16a34a", "#0f68b2"];
 
 const periods = ["Anual", "Semestral", "Trimestral", "Mensal", "Diário"] as const;
 
