@@ -5,7 +5,7 @@
 // Returns isFallback=true when JACQES has no own credentials (shares AWQ Holding account).
 
 import { NextRequest, NextResponse } from "next/server";
-import { fetchCoraBalance, isCoraConfigured, fetchCoraBalanceForAccount, isCoraJacqesConfigured } from "@/lib/cora-api";
+import { fetchCoraBalance, isCoraConfigured, fetchCoraBalanceForAccount, isCoraJacqesConfigured, isCoraEnerdyConfigured, type CoraAccount } from "@/lib/cora-api";
 
 export const runtime = "nodejs";
 
@@ -27,14 +27,20 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
   const account = req.nextUrl.searchParams.get("account") ?? "AWQ_Holding";
 
+  const knownAccounts: CoraAccount[] = ["AWQ_Holding", "JACQES", "ENERDY"];
+  const resolvedAccount: CoraAccount = knownAccounts.includes(account as CoraAccount)
+    ? (account as CoraAccount)
+    : "AWQ_Holding";
+
   try {
-    const balance = account === "JACQES"
-      ? await fetchCoraBalanceForAccount("JACQES")
+    const balance = resolvedAccount !== "AWQ_Holding"
+      ? await fetchCoraBalanceForAccount(resolvedAccount)
       : await fetchCoraBalance();
 
-    // isFallback: true means JACQES has no own credentials — same Cora account as AWQ Holding
-    const isFallback = account === "JACQES" && !isCoraJacqesConfigured();
-    return NextResponse.json({ account, ...balance, isFallback });
+    const isFallback =
+      (resolvedAccount === "JACQES" && !isCoraJacqesConfigured()) ||
+      (resolvedAccount === "ENERDY" && !isCoraEnerdyConfigured());
+    return NextResponse.json({ account: resolvedAccount, ...balance, isFallback });
   } catch (err) {
     console.error("[GET /api/cora/balance]", err);
     return NextResponse.json(

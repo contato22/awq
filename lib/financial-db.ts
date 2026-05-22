@@ -80,6 +80,7 @@ export type BankName =
 export type EntityLayer =
   | "AWQ_Holding"
   | "JACQES"
+  | "ENERDY"
   | "Caza_Vision"
   | "Intercompany"
   | "Socio_PF"
