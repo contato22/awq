@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
@@ -837,12 +837,18 @@ function AwqSidebar({ pathname }: { pathname: string }) {
     };
 
     const [activePanel, setActivePanel] = useState<string | null>(findDefaultPanel);
+    const navRef = useRef<HTMLElement>(null);
 
     useEffect(() => {
         const found = findDefaultPanel();
         if (found) setActivePanel(found);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [pathname]);
+
+    useEffect(() => {
+        const el = navRef.current?.querySelector('[aria-current="page"]') as HTMLElement | null;
+        el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }, [pathname, activePanel]);
 
     const togglePanel = (id: string) => setActivePanel((p) => (p === id ? null : id));
 
@@ -874,7 +880,7 @@ function AwqSidebar({ pathname }: { pathname: string }) {
                 <div className="w-[220px] bg-awq-panel flex flex-col border-r border-white/10 overflow-hidden">
                     <PanelHeader title={panelTitle} onBack={() => setActivePanel(null)} />
 
-                    <nav className="flex-1 overflow-y-auto px-2 py-2 scrollbar-none">
+                    <nav ref={navRef} className="flex-1 overflow-y-auto px-2 py-2 scrollbar-none">
                         {activePanel === "bus" && (
                             <div className="space-y-1 mt-1">
                                 {businessUnits.map((bu) => (
