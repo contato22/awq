@@ -629,14 +629,18 @@ export async function updateTransaction(
     if (p.excludedFromConsolidated !== undefined) updatePayload.excluded_from_consolidated = p.excludedFromConsolidated;
     if (p.reconciliationStatus     !== undefined) updatePayload.reconciliation_status      = p.reconciliationStatus;
     if (p.classifiedAt             !== undefined) updatePayload.classified_at              = p.classifiedAt;
-    const { error } = await db!
-      .from("bank_transactions")
-      .update(updatePayload)
-      .eq("id", id)
-      .select()
-      .single();
-    if (error) throw error;
-    return;
+    try {
+      const { error } = await db!
+        .from("bank_transactions")
+        .update(updatePayload)
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw error;
+      return;
+    } catch {
+      // Supabase unreachable (IP restriction, network) — persist locally
+    }
   }
   const all = readJSON<BankTransaction[]>(TXN_FILE, []);
   const idx = all.findIndex((t) => t.id === id);

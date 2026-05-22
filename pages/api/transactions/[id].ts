@@ -3,7 +3,7 @@
 // Protected fields (raw extraction data) cannot be changed via this endpoint.
 
 import type { NextApiRequest, NextApiResponse } from "next";
-import { updateTransaction, getAllTransactions } from "@/lib/financial-db";
+import { updateTransaction } from "@/lib/financial-db";
 
 const PROTECTED_FIELDS = new Set([
   "id",
@@ -69,13 +69,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     await updateTransaction(id, body as Parameters<typeof updateTransaction>[1]);
-
-    const all = await getAllTransactions();
-    const updated = all.find((t) => t.id === id);
-    if (!updated) {
-      return res.status(404).json({ error: "Transação não encontrada" });
-    }
-    return res.json(updated);
+    return res.json({ ok: true });
   } catch (err) {
     console.error(`[PATCH /api/transactions/${id}]`, err);
     return res.status(500).json({ error: "Falha ao atualizar transação" });

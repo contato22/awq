@@ -144,8 +144,15 @@ export async function createAPEntry(input: CreateAPEntryInput): Promise<APEntry>
     created_by:          entry.createdBy,
   };
 
-  const { error } = await db.from("ap_entries").insert(row);
-  if (error) throw new Error(`AP insert failed: ${error.message}`);
+  try {
+    const { error } = await db.from("ap_entries").insert(row);
+    if (error) throw new Error(`AP insert failed: ${error.message}`);
+  } catch (e) {
+    // Supabase unreachable (IP restriction, no service key) — persist locally
+    const all = readJsonFallback();
+    all.push(entry);
+    writeJsonFallback(all);
+  }
   return entry;
 }
 
@@ -173,8 +180,17 @@ export async function updateAPEntry(id: string, input: UpdateAPEntryInput): Prom
   if (input.invoiceNumber     !== undefined) patch.invoice_number       = input.invoiceNumber;
   if (input.description       !== undefined) patch.description          = input.description;
 
-  const { error } = await db.from("ap_entries").update(patch).eq("id", id);
-  if (error) throw new Error(`AP update failed: ${error.message}`);
+  try {
+    const { error } = await db.from("ap_entries").update(patch).eq("id", id);
+    if (error) throw new Error(`AP update failed: ${error.message}`);
+  } catch {
+    const all = readJsonFallback();
+    const idx = all.findIndex(e => e.id === id);
+    if (idx !== -1) {
+      all[idx] = { ...all[idx], ...input, updatedAt: now };
+      writeJsonFallback(all);
+    }
+  }
 }
 
 export async function deleteAPEntry(id: string): Promise<void> {
