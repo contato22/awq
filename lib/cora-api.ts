@@ -49,12 +49,20 @@ function credsForAccount(account: CoraAccount = "AWQ_Holding"): CoraCredentials 
     const jCert = env("CORA_JACQES_CERT");
     const jKey  = env("CORA_JACQES_KEY");
     if (jId && jCert && jKey) return { clientId: jId, cert: jCert, key: jKey };
+    // JACQES sem vars próprias → compartilha AWQ_Holding (comportamento legado intencional)
   }
   if (account === "ENERDY") {
     const eId   = env("CORA_ENERDY_CLIENT_ID");
     const eCert = env("CORA_ENERDY_CERT");
     const eKey  = env("CORA_ENERDY_KEY");
-    if (eId && eCert && eKey) return { clientId: eId, cert: eCert, key: eKey };
+    // ENERDY é empresa separada — nunca usa credenciais de outra conta como fallback
+    if (!eId || !eCert || !eKey) {
+      throw new Error(
+        "Credenciais Enerdy não configuradas. " +
+        "Configure CORA_ENERDY_CLIENT_ID, CORA_ENERDY_CERT e CORA_ENERDY_KEY no Vercel."
+      );
+    }
+    return { clientId: eId, cert: eCert, key: eKey };
   }
   return {
     clientId: env("CORA_CLIENT_ID"),
