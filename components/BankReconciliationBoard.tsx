@@ -93,12 +93,12 @@ function accountColor(key: string): {
     badgeActive: "bg-gray-100 text-gray-700",
   };
   if (key.includes("ENERDY") || key.toLowerCase().includes("enerdy")) return {
-    dot: "bg-violet-500",
-    activeBg: "bg-violet-50",
-    activeBorder: "border-violet-300",
-    activeText: "text-violet-900",
+    dot: "bg-brand-500",
+    activeBg: "bg-brand-50",
+    activeBorder: "border-brand-300",
+    activeText: "text-brand-900",
     badge: "bg-gray-200 text-gray-500",
-    badgeActive: "bg-violet-100 text-violet-700",
+    badgeActive: "bg-brand-100 text-brand-700",
   };
   // AWQ_Holding e qualquer conta Cora padrão
   return {
@@ -682,12 +682,12 @@ export default function BankReconciliationBoard({
 
       {/* ── Import result panel ──────────────────────────────────────────────── */}
       {importResult && (
-        <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4 space-y-3">
+        <div className="rounded-xl border border-brand-200 bg-brand-50 p-4 space-y-3">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-indigo-900">
+              <p className="text-sm font-semibold text-brand-900">
                 {importResult.transactions.length} transação(ões) encontrada(s)
-                <span className="ml-2 font-normal text-indigo-700 text-xs">— {importResult.fileName}</span>
+                <span className="ml-2 font-normal text-brand-700 text-xs">— {importResult.fileName}</span>
               </p>
               {importResult.warnings.length > 0 && (
                 <div className="mt-1 space-y-0.5">
@@ -700,15 +700,15 @@ export default function BankReconciliationBoard({
                 </div>
               )}
             </div>
-            <button onClick={() => setImportResult(null)} className="text-indigo-400 hover:text-indigo-600">
+            <button onClick={() => setImportResult(null)} className="text-brand-400 hover:text-brand-600">
               <X size={16} />
             </button>
           </div>
 
           {importResult.transactions.length > 0 && (
-            <div className="overflow-x-auto rounded-lg border border-indigo-200 bg-white">
+            <div className="overflow-x-auto rounded-lg border border-brand-200 bg-white">
               <table className="min-w-full text-xs">
-                <thead className="bg-indigo-50 text-[10px] uppercase tracking-wide text-indigo-600">
+                <thead className="bg-brand-50 text-[10px] uppercase tracking-wide text-brand-600">
                   <tr>
                     <th className="px-3 py-1.5 text-left">Data</th>
                     <th className="px-3 py-1.5 text-left">Descrição</th>
@@ -716,7 +716,7 @@ export default function BankReconciliationBoard({
                     <th className="px-3 py-1.5 text-left">Tipo</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-indigo-50">
+                <tbody className="divide-y divide-brand-50">
                   {importResult.transactions.slice(0, 5).map((t) => (
                     <tr key={t.id}>
                       <td className="px-3 py-1.5 whitespace-nowrap text-gray-700">{t.date}</td>
@@ -730,7 +730,7 @@ export default function BankReconciliationBoard({
                 </tbody>
               </table>
               {importResult.transactions.length > 5 && (
-                <p className="px-3 py-1.5 text-[10px] text-gray-500 border-t border-indigo-100">
+                <p className="px-3 py-1.5 text-[10px] text-gray-500 border-t border-brand-100">
                   + {importResult.transactions.length - 5} linha(s) adicionais
                 </p>
               )}
@@ -760,7 +760,7 @@ export default function BankReconciliationBoard({
             <button
               onClick={confirmImport}
               disabled={importResult.transactions.length === 0}
-              className="px-4 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-medium hover:bg-indigo-700 disabled:opacity-40 transition-colors"
+              className="px-4 py-1.5 rounded-lg bg-brand-600 text-white text-xs font-medium hover:bg-brand-700 disabled:opacity-40 transition-colors"
             >
               Confirmar importação
             </button>

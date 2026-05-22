@@ -567,10 +567,10 @@ export default function AddLeadPage() {
               </div>
 
               {/* ── Contato panel ─────────────────────────────────────── */}
-              <div className={`rounded-xl border p-4 flex flex-col gap-3 transition-colors ${selectedContact ? "border-violet-200 bg-violet-50/30" : "border-gray-200 bg-white"}`}>
+              <div className={`rounded-xl border p-4 flex flex-col gap-3 transition-colors ${selectedContact ? "border-brand-200 bg-brand-50/30" : "border-gray-200 bg-white"}`}>
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
-                    <User size={13} className="text-violet-600" />
+                  <div className="w-7 h-7 rounded-lg bg-brand-100 flex items-center justify-center shrink-0">
+                    <User size={13} className="text-brand-600" />
                   </div>
                   <span className="text-[11px] font-semibold text-gray-600 uppercase tracking-wide">Contato</span>
                   {selectedAccount && !selectedContact && (
@@ -580,9 +580,9 @@ export default function AddLeadPage() {
 
                 {selectedContact ? (
                   /* Selected state */
-                  <div className="flex items-center gap-3 p-2.5 bg-white border border-violet-200 rounded-lg shadow-sm">
+                  <div className="flex items-center gap-3 p-2.5 bg-white border border-brand-200 rounded-lg shadow-sm">
                     <Initials name={selectedContact.full_name}
-                      className="w-9 h-9 bg-violet-100 text-violet-700 shrink-0 text-[11px]" />
+                      className="w-9 h-9 bg-brand-100 text-brand-700 shrink-0 text-[11px]" />
                     <div className="min-w-0 flex-1">
                       <div className="text-sm font-semibold text-gray-900 truncate">{selectedContact.full_name}</div>
                       <div className="text-[11px] text-gray-400 truncate mt-0.5">
@@ -623,7 +623,7 @@ export default function AddLeadPage() {
                       </button>
                       <button type="button" onClick={handleCreateContact}
                         disabled={savingCon || !newCon.full_name.trim()}
-                        className="flex-1 py-1.5 text-xs font-semibold text-white bg-violet-600 rounded-lg hover:bg-violet-700 disabled:opacity-50 transition-colors">
+                        className="flex-1 py-1.5 text-xs font-semibold text-white bg-brand-600 rounded-lg hover:bg-brand-700 disabled:opacity-50 transition-colors">
                         {savingCon ? "Salvando…" : "Criar contato"}
                       </button>
                     </div>
@@ -645,7 +645,7 @@ export default function AddLeadPage() {
                     />
                     <button type="button"
                       onClick={() => setCreatingContact(true)}
-                      className="w-full flex items-center justify-center gap-1.5 py-2 text-[11px] font-semibold text-violet-600 hover:text-violet-800 hover:bg-violet-50/60 rounded-lg border border-dashed border-violet-200 transition-colors">
+                      className="w-full flex items-center justify-center gap-1.5 py-2 text-[11px] font-semibold text-brand-600 hover:text-brand-800 hover:bg-brand-50/60 rounded-lg border border-dashed border-brand-200 transition-colors">
                       <Plus size={11} />Criar novo contato
                     </button>
                   </div>

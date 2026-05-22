@@ -284,7 +284,7 @@ export default async function ManagementPage() {
           };
           const entityColor: Record<string, string> = {
             AWQ_Holding: "text-brand-600 bg-brand-50 border-brand-200",
-            JACQES:      "text-violet-700 bg-violet-50 border-violet-200",
+            JACQES:      "text-brand-700 bg-brand-50 border-brand-200",
             Caza_Vision: "text-emerald-700 bg-emerald-50 border-emerald-200",
             Unknown:     "text-gray-500 bg-gray-100 border-gray-200",
           };
@@ -644,7 +644,7 @@ export default async function ManagementPage() {
               <div className="text-sm text-gray-400 font-medium">Nenhum par identificado</div>
             ) : (
               <div className="flex items-center gap-2">
-                <span className="text-lg font-bold text-indigo-700">{diag.intercompanyPairs}</span>
+                <span className="text-lg font-bold text-brand-700">{diag.intercompanyPairs}</span>
                 <span className="text-xs text-gray-500">par{diag.intercompanyPairs !== 1 ? "es" : ""} eliminado{diag.intercompanyPairs !== 1 ? "s" : ""}</span>
               </div>
             )}

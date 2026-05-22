@@ -21,7 +21,7 @@ const colorMap: Record<string, string> = {
   brand: "text-brand-600 bg-brand-50",
   emerald: "text-emerald-600 bg-emerald-50",
   blue: "text-blue-500 bg-blue-50",
-  purple: "text-purple-500 bg-purple-50",
+  purple: "text-brand-500 bg-brand-50",
 };
 
 function formatValue(kpi: KPI): string {

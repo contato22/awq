@@ -114,7 +114,7 @@ function MonthlyBridgeChart({ entries }: { entries: MonthlyEntry[] }) {
   );
 
   const ENTITY_COLORS: Record<EntityLayer, string> = {
-    AWQ_Holding:  "bg-violet-500",
+    AWQ_Holding:  "bg-brand-500",
     JACQES:       "bg-brand-500",
     Caza_Vision:  "bg-emerald-500",
     Intercompany: "bg-gray-300",
@@ -232,8 +232,8 @@ export default async function AwqCashflowPage() {
       sub:      `${c.documentCount} conta(s) ingerida(s)`,
       positive: c.totalCashBalance >= 0,
       icon:     DollarSign,
-      color:    "text-violet-700",
-      bg:       "bg-violet-50",
+      color:    "text-brand-700",
+      bg:       "bg-brand-50",
     },
   ];
 

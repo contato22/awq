@@ -130,10 +130,10 @@ export default function DREPage() {
                 ))}
               </tr>
               {/* EBITDA */}
-              <tr className="border-b bg-indigo-50 font-semibold">
-                <td className="px-4 py-2 text-indigo-800">EBITDA</td>
+              <tr className="border-b bg-brand-50 font-semibold">
+                <td className="px-4 py-2 text-brand-800">EBITDA</td>
                 {data.map((line) => (
-                  <td key={line.month} className={`px-3 py-2 text-right ${line.ebitda < 0 ? "text-red-600" : "text-indigo-800"}`}>
+                  <td key={line.month} className={`px-3 py-2 text-right ${line.ebitda < 0 ? "text-red-600" : "text-brand-800"}`}>
                     {fmt(line.ebitda)}
                   </td>
                 ))}

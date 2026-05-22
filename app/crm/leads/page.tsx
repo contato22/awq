@@ -20,7 +20,7 @@ const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
   contacted:   { label: "Contato",        cls: "badge badge-yellow" },
   qualified:   { label: "Qualificado",    cls: "badge badge-green" },
   unqualified: { label: "Desqualificado", cls: "badge badge-red" },
-  converted:   { label: "Convertido",     cls: "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-violet-50 text-violet-700 ring-1 ring-violet-200/60" },
+  converted:   { label: "Convertido",     cls: "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-50 text-brand-700 ring-1 ring-brand-200/60" },
 };
 
 const BU_LIST = ["Todos", "JACQES", "CAZA", "ADVISOR", "VENTURE", "ENRD"] as const;
@@ -50,7 +50,7 @@ function ScoreBar({ score }: { score: number }) {
 
 function BuBadge({ bu }: { bu: string }) {
   if (bu === "JACQES") return <span className="badge badge-blue text-[10px]">{bu}</span>;
-  if (bu === "CAZA")   return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-violet-50 text-violet-700 ring-1 ring-violet-200/60">{bu}</span>;
+  if (bu === "CAZA")   return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-50 text-brand-700 ring-1 ring-brand-200/60">{bu}</span>;
   if (bu === "ADVISOR") return <span className="badge badge-green text-[10px]">{bu}</span>;
   return <span className="badge badge-yellow text-[10px]">{bu}</span>;
 }
@@ -202,8 +202,8 @@ export default function LeadsPage() {
             </div>
           </div>
           <div className="card p-4 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-violet-50 flex items-center justify-center shrink-0">
-              <Target size={16} className="text-violet-600" />
+            <div className="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center shrink-0">
+              <Target size={16} className="text-brand-600" />
             </div>
             <div>
               <div className="text-xl font-bold text-gray-900">{kpiNew}</div>

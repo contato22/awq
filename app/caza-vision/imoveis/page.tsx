@@ -149,7 +149,7 @@ export default function ProjetosPage() {
             { label: "Total Projetos",  value: total,                    color: "text-gray-900",    fmt: String },
             { label: "Em Aberto",       value: emAberto,                 color: "text-brand-600",   fmt: String },
             { label: "Recebidos",       value: entregues,                color: "text-emerald-600", fmt: String },
-            { label: "Taxa Entrega",    value: taxaEntrega + "%",        color: "text-violet-600",  fmt: (v: string) => v },
+            { label: "Taxa Entrega",    value: taxaEntrega + "%",        color: "text-brand-600",  fmt: (v: string) => v },
             { label: "Orçamento Total", value: totalValor,               color: "text-gray-900",    fmt: fmtR   },
             { label: "Despesas",        value: totalDespesas,            color: "text-red-600",     fmt: fmtR   },
             { label: "Lucro Líquido",   value: totalLucro,               color: "text-emerald-600", fmt: fmtR   },
@@ -199,7 +199,7 @@ export default function ProjetosPage() {
                   const color = s.status === "Entregue" ? "bg-emerald-500"
                     : s.status === "Em Produção" ? "bg-brand-500"
                     : s.status === "Em Edição" ? "bg-amber-500"
-                    : "bg-violet-500";
+                    : "bg-brand-500";
                   return (
                     <div key={s.status} className="flex items-center gap-3">
                       <span className="text-xs text-gray-500 w-40 shrink-0">{s.status}</span>

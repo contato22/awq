@@ -46,7 +46,7 @@ const STATUS_LABEL: Record<ProjectStatus, string> = {
 
 const BU_CHIP: Record<string, string> = {
   JACQES:  "bg-brand-100  text-brand-700",
-  CAZA:    "bg-violet-100 text-violet-700",
+  CAZA:    "bg-brand-100 text-brand-700",
   ADVISOR: "bg-emerald-100 text-emerald-700",
   VENTURE: "bg-amber-100  text-amber-700",
   AWQ:     "bg-gray-100   text-gray-600",
@@ -280,7 +280,7 @@ export default function PpmPortfolioPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
           <KpiCard label="Projetos Ativos"  value={String(metrics?.active_projects ?? 0)}  sub={`${metrics?.total_projects ?? 0} total`}  icon={Briefcase}   color="bg-brand-600" />
           <KpiCard label="Revenue Total"    value={formatBRL(totalRevenue)}  sub={`Realizado: ${formatBRL(totalActual)}`} icon={DollarSign}  color="bg-emerald-600" />
-          <KpiCard label="Margem Média"     value={fmtPct(avgMargin)}        sub="Portfolio ativo"                         icon={TrendingUp}  color="bg-violet-600" />
+          <KpiCard label="Margem Média"     value={fmtPct(avgMargin)}        sub="Portfolio ativo"                         icon={TrendingUp}  color="bg-brand-600" />
           <KpiCard label="Time Alocado"     value={String(metrics?.total_team_members ?? 0)} sub="pessoas ativas"          icon={Users}       color="bg-amber-600" />
           <HealthSummary g={metrics?.green_count ?? 0} y={metrics?.yellow_count ?? 0} r={metrics?.red_count ?? 0} />
         </div>
@@ -293,11 +293,11 @@ export default function PpmPortfolioPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
               { href: "/awq/ppm",              label: "Portfolio",     icon: Briefcase,     desc: "Visão geral dos projetos",   color: "text-brand-600",   bg: "bg-brand-50"   },
-              { href: "/awq/ppm/gantt",         label: "Gantt",         icon: GanttChart,    desc: "Linha do tempo e marcos",    color: "text-violet-600",  bg: "bg-violet-50"  },
+              { href: "/awq/ppm/gantt",         label: "Gantt",         icon: GanttChart,    desc: "Linha do tempo e marcos",    color: "text-brand-600",  bg: "bg-brand-50"  },
               { href: "/awq/ppm/tasks",         label: "Tarefas",       icon: ClipboardList, desc: "Kanban e gestão de tarefas", color: "text-amber-700",   bg: "bg-amber-50"   },
               { href: "/awq/ppm/timesheets",    label: "Timesheets",    icon: Clock,         desc: "Apontamento de horas",       color: "text-cyan-700",    bg: "bg-cyan-50"    },
               { href: "/awq/ppm/resources",     label: "Recursos",      icon: Users,         desc: "Alocação de pessoas",        color: "text-emerald-600", bg: "bg-emerald-50" },
-              { href: "/awq/ppm/utilization",   label: "Utilização",    icon: BarChart3,     desc: "Capacidade e ocupação",      color: "text-indigo-600",  bg: "bg-indigo-50"  },
+              { href: "/awq/ppm/utilization",   label: "Utilização",    icon: BarChart3,     desc: "Capacidade e ocupação",      color: "text-brand-600",  bg: "bg-brand-50"  },
               { href: "/awq/ppm/profitability", label: "Rentabilidade", icon: TrendingUp,    desc: "EVM · CPI · SPI · Margem",   color: "text-emerald-700", bg: "bg-emerald-50" },
               { href: "/awq/ppm/risks",         label: "Riscos",        icon: AlertTriangle, desc: "Registro e mitigação",       color: "text-red-600",     bg: "bg-red-50"     },
             ].map(({ href, label, icon: Icon, desc, color, bg }) => (

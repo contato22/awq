@@ -29,7 +29,7 @@ const STAGE_CONFIG: Record<string, {
   header: string; tag: string; bar: string;
 }> = {
   discovery:     { label: "Discovery",     prob: 25,  bg: "bg-blue-50",   border: "border-blue-200",   header: "bg-blue-500",   tag: "bg-blue-100 text-blue-700",   bar: "bg-blue-500" },
-  qualification: { label: "Qualificação",  prob: 40,  bg: "bg-violet-50", border: "border-violet-200", header: "bg-violet-500", tag: "bg-violet-100 text-violet-700", bar: "bg-violet-500" },
+  qualification: { label: "Qualificação",  prob: 40,  bg: "bg-brand-50", border: "border-brand-200", header: "bg-brand-500", tag: "bg-brand-100 text-brand-700", bar: "bg-brand-500" },
   proposal:      { label: "Proposta",      prob: 60,  bg: "bg-amber-50",  border: "border-amber-200",  header: "bg-amber-500",  tag: "bg-amber-100 text-amber-700",  bar: "bg-amber-500" },
   negotiation:   { label: "Negociação",    prob: 75,  bg: "bg-orange-50", border: "border-orange-200", header: "bg-orange-500", tag: "bg-orange-100 text-orange-700", bar: "bg-orange-500" },
   closed_won:    { label: "Ganho",         prob: 100, bg: "bg-emerald-50", border: "border-emerald-200", header: "bg-emerald-600", tag: "bg-emerald-100 text-emerald-700", bar: "bg-emerald-500" },
@@ -38,7 +38,7 @@ const STAGE_CONFIG: Record<string, {
 
 const BU_COLORS: Record<string, string> = {
   JACQES:  "bg-blue-100 text-blue-700",
-  CAZA:    "bg-violet-100 text-violet-700",
+  CAZA:    "bg-brand-100 text-brand-700",
   ADVISOR: "bg-emerald-100 text-emerald-700",
   VENTURE: "bg-amber-100 text-amber-700",
   ENRD:    "bg-orange-100 text-orange-700",
@@ -47,7 +47,7 @@ const BU_COLORS: Record<string, string> = {
 const ACTIVITY_TYPE_CONFIG: Record<string, { icon: React.ElementType; label: string; color: string }> = {
   call:    { icon: Phone,         label: "Ligação",  color: "text-emerald-600 bg-emerald-50" },
   email:   { icon: Mail,          label: "E-mail",   color: "text-blue-600 bg-blue-50" },
-  meeting: { icon: Users,         label: "Reunião",  color: "text-violet-600 bg-violet-50" },
+  meeting: { icon: Users,         label: "Reunião",  color: "text-brand-600 bg-brand-50" },
   task:    { icon: CheckCircle2,  label: "Tarefa",   color: "text-amber-600 bg-amber-50" },
   note:    { icon: FileText,      label: "Nota",     color: "text-gray-600 bg-gray-100" },
 };
@@ -960,7 +960,7 @@ function PipelinePageInner() {
           {[
             { label: "Pipeline Total", value: formatBRL(totalPipeline), icon: DollarSign, color: "text-blue-600", bg: "bg-blue-50" },
             { label: "Forecast Ponderado", value: formatBRL(weightedForecast), icon: TrendingUp, color: "text-emerald-600", bg: "bg-emerald-50" },
-            { label: "Negócios Abertos", value: openOpps.length.toString(), icon: Target, color: "text-violet-600", bg: "bg-violet-50" },
+            { label: "Negócios Abertos", value: openOpps.length.toString(), icon: Target, color: "text-brand-600", bg: "bg-brand-50" },
             { label: "Win Rate", value: `${winRate}%`, icon: TrendingUp, color: "text-amber-600", bg: "bg-amber-50" },
           ].map(kpi => (
             <div key={kpi.label} className="card p-4 flex items-center gap-3">

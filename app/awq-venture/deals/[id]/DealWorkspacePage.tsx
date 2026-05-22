@@ -34,7 +34,7 @@ const stageBadge: Record<string, string> = {
   "Triagem":       "badge bg-gray-100 text-gray-600 ring-1 ring-gray-200/60",
   "Prospecção":    "badge bg-amber-50 text-amber-700 ring-1 ring-amber-200/60",
   "Due Diligence": "badge bg-blue-50 text-blue-700 ring-1 ring-blue-200/60",
-  "Term Sheet":    "badge bg-violet-50 text-violet-700 ring-1 ring-violet-200/60",
+  "Term Sheet":    "badge bg-brand-50 text-brand-700 ring-1 ring-brand-200/60",
   "Negociação":    "badge bg-orange-50 text-orange-700 ring-1 ring-orange-200/60",
   "Fechado":       "badge bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/60",
   "Cancelado":     "badge bg-red-50 text-red-700 ring-1 ring-red-200/60",
@@ -44,7 +44,7 @@ const sendStatusColor: Record<string, string> = {
   "Rascunho":          "text-gray-400",
   "Pronto para Envio": "text-amber-600 font-semibold",
   "Enviado":           "text-blue-600 font-semibold",
-  "Em Negociação":     "text-violet-600 font-semibold",
+  "Em Negociação":     "text-brand-600 font-semibold",
   "Aprovado":          "text-emerald-600 font-semibold",
   "Rejeitado":         "text-red-500",
 };
@@ -1140,7 +1140,7 @@ export default function DealWorkspacePage({
                 { label: "Valuation Pedido",    value: fmtR(deal.financials.askValuation),          color: "text-amber-600"   },
                 { label: "Valuation Proposto",  value: fmtR(deal.financials.proposedValuation),         color: "text-emerald-600" },
                 { label: "Receita Estimada",    value: fmtR(deal.financials.estimatedRevenue),      color: "text-blue-600"    },
-                { label: "EBITDA Estimado",     value: fmtR(deal.financials.estimatedEbitda),       color: "text-violet-600"  },
+                { label: "EBITDA Estimado",     value: fmtR(deal.financials.estimatedEbitda),       color: "text-brand-600"  },
                 { label: "Margem EBITDA",       value: fmtPct(deal.financials.ebitdaMargin),        color: "text-gray-700"    },
                 { label: "Múltiplo Implícito",  value: deal.financials.impliedMultiple ? deal.financials.impliedMultiple.toFixed(2) + "×" : "—", color: "text-gray-700" },
                 { label: "Participação",        value: deal.financials.targetOwnership + "%",       color: "text-brand-600"   },
@@ -1242,7 +1242,7 @@ export default function DealWorkspacePage({
                 {/* Left */}
                 <div className="space-y-3">
                   <FieldRow label="Receita Estimada"   value={<span className="text-blue-600 font-bold"><EditableNumber fieldKey="fin.revenue" value={deal.financials.estimatedRevenue} overrideNumeric={overrideNumeric} onSave={saveNumericField} format="currency" /></span>} />
-                  <FieldRow label="EBITDA Estimado"    value={<span className="text-violet-600 font-bold"><EditableNumber fieldKey="fin.ebitda" value={deal.financials.estimatedEbitda} overrideNumeric={overrideNumeric} onSave={saveNumericField} format="currency" /></span>} />
+                  <FieldRow label="EBITDA Estimado"    value={<span className="text-brand-600 font-bold"><EditableNumber fieldKey="fin.ebitda" value={deal.financials.estimatedEbitda} overrideNumeric={overrideNumeric} onSave={saveNumericField} format="currency" /></span>} />
                   <FieldRow label="Margem EBITDA"      value={<EditableNumber fieldKey="fin.ebitdaMargin" value={deal.financials.ebitdaMargin} overrideNumeric={overrideNumeric} onSave={saveNumericField} format="percent" />} />
                   <FieldRow label="Valuation Pedido"   value={<span className="text-amber-600 font-bold"><EditableNumber fieldKey="fin.askVal" value={deal.financials.askValuation} overrideNumeric={overrideNumeric} onSave={saveNumericField} format="currency" /></span>} />
                   <FieldRow label="Valuation Proposto" value={<span className="text-emerald-600 font-bold"><EditableNumber fieldKey="fin.propVal" value={deal.financials.proposedValuation} overrideNumeric={overrideNumeric} onSave={saveNumericField} format="currency" /></span>} />

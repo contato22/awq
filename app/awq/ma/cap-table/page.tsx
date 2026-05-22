@@ -74,12 +74,12 @@ const typeColors: Record<string, string> = {
   founder:  "bg-amber-500/10 text-amber-400",
   investor: "bg-blue-500/10 text-blue-400",
   employee: "bg-green-500/10 text-green-400",
-  advisor:  "bg-purple-500/10 text-purple-400",
+  advisor:  "bg-brand-500/10 text-brand-400",
 };
 
 const classColors: Record<string, string> = {
   common:    "bg-gray-700 text-gray-300",
-  preferred: "bg-violet-500/10 text-violet-400",
+  preferred: "bg-brand-500/10 text-brand-400",
   options:   "bg-orange-500/10 text-orange-400",
 };
 
@@ -179,7 +179,7 @@ export default function CapTablePage() {
             {[
               { label: "Participação AWQ", value: fmtPct(currentPortco.awq_ownership_pct), icon: PieChart, color: "text-blue-400" },
               { label: "Total Shares", value: fmtNum(currentPortco.total_shares_outstanding), icon: Users, color: "text-green-400" },
-              { label: "Valuation Atual", value: fmtR(currentPortco.current_valuation), icon: TrendingUp, color: "text-purple-400" },
+              { label: "Valuation Atual", value: fmtR(currentPortco.current_valuation), icon: TrendingUp, color: "text-brand-400" },
               { label: "Valor Stake AWQ", value: fmtR((currentPortco.awq_ownership_pct ?? 0) / 100 * (currentPortco.current_valuation ?? 0)), icon: PieChart, color: "text-amber-400" },
             ].map(c => {
               const Icon = c.icon;

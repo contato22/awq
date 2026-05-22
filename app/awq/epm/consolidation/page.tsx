@@ -30,7 +30,7 @@ const BU_COLORS: Record<string, string> = {
   jacqes:  "bg-brand-500",
   caza:    "bg-emerald-500",
   venture: "bg-amber-500",
-  advisor: "bg-violet-500",
+  advisor: "bg-brand-500",
   awq:     "bg-gray-500",
 };
 
@@ -75,7 +75,7 @@ export default async function ConsolidationPage() {
                 : `${(consolidatedMargins.grossMargin * 100).toFixed(1)}%`,
               color: "text-brand-700", isStr: true },
             { label: "EBITDA Consolidado",   value: dreAll.hasData ? dreAll.dreEBITDA : snap.ebitda,      color: dreAll.hasData ? (dreAll.dreEBITDA >= 0 ? "text-emerald-700" : "text-red-700") : "text-emerald-700" },
-            { label: "Intercompany Elim.",   value: q.consolidated.intercompanyEliminated,                color: "text-violet-700" },
+            { label: "Intercompany Elim.",   value: q.consolidated.intercompanyEliminated,                color: "text-brand-700" },
           ].map((card) => (
             <div key={card.label} className="card p-4">
               <div className={`text-xl font-bold tabular-nums ${card.color}`}>
@@ -177,7 +177,7 @@ export default async function ConsolidationPage() {
         {/* ── Planning snapshot (Management view) ─────────────────── */}
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-4">
-            <BarChart3 size={14} className="text-violet-600" />
+            <BarChart3 size={14} className="text-brand-600" />
             <span className="text-sm font-semibold text-gray-900">
               Visão de Gestão por BU — Snapshot Accrual 2026
             </span>
@@ -247,12 +247,12 @@ export default async function ConsolidationPage() {
 
         {/* ── Intercompany note ────────────────────────────────────── */}
         {q.hasData && q.consolidated.intercompanyEliminated > 0 && (
-          <div className="card p-4 border-l-4 border-violet-300">
+          <div className="card p-4 border-l-4 border-brand-300">
             <div className="flex items-center gap-2 mb-1">
-              <GitMerge size={13} className="text-violet-600" />
-              <span className="text-xs font-semibold text-violet-800">Eliminação Intercompany</span>
+              <GitMerge size={13} className="text-brand-600" />
+              <span className="text-xs font-semibold text-brand-800">Eliminação Intercompany</span>
             </div>
-            <p className="text-xs text-violet-700">
+            <p className="text-xs text-brand-700">
               {fmtBRL(q.consolidated.intercompanyEliminated)} de transferências intercompany foram identificadas
               e eliminadas do consolidado. Isso evita dupla contagem de receita/despesa entre as entidades.
               Contas intercompany: 9.1.xx (AR) e 9.2.xx (AP).

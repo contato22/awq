@@ -176,7 +176,7 @@ function ContactCreateForm({ accountId, onCreated, onCancel, initialName }: {
       <div className="flex gap-2">
         <button type="button" onClick={onCancel} className="flex-1 py-1.5 text-xs font-medium text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50">Cancelar</button>
         <button type="button" onClick={save} disabled={saving || !name.trim()}
-          className="flex-1 py-1.5 text-xs font-semibold text-white bg-violet-600 rounded-lg hover:bg-violet-700 disabled:opacity-50">
+          className="flex-1 py-1.5 text-xs font-semibold text-white bg-brand-600 rounded-lg hover:bg-brand-700 disabled:opacity-50">
           {saving ? "Salvando…" : "Criar contato"}
         </button>
       </div>
@@ -191,12 +191,12 @@ function EntityPanel({ label, color, icon, children }: {
 }) {
   const colors = {
     blue:   "border-blue-200 bg-blue-50/40",
-    violet: "border-violet-200 bg-violet-50/30",
+    violet: "border-brand-200 bg-brand-50/30",
     amber:  "border-amber-200 bg-amber-50/30",
   };
   const iconColors = {
     blue:   "bg-blue-100 text-blue-600",
-    violet: "bg-violet-100 text-violet-600",
+    violet: "bg-brand-100 text-brand-600",
     amber:  "bg-amber-100 text-amber-700",
   };
   return (
@@ -456,8 +456,8 @@ function AddOpportunityPageInner() {
               {/* Contato */}
               <EntityPanel label="Contato" color="violet" icon={<User size={13} />}>
                 {selectedContact ? (
-                  <div className="flex items-center gap-2.5 p-2.5 bg-white border border-violet-200 rounded-lg shadow-sm">
-                    <Initials name={selectedContact.full_name} className="w-8 h-8 bg-violet-100 text-violet-700 shrink-0" />
+                  <div className="flex items-center gap-2.5 p-2.5 bg-white border border-brand-200 rounded-lg shadow-sm">
+                    <Initials name={selectedContact.full_name} className="w-8 h-8 bg-brand-100 text-brand-700 shrink-0" />
                     <div className="min-w-0 flex-1">
                       <div className="text-sm font-semibold text-gray-900 truncate">{selectedContact.full_name}</div>
                       {selectedContact.job_title && <div className="text-[11px] text-gray-400 truncate">{selectedContact.job_title}</div>}
@@ -482,7 +482,7 @@ function AddOpportunityPageInner() {
                       query={contactQuery} onQueryChange={setContactQuery}
                       onCreateNew={() => setCreatingContact(true)} createLabel="Criar contato" />
                     <button type="button" onClick={() => setCreatingContact(true)}
-                      className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[11px] font-semibold text-violet-600 hover:bg-violet-50 rounded-lg border border-dashed border-violet-200 transition-colors">
+                      className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[11px] font-semibold text-brand-600 hover:bg-brand-50 rounded-lg border border-dashed border-brand-200 transition-colors">
                       <Plus size={11} />Novo contato
                     </button>
                   </div>

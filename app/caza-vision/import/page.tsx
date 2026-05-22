@@ -232,7 +232,7 @@ export default function CazaImportPage() {
           <h3 className="text-xs font-semibold text-gray-700 mb-2">Arquitetura de dados</h3>
           <div className="space-y-1 text-[11px] text-gray-500">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-violet-400 shrink-0" />
+              <span className="w-2 h-2 rounded-full bg-brand-400 shrink-0" />
               <span><strong>Notion</strong> — fonte de referência / importação (nunca consultado em tempo real)</span>
             </div>
             <div className="flex items-center gap-2">

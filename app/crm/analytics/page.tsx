@@ -140,7 +140,7 @@ export default function AnalyticsPage() {
           {[
             { label: "Pipeline Aberto",    value: formatBRL(metrics.pipelineValue),    icon: DollarSign, color:"text-blue-600",    bg:"bg-blue-50" },
             { label: "Forecast Ponderado", value: formatBRL(metrics.weightedForecast), icon: TrendingUp, color:"text-emerald-600", bg:"bg-emerald-50" },
-            { label: "Negócios Abertos",    value: metrics.openOpportunities,        icon: Target,     color:"text-violet-600",  bg:"bg-violet-50" },
+            { label: "Negócios Abertos",    value: metrics.openOpportunities,        icon: Target,     color:"text-brand-600",  bg:"bg-brand-50" },
             { label: "Win Rate Geral",     value: `${metrics.winRate}%`,            icon: TrendingUp, color:"text-amber-600",   bg:"bg-amber-50" },
           ].map(k => (
             <div key={k.label} className="card p-4 flex items-center gap-3">
@@ -189,7 +189,7 @@ export default function AnalyticsPage() {
 
           {/* Pipeline por BU */}
           <div className="card p-5">
-            <SectionHeader icon={<Target size={14} className="text-violet-500" />} title="Pipeline por BU (R$)" />
+            <SectionHeader icon={<Target size={14} className="text-brand-500" />} title="Pipeline por BU (R$)" />
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={buData} margin={{ top:0, right:0, bottom:0, left:0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -270,15 +270,15 @@ export default function AnalyticsPage() {
         {/* RFM shortcut */}
         <Link href="/crm/rfm" className="card p-4 flex items-center justify-between hover:shadow-md transition-shadow group">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-violet-50 flex items-center justify-center shrink-0">
-              <BarChart3 size={16} className="text-violet-600" />
+            <div className="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center shrink-0">
+              <BarChart3 size={16} className="text-brand-600" />
             </div>
             <div>
               <div className="text-sm font-semibold text-gray-900">Matriz RFM</div>
               <div className="text-[11px] text-gray-500">Segmentação de clientes por Recência, Frequência e Valor</div>
             </div>
           </div>
-          <ArrowRight size={16} className="text-gray-400 group-hover:text-violet-600 transition-colors shrink-0" />
+          <ArrowRight size={16} className="text-gray-400 group-hover:text-brand-600 transition-colors shrink-0" />
         </Link>
 
       </div>

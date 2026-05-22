@@ -21,7 +21,7 @@ function fmtK(n: number) {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function CircleProgress({ pct, size = 44, stroke = 4, color = "#4f46e5" }: {
+function CircleProgress({ pct, size = 44, stroke = 4, color = "#1476c6" }: {
   pct: number; size?: number; stroke?: number; color?: string;
 }) {
   const r = (size - stroke) / 2;
@@ -156,7 +156,7 @@ export default function PoCPage() {
           <div key={k.label} className="card card-hover p-5 flex flex-col gap-2">
             <div className="flex items-start justify-between">
               <div className="text-xs font-medium text-gray-500">{k.label}</div>
-              <CircleProgress pct={k.pct} size={40} stroke={3.5} color="#4f46e5" />
+              <CircleProgress pct={k.pct} size={40} stroke={3.5} color="#1476c6" />
             </div>
             <div className="text-xl lg:text-2xl font-bold text-gray-900 tabular-nums tracking-tight">{k.value}</div>
             <div className="text-[11px] text-gray-400 font-medium">{k.sub}</div>
@@ -228,7 +228,7 @@ export default function PoCPage() {
             ].map((a) => (
               <div key={a.label} className="bg-gray-50 rounded-lg p-3 text-center border border-gray-100">
                 <div className="flex justify-center mb-1">
-                  <CircleProgress pct={a.pct} size={38} stroke={3} color="#4f46e5" />
+                  <CircleProgress pct={a.pct} size={38} stroke={3} color="#1476c6" />
                 </div>
                 <div className="text-[11px] text-gray-500 mb-1 font-medium">{a.label}</div>
                 <div className="text-base font-bold text-gray-900 tabular-nums">{a.pct.toFixed(1)}%</div>

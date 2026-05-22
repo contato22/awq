@@ -38,7 +38,7 @@ const STAGE_BAR: Record<string, string> = {
   screening:     "bg-blue-500",
   due_diligence: "bg-amber-500",
   structuring:   "bg-orange-500",
-  ic_review:     "bg-purple-500",
+  ic_review:     "bg-brand-500",
 };
 
 const STAGE_DOT: Record<string, string> = {
@@ -46,7 +46,7 @@ const STAGE_DOT: Record<string, string> = {
   screening:     "bg-blue-400",
   due_diligence: "bg-amber-400",
   structuring:   "bg-orange-400",
-  ic_review:     "bg-purple-400",
+  ic_review:     "bg-brand-400",
 };
 
 const pipelineStages = ["sourcing", "screening", "due_diligence", "structuring", "ic_review"];
@@ -56,7 +56,7 @@ const primaryLinks = [
   { label: "Deal Pipeline",  href: "/awq/ma/deals",         icon: Activity,    color: "text-blue-400",    bg: "bg-blue-50",    border: "border-blue-200",    accent: "bg-blue-500"    },
   { label: "Portfolio",      href: "/awq/portfolio",         icon: Briefcase,   color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-200", accent: "bg-emerald-500" },
   { label: "Cap Table",      href: "/awq/ma/cap-table",      icon: PieChart,    color: "text-amber-600",   bg: "bg-amber-50",   border: "border-amber-200",   accent: "bg-amber-500"   },
-  { label: "Comitê IC",      href: "/awq/ma/ic",             icon: CalendarDays,color: "text-violet-600",  bg: "bg-violet-50",  border: "border-violet-200",  accent: "bg-violet-500"  },
+  { label: "Comitê IC",      href: "/awq/ma/ic",             icon: CalendarDays,color: "text-brand-600",  bg: "bg-brand-50",  border: "border-brand-200",  accent: "bg-brand-500"  },
   { label: "Sinergias",      href: "/awq/ma/synergies",      icon: Network,     color: "text-cyan-600",    bg: "bg-cyan-50",    border: "border-cyan-200",    accent: "bg-cyan-500"    },
   { label: "Consolidação",   href: "/awq/ma/consolidation",  icon: Layers,      color: "text-rose-600",    bg: "bg-rose-50",    border: "border-rose-200",    accent: "bg-rose-500"    },
 ];
@@ -134,8 +134,8 @@ export default async function MaCommandCenterPage() {
       value:  String(activeDeals.length),
       sub:    `${stageCount["closed_won"] ?? 0} deal(s) fechado(s)`,
       icon:   BarChart3,
-      accent: "border-l-violet-500",
-      val:    "text-violet-600",
+      accent: "border-l-brand-500",
+      val:    "text-brand-600",
     },
     {
       label:  "Mídia Entregue",

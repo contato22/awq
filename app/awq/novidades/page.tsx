@@ -199,7 +199,7 @@ const TIPO_CONFIG: Record<TipoNovidade, {
   label: string; color: string; bg: string; border: string; dot: string; icon: typeof Sparkles;
 }> = {
   feature:  { label: "Novo recurso", color: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-400",    dot: "bg-blue-400",    icon: Sparkles },
-  melhoria: { label: "Melhoria",     color: "text-violet-700",  bg: "bg-violet-50",  border: "border-violet-400",  dot: "bg-violet-400",  icon: Zap      },
+  melhoria: { label: "Melhoria",     color: "text-brand-700",  bg: "bg-brand-50",  border: "border-brand-400",  dot: "bg-brand-400",  icon: Zap      },
   fix:      { label: "Correção",     color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-400", dot: "bg-emerald-400", icon: Wrench   },
 };
 
@@ -207,7 +207,7 @@ const MODULO_COLOR: Record<string, { color: string; bg: string }> = {
   "AP & AR":    { color: "text-red-700",     bg: "bg-red-50"     },
   "JACQES CRM": { color: "text-blue-700",    bg: "bg-blue-50"    },
   "Tesouraria": { color: "text-cyan-700",    bg: "bg-cyan-50"    },
-  "Plataforma": { color: "text-indigo-700",  bg: "bg-indigo-50"  },
+  "Plataforma": { color: "text-brand-700",  bg: "bg-brand-50"  },
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

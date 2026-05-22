@@ -189,7 +189,7 @@ function CoaRow({
             {node.label}
           </span>
           {node.currency && node.currency !== "BRL" && (
-            <span className="ml-1.5 text-[9px] font-bold text-violet-600 bg-violet-50 px-1 rounded">
+            <span className="ml-1.5 text-[9px] font-bold text-brand-600 bg-brand-50 px-1 rounded">
               {node.currency}
             </span>
           )}
@@ -206,7 +206,7 @@ function CoaRow({
         </td>
         <td className="py-2 px-2 text-center">
           {node.pddRate && (
-            <span className="text-[10px] text-violet-600 bg-violet-50 px-1.5 py-0.5 rounded font-medium">
+            <span className="text-[10px] text-brand-600 bg-brand-50 px-1.5 py-0.5 rounded font-medium">
               PDD {(node.pddRate * 100).toFixed(1)}%
             </span>
           )}
@@ -409,7 +409,7 @@ export default function ARCadastroPage() {
               pill={pl && pl.dre.issThisMonth > 0
                 ? `ISS/PIS/COF: ${fmtBRL(pl.dre.issThisMonth)}`
                 : undefined}
-              pillColor="bg-violet-100 text-violet-700"
+              pillColor="bg-brand-100 text-brand-700"
               to="/awq/epm/pl"
             />
 
@@ -452,7 +452,7 @@ export default function ARCadastroPage() {
                   <tr className="border-b border-gray-200 text-left text-gray-400">
                     <th className="py-1.5 pr-3 font-semibold">Grupo</th>
                     <th className="py-1.5 px-2 text-right font-semibold">Bruto</th>
-                    <th className="py-1.5 px-2 text-right font-semibold text-violet-600">PDD</th>
+                    <th className="py-1.5 px-2 text-right font-semibold text-brand-600">PDD</th>
                     <th className="py-1.5 px-2 text-right font-semibold text-emerald-700">Líquido</th>
                   </tr>
                 </thead>
@@ -461,14 +461,14 @@ export default function ARCadastroPage() {
                     <tr key={g.code} className="border-b border-gray-50">
                       <td className="py-1.5 pr-3 text-gray-600">{g.label}</td>
                       <td className="py-1.5 px-2 text-right tabular-nums text-gray-600">{fmtBRL(g.gross)}</td>
-                      <td className="py-1.5 px-2 text-right tabular-nums text-violet-600">({fmtBRL(g.pdd)})</td>
+                      <td className="py-1.5 px-2 text-right tabular-nums text-brand-600">({fmtBRL(g.pdd)})</td>
                       <td className="py-1.5 px-2 text-right tabular-nums font-semibold text-emerald-700">{fmtBRL(g.net)}</td>
                     </tr>
                   ))}
                   <tr className="font-bold border-t-2 border-gray-200">
                     <td className="py-2 pr-3 text-gray-800">TOTAL</td>
                     <td className="py-2 px-2 text-right tabular-nums">{fmtBRL(pl.balanco.grossAr)}</td>
-                    <td className="py-2 px-2 text-right tabular-nums text-violet-700">({fmtBRL(pl.balanco.pddEstimate)})</td>
+                    <td className="py-2 px-2 text-right tabular-nums text-brand-700">({fmtBRL(pl.balanco.pddEstimate)})</td>
                     <td className="py-2 px-2 text-right tabular-nums text-emerald-700">{fmtBRL(pl.balanco.netAr)}</td>
                   </tr>
                 </tbody>
@@ -602,8 +602,8 @@ export default function ARCadastroPage() {
 
             {/* Fiscal preview */}
             {fiscalPrev && gross > 0 && fiscalPrev.total > 0 && (
-              <div className="bg-violet-50 border border-violet-200 rounded-xl p-4 text-xs space-y-2">
-                <div className="font-semibold text-violet-800 flex items-center gap-1.5">
+              <div className="bg-brand-50 border border-brand-200 rounded-xl p-4 text-xs space-y-2">
+                <div className="font-semibold text-brand-800 flex items-center gap-1.5">
                   <Receipt size={11} /> Tributos (ISS 5% + PIS 0,65% + COFINS 3%)
                 </div>
                 <div className="grid grid-cols-4 gap-2 text-center">
@@ -613,9 +613,9 @@ export default function ARCadastroPage() {
                     { label: "COFINS", v: fiscalPrev.cofins },
                     { label: "Líquido", v: fiscalPrev.net },
                   ].map((t) => (
-                    <div key={t.label} className="bg-white rounded-lg py-2 border border-violet-100">
+                    <div key={t.label} className="bg-white rounded-lg py-2 border border-brand-100">
                       <div className="text-[9px] text-gray-400 font-medium">{t.label}</div>
-                      <div className={`font-bold tabular-nums ${t.label === "Líquido" ? "text-emerald-700" : "text-violet-700"}`}>
+                      <div className={`font-bold tabular-nums ${t.label === "Líquido" ? "text-emerald-700" : "text-brand-700"}`}>
                         {fmtBRL(t.v)}
                       </div>
                     </div>
@@ -643,7 +643,7 @@ export default function ARCadastroPage() {
                   <th className="py-2.5 px-2 text-gray-500 font-semibold">Conta</th>
                   <th className="py-2.5 px-2 text-right text-gray-500 font-semibold w-32">A Receber</th>
                   <th className="py-2.5 px-2 text-right text-red-500 font-semibold w-28">Vencido</th>
-                  <th className="py-2.5 px-2 text-center text-violet-500 font-semibold w-24">PDD</th>
+                  <th className="py-2.5 px-2 text-center text-brand-500 font-semibold w-24">PDD</th>
                   <th className="py-2.5 px-2 text-center text-gray-400 font-semibold w-10">+</th>
                 </tr>
               </thead>

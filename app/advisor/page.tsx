@@ -39,8 +39,8 @@ export default function AdvisorPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {kpis.map((kpi) => (
             <div key={kpi.label} className="card p-5 flex items-center gap-4">
-              <div className="w-9 h-9 rounded-xl bg-violet-50 border border-violet-200 flex items-center justify-center shrink-0">
-                <kpi.icon size={16} className="text-violet-700" />
+              <div className="w-9 h-9 rounded-xl bg-brand-50 border border-brand-200 flex items-center justify-center shrink-0">
+                <kpi.icon size={16} className="text-brand-700" />
               </div>
               <div>
                 <div className="text-xl font-bold text-gray-900">{kpi.value}</div>
@@ -54,12 +54,12 @@ export default function AdvisorPage() {
         <div className="card p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-              <Briefcase size={14} className="text-violet-600" />
+              <Briefcase size={14} className="text-brand-600" />
               Carteira de Clientes
             </h2>
             <Link
               href="/advisor/customers"
-              className="text-xs text-violet-600 hover:text-violet-800 flex items-center gap-1 font-medium"
+              className="text-xs text-brand-600 hover:text-brand-800 flex items-center gap-1 font-medium"
             >
               Ver todos <ChevronRight size={12} />
             </Link>

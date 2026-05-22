@@ -14,7 +14,7 @@ const STATUS_BADGE: Record<string, string> = {
 const TIPO_BADGE: Record<string, string> = {
   Preventiva: "bg-sky-100 text-sky-700",
   Corretiva:  "bg-red-100 text-red-700",
-  Preditiva:  "bg-purple-100 text-purple-700",
+  Preditiva:  "bg-brand-100 text-brand-700",
 };
 
 export default function AssetMaintenancePage() {

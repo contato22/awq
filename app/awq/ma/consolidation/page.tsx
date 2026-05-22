@@ -122,7 +122,7 @@ export default function ConsolidationPage() {
                 {[
                   { label: "Total Investido", value: fmtR(snapshot.equity_portfolio.total_invested), icon: DollarSign, color: "text-blue-400" },
                   { label: "Valor Atual", value: fmtR(snapshot.equity_portfolio.total_current_value), icon: TrendingUp, color: "text-green-400" },
-                  { label: "Ganho Não Realizado", value: fmtR(snapshot.equity_portfolio.unrealized_gain), icon: BarChart3, color: "text-purple-400" },
+                  { label: "Ganho Não Realizado", value: fmtR(snapshot.equity_portfolio.unrealized_gain), icon: BarChart3, color: "text-brand-400" },
                   { label: "Múltiplo Médio", value: snapshot.equity_portfolio.avg_multiple.toFixed(2) + "×", icon: Layers, color: "text-amber-400" },
                 ].map(c => {
                   const Icon = c.icon;

@@ -288,7 +288,7 @@ export default function ForecastPage() {
         {/* ── Driver-based forecasting ──────────────────────────────── */}
         <div className="mt-2">
           <div className="flex items-center gap-2 mb-4">
-            <Calculator size={14} className="text-violet-600" />
+            <Calculator size={14} className="text-brand-600" />
             <h2 className="text-sm font-bold text-gray-900">Driver-Based Forecasting — Cenários FY2026</h2>
           </div>
 

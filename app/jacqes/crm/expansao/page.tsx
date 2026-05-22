@@ -34,7 +34,7 @@ function statusColor(status: string): string {
   switch (status) {
     case "Identificada":   return "bg-blue-100 text-blue-700 border border-blue-200";
     case "Em Diagnóstico": return "bg-amber-100 text-amber-700 border border-amber-200";
-    case "Proposta":       return "bg-violet-100 text-violet-700 border border-violet-200";
+    case "Proposta":       return "bg-brand-100 text-brand-700 border border-brand-200";
     case "Fechado":        return "bg-emerald-100 text-emerald-700 border border-emerald-200";
     default:               return "bg-gray-100 text-gray-600 border border-gray-200";
   }
@@ -44,7 +44,7 @@ function tipoColor(tipo: string): string {
   switch (tipo) {
     case "Upsell":        return "bg-brand-50 text-brand-700 border border-brand-200";
     case "Cross-sell":    return "bg-cyan-50 text-cyan-700 border border-cyan-200";
-    case "Upgrade":       return "bg-purple-50 text-purple-700 border border-purple-200";
+    case "Upgrade":       return "bg-brand-50 text-brand-700 border border-brand-200";
     case "Projeto Extra": return "bg-orange-50 text-orange-700 border border-orange-200";
     case "Reativação":    return "bg-rose-50 text-rose-700 border border-rose-200";
     default:              return "bg-gray-100 text-gray-600 border border-gray-200";
@@ -300,7 +300,7 @@ export default function ExpansaoPage() {
             value={String(fechadasGanhas)}
             sub="este período"
             icon={CheckCircle2}
-            color="bg-violet-50 border border-violet-200 text-violet-600"
+            color="bg-brand-50 border border-brand-200 text-brand-600"
           />
         </div>
 
