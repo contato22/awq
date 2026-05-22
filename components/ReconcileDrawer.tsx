@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState, useRef } from "react";
 import { X, Search, Plus, ChevronDown, Check, Loader2, ArrowUpRight, ArrowDownRight, AlertCircle } from "lucide-react";
 import type { BankTransaction, ManagerialCategory } from "@/lib/financial-db";
 import { fmtDate } from "@/lib/utils";
+import { getLeafAccounts } from "@/lib/ar-coa";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -106,13 +107,15 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
   const [counterparty, setCounterparty] = useState(tx.counterpartyName ?? "");
 
   // Create form state
-  const [createType, setCreateType]   = useState<"AP" | "AR">(isCredit ? "AR" : "AP");
-  const [createDesc, setCreateDesc]   = useState(tx.descriptionOriginal);
-  const [createParty, setCreateParty] = useState(tx.counterpartyName ?? "");
-  const [createDue, setCreateDue]     = useState(tx.transactionDate);
-  const [createAmt, setCreateAmt]     = useState(String(Math.abs(tx.amount)));
-  const [createCat, setCreateCat]     = useState(tx.managerialCategory === "unclassified" ? "" : (CAT_LABELS[tx.managerialCategory] ?? ""));
-  const [creating, setCreating]       = useState(false);
+  const [createType, setCreateType]       = useState<"AP" | "AR">(isCredit ? "AR" : "AP");
+  const [createDesc, setCreateDesc]       = useState(tx.descriptionOriginal);
+  const [createParty, setCreateParty]     = useState(tx.counterpartyName ?? "");
+  const [createDue, setCreateDue]         = useState(tx.transactionDate);
+  const [createAmt, setCreateAmt]         = useState(String(Math.abs(tx.amount)));
+  const [createCat, setCreateCat]         = useState(tx.managerialCategory === "unclassified" ? "" : (CAT_LABELS[tx.managerialCategory] ?? ""));
+  const [createAccCode, setCreateAccCode] = useState("");
+  const [creating, setCreating]           = useState(false);
+  const arLeafAccounts = useMemo(() => getLeafAccounts(), []);
   const searchRef = useRef<HTMLInputElement>(null);
 
   // Fetch AP/AR on mount
@@ -290,6 +293,7 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
               due_date: createDue,
               gross_amount: grossAmt,
               source_system: "conciliacao",
+              ...(createAccCode ? { account_code: createAccCode } : {}),
             }),
           });
           if (!res.ok) {
@@ -562,6 +566,25 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
                     className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-400"
                   />
                 </div>
+                {createType === "AR" && (
+                  <div>
+                    <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">
+                      Conta CoA (1.1.2)
+                    </label>
+                    <select
+                      value={createAccCode}
+                      onChange={(e) => setCreateAccCode(e.target.value)}
+                      className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white"
+                    >
+                      <option value="">— selecione a conta AR —</option>
+                      {arLeafAccounts.map((n) => (
+                        <option key={n.code} value={n.code}>
+                          {n.code} — {n.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
               {saveErr && (

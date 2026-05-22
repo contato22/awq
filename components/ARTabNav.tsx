@@ -19,7 +19,7 @@ export default function ARTabNav() {
         const active =
           t.href === "/awq/epm/ar"
             ? pathname === "/awq/epm/ar"
-            : pathname.startsWith(t.href);
+            : (pathname ?? "").startsWith(t.href);
         return (
           <Link
             key={t.href}
