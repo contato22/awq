@@ -64,6 +64,7 @@ import {
     Star,
     ThumbsUp,
     Plus,
+    LayoutList,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -1152,6 +1153,7 @@ const crmNav = [
     { label: "Contatos",       href: "/crm/contacts",         icon: Users        },
     { label: "Leads",          href: "/crm/leads",            icon: UserPlus     },
     { label: "Oportunidades",  href: "/crm/opportunities",    icon: ArrowUpRight },
+    { label: "Pipeline",       href: "/crm/pipeline",         icon: LayoutList   },
     { label: "Atividades",     href: "/crm/activities",       icon: Activity     },
     { label: "Analytics",      href: "/crm/analytics",        icon: BarChart3    },
     { label: "Matriz RFM",     href: "/crm/rfm",              icon: PieChart     },
