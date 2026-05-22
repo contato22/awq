@@ -1,14 +1,17 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import {
   User, Building2, Mail, Phone, Briefcase,
-  BarChart3, CheckCircle2, AlertCircle, ChevronLeft,
+  CheckCircle2, AlertCircle, ChevronLeft,
   DollarSign, Calendar, FileText, Zap,
+  Search, X, ChevronRight,
 } from "lucide-react";
+import type { CrmAccount, CrmContact } from "@/lib/crm-types";
+
 type FormData = {
   contact_name: string;
   company_name: string;
@@ -94,11 +97,92 @@ function Field({ label, required, children, fullWidth, hint }: {
 const inputCls = "w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-colors";
 const selectCls = `${inputCls} cursor-pointer`;
 
+// ── Inline search combobox ────────────────────────────────────────────────────
+type SearchItem = { label: string; sublabel?: string };
+
+function SearchSelect<T>({
+  placeholder,
+  items,
+  selectedLabel,
+  onSelect,
+  onClear,
+  query,
+  onQueryChange,
+}: {
+  placeholder: string;
+  items: (SearchItem & { value: T })[];
+  selectedLabel: string | null;
+  onSelect: (v: T) => void;
+  onClear: () => void;
+  query: string;
+  onQueryChange: (q: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  if (selectedLabel) {
+    return (
+      <div className="flex items-center justify-between px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg">
+        <div className="text-sm font-medium text-blue-900 truncate">{selectedLabel}</div>
+        <button type="button" onClick={onClear} className="ml-2 text-blue-400 hover:text-blue-700 shrink-0">
+          <X size={13} />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
+      <div className="relative">
+        <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+        <input
+          type="text"
+          className={`${inputCls} pl-9`}
+          placeholder={placeholder}
+          value={query}
+          onFocus={() => setOpen(true)}
+          onBlur={() => setTimeout(() => setOpen(false), 150)}
+          onChange={e => { onQueryChange(e.target.value); setOpen(true); }}
+        />
+      </div>
+      {open && items.length > 0 && (
+        <div className="absolute z-20 left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden max-h-48 overflow-y-auto">
+          {items.map((item, i) => (
+            <button key={i} type="button"
+              className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-gray-50 transition-colors text-left"
+              onMouseDown={() => { onSelect(item.value); onQueryChange(""); setOpen(false); }}>
+              <div className="min-w-0">
+                <div className="text-sm font-medium text-gray-900 truncate">{item.label}</div>
+                {item.sublabel && <div className="text-[11px] text-gray-400 truncate">{item.sublabel}</div>}
+              </div>
+              <ChevronRight size={12} className="text-gray-300 shrink-0 ml-2" />
+            </button>
+          ))}
+        </div>
+      )}
+      {open && items.length === 0 && query.trim() && (
+        <div className="absolute z-20 left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg px-3 py-3 text-sm text-gray-400">
+          Nenhum resultado
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AddLeadPage() {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // ── Account lookup ──────────────────────────────────────────────────────────
+  const [accounts, setAccounts] = useState<CrmAccount[]>([]);
+  const [accountQuery, setAccountQuery] = useState("");
+  const [selectedAccount, setSelectedAccount] = useState<CrmAccount | null>(null);
+
+  // ── Contact lookup ──────────────────────────────────────────────────────────
+  const [contacts, setContacts] = useState<CrmContact[]>([]);
+  const [contactQuery, setContactQuery] = useState("");
+  const [selectedContact, setSelectedContact] = useState<CrmContact | null>(null);
 
   const [form, setForm] = useState<FormData>({
     contact_name: "",
@@ -117,10 +201,77 @@ export default function AddLeadPage() {
     qualification_notes: "",
   });
 
+  // Load accounts + contacts once
+  useEffect(() => {
+    fetch("/api/crm/accounts")
+      .then(r => r.json())
+      .then(j => setAccounts((j.data ?? []) as CrmAccount[]));
+    fetch("/api/crm/contacts")
+      .then(r => r.json())
+      .then(j => setContacts((j.data ?? []) as CrmContact[]));
+  }, []);
+
   const set = useCallback(<K extends keyof FormData>(key: K, value: FormData[K]) => {
     setForm(prev => ({ ...prev, [key]: value }));
     setErrors(prev => ({ ...prev, [key]: "" }));
   }, []);
+
+  // Account selected → auto-fill company_name
+  function handleSelectAccount(acc: CrmAccount) {
+    setSelectedAccount(acc);
+    set("company_name", acc.trade_name ?? acc.account_name);
+  }
+
+  // Contact selected → auto-fill contact_name, email, phone, job_title
+  function handleSelectContact(con: CrmContact) {
+    setSelectedContact(con);
+    set("contact_name", con.full_name);
+    if (con.email)     set("email",     con.email);
+    if (con.phone)     set("phone",     con.phone);
+    if (con.job_title) set("job_title", con.job_title);
+    // If no account yet and contact has account link, find + set it
+    if (!selectedAccount && con.account_id) {
+      const acc = accounts.find(a => a.account_id === con.account_id);
+      if (acc) handleSelectAccount(acc);
+    }
+  }
+
+  // Filtered account list
+  const filteredAccounts = (() => {
+    const q = accountQuery.toLowerCase().trim();
+    const list = q
+      ? accounts.filter(a =>
+          (a.account_name ?? "").toLowerCase().includes(q) ||
+          (a.trade_name   ?? "").toLowerCase().includes(q) ||
+          (a.document_number ?? "").toLowerCase().includes(q)
+        )
+      : accounts;
+    return list.slice(0, 8).map(a => ({
+      label: a.trade_name ?? a.account_name,
+      sublabel: a.document_number ?? a.industry ?? undefined,
+      value: a,
+    }));
+  })();
+
+  // Filtered contact list (prefer contacts from selected account)
+  const filteredContacts = (() => {
+    const q = contactQuery.toLowerCase().trim();
+    let list = contacts;
+    if (selectedAccount) {
+      const fromAcc = contacts.filter(c => c.account_id === selectedAccount.account_id);
+      list = fromAcc.length > 0 ? fromAcc : contacts;
+    }
+    if (q) list = list.filter(c =>
+      (c.full_name  ?? "").toLowerCase().includes(q) ||
+      (c.email      ?? "").toLowerCase().includes(q) ||
+      (c.job_title  ?? "").toLowerCase().includes(q)
+    );
+    return list.slice(0, 8).map(c => ({
+      label: c.full_name,
+      sublabel: [c.job_title, c.email].filter(Boolean).join(" · ") || undefined,
+      value: c,
+    }));
+  })();
 
   const estimatedScore = calcScore(form);
   const scoreClr = scoreColor(estimatedScore);
@@ -188,6 +339,7 @@ export default function AddLeadPage() {
             Voltar para Leads
           </button>
 
+          {/* Score banner */}
           <div className={`card p-4 border ${scoreClr.border} ${scoreClr.bg}`}>
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
@@ -203,6 +355,42 @@ export default function AddLeadPage() {
             </div>
           </div>
 
+          {/* ── Conta & Contato — busca rápida ─────────────────────── */}
+          <div className="card p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Building2 size={15} className="text-gray-400" />
+              <h2 className="text-sm font-semibold text-gray-900">Vincular Conta & Contato</h2>
+              <span className="text-[11px] text-gray-400 font-normal">(opcional — preenche os campos automaticamente)</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">Conta (Empresa existente)</label>
+                <SearchSelect
+                  placeholder="Buscar empresa…"
+                  items={filteredAccounts}
+                  selectedLabel={selectedAccount ? (selectedAccount.trade_name ?? selectedAccount.account_name) : null}
+                  onSelect={handleSelectAccount}
+                  onClear={() => { setSelectedAccount(null); set("company_name", ""); }}
+                  query={accountQuery}
+                  onQueryChange={setAccountQuery}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">Contato (Pessoa existente)</label>
+                <SearchSelect
+                  placeholder={selectedAccount ? "Buscar contato da empresa…" : "Buscar contato…"}
+                  items={filteredContacts}
+                  selectedLabel={selectedContact ? selectedContact.full_name : null}
+                  onSelect={handleSelectContact}
+                  onClear={() => { setSelectedContact(null); set("contact_name", ""); set("email", ""); set("phone", ""); set("job_title", ""); }}
+                  query={contactQuery}
+                  onQueryChange={setContactQuery}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* ── Dados do Lead ───────────────────────────────────────── */}
           <FormSection icon={<User size={15} />} title="Dados do Lead">
             <Field label="Nome completo" required>
               <input type="text"
@@ -241,6 +429,7 @@ export default function AddLeadPage() {
             </Field>
           </FormSection>
 
+          {/* ── Qualificação ─────────────────────────────────────────── */}
           <FormSection icon={<Building2 size={15} />} title="Qualificação">
             <Field label="BU (Unidade de Negócio)" required>
               <select className={`${selectCls} ${errors.bu ? "border-red-400 focus:border-red-400 focus:ring-red-500/20" : ""}`}
@@ -282,6 +471,7 @@ export default function AddLeadPage() {
             </Field>
           </FormSection>
 
+          {/* ── BANT ────────────────────────────────────────────────── */}
           <FormSection icon={<DollarSign size={15} />} title="BANT">
             <Field label="Budget (Orçamento estimado)" hint="30pts ≥R$50K · 20pts ≥R$20K · 10pts ≥R$10K">
               <div className="relative">
@@ -319,6 +509,7 @@ export default function AddLeadPage() {
             </Field>
           </FormSection>
 
+          {/* ── Notas ───────────────────────────────────────────────── */}
           <div className="card p-5">
             <div className="flex items-center gap-2 mb-4">
               <span className="text-gray-400"><FileText size={15} /></span>

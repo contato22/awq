@@ -63,6 +63,7 @@ import {
     GitMerge,
     Star,
     ThumbsUp,
+    Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -221,6 +222,7 @@ const AWQ_MODULES: AwqModule[] = [
         icon: Users,
         items: [
             { label: "Dashboard CRM",  href: "/crm",                   icon: Target,       starred: true },
+            { label: "Novo Cadastro",  href: "/crm/novo",              icon: Plus         },
             { label: "Contas",         href: "/crm/accounts",          icon: Building2     },
             { label: "Contatos",       href: "/crm/contacts",          icon: Users         },
             { label: "Leads",          href: "/crm/leads",             icon: UserPlus      },
@@ -1142,6 +1144,75 @@ function EnrdSidebar({ pathname }: { pathname: string }) {
     return <BUSidebar buId="enrd" label="ENRD" homeHref="/enrd" headerIcon={Zap} modules={ENRD_MODULES} pathname={pathname} />;
 }
 
+// ── CRM sidebar ───────────────────────────────────────────────────────────────
+const crmNav = [
+    { label: "Dashboard CRM",  href: "/crm",                  icon: Target       },
+    { label: "Novo Cadastro",  href: "/crm/novo",             icon: Plus         },
+    { label: "Contas",         href: "/crm/accounts",         icon: Building2    },
+    { label: "Contatos",       href: "/crm/contacts",         icon: Users        },
+    { label: "Leads",          href: "/crm/leads",            icon: UserPlus     },
+    { label: "Oportunidades",  href: "/crm/opportunities",    icon: ArrowUpRight },
+    { label: "Atividades",     href: "/crm/activities",       icon: Activity     },
+    { label: "Analytics",      href: "/crm/analytics",        icon: BarChart3    },
+    { label: "Matriz RFM",     href: "/crm/rfm",              icon: PieChart     },
+];
+
+function CrmSidebar({ pathname }: { pathname: string }) {
+    const isActive = (href: string) =>
+        href === "/crm"
+            ? pathname === "/crm"
+            : pathname === href || pathname.startsWith(href + "/");
+
+    return (
+        <div className="flex h-full">
+            {/* Icon bar */}
+            <div className="flex flex-col h-full w-[52px] bg-[#0a1929] shrink-0">
+                <div className="h-[52px] flex items-center justify-center border-b border-white/[0.06] shrink-0">
+                    <Link href="/crm" title="CRM">
+                        <div className="w-8 h-8 rounded-xl bg-brand-600 flex items-center justify-center shadow-md">
+                            <Target size={15} className="text-white" />
+                        </div>
+                    </Link>
+                </div>
+                <div className="px-1.5 pt-1.5 shrink-0">
+                    <Link
+                        href="/awq"
+                        title="Voltar para AWQ Group"
+                        className="flex flex-col items-center gap-0.5 py-2 px-1 rounded-lg w-full text-white/40 hover:bg-white/[0.07] hover:text-white/70 transition-all"
+                    >
+                        <ChevronLeft size={16} />
+                        <span className="text-[8px] font-semibold leading-none">AWQ</span>
+                    </Link>
+                </div>
+                <SlimUserButton />
+            </div>
+
+            {/* Nav panel */}
+            <div className="flex-1 bg-[#102030] flex flex-col border-r border-white/[0.06] overflow-hidden min-w-[200px]">
+                <div className="h-[52px] flex items-center px-4 border-b border-white/[0.06] shrink-0">
+                    <span className="text-[13px] font-semibold text-white">CRM</span>
+                    <span className="ml-2 text-[10px] text-white/30">Tower</span>
+                </div>
+                <nav className="flex-1 overflow-y-auto px-2 py-2 scrollbar-none">
+                    <SectionLabel>Navegação</SectionLabel>
+                    <div className="space-y-0.5 mt-1">
+                        {crmNav.map((item) => (
+                            <NavItem key={item.href} {...item} active={isActive(item.href)} />
+                        ))}
+                    </div>
+                    <SectionLabel>IA & Agentes</SectionLabel>
+                    <div className="space-y-0.5 mt-1">
+                        {aiNav.map((item) => (
+                            <NavItem key={item.href} {...item} active={isActive(item.href)} />
+                        ))}
+                    </div>
+                </nav>
+                <PanelFooter />
+            </div>
+        </div>
+    );
+}
+
 // ── Root Sidebar ──────────────────────────────────────────────────────────────
 export default function Sidebar() {
     const rawPathname = usePathname();
@@ -1152,6 +1223,7 @@ export default function Sidebar() {
     if (isAdvisorRoute(pathname)) return <div className="flex flex-col h-full"><AdvisorSidebar pathname={pathname} /></div>;
     if (isVentureRoute(pathname)) return <div className="flex flex-col h-full"><AwqVentureSidebar pathname={pathname} /></div>;
     if (isEnrdRoute(pathname))    return <div className="flex flex-col h-full"><EnrdSidebar pathname={pathname} /></div>;
+    if (isCrmRoute(pathname))     return <div className="flex flex-col h-full"><CrmSidebar pathname={pathname} /></div>;
 
     return <div className="flex flex-col h-full"><AwqSidebar pathname={pathname} /></div>;
 }
