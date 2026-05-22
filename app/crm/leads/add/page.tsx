@@ -8,9 +8,10 @@ import {
   User, Building2, Mail, Phone, Briefcase,
   CheckCircle2, AlertCircle, ChevronLeft,
   DollarSign, Calendar, FileText, Zap,
-  Search, X, Plus, ChevronRight, Link2,
+  Search, X, Plus, ChevronRight, Link2, Loader2,
 } from "lucide-react";
 import type { CrmAccount, CrmContact } from "@/lib/crm-types";
+import type { CnpjData } from "@/app/api/crm/cnpj/route";
 
 type FormData = {
   contact_name: string;
@@ -200,6 +201,8 @@ export default function AddLeadPage() {
   const [creatingAccount, setCreatingAccount] = useState(false);
   const [newAcct, setNewAcct] = useState({ trade_name: "", document_number: "", industry: "" });
   const [savingAcct, setSavingAcct] = useState(false);
+  const [cnpjLookup, setCnpjLookup] = useState("");
+  const [cnpjLoading, setCnpjLoading] = useState(false);
 
   // ── Contact state ───────────────────────────────────────────────────────────
   const [contacts, setContacts] = useState<CrmContact[]>([]);
@@ -251,6 +254,26 @@ export default function AddLeadPage() {
   function handleClearContact() {
     setSelectedContact(null);
     set("contact_name", ""); set("email", ""); set("phone", ""); set("job_title", "");
+  }
+
+  async function handleCnpjLookup() {
+    const d = cnpjLookup.replace(/\D/g, "");
+    if (d.length !== 14) return;
+    setCnpjLoading(true);
+    try {
+      const res = await fetch(`/api/crm/cnpj?cnpj=${d}`).then(r => r.json());
+      if (!res.success) throw new Error(res.error);
+      const data = res.data.cnpj_data as CnpjData;
+      setNewAcct(p => ({
+        ...p,
+        trade_name:      data.trade_name ?? data.account_name,
+        document_number: data.document_number,
+        industry:        data.industry ?? "",
+      }));
+      set("company_name", data.trade_name ?? data.account_name);
+    } catch (e) {
+      setToast({ message: e instanceof Error ? e.message : "CNPJ não encontrado", type: "error" });
+    } finally { setCnpjLoading(false); }
   }
 
   async function handleCreateAccount() {
@@ -477,6 +500,22 @@ export default function AddLeadPage() {
                   /* Quick-create form */
                   <div className="space-y-2.5">
                     <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Nova Empresa</div>
+                    {/* CNPJ quick-lookup */}
+                    <div className="flex gap-1.5">
+                      <input
+                        placeholder="CNPJ para busca automática"
+                        value={cnpjLookup}
+                        onChange={e => setCnpjLookup(e.target.value.replace(/\D/g, "").slice(0,14))}
+                        onKeyDown={e => e.key === "Enter" && (e.preventDefault(), handleCnpjLookup())}
+                        className={`${inputCls} font-mono text-[12px] flex-1`}
+                        maxLength={14}
+                      />
+                      <button type="button" onClick={handleCnpjLookup}
+                        disabled={cnpjLoading || cnpjLookup.replace(/\D/g,"").length !== 14}
+                        className="px-2.5 py-1.5 bg-blue-50 border border-blue-200 text-blue-600 rounded-lg hover:bg-blue-100 disabled:opacity-40 transition-colors shrink-0">
+                        {cnpjLoading ? <Loader2 size={12} className="animate-spin" /> : <Search size={12} />}
+                      </button>
+                    </div>
                     <input autoFocus placeholder="Nome da empresa *" value={newAcct.trade_name}
                       onChange={e => setNewAcct(p => ({ ...p, trade_name: e.target.value }))}
                       onKeyDown={e => e.key === "Enter" && (e.preventDefault(), handleCreateAccount())}
