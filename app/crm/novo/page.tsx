@@ -11,11 +11,11 @@ import {
 } from "lucide-react";
 import type { CrmAccount } from "@/lib/crm-types";
 
-// ── Shared styles ─────────────────────────────────────────────────────────────
+// ── Shared styles ───────────────────────────────────────────────────────────────────────────────
 const inputCls = "w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-colors";
 const selectCls = `${inputCls} cursor-pointer`;
 
-// ── Step indicator ────────────────────────────────────────────────────────────
+// ── Step indicator ────────────────────────────────────────────────────────────────────────────
 const STEPS = [
   { id: 1, label: "Empresa",  icon: Building2 },
   { id: 2, label: "Contato",  icon: User      },
@@ -57,7 +57,7 @@ function StepIndicator({ current }: { current: number }) {
   );
 }
 
-// ── Toast ─────────────────────────────────────────────────────────────────────
+// ── Toast ───────────────────────────────────────────────────────────────────────────────────
 function Toast({ message, type, onClose }: { message: string; type: "success" | "error"; onClose: () => void }) {
   return (
     <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border text-sm font-medium ${
@@ -70,7 +70,7 @@ function Toast({ message, type, onClose }: { message: string; type: "success" | 
   );
 }
 
-// ── BANT score ────────────────────────────────────────────────────────────────
+// ── BANT score ──────────────────────────────────────────────────────────────────────────────────
 function calcScore(budget: string, authority: boolean, need: string, timeline: string): number {
   let score = 0;
   const b = parseFloat(budget) || 0;
@@ -96,7 +96,7 @@ function scoreColor(s: number) {
   return               { bar: "bg-red-500",     text: "text-red-700",     bg: "bg-red-50",     border: "border-red-200" };
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ───────────────────────────────────────────────────────────────────────────────────
 
 export default function NovoCadastroPage() {
   const router = useRouter();
@@ -104,7 +104,7 @@ export default function NovoCadastroPage() {
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // ── Step 1: Account ──────────────────────────────────────────────────────
+  // ── Step 1: Account ──────────────────────────────────────────────────────────────────────
   const [accountMode, setAccountMode]       = useState<"search" | "new">("search");
   const [accountQuery, setAccountQuery]     = useState("");
   const [accounts, setAccounts]             = useState<CrmAccount[]>([]);
@@ -115,7 +115,7 @@ export default function NovoCadastroPage() {
     industry: "", company_size: "", account_type: "prospect", owner: "Miguel",
   });
 
-  // ── Step 2: Contact ──────────────────────────────────────────────────────
+  // ── Step 2: Contact ──────────────────────────────────────────────────────────────────────
   const [contactForm, setContactForm] = useState({
     full_name: "", email: "", phone: "",
     job_title: "", seniority: "manager", is_primary_contact: true,
@@ -123,7 +123,7 @@ export default function NovoCadastroPage() {
   const [contactErrors, setContactErrors] = useState<Record<string, string>>({});
   const [skipContact, setSkipContact] = useState(false);
 
-  // ── Step 3: Lead ─────────────────────────────────────────────────────────
+  // ── Step 3: Lead ───────────────────────────────────────────────────────────────────────────
   const [leadForm, setLeadForm] = useState({
     bu: "", lead_source: "manual", assigned_to: "", status: "new",
     bant_budget: "", bant_authority: false, bant_need: "medium", bant_timeline: "",
@@ -161,7 +161,7 @@ export default function NovoCadastroPage() {
     setLeadErrors(p => ({ ...p, [f]: "" }));
   }, []);
 
-  // ── Validation ────────────────────────────────────────────────────────────
+  // ── Validation ────────────────────────────────────────────────────────────────────────────
   function validateStep1(): boolean {
     if (accountMode === "search" && !selectedAccount) return true; // skip is OK
     if (accountMode === "new" && !accountForm.account_name.trim()) {
@@ -193,7 +193,7 @@ export default function NovoCadastroPage() {
     setStep(s => s + 1);
   }
 
-  // ── Final submit ──────────────────────────────────────────────────────────
+  // ── Final submit ────────────────────────────────────────────────────────────────────────────
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!validateStep3()) return;
@@ -216,6 +216,7 @@ export default function NovoCadastroPage() {
             industry: accountForm.industry || null,
             company_size: accountForm.company_size || null,
             account_type: accountForm.account_type,
+            bu: leadForm.bu || "JACQES",
             owner: accountForm.owner,
             health_score: 70,
             churn_risk: "low",
@@ -308,7 +309,7 @@ export default function NovoCadastroPage() {
 
         <form onSubmit={handleSubmit} noValidate className="space-y-4">
 
-          {/* ── Step 1: Empresa ─────────────────────────────────────── */}
+          {/* ── Step 1: Empresa ─────────────────────────────────────────────────────────────── */}
           {step === 1 && (
             <div className="space-y-4">
               <div className="card p-5">
@@ -444,7 +445,7 @@ export default function NovoCadastroPage() {
             </div>
           )}
 
-          {/* ── Step 2: Contato ─────────────────────────────────────── */}
+          {/* ── Step 2: Contato ─────────────────────────────────────────────────────────────── */}
           {step === 2 && (
             <div className="space-y-4">
               <div className="card p-5">
@@ -551,7 +552,7 @@ export default function NovoCadastroPage() {
             </div>
           )}
 
-          {/* ── Step 3: Lead ────────────────────────────────────────── */}
+          {/* ── Step 3: Lead ─────────────────────────────────────────────────────────────────────────── */}
           {step === 3 && (
             <div className="space-y-4">
               {/* Score banner */}
@@ -601,6 +602,7 @@ export default function NovoCadastroPage() {
                       <option value="paid">Pago</option>
                       <option value="outbound">Outbound</option>
                       <option value="event">Evento</option>
+
                     </select>
                   </div>
                   <div>

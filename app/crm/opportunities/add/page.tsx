@@ -32,7 +32,7 @@ function Toast({ msg, type, onClose }: { msg: string; type: "success" | "error";
   );
 }
 
-// ── Shared SearchSelect ───────────────────────────────────────────────────────
+// ── Shared SearchSelect ───────────────────────────────────────────────
 type SearchItem = { label: string; sublabel?: string };
 
 function SearchSelect<T>({
@@ -107,9 +107,9 @@ function Initials({ name, className }: { name: string; className?: string }) {
   );
 }
 
-// ── Quick-create mini-forms ───────────────────────────────────────────────────
-function AccountCreateForm({ onCreated, onCancel, initialName }: {
-  onCreated: (acc: CrmAccount) => void; onCancel: () => void; initialName?: string;
+// ── Quick-create mini-forms ───────────────────────────────────────────────
+function AccountCreateForm({ onCreated, onCancel, initialName, bu }: {
+  onCreated: (acc: CrmAccount) => void; onCancel: () => void; initialName?: string; bu?: string;
 }) {
   const [name, setName] = useState(initialName ?? "");
   const [saving, setSaving] = useState(false);
@@ -121,7 +121,7 @@ function AccountCreateForm({ onCreated, onCancel, initialName }: {
     try {
       const res = await fetch("/api/crm/accounts", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "create", account_name: name.trim(), trade_name: name.trim(), account_type: "prospect" }),
+        body: JSON.stringify({ action: "create", account_name: name.trim(), trade_name: name.trim(), account_type: "prospect", bu: bu || "JACQES" }),
       }).then(r => r.json());
       if (!res.success) throw new Error(res.error);
       onCreated(res.data as CrmAccount);
@@ -184,7 +184,7 @@ function ContactCreateForm({ accountId, onCreated, onCancel, initialName }: {
   );
 }
 
-// ── EntityPanel ───────────────────────────────────────────────────────────────
+// ── EntityPanel ────────────────────────────────────────────────────────────────────────────────
 function EntityPanel({ label, color, icon, children }: {
   label: string; color: "blue" | "violet" | "amber";
   icon: ReactNode; children: ReactNode;
@@ -210,33 +210,33 @@ function EntityPanel({ label, color, icon, children }: {
   );
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
+// ── Main page ─────────────────────────────────────────────────────────────────────────────────
 function AddOpportunityPageInner() {
   const router = useRouter();
   const params = useSearchParams();
   const defaultStage = (params?.get("stage") ?? "discovery") as Stage;
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
 
-  // ── Entity data ──────────────────────────────────────────────────────────
+  // ── Entity data ──────────────────────────────────────────────────────────────────────
   const [accounts, setAccounts] = useState<CrmAccount[]>([]);
   const [contacts, setContacts] = useState<CrmContact[]>([]);
   const [leads,    setLeads]    = useState<CrmLead[]>([]);
 
-  // ── Account link ─────────────────────────────────────────────────────────
+  // ── Account link ───────────────────────────────────────────────────────────────────
   const [accountQuery, setAccountQuery]   = useState("");
   const [selectedAccount, setSelectedAccount] = useState<CrmAccount | null>(null);
   const [creatingAccount, setCreatingAccount] = useState(false);
 
-  // ── Contact link ─────────────────────────────────────────────────────────
+  // ── Contact link ───────────────────────────────────────────────────────────────────
   const [contactQuery, setContactQuery]   = useState("");
   const [selectedContact, setSelectedContact] = useState<CrmContact | null>(null);
   const [creatingContact, setCreatingContact] = useState(false);
 
-  // ── Lead import ──────────────────────────────────────────────────────────
+  // ── Lead import ──────────────────────────────────────────────────────────────────────
   const [leadQuery, setLeadQuery] = useState("");
   const [importedLead, setImportedLead] = useState<CrmLead | null>(null);
 
-  // ── Form fields ──────────────────────────────────────────────────────────
+  // ── Form fields ──────────────────────────────────────────────────────────────────────
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState("");
   const [form, setForm] = useState({
@@ -399,7 +399,7 @@ function AddOpportunityPageInner() {
             </div>
           )}
 
-          {/* ── Vincular Conta / Contato / Lead ─────────────────────────── */}
+          {/* ── Vincular Conta / Contato / Lead ─────────────────────────────────────────── */}
           <div className="card overflow-hidden">
             <div className={`px-5 py-3.5 flex items-center gap-2.5 border-b ${isLinked ? "bg-blue-50 border-blue-100" : "bg-gray-50 border-gray-100"}`}>
               <Link2 size={14} className={isLinked ? "text-blue-500" : "text-gray-400"} />
@@ -436,6 +436,7 @@ function AddOpportunityPageInner() {
                 ) : creatingAccount ? (
                   <AccountCreateForm
                     initialName={accountQuery.trim() || undefined}
+                    bu={form.bu}
                     onCreated={acc => { setAccounts(p => [acc, ...p]); handleSelectAccount(acc); setCreatingAccount(false); setToast({ msg: "Empresa criada!", type: "success" }); }}
                     onCancel={() => setCreatingAccount(false)}
                   />
@@ -516,7 +517,7 @@ function AddOpportunityPageInner() {
             </div>
           </div>
 
-          {/* ── Informações Básicas ───────────────────────────────────────── */}
+          {/* ── Informações Básicas ───────────────────────────────────────────────────────────────── */}
           <div className="card p-5 space-y-4">
             <div className="flex items-center gap-2">
               <Target size={14} className="text-gray-400" />
@@ -545,7 +546,7 @@ function AddOpportunityPageInner() {
             </div>
           </div>
 
-          {/* ── Estágio & Valores ─────────────────────────────────────────── */}
+          {/* ── Estágio & Valores ───────────────────────────────────────────────────────────────── */}
           <div className="card p-5 space-y-4">
             <div className="flex items-center gap-2">
               <DollarSign size={14} className="text-gray-400" />
