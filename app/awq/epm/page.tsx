@@ -270,6 +270,38 @@ export default async function EpmOverviewPage() {
           )}
         </section>
 
+        {/* ── Business Units — EPM shortcuts ──────────────────────────────── */}
+        <section>
+          <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-3">
+            Business Units — Acesso Direto EPM
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            {[
+              { label: "JACQES",       sub: "Agência · FP&A",            href: "/jacqes/fpa",              color: "text-brand-600",   bg: "bg-brand-50"   },
+              { label: "Caza Vision",  sub: "Produtora · Financial",      href: "/caza-vision/financial",   color: "text-emerald-600", bg: "bg-emerald-50" },
+              { label: "AWQ Venture",  sub: "Investimentos · Financial",  href: "/awq-venture/financial",   color: "text-amber-600",   bg: "bg-amber-50"   },
+              { label: "Advisor",      sub: "Consultoria · Financial",    href: "/advisor/financial",       color: "text-violet-600",  bg: "bg-violet-50"  },
+              { label: "ENRD",         sub: "Agência Solar · Financial",  href: "/enrd/financial",          color: "text-orange-600",  bg: "bg-orange-50"  },
+            ].map((bu) => (
+              <Link key={bu.href} href={bu.href}
+                className="card-interactive p-4 flex flex-col gap-2 group">
+                <div className="flex items-center justify-between">
+                  <div className={`w-8 h-8 rounded-lg ${bu.bg} flex items-center justify-center`}>
+                    <Building2 size={14} className={bu.color} />
+                  </div>
+                  <ChevronRight size={13} className="text-gray-300 group-hover:text-brand-500 transition-colors" />
+                </div>
+                <div>
+                  <div className="text-xs font-semibold text-gray-900 group-hover:text-brand-700 transition-colors leading-tight">
+                    {bu.label}
+                  </div>
+                  <div className="text-[11px] text-gray-400 mt-0.5 truncate">{bu.sub}</div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+
         {/* ── Module Cards grid ────────────────────────────────────────────── */}
         <section>
           <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-3">
