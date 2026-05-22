@@ -62,6 +62,7 @@ import {
     Wrench,
     RotateCcw,
     GitMerge,
+    Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -398,6 +399,7 @@ const AWQ_MODULES: AwqModule[] = [
         icon: Users,
         items: [
             { label: "Dashboard CRM",  href: "/crm",                   icon: Target       },
+            { label: "Novo Cadastro",  href: "/crm/novo",              icon: Plus         },
             { label: "Leads",          href: "/crm/leads",             icon: UserPlus     },
             { label: "Pipeline",       href: "/crm/pipeline",          icon: Activity     },
             { label: "Clientes",       href: "/crm/customers",         icon: Users        },
@@ -1550,6 +1552,7 @@ function EnrdSidebar({ pathname }: { pathname: string }) {
 // ── CRM sidebar ───────────────────────────────────────────────────────────────
 const crmNav = [
     { label: "Dashboard CRM",  href: "/crm",                  icon: Target       },
+    { label: "Novo Cadastro",  href: "/crm/novo",             icon: Plus         },
     { label: "Contas",         href: "/crm/accounts",         icon: Building2    },
     { label: "Contatos",       href: "/crm/contacts",         icon: Users        },
     { label: "Leads",          href: "/crm/leads",            icon: UserPlus     },
