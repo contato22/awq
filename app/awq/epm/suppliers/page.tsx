@@ -33,7 +33,7 @@ const TYPE_COLOR: Record<SupplierType, string> = {
   service_cleaning:     "bg-teal-50 text-teal-700",
   service_construction: "bg-orange-50 text-orange-700",
   goods:                "bg-gray-100 text-gray-700",
-  rent:                 "bg-purple-50 text-purple-700",
+  rent:                 "bg-brand-50 text-brand-700",
   other:                "bg-gray-100 text-gray-500",
 };
 

@@ -68,7 +68,7 @@ const stageColors: Record<string, string> = {
   "Seed":     "bg-amber-500/10 text-amber-400",
   "Series A": "bg-brand-500/10 text-brand-400",
   "Series B": "bg-emerald-500/10 text-emerald-400",
-  "Exit":     "bg-violet-500/10 text-violet-400",
+  "Exit":     "bg-brand-500/10 text-brand-400",
   "Advisory": "bg-orange-500/10 text-orange-400",
 };
 
@@ -91,7 +91,7 @@ export default function AwqVenturePortfolioPage() {
         <div className="grid grid-cols-3 gap-4">
           {[
             { label: "Investimentos Ativos",  value: ativos.length,   icon: CheckCircle2, color: "text-emerald-400", bg: "bg-emerald-500/10" },
-            { label: "Exits Concluídos",       value: exitados.length, icon: Zap,          color: "text-violet-400",  bg: "bg-violet-500/10"  },
+            { label: "Exits Concluídos",       value: exitados.length, icon: Zap,          color: "text-brand-400",  bg: "bg-brand-500/10"  },
             { label: "Em Monitoramento",       value: monitor.length,  icon: AlertTriangle, color: "text-yellow-400", bg: "bg-yellow-500/10"  },
           ].map((s) => {
             const Icon = s.icon;
@@ -168,7 +168,7 @@ export default function AwqVenturePortfolioPage() {
                   </div>
                   <div>
                     <div className="text-[10px] text-gray-600 mb-0.5">{p.status === "Exitado" ? "Retornado" : "Valor Atual"}</div>
-                    <div className={`text-xs font-bold ${p.status === "Exitado" ? "text-violet-400" : "text-white"}`}>{fmtR(val)}</div>
+                    <div className={`text-xs font-bold ${p.status === "Exitado" ? "text-brand-400" : "text-white"}`}>{fmtR(val)}</div>
                   </div>
                   <div>
                     <div className="text-[10px] text-gray-600 mb-0.5">MOIC</div>

@@ -73,7 +73,7 @@ const ACTION_QUEUE: ActionItem[] = [
 
 function TypeBadge({ type }: { type: SourceType }) {
   const map: Record<SourceType, string> = {
-    "registry":        "bg-violet-100 text-violet-700",
+    "registry":        "bg-brand-100 text-brand-700",
     "snapshot":        "bg-amber-100 text-amber-700",
     "canonical-store": "bg-emerald-100 text-emerald-700",
     "selector":        "bg-blue-100 text-blue-700",
@@ -447,7 +447,7 @@ export default async function AwqDataPage() {
               { label: "Parcial",         cls: "bg-blue-50 border-blue-200 text-blue-700",        sources: DATA_SOURCES.filter(s => s.confidence === "parcial").map(s => s.name) },
               { label: "Mock",            cls: "bg-gray-50 border-gray-200 text-gray-500",        sources: DATA_SOURCES.filter(s => s.confidence === "mock").map(s => s.name) },
               { label: "Nao Verificavel", cls: "bg-red-50 border-red-200 text-red-600",           sources: DATA_SOURCES.filter(s => s.confidence === "nao-verificavel").map(s => s.name) },
-              { label: "Derivado",        cls: "bg-violet-50 border-violet-200 text-violet-700",  sources: DATA_SOURCES.filter(s => s.type === "selector" || s.type === "adapter").map(s => s.name) },
+              { label: "Derivado",        cls: "bg-brand-50 border-brand-200 text-brand-700",  sources: DATA_SOURCES.filter(s => s.type === "selector" || s.type === "adapter").map(s => s.name) },
             ].map((cat) => (
               <div key={cat.label} className={"rounded-lg border p-3 " + cat.cls}>
                 <div className="text-[10px] font-bold mb-2">{cat.label}</div>

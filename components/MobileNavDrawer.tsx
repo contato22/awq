@@ -337,7 +337,7 @@ const businessUnits = [
   { id: "jacqes",  label: "JACQES",      sub: "Agência",        href: "/jacqes",       color: "bg-brand-600" },
   { id: "caza",    label: "Caza Vision", sub: "Produtora",      href: "/caza-vision",  color: "bg-emerald-600" },
   { id: "venture", label: "AWQ Venture", sub: "Investimentos",  href: "/awq-venture",  color: "bg-amber-600" },
-  { id: "advisor", label: "Advisor",     sub: "Consultoria",    href: "/advisor",      color: "bg-violet-600" },
+  { id: "advisor", label: "Advisor",     sub: "Consultoria",    href: "/advisor",      color: "bg-brand-600" },
   { id: "enrd",    label: "ENRD",        sub: "Agência Solar",  href: "/enrd",         color: "bg-orange-600" },
 ];
 
@@ -481,7 +481,7 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
       <BUContextBar
         label="Advisor"
         sub="Consultoria · AWQ Group"
-        colorClass="bg-violet-50 border-violet-200 text-violet-700"
+        colorClass="bg-brand-50 border-brand-200 text-brand-700"
         onNavigate={onClose}
       />
     );

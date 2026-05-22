@@ -35,7 +35,7 @@ const stageColor: Record<string, string> = {
   "Triagem":        "text-gray-500 bg-gray-100",
   "Prospecção":     "text-amber-700 bg-amber-50",
   "Due Diligence":  "text-blue-700 bg-blue-50",
-  "Term Sheet":     "text-violet-700 bg-violet-50",
+  "Term Sheet":     "text-brand-700 bg-brand-50",
   "Negociação":     "text-orange-700 bg-orange-50",
   "Fechado":        "text-emerald-700 bg-emerald-50",
   "Cancelado":      "text-red-600 bg-red-50",
@@ -53,7 +53,7 @@ const sendStatusColor: Record<string, string> = {
   "Rascunho":         "text-gray-400",
   "Pronto para Envio":"text-amber-600 font-semibold",
   "Enviado":          "text-blue-600 font-semibold",
-  "Em Negociação":    "text-violet-600 font-semibold",
+  "Em Negociação":    "text-brand-600 font-semibold",
   "Aprovado":         "text-emerald-600 font-semibold",
   "Rejeitado":        "text-red-500",
 };

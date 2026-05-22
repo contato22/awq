@@ -72,7 +72,7 @@ type NoteCategory = "ajuste" | "contraproposta" | "observacao" | "alerta" | "dec
 
 const categoryConfig: Record<NoteCategory, { label: string; color: string; bg: string }> = {
   ajuste:         { label: "Ajuste",          color: "text-amber-700",   bg: "bg-amber-50 border-amber-200"  },
-  contraproposta: { label: "Contraproposta",   color: "text-violet-700",  bg: "bg-violet-50 border-violet-200"},
+  contraproposta: { label: "Contraproposta",   color: "text-brand-700",  bg: "bg-brand-50 border-brand-200"},
   observacao:     { label: "Observação",       color: "text-blue-700",    bg: "bg-blue-50 border-blue-200"   },
   alerta:         { label: "Alerta",           color: "text-red-700",     bg: "bg-red-50 border-red-200"     },
   decisao:        { label: "Decisão",          color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200"},

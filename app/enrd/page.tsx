@@ -1,6 +1,44 @@
 import Link from "next/link";
 import Header from "@/components/Header";
-import { Zap, Users, DollarSign, TrendingUp, ChevronRight } from "lucide-react";
+import {
+  Zap, Users, DollarSign, TrendingUp, ChevronRight,
+  LineChart, Scale, Target, PieChart,
+  ArrowDownLeft, ArrowUpRight, ListOrdered,
+  Landmark, Activity, Package, Lock,
+  LayoutGrid, Briefcase, BarChart3,
+} from "lucide-react";
+
+const EPM_MODULES = [
+  { label: "Financial (ENRD)",    sub: "Dados da BU · Estruturação",   href: "/enrd/financial",              color: "text-orange-600",  bg: "bg-orange-50"  },
+  { label: "P&L (DRE)",          sub: "Demonstração de Resultado",     href: "/awq/epm/pl",                  color: "text-emerald-600", bg: "bg-emerald-50" },
+  { label: "Balanço Patrimonial",sub: "Ativo = Passivo + PL",          href: "/awq/epm/balance-sheet",       color: "text-brand-600",   bg: "bg-brand-50"   },
+  { label: "Budget vs Actual",   sub: "Variance analysis",             href: "/awq/epm/budget",              color: "text-brand-600",   bg: "bg-brand-50"   },
+  { label: "KPI Dashboard",      sub: "MRR, EBITDA, Runway…",          href: "/awq/epm/kpis",                color: "text-cyan-700",    bg: "bg-cyan-50"    },
+  { label: "Contas a Pagar",     sub: "AP · Aging · DPO",              href: "/awq/epm/ap",                  color: "text-red-600",     bg: "bg-red-50"     },
+  { label: "Contas a Receber",   sub: "AR · Aging · DSO",              href: "/awq/epm/ar",                  color: "text-emerald-600", bg: "bg-emerald-50" },
+  { label: "Razão Geral (GL)",   sub: "Lançamentos contábeis",         href: "/awq/epm/gl",                  color: "text-amber-700",   bg: "bg-amber-50"   },
+  { label: "Conciliação Bancária",sub: "Auto-match transações × AP/AR",href: "/awq/epm/bank-reconciliation", color: "text-cyan-700",    bg: "bg-cyan-50"    },
+  { label: "Forecast",           sub: "13-Week Cash · Driver-Based",   href: "/awq/epm/forecast",            color: "text-brand-600",   bg: "bg-brand-50"   },
+  { label: "Ativo Imobilizado",  sub: "CAPEX · Depreciação",           href: "/awq/epm/fixed-assets",        color: "text-orange-600",  bg: "bg-orange-50"  },
+  { label: "Centros de Custo",   sub: "CC por BU e categoria",         href: "/awq/epm/cost-centers",        color: "text-orange-600",  bg: "bg-orange-50"  },
+  { label: "Fechamento Períodos",sub: "Open → Reviewing → Locked",     href: "/awq/epm/periods",             color: "text-gray-700",    bg: "bg-gray-100"   },
+];
+
+const iconMap: Record<string, React.ElementType> = {
+  "/enrd/financial":              DollarSign,
+  "/awq/epm/pl":                  LineChart,
+  "/awq/epm/balance-sheet":       Scale,
+  "/awq/epm/budget":              Target,
+  "/awq/epm/kpis":                PieChart,
+  "/awq/epm/ap":                  ArrowDownLeft,
+  "/awq/epm/ar":                  ArrowUpRight,
+  "/awq/epm/gl":                  ListOrdered,
+  "/awq/epm/bank-reconciliation": Landmark,
+  "/awq/epm/forecast":            Activity,
+  "/awq/epm/fixed-assets":        Package,
+  "/awq/epm/cost-centers":        LayoutGrid,
+  "/awq/epm/periods":             Lock,
+};
 
 export default function EnrdPage() {
   const kpis = [
@@ -13,6 +51,30 @@ export default function EnrdPage() {
     <>
       <Header title="ENRD" subtitle="Agência Solar · AWQ Group" />
       <div className="page-container">
+
+        {/* Quick access pills */}
+        <section className="flex flex-wrap gap-2">
+          {[
+            { label: "EPM",           href: "/awq/epm",              icon: BarChart3,    color: "text-orange-600",  bg: "bg-orange-50"  },
+            { label: "Financial",     href: "/enrd/financial",        icon: DollarSign,   color: "text-orange-600",  bg: "bg-orange-50"  },
+            { label: "CRM Clientes",  href: "/enrd/customers",        icon: Users,        color: "text-brand-600",   bg: "bg-brand-50"   },
+            { label: "Leads",         href: "/crm/leads?bu=ENRD",     icon: TrendingUp,   color: "text-emerald-600", bg: "bg-emerald-50" },
+            { label: "Pipeline",      href: "/crm/pipeline",          icon: Target,       color: "text-brand-600",   bg: "bg-brand-50"   },
+            { label: "PPM Portfolio", href: "/awq/ppm?bu=ENRD",       icon: Briefcase,    color: "text-cyan-700",    bg: "bg-cyan-50"    },
+          ].map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex items-center gap-2 px-3 h-10 rounded-xl text-xs font-semibold transition-all duration-150 ${item.bg} ${item.color} hover:brightness-95`}
+              >
+                <Icon size={15} />
+                {item.label}
+              </Link>
+            );
+          })}
+        </section>
 
         {/* KPI Cards */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">

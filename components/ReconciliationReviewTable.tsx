@@ -87,8 +87,8 @@ function cashflowClassOf(cat: ManagerialCategory): { label: string; color: strin
   if (cat === "rendimento_financeiro") return { label: "FCF — Financeiro", color: "bg-sky-50 text-sky-700" };
   if (cat === "aplicacao_financeira" || cat === "resgate_financeiro") return { label: "FCF — Investimento", color: "bg-sky-50 text-sky-700" };
   if (cat === "ajuste_bancario_credito") return { label: "FCO — Ajuste", color: "bg-emerald-50 text-emerald-700" };
-  if (cat === "aporte_socio") return { label: "FCI — Capital", color: "bg-violet-50 text-violet-700" };
-  if (cat.startsWith("transferencia_interna_")) return { label: "Intercompany", color: "bg-indigo-50 text-indigo-700" };
+  if (cat === "aporte_socio") return { label: "FCI — Capital", color: "bg-brand-50 text-brand-700" };
+  if (cat.startsWith("transferencia_interna_")) return { label: "Intercompany", color: "bg-brand-50 text-brand-700" };
   if (cat === "reserva_limite_cartao") return { label: "FCF — Reserva", color: "bg-sky-50 text-sky-700" };
   if (cat === "despesa_pessoal_misturada") return { label: "FCO — Pessoal (⚑)", color: "bg-rose-50 text-rose-700" };
   if (cat === "despesa_ambigua" || cat === "recebimento_ambiguo" || cat === "unclassified") {
@@ -105,7 +105,7 @@ function dreEffectOf(cat: ManagerialCategory): { label: string; color: string } 
   if (cat === "receita_eventual") return { label: "Receita Eventual", color: "bg-emerald-50 text-emerald-700" };
   if (cat === "rendimento_financeiro") return { label: "Resultado Financeiro", color: "bg-sky-50 text-sky-700" };
   if (cat === "ajuste_bancario_credito") return { label: "Ajuste / Estorno", color: "bg-gray-50 text-gray-700" };
-  if (cat === "prolabore_retirada") return { label: "Pró-labore", color: "bg-violet-50 text-violet-700" };
+  if (cat === "prolabore_retirada") return { label: "Pró-labore", color: "bg-brand-50 text-brand-700" };
   if (cat === "despesa_pessoal_misturada") return { label: "Despesa Pessoal (⚑)", color: "bg-rose-50 text-rose-700" };
   if (["transferencia_interna_recebida", "transferencia_interna_enviada", "aporte_socio",
        "aplicacao_financeira", "resgate_financeiro", "reserva_limite_cartao"].includes(cat)) {
@@ -508,7 +508,7 @@ export default function ReconciliationReviewTable({
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={isImporting}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 disabled:opacity-50 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-brand-200 bg-brand-50 text-brand-700 hover:bg-brand-100 disabled:opacity-50 transition-colors"
           >
             <Upload size={12} />
             {isImporting ? "Processando…" : "Importar CSV / PDF"}
@@ -518,12 +518,12 @@ export default function ReconciliationReviewTable({
 
       {/* Import preview panel */}
       {importResult && (
-        <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4 space-y-3">
+        <div className="rounded-xl border border-brand-200 bg-brand-50 p-4 space-y-3">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-indigo-900">
+              <p className="text-sm font-semibold text-brand-900">
                 {importResult.transactions.length} transação(ões) encontrada(s)
-                <span className="ml-2 font-normal text-indigo-700 text-xs">— {importResult.fileName}</span>
+                <span className="ml-2 font-normal text-brand-700 text-xs">— {importResult.fileName}</span>
               </p>
               {importResult.warnings.length > 0 && (
                 <div className="mt-1 space-y-0.5">
@@ -536,16 +536,16 @@ export default function ReconciliationReviewTable({
                 </div>
               )}
             </div>
-            <button onClick={() => setImportResult(null)} className="text-indigo-400 hover:text-indigo-600">
+            <button onClick={() => setImportResult(null)} className="text-brand-400 hover:text-brand-600">
               <X size={16} />
             </button>
           </div>
 
           {/* Preview of first 5 rows */}
           {importResult.transactions.length > 0 && (
-            <div className="overflow-x-auto rounded-lg border border-indigo-200 bg-white">
+            <div className="overflow-x-auto rounded-lg border border-brand-200 bg-white">
               <table className="min-w-full text-xs">
-                <thead className="bg-indigo-50 text-[10px] uppercase tracking-wide text-indigo-600">
+                <thead className="bg-brand-50 text-[10px] uppercase tracking-wide text-brand-600">
                   <tr>
                     <th className="px-3 py-1.5 text-left">Data</th>
                     <th className="px-3 py-1.5 text-left">Descrição</th>
@@ -553,7 +553,7 @@ export default function ReconciliationReviewTable({
                     <th className="px-3 py-1.5 text-left">Tipo</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-indigo-50">
+                <tbody className="divide-y divide-brand-50">
                   {importResult.transactions.slice(0, 5).map((t) => (
                     <tr key={t.id}>
                       <td className="px-3 py-1.5 whitespace-nowrap text-gray-700">{t.date}</td>
@@ -567,7 +567,7 @@ export default function ReconciliationReviewTable({
                 </tbody>
               </table>
               {importResult.transactions.length > 5 && (
-                <p className="px-3 py-1.5 text-[10px] text-gray-500 border-t border-indigo-100">
+                <p className="px-3 py-1.5 text-[10px] text-gray-500 border-t border-brand-100">
                   + {importResult.transactions.length - 5} linha(s) adicionais
                 </p>
               )}
@@ -599,7 +599,7 @@ export default function ReconciliationReviewTable({
             <button
               onClick={confirmImport}
               disabled={importResult.transactions.length === 0}
-              className="px-4 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-medium hover:bg-indigo-700 disabled:opacity-40 transition-colors"
+              className="px-4 py-1.5 rounded-lg bg-brand-600 text-white text-xs font-medium hover:bg-brand-700 disabled:opacity-40 transition-colors"
             >
               Confirmar importação
             </button>

@@ -91,8 +91,8 @@ function NewMeetingModal({ onClose, onCreated }: { onClose: () => void; onCreate
       <div className="w-full max-w-md rounded-2xl bg-white border border-gray-200 shadow-xl">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-purple-50 flex items-center justify-center">
-              <CalendarDays size={13} className="text-purple-600" />
+            <div className="w-7 h-7 rounded-lg bg-brand-50 flex items-center justify-center">
+              <CalendarDays size={13} className="text-brand-600" />
             </div>
             <h2 className="text-sm font-bold text-gray-900">Nova Reunião de IC</h2>
           </div>
@@ -223,8 +223,8 @@ export default function IcPage() {
         {/* ── Top bar ────────────────────────────────────────────────────────── */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center">
-              <GitMerge size={16} className="text-purple-600" />
+            <div className="w-9 h-9 rounded-xl bg-brand-50 border border-brand-100 flex items-center justify-center">
+              <GitMerge size={16} className="text-brand-600" />
             </div>
             <div>
               <h2 className="text-sm font-bold text-gray-900">Comitê de Investimentos</h2>
@@ -281,9 +281,9 @@ export default function IcPage() {
             <div className="rounded-xl bg-white border border-gray-200 shadow-sm overflow-hidden">
               <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100">
                 <div className="flex items-center gap-2">
-                  <CalendarDays size={13} className="text-purple-500" />
+                  <CalendarDays size={13} className="text-brand-500" />
                   <h3 className="text-sm font-bold text-gray-800">Reuniões</h3>
-                  <span className="text-[10px] font-bold bg-purple-50 text-purple-600 border border-purple-100 px-1.5 py-0.5 rounded-full">
+                  <span className="text-[10px] font-bold bg-brand-50 text-brand-600 border border-brand-100 px-1.5 py-0.5 rounded-full">
                     {meetings.length}
                   </span>
                 </div>

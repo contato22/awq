@@ -46,24 +46,24 @@ interface ModuleCard {
 const EPM_MODULES: ModuleCard[] = [
   { label: "P&L (DRE)",          sub: "Demonstração de Resultado",    href: "/awq/epm/pl",             icon: LineChart,     color: "text-emerald-600", bg: "bg-emerald-50",  status: "active" },
   { label: "Balanço Patrimonial", sub: "Activo = Passivo + PL",        href: "/awq/epm/balance-sheet",  icon: Scale,         color: "text-brand-600",   bg: "bg-brand-50",    status: "active" },
-  { label: "Budget vs Actual",    sub: "Variance analysis",            href: "/awq/epm/budget",         icon: Target,        color: "text-violet-600",  bg: "bg-violet-50",   status: "active" },
+  { label: "Budget vs Actual",    sub: "Variance analysis",            href: "/awq/epm/budget",         icon: Target,        color: "text-brand-600",  bg: "bg-brand-50",   status: "active" },
   { label: "KPI Dashboard",       sub: "MRR, EBITDA, Runway…",         href: "/awq/epm/kpis",           icon: PieChart,      color: "text-cyan-700",    bg: "bg-cyan-50",     status: "active" },
   { label: "Contas a Pagar",      sub: "AP · Aging · DPO",             href: "/awq/epm/ap",                     icon: ArrowDownLeft, color: "text-red-600",     bg: "bg-red-50",      status: "active" },
   { label: "Contas a Receber",    sub: "AR · Aging · DSO",             href: "/awq/epm/ar",                     icon: ArrowUpRight,  color: "text-emerald-600", bg: "bg-emerald-50",  status: "active" },
   { label: "Razão Geral (GL)",    sub: "Lançamentos contábeis",        href: "/awq/epm/gl",                     icon: ListOrdered,   color: "text-amber-700",   bg: "bg-amber-50",    status: "active" },
-  { label: "Consolidação",        sub: "Multi-entidade · Holding",     href: "/awq/epm/consolidation",          icon: Building2,     color: "text-violet-600",  bg: "bg-violet-50",   status: "active" },
+  { label: "Consolidação",        sub: "Multi-entidade · Holding",     href: "/awq/epm/consolidation",          icon: Building2,     color: "text-brand-600",  bg: "bg-brand-50",   status: "active" },
   { label: "Conciliação Bancária",sub: "Auto-match transações × AP/AR",href: "/awq/epm/bank-reconciliation",    icon: Landmark,      color: "text-cyan-700",    bg: "bg-cyan-50",     status: "active" },
-  { label: "Reconhec. de Receita",sub: "Competência · Caixa · Marco",  href: "/awq/epm/revenue-recognition",   icon: BookOpen,      color: "text-indigo-600",  bg: "bg-indigo-50",   status: "active" },
+  { label: "Reconhec. de Receita",sub: "Competência · Caixa · Marco",  href: "/awq/epm/revenue-recognition",   icon: BookOpen,      color: "text-brand-600",  bg: "bg-brand-50",   status: "active" },
   { label: "Centros de Custo",    sub: "CC por BU e categoria",        href: "/awq/epm/cost-centers",          icon: LayoutGrid,    color: "text-orange-600",  bg: "bg-orange-50",   status: "active" },
   { label: "Fornecedores",        sub: "Cadastro de fornecedores",     href: "/awq/epm/suppliers",             icon: Building2,     color: "text-teal-600",    bg: "bg-teal-50",     status: "active" },
   { label: "Clientes",            sub: "Cadastro de clientes",         href: "/awq/epm/customers",             icon: Users,         color: "text-brand-600",   bg: "bg-brand-50",    status: "active" },
   { label: "AP Aging",            sub: "Vencimentos por faixa",        href: "/awq/epm/ap/aging",                         icon: Receipt,       color: "text-amber-600",   bg: "bg-amber-50",    status: "active" },
   { label: "AR Aging",            sub: "Recebíveis por faixa",         href: "/awq/epm/ar/aging",                         icon: Receipt,       color: "text-emerald-600", bg: "bg-emerald-50",  status: "active" },
   { label: "Ativo Imobilizado",   sub: "CAPEX · Depreciação · Registro",href: "/awq/epm/fixed-assets",                    icon: Package,       color: "text-orange-600",  bg: "bg-orange-50",   status: "active" },
-  { label: "Budget Approval",     sub: "Workflow · Cenários · Audit",  href: "/awq/epm/budget/approval",                  icon: Clock,         color: "text-violet-600",  bg: "bg-violet-50",   status: "active" },
+  { label: "Budget Approval",     sub: "Workflow · Cenários · Audit",  href: "/awq/epm/budget/approval",                  icon: Clock,         color: "text-brand-600",  bg: "bg-brand-50",   status: "active" },
   { label: "Forecast",            sub: "13-Week Cash · Driver-Based",  href: "/awq/epm/forecast",                         icon: Activity,      color: "text-brand-600",   bg: "bg-brand-50",    status: "active" },
   { label: "Fechamento Períodos", sub: "Open → Reviewing → Locked",    href: "/awq/epm/periods",                          icon: Lock,          color: "text-gray-700",    bg: "bg-gray-100",    status: "active" },
-  { label: "Eliminações IC",      sub: "Intercompany · Reconciliação", href: "/awq/epm/consolidation/eliminations",       icon: GitMerge,      color: "text-violet-600",  bg: "bg-violet-50",   status: "active" },
+  { label: "Eliminações IC",      sub: "Intercompany · Reconciliação", href: "/awq/epm/consolidation/eliminations",       icon: GitMerge,      color: "text-brand-600",  bg: "bg-brand-50",   status: "active" },
   { label: "Câmbio / FX",         sub: "FX Rates · Translation G/L",  href: "/awq/epm/currency",                         icon: Globe,         color: "text-cyan-700",    bg: "bg-cyan-50",     status: "active" },
   { label: "Board Pack",          sub: "Relatório trimestral board",   href: "/awq/epm/reports/board-pack",               icon: FileText,      color: "text-brand-700",   bg: "bg-brand-50",    status: "active" },
   { label: "Relatório Anual",     sub: "P&L · Balanço · DFC · 3Y",    href: "/awq/epm/reports/annual",                   icon: BarChart3,     color: "text-gray-700",    bg: "bg-gray-100",    status: "active" },
@@ -139,7 +139,7 @@ export default async function EpmOverviewPage() {
               { label: "Lucro Bruto",    value: fmtBRL(dre.hasData ? dre.dreGrossProfit : snap.grossProfit), icon: TrendingUp, color: "text-brand-600", bg: "bg-brand-50" },
               { label: "Margem Bruta",   value: gmPct !== null ? ((gmPct) * 100).toFixed(1) + "%" : "—",         icon: PieChart,   color: "text-brand-600",   bg: "bg-brand-50"   },
               { label: "EBITDA",         value: fmtBRL(ebitda),    icon: Target,     color: ebitda >= 0 ? "text-emerald-600" : "text-red-600", bg: ebitda >= 0 ? "bg-emerald-50" : "bg-red-50" },
-              { label: "Margem EBITDA",  value: ebitdaPct !== null ? ((ebitdaPct) * 100).toFixed(1) + "%" : "—", icon: Layers,     color: "text-violet-600",  bg: "bg-violet-50"  },
+              { label: "Margem EBITDA",  value: ebitdaPct !== null ? ((ebitdaPct) * 100).toFixed(1) + "%" : "—", icon: Layers,     color: "text-brand-600",  bg: "bg-brand-50"  },
             ].map((card) => {
               const Icon = card.icon;
               return (
@@ -195,7 +195,7 @@ export default async function EpmOverviewPage() {
         <section className="card p-5">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <Target size={14} className="text-violet-600" />
+              <Target size={14} className="text-brand-600" />
               <span className="text-sm font-semibold text-gray-900">Budget vs Actual — YTD 2026</span>
             </div>
             <Link href="/awq/epm/budget" className="text-xs text-brand-600 hover:underline font-medium">
@@ -268,6 +268,38 @@ export default async function EpmOverviewPage() {
               ))}
             </div>
           )}
+        </section>
+
+        {/* ── Business Units — EPM shortcuts ──────────────────────────────── */}
+        <section>
+          <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-3">
+            Business Units — Acesso Direto EPM
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            {[
+              { label: "JACQES",       sub: "Agência · FP&A",            href: "/jacqes/fpa",              color: "text-brand-600",   bg: "bg-brand-50"   },
+              { label: "Caza Vision",  sub: "Produtora · Financial",      href: "/caza-vision/financial",   color: "text-emerald-600", bg: "bg-emerald-50" },
+              { label: "AWQ Venture",  sub: "Investimentos · Financial",  href: "/awq-venture/financial",   color: "text-amber-600",   bg: "bg-amber-50"   },
+              { label: "Advisor",      sub: "Consultoria · Financial",    href: "/advisor/financial",       color: "text-brand-600",   bg: "bg-brand-50"   },
+              { label: "ENRD",         sub: "Agência Solar · Financial",  href: "/enrd/financial",          color: "text-orange-600",  bg: "bg-orange-50"  },
+            ].map((bu) => (
+              <Link key={bu.href} href={bu.href}
+                className="card-interactive p-4 flex flex-col gap-2 group">
+                <div className="flex items-center justify-between">
+                  <div className={`w-8 h-8 rounded-lg ${bu.bg} flex items-center justify-center`}>
+                    <Building2 size={14} className={bu.color} />
+                  </div>
+                  <ChevronRight size={13} className="text-gray-300 group-hover:text-brand-500 transition-colors" />
+                </div>
+                <div>
+                  <div className="text-xs font-semibold text-gray-900 group-hover:text-brand-700 transition-colors leading-tight">
+                    {bu.label}
+                  </div>
+                  <div className="text-[11px] text-gray-400 mt-0.5 truncate">{bu.sub}</div>
+                </div>
+              </Link>
+            ))}
+          </div>
         </section>
 
         {/* ── Module Cards grid ────────────────────────────────────────────── */}

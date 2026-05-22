@@ -88,9 +88,9 @@ export default async function BusinessUnitsPage() {
       label: "Advisor",
       sub: "Consultoria (pré-receita)",
       href: "/advisor",
-      bgColor: "bg-violet-50",
-      textColor: "text-violet-700",
-      badgeColor: "bg-violet-100 text-violet-600 border-violet-200",
+      bgColor: "bg-brand-50",
+      textColor: "text-brand-700",
+      badgeColor: "bg-brand-100 text-brand-600 border-brand-200",
       icon: Briefcase,
       kpis: [
         { label: "Receita",  value: "—" },
@@ -98,7 +98,7 @@ export default async function BusinessUnitsPage() {
         { label: "Tipo",     value: "Estratégico" },
       ],
       status: advisor?.status ?? "Em construção",
-      statusColor: "bg-violet-100 text-violet-600 border-violet-200",
+      statusColor: "bg-brand-100 text-brand-600 border-brand-200",
     },
     {
       id: "enrd",

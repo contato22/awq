@@ -451,7 +451,7 @@ const businessUnits = [
     { id: "jacqes",  label: "JACQES",      sub: "Agência · AWQ Group",      href: "/jacqes",       icon: BarChart3,  color: "bg-brand-600"   },
     { id: "caza",    label: "Caza Vision", sub: "Produtora · AWQ Group",    href: "/caza-vision",  icon: Building2,  color: "bg-emerald-600" },
     { id: "venture", label: "AWQ Venture", sub: "Investimentos · AWQ Group",href: "/awq-venture",  icon: TrendingUp, color: "bg-amber-600"   },
-    { id: "advisor", label: "Advisor",     sub: "Consultoria · AWQ Group",  href: "/advisor",      icon: Briefcase,  color: "bg-violet-600"  },
+    { id: "advisor", label: "Advisor",     sub: "Consultoria · AWQ Group",  href: "/advisor",      icon: Briefcase,  color: "bg-brand-600"  },
     { id: "enrd",    label: "ENRD",        sub: "Agência Solar · AWQ Group",href: "/enrd",         icon: Zap,        color: "bg-orange-600"  },
 ];
 
@@ -553,7 +553,7 @@ type BUColors = { iconBg: string; activeBg: string; activeText: string };
 const BU_COLORS: Record<string, BUColors> = {
     jacqes:  { iconBg: "bg-brand-600",   activeBg: "bg-awq-gold",  activeText: "text-[#0a1929]" },
     caza:    { iconBg: "bg-emerald-600",  activeBg: "bg-awq-gold",  activeText: "text-[#0a1929]" },
-    advisor: { iconBg: "bg-violet-600",   activeBg: "bg-awq-gold",  activeText: "text-[#0a1929]" },
+    advisor: { iconBg: "bg-brand-600",   activeBg: "bg-awq-gold",  activeText: "text-[#0a1929]" },
     venture: { iconBg: "bg-amber-600",    activeBg: "bg-awq-gold",  activeText: "text-[#0a1929]" },
     enrd:    { iconBg: "bg-orange-600",   activeBg: "bg-awq-gold",  activeText: "text-[#0a1929]" },
 };

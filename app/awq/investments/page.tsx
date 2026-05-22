@@ -502,7 +502,7 @@ export default async function AwqInvestmentsPage() {
         {/* ── Investment vs Operational Separation ─────────────────────────── */}
         <div className="card p-5">
           <h2 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
-            <MinusCircle size={15} className="text-violet-500" />
+            <MinusCircle size={15} className="text-brand-500" />
             Separação: Operacional vs Investimento / Patrimonial
           </h2>
           <p className="text-[11px] text-gray-400 mb-4">
@@ -546,8 +546,8 @@ export default async function AwqInvestmentsPage() {
               </div>
             </div>
 
-            <div className="rounded-xl bg-violet-50 border border-violet-100 p-4">
-              <div className="text-[10px] font-semibold text-violet-600 uppercase tracking-wider mb-1">Em Revisão</div>
+            <div className="rounded-xl bg-brand-50 border border-brand-100 p-4">
+              <div className="text-[10px] font-semibold text-brand-600 uppercase tracking-wider mb-1">Em Revisão</div>
               <div className="text-xl font-bold text-gray-900">{q.ambiguousCount}</div>
               <div className="mt-2 text-xs text-gray-500">
                 Transferências internas não pareadas — possivelmente investimento,

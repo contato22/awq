@@ -119,8 +119,8 @@ export default function PortfolioDashboardPage() {
         ? totals.weighted_avg_multiple.toFixed(2) + "×"
         : "—",
       icon:  BarChart3,
-      color: "text-violet-400",
-      bg:    "bg-violet-500/10",
+      color: "text-brand-400",
+      bg:    "bg-brand-500/10",
     },
     {
       label: "Mídia Entregue %",

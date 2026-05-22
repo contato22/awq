@@ -385,7 +385,7 @@ export default function RfmPage() {
           {[
             { label: "Clientes Ativos",   value: totals.customers,              icon: Users,      color: "text-blue-600",    bg: "bg-blue-50"   },
             { label: "Receita Total",      value: formatBRL(totals.monetary),    icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50"},
-            { label: "Ticket Médio",       value: formatBRL(totals.avgMonetary), icon: TrendingUp, color: "text-violet-600",  bg: "bg-violet-50" },
+            { label: "Ticket Médio",       value: formatBRL(totals.avgMonetary), icon: TrendingUp, color: "text-brand-600",  bg: "bg-brand-50" },
             { label: "Seg. Principal",     value: topSegment ?? "—",             icon: Star,       color: "text-amber-600",   bg: "bg-amber-50"  },
           ].map(k => (
             <div key={k.label} className="card p-4 flex items-center gap-3">
@@ -548,7 +548,7 @@ export default function RfmPage() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-3 text-xs text-gray-600">
             {[
               { label:"R — Recência",    desc:"Dias desde a última compra. Score 5 = comprou recentemente. Eixo horizontal da matriz.",  color:"text-blue-600"   },
-              { label:"F — Frequência",  desc:"Número de compras. Score 5 = mais compras. Eixo vertical da matriz.",                     color:"text-violet-600" },
+              { label:"F — Frequência",  desc:"Número de compras. Score 5 = mais compras. Eixo vertical da matriz.",                     color:"text-brand-600" },
               { label:"M — Monetário",   desc:"Valor total gasto. Score 5 = maior valor. Combina com R e F para calcular o score total.", color:"text-emerald-600"},
             ].map(item => (
               <div key={item.label} className="p-3 bg-white rounded-xl border border-gray-100">

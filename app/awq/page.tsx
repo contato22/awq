@@ -254,7 +254,7 @@ export default async function AwqGroupPage() {
               value={fmtBRL(q.consolidated.intercompanyEliminated)}
               sub={q.hasData ? "Não infla consolidado" : "Aguardando extratos"}
               delta={q.hasData ? "conciliado e removido" : undefined}
-              up icon={GitMerge} color="text-violet-600" bg="bg-violet-50"
+              up icon={GitMerge} color="text-brand-600" bg="bg-brand-50"
               empty={!q.hasData}
             />
           </div>
@@ -280,7 +280,7 @@ export default async function AwqGroupPage() {
                 label="Movimentos Financeiros"
                 value={fmtBRL(q.consolidated.financialMovements)}
                 sub="Aplicações / resgates"
-                icon={Scale} color="text-violet-600" bg="bg-violet-50"
+                icon={Scale} color="text-brand-600" bg="bg-brand-50"
               />
               <MetricCard
                 label="Ambíguo / Pendente"
@@ -482,7 +482,7 @@ export default async function AwqGroupPage() {
                           {flagCfg.label}
                         </span>
                         {bu.economicType === "pre_revenue" ? (
-                          <span className="text-[10px] font-medium text-violet-600 bg-violet-50 px-1.5 py-0.5 rounded border border-violet-200">
+                          <span className="text-[10px] font-medium text-brand-600 bg-brand-50 px-1.5 py-0.5 rounded border border-brand-200">
                             Pré-receita
                           </span>
                         ) : bu.economicType === "hybrid_investment" ? (

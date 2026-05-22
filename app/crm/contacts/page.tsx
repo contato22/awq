@@ -12,7 +12,7 @@ const SENIORITY_LABELS: Record<string, string> = {
   c_level: "C-Level", director: "Diretor", manager: "Gerente", ic: "Analista/IC",
 };
 const SENIORITY_COLORS: Record<string, string> = {
-  c_level: "bg-violet-50 text-violet-700", director: "bg-blue-50 text-blue-700",
+  c_level: "bg-brand-50 text-brand-700", director: "bg-blue-50 text-blue-700",
   manager: "bg-amber-50 text-amber-700", ic: "bg-gray-100 text-gray-600",
 };
 

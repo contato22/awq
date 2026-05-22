@@ -191,7 +191,7 @@ const BANK_GROUPS: { label: string; banks: string[] }[] = [
 
 const BANK_COLOR: Record<string, string> = {
   "Cora":            "bg-rose-500",
-  "Nubank":          "bg-purple-600",
+  "Nubank":          "bg-brand-600",
   "Inter":           "bg-orange-500",
   "C6 Bank":         "bg-gray-800",
   "PagBank":         "bg-green-600",
@@ -209,7 +209,7 @@ const BANK_COLOR: Record<string, string> = {
 
 const BANK_COLOR_LIGHT: Record<string, string> = {
   "Cora":            "bg-rose-50 text-rose-700 border-rose-200",
-  "Nubank":          "bg-purple-50 text-purple-700 border-purple-200",
+  "Nubank":          "bg-brand-50 text-brand-700 border-brand-200",
   "Inter":           "bg-orange-50 text-orange-700 border-orange-200",
   "BTG Empresas":    "bg-blue-50 text-blue-700 border-blue-200",
   "Itaú":            "bg-orange-50 text-orange-700 border-orange-200",
@@ -225,7 +225,7 @@ const CATEGORY_LABEL: Record<string, string> = {
 
 const CATEGORY_COLOR: Record<string, string> = {
   salario: "bg-emerald-100 text-emerald-700",
-  aluguel: "bg-violet-100 text-violet-700",
+  aluguel: "bg-brand-100 text-brand-700",
   servicos: "bg-blue-100 text-blue-700",
   transferencia: "bg-cyan-100 text-cyan-700",
   imposto: "bg-red-100 text-red-700",

@@ -67,7 +67,7 @@ function initials(name: string) {
 }
 
 const AVATAR_COLORS = [
-  "bg-violet-100 text-violet-700",
+  "bg-brand-100 text-brand-700",
   "bg-cyan-100 text-cyan-700",
   "bg-amber-100 text-amber-700",
   "bg-pink-100 text-pink-700",
@@ -296,7 +296,7 @@ function TaskDrawer({
                   <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold"><Flag size={8} />Marco</span>
                 )}
                 {task.task_type === "phase" && (
-                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 text-[10px] font-bold"><Layers size={8} />Fase</span>
+                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-brand-100 text-brand-700 text-[10px] font-bold"><Layers size={8} />Fase</span>
                 )}
                 {task.wbs_code && (
                   <span className="text-[10px] font-mono text-gray-400">{task.wbs_code}</span>
@@ -488,13 +488,13 @@ function TaskDrawer({
           {/* Deliverable toggle */}
           <label className="flex items-center justify-between py-3 px-4 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors">
             <div className="flex items-center gap-2">
-              <Package size={14} className="text-violet-500" />
+              <Package size={14} className="text-brand-500" />
               <div>
                 <p className="text-sm font-medium text-gray-700">Entregável</p>
                 <p className="text-[11px] text-gray-400">Marcar como entrega para o cliente</p>
               </div>
             </div>
-            <div className={`relative w-9 h-5 rounded-full transition-colors duration-200 ${form.is_deliverable ? "bg-violet-500" : "bg-gray-200"}`}>
+            <div className={`relative w-9 h-5 rounded-full transition-colors duration-200 ${form.is_deliverable ? "bg-brand-500" : "bg-gray-200"}`}>
               <div className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ${form.is_deliverable ? "translate-x-4" : "translate-x-0"}`} />
               <input type="checkbox" className="sr-only" checked={form.is_deliverable} onChange={e => setField("is_deliverable", e.target.checked)} />
             </div>
@@ -569,10 +569,10 @@ function TaskCard({
               <span title="Marco" className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold"><Flag size={8} />Marco</span>
             )}
             {task.task_type === "phase" && (
-              <span title="Fase" className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 text-[10px] font-bold"><Layers size={8} />Fase</span>
+              <span title="Fase" className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-brand-100 text-brand-700 text-[10px] font-bold"><Layers size={8} />Fase</span>
             )}
             {task.is_deliverable && (
-              <span title="Entregável" className="inline-flex items-center justify-center w-4 h-4 rounded bg-violet-100"><Package size={9} className="text-violet-600" /></span>
+              <span title="Entregável" className="inline-flex items-center justify-center w-4 h-4 rounded bg-brand-100"><Package size={9} className="text-brand-600" /></span>
             )}
             {task.wbs_code && (
               <span className="text-[10px] font-mono text-gray-400">{task.wbs_code}</span>

@@ -119,11 +119,11 @@ tbody tr:nth-child(even) td{background:#f8fafc}
 .dc{padding:10pt;border:.5pt solid}
 .dc-ap{border-color:#86efac;background:#f0fdf4}
 .dc-aj{border-color:#fcd34d;background:#fffbeb}
-.dc-co{border-color:#c4b5fd;background:#faf5ff}
+.dc-co{border-color:#99cdf5;background:#e8f4fd}
 .dc-t{font-size:7.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5pt}
 .dc-ap .dc-t{color:#15803d}
 .dc-aj .dc-t{color:#b45309}
-.dc-co .dc-t{color:#7c3aed}
+.dc-co .dc-t{color:#1476c6}
 .dc-d{font-size:9pt;color:#374151;line-height:1.5}
 
 /* Footer */

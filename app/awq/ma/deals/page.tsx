@@ -29,7 +29,7 @@ const DEAL_TYPE_LABELS: Record<string, string> = {
 
 const DEAL_TYPE_COLORS: Record<string, string> = {
   m4e:               "bg-cyan-50 text-cyan-700 border-cyan-200",
-  equity_investment: "bg-violet-50 text-violet-700 border-violet-200",
+  equity_investment: "bg-brand-50 text-brand-700 border-brand-200",
   acquisition:       "bg-rose-50 text-rose-700 border-rose-200",
 };
 
@@ -71,10 +71,10 @@ const PIPELINE_STAGES = [
   {
     key:    "ic_review",
     label:  "Revisão IC",
-    dot:    "bg-purple-500",
-    head:   "border-t-purple-500 bg-purple-50/60",
-    count:  "bg-purple-100 text-purple-700",
-    col:    "bg-purple-50/30 border-purple-100",
+    dot:    "bg-brand-500",
+    head:   "border-t-brand-500 bg-brand-50/60",
+    count:  "bg-brand-100 text-brand-700",
+    col:    "bg-brand-50/30 border-brand-100",
   },
 ];
 

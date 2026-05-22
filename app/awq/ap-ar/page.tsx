@@ -79,7 +79,7 @@ const BUS: { id: BU; label: string; short: string; color: string; bg: string; do
   { id: "jacqes",  label: "JACQES",       short: "JACQES",   color: "text-blue-700",    bg: "bg-blue-50",    dot: "bg-blue-500"    },
   { id: "caza",    label: "Caza Vision",  short: "Caza",     color: "text-emerald-700", bg: "bg-emerald-50", dot: "bg-emerald-500" },
   { id: "venture", label: "AWQ Venture",  short: "Venture",  color: "text-orange-700",  bg: "bg-orange-50",  dot: "bg-orange-500"  },
-  { id: "advisor", label: "Advisor",      short: "Advisor",  color: "text-violet-700",  bg: "bg-violet-50",  dot: "bg-violet-500"  },
+  { id: "advisor", label: "Advisor",      short: "Advisor",  color: "text-brand-700",  bg: "bg-brand-50",  dot: "bg-brand-500"  },
 ];
 
 const BU_MAP = Object.fromEntries(BUS.map((b) => [b.id, b])) as Record<BU, typeof BUS[0]>;
@@ -573,7 +573,7 @@ export default function APARPage() {
             onClick={() => void handleVerifyLinks()}
             disabled={linkChecking || items.filter((i) => i.type === activeTab).length === 0}
             title="Verifica vínculos com transações bancárias (heurística + IA)"
-            className="flex items-center gap-1.5 px-3 py-1.5 mb-1.5 rounded-lg text-xs font-semibold text-indigo-600 hover:bg-indigo-50 border border-indigo-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 mb-1.5 rounded-lg text-xs font-semibold text-brand-600 hover:bg-brand-50 border border-brand-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             <RefreshCw size={13} className={linkChecking ? "animate-spin" : ""} />
             {linkChecking ? "Verificando…" : "Verificar Vínculos"}

@@ -7,7 +7,7 @@ import { ArrowLeft, Plus, Search, ShoppingBag, X, Loader2 } from "lucide-react";
 const STATUS_BADGE: Record<string, string> = {
   Novo:               "bg-blue-100 text-blue-700",
   "Em Processamento": "bg-amber-100 text-amber-700",
-  Faturado:           "bg-purple-100 text-purple-700",
+  Faturado:           "bg-brand-100 text-brand-700",
   Entregue:           "bg-emerald-100 text-emerald-700",
   Cancelado:          "bg-red-100 text-red-700",
 };

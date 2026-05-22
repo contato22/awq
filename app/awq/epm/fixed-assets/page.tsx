@@ -103,7 +103,7 @@ function capexByCategory() {
 
 const CAT_COLORS: Record<string, string> = {
   HARDWARE:  "bg-brand-100 text-brand-700",
-  SOFTWARE:  "bg-violet-100 text-violet-700",
+  SOFTWARE:  "bg-brand-100 text-brand-700",
   FURNITURE: "bg-amber-100 text-amber-700",
   EQUIPMENT: "bg-cyan-100 text-cyan-700",
   VEHICLE:   "bg-emerald-100 text-emerald-700",
@@ -281,7 +281,7 @@ export default function FixedAssetsPage() {
           {/* ── CAPEX by Category ────────────────────────────────── */}
           <div className="card p-5">
             <div className="flex items-center gap-2 mb-4">
-              <BarChart3 size={14} className="text-violet-600" />
+              <BarChart3 size={14} className="text-brand-600" />
               <span className="text-sm font-semibold text-gray-900">CAPEX por Categoria</span>
             </div>
             <div className="table-scroll">

@@ -403,10 +403,10 @@ function BlockContent({ blockIdx, blocks }: { blockIdx: number; blocks: NonNulla
             <div className="text-xs text-blue-600 mt-0.5">{b.feePrazo}</div>
             <div className="text-xs text-blue-700 mt-1">{b.feeDescricao}</div>
           </div>
-          <div className="p-3 rounded-xl bg-violet-50 border border-violet-100">
-            <div className="text-[10px] font-bold text-violet-700 uppercase tracking-wide mb-1">Upside</div>
-            <div className="text-base font-bold text-violet-900">{b.upsidePercentual}</div>
-            <div className="text-xs text-violet-700 mt-1">{b.upsideDescricao}</div>
+          <div className="p-3 rounded-xl bg-brand-50 border border-brand-100">
+            <div className="text-[10px] font-bold text-brand-700 uppercase tracking-wide mb-1">Upside</div>
+            <div className="text-base font-bold text-brand-900">{b.upsidePercentual}</div>
+            <div className="text-xs text-brand-700 mt-1">{b.upsideDescricao}</div>
           </div>
         </div>
         <SectionHeader label="Gates de liberação" />
@@ -578,7 +578,7 @@ function BlockContent({ blockIdx, blocks }: { blockIdx: number; blocks: NonNulla
               ? { bg: "bg-emerald-50", border: "border-emerald-200", title: "text-emerald-800", cta: "text-emerald-700" }
               : c.opcao === "ajuste"
               ? { bg: "bg-amber-50", border: "border-amber-200", title: "text-amber-800", cta: "text-amber-700" }
-              : { bg: "bg-violet-50", border: "border-violet-200", title: "text-violet-800", cta: "text-violet-700" };
+              : { bg: "bg-brand-50", border: "border-brand-200", title: "text-brand-800", cta: "text-brand-700" };
             return (
               <div key={c.opcao} className={`p-3 rounded-xl border ${styles.bg} ${styles.border}`}>
                 <div className={`text-xs font-bold mb-1 ${styles.title}`}>{c.label}</div>
@@ -831,7 +831,7 @@ export default function DealSharePage({ params }: { params: { id: string } }) {
           </div>
           <div className="flex items-center gap-3">
             {rounds.length > 0 && (
-              <span className="text-[10px] font-semibold text-violet-700 bg-violet-50 border border-violet-200 px-2 py-1 rounded-full">
+              <span className="text-[10px] font-semibold text-brand-700 bg-brand-50 border border-brand-200 px-2 py-1 rounded-full">
                 Rodada {currentRound}
               </span>
             )}
@@ -864,8 +864,8 @@ export default function DealSharePage({ params }: { params: { id: string } }) {
 
         {/* ── Previous rounds banner ────────────────────────────────────────── */}
         {rounds.length > 0 && (
-          <div className="bg-violet-50 border border-violet-200 rounded-xl px-4 py-3">
-            <div className="flex items-center gap-2 text-xs text-violet-800 font-semibold">
+          <div className="bg-brand-50 border border-brand-200 rounded-xl px-4 py-3">
+            <div className="flex items-center gap-2 text-xs text-brand-800 font-semibold">
               <RotateCcw size={12} />
               Histórico de negociação: {rounds.length} rodada{rounds.length > 1 ? "s" : ""} anterior{rounds.length > 1 ? "es" : ""}
             </div>
@@ -873,12 +873,12 @@ export default function DealSharePage({ params }: { params: { id: string } }) {
               {rounds.map((r) => {
                 const approved = r.sections.filter((s) => s.status === "approved").length;
                 return (
-                  <div key={r.round} className="text-[11px] text-violet-700 flex items-center gap-2">
+                  <div key={r.round} className="text-[11px] text-brand-700 flex items-center gap-2">
                     <span className="font-bold">Rodada {r.round}:</span>
                     <span>{approved}/{r.sections.length} blocos aprovados</span>
-                    <span className="text-violet-400">·</span>
+                    <span className="text-brand-400">·</span>
                     <span>{r.respondedBy}</span>
-                    <span className="text-violet-400">·</span>
+                    <span className="text-brand-400">·</span>
                     <span>{new Date(r.submittedAt).toLocaleDateString("pt-BR")}</span>
                   </div>
                 );

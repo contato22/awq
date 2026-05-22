@@ -21,7 +21,7 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
 const CATEGORY_COLORS: Record<string, string> = {
   procurement:        "bg-blue-50 text-blue-700 border-blue-200",
   finance:            "bg-green-50 text-green-700 border-green-200",
-  legal:              "bg-purple-50 text-purple-700 border-purple-200",
+  legal:              "bg-brand-50 text-brand-700 border-brand-200",
   project_management: "bg-orange-50 text-orange-700 border-orange-200",
   approval:           "bg-gray-50 text-gray-700 border-gray-200",
 };

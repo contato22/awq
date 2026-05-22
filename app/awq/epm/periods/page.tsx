@@ -131,13 +131,13 @@ const STATUS_CFG: Record<PeriodStatus, { label: string; color: string; bg: strin
   OPEN:      { label: "Aberto",     color: "text-gray-600",    bg: "bg-gray-100",    icon: Unlock       },
   REVIEWING: { label: "Em revisão", color: "text-amber-700",   bg: "bg-amber-100",   icon: Clock        },
   CLOSED:    { label: "Fechado",    color: "text-brand-700",   bg: "bg-brand-100",   icon: CheckCircle2 },
-  LOCKED:    { label: "Bloqueado",  color: "text-violet-700",  bg: "bg-violet-100",  icon: Lock         },
+  LOCKED:    { label: "Bloqueado",  color: "text-brand-700",  bg: "bg-brand-100",  icon: Lock         },
 };
 
 const TYPE_CFG = {
   MONTH:   { color: "text-gray-700", bg: "bg-gray-50"    },
   QUARTER: { color: "text-brand-700",bg: "bg-brand-50"   },
-  YEAR:    { color: "text-violet-700",bg: "bg-violet-50" },
+  YEAR:    { color: "text-brand-700",bg: "bg-brand-50" },
 };
 
 export default function PeriodsPage() {
@@ -294,7 +294,7 @@ export default function PeriodsPage() {
                           </button>
                         )}
                         {p.status === "LOCKED" && (
-                          <span className="flex items-center gap-1 text-[10px] text-violet-500">
+                          <span className="flex items-center gap-1 text-[10px] text-brand-500">
                             <Lock size={9} /> Bloqueado
                           </span>
                         )}
@@ -310,7 +310,7 @@ export default function PeriodsPage() {
         {/* ── Quarterly periods ─────────────────────────────────────── */}
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-4">
-            <FileText size={14} className="text-violet-600" />
+            <FileText size={14} className="text-brand-600" />
             <span className="text-sm font-semibold text-gray-900">Períodos Trimestrais — FY2026</span>
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -320,7 +320,7 @@ export default function PeriodsPage() {
               const doneN  = p.checklist.filter((c) => c.done).length;
               const totalN = p.checklist.length;
               return (
-                <div key={p.period_code} className={`rounded-xl p-4 border ${p.status === "LOCKED" ? "border-violet-200 bg-violet-50" : p.status === "CLOSED" ? "border-brand-200 bg-brand-50" : "border-gray-200 bg-gray-50"}`}>
+                <div key={p.period_code} className={`rounded-xl p-4 border ${p.status === "LOCKED" ? "border-brand-200 bg-brand-50" : p.status === "CLOSED" ? "border-brand-200 bg-brand-50" : "border-gray-200 bg-gray-50"}`}>
                   <div className="font-bold text-gray-900 mb-1">{p.period_code}</div>
                   <div className="text-[10px] text-gray-400 mb-2">
                     {p.start_date.slice(5, 7)}/{p.start_date.slice(0,4)} → {p.end_date.slice(5, 7)}/{p.end_date.slice(0,4)}

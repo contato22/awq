@@ -8,7 +8,7 @@ const STAGES = [
   { key: "negociacao",  label: "Negociação",  color: "bg-blue-50  text-blue-700  border-blue-200"  },
   { key: "aprovacao",   label: "Aprovação",   color: "bg-amber-50 text-amber-700 border-amber-200" },
   { key: "ativo",       label: "Ativo",       color: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-  { key: "renovacao",   label: "Renovação",   color: "bg-purple-50 text-purple-700 border-purple-200" },
+  { key: "renovacao",   label: "Renovação",   color: "bg-brand-50 text-brand-700 border-brand-200" },
   { key: "encerrado",   label: "Encerrado",   color: "bg-gray-50  text-gray-500  border-gray-200"  },
 ];
 

@@ -49,8 +49,8 @@ const ITEMS: Item[] = [
     label:    "PPM",
     href:     "/awq/ppm",
     icon:     Briefcase,
-    color:    "text-violet-600",
-    bg:       "bg-violet-50",
+    color:    "text-brand-600",
+    bg:       "bg-brand-50",
     subs: [
       { label: "Portfolio",     href: "/awq/ppm"               },
       { label: "Gantt",         href: "/awq/ppm/gantt"         },
@@ -99,8 +99,8 @@ const ITEMS: Item[] = [
     label: "Investimentos",
     href:  "/awq/investments",
     icon:  Landmark,
-    color: "text-violet-600",
-    bg:    "bg-violet-50",
+    color: "text-brand-600",
+    bg:    "bg-brand-50",
     subs: [
       { label: "Cash Flow",            href: "/awq/cashflow" },
       { label: "Contas Banco",         href: "/awq/bank"     },
@@ -132,8 +132,8 @@ const ITEMS: Item[] = [
     label: "Budget",
     href:  "/awq/budget",
     icon:  Scale,
-    color: "text-violet-600",
-    bg:    "bg-violet-50",
+    color: "text-brand-600",
+    bg:    "bg-brand-50",
     subs: [
       { label: "Financial (DRE)",      href: "/awq/financial"     },
       { label: "Forecast",             href: "/awq/forecast"      },

@@ -19,7 +19,7 @@ const TYPE_LABELS: Record<string, string> = {
 const TYPE_COLORS: Record<string, string> = {
   prospect:        "bg-blue-50 text-blue-700",
   customer:        "bg-emerald-50 text-emerald-700",
-  partner:         "bg-violet-50 text-violet-700",
+  partner:         "bg-brand-50 text-brand-700",
   former_customer: "bg-gray-100 text-gray-600",
 };
 
@@ -81,7 +81,7 @@ export default function AccountsPage() {
           {[
             { label: "Total Contas", value: accounts.length, color: "text-blue-600",    bg: "bg-blue-50",    icon: Building2 },
             { label: "Clientes",     value: customers,        color: "text-emerald-600", bg: "bg-emerald-50", icon: CheckCircle2 },
-            { label: "Prospects",    value: prospects,        color: "text-violet-600",  bg: "bg-violet-50",  icon: Building2 },
+            { label: "Prospects",    value: prospects,        color: "text-brand-600",  bg: "bg-brand-50",  icon: Building2 },
             { label: "Em Risco",     value: atRisk,           color: atRisk > 0 ? "text-red-600" : "text-gray-500", bg: atRisk > 0 ? "bg-red-50" : "bg-gray-50", icon: AlertTriangle },
           ].map(k => (
             <div key={k.label} className="card p-4 flex items-center gap-3">

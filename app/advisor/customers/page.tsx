@@ -46,7 +46,7 @@ export default function AdvisorCustomersPage() {
 
         {/* Source badge */}
         <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-violet-50 border border-violet-200 text-xs text-violet-600">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-50 border border-brand-200 text-xs text-brand-600">
             <Database size={11} /> Carteira Advisor
           </span>
         </div>
@@ -54,15 +54,15 @@ export default function AdvisorCustomersPage() {
         {/* KPI strip */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
-            { label: "Clientes Ativos",  value: String(ativos),                         color: "text-violet-600", icon: Users      },
+            { label: "Clientes Ativos",  value: String(ativos),                         color: "text-brand-600", icon: Users      },
             { label: "Total Carteira",   value: String(clients.length),                 color: "text-gray-900",   icon: BarChart3  },
-            { label: "AUM Total",        value: totalAum > 0 ? fmtR(totalAum) : "—",   color: "text-violet-600", icon: DollarSign },
+            { label: "AUM Total",        value: totalAum > 0 ? fmtR(totalAum) : "—",   color: "text-brand-600", icon: DollarSign },
             { label: "NPS Médio",        value: avgNps != null ? String(avgNps) : "—", color: "text-amber-600",  icon: Star       },
           ].map((s) => {
             const Icon = s.icon;
             return (
               <div key={s.label} className="card p-4 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-violet-50 flex items-center justify-center shrink-0">
+                <div className="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center shrink-0">
                   <Icon size={15} className={s.color} />
                 </div>
                 <div>
@@ -115,7 +115,7 @@ export default function AdvisorCustomersPage() {
                       </td>
                       <td className="py-2.5 px-3 text-right text-xs">
                         {(c.fee_mensal ?? 0) > 0
-                          ? <span className="text-violet-600 font-semibold">{fmtR(c.fee_mensal)}</span>
+                          ? <span className="text-brand-600 font-semibold">{fmtR(c.fee_mensal)}</span>
                           : <span className="text-gray-400">—</span>}
                       </td>
                       <td className="py-2.5 px-3 text-right text-xs">

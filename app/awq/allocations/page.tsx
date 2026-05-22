@@ -98,8 +98,8 @@ export default async function AwqAllocationsPage() {
                 sub:   `${bestRoicBU.roic.toFixed(0)}% ROIC`,
                 delta: `lidera entre ${buData.length} BUs`,
                 icon:  BarChart3,
-                color: "text-violet-700",
-                bg:    "bg-violet-50",
+                color: "text-brand-700",
+                bg:    "bg-brand-50",
               },
               {
                 label: "BUs p/ Expandir",

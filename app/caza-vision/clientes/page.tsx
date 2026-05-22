@@ -28,7 +28,7 @@ const CLIENT_TYPES    = ["Marca", "Agência", "Empresa", "Startup", "Freelancer"
 const CLIENT_STATUSES = ["Ativo", "Em Proposta", "Inativo", "Perdido"];
 
 const typeIcon: Record<string, React.ElementType> = { Marca: Tag, Agência: Building2, Empresa: Building2, Startup: TrendingUp };
-const typeColor: Record<string, string> = { Marca: "text-brand-600", Agência: "text-emerald-600", Empresa: "text-amber-700", Startup: "text-violet-700" };
+const typeColor: Record<string, string> = { Marca: "text-brand-600", Agência: "text-emerald-600", Empresa: "text-amber-700", Startup: "text-brand-700" };
 const statusCfg: Record<string, string> = {
   "Ativo":       "badge badge-green",
   "Em Proposta": "badge badge-yellow",
@@ -229,7 +229,7 @@ export default function ClientesPage() {
             {source === "loading"  && <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-50 border border-gray-200 text-xs text-gray-500"><Database size={11} />Carregando…</span>}
             {source === "internal" && <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-xs text-emerald-600"><Database size={11} />Base interna AWQ</span>}
             {source === "static"   && <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-xs text-blue-600"><Database size={11} />Snapshot estático</span>}
-            {source === "local"    && <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-violet-50 border border-violet-200 text-xs text-violet-600"><HardDrive size={11} />Armazenamento local</span>}
+            {source === "local"    && <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-50 border border-brand-200 text-xs text-brand-600"><HardDrive size={11} />Armazenamento local</span>}
             {source === "empty"    && <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-xs text-amber-700"><CloudOff size={11} />Sem clientes</span>}
           </div>
           <button onClick={() => { setShowForm((v) => !v); setEditingId(null); setError(null); }}

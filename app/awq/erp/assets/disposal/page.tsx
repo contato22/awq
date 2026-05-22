@@ -9,7 +9,7 @@ const MOTIVO_BADGE: Record<string, string> = {
   Venda:         "bg-blue-100 text-blue-700",
   Perda:         "bg-red-100 text-red-700",
   Sinistro:      "bg-orange-100 text-orange-700",
-  Doação:        "bg-purple-100 text-purple-700",
+  Doação:        "bg-brand-100 text-brand-700",
 };
 
 const RESULTADO_BADGE: Record<string, string> = {

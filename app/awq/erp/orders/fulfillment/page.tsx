@@ -13,7 +13,7 @@ const PRIORITY_BADGE: Record<string, string> = {
 const STATUS_BADGE: Record<string, string> = {
   Aguardando:    "bg-gray-100 text-gray-600",
   "Em Separação": "bg-blue-100 text-blue-700",
-  Separado:      "bg-purple-100 text-purple-700",
+  Separado:      "bg-brand-100 text-brand-700",
   Expedido:      "bg-emerald-100 text-emerald-700",
 };
 

@@ -117,8 +117,8 @@ export default async function AwqBudgetPage() {
               delta: buAboveDelta,
               up:    busAboveBudget > 0,
               icon:  CheckCircle2,
-              color: "text-violet-700",
-              bg:    "bg-violet-50",
+              color: "text-brand-700",
+              bg:    "bg-brand-50",
             },
             {
               label: "% Budget Executado",
@@ -166,7 +166,7 @@ export default async function AwqBudgetPage() {
                   <th className="text-right py-2 px-3 text-xs font-semibold text-emerald-600">Caza Real</th>
                   <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Var.%</th>
                   <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Advisor Budget</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-violet-700">Advisor Real</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-brand-700">Advisor Real</th>
                   <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Var.%</th>
                 </tr>
               </thead>

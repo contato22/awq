@@ -181,7 +181,7 @@ export default function EliminationsPage() {
       <div className="page-container">
 
         {/* ── Methodology ───────────────────────────────────────────── */}
-        <div className="flex items-start gap-3 p-4 bg-violet-50 border border-violet-200 rounded-xl text-xs text-violet-800">
+        <div className="flex items-start gap-3 p-4 bg-brand-50 border border-brand-200 rounded-xl text-xs text-brand-800">
           <GitMerge size={13} className="shrink-0 mt-0.5" />
           <div>
             <span className="font-semibold">Metodologia de eliminação AWQ:</span>{" "}
@@ -252,7 +252,7 @@ export default function EliminationsPage() {
         {/* ── Entity pair summary ───────────────────────────────────── */}
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-4">
-            <Building2 size={14} className="text-violet-600" />
+            <Building2 size={14} className="text-brand-600" />
             <span className="text-sm font-semibold text-gray-900">Eliminações por Par de Entidade</span>
           </div>
           <div className="space-y-3">
@@ -268,7 +268,7 @@ export default function EliminationsPage() {
                       <span className="text-gray-400">·</span>
                       <span className="text-gray-400">{pair.count} transações</span>
                       {pair.types.map((t) => (
-                        <span key={t} className="text-[10px] px-1.5 py-0.5 bg-violet-100 text-violet-700 rounded-full font-semibold">
+                        <span key={t} className="text-[10px] px-1.5 py-0.5 bg-brand-100 text-brand-700 rounded-full font-semibold">
                           {TYPE_LABELS[t] ?? t}
                         </span>
                       ))}
@@ -277,7 +277,7 @@ export default function EliminationsPage() {
                   </div>
                   <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-violet-400 rounded-full"
+                      className="h-full bg-brand-400 rounded-full"
                       style={{ width: `${pct}%` }}
                     />
                   </div>
@@ -332,7 +332,7 @@ export default function EliminationsPage() {
         {/* ── Full IC transaction register ─────────────────────────── */}
         <div className="card">
           <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-100">
-            <GitMerge size={14} className="text-violet-600" />
+            <GitMerge size={14} className="text-brand-600" />
             <span className="text-sm font-semibold text-gray-900">
               Registro de Transações Intercompany
             </span>
@@ -363,7 +363,7 @@ export default function EliminationsPage() {
                       <td className="py-2 px-3 text-gray-700">{t.to_entity}</td>
                       <td className="py-2 px-3 text-gray-600 max-w-[200px] truncate">{t.description}</td>
                       <td className="py-2 px-3">
-                        <span className="text-[10px] px-1.5 py-0.5 bg-violet-100 text-violet-700 rounded-full font-semibold">
+                        <span className="text-[10px] px-1.5 py-0.5 bg-brand-100 text-brand-700 rounded-full font-semibold">
                           {TYPE_LABELS[t.type] ?? t.type}
                         </span>
                       </td>

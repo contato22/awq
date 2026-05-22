@@ -95,7 +95,7 @@ function EntityCashPL({ e, totalRevenue }: { e: EntitySummary; totalRevenue: num
           </div>
         )}
         {e.intercompanyIn + e.intercompanyOut > 0 && (
-          <div className="flex justify-between py-1 text-violet-600">
+          <div className="flex justify-between py-1 text-brand-600">
             <span>Intercompany (eliminado)</span>
             <span className="tabular-nums">
               ↑{fmtBRL(e.intercompanyIn)} / ↓{fmtBRL(e.intercompanyOut)}
@@ -269,7 +269,7 @@ export default async function AwqFinancialPage() {
               label: "Intercompany Eliminado",
               value: fmtBRL(q.consolidated.intercompanyEliminated),
               sub:   "não infla consolidado",
-              icon: GitMerge, color: "text-violet-600", bg: "bg-violet-50",
+              icon: GitMerge, color: "text-brand-600", bg: "bg-brand-50",
               up: true,
             },
           ].map((card) => {

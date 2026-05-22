@@ -54,7 +54,7 @@ const typeLabels: Record<string, string> = {
 
 const buColors: Record<string, string> = {
   JACQES:  "bg-blue-500/10 text-blue-400",
-  CAZA:    "bg-purple-500/10 text-purple-400",
+  CAZA:    "bg-brand-500/10 text-brand-400",
   ADVISOR: "bg-green-500/10 text-green-400",
   STUDIO:  "bg-amber-500/10 text-amber-400",
   VENTURE: "bg-orange-500/10 text-orange-400",

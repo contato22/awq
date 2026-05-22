@@ -26,7 +26,7 @@ const businessUnits = [
   { id: "jacqes",  label: "JACQES",        color: "bg-brand-600" },
   { id: "caza",    label: "Caza Vision",   color: "bg-emerald-600" },
   { id: "venture", label: "AWQ Venture",   color: "bg-amber-600" },
-  { id: "advisor", label: "Advisor",       color: "bg-violet-600" },
+  { id: "advisor", label: "Advisor",       color: "bg-brand-600" },
   { id: "enrd",    label: "ENRD",          color: "bg-orange-600" },
 ];
 

@@ -10,7 +10,7 @@ import type { ProcessPerformance } from "@/lib/bpm-types";
 const CATEGORY_COLORS: Record<string, string> = {
   procurement:        "bg-blue-50 text-blue-700",
   finance:            "bg-green-50 text-green-700",
-  legal:              "bg-purple-50 text-purple-700",
+  legal:              "bg-brand-50 text-brand-700",
   project_management: "bg-orange-50 text-orange-700",
 };
 
@@ -70,7 +70,7 @@ export default function BpmPerformancePage() {
           <KpiCard label="Em Andamento"    value={totals.active}     color="text-blue-600" icon={<Clock className="h-5 w-5 text-blue-400" />} />
           <KpiCard label="Aprovados"       value={totals.approved}   color="text-green-600" icon={<CheckCircle2 className="h-5 w-5 text-green-400" />} />
           <KpiCard label="Rejeitados"      value={totals.rejected}   color="text-red-600"  icon={<XCircle className="h-5 w-5 text-red-400" />} />
-          <KpiCard label="Approval Rate"   value={`${overallRate}%`} color="text-purple-600" icon={<TrendingUp className="h-5 w-5 text-purple-400" />} />
+          <KpiCard label="Approval Rate"   value={`${overallRate}%`} color="text-brand-600" icon={<TrendingUp className="h-5 w-5 text-brand-400" />} />
         </div>
 
         {/* Per-process table */}

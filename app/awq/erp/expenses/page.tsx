@@ -9,15 +9,15 @@ const STATUS_BADGE: Record<string, string> = {
   Submetido: "bg-blue-100 text-blue-700",
   Aprovado:  "bg-emerald-100 text-emerald-700",
   Rejeitado: "bg-red-100 text-red-700",
-  Pago:      "bg-purple-100 text-purple-700",
+  Pago:      "bg-brand-100 text-brand-700",
 };
 
 const CATEGORIA_BADGE: Record<string, string> = {
   Viagem:     "bg-sky-100 text-sky-700",
   Refeição:   "bg-orange-100 text-orange-700",
-  Hospedagem: "bg-indigo-100 text-indigo-700",
+  Hospedagem: "bg-brand-100 text-brand-700",
   Transporte: "bg-teal-100 text-teal-700",
-  Software:   "bg-violet-100 text-violet-700",
+  Software:   "bg-brand-100 text-brand-700",
   Outros:     "bg-gray-100 text-gray-600",
 };
 
@@ -112,7 +112,7 @@ export default function ExpensesPage() {
             { label: "Total Submetido",     value: loading ? "…" : fmt(totalSubmitido), color: "text-blue-600"    },
             { label: "Total Aprovado",      value: loading ? "…" : fmt(totalAprovado),  color: "text-emerald-600" },
             { label: "Aguardando Aprovação",value: loading ? "…" : String(aguardando),  color: "text-amber-600"   },
-            { label: "Total Pago",          value: loading ? "…" : fmt(totalPago),      color: "text-purple-600"  },
+            { label: "Total Pago",          value: loading ? "…" : fmt(totalPago),      color: "text-brand-600"  },
           ].map(({ label, value, color }) => (
             <div key={label} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
               <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">{label}</div>

@@ -242,7 +242,7 @@ export default function BudgetApprovalPage() {
         {/* ── Scenario comparison table ─────────────────────────────── */}
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-4">
-            <TrendingUp size={14} className="text-violet-600" />
+            <TrendingUp size={14} className="text-brand-600" />
             <span className="text-sm font-semibold text-gray-900">Comparativo de Cenários</span>
           </div>
           <div className="table-scroll">

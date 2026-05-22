@@ -211,7 +211,7 @@ export default function FpaClient({ buData, monthlyRevenue, jacqesMRR }: FpaClie
               {[
                 { label: "MRR Atual (Abr/26)",    value: fmtR(JACQES_MRR),           sub: "4 clientes · Notion CRM",    icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
                 { label: "Receita YTD (Jan–Abr)", value: fmtR(_jacqes.revenue),       sub: "6.490×3 + 8.280 confirmado", icon: BarChart3,  color: "text-brand-600",   bg: "bg-brand-50"   },
-                { label: "ARR Projetado",          value: fmtR(arr),                   sub: "MRR × 12 · referência",      icon: TrendingUp, color: "text-violet-700",  bg: "bg-violet-50"  },
+                { label: "ARR Projetado",          value: fmtR(arr),                   sub: "MRR × 12 · referência",      icon: TrendingUp, color: "text-brand-700",  bg: "bg-brand-50"  },
                 { label: "Clientes Ativos",        value: String(_jacqes.customers),   sub: "CEM · Carol · André · Tati", icon: Users,      color: "text-cyan-700",    bg: "bg-cyan-50"    },
               ].map((c) => {
                 const Icon = c.icon;

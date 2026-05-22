@@ -253,7 +253,7 @@ function DreWaterfall({ dre, snapRevenue, snap }: { dre: DreResult; snapRevenue:
             Itens excluídos do P&L
           </div>
           {dre.intercompanyEliminated > 0 && (
-            <DRE_Row label="Intercompany eliminado" value={dre.intercompanyEliminated} colorClass="text-violet-600" />
+            <DRE_Row label="Intercompany eliminado" value={dre.intercompanyEliminated} colorClass="text-brand-600" />
           )}
           {dre.financialApplications > 0 && (
             <DRE_Row label="Aplicações financeiras" value={-dre.financialApplications} colorClass="text-gray-400" />
@@ -362,7 +362,7 @@ export default async function EpmPLPage() {
             { label: "Receita Bruta",  value: dre.hasData ? dre.dreRevenue        : snap.revenue,   icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
             { label: "Margem Bruta",   value: dre.hasData ? (dre.dreGrossMargin != null ? `${(dre.dreGrossMargin*100).toFixed(1)}%` : "—") : `${(consolidatedMargins.grossMargin*100).toFixed(1)}%`, icon: BarChart3, color: "text-brand-600", bg: "bg-brand-50", isString: true },
             { label: "EBITDA",         value: dre.hasData ? dre.dreEBITDA          : snap.ebitda,    icon: Target,     color: (dre.hasData ? dre.dreEBITDA : snap.ebitda) >= 0 ? "text-emerald-600" : "text-red-600", bg: (dre.hasData ? dre.dreEBITDA : snap.ebitda) >= 0 ? "bg-emerald-50" : "bg-red-50" },
-            { label: "Margem EBITDA",  value: dre.hasData ? (dre.dreEBITDAMargin != null ? `${(dre.dreEBITDAMargin*100).toFixed(1)}%` : "—") : `${(consolidatedMargins.ebitdaMargin*100).toFixed(1)}%`, icon: TrendingUp, color: "text-violet-600", bg: "bg-violet-50", isString: true },
+            { label: "Margem EBITDA",  value: dre.hasData ? (dre.dreEBITDAMargin != null ? `${(dre.dreEBITDAMargin*100).toFixed(1)}%` : "—") : `${(consolidatedMargins.ebitdaMargin*100).toFixed(1)}%`, icon: TrendingUp, color: "text-brand-600", bg: "bg-brand-50", isString: true },
           ].map((card) => {
             const Icon = card.icon;
             const display = (card as { isString?: boolean }).isString
