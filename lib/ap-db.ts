@@ -31,9 +31,13 @@ function readJsonFallback(): APEntry[] {
 }
 
 function writeJsonFallback(entries: APEntry[]): void {
-  const dir = path.dirname(AP_FILE);
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(AP_FILE, JSON.stringify(entries, null, 2));
+  try {
+    const dir = path.dirname(AP_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(AP_FILE, JSON.stringify(entries, null, 2));
+  } catch {
+    // Vercel / read-only filesystem — write silently skipped; Supabase is source of truth
+  }
 }
 
 function fromRow(row: Record<string, unknown>): APEntry {
