@@ -350,25 +350,15 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
         </div>
 
         {/* Transaction detail strip */}
-        <div className="px-5 py-3 bg-gray-50 border-b border-gray-100 flex flex-wrap gap-x-6 gap-y-1.5 text-xs">
-          <div>
-            <span className="text-gray-400">Descrição: </span>
-            <span className="text-gray-800 font-medium">{tx.descriptionOriginal}</span>
-          </div>
-          <div>
-            <span className="text-gray-400">Banco: </span>
-            <span className="text-gray-700">{tx.bank} · {tx.accountName}</span>
-          </div>
+        <div className="px-5 py-2.5 bg-gray-50 border-b border-gray-100 flex flex-wrap gap-x-5 gap-y-1 text-xs items-center">
+          <span className="text-gray-700 font-medium truncate max-w-[220px]">{tx.descriptionOriginal}</span>
+          <span className="text-gray-400">{tx.bank} · {tx.accountName}</span>
           {tx.counterpartyName && (
-            <div>
-              <span className="text-gray-400">Contraparte: </span>
-              <span className="text-gray-700 font-medium">{tx.counterpartyName}</span>
-            </div>
+            <span className="text-gray-600 font-medium">{tx.counterpartyName}</span>
           )}
-          <div>
-            <span className="text-gray-400">Categoria atual: </span>
-            <span className="text-gray-700">{catLabel}</span>
-          </div>
+          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${isCredit ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-orange-50 text-orange-700 border border-orange-200"}`}>
+            {catLabel}
+          </span>
         </div>
 
         {/* Category + counterparty editable fields */}
@@ -501,98 +491,123 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
           {/* ── Criar lançamento tab ── */}
           {filterTab === "criar" && (
             <div className="space-y-3">
-              <p className="text-xs text-gray-500">
-                Cria um novo lançamento em AP/AR e já o vincula a esta transação bancária.
-              </p>
 
-              {/* AP vs AR selector */}
-              <div className="flex gap-2">
-                {(["AP", "AR"] as const).map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => setCreateType(t)}
-                    className={`flex-1 py-2 rounded-lg text-sm font-semibold border transition-colors ${
-                      createType === t
-                        ? "bg-blue-600 text-white border-blue-600"
-                        : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
-                    }`}
-                  >
-                    {t === "AP" ? "📤 A Pagar (AP)" : "📥 A Receber (AR)"}
-                  </button>
-                ))}
+              {/* AP / AR segmented control */}
+              <div className="grid grid-cols-2 rounded-xl border border-gray-200 overflow-hidden text-sm">
+                <button
+                  onClick={() => setCreateType("AP")}
+                  className={`flex items-center gap-2.5 px-4 py-3 font-semibold transition-colors ${
+                    createType === "AP"
+                      ? "bg-orange-500 text-white"
+                      : "bg-white text-gray-500 hover:bg-gray-50"
+                  }`}
+                >
+                  <ArrowUpRight size={16} className="flex-shrink-0" />
+                  <div className="text-left leading-tight">
+                    <div>A Pagar (AP)</div>
+                    <div className={`text-[10px] font-normal ${createType === "AP" ? "text-orange-100" : "text-gray-400"}`}>Despesa / fornecedor</div>
+                  </div>
+                </button>
+                <button
+                  onClick={() => setCreateType("AR")}
+                  className={`flex items-center gap-2.5 px-4 py-3 font-semibold border-l border-gray-200 transition-colors ${
+                    createType === "AR"
+                      ? "bg-emerald-500 text-white border-emerald-500"
+                      : "bg-white text-gray-500 hover:bg-gray-50"
+                  }`}
+                >
+                  <ArrowDownRight size={16} className="flex-shrink-0" />
+                  <div className="text-left leading-tight">
+                    <div>A Receber (AR)</div>
+                    <div className={`text-[10px] font-normal ${createType === "AR" ? "text-emerald-100" : "text-gray-400"}`}>Receita / cliente</div>
+                  </div>
+                </button>
               </div>
 
-              <div className="space-y-2.5">
-                <div>
-                  <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">
-                    {createType === "AP" ? "Fornecedor / Credor" : "Cliente / Devedor"}
-                  </label>
+              {/* Grouped form card */}
+              <div className="rounded-xl border border-gray-200 overflow-hidden divide-y divide-gray-100">
+
+                {/* Entity section */}
+                <div className="p-3 space-y-2 bg-white">
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                    {createType === "AP" ? "Fornecedor" : "Cliente"}
+                  </p>
                   <input
                     type="text" value={createParty} onChange={(e) => setCreateParty(e.target.value)}
                     placeholder={createType === "AP" ? "Nome do fornecedor" : "Nome do cliente"}
-                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                    className={`w-full text-sm rounded-lg px-3 py-2 border focus:outline-none focus:ring-1 focus:ring-blue-400 transition-colors ${
+                      !createParty.trim() ? "border-orange-300 bg-orange-50 placeholder-orange-300" : "border-gray-200"
+                    }`}
                   />
-                </div>
-                <div>
-                  <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">Descrição</label>
+                  {!createParty.trim() && (
+                    <p className="text-[10px] text-orange-500">Campo obrigatório</p>
+                  )}
                   <input
                     type="text" value={createDesc} onChange={(e) => setCreateDesc(e.target.value)}
                     placeholder="Descrição do lançamento"
                     className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-400"
                   />
                 </div>
-                <div className="flex gap-2">
-                  <div className="flex-1">
-                    <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">Vencimento</label>
-                    <input
-                      type="date" value={createDue} onChange={(e) => setCreateDue(e.target.value)}
-                      className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-400"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">Valor (R$)</label>
-                    <input
-                      type="text" value={createAmt} onChange={(e) => setCreateAmt(e.target.value)}
-                      placeholder="0,00"
-                      className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-400"
-                    />
+
+                {/* Amount + date section */}
+                <div className="p-3 bg-white">
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Valor e vencimento</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] text-gray-400 block mb-1">Vencimento</label>
+                      <input
+                        type="date" value={createDue} onChange={(e) => setCreateDue(e.target.value)}
+                        className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-gray-400 block mb-1">Valor (R$)</label>
+                      <div className="relative">
+                        <input
+                          type="text" value={createAmt} onChange={(e) => setCreateAmt(e.target.value)}
+                          placeholder="0,00"
+                          className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                        />
+                        {parseFloat(createAmt) !== txAmt && txAmt > 0 && (
+                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-amber-500 font-semibold">≠ tx</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">Categoria</label>
+
+                {/* Classification section */}
+                <div className="p-3 space-y-2 bg-white">
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Classificação</p>
                   <div className="relative">
                     <select
                       value={createCat}
                       onChange={(e) => setCreateCat(e.target.value)}
                       className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 pr-7 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 appearance-none"
                     >
-                      <option value="">— selecione —</option>
+                      <option value="">— categoria —</option>
                       {ALL_CATS.map((c) => (
                         <option key={c.value} value={c.value}>{c.label}</option>
                       ))}
                     </select>
                     <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                   </div>
+                  {createType === "AR" && (
+                    <div className="relative">
+                      <select
+                        value={createAccCode}
+                        onChange={(e) => setCreateAccCode(e.target.value)}
+                        className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 pr-7 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 appearance-none"
+                      >
+                        <option value="">— conta CoA (1.1.2) —</option>
+                        {arLeafAccounts.map((n) => (
+                          <option key={n.code} value={n.code}>{n.code} · {n.label}</option>
+                        ))}
+                      </select>
+                      <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                    </div>
+                  )}
                 </div>
-                {createType === "AR" && (
-                  <div>
-                    <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">
-                      Conta CoA (1.1.2)
-                    </label>
-                    <select
-                      value={createAccCode}
-                      onChange={(e) => setCreateAccCode(e.target.value)}
-                      className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white"
-                    >
-                      <option value="">— selecione a conta AR —</option>
-                      {arLeafAccounts.map((n) => (
-                        <option key={n.code} value={n.code}>
-                          {n.code} — {n.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
               </div>
 
               {saveErr && (
@@ -604,10 +619,16 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
               <button
                 onClick={() => void handleCriarEConciliar()}
                 disabled={creating || saving || !createParty.trim()}
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold disabled:opacity-50 transition-colors"
+                className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white text-sm font-semibold disabled:opacity-40 transition-colors ${
+                  createType === "AP" ? "bg-orange-500 hover:bg-orange-600" : "bg-emerald-500 hover:bg-emerald-600"
+                }`}
               >
-                {creating || saving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
-                Criar e Conciliar
+                {creating || saving
+                  ? <Loader2 size={14} className="animate-spin" />
+                  : <Plus size={14} />}
+                {creating || saving
+                  ? "Criando..."
+                  : `Criar ${createType === "AP" ? "AP" : "AR"} · ${fmtBRL(parseFloat(createAmt) || txAmt)}`}
               </button>
             </div>
           )}
