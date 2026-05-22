@@ -435,15 +435,27 @@ export async function findDuplicateDocument(fileHash: string): Promise<Financial
 export async function getAllTransactions(): Promise<BankTransaction[]> {
   await initDB(); // never throws — errors logged inside initDB()
   if (db) {
-    const { data, error } = await db!
-      .from("bank_transactions")
-      .select("*")
-      .order("transaction_date", { ascending: false });
-    if (error) {
-      console.error("[getAllTransactions] DB query failed:", error);
-    } else {
-      return (data as Row[]).map(rowToTransaction);
+    // PostgREST defaults to 1000-row pages — paginate until exhausted.
+    const PAGE = 1000;
+    const all: Row[] = [];
+    let from = 0;
+    let keepGoing = true;
+    while (keepGoing) {
+      const { data, error } = await db!
+        .from("bank_transactions")
+        .select("*")
+        .order("transaction_date", { ascending: false })
+        .range(from, from + PAGE - 1);
+      if (error) {
+        console.error("[getAllTransactions] DB query failed:", error);
+        keepGoing = false;
+        break;
+      }
+      all.push(...(data as Row[]));
+      if ((data as Row[]).length < PAGE) keepGoing = false;
+      else from += PAGE;
     }
+    if (all.length > 0 || from > 0) return all.map(rowToTransaction);
   }
   if (sql) {
     try {
