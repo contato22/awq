@@ -1124,12 +1124,19 @@ export default function BankReconciliationBoard({
                 </div>
 
                 {/* Description */}
-                <p
-                  className="text-sm text-gray-800 font-medium truncate"
-                  title={tx.descriptionOriginal}
-                >
-                  {tx.descriptionOriginal}
-                </p>
+                <div>
+                  <p
+                    className="text-sm text-gray-800 font-medium truncate"
+                    title={tx.descriptionOriginal}
+                  >
+                    {tx.descriptionOriginal}
+                  </p>
+                  {tx.counterpartyName && (
+                    <p className="text-xs text-gray-500 truncate mt-0.5" title={tx.counterpartyName}>
+                      {tx.counterpartyName}
+                    </p>
+                  )}
+                </div>
 
                 {/* Footer */}
                 <div className="flex items-center justify-between mt-auto pt-1">
