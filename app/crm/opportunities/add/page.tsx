@@ -248,15 +248,12 @@ function AddOpportunityPageInner() {
   function set(f: string, v: string) { setForm(p => ({ ...p, [f]: v })); setError(""); }
 
   useEffect(() => {
-    Promise.all([
-      fetch("/api/crm/accounts").then(r => r.json()),
-      fetch("/api/crm/contacts").then(r => r.json()),
-      fetch("/api/crm/leads").then(r => r.json()),
-    ]).then(([a, c, l]) => {
-      setAccounts((a.data ?? []) as CrmAccount[]);
-      setContacts((c.data ?? []) as CrmContact[]);
-      setLeads(((l.data ?? []) as CrmLead[]).filter(x => x.status !== "converted"));
-    }).catch(() => undefined);
+    fetch("/api/crm/accounts").then(r => r.json())
+      .then(j => setAccounts((j.data ?? []) as CrmAccount[])).catch(() => undefined);
+    fetch("/api/crm/contacts").then(r => r.json())
+      .then(j => setContacts((j.data ?? []) as CrmContact[])).catch(() => undefined);
+    fetch("/api/crm/leads").then(r => r.json())
+      .then(j => setLeads(((j.data ?? []) as CrmLead[]).filter(x => x.status !== "converted"))).catch(() => undefined);
   }, []);
 
   // Pre-fill from URL param
