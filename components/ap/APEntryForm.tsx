@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useRef } from "react";
+import { useState, useTransition, useRef, useEffect } from "react";
 import { Search, Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
 import { searchCOA, coaPath, getCoaNode } from "@/lib/chart-of-accounts";
 import type { COANode } from "@/lib/chart-of-accounts";
@@ -38,6 +38,16 @@ export default function APEntryForm({ onCreated }: Props) {
   const [status, setStatus] = useState<"idle" | "ok" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const searchRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setCoaResults([]);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   function handleCoaSearch(q: string) {
     setCoaQuery(q);
@@ -99,12 +109,13 @@ export default function APEntryForm({ onCreated }: Props) {
 
         {/* COA Selector */}
         <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">
+          <label htmlFor="ap-coa-search" className="block text-xs font-medium text-gray-700 mb-1">
             Conta (Plano de Contas) <span className="text-red-500">*</span>
           </label>
           <div className="relative" ref={searchRef}>
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             <input
+              id="ap-coa-search"
               type="text"
               placeholder="Buscar conta... ex: Slack, Freelancer, Aluguel"
               value={coaQuery}
@@ -217,7 +228,7 @@ export default function APEntryForm({ onCreated }: Props) {
         {/* Dates */}
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label htmlFor="ap-issue-date" className="block text-xs font-medium text-gray-700 mb-1">Data Emissão</label>
+            <label htmlFor="ap-issue-date" className="block text-xs font-medium text-gray-700 mb-1">Data Emissão <span className="text-red-500">*</span></label>
             <input
               id="ap-issue-date"
               type="date"
@@ -268,12 +279,12 @@ export default function APEntryForm({ onCreated }: Props) {
 
         {/* Status message */}
         {status === "ok" && (
-          <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+          <div role="alert" className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
             <CheckCircle2 size={14} /> AP registrada com sucesso
           </div>
         )}
         {status === "error" && (
-          <div className="flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+          <div role="alert" className="flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
             <AlertTriangle size={14} /> {errorMsg}
           </div>
         )}

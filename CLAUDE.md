@@ -59,7 +59,7 @@ que Server Components retornem dados cacheados/vazios. **Não remova o `noStoreF
 
 ### Accounts configuradas
 - `Conta PJ AWQ Holding` → entity `AWQ_Holding`
-- `Conta PJ JACQES` → entity `JACQES` (requer `CORA_CLIENT_ID_JACQES`, `CORA_CERT_JACQES`, `CORA_KEY_JACQES`)
+- `Conta PJ JACQES` → entity `JACQES` (requer `CORA_JACQES_CLIENT_ID`, `CORA_JACQES_CERT`, `CORA_JACQES_KEY`)
 
 ---
 

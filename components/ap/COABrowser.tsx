@@ -43,18 +43,23 @@ export default function COABrowser() {
     });
   }
 
-  // Build visible list based on expanded state
+  // Build visible list based on expanded state.
+  // A node is visible only if ALL its ancestors are expanded (cascade check via visibleSet).
   const visible: COANode[] = [];
   if (search.trim()) {
     visible.push(...searchCOA(search));
   } else {
+    const visibleSet = new Set<string>();
     for (const node of CHART_OF_ACCOUNTS) {
       const lv = coaLevel(node.code);
-      if (lv === 1) { visible.push(node); continue; }
+      if (lv === 1) { visible.push(node); visibleSet.add(node.code); continue; }
 
       const parent = coaParent(node.code);
       if (!parent) continue;
-      if (expandedCodes.has(parent)) visible.push(node);
+      if (visibleSet.has(parent) && expandedCodes.has(parent)) {
+        visible.push(node);
+        visibleSet.add(node.code);
+      }
     }
   }
 

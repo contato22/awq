@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useTransition } from "react";
+import { useState, useMemo, useTransition, Fragment } from "react";
 import {
   CheckCircle2, Clock, AlertTriangle, XCircle, Banknote,
   Link2, Trash2, ChevronDown, Search,
@@ -35,6 +35,7 @@ export default function APEntriesTable({ entries, onUpdated, onDeleted }: Props)
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [actionErr, setActionErr] = useState<string | null>(null);
   const today = useMemo(() => new Date(), []);
 
   const filtered = entries.filter(e => {
@@ -47,6 +48,7 @@ export default function APEntriesTable({ entries, onUpdated, onDeleted }: Props)
   });
 
   async function patch(id: string, body: Record<string, unknown>, entry: APEntry) {
+    setActionErr(null);
     startTransition(async () => {
       try {
         const res = await fetch(`/api/ap/entries/${id}`, {
@@ -54,19 +56,28 @@ export default function APEntriesTable({ entries, onUpdated, onDeleted }: Props)
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         });
-        if (!res.ok) throw new Error("Falha ao atualizar");
+        if (!res.ok) {
+          const j = await res.json() as { error?: string };
+          throw new Error(j.error ?? "Falha ao atualizar");
+        }
         onUpdated({ ...entry, ...body } as APEntry);
-      } catch { /* silent — user can retry */ }
+      } catch (err) {
+        setActionErr(err instanceof Error ? err.message : "Falha ao atualizar");
+      }
     });
   }
 
   async function remove(id: string) {
     if (!confirm("Excluir esta AP? Ação irreversível.")) return;
+    setActionErr(null);
     startTransition(async () => {
       try {
-        await fetch(`/api/ap/entries/${id}`, { method: "DELETE" });
+        const res = await fetch(`/api/ap/entries/${id}`, { method: "DELETE" });
+        if (!res.ok) throw new Error("Falha ao excluir");
         onDeleted(id);
-      } catch { /* silent */ }
+      } catch (err) {
+        setActionErr(err instanceof Error ? err.message : "Falha ao excluir");
+      }
     });
   }
 
@@ -126,8 +137,8 @@ export default function APEntriesTable({ entries, onUpdated, onDeleted }: Props)
                 const isOpen = expanded === e.id;
 
                 return (
-                  <>
-                    <tr key={e.id} className="hover:bg-gray-50/70 transition-colors">
+                  <Fragment key={e.id}>
+                    <tr className="hover:bg-gray-50/70 transition-colors">
                       <td className="px-4 py-3">
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[11px] font-medium ${cfg.color}`}>
                           {cfg.icon} {cfg.label}
@@ -165,7 +176,7 @@ export default function APEntriesTable({ entries, onUpdated, onDeleted }: Props)
                     </tr>
 
                     {isOpen && (
-                      <tr key={`${e.id}-expanded`} className="bg-gray-50/70">
+                      <tr className="bg-gray-50/70">
                         <td colSpan={7} className="px-4 py-3">
                           <div className="flex flex-wrap gap-2 text-xs text-gray-600 mb-3">
                             <span>Emissão: {fmtDate(e.issueDate)}</span>
@@ -175,7 +186,7 @@ export default function APEntriesTable({ entries, onUpdated, onDeleted }: Props)
                                 <Link2 size={11} /> Vinculada à transação bancária
                               </span>
                             )}
-                            <span className="font-mono text-gray-400">{e.managerialCategory}</span>
+                            <span className="text-gray-400">{STATUS_CONFIG[eff]?.label ?? eff} · {e.managerialCategory.replace(/_/g, " ")}</span>
                           </div>
                           {e.description && <p className="text-xs text-gray-600 mb-3">{e.description}</p>}
 
@@ -239,11 +250,18 @@ export default function APEntriesTable({ entries, onUpdated, onDeleted }: Props)
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 );
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {actionErr && (
+        <div role="alert" className="px-4 py-2 bg-red-50 border-t border-red-200 text-xs text-red-700 flex justify-between items-center">
+          <span>{actionErr}</span>
+          <button type="button" onClick={() => setActionErr(null)} className="text-red-400 hover:text-red-600 ml-2">✕</button>
         </div>
       )}
 

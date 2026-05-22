@@ -112,7 +112,7 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
   const [createParty, setCreateParty] = useState(tx.counterpartyName ?? "");
   const [createDue, setCreateDue]     = useState(tx.transactionDate);
   const [createAmt, setCreateAmt]     = useState(String(Math.abs(tx.amount)));
-  const [createCat, setCreateCat]     = useState(tx.managerialCategory === "unclassified" ? "" : (CAT_LABELS[tx.managerialCategory] ?? ""));
+  const [createCat, setCreateCat]     = useState<ManagerialCategory | "">(tx.managerialCategory === "unclassified" ? "" : tx.managerialCategory);
   const [creating, setCreating]       = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -353,7 +353,11 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
       />
 
       {/* Drawer */}
-      <div className="fixed right-0 top-0 h-full w-full max-w-2xl bg-white shadow-2xl z-50 flex flex-col overflow-hidden">
+      <div
+        className="fixed right-0 top-0 h-full w-full max-w-2xl bg-white shadow-2xl z-50 flex flex-col overflow-hidden"
+        onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}
+        tabIndex={-1}
+      >
 
         {/* Header */}
         <div className={`flex items-center justify-between px-5 py-4 border-b ${isCredit ? "bg-emerald-50 border-emerald-100" : "bg-red-50 border-red-100"}`}>
@@ -372,8 +376,8 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-black/10 transition-colors">
-            <X size={18} className="text-gray-600" />
+          <button type="button" aria-label="Fechar" onClick={onClose} className="p-1.5 rounded-lg hover:bg-black/10 transition-colors">
+            <X size={18} className="text-gray-600" aria-hidden="true" />
           </button>
         </div>
 
@@ -437,6 +441,7 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
           ] as const).map((t) => (
             <button
               key={t.id}
+              type="button"
               onClick={() => setFilterTab(t.id)}
               className={`px-4 py-2.5 text-xs font-semibold border-b-2 transition-colors ${
                 filterTab === t.id
@@ -588,11 +593,16 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
                 </div>
                 <div>
                   <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">Categoria</label>
-                  <input
-                    type="text" value={createCat} onChange={(e) => setCreateCat(e.target.value)}
-                    placeholder="ex: servicos, fornecedor, folha"
-                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-400"
-                  />
+                  <select
+                    value={createCat}
+                    onChange={(e) => setCreateCat(e.target.value as ManagerialCategory | "")}
+                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white"
+                  >
+                    <option value="">Selecionar categoria...</option>
+                    {ALL_CATS.map((c) => (
+                      <option key={c.value} value={c.value}>{c.label}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 

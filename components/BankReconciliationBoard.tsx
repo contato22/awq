@@ -1043,10 +1043,10 @@ export default function BankReconciliationBoard({
             >
               Conciliar
             </button>
-            <button className="px-3 py-2 rounded-xl border border-gray-300 bg-white text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+            <button type="button" disabled title="Em breve" className="px-3 py-2 rounded-xl border border-gray-300 bg-white text-xs font-medium text-gray-400 cursor-not-allowed opacity-50">
               Editar
             </button>
-            <button className="px-3 py-2 rounded-xl border border-gray-300 bg-white text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+            <button type="button" disabled title="Em breve" className="px-3 py-2 rounded-xl border border-gray-300 bg-white text-xs font-medium text-gray-400 cursor-not-allowed opacity-50">
               Desvincular
             </button>
             <button
@@ -1059,7 +1059,7 @@ export default function BankReconciliationBoard({
             >
               Ignorar
             </button>
-            <button className="flex items-center gap-1 px-3 py-2 rounded-xl border border-gray-300 bg-white text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+            <button type="button" disabled title="Em breve" className="flex items-center gap-1 px-3 py-2 rounded-xl border border-gray-300 bg-white text-xs font-medium text-gray-400 cursor-not-allowed opacity-50">
               Ordenar <ChevronDown size={12} className="text-gray-400" />
             </button>
           </div>
@@ -1227,32 +1227,24 @@ export default function BankReconciliationBoard({
                 {/* Meta grid */}
                 <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-[11px]">
                   <div>
-                    <span className="text-gray-400">Cliente: </span>
+                    <span className="text-gray-400">{isCredit ? "Cliente: " : "Fornecedor: "}</span>
                     <span className="text-gray-700">{tx.counterpartyName ?? "Não informado"}</span>
                   </div>
                   <div>
                     <span className="text-gray-400">Categoria: </span>
                     <span className="text-gray-700">{catLabel}</span>
                   </div>
-                  <div>
-                    <span className="text-gray-400">Juros/multa: </span>
-                    <span className="text-gray-700">{fmtBRL(0)}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-400">Desconto: </span>
-                    <span className="text-gray-700">{fmtBRL(0)}</span>
-                  </div>
                 </div>
 
-                {/* Action buttons */}
+                {/* Action buttons — Editar/Desvincular not yet implemented */}
                 <div className="flex items-center gap-2 mt-auto pt-1">
-                  <button className="flex items-center gap-1 text-[11px] text-gray-600 border border-gray-200 rounded-lg px-2 py-1 hover:bg-gray-50 transition-colors">
+                  <button type="button" disabled title="Em breve" className="flex items-center gap-1 text-[11px] text-gray-400 border border-gray-200 rounded-lg px-2 py-1 cursor-not-allowed opacity-50">
                     Ajustar valores <ChevronDown size={10} />
                   </button>
-                  <button className="text-[11px] text-gray-600 border border-gray-200 rounded-lg px-2 py-1 hover:bg-gray-50 transition-colors">
+                  <button type="button" disabled title="Em breve" className="text-[11px] text-gray-400 border border-gray-200 rounded-lg px-2 py-1 cursor-not-allowed opacity-50">
                     Editar
                   </button>
-                  <button className="text-[11px] text-gray-600 border border-gray-200 rounded-lg px-2 py-1 hover:bg-gray-50 transition-colors">
+                  <button type="button" disabled title="Em breve" className="text-[11px] text-gray-400 border border-gray-200 rounded-lg px-2 py-1 cursor-not-allowed opacity-50">
                     Desvincular
                   </button>
                 </div>
