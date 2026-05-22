@@ -73,7 +73,7 @@ export default function AnalyticsPage() {
       byBU: {} as Record<string, { count: number; value: number; weighted: number }>,
       byStage: {} as Record<string, { count: number; value: number; weighted: number }>,
     };
-  }, [data, opps]);
+  }, [data, opps, lockedBU]);
 
   const stageData = useMemo(() => ["discovery","qualification","proposal","negotiation"].map(s => ({
     stage: STAGE_PT[s],
@@ -83,13 +83,15 @@ export default function AnalyticsPage() {
     color: ["#3b82f6","#8b5cf6","#f59e0b","#f97316"][["discovery","qualification","proposal","negotiation"].indexOf(s)],
   })), [data, opps]);
 
-  const buList = lockedBU ? [lockedBU] : ["JACQES","CAZA","ADVISOR","VENTURE","ENRD"];
-  const buData = useMemo(() => buList.map(bu => ({
-    bu,
-    value: (!lockedBU && data?.byBU[bu]?.value) || opps.filter(o=>o.bu===bu&&o.stage!=="closed_won"&&o.stage!=="closed_lost").reduce((s,o)=>s+o.deal_value,0),
-    count: (!lockedBU && data?.byBU[bu]?.count) || opps.filter(o=>o.bu===bu&&o.stage!=="closed_won"&&o.stage!=="closed_lost").length,
-    color: BU_COLORS[bu] ?? "#ea580c",
-  })), [data, opps, lockedBU]);
+  const buData = useMemo(() => {
+    const buList = lockedBU ? [lockedBU] : ["JACQES","CAZA","ADVISOR","VENTURE","ENRD"];
+    return buList.map(bu => ({
+      bu,
+      value: (!lockedBU && data?.byBU[bu]?.value) || opps.filter(o=>o.bu===bu&&o.stage!=="closed_won"&&o.stage!=="closed_lost").reduce((s,o)=>s+o.deal_value,0),
+      count: (!lockedBU && data?.byBU[bu]?.count) || opps.filter(o=>o.bu===bu&&o.stage!=="closed_won"&&o.stage!=="closed_lost").length,
+      color: BU_COLORS[bu] ?? "#ea580c",
+    }));
+  }, [data, opps, lockedBU]);
 
   const reps = useMemo(() => ["Miguel","Danilo"].map(r => {
     const myOpps = opps.filter(o=>o.owner===r);

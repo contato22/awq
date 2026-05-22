@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import Link from "next/link";
 import {
   AlertTriangle, BarChart3, BookOpen, CheckCircle2,
@@ -37,7 +38,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 export default function APPainel({ entries, summary }: Props) {
-  const today = new Date();
+  const today = useMemo(() => new Date(), []);
 
   // Compute from live entries (summary may be stale after client-side mutations)
   const liveStats = entries.reduce(

@@ -21,6 +21,7 @@ on:
       - main
       - claude/consolidate-awq-platform-sMoN0
       - claude/setup-erp-auth-UuPpg
+      - claude/dazzling-wright-vIu39
   pull_request:
     branches:
       - main

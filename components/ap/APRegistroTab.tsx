@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BarChart3, BookOpen, ClipboardList, ExternalLink, TrendingDown } from "lucide-react";
 import Link from "next/link";
 import APEntryForm from "./APEntryForm";
@@ -26,6 +26,11 @@ export default function APRegistroTab({ entries: initial, summary: initialSummar
   const [tab, setTab] = useState<Tab>("painel");
   const [entries, setEntries] = useState<APEntry[]>(initial);
 
+  // Re-sync local state when server re-renders with fresh data (e.g. after navigation)
+  useEffect(() => {
+    setEntries(initial);
+  }, [initial]);
+
   function handleCreated(entry: APEntry) {
     setEntries(prev => [entry, ...prev]);
   }
@@ -45,6 +50,7 @@ export default function APRegistroTab({ entries: initial, summary: initialSummar
         {TABS.map(t => (
           <button
             key={t.id}
+            type="button"
             onClick={() => setTab(t.id)}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
               tab === t.id

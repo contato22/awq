@@ -66,6 +66,7 @@ export default function COABrowser() {
           <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
           <input
             type="text"
+            aria-label="Buscar conta no Plano de Contas"
             placeholder="Buscar conta..."
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -83,11 +84,15 @@ export default function COABrowser() {
           return (
             <div
               key={node.code}
+              role={!isLeaf ? "button" : undefined}
+              tabIndex={!isLeaf ? 0 : undefined}
+              aria-expanded={!isLeaf ? isExpanded : undefined}
               onClick={() => !isLeaf && toggle(node.code)}
+              onKeyDown={!isLeaf ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(node.code); } } : undefined}
               className={`flex items-center gap-2 px-4 py-2 border-b border-gray-50 transition-colors ${
                 isLeaf
                   ? "hover:bg-brand-50/50"
-                  : "cursor-pointer hover:bg-gray-50 font-medium"
+                  : "cursor-pointer hover:bg-gray-50 font-medium focus:outline-none focus:bg-gray-50"
               }`}
               style={{ paddingLeft: `${16 + (lv - 1) * 16}px` }}
             >
