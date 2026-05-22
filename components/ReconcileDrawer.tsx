@@ -5,7 +5,7 @@
 // Flow: suggest matches → select or create AP/AR → mark as conciliado
 
 import { useEffect, useMemo, useState, useRef } from "react";
-import { X, Search, Plus, ChevronDown, Check, Loader2, ArrowUpRight, ArrowDownRight, AlertCircle } from "lucide-react";
+import { X, Search, Plus, ChevronDown, Check, Loader2, ArrowUpRight, ArrowDownRight, AlertCircle, Info } from "lucide-react";
 import type { BankTransaction, ManagerialCategory } from "@/lib/financial-db";
 import { fmtDate } from "@/lib/fmt";
 
@@ -63,6 +63,64 @@ const CAT_LABELS: Partial<Record<ManagerialCategory, string>> = {
 
 const ALL_CATS = (Object.entries(CAT_LABELS) as [ManagerialCategory, string][])
   .map(([value, label]) => ({ value, label }));
+
+const CAT_GROUPS: { label: string; cats: ManagerialCategory[] }[] = [
+  { label: "Receitas", cats: [
+    "receita_recorrente", "receita_projeto", "receita_consultoria", "receita_producao",
+    "receita_social_media", "receita_revenue_share", "receita_fee_venture", "receita_eventual",
+    "rendimento_financeiro", "aporte_socio", "ajuste_bancario_credito", "recebimento_ambiguo",
+  ]},
+  { label: "Folha & RH", cats: ["folha_remuneracao", "prolabore_retirada", "freelancer_terceiro"] },
+  { label: "Despesas Operacionais", cats: [
+    "fornecedor_operacional", "software_assinatura", "marketing_midia",
+    "aluguel_locacao", "energia_agua_internet", "servicos_contabeis_juridicos",
+    "alimentacao_representacao", "viagem_hospedagem", "deslocamento_combustivel",
+    "cartao_compra_operacional",
+  ]},
+  { label: "Impostos & Tarifas", cats: ["imposto_tributo", "juros_multa_iof", "tarifa_bancaria"] },
+  { label: "Financeiro & Transf.", cats: [
+    "transferencia_interna_enviada", "transferencia_interna_recebida",
+    "aplicacao_financeira", "resgate_financeiro", "reserva_limite_cartao",
+  ]},
+  { label: "Outros", cats: ["despesa_pessoal_misturada", "despesa_ambigua", "unclassified"] },
+];
+
+const EXCLUDED_FROM_REPORTS = new Set<ManagerialCategory>([
+  "transferencia_interna_enviada", "transferencia_interna_recebida",
+  "aplicacao_financeira", "resgate_financeiro", "reserva_limite_cartao",
+]);
+
+function friendlyError(err: unknown): string {
+  const msg = err instanceof Error ? err.message : String(err);
+  const lo = msg.toLowerCase();
+  if (lo.includes("password") || lo.includes("authentication") ||
+      lo.includes("postgres") || lo.includes("econnrefused") ||
+      lo.includes("connect") || lo.includes("timeout")) {
+    return "Erro de conexão com o banco de dados. Tente novamente.";
+  }
+  if (lo.includes("unique") || lo.includes("duplicate") || lo.includes("constraint")) {
+    return "Registro duplicado. Este lançamento já existe no sistema.";
+  }
+  if (msg.length > 120 || /error:|exception|stack/i.test(msg)) {
+    return "Erro inesperado ao processar. Tente novamente.";
+  }
+  return msg;
+}
+
+function CatOptGroups({ includeBlank }: { includeBlank?: boolean }) {
+  return (
+    <>
+      {includeBlank && <option value="">Selecionar categoria…</option>}
+      {CAT_GROUPS.map((g) => (
+        <optgroup key={g.label} label={g.label}>
+          {g.cats.map((c) => (
+            <option key={c} value={c}>{CAT_LABELS[c] ?? c}</option>
+          ))}
+        </optgroup>
+      ))}
+    </>
+  );
+}
 
 function getName(item: APARItem): string {
   return item._type === "AP" ? (item as APItem).supplier_name : (item as ARItem).customer_name;
@@ -163,7 +221,7 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
 
         setAllItems([...aps, ...newAps, ...ars]);
       } catch (e) {
-        setFetchErr(e instanceof Error ? e.message : "Erro ao buscar AP/AR");
+        setFetchErr(friendlyError(e));
       } finally {
         setLoading(false);
       }
@@ -232,7 +290,7 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
       onConciliado(tx.id, patch);
       onClose();
     } catch (e) {
-      setSaveErr(e instanceof Error ? e.message : "Erro");
+      setSaveErr(friendlyError(e));
     } finally {
       setSaving(false);
     }
@@ -276,7 +334,7 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
       onConciliado(tx.id, patch);
       onClose();
     } catch (e) {
-      setSaveErr(e instanceof Error ? e.message : "Erro");
+      setSaveErr(friendlyError(e));
     } finally {
       setSaving(false);
     }
@@ -333,7 +391,7 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
       // Then conciliar the bank transaction
       await handleConciliarDireto();
     } catch (e) {
-      setSaveErr(e instanceof Error ? e.message : "Erro");
+      setSaveErr(friendlyError(e));
       setCreating(false);
       setSaving(false);
     }
@@ -413,9 +471,7 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
                 onChange={(e) => setCategory(e.target.value as ManagerialCategory)}
                 className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2 pr-7 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 appearance-none"
               >
-                {ALL_CATS.map((c) => (
-                  <option key={c.value} value={c.value}>{c.label}</option>
-                ))}
+                <CatOptGroups />
               </select>
               <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             </div>
@@ -534,31 +590,51 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
           {/* ── Criar lançamento tab ── */}
           {filterTab === "criar" && (
             <div className="space-y-3">
-              <p className="text-xs text-gray-500">
-                Cria um novo lançamento em AP/AR e já o vincula a esta transação bancária.
-              </p>
+
+              {/* Excluded-from-reports warning */}
+              {EXCLUDED_FROM_REPORTS.has(tx.managerialCategory) && (
+                <div className="flex items-start gap-2.5 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-3">
+                  <Info size={14} className="shrink-0 mt-0.5 text-amber-600" />
+                  <div>
+                    <p className="font-semibold">Transação excluída da DRE/DFC</p>
+                    <p className="text-amber-700 mt-0.5">Esta categoria ({CAT_LABELS[tx.managerialCategory]}) é tratada como transferência interna e não aparece nos relatórios consolidados. Crie o lançamento somente se necessário para fins de controle.</p>
+                  </div>
+                </div>
+              )}
 
               {/* AP vs AR selector */}
-              <div className="flex gap-2">
-                {(["AP", "AR"] as const).map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => setCreateType(t)}
-                    className={`flex-1 py-2 rounded-lg text-sm font-semibold border transition-colors ${
-                      createType === t
-                        ? "bg-blue-600 text-white border-blue-600"
-                        : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
-                    }`}
-                  >
-                    {t === "AP" ? "📤 A Pagar (AP)" : "📥 A Receber (AR)"}
-                  </button>
-                ))}
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCreateType("AP")}
+                  className={`py-2.5 rounded-xl text-sm font-semibold border transition-all flex items-center justify-center gap-2 ${
+                    createType === "AP"
+                      ? "bg-red-50 border-red-300 text-red-700 shadow-sm"
+                      : "bg-white text-gray-500 border-gray-200 hover:bg-gray-50"
+                  }`}
+                >
+                  <ArrowDownRight size={15} className={createType === "AP" ? "text-red-500" : "text-gray-400"} />
+                  A Pagar (AP)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCreateType("AR")}
+                  className={`py-2.5 rounded-xl text-sm font-semibold border transition-all flex items-center justify-center gap-2 ${
+                    createType === "AR"
+                      ? "bg-emerald-50 border-emerald-300 text-emerald-700 shadow-sm"
+                      : "bg-white text-gray-500 border-gray-200 hover:bg-gray-50"
+                  }`}
+                >
+                  <ArrowUpRight size={15} className={createType === "AR" ? "text-emerald-500" : "text-gray-400"} />
+                  A Receber (AR)
+                </button>
               </div>
 
               <div className="space-y-2.5">
                 <div>
                   <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">
                     {createType === "AP" ? "Fornecedor / Credor" : "Cliente / Devedor"}
+                    <span className="text-red-500 ml-0.5">*</span>
                   </label>
                   <input
                     type="text" value={createParty} onChange={(e) => setCreateParty(e.target.value)}
@@ -574,16 +650,18 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
                     className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-400"
                   />
                 </div>
-                <div className="flex gap-2">
-                  <div className="flex-1">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
                     <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">Vencimento</label>
                     <input
                       type="date" value={createDue} onChange={(e) => setCreateDue(e.target.value)}
                       className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-400"
                     />
                   </div>
-                  <div className="flex-1">
-                    <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">Valor (R$)</label>
+                  <div>
+                    <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">
+                      Valor (R$)<span className="text-red-500 ml-0.5">*</span>
+                    </label>
                     <input
                       type="text" value={createAmt} onChange={(e) => setCreateAmt(e.target.value)}
                       placeholder="0,00"
@@ -598,28 +676,30 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
                     onChange={(e) => setCreateCat(e.target.value as ManagerialCategory | "")}
                     className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white"
                   >
-                    <option value="">Selecionar categoria...</option>
-                    {ALL_CATS.map((c) => (
-                      <option key={c.value} value={c.value}>{c.label}</option>
-                    ))}
+                    <CatOptGroups includeBlank />
                   </select>
                 </div>
               </div>
 
               {saveErr && (
-                <div className="flex items-center gap-2 text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg p-2.5">
-                  <AlertCircle size={12} /> {saveErr}
+                <div className="flex items-start gap-2 text-xs text-red-700 bg-red-50 border border-red-200 rounded-xl p-3">
+                  <AlertCircle size={13} className="shrink-0 mt-0.5" />
+                  <span>{saveErr}</span>
                 </div>
               )}
 
               <button
+                type="button"
                 onClick={() => void handleCriarEConciliar()}
                 disabled={creating || saving || !createParty.trim()}
                 className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold disabled:opacity-50 transition-colors"
               >
                 {creating || saving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
-                Criar e Conciliar
+                {creating || saving ? "Salvando…" : "Criar e Conciliar"}
               </button>
+              {!createParty.trim() && (
+                <p className="text-center text-[11px] text-gray-400">Preencha o nome da contraparte para continuar</p>
+              )}
             </div>
           )}
         </div>
@@ -627,7 +707,9 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
         {/* Footer */}
         <div className="border-t border-gray-100 px-5 py-4 flex items-center gap-3 bg-white">
           {saveErr && filterTab !== "criar" && (
-            <p className="text-xs text-red-600 flex-1">{saveErr}</p>
+            <div className="flex items-center gap-1.5 text-xs text-red-700 flex-1">
+              <AlertCircle size={12} className="shrink-0" />{saveErr}
+            </div>
           )}
           <div className="flex gap-2 ml-auto flex-wrap justify-end">
             <button
