@@ -3,17 +3,17 @@
 // Manages Accounts Payable and Accounts Receivable.
 // Includes Brazilian fiscal retention auto-calculation (IRRF, INSS, ISS, PIS, COFINS).
 //
-// Storage priority: sql (DATABASE_URL direct) → erpAdmin (Supabase REST) → JSON
+// Storage priority: sql (DATABASE_URL direct) → supabase REST (same project) → JSON
 // DO NOT import in client components.
 
 import fs from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
 import { sql } from "./db";
-import { erpAdmin } from "./supabase";
+import { supabase as supaFallback } from "./supabase";
 
 // sql health flag: set to true when a connection attempt fails (e.g. wrong DATABASE_URL password)
-// so subsequent calls fall through to the erpAdmin Supabase REST tier.
+// so subsequent calls fall through to the supabase REST tier (same project, gqkgsoglgubmaborixfb).
 let _sqlBroken = false;
 function sqlOk() { return !!sql && !_sqlBroken; }
 
@@ -270,7 +270,7 @@ function writeARStore(store: ARStore) {
 export async function initAPARDB(): Promise<void> {
   if (!sql) return;
   try { await sql`SELECT 1`; } catch {
-    console.error("[ap-ar-db] sql connection unhealthy — switching to erpAdmin tier");
+    console.error("[ap-ar-db] sql connection unhealthy — switching to supabase REST tier");
     _sqlBroken = true;
     return;
   }
@@ -453,8 +453,8 @@ export async function getAllAP(filters?: { bu_code?: BuCode; status?: APStatus }
     }
     return rows.map((r) => rowToAP(r as Record<string, unknown>));
   }
-  if (erpAdmin) {
-    let q = erpAdmin.from("epm_ap").select("*").order("due_date", { ascending: false });
+  if (supaFallback) {
+    let q = supaFallback.from("epm_ap").select("*").order("due_date", { ascending: false });
     if (filters?.bu_code) q = q.eq("bu_code", filters.bu_code);
     if (filters?.status)  q = q.eq("status",  filters.status);
     const { data, error } = await q;
@@ -533,8 +533,8 @@ export async function addAP(input: NewAPInput): Promise<APItem> {
         ${item.source_system}, ${item.created_at}, ${item.created_by ?? null}
       )
     `;
-  } else if (erpAdmin) {
-    const { error } = await erpAdmin.from("epm_ap").insert({
+  } else if (supaFallback) {
+    const { error } = await supaFallback.from("epm_ap").insert({
       id: item.id, bu_code: item.bu_code, supplier_id: item.supplier_id ?? null,
       supplier_name: item.supplier_name, supplier_doc: item.supplier_doc ?? null,
       supplier_type: item.supplier_type, description: item.description,
@@ -572,8 +572,8 @@ export async function payAP(
     `;
     return rows[0] ? rowToAP(rows[0] as Record<string, unknown>) : null;
   }
-  if (erpAdmin) {
-    const { data: row, error } = await erpAdmin.from("epm_ap")
+  if (supaFallback) {
+    const { data: row, error } = await supaFallback.from("epm_ap")
       .update({ status: "PAID", paid_date: data.paid_date, paid_amount: data.paid_amount, payment_ref: data.payment_ref ?? null })
       .eq("id", id).select().single();
     if (error) throw new Error(error.message);
@@ -592,8 +592,8 @@ export async function cancelAP(id: string): Promise<boolean> {
     await sql!`UPDATE epm_ap SET status='CANCELLED' WHERE id=${id}`;
     return true;
   }
-  if (erpAdmin) {
-    const { error } = await erpAdmin.from("epm_ap").update({ status: "CANCELLED" }).eq("id", id);
+  if (supaFallback) {
+    const { error } = await supaFallback.from("epm_ap").update({ status: "CANCELLED" }).eq("id", id);
     if (error) throw new Error(error.message);
     return true;
   }
@@ -610,8 +610,8 @@ export async function deleteAP(id: string): Promise<boolean> {
     await sql!`DELETE FROM epm_ap WHERE id=${id}`;
     return true;
   }
-  if (erpAdmin) {
-    const { error } = await erpAdmin.from("epm_ap").delete().eq("id", id);
+  if (supaFallback) {
+    const { error } = await supaFallback.from("epm_ap").delete().eq("id", id);
     if (error) throw new Error(error.message);
     return true;
   }
@@ -639,7 +639,7 @@ export async function updateAP(
     `;
     return rows[0] ? rowToAP(rows[0] as Record<string, unknown>) : null;
   }
-  if (erpAdmin) {
+  if (supaFallback) {
     const patch: Record<string, unknown> = {};
     if (updates.supplier_name !== undefined) patch.supplier_name = updates.supplier_name;
     if (updates.description   !== undefined) patch.description   = updates.description;
@@ -647,7 +647,7 @@ export async function updateAP(
     if (updates.cost_center   !== undefined) patch.cost_center   = updates.cost_center;
     if (updates.reference_doc !== undefined) patch.reference_doc = updates.reference_doc;
     if (updates.due_date      !== undefined) patch.due_date      = updates.due_date;
-    const { data: row, error } = await erpAdmin.from("epm_ap").update(patch).eq("id", id).select().single();
+    const { data: row, error } = await supaFallback.from("epm_ap").update(patch).eq("id", id).select().single();
     if (error) throw new Error(error.message);
     return row ? rowToAP(row as Record<string, unknown>) : null;
   }
@@ -677,8 +677,8 @@ export async function getAllAR(filters?: { bu_code?: BuCode; status?: ARStatus }
     }
     return rows.map((r) => rowToAR(r as Record<string, unknown>));
   }
-  if (erpAdmin) {
-    let q = erpAdmin.from("epm_ar").select("*").order("due_date", { ascending: false });
+  if (supaFallback) {
+    let q = supaFallback.from("epm_ar").select("*").order("due_date", { ascending: false });
     if (filters?.bu_code) q = q.eq("bu_code", filters.bu_code);
     if (filters?.status)  q = q.eq("status",  filters.status);
     const { data, error } = await q;
@@ -747,8 +747,8 @@ export async function addAR(input: NewARInput): Promise<ARItem> {
         ${item.status}, ${item.source_system}, ${item.created_at}, ${item.created_by ?? null}
       )
     `;
-  } else if (erpAdmin) {
-    const { error } = await erpAdmin.from("epm_ar").insert({
+  } else if (supaFallback) {
+    const { error } = await supaFallback.from("epm_ar").insert({
       id: item.id, bu_code: item.bu_code, customer_id: item.customer_id ?? null,
       customer_name: item.customer_name, customer_doc: item.customer_doc ?? null,
       description: item.description, category: item.category,
@@ -784,8 +784,8 @@ export async function receiveAR(
     `;
     return rows[0] ? rowToAR(rows[0] as Record<string, unknown>) : null;
   }
-  if (erpAdmin) {
-    const { data: row, error } = await erpAdmin.from("epm_ar")
+  if (supaFallback) {
+    const { data: row, error } = await supaFallback.from("epm_ar")
       .update({ status: "RECEIVED", received_date: data.received_date, received_amount: data.received_amount, receipt_ref: data.receipt_ref ?? null })
       .eq("id", id).select().single();
     if (error) throw new Error(error.message);
@@ -804,8 +804,8 @@ export async function cancelAR(id: string): Promise<boolean> {
     await sql!`UPDATE epm_ar SET status='CANCELLED' WHERE id=${id}`;
     return true;
   }
-  if (erpAdmin) {
-    const { error } = await erpAdmin.from("epm_ar").update({ status: "CANCELLED" }).eq("id", id);
+  if (supaFallback) {
+    const { error } = await supaFallback.from("epm_ar").update({ status: "CANCELLED" }).eq("id", id);
     if (error) throw new Error(error.message);
     return true;
   }
@@ -822,8 +822,8 @@ export async function deleteAR(id: string): Promise<boolean> {
     await sql!`DELETE FROM epm_ar WHERE id=${id}`;
     return true;
   }
-  if (erpAdmin) {
-    const { error } = await erpAdmin.from("epm_ar").delete().eq("id", id);
+  if (supaFallback) {
+    const { error } = await supaFallback.from("epm_ar").delete().eq("id", id);
     if (error) throw new Error(error.message);
     return true;
   }
@@ -851,7 +851,7 @@ export async function updateAR(
     `;
     return rows[0] ? rowToAR(rows[0] as Record<string, unknown>) : null;
   }
-  if (erpAdmin) {
+  if (supaFallback) {
     const patch: Record<string, unknown> = {};
     if (updates.customer_name !== undefined) patch.customer_name = updates.customer_name;
     if (updates.description   !== undefined) patch.description   = updates.description;
@@ -859,7 +859,7 @@ export async function updateAR(
     if (updates.cost_center   !== undefined) patch.cost_center   = updates.cost_center;
     if (updates.reference_doc !== undefined) patch.reference_doc = updates.reference_doc;
     if (updates.due_date      !== undefined) patch.due_date      = updates.due_date;
-    const { data: row, error } = await erpAdmin.from("epm_ar").update(patch).eq("id", id).select().single();
+    const { data: row, error } = await supaFallback.from("epm_ar").update(patch).eq("id", id).select().single();
     if (error) throw new Error(error.message);
     return row ? rowToAR(row as Record<string, unknown>) : null;
   }
