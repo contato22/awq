@@ -42,18 +42,16 @@ export default function AccountDetailClient() {
 
   useEffect(() => {
     if (!id) return;
-    Promise.all([
-      fetch(`/api/crm/accounts?account_id=${id}`).then(r => r.json()),
-      fetch(`/api/crm/contacts?account_id=${id}`).then(r => r.json()),
-      fetch(`/api/crm/opportunities?account_id=${id}`).then(r => r.json()),
-      fetch(`/api/crm/activities?related_to_type=account&related_to_id=${id}`).then(r => r.json()),
-    ]).then(([accJ, conJ, oppJ, actJ]) => {
-      const accs = (accJ.data ?? []) as CrmAccount[];
-      setAccount(accs[0] ?? null);
-      setContacts((conJ.data ?? []) as CrmContact[]);
-      setOpps((oppJ.data ?? []) as CrmOpportunity[]);
-      setActivities((actJ.data ?? []) as CrmActivity[]);
-    }).catch(() => undefined)
+    fetch(`/api/crm/accounts?id=${id}`)
+      .then(r => r.json())
+      .then(json => {
+        const d = json.data ?? {};
+        setAccount((d.account ?? null) as CrmAccount | null);
+        setContacts((d.contacts ?? []) as CrmContact[]);
+        setOpps((d.opportunities ?? []) as CrmOpportunity[]);
+        setActivities((d.activities ?? []) as CrmActivity[]);
+      })
+      .catch(() => undefined)
       .finally(() => setLoading(false));
   }, [id]);
 
