@@ -5,7 +5,6 @@ import type { FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
 import type { CrmAccount } from "@/lib/crm-types";
-import { supabaseClient as supabase } from "@/lib/supabase";
 
 function AddContactPageInner() {
   const router = useRouter();
@@ -21,8 +20,9 @@ function AddContactPageInner() {
   });
 
   useEffect(() => {
-    supabase!.from("crm_accounts").select("account_id, account_name, trade_name").order("account_name")
-      .then(({ data }) => setAccounts((data ?? []) as CrmAccount[]));
+    fetch("/api/crm/accounts")
+      .then(r => r.json())
+      .then(json => setAccounts((json.data ?? []) as CrmAccount[]));
   }, []);
 
   function set(f: string, v: string | boolean) { setForm(p=>({...p,[f]:v})); }
@@ -32,19 +32,24 @@ function AddContactPageInner() {
     if (!form.full_name.trim()) { setError("Nome completo é obrigatório"); return; }
     setSaving(true); setError("");
     try {
-      const { error: err } = await supabase!.from("crm_contacts").insert({
-        account_id: form.account_id || null,
-        full_name: form.full_name.trim(),
-        email: form.email || null,
-        phone: form.phone || null,
-        mobile: form.mobile || null,
-        job_title: form.job_title || null,
-        department: form.department || null,
-        seniority: form.seniority,
-        linkedin_url: form.linkedin_url || null,
-        is_primary_contact: form.is_primary_contact,
-      });
-      if (err) throw new Error(err.message);
+      const res = await fetch("/api/crm/contacts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "create",
+          account_id: form.account_id || null,
+          full_name: form.full_name.trim(),
+          email: form.email || null,
+          phone: form.phone || null,
+          mobile: form.mobile || null,
+          job_title: form.job_title || null,
+          department: form.department || null,
+          seniority: form.seniority,
+          linkedin_url: form.linkedin_url || null,
+          is_primary_contact: form.is_primary_contact,
+        }),
+      }).then(r => r.json());
+      if (!res.success) throw new Error(res.error ?? "Erro ao criar contato");
       router.push(form.account_id ? `/crm/accounts/${form.account_id}` : "/crm/contacts");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao criar contato");

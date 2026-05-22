@@ -5,7 +5,6 @@ import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import { OWNER_OPTIONS } from "@/lib/crm-types";
-import { supabaseClient as supabase } from "@/lib/supabase";
 
 export default function AddAccountPage() {
   const router = useRouter();
@@ -26,26 +25,32 @@ export default function AddAccountPage() {
     if (!form.account_name.trim()) { setError("Nome da empresa é obrigatório"); return; }
     setSaving(true); setError("");
     try {
-      const { error: err } = await supabase!.from("crm_accounts").insert({
-        account_name: form.account_name.trim(),
-        trade_name: form.trade_name || null,
-        document_number: form.document_number || null,
-        industry: form.industry || null,
-        company_size: form.company_size || null,
-        website: form.website || null,
-        linkedin_url: form.linkedin_url || null,
-        address_street: form.address_street || null,
-        address_city: form.address_city || null,
-        address_state: form.address_state || null,
-        address_zip: form.address_zip || null,
-        account_type: form.account_type,
-        owner: form.owner,
-        health_score: parseInt(form.health_score),
-        churn_risk: form.churn_risk,
-        renewal_date: form.renewal_date || null,
-        created_by: form.owner,
+      const res = await fetch("/api/crm/accounts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "create",
+          account_name: form.account_name.trim(),
+          trade_name: form.trade_name || null,
+          document_number: form.document_number || null,
+          industry: form.industry || null,
+          company_size: form.company_size || null,
+          website: form.website || null,
+          linkedin_url: form.linkedin_url || null,
+          address_street: form.address_street || null,
+          address_city: form.address_city || null,
+          address_state: form.address_state || null,
+          address_zip: form.address_zip || null,
+          account_type: form.account_type,
+          owner: form.owner,
+          health_score: parseInt(form.health_score),
+          churn_risk: form.churn_risk,
+          renewal_date: form.renewal_date || null,
+          created_by: form.owner,
+        }),
       });
-      if (err) throw new Error(err.message);
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error ?? "Erro ao criar conta");
       router.push("/crm/accounts");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao criar conta");

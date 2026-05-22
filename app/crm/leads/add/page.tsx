@@ -9,8 +9,6 @@ import {
   BarChart3, CheckCircle2, AlertCircle, ChevronLeft,
   DollarSign, Calendar, FileText, Zap,
 } from "lucide-react";
-import { supabaseClient as supabase } from "@/lib/supabase";
-
 type FormData = {
   contact_name: string;
   company_name: string;
@@ -142,25 +140,30 @@ export default function AddLeadPage() {
     if (!validate()) return;
     setSubmitting(true);
     try {
-      const { error: err } = await supabase!.from("crm_leads").insert({
-        contact_name: form.contact_name.trim(),
-        company_name: form.company_name.trim(),
-        email: form.email || null,
-        phone: form.phone || null,
-        job_title: form.job_title || null,
-        bu: form.bu,
-        lead_source: form.lead_source,
-        assigned_to: form.assigned_to,
-        status: form.status,
-        lead_score: estimatedScore,
-        bant_budget: form.bant_budget ? parseFloat(form.bant_budget) : null,
-        bant_authority: form.bant_authority,
-        bant_need: form.bant_need || null,
-        bant_timeline: form.bant_timeline || null,
-        qualification_notes: form.qualification_notes || null,
-        created_by: form.assigned_to,
-      });
-      if (err) throw new Error(err.message);
+      const res = await fetch("/api/crm/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "create",
+          contact_name: form.contact_name.trim(),
+          company_name: form.company_name.trim(),
+          email: form.email || null,
+          phone: form.phone || null,
+          job_title: form.job_title || null,
+          bu: form.bu,
+          lead_source: form.lead_source,
+          assigned_to: form.assigned_to,
+          status: form.status,
+          lead_score: estimatedScore,
+          bant_budget: form.bant_budget ? parseFloat(form.bant_budget) : null,
+          bant_authority: form.bant_authority,
+          bant_need: form.bant_need || null,
+          bant_timeline: form.bant_timeline || null,
+          qualification_notes: form.qualification_notes || null,
+          created_by: form.assigned_to,
+        }),
+      }).then(r => r.json());
+      if (!res.success) throw new Error(res.error ?? "Erro ao criar lead");
       setToast({ message: "Lead criado com sucesso!", type: "success" });
       setTimeout(() => router.push("/crm/leads"), 1500);
     } catch (err) {

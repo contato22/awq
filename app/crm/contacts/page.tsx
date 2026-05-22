@@ -6,7 +6,6 @@ import Header from "@/components/Header";
 import EmptyState from "@/components/EmptyState";
 import { Users, Plus, Search, Mail, Phone, Linkedin, Trash2, Check, X as XIcon } from "lucide-react";
 import type { CrmContact } from "@/lib/crm-types";
-import { supabaseClient as supabase } from "@/lib/supabase";
 
 const SENIORITY_LABELS: Record<string, string> = {
   c_level: "C-Level", director: "Diretor", manager: "Gerente", ic: "Analista/IC",
@@ -15,8 +14,6 @@ const SENIORITY_COLORS: Record<string, string> = {
   c_level: "bg-violet-50 text-violet-700", director: "bg-blue-50 text-blue-700",
   manager: "bg-amber-50 text-amber-700", ic: "bg-gray-100 text-gray-600",
 };
-
-type ContactWithAccount = CrmContact & { crm_accounts?: { account_name: string } | null };
 
 export default function ContactsPage() {
   const [contacts, setContacts] = useState<CrmContact[]>([]);
@@ -31,24 +28,21 @@ export default function ContactsPage() {
   }
 
   useEffect(() => {
-    let q = supabase!.from("crm_contacts")
-      .select("*, crm_accounts(account_name)")
-      .order("full_name");
-    if (search) q = q.ilike("full_name", `%${search}%`);
-    void q.then(({ data }) => {
-      const rows = (data ?? []).map((c: ContactWithAccount) => ({
-        ...c,
-        account_name: c.crm_accounts?.account_name ?? null,
-      })) as CrmContact[];
-      setContacts(rows);
-      setLoading(false);
-    }, () => { setLoading(false); });
+    const url = search ? `/api/crm/contacts?search=${encodeURIComponent(search)}` : "/api/crm/contacts";
+    fetch(url)
+      .then(r => r.json())
+      .then(json => { setContacts((json.data ?? []) as CrmContact[]); setLoading(false); })
+      .catch(() => { setLoading(false); });
   }, [search]);
 
   async function handleDelete(contact: CrmContact) {
     setContacts(prev => prev.filter(c => c.contact_id !== contact.contact_id));
     setDeletingId(null);
-    await supabase!.from("crm_contacts").delete().eq("contact_id", contact.contact_id);
+    await fetch("/api/crm/contacts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "delete", contact_id: contact.contact_id }),
+    });
     showToast("Contato apagado", true);
   }
 
