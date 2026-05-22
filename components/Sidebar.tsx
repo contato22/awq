@@ -985,7 +985,9 @@ function BUSidebar({
     const isActive = (href: string) =>
         href === homeHref ? pathname === homeHref : pathname === href || pathname.startsWith(href + "/");
 
-    const findDefaultPanel = () => modules.find((m) => m.items.some((i) => isActive(i.href)))?.id ?? null;
+    const findDefaultPanel = () =>
+        modules.find((m) => m.items.some((i) => isActive(i.href)))?.id
+        ?? (pathname === homeHref ? modules[0]?.id ?? null : null);
 
     const [activePanel, setActivePanel] = useState<string | null>(findDefaultPanel);
 
