@@ -19,7 +19,7 @@
 //   { synced: number, skipped: number, total: number, period: { startDate, endDate } }
 
 import { NextRequest, NextResponse } from "next/server";
-import { fetchCoraStatement, isCoraConfigured, type CoraAccount } from "@/lib/cora-api";
+import { fetchCoraStatement, isCoraConfigured, isCoraEnerdyConfigured, type CoraAccount } from "@/lib/cora-api";
 import { getAllTransactions, saveTransactions } from "@/lib/financial-db";
 import { classifyTransaction } from "@/lib/financial-classifier";
 import type { BankTransaction, EntityLayer } from "@/lib/financial-db";
@@ -85,6 +85,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const startDate   = isValidDate(body.startDate ?? "") ? body.startDate! : daysAgo(30);
   const endDate     = isValidDate(body.endDate   ?? "") ? body.endDate!   : today();
   const force       = body.force === true;
+
+  // ── Guard: credenciais por empresa — nunca misturar ————————————————————————
+  if (entity === "ENERDY" && !isCoraEnerdyConfigured()) {
+    return NextResponse.json(
+      {
+        error: "Credenciais Enerdy não configuradas.",
+        hint: "Configure CORA_ENERDY_CLIENT_ID, CORA_ENERDY_CERT e CORA_ENERDY_KEY no Vercel.",
+      },
+      { status: 501 },
+    );
+  }
 
   // ── Fetch from Cora —————————————————————————————————————————————————————————
   let coraResult: Awaited<ReturnType<typeof fetchCoraStatement>>;
