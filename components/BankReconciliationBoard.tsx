@@ -285,6 +285,25 @@ export default function BankReconciliationBoard({
       });
     }
     setApArSnaps(lsGet<ApArSnap[]>("awq_ap_items", []));
+
+    // Fetch new AP entries for match-quality computation
+    if (!isStatic) {
+      fetch("/api/ap/entries")
+        .then((r) => r.ok ? r.json() as Promise<{ entries: unknown[] }> : { entries: [] })
+        .then(({ entries = [] }) => {
+          const snaps: ApArSnap[] = (entries as Array<{
+            id: string; amount: number; dueDate: string; entity: string; status: string; bankTransactionId: string | null;
+          }>)
+            .filter((e) => e.status !== "pago" && e.status !== "cancelado" && !e.bankTransactionId)
+            .map((e) => ({ id: e.id, type: "ap" as const, entity: e.entity, amount: e.amount, dueDate: e.dueDate, status: e.status }));
+          setApArSnaps((prev) => {
+            const ids = new Set(prev.map((s) => s.id));
+            const fresh = snaps.filter((s) => !ids.has(s.id));
+            return fresh.length > 0 ? [...prev, ...fresh] : prev;
+          });
+        })
+        .catch(() => {});
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialTransactions]);
 
@@ -1049,7 +1068,7 @@ export default function BankReconciliationBoard({
 
       {/* ── Column headers ───────────────────────────────────────────────────── */}
       {filtered.length > 0 && (
-        <div className="grid grid-cols-[1fr_120px_1fr] gap-0 px-1">
+        <div className="grid grid-cols-[1fr_90px] sm:grid-cols-[1fr_120px_1fr] gap-0 px-1">
           <div className="flex items-center gap-2">
             <span className="w-5 h-5 rounded bg-red-500 flex items-center justify-center text-white text-[10px] font-extrabold shrink-0">
               B
@@ -1057,7 +1076,7 @@ export default function BankReconciliationBoard({
             <span className="text-xs font-bold text-gray-700">Lançamentos do banco</span>
           </div>
           <div />
-          <div className="flex items-center gap-2 justify-end">
+          <div className="hidden sm:flex items-center gap-2 justify-end">
             <span className="text-xs font-bold text-gray-700">Lançamentos da Conta AWQ</span>
             <span className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center shrink-0">
               <Building2 size={10} className="text-white" />
@@ -1094,7 +1113,7 @@ export default function BankReconciliationBoard({
             <div
               key={tx.id}
               className={
-                "grid grid-cols-[1fr_120px_1fr] rounded-xl border overflow-hidden transition-colors " +
+                "grid grid-cols-[1fr_90px] sm:grid-cols-[1fr_120px_1fr] rounded-xl border overflow-hidden transition-colors " +
                 (isSelected
                   ? "border-amber-300 bg-amber-50/20"
                   : "border-gray-200 bg-white hover:border-gray-300")
@@ -1181,7 +1200,7 @@ export default function BankReconciliationBoard({
               </div>
 
               {/* ── RIGHT: System (AWQ) entry ──────────────────────────── */}
-              <div className="p-4 flex flex-col gap-2">
+              <div className="hidden sm:flex p-4 flex-col gap-2">
                 {/* Amount + diff + date */}
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2 flex-wrap">

@@ -15,6 +15,7 @@ interface APItem {
   id: string; bu_code: string; supplier_name: string; description: string;
   category: string; due_date: string; gross_amount: number; net_amount: number;
   status: string; paid_date?: string; supplier_doc?: string;
+  _newApEntry?: true; // marker: sourced from /api/ap/entries (not /api/epm/ap)
 }
 interface ARItem {
   id: string; bu_code: string; customer_name: string; description: string;
@@ -115,24 +116,52 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
   const [creating, setCreating]       = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
 
-  // Fetch AP/AR on mount
+  // Fetch AP/AR on mount (EPM system + new /api/ap/entries module)
   useEffect(() => {
     if (isStatic) { setLoading(false); return; }
     void (async () => {
       try {
-        const [apRes, arRes] = await Promise.all([
+        const [apRes, arRes, newApRes] = await Promise.all([
           fetch("/api/epm/ap"),
           fetch("/api/epm/ar"),
+          fetch("/api/ap/entries"),
         ]);
-        const apData = apRes.ok ? (await apRes.json() as { success: boolean; data: APItem[] }) : null;
-        const arData = arRes.ok ? (await arRes.json() as { success: boolean; data: ARItem[] }) : null;
+        const apData    = apRes.ok    ? (await apRes.json()    as { success: boolean; data: APItem[] }) : null;
+        const arData    = arRes.ok    ? (await arRes.json()    as { success: boolean; data: ARItem[] }) : null;
+        const newApData = newApRes.ok ? (await newApRes.json() as { entries: Array<{
+          id: string; supplierName: string; description: string | null;
+          accountDescription: string; managerialCategory: string;
+          entity: string; amount: number; dueDate: string;
+          status: string; paymentDate: string | null; bankTransactionId: string | null;
+          supplierDocument: string | null;
+        }> }) : null;
+
         const aps: APARItem[] = (apData?.data ?? [])
           .filter((a) => a.status !== "PAID" && a.status !== "CANCELLED")
           .map((a) => ({ ...a, _type: "AP" as const }));
         const ars: APARItem[] = (arData?.data ?? [])
           .filter((a) => a.status !== "RECEIVED" && a.status !== "CANCELLED")
           .map((a) => ({ ...a, _type: "AR" as const }));
-        setAllItems([...aps, ...ars]);
+
+        // Map new AP entries to APItem shape; skip already-linked or closed entries
+        const newAps: APARItem[] = (newApData?.entries ?? [])
+          .filter((e) => e.status !== "pago" && e.status !== "cancelado" && !e.bankTransactionId)
+          .map((e) => ({
+            _type: "AP" as const,
+            _newApEntry: true as const,
+            id:            e.id,
+            bu_code:       e.entity,
+            supplier_name: e.supplierName,
+            description:   e.description ?? e.accountDescription,
+            category:      e.managerialCategory,
+            due_date:      e.dueDate,
+            gross_amount:  e.amount,
+            net_amount:    e.amount,
+            status:        e.status === "aprovado" ? "SCHEDULED" : e.status === "vencido" ? "OVERDUE" : "PENDING",
+            supplier_doc:  e.supplierDocument ?? undefined,
+          }));
+
+        setAllItems([...aps, ...newAps, ...ars]);
       } catch (e) {
         setFetchErr(e instanceof Error ? e.message : "Erro ao buscar AP/AR");
       } finally {
@@ -224,22 +253,25 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
         if (!txRes.ok) throw new Error("Falha ao atualizar transação");
 
         // 2. Mark AP/AR as paid/received
-        const apiPath = selectedItem._type === "AP" ? "/api/epm/ap" : "/api/epm/ar";
-        const action  = selectedItem._type === "AP" ? "pay" : "receive";
-        const dateField   = selectedItem._type === "AP" ? "paid_date"     : "received_date";
-        const amtField    = selectedItem._type === "AP" ? "paid_amount"   : "received_amount";
-        const refField    = selectedItem._type === "AP" ? "payment_ref"   : "receipt_ref";
-        await fetch(apiPath, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            id: selectedItem.id,
-            action,
-            [dateField]: tx.transactionDate,
-            [amtField]: Math.abs(tx.amount),
-            [refField]: tx.id,
-          }),
-        });
+        if (selectedItem._type === "AP" && (selectedItem as APItem)._newApEntry) {
+          // New AP module: PATCH /api/ap/entries/[id]
+          await fetch(`/api/ap/entries/${selectedItem.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: "pago", paymentDate: tx.transactionDate, bankTransactionId: tx.id }),
+          });
+        } else {
+          const apiPath   = selectedItem._type === "AP" ? "/api/epm/ap" : "/api/epm/ar";
+          const action    = selectedItem._type === "AP" ? "pay"          : "receive";
+          const dateField = selectedItem._type === "AP" ? "paid_date"     : "received_date";
+          const amtField  = selectedItem._type === "AP" ? "paid_amount"   : "received_amount";
+          const refField  = selectedItem._type === "AP" ? "payment_ref"   : "receipt_ref";
+          await fetch(apiPath, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: selectedItem.id, action, [dateField]: tx.transactionDate, [amtField]: Math.abs(tx.amount), [refField]: tx.id }),
+          });
+        }
       }
       onConciliado(tx.id, patch);
       onClose();

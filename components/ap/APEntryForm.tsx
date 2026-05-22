@@ -60,6 +60,7 @@ export default function APEntryForm({ onCreated }: Props) {
     if (!form.accountCode) { setErrorMsg("Selecione uma conta do Plano de Contas."); setStatus("error"); return; }
     if (!form.supplierName.trim()) { setErrorMsg("Informe o fornecedor."); setStatus("error"); return; }
     if (!form.amount || form.amount <= 0) { setErrorMsg("Valor deve ser positivo."); setStatus("error"); return; }
+    if (!form.issueDate) { setErrorMsg("Informe a data de emissão."); setStatus("error"); return; }
     if (!form.dueDate) { setErrorMsg("Informe a data de vencimento."); setStatus("error"); return; }
 
     setStatus("idle");
@@ -140,10 +141,11 @@ export default function APEntryForm({ onCreated }: Props) {
 
         {/* Fornecedor */}
         <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">
+          <label htmlFor="ap-supplier" className="block text-xs font-medium text-gray-700 mb-1">
             Fornecedor / Prestador <span className="text-red-500">*</span>
           </label>
           <input
+            id="ap-supplier"
             type="text"
             placeholder="Nome do fornecedor"
             value={form.supplierName}
@@ -154,8 +156,9 @@ export default function APEntryForm({ onCreated }: Props) {
 
         {/* CNPJ/CPF (optional) */}
         <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">CNPJ / CPF</label>
+          <label htmlFor="ap-doc" className="block text-xs font-medium text-gray-700 mb-1">CNPJ / CPF</label>
           <input
+            id="ap-doc"
             type="text"
             placeholder="Opcional"
             value={form.supplierDocument ?? ""}
@@ -166,8 +169,9 @@ export default function APEntryForm({ onCreated }: Props) {
 
         {/* Entity */}
         <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">Entidade</label>
+          <label htmlFor="ap-entity" className="block text-xs font-medium text-gray-700 mb-1">Entidade</label>
           <select
+            id="ap-entity"
             value={form.entity}
             onChange={e => setForm(f => ({ ...f, entity: e.target.value as EntityLayer }))}
             className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20 bg-white"
@@ -181,10 +185,11 @@ export default function APEntryForm({ onCreated }: Props) {
         {/* Amount + Currency */}
         <div className="grid grid-cols-3 gap-2">
           <div className="col-span-2">
-            <label className="block text-xs font-medium text-gray-700 mb-1">
+            <label htmlFor="ap-amount" className="block text-xs font-medium text-gray-700 mb-1">
               Valor <span className="text-red-500">*</span>
             </label>
             <input
+              id="ap-amount"
               type="number"
               min="0.01"
               step="0.01"
@@ -195,8 +200,9 @@ export default function APEntryForm({ onCreated }: Props) {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">Moeda</label>
+            <label htmlFor="ap-currency" className="block text-xs font-medium text-gray-700 mb-1">Moeda</label>
             <select
+              id="ap-currency"
               value={form.currency}
               onChange={e => setForm(f => ({ ...f, currency: e.target.value }))}
               className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20 bg-white"
@@ -211,8 +217,9 @@ export default function APEntryForm({ onCreated }: Props) {
         {/* Dates */}
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">Data Emissão</label>
+            <label htmlFor="ap-issue-date" className="block text-xs font-medium text-gray-700 mb-1">Data Emissão</label>
             <input
+              id="ap-issue-date"
               type="date"
               value={form.issueDate}
               onChange={e => setForm(f => ({ ...f, issueDate: e.target.value }))}
@@ -220,10 +227,11 @@ export default function APEntryForm({ onCreated }: Props) {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
+            <label htmlFor="ap-due-date" className="block text-xs font-medium text-gray-700 mb-1">
               Vencimento <span className="text-red-500">*</span>
             </label>
             <input
+              id="ap-due-date"
               type="date"
               value={form.dueDate}
               onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))}
@@ -234,8 +242,9 @@ export default function APEntryForm({ onCreated }: Props) {
 
         {/* Invoice Number */}
         <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">Nº NF / Documento</label>
+          <label htmlFor="ap-invoice" className="block text-xs font-medium text-gray-700 mb-1">Nº NF / Documento</label>
           <input
+            id="ap-invoice"
             type="text"
             placeholder="Opcional"
             value={form.invoiceNumber ?? ""}
@@ -246,8 +255,9 @@ export default function APEntryForm({ onCreated }: Props) {
 
         {/* Description */}
         <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">Descrição / Histórico</label>
+          <label htmlFor="ap-desc" className="block text-xs font-medium text-gray-700 mb-1">Descrição / Histórico</label>
           <textarea
+            id="ap-desc"
             placeholder="Opcional — detalhes adicionais"
             rows={2}
             value={form.description ?? ""}
