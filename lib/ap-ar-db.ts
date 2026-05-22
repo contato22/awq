@@ -3,13 +3,19 @@
 // Manages Accounts Payable and Accounts Receivable.
 // Includes Brazilian fiscal retention auto-calculation (IRRF, INSS, ISS, PIS, COFINS).
 //
-// Storage: public/data/epm-ap.json + epm-ar.json (dev) or Supabase Postgres via DATABASE_URL (prod).
+// Storage priority: sql (DATABASE_URL direct) → erpAdmin (Supabase REST) → JSON
 // DO NOT import in client components.
 
 import fs from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
 import { sql } from "./db";
+import { erpAdmin } from "./supabase";
+
+// sql health flag: set to true when a connection attempt fails (e.g. wrong DATABASE_URL password)
+// so subsequent calls fall through to the erpAdmin Supabase REST tier.
+let _sqlBroken = false;
+function sqlOk() { return !!sql && !_sqlBroken; }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -263,6 +269,11 @@ function writeARStore(store: ARStore) {
 
 export async function initAPARDB(): Promise<void> {
   if (!sql) return;
+  try { await sql`SELECT 1`; } catch {
+    console.error("[ap-ar-db] sql connection unhealthy — switching to erpAdmin tier");
+    _sqlBroken = true;
+    return;
+  }
 
   await sql`
     CREATE TABLE IF NOT EXISTS epm_ap (
@@ -429,18 +440,26 @@ function rowToAR(row: Record<string, unknown>): ARItem {
 }
 
 export async function getAllAP(filters?: { bu_code?: BuCode; status?: APStatus }): Promise<APItem[]> {
-  if (sql) {
+  if (sqlOk()) {
     let rows;
     if (filters?.bu_code && filters?.status) {
-      rows = await sql`SELECT * FROM epm_ap WHERE bu_code=${filters.bu_code} AND status=${filters.status} ORDER BY due_date DESC`;
+      rows = await sql!`SELECT * FROM epm_ap WHERE bu_code=${filters.bu_code} AND status=${filters.status} ORDER BY due_date DESC`;
     } else if (filters?.bu_code) {
-      rows = await sql`SELECT * FROM epm_ap WHERE bu_code=${filters.bu_code} ORDER BY due_date DESC`;
+      rows = await sql!`SELECT * FROM epm_ap WHERE bu_code=${filters.bu_code} ORDER BY due_date DESC`;
     } else if (filters?.status) {
-      rows = await sql`SELECT * FROM epm_ap WHERE status=${filters.status} ORDER BY due_date DESC`;
+      rows = await sql!`SELECT * FROM epm_ap WHERE status=${filters.status} ORDER BY due_date DESC`;
     } else {
-      rows = await sql`SELECT * FROM epm_ap ORDER BY due_date DESC`;
+      rows = await sql!`SELECT * FROM epm_ap ORDER BY due_date DESC`;
     }
     return rows.map((r) => rowToAP(r as Record<string, unknown>));
+  }
+  if (erpAdmin) {
+    let q = erpAdmin.from("epm_ap").select("*").order("due_date", { ascending: false });
+    if (filters?.bu_code) q = q.eq("bu_code", filters.bu_code);
+    if (filters?.status)  q = q.eq("status",  filters.status);
+    const { data, error } = await q;
+    if (error) throw new Error(error.message);
+    return (data ?? []).map((r) => rowToAP(r as Record<string, unknown>));
   }
   const store = readAPStore();
   let items = [...store.items].sort((a, b) => b.due_date.localeCompare(a.due_date));
@@ -495,8 +514,8 @@ export async function addAP(input: NewAPInput): Promise<APItem> {
     created_by:       input.created_by,
   };
 
-  if (sql) {
-    await sql`
+  if (sqlOk()) {
+    await sql!`
       INSERT INTO epm_ap (
         id, bu_code, supplier_id, supplier_name, supplier_doc, supplier_type,
         description, category, cost_center, reference_doc, issue_date, due_date,
@@ -514,6 +533,24 @@ export async function addAP(input: NewAPInput): Promise<APItem> {
         ${item.source_system}, ${item.created_at}, ${item.created_by ?? null}
       )
     `;
+  } else if (erpAdmin) {
+    const { error } = await erpAdmin.from("epm_ap").insert({
+      id: item.id, bu_code: item.bu_code, supplier_id: item.supplier_id ?? null,
+      supplier_name: item.supplier_name, supplier_doc: item.supplier_doc ?? null,
+      supplier_type: item.supplier_type, description: item.description,
+      category: item.category, cost_center: item.cost_center ?? null,
+      reference_doc: item.reference_doc ?? null, issue_date: item.issue_date,
+      due_date: item.due_date, gross_amount: item.gross_amount,
+      irrf_rate: item.irrf_rate, irrf_amount: item.irrf_amount,
+      inss_rate: item.inss_rate, inss_amount: item.inss_amount,
+      iss_rate: item.iss_rate, iss_amount: item.iss_amount,
+      pis_rate: item.pis_rate, pis_amount: item.pis_amount,
+      cofins_rate: item.cofins_rate, cofins_amount: item.cofins_amount,
+      total_retentions: item.total_retentions, net_amount: item.net_amount,
+      status: item.status, source_system: item.source_system,
+      created_at: item.created_at, created_by: item.created_by ?? null,
+    });
+    if (error) throw new Error(error.message);
   } else {
     const store = readAPStore();
     store.items.push(item);
@@ -527,13 +564,20 @@ export async function payAP(
   id: string,
   data: { paid_date: string; paid_amount: number; payment_ref?: string }
 ): Promise<APItem | null> {
-  if (sql) {
-    const rows = await sql`
+  if (sqlOk()) {
+    const rows = await sql!`
       UPDATE epm_ap SET status='PAID', paid_date=${data.paid_date},
         paid_amount=${data.paid_amount}, payment_ref=${data.payment_ref ?? null}
       WHERE id=${id} RETURNING *
     `;
     return rows[0] ? rowToAP(rows[0] as Record<string, unknown>) : null;
+  }
+  if (erpAdmin) {
+    const { data: row, error } = await erpAdmin.from("epm_ap")
+      .update({ status: "PAID", paid_date: data.paid_date, paid_amount: data.paid_amount, payment_ref: data.payment_ref ?? null })
+      .eq("id", id).select().single();
+    if (error) throw new Error(error.message);
+    return row ? rowToAP(row as Record<string, unknown>) : null;
   }
   const store = readAPStore();
   const idx   = store.items.findIndex((i) => i.id === id);
@@ -544,8 +588,13 @@ export async function payAP(
 }
 
 export async function cancelAP(id: string): Promise<boolean> {
-  if (sql) {
-    await sql`UPDATE epm_ap SET status='CANCELLED' WHERE id=${id}`;
+  if (sqlOk()) {
+    await sql!`UPDATE epm_ap SET status='CANCELLED' WHERE id=${id}`;
+    return true;
+  }
+  if (erpAdmin) {
+    const { error } = await erpAdmin.from("epm_ap").update({ status: "CANCELLED" }).eq("id", id);
+    if (error) throw new Error(error.message);
     return true;
   }
   const store = readAPStore();
@@ -557,8 +606,13 @@ export async function cancelAP(id: string): Promise<boolean> {
 }
 
 export async function deleteAP(id: string): Promise<boolean> {
-  if (sql) {
-    await sql`DELETE FROM epm_ap WHERE id=${id}`;
+  if (sqlOk()) {
+    await sql!`DELETE FROM epm_ap WHERE id=${id}`;
+    return true;
+  }
+  if (erpAdmin) {
+    const { error } = await erpAdmin.from("epm_ap").delete().eq("id", id);
+    if (error) throw new Error(error.message);
     return true;
   }
   const store = readAPStore();
@@ -572,8 +626,8 @@ export async function updateAP(
   id: string,
   updates: Partial<Pick<APItem, "supplier_name" | "description" | "category" | "cost_center" | "reference_doc" | "due_date">>
 ): Promise<APItem | null> {
-  if (sql) {
-    const rows = await sql`
+  if (sqlOk()) {
+    const rows = await sql!`
       UPDATE epm_ap SET
         supplier_name = COALESCE(${updates.supplier_name ?? null}, supplier_name),
         description   = COALESCE(${updates.description   ?? null}, description),
@@ -584,6 +638,18 @@ export async function updateAP(
       WHERE id = ${id} RETURNING *
     `;
     return rows[0] ? rowToAP(rows[0] as Record<string, unknown>) : null;
+  }
+  if (erpAdmin) {
+    const patch: Record<string, unknown> = {};
+    if (updates.supplier_name !== undefined) patch.supplier_name = updates.supplier_name;
+    if (updates.description   !== undefined) patch.description   = updates.description;
+    if (updates.category      !== undefined) patch.category      = updates.category;
+    if (updates.cost_center   !== undefined) patch.cost_center   = updates.cost_center;
+    if (updates.reference_doc !== undefined) patch.reference_doc = updates.reference_doc;
+    if (updates.due_date      !== undefined) patch.due_date      = updates.due_date;
+    const { data: row, error } = await erpAdmin.from("epm_ap").update(patch).eq("id", id).select().single();
+    if (error) throw new Error(error.message);
+    return row ? rowToAP(row as Record<string, unknown>) : null;
   }
   const store = readAPStore();
   const idx   = store.items.findIndex((i) => i.id === id);
@@ -598,18 +664,26 @@ export async function updateAP(
 const AR_SERVICE_CATEGORIES = ["Serviço Recorrente","Projeto","Consultoria","Produção"];
 
 export async function getAllAR(filters?: { bu_code?: BuCode; status?: ARStatus }): Promise<ARItem[]> {
-  if (sql) {
+  if (sqlOk()) {
     let rows;
     if (filters?.bu_code && filters?.status) {
-      rows = await sql`SELECT * FROM epm_ar WHERE bu_code=${filters.bu_code} AND status=${filters.status} ORDER BY due_date DESC`;
+      rows = await sql!`SELECT * FROM epm_ar WHERE bu_code=${filters.bu_code} AND status=${filters.status} ORDER BY due_date DESC`;
     } else if (filters?.bu_code) {
-      rows = await sql`SELECT * FROM epm_ar WHERE bu_code=${filters.bu_code} ORDER BY due_date DESC`;
+      rows = await sql!`SELECT * FROM epm_ar WHERE bu_code=${filters.bu_code} ORDER BY due_date DESC`;
     } else if (filters?.status) {
-      rows = await sql`SELECT * FROM epm_ar WHERE status=${filters.status} ORDER BY due_date DESC`;
+      rows = await sql!`SELECT * FROM epm_ar WHERE status=${filters.status} ORDER BY due_date DESC`;
     } else {
-      rows = await sql`SELECT * FROM epm_ar ORDER BY due_date DESC`;
+      rows = await sql!`SELECT * FROM epm_ar ORDER BY due_date DESC`;
     }
     return rows.map((r) => rowToAR(r as Record<string, unknown>));
+  }
+  if (erpAdmin) {
+    let q = erpAdmin.from("epm_ar").select("*").order("due_date", { ascending: false });
+    if (filters?.bu_code) q = q.eq("bu_code", filters.bu_code);
+    if (filters?.status)  q = q.eq("status",  filters.status);
+    const { data, error } = await q;
+    if (error) throw new Error(error.message);
+    return (data ?? []).map((r) => rowToAR(r as Record<string, unknown>));
   }
   const store = readARStore();
   let items = [...store.items].sort((a, b) => b.due_date.localeCompare(a.due_date));
@@ -656,8 +730,8 @@ export async function addAR(input: NewARInput): Promise<ARItem> {
     created_by:     input.created_by,
   };
 
-  if (sql) {
-    await sql`
+  if (sqlOk()) {
+    await sql!`
       INSERT INTO epm_ar (
         id, bu_code, customer_id, customer_name, customer_doc, description, category,
         cost_center, reference_doc, account_code, issue_date, due_date, gross_amount,
@@ -673,6 +747,22 @@ export async function addAR(input: NewARInput): Promise<ARItem> {
         ${item.status}, ${item.source_system}, ${item.created_at}, ${item.created_by ?? null}
       )
     `;
+  } else if (erpAdmin) {
+    const { error } = await erpAdmin.from("epm_ar").insert({
+      id: item.id, bu_code: item.bu_code, customer_id: item.customer_id ?? null,
+      customer_name: item.customer_name, customer_doc: item.customer_doc ?? null,
+      description: item.description, category: item.category,
+      cost_center: item.cost_center ?? null, reference_doc: item.reference_doc ?? null,
+      account_code: item.account_code ?? null, issue_date: item.issue_date,
+      due_date: item.due_date, gross_amount: item.gross_amount,
+      iss_rate: item.iss_rate, iss_amount: item.iss_amount,
+      pis_rate: item.pis_rate, pis_amount: item.pis_amount,
+      cofins_rate: item.cofins_rate, cofins_amount: item.cofins_amount,
+      net_amount: item.net_amount, status: item.status,
+      source_system: item.source_system, created_at: item.created_at,
+      created_by: item.created_by ?? null,
+    });
+    if (error) throw new Error(error.message);
   } else {
     const store = readARStore();
     store.items.push(item);
@@ -686,13 +776,20 @@ export async function receiveAR(
   id: string,
   data: { received_date: string; received_amount: number; receipt_ref?: string }
 ): Promise<ARItem | null> {
-  if (sql) {
-    const rows = await sql`
+  if (sqlOk()) {
+    const rows = await sql!`
       UPDATE epm_ar SET status='RECEIVED', received_date=${data.received_date},
         received_amount=${data.received_amount}, receipt_ref=${data.receipt_ref ?? null}
       WHERE id=${id} RETURNING *
     `;
     return rows[0] ? rowToAR(rows[0] as Record<string, unknown>) : null;
+  }
+  if (erpAdmin) {
+    const { data: row, error } = await erpAdmin.from("epm_ar")
+      .update({ status: "RECEIVED", received_date: data.received_date, received_amount: data.received_amount, receipt_ref: data.receipt_ref ?? null })
+      .eq("id", id).select().single();
+    if (error) throw new Error(error.message);
+    return row ? rowToAR(row as Record<string, unknown>) : null;
   }
   const store = readARStore();
   const idx   = store.items.findIndex((i) => i.id === id);
@@ -703,8 +800,13 @@ export async function receiveAR(
 }
 
 export async function cancelAR(id: string): Promise<boolean> {
-  if (sql) {
-    await sql`UPDATE epm_ar SET status='CANCELLED' WHERE id=${id}`;
+  if (sqlOk()) {
+    await sql!`UPDATE epm_ar SET status='CANCELLED' WHERE id=${id}`;
+    return true;
+  }
+  if (erpAdmin) {
+    const { error } = await erpAdmin.from("epm_ar").update({ status: "CANCELLED" }).eq("id", id);
+    if (error) throw new Error(error.message);
     return true;
   }
   const store = readARStore();
@@ -716,8 +818,13 @@ export async function cancelAR(id: string): Promise<boolean> {
 }
 
 export async function deleteAR(id: string): Promise<boolean> {
-  if (sql) {
-    await sql`DELETE FROM epm_ar WHERE id=${id}`;
+  if (sqlOk()) {
+    await sql!`DELETE FROM epm_ar WHERE id=${id}`;
+    return true;
+  }
+  if (erpAdmin) {
+    const { error } = await erpAdmin.from("epm_ar").delete().eq("id", id);
+    if (error) throw new Error(error.message);
     return true;
   }
   const store = readARStore();
@@ -731,8 +838,8 @@ export async function updateAR(
   id: string,
   updates: Partial<Pick<ARItem, "customer_name" | "description" | "category" | "cost_center" | "reference_doc" | "due_date">>
 ): Promise<ARItem | null> {
-  if (sql) {
-    const rows = await sql`
+  if (sqlOk()) {
+    const rows = await sql!`
       UPDATE epm_ar SET
         customer_name = COALESCE(${updates.customer_name ?? null}, customer_name),
         description   = COALESCE(${updates.description   ?? null}, description),
@@ -743,6 +850,18 @@ export async function updateAR(
       WHERE id = ${id} RETURNING *
     `;
     return rows[0] ? rowToAR(rows[0] as Record<string, unknown>) : null;
+  }
+  if (erpAdmin) {
+    const patch: Record<string, unknown> = {};
+    if (updates.customer_name !== undefined) patch.customer_name = updates.customer_name;
+    if (updates.description   !== undefined) patch.description   = updates.description;
+    if (updates.category      !== undefined) patch.category      = updates.category;
+    if (updates.cost_center   !== undefined) patch.cost_center   = updates.cost_center;
+    if (updates.reference_doc !== undefined) patch.reference_doc = updates.reference_doc;
+    if (updates.due_date      !== undefined) patch.due_date      = updates.due_date;
+    const { data: row, error } = await erpAdmin.from("epm_ar").update(patch).eq("id", id).select().single();
+    if (error) throw new Error(error.message);
+    return row ? rowToAR(row as Record<string, unknown>) : null;
   }
   const store = readARStore();
   const idx   = store.items.findIndex((i) => i.id === id);
