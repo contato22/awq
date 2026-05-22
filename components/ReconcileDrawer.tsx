@@ -560,11 +560,19 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
                 </div>
                 <div>
                   <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">Categoria</label>
-                  <input
-                    type="text" value={createCat} onChange={(e) => setCreateCat(e.target.value)}
-                    placeholder="ex: servicos, fornecedor, folha"
-                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-400"
-                  />
+                  <div className="relative">
+                    <select
+                      value={createCat}
+                      onChange={(e) => setCreateCat(e.target.value)}
+                      className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 pr-7 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 appearance-none"
+                    >
+                      <option value="">— selecione —</option>
+                      {ALL_CATS.map((c) => (
+                        <option key={c.value} value={c.value}>{c.label}</option>
+                      ))}
+                    </select>
+                    <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                  </div>
                 </div>
                 {createType === "AR" && (
                   <div>
