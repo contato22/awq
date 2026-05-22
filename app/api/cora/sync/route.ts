@@ -19,7 +19,7 @@
 //   { synced: number, skipped: number, total: number, period: { startDate, endDate } }
 
 import { NextRequest, NextResponse } from "next/server";
-import { fetchCoraStatement, isCoraConfigured } from "@/lib/cora-api";
+import { fetchCoraStatement, isCoraConfigured, type CoraAccount } from "@/lib/cora-api";
 import { getAllTransactions, saveTransactions } from "@/lib/financial-db";
 import { classifyTransaction } from "@/lib/financial-classifier";
 import type { BankTransaction, EntityLayer } from "@/lib/financial-db";
@@ -89,7 +89,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   // ── Fetch from Cora —————————————————————————————————————————————————————————
   let coraResult: Awaited<ReturnType<typeof fetchCoraStatement>>;
   try {
-    coraResult = await fetchCoraStatement(startDate, endDate, entity as "AWQ_Holding" | "JACQES");
+    coraResult = await fetchCoraStatement(startDate, endDate, entity as CoraAccount);
   } catch (err) {
     console.error("[POST /api/cora/sync] fetch failed", err);
     return NextResponse.json(
