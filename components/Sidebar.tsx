@@ -553,11 +553,11 @@ const ENRD_MODULES: BUModule[] = [
 // ── Color tokens per BU ───────────────────────────────────────────────────────
 type BUColors = { iconBg: string; activeBg: string; activeText: string };
 const BU_COLORS: Record<string, BUColors> = {
-    jacqes:  { iconBg: "bg-brand-600",   activeBg: "bg-awq-gold",  activeText: "text-[#0a1929]" },
-    caza:    { iconBg: "bg-emerald-600",  activeBg: "bg-awq-gold",  activeText: "text-[#0a1929]" },
-    advisor: { iconBg: "bg-violet-600",   activeBg: "bg-awq-gold",  activeText: "text-[#0a1929]" },
-    venture: { iconBg: "bg-amber-600",    activeBg: "bg-awq-gold",  activeText: "text-[#0a1929]" },
-    enrd:    { iconBg: "bg-orange-600",   activeBg: "bg-awq-gold",  activeText: "text-[#0a1929]" },
+    jacqes:  { iconBg: "bg-brand-600",   activeBg: "bg-awq-gold",  activeText: "text-awq-navy" },
+    caza:    { iconBg: "bg-emerald-600",  activeBg: "bg-awq-gold",  activeText: "text-awq-navy" },
+    advisor: { iconBg: "bg-violet-600",   activeBg: "bg-awq-gold",  activeText: "text-awq-navy" },
+    venture: { iconBg: "bg-amber-600",    activeBg: "bg-awq-gold",  activeText: "text-awq-navy" },
+    enrd:    { iconBg: "bg-orange-600",   activeBg: "bg-awq-gold",  activeText: "text-awq-navy" },
 };
 
 // ── Shared visual primitives ──────────────────────────────────────────────────
@@ -566,7 +566,7 @@ function NavBadge({ label, variant = "gold" }: { label: string; variant?: NavBad
     return (
         <span className={cn(
             "text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none shrink-0",
-            variant === "gold"  && "bg-awq-gold text-[#0a1929]",
+            variant === "gold"  && "bg-awq-gold text-awq-navy",
             variant === "blue"  && "bg-blue-400/20 text-blue-300 border border-blue-400/30",
             variant === "green" && "bg-emerald-400/20 text-emerald-300 border border-emerald-400/30",
         )}>
@@ -600,15 +600,15 @@ function NavItem({
                 "flex items-center gap-2.5 px-3 py-[7px] rounded-lg text-[13px] transition-all duration-150 group",
                 "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-awq-gold/40",
                 active
-                    ? "bg-awq-gold text-[#0a1929] font-semibold shadow-sm"
-                    : "text-white/70 hover:text-white hover:bg-white/[0.07] font-medium"
+                    ? "bg-awq-gold text-awq-navy font-semibold shadow-sm"
+                    : "text-white/70 hover:text-white hover:bg-white/10 font-medium"
             )}
         >
             <Icon
                 size={14}
                 className={cn(
                     "shrink-0 transition-colors",
-                    active ? "text-[#0a1929]" : "text-white/40 group-hover:text-white/70"
+                    active ? "text-awq-navy" : "text-white/40 group-hover:text-white/70"
                 )}
             />
             <span className="flex-1 truncate">{label}</span>
@@ -618,7 +618,7 @@ function NavItem({
                     size={10}
                     className={cn(
                         "shrink-0 transition-colors fill-current",
-                        active ? "text-[#0a1929]/50" : "text-awq-gold/50 group-hover:text-awq-gold/80"
+                        active ? "text-awq-navy/50" : "text-awq-gold/50 group-hover:text-awq-gold/80"
                     )}
                 />
             )}
@@ -638,8 +638,8 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 function PanelFooter() {
     return (
-        <div className="px-2 py-3 border-t border-white/[0.07] shrink-0">
-            <button className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-white/35 hover:text-white/60 hover:bg-white/[0.05] transition-all text-[11px]">
+        <div className="px-2 py-3 border-t border-white/10 shrink-0">
+            <button className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-white/35 hover:text-white/60 hover:bg-white/10 transition-all text-[11px]">
                 <ThumbsUp size={11} />
                 <span>Avalie o nosso design</span>
             </button>
@@ -653,7 +653,7 @@ function SlimUserButton() {
     const name = user?.name ?? user?.email ?? "?";
     const initials = name.split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase() || "?";
     return (
-        <div className="px-1.5 py-3 border-t border-white/[0.07] shrink-0">
+        <div className="px-1.5 py-3 border-t border-white/10 shrink-0">
             <button
                 onClick={() => void signOut({ callbackUrl: "/login" })}
                 title="Sair"
@@ -687,9 +687,9 @@ function IconBar({
     getModuleActive: (id: string) => boolean;
 }) {
     return (
-        <div className="flex flex-col h-full w-[52px] bg-[#0a1929] shrink-0">
+        <div className="flex flex-col h-full w-[52px] bg-awq-navy shrink-0">
             {/* Logo */}
-            <div className="h-[52px] flex items-center justify-center border-b border-white/[0.06] shrink-0">
+            <div className="h-[52px] flex items-center justify-center border-b border-white/10 shrink-0">
                 <Link href="/awq">
                     <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-awq-gold to-amber-600 flex items-center justify-center shadow-md">
                         <Zap size={15} className="text-gray-900" />
@@ -706,7 +706,7 @@ function IconBar({
                         "flex flex-col items-center gap-0.5 py-2 px-1 rounded-lg transition-all w-full",
                         pathname === "/awq"
                             ? "bg-awq-gold/20 text-awq-gold"
-                            : "text-white/40 hover:bg-white/[0.07] hover:text-white/70"
+                            : "text-white/40 hover:bg-white/10 hover:text-white/70"
                     )}
                 >
                     <LayoutDashboard size={16} />
@@ -714,7 +714,7 @@ function IconBar({
                 </Link>
             </div>
 
-            <div className="mx-2 my-1 border-t border-white/[0.06] shrink-0" />
+            <div className="mx-2 my-1 border-t border-white/10 shrink-0" />
 
             {/* Module icons */}
             <nav className="flex-1 overflow-y-auto px-1.5 py-0.5 space-y-0.5 scrollbar-none">
@@ -730,10 +730,10 @@ function IconBar({
                             className={cn(
                                 "flex flex-col items-center gap-0.5 py-[7px] px-1 rounded-lg transition-all w-full",
                                 isOpen
-                                    ? "bg-awq-gold text-[#0a1929]"
+                                    ? "bg-awq-gold text-awq-navy"
                                     : modActive
                                     ? "bg-awq-gold/15 text-awq-gold"
-                                    : "text-white/40 hover:bg-white/[0.07] hover:text-white/70"
+                                    : "text-white/40 hover:bg-white/10 hover:text-white/70"
                             )}
                         >
                             <ModIcon size={16} className="shrink-0" />
@@ -743,7 +743,7 @@ function IconBar({
                 })}
             </nav>
 
-            <div className="mx-2 my-1 border-t border-white/[0.06] shrink-0" />
+            <div className="mx-2 my-1 border-t border-white/10 shrink-0" />
 
             {/* Bottom icons */}
             <div className="px-1.5 pb-1 space-y-0.5 shrink-0">
@@ -754,8 +754,8 @@ function IconBar({
                         className={cn(
                             "flex flex-col items-center gap-0.5 py-[7px] px-1 rounded-lg transition-all w-full",
                             activePanel === "bus"
-                                ? "bg-awq-gold text-[#0a1929]"
-                                : "text-white/40 hover:bg-white/[0.07] hover:text-white/70"
+                                ? "bg-awq-gold text-awq-navy"
+                                : "text-white/40 hover:bg-white/10 hover:text-white/70"
                         )}
                     >
                         <Building2 size={16} />
@@ -769,8 +769,8 @@ function IconBar({
                         className={cn(
                             "flex flex-col items-center gap-0.5 py-[7px] px-1 rounded-lg transition-all w-full",
                             activePanel === "ai"
-                                ? "bg-awq-gold text-[#0a1929]"
-                                : "text-white/40 hover:bg-white/[0.07] hover:text-white/70"
+                                ? "bg-awq-gold text-awq-navy"
+                                : "text-white/40 hover:bg-white/10 hover:text-white/70"
                         )}
                     >
                         <Bot size={16} />
@@ -784,7 +784,7 @@ function IconBar({
                         "flex flex-col items-center gap-0.5 py-[7px] px-1 rounded-lg transition-all w-full",
                         pathname.startsWith("/settings")
                             ? "bg-awq-gold/15 text-awq-gold"
-                            : "text-white/40 hover:bg-white/[0.07] hover:text-white/70"
+                            : "text-white/40 hover:bg-white/10 hover:text-white/70"
                     )}
                 >
                     <Settings size={16} />
@@ -799,10 +799,10 @@ function IconBar({
 // ── Panel helpers ─────────────────────────────────────────────────────────────
 function PanelHeader({ title, onBack }: { title: string; onBack: () => void }) {
     return (
-        <div className="h-[52px] flex items-center gap-2 px-3 border-b border-white/[0.07] shrink-0">
+        <div className="h-[52px] flex items-center gap-2 px-3 border-b border-white/10 shrink-0">
             <button
                 onClick={onBack}
-                className="p-1 text-white/40 hover:text-white/80 transition-colors rounded-md hover:bg-white/[0.07] shrink-0"
+                className="p-1 text-white/40 hover:text-white/80 transition-colors rounded-md hover:bg-white/10 shrink-0"
             >
                 <ChevronLeft size={15} />
             </button>
@@ -871,7 +871,7 @@ function AwqSidebar({ pathname }: { pathname: string }) {
             />
 
             {activePanel && (
-                <div className="w-[220px] bg-[#102030] flex flex-col border-r border-white/[0.06] overflow-hidden">
+                <div className="w-[220px] bg-awq-panel flex flex-col border-r border-white/10 overflow-hidden">
                     <PanelHeader title={panelTitle} onBack={() => setActivePanel(null)} />
 
                     <nav className="flex-1 overflow-y-auto px-2 py-2 scrollbar-none">
@@ -881,7 +881,7 @@ function AwqSidebar({ pathname }: { pathname: string }) {
                                     <Link
                                         key={bu.id}
                                         href={bu.href}
-                                        className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-white/[0.07] hover:border-awq-gold/30 hover:bg-white/[0.04] transition-all group"
+                                        className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-white/10 hover:border-awq-gold/30 hover:bg-white/10 transition-all group"
                                     >
                                         <div className={cn("w-6 h-6 rounded-lg flex items-center justify-center shrink-0", bu.color)}>
                                             <bu.icon size={12} className="text-white" />
@@ -983,9 +983,9 @@ function BUSidebar({
     return (
         <div className="flex h-full">
             {/* Icon bar */}
-            <div className="flex flex-col h-full w-[52px] bg-[#0a1929] shrink-0">
+            <div className="flex flex-col h-full w-[52px] bg-awq-navy shrink-0">
                 {/* BU logo */}
-                <div className="h-[52px] flex items-center justify-center border-b border-white/[0.06] shrink-0">
+                <div className="h-[52px] flex items-center justify-center border-b border-white/10 shrink-0">
                     <Link href={homeHref} title={buId}>
                         <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center shadow-md", colors.iconBg)}>
                             <HeaderIcon size={15} className="text-white" />
@@ -998,7 +998,7 @@ function BUSidebar({
                         <Link
                             href="/business-units"
                             title="Voltar para AWQ Group"
-                            className="flex flex-col items-center gap-0.5 py-2 px-1 rounded-lg w-full text-white/40 hover:bg-white/[0.07] hover:text-white/70 transition-all"
+                            className="flex flex-col items-center gap-0.5 py-2 px-1 rounded-lg w-full text-white/40 hover:bg-white/10 hover:text-white/70 transition-all"
                         >
                             <ChevronLeft size={16} />
                             <span className="text-[8px] font-semibold leading-none">AWQ</span>
@@ -1006,7 +1006,7 @@ function BUSidebar({
                     </div>
                 )}
 
-                <div className="mx-2 my-1 border-t border-white/[0.06] shrink-0" />
+                <div className="mx-2 my-1 border-t border-white/10 shrink-0" />
 
                 {/* Home */}
                 <div className="px-1.5 shrink-0">
@@ -1017,7 +1017,7 @@ function BUSidebar({
                             "flex flex-col items-center gap-0.5 py-[7px] px-1 rounded-lg transition-all w-full",
                             pathname === homeHref
                                 ? "bg-awq-gold/20 text-awq-gold"
-                                : "text-white/40 hover:bg-white/[0.07] hover:text-white/70"
+                                : "text-white/40 hover:bg-white/10 hover:text-white/70"
                         )}
                     >
                         <LayoutDashboard size={16} />
@@ -1025,7 +1025,7 @@ function BUSidebar({
                     </Link>
                 </div>
 
-                <div className="mx-2 my-1 border-t border-white/[0.06] shrink-0" />
+                <div className="mx-2 my-1 border-t border-white/10 shrink-0" />
 
                 {/* Module icons */}
                 <nav className="flex-1 overflow-y-auto px-1.5 py-0.5 space-y-0.5 scrollbar-none">
@@ -1041,10 +1041,10 @@ function BUSidebar({
                                 className={cn(
                                     "flex flex-col items-center gap-0.5 py-[7px] px-1 rounded-lg transition-all w-full",
                                     isOpen
-                                        ? "bg-awq-gold text-[#0a1929]"
+                                        ? "bg-awq-gold text-awq-navy"
                                         : modActive
                                         ? "bg-awq-gold/15 text-awq-gold"
-                                        : "text-white/40 hover:bg-white/[0.07] hover:text-white/70"
+                                        : "text-white/40 hover:bg-white/10 hover:text-white/70"
                                 )}
                             >
                                 <ModIcon size={16} className="shrink-0" />
@@ -1054,7 +1054,7 @@ function BUSidebar({
                     })}
                 </nav>
 
-                <div className="mx-2 my-1 border-t border-white/[0.06] shrink-0" />
+                <div className="mx-2 my-1 border-t border-white/10 shrink-0" />
 
                 <div className="px-1.5 pb-1 space-y-0.5 shrink-0">
                     <button
@@ -1063,8 +1063,8 @@ function BUSidebar({
                         className={cn(
                             "flex flex-col items-center gap-0.5 py-[7px] px-1 rounded-lg transition-all w-full",
                             activePanel === "ai"
-                                ? "bg-awq-gold text-[#0a1929]"
-                                : "text-white/40 hover:bg-white/[0.07] hover:text-white/70"
+                                ? "bg-awq-gold text-awq-navy"
+                                : "text-white/40 hover:bg-white/10 hover:text-white/70"
                         )}
                     >
                         <Bot size={16} />
@@ -1077,7 +1077,7 @@ function BUSidebar({
                             "flex flex-col items-center gap-0.5 py-[7px] px-1 rounded-lg transition-all w-full",
                             pathname.startsWith("/settings")
                                 ? "bg-awq-gold/15 text-awq-gold"
-                                : "text-white/40 hover:bg-white/[0.07] hover:text-white/70"
+                                : "text-white/40 hover:bg-white/10 hover:text-white/70"
                         )}
                     >
                         <Settings size={16} />
@@ -1089,7 +1089,7 @@ function BUSidebar({
 
             {/* Panel */}
             {activePanel && (
-                <div className="w-[220px] bg-[#102030] flex flex-col border-r border-white/[0.06] overflow-hidden">
+                <div className="w-[220px] bg-awq-panel flex flex-col border-r border-white/10 overflow-hidden">
                     <PanelHeader
                         title={activePanel === "ai" ? "IA & Agentes" : activeMod?.label ?? ""}
                         onBack={() => setActivePanel(null)}
