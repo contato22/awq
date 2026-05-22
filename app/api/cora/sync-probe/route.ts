@@ -8,7 +8,7 @@
 //   { startDate?: "YYYY-MM-DD", endDate?: "YYYY-MM-DD" }
 
 import { NextRequest, NextResponse } from "next/server";
-import { fetchCoraStatement, isCoraConfigured, isCoraJacqesConfigured } from "@/lib/cora-api";
+import { fetchCoraStatement, isCoraConfigured, isCoraJacqesConfigured, isCoraEnerdyConfigured } from "@/lib/cora-api";
 import { getAllTransactions, saveTransactions } from "@/lib/financial-db";
 import { classifyTransaction } from "@/lib/financial-classifier";
 import type { BankTransaction, EntityLayer } from "@/lib/financial-db";
@@ -55,6 +55,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   if (isCoraJacqesConfigured()) {
     accounts.push({ entity: "JACQES", accountName: "Conta PJ JACQES" });
   }
+  if (isCoraEnerdyConfigured()) {
+    accounts.push({ entity: "ENERDY", accountName: "Cora Enerdy" });
+  }
 
   let existing: Awaited<ReturnType<typeof getAllTransactions>> = [];
   try { existing = await getAllTransactions(); } catch { /* no prior transactions */ }
@@ -66,7 +69,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   for (const acc of accounts) {
     try {
-      const coraResult  = await fetchCoraStatement(startDate, endDate, acc.entity as "AWQ_Holding" | "JACQES");
+      const coraResult  = await fetchCoraStatement(startDate, endDate, acc.entity as "AWQ_Holding" | "JACQES" | "ENERDY");
       const coraEntries = coraResult.entries;
       const docId       = `cora-api-${startDate}-${endDate}`;
 
