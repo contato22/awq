@@ -558,13 +558,19 @@ export default function BankReconciliationBoard({
   async function runCoraSync(startDate: string, endDate: string) {
     setIsSyncing(true);
     try {
-      const isJacqes = selectedAccount.includes("JACQES");
+      // Derive entity and accountName from the selected account's transactions.
+      // Falls back to AWQ_Holding when "todos" is selected.
+      const matchTx = selectedAccount !== "todos"
+        ? transactions.find((t) => `${t.bank}::${t.accountName}` === selectedAccount)
+        : null;
+      const syncEntity      = matchTx?.entity      ?? "AWQ_Holding";
+      const syncAccountName = matchTx?.accountName ?? "Conta PJ AWQ Holding";
       const res = await fetch("/api/cora/sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          accountName: isJacqes ? "Conta PJ JACQES" : "Conta PJ AWQ Holding",
-          entity:      isJacqes ? "JACQES" : "AWQ_Holding",
+          accountName: syncAccountName,
+          entity:      syncEntity,
           startDate,
           endDate,
         }),
