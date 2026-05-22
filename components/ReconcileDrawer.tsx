@@ -31,6 +31,7 @@ interface Props {
   isStatic?: boolean;
   onClose: () => void;
   onConciliado: (txId: string, updatedTx?: Partial<BankTransaction>) => void;
+  initialSelectedItemId?: string | null;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -88,7 +89,7 @@ function scoreCandidate(tx: BankTransaction, item: APARItem): Candidate {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function ReconcileDrawer({ transaction: tx, isStatic = false, onClose, onConciliado }: Props) {
+export default function ReconcileDrawer({ transaction: tx, isStatic = false, onClose, onConciliado, initialSelectedItemId }: Props) {
   const isCredit = tx.direction === "credit";
 
   const [allItems, setAllItems]       = useState<APARItem[]>([]);
@@ -98,7 +99,7 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
   // UI state
   const [search, setSearch]           = useState("");
   const [filterTab, setFilterTab]     = useState<"sugeridos" | "todos" | "criar">("sugeridos");
-  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(initialSelectedItemId ?? null);
   const [saving, setSaving]           = useState(false);
   const [saveErr, setSaveErr]         = useState<string | null>(null);
 

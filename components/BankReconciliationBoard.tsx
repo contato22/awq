@@ -26,6 +26,7 @@ import type {
   ManagerialCategory,
   ReconciliationStatus,
 } from "@/lib/financial-db";
+import type { APItem, ARItem } from "@/lib/ap-ar-db";
 import type { ImportResult, ImportedTransaction } from "@/lib/financial/importers/types";
 import {
   AlertTriangle,
@@ -250,6 +251,7 @@ export default function BankReconciliationBoard({
   const [selectedIds, setSelectedIds]   = useState<Set<string>>(new Set());
   const [savingId, setSavingId]         = useState<string | null>(null);
   const [drawerTx, setDrawerTx]         = useState<BankTransaction | null>(null);
+  const [drawerPreselect, setDrawerPreselect] = useState<string | null>(null);
   const [toast, setToast]               = useState<{ kind: "ok" | "err" | "info"; msg: string } | null>(null);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [isImporting, setIsImporting]   = useState(false);
@@ -466,11 +468,91 @@ export default function BankReconciliationBoard({
     }
   }
 
+  // ── Conciliar direto inteligente ───────────────────────────────────────────
+  async function handleSmartReconcile(tx: BankTransaction) {
+    if (isStatic) {
+      applyPatch(tx.id, { reconciliationStatus: "conciliado" });
+      showToast("ok", "Conciliado com sucesso.");
+      return;
+    }
+    setSavingId(tx.id);
+    try {
+      const [apRes, arRes] = await Promise.all([fetch("/api/epm/ap"), fetch("/api/epm/ar")]);
+      type APData = { data: APItem[] };
+      type ARData = { data: ARItem[] };
+      const apData = apRes.ok ? (await apRes.json() as APData) : null;
+      const arData = arRes.ok ? (await arRes.json() as ARData) : null;
+
+      type Tagged = (APItem & { _type: "AP" }) | (ARItem & { _type: "AR" });
+      const candidates: Tagged[] = [
+        ...(apData?.data ?? [])
+          .filter((a) => a.status !== "PAID" && a.status !== "CANCELLED")
+          .map((a): Tagged => ({ ...a, _type: "AP" })),
+        ...(arData?.data ?? [])
+          .filter((a) => a.status !== "RECEIVED" && a.status !== "CANCELLED")
+          .map((a): Tagged => ({ ...a, _type: "AR" })),
+      ];
+
+      const expected = tx.direction === "credit" ? "AR" : "AP";
+      const txAmt = Math.abs(tx.amount);
+      const txMs  = new Date(tx.transactionDate + "T12:00:00").getTime();
+
+      const scored = candidates
+        .filter((c) => c._type === expected)
+        .map((c) => {
+          const amtRatio  = Math.abs(txAmt - c.net_amount) / Math.max(txAmt, 1);
+          const daysDiff  = Math.abs(txMs - new Date(c.due_date + "T12:00:00").getTime()) / 864e5;
+          const score     = (1 - Math.min(amtRatio, 1)) * 0.7 + (1 - Math.min(daysDiff / 30, 1)) * 0.3;
+          return { item: c, score };
+        })
+        .sort((a, b) => b.score - a.score);
+
+      const best = scored[0];
+
+      if (best && best.score >= 0.85) {
+        // Alta confiança → vincula + concilia automaticamente
+        const patch = { reconciliationStatus: "conciliado" as ReconciliationStatus, classifiedAt: new Date().toISOString() };
+        const txRes = await fetch(`/api/transactions/${tx.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(patch),
+        });
+        if (!txRes.ok) throw new Error("Falha ao atualizar transação");
+
+        const apiPath   = best.item._type === "AP" ? "/api/epm/ap" : "/api/epm/ar";
+        const action    = best.item._type === "AP" ? "pay" : "receive";
+        const dateField = best.item._type === "AP" ? "paid_date"   : "received_date";
+        const amtField  = best.item._type === "AP" ? "paid_amount" : "received_amount";
+        const refField  = best.item._type === "AP" ? "payment_ref" : "receipt_ref";
+        await fetch(apiPath, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: best.item.id, action, [dateField]: tx.transactionDate, [amtField]: txAmt, [refField]: tx.id }),
+        });
+
+        const name = best.item._type === "AP"
+          ? (best.item as APItem).supplier_name
+          : (best.item as ARItem).customer_name;
+        applyPatch(tx.id, patch);
+        showToast("ok", `Conciliado com "${name}"`);
+      } else {
+        // Baixa confiança ou sem match → abre drawer com melhor candidato pré-selecionado
+        setDrawerPreselect(best?.item.id ?? null);
+        setDrawerTx(tx);
+      }
+    } catch (e) {
+      showToast("err", e instanceof Error ? e.message : "Falha ao conciliar");
+    } finally {
+      setSavingId(null);
+    }
+  }
+
   // ── Drawer conciliation callback ────────────────────────────────────────────
   function handleDrawerConciliado(id: string, updatedTx?: Partial<BankTransaction>) {
     applyPatch(id, { reconciliationStatus: "conciliado", ...updatedTx });
     showToast("ok", "Conciliado com sucesso.");
     setDrawerTx(null);
+    setDrawerPreselect(null);
   }
 
   // ── Ignorar ──────────────────────────────────────────────────────────────────
@@ -609,7 +691,8 @@ export default function BankReconciliationBoard({
         <ReconcileDrawer
           transaction={drawerTx}
           isStatic={isStatic}
-          onClose={() => setDrawerTx(null)}
+          initialSelectedItemId={drawerPreselect}
+          onClose={() => { setDrawerTx(null); setDrawerPreselect(null); }}
           onConciliado={handleDrawerConciliado}
         />
       )}
@@ -1174,10 +1257,10 @@ export default function BankReconciliationBoard({
                     </button>
                     <button
                       disabled={isSaving}
-                      onClick={() => void handleReconcile(tx.id)}
+                      onClick={() => void handleSmartReconcile(tx)}
                       className="w-full px-2 py-1 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 text-gray-600 text-[10px] disabled:opacity-50 transition-colors"
                     >
-                      {isSaving ? "…" : "Conciliar direto"}
+                      {isSaving ? <Loader2 size={10} className="inline animate-spin" /> : "Conciliar direto"}
                     </button>
                   </div>
                 ) : (
