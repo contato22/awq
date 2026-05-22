@@ -6,8 +6,10 @@
 
 import { useEffect, useMemo, useState, useRef } from "react";
 import { X, Search, Plus, ChevronDown, Check, Loader2, ArrowUpRight, ArrowDownRight, AlertCircle, Info } from "lucide-react";
-import type { BankTransaction, ManagerialCategory } from "@/lib/financial-db";
+import type { BankTransaction, ManagerialCategory, EntityLayer } from "@/lib/financial-db";
 import { fmtDate } from "@/lib/fmt";
+import { CHART_OF_ACCOUNTS, coaIsLeaf } from "@/lib/chart-of-accounts";
+import type { CreateAPEntryInput } from "@/lib/ap-shared";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -105,6 +107,14 @@ function friendlyError(err: unknown): string {
     return "Erro inesperado ao processar. Tente novamente.";
   }
   return msg;
+}
+
+function defaultCOAForCategory(cat: ManagerialCategory | ""): { code: string; desc: string } {
+  if (cat) {
+    const node = CHART_OF_ACCOUNTS.find((n) => coaIsLeaf(n.code) && n.managerialCategory === cat);
+    if (node) return { code: node.code, desc: node.description };
+  }
+  return { code: "2.1.1.1.2.1", desc: "Serviço — Geral" };
 }
 
 function CatOptGroups({ includeBlank }: { includeBlank?: boolean }) {
@@ -348,25 +358,35 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
       if (!createParty.trim()) throw new Error("Nome da contraparte obrigatório");
       if (!isStatic) {
         if (createType === "AP") {
-          const res = await fetch("/api/epm/ap", {
+          // Use new Supabase-based AP module — avoids EPM's Postgres dependency
+          const acct = defaultCOAForCategory(createCat);
+          const payload: CreateAPEntryInput = {
+            accountCode:        acct.code,
+            accountDescription: acct.desc,
+            managerialCategory: (createCat || "despesa_ambigua") as ManagerialCategory,
+            supplierName:       createParty,
+            entity:             tx.entity as EntityLayer,
+            amount:             grossAmt,
+            issueDate:          tx.transactionDate,
+            dueDate:            createDue,
+            description:        createDesc || undefined,
+          };
+          const res = await fetch("/api/ap/entries", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              bu_code: tx.entity === "AWQ_Holding" ? "AWQ" : tx.entity,
-              supplier_name: createParty,
-              supplier_type: "other",
-              description: createDesc,
-              category: createCat || "outros",
-              issue_date: tx.transactionDate,
-              due_date: createDue,
-              gross_amount: grossAmt,
-              source_system: "conciliacao",
-            }),
+            body: JSON.stringify(payload),
           });
           if (!res.ok) {
             const body = await res.json() as { error?: string };
             throw new Error(body.error ?? "Falha ao criar AP");
           }
+          // Link the new AP entry to this bank transaction
+          const { entry } = await res.json() as { entry: { id: string } };
+          await fetch(`/api/ap/entries/${entry.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: "pago", paymentDate: tx.transactionDate, bankTransactionId: tx.id }),
+          });
         } else {
           const res = await fetch("/api/epm/ar", {
             method: "POST",
