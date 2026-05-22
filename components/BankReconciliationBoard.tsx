@@ -443,31 +443,6 @@ export default function BankReconciliationBoard({
     [isStatic]
   );
 
-  // ── Conciliar (direto, sem drawer) ─────────────────────────────────────────
-  async function handleReconcile(id: string) {
-    const patch = { reconciliationStatus: "conciliado" as ReconciliationStatus };
-    if (isStatic) {
-      applyPatch(id, patch);
-      showToast("ok", "Conciliado com sucesso.");
-      return;
-    }
-    setSavingId(id);
-    try {
-      const res = await fetch(`/api/transactions/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(patch),
-      });
-      if (!res.ok) throw new Error("Falha ao salvar");
-      applyPatch(id, patch);
-      showToast("ok", "Conciliado com sucesso.");
-    } catch (e) {
-      showToast("err", e instanceof Error ? e.message : "Falha ao salvar");
-    } finally {
-      setSavingId(null);
-    }
-  }
-
   // ── Conciliar direto inteligente ───────────────────────────────────────────
   async function handleSmartReconcile(tx: BankTransaction) {
     if (isStatic) {
