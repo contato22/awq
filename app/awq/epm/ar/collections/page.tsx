@@ -32,11 +32,15 @@ export default function ARCollectionsPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    const today = new Date().toISOString().slice(0, 10);
     fetch("/api/epm/ar")
       .then((r) => r.json())
       .then((j) => {
         if (j.success) {
-          const overdue: ARItem[] = j.data.filter((i: ARItem) => i.status === "OVERDUE" || i.status === "PENDING");
+          const overdue: ARItem[] = j.data.filter((i: ARItem) =>
+            i.status === "OVERDUE" ||
+            (i.status === "PENDING" && i.due_date < today)
+          );
           setArItems(overdue.sort((a, b) => daysOverdue(b.due_date) - daysOverdue(a.due_date)));
         }
       })

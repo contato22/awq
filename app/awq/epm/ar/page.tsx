@@ -93,6 +93,11 @@ const STATUS_CFG: Record<ARStatus, { label: string; color: string; bg: string }>
   CANCELLED:{ label: "Cancelado", color: "text-gray-500",    bg: "bg-gray-100"   },
 };
 
+function effectiveStatus(item: ARItem, today: string): ARStatus {
+  if (item.status === "PENDING" && item.due_date < today) return "OVERDUE";
+  return item.status;
+}
+
 const AGING_CFG: Record<AgingBucket, { label: string; color: string }> = {
   "CURRENT": { label: "A receber", color: "text-emerald-600" },
   "1-30d":   { label: "1–30 dias", color: "text-amber-600"   },
@@ -252,7 +257,7 @@ export default function ARPage() {
 
   const filtered = items.filter((i) => {
     if (filterBU && i.bu_code !== filterBU) return false;
-    if (statusFilter !== "ALL" && i.status !== statusFilter) return false;
+    if (statusFilter !== "ALL" && effectiveStatus(i, today) !== statusFilter) return false;
     if (search !== "" &&
       !i.customer_name.toLowerCase().includes(search.toLowerCase()) &&
       !i.description.toLowerCase().includes(search.toLowerCase())) return false;
@@ -585,7 +590,7 @@ export default function ARPage() {
                 </thead>
                 <tbody>
                   {filtered.sort((a, b) => a.due_date.localeCompare(b.due_date)).map((item) => {
-                    const sc       = STATUS_CFG[item.status];
+                    const sc       = STATUS_CFG[effectiveStatus(item, today)];
                     const expanded = expandedId === item.id;
                     return [
                       <tr
