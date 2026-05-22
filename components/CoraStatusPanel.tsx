@@ -37,6 +37,7 @@ interface Account {
   name: string;
   entity: AccountKey;
   initials: string;
+  subtitle?: string;
   color: {
     border: string;
     bg: string;
@@ -58,6 +59,7 @@ const ACCOUNTS: Account[] = [
     name:     "Conta PJ AWQ Holding",
     entity:   "AWQ_Holding",
     initials: "AWQ",
+    subtitle: "AWQ Holding",
     color: {
       border:       "border-blue-200",
       bg:           "bg-blue-50/30",
@@ -76,7 +78,8 @@ const ACCOUNTS: Account[] = [
     key:      "ENERDY",
     name:     "Cora Enerdy",
     entity:   "ENERDY",
-    initials: "ENR",
+    initials: "ENRD",
+    subtitle: "Banco Integrado · BU ENRD",
     color: {
       border:       "border-brand-200",
       bg:           "bg-brand-50/30",
@@ -357,7 +360,7 @@ export default function CoraStatusPanel({
                   </div>
                   <div>
                     <div className="text-sm font-bold text-gray-900 leading-tight">{acc.name}</div>
-                    <div className="text-[10px] text-gray-400 font-mono mt-0.5">{acc.entity}</div>
+                    <div className="text-[10px] text-gray-400 mt-0.5">{acc.subtitle ?? acc.entity}</div>
                   </div>
                 </div>
                 <div className="shrink-0 pt-0.5">

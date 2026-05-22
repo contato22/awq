@@ -30,6 +30,7 @@ import type { ImportResult, ImportedTransaction } from "@/lib/financial/importer
 import {
   AlertTriangle,
   Building2,
+  Check,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -108,6 +109,39 @@ function accountColor(key: string): {
     activeText: "text-blue-900",
     badge: "bg-gray-200 text-gray-500",
     badgeActive: "bg-blue-100 text-blue-700",
+  };
+}
+
+// Badge visual identity per account — used in the Conta Azul-style dropdown
+function accountBadge(key: string, entity: string): {
+  initials: string;
+  bg: string;
+  text: string;
+  subtitle: string;
+} {
+  if (key === "todos") return {
+    initials: "ALL",
+    bg: "bg-gray-200",
+    text: "text-gray-600",
+    subtitle: "Consolidado · todas as contas",
+  };
+  if (entity === "ENERDY" || key.toLowerCase().includes("enerdy")) return {
+    initials: "ENRD",
+    bg: "bg-violet-600",
+    text: "text-white",
+    subtitle: "Banco Integrado · BU ENRD",
+  };
+  if (entity === "JACQES" || key.toLowerCase().includes("jacqes")) return {
+    initials: "JCQ",
+    bg: "bg-emerald-600",
+    text: "text-white",
+    subtitle: "JACQES",
+  };
+  return {
+    initials: "AWQ",
+    bg: "bg-blue-600",
+    text: "text-white",
+    subtitle: "AWQ Holding",
   };
 }
 
@@ -290,12 +324,14 @@ export default function BankReconciliationBoard({
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [isImporting, setIsImporting]   = useState(false);
   const [showRejected, setShowRejected] = useState(false);
-  const [isSyncing, setIsSyncing]       = useState(false);
-  const [showSyncMenu, setShowSyncMenu] = useState(false);
-  const [, startTransition]             = useTransition();
-  const syncMenuRef = useRef<HTMLDivElement>(null);
-  const searchRef   = useRef<HTMLInputElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isSyncing, setIsSyncing]             = useState(false);
+  const [showSyncMenu, setShowSyncMenu]       = useState(false);
+  const [showAccountDropdown, setShowAccountDropdown] = useState(false);
+  const [, startTransition]                   = useTransition();
+  const syncMenuRef        = useRef<HTMLDivElement>(null);
+  const accountDropdownRef = useRef<HTMLDivElement>(null);
+  const searchRef          = useRef<HTMLInputElement>(null);
+  const fileInputRef       = useRef<HTMLInputElement>(null);
 
   // ── Sync state when server refreshes props (e.g., after Cora sync + router.refresh()) ──
   // useState only runs once on mount; this effect merges new server-side transactions
@@ -328,6 +364,8 @@ export default function BankReconciliationBoard({
     function handleClickOutside(e: MouseEvent) {
       if (syncMenuRef.current && !syncMenuRef.current.contains(e.target as Node))
         setShowSyncMenu(false);
+      if (accountDropdownRef.current && !accountDropdownRef.current.contains(e.target as Node))
+        setShowAccountDropdown(false);
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -335,18 +373,18 @@ export default function BankReconciliationBoard({
 
   // ── Derived: unique accounts ────────────────────────────────────────────────
   const accounts = useMemo(() => {
-    const map = new Map<string, { label: string; bank: string }>();
+    const map = new Map<string, { label: string; bank: string; entity: string }>();
     for (const t of transactions) {
       const k = `${t.bank}::${t.accountName}`;
       if (!map.has(k)) {
         const raw = t.accountName ?? t.bank ?? "";
         const label = raw.replace(/^Conta\s+PJ\s+/i, "").trim() || raw;
-        map.set(k, { label, bank: t.bank ?? "" });
+        map.set(k, { label, bank: t.bank ?? "", entity: t.entity ?? "" });
       }
     }
     return [
-      { key: "todos", label: "Todas", bank: "" },
-      ...Array.from(map.entries()).map(([key, v]) => ({ key, label: v.label, bank: v.bank })),
+      { key: "todos", label: "Todas as contas", bank: "", entity: "" },
+      ...Array.from(map.entries()).map(([key, v]) => ({ key, label: v.label, bank: v.bank, entity: v.entity })),
     ];
   }, [transactions]);
 
@@ -774,115 +812,89 @@ export default function BankReconciliationBoard({
         </div>
       )}
 
-      {/* ── Top bar: account selector · action buttons · month nav · balances ── */}
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      {/* ── Top bar: Conta Azul-style account dropdown + actions + month nav ── */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
 
-        {/* Left: account + actions */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Account selector */}
-          <div className="flex items-center gap-1 p-1 rounded-xl bg-gray-100 border border-gray-200">
-            {accounts.map((a) => {
-              const isActive     = selectedAccount === a.key;
-              const clr          = accountColor(a.key);
-              const pendingCount = a.key === "todos"
-                ? Array.from(pendingPerAccount.values()).reduce((s, n) => s + n, 0)
-                : (pendingPerAccount.get(a.key) ?? 0);
-              return (
-                <button
-                  key={a.key}
-                  onClick={() => setSelectedAccount(a.key)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap border ${
-                    isActive
-                      ? `${clr.activeBg} ${clr.activeBorder} ${clr.activeText} shadow-sm`
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-white/60"
-                  }`}
-                >
-                  {/* Dot de identidade da empresa */}
-                  {a.key !== "todos" && (
-                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${clr.dot}`} />
-                  )}
-                  {/* Badge do banco */}
-                  {a.bank && (
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold uppercase tracking-wide leading-none ${
-                      isActive ? clr.badgeActive : clr.badge
-                    }`}>
-                      {a.bank}
-                    </span>
-                  )}
-                  <span>{a.label}</span>
-                  {pendingCount > 0 && (
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold leading-none ${
-                      isActive ? "bg-amber-100 text-amber-700" : "bg-amber-50 text-amber-500"
-                    }`}>
-                      {pendingCount}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isImporting}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
-          >
-            {isImporting ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
-            {isImporting ? "Processando…" : "Importar"}
-          </button>
-          {coraConfigured && (
-            <div ref={syncMenuRef} className="relative">
-              <div className="flex items-stretch rounded-xl border border-emerald-300 bg-emerald-50 overflow-hidden">
-                <button
-                  onClick={handleCoraSync}
-                  disabled={isSyncing}
-                  className="flex items-center gap-1.5 px-3 py-2 text-sm text-emerald-700 hover:bg-emerald-100 disabled:opacity-50 transition-colors"
-                >
-                  {isSyncing ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
-                  {isSyncing ? "Sincronizando…" : "Sincronizar"}
-                </button>
-                <div className="w-px bg-emerald-200" />
-                <button
-                  onClick={() => setShowSyncMenu((v) => !v)}
-                  disabled={isSyncing}
-                  className="flex items-center px-2 py-2 text-emerald-700 hover:bg-emerald-100 disabled:opacity-50 transition-colors"
-                  title="Mais opções de sincronização"
-                >
-                  <ChevronDown size={13} className={`transition-transform ${showSyncMenu ? "rotate-180" : ""}`} />
-                </button>
-              </div>
-              {showSyncMenu && (
-                <div className="absolute left-0 top-full mt-1 z-20 bg-white border border-gray-200 rounded-xl shadow-lg py-1 min-w-[210px]">
-                  <button
-                    onClick={() => { handleCoraSync(); setShowSyncMenu(false); }}
-                    disabled={isSyncing}
-                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors text-left"
-                  >
-                    <RefreshCw size={13} className="text-emerald-600 shrink-0" />
-                    <div>
-                      <div className="font-medium">Sincronizar mês</div>
-                      <div className="text-[11px] text-gray-400">{MONTH_NAMES[selectedMonth.month]} de {selectedMonth.year}</div>
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => { handleCoraSyncYear(); setShowSyncMenu(false); }}
-                    disabled={isSyncing}
-                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors text-left"
-                  >
-                    <RefreshCw size={13} className="text-teal-600 shrink-0" />
-                    <div>
-                      <div className="font-medium">Sincronizar ano completo</div>
-                      <div className="text-[11px] text-gray-400">Jan — Dez {selectedMonth.year}</div>
-                    </div>
-                  </button>
+        {/* LEFT: account selector dropdown */}
+        <div ref={accountDropdownRef} className="relative">
+          {(() => {
+            const cur = accounts.find((a) => a.key === selectedAccount) ?? accounts[0];
+            const badge = accountBadge(cur.key, cur.entity);
+            const totalPending = selectedAccount === "todos"
+              ? Array.from(pendingPerAccount.values()).reduce((s, n) => s + n, 0)
+              : (pendingPerAccount.get(selectedAccount) ?? 0);
+            return (
+              <button
+                onClick={() => setShowAccountDropdown((v) => !v)}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl bg-white border shadow-sm transition-all min-w-[260px] ${
+                  showAccountDropdown
+                    ? "border-gray-300 ring-2 ring-blue-100"
+                    : "border-gray-200 hover:border-gray-300"
+                }`}
+              >
+                <span className={`w-10 h-10 rounded-xl flex items-center justify-center text-[11px] font-bold tracking-wide shrink-0 ${badge.bg} ${badge.text}`}>
+                  {badge.initials}
+                </span>
+                <div className="flex-1 text-left min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-gray-900 truncate">{cur.label}</span>
+                    {totalPending > 0 && (
+                      <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 shrink-0">
+                        {totalPending}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[11px] text-gray-400 truncate">{badge.subtitle}</div>
                 </div>
-              )}
+                <ChevronDown size={16} className={`text-gray-400 shrink-0 transition-transform ${showAccountDropdown ? "rotate-180" : ""}`} />
+              </button>
+            );
+          })()}
+
+          {showAccountDropdown && (
+            <div className="absolute left-0 top-full mt-1.5 z-30 bg-white border border-gray-200 rounded-xl shadow-xl py-1.5 min-w-[280px]">
+              <div className="px-3 pb-1.5 pt-0.5 mb-1 border-b border-gray-100">
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">Contas bancárias</span>
+              </div>
+              {accounts.map((a) => {
+                const b = accountBadge(a.key, a.entity);
+                const pending = a.key === "todos"
+                  ? Array.from(pendingPerAccount.values()).reduce((s, n) => s + n, 0)
+                  : (pendingPerAccount.get(a.key) ?? 0);
+                const isActive = selectedAccount === a.key;
+                return (
+                  <button
+                    key={a.key}
+                    onClick={() => { setSelectedAccount(a.key); setShowAccountDropdown(false); }}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 transition-colors text-left ${
+                      isActive ? "bg-gray-50" : "hover:bg-gray-50"
+                    }`}
+                  >
+                    <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold tracking-wide shrink-0 ${b.bg} ${b.text}`}>
+                      {b.initials}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-900 truncate">{a.label}</span>
+                        {pending > 0 && (
+                          <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 shrink-0">
+                            {pending}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-gray-400 truncate">{b.subtitle}</div>
+                    </div>
+                    {isActive && <Check size={14} className="text-blue-600 shrink-0" />}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
 
-        {/* Right: month navigation + balance summary */}
-        <div className="flex flex-col items-end gap-2">
+        {/* RIGHT: month nav + import + sync */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Month nav */}
           <div className="flex items-center gap-1">
             <button
               onClick={() => navigateMonth(-1)}
@@ -914,35 +926,99 @@ export default function BankReconciliationBoard({
               ) : null;
             })()}
           </div>
-          <div className="flex items-center gap-4 text-xs">
-            <div className="flex items-center gap-1.5">
-              <span className="text-gray-400">Saldo conciliado</span>
-              <span className={`font-bold ${balanceConciliado >= 0 ? "text-emerald-700" : "text-red-600"}`}>
-                {balanceConciliado >= 0 ? "+" : ""}{fmtBRL(balanceConciliado)}
-              </span>
-            </div>
-            {pendingAmount > 0 && (
-              <div className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
-                <span className="text-gray-400">Pendente</span>
-                <span className="font-bold text-amber-700">{fmtBRL(pendingAmount)}</span>
+
+          {/* Import */}
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isImporting}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+          >
+            {isImporting ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
+            {isImporting ? "Processando…" : "Importar"}
+          </button>
+
+          {/* Sync with dropdown */}
+          {coraConfigured && (
+            <div ref={syncMenuRef} className="relative">
+              <div className="flex items-stretch rounded-xl border border-emerald-300 bg-emerald-50 overflow-hidden">
+                <button
+                  onClick={handleCoraSync}
+                  disabled={isSyncing}
+                  className="flex items-center gap-1.5 px-3 py-2 text-sm text-emerald-700 hover:bg-emerald-100 disabled:opacity-50 transition-colors"
+                >
+                  {isSyncing ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
+                  {isSyncing ? "Sincronizando…" : "Sincronizar"}
+                </button>
+                <div className="w-px bg-emerald-200" />
+                <button
+                  onClick={() => setShowSyncMenu((v) => !v)}
+                  disabled={isSyncing}
+                  className="flex items-center px-2 py-2 text-emerald-700 hover:bg-emerald-100 disabled:opacity-50 transition-colors"
+                  title="Mais opções de sincronização"
+                >
+                  <ChevronDown size={13} className={`transition-transform ${showSyncMenu ? "rotate-180" : ""}`} />
+                </button>
               </div>
-            )}
-          </div>
+              {showSyncMenu && (
+                <div className="absolute right-0 top-full mt-1 z-20 bg-white border border-gray-200 rounded-xl shadow-lg py-1 min-w-[210px]">
+                  <button
+                    onClick={() => { handleCoraSync(); setShowSyncMenu(false); }}
+                    disabled={isSyncing}
+                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors text-left"
+                  >
+                    <RefreshCw size={13} className="text-emerald-600 shrink-0" />
+                    <div>
+                      <div className="font-medium">Sincronizar mês</div>
+                      <div className="text-[11px] text-gray-400">{MONTH_NAMES[selectedMonth.month]} de {selectedMonth.year}</div>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => { handleCoraSyncYear(); setShowSyncMenu(false); }}
+                    disabled={isSyncing}
+                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors text-left"
+                  >
+                    <RefreshCw size={13} className="text-teal-600 shrink-0" />
+                    <div>
+                      <div className="font-medium">Sincronizar ano completo</div>
+                      <div className="text-[11px] text-gray-400">Jan — Dez {selectedMonth.year}</div>
+                    </div>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* ── Info line ──────────────────────────────────────────────────────────── */}
-      {(lastExtracted || lastImported) && (
-        <div className="flex flex-wrap gap-4 text-xs text-gray-500">
+      {/* ── Info + balance strip ──────────────────────────────────────────────── */}
+      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-100 text-xs">
+        <div className="flex flex-wrap items-center gap-4 text-gray-500">
           {lastExtracted && (
-            <span>Data da última atualização: <strong className="text-gray-700">{lastExtracted}</strong></span>
+            <span>Atualizado em <strong className="text-gray-700">{lastExtracted}</strong></span>
           )}
           {lastImported && (
-            <span>Data do último lançamento importado: <strong className="text-gray-700">{lastImported}</strong></span>
+            <span>Último lançamento: <strong className="text-gray-700">{lastImported}</strong></span>
+          )}
+          {!lastExtracted && !lastImported && (
+            <span className="text-gray-400 italic">Nenhum dado sincronizado ainda</span>
           )}
         </div>
-      )}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1.5">
+            <span className="text-gray-400">Saldo conciliado</span>
+            <span className={`font-bold ${balanceConciliado >= 0 ? "text-emerald-700" : "text-red-600"}`}>
+              {balanceConciliado >= 0 ? "+" : ""}{fmtBRL(balanceConciliado)}
+            </span>
+          </div>
+          {pendingAmount > 0 && (
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+              <span className="text-gray-400">Pendente</span>
+              <span className="font-bold text-amber-700">{fmtBRL(pendingAmount)}</span>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* ── Tabs ─────────────────────────────────────────────────────────────── */}
       <div className="flex border-b border-gray-200">
