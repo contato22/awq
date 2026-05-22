@@ -28,8 +28,8 @@ const config: Config = {
           dark:         "#1A1A2E",
           "dark-600":   "#252542",
           "dark-400":   "#3A3A5C",
-          navy:         "#152234",
-          panel:        "#1c2f4a",
+          navy:         "#0d1e36",
+          panel:        "#1a3460",
         },
         surface: {
           DEFAULT: "#FFFFFF",
