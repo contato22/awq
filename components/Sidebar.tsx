@@ -529,7 +529,19 @@ const VENTURE_MODULES: BUModule[] = [
 
 const ENRD_MODULES: BUModule[] = [
     { id: "epm", label: "EPM", description: "Financeiro & Performance",  icon: DollarSign, items: [
-        { label: "Financial", href: "/enrd/financial", icon: DollarSign },
+        { label: "Financial (ENRD)",    href: "/enrd/financial",              icon: DollarSign    },
+        { label: "P&L (DRE)",           href: "/awq/epm/pl",                  icon: LineChart     },
+        { label: "Balanço Patrimonial", href: "/awq/epm/balance-sheet",       icon: Scale         },
+        { label: "Budget vs Actual",    href: "/awq/epm/budget",              icon: Target        },
+        { label: "KPI Dashboard",       href: "/awq/epm/kpis",                icon: PieChart      },
+        { label: "Contas a Pagar",      href: "/awq/epm/ap",                  icon: ArrowDownLeft },
+        { label: "Contas a Receber",    href: "/awq/epm/ar",                  icon: ArrowUpRight  },
+        { label: "Razão Geral (GL)",    href: "/awq/epm/gl",                  icon: ListOrdered   },
+        { label: "Conciliação",         href: "/awq/epm/bank-reconciliation", icon: Landmark      },
+        { label: "Forecast",            href: "/awq/epm/forecast",            icon: Activity      },
+        { label: "Ativo Imobilizado",   href: "/awq/epm/fixed-assets",        icon: Package       },
+        { label: "Centros de Custo",    href: "/awq/epm/cost-centers",        icon: LayoutGrid    },
+        { label: "Períodos",            href: "/awq/epm/periods",             icon: Lock          },
     ]},
     { id: "crm", label: "CRM", description: "Clientes & Relacionamento", icon: Users,      items: [
         { label: "Clientes",      href: "/enrd/customers",     icon: Users    },
