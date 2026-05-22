@@ -75,6 +75,42 @@ const WEEKDAYS = [
   "Sábado",
 ];
 
+// Maps account key (bank::accountName) → visual identity for the selector
+function accountColor(key: string): {
+  dot: string;
+  activeBg: string;
+  activeBorder: string;
+  activeText: string;
+  badge: string;
+  badgeActive: string;
+} {
+  if (key === "todos") return {
+    dot: "bg-gray-400",
+    activeBg: "bg-white",
+    activeBorder: "border-gray-300",
+    activeText: "text-gray-900",
+    badge: "bg-gray-200 text-gray-500",
+    badgeActive: "bg-gray-100 text-gray-700",
+  };
+  if (key.includes("ENERDY") || key.toLowerCase().includes("enerdy")) return {
+    dot: "bg-violet-500",
+    activeBg: "bg-violet-50",
+    activeBorder: "border-violet-300",
+    activeText: "text-violet-900",
+    badge: "bg-gray-200 text-gray-500",
+    badgeActive: "bg-violet-100 text-violet-700",
+  };
+  // AWQ_Holding e qualquer conta Cora padrão
+  return {
+    dot: "bg-blue-500",
+    activeBg: "bg-blue-50",
+    activeBorder: "border-blue-300",
+    activeText: "text-blue-900",
+    badge: "bg-gray-200 text-gray-500",
+    badgeActive: "bg-blue-100 text-blue-700",
+  };
+}
+
 function fmtDate(s: string): { short: string; weekday: string } {
   if (!s) return { short: "—", weekday: "" };
   const [y, m, d] = s.split("-");
@@ -743,10 +779,11 @@ export default function BankReconciliationBoard({
 
         {/* Left: account + actions */}
         <div className="flex flex-wrap items-center gap-2">
-          {/* Account segmented control */}
-          <div className="flex items-center gap-0.5 p-1 rounded-xl bg-gray-100 border border-gray-200">
+          {/* Account selector */}
+          <div className="flex items-center gap-1 p-1 rounded-xl bg-gray-100 border border-gray-200">
             {accounts.map((a) => {
-              const isActive = selectedAccount === a.key;
+              const isActive     = selectedAccount === a.key;
+              const clr          = accountColor(a.key);
               const pendingCount = a.key === "todos"
                 ? Array.from(pendingPerAccount.values()).reduce((s, n) => s + n, 0)
                 : (pendingPerAccount.get(a.key) ?? 0);
@@ -754,15 +791,20 @@ export default function BankReconciliationBoard({
                 <button
                   key={a.key}
                   onClick={() => setSelectedAccount(a.key)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap border ${
                     isActive
-                      ? "bg-white shadow-sm text-gray-900 border border-gray-200"
-                      : "text-gray-500 hover:text-gray-700 hover:bg-white/60"
+                      ? `${clr.activeBg} ${clr.activeBorder} ${clr.activeText} shadow-sm`
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-white/60"
                   }`}
                 >
+                  {/* Dot de identidade da empresa */}
+                  {a.key !== "todos" && (
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${clr.dot}`} />
+                  )}
+                  {/* Badge do banco */}
                   {a.bank && (
                     <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold uppercase tracking-wide leading-none ${
-                      isActive ? "bg-blue-100 text-blue-700" : "bg-gray-200 text-gray-500"
+                      isActive ? clr.badgeActive : clr.badge
                     }`}>
                       {a.bank}
                     </span>
