@@ -14,7 +14,6 @@ import {
 import type { CrmLead } from "@/lib/crm-types";
 import { STAGE_PROBABILITY } from "@/lib/crm-types";
 import { formatBRL, formatDateBR } from "@/lib/utils";
-import { supabaseClient as supabase } from "@/lib/supabase";
 
 const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
   new:         { label: "Novo",           cls: "badge badge-blue" },
@@ -77,37 +76,50 @@ export default function LeadsPage() {
   }, [lockedBU]);
 
   useEffect(() => {
-    void supabase!.from("crm_leads").select("*").order("created_at", { ascending: false })
-      .then(({ data }) => { setLeads((data ?? []) as CrmLead[]); setLoading(false); }, () => { setLoading(false); });
+    fetch("/api/crm/leads")
+      .then(r => r.json())
+      .then(json => { setLeads((json.data ?? []) as CrmLead[]); setLoading(false); })
+      .catch(() => { setLoading(false); });
   }, []);
 
   async function handleConvert(lead: CrmLead) {
     if (!confirm(`Converter "${lead.company_name}" em oportunidade?`)) return;
     setConverting(lead.lead_id);
     try {
-      const { data: oppData, error: oppErr } = await supabase!.from("crm_opportunities").insert({
-        opportunity_name: `${lead.company_name} — ${lead.bu}`,
-        bu: lead.bu,
-        owner: lead.assigned_to,
-        stage: "discovery",
-        probability: STAGE_PROBABILITY.discovery,
-        deal_value: lead.bant_budget ?? 0,
-        created_by: lead.assigned_to,
-      }).select("opportunity_id").single();
+      const oppRes = await fetch("/api/crm/opportunities", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "create",
+          opportunity_name: `${lead.company_name} — ${lead.bu}`,
+          bu: lead.bu,
+          owner: lead.assigned_to,
+          stage: "discovery",
+          probability: STAGE_PROBABILITY.discovery,
+          deal_value: lead.bant_budget ?? 0,
+          created_by: lead.assigned_to,
+        }),
+      }).then(r => r.json());
 
-      if (oppErr) throw new Error(oppErr.message);
+      if (!oppRes.success) throw new Error(oppRes.error ?? "Erro ao criar oportunidade");
 
-      const { error: leadErr } = await supabase!.from("crm_leads").update({
-        status: "converted",
-        converted_to_opportunity_id: oppData.opportunity_id,
-        converted_at: new Date().toISOString(),
-      }).eq("lead_id", lead.lead_id);
+      const leadRes = await fetch("/api/crm/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "update",
+          lead_id: lead.lead_id,
+          status: "converted",
+          converted_to_opportunity_id: oppRes.data.opportunity_id,
+          converted_at: new Date().toISOString(),
+        }),
+      }).then(r => r.json());
 
-      if (leadErr) throw new Error(leadErr.message);
+      if (!leadRes.success) throw new Error(leadRes.error ?? "Erro ao atualizar lead");
 
       setLeads(prev => prev.map(l =>
         l.lead_id === lead.lead_id
-          ? { ...l, status: "converted" as const, converted_to_opportunity_id: oppData.opportunity_id }
+          ? { ...l, status: "converted" as const, converted_to_opportunity_id: oppRes.data.opportunity_id }
           : l
       ));
       router.push("/crm/opportunities");
@@ -122,7 +134,11 @@ export default function LeadsPage() {
     if (!confirm(`Apagar o lead "${lead.company_name}" permanentemente?`)) return;
     setDeleting(lead.lead_id);
     setLeads(prev => prev.filter(l => l.lead_id !== lead.lead_id));
-    await supabase!.from("crm_leads").delete().eq("lead_id", lead.lead_id);
+    await fetch("/api/crm/leads", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "delete", lead_id: lead.lead_id }),
+    });
     setDeleting(null);
   }
 

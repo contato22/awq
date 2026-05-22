@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 import type { CrmAccount, CrmContact, CrmOpportunity, CrmActivity } from "@/lib/crm-types";
 import { formatBRL, formatDateBR } from "@/lib/utils";
-import { supabaseClient as supabase } from "@/lib/supabase";
 
 const STAGE_COLORS: Record<string, string> = {
   discovery:"bg-blue-100 text-blue-700", qualification:"bg-violet-100 text-violet-700",
@@ -44,15 +43,16 @@ export default function AccountDetailClient() {
   useEffect(() => {
     if (!id) return;
     Promise.all([
-      supabase!.from("crm_accounts").select("*").eq("account_id", id).single(),
-      supabase!.from("crm_contacts").select("*").eq("account_id", id).order("full_name"),
-      supabase!.from("crm_opportunities").select("*").eq("account_id", id).order("created_at", { ascending: false }),
-      supabase!.from("crm_activities").select("*").or(`related_to_id.eq.${id}`).eq("related_to_type", "account").order("created_at", { ascending: false }),
-    ]).then(([accRes, conRes, oppRes, actRes]) => {
-      setAccount((accRes.data ?? null) as CrmAccount | null);
-      setContacts((conRes.data ?? []) as CrmContact[]);
-      setOpps((oppRes.data ?? []) as CrmOpportunity[]);
-      setActivities((actRes.data ?? []) as CrmActivity[]);
+      fetch(`/api/crm/accounts?account_id=${id}`).then(r => r.json()),
+      fetch(`/api/crm/contacts?account_id=${id}`).then(r => r.json()),
+      fetch(`/api/crm/opportunities?account_id=${id}`).then(r => r.json()),
+      fetch(`/api/crm/activities?related_to_type=account&related_to_id=${id}`).then(r => r.json()),
+    ]).then(([accJ, conJ, oppJ, actJ]) => {
+      const accs = (accJ.data ?? []) as CrmAccount[];
+      setAccount(accs[0] ?? null);
+      setContacts((conJ.data ?? []) as CrmContact[]);
+      setOpps((oppJ.data ?? []) as CrmOpportunity[]);
+      setActivities((actJ.data ?? []) as CrmActivity[]);
     }).catch(() => undefined)
       .finally(() => setLoading(false));
   }, [id]);

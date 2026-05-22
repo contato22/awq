@@ -5,7 +5,6 @@ import type { FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
 import type { CrmOpportunity, CrmAccount, CrmLead, CrmContact } from "@/lib/crm-types";
-import { supabaseClient as supabase } from "@/lib/supabase";
 
 function AddActivityPageInner() {
   const router = useRouter();
@@ -18,14 +17,10 @@ function AddActivityPageInner() {
   const [contacts, setContacts] = useState<CrmContact[]>([]);
 
   useEffect(() => {
-    supabase!.from("crm_opportunities").select("opportunity_id, opportunity_name").order("created_at", { ascending: false })
-      .then(({ data }) => setOpps((data ?? []) as CrmOpportunity[]));
-    supabase!.from("crm_accounts").select("account_id, account_name, trade_name").order("account_name")
-      .then(({ data }) => setAccounts((data ?? []) as CrmAccount[]));
-    supabase!.from("crm_leads").select("lead_id, contact_name, company_name").order("created_at", { ascending: false })
-      .then(({ data }) => setLeads((data ?? []) as CrmLead[]));
-    supabase!.from("crm_contacts").select("contact_id, full_name, account_id").order("full_name")
-      .then(({ data }) => setContacts((data ?? []) as CrmContact[]));
+    fetch("/api/crm/opportunities").then(r => r.json()).then(j => { if (j.data) setOpps(j.data as CrmOpportunity[]); });
+    fetch("/api/crm/accounts").then(r => r.json()).then(j => { if (j.data) setAccounts(j.data as CrmAccount[]); });
+    fetch("/api/crm/leads").then(r => r.json()).then(j => { if (j.data) setLeads(j.data as CrmLead[]); });
+    fetch("/api/crm/contacts").then(r => r.json()).then(j => { if (j.data) setContacts(j.data as CrmContact[]); });
   }, []);
 
   const [form, setForm] = useState({
@@ -49,19 +44,25 @@ function AddActivityPageInner() {
     if (!form.related_to_id.trim()) { setError("Selecione a entidade vinculada"); return; }
     setSaving(true); setError("");
     try {
-      const { error: err } = await supabase!.from("crm_activities").insert({
-        activity_type: form.activity_type,
-        related_to_type: form.related_to_type,
-        related_to_id: form.related_to_id,
-        subject: form.subject.trim(),
-        description: form.description || null,
-        outcome: form.outcome || null,
-        duration_minutes: form.duration_minutes ? parseInt(form.duration_minutes) : null,
-        scheduled_at: form.scheduled_at ? new Date(form.scheduled_at).toISOString() : null,
-        status: form.status,
-        created_by: form.created_by,
+      const res = await fetch("/api/crm/activities", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "create",
+          activity_type: form.activity_type,
+          related_to_type: form.related_to_type,
+          related_to_id: form.related_to_id,
+          subject: form.subject.trim(),
+          description: form.description || null,
+          outcome: form.outcome || null,
+          duration_minutes: form.duration_minutes ? parseInt(form.duration_minutes) : null,
+          scheduled_at: form.scheduled_at ? new Date(form.scheduled_at).toISOString() : null,
+          status: form.status,
+          created_by: form.created_by,
+        }),
       });
-      if (err) throw new Error(err.message);
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error ?? "Erro ao registrar atividade");
       router.push("/crm/activities");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao registrar atividade");
