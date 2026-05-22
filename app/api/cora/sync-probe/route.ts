@@ -59,6 +59,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   let existing: Awaited<ReturnType<typeof getAllTransactions>> = [];
   try { existing = await getAllTransactions(); } catch { /* no prior transactions */ }
   const existingIds = new Set(existing.map((t) => t.id));
+  const nullCounterpartyIds = new Set(
+    existing.filter((t) => !t.counterpartyName).map((t) => t.id),
+  );
 
   const now    = new Date().toISOString();
   const results: AccountResult[] = [];
@@ -75,7 +78,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
       for (const entry of coraEntries) {
         const txId = `cora-${entry.id}`;
-        if (existingIds.has(txId)) { skipped++; continue; }
+        const isExisting = existingIds.has(txId);
+        const needsBackfill = isExisting && nullCounterpartyIds.has(txId) && !!entry.counterparty;
+        if (isExisting && !needsBackfill) { skipped++; continue; }
 
         const cls = classifyTransaction(entry.description, entry.amount, entry.direction, acc.entity);
 

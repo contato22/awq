@@ -104,6 +104,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   let existing: Awaited<ReturnType<typeof getAllTransactions>> = [];
   try { existing = await getAllTransactions(); } catch { /* no prior transactions */ }
   const existingIds = new Set(existing.map((t) => t.id));
+  // Track records missing counterpartyName so sync can backfill them
+  const nullCounterpartyIds = new Set(
+    existing.filter((t) => !t.counterpartyName).map((t) => t.id),
+  );
 
   const docId = `cora-api-${startDate}-${endDate}`;
   const now   = new Date().toISOString();
@@ -113,8 +117,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   for (const entry of coraEntries) {
     const txId = `cora-${entry.id}`;
-    // force=true bypasses dedup so existing Cora entries are re-imported with correct values
-    if (!force && existingIds.has(txId)) { skipped++; continue; }
+    const isExisting = existingIds.has(txId);
+    // Re-process existing records missing counterpartyName so we can backfill them
+    const needsCounterpartyBackfill = isExisting && nullCounterpartyIds.has(txId) && !!entry.counterparty;
+    // force=true bypasses dedup; also re-process records with null counterpartyName when Cora now provides it
+    if (!force && isExisting && !needsCounterpartyBackfill) { skipped++; continue; }
 
     const classification = classifyTransaction(
       entry.description,

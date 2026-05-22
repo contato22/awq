@@ -174,22 +174,43 @@ function parseEntry(raw: CoraRawEntry): CoraStatementEntry {
   const rawAmount = Number(raw.amount ?? raw.value ?? raw.total_amount ?? 0) / 100;
 
   // Cora nests description, counterparty, and category inside transaction{}
+  // but some response shapes put counterParty at the root level (camelCase)
   const tx = raw.transaction as Record<string, unknown> | undefined ?? {} as Record<string, unknown>;
-  const cp = tx.counterParty as Record<string, unknown> | undefined ?? {} as Record<string, unknown>;
+  // counterParty can be inside transaction{} OR at root level (camelCase or snake_case)
+  const rootCp = (raw.counterParty ?? raw.counter_party) as Record<string, unknown> | undefined ?? {} as Record<string, unknown>;
+  const cp = (tx.counterParty ?? tx.counter_party) as Record<string, unknown> | undefined ?? rootCp;
   const cat = tx.category as Record<string, unknown> | undefined ?? {} as Record<string, unknown>;
 
-  const description = String(
-    (tx.description && String(tx.description)) ||
-    (raw.description && String(raw.description)) ||
-    (tx.type && String(tx.type)) ||
-    raw.title || raw.memo || raw.name || "",
-  );
+  // For PIX, description is often null/empty — build from type if needed
+  const rawDesc: string = [
+    tx.description, raw.description, tx.type, raw.title, raw.memo, raw.name,
+  ].reduce<string>((acc, v) => acc || (v ? String(v) : ""), "");
+
+  // Extract counterparty name from all possible paths
+  const cpName =
+    (cp.name       ? String(cp.name)       : null) ??
+    (cp.holderName ? String(cp.holderName) : null) ??
+    (cp.owner      ? String(cp.owner)      : null);
+
+  // For PIX, if no counterparty name, try pixKey as fallback identifier
+  const cpPixKey =
+    (cp.pixKey ? String(cp.pixKey) : null) ??
+    (cp.key    ? String(cp.key)    : null);
 
   const counterparty =
-    (cp.name ? String(cp.name) : null) ??
-    (raw.counterparty ? String(raw.counterparty) : null) ??
-    (raw.payer ? String(raw.payer) : null) ??
-    (raw.recipient ? String(raw.recipient) : null);
+    cpName ??
+    (raw.counterparty     ? String(raw.counterparty)     : null) ??
+    (raw.counterParty     ? String(raw.counterParty)     : null) ??
+    (raw.payer            ? String(raw.payer)            : null) ??
+    (raw.recipient        ? String(raw.recipient)        : null) ??
+    // pixKey is a useful fallback when no name is available
+    cpPixKey;
+
+  // Enrich description: if it's just a type word ("PIX", "TED") and we have counterparty, combine
+  const GENERIC_TYPES = new Set(["PIX", "TED", "DOC", "BOLETO", "TRANSFERENCIA", "TRANSFERÊNCIA"]);
+  const description = GENERIC_TYPES.has(rawDesc.toUpperCase().trim()) && counterparty
+    ? `${rawDesc} · ${counterparty}`
+    : rawDesc;
 
   const category =
     (cat.main ? String(cat.main) : null) ??
