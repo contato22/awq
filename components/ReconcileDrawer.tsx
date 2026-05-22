@@ -112,7 +112,7 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
   const [createParty, setCreateParty]     = useState(tx.counterpartyName ?? "");
   const [createDue, setCreateDue]         = useState(tx.transactionDate);
   const [createAmt, setCreateAmt]         = useState(String(Math.abs(tx.amount)));
-  const [createCat, setCreateCat]         = useState(tx.managerialCategory === "unclassified" ? "" : (CAT_LABELS[tx.managerialCategory] ?? ""));
+  const [createCat, setCreateCat]         = useState(tx.managerialCategory === "unclassified" ? "" : tx.managerialCategory);
   const [createAccCode, setCreateAccCode] = useState("");
   const [creating, setCreating]           = useState(false);
   const arLeafAccounts = useMemo(() => getLeafAccounts(), []);
@@ -170,7 +170,7 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
       m.set(item.id, { score, amtDiff, daysDiff });
     }
     return m;
-  }, [allItems]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [allItems, tx]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const candidates = useMemo(() => {
     const expected = isCredit ? "AR" : "AP";
@@ -403,7 +403,7 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
         {/* Tabs */}
         <div className="flex border-b border-gray-100 px-5">
           {([
-            { id: "sugeridos", label: `Sugeridos${candidates.length > 0 ? ` (${candidates.slice(0,5).length})` : ""}` },
+            { id: "sugeridos", label: `Sugeridos${candidates.length > 0 ? ` (${Math.min(candidates.length, 8)})` : ""}` },
             { id: "todos",     label: "Buscar AP/AR" },
             { id: "criar",     label: "Criar lançamento" },
           ] as const).map((t) => (

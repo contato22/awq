@@ -28,7 +28,7 @@ export async function GET() {
     const active = items.filter((i) => i.status !== "CANCELLED");
 
     // ── Conciliação ────────────────────────────────────────────────────────────
-    const pendingItems = active.filter((i) => i.status === "PENDING" || i.status === "PARTIAL");
+    const pendingItems = active.filter((i) => (i.status === "PENDING" || i.status === "PARTIAL") && i.due_date >= today);
     const overdueItems = active.filter((i) => {
       if (i.status === "RECEIVED") return false;
       return i.due_date < today;

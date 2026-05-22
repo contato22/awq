@@ -79,13 +79,18 @@ export default async function ConciliacaoPage() {
   try {
     await initAPARDB();
     const arItems = await getAllAR();
-    const today = new Date().toISOString().slice(0, 10);
+    const horizon = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
     arPending = arItems
-      .filter((i) => (i.status === "PENDING" || i.status === "PARTIAL") && i.due_date <= new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10))
+      .filter((i) => (i.status === "PENDING" || i.status === "PARTIAL") && i.due_date <= horizon)
       .sort((a, b) => a.due_date.localeCompare(b.due_date))
       .slice(0, 8)
-      .map((i) => ({ id: i.id, customer_name: i.customer_name, net_amount: i.net_amount, due_date: i.due_date, account_code: i.account_code }));
-    void today;
+      .map((i) => ({
+        id: i.id,
+        customer_name: i.customer_name,
+        net_amount: i.status === "PARTIAL" ? i.net_amount - (i.received_amount ?? 0) : i.net_amount,
+        due_date: i.due_date,
+        account_code: i.account_code,
+      }));
   } catch { /* AR EPM unavailable — show empty state */ }
 
   try {
@@ -111,10 +116,10 @@ export default async function ConciliacaoPage() {
   const docsDone = documents.filter((d) => d.status === "done").length;
 
   const pendingCredits = transactions
-    .filter((t) => t.reconciliationStatus !== "conciliado" && t.direction === "credit")
+    .filter((t) => t.reconciliationStatus !== "conciliado" && t.reconciliationStatus !== "descartado" && t.direction === "credit")
     .reduce((s, t) => s + Math.abs(t.amount), 0);
   const pendingDebits = transactions
-    .filter((t) => t.reconciliationStatus !== "conciliado" && t.direction === "debit")
+    .filter((t) => t.reconciliationStatus !== "conciliado" && t.reconciliationStatus !== "descartado" && t.direction === "debit")
     .reduce((s, t) => s + Math.abs(t.amount), 0);
 
   const fmt = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });

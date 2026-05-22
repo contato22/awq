@@ -219,16 +219,18 @@ export default function ARPage() {
   async function confirmReceive() {
     if (!recModal.received_date || !recModal.received_amount) return;
     setRecModal((m) => ({ ...m, saving: true }));
-    await fetch("/api/epm/ar", {
+    const res = await fetch("/api/epm/ar", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: recModal.id, action: "receive", received_date: recModal.received_date, received_amount: parseFloat(recModal.received_amount), receipt_ref: recModal.receipt_ref || undefined }),
     });
+    if (!res.ok) { setRecModal((m) => ({ ...m, saving: false })); return; }
     setRecModal({ open: false, id: "", item: null, received_date: today, received_amount: "", receipt_ref: "", saving: false });
     await loadData();
   }
 
   async function handleDelete(id: string) {
+    if (!window.confirm("Excluir este lançamento de AR?")) return;
     await fetch("/api/epm/ar", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -244,11 +246,12 @@ export default function ARPage() {
   async function confirmEdit() {
     if (!editModal.item) return;
     setEditModal((m) => ({ ...m, saving: true }));
-    await fetch("/api/epm/ar", {
+    const res = await fetch("/api/epm/ar", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: editModal.item.id, action: "update", customer_name: editModal.customer_name, description: editModal.description, category: editModal.category, cost_center: editModal.cost_center || undefined, reference_doc: editModal.reference_doc || undefined, due_date: editModal.due_date }),
     });
+    if (!res.ok) { setEditModal((m) => ({ ...m, saving: false })); return; }
     setEditModal({ open: false, item: null, customer_name: "", description: "", category: "", cost_center: "", reference_doc: "", due_date: "", saving: false });
     await loadData();
   }

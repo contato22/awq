@@ -34,10 +34,13 @@ export default function ContractsPage() {
 
   async function loadContracts() {
     setLoading(true);
-    const res = await fetch("/api/epm/ar/contracts");
-    const j   = await res.json();
-    if (j.success) setContracts(j.data);
-    setLoading(false);
+    try {
+      const res = await fetch("/api/epm/ar/contracts");
+      const j   = await res.json();
+      if (j.success) setContracts(j.data);
+    } catch { /* network error — keep empty list */ } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => { loadContracts(); }, []);

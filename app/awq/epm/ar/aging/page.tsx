@@ -49,7 +49,8 @@ export default function ARAgingPage() {
       .finally(() => setLoading(false));
   }, [filterBU]);
 
-  const overdue = items.filter((i) => i.status === "OVERDUE" || i.status === "PENDING");
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const overdue = items.filter((i) => i.status === "OVERDUE" || (i.status === "PENDING" && i.due_date < todayStr));
 
   const bucketMap = BUCKETS.reduce<Record<AgingBucket, ARItem[]>>((acc, b) => {
     acc[b] = overdue.filter((i) => getAgingBucket(i.due_date) === b);

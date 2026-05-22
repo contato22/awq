@@ -348,7 +348,7 @@ export async function initAPARDB(): Promise<void> {
 
 export function getAgingBucket(due_date: string): AgingBucket {
   const today = new Date();
-  const due   = new Date(due_date);
+  const due   = new Date(due_date + "T12:00:00");
   const diff  = Math.floor((today.getTime() - due.getTime()) / 86_400_000);
   if (diff <= 0)  return "CURRENT";
   if (diff <= 30) return "1-30d";
@@ -762,12 +762,12 @@ export async function getAPARKPIs(bu_code?: BuCode): Promise<APARKPIs> {
 
   // AR KPIs
   const arOutstanding = arItems.filter((i) => i.status !== "RECEIVED" && i.status !== "CANCELLED");
-  const arOverdue     = arOutstanding.filter((i) => i.status === "OVERDUE" || new Date(i.due_date) < new Date());
+  const arOverdue     = arOutstanding.filter((i) => i.status === "OVERDUE" || new Date(i.due_date + "T12:00:00") < new Date());
   const arReceived    = arItems.filter((i) => i.status === "RECEIVED");
 
-  const totalAROutstanding = arOutstanding.reduce((s, i) => s + i.gross_amount, 0);
-  const totalAROverdue     = arOverdue.reduce((s, i) => s + i.gross_amount, 0);
-  const totalARReceived    = arReceived.reduce((s, i) => s + (i.received_amount ?? i.gross_amount), 0);
+  const totalAROutstanding = arOutstanding.reduce((s, i) => s + i.net_amount, 0);
+  const totalAROverdue     = arOverdue.reduce((s, i) => s + i.net_amount, 0);
+  const totalARReceived    = arReceived.reduce((s, i) => s + (i.received_amount ?? i.net_amount), 0);
 
   const dso = totalARReceived > 0
     ? round2((totalAROutstanding / (totalARReceived / 30)))
@@ -1042,7 +1042,10 @@ export async function createAPInstallments(
   const [y, m, d] = base.due_date.split("-").map(Number);
 
   for (let i = 0; i < n; i++) {
-    const dueDate = new Date(y, m - 1 + i, d);
+    const targetYear  = y + Math.floor((m - 1 + i) / 12);
+    const targetMonth = (m - 1 + i) % 12;
+    const lastDay     = new Date(targetYear, targetMonth + 1, 0).getDate();
+    const dueDate     = new Date(targetYear, targetMonth, Math.min(d, lastDay));
     const due = dueDate.toISOString().slice(0, 10);
     const item = await addAP({ ...base, gross_amount: installmentGross, due_date: due });
     items.push(item);
@@ -1063,7 +1066,10 @@ export async function createARInstallments(
   const [y, m, d] = base.due_date.split("-").map(Number);
 
   for (let i = 0; i < n; i++) {
-    const dueDate = new Date(y, m - 1 + i, d);
+    const targetYear  = y + Math.floor((m - 1 + i) / 12);
+    const targetMonth = (m - 1 + i) % 12;
+    const lastDay     = new Date(targetYear, targetMonth + 1, 0).getDate();
+    const dueDate     = new Date(targetYear, targetMonth, Math.min(d, lastDay));
     const due = dueDate.toISOString().slice(0, 10);
     const item = await addAR({ ...base, gross_amount: installmentGross, due_date: due });
     items.push(item);
@@ -1155,6 +1161,7 @@ export async function generateARFromContracts(): Promise<ARItem[]> {
   const contracts = await getContracts(true);
   const today = new Date();
   const generated: ARItem[] = [];
+  const existing = await getAllAR();
 
   for (const contract of contracts) {
     // Check if end_date passed
@@ -1164,7 +1171,6 @@ export async function generateARFromContracts(): Promise<ARItem[]> {
     const dueDate = new Date(today.getFullYear(), today.getMonth(), contract.billing_day);
     if (dueDate < today) {
       // Check it hasn't been generated this month already
-      const existing = await getAllAR();
       const monthKey = dueDate.toISOString().slice(0, 7);
       const alreadyExists = existing.some(
         (ar) => ar.customer_name === contract.customer_name &&
