@@ -31,7 +31,7 @@ type FormState = {
   account_name: string; trade_name: string; document_number: string;
   industry: string; company_size: string; website: string; linkedin_url: string;
   address_street: string; address_city: string; address_state: string; address_zip: string;
-  account_type: string; owner: string;
+  account_type: string; bu: string; owner: string;
   health_score: string; churn_risk: string; renewal_date: string;
 };
 
@@ -39,7 +39,7 @@ const BLANK: FormState = {
   account_name: "", trade_name: "", document_number: "",
   industry: "", company_size: "", website: "", linkedin_url: "",
   address_street: "", address_city: "", address_state: "", address_zip: "",
-  account_type: "prospect", owner: "Miguel",
+  account_type: "prospect", bu: "JACQES", owner: "Miguel",
   health_score: "70", churn_risk: "low", renewal_date: "",
 };
 
@@ -121,6 +121,7 @@ export default function AddAccountPage() {
           address_state:  form.address_state  || null,
           address_zip:    form.address_zip    || null,
           account_type:   form.account_type,
+          bu:             form.bu || "JACQES",
           owner:          form.owner,
           health_score:   parseInt(form.health_score) || 70,
           churn_risk:     form.churn_risk,

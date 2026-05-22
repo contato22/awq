@@ -264,13 +264,14 @@ export default function AddLeadPage() {
       const res = await fetch(`/api/crm/cnpj?cnpj=${d}`).then(r => r.json());
       if (!res.success) throw new Error(res.error);
       const data = res.data.cnpj_data as CnpjData;
+      // Use razao_social (account_name) — full legal name in UPPERCASE
       setNewAcct(p => ({
         ...p,
-        trade_name:      data.trade_name ?? data.account_name,
+        trade_name:      data.account_name,
         document_number: data.document_number,
         industry:        data.industry ?? "",
       }));
-      set("company_name", data.trade_name ?? data.account_name);
+      set("company_name", data.account_name);
     } catch (e) {
       setToast({ message: e instanceof Error ? e.message : "CNPJ não encontrado", type: "error" });
     } finally { setCnpjLoading(false); }
@@ -290,7 +291,7 @@ export default function AddLeadPage() {
           document_number: newAcct.document_number || null,
           industry: newAcct.industry || null,
           account_type: "prospect",
-          status: "active",
+          bu: form.bu || "JACQES",
         }),
       }).then(r => r.json());
       if (!res.success) throw new Error(res.error ?? "Erro ao criar empresa");
