@@ -1,14 +1,18 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import {
   User, Building2, Mail, Phone, Briefcase,
-  BarChart3, CheckCircle2, AlertCircle, ChevronLeft,
+  CheckCircle2, AlertCircle, ChevronLeft,
   DollarSign, Calendar, FileText, Zap,
+  Search, X, Plus, ChevronRight, Link2, Loader2,
 } from "lucide-react";
+import type { CrmAccount, CrmContact } from "@/lib/crm-types";
+import type { CnpjData } from "@/app/api/crm/cnpj/route";
+
 type FormData = {
   contact_name: string;
   company_name: string;
@@ -94,36 +98,280 @@ function Field({ label, required, children, fullWidth, hint }: {
 const inputCls = "w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-colors";
 const selectCls = `${inputCls} cursor-pointer`;
 
+// ── Inline search combobox ────────────────────────────────────────────────────
+type SearchItem = { label: string; sublabel?: string };
+
+function SearchSelect<T>({
+  placeholder, items, onSelect, query, onQueryChange, onCreateNew, createLabel,
+}: {
+  placeholder: string;
+  items: (SearchItem & { value: T })[];
+  onSelect: (v: T) => void;
+  query: string;
+  onQueryChange: (q: string) => void;
+  onCreateNew?: () => void;
+  createLabel?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function onDown(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, []);
+
+  const showDropdown = open && (items.length > 0 || (query.trim().length > 0 && onCreateNew));
+
+  return (
+    <div className="relative" ref={ref}>
+      <div className="relative">
+        <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+        <input
+          type="text"
+          className={`${inputCls} pl-9 pr-3`}
+          placeholder={placeholder}
+          value={query}
+          onFocus={() => setOpen(true)}
+          onChange={e => { onQueryChange(e.target.value); setOpen(true); }}
+        />
+      </div>
+      {showDropdown && (
+        <div className="absolute z-30 left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
+          {items.length > 0 && (
+            <div className="max-h-44 overflow-y-auto">
+              {items.map((item, i) => (
+                <button key={i} type="button"
+                  className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-blue-50 transition-colors text-left border-b border-gray-50 last:border-0"
+                  onMouseDown={() => { onSelect(item.value); onQueryChange(""); setOpen(false); }}>
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium text-gray-900 truncate">{item.label}</div>
+                    {item.sublabel && <div className="text-[11px] text-gray-400 truncate mt-0.5">{item.sublabel}</div>}
+                  </div>
+                  <ChevronRight size={12} className="text-gray-300 shrink-0 ml-2" />
+                </button>
+              ))}
+            </div>
+          )}
+          {onCreateNew && (
+            <button type="button" onMouseDown={() => { onCreateNew(); onQueryChange(""); setOpen(false); }}
+              className={`w-full flex items-center gap-2 px-3 py-2.5 text-[12px] font-semibold text-blue-600 hover:bg-blue-50 transition-colors ${items.length > 0 ? "border-t border-gray-100" : ""}`}>
+              <Plus size={13} />
+              {createLabel ?? "Criar novo"}
+              {query.trim() && <span className="text-blue-400 font-normal">"{query.trim()}"</span>}
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Initials avatar ───────────────────────────────────────────────────────────
+function Initials({ name, className }: { name: string; className?: string }) {
+  const parts = name.trim().split(/\s+/);
+  const letters = parts.length >= 2
+    ? parts[0][0] + parts[parts.length - 1][0]
+    : parts[0].slice(0, 2);
+  return (
+    <span className={`flex items-center justify-center rounded-lg text-xs font-bold uppercase select-none ${className ?? ""}`}>
+      {letters.toUpperCase()}
+    </span>
+  );
+}
+
+// ── Industry label map ────────────────────────────────────────────────────────
+const INDUSTRIES: Record<string, string> = {
+  technology: "Tecnologia", real_estate: "Imobiliário", retail: "Varejo",
+  financial_services: "Financeiro", healthcare: "Saúde", other: "Outro",
+};
+
 export default function AddLeadPage() {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // ── Account state ───────────────────────────────────────────────────────────
+  const [accounts, setAccounts] = useState<CrmAccount[]>([]);
+  const [accountQuery, setAccountQuery] = useState("");
+  const [selectedAccount, setSelectedAccount] = useState<CrmAccount | null>(null);
+  const [creatingAccount, setCreatingAccount] = useState(false);
+  const [newAcct, setNewAcct] = useState({ trade_name: "", document_number: "", industry: "" });
+  const [savingAcct, setSavingAcct] = useState(false);
+  const [cnpjLookup, setCnpjLookup] = useState("");
+  const [cnpjLoading, setCnpjLoading] = useState(false);
+
+  // ── Contact state ───────────────────────────────────────────────────────────
+  const [contacts, setContacts] = useState<CrmContact[]>([]);
+  const [contactQuery, setContactQuery] = useState("");
+  const [selectedContact, setSelectedContact] = useState<CrmContact | null>(null);
+  const [creatingContact, setCreatingContact] = useState(false);
+  const [newCon, setNewCon] = useState({ full_name: "", job_title: "", email: "", phone: "" });
+  const [savingCon, setSavingCon] = useState(false);
+
   const [form, setForm] = useState<FormData>({
-    contact_name: "",
-    company_name: "",
-    email: "",
-    phone: "",
-    job_title: "",
-    bu: "",
-    lead_source: "manual",
-    assigned_to: "",
-    status: "new",
-    bant_budget: "",
-    bant_authority: false,
-    bant_need: "medium",
-    bant_timeline: "",
-    qualification_notes: "",
+    contact_name: "", company_name: "", email: "", phone: "",
+    job_title: "", bu: "", lead_source: "manual", assigned_to: "",
+    status: "new", bant_budget: "", bant_authority: false,
+    bant_need: "medium", bant_timeline: "", qualification_notes: "",
   });
+
+  useEffect(() => {
+    fetch("/api/crm/accounts").then(r => r.json()).then(j => setAccounts((j.data ?? []) as CrmAccount[]));
+    fetch("/api/crm/contacts").then(r => r.json()).then(j => setContacts((j.data ?? []) as CrmContact[]));
+  }, []);
 
   const set = useCallback(<K extends keyof FormData>(key: K, value: FormData[K]) => {
     setForm(prev => ({ ...prev, [key]: value }));
     setErrors(prev => ({ ...prev, [key]: "" }));
   }, []);
 
+  function handleSelectAccount(acc: CrmAccount) {
+    setSelectedAccount(acc);
+    set("company_name", acc.trade_name ?? acc.account_name);
+  }
+
+  function handleClearAccount() {
+    setSelectedAccount(null);
+    set("company_name", "");
+  }
+
+  function handleSelectContact(con: CrmContact) {
+    setSelectedContact(con);
+    set("contact_name", con.full_name);
+    if (con.email)     set("email",     con.email);
+    if (con.phone)     set("phone",     con.phone);
+    if (con.job_title) set("job_title", con.job_title);
+    if (!selectedAccount && con.account_id) {
+      const acc = accounts.find(a => a.account_id === con.account_id);
+      if (acc) handleSelectAccount(acc);
+    }
+  }
+
+  function handleClearContact() {
+    setSelectedContact(null);
+    set("contact_name", ""); set("email", ""); set("phone", ""); set("job_title", "");
+  }
+
+  async function handleCnpjLookup() {
+    const d = cnpjLookup.replace(/\D/g, "");
+    if (d.length !== 14) return;
+    setCnpjLoading(true);
+    try {
+      const res = await fetch(`/api/crm/cnpj?cnpj=${d}`).then(r => r.json());
+      if (!res.success) throw new Error(res.error);
+      const data = res.data.cnpj_data as CnpjData;
+      // Use razao_social (account_name) — full legal name in UPPERCASE
+      setNewAcct(p => ({
+        ...p,
+        trade_name:      data.account_name,
+        document_number: data.document_number,
+        industry:        data.industry ?? "",
+      }));
+      set("company_name", data.account_name);
+    } catch (e) {
+      setToast({ message: e instanceof Error ? e.message : "CNPJ não encontrado", type: "error" });
+    } finally { setCnpjLoading(false); }
+  }
+
+  async function handleCreateAccount() {
+    if (!newAcct.trade_name.trim()) return;
+    setSavingAcct(true);
+    try {
+      const res = await fetch("/api/crm/accounts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "create",
+          account_name: newAcct.trade_name.trim(),
+          trade_name: newAcct.trade_name.trim(),
+          document_number: newAcct.document_number || null,
+          industry: newAcct.industry || null,
+          account_type: "prospect",
+          bu: form.bu || "JACQES",
+        }),
+      }).then(r => r.json());
+      if (!res.success) throw new Error(res.error ?? "Erro ao criar empresa");
+      const created = res.data as CrmAccount;
+      setAccounts(prev => [created, ...prev]);
+      handleSelectAccount(created);
+      setCreatingAccount(false);
+      setNewAcct({ trade_name: "", document_number: "", industry: "" });
+      setToast({ message: "Empresa criada e vinculada!", type: "success" });
+    } catch (err) {
+      setToast({ message: err instanceof Error ? err.message : "Erro ao criar empresa", type: "error" });
+    } finally { setSavingAcct(false); }
+  }
+
+  async function handleCreateContact() {
+    if (!newCon.full_name.trim()) return;
+    setSavingCon(true);
+    try {
+      const res = await fetch("/api/crm/contacts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "create",
+          full_name: newCon.full_name.trim(),
+          account_id: selectedAccount?.account_id ?? null,
+          job_title: newCon.job_title || null,
+          email: newCon.email || null,
+          phone: newCon.phone || null,
+          seniority: "manager",
+        }),
+      }).then(r => r.json());
+      if (!res.success) throw new Error(res.error ?? "Erro ao criar contato");
+      const created = res.data as CrmContact;
+      setContacts(prev => [created, ...prev]);
+      handleSelectContact(created);
+      setCreatingContact(false);
+      setNewCon({ full_name: "", job_title: "", email: "", phone: "" });
+      setToast({ message: "Contato criado e vinculado!", type: "success" });
+    } catch (err) {
+      setToast({ message: err instanceof Error ? err.message : "Erro ao criar contato", type: "error" });
+    } finally { setSavingCon(false); }
+  }
+
+  // Filtered lists
+  const filteredAccounts = (() => {
+    const q = accountQuery.toLowerCase().trim();
+    const list = q
+      ? accounts.filter(a =>
+          (a.account_name ?? "").toLowerCase().includes(q) ||
+          (a.trade_name   ?? "").toLowerCase().includes(q) ||
+          (a.document_number ?? "").toLowerCase().includes(q))
+      : accounts;
+    return list.slice(0, 8).map(a => ({
+      label: a.trade_name ?? a.account_name,
+      sublabel: [a.document_number, a.industry ? INDUSTRIES[a.industry] ?? a.industry : undefined].filter(Boolean).join(" · ") || undefined,
+      value: a,
+    }));
+  })();
+
+  const filteredContacts = (() => {
+    const q = contactQuery.toLowerCase().trim();
+    let list = contacts;
+    if (selectedAccount) {
+      const fromAcc = contacts.filter(c => c.account_id === selectedAccount.account_id);
+      list = fromAcc.length > 0 ? fromAcc : contacts;
+    }
+    if (q) list = list.filter(c =>
+      (c.full_name  ?? "").toLowerCase().includes(q) ||
+      (c.email      ?? "").toLowerCase().includes(q) ||
+      (c.job_title  ?? "").toLowerCase().includes(q));
+    return list.slice(0, 8).map(c => ({
+      label: c.full_name,
+      sublabel: [c.job_title, c.email].filter(Boolean).join(" · ") || undefined,
+      value: c,
+    }));
+  })();
+
   const estimatedScore = calcScore(form);
   const scoreClr = scoreColor(estimatedScore);
+  const isLinked = !!(selectedAccount || selectedContact);
 
   function validate(): boolean {
     const errs: Record<string, string> = {};
@@ -175,19 +423,17 @@ export default function AddLeadPage() {
   return (
     <>
       <Header title="Novo Lead" subtitle="Cadastrar novo prospect" />
-      {toast && (
-        <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
-      )}
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
       <div className="page-container">
         <form onSubmit={handleSubmit} noValidate>
 
           <button type="button" onClick={() => router.push("/crm/leads")}
             className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors mb-2">
-            <ChevronLeft size={14} />
-            Voltar para Leads
+            <ChevronLeft size={14} />Voltar para Leads
           </button>
 
+          {/* Score banner */}
           <div className={`card p-4 border ${scoreClr.border} ${scoreClr.bg}`}>
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
@@ -203,6 +449,213 @@ export default function AddLeadPage() {
             </div>
           </div>
 
+          {/* ── Vincular Conta & Contato ──────────────────────────────── */}
+          <div className="card overflow-hidden">
+            {/* Header */}
+            <div className={`px-5 py-3.5 flex items-center gap-2.5 border-b ${isLinked ? "bg-blue-50 border-blue-100" : "bg-gray-50 border-gray-100"}`}>
+              <Link2 size={14} className={isLinked ? "text-blue-500" : "text-gray-400"} />
+              <div>
+                <span className="text-sm font-semibold text-gray-900">Vincular Conta &amp; Contato</span>
+                <span className="text-[11px] text-gray-400 ml-2">opcional — preenche os campos automaticamente</span>
+              </div>
+              {isLinked && (
+                <span className="ml-auto text-[11px] font-semibold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">
+                  {[selectedAccount && "empresa", selectedContact && "contato"].filter(Boolean).join(" + ")} vinculado{(selectedAccount && selectedContact) ? "s" : ""}
+                </span>
+              )}
+            </div>
+
+            <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+              {/* ── Empresa panel ─────────────────────────────────────── */}
+              <div className={`rounded-xl border p-4 flex flex-col gap-3 transition-colors ${selectedAccount ? "border-blue-200 bg-blue-50/40" : "border-gray-200 bg-white"}`}>
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
+                    <Building2 size={13} className="text-blue-600" />
+                  </div>
+                  <span className="text-[11px] font-semibold text-gray-600 uppercase tracking-wide">Empresa</span>
+                </div>
+
+                {selectedAccount ? (
+                  /* Selected state */
+                  <div className="flex items-center gap-3 p-2.5 bg-white border border-blue-200 rounded-lg shadow-sm">
+                    <div className="w-9 h-9 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
+                      <Building2 size={16} className="text-blue-600" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-semibold text-gray-900 truncate">
+                        {selectedAccount.trade_name ?? selectedAccount.account_name}
+                      </div>
+                      {(selectedAccount.document_number || selectedAccount.industry) && (
+                        <div className="text-[11px] text-gray-400 truncate mt-0.5">
+                          {[selectedAccount.document_number, selectedAccount.industry ? (INDUSTRIES[selectedAccount.industry] ?? selectedAccount.industry) : undefined].filter(Boolean).join(" · ")}
+                        </div>
+                      )}
+                    </div>
+                    <button type="button" onClick={handleClearAccount}
+                      className="p-1.5 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors shrink-0" title="Remover">
+                      <X size={13} />
+                    </button>
+                  </div>
+                ) : creatingAccount ? (
+                  /* Quick-create form */
+                  <div className="space-y-2.5">
+                    <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Nova Empresa</div>
+                    {/* CNPJ quick-lookup */}
+                    <div className="flex gap-1.5">
+                      <input
+                        placeholder="CNPJ para busca automática"
+                        value={cnpjLookup}
+                        onChange={e => setCnpjLookup(e.target.value.replace(/\D/g, "").slice(0,14))}
+                        onKeyDown={e => e.key === "Enter" && (e.preventDefault(), handleCnpjLookup())}
+                        className={`${inputCls} font-mono text-[12px] flex-1`}
+                        maxLength={14}
+                      />
+                      <button type="button" onClick={handleCnpjLookup}
+                        disabled={cnpjLoading || cnpjLookup.replace(/\D/g,"").length !== 14}
+                        className="px-2.5 py-1.5 bg-blue-50 border border-blue-200 text-blue-600 rounded-lg hover:bg-blue-100 disabled:opacity-40 transition-colors shrink-0">
+                        {cnpjLoading ? <Loader2 size={12} className="animate-spin" /> : <Search size={12} />}
+                      </button>
+                    </div>
+                    <input autoFocus placeholder="Nome da empresa *" value={newAcct.trade_name}
+                      onChange={e => setNewAcct(p => ({ ...p, trade_name: e.target.value }))}
+                      onKeyDown={e => e.key === "Enter" && (e.preventDefault(), handleCreateAccount())}
+                      className={inputCls} />
+                    <input placeholder="CNPJ (opcional)" value={newAcct.document_number}
+                      onChange={e => setNewAcct(p => ({ ...p, document_number: e.target.value }))}
+                      className={inputCls} />
+                    <select value={newAcct.industry}
+                      onChange={e => setNewAcct(p => ({ ...p, industry: e.target.value }))}
+                      className={selectCls}>
+                      <option value="">Segmento (opcional)</option>
+                      {Object.entries(INDUSTRIES).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                    </select>
+                    <div className="flex gap-2 pt-0.5">
+                      <button type="button" onClick={() => { setCreatingAccount(false); setNewAcct({ trade_name: "", document_number: "", industry: "" }); }}
+                        className="flex-1 py-1.5 text-xs font-medium text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                        Cancelar
+                      </button>
+                      <button type="button" onClick={handleCreateAccount}
+                        disabled={savingAcct || !newAcct.trade_name.trim()}
+                        className="flex-1 py-1.5 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors">
+                        {savingAcct ? "Salvando…" : "Criar empresa"}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  /* Search state */
+                  <div className="space-y-2">
+                    <SearchSelect
+                      placeholder="Buscar empresa…"
+                      items={filteredAccounts}
+                      onSelect={handleSelectAccount}
+                      query={accountQuery}
+                      onQueryChange={setAccountQuery}
+                      onCreateNew={() => {
+                        setCreatingAccount(true);
+                        if (accountQuery.trim()) setNewAcct(p => ({ ...p, trade_name: accountQuery.trim() }));
+                      }}
+                      createLabel="Criar nova empresa"
+                    />
+                    <button type="button"
+                      onClick={() => setCreatingAccount(true)}
+                      className="w-full flex items-center justify-center gap-1.5 py-2 text-[11px] font-semibold text-blue-600 hover:text-blue-800 hover:bg-blue-50/60 rounded-lg border border-dashed border-blue-200 transition-colors">
+                      <Plus size={11} />Criar nova empresa
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* ── Contato panel ─────────────────────────────────────── */}
+              <div className={`rounded-xl border p-4 flex flex-col gap-3 transition-colors ${selectedContact ? "border-violet-200 bg-violet-50/30" : "border-gray-200 bg-white"}`}>
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
+                    <User size={13} className="text-violet-600" />
+                  </div>
+                  <span className="text-[11px] font-semibold text-gray-600 uppercase tracking-wide">Contato</span>
+                  {selectedAccount && !selectedContact && (
+                    <span className="ml-auto text-[10px] text-blue-500 font-medium">mostrando contatos da empresa</span>
+                  )}
+                </div>
+
+                {selectedContact ? (
+                  /* Selected state */
+                  <div className="flex items-center gap-3 p-2.5 bg-white border border-violet-200 rounded-lg shadow-sm">
+                    <Initials name={selectedContact.full_name}
+                      className="w-9 h-9 bg-violet-100 text-violet-700 shrink-0 text-[11px]" />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-semibold text-gray-900 truncate">{selectedContact.full_name}</div>
+                      <div className="text-[11px] text-gray-400 truncate mt-0.5">
+                        {[selectedContact.job_title, selectedContact.email].filter(Boolean).join(" · ")}
+                      </div>
+                    </div>
+                    <button type="button" onClick={handleClearContact}
+                      className="p-1.5 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors shrink-0" title="Remover">
+                      <X size={13} />
+                    </button>
+                  </div>
+                ) : creatingContact ? (
+                  /* Quick-create form */
+                  <div className="space-y-2.5">
+                    <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Novo Contato</div>
+                    <input autoFocus placeholder="Nome completo *" value={newCon.full_name}
+                      onChange={e => setNewCon(p => ({ ...p, full_name: e.target.value }))}
+                      onKeyDown={e => e.key === "Enter" && (e.preventDefault(), handleCreateContact())}
+                      className={inputCls} />
+                    <input placeholder="Cargo (opcional)" value={newCon.job_title}
+                      onChange={e => setNewCon(p => ({ ...p, job_title: e.target.value }))}
+                      className={inputCls} />
+                    <input type="email" placeholder="E-mail (opcional)" value={newCon.email}
+                      onChange={e => setNewCon(p => ({ ...p, email: e.target.value }))}
+                      className={inputCls} />
+                    {selectedAccount && (
+                      <div className="flex items-center gap-2 px-2.5 py-1.5 bg-blue-50 rounded-lg border border-blue-100">
+                        <Building2 size={11} className="text-blue-400 shrink-0" />
+                        <span className="text-[11px] text-blue-700 truncate">
+                          Será vinculado a <strong>{selectedAccount.trade_name ?? selectedAccount.account_name}</strong>
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex gap-2 pt-0.5">
+                      <button type="button" onClick={() => { setCreatingContact(false); setNewCon({ full_name: "", job_title: "", email: "", phone: "" }); }}
+                        className="flex-1 py-1.5 text-xs font-medium text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                        Cancelar
+                      </button>
+                      <button type="button" onClick={handleCreateContact}
+                        disabled={savingCon || !newCon.full_name.trim()}
+                        className="flex-1 py-1.5 text-xs font-semibold text-white bg-violet-600 rounded-lg hover:bg-violet-700 disabled:opacity-50 transition-colors">
+                        {savingCon ? "Salvando…" : "Criar contato"}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  /* Search state */
+                  <div className="space-y-2">
+                    <SearchSelect
+                      placeholder={selectedAccount ? "Buscar contato da empresa…" : "Buscar contato…"}
+                      items={filteredContacts}
+                      onSelect={handleSelectContact}
+                      query={contactQuery}
+                      onQueryChange={setContactQuery}
+                      onCreateNew={() => {
+                        setCreatingContact(true);
+                        if (contactQuery.trim()) setNewCon(p => ({ ...p, full_name: contactQuery.trim() }));
+                      }}
+                      createLabel="Criar novo contato"
+                    />
+                    <button type="button"
+                      onClick={() => setCreatingContact(true)}
+                      className="w-full flex items-center justify-center gap-1.5 py-2 text-[11px] font-semibold text-violet-600 hover:text-violet-800 hover:bg-violet-50/60 rounded-lg border border-dashed border-violet-200 transition-colors">
+                      <Plus size={11} />Criar novo contato
+                    </button>
+                  </div>
+                )}
+              </div>
+
+            </div>
+          </div>
+
+          {/* ── Dados do Lead ───────────────────────────────────────────── */}
           <FormSection icon={<User size={15} />} title="Dados do Lead">
             <Field label="Nome completo" required>
               <input type="text"
@@ -241,6 +694,7 @@ export default function AddLeadPage() {
             </Field>
           </FormSection>
 
+          {/* ── Qualificação ──────────────────────────────────────────────── */}
           <FormSection icon={<Building2 size={15} />} title="Qualificação">
             <Field label="BU (Unidade de Negócio)" required>
               <select className={`${selectCls} ${errors.bu ? "border-red-400 focus:border-red-400 focus:ring-red-500/20" : ""}`}
@@ -282,6 +736,7 @@ export default function AddLeadPage() {
             </Field>
           </FormSection>
 
+          {/* ── BANT ──────────────────────────────────────────────────────── */}
           <FormSection icon={<DollarSign size={15} />} title="BANT">
             <Field label="Budget (Orçamento estimado)" hint="30pts ≥R$50K · 20pts ≥R$20K · 10pts ≥R$10K">
               <div className="relative">
@@ -319,6 +774,7 @@ export default function AddLeadPage() {
             </Field>
           </FormSection>
 
+          {/* ── Notas ──────────────────────────────────────────────────────── */}
           <div className="card p-5">
             <div className="flex items-center gap-2 mb-4">
               <span className="text-gray-400"><FileText size={15} /></span>

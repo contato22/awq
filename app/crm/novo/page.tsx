@@ -216,6 +216,7 @@ export default function NovoCadastroPage() {
             industry: accountForm.industry || null,
             company_size: accountForm.company_size || null,
             account_type: accountForm.account_type,
+            bu: leadForm.bu || "JACQES",
             owner: accountForm.owner,
             health_score: 70,
             churn_risk: "low",
