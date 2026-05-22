@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { initCrmDB } from "@/lib/crm-db";
 import { getForcedBu } from "@/lib/api-guard";
-import { sql } from "@/lib/db";
+import { erpAdmin, erpAnon } from "@/lib/supabase";
 import type { RfmSegment, RfmCustomer, RfmResponse } from "@/lib/crm-rfm-types";
 export type { RfmSegment, RfmCustomer, RfmResponse } from "@/lib/crm-rfm-types";
+
+const db = erpAdmin ?? erpAnon;
 
 // ─── 5×5 grid segment lookup  (r=column 1-5, f=row 1-5) ──────────────────────
 const CELL_SEGMENTS: Record<string, RfmSegment> = {
@@ -98,34 +99,58 @@ function buildRfmCustomers(raw: CustomerRaw[]): RfmCustomer[] {
 }
 
 async function fetchFromDb(forcedBu: string | null): Promise<CustomerRaw[] | null> {
-  if (!sql) return null;
-  const today = new Date();
-  const rows = await sql`
-    SELECT
-      a.account_id,
-      a.account_name,
-      a.industry,
-      a.owner,
-      MAX(o.bu) AS bu,
-      EXTRACT(DAY FROM (${today.toISOString()}::timestamptz - MAX(o.actual_close_date::timestamptz)))::int AS recency_days,
-      COUNT(o.opportunity_id)::int AS frequency,
-      SUM(o.deal_value)::float     AS monetary
-    FROM crm_opportunities o
-    JOIN crm_accounts a ON a.account_id = o.account_id
-    WHERE o.stage = 'closed_won'
-      AND o.actual_close_date IS NOT NULL
-      AND (${forcedBu}::text IS NULL OR o.bu = ${forcedBu})
-    GROUP BY a.account_id, a.account_name, a.industry, a.owner
-    HAVING COUNT(o.opportunity_id) > 0
-    ORDER BY SUM(o.deal_value) DESC
-  `;
-  if (rows.length === 0) return null;
-  return rows as unknown as CustomerRaw[];
+  if (!db) return null;
+  let q = db.from("crm_opportunities")
+    .select("opportunity_id,account_id,bu,deal_value,actual_close_date")
+    .eq("stage", "closed_won")
+    .not("actual_close_date", "is", null);
+  if (forcedBu) q = q.eq("bu", forcedBu);
+  const { data: opps, error } = await q;
+  if (error || !opps?.length) return null;
+
+  const accountIds = [...new Set(opps.map(o => o.account_id).filter(Boolean))];
+  const { data: accs } = await db
+    .from("crm_accounts")
+    .select("account_id,account_name,industry,owner")
+    .in("account_id", accountIds);
+  const accMap = new Map((accs ?? []).map(a => [a.account_id, a]));
+
+  const today = Date.now();
+  const byAccount = new Map<string, { opp_count: number; total: number; latest_close: number; bu: string }>();
+  for (const o of opps) {
+    if (!o.account_id) continue;
+    const closeMs = new Date(o.actual_close_date as string).getTime();
+    const cur = byAccount.get(o.account_id);
+    if (cur) {
+      cur.opp_count++;
+      cur.total += o.deal_value ?? 0;
+      if (closeMs > cur.latest_close) cur.latest_close = closeMs;
+    } else {
+      byAccount.set(o.account_id, { opp_count: 1, total: o.deal_value ?? 0, latest_close: closeMs, bu: o.bu ?? "" });
+    }
+  }
+
+  const rows: CustomerRaw[] = [];
+  for (const [account_id, stats] of byAccount) {
+    const acc = accMap.get(account_id);
+    if (!acc) continue;
+    rows.push({
+      account_id,
+      account_name: acc.account_name,
+      industry:     acc.industry ?? null,
+      owner:        acc.owner,
+      bu:           stats.bu,
+      recency_days: Math.round((today - stats.latest_close) / 86400000),
+      frequency:    stats.opp_count,
+      monetary:     stats.total,
+    });
+  }
+  rows.sort((a, b) => b.monetary - a.monetary);
+  return rows.length > 0 ? rows : null;
 }
 
 export async function GET(req: NextRequest) {
   try {
-    await initCrmDB();
     const forcedBu = await getForcedBu(req);
 
     // Allow explicit ?bu= override from page UI
