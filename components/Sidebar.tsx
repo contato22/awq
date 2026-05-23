@@ -595,9 +595,9 @@ function NavItem({
             aria-current={active ? "page" : undefined}
             className={cn(
                 "flex items-center gap-2.5 px-3 py-[7px] rounded-lg text-[13px] transition-all duration-150 group",
-                "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-awq-gold/40",
+                "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30",
                 active
-                    ? "bg-awq-gold text-awq-navy font-semibold shadow-sm"
+                    ? "bg-white text-gray-900 font-semibold shadow-sm"
                     : "text-white/70 hover:text-white hover:bg-white/[0.07] font-medium"
             )}
         >
@@ -605,7 +605,7 @@ function NavItem({
                 size={14}
                 className={cn(
                     "shrink-0 transition-colors",
-                    active ? "text-awq-navy" : "text-white/40 group-hover:text-white/70"
+                    active ? "text-brand-600" : "text-white/40 group-hover:text-white/70"
                 )}
             />
             <span className="flex-1 truncate">{label}</span>
@@ -615,7 +615,7 @@ function NavItem({
                     size={10}
                     className={cn(
                         "shrink-0 transition-colors fill-current",
-                        active ? "text-awq-navy/50" : "text-awq-gold/50 group-hover:text-awq-gold/80"
+                        active ? "text-gray-400" : "text-white/30 group-hover:text-white/60"
                     )}
                 />
             )}
@@ -702,7 +702,7 @@ function IconBar({
                     className={cn(
                         "flex flex-col items-center gap-0.5 py-2 px-1 rounded-lg transition-all w-full",
                         pathname === "/awq"
-                            ? "bg-awq-gold/20 text-awq-gold"
+                            ? "bg-white/20 text-white"
                             : "text-white/40 hover:bg-white/[0.07] hover:text-white/70"
                     )}
                 >
@@ -727,9 +727,9 @@ function IconBar({
                             className={cn(
                                 "flex flex-col items-center gap-0.5 py-[7px] px-1 rounded-lg transition-all w-full",
                                 isOpen
-                                    ? "bg-awq-gold text-awq-navy"
+                                    ? "bg-white/[0.18] text-white"
                                     : modActive
-                                    ? "bg-awq-gold/15 text-awq-gold"
+                                    ? "bg-white/[0.09] text-white/80"
                                     : "text-white/40 hover:bg-white/[0.07] hover:text-white/70"
                             )}
                         >
@@ -751,7 +751,7 @@ function IconBar({
                         className={cn(
                             "flex flex-col items-center gap-0.5 py-[7px] px-1 rounded-lg transition-all w-full",
                             activePanel === "bus"
-                                ? "bg-awq-gold text-awq-navy"
+                                ? "bg-white/[0.18] text-white"
                                 : "text-white/40 hover:bg-white/[0.07] hover:text-white/70"
                         )}
                     >
@@ -766,7 +766,7 @@ function IconBar({
                         className={cn(
                             "flex flex-col items-center gap-0.5 py-[7px] px-1 rounded-lg transition-all w-full",
                             activePanel === "ai"
-                                ? "bg-awq-gold text-awq-navy"
+                                ? "bg-white/[0.18] text-white"
                                 : "text-white/40 hover:bg-white/[0.07] hover:text-white/70"
                         )}
                     >
@@ -780,7 +780,7 @@ function IconBar({
                     className={cn(
                         "flex flex-col items-center gap-0.5 py-[7px] px-1 rounded-lg transition-all w-full",
                         pathname.startsWith("/settings")
-                            ? "bg-awq-gold/15 text-awq-gold"
+                            ? "bg-white/[0.09] text-white/80"
                             : "text-white/40 hover:bg-white/[0.07] hover:text-white/70"
                     )}
                 >
@@ -1015,7 +1015,7 @@ function BUSidebar({
                         className={cn(
                             "flex flex-col items-center gap-0.5 py-[7px] px-1 rounded-lg transition-all w-full",
                             pathname === homeHref
-                                ? "bg-awq-gold/20 text-awq-gold"
+                                ? "bg-white/20 text-white"
                                 : "text-white/40 hover:bg-white/[0.07] hover:text-white/70"
                         )}
                     >
@@ -1040,9 +1040,9 @@ function BUSidebar({
                                 className={cn(
                                     "flex flex-col items-center gap-0.5 py-[7px] px-1 rounded-lg transition-all w-full",
                                     isOpen
-                                        ? "bg-awq-gold text-awq-navy"
+                                        ? "bg-white/[0.18] text-white"
                                         : modActive
-                                        ? "bg-awq-gold/15 text-awq-gold"
+                                        ? "bg-white/[0.09] text-white/80"
                                         : "text-white/40 hover:bg-white/[0.07] hover:text-white/70"
                                 )}
                             >
@@ -1062,7 +1062,7 @@ function BUSidebar({
                         className={cn(
                             "flex flex-col items-center gap-0.5 py-[7px] px-1 rounded-lg transition-all w-full",
                             activePanel === "ai"
-                                ? "bg-awq-gold text-awq-navy"
+                                ? "bg-white/[0.18] text-white"
                                 : "text-white/40 hover:bg-white/[0.07] hover:text-white/70"
                         )}
                     >
@@ -1075,7 +1075,7 @@ function BUSidebar({
                         className={cn(
                             "flex flex-col items-center gap-0.5 py-[7px] px-1 rounded-lg transition-all w-full",
                             pathname.startsWith("/settings")
-                                ? "bg-awq-gold/15 text-awq-gold"
+                                ? "bg-white/[0.09] text-white/80"
                                 : "text-white/40 hover:bg-white/[0.07] hover:text-white/70"
                         )}
                     >
