@@ -49,13 +49,13 @@ function MetricCard({
         ) : (
           <div className="text-xl lg:text-2xl font-bold text-gray-900 tabular-nums tracking-tight">{value}</div>
         )}
-        <div className="text-xs font-medium text-gray-500 mt-1 leading-tight truncate">{label}</div>
+        <div className="text-xs font-medium text-gray-500 mt-1 leading-snug line-clamp-2">{label}</div>
         {!empty && delta && (
           <div className="flex items-center gap-1 mt-1.5">
             {up
               ? <ArrowUpRight size={11} className="text-emerald-600 shrink-0" />
               : <ArrowDownRight size={11} className="text-red-600 shrink-0" />}
-            <span className={`text-[11px] font-semibold ${up ? "text-emerald-600" : "text-red-600"} truncate`}>
+            <span className={`text-[11px] font-semibold ${up ? "text-emerald-600" : "text-red-600"} line-clamp-2`}>
               {delta}
             </span>
           </div>
