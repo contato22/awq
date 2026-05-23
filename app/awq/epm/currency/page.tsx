@@ -178,7 +178,7 @@ export default function CurrencyPage() {
         {/* ── Exposure by currency ──────────────────────────────────── */}
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-4">
-            <BarChart3 size={14} className="text-violet-600" />
+            <BarChart3 size={14} className="text-brand-600" />
             <span className="text-sm font-semibold text-gray-900">Exposição por Moeda (em BRL)</span>
           </div>
           <div className="table-scroll">

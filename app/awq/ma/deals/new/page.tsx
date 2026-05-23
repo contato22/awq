@@ -124,8 +124,8 @@ const DEAL_TYPES = [
     value: "equity_investment",
     label: "Equity",
     sub: "Investimento direto",
-    color: "border-violet-400 bg-violet-50 text-violet-700",
-    check: "bg-violet-500",
+    color: "border-brand-400 bg-brand-50 text-brand-700",
+    check: "bg-brand-500",
     icon: TrendingUp,
   },
   {
@@ -445,7 +445,7 @@ export default function NewDealPage() {
               </Section>
 
               {/* Notas */}
-              <Section icon={FileText} title="Notas e Contexto" accent="border-l-violet-500">
+              <Section icon={FileText} title="Notas e Contexto" accent="border-l-brand-500">
                 <textarea
                   rows={4}
                   className={`${inputCls} resize-none`}
@@ -476,7 +476,7 @@ export default function NewDealPage() {
                     <span className="text-gray-500">Tipo</span>
                     <span className={`font-bold ${
                       form.deal_type === "m4e" ? "text-cyan-600" :
-                      form.deal_type === "equity_investment" ? "text-violet-600" :
+                      form.deal_type === "equity_investment" ? "text-brand-600" :
                       "text-rose-600"
                     }`}>
                       {DEAL_TYPES.find(d => d.value === form.deal_type)?.label ?? "—"}

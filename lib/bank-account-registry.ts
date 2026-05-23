@@ -216,6 +216,7 @@ export function inferEntityFromRegistry(bank: string, accountName: string): Enti
       const entityKeywords: Record<EntityLayer, string[]> = {
         AWQ_Holding:  ["awq", "holding", "venture"],
         JACQES:       ["jacqes"],
+        ENERDY:       ["enerdy", "enrd"],
         Caza_Vision:  ["caza", "vision"],
         Intercompany: ["interco", "intercompany"],
         Socio_PF:     ["socio", "pf", "pessoal"],

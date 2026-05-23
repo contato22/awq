@@ -212,13 +212,13 @@ export default function BankReconciliationPage() {
 
       {/* Match candidates modal */}
       {candidates && (
-        <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 space-y-3">
+        <div className="bg-brand-50 border border-brand-200 rounded-xl p-4 space-y-3">
           <div className="flex justify-between items-center">
-            <h3 className="font-semibold text-indigo-900">Candidatos para conciliação</h3>
-            <button onClick={() => setCandidates(null)} className="text-indigo-400 hover:text-indigo-600 text-lg">×</button>
+            <h3 className="font-semibold text-brand-900">Candidatos para conciliação</h3>
+            <button onClick={() => setCandidates(null)} className="text-brand-400 hover:text-brand-600 text-lg">×</button>
           </div>
           {candidates.list.length === 0 ? (
-            <p className="text-sm text-indigo-700">Nenhum candidato encontrado dentro da tolerância.</p>
+            <p className="text-sm text-brand-700">Nenhum candidato encontrado dentro da tolerância.</p>
           ) : (
             <div className="space-y-2">
               {candidates.list.map((c, i) => (
@@ -237,7 +237,7 @@ export default function BankReconciliationPage() {
                   </div>
                   <button
                     onClick={() => handleMatch(candidates.txn_id, c.item.id, c.type)}
-                    className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-medium hover:bg-indigo-700"
+                    className="px-3 py-1.5 bg-brand-600 text-white rounded-lg text-xs font-medium hover:bg-brand-700"
                   >
                     Confirmar
                   </button>
@@ -291,7 +291,7 @@ export default function BankReconciliationPage() {
                         <button
                           onClick={() => handleFindMatches(t)}
                           disabled={matching}
-                          className="px-2 py-1 bg-indigo-600 text-white rounded text-xs hover:bg-indigo-700 disabled:opacity-50"
+                          className="px-2 py-1 bg-brand-600 text-white rounded text-xs hover:bg-brand-700 disabled:opacity-50"
                         >
                           {matching && candidates?.txn_id === t.id ? "..." : "Conciliar"}
                         </button>

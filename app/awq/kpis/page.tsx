@@ -85,8 +85,8 @@ export default async function AwqKpisPage() {
       metric:  kpis.ebitdaMargin,
       display: fmtPct(kpis.ebitdaMargin.value),
       icon:    BarChart3,
-      color:   "text-violet-700",
-      bg:      "bg-violet-50",
+      color:   "text-brand-700",
+      bg:      "bg-brand-50",
     },
     {
       label:   "Clientes Totais",
@@ -408,7 +408,7 @@ export default async function AwqKpisPage() {
           {[
             { label: "Financial (Real)",  href: "/awq/financial",    icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
             { label: "Cash Flow (Real)",  href: "/awq/cashflow",     icon: Zap,        color: "text-brand-600",   bg: "bg-brand-50"   },
-            { label: "Gestão de Base",    href: "/awq/management",   icon: Target,     color: "text-violet-700",  bg: "bg-violet-50"  },
+            { label: "Gestão de Base",    href: "/awq/management",   icon: Target,     color: "text-brand-700",  bg: "bg-brand-50"  },
           ].map((item) => {
             const Icon = item.icon;
             return (

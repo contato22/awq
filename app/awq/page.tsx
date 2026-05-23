@@ -39,23 +39,23 @@ function MetricCard({
   up?: boolean; icon: React.ElementType; color: string; bg: string; empty?: boolean;
 }) {
   return (
-    <div className="card-elevated p-4 lg:p-5 flex items-start gap-3">
-      <div className={`w-9 h-9 rounded-lg ${bg} flex items-center justify-center shrink-0`}>
-        <Icon size={16} className={color} />
+    <div className="card-elevated p-5 lg:p-6 flex items-start gap-4">
+      <div className={`w-10 h-10 rounded-xl ${bg} flex items-center justify-center shrink-0`}>
+        <Icon size={18} className={color} />
       </div>
       <div className="flex-1 min-w-0">
         {empty ? (
-          <div className="text-xs text-gray-400 mt-1 italic">—</div>
+          <div className="text-sm text-gray-400 mt-1 italic">—</div>
         ) : (
-          <div className="text-lg lg:text-xl font-bold text-gray-900 tabular-nums">{value}</div>
+          <div className="text-xl lg:text-2xl font-bold text-gray-900 tabular-nums tracking-tight">{value}</div>
         )}
-        <div className="text-[11px] font-medium text-gray-500 mt-0.5 leading-tight truncate">{label}</div>
+        <div className="text-xs font-medium text-gray-500 mt-1 leading-snug line-clamp-2">{label}</div>
         {!empty && delta && (
           <div className="flex items-center gap-1 mt-1.5">
             {up
               ? <ArrowUpRight size={11} className="text-emerald-600 shrink-0" />
               : <ArrowDownRight size={11} className="text-red-600 shrink-0" />}
-            <span className={`text-[11px] font-semibold ${up ? "text-emerald-600" : "text-red-600"} truncate`}>
+            <span className={`text-[11px] font-semibold ${up ? "text-emerald-600" : "text-red-600"} line-clamp-2`}>
               {delta}
             </span>
           </div>
@@ -203,8 +203,8 @@ export default async function AwqGroupPage() {
 
         {/* ── Primary financial metrics (base bancária real) ─────────────── */}
         <section>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-xs font-semibold text-gray-500 uppercase tracking-widest">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-sm font-semibold text-gray-500 uppercase tracking-widest">
               Visão de Caixa — Base Bancária Real
             </span>
             {q.hasData && (
@@ -254,7 +254,7 @@ export default async function AwqGroupPage() {
               value={fmtBRL(q.consolidated.intercompanyEliminated)}
               sub={q.hasData ? "Não infla consolidado" : "Aguardando extratos"}
               delta={q.hasData ? "conciliado e removido" : undefined}
-              up icon={GitMerge} color="text-violet-600" bg="bg-violet-50"
+              up icon={GitMerge} color="text-brand-600" bg="bg-brand-50"
               empty={!q.hasData}
             />
           </div>
@@ -280,7 +280,7 @@ export default async function AwqGroupPage() {
                 label="Movimentos Financeiros"
                 value={fmtBRL(q.consolidated.financialMovements)}
                 sub="Aplicações / resgates"
-                icon={Scale} color="text-violet-600" bg="bg-violet-50"
+                icon={Scale} color="text-brand-600" bg="bg-brand-50"
               />
               <MetricCard
                 label="Ambíguo / Pendente"
@@ -482,7 +482,7 @@ export default async function AwqGroupPage() {
                           {flagCfg.label}
                         </span>
                         {bu.economicType === "pre_revenue" ? (
-                          <span className="text-[10px] font-medium text-violet-600 bg-violet-50 px-1.5 py-0.5 rounded border border-violet-200">
+                          <span className="text-[10px] font-medium text-brand-600 bg-brand-50 px-1.5 py-0.5 rounded border border-brand-200">
                             Pré-receita
                           </span>
                         ) : bu.economicType === "hybrid_investment" ? (

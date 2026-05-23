@@ -25,6 +25,7 @@ import {
   type MonthlyEntry,
   type EntityLayer,
 } from "@/lib/financial-query";
+import { HOLDING_OPERATIONAL_ENTITIES } from "@/lib/dre-query";
 
 export const dynamic = process.env.STATIC_EXPORT === "1" ? "auto" : "force-dynamic";
 
@@ -113,8 +114,9 @@ function MonthlyBridgeChart({ entries }: { entries: MonthlyEntry[] }) {
   );
 
   const ENTITY_COLORS: Record<EntityLayer, string> = {
-    AWQ_Holding:  "bg-violet-500",
+    AWQ_Holding:  "bg-brand-500",
     JACQES:       "bg-brand-500",
+    ENERDY:       "bg-brand-500",
     Caza_Vision:  "bg-emerald-500",
     Intercompany: "bg-gray-300",
     Socio_PF:     "bg-amber-400",
@@ -231,8 +233,8 @@ export default async function AwqCashflowPage() {
       sub:      `${c.documentCount} conta(s) ingerida(s)`,
       positive: c.totalCashBalance >= 0,
       icon:     DollarSign,
-      color:    "text-violet-700",
-      bg:       "bg-violet-50",
+      color:    "text-brand-700",
+      bg:       "bg-brand-50",
     },
   ];
 
@@ -257,7 +259,7 @@ export default async function AwqCashflowPage() {
 
   // ── Entity summary rows ──────────────────────────────────────────────────────
   const operationalEntities = q.entities.filter((e) =>
-    ["AWQ_Holding", "JACQES", "Caza_Vision"].includes(e.entity)
+    HOLDING_OPERATIONAL_ENTITIES.includes(e.entity)
   );
 
   return (

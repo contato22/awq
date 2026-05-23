@@ -29,7 +29,7 @@ const STAGE_CONFIG: Record<string, {
   header: string; tag: string; bar: string;
 }> = {
   discovery:     { label: "Discovery",     prob: 25,  bg: "bg-blue-50",   border: "border-blue-200",   header: "bg-blue-500",   tag: "bg-blue-100 text-blue-700",   bar: "bg-blue-500" },
-  qualification: { label: "Qualificação",  prob: 40,  bg: "bg-violet-50", border: "border-violet-200", header: "bg-violet-500", tag: "bg-violet-100 text-violet-700", bar: "bg-violet-500" },
+  qualification: { label: "Qualificação",  prob: 40,  bg: "bg-brand-50", border: "border-brand-200", header: "bg-brand-500", tag: "bg-brand-100 text-brand-700", bar: "bg-brand-500" },
   proposal:      { label: "Proposta",      prob: 60,  bg: "bg-amber-50",  border: "border-amber-200",  header: "bg-amber-500",  tag: "bg-amber-100 text-amber-700",  bar: "bg-amber-500" },
   negotiation:   { label: "Negociação",    prob: 75,  bg: "bg-orange-50", border: "border-orange-200", header: "bg-orange-500", tag: "bg-orange-100 text-orange-700", bar: "bg-orange-500" },
   closed_won:    { label: "Ganho",         prob: 100, bg: "bg-emerald-50", border: "border-emerald-200", header: "bg-emerald-600", tag: "bg-emerald-100 text-emerald-700", bar: "bg-emerald-500" },
@@ -38,7 +38,7 @@ const STAGE_CONFIG: Record<string, {
 
 const BU_COLORS: Record<string, string> = {
   JACQES:  "bg-blue-100 text-blue-700",
-  CAZA:    "bg-violet-100 text-violet-700",
+  CAZA:    "bg-brand-100 text-brand-700",
   ADVISOR: "bg-emerald-100 text-emerald-700",
   VENTURE: "bg-amber-100 text-amber-700",
   ENRD:    "bg-orange-100 text-orange-700",
@@ -47,7 +47,7 @@ const BU_COLORS: Record<string, string> = {
 const ACTIVITY_TYPE_CONFIG: Record<string, { icon: React.ElementType; label: string; color: string }> = {
   call:    { icon: Phone,         label: "Ligação",  color: "text-emerald-600 bg-emerald-50" },
   email:   { icon: Mail,          label: "E-mail",   color: "text-blue-600 bg-blue-50" },
-  meeting: { icon: Users,         label: "Reunião",  color: "text-violet-600 bg-violet-50" },
+  meeting: { icon: Users,         label: "Reunião",  color: "text-brand-600 bg-brand-50" },
   task:    { icon: CheckCircle2,  label: "Tarefa",   color: "text-amber-600 bg-amber-50" },
   note:    { icon: FileText,      label: "Nota",     color: "text-gray-600 bg-gray-100" },
 };
@@ -911,31 +911,21 @@ function PipelinePageInner() {
     </>
   );
 
-  if (apiError) return (
-    <>
-      <Header title="Pipeline — CRM AWQ" subtitle="Visão kanban do funil de vendas" />
-      <div className="page-container">
-        <div className="card p-6 border border-red-200 bg-red-50">
-          <div className="flex items-start gap-3">
-            <AlertCircle size={18} className="text-red-500 shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-red-700">Erro ao carregar pipeline</p>
-              <p className="text-xs text-red-600 mt-1 font-mono break-all">{apiError}</p>
-
-              <button onClick={() => window.location.reload()} className="mt-3 px-3 py-1.5 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-700 transition-colors">
-                Tentar novamente
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-
   return (
     <>
       <Header title="Pipeline — CRM AWQ" subtitle="Visão kanban do funil de vendas" />
       <div className="page-container">
+
+        {/* Non-blocking error banner */}
+        {apiError && (
+          <div className="flex items-center gap-2 px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
+            <AlertCircle size={14} className="text-amber-500 shrink-0" />
+            <span>Não foi possível carregar os dados. </span>
+            <button onClick={() => window.location.reload()} className="underline font-semibold hover:text-amber-900">
+              Tentar novamente
+            </button>
+          </div>
+        )}
 
         {/* Detail modal */}
         {editingOpp && (
@@ -960,7 +950,7 @@ function PipelinePageInner() {
           {[
             { label: "Pipeline Total", value: formatBRL(totalPipeline), icon: DollarSign, color: "text-blue-600", bg: "bg-blue-50" },
             { label: "Forecast Ponderado", value: formatBRL(weightedForecast), icon: TrendingUp, color: "text-emerald-600", bg: "bg-emerald-50" },
-            { label: "Negócios Abertos", value: openOpps.length.toString(), icon: Target, color: "text-violet-600", bg: "bg-violet-50" },
+            { label: "Negócios Abertos", value: openOpps.length.toString(), icon: Target, color: "text-brand-600", bg: "bg-brand-50" },
             { label: "Win Rate", value: `${winRate}%`, icon: TrendingUp, color: "text-amber-600", bg: "bg-amber-50" },
           ].map(kpi => (
             <div key={kpi.label} className="card p-4 flex items-center gap-3">

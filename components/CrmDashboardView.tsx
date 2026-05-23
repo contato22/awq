@@ -43,7 +43,7 @@ function daysUntil(dateStr: string | null): number {
 
 const STAGE_CONFIG: Record<string, { label: string; bar: string; text: string; bg: string; border: string }> = {
   discovery:     { label: "Discovery",      bar: "bg-blue-500",    text: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-200" },
-  qualification: { label: "Qualificação",   bar: "bg-violet-500",  text: "text-violet-700",  bg: "bg-violet-50",  border: "border-violet-200" },
+  qualification: { label: "Qualificação",   bar: "bg-brand-500",  text: "text-brand-700",  bg: "bg-brand-50",  border: "border-brand-200" },
   proposal:      { label: "Proposta",       bar: "bg-amber-500",   text: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-200" },
   negotiation:   { label: "Negociação",     bar: "bg-orange-500",  text: "text-orange-700",  bg: "bg-orange-50",  border: "border-orange-200" },
   closed_won:    { label: "Fechado Ganho",  bar: "bg-emerald-500", text: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200" },
@@ -62,7 +62,7 @@ function StageBadge({ stage }: { stage: string }) {
 
 function BuBadge({ bu }: { bu: string }) {
   if (bu === "JACQES") return <span className="badge badge-blue text-[10px]">{bu}</span>;
-  if (bu === "CAZA")   return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-violet-50 text-violet-700 ring-1 ring-violet-200/60">{bu}</span>;
+  if (bu === "CAZA")   return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-50 text-brand-700 ring-1 ring-brand-200/60">{bu}</span>;
   if (bu === "ADVISOR")return <span className="badge badge-green text-[10px]">{bu}</span>;
   return <span className="badge badge-yellow text-[10px]">{bu}</span>;
 }
@@ -71,7 +71,7 @@ function ActivityIcon({ type }: { type: string }) {
   const cls = "w-7 h-7 rounded-lg flex items-center justify-center shrink-0";
   if (type === "call")    return <div className={`${cls} bg-emerald-50`}><Phone size={13} className="text-emerald-600" /></div>;
   if (type === "email")   return <div className={`${cls} bg-blue-50`}><Mail size={13} className="text-blue-600" /></div>;
-  if (type === "meeting") return <div className={`${cls} bg-violet-50`}><Users size={13} className="text-violet-600" /></div>;
+  if (type === "meeting") return <div className={`${cls} bg-brand-50`}><Users size={13} className="text-brand-600" /></div>;
   if (type === "task")    return <div className={`${cls} bg-amber-50`}><ClipboardList size={13} className="text-amber-600" /></div>;
   if (type === "note")    return <div className={`${cls} bg-gray-100`}><MessageSquare size={13} className="text-gray-500" /></div>;
   return <div className={`${cls} bg-gray-100`}><Activity size={13} className="text-gray-400" /></div>;
@@ -305,7 +305,7 @@ export default function CrmDashboardView({ buFilter: externalBu }: Props) {
         {/* ── KPI Row ───────────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           <KpiCard label="Leads novos"           value={analytics.leadsNew ?? 0}                icon={Users}        iconColor="text-blue-600"    iconBg="bg-blue-50" />
-          <KpiCard label="Oportunidades abertas" value={analytics.openOpportunities ?? 0}        icon={Target}       iconColor="text-violet-600"  iconBg="bg-violet-50" />
+          <KpiCard label="Oportunidades abertas" value={analytics.openOpportunities ?? 0}        icon={Target}       iconColor="text-brand-600"  iconBg="bg-brand-50" />
           <KpiCard label="Pipeline total"         value={formatBRL(analytics.pipelineValue ?? 0)} icon={BarChart3}    iconColor="text-amber-600"   iconBg="bg-amber-50" />
           <KpiCard label="Forecast ponderado"     value={formatBRL(analytics.weightedForecast ?? 0)} icon={DollarSign} iconColor="text-emerald-600" iconBg="bg-emerald-50" sub="prob. ponderada" />
           <KpiCard label="Fechado no mês"         value={formatBRL(analytics.closedWonThisMonth ?? 0)} icon={CheckCircle2} iconColor="text-green-600" iconBg="bg-green-50" />

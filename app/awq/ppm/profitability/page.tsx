@@ -32,7 +32,7 @@ function fmtInd(n: number | null) {
 }
 
 const BU_CHIP: Record<string, string> = {
-  JACQES: "bg-brand-100 text-brand-700", CAZA: "bg-violet-100 text-violet-700",
+  JACQES: "bg-brand-100 text-brand-700", CAZA: "bg-brand-100 text-brand-700",
   ADVISOR: "bg-emerald-100 text-emerald-700", VENTURE: "bg-amber-100 text-amber-700",
   ENRD: "bg-orange-100 text-orange-700",
 };

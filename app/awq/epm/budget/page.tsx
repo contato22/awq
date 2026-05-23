@@ -153,7 +153,7 @@ export default async function EpmBudgetPage() {
         <div className="card">
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
             <div className="flex items-center gap-2">
-              <BarChart3 size={14} className="text-violet-600" />
+              <BarChart3 size={14} className="text-brand-600" />
               <span className="text-sm font-semibold text-gray-900">Budget Lines — Consolidado</span>
             </div>
             <div className="flex items-center gap-2 text-[10px] text-gray-400">
@@ -269,7 +269,7 @@ export default async function EpmBudgetPage() {
                       <td className="py-2 px-2">
                         <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                           <div
-                            className={`h-full rounded-full ${pct > 100 ? "bg-red-400" : "bg-violet-400"}`}
+                            className={`h-full rounded-full ${pct > 100 ? "bg-red-400" : "bg-brand-400"}`}
                             style={{ width: `${Math.min(pct, 100)}%` }}
                           />
                         </div>

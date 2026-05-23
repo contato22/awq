@@ -69,7 +69,7 @@ const reports: ReportCardProps[] = [
       "Usage metrics, feature adoption, revenue by SKU, and product line growth trajectory analysis.",
     lastGenerated: "Mar 10, 2026",
     type: "Product",
-    color: "bg-purple-500/10 border border-purple-500/20 text-purple-400",
+    color: "bg-brand-500/10 border border-brand-500/20 text-brand-400",
   },
   {
     icon: Calendar,

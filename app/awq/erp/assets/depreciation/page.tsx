@@ -6,7 +6,7 @@ import { ArrowLeft, Search, TrendingDown } from "lucide-react";
 
 const METODO_BADGE: Record<string, string> = {
   Linear:    "bg-blue-100 text-blue-700",
-  Acelerado: "bg-purple-100 text-purple-700",
+  Acelerado: "bg-brand-100 text-brand-700",
 };
 
 export default function AssetDepreciationPage() {

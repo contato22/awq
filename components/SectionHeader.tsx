@@ -25,7 +25,7 @@ export default function SectionHeader({
         {icon && (
           <span className="text-gray-400 shrink-0">{icon}</span>
         )}
-        <h2 className="text-sm font-semibold text-gray-900 truncate">{title}</h2>
+        <h2 className="text-base font-semibold text-gray-900 truncate">{title}</h2>
         {badge}
       </div>
       {linkLabel && linkHref && (

@@ -64,14 +64,14 @@ export default function CompliancePage() {
       <div className="page-container">
 
         {/* Status banner */}
-        <div className="card p-6 flex items-start gap-4 border-l-4 border-l-violet-400">
-          <div className="w-12 h-12 rounded-2xl bg-violet-50 flex items-center justify-center shrink-0">
-            <ShieldCheck size={22} className="text-violet-600" />
+        <div className="card p-6 flex items-start gap-4 border-l-4 border-l-brand-400">
+          <div className="w-12 h-12 rounded-2xl bg-brand-50 flex items-center justify-center shrink-0">
+            <ShieldCheck size={22} className="text-brand-600" />
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
               <h2 className="text-base font-bold text-gray-900">Módulo em Estruturação</h2>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-100 text-violet-700 border border-violet-200">
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-100 text-brand-700 border border-brand-200">
                 PLANEJADO
               </span>
             </div>
@@ -81,7 +81,7 @@ export default function CompliancePage() {
               Distinto do Jurídico Operacional (contratos) e do Societário (estrutura de sócios).
             </p>
             <div className="mt-3 flex flex-col gap-1.5">
-              <div className="flex items-center gap-1.5 text-xs text-violet-700 font-medium">
+              <div className="flex items-center gap-1.5 text-xs text-brand-700 font-medium">
                 <ArrowRight size={13} />
                 <span>Pré-requisito: formalização do framework de compliance interno do grupo</span>
               </div>

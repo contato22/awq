@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Header from "@/components/Header";
 import Link from "next/link";
+import ARTabNav from "@/components/ARTabNav";
 import {
   ArrowUpRight, Plus, X, CheckCircle2, Trash2, Search,
   ChevronDown, ChevronUp, Receipt, Pencil,
@@ -91,6 +92,11 @@ const STATUS_CFG: Record<ARStatus, { label: string; color: string; bg: string }>
   OVERDUE:  { label: "Vencido",   color: "text-red-700",     bg: "bg-red-50"     },
   CANCELLED:{ label: "Cancelado", color: "text-gray-500",    bg: "bg-gray-100"   },
 };
+
+function effectiveStatus(item: ARItem, today: string): ARStatus {
+  if (item.status === "PENDING" && item.due_date < today) return "OVERDUE";
+  return item.status;
+}
 
 const AGING_CFG: Record<AgingBucket, { label: string; color: string }> = {
   "CURRENT": { label: "A receber", color: "text-emerald-600" },
@@ -213,16 +219,18 @@ export default function ARPage() {
   async function confirmReceive() {
     if (!recModal.received_date || !recModal.received_amount) return;
     setRecModal((m) => ({ ...m, saving: true }));
-    await fetch("/api/epm/ar", {
+    const res = await fetch("/api/epm/ar", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: recModal.id, action: "receive", received_date: recModal.received_date, received_amount: parseFloat(recModal.received_amount), receipt_ref: recModal.receipt_ref || undefined }),
     });
+    if (!res.ok) { setRecModal((m) => ({ ...m, saving: false })); return; }
     setRecModal({ open: false, id: "", item: null, received_date: today, received_amount: "", receipt_ref: "", saving: false });
     await loadData();
   }
 
   async function handleDelete(id: string) {
+    if (!window.confirm("Excluir este lançamento de AR?")) return;
     await fetch("/api/epm/ar", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -238,11 +246,12 @@ export default function ARPage() {
   async function confirmEdit() {
     if (!editModal.item) return;
     setEditModal((m) => ({ ...m, saving: true }));
-    await fetch("/api/epm/ar", {
+    const res = await fetch("/api/epm/ar", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: editModal.item.id, action: "update", customer_name: editModal.customer_name, description: editModal.description, category: editModal.category, cost_center: editModal.cost_center || undefined, reference_doc: editModal.reference_doc || undefined, due_date: editModal.due_date }),
     });
+    if (!res.ok) { setEditModal((m) => ({ ...m, saving: false })); return; }
     setEditModal({ open: false, item: null, customer_name: "", description: "", category: "", cost_center: "", reference_doc: "", due_date: "", saving: false });
     await loadData();
   }
@@ -251,7 +260,7 @@ export default function ARPage() {
 
   const filtered = items.filter((i) => {
     if (filterBU && i.bu_code !== filterBU) return false;
-    if (statusFilter !== "ALL" && i.status !== statusFilter) return false;
+    if (statusFilter !== "ALL" && effectiveStatus(i, today) !== statusFilter) return false;
     if (search !== "" &&
       !i.customer_name.toLowerCase().includes(search.toLowerCase()) &&
       !i.description.toLowerCase().includes(search.toLowerCase())) return false;
@@ -268,6 +277,7 @@ export default function ARPage() {
         subtitle={`EPM · AWQ Group · ${outstanding.length} em aberto${kpis?.dso != null ? ` · DSO ${kpis.dso}d` : ""}${kpis?.ccc != null ? ` · CCC ${kpis.ccc}d` : ""}`}
       />
       <div className="page-container">
+        <ARTabNav />
 
         {/* ── KPI cards ─────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -516,10 +526,10 @@ export default function ARPage() {
             {fiscalPreview && gross > 0 && (
               <div className={`rounded-xl p-4 text-xs space-y-2 border ${
                 fiscalPreview.total > 0
-                  ? "bg-violet-50 border-violet-200"
+                  ? "bg-brand-50 border-brand-200"
                   : "bg-gray-50 border-gray-200"
               }`}>
-                <div className="flex items-center gap-1.5 font-semibold text-violet-800 mb-2">
+                <div className="flex items-center gap-1.5 font-semibold text-brand-800 mb-2">
                   <Receipt size={12} />
                   {fiscalPreview.total > 0 ? "Tributos sobre receita — cálculo automático" : "Categoria sem tributos"}
                 </div>
@@ -529,15 +539,15 @@ export default function ARPage() {
                     { label: "PIS",    rate: fiscalPreview.pis_rate,    amount: fiscalPreview.pis_amount    },
                     { label: "COFINS", rate: fiscalPreview.cofins_rate, amount: fiscalPreview.cofins_amount },
                   ].map((tax) => (
-                    <div key={tax.label} className="bg-white rounded-lg p-2 border border-violet-100">
+                    <div key={tax.label} className="bg-white rounded-lg p-2 border border-brand-100">
                       <div className="text-[10px] text-gray-500 font-medium">{tax.label}</div>
-                      <div className="text-violet-700 font-bold tabular-nums">{fmtBRL(tax.amount)}</div>
+                      <div className="text-brand-700 font-bold tabular-nums">{fmtBRL(tax.amount)}</div>
                       <div className="text-[9px] text-gray-400">{pct(tax.rate)}</div>
                     </div>
                   ))}
                 </div>
-                <div className="flex items-center justify-between pt-1 border-t border-violet-200">
-                  <span className="text-gray-600">Total tributos: <strong className="text-violet-800">{fmtBRL(fiscalPreview.total)}</strong></span>
+                <div className="flex items-center justify-between pt-1 border-t border-brand-200">
+                  <span className="text-gray-600">Total tributos: <strong className="text-brand-800">{fmtBRL(fiscalPreview.total)}</strong></span>
                   <span className="text-gray-600">
                     Líquido a receber: <strong className="text-emerald-700 text-sm">{fmtBRL(fiscalPreview.net)}</strong>
                   </span>
@@ -583,7 +593,7 @@ export default function ARPage() {
                 </thead>
                 <tbody>
                   {filtered.sort((a, b) => a.due_date.localeCompare(b.due_date)).map((item) => {
-                    const sc       = STATUS_CFG[item.status];
+                    const sc       = STATUS_CFG[effectiveStatus(item, today)];
                     const expanded = expandedId === item.id;
                     return [
                       <tr
@@ -606,7 +616,7 @@ export default function ARPage() {
                         <td className="py-2.5 px-3 text-right tabular-nums text-gray-500">
                           {fmtBRL(item.gross_amount)}
                         </td>
-                        <td className="py-2.5 px-3 text-right tabular-nums text-violet-700">
+                        <td className="py-2.5 px-3 text-right tabular-nums text-brand-700">
                           {(item.iss_amount + item.pis_amount + item.cofins_amount) > 0
                             ? `(${fmtBRL(r2(item.iss_amount + item.pis_amount + item.cofins_amount))})`
                             : "—"}
@@ -652,7 +662,7 @@ export default function ARPage() {
                         </td>
                       </tr>,
                       expanded && (
-                        <tr key={`${item.id}-detail`} className="bg-violet-50 border-b border-violet-100">
+                        <tr key={`${item.id}-detail`} className="bg-brand-50 border-b border-brand-100">
                           <td colSpan={8} className="px-4 py-3">
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[11px]">
                               {[
@@ -660,14 +670,14 @@ export default function ARPage() {
                                 { label: "PIS",    rate: item.pis_rate,    amount: item.pis_amount    },
                                 { label: "COFINS", rate: item.cofins_rate, amount: item.cofins_amount },
                               ].map((t) => (
-                                <div key={t.label} className="bg-white rounded-lg px-3 py-2 border border-violet-100 text-center">
+                                <div key={t.label} className="bg-white rounded-lg px-3 py-2 border border-brand-100 text-center">
                                   <div className="text-gray-500 font-medium">{t.label} ({pct(t.rate)})</div>
-                                  <div className={`font-bold tabular-nums ${t.amount > 0 ? "text-violet-700" : "text-gray-300"}`}>
+                                  <div className={`font-bold tabular-nums ${t.amount > 0 ? "text-brand-700" : "text-gray-300"}`}>
                                     {fmtBRL(t.amount)}
                                   </div>
                                 </div>
                               ))}
-                              <div className="bg-white rounded-lg px-3 py-2 border border-violet-100 text-center">
+                              <div className="bg-white rounded-lg px-3 py-2 border border-brand-100 text-center">
                                 <div className="text-gray-500 font-medium">Líquido reconhecido</div>
                                 <div className="font-bold tabular-nums text-emerald-700">{fmtBRL(item.net_amount)}</div>
                               </div>

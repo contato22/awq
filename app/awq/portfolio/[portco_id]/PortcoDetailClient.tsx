@@ -90,7 +90,7 @@ function mediaStatusLabel(s: string | null | undefined): { label: string; cls: s
 function StatusBadge({ status }: { status: string }) {
   const cfg: Record<string, { cls: string; label: string }> = {
     active:     { cls: "bg-emerald-50 text-emerald-700 border-emerald-200", label: "Ativo"    },
-    exited:     { cls: "bg-violet-50 text-violet-700 border-violet-200",   label: "Exitado"  },
+    exited:     { cls: "bg-brand-50 text-brand-700 border-brand-200",   label: "Exitado"  },
     monitoring: { cls: "bg-amber-50 text-amber-700 border-amber-200",      label: "Monitoria"},
     inactive:   { cls: "bg-gray-100 text-gray-500 border-gray-200",        label: "Inativo"  },
   };
@@ -105,7 +105,7 @@ function StatusBadge({ status }: { status: string }) {
 // ─── Ownership Bar ─────────────────────────────────────────────────────────────
 
 const OWNER_COLORS = [
-  "bg-blue-500", "bg-emerald-500", "bg-violet-500",
+  "bg-blue-500", "bg-emerald-500", "bg-brand-500",
   "bg-amber-500", "bg-rose-500", "bg-cyan-500",
 ];
 
@@ -539,8 +539,8 @@ export default function PortcoDetailClient({ params }: { params: { portco_id: st
                   <div key={b.board_id ?? i} className="rounded-xl bg-white border border-gray-200 shadow-sm p-4">
                     <div className="flex items-start justify-between gap-3 mb-2">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-9 h-9 rounded-xl bg-purple-50 flex items-center justify-center shrink-0">
-                          <CalendarDays size={14} className="text-purple-500" />
+                        <div className="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center shrink-0">
+                          <CalendarDays size={14} className="text-brand-500" />
                         </div>
                         <div>
                           <div className="text-sm font-bold text-gray-900">{fmtDate(b.meeting_date)}</div>

@@ -65,11 +65,11 @@ function QualityBadge({ q }: { q: DataQuality }) {
 const stageColor: Record<string, string> = {
   "Oportunidade":        "text-gray-600 bg-gray-100",
   "Proposta Enviada":    "text-blue-700 bg-blue-50",
-  "Negociação":          "text-violet-700 bg-violet-50",
+  "Negociação":          "text-brand-700 bg-brand-50",
   "Contrato Ativo":      "text-emerald-700 bg-emerald-50",
   "Fee Recorrente":      "text-emerald-700 bg-emerald-50",
   "Upside Potencial":    "text-amber-700 bg-amber-50",
-  "Investimento/M4E":    "text-indigo-700 bg-indigo-50",
+  "Investimento/M4E":    "text-brand-700 bg-brand-50",
   "Receita Operacional": "text-emerald-700 bg-emerald-50",
   "Encerrado":           "text-red-600 bg-red-50",
 };
@@ -78,7 +78,7 @@ const proposalStatusColor: Record<string, string> = {
   "Rascunho":          "text-gray-400",
   "Pronto para Envio": "text-amber-600 font-semibold",
   "Enviado":           "text-blue-600 font-semibold",
-  "Em Negociação":     "text-violet-600 font-semibold",
+  "Em Negociação":     "text-brand-600 font-semibold",
   "Aprovado":          "text-emerald-600 font-semibold",
   "Rejeitado":         "text-red-500",
 };

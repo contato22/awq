@@ -76,14 +76,14 @@ const TYPE_CLS: Record<string, string> = {
   Marca:      "bg-brand-50 text-brand-700 border-brand-200",
   Agência:    "bg-emerald-50 text-emerald-700 border-emerald-200",
   Empresa:    "bg-amber-50 text-amber-700 border-amber-200",
-  Startup:    "bg-violet-50 text-violet-700 border-violet-200",
+  Startup:    "bg-brand-50 text-brand-700 border-brand-200",
   Freelancer: "bg-cyan-50 text-cyan-700 border-cyan-200",
   Outro:      "bg-gray-50 text-gray-600 border-gray-200",
 };
 
 const PROJ_STATUS_CLS: Record<string, string> = {
   "Em Produção":          "bg-blue-50 text-blue-700 border-blue-200",
-  "Em Edição":            "bg-violet-50 text-violet-700 border-violet-200",
+  "Em Edição":            "bg-brand-50 text-brand-700 border-brand-200",
   "Aguardando Aprovação": "bg-amber-50 text-amber-700 border-amber-200",
   "Entregue":             "bg-emerald-50 text-emerald-700 border-emerald-200",
 };
@@ -91,7 +91,7 @@ const PROJ_STATUS_CLS: Record<string, string> = {
 const STAGE_CLS: Record<string, string> = {
   "Lead Captado":    "bg-gray-100 text-gray-600",
   "Qualificação":    "bg-blue-50 text-blue-700",
-  "Briefing Inicial":"bg-violet-50 text-violet-700",
+  "Briefing Inicial":"bg-brand-50 text-brand-700",
   "Proposta Enviada":"bg-amber-50 text-amber-700",
   "Negociação":      "bg-orange-50 text-orange-700",
   "Fechado Ganho":   "bg-emerald-50 text-emerald-700",
@@ -235,7 +235,7 @@ export default function ContasPage() {
           <KpiCard icon={DollarSign}   color="text-emerald-600" value={fmtR(totalLtv)}     label="LTV Total da Carteira" />
           <KpiCard icon={Users}        color="text-brand-600"   value={ativos}              label="Clientes Ativos" />
           <KpiCard icon={BarChart3}    color="text-amber-600"   value={fmtR(avgLtv)}        label="LTV Médio por Cliente" />
-          <KpiCard icon={Target}       color="text-violet-600"  value={comOppAtiva}         label="Com Opp Ativa no CRM" />
+          <KpiCard icon={Target}       color="text-brand-600"  value={comOppAtiva}         label="Com Opp Ativa no CRM" />
         </div>
 
         {/* ── Main area: list + detail panel ─────────────────────────────────── */}

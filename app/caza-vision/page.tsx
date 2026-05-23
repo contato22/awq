@@ -74,14 +74,14 @@ const kpiIconMap: Record<string, React.ElementType> = {
 const kpiColorMap: Record<string, { text: string; bg: string }> = {
   emerald: { text: "text-emerald-600", bg: "bg-emerald-50" },
   brand:   { text: "text-brand-600",   bg: "bg-brand-50"   },
-  violet:  { text: "text-violet-600",  bg: "bg-violet-50"  },
+  violet:  { text: "text-brand-600",  bg: "bg-brand-50"  },
   amber:   { text: "text-amber-700",   bg: "bg-amber-50"   },
 };
 const pipelineColors: Record<string, string> = {
   "Em Produção":          "bg-brand-500",
   "Em Edição":            "bg-amber-500",
   "Entregue":             "bg-emerald-500",
-  "Aguardando Aprovação": "bg-violet-500",
+  "Aguardando Aprovação": "bg-brand-500",
 };
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -115,7 +115,7 @@ export default function CazaVisionPage() {
         {/* ── Atalhos Rápidos ───────────────────────────────────────────── */}
         <section className="flex flex-wrap gap-2">
           {[
-            { label: "PPM",            href: "/awq/ppm",                  icon: Briefcase,  color: "text-violet-600", bg: "bg-violet-50"  },
+            { label: "PPM",            href: "/awq/ppm",                  icon: Briefcase,  color: "text-brand-600", bg: "bg-brand-50"  },
             { label: "CRM",            href: "/caza-vision/crm",           icon: Target,     color: "text-emerald-600", bg: "bg-emerald-50" },
             { label: "Projetos",       href: "/caza-vision/imoveis",       icon: Film,       color: "text-brand-600",  bg: "bg-brand-50"   },
             { label: "Clientes",       href: "/caza-vision/clientes",      icon: Users,      color: "text-cyan-700",   bg: "bg-cyan-50"    },
@@ -299,7 +299,7 @@ export default function CazaVisionPage() {
 
         {/* Recent Projects — link to full list */}
         <section className="card p-5 lg:p-6">
-          <SectionHeader icon={<Film size={15} className="text-violet-500" />} title="Projetos Recentes"
+          <SectionHeader icon={<Film size={15} className="text-brand-500" />} title="Projetos Recentes"
             linkLabel="Ver todos" linkHref="/caza-vision/imoveis" />
           <EmptyState compact title="Acesse Projetos" description="Visualize e gerencie todos os projetos na página de Projetos." />
         </section>

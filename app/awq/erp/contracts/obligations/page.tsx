@@ -13,8 +13,8 @@ const STATUS_BADGE: Record<string, string> = {
 const RECORRENCIA_BADGE: Record<string, string> = {
   Única:       "bg-gray-100 text-gray-600",
   Mensal:      "bg-blue-100 text-blue-700",
-  Trimestral:  "bg-purple-100 text-purple-700",
-  Anual:       "bg-indigo-100 text-indigo-700",
+  Trimestral:  "bg-brand-100 text-brand-700",
+  Anual:       "bg-brand-100 text-brand-700",
 };
 
 export default function ContractObligationsPage() {

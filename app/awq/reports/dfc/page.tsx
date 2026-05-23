@@ -66,9 +66,9 @@ export default function DFCPage() {
                 {fmt(data.reduce((s, l) => s + l.totalOutflows, 0))}
               </div>
             </div>
-            <div className="bg-indigo-50 rounded-xl border border-indigo-100 p-4 text-center">
-              <div className="text-xs font-semibold text-indigo-600 uppercase tracking-wide mb-1">Saldo Líquido</div>
-              <div className={`text-xl font-bold ${data.reduce((s, l) => s + l.netCash, 0) >= 0 ? "text-indigo-700" : "text-red-700"}`}>
+            <div className="bg-brand-50 rounded-xl border border-brand-100 p-4 text-center">
+              <div className="text-xs font-semibold text-brand-600 uppercase tracking-wide mb-1">Saldo Líquido</div>
+              <div className={`text-xl font-bold ${data.reduce((s, l) => s + l.netCash, 0) >= 0 ? "text-brand-700" : "text-red-700"}`}>
                 {fmt(data.reduce((s, l) => s + l.netCash, 0))}
               </div>
             </div>

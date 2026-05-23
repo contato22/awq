@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
@@ -56,12 +56,14 @@ import {
     Package,
     ShoppingCart,
     Calendar,
-    X,
     Truck,
     Box,
     Wrench,
     RotateCcw,
     GitMerge,
+    Star,
+    ThumbsUp,
+    Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -72,233 +74,42 @@ const ADVISOR_PREFIXES = ["/advisor"];
 const VENTURE_PREFIXES = ["/awq-venture"];
 const ENRD_PREFIXES = ["/enrd"];
 const CRM_PREFIXES = ["/crm"];
-function isJacqesRoute(pathname: string) {
-    return JACQES_PREFIXES.some((prefix) => pathname.startsWith(prefix));
-}
-function isCazaRoute(pathname: string) {
-    return CAZA_PREFIXES.some((prefix) => pathname.startsWith(prefix));
-}
-function isAdvisorRoute(pathname: string) {
-    return ADVISOR_PREFIXES.some((prefix) => pathname.startsWith(prefix));
-}
-function isVentureRoute(pathname: string) {
-    return VENTURE_PREFIXES.some((prefix) => pathname.startsWith(prefix));
-}
-function isEnrdRoute(pathname: string) {
-    return ENRD_PREFIXES.some((prefix) => pathname.startsWith(prefix));
-}
-function isCrmRoute(pathname: string) {
-    return CRM_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(prefix + "/"));
-}
+function isJacqesRoute(p: string) { return JACQES_PREFIXES.some((x) => p.startsWith(x)); }
+function isCazaRoute(p: string)   { return CAZA_PREFIXES.some((x) => p.startsWith(x)); }
+function isAdvisorRoute(p: string){ return ADVISOR_PREFIXES.some((x) => p.startsWith(x)); }
+function isVentureRoute(p: string){ return VENTURE_PREFIXES.some((x) => p.startsWith(x)); }
+function isEnrdRoute(p: string)   { return ENRD_PREFIXES.some((x) => p.startsWith(x)); }
+function isCrmRoute(p: string)    { return CRM_PREFIXES.some((x) => p === x || p.startsWith(x + "/")); }
 
 const EPM_PREFIXES = [
-    "/awq/epm",
-    "/awq/financial",
-    "/awq/budget",
-    "/awq/forecast",
-    "/awq/cashflow",
-    "/awq/conciliacao",
-    "/awq/bank",
-    "/awq/investments",
-    "/awq/ap-ar",
-    "/awq/management",
-    "/awq/contabilidade",
-    "/awq/fiscal",
+    "/awq/epm", "/awq/financial", "/awq/budget", "/awq/forecast",
+    "/awq/cashflow", "/awq/conciliacao", "/awq/bank", "/awq/investments",
+    "/awq/ap-ar", "/awq/management", "/awq/contabilidade", "/awq/fiscal",
 ];
-function isEpmRoute(pathname: string) {
-    return EPM_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
-}
+function isEpmRoute(p: string) { return EPM_PREFIXES.some((x) => p === x || p.startsWith(x + "/")); }
 
 const MA_PREFIXES = ["/awq/ma", "/awq/portfolio"];
-function isMaRoute(pathname: string) {
-    return MA_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
-}
+function isMaRoute(p: string) { return MA_PREFIXES.some((x) => p === x || p.startsWith(x + "/")); }
 
 const PPM_PREFIXES = ["/awq/ppm"];
-function isPpmRoute(pathname: string) {
-    return PPM_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
-}
+function isPpmRoute(p: string) { return PPM_PREFIXES.some((x) => p === x || p.startsWith(x + "/")); }
 
 const BI_PREFIXES = ["/awq/bi", "/awq/data"];
-function isBiRoute(pathname: string) {
-    return BI_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
-}
+function isBiRoute(p: string) { return BI_PREFIXES.some((x) => p === x || p.startsWith(x + "/")); }
 
 const SETTINGS_PREFIXES = ["/settings"];
-function isSettingsRoute(pathname: string) {
-    return SETTINGS_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
-}
+function isSettingsRoute(p: string) { return SETTINGS_PREFIXES.some((x) => p === x || p.startsWith(x + "/")); }
 
-// ── BU nav arrays (unchanged) ─────────────────────────────────────────────────
-const jacqesNav = [
-    { label: "Visão Geral",    href: "/jacqes",             icon: LayoutDashboard },
-    { label: "FP&A",           href: "/jacqes/fpa",         icon: BarChart3       },
-    { label: "Relatórios",     href: "/jacqes/reports",     icon: BarChart3       },
-];
-
-const cazaNav = [
-    { label: "Visão Geral",    href: "/caza-vision",                   icon: LayoutDashboard },
-    { label: "Projetos",       href: "/caza-vision/imoveis",           icon: Film            },
-    { label: "Clientes",       href: "/caza-vision/clientes",          icon: Users           },
-    { label: "Contas",         href: "/caza-vision/contas",            icon: Briefcase       },
-    { label: "Financial",      href: "/caza-vision/financial",         icon: DollarSign      },
-    { label: "Unit Economics", href: "/caza-vision/unit-economics",    icon: Calculator      },
-    { label: "Importar",       href: "/caza-vision/import",            icon: FileUp          },
-];
-
-const advisorNav = [
-    { label: "Visão Geral", href: "/advisor",              icon: LayoutDashboard },
-    { label: "Financial",   href: "/advisor/financial",    icon: DollarSign      },
-    { label: "Customers",   href: "/advisor/customers",    icon: Users           },
-];
-
-const ventureNav = [
-    { label: "Visão Geral", href: "/awq-venture",              icon: LayoutDashboard },
-    { label: "Comercial",   href: "/awq-venture/comercial",    icon: TrendingUp      },
-    { label: "Deals",       href: "/awq-venture/deals",        icon: FileText        },
-    { label: "Pipeline",    href: "/awq-venture/pipeline",     icon: Activity        },
-    { label: "Portfólio",   href: "/awq-venture/portfolio",    icon: Briefcase       },
-    { label: "Financial",   href: "/awq-venture/financial",    icon: DollarSign      },
-    { label: "YoY 2025",    href: "/awq-venture/yoy-2025",     icon: LineChart       },
-    { label: "Sales",       href: "/awq-venture/sales",        icon: DollarSign      },
-];
-
-const gestaoNav = [
-    { label: "Modo Carreira", href: "/jacqes/carreira", icon: Briefcase },
-];
-
-const aiNav = [
-    { label: "Agents",   href: "/agents",   icon: Bot      },
-    { label: "OpenClaw", href: "/openclaw", icon: Sparkles },
-];
-
-const sistemaNav = [
-    { label: "Settings", href: "/settings", icon: Settings },
-];
-
-// ── EPM nav arrays (organized by domain) ─────────────────────────────────────
-const epmFpaNav = [
-    { label: "Visão Geral EPM",      href: "/awq/epm",                      icon: Layers        },
-    { label: "Financial (DRE)",       href: "/awq/financial",                icon: LineChart     },
-    { label: "P&L (DRE)",            href: "/awq/epm/pl",                   icon: LineChart     },
-    { label: "Balanço Patrimonial",   href: "/awq/epm/balance-sheet",        icon: Scale         },
-    { label: "Budget",               href: "/awq/budget",                   icon: BarChart3     },
-    { label: "Forecast",             href: "/awq/forecast",                 icon: TrendingUp    },
-    { label: "Budget vs Actual",     href: "/awq/epm/budget",               icon: Target        },
-];
-
-const epmTesourariaNav = [
-    { label: "Cash Flow",            href: "/awq/cashflow",                 icon: Zap           },
-    { label: "Contas Banco",         href: "/awq/bank",                     icon: CreditCard    },
-    { label: "Investimentos",        href: "/awq/investments",              icon: Landmark      },
-    { label: "Conciliação",          href: "/awq/conciliacao",              icon: CheckCircle2  },
-];
-
-const epmApArNav = [
-    { label: "AP & AR",              href: "/awq/ap-ar",                    icon: FileText      },
-    { label: "Contas a Pagar",       href: "/awq/epm/ap",                   icon: ArrowDownLeft },
-    { label: "AP Aging",             href: "/awq/epm/ap/aging",             icon: Receipt       },
-    { label: "Contas a Receber",     href: "/awq/epm/ar",                   icon: ArrowUpRight  },
-    { label: "AR Aging",             href: "/awq/epm/ar/aging",             icon: Receipt       },
-];
-
-const epmControladoriaNav = [
-    { label: "KPI Dashboard",        href: "/awq/epm/kpis",                 icon: PieChart      },
-    { label: "Razão Geral (GL)",     href: "/awq/epm/gl",                   icon: ListOrdered   },
-    { label: "Consolidação",         href: "/awq/epm/consolidation",        icon: Building2     },
-    { label: "Conciliação Bancária", href: "/awq/epm/bank-reconciliation",  icon: Landmark      },
-    { label: "Reconhec. de Receita", href: "/awq/epm/revenue-recognition",  icon: BookOpen      },
-    { label: "Centros de Custo",     href: "/awq/epm/cost-centers",         icon: LayoutGrid    },
-    { label: "Controladoria",        href: "/awq/management",               icon: ShieldCheck   },
-    { label: "Contabilidade",        href: "/awq/contabilidade",            icon: BookOpen      },
-    { label: "Fiscal",               href: "/awq/fiscal",                   icon: Receipt       },
-];
-
-const epmPartesNav = [
-    { label: "Fornecedores",         href: "/awq/epm/suppliers",            icon: Building2     },
-    { label: "Clientes EPM",         href: "/awq/epm/customers",            icon: Users         },
-];
-
-// ── PPM nav array ─────────────────────────────────────────────────────────────
-const ppmNav = [
-    { label: "Portfolio",            href: "/awq/ppm",                      icon: Briefcase     },
-    { label: "Gantt",                href: "/awq/ppm/gantt",                icon: GanttChart    },
-    { label: "Tarefas",              href: "/awq/ppm/tasks",                icon: ClipboardList },
-    { label: "Timesheets",           href: "/awq/ppm/timesheets",           icon: Clock         },
-    { label: "Recursos",             href: "/awq/ppm/resources",            icon: Users         },
-    { label: "Utilização",           href: "/awq/ppm/utilization",          icon: BarChart3     },
-    { label: "Rentabilidade",        href: "/awq/ppm/profitability",        icon: TrendingUp    },
-    { label: "Riscos",               href: "/awq/ppm/risks",                icon: AlertTriangle },
-];
-
-// ── BI nav array ──────────────────────────────────────────────────────────────
-const biNav = [
-    { label: "Dashboards",           href: "/awq/bi",                       icon: PieChart      },
-    { label: "Relatórios",           href: "/awq/bi/reports",               icon: FileText      },
-    { label: "Análises",             href: "/awq/bi/analytics",             icon: BarChart3     },
-    { label: "Visualizações",        href: "/awq/bi/visualizations",        icon: LineChart     },
-    { label: "Base de Dados",        href: "/awq/data",                     icon: Database      },
-];
-
-// ── Settings nav arrays ───────────────────────────────────────────────────────
-const settingsGeralNav = [
-    { label: "Geral",                href: "/settings",                     icon: Settings      },
-];
-const settingsSegurancaNav = [
-    { label: "Segurança",            href: "/settings/security",            icon: ShieldCheck   },
-];
-const settingsIntegracaoNav = [
-    { label: "Integrações",          href: "/settings/integrations",        icon: Database      },
-];
-
-// ── Business Units ─────────────────────────────────────────────────────────────
-const businessUnits = [
-    {
-        id: "jacqes",
-        label: "JACQES",
-        sub: "Agência · AWQ Group",
-        href: "/jacqes",
-        icon: BarChart3,
-        color: "bg-brand-600",
-    },
-    {
-        id: "caza",
-        label: "Caza Vision",
-        sub: "Produtora · AWQ Group",
-        href: "/caza-vision",
-        icon: Building2,
-        color: "bg-emerald-600",
-    },
-    {
-        id: "venture",
-        label: "AWQ Venture",
-        sub: "Investimentos · AWQ Group",
-        href: "/awq-venture",
-        icon: TrendingUp,
-        color: "bg-amber-600",
-    },
-    {
-        id: "advisor",
-        label: "Advisor",
-        sub: "Consultoria · AWQ Group",
-        href: "/advisor",
-        icon: Briefcase,
-        color: "bg-violet-600",
-    },
-    {
-        id: "enrd",
-        label: "ENRD",
-        sub: "Agência Solar · AWQ Group",
-        href: "/enrd",
-        icon: Zap,
-        color: "bg-orange-600",
-    },
-];
-
-// ── AWQ Modules — icon sidebar ────────────────────────────────────────────────
-// Each module groups related routes under a single icon.
-// Existing hrefs are preserved; new stubs use /awq/<module>/<slug> convention.
-type ModuleItem = { label: string; href: string; icon: React.ElementType };
+// ── Nav data types ────────────────────────────────────────────────────────────
+type NavBadgeVariant = "gold" | "blue" | "green";
+type ModuleItem = {
+    label: string;
+    href: string;
+    icon: React.ElementType;
+    badge?: string;
+    badgeVariant?: NavBadgeVariant;
+    starred?: boolean;
+};
 type ModuleSection = {
     id: string;
     label: string;
@@ -314,6 +125,19 @@ type AwqModule = {
     sections?: ModuleSection[];
 };
 
+// ── BU nav arrays ─────────────────────────────────────────────────────────────
+const aiNav: ModuleItem[] = [
+    { label: "Agents",   href: "/agents",   icon: Bot      },
+    { label: "OpenClaw", href: "/openclaw", icon: Sparkles },
+];
+
+const settingsPanelItems: ModuleItem[] = [
+    { label: "Geral",       href: "/settings",                icon: Settings    },
+    { label: "Segurança",   href: "/settings/security",       icon: ShieldCheck },
+    { label: "Integrações", href: "/settings/integrations",   icon: Database    },
+];
+
+// ── AWQ_MODULES ───────────────────────────────────────────────────────────────
 const AWQ_MODULES: AwqModule[] = [
     {
         id: "epm",
@@ -337,10 +161,10 @@ const AWQ_MODULES: AwqModule[] = [
                     { label: "AR Aging",               href: "/awq/epm/ar/aging",            icon: Receipt       },
                     { label: "Clientes (AR)",          href: "/awq/epm/customers",           icon: Users         },
                     { label: "AP & AR Visão Geral",    href: "/awq/ap-ar",                   icon: FileText      },
-                    { label: "Contas Banco",           href: "/awq/bank",                    icon: CreditCard    },
+                    { label: "Contas Banco",           href: "/awq/bank",                    icon: CreditCard,   starred: true },
                     { label: "Conciliação Bancária",   href: "/awq/epm/bank-reconciliation", icon: Landmark      },
-                    { label: "Cash Flow",              href: "/awq/cashflow",                icon: Zap           },
-                    { label: "Conciliação",            href: "/awq/conciliacao",             icon: CheckCircle2  },
+                    { label: "Cash Flow",              href: "/awq/cashflow",                icon: Zap,          starred: true },
+                    { label: "Conciliação",            href: "/awq/conciliacao",             icon: CheckCircle2, badge: "Novo", badgeVariant: "gold" },
                     { label: "Fixed Assets",           href: "/awq/epm/fixed-assets",        icon: Building      },
                     { label: "Investimentos",          href: "/awq/investments",             icon: TrendingUp    },
                     { label: "Reconhec. de Receita",   href: "/awq/epm/revenue-recognition", icon: BookOpen      },
@@ -354,7 +178,7 @@ const AWQ_MODULES: AwqModule[] = [
                 items: [
                     { label: "Budget",           href: "/awq/budget",          icon: BarChart3  },
                     { label: "Budget vs Actual", href: "/awq/epm/budget",      icon: Target     },
-                    { label: "Forecast",         href: "/awq/forecast",        icon: TrendingUp },
+                    { label: "Forecast",         href: "/awq/forecast",        icon: TrendingUp, badge: "Beta", badgeVariant: "blue" },
                     { label: "Centros de Custo", href: "/awq/epm/cost-centers",icon: LayoutGrid },
                 ],
             },
@@ -363,12 +187,12 @@ const AWQ_MODULES: AwqModule[] = [
                 label: "Financial Reporting",
                 icon: LineChart,
                 items: [
-                    { label: "Financial (DRE)",    href: "/awq/financial",              icon: LineChart  },
-                    { label: "P&L (DRE)",          href: "/awq/epm/pl",                 icon: LineChart  },
-                    { label: "Balanço Patrimonial", href: "/awq/epm/balance-sheet",     icon: Scale      },
-                    { label: "Relatório Anual",    href: "/awq/epm/reports/annual",     icon: FileText   },
-                    { label: "Board Pack",         href: "/awq/epm/reports/board-pack", icon: Briefcase  },
-                    { label: "Controladoria",      href: "/awq/management",             icon: ShieldCheck},
+                    { label: "Financial (DRE)",    href: "/awq/financial",              icon: LineChart,   starred: true },
+                    { label: "P&L (DRE)",          href: "/awq/epm/pl",                 icon: LineChart    },
+                    { label: "Balanço Patrimonial", href: "/awq/epm/balance-sheet",     icon: Scale        },
+                    { label: "Relatório Anual",    href: "/awq/epm/reports/annual",     icon: FileText     },
+                    { label: "Board Pack",         href: "/awq/epm/reports/board-pack", icon: Briefcase    },
+                    { label: "Controladoria",      href: "/awq/management",             icon: ShieldCheck  },
                 ],
             },
             {
@@ -376,9 +200,9 @@ const AWQ_MODULES: AwqModule[] = [
                 label: "Consolidation",
                 icon: Building2,
                 items: [
-                    { label: "Consolidação",   href: "/awq/epm/consolidation",            icon: Building2 },
-                    { label: "Eliminations",   href: "/awq/epm/consolidation/eliminations",icon: Layers   },
-                    { label: "Currency",       href: "/awq/epm/currency",                 icon: DollarSign},
+                    { label: "Consolidação",   href: "/awq/epm/consolidation",             icon: Building2  },
+                    { label: "Eliminations",   href: "/awq/epm/consolidation/eliminations",icon: Layers     },
+                    { label: "Currency",       href: "/awq/epm/currency",                  icon: DollarSign },
                 ],
             },
             {
@@ -397,12 +221,16 @@ const AWQ_MODULES: AwqModule[] = [
         description: "Vendas, leads, pipeline, clientes, oportunidades",
         icon: Users,
         items: [
-            { label: "Dashboard CRM",  href: "/crm",                   icon: Target       },
-            { label: "Leads",          href: "/crm/leads",             icon: UserPlus     },
-            { label: "Pipeline",       href: "/crm/pipeline",          icon: Activity     },
-            { label: "Clientes",       href: "/crm/customers",         icon: Users        },
-            { label: "Oportunidades",  href: "/crm/opportunities",     icon: ArrowUpRight },
-            { label: "Matriz RFM",     href: "/crm/rfm",               icon: BarChart3    },
+            { label: "Dashboard CRM",  href: "/crm",                   icon: Target,       starred: true },
+            { label: "Novo Cadastro",  href: "/crm/novo",              icon: Plus         },
+            { label: "Contas",         href: "/crm/accounts",          icon: Building2     },
+            { label: "Contatos",       href: "/crm/contacts",          icon: Users         },
+            { label: "Leads",          href: "/crm/leads",             icon: UserPlus      },
+            { label: "Pipeline",       href: "/crm/pipeline",          icon: Activity,     starred: true },
+            { label: "Oportunidades",  href: "/crm/opportunities",     icon: ArrowUpRight  },
+            { label: "Atividades",     href: "/crm/activities",        icon: Activity      },
+            { label: "Analytics",      href: "/crm/analytics",         icon: BarChart3     },
+            { label: "Matriz RFM",     href: "/crm/rfm",               icon: PieChart      },
         ],
     },
     {
@@ -469,14 +297,14 @@ const AWQ_MODULES: AwqModule[] = [
         description: "Políticas, riscos, compliance, auditorias, controles",
         icon: ShieldCheck,
         items: [
-            { label: "Jurídico",    href: "/awq/juridico",      icon: Scale        },
-            { label: "Societário",  href: "/awq/societario",    icon: Building     },
-            { label: "Compliance",  href: "/awq/compliance",    icon: Lock         },
-            { label: "Segurança",   href: "/awq/security",      icon: ShieldAlert  },
-            { label: "Políticas",   href: "/awq/grc/policies",  icon: FileText     },
-            { label: "Riscos",      href: "/awq/grc/risks",     icon: AlertTriangle},
-            { label: "Auditorias",  href: "/awq/grc/audits",    icon: ClipboardList},
-            { label: "Controles",   href: "/awq/grc/controls",  icon: ShieldCheck  },
+            { label: "Jurídico",    href: "/awq/juridico",       icon: Scale         },
+            { label: "Societário",  href: "/awq/societario",     icon: Building      },
+            { label: "Compliance",  href: "/awq/compliance",     icon: Lock          },
+            { label: "Segurança",   href: "/awq/security",       icon: ShieldAlert   },
+            { label: "Políticas",   href: "/awq/grc/policies",   icon: FileText      },
+            { label: "Riscos",      href: "/awq/grc/risks",      icon: AlertTriangle },
+            { label: "Auditorias",  href: "/awq/grc/audits",     icon: ClipboardList },
+            { label: "Controles",   href: "/awq/grc/controls",   icon: ShieldCheck   },
         ],
     },
     {
@@ -491,10 +319,10 @@ const AWQ_MODULES: AwqModule[] = [
                 label: "Deal Pipeline",
                 icon: Activity,
                 items: [
-                    { label: "M&A Hub",         href: "/awq/ma",                  icon: GitMerge     },
-                    { label: "Deal Pipeline",   href: "/awq/ma/deals",            icon: Activity     },
-                    { label: "Novo Deal",       href: "/awq/ma/deals/new",        icon: FileText     },
-                    { label: "IC Meetings",     href: "/awq/ma/ic",               icon: Users        },
+                    { label: "M&A Hub",         href: "/awq/ma",                  icon: GitMerge  },
+                    { label: "Deal Pipeline",   href: "/awq/ma/deals",            icon: Activity  },
+                    { label: "Novo Deal",       href: "/awq/ma/deals/new",        icon: FileText  },
+                    { label: "IC Meetings",     href: "/awq/ma/ic",               icon: Users     },
                 ],
             },
             {
@@ -502,10 +330,10 @@ const AWQ_MODULES: AwqModule[] = [
                 label: "Portfolio Companies",
                 icon: Briefcase,
                 items: [
-                    { label: "Portfolio",       href: "/awq/portfolio",            icon: Briefcase    },
-                    { label: "Atualizar KPIs",  href: "/awq/portfolio/kpis",       icon: BarChart3    },
-                    { label: "Board Meetings",  href: "/awq/portfolio/board",      icon: Calendar     },
-                    { label: "Mídia M4E",       href: "/awq/portfolio/media",      icon: Film         },
+                    { label: "Portfolio",       href: "/awq/portfolio",           icon: Briefcase },
+                    { label: "Atualizar KPIs",  href: "/awq/portfolio/kpis",      icon: BarChart3 },
+                    { label: "Board Meetings",  href: "/awq/portfolio/board",     icon: Calendar  },
+                    { label: "Mídia M4E",       href: "/awq/portfolio/media",     icon: Film      },
                 ],
             },
             {
@@ -513,9 +341,9 @@ const AWQ_MODULES: AwqModule[] = [
                 label: "Analytics & Estrutura",
                 icon: DollarSign,
                 items: [
-                    { label: "Cap Table",       href: "/awq/ma/cap-table",         icon: Users        },
-                    { label: "Sinergias",        href: "/awq/ma/synergies",         icon: Layers       },
-                    { label: "Consolidação IC",  href: "/awq/ma/consolidation",     icon: Building2    },
+                    { label: "Cap Table",        href: "/awq/ma/cap-table",        icon: Users     },
+                    { label: "Sinergias",         href: "/awq/ma/synergies",        icon: Layers    },
+                    { label: "Consolidação IC",   href: "/awq/ma/consolidation",    icon: Building2 },
                 ],
             },
         ],
@@ -526,10 +354,10 @@ const AWQ_MODULES: AwqModule[] = [
         description: "Documentos, arquivos, versionamento, colaboração",
         icon: FolderOpen,
         items: [
-            { label: "Documentos",    href: "/awq/dms",                  icon: FileText     },
-            { label: "Arquivos",      href: "/awq/dms/files",            icon: FolderOpen   },
-            { label: "Versionamento", href: "/awq/dms/versioning",       icon: Layers       },
-            { label: "Colaboração",   href: "/awq/dms/collaboration",    icon: MessageSquare},
+            { label: "Documentos",    href: "/awq/dms",                  icon: FileText      },
+            { label: "Arquivos",      href: "/awq/dms/files",            icon: FolderOpen    },
+            { label: "Versionamento", href: "/awq/dms/versioning",       icon: Layers        },
+            { label: "Colaboração",   href: "/awq/dms/collaboration",    icon: MessageSquare },
         ],
     },
     {
@@ -576,9 +404,9 @@ const AWQ_MODULES: AwqModule[] = [
                 label: "Time & Expense",
                 icon: Clock,
                 items: [
-                    { label: "Timesheets",           href: "/awq/erp/timetracking",          icon: Clock        },
-                    { label: "Relatório de Despesas", href: "/awq/erp/expenses",             icon: Receipt      },
-                    { label: "Aprovações",           href: "/awq/erp/timeexpense/approvals", icon: CheckCircle2 },
+                    { label: "Timesheets",            href: "/awq/erp/timetracking",          icon: Clock        },
+                    { label: "Despesas",              href: "/awq/erp/expenses",              icon: Receipt      },
+                    { label: "Aprovações",            href: "/awq/erp/timeexpense/approvals", icon: CheckCircle2 },
                 ],
             },
             {
@@ -586,10 +414,10 @@ const AWQ_MODULES: AwqModule[] = [
                 label: "Contract Management",
                 icon: FileText,
                 items: [
-                    { label: "Contratos",       href: "/awq/erp/contracts",             icon: FileText     },
-                    { label: "Ciclo de Vida",   href: "/awq/erp/contracts/lifecycle",   icon: Activity     },
-                    { label: "Renovações",      href: "/awq/erp/contracts/renewals",    icon: RotateCcw    },
-                    { label: "Obrigações",      href: "/awq/erp/contracts/obligations", icon: ClipboardList},
+                    { label: "Contratos",      href: "/awq/erp/contracts",             icon: FileText      },
+                    { label: "Ciclo de Vida",  href: "/awq/erp/contracts/lifecycle",   icon: Activity      },
+                    { label: "Renovações",     href: "/awq/erp/contracts/renewals",    icon: RotateCcw     },
+                    { label: "Obrigações",     href: "/awq/erp/contracts/obligations", icon: ClipboardList },
                 ],
             },
             {
@@ -611,682 +439,523 @@ const AWQ_MODULES: AwqModule[] = [
         description: "RH, folha, férias, recrutamento, treinamento",
         icon: HeartPulse,
         items: [
-            { label: "RH",                href: "/awq/hcm",              icon: Users      },
+            { label: "RH",                 href: "/awq/hcm",             icon: Users      },
             { label: "Folha de Pagamento", href: "/awq/hcm/payroll",     icon: DollarSign },
-            { label: "Férias",            href: "/awq/hcm/vacation",     icon: Calendar   },
-            { label: "Recrutamento",      href: "/awq/hcm/recruitment",  icon: UserPlus   },
-            { label: "Treinamento",       href: "/awq/hcm/training",     icon: BookOpen   },
+            { label: "Férias",             href: "/awq/hcm/vacation",    icon: Calendar   },
+            { label: "Recrutamento",       href: "/awq/hcm/recruitment", icon: UserPlus   },
+            { label: "Treinamento",        href: "/awq/hcm/training",    icon: BookOpen   },
         ],
     },
 ];
 
-// ── Shared helpers ────────────────────────────────────────────────────────────
+// ── Business Units ─────────────────────────────────────────────────────────────
+const businessUnits = [
+    { id: "jacqes",  label: "JACQES",      sub: "Agência · AWQ Group",      href: "/jacqes",       icon: BarChart3,  color: "bg-brand-600"   },
+    { id: "caza",    label: "Caza Vision", sub: "Produtora · AWQ Group",    href: "/caza-vision",  icon: Building2,  color: "bg-emerald-600" },
+    { id: "venture", label: "AWQ Venture", sub: "Investimentos · AWQ Group",href: "/awq-venture",  icon: TrendingUp, color: "bg-amber-600"   },
+    { id: "advisor", label: "Advisor",     sub: "Consultoria · AWQ Group",  href: "/advisor",      icon: Briefcase,  color: "bg-brand-600"  },
+    { id: "enrd",    label: "ENRD",        sub: "Agência Solar · AWQ Group",href: "/enrd",         icon: Zap,        color: "bg-orange-600"  },
+];
+
+// ── BU module configs ─────────────────────────────────────────────────────────
+type BUModule = { id: string; label: string; description: string; icon: React.ElementType; items: ModuleItem[] };
+
+const JACQES_MODULES: BUModule[] = [
+    { id: "epm",  label: "EPM",    description: "Financeiro & Performance", icon: DollarSign, items: [
+        { label: "FP&A",        href: "/jacqes/fpa",            icon: BarChart3  },
+        { label: "Relatórios",  href: "/jacqes/reports",        icon: FileText   },
+    ]},
+    { id: "crm",  label: "CRM",    description: "Vendas & Relacionamento",  icon: Users,      items: [
+        { label: "Dashboard CRM",  href: "/crm",               icon: Target       },
+        { label: "Leads",          href: "/crm/leads",         icon: UserPlus     },
+        { label: "Pipeline",       href: "/crm/pipeline",      icon: Activity     },
+        { label: "Clientes",       href: "/crm/customers",     icon: Users        },
+        { label: "Oportunidades",  href: "/crm/opportunities", icon: ArrowUpRight },
+    ]},
+    { id: "bi",   label: "BI",     description: "Analytics & Relatórios",   icon: PieChart,   items: [
+        { label: "Mini P&L",       href: "/jacqes/pl",             icon: LineChart  },
+        { label: "Receita",        href: "/jacqes/revenue",        icon: TrendingUp },
+        { label: "Unit Economics", href: "/jacqes/unit-economics", icon: Calculator },
+    ]},
+    { id: "ops",  label: "Gestão", description: "Carreira & Operações",     icon: Briefcase,  items: [
+        { label: "Modo Carreira", href: "/jacqes/carreira", icon: Briefcase },
+    ]},
+];
+
+const CAZA_MODULES: BUModule[] = [
+    { id: "epm", label: "EPM", description: "Financeiro & Performance", icon: DollarSign, items: [
+        { label: "Financial",      href: "/caza-vision/financial",      icon: DollarSign },
+        { label: "Unit Economics", href: "/caza-vision/unit-economics", icon: Calculator },
+        { label: "Contas",         href: "/caza-vision/contas",         icon: Briefcase  },
+        { label: "Importar",       href: "/caza-vision/import",         icon: FileUp     },
+    ]},
+    { id: "ppm", label: "PPM", description: "Projetos & Portfólio",      icon: Film,       items: [
+        { label: "Projetos",       href: "/caza-vision/imoveis",   icon: Film          },
+        { label: "Portfolio AWQ",  href: "/awq/ppm",               icon: Briefcase     },
+        { label: "Gantt",          href: "/awq/ppm/gantt",         icon: GanttChart    },
+        { label: "Tarefas",        href: "/awq/ppm/tasks",         icon: ClipboardList },
+    ]},
+    { id: "crm", label: "CRM", description: "Clientes & Relacionamento",  icon: Users,      items: [
+        { label: "Clientes",      href: "/caza-vision/clientes", icon: Users  },
+        { label: "Dashboard CRM", href: "/crm",                  icon: Target },
+    ]},
+];
+
+const ADVISOR_MODULES: BUModule[] = [
+    { id: "epm", label: "EPM", description: "Financeiro & Performance",   icon: DollarSign, items: [
+        { label: "Financial", href: "/advisor/financial", icon: DollarSign },
+    ]},
+    { id: "crm", label: "CRM", description: "Clientes & Relacionamento",  icon: Users,      items: [
+        { label: "Customers", href: "/advisor/customers", icon: Users },
+    ]},
+];
+
+const VENTURE_MODULES: BUModule[] = [
+    { id: "epm", label: "EPM", description: "Financeiro & Performance",  icon: DollarSign, items: [
+        { label: "Financial", href: "/awq-venture/financial", icon: DollarSign },
+        { label: "YoY 2025",  href: "/awq-venture/yoy-2025",  icon: LineChart  },
+    ]},
+    { id: "crm", label: "CRM", description: "Comercial & Pipeline",      icon: TrendingUp, items: [
+        { label: "Comercial", href: "/awq-venture/comercial", icon: TrendingUp },
+        { label: "Deals",     href: "/awq-venture/deals",     icon: FileText   },
+        { label: "Pipeline",  href: "/awq-venture/pipeline",  icon: Activity   },
+        { label: "Sales",     href: "/awq-venture/sales",     icon: DollarSign },
+    ]},
+    { id: "ppm", label: "PPM", description: "Portfólio & Investimentos",  icon: Briefcase,  items: [
+        { label: "Portfólio", href: "/awq-venture/portfolio", icon: Briefcase },
+    ]},
+];
+
+const ENRD_MODULES: BUModule[] = [
+    { id: "epm", label: "EPM", description: "Financeiro & Performance",  icon: DollarSign, items: [
+        { label: "Financial (ENRD)",    href: "/enrd/financial",              icon: DollarSign    },
+        { label: "P&L (DRE)",           href: "/awq/epm/pl",                  icon: LineChart     },
+        { label: "Balanço Patrimonial", href: "/awq/epm/balance-sheet",       icon: Scale         },
+        { label: "Budget vs Actual",    href: "/awq/epm/budget",              icon: Target        },
+        { label: "KPI Dashboard",       href: "/awq/epm/kpis",                icon: PieChart      },
+        { label: "Contas a Pagar",      href: "/awq/epm/ap",                  icon: ArrowDownLeft },
+        { label: "Contas a Receber",    href: "/awq/epm/ar",                  icon: ArrowUpRight  },
+        { label: "Razão Geral (GL)",    href: "/awq/epm/gl",                  icon: ListOrdered   },
+        { label: "Conciliação",         href: "/awq/epm/bank-reconciliation", icon: Landmark      },
+        { label: "Forecast",            href: "/awq/epm/forecast",            icon: Activity      },
+        { label: "Ativo Imobilizado",   href: "/awq/epm/fixed-assets",        icon: Package       },
+        { label: "Centros de Custo",    href: "/awq/epm/cost-centers",        icon: LayoutGrid    },
+        { label: "Períodos",            href: "/awq/epm/periods",             icon: Lock          },
+    ]},
+    { id: "crm", label: "CRM", description: "Clientes & Relacionamento", icon: Users,      items: [
+        { label: "Clientes",      href: "/enrd/customers",     icon: Users    },
+        { label: "Dashboard CRM", href: "/crm",                icon: Target   },
+        { label: "Leads",         href: "/crm/leads?bu=ENRD",  icon: UserPlus },
+        { label: "Pipeline",      href: "/crm/pipeline",       icon: Activity },
+    ]},
+    { id: "ppm", label: "PPM", description: "Projetos & Portfólio",      icon: Briefcase,  items: [
+        { label: "Portfolio",      href: "/awq/ppm?bu=ENRD",     icon: Briefcase     },
+        { label: "Gantt",          href: "/awq/ppm/gantt",       icon: GanttChart    },
+        { label: "Tarefas",        href: "/awq/ppm/tasks",       icon: ClipboardList },
+        { label: "Novo Projeto",   href: "/awq/ppm/add?bu=ENRD", icon: FolderOpen    },
+    ]},
+    { id: "bi", label: "BI", description: "Analytics & Relatórios",       icon: PieChart,   items: [
+        { label: "Analytics", href: "/crm/analytics", icon: BarChart3 },
+        { label: "Pipeline",  href: "/crm/pipeline",  icon: Activity  },
+        { label: "RFM",       href: "/crm/rfm",       icon: PieChart  },
+    ]},
+];
+
+// ── Color tokens per BU ───────────────────────────────────────────────────────
+type BUColors = { iconBg: string; activeBg: string; activeText: string };
+const BU_COLORS: Record<string, BUColors> = {
+    jacqes:  { iconBg: "bg-brand-600",   activeBg: "bg-awq-gold",  activeText: "text-awq-navy" },
+    caza:    { iconBg: "bg-emerald-600",  activeBg: "bg-awq-gold",  activeText: "text-awq-navy" },
+    advisor: { iconBg: "bg-brand-600",   activeBg: "bg-awq-gold",  activeText: "text-awq-navy" },
+    venture: { iconBg: "bg-amber-600",    activeBg: "bg-awq-gold",  activeText: "text-awq-navy" },
+    enrd:    { iconBg: "bg-orange-600",   activeBg: "bg-awq-gold",  activeText: "text-awq-navy" },
+};
+
+// ── Shared visual primitives ──────────────────────────────────────────────────
+
+function NavBadge({ label, variant = "gold" }: { label: string; variant?: NavBadgeVariant }) {
+    return (
+        <span className={cn(
+            "text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none shrink-0",
+            variant === "gold"  && "bg-awq-gold text-awq-navy",
+            variant === "blue"  && "bg-blue-400/20 text-blue-300 border border-blue-400/30",
+            variant === "green" && "bg-emerald-400/20 text-emerald-300 border border-emerald-400/30",
+        )}>
+            {label}
+        </span>
+    );
+}
+
 function NavItem({
     href,
     icon: Icon,
     label,
     active,
+    badge,
+    badgeVariant,
+    starred,
 }: {
     href: string;
     icon: React.ElementType;
     label: string;
     active: boolean;
+    badge?: string;
+    badgeVariant?: NavBadgeVariant;
+    starred?: boolean;
 }) {
     return (
         <Link
             href={href}
             aria-current={active ? "page" : undefined}
             className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 group",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 focus-visible:ring-offset-1",
+                "flex items-center gap-2.5 px-3 py-[7px] rounded-lg text-[13px] transition-all duration-150 group",
+                "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30",
                 active
-                    ? "bg-brand-50 text-brand-700 shadow-sm"
-                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                    ? "bg-white text-gray-900 font-semibold shadow-sm"
+                    : "text-white hover:text-white hover:bg-white/[0.07] font-medium"
             )}
         >
             <Icon
-                size={16}
+                size={14}
                 className={cn(
                     "shrink-0 transition-colors",
-                    active ? "text-brand-600" : "text-gray-400 group-hover:text-gray-600"
+                    active ? "text-brand-600" : "text-white/80 group-hover:text-white"
                 )}
             />
             <span className="flex-1 truncate">{label}</span>
-            {active && <ChevronRight size={13} className="text-brand-400 shrink-0" />}
+            {badge && <NavBadge label={badge} variant={badgeVariant} />}
+            {starred && (
+                <Star
+                    size={10}
+                    className={cn(
+                        "shrink-0 transition-colors fill-current",
+                        active ? "text-gray-400" : "text-white/30 group-hover:text-white/60"
+                    )}
+                />
+            )}
         </Link>
     );
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
     return (
-        <div className="px-3 mb-1.5 mt-6 first:mt-2">
-            <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.08em]">
+        <div className="px-3 mb-1 mt-5 first:mt-2">
+            <span className="text-[9px] font-bold text-white/60 uppercase tracking-[0.12em]">
                 {children}
             </span>
         </div>
     );
 }
 
-// ── AWQ Group header ─────────────────────────────────────────────────────────
-function AwqHeader() {
+function PanelFooter() {
     return (
-        <div className="px-5 py-5 border-b border-gray-100">
-            <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-awq-gold to-amber-600 flex items-center justify-center shadow-md">
-                    <Zap size={17} className="text-gray-900" />
-                </div>
-                <div>
-                    <div className="text-sm font-bold text-gray-900">AWQ Group</div>
-                    <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
-                        Plataforma Central
-                    </div>
-                </div>
-            </div>
+        <div className="px-2 py-3 border-t border-white/[0.07] shrink-0">
+            <button className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-white/35 hover:text-white/60 hover:bg-white/[0.05] transition-all text-[11px]">
+                <ThumbsUp size={11} />
+                <span>Avalie o nosso design</span>
+            </button>
         </div>
     );
 }
 
-// ── Footer (BU sidebars) ──────────────────────────────────────────────────────
-const ROLE_LABELS: Record<string, string> = {
-  owner: "Owner",
-  admin: "Admin",
-  analyst: "Analyst",
-  "cs-ops": "CS Ops",
-};
-
-function SidebarFooter() {
-    const { data: session } = useSession();
-    const user = session?.user as { name?: string; email?: string; role?: string } | undefined;
-    const name = user?.name ?? user?.email ?? "Usuário";
-    const initials = name
-        .split(" ")
-        .filter(Boolean)
-        .slice(0, 2)
-        .map((w) => w[0])
-        .join("")
-        .toUpperCase() || "?";
-    const role = user?.role;
-    const roleLabel = ROLE_LABELS[role ?? ""] ?? role ?? "—";
-
-    return (
-        <div className="px-4 py-4 border-t border-gray-100">
-            <div className="flex items-center gap-3 px-1">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-awq-gold to-amber-600 flex items-center justify-center text-xs font-bold text-gray-900 shrink-0">
-                    {initials}
-                </div>
-                <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-gray-800 truncate">{name}</span>
-                        {role && (
-                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-200">
-                                {roleLabel.toUpperCase()}
-                            </span>
-                        )}
-                    </div>
-                    <div className="text-[10px] text-gray-400 truncate">{user?.email ?? "—"}</div>
-                </div>
-                <button
-                    onClick={() => void signOut({ callbackUrl: "/login" })}
-                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                    title="Sair"
-                >
-                    <LogOut size={14} />
-                </button>
-            </div>
-        </div>
-    );
-}
-
-// ── Slim footer for icon sidebar ──────────────────────────────────────────────
-function SlimSidebarFooter() {
+function SlimUserButton() {
     const { data: session } = useSession();
     const user = session?.user as { name?: string; email?: string } | undefined;
     const name = user?.name ?? user?.email ?? "?";
-    const initials =
-        name.split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase() || "?";
-
+    const initials = name.split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase() || "?";
     return (
-        <div className="px-2 py-3 border-t border-gray-100 shrink-0">
+        <div className="px-1.5 py-3 border-t border-white/[0.07] shrink-0">
             <button
                 onClick={() => void signOut({ callbackUrl: "/login" })}
                 title="Sair"
-                className="flex flex-col items-center gap-0.5 w-full py-1.5 rounded-lg hover:bg-red-50 transition-colors group"
+                className="flex flex-col items-center gap-0.5 w-full py-1.5 rounded-lg hover:bg-red-500/10 transition-colors group"
             >
                 <div className="w-7 h-7 rounded-full bg-gradient-to-br from-awq-gold to-amber-600 flex items-center justify-center text-[10px] font-bold text-gray-900">
                     {initials}
                 </div>
-                <LogOut size={10} className="text-gray-300 group-hover:text-red-400 transition-colors" />
+                <LogOut size={9} className="text-white/25 group-hover:text-red-400 transition-colors" />
             </button>
         </div>
     );
 }
 
-// ── CollapsibleSection (used by BU sidebars) ──────────────────────────────────
-function CollapsibleSection({
-    label,
-    icon: Icon,
-    isAnyActive,
-    isOpen,
+// ── Icon bar (shared across AWQ routes) ───────────────────────────────────────
+function IconBar({
+    pathname,
+    activePanel,
     onToggle,
-    children,
+    modules,
+    showBus = true,
+    showAi = true,
+    getModuleActive,
 }: {
-    label: string;
-    icon: React.ElementType;
-    isAnyActive: boolean;
-    isOpen: boolean;
-    onToggle: () => void;
-    children: React.ReactNode;
+    pathname: string;
+    activePanel: string | null;
+    onToggle: (id: string) => void;
+    modules: Array<{ id: string; label: string; icon: React.ElementType }>;
+    showBus?: boolean;
+    showAi?: boolean;
+    getModuleActive: (id: string) => boolean;
 }) {
     return (
-        <div className="mt-0.5">
-            <button
-                onClick={onToggle}
-                className={cn(
-                    "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 focus-visible:ring-offset-1",
-                    isAnyActive
-                        ? "bg-brand-50 text-brand-700 shadow-sm"
-                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+        <div className="flex flex-col h-full w-[52px] bg-[#0487D9] shrink-0">
+            {/* Logo */}
+            <div className="h-[52px] flex items-center justify-center border-b border-white/[0.06] shrink-0">
+                <Link href="/awq">
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-awq-gold to-amber-600 flex items-center justify-center shadow-md">
+                        <Zap size={15} className="text-gray-900" />
+                    </div>
+                </Link>
+            </div>
+
+            {/* Home */}
+            <div className="px-1.5 pt-1.5 shrink-0">
+                <Link
+                    href="/awq"
+                    title="Visão Geral"
+                    className={cn(
+                        "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
+                        pathname === "/awq"
+                            ? "bg-white text-brand-600"
+                            : "text-white hover:bg-white/[0.10] hover:text-white"
+                    )}
+                >
+                    <LayoutDashboard size={18} />
+                </Link>
+            </div>
+
+            <div className="mx-2 my-1 border-t border-white/[0.06] shrink-0" />
+
+            {/* Module icons */}
+            <nav className="flex-1 overflow-y-auto px-1.5 py-0.5 space-y-0.5 scrollbar-none">
+                {modules.map((mod) => {
+                    const modActive = getModuleActive(mod.id);
+                    const isOpen = activePanel === mod.id;
+                    const ModIcon = mod.icon;
+                    return (
+                        <button
+                            key={mod.id}
+                            onClick={() => onToggle(mod.id)}
+                            title={mod.label}
+                            className={cn(
+                                "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
+                                isOpen
+                                    ? "bg-white text-brand-600"
+                                    : modActive
+                                    ? "text-white"
+                                    : "text-white hover:bg-white/[0.10] hover:text-white"
+                            )}
+                        >
+                            <ModIcon size={18} className="shrink-0" />
+                        </button>
+                    );
+                })}
+            </nav>
+
+            <div className="mx-2 my-1 border-t border-white/[0.06] shrink-0" />
+
+            {/* Bottom icons */}
+            <div className="px-1.5 pb-1 space-y-0.5 shrink-0">
+                {showBus && (
+                    <button
+                        onClick={() => onToggle("bus")}
+                        title="Business Units"
+                        className={cn(
+                            "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
+                            activePanel === "bus"
+                                ? "bg-white text-brand-600"
+                                : "text-white hover:bg-white/[0.10] hover:text-white"
+                        )}
+                    >
+                        <Building2 size={18} />
+                    </button>
                 )}
-            >
-                <Icon
-                    size={16}
-                    className={cn("shrink-0 transition-colors", isAnyActive ? "text-brand-600" : "text-gray-400")}
-                />
-                <span className="flex-1 text-left truncate">{label}</span>
-                {isOpen ? (
-                    <ChevronDown size={13} className="shrink-0 text-gray-400" />
-                ) : (
-                    <ChevronRight size={13} className="shrink-0 text-gray-400" />
+                {showAi && (
+                    <button
+                        onClick={() => onToggle("ai")}
+                        title="IA & Agentes"
+                        className={cn(
+                            "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
+                            activePanel === "ai"
+                                ? "bg-white text-brand-600"
+                                : "text-white hover:bg-white/[0.10] hover:text-white"
+                        )}
+                    >
+                        <Bot size={18} />
+                    </button>
                 )}
-            </button>
-            {isOpen && (
-                <div className="ml-3 mt-0.5 pl-3 border-l border-gray-100 space-y-0.5">
-                    {children}
-                </div>
-            )}
+                <Link
+                    href="/settings"
+                    title="Settings"
+                    className={cn(
+                        "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
+                        pathname.startsWith("/settings")
+                            ? "bg-white text-brand-600"
+                            : "text-white hover:bg-white/[0.10] hover:text-white"
+                    )}
+                >
+                    <Settings size={18} />
+                </Link>
+            </div>
+
+            <SlimUserButton />
         </div>
     );
 }
 
-// ── AWQ Group sidebar — icon-only with flyout panels ─────────────────────────
+// ── Panel helpers ─────────────────────────────────────────────────────────────
+function PanelHeader({ title, onBack }: { title: string; onBack: () => void }) {
+    return (
+        <div className="h-[52px] flex items-center gap-2 px-3 border-b border-white/[0.07] shrink-0">
+            <button
+                onClick={onBack}
+                className="p-1 text-white/40 hover:text-white/80 transition-colors rounded-md hover:bg-white/[0.07] shrink-0"
+            >
+                <ChevronLeft size={15} />
+            </button>
+            <span className="text-[13px] font-semibold text-white truncate">{title}</span>
+        </div>
+    );
+}
+
+// ── AWQ Sidebar — unified, persistent two-panel ───────────────────────────────
 function AwqSidebar({ pathname }: { pathname: string }) {
-    const [activePanel, setActivePanel] = useState<string | null>(null);
-
-    // Close flyout on navigation
-    useEffect(() => {
-        setActivePanel(null);
-    }, [pathname]);
-
-    const isActive = (href: string) =>
-        href === "/awq"
-            ? pathname === "/awq"
-            : pathname === href || pathname.startsWith(href + "/");
-
     const getAllItems = (mod: AwqModule): ModuleItem[] => [
         ...mod.items,
         ...(mod.sections?.flatMap((s) => s.items) ?? []),
     ];
-    const isModuleActive = (items: ModuleItem[]) =>
-        items.some((i) => isActive(i.href));
 
-    const togglePanel = (id: string) =>
-        setActivePanel((prev) => (prev === id ? null : id));
+    const isActive = (href: string) =>
+        href === "/awq" || href === "/crm"
+            ? pathname === href
+            : pathname === href || pathname.startsWith(href + "/");
 
-    // Resolve flyout content
+    const findDefaultPanel = (): string | null => {
+        if (isEpmRoute(pathname))  return "epm";
+        if (isCrmRoute(pathname))  return "crm";
+        if (isPpmRoute(pathname))  return "ppm";
+        if (isBiRoute(pathname))   return "bi";
+        if (isMaRoute(pathname))   return "ma";
+        if (isSettingsRoute(pathname)) return "settings";
+        for (const mod of AWQ_MODULES) {
+            if (getAllItems(mod).some((i) => isActive(i.href))) return mod.id;
+        }
+        return null;
+    };
+
+    const [activePanel, setActivePanel] = useState<string | null>(findDefaultPanel);
+    const navRef = useRef<HTMLElement>(null);
+
+    useEffect(() => {
+        const found = findDefaultPanel();
+        if (found) setActivePanel(found);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [pathname]);
+
+    const togglePanel = (id: string) => setActivePanel((p) => (p === id ? null : id));
+
+    const getModuleActive = (id: string) => {
+        const mod = AWQ_MODULES.find((m) => m.id === id);
+        if (!mod) return false;
+        return getAllItems(mod).some((i) => isActive(i.href));
+    };
+
     const activeMod = AWQ_MODULES.find((m) => m.id === activePanel);
 
+    const panelTitle =
+        activePanel === "bus"      ? "Business Units"
+        : activePanel === "ai"     ? "IA & Agentes"
+        : activePanel === "settings" ? "Configurações"
+        : activeMod?.label ?? "";
+
     return (
-        <>
-            {/* ── Icon bar ─────────────────────────────────────────── */}
-            <div className="flex flex-col h-full w-16 bg-white border-r border-gray-100 relative z-30">
-                {/* Logo */}
-                <div className="h-14 flex items-center justify-center border-b border-gray-100 shrink-0">
-                    <Link href="/awq" onClick={() => setActivePanel(null)}>
-                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-awq-gold to-amber-600 flex items-center justify-center shadow-md">
-                            <Zap size={17} className="text-gray-900" />
-                        </div>
-                    </Link>
-                </div>
+        <div className="flex h-full">
+            <IconBar
+                pathname={pathname}
+                activePanel={activePanel}
+                onToggle={togglePanel}
+                modules={AWQ_MODULES}
+                getModuleActive={getModuleActive}
+            />
 
-                {/* Home shortcut */}
-                <div className="px-2 pt-2 shrink-0">
-                    <Link
-                        href="/awq"
-                        onClick={() => setActivePanel(null)}
-                        title="Visão Geral"
-                        className={cn(
-                            "flex flex-col items-center gap-0.5 py-2 px-1 rounded-lg transition-all w-full",
-                            pathname === "/awq"
-                                ? "bg-brand-50 text-brand-700"
-                                : "text-gray-400 hover:bg-gray-50 hover:text-gray-700"
-                        )}
-                    >
-                        <LayoutDashboard size={18} />
-                        <span className="text-[9px] font-semibold leading-none">Início</span>
-                    </Link>
-                </div>
-
-                <div className="mx-3 my-1.5 border-t border-gray-100 shrink-0" />
-
-                {/* Module icons */}
-                <nav className="flex-1 overflow-y-auto px-2 py-1 space-y-0.5 scrollbar-none">
-                    {AWQ_MODULES.map((mod) => {
-                        const modActive = isModuleActive(getAllItems(mod));
-                        const isOpen = activePanel === mod.id;
-                        return (
-                            <button
-                                key={mod.id}
-                                onClick={() => togglePanel(mod.id)}
-                                title={`${mod.label}`}
-                                className={cn(
-                                    "flex flex-col items-center gap-0.5 py-2 px-1 rounded-lg transition-all w-full",
-                                    isOpen
-                                        ? "bg-brand-600 text-white shadow-sm"
-                                        : modActive
-                                        ? "bg-brand-50 text-brand-700"
-                                        : "text-gray-400 hover:bg-gray-50 hover:text-gray-700"
-                                )}
-                            >
-                                <mod.icon size={18} className="shrink-0" />
-                                <span className="text-[9px] font-bold leading-none tracking-wide">
-                                    {mod.label}
-                                </span>
-                            </button>
-                        );
-                    })}
-                </nav>
-
-                <div className="mx-3 my-1.5 border-t border-gray-100 shrink-0" />
-
-                {/* Bottom icons */}
-                <div className="px-2 pb-1 space-y-0.5 shrink-0">
-                    {/* Business Units */}
-                    <button
-                        onClick={() => togglePanel("bus")}
-                        title="Business Units"
-                        className={cn(
-                            "flex flex-col items-center gap-0.5 py-2 px-1 rounded-lg transition-all w-full",
-                            activePanel === "bus"
-                                ? "bg-brand-600 text-white"
-                                : "text-gray-400 hover:bg-gray-50 hover:text-gray-700"
-                        )}
-                    >
-                        <Building2 size={18} />
-                        <span className="text-[9px] font-bold leading-none">BUs</span>
-                    </button>
-
-                    {/* IA & Agentes */}
-                    <button
-                        onClick={() => togglePanel("ai")}
-                        title="IA & Agentes"
-                        className={cn(
-                            "flex flex-col items-center gap-0.5 py-2 px-1 rounded-lg transition-all w-full",
-                            activePanel === "ai"
-                                ? "bg-brand-600 text-white"
-                                : "text-gray-400 hover:bg-gray-50 hover:text-gray-700"
-                        )}
-                    >
-                        <Bot size={18} />
-                        <span className="text-[9px] font-bold leading-none">IA</span>
-                    </button>
-
-                    {/* Settings */}
-                    <Link
-                        href="/settings"
-                        title="Settings"
-                        className={cn(
-                            "flex flex-col items-center gap-0.5 py-2 px-1 rounded-lg transition-all w-full",
-                            pathname === "/settings"
-                                ? "bg-brand-50 text-brand-700"
-                                : "text-gray-400 hover:bg-gray-50 hover:text-gray-700"
-                        )}
-                    >
-                        <Settings size={18} />
-                    </Link>
-                </div>
-
-                <SlimSidebarFooter />
-            </div>
-
-            {/* ── Flyout panel ─────────────────────────────────────── */}
             {activePanel && (
-                <>
-                    {/* Backdrop — click outside to close */}
-                    <div
-                        className="fixed inset-0 z-20"
-                        onClick={() => setActivePanel(null)}
-                    />
+                <div className="w-[220px] bg-[#023373] flex flex-col border-r border-white/[0.06] overflow-hidden">
+                    <PanelHeader title={panelTitle} onBack={() => setActivePanel(null)} />
 
-                    {/* Panel */}
-                    <div className="fixed left-16 top-0 h-full w-64 bg-white border-r border-gray-200 shadow-2xl z-30 flex flex-col">
-                        {/* Panel header */}
-                        <div className="px-4 py-4 border-b border-gray-100 flex items-start justify-between shrink-0">
-                            <div>
-                                <div className="text-sm font-bold text-gray-900">
-                                    {activePanel === "bus"
-                                        ? "Business Units"
-                                        : activePanel === "ai"
-                                        ? "IA & Agentes"
-                                        : activeMod?.label}
-                                </div>
-                                <div className="text-[11px] text-gray-400 mt-0.5 leading-snug">
-                                    {activePanel === "bus"
-                                        ? "Unidades de Negócio"
-                                        : activePanel === "ai"
-                                        ? "Agentes e ferramentas"
-                                        : activeMod?.description}
-                                </div>
-                            </div>
-                            <button
-                                onClick={() => setActivePanel(null)}
-                                className="p-1 text-gray-300 hover:text-gray-500 rounded transition-colors shrink-0 ml-2"
-                            >
-                                <X size={14} />
-                            </button>
-                        </div>
-
-                        {/* Panel nav */}
-                        <nav className="flex-1 overflow-y-auto px-3 py-2">
-                            {activePanel === "bus" && (
-                                <div className="space-y-2 mt-1">
-                                    {businessUnits.map((bu) => (
-                                        <Link
-                                            key={bu.id}
-                                            href={bu.href}
-                                            onClick={() => setActivePanel(null)}
-                                            className="flex items-center gap-3 px-3 py-3 rounded-xl border border-gray-200 hover:border-brand-200 hover:bg-brand-50 transition-all group"
-                                        >
-                                            <div className={`w-8 h-8 rounded-lg ${bu.color} flex items-center justify-center shrink-0`}>
-                                                <bu.icon size={14} className="text-gray-900" />
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="text-sm font-semibold text-gray-800 group-hover:text-brand-700">
-                                                    {bu.label}
-                                                </div>
-                                                <div className="text-[10px] text-gray-400">{bu.sub}</div>
-                                            </div>
-                                            <ChevronRight size={14} className="text-gray-400 group-hover:text-brand-600" />
-                                        </Link>
-                                    ))}
-                                </div>
-                            )}
-
-                            {activePanel === "ai" && (
-                                <div className="space-y-0.5 mt-1">
-                                    {aiNav.map((item) => (
-                                        <NavItem
-                                            key={item.href}
-                                            {...item}
-                                            active={isActive(item.href)}
-                                        />
-                                    ))}
-                                </div>
-                            )}
-
-                            {activeMod && (
-                                activeMod.sections ? (
-                                    activeMod.sections.map((section) => (
-                                        <div key={section.id}>
-                                            <div className="flex items-center gap-1.5 px-2 pt-4 pb-1 first:pt-2">
-                                                <section.icon size={11} className="text-gray-400" />
-                                                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-[0.1em]">
-                                                    {section.label}
-                                                </span>
-                                            </div>
-                                            <div className="space-y-0.5">
-                                                {section.items.map((item) => (
-                                                    <NavItem
-                                                        key={item.href}
-                                                        {...item}
-                                                        active={isActive(item.href)}
-                                                    />
-                                                ))}
-                                            </div>
+                    <nav className="flex-1 overflow-y-auto px-2 py-2 scrollbar-none">
+                        {activePanel === "bus" && (
+                            <div className="space-y-1 mt-1">
+                                {businessUnits.map((bu) => (
+                                    <Link
+                                        key={bu.id}
+                                        href={bu.href}
+                                        className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-white/[0.07] hover:border-awq-gold/30 hover:bg-white/[0.04] transition-all group"
+                                    >
+                                        <div className={cn("w-6 h-6 rounded-lg flex items-center justify-center shrink-0", bu.color)}>
+                                            <bu.icon size={12} className="text-white" />
                                         </div>
-                                    ))
-                                ) : (
-                                    <div className="space-y-0.5 mt-1">
-                                        {activeMod.items.map((item) => (
-                                            <NavItem
-                                                key={item.href}
-                                                {...item}
-                                                active={isActive(item.href)}
-                                            />
-                                        ))}
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-[12px] font-semibold text-white/80 group-hover:text-white truncate">{bu.label}</div>
+                                            <div className="text-[10px] text-white/30 truncate">{bu.sub}</div>
+                                        </div>
+                                        <ChevronRight size={11} className="text-white/25 group-hover:text-awq-gold shrink-0" />
+                                    </Link>
+                                ))}
+                            </div>
+                        )}
+
+                        {activePanel === "ai" && (
+                            <div className="space-y-0.5 mt-1">
+                                {aiNav.map((item) => (
+                                    <NavItem key={item.href} {...item} active={isActive(item.href)} />
+                                ))}
+                            </div>
+                        )}
+
+                        {activePanel === "settings" && (
+                            <>
+                                <SectionLabel>Configurações</SectionLabel>
+                                <div className="space-y-0.5">
+                                    {settingsPanelItems.map((item) => (
+                                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
+                                    ))}
+                                </div>
+                            </>
+                        )}
+
+                        {activeMod && (
+                            activeMod.sections ? (
+                                activeMod.sections.map((section) => (
+                                    <div key={section.id}>
+                                        <SectionLabel>{section.label}</SectionLabel>
+                                        <div className="space-y-0.5">
+                                            {section.items.map((item) => (
+                                                <NavItem key={item.href} {...item} active={isActive(item.href)} />
+                                            ))}
+                                        </div>
                                     </div>
-                                )
-                            )}
-                        </nav>
-                    </div>
-                </>
+                                ))
+                            ) : (
+                                <div className="space-y-0.5 mt-1">
+                                    {activeMod.items.map((item) => (
+                                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
+                                    ))}
+                                </div>
+                            )
+                        )}
+                    </nav>
+
+                    <PanelFooter />
+                </div>
             )}
-        </>
+        </div>
     );
 }
 
-// ── BU sidebar — generic icon-only + flyout ───────────────────────────────────
-// Each BU defines its own modules using only its own routes (no cross-BU data).
-
-type BUModule = {
-    id: string;
-    label: string;
-    description: string;
-    icon: React.ElementType;
-    items: ModuleItem[];
-};
-
-// Per-BU color tokens (full Tailwind class strings for JIT)
-type BUColors = {
-    iconBg: string;   // open/selected icon button bg
-    activeBg: string; // active route highlight bg
-    activeText: string;
-};
-
-const BU_COLORS: Record<string, BUColors> = {
-    jacqes:  { iconBg: "bg-brand-600",   activeBg: "bg-brand-50",   activeText: "text-brand-700"   },
-    caza:    { iconBg: "bg-emerald-600",  activeBg: "bg-emerald-50", activeText: "text-emerald-700" },
-    advisor: { iconBg: "bg-violet-600",   activeBg: "bg-violet-50",  activeText: "text-violet-700"  },
-    venture: { iconBg: "bg-amber-600",    activeBg: "bg-amber-50",   activeText: "text-amber-700"   },
-    enrd:    { iconBg: "bg-orange-600",   activeBg: "bg-orange-50",  activeText: "text-orange-700"  },
-};
-
-// ── Module configs — only existing BU routes, no new pages ────────────────────
-
-const JACQES_MODULES: BUModule[] = [
-    {
-        id: "epm",
-        label: "EPM",
-        description: "Financeiro & Performance",
-        icon: DollarSign,
-        items: [
-            { label: "FP&A",       href: "/jacqes/fpa",     icon: BarChart3 },
-            { label: "Relatórios", href: "/jacqes/reports", icon: FileText  },
-        ],
-    },
-    {
-        id: "crm",
-        label: "CRM",
-        description: "Vendas & Relacionamento",
-        icon: Users,
-        items: [
-            { label: "Dashboard CRM",  href: "/crm",               icon: Target       },
-            { label: "Leads",          href: "/crm/leads",         icon: UserPlus     },
-            { label: "Pipeline",       href: "/crm/pipeline",      icon: Activity     },
-            { label: "Clientes",       href: "/crm/customers",     icon: Users        },
-            { label: "Oportunidades",  href: "/crm/opportunities", icon: ArrowUpRight },
-        ],
-    },
-    {
-        id: "bi",
-        label: "BI",
-        description: "Analytics & Relatórios",
-        icon: PieChart,
-        items: [
-            { label: "Mini P&L",       href: "/jacqes/pl",             icon: LineChart  },
-            { label: "Receita",        href: "/jacqes/revenue",        icon: TrendingUp },
-            { label: "Unit Economics", href: "/jacqes/unit-economics", icon: Calculator },
-            { label: "FP&A",          href: "/jacqes/fpa",            icon: BarChart3  },
-            { label: "Relatórios",    href: "/jacqes/reports",        icon: FileText   },
-        ],
-    },
-    {
-        id: "ops",
-        label: "Gestão",
-        description: "Carreira & Operações",
-        icon: Briefcase,
-        items: [
-            { label: "Modo Carreira", href: "/jacqes/carreira", icon: Briefcase },
-        ],
-    },
-];
-
-const CAZA_MODULES: BUModule[] = [
-    {
-        id: "epm",
-        label: "EPM",
-        description: "Financeiro & Performance",
-        icon: DollarSign,
-        items: [
-            { label: "Financial",      href: "/caza-vision/financial",      icon: DollarSign },
-            { label: "Unit Economics", href: "/caza-vision/unit-economics", icon: Calculator },
-            { label: "Contas",         href: "/caza-vision/contas",         icon: Briefcase  },
-            { label: "Importar",       href: "/caza-vision/import",         icon: FileUp     },
-        ],
-    },
-    {
-        id: "ppm",
-        label: "PPM",
-        description: "Projetos & Portfólio",
-        icon: Film,
-        items: [
-            { label: "Projetos",       href: "/caza-vision/imoveis",    icon: Film         },
-            { label: "Portfolio AWQ",  href: "/awq/ppm",                icon: Briefcase    },
-            { label: "Gantt",          href: "/awq/ppm/gantt",          icon: GanttChart   },
-            { label: "Tarefas",        href: "/awq/ppm/tasks",          icon: ClipboardList},
-            { label: "Timesheets",     href: "/awq/ppm/timesheets",     icon: Clock        },
-            { label: "Recursos",       href: "/awq/ppm/resources",      icon: Users        },
-        ],
-    },
-    {
-        id: "crm",
-        label: "CRM",
-        description: "Clientes & Relacionamento",
-        icon: Users,
-        items: [
-            { label: "Clientes",      href: "/caza-vision/clientes", icon: Users  },
-            { label: "Dashboard CRM", href: "/crm",                  icon: Target },
-        ],
-    },
-];
-
-const ADVISOR_MODULES: BUModule[] = [
-    {
-        id: "epm",
-        label: "EPM",
-        description: "Financeiro & Performance",
-        icon: DollarSign,
-        items: [
-            { label: "Financial", href: "/advisor/financial", icon: DollarSign },
-        ],
-    },
-    {
-        id: "crm",
-        label: "CRM",
-        description: "Clientes & Relacionamento",
-        icon: Users,
-        items: [
-            { label: "Customers", href: "/advisor/customers", icon: Users },
-        ],
-    },
-];
-
-const VENTURE_MODULES: BUModule[] = [
-    {
-        id: "epm",
-        label: "EPM",
-        description: "Financeiro & Performance",
-        icon: DollarSign,
-        items: [
-            { label: "Financial", href: "/awq-venture/financial",  icon: DollarSign },
-            { label: "YoY 2025",  href: "/awq-venture/yoy-2025",   icon: LineChart  },
-        ],
-    },
-    {
-        id: "crm",
-        label: "CRM",
-        description: "Comercial & Pipeline",
-        icon: TrendingUp,
-        items: [
-            { label: "Comercial", href: "/awq-venture/comercial", icon: TrendingUp },
-            { label: "Deals",     href: "/awq-venture/deals",     icon: FileText   },
-            { label: "Pipeline",  href: "/awq-venture/pipeline",  icon: Activity   },
-            { label: "Sales",     href: "/awq-venture/sales",     icon: DollarSign },
-        ],
-    },
-    {
-        id: "ppm",
-        label: "PPM",
-        description: "Portfólio & Investimentos",
-        icon: Briefcase,
-        items: [
-            { label: "Portfólio", href: "/awq-venture/portfolio", icon: Briefcase },
-        ],
-    },
-];
-
-const ENRD_MODULES: BUModule[] = [
-    {
-        id: "epm",
-        label: "EPM",
-        description: "Financeiro & Performance",
-        icon: DollarSign,
-        items: [
-            { label: "Financial", href: "/enrd/financial", icon: DollarSign },
-        ],
-    },
-    {
-        id: "crm",
-        label: "CRM",
-        description: "Clientes & Relacionamento",
-        icon: Users,
-        items: [
-            { label: "Clientes",      href: "/enrd/customers", icon: Users   },
-            { label: "Dashboard CRM", href: "/crm",            icon: Target  },
-            { label: "Leads",         href: "/crm/leads?bu=ENRD", icon: UserPlus },
-            { label: "Pipeline",      href: "/crm/pipeline",   icon: Activity },
-        ],
-    },
-    {
-        id: "ppm",
-        label: "PPM",
-        description: "Projetos & Portfólio",
-        icon: Briefcase,
-        items: [
-            { label: "Portfolio",  href: "/awq/ppm?bu=ENRD",   icon: Briefcase    },
-            { label: "Gantt",      href: "/awq/ppm/gantt",     icon: GanttChart   },
-            { label: "Tarefas",    href: "/awq/ppm/tasks",     icon: ClipboardList},
-            { label: "Timesheets", href: "/awq/ppm/timesheets",icon: Clock        },
-            { label: "Novo Projeto",href: "/awq/ppm/add?bu=ENRD", icon: FolderOpen },
-        ],
-    },
-    {
-        id: "bi",
-        label: "BI",
-        description: "Analytics & Relatórios",
-        icon: PieChart,
-        items: [
-            { label: "Analytics",  href: "/crm/analytics",    icon: BarChart3  },
-            { label: "Pipeline",   href: "/crm/pipeline",     icon: Activity   },
-            { label: "RFM",        href: "/crm/rfm",          icon: PieChart   },
-        ],
-    },
-];
-
-// ── Generic BU sidebar component ──────────────────────────────────────────────
+// ── BU Sidebar — persistent icon bar + panel ──────────────────────────────────
 function BUSidebar({
     buId,
-    label,
+    label: _label,
     homeHref,
     headerIcon: HeaderIcon,
     modules,
@@ -1301,651 +970,196 @@ function BUSidebar({
     pathname: string;
     showBack?: boolean;
 }) {
-    const [activePanel, setActivePanel] = useState<string | null>(null);
     const colors = BU_COLORS[buId] ?? BU_COLORS.jacqes;
-
-    useEffect(() => { setActivePanel(null); }, [pathname]);
 
     const isActive = (href: string) =>
         href === homeHref ? pathname === homeHref : pathname === href || pathname.startsWith(href + "/");
 
-    const isModuleActive = (items: ModuleItem[]) => items.some((i) => isActive(i.href));
+    const findDefaultPanel = () =>
+        modules.find((m) => m.items.some((i) => isActive(i.href)))?.id
+        ?? (pathname === homeHref ? modules[0]?.id ?? null : null);
 
-    const togglePanel = (id: string) => setActivePanel((prev) => (prev === id ? null : id));
+    const [activePanel, setActivePanel] = useState<string | null>(findDefaultPanel);
 
+    useEffect(() => {
+        const found = findDefaultPanel();
+        if (found) setActivePanel(found);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [pathname]);
+
+    const togglePanel = (id: string) => setActivePanel((p) => (p === id ? null : id));
     const activeMod = modules.find((m) => m.id === activePanel);
 
     return (
-        <>
-            {/* ── Icon bar ─────────────────────────────────────────── */}
-            <div className="flex flex-col h-full w-16 bg-white border-r border-gray-100 relative z-30">
-
+        <div className="flex h-full">
+            {/* Icon bar */}
+            <div className="flex flex-col h-full w-[52px] bg-[#0487D9] shrink-0">
                 {/* BU logo */}
-                <div className="h-14 flex items-center justify-center border-b border-gray-100 shrink-0">
-                    <Link href={homeHref} onClick={() => setActivePanel(null)} title={label}>
-                        <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center shadow-md", colors.iconBg)}>
-                            <HeaderIcon size={17} className="text-white" />
+                <div className="h-[52px] flex items-center justify-center border-b border-white/[0.06] shrink-0">
+                    <Link href={homeHref} title={buId}>
+                        <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center shadow-md", colors.iconBg)}>
+                            <HeaderIcon size={15} className="text-white" />
                         </div>
                     </Link>
                 </div>
 
-                {/* Back to AWQ */}
                 {showBack && (
-                    <div className="px-2 pt-2 shrink-0">
+                    <div className="px-1.5 pt-1.5 shrink-0">
                         <Link
                             href="/business-units"
                             title="Voltar para AWQ Group"
-                            className="flex flex-col items-center gap-0.5 py-2 px-1 rounded-lg w-full text-gray-400 hover:bg-gray-50 hover:text-gray-600 transition-all"
+                            className="flex items-center justify-center py-2.5 px-1 rounded-lg w-full text-white hover:bg-white/[0.10] hover:text-white transition-all"
                         >
                             <ChevronLeft size={18} />
-                            <span className="text-[9px] font-semibold leading-none">AWQ</span>
                         </Link>
                     </div>
                 )}
 
-                <div className="mx-3 my-1.5 border-t border-gray-100 shrink-0" />
+                <div className="mx-2 my-1 border-t border-white/[0.06] shrink-0" />
 
                 {/* Home */}
-                <div className="px-2 shrink-0">
+                <div className="px-1.5 shrink-0">
                     <Link
                         href={homeHref}
-                        onClick={() => setActivePanel(null)}
                         title="Visão Geral"
                         className={cn(
-                            "flex flex-col items-center gap-0.5 py-2 px-1 rounded-lg transition-all w-full",
+                            "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                             pathname === homeHref
-                                ? cn(colors.activeBg, colors.activeText)
-                                : "text-gray-400 hover:bg-gray-50 hover:text-gray-700"
+                                ? "bg-white text-brand-600"
+                                : "text-white hover:bg-white/[0.10] hover:text-white"
                         )}
                     >
                         <LayoutDashboard size={18} />
-                        <span className="text-[9px] font-semibold leading-none">Início</span>
                     </Link>
                 </div>
 
-                <div className="mx-3 my-1.5 border-t border-gray-100 shrink-0" />
+                <div className="mx-2 my-1 border-t border-white/[0.06] shrink-0" />
 
                 {/* Module icons */}
-                <nav className="flex-1 overflow-y-auto px-2 py-1 space-y-0.5 scrollbar-none">
+                <nav className="flex-1 overflow-y-auto px-1.5 py-0.5 space-y-0.5 scrollbar-none">
                     {modules.map((mod) => {
-                        const modActive = isModuleActive(mod.items);
+                        const modActive = mod.items.some((i) => isActive(i.href));
                         const isOpen = activePanel === mod.id;
+                        const ModIcon = mod.icon;
                         return (
                             <button
                                 key={mod.id}
                                 onClick={() => togglePanel(mod.id)}
                                 title={mod.label}
                                 className={cn(
-                                    "flex flex-col items-center gap-0.5 py-2 px-1 rounded-lg transition-all w-full",
+                                    "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                                     isOpen
-                                        ? cn(colors.iconBg, "text-white shadow-sm")
+                                        ? "bg-white text-brand-600"
                                         : modActive
-                                        ? cn(colors.activeBg, colors.activeText)
-                                        : "text-gray-400 hover:bg-gray-50 hover:text-gray-700"
+                                        ? "text-white"
+                                        : "text-white hover:bg-white/[0.10] hover:text-white"
                                 )}
                             >
-                                <mod.icon size={18} className="shrink-0" />
-                                <span className="text-[9px] font-bold leading-none tracking-wide">
-                                    {mod.label}
-                                </span>
+                                <ModIcon size={18} className="shrink-0" />
                             </button>
                         );
                     })}
                 </nav>
 
-                <div className="mx-3 my-1.5 border-t border-gray-100 shrink-0" />
+                <div className="mx-2 my-1 border-t border-white/[0.06] shrink-0" />
 
-                {/* IA + Settings */}
-                <div className="px-2 pb-1 space-y-0.5 shrink-0">
+                <div className="px-1.5 pb-1 space-y-0.5 shrink-0">
                     <button
                         onClick={() => togglePanel("ai")}
                         title="IA & Agentes"
                         className={cn(
-                            "flex flex-col items-center gap-0.5 py-2 px-1 rounded-lg transition-all w-full",
+                            "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                             activePanel === "ai"
-                                ? cn(colors.iconBg, "text-white")
-                                : "text-gray-400 hover:bg-gray-50 hover:text-gray-700"
+                                ? "bg-white text-brand-600"
+                                : "text-white hover:bg-white/[0.10] hover:text-white"
                         )}
                     >
                         <Bot size={18} />
-                        <span className="text-[9px] font-bold leading-none">IA</span>
                     </button>
                     <Link
                         href="/settings"
                         title="Settings"
                         className={cn(
-                            "flex flex-col items-center gap-0.5 py-2 px-1 rounded-lg transition-all w-full",
-                            pathname === "/settings"
-                                ? cn(colors.activeBg, colors.activeText)
-                                : "text-gray-400 hover:bg-gray-50 hover:text-gray-700"
+                            "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
+                            pathname.startsWith("/settings")
+                                ? "bg-white text-brand-600"
+                                : "text-white hover:bg-white/[0.10] hover:text-white"
                         )}
                     >
-                        <Settings size={18} />
+                        <Settings size={16} />
                     </Link>
                 </div>
 
-                <SlimSidebarFooter />
+                <SlimUserButton />
             </div>
 
-            {/* ── Flyout panel ─────────────────────────────────────── */}
+            {/* Panel */}
             {activePanel && (
-                <>
-                    <div className="fixed inset-0 z-20" onClick={() => setActivePanel(null)} />
-                    <div className="fixed left-16 top-0 h-full w-64 bg-white border-r border-gray-200 shadow-2xl z-30 flex flex-col">
-                        <div className="px-4 py-4 border-b border-gray-100 flex items-start justify-between shrink-0">
-                            <div>
-                                <div className="text-sm font-bold text-gray-900">
-                                    {activePanel === "ai" ? "IA & Agentes" : activeMod?.label}
-                                </div>
-                                <div className="text-[11px] text-gray-400 mt-0.5 leading-snug">
-                                    {activePanel === "ai" ? "Agentes e ferramentas" : activeMod?.description}
-                                </div>
+                <div className="w-[220px] bg-[#023373] flex flex-col border-r border-white/[0.06] overflow-hidden">
+                    <PanelHeader
+                        title={activePanel === "ai" ? "IA & Agentes" : activeMod?.label ?? ""}
+                        onBack={() => setActivePanel(null)}
+                    />
+                    <nav className="flex-1 overflow-y-auto px-2 py-2 scrollbar-none">
+                        {activePanel === "ai" ? (
+                            <div className="space-y-0.5 mt-1">
+                                {aiNav.map((item) => (
+                                    <NavItem key={item.href} {...item} active={isActive(item.href)} />
+                                ))}
                             </div>
-                            <button
-                                onClick={() => setActivePanel(null)}
-                                className="p-1 text-gray-300 hover:text-gray-500 rounded transition-colors shrink-0 ml-2"
-                            >
-                                <X size={14} />
-                            </button>
-                        </div>
-                        <nav className="flex-1 overflow-y-auto px-3 py-2">
-                            {activePanel === "ai" ? (
-                                <div className="space-y-0.5 mt-1">
-                                    {aiNav.map((item) => (
-                                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
-                                    ))}
-                                </div>
-                            ) : activeMod ? (
-                                <div className="space-y-0.5 mt-1">
-                                    {activeMod.items.map((item) => (
-                                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
-                                    ))}
-                                </div>
-                            ) : null}
-                        </nav>
-                    </div>
-                </>
+                        ) : activeMod ? (
+                            <div className="space-y-0.5 mt-1">
+                                {activeMod.items.map((item) => (
+                                    <NavItem key={item.href} {...item} active={isActive(item.href)} />
+                                ))}
+                            </div>
+                        ) : null}
+                    </nav>
+                    <PanelFooter />
+                </div>
             )}
-        </>
+        </div>
     );
 }
 
 // ── BU sidebar wrappers ───────────────────────────────────────────────────────
 function JacqesSidebar({ pathname }: { pathname: string }) {
-    return (
-        <BUSidebar
-            buId="jacqes"
-            label="JACQES"
-            homeHref="/jacqes"
-            headerIcon={BarChart3}
-            modules={JACQES_MODULES}
-            pathname={pathname}
-        />
-    );
+    return <BUSidebar buId="jacqes" label="JACQES" homeHref="/jacqes" headerIcon={BarChart3} modules={JACQES_MODULES} pathname={pathname} />;
 }
 
 function CazaSidebar({ pathname }: { pathname: string }) {
     const { data: session } = useSession();
     const isCazaOnly = (session?.user as { role?: string } | undefined)?.role === "caza";
-    // isCazaOnly: show only overview, no back-to-AWQ
     const modules = isCazaOnly
         ? CAZA_MODULES.map((m) =>
-            m.id === "epm"
-                ? { ...m, items: m.items.filter((i) => i.href !== "/caza-vision/import") }
-                : m
+            m.id === "epm" ? { ...m, items: m.items.filter((i) => i.href !== "/caza-vision/import") } : m
           )
         : CAZA_MODULES;
-    return (
-        <BUSidebar
-            buId="caza"
-            label="Caza Vision"
-            homeHref="/caza-vision"
-            headerIcon={Building2}
-            modules={modules}
-            pathname={pathname}
-            showBack={!isCazaOnly}
-        />
-    );
+    return <BUSidebar buId="caza" label="Caza Vision" homeHref="/caza-vision" headerIcon={Building2} modules={modules} pathname={pathname} showBack={!isCazaOnly} />;
 }
 
 function AdvisorSidebar({ pathname }: { pathname: string }) {
-    return (
-        <BUSidebar
-            buId="advisor"
-            label="Advisor"
-            homeHref="/advisor"
-            headerIcon={Briefcase}
-            modules={ADVISOR_MODULES}
-            pathname={pathname}
-        />
-    );
+    return <BUSidebar buId="advisor" label="Advisor" homeHref="/advisor" headerIcon={Briefcase} modules={ADVISOR_MODULES} pathname={pathname} />;
 }
 
 function AwqVentureSidebar({ pathname }: { pathname: string }) {
-    return (
-        <BUSidebar
-            buId="venture"
-            label="AWQ Venture"
-            homeHref="/awq-venture"
-            headerIcon={TrendingUp}
-            modules={VENTURE_MODULES}
-            pathname={pathname}
-        />
-    );
+    return <BUSidebar buId="venture" label="AWQ Venture" homeHref="/awq-venture" headerIcon={TrendingUp} modules={VENTURE_MODULES} pathname={pathname} />;
 }
 
 function EnrdSidebar({ pathname }: { pathname: string }) {
-    return (
-        <BUSidebar
-            buId="enrd"
-            label="ENRD"
-            homeHref="/enrd"
-            headerIcon={Zap}
-            modules={ENRD_MODULES}
-            pathname={pathname}
-        />
-    );
-}
-
-// ── CRM sidebar ───────────────────────────────────────────────────────────────
-const crmNav = [
-    { label: "Dashboard CRM",  href: "/crm",                  icon: Target       },
-    { label: "Contas",         href: "/crm/accounts",         icon: Building2    },
-    { label: "Contatos",       href: "/crm/contacts",         icon: Users        },
-    { label: "Leads",          href: "/crm/leads",            icon: UserPlus     },
-    { label: "Oportunidades",  href: "/crm/opportunities",    icon: ArrowUpRight },
-    { label: "Atividades",     href: "/crm/activities",       icon: Activity     },
-    { label: "Analytics",      href: "/crm/analytics",        icon: BarChart3    },
-    { label: "Matriz RFM",     href: "/crm/rfm",              icon: PieChart     },
-];
-
-function CrmSidebar({ pathname }: { pathname: string }) {
-    const isActive = (href: string) =>
-        href === "/crm"
-            ? pathname === "/crm"
-            : pathname === href || pathname.startsWith(href + "/");
-
-    return (
-        <div className="w-64 flex flex-col h-full bg-white border-r border-gray-200 overflow-hidden">
-            <AwqHeader />
-            <div className="px-3 pt-3">
-                <Link
-                    href="/awq"
-                    className="flex items-center gap-3 px-3 py-2.5 bg-brand-50 border border-brand-200 rounded-xl hover:bg-brand-100 transition-colors group"
-                >
-                    <div className="w-7 h-7 rounded-lg bg-brand-600 flex items-center justify-center shrink-0">
-                        <Target size={13} className="text-white" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <div className="text-sm font-bold text-brand-700 truncate">CRM Tower</div>
-                        <div className="text-[10px] text-brand-500 truncate">Vendas · AWQ Group</div>
-                    </div>
-                    <ChevronDown size={14} className="text-brand-600 shrink-0" />
-                </Link>
-            </div>
-            <div className="px-4 pt-2">
-                <Link
-                    href="/awq"
-                    className="flex items-center gap-1.5 text-[10px] text-gray-400 hover:text-brand-600 transition-colors"
-                >
-                    <ChevronLeft size={11} />
-                    Voltar para AWQ Group
-                </Link>
-            </div>
-            <nav className="flex-1 overflow-y-auto px-3 py-2">
-                <SectionLabel>CRM · Navegação</SectionLabel>
-                <div className="space-y-0.5">
-                    {crmNav.map((item) => (
-                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
-                    ))}
-                </div>
-                <SectionLabel>IA & Agentes</SectionLabel>
-                <div className="space-y-0.5">
-                    {aiNav.map((item) => (
-                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
-                    ))}
-                </div>
-                <SectionLabel>Sistema</SectionLabel>
-                <div className="space-y-0.5">
-                    {sistemaNav.map((item) => (
-                        <NavItem key={item.href} {...item} active={pathname === item.href} />
-                    ))}
-                </div>
-            </nav>
-            <SidebarFooter />
-        </div>
-    );
-}
-
-// ── EPM sidebar ───────────────────────────────────────────────────────────────
-const epmNavVisao = [
-    { label: "Visão Geral EPM",      href: "/awq/epm",                      icon: Layers       },
-];
-const epmNavPl = [
-    { label: "Financial (DRE)",      href: "/awq/financial",                icon: LineChart    },
-    { label: "P&L (DRE)",           href: "/awq/epm/pl",                   icon: LineChart    },
-    { label: "Balanço Patrimonial",  href: "/awq/epm/balance-sheet",        icon: Scale        },
-    { label: "Budget",              href: "/awq/budget",                   icon: BarChart3    },
-    { label: "Forecast",            href: "/awq/forecast",                 icon: TrendingUp   },
-    { label: "Budget vs Actual",    href: "/awq/epm/budget",               icon: Target       },
-    { label: "KPI Dashboard",       href: "/awq/epm/kpis",                 icon: PieChart     },
-];
-const epmNavTesouraria = [
-    { label: "Cash Flow",           href: "/awq/cashflow",                 icon: Zap          },
-    { label: "Conciliação",         href: "/awq/conciliacao",              icon: CheckCircle2 },
-    { label: "Contas Banco",        href: "/awq/bank",                     icon: CreditCard   },
-    { label: "Investimentos",       href: "/awq/investments",              icon: Landmark     },
-];
-const epmNavApAr = [
-    { label: "AP & AR",             href: "/awq/ap-ar",                    icon: FileText     },
-    { label: "Contas a Pagar",      href: "/awq/epm/ap",                   icon: ArrowDownLeft},
-    { label: "AP Aging",            href: "/awq/epm/ap/aging",             icon: Receipt      },
-    { label: "Contas a Receber",    href: "/awq/epm/ar",                   icon: ArrowUpRight },
-    { label: "AR Aging",            href: "/awq/epm/ar/aging",             icon: Receipt      },
-];
-const epmNavControladoria = [
-    { label: "Centros de Custo",    href: "/awq/epm/cost-centers",         icon: LayoutGrid   },
-    { label: "Razão Geral (GL)",    href: "/awq/epm/gl",                   icon: ListOrdered  },
-    { label: "Consolidação",        href: "/awq/epm/consolidation",        icon: Building2    },
-    { label: "Conciliação Bancária",href: "/awq/epm/bank-reconciliation",  icon: Landmark     },
-    { label: "Reconhec. de Receita",href: "/awq/epm/revenue-recognition",  icon: BookOpen     },
-    { label: "Fornecedores",        href: "/awq/epm/suppliers",            icon: Building2    },
-    { label: "Clientes EPM",        href: "/awq/epm/customers",            icon: Users        },
-];
-const epmNavFiscal = [
-    { label: "Controladoria",       href: "/awq/management",               icon: ShieldCheck  },
-    { label: "Contabilidade",       href: "/awq/contabilidade",            icon: BookOpen     },
-    { label: "Fiscal",              href: "/awq/fiscal",                   icon: Receipt      },
-];
-
-function EpmSidebar({ pathname }: { pathname: string }) {
-    const isActive = (href: string) =>
-        href === "/awq/epm"
-            ? pathname === "/awq/epm"
-            : pathname === href || pathname.startsWith(href + "/");
-
-    return (
-        <div className="w-64 flex flex-col h-full bg-white border-r border-gray-200 overflow-hidden">
-            <AwqHeader />
-            <div className="px-3 pt-3">
-                <Link
-                    href="/awq"
-                    className="flex items-center gap-3 px-3 py-2.5 bg-brand-50 border border-brand-200 rounded-xl hover:bg-brand-100 transition-colors group"
-                >
-                    <div className="w-7 h-7 rounded-lg bg-brand-600 flex items-center justify-center shrink-0">
-                        <DollarSign size={13} className="text-white" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <div className="text-sm font-bold text-brand-700 truncate">EPM Tower</div>
-                        <div className="text-[10px] text-brand-500 truncate">Finanças · AWQ Group</div>
-                    </div>
-                    <ChevronDown size={14} className="text-brand-600 shrink-0" />
-                </Link>
-            </div>
-            <div className="px-4 pt-2">
-                <Link
-                    href="/awq"
-                    className="flex items-center gap-1.5 text-[10px] text-gray-400 hover:text-brand-600 transition-colors"
-                >
-                    <ChevronLeft size={11} />
-                    Voltar para AWQ Group
-                </Link>
-            </div>
-            <nav className="flex-1 overflow-y-auto px-3 py-2">
-                <SectionLabel>EPM · Visão Geral</SectionLabel>
-                <div className="space-y-0.5">
-                    {epmNavVisao.map((item) => (
-                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
-                    ))}
-                </div>
-                <SectionLabel>P&L & Resultado</SectionLabel>
-                <div className="space-y-0.5">
-                    {epmNavPl.map((item) => (
-                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
-                    ))}
-                </div>
-                <SectionLabel>Tesouraria</SectionLabel>
-                <div className="space-y-0.5">
-                    {epmNavTesouraria.map((item) => (
-                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
-                    ))}
-                </div>
-                <SectionLabel>AP & AR</SectionLabel>
-                <div className="space-y-0.5">
-                    {epmNavApAr.map((item) => (
-                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
-                    ))}
-                </div>
-                <SectionLabel>Controladoria</SectionLabel>
-                <div className="space-y-0.5">
-                    {epmNavControladoria.map((item) => (
-                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
-                    ))}
-                </div>
-                <SectionLabel>Fiscal & Contábil</SectionLabel>
-                <div className="space-y-0.5">
-                    {epmNavFiscal.map((item) => (
-                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
-                    ))}
-                </div>
-                <SectionLabel>IA & Agentes</SectionLabel>
-                <div className="space-y-0.5">
-                    {aiNav.map((item) => (
-                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
-                    ))}
-                </div>
-                <SectionLabel>Sistema</SectionLabel>
-                <div className="space-y-0.5">
-                    {sistemaNav.map((item) => (
-                        <NavItem key={item.href} {...item} active={pathname === item.href} />
-                    ))}
-                </div>
-            </nav>
-            <SidebarFooter />
-        </div>
-    );
-}
-
-// ── PPM sidebar ───────────────────────────────────────────────────────────────
-function PpmSidebar({ pathname }: { pathname: string }) {
-    const isActive = (href: string) =>
-        href === "/awq/ppm"
-            ? pathname === "/awq/ppm"
-            : pathname === href || pathname.startsWith(href + "/");
-
-    return (
-        <div className="w-64 flex flex-col h-full bg-white border-r border-gray-200 overflow-hidden">
-            <AwqHeader />
-            <div className="px-3 pt-3">
-                <Link
-                    href="/awq"
-                    className="flex items-center gap-3 px-3 py-2.5 bg-brand-50 border border-brand-200 rounded-xl hover:bg-brand-100 transition-colors group"
-                >
-                    <div className="w-7 h-7 rounded-lg bg-brand-600 flex items-center justify-center shrink-0">
-                        <GanttChart size={13} className="text-white" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <div className="text-sm font-bold text-brand-700 truncate">PPM Tower</div>
-                        <div className="text-[10px] text-brand-500 truncate">Projetos · AWQ Group</div>
-                    </div>
-                    <ChevronDown size={14} className="text-brand-600 shrink-0" />
-                </Link>
-            </div>
-            <div className="px-4 pt-2">
-                <Link
-                    href="/awq"
-                    className="flex items-center gap-1.5 text-[10px] text-gray-400 hover:text-brand-600 transition-colors"
-                >
-                    <ChevronLeft size={11} />
-                    Voltar para AWQ Group
-                </Link>
-            </div>
-            <nav className="flex-1 overflow-y-auto px-3 py-2">
-                <SectionLabel>PPM · Navegação</SectionLabel>
-                <div className="space-y-0.5">
-                    {ppmNav.map((item) => (
-                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
-                    ))}
-                </div>
-                <SectionLabel>IA & Agentes</SectionLabel>
-                <div className="space-y-0.5">
-                    {aiNav.map((item) => (
-                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
-                    ))}
-                </div>
-                <SectionLabel>Sistema</SectionLabel>
-                <div className="space-y-0.5">
-                    {sistemaNav.map((item) => (
-                        <NavItem key={item.href} {...item} active={pathname === item.href} />
-                    ))}
-                </div>
-            </nav>
-            <SidebarFooter />
-        </div>
-    );
-}
-
-// ── BI sidebar ────────────────────────────────────────────────────────────────
-function BiSidebar({ pathname }: { pathname: string }) {
-    const isActive = (href: string) =>
-        href === "/awq/data"
-            ? pathname === "/awq/data"
-            : href === "/awq/bi"
-            ? pathname === "/awq/bi"
-            : pathname === href || pathname.startsWith(href + "/");
-
-    return (
-        <div className="w-64 flex flex-col h-full bg-white border-r border-gray-200 overflow-hidden">
-            <AwqHeader />
-            <div className="px-3 pt-3">
-                <Link
-                    href="/awq"
-                    className="flex items-center gap-3 px-3 py-2.5 bg-brand-50 border border-brand-200 rounded-xl hover:bg-brand-100 transition-colors group"
-                >
-                    <div className="w-7 h-7 rounded-lg bg-brand-600 flex items-center justify-center shrink-0">
-                        <PieChart size={13} className="text-white" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <div className="text-sm font-bold text-brand-700 truncate">BI Tower</div>
-                        <div className="text-[10px] text-brand-500 truncate">Analytics · AWQ Group</div>
-                    </div>
-                    <ChevronDown size={14} className="text-brand-600 shrink-0" />
-                </Link>
-            </div>
-            <div className="px-4 pt-2">
-                <Link
-                    href="/awq"
-                    className="flex items-center gap-1.5 text-[10px] text-gray-400 hover:text-brand-600 transition-colors"
-                >
-                    <ChevronLeft size={11} />
-                    Voltar para AWQ Group
-                </Link>
-            </div>
-            <nav className="flex-1 overflow-y-auto px-3 py-2">
-                <SectionLabel>BI · Navegação</SectionLabel>
-                <div className="space-y-0.5">
-                    {biNav.map((item) => (
-                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
-                    ))}
-                </div>
-                <SectionLabel>IA & Agentes</SectionLabel>
-                <div className="space-y-0.5">
-                    {aiNav.map((item) => (
-                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
-                    ))}
-                </div>
-                <SectionLabel>Sistema</SectionLabel>
-                <div className="space-y-0.5">
-                    {sistemaNav.map((item) => (
-                        <NavItem key={item.href} {...item} active={pathname === item.href} />
-                    ))}
-                </div>
-            </nav>
-            <SidebarFooter />
-        </div>
-    );
-}
-
-// ── Settings sidebar (BU Settings) ───────────────────────────────────────────
-function SettingsSidebar({ pathname }: { pathname: string }) {
-    const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
-
-    return (
-        <div className="w-64 flex flex-col h-full bg-white border-r border-gray-200 overflow-hidden">
-            <AwqHeader />
-            <div className="px-4 pt-3">
-                <Link
-                    href="/awq"
-                    className="flex items-center gap-1.5 text-[10px] text-gray-400 hover:text-brand-600 transition-colors"
-                >
-                    <ChevronLeft size={11} />
-                    Voltar para AWQ Group
-                </Link>
-            </div>
-            <nav className="flex-1 overflow-y-auto px-3 py-2">
-                <SectionLabel>Configurações</SectionLabel>
-                <div className="space-y-0.5">
-                    {settingsGeralNav.map((item) => (
-                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
-                    ))}
-                </div>
-                <SectionLabel>Segurança</SectionLabel>
-                <div className="space-y-0.5">
-                    {settingsSegurancaNav.map((item) => (
-                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
-                    ))}
-                </div>
-                <SectionLabel>Integrações</SectionLabel>
-                <div className="space-y-0.5">
-                    {settingsIntegracaoNav.map((item) => (
-                        <NavItem key={item.href} {...item} active={isActive(item.href)} />
-                    ))}
-                </div>
-            </nav>
-            <SidebarFooter />
-        </div>
-    );
+    return <BUSidebar buId="enrd" label="ENRD" homeHref="/enrd" headerIcon={Zap} modules={ENRD_MODULES} pathname={pathname} />;
 }
 
 // ── Root Sidebar ──────────────────────────────────────────────────────────────
 export default function Sidebar() {
     const rawPathname = usePathname();
     const pathname = rawPathname ?? "";
-    const jacqesMode   = isJacqesRoute(pathname);
-    const cazaMode     = isCazaRoute(pathname);
-    const advisorMode  = isAdvisorRoute(pathname);
-    const ventureMode  = isVentureRoute(pathname);
-    const enrdMode     = isEnrdRoute(pathname);
-    const crmMode      = isCrmRoute(pathname);
-    const epmMode      = isEpmRoute(pathname);
-    const ppmMode      = isPpmRoute(pathname);
-    const biMode       = isBiRoute(pathname);
-    const settingsMode = isSettingsRoute(pathname);
-    return (
-        <div className="flex flex-col h-full">
-            {jacqesMode ? (
-                <JacqesSidebar pathname={pathname} />
-            ) : cazaMode ? (
-                <CazaSidebar pathname={pathname} />
-            ) : advisorMode ? (
-                <AdvisorSidebar pathname={pathname} />
-            ) : ventureMode ? (
-                <AwqVentureSidebar pathname={pathname} />
-            ) : enrdMode ? (
-                <EnrdSidebar pathname={pathname} />
-            ) : crmMode ? (
-                <CrmSidebar pathname={pathname} />
-            ) : epmMode ? (
-                <EpmSidebar pathname={pathname} />
-            ) : ppmMode ? (
-                <PpmSidebar pathname={pathname} />
-            ) : biMode ? (
-                <BiSidebar pathname={pathname} />
-            ) : settingsMode ? (
-                <SettingsSidebar pathname={pathname} />
-            ) : (
-                <AwqSidebar pathname={pathname} />
-            )}
-        </div>
-    );
+
+    if (isJacqesRoute(pathname))  return <div className="flex flex-col h-full"><JacqesSidebar pathname={pathname} /></div>;
+    if (isCazaRoute(pathname))    return <div className="flex flex-col h-full"><CazaSidebar pathname={pathname} /></div>;
+    if (isAdvisorRoute(pathname)) return <div className="flex flex-col h-full"><AdvisorSidebar pathname={pathname} /></div>;
+    if (isVentureRoute(pathname)) return <div className="flex flex-col h-full"><AwqVentureSidebar pathname={pathname} /></div>;
+    if (isEnrdRoute(pathname))    return <div className="flex flex-col h-full"><EnrdSidebar pathname={pathname} /></div>;
+
+    return <div className="flex flex-col h-full"><AwqSidebar pathname={pathname} /></div>;
 }

@@ -8,7 +8,6 @@ import EmptyState from "@/components/EmptyState";
 import { Activity, Phone, Mail, Users, CheckCircle2, FileText, Plus, Clock } from "lucide-react";
 import type { CrmActivity } from "@/lib/crm-types";
 import { formatDateBR } from "@/lib/utils";
-import { supabaseClient as supabase } from "@/lib/supabase";
 
 function fmtDatetime(d: string | null | undefined) {
   if (!d) return "—";
@@ -20,7 +19,7 @@ function fmtDatetime(d: string | null | undefined) {
 const TYPE_CONFIG: Record<string, { icon: ReactNode; label: string; bg: string }> = {
   call:    { icon: <Phone    size={14} />, label: "Ligação",  bg: "bg-emerald-100 text-emerald-600" },
   email:   { icon: <Mail     size={14} />, label: "E-mail",   bg: "bg-blue-100 text-blue-600" },
-  meeting: { icon: <Users    size={14} />, label: "Reunião",  bg: "bg-violet-100 text-violet-600" },
+  meeting: { icon: <Users    size={14} />, label: "Reunião",  bg: "bg-brand-100 text-brand-600" },
   task:    { icon: <CheckCircle2 size={14}/>, label: "Tarefa", bg: "bg-amber-100 text-amber-600" },
   note:    { icon: <FileText size={14} />, label: "Nota",     bg: "bg-gray-100 text-gray-600" },
 };
@@ -49,8 +48,11 @@ export default function ActivitiesPage() {
   const [completing, setCompleting] = useState<string | null>(null);
 
   useEffect(() => {
-    void supabase!.from("crm_activities").select("*").order("created_at", { ascending: false })
-      .then(({ data }) => { setActivities((data ?? []) as CrmActivity[]); setLoading(false); }, () => { setLoading(false); });
+    fetch("/api/crm/activities")
+      .then(r => r.json())
+      .then(json => { if (json.data) setActivities(json.data as CrmActivity[]); })
+      .catch(() => undefined)
+      .finally(() => setLoading(false));
   }, []);
 
   const filtered = activities.filter(a => {
@@ -67,8 +69,12 @@ export default function ActivitiesPage() {
   async function completeActivity(id: string) {
     setCompleting(id);
     const completedAt = new Date().toISOString();
-    setActivities(prev => prev.map(a => a.activity_id === id ? { ...a, status: "completed", completed_at: completedAt } : a));
-    await supabase!.from("crm_activities").update({ status: "completed", completed_at: completedAt }).eq("activity_id", id);
+    setActivities(prev => prev.map(a => a.activity_id === id ? { ...a, status: "completed" as const, completed_at: completedAt } : a));
+    await fetch("/api/crm/activities", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "update", activity_id: id, status: "completed", completed_at: completedAt }),
+    }).catch(() => undefined);
     setCompleting(null);
   }
 
@@ -82,7 +88,7 @@ export default function ActivitiesPage() {
             { label: "Total", value: activities.length, color: "text-gray-700" },
             { label: "Agendadas", value: tasksScheduled, color: "text-blue-600" },
             { label: "Concluídas hoje", value: completedToday, color: "text-emerald-600" },
-            { label: "Ligações", value: activities.filter(a=>a.activity_type==="call").length, color: "text-violet-600" },
+            { label: "Ligações", value: activities.filter(a=>a.activity_type==="call").length, color: "text-brand-600" },
           ].map(k => (
             <div key={k.label} className="card p-4">
               <div className={`text-2xl font-bold ${k.color}`}>{k.value}</div>

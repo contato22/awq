@@ -655,6 +655,7 @@ export const CATEGORY_LABELS: Record<ManagerialCategory, string> = {
 export const ENTITY_LABELS: Record<EntityLayer, string> = {
   AWQ_Holding:   "AWQ Holding",
   JACQES:        "JACQES",
+  ENERDY:        "Enerdy (BU ENRD)",
   Caza_Vision:   "Caza Vision",
   Intercompany:  "Intercompany",
   Socio_PF:      "Sócio / PF",

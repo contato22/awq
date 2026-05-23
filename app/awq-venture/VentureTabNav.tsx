@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogIn } from "lucide-react";
 
 // Tabs ordered: real-content pages first, then stubs (marked visually as Em breve)
 const tabs = [
@@ -54,10 +53,6 @@ export default function VentureTabNav() {
             </Link>
           ))}
         </nav>
-        <button className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-700 transition-colors py-2 shrink-0 ml-4">
-          <LogIn size={14} />
-          Login
-        </button>
       </div>
     </div>
   );

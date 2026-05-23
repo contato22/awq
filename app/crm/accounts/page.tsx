@@ -7,7 +7,6 @@ import EmptyState from "@/components/EmptyState";
 import { Building2, Plus, Search, AlertTriangle, CheckCircle2, Trash2 } from "lucide-react";
 import type { CrmAccount } from "@/lib/crm-types";
 import { BU_OPTIONS } from "@/lib/crm-types";
-import { supabaseClient as supabase } from "@/lib/supabase";
 
 const TYPE_LABELS: Record<string, string> = {
   prospect:        "Prospect",
@@ -19,7 +18,7 @@ const TYPE_LABELS: Record<string, string> = {
 const TYPE_COLORS: Record<string, string> = {
   prospect:        "bg-blue-50 text-blue-700",
   customer:        "bg-emerald-50 text-emerald-700",
-  partner:         "bg-violet-50 text-violet-700",
+  partner:         "bg-brand-50 text-brand-700",
   former_customer: "bg-gray-100 text-gray-600",
 };
 
@@ -43,15 +42,21 @@ export default function AccountsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
-    void supabase!.from("crm_accounts").select("*").order("account_name")
-      .then(({ data }) => { setAllAccounts((data ?? []) as CrmAccount[]); setLoading(false); }, () => { setLoading(false); });
+    fetch("/api/crm/accounts")
+      .then(r => r.json())
+      .then(json => { setAllAccounts((json.data ?? []) as CrmAccount[]); setLoading(false); })
+      .catch(() => { setLoading(false); });
   }, []);
 
   async function handleDelete(id: string, name: string) {
     if (!confirm(`Excluir a conta "${name}"? Esta ação não pode ser desfeita.`)) return;
     setDeletingId(id);
     setAllAccounts(prev => prev.filter(a => a.account_id !== id));
-    await supabase!.from("crm_accounts").delete().eq("account_id", id);
+    await fetch("/api/crm/accounts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "delete", account_id: id }),
+    });
     setDeletingId(null);
   }
 
@@ -81,7 +86,7 @@ export default function AccountsPage() {
           {[
             { label: "Total Contas", value: accounts.length, color: "text-blue-600",    bg: "bg-blue-50",    icon: Building2 },
             { label: "Clientes",     value: customers,        color: "text-emerald-600", bg: "bg-emerald-50", icon: CheckCircle2 },
-            { label: "Prospects",    value: prospects,        color: "text-violet-600",  bg: "bg-violet-50",  icon: Building2 },
+            { label: "Prospects",    value: prospects,        color: "text-brand-600",  bg: "bg-brand-50",  icon: Building2 },
             { label: "Em Risco",     value: atRisk,           color: atRisk > 0 ? "text-red-600" : "text-gray-500", bg: atRisk > 0 ? "bg-red-50" : "bg-gray-50", icon: AlertTriangle },
           ].map(k => (
             <div key={k.label} className="card p-4 flex items-center gap-3">

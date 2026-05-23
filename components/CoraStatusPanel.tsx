@@ -30,20 +30,74 @@ interface SyncResult {
   _debug?: unknown;
 }
 
-type AccountKey = "AWQ_Holding";
+type AccountKey = "AWQ_Holding" | "ENERDY";
 
 interface Account {
   key: AccountKey;
   name: string;
   entity: AccountKey;
+  initials: string;
+  subtitle?: string;
+  color: {
+    border: string;
+    bg: string;
+    badgeBg: string;
+    badgeText: string;
+    balanceBg: string;
+    balanceBorder: string;
+    balanceLabel: string;
+    balanceValue: string;
+    dot: string;
+    syncBtn: string;
+    syncBtnHover: string;
+  };
 }
 
 const ACCOUNTS: Account[] = [
-  { key: "AWQ_Holding", name: "Conta PJ AWQ Holding", entity: "AWQ_Holding" },
+  {
+    key:      "AWQ_Holding",
+    name:     "Conta PJ AWQ Holding",
+    entity:   "AWQ_Holding",
+    initials: "AWQ",
+    subtitle: "AWQ Holding",
+    color: {
+      border:       "border-blue-200",
+      bg:           "bg-blue-50/30",
+      badgeBg:      "bg-blue-600",
+      badgeText:    "text-white",
+      balanceBg:    "bg-blue-50",
+      balanceBorder:"border-blue-100",
+      balanceLabel: "text-blue-700",
+      balanceValue: "text-blue-900",
+      dot:          "bg-blue-500",
+      syncBtn:      "border-blue-200 bg-blue-50 text-blue-700",
+      syncBtnHover: "hover:bg-blue-100",
+    },
+  },
+  {
+    key:      "ENERDY",
+    name:     "Cora Enerdy",
+    entity:   "ENERDY",
+    initials: "ENRD",
+    subtitle: "Banco Integrado · BU ENRD",
+    color: {
+      border:       "border-brand-200",
+      bg:           "bg-brand-50/30",
+      badgeBg:      "bg-brand-600",
+      badgeText:    "text-white",
+      balanceBg:    "bg-brand-50",
+      balanceBorder:"border-brand-100",
+      balanceLabel: "text-brand-700",
+      balanceValue: "text-brand-900",
+      dot:          "bg-brand-500",
+      syncBtn:      "border-brand-200 bg-brand-50 text-brand-700",
+      syncBtnHover: "hover:bg-brand-100",
+    },
+  },
 ];
 
-const LIVE_INTERVAL_MS  = 5 * 60 * 1000;
-const LIVE_WINDOW_DAYS  = 7;
+const LIVE_INTERVAL_MS   = 5 * 60 * 1000;
+const LIVE_WINDOW_DAYS   = 7;
 const INITIAL_START_DATE = "2026-01-01";
 
 function fmtBRL(v: number) {
@@ -70,13 +124,14 @@ export default function CoraStatusPanel({
 }: {
   transactions: BankTransaction[];
 }) {
-  const [balances, setBalances]             = useState<Record<AccountKey, CoraBalance | null>>({ AWQ_Holding: null });
-  const [balanceErrors, setBalanceErrors]   = useState<Record<AccountKey, string | null>>({ AWQ_Holding: null });
-  const [loadingBalance, setLoadingBalance] = useState<Record<AccountKey, boolean>>({ AWQ_Holding: true });
-  const [syncing, setSyncing]               = useState(false);
+  const [balances, setBalances]             = useState<Record<AccountKey, CoraBalance | null>>({ AWQ_Holding: null, ENERDY: null });
+  const [balanceErrors, setBalanceErrors]   = useState<Record<AccountKey, string | null>>({ AWQ_Holding: null, ENERDY: null });
+  const [loadingBalance, setLoadingBalance] = useState<Record<AccountKey, boolean>>({ AWQ_Holding: true, ENERDY: true });
+  const [syncingAll, setSyncingAll]         = useState(false);
+  const [syncingKey, setSyncingKey]         = useState<AccountKey | null>(null);
   const [lastSyncAt, setLastSyncAt]         = useState<Date | null>(null);
   const [lastSyncedCount, setLastSyncedCount] = useState(0);
-  const [syncError, setSyncError]           = useState<string | null>(null);
+  const [syncErrors, setSyncErrors]         = useState<Record<AccountKey, string | null>>({ AWQ_Holding: null, ENERDY: null });
   const [diagInfo, setDiagInfo]             = useState<{ account: string; debug: unknown } | null>(null);
   const [coraDebug, setCoraDebug]           = useState<unknown | null>(null);
   const [loadingDebug, setLoadingDebug]     = useState(false);
@@ -120,53 +175,65 @@ export default function CoraStatusPanel({
     }
   }, []);
 
+  const syncAccount = useCallback(async (acc: Account, startDate: string): Promise<number> => {
+    const endDate = today();
+    const res = await fetch("/api/cora/sync", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ entity: acc.entity, accountName: acc.name, startDate, endDate }),
+    });
+    const data = await res.json() as SyncResult & { error?: string };
+    if (!res.ok) throw new Error(data.error ?? "Falha ao sincronizar");
+    if (data.total === 0 && data._debug && isMounted.current)
+      setDiagInfo({ account: acc.key, debug: data._debug });
+    void loadBalance(acc.key);
+    return data.synced;
+  }, [loadBalance]);
+
   const runSync = useCallback(async (startDate: string) => {
     if (!isMounted.current) return;
-    setSyncing(true);
-    setSyncError(null);
-    const endDate = today();
+    setSyncingAll(true);
+    setSyncErrors({ AWQ_Holding: null, ENERDY: null });
     let totalSynced = 0;
 
     for (const acc of ACCOUNTS) {
       try {
-        const res = await fetch("/api/cora/sync", {
-          method:  "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            entity:      acc.entity,
-            accountName: acc.name,
-            startDate,
-            endDate,
-          }),
-        });
-        const data = await res.json() as SyncResult & { error?: string };
-        if (res.ok) {
-          totalSynced += data.synced;
-          if (data.total === 0 && data._debug) {
-            console.error("[CoraSync] 0 entradas para", acc.key, data.period, data._debug);
-            if (isMounted.current) setDiagInfo({ account: acc.key, debug: data._debug });
-          }
-          void loadBalance(acc.key);
-        } else {
-          if (isMounted.current) setSyncError(data.error ?? "Falha ao sincronizar");
-        }
+        totalSynced += await syncAccount(acc, startDate);
       } catch (err) {
         if (isMounted.current)
-          setSyncError(err instanceof Error ? err.message : "Erro de rede");
+          setSyncErrors((p) => ({ ...p, [acc.key]: err instanceof Error ? err.message : "Erro de rede" }));
       }
     }
 
     if (!isMounted.current) return;
-    setSyncing(false);
+    setSyncingAll(false);
     setLastSyncAt(new Date());
     setLastSyncedCount(totalSynced);
-    // router.refresh() atualiza dados server-side sem resetar estado client-side
-    // (não perde filtros, seleções ou itens em processo de conciliação)
     if (totalSynced > 0) router.refresh();
-  }, [loadBalance, router]);
+  }, [syncAccount, router]);
+
+  const runSyncSingle = useCallback(async (acc: Account) => {
+    if (!isMounted.current) return;
+    setSyncingKey(acc.key);
+    setSyncErrors((p) => ({ ...p, [acc.key]: null }));
+    try {
+      const synced = await syncAccount(acc, INITIAL_START_DATE);
+      if (isMounted.current) {
+        setLastSyncAt(new Date());
+        setLastSyncedCount(synced);
+        if (synced > 0) router.refresh();
+      }
+    } catch (err) {
+      if (isMounted.current)
+        setSyncErrors((p) => ({ ...p, [acc.key]: err instanceof Error ? err.message : "Erro" }));
+    } finally {
+      if (isMounted.current) setSyncingKey(null);
+    }
+  }, [syncAccount, router]);
 
   useEffect(() => {
     void loadBalance("AWQ_Holding");
+    void loadBalance("ENERDY");
     void runSync(INITIAL_START_DATE);
     const timer = setInterval(() => void runSync(daysAgo(LIVE_WINDOW_DAYS)), LIVE_INTERVAL_MS);
     return () => clearInterval(timer);
@@ -182,6 +249,10 @@ export default function CoraStatusPanel({
     return dates[0] ? fmtDatetime(dates[0]) : null;
   }
 
+  function txCountFor(entity: AccountKey) {
+    return transactions.filter((t) => t.entity === entity).length;
+  }
+
   function pendingFor(entity: AccountKey) {
     return transactions.filter(
       (t) => t.entity === entity &&
@@ -189,43 +260,50 @@ export default function CoraStatusPanel({
     ).length;
   }
 
+  const isSyncing = syncingAll || syncingKey !== null;
+  const globalSyncError = (syncErrors.AWQ_Holding && syncErrors.ENERDY)
+    ? `AWQ: ${syncErrors.AWQ_Holding} · Enerdy: ${syncErrors.ENERDY}`
+    : null;
+
   return (
-    <div className="rounded-xl border border-emerald-200 bg-white overflow-hidden shadow-sm">
+    <div className="rounded-xl border border-gray-200 bg-white overflow-hidden shadow-sm">
 
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 bg-emerald-50 border-b border-emerald-200">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 bg-gray-50 border-b border-gray-200">
         <div className="flex items-center gap-2.5">
           <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
           <Wifi size={15} className="text-emerald-600" />
-          <span className="text-sm font-bold text-emerald-900">Cora Bank — Integração Direta</span>
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 border border-emerald-300 text-emerald-700 font-semibold uppercase tracking-wide">
+          <span className="text-sm font-bold text-gray-900">Cora Bank</span>
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 border border-emerald-200 text-emerald-700 font-semibold uppercase tracking-wide">
             Live
           </span>
+          <span className="text-[11px] text-gray-400">{ACCOUNTS.length} contas</span>
         </div>
 
-        <div className="flex items-center gap-3 text-[11px] text-gray-500">
-          {syncing ? (
+        <div className="flex items-center gap-2 text-[11px] text-gray-500">
+          {syncingAll ? (
             <span className="flex items-center gap-1.5 text-emerald-700 font-medium">
               <Loader2 size={12} className="animate-spin" />
-              Sincronizando…
+              Sincronizando todas…
             </span>
           ) : lastSyncAt ? (
-            <span className="flex items-center gap-1.5">
+            <span className="flex items-center gap-1.5 text-gray-500">
               <RefreshCw size={11} className="text-emerald-500" />
-              Atualizado {lastSyncAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+              {lastSyncAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
               {lastSyncedCount > 0 && (
-                <span className="ml-1 px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-semibold">
-                  +{lastSyncedCount} novas
+                <span className="px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-semibold">
+                  +{lastSyncedCount}
                 </span>
               )}
             </span>
           ) : null}
-          <span className="text-gray-400">sync a cada 5 min</span>
+          <span className="text-gray-300">·</span>
+          <span className="text-gray-400">a cada 5 min</span>
           <button
             onClick={() => void runCoraDebug()}
             disabled={loadingDebug}
-            className="flex items-center gap-1 px-2 py-0.5 rounded border border-gray-200 hover:border-amber-400 hover:bg-amber-50 text-gray-500 hover:text-amber-700 transition-colors disabled:opacity-50"
-            title="Testar conexão Cora e ver resposta bruta da API"
+            className="flex items-center gap-1 px-2 py-0.5 rounded border border-gray-200 hover:border-amber-400 hover:bg-amber-50 text-gray-400 hover:text-amber-700 transition-colors disabled:opacity-50"
+            title="Debug Cora API"
           >
             {loadingDebug ? <Loader2 size={10} className="animate-spin" /> : <FlaskConical size={10} />}
             <span className="text-[10px]">Debug</span>
@@ -233,79 +311,89 @@ export default function CoraStatusPanel({
         </div>
       </div>
 
-      {/* Erro de sync */}
-      {syncError && (
-        <div className="flex items-start gap-2 px-5 py-2.5 text-xs border-b bg-red-50 border-red-200 text-red-800">
+      {/* Erro global */}
+      {globalSyncError && (
+        <div className="flex items-start gap-2 px-5 py-2 text-xs border-b bg-red-50 border-red-200 text-red-800">
           <AlertTriangle size={13} className="shrink-0 mt-0.5" />
-          {syncError}
+          {globalSyncError}
         </div>
       )}
 
-      {/* Painel de diagnóstico bruto — clique em Debug ou sync retornou 0 */}
+      {/* Debug panel */}
       {(coraDebug || diagInfo) && (
         <div className="px-5 py-3 border-b bg-amber-50 border-amber-200 text-xs space-y-1">
           <div className="flex items-center gap-1.5 font-semibold text-amber-800">
             <AlertTriangle size={13} className="shrink-0" />
-            {coraDebug ? "Diagnóstico Cora — resposta bruta da API:" : `Cora API retornou 0 transações para "${diagInfo?.account}":`}
+            {coraDebug
+              ? "Diagnóstico Cora — resposta bruta:"
+              : `Cora retornou 0 transações para "${diagInfo?.account}"`}
           </div>
-          <pre className="bg-white border border-amber-200 rounded p-2 text-[10px] text-gray-700 overflow-x-auto max-h-64 leading-relaxed whitespace-pre-wrap">
+          <pre className="bg-white border border-amber-200 rounded p-2 text-[10px] text-gray-700 overflow-x-auto max-h-48 leading-relaxed whitespace-pre-wrap">
             {JSON.stringify(coraDebug ?? diagInfo?.debug, null, 2)}
           </pre>
         </div>
       )}
 
-      {/* Account cards */}
-      <div className="p-5 grid grid-cols-1 gap-4">
+      {/* Account cards — side by side */}
+      <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
         {ACCOUNTS.map((acc) => {
+          const c          = acc.color;
           const bal        = balances[acc.key];
           const balErr     = balanceErrors[acc.key];
           const loadingBal = loadingBalance[acc.key];
           const lastSync   = lastSyncFor(acc.entity);
           const pending    = pendingFor(acc.entity);
+          const txCount    = txCountFor(acc.entity);
+          const syncErr    = syncErrors[acc.key];
+          const isSyncingThis = syncingKey === acc.key || syncingAll;
 
           return (
-            <div key={acc.key} className="rounded-xl border border-gray-200 bg-gray-50/40 p-4 space-y-4">
-
+            <div
+              key={acc.key}
+              className={`rounded-xl border ${c.border} ${c.bg} p-4 flex flex-col gap-3`}
+            >
+              {/* Card header */}
               <div className="flex items-start justify-between gap-2">
-                <div>
-                  <div className="text-sm font-bold text-gray-900">{acc.name}</div>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    {syncing ? (
-                      <span className="flex items-center gap-1 text-[11px] text-emerald-600">
-                        <Loader2 size={10} className="animate-spin" /> Sincronizando…
-                      </span>
-                    ) : lastSync ? (
-                      <>
-                        <Clock size={11} className="text-gray-400" />
-                        <span className="text-[11px] text-gray-500">Última sync: {lastSync}</span>
-                      </>
-                    ) : (
-                      <span className="text-[11px] text-gray-400">Aguardando primeira sync…</span>
-                    )}
+                <div className="flex items-center gap-2.5">
+                  <div className={`w-9 h-9 rounded-xl ${c.badgeBg} flex items-center justify-center shrink-0`}>
+                    <span className={`text-[11px] font-bold tracking-wider ${c.badgeText}`}>{acc.initials}</span>
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-gray-900 leading-tight">{acc.name}</div>
+                    <div className="text-[10px] text-gray-400 mt-0.5">{acc.subtitle ?? acc.entity}</div>
                   </div>
                 </div>
-                <CheckCircle2 size={16} className="text-emerald-500 shrink-0 mt-0.5" />
+                <div className="shrink-0 pt-0.5">
+                  {isSyncingThis ? (
+                    <Loader2 size={15} className="text-gray-400 animate-spin" />
+                  ) : lastSync ? (
+                    <CheckCircle2 size={15} className="text-emerald-500" />
+                  ) : (
+                    <div className={`w-2 h-2 rounded-full ${c.dot} mt-1.5`} />
+                  )}
+                </div>
               </div>
 
-              <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3">
+              {/* Saldo */}
+              <div className={`rounded-lg border ${c.balanceBorder} ${c.balanceBg} px-3 py-2.5`}>
                 <div className="flex items-center gap-1.5 mb-1">
-                  <Activity size={12} className="text-emerald-600" />
-                  <span className="text-[10px] font-semibold text-emerald-700 uppercase tracking-wide">Saldo Disponível</span>
+                  <Activity size={11} className={c.balanceLabel} />
+                  <span className={`text-[10px] font-semibold ${c.balanceLabel} uppercase tracking-wide`}>Saldo disponível</span>
                 </div>
                 {loadingBal ? (
-                  <div className="flex items-center gap-2 text-emerald-600 text-sm">
-                    <Loader2 size={14} className="animate-spin" /> Buscando…
+                  <div className={`flex items-center gap-1.5 text-sm ${c.balanceLabel}`}>
+                    <Loader2 size={13} className="animate-spin" /> Buscando…
                   </div>
                 ) : balErr ? (
-                  <div className="flex items-start gap-2">
-                    <WifiOff size={13} className="text-amber-500 shrink-0 mt-0.5" />
-                    <span className="text-xs text-amber-700 leading-snug">{balErr}</span>
+                  <div className="flex items-start gap-1.5">
+                    <WifiOff size={12} className="text-amber-500 shrink-0 mt-0.5" />
+                    <span className="text-[11px] text-amber-700 leading-snug">{balErr}</span>
                   </div>
                 ) : bal ? (
                   <div>
-                    <div className="text-xl font-bold text-emerald-900">{fmtBRL(bal.available)}</div>
+                    <div className={`text-xl font-bold ${c.balanceValue}`}>{fmtBRL(bal.available)}</div>
                     {bal.blocked != null && bal.blocked > 0 && (
-                      <div className="text-[11px] text-emerald-600 mt-0.5">
+                      <div className={`text-[11px] ${c.balanceLabel} mt-0.5`}>
                         Bloqueado: {fmtBRL(bal.blocked)}
                       </div>
                     )}
@@ -313,17 +401,57 @@ export default function CoraStatusPanel({
                 ) : null}
               </div>
 
-              <div className="flex items-center text-xs">
-                {pending > 0 ? (
-                  <span className="px-2 py-0.5 rounded-full bg-amber-100 border border-amber-200 text-amber-800 text-[11px] font-semibold">
-                    {pending} pendente(s) de conciliação
-                  </span>
-                ) : (
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-100 border border-emerald-200 text-emerald-800 text-[11px] font-semibold">
-                    Em dia
-                  </span>
-                )}
+              {/* Status row */}
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2">
+                  {pending > 0 ? (
+                    <span className="px-2 py-0.5 rounded-full bg-amber-100 border border-amber-200 text-amber-800 text-[11px] font-semibold">
+                      {pending} pendente{pending > 1 ? "s" : ""}
+                    </span>
+                  ) : txCount > 0 ? (
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-100 border border-emerald-200 text-emerald-800 text-[11px] font-semibold">
+                      Em dia
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-full bg-gray-100 border border-gray-200 text-gray-500 text-[11px]">
+                      Sem transações
+                    </span>
+                  )}
+                  {txCount > 0 && (
+                    <span className="text-[10px] text-gray-400">{txCount} tx</span>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => void runSyncSingle(acc)}
+                  disabled={isSyncing}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[11px] font-medium transition-colors disabled:opacity-40 ${c.syncBtn} ${c.syncBtnHover}`}
+                  title={`Sincronizar ${acc.name}`}
+                >
+                  {isSyncingThis
+                    ? <Loader2 size={10} className="animate-spin" />
+                    : <RefreshCw size={10} />
+                  }
+                  Sync
+                </button>
               </div>
+
+              {/* Última sync / erro individual */}
+              {syncErr && (
+                <div className="flex items-start gap-1.5 text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-lg px-2.5 py-1.5">
+                  <AlertTriangle size={11} className="shrink-0 mt-0.5" />
+                  {syncErr}
+                </div>
+              )}
+              {!syncErr && lastSync && (
+                <div className="flex items-center gap-1 text-[10px] text-gray-400">
+                  <Clock size={9} />
+                  Última sync: {lastSync}
+                </div>
+              )}
+              {!syncErr && !lastSync && !isSyncingThis && (
+                <div className="text-[10px] text-gray-400">Aguardando primeira sync…</div>
+              )}
             </div>
           );
         })}
@@ -332,9 +460,9 @@ export default function CoraStatusPanel({
       {/* Footer */}
       <div className="px-5 py-2.5 border-t border-gray-100 bg-gray-50/60 flex items-center justify-between text-[11px] text-gray-400">
         <span>
-          Novas transações entram com status <strong className="text-gray-600">pendente</strong> e são classificadas automaticamente.
+          Novas transações entram como <strong className="text-gray-600">pendente</strong> e são classificadas automaticamente.
         </span>
-        <span>Cora API · mTLS + OAuth2 · live</span>
+        <span>mTLS + OAuth2</span>
       </div>
     </div>
   );

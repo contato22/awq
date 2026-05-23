@@ -79,7 +79,7 @@ export default function AwqVenturePipelinePage() {
             { label: "Deals Ativos",       value: deals.length,    icon: TrendingUp,  color: "text-amber-400",  bg: "bg-amber-500/10"  },
             { label: "Ticket Potencial",   value: fmtR(totalTicket), icon: DollarSign, color: "text-emerald-400",bg: "bg-emerald-500/10" },
             { label: "Due Diligence",      value: ddDeals,         icon: FileText,    color: "text-brand-400",  bg: "bg-brand-500/10"  },
-            { label: "Term Sheet Enviados",value: termSheetDeals,  icon: CheckCircle2,color: "text-violet-400", bg: "bg-violet-500/10" },
+            { label: "Term Sheet Enviados",value: termSheetDeals,  icon: CheckCircle2,color: "text-brand-400", bg: "bg-brand-500/10" },
           ].map((s) => {
             const Icon = s.icon;
             return (

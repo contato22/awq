@@ -63,7 +63,7 @@ const typeLabels: Record<string, string> = {
 
 const buColors: Record<string, string> = {
   JACQES: "bg-blue-500/10 text-blue-400",
-  CAZA:   "bg-purple-500/10 text-purple-400",
+  CAZA:   "bg-brand-500/10 text-brand-400",
   STUDIO: "bg-amber-500/10 text-amber-400",
 };
 
@@ -189,10 +189,10 @@ export default function MediaDeliverablesPage() {
           <div className="bg-gray-800/50 rounded-xl border border-gray-700 p-5 space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="font-semibold text-white flex items-center gap-2">
-                <Film size={16} className="text-purple-400" />
+                <Film size={16} className="text-brand-400" />
                 Compromisso M4E — {currentPortco.legal_name}
               </h3>
-              <span className="text-sm font-bold text-purple-400">{deliveryPct.toFixed(0)}% entregue</span>
+              <span className="text-sm font-bold text-brand-400">{deliveryPct.toFixed(0)}% entregue</span>
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div>
@@ -213,7 +213,7 @@ export default function MediaDeliverablesPage() {
               </div>
             </div>
             <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
-              <div className="h-full bg-purple-500 rounded-full" style={{ width: `${Math.min(deliveryPct, 100)}%` }} />
+              <div className="h-full bg-brand-500 rounded-full" style={{ width: `${Math.min(deliveryPct, 100)}%` }} />
             </div>
           </div>
         )}

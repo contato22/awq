@@ -14,14 +14,13 @@ import {
 import type { CrmLead } from "@/lib/crm-types";
 import { STAGE_PROBABILITY } from "@/lib/crm-types";
 import { formatBRL, formatDateBR } from "@/lib/utils";
-import { supabaseClient as supabase } from "@/lib/supabase";
 
 const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
   new:         { label: "Novo",           cls: "badge badge-blue" },
   contacted:   { label: "Contato",        cls: "badge badge-yellow" },
   qualified:   { label: "Qualificado",    cls: "badge badge-green" },
   unqualified: { label: "Desqualificado", cls: "badge badge-red" },
-  converted:   { label: "Convertido",     cls: "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-violet-50 text-violet-700 ring-1 ring-violet-200/60" },
+  converted:   { label: "Convertido",     cls: "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-50 text-brand-700 ring-1 ring-brand-200/60" },
 };
 
 const BU_LIST = ["Todos", "JACQES", "CAZA", "ADVISOR", "VENTURE", "ENRD"] as const;
@@ -51,7 +50,7 @@ function ScoreBar({ score }: { score: number }) {
 
 function BuBadge({ bu }: { bu: string }) {
   if (bu === "JACQES") return <span className="badge badge-blue text-[10px]">{bu}</span>;
-  if (bu === "CAZA")   return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-violet-50 text-violet-700 ring-1 ring-violet-200/60">{bu}</span>;
+  if (bu === "CAZA")   return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-50 text-brand-700 ring-1 ring-brand-200/60">{bu}</span>;
   if (bu === "ADVISOR") return <span className="badge badge-green text-[10px]">{bu}</span>;
   return <span className="badge badge-yellow text-[10px]">{bu}</span>;
 }
@@ -77,37 +76,50 @@ export default function LeadsPage() {
   }, [lockedBU]);
 
   useEffect(() => {
-    void supabase!.from("crm_leads").select("*").order("created_at", { ascending: false })
-      .then(({ data }) => { setLeads((data ?? []) as CrmLead[]); setLoading(false); }, () => { setLoading(false); });
+    fetch("/api/crm/leads")
+      .then(r => r.json())
+      .then(json => { setLeads((json.data ?? []) as CrmLead[]); setLoading(false); })
+      .catch(() => { setLoading(false); });
   }, []);
 
   async function handleConvert(lead: CrmLead) {
     if (!confirm(`Converter "${lead.company_name}" em oportunidade?`)) return;
     setConverting(lead.lead_id);
     try {
-      const { data: oppData, error: oppErr } = await supabase!.from("crm_opportunities").insert({
-        opportunity_name: `${lead.company_name} — ${lead.bu}`,
-        bu: lead.bu,
-        owner: lead.assigned_to,
-        stage: "discovery",
-        probability: STAGE_PROBABILITY.discovery,
-        deal_value: lead.bant_budget ?? 0,
-        created_by: lead.assigned_to,
-      }).select("opportunity_id").single();
+      const oppRes = await fetch("/api/crm/opportunities", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "create",
+          opportunity_name: `${lead.company_name} — ${lead.bu}`,
+          bu: lead.bu,
+          owner: lead.assigned_to,
+          stage: "discovery",
+          probability: STAGE_PROBABILITY.discovery,
+          deal_value: lead.bant_budget ?? 0,
+          created_by: lead.assigned_to,
+        }),
+      }).then(r => r.json());
 
-      if (oppErr) throw new Error(oppErr.message);
+      if (!oppRes.success) throw new Error(oppRes.error ?? "Erro ao criar oportunidade");
 
-      const { error: leadErr } = await supabase!.from("crm_leads").update({
-        status: "converted",
-        converted_to_opportunity_id: oppData.opportunity_id,
-        converted_at: new Date().toISOString(),
-      }).eq("lead_id", lead.lead_id);
+      const leadRes = await fetch("/api/crm/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "update",
+          lead_id: lead.lead_id,
+          status: "converted",
+          converted_to_opportunity_id: oppRes.data.opportunity_id,
+          converted_at: new Date().toISOString(),
+        }),
+      }).then(r => r.json());
 
-      if (leadErr) throw new Error(leadErr.message);
+      if (!leadRes.success) throw new Error(leadRes.error ?? "Erro ao atualizar lead");
 
       setLeads(prev => prev.map(l =>
         l.lead_id === lead.lead_id
-          ? { ...l, status: "converted" as const, converted_to_opportunity_id: oppData.opportunity_id }
+          ? { ...l, status: "converted" as const, converted_to_opportunity_id: oppRes.data.opportunity_id }
           : l
       ));
       router.push("/crm/opportunities");
@@ -122,7 +134,11 @@ export default function LeadsPage() {
     if (!confirm(`Apagar o lead "${lead.company_name}" permanentemente?`)) return;
     setDeleting(lead.lead_id);
     setLeads(prev => prev.filter(l => l.lead_id !== lead.lead_id));
-    await supabase!.from("crm_leads").delete().eq("lead_id", lead.lead_id);
+    await fetch("/api/crm/leads", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "delete", lead_id: lead.lead_id }),
+    });
     setDeleting(null);
   }
 
@@ -186,8 +202,8 @@ export default function LeadsPage() {
             </div>
           </div>
           <div className="card p-4 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-violet-50 flex items-center justify-center shrink-0">
-              <Target size={16} className="text-violet-600" />
+            <div className="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center shrink-0">
+              <Target size={16} className="text-brand-600" />
             </div>
             <div>
               <div className="text-xl font-bold text-gray-900">{kpiNew}</div>

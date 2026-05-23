@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const {
       bu_code, customer_name, description, category, cost_center,
-      reference_doc, issue_date, due_date, gross_amount,
+      reference_doc, account_code, issue_date, due_date, gross_amount,
       customer_doc, iss_rate, source_system, created_by,
     } = body;
 
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
     const item = await addAR({
       bu_code, customer_name, customer_doc, description,
       category: category ?? "Serviço Recorrente", cost_center,
-      reference_doc, issue_date: issue_date ?? new Date().toISOString().slice(0, 10), due_date,
+      reference_doc, account_code, issue_date: issue_date ?? new Date().toISOString().slice(0, 10), due_date,
       gross_amount, iss_rate, source_system, created_by,
     });
 

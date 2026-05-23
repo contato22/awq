@@ -82,8 +82,8 @@ export default function RevenueChart() {
         >
           <defs>
             <linearGradient id="gradRevenue" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#6366f1" stopOpacity={0.15} />
-              <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+              <stop offset="5%" stopColor="#1476c6" stopOpacity={0.15} />
+              <stop offset="95%" stopColor="#1476c6" stopOpacity={0} />
             </linearGradient>
             <linearGradient id="gradProfit" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor="#10b981" stopOpacity={0.12} />
@@ -146,7 +146,7 @@ export default function RevenueChart() {
             type="monotone"
             dataKey="revenue"
             name="revenue"
-            stroke="#6366f1"
+            stroke="#1476c6"
             strokeWidth={2}
             fill="url(#gradRevenue)"
             dot={false}

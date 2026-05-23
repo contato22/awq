@@ -226,7 +226,7 @@ function StatusCard({ label, value, sub, color }: { label: string; value: string
   return <div className={`p-4 rounded-xl border ${color}`}><div className="text-xs font-semibold uppercase tracking-wide mb-1 opacity-70">{label}</div><div className="text-xl font-bold">{value}</div><div className="text-xs mt-1 opacity-60">{sub}</div></div>;
 }
 
-const ACTION_COLORS: Record<SecurityAction, string> = { view: "bg-gray-100 text-gray-600", create: "bg-green-100 text-green-700", update: "bg-blue-100 text-blue-700", delete: "bg-red-100 text-red-700", export: "bg-violet-100 text-violet-700", import: "bg-amber-100 text-amber-700", approve: "bg-emerald-100 text-emerald-700", manage_security: "bg-rose-100 text-rose-700" };
+const ACTION_COLORS: Record<SecurityAction, string> = { view: "bg-gray-100 text-gray-600", create: "bg-green-100 text-green-700", update: "bg-blue-100 text-blue-700", delete: "bg-red-100 text-red-700", export: "bg-brand-100 text-brand-700", import: "bg-amber-100 text-amber-700", approve: "bg-emerald-100 text-emerald-700", manage_security: "bg-rose-100 text-rose-700" };
 
 function ActionBadge({ action }: { action: SecurityAction }) {
   return <span className={`inline-block px-1 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wide ${ACTION_COLORS[action]}`}>{ACTION_SHORT[action]}</span>;
