@@ -3,14 +3,14 @@
 // Manages Accounts Payable and Accounts Receivable.
 // Includes Brazilian fiscal retention auto-calculation (IRRF, INSS, ISS, PIS, COFINS).
 //
-// Storage priority: sql (DATABASE_URL direct) → supabase REST (same project) → JSON
+// Storage priority: sql (DATABASE_URL direct) → Supabase Storage (erpAdmin svc key) → JSON
 // DO NOT import in client components.
 
 import fs from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
 import { sql } from "./db";
-import { supabase as supaFallback } from "./supabase";
+import { supabase as supaFallback, erpAdmin } from "./supabase";
 
 // sql health flag: set to true when a connection attempt fails (e.g. wrong DATABASE_URL password)
 // so subsequent calls fall through to the supabase REST tier (same project, gqkgsoglgubmaborixfb).
@@ -245,15 +245,19 @@ function writeJSONFile<T>(file: string, data: T) {
 }
 
 // ─── Supabase Storage tier (sql-broken fallback — no DDL required) ────────────
-// Uses the main financial DB Supabase project (same as DATABASE_URL target).
-// Bucket "ap-ar-data" is created automatically with the service role key.
+// Bucket "ap-ar-data" lives in the ERP Supabase project (kkhxxsrgsewjfvnnssyf).
+// erpAdmin uses ERP_SUPABASE_SERVICE_ROLE_KEY (confirmed set in Vercel).
+// supaFallback is used as secondary fallback if erpAdmin is absent.
 
 const STORAGE_BUCKET = "ap-ar-data";
 let _bucketEnsured = false;
 
+function storageClient() { return erpAdmin ?? supaFallback; }
+
 async function ensureStorageBucket(): Promise<void> {
-  if (_bucketEnsured || !supaFallback) return;
-  const { error } = await supaFallback.storage.createBucket(STORAGE_BUCKET, { public: false });
+  const client = storageClient();
+  if (_bucketEnsured || !client) return;
+  const { error } = await client.storage.createBucket(STORAGE_BUCKET, { public: false });
   if (error && !error.message.toLowerCase().includes("already exist")) {
     console.error("[ap-ar-db] storage bucket init:", error.message);
   }
@@ -261,9 +265,10 @@ async function ensureStorageBucket(): Promise<void> {
 }
 
 async function storeRead<T>(file: string, empty: T): Promise<T> {
-  if (!supaFallback) return empty;
+  const client = storageClient();
+  if (!client) return empty;
   try {
-    const { data, error } = await supaFallback.storage.from(STORAGE_BUCKET).download(file);
+    const { data, error } = await client.storage.from(STORAGE_BUCKET).download(file);
     if (error || !data) return empty;
     return JSON.parse(await data.text()) as T;
   } catch { return empty; }
@@ -271,9 +276,10 @@ async function storeRead<T>(file: string, empty: T): Promise<T> {
 
 async function storeWrite<T>(file: string, value: T): Promise<void> {
   await ensureStorageBucket();
-  if (!supaFallback) throw new Error("[ap-ar-db] no supabase client available");
+  const client = storageClient();
+  if (!client) throw new Error("[ap-ar-db] no supabase client available");
   const bytes = Buffer.from(JSON.stringify(value));
-  const { error } = await supaFallback.storage.from(STORAGE_BUCKET).upload(file, bytes, {
+  const { error } = await client.storage.from(STORAGE_BUCKET).upload(file, bytes, {
     upsert: true, contentType: "application/json",
   });
   if (error) throw new Error(error.message);
