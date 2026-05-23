@@ -10,16 +10,16 @@ const config: Config = {
     extend: {
       colors: {
         brand: {
-          50:  "#e8f4fd",
-          100: "#cce6fa",
-          200: "#99cdf5",
-          300: "#66b4f0",
-          400: "#339beb",
-          500: "#1e82d8",
-          600: "#1476c6",
-          700: "#0f68b2",
-          800: "#0a5490",
-          900: "#07406e",
+          50:  "#e8f6fd",
+          100: "#c9eafa",
+          200: "#98d5f5",
+          300: "#65c0f2",
+          400: "#39aeed",
+          500: "#1e9de8",
+          600: "#0487D9",
+          700: "#023E73",
+          800: "#023373",
+          900: "#011f4d",
         },
         awq: {
           gold:         "#C9A84C",
@@ -28,8 +28,8 @@ const config: Config = {
           dark:         "#1A1A2E",
           "dark-600":   "#252542",
           "dark-400":   "#3A3A5C",
-          navy:         "#13243e",
-          panel:        "#1b55ae",
+          navy:         "#023373",
+          panel:        "#0487D9",
         },
         surface: {
           DEFAULT: "#FFFFFF",
