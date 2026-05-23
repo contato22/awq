@@ -137,7 +137,7 @@ export default async function BoardPackPage() {
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-4">
             <BarChart3 size={14} className="text-emerald-600" />
-            <span className="text-sm font-semibold text-gray-900">P&L Highlights — {quarter}</span>
+            <span className="text-base font-semibold text-gray-900">P&L Highlights — {quarter}</span>
             <span className="ml-auto text-xs text-gray-400">{dre.hasData ? "Base bancária real" : "Snapshot planejamento"}</span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -148,9 +148,9 @@ export default async function BoardPackPage() {
               { label: "EBITDA",          value: fmtBRL(ebitda),        color: ebitda >= 0 ? "text-emerald-700" : "text-red-700" },
               { label: "Margem EBITDA",   value: pct(ebitdaPct ?? 0),   color: ebitdaPct !== null && ebitdaPct >= 0.1 ? "text-emerald-700" : "text-amber-700" },
             ].map((card) => (
-              <div key={card.label} className="bg-gray-50 rounded-xl p-4 text-center">
-                <div className={`text-lg font-bold tabular-nums ${card.color}`}>{card.value}</div>
-                <div className="text-[11px] text-gray-400 mt-1">{card.label}</div>
+              <div key={card.label} className="bg-gray-50 rounded-xl p-5 text-center">
+                <div className={`text-xl font-bold tabular-nums ${card.color}`}>{card.value}</div>
+                <div className="text-xs text-gray-400 mt-1 font-medium">{card.label}</div>
               </div>
             ))}
           </div>
@@ -160,7 +160,7 @@ export default async function BoardPackPage() {
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-4">
             <DollarSign size={14} className="text-brand-600" />
-            <span className="text-sm font-semibold text-gray-900">Posição de Caixa & Liquidez</span>
+            <span className="text-base font-semibold text-gray-900">Posição de Caixa & Liquidez</span>
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             {[
@@ -169,9 +169,9 @@ export default async function BoardPackPage() {
               { label: "Cash Runway",       value: runway + " meses",     color: runway > 6 ? "text-emerald-700" : "text-red-700" },
               { label: "DSO (AR)",          value: "32 dias",             color: "text-brand-700"   },
             ].map((card) => (
-              <div key={card.label} className="bg-gray-50 rounded-xl p-4 text-center">
-                <div className={`text-lg font-bold tabular-nums ${card.color}`}>{card.value}</div>
-                <div className="text-[11px] text-gray-400 mt-1">{card.label}</div>
+              <div key={card.label} className="bg-gray-50 rounded-xl p-5 text-center">
+                <div className={`text-xl font-bold tabular-nums ${card.color}`}>{card.value}</div>
+                <div className="text-xs text-gray-400 mt-1 font-medium">{card.label}</div>
               </div>
             ))}
           </div>
@@ -181,7 +181,7 @@ export default async function BoardPackPage() {
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-4">
             <Target size={14} className="text-brand-600" />
-            <span className="text-sm font-semibold text-gray-900">KPI Scorecard — {quarter}</span>
+            <span className="text-base font-semibold text-gray-900">KPI Scorecard — {quarter}</span>
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             {[
@@ -200,11 +200,11 @@ export default async function BoardPackPage() {
               return (
                 <div key={kpi.label} className={`rounded-xl p-3 ${bg}`}>
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-[10px] text-gray-500 font-semibold">{kpi.label}</span>
+                    <span className="text-xs text-gray-500 font-semibold">{kpi.label}</span>
                     <span className={`w-2 h-2 rounded-full ${dot}`} />
                   </div>
-                  <div className={`text-base font-bold tabular-nums ${color}`}>{kpi.value}</div>
-                  <div className="text-[10px] text-gray-400 mt-0.5">Target: {kpi.target}</div>
+                  <div className={`text-lg font-bold tabular-nums ${color}`}>{kpi.value}</div>
+                  <div className="text-xs text-gray-400 mt-0.5">Target: {kpi.target}</div>
                 </div>
               );
             })}
@@ -215,19 +215,19 @@ export default async function BoardPackPage() {
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-4">
             <Building2 size={14} className="text-brand-600" />
-            <span className="text-sm font-semibold text-gray-900">Performance por BU — {quarter}</span>
+            <span className="text-base font-semibold text-gray-900">Performance por BU — {quarter}</span>
           </div>
           <div className="table-scroll">
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50 text-left">
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold">BU</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Receita</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Budget</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Var %</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">EBITDA</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Margem</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold">Status</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">BU</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Receita</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Budget</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Var %</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">EBITDA</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Margem</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -255,7 +255,7 @@ export default async function BoardPackPage() {
                         {row.revenue > 0 ? margin.toFixed(1) + "%" : "—"}
                       </td>
                       <td className="py-2.5 px-3">
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${onTrack ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${onTrack ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
                           {onTrack ? "✓ OK" : "⚠ Atenção"}
                         </span>
                       </td>
@@ -271,7 +271,7 @@ export default async function BoardPackPage() {
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-4">
             <ArrowUpRight size={14} className="text-brand-600" />
-            <span className="text-sm font-semibold text-gray-900">Iniciativas Estratégicas</span>
+            <span className="text-base font-semibold text-gray-900">Iniciativas Estratégicas</span>
           </div>
           <div className="space-y-3">
             {INITIATIVES.map((init) => {
@@ -283,11 +283,11 @@ export default async function BoardPackPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-xs font-semibold text-gray-900">{init.label}</span>
-                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${cfg.bg} ${cfg.color}`}>
+                      <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${cfg.bg} ${cfg.color}`}>
                         {cfg.label}
                       </span>
                     </div>
-                    <div className="text-[11px] text-gray-400 mt-0.5">{init.update}</div>
+                    <div className="text-xs text-gray-400 mt-0.5">{init.update}</div>
                   </div>
                   <div className="text-right shrink-0">
                     <div className="text-[10px] text-gray-400">{init.owner}</div>
@@ -303,16 +303,16 @@ export default async function BoardPackPage() {
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-4">
             <AlertTriangle size={14} className="text-amber-600" />
-            <span className="text-sm font-semibold text-gray-900">Registro de Riscos</span>
+            <span className="text-base font-semibold text-gray-900">Registro de Riscos</span>
           </div>
           <div className="table-scroll">
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50 text-left">
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold">Risco</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-center">Probabilidade</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-center">Impacto</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold">Mitigação</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Risco</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-center">Probabilidade</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-center">Impacto</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Mitigação</th>
                 </tr>
               </thead>
               <tbody>
@@ -320,16 +320,16 @@ export default async function BoardPackPage() {
                   <tr key={i} className="border-b border-gray-50 hover:bg-gray-50">
                     <td className="py-2.5 px-3 text-gray-700 max-w-[200px]">{risk.description}</td>
                     <td className="py-2.5 px-3 text-center">
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${RISK_COLORS[risk.probability]}`}>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${RISK_COLORS[risk.probability]}`}>
                         {risk.probability}
                       </span>
                     </td>
                     <td className="py-2.5 px-3 text-center">
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${RISK_COLORS[risk.impact]}`}>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${RISK_COLORS[risk.impact]}`}>
                         {risk.impact}
                       </span>
                     </td>
-                    <td className="py-2.5 px-3 text-gray-500 text-[11px] max-w-[250px]">{risk.mitigation}</td>
+                    <td className="py-2.5 px-3 text-gray-500 text-xs max-w-[250px]">{risk.mitigation}</td>
                   </tr>
                 ))}
               </tbody>
@@ -341,7 +341,7 @@ export default async function BoardPackPage() {
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-4">
             <TrendingUp size={14} className="text-emerald-600" />
-            <span className="text-sm font-semibold text-gray-900">Outlook — {nextQ}</span>
+            <span className="text-base font-semibold text-gray-900">Outlook — {nextQ}</span>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             {[
@@ -364,10 +364,10 @@ export default async function BoardPackPage() {
                 color: "text-brand-700",
               },
             ].map((card) => (
-              <div key={card.label} className="bg-gray-50 rounded-xl p-4">
-                <div className="text-[10px] text-gray-400 font-semibold uppercase tracking-widest mb-1">{card.label}</div>
-                <div className={`text-xl font-bold tabular-nums ${card.color}`}>{card.value}</div>
-                <div className="text-[11px] text-gray-500 mt-1">{card.note}</div>
+              <div key={card.label} className="bg-gray-50 rounded-xl p-5">
+                <div className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1">{card.label}</div>
+                <div className={`text-2xl font-bold tabular-nums ${card.color}`}>{card.value}</div>
+                <div className="text-xs text-gray-500 mt-1">{card.note}</div>
               </div>
             ))}
           </div>

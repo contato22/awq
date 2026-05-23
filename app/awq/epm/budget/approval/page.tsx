@@ -183,10 +183,10 @@ export default function BudgetApprovalPage() {
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${scenarioCfg.bg} ${scenarioCfg.color}`}>
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${scenarioCfg.bg} ${scenarioCfg.color}`}>
                         {scenarioCfg.label}
                       </span>
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 ${statusCfg.bg} ${statusCfg.color}`}>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 ${statusCfg.bg} ${statusCfg.color}`}>
                         <StatusIcon size={9} />
                         {statusCfg.label}
                       </span>
@@ -212,13 +212,13 @@ export default function BudgetApprovalPage() {
                 </div>
 
                 {v.notes && (
-                  <p className="text-[11px] text-gray-400 italic border-t border-gray-100 pt-3">
+                  <p className="text-xs text-gray-400 italic border-t border-gray-100 pt-3">
                     {v.notes}
                   </p>
                 )}
 
                 {v.approved_by && (
-                  <div className="mt-3 flex items-center gap-1.5 text-[10px] text-emerald-700 font-semibold">
+                  <div className="mt-3 flex items-center gap-1.5 text-xs text-emerald-700 font-semibold">
                     <CheckCircle2 size={10} />
                     Aprovado por {v.approved_by} · {v.approved_at?.slice(0, 10)}
                   </div>
@@ -243,7 +243,7 @@ export default function BudgetApprovalPage() {
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-4">
             <TrendingUp size={14} className="text-brand-600" />
-            <span className="text-sm font-semibold text-gray-900">Comparativo de Cenários</span>
+            <span className="text-base font-semibold text-gray-900">Comparativo de Cenários</span>
           </div>
           <div className="table-scroll">
             <table className="w-full text-xs">
@@ -288,7 +288,7 @@ export default function BudgetApprovalPage() {
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-4">
             <FileText size={14} className="text-gray-600" />
-            <span className="text-sm font-semibold text-gray-900">Histórico de Aprovação — Audit Trail</span>
+            <span className="text-base font-semibold text-gray-900">Histórico de Aprovação — Audit Trail</span>
           </div>
           <div className="relative pl-5">
             <div className="absolute left-2 top-0 bottom-0 w-px bg-gray-200" />
@@ -302,12 +302,12 @@ export default function BudgetApprovalPage() {
                     <div className="pl-3">
                       <div className="flex items-center gap-2 mb-0.5">
                         <EvtIcon size={11} className={cfg.color} />
-                        <span className={`text-[11px] font-bold uppercase tracking-wide ${cfg.color}`}>
+                        <span className={`text-xs font-bold uppercase tracking-wide ${cfg.color}`}>
                           {evt.action.replace(/_/g, " ")}
                         </span>
-                        <span className="text-[10px] text-gray-400">{evt.version_name}</span>
-                        <span className="ml-auto text-[10px] text-gray-400">{evt.at}</span>
-                        <span className="text-[10px] text-gray-500 font-semibold">{evt.by}</span>
+                        <span className="text-xs text-gray-400">{evt.version_name}</span>
+                        <span className="ml-auto text-xs text-gray-400">{evt.at}</span>
+                        <span className="text-xs text-gray-500 font-semibold">{evt.by}</span>
                       </div>
                       <p className="text-xs text-gray-500 leading-relaxed">{evt.comment}</p>
                     </div>

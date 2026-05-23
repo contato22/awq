@@ -124,7 +124,7 @@ export default function BankReconciliationPage() {
         </div>
         <button
           onClick={() => setShowImport((v) => !v)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+          className="px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 transition-colors"
         >
           {showImport ? "Cancelar" : "+ Importar transação"}
         </button>
@@ -185,7 +185,7 @@ export default function BankReconciliationPage() {
             <button type="button" onClick={() => setShowImport(false)}
               className="px-4 py-2 border rounded-lg text-sm hover:bg-gray-50">Cancelar</button>
             <button type="submit" disabled={submitting}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
+              className="px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 disabled:opacity-50">
               {submitting ? "Importando..." : "Importar"}
             </button>
           </div>
@@ -199,7 +199,7 @@ export default function BankReconciliationPage() {
             key={s}
             onClick={() => setFilter(s)}
             className={`px-4 py-1.5 rounded-lg font-medium transition-colors ${
-              filter === s ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              filter === s ? "bg-brand-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
             }`}
           >
             {s === "all" ? "Todos" : STATUS_LABEL[s]}

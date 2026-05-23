@@ -152,7 +152,7 @@ export default function ARCollectionsPage() {
                       <select
                         value={form.method}
                         onChange={(e) => setForm((f) => ({ ...f, method: e.target.value as ARCollection["method"] }))}
-                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                       >
                         {METHODS.map((m) => <option key={m} value={m}>{METHOD_LABELS[m]}</option>)}
                       </select>
@@ -162,7 +162,7 @@ export default function ARCollectionsPage() {
                       <select
                         value={form.outcome}
                         onChange={(e) => setForm((f) => ({ ...f, outcome: e.target.value as ARCollection["outcome"] }))}
-                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                       >
                         {OUTCOMES.map((o) => <option key={o} value={o}>{OUTCOME_LABELS[o]}</option>)}
                       </select>
@@ -174,7 +174,7 @@ export default function ARCollectionsPage() {
                       type="date"
                       value={form.next_followup}
                       onChange={(e) => setForm((f) => ({ ...f, next_followup: e.target.value }))}
-                      className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                     />
                   </div>
                   <div>
@@ -184,13 +184,13 @@ export default function ARCollectionsPage() {
                       onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
                       rows={2}
                       placeholder="Resultado, acordos, próximos passos..."
-                      className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                     />
                   </div>
                   <button
                     type="submit"
                     disabled={saving}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                    className="bg-brand-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-700 disabled:opacity-50 transition-colors"
                   >
                     {saving ? "Salvando..." : "Registrar contato"}
                   </button>

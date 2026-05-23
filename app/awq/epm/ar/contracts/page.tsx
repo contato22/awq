@@ -105,7 +105,7 @@ export default function ContractsPage() {
           </button>
           <button
             onClick={() => setShowForm((v) => !v)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+            className="px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 transition-colors"
           >
             {showForm ? "Cancelar" : "+ Novo contrato"}
           </button>
@@ -127,7 +127,7 @@ export default function ContractsPage() {
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">BU</label>
               <select value={form.bu_code} onChange={(e) => setForm((f) => ({ ...f, bu_code: e.target.value as BuCode }))}
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
                 {BUS.map((b) => <option key={b} value={b}>{b}</option>)}
               </select>
             </div>
@@ -136,19 +136,19 @@ export default function ContractsPage() {
               <input required value={form.customer_name}
                 onChange={(e) => setForm((f) => ({ ...f, customer_name: e.target.value }))}
                 placeholder="Nome do cliente"
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">CNPJ/CPF</label>
               <input value={form.customer_doc}
                 onChange={(e) => setForm((f) => ({ ...f, customer_doc: e.target.value }))}
                 placeholder="Opcional"
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Categoria</label>
               <select value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
                 {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
@@ -157,45 +157,45 @@ export default function ContractsPage() {
               <input required value={form.description}
                 onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                 placeholder="Ex: Gestão de tráfego pago — mensal"
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Valor mensal (R$) *</label>
               <input required type="number" min="0.01" step="0.01" value={form.monthly_amount}
                 onChange={(e) => setForm((f) => ({ ...f, monthly_amount: e.target.value }))}
                 placeholder="5000.00"
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Dia de cobrança (1-28) *</label>
               <input required type="number" min="1" max="28" value={form.billing_day}
                 onChange={(e) => setForm((f) => ({ ...f, billing_day: e.target.value }))}
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">ISS (ex: 0.05 = 5%)</label>
               <input type="number" min="0" max="0.20" step="0.001" value={form.iss_rate}
                 onChange={(e) => setForm((f) => ({ ...f, iss_rate: e.target.value }))}
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Início *</label>
               <input required type="date" value={form.start_date}
                 onChange={(e) => setForm((f) => ({ ...f, start_date: e.target.value }))}
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Término (opcional)</label>
               <input type="date" value={form.end_date}
                 onChange={(e) => setForm((f) => ({ ...f, end_date: e.target.value }))}
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
             </div>
           </div>
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={() => setShowForm(false)}
               className="px-4 py-2 border rounded-lg text-sm hover:bg-gray-50">Cancelar</button>
             <button type="submit" disabled={submitting}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
+              className="px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 disabled:opacity-50">
               {submitting ? "Salvando..." : "Criar contrato"}
             </button>
           </div>

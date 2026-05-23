@@ -202,12 +202,12 @@ export default function EliminationsPage() {
           ].map((card) => {
             const Icon = card.icon;
             return (
-              <div key={card.label} className="card p-4">
+              <div key={card.label} className="card p-5">
                 <div className="flex items-center gap-2 mb-1">
                   <Icon size={14} className={card.color} />
                 </div>
-                <div className={`text-xl font-bold tabular-nums ${card.color}`}>{card.value}</div>
-                <div className="text-xs text-gray-400 mt-1">{card.label}</div>
+                <div className={`text-2xl font-bold tabular-nums ${card.color}`}>{card.value}</div>
+                <div className="text-xs text-gray-400 mt-1 font-medium">{card.label}</div>
               </div>
             );
           })}
@@ -218,7 +218,7 @@ export default function EliminationsPage() {
           <div className="card p-5 border-amber-200 border">
             <div className="flex items-center gap-2 mb-3">
               <AlertTriangle size={14} className="text-amber-600" />
-              <span className="text-sm font-semibold text-amber-800">
+              <span className="text-base font-semibold text-amber-800">
                 {unmatched.length} Item(ns) Sem Contrapartida — {fmtBRL(totalUnmatch)} não eliminado
               </span>
             </div>
@@ -230,11 +230,11 @@ export default function EliminationsPage() {
                     <XCircle size={13} className="text-amber-500 shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="text-xs font-semibold text-gray-900">{t.description}</div>
-                      <div className="text-[11px] text-gray-400">{t.from_entity} → {t.to_entity} · {t.date}</div>
+                      <div className="text-xs text-gray-400">{t.from_entity} → {t.to_entity} · {t.date}</div>
                     </div>
                     <div className="text-right shrink-0">
                       <div className="text-sm font-bold text-amber-700 tabular-nums">{fmtBRL(t.amount)}</div>
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${scfg.bg} ${scfg.color}`}>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${scfg.bg} ${scfg.color}`}>
                         {scfg.label}
                       </span>
                     </div>
@@ -253,7 +253,7 @@ export default function EliminationsPage() {
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-4">
             <Building2 size={14} className="text-brand-600" />
-            <span className="text-sm font-semibold text-gray-900">Eliminações por Par de Entidade</span>
+            <span className="text-base font-semibold text-gray-900">Eliminações por Par de Entidade</span>
           </div>
           <div className="space-y-3">
             {entityPairs.map((pair) => {
@@ -268,7 +268,7 @@ export default function EliminationsPage() {
                       <span className="text-gray-400">·</span>
                       <span className="text-gray-400">{pair.count} transações</span>
                       {pair.types.map((t) => (
-                        <span key={t} className="text-[10px] px-1.5 py-0.5 bg-brand-100 text-brand-700 rounded-full font-semibold">
+                        <span key={t} className="text-xs px-1.5 py-0.5 bg-brand-100 text-brand-700 rounded-full font-semibold">
                           {TYPE_LABELS[t] ?? t}
                         </span>
                       ))}
@@ -291,7 +291,7 @@ export default function EliminationsPage() {
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-4">
             <BarChart3 size={14} className="text-brand-600" />
-            <span className="text-sm font-semibold text-gray-900">
+            <span className="text-base font-semibold text-gray-900">
               P&L — Pré vs Pós Eliminação Intercompany
             </span>
           </div>
@@ -299,11 +299,11 @@ export default function EliminationsPage() {
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50 text-left">
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold">Linha</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Pré-Eliminação</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Eliminação IC</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Pós-Eliminação</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Impacto %</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Linha</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Pré-Eliminação</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Eliminação IC</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Pós-Eliminação</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Impacto %</th>
                 </tr>
               </thead>
               <tbody>
@@ -333,7 +333,7 @@ export default function EliminationsPage() {
         <div className="card">
           <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-100">
             <GitMerge size={14} className="text-brand-600" />
-            <span className="text-sm font-semibold text-gray-900">
+            <span className="text-base font-semibold text-gray-900">
               Registro de Transações Intercompany
             </span>
             <span className="ml-auto text-xs text-gray-400">{IC_TRANSACTIONS.length} transações · YTD 2026</span>
@@ -342,14 +342,14 @@ export default function EliminationsPage() {
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50 text-left">
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold">ID</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold">Data</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold">De</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold">Para</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold">Descrição</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold">Tipo</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Valor</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold">Status</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">ID</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Data</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">De</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Para</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Descrição</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Tipo</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Valor</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -363,7 +363,7 @@ export default function EliminationsPage() {
                       <td className="py-2 px-3 text-gray-700">{t.to_entity}</td>
                       <td className="py-2 px-3 text-gray-600 max-w-[200px] truncate">{t.description}</td>
                       <td className="py-2 px-3">
-                        <span className="text-[10px] px-1.5 py-0.5 bg-brand-100 text-brand-700 rounded-full font-semibold">
+                        <span className="text-xs px-1.5 py-0.5 bg-brand-100 text-brand-700 rounded-full font-semibold">
                           {TYPE_LABELS[t.type] ?? t.type}
                         </span>
                       </td>

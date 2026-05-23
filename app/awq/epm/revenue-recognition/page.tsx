@@ -156,20 +156,20 @@ export default function RevenueRecognitionPage() {
                       <label className="block text-xs font-medium text-gray-600 mb-1">Período (AAAA-MM)</label>
                       <input type="month" value={form.period}
                         onChange={(e) => setForm((f) => ({ ...f, period: e.target.value }))                        }
-                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">Valor reconhecido (R$)</label>
                       <input required type="number" min="0.01" step="0.01" value={form.recognized_amount}
                         onChange={(e) => setForm((f) => ({ ...f, recognized_amount: e.target.value }))}
                         placeholder={fmt(remaining)}
-                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">Método</label>
                       <select value={form.recognition_method}
                         onChange={(e) => setForm((f) => ({ ...f, recognition_method: e.target.value as RevenueRecognition["recognition_method"] }))}
-                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
                         {METHODS.map((m) => <option key={m} value={m}>{METHOD_LABELS[m]}</option>)}
                       </select>
                     </div>
@@ -179,10 +179,10 @@ export default function RevenueRecognitionPage() {
                     <input type="text" value={form.notes}
                       onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
                       placeholder="Opcional"
-                      className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                      className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
                   </div>
                   <button type="submit" disabled={saving}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
+                    className="bg-brand-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-700 disabled:opacity-50">
                     {saving ? "Salvando..." : "Registrar"}
                   </button>
                 </form>
