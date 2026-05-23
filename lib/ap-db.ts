@@ -230,8 +230,8 @@ export async function updateAPEntry(id: string, input: UpdateAPEntryInput): Prom
       const entries = Object.entries(patch);
       if (entries.length === 1) return; // only updated_at — nothing to update
 
-      // Use parameterized raw update
-      await sql`
+      // Use parameterized raw update; RETURNING id lets us detect missing rows
+      const updated = await sql`
         UPDATE ap_entries
         SET updated_at = ${now},
             status               = COALESCE(${input.status ?? null},               status),
@@ -245,7 +245,9 @@ export async function updateAPEntry(id: string, input: UpdateAPEntryInput): Prom
             invoice_number       = COALESCE(${input.invoiceNumber ?? null},        invoice_number),
             description          = COALESCE(${input.description ?? null},          description)
         WHERE id = ${id}
+        RETURNING id
       `;
+      if (updated.length === 0) throw new Error("AP entry not found");
       return;
     } catch {
       // fall through to Supabase REST
@@ -274,15 +276,17 @@ export async function updateAPEntry(id: string, input: UpdateAPEntryInput): Prom
   if (input.description       !== undefined) patch.description          = input.description;
 
   try {
-    const { error } = await db.from("ap_entries").update(patch).eq("id", id);
+    const { data, error } = await db.from("ap_entries").update(patch).eq("id", id).select("id");
     if (error) throw new Error(`AP update failed: ${error.message}`);
-  } catch {
+    if (!data || data.length === 0) throw new Error("AP entry not found");
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg === "AP entry not found") throw err;
     const all = readJsonFallback();
     const idx = all.findIndex(e => e.id === id);
-    if (idx !== -1) {
-      all[idx] = { ...all[idx], ...input, updatedAt: now };
-      writeJsonFallback(all);
-    }
+    if (idx === -1) throw new Error("AP entry not found");
+    all[idx] = { ...all[idx], ...input, updatedAt: now };
+    writeJsonFallback(all);
   }
 }
 

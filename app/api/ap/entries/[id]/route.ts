@@ -8,7 +8,11 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     await updateAPEntry(params.id, body);
     return NextResponse.json({ ok: true });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg === "AP entry not found") {
+      return NextResponse.json({ error: "AP entry not found" }, { status: 404 });
+    }
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 
