@@ -54,7 +54,7 @@
 
   /* ── Focus Ring System ─────────────────────────────────────── */
   :focus-visible {
-    @apply outline-none ring-2 ring-brand-500/40 ring-offset-2 ring-offset-white;
+    @apply outline-none ring-2 ring-brand-600/40 ring-offset-2 ring-offset-white;
   }
 }
 
@@ -145,7 +145,7 @@
   }
 
   .badge-blue {
-    @apply badge bg-blue-50 text-blue-700 ring-1 ring-blue-200/60;
+    @apply badge bg-brand-50 text-brand-800 ring-1 ring-brand-200/60;
   }
 
   .badge-gray {
