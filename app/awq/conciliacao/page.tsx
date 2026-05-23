@@ -204,7 +204,7 @@ export default async function ConciliacaoPage() {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
             {[
-              { href: "/awq/ap",        icon: ClipboardList, label: "Contas a Pagar (AP)", sub: "/awq/ap"        },
+              { href: "/awq/ap",        icon: Clipboard,     label: "Contas a Pagar (AP)", sub: "/awq/ap"        },
               { href: "/awq/cashflow",  icon: Zap,           label: "DFC — Fluxo de Caixa",  sub: "/awq/cashflow"  },
               { href: "/awq/financial", icon: LineChart,      label: "DRE — Financeiro",       sub: "/awq/financial" },
               { href: "/awq/kpis",      icon: BarChart3,      label: "KPIs Consolidados",      sub: "/awq/kpis"      },
