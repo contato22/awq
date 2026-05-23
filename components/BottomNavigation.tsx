@@ -93,7 +93,7 @@ export default function BottomNavigation() {
               key={tab.href}
               href={tab.href}
               className={cn(
-                "relative flex-1 flex flex-col items-center justify-center py-2 pt-2.5 gap-0.5 text-[10px] font-medium transition-colors min-h-[56px]",
+                "relative flex-1 flex flex-col items-center justify-center py-2 pt-2.5 gap-0.5 text-xs font-medium transition-colors min-h-[56px]",
                 active ? "text-brand-600" : "text-gray-400 active:text-gray-600"
               )}
             >

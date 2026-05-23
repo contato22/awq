@@ -135,17 +135,17 @@ function SectionCard({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{idx}</span>
+              <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{idx}</span>
               <span className="text-sm font-bold text-gray-900">{title}</span>
             </div>
-            <span className={`text-[11px] font-medium ${st.color}`}>{st.label}</span>
+            <span className={`text-xs font-medium ${st.color}`}>{st.label}</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
           {isDecided && (
             <button
               onClick={(e) => { e.stopPropagation(); onUpdate({ ...response, status: "pending", counterText: "" }); setOpen(true); }}
-              className="text-[10px] text-gray-400 hover:text-gray-600 flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-white/60 transition-colors"
+              className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-white/60 transition-colors"
             >
               <RotateCcw size={10} /> Refazer
             </button>
@@ -165,7 +165,7 @@ function SectionCard({
           {/* Action buttons */}
           {response.status === "pending" && (
             <div className="px-5 py-4 bg-gray-50 border-t border-gray-100 space-y-3">
-              <p className="text-[11px] text-gray-500 font-medium">Como você avalia esta seção?</p>
+              <p className="text-xs text-gray-500 font-medium">Como você avalia esta seção?</p>
               <div className="flex gap-2 flex-wrap">
                 <button
                   onClick={() => { onUpdate({ ...response, status: "approved", counterText: "" }); setOpen(false); }}
@@ -209,7 +209,7 @@ function SectionCard({
                 rows={3}
                 className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-400 resize-none bg-white"
               />
-              <p className="text-[10px] text-gray-400 mt-1">
+              <p className="text-xs text-gray-400 mt-1">
                 Sua mensagem será enviada à equipe AWQ Venture junto com a revisão da proposta.
               </p>
             </div>
@@ -264,7 +264,7 @@ function ProgressRing({ approved, total }: { approved: number; total: number }) 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex gap-3">
-      <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide w-36 shrink-0 pt-0.5">{label}</span>
+      <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide w-36 shrink-0 pt-0.5">{label}</span>
       <span className="text-sm text-gray-700">{value}</span>
     </div>
   );
@@ -274,7 +274,7 @@ function Pill({ label, value, color }: { label: string; value: string; color?: s
   return (
     <div className={`text-center p-3 rounded-xl ${color ?? "bg-gray-50"}`}>
       <div className="text-base font-bold text-gray-900">{value}</div>
-      <div className="text-[10px] text-gray-500 mt-0.5">{label}</div>
+      <div className="text-xs text-gray-500 mt-0.5">{label}</div>
     </div>
   );
 }
@@ -284,7 +284,7 @@ function Pill({ label, value, color }: { label: string; value: string; color?: s
 function LabelRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="grid grid-cols-[140px_1fr] gap-3 items-start">
-      <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wide pt-0.5">{label}</span>
+      <span className="text-xs font-bold text-gray-400 uppercase tracking-wide pt-0.5">{label}</span>
       <span className="text-sm text-gray-700 leading-relaxed">{value}</span>
     </div>
   );
@@ -305,7 +305,7 @@ function BulletList({ items, color = "bg-amber-500" }: { items: string[]; color?
 
 function SectionHeader({ label }: { label: string }) {
   return (
-    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 pt-2 border-t border-gray-100 first:pt-0 first:border-0">
+    <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 pt-2 border-t border-gray-100 first:pt-0 first:border-0">
       {label}
     </div>
   );
@@ -323,11 +323,11 @@ function BlockContent({ blockIdx, blocks }: { blockIdx: number; blocks: NonNulla
         <LabelRow label="Problema" value={b.problema} />
         <LabelRow label="Ruptura de mercado" value={b.ruptura} />
         <div className="p-3 rounded-xl bg-amber-50 border border-amber-100">
-          <div className="text-[11px] font-bold text-amber-700 mb-1">Oportunidade identificada</div>
+          <div className="text-xs font-bold text-amber-700 mb-1">Oportunidade identificada</div>
           <p className="text-sm text-amber-800">{b.oportunidade}</p>
         </div>
         <div className="p-3 rounded-xl bg-red-50 border border-red-100">
-          <div className="text-[11px] font-bold text-red-600 mb-1 flex items-center gap-1.5">
+          <div className="text-xs font-bold text-red-600 mb-1 flex items-center gap-1.5">
             <AlertTriangle size={11} /> Risco de não agir
           </div>
           <p className="text-sm text-red-700">{b.riscoNaoAgir}</p>
@@ -345,7 +345,7 @@ function BlockContent({ blockIdx, blocks }: { blockIdx: number; blocks: NonNulla
         <LabelRow label="Assimetria do deal" value={b.assimetriaDeal} />
         <LabelRow label="Papel da AWQ" value={b.papelAWQ} />
         <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-100">
-          <div className="text-[11px] font-bold text-emerald-700 mb-1">Resultado esperado</div>
+          <div className="text-xs font-bold text-emerald-700 mb-1">Resultado esperado</div>
           <p className="text-sm text-emerald-800">{b.resultadoEsperado}</p>
         </div>
         <LabelRow label="Horizonte" value={b.horizonte} />
@@ -359,15 +359,15 @@ function BlockContent({ blockIdx, blocks }: { blockIdx: number; blocks: NonNulla
       <div className="space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-100">
-            <div className="text-[10px] font-bold text-emerald-700 uppercase tracking-wide mb-2">AWQ entrega</div>
+            <div className="text-xs font-bold text-emerald-700 uppercase tracking-wide mb-2">AWQ entrega</div>
             <BulletList items={b.oQueEntrega} color="bg-emerald-500" />
           </div>
           <div className="p-3 rounded-xl bg-blue-50 border border-blue-100">
-            <div className="text-[10px] font-bold text-blue-700 uppercase tracking-wide mb-2">AWQ coordena</div>
+            <div className="text-xs font-bold text-blue-700 uppercase tracking-wide mb-2">AWQ coordena</div>
             <BulletList items={b.oQueCoordena} color="bg-blue-500" />
           </div>
           <div className="p-3 rounded-xl bg-gray-50 border border-gray-200">
-            <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-2">Fora do campo</div>
+            <div className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Fora do campo</div>
             <BulletList items={b.foraDoCampo} color="bg-gray-400" />
           </div>
         </div>
@@ -385,7 +385,7 @@ function BlockContent({ blockIdx, blocks }: { blockIdx: number; blocks: NonNulla
         <LabelRow label="Natureza do direito" value={b.naturezaDireito} />
         <LabelRow label="Conversão futura" value={b.conversaoFutura} />
         <div className="p-3 rounded-xl bg-amber-50 border border-amber-100">
-          <div className="text-[11px] font-bold text-amber-700 mb-1">Valor de referência</div>
+          <div className="text-xs font-bold text-amber-700 mb-1">Valor de referência</div>
           <p className="text-sm font-semibold text-amber-800">{b.valorReferencia}</p>
         </div>
       </div>
@@ -398,13 +398,13 @@ function BlockContent({ blockIdx, blocks }: { blockIdx: number; blocks: NonNulla
       <div className="space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="p-3 rounded-xl bg-blue-50 border border-blue-100">
-            <div className="text-[10px] font-bold text-blue-700 uppercase tracking-wide mb-1">Fee</div>
+            <div className="text-xs font-bold text-blue-700 uppercase tracking-wide mb-1">Fee</div>
             <div className="text-base font-bold text-blue-900">{b.feeValor}</div>
             <div className="text-xs text-blue-600 mt-0.5">{b.feePrazo}</div>
             <div className="text-xs text-blue-700 mt-1">{b.feeDescricao}</div>
           </div>
           <div className="p-3 rounded-xl bg-brand-50 border border-brand-100">
-            <div className="text-[10px] font-bold text-brand-700 uppercase tracking-wide mb-1">Upside</div>
+            <div className="text-xs font-bold text-brand-700 uppercase tracking-wide mb-1">Upside</div>
             <div className="text-base font-bold text-brand-900">{b.upsidePercentual}</div>
             <div className="text-xs text-brand-700 mt-1">{b.upsideDescricao}</div>
           </div>
@@ -413,7 +413,7 @@ function BlockContent({ blockIdx, blocks }: { blockIdx: number; blocks: NonNulla
         <ol className="space-y-1.5">
           {b.gates.map((g, i) => (
             <li key={i} className="flex items-start gap-2.5 text-sm text-gray-700">
-              <div className="w-5 h-5 rounded-full bg-amber-100 border border-amber-200 flex items-center justify-center text-[10px] font-bold text-amber-700 shrink-0 mt-0.5">{i + 1}</div>
+              <div className="w-5 h-5 rounded-full bg-amber-100 border border-amber-200 flex items-center justify-center text-xs font-bold text-amber-700 shrink-0 mt-0.5">{i + 1}</div>
               {g}
             </li>
           ))}
@@ -424,7 +424,7 @@ function BlockContent({ blockIdx, blocks }: { blockIdx: number; blocks: NonNulla
             <thead className="bg-gray-50">
               <tr>
                 {["Tranche", "Valor", "Condição", "Prazo"].map((h) => (
-                  <th key={h} className="px-3 py-2 text-left font-semibold text-gray-500">{h}</th>
+                  <th key={h} className="px-3 py-2 text-left font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -450,13 +450,13 @@ function BlockContent({ blockIdx, blocks }: { blockIdx: number; blocks: NonNulla
     const b = blocks.b6;
     const MetricTable = ({ title, items }: { title: string; items: typeof b.financeiras }) => (
       <div>
-        <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-2">{title}</div>
+        <div className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">{title}</div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs border border-gray-200 rounded-xl overflow-hidden">
             <thead className="bg-gray-50">
               <tr>
                 {["Métrica", "Fórmula", "Baseline", "Meta"].map((h) => (
-                  <th key={h} className="px-3 py-2 text-left font-semibold text-gray-500">{h}</th>
+                  <th key={h} className="px-3 py-2 text-left font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -464,7 +464,7 @@ function BlockContent({ blockIdx, blocks }: { blockIdx: number; blocks: NonNulla
               {items.map((m, i) => (
                 <tr key={i} className="border-t border-gray-100">
                   <td className="px-3 py-2 font-semibold text-gray-700">{m.nome}</td>
-                  <td className="px-3 py-2 text-gray-500 font-mono text-[10px]">{m.formula}</td>
+                  <td className="px-3 py-2 text-gray-500 font-mono text-xs">{m.formula}</td>
                   <td className="px-3 py-2 text-gray-600">{m.baseline}</td>
                   <td className="px-3 py-2 font-semibold text-emerald-700">{m.meta}</td>
                 </tr>
@@ -508,11 +508,11 @@ function BlockContent({ blockIdx, blocks }: { blockIdx: number; blocks: NonNulla
       <div className="space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-100">
-            <div className="text-[10px] font-bold text-emerald-700 mb-1 uppercase tracking-wide">Good Leaver</div>
+            <div className="text-xs font-bold text-emerald-700 mb-1 uppercase tracking-wide">Good Leaver</div>
             <p className="text-xs text-emerald-800 leading-relaxed">{b.goodLeaver}</p>
           </div>
           <div className="p-3 rounded-xl bg-red-50 border border-red-100">
-            <div className="text-[10px] font-bold text-red-600 mb-1 uppercase tracking-wide">Bad Leaver</div>
+            <div className="text-xs font-bold text-red-600 mb-1 uppercase tracking-wide">Bad Leaver</div>
             <p className="text-xs text-red-700 leading-relaxed">{b.badLeaver}</p>
           </div>
         </div>
@@ -533,15 +533,15 @@ function BlockContent({ blockIdx, blocks }: { blockIdx: number; blocks: NonNulla
         <div className="space-y-2">
           {b.marcos.map((m) => (
             <div key={m.numero} className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
-              <div className="w-7 h-7 rounded-full bg-amber-100 border-2 border-amber-200 flex items-center justify-center shrink-0 text-[11px] font-bold text-amber-700">
+              <div className="w-7 h-7 rounded-full bg-amber-100 border-2 border-amber-200 flex items-center justify-center shrink-0 text-xs font-bold text-amber-700">
                 {m.numero}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-semibold text-gray-900">{m.label}</div>
                 <div className="text-xs text-gray-500 mt-0.5">{m.descricao}</div>
                 <div className="flex flex-wrap gap-3 mt-1">
-                  {m.prazo && <span className="text-[10px] text-amber-600 flex items-center gap-1"><Calendar size={9} /> {m.prazo}</span>}
-                  {m.dependencia && <span className="text-[10px] text-gray-400">Dep: {m.dependencia}</span>}
+                  {m.prazo && <span className="text-xs text-amber-600 flex items-center gap-1"><Calendar size={9} /> {m.prazo}</span>}
+                  {m.dependencia && <span className="text-xs text-gray-400">Dep: {m.dependencia}</span>}
                 </div>
               </div>
             </div>
@@ -563,7 +563,7 @@ function BlockContent({ blockIdx, blocks }: { blockIdx: number; blocks: NonNulla
         <ol className="space-y-2">
           {b.perguntasEstruturadas.map((q, i) => (
             <li key={i} className="flex items-start gap-2.5">
-              <div className="w-5 h-5 rounded-full bg-amber-100 border border-amber-200 flex items-center justify-center text-[10px] font-bold text-amber-700 shrink-0 mt-0.5">{i + 1}</div>
+              <div className="w-5 h-5 rounded-full bg-amber-100 border border-amber-200 flex items-center justify-center text-xs font-bold text-amber-700 shrink-0 mt-0.5">{i + 1}</div>
               <span className="text-sm text-gray-700">{q}</span>
             </li>
           ))}
@@ -582,7 +582,7 @@ function BlockContent({ blockIdx, blocks }: { blockIdx: number; blocks: NonNulla
             return (
               <div key={c.opcao} className={`p-3 rounded-xl border ${styles.bg} ${styles.border}`}>
                 <div className={`text-xs font-bold mb-1 ${styles.title}`}>{c.label}</div>
-                <p className={`text-[11px] leading-relaxed ${styles.cta}`}>{c.descricao}</p>
+                <p className={`text-xs leading-relaxed ${styles.cta}`}>{c.descricao}</p>
               </div>
             );
           })}
@@ -631,7 +631,7 @@ function StagesTracker({ blocks, dealStage }: {
           <MapPin size={14} className="text-amber-600" />
           <span className="text-sm font-bold text-gray-900">Acompanhamento de Etapas</span>
         </div>
-        <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-1 rounded-full uppercase tracking-wide">
+        <span className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-1 rounded-full uppercase tracking-wide">
           {dealStage}
         </span>
       </div>
@@ -651,7 +651,7 @@ function StagesTracker({ blocks, dealStage }: {
           const isCurrent = marcoStatus(i) === "current";
           return (
             <div key={m.numero} className={`flex items-start gap-3 p-3 rounded-xl border ${st.ring} transition-all`}>
-              <div className={`w-7 h-7 rounded-full ${st.num} flex items-center justify-center text-[11px] font-bold shrink-0`}>
+              <div className={`w-7 h-7 rounded-full ${st.num} flex items-center justify-center text-xs font-bold shrink-0`}>
                 {isDone ? <CheckCircle2 size={14} className="text-white" /> : m.numero}
               </div>
               <div className="flex-1 min-w-0">
@@ -670,12 +670,12 @@ function StagesTracker({ blocks, dealStage }: {
                 </p>
                 <div className="flex flex-wrap gap-3 mt-1">
                   {m.prazo && (
-                    <span className="flex items-center gap-1 text-[10px] text-amber-600">
+                    <span className="flex items-center gap-1 text-xs text-amber-600">
                       <Calendar size={9} /> {m.prazo}
                     </span>
                   )}
                   {m.dependencia && (
-                    <span className="text-[10px] text-gray-400">Dep: {m.dependencia}</span>
+                    <span className="text-xs text-gray-400">Dep: {m.dependencia}</span>
                   )}
                 </div>
               </div>
@@ -685,7 +685,7 @@ function StagesTracker({ blocks, dealStage }: {
       </div>
 
       <div className="px-5 py-3 border-t border-gray-100 bg-gray-50">
-        <div className="flex flex-wrap gap-4 text-[11px] text-gray-500">
+        <div className="flex flex-wrap gap-4 text-xs text-gray-500">
           <span><strong className="text-gray-700">Prazo total:</strong> {blocks.b9.prazoTotal}</span>
           <span><strong className="text-gray-700">Revisão:</strong> {blocks.b9.janelaRevisao}</span>
         </div>
@@ -777,7 +777,7 @@ export default function DealSharePage({ params }: { params: { id: string } }) {
             </p>
           </div>
           <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-2 text-left">
-            <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-3">Resumo da rodada {currentRound}</div>
+            <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Resumo da rodada {currentRound}</div>
             {sections.map((s, i) => {
               const st = statusUi[s.status];
               const SI = st.icon;
@@ -785,7 +785,7 @@ export default function DealSharePage({ params }: { params: { id: string } }) {
               return (
                 <div key={s.id} className={`flex items-center justify-between p-2 rounded-xl ${st.bg}`}>
                   <span className="text-xs text-gray-700">{labels[i]}</span>
-                  <span className={`flex items-center gap-1 text-[11px] font-semibold ${st.color}`}>
+                  <span className={`flex items-center gap-1 text-xs font-semibold ${st.color}`}>
                     <SI size={11} /> {st.label}
                   </span>
                 </div>
@@ -826,16 +826,16 @@ export default function DealSharePage({ params }: { params: { id: string } }) {
             </div>
             <div>
               <div className="text-sm font-bold text-gray-900">AWQ Venture × {deal.companyName}</div>
-              <div className="text-[10px] text-gray-500">Proposta Confidencial · {deal.id}</div>
+              <div className="text-xs text-gray-500">Proposta Confidencial · {deal.id}</div>
             </div>
           </div>
           <div className="flex items-center gap-3">
             {rounds.length > 0 && (
-              <span className="text-[10px] font-semibold text-brand-700 bg-brand-50 border border-brand-200 px-2 py-1 rounded-full">
+              <span className="text-xs font-semibold text-brand-700 bg-brand-50 border border-brand-200 px-2 py-1 rounded-full">
                 Rodada {currentRound}
               </span>
             )}
-            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-600">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-600">
               <span className={reviewed === sections.length ? "text-emerald-600" : "text-amber-600"}>{reviewed}</span>
               <span className="text-gray-400">/</span>
               <span>{sections.length}</span>
@@ -843,7 +843,7 @@ export default function DealSharePage({ params }: { params: { id: string } }) {
             </div>
             <button
               onClick={handlePrint}
-              className="no-print flex items-center gap-1.5 text-[11px] font-semibold text-white bg-gray-800 hover:bg-gray-900 px-3 py-1.5 rounded-lg transition-colors"
+              className="no-print flex items-center gap-1.5 text-xs font-semibold text-white bg-gray-800 hover:bg-gray-900 px-3 py-1.5 rounded-lg transition-colors"
               title="Abrir versão PDF da proposta"
             >
               <FileDown size={13} /> Exportar PDF
@@ -873,7 +873,7 @@ export default function DealSharePage({ params }: { params: { id: string } }) {
               {rounds.map((r) => {
                 const approved = r.sections.filter((s) => s.status === "approved").length;
                 return (
-                  <div key={r.round} className="text-[11px] text-brand-700 flex items-center gap-2">
+                  <div key={r.round} className="text-xs text-brand-700 flex items-center gap-2">
                     <span className="font-bold">Rodada {r.round}:</span>
                     <span>{approved}/{r.sections.length} blocos aprovados</span>
                     <span className="text-brand-400">·</span>
@@ -894,7 +894,7 @@ export default function DealSharePage({ params }: { params: { id: string } }) {
             backgroundSize: "40px 40px"
           }} />
           <div className="relative">
-            <div className="inline-flex items-center gap-2 bg-white/20 rounded-full px-4 py-1.5 text-[11px] font-bold mb-4 backdrop-blur-sm">
+            <div className="inline-flex items-center gap-2 bg-white/20 rounded-full px-4 py-1.5 text-xs font-bold mb-4 backdrop-blur-sm">
               <Shield size={11} />
               DOCUMENTO CONFIDENCIAL
             </div>
@@ -967,15 +967,15 @@ export default function DealSharePage({ params }: { params: { id: string } }) {
           <div className="grid grid-cols-3 gap-3 mb-4">
             <div className="text-center p-3 rounded-xl bg-emerald-50">
               <div className="text-xl font-black text-emerald-600">{approvedAll}</div>
-              <div className="text-[10px] text-emerald-600">Aprovadas</div>
+              <div className="text-xs text-emerald-600">Aprovadas</div>
             </div>
             <div className="text-center p-3 rounded-xl bg-amber-50">
               <div className="text-xl font-black text-amber-600">{sections.filter(s => s.status === "adjusted").length}</div>
-              <div className="text-[10px] text-amber-600">Com ajuste</div>
+              <div className="text-xs text-amber-600">Com ajuste</div>
             </div>
             <div className="text-center p-3 rounded-xl bg-red-50">
               <div className="text-xl font-black text-red-600">{sections.filter(s => s.status === "rejected").length}</div>
-              <div className="text-[10px] text-red-600">Não aprovadas</div>
+              <div className="text-xs text-red-600">Não aprovadas</div>
             </div>
           </div>
 
@@ -988,7 +988,7 @@ export default function DealSharePage({ params }: { params: { id: string } }) {
               return (
                 <div key={s.id} className={`flex items-center justify-between px-3 py-2 rounded-xl ${st.bg}`}>
                   <span className="text-xs text-gray-700 font-medium">{i + 1}. {labels[i]}</span>
-                  <span className={`flex items-center gap-1 text-[11px] font-semibold ${st.color}`}>
+                  <span className={`flex items-center gap-1 text-xs font-semibold ${st.color}`}>
                     <SI size={11} /> {st.label}
                   </span>
                 </div>
@@ -1038,7 +1038,7 @@ export default function DealSharePage({ params }: { params: { id: string } }) {
                 )}
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
                     Mensagem geral (opcional)
                   </label>
                   <textarea
@@ -1051,7 +1051,7 @@ export default function DealSharePage({ params }: { params: { id: string } }) {
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
                     Seu nome completo <span className="text-red-400">*</span>
                   </label>
                   <input
@@ -1078,7 +1078,7 @@ export default function DealSharePage({ params }: { params: { id: string } }) {
                   }
                 </button>
 
-                <p className="text-[10px] text-center text-gray-400">
+                <p className="text-xs text-center text-gray-400">
                   Ao enviar, sua resposta é registrada e encaminhada à equipe AWQ Venture.
                   Esta ação não constitui vinculação contratual.
                 </p>
@@ -1088,7 +1088,7 @@ export default function DealSharePage({ params }: { params: { id: string } }) {
         )}
 
         {/* Footer */}
-        <div className="text-center text-[10px] text-gray-400 space-y-1 py-4 border-t border-gray-200">
+        <div className="text-center text-xs text-gray-400 space-y-1 py-4 border-t border-gray-200">
           <div>AWQ Venture · Proposta Confidencial · {deal.id}</div>
           <div>Acesso restrito ao destinatário desta proposta</div>
         </div>

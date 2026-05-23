@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import type { CnpjData } from "@/app/api/crm/cnpj/route";
 
-const inputCls = "w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-colors";
+const inputCls = "w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-colors";
 const selectCls = `${inputCls} cursor-pointer`;
 
 const INDUSTRIES = [
@@ -159,7 +159,7 @@ export default function AddAccountPage() {
             <div className="px-5 py-3.5 bg-blue-50 border-b border-blue-100 flex items-center gap-2">
               <Search size={14} className="text-blue-500" />
               <span className="text-sm font-semibold text-gray-900">Buscar por CNPJ</span>
-              <span className="text-[11px] text-gray-400 ml-1">— preenche todos os campos automaticamente</span>
+              <span className="text-xs text-gray-400 ml-1">— preenche todos os campos automaticamente</span>
             </div>
             <div className="p-5">
               <div className="flex gap-2">
@@ -177,7 +177,7 @@ export default function AddAccountPage() {
                 </div>
                 <button type="button" onClick={handleLookup}
                   disabled={lookupState === "loading" || cnpjQuery.replace(/\D/g, "").length !== 14}
-                  className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2 shrink-0">
+                  className="px-4 py-2 bg-brand-600 text-white text-sm font-semibold rounded-lg hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2 shrink-0">
                   {lookupState === "loading"
                     ? <><Loader2 size={14} className="animate-spin" />Buscando…</>
                     : <><Search size={14} />Buscar</>}
@@ -199,14 +199,14 @@ export default function AddAccountPage() {
               {importedData?.socios && importedData.socios.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-2">
                   {importedData.socios.slice(0, 4).map((s, i) => (
-                    <div key={i} className="flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 rounded-full text-[11px] text-gray-700">
+                    <div key={i} className="flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 rounded-full text-xs text-gray-700">
                       <Users size={10} className="text-gray-400" />
                       <span className="font-medium">{s.nome}</span>
                       <span className="text-gray-400">· {s.cargo}</span>
                     </div>
                   ))}
                   {importedData.socios.length > 4 && (
-                    <div className="px-2.5 py-1 bg-gray-100 rounded-full text-[11px] text-gray-500">
+                    <div className="px-2.5 py-1 bg-gray-100 rounded-full text-xs text-gray-500">
                       +{importedData.socios.length - 4} sócios
                     </div>
                   )}
@@ -214,7 +214,7 @@ export default function AddAccountPage() {
               )}
 
               {importedData?.cnae_descricao && (
-                <p className="mt-2 text-[11px] text-gray-400">
+                <p className="mt-2 text-xs text-gray-400">
                   CNAE: <span className="text-gray-600">{importedData.cnae_descricao}</span>
                 </p>
               )}
@@ -285,7 +285,7 @@ export default function AddAccountPage() {
               <MapPin size={14} className="text-gray-400" />
               <h2 className="text-sm font-semibold text-gray-900">Endereço</h2>
               {lookupState === "ok" && (
-                <span className="ml-auto text-[10px] text-emerald-600 font-medium">Preenchido automaticamente</span>
+                <span className="ml-auto text-xs text-emerald-600 font-medium">Preenchido automaticamente</span>
               )}
             </div>
 
@@ -363,7 +363,7 @@ export default function AddAccountPage() {
               Cancelar
             </button>
             <button type="submit" disabled={saving}
-              className="flex-1 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2">
+              className="flex-1 py-2.5 bg-brand-600 text-white text-sm font-semibold rounded-xl hover:bg-brand-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2">
               {saving
                 ? <><Loader2 size={14} className="animate-spin" />Salvando…</>
                 : <><CheckCircle2 size={14} />Criar Conta</>}

@@ -26,7 +26,7 @@ function HealthBadge({ score }: { score: number }) {
   const color = score >= 80 ? "text-emerald-600" : score >= 60 ? "text-amber-600" : "text-red-600";
   const icon = score >= 80 ? <CheckCircle2 size={11} /> : <AlertTriangle size={11} />;
   return (
-    <span className={`flex items-center gap-1 text-[11px] font-semibold ${color}`}>
+    <span className={`flex items-center gap-1 text-xs font-semibold ${color}`}>
       {icon} {score}
     </span>
   );
@@ -95,7 +95,7 @@ export default function AccountsPage() {
               </div>
               <div>
                 <div className="text-lg font-bold text-gray-900">{k.value}</div>
-                <div className="text-[10px] text-gray-500">{k.label}</div>
+                <div className="text-xs text-gray-500">{k.label}</div>
               </div>
             </div>
           ))}
@@ -144,7 +144,7 @@ export default function AccountsPage() {
               <thead>
                 <tr className="border-b border-gray-200">
                   {["Empresa", "Tipo", "BU", "Cidade", "Owner", "Opps", "Health", "Risco", ""].map(h => (
-                    <th key={h} className="text-left py-3 px-4 text-[11px] font-semibold text-gray-500 whitespace-nowrap">{h}</th>
+                    <th key={h} className="text-left py-3 px-4 text-xs font-semibold text-gray-500 whitespace-nowrap uppercase tracking-wide">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -167,16 +167,16 @@ export default function AccountsPage() {
                       <td className="py-3 px-4">
                         <Link href={`/crm/accounts/${a.account_id}`} className="hover:text-brand-600 transition-colors">
                           <div className="font-medium text-gray-900 text-[13px]">{a.trade_name ?? a.account_name}</div>
-                          {a.document_number && <div className="text-[10px] text-gray-400">{a.document_number}</div>}
+                          {a.document_number && <div className="text-xs text-gray-400">{a.document_number}</div>}
                         </Link>
                       </td>
                       <td className="py-3 px-4">
-                        <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${TYPE_COLORS[a.account_type] ?? "bg-gray-100 text-gray-600"}`}>
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${TYPE_COLORS[a.account_type] ?? "bg-gray-100 text-gray-600"}`}>
                           {TYPE_LABELS[a.account_type] ?? a.account_type}
                         </span>
                       </td>
                       <td className="py-3 px-4">
-                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
                           {a.bu}
                         </span>
                       </td>
@@ -185,7 +185,7 @@ export default function AccountsPage() {
                       <td className="py-3 px-4 text-[12px] text-gray-700 font-medium">{a.open_opportunities ?? 0}</td>
                       <td className="py-3 px-4"><HealthBadge score={a.health_score} /></td>
                       <td className="py-3 px-4">
-                        <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${a.churn_risk === "high" ? "bg-red-50 text-red-700" : a.churn_risk === "medium" ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${a.churn_risk === "high" ? "bg-red-50 text-red-700" : a.churn_risk === "medium" ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>
                           {a.churn_risk === "high" ? "Alto" : a.churn_risk === "medium" ? "Médio" : "Baixo"}
                         </span>
                       </td>

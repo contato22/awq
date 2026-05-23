@@ -450,10 +450,10 @@ export default function ARCadastroPage() {
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-gray-200 text-left text-gray-400">
-                    <th className="py-1.5 pr-3 font-semibold">Grupo</th>
-                    <th className="py-1.5 px-2 text-right font-semibold">Bruto</th>
-                    <th className="py-1.5 px-2 text-right font-semibold text-brand-600">PDD</th>
-                    <th className="py-1.5 px-2 text-right font-semibold text-emerald-700">Líquido</th>
+                    <th className="py-1.5 pr-3 font-semibold uppercase tracking-wide">Grupo</th>
+                    <th className="py-1.5 px-2 text-right font-semibold uppercase tracking-wide">Bruto</th>
+                    <th className="py-1.5 px-2 text-right font-semibold text-brand-600 uppercase tracking-wide">PDD</th>
+                    <th className="py-1.5 px-2 text-right font-semibold text-emerald-700 uppercase tracking-wide">Líquido</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -639,12 +639,12 @@ export default function ARCadastroPage() {
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50 text-left">
-                  <th className="py-2.5 px-2 text-gray-400 font-semibold w-36">Código</th>
-                  <th className="py-2.5 px-2 text-gray-500 font-semibold">Conta</th>
-                  <th className="py-2.5 px-2 text-right text-gray-500 font-semibold w-32">A Receber</th>
-                  <th className="py-2.5 px-2 text-right text-red-500 font-semibold w-28">Vencido</th>
-                  <th className="py-2.5 px-2 text-center text-brand-500 font-semibold w-24">PDD</th>
-                  <th className="py-2.5 px-2 text-center text-gray-400 font-semibold w-10">+</th>
+                  <th className="py-2.5 px-2 text-gray-400 font-semibold w-36 uppercase tracking-wide">Código</th>
+                  <th className="py-2.5 px-2 text-gray-500 font-semibold uppercase tracking-wide">Conta</th>
+                  <th className="py-2.5 px-2 text-right text-gray-500 font-semibold w-32 uppercase tracking-wide">A Receber</th>
+                  <th className="py-2.5 px-2 text-right text-red-500 font-semibold w-28 uppercase tracking-wide">Vencido</th>
+                  <th className="py-2.5 px-2 text-center text-brand-500 font-semibold w-24 uppercase tracking-wide">PDD</th>
+                  <th className="py-2.5 px-2 text-center text-gray-400 font-semibold w-10 uppercase tracking-wide">+</th>
                 </tr>
               </thead>
               <tbody>

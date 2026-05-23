@@ -143,9 +143,9 @@ function AlertCard({ alert, onRead }: { alert: SupervisorAlert; onRead: (id: str
       <div className="flex items-start gap-2">
         <Icon size={13} className={`${cfg.color} shrink-0 mt-0.5`} />
         <div className="flex-1 min-w-0">
-          <div className={`text-[11px] font-semibold leading-tight ${cfg.color}`}>{alert.title}</div>
+          <div className={`text-xs font-semibold leading-tight ${cfg.color}`}>{alert.title}</div>
           {alert.body && (
-            <div className="text-[10px] text-gray-500 mt-0.5 leading-relaxed">{alert.body}</div>
+            <div className="text-xs text-gray-500 mt-0.5 leading-relaxed">{alert.body}</div>
           )}
         </div>
         {!alert.read && <div className={`w-1.5 h-1.5 rounded-full ${cfg.dot} shrink-0 mt-1`} />}
@@ -439,7 +439,7 @@ export default function SupervisorWidget() {
           <ShieldAlert size={18} className="text-white" />
         )}
         {!open && unreadCount > 0 && (
-          <span className={`absolute -top-1 -right-1 w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center text-white ${
+          <span className={`absolute -top-1 -right-1 w-5 h-5 rounded-full text-xs font-bold flex items-center justify-center text-white ${
             criticalCount > 0 ? "bg-red-500" : "bg-amber-500"
           }`}>
             {unreadCount > 9 ? "9+" : unreadCount}
@@ -460,7 +460,7 @@ export default function SupervisorWidget() {
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-xs font-bold text-gray-100">Supervisor BU</div>
-              <div className="text-[10px] text-gray-500 flex items-center gap-1">
+              <div className="text-xs text-gray-500 flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse" />
                 monitorando 24/7 · {buContext.toUpperCase()}
               </div>
@@ -479,7 +479,7 @@ export default function SupervisorWidget() {
           <div className="flex border-b border-gray-800 shrink-0">
             <button
               onClick={() => setTab("alerts")}
-              className={`flex-1 py-2 text-[10px] font-semibold uppercase tracking-wide transition-colors flex items-center justify-center gap-1.5 ${
+              className={`flex-1 py-2 text-xs font-semibold uppercase tracking-wide transition-colors flex items-center justify-center gap-1.5 ${
                 tab === "alerts" ? "text-brand-400 border-b-2 border-brand-500" : "text-gray-600 hover:text-gray-400"
               }`}
             >
@@ -493,7 +493,7 @@ export default function SupervisorWidget() {
             </button>
             <button
               onClick={() => setTab("chat")}
-              className={`flex-1 py-2 text-[10px] font-semibold uppercase tracking-wide transition-colors flex items-center justify-center gap-1.5 ${
+              className={`flex-1 py-2 text-xs font-semibold uppercase tracking-wide transition-colors flex items-center justify-center gap-1.5 ${
                 tab === "chat" ? "text-brand-400 border-b-2 border-brand-500" : "text-gray-600 hover:text-gray-400"
               }`}
             >
@@ -509,7 +509,7 @@ export default function SupervisorWidget() {
             {tab === "alerts" && (
               <div className="p-3 space-y-2">
                 {alerts.length === 0 && !briefingDone && (
-                  <div className="flex items-center gap-2 py-6 justify-center text-[11px] text-gray-600">
+                  <div className="flex items-center gap-2 py-6 justify-center text-xs text-gray-600">
                     <Loader2 size={13} className="animate-spin" />
                     Executando briefing de supervisão...
                   </div>
@@ -517,7 +517,7 @@ export default function SupervisorWidget() {
                 {alerts.length === 0 && briefingDone && (
                   <div className="flex flex-col items-center gap-2 py-8 text-center">
                     <CheckCircle2 size={22} className="text-emerald-400" />
-                    <p className="text-[11px] text-gray-500">Nenhum alerta crítico no momento.</p>
+                    <p className="text-xs text-gray-500">Nenhum alerta crítico no momento.</p>
                   </div>
                 )}
                 {alerts.map((alert) => (
@@ -525,13 +525,13 @@ export default function SupervisorWidget() {
                 ))}
                 {alerts.length > 0 && (
                   <div className="flex gap-2 pt-1">
-                    <button onClick={markAllRead} className="flex-1 py-1.5 text-[10px] text-gray-600 hover:text-gray-400 border border-gray-800 rounded-lg transition-colors">
+                    <button onClick={markAllRead} className="flex-1 py-1.5 text-xs text-gray-600 hover:text-gray-400 border border-gray-800 rounded-lg transition-colors">
                       Marcar tudo lido
                     </button>
-                    <button onClick={() => runBriefing().then(() => setBriefingDone(false))} className="flex-1 py-1.5 text-[10px] text-brand-400 hover:text-brand-300 border border-brand-500/20 rounded-lg transition-colors flex items-center justify-center gap-1">
+                    <button onClick={() => runBriefing().then(() => setBriefingDone(false))} className="flex-1 py-1.5 text-xs text-brand-400 hover:text-brand-300 border border-brand-500/20 rounded-lg transition-colors flex items-center justify-center gap-1">
                       <RotateCcw size={9} />Atualizar
                     </button>
-                    <button onClick={clearAlerts} className="py-1.5 px-2 text-[10px] text-gray-700 hover:text-red-400 border border-gray-800 rounded-lg transition-colors">
+                    <button onClick={clearAlerts} className="py-1.5 px-2 text-xs text-gray-700 hover:text-red-400 border border-gray-800 rounded-lg transition-colors">
                       <X size={10} />
                     </button>
                   </div>
@@ -544,7 +544,7 @@ export default function SupervisorWidget() {
               <div className="p-3 space-y-3">
                 {messages.length === 0 && (
                   <div className="pt-2 space-y-2">
-                    <p className="text-[10px] text-gray-600 px-1">Pergunte qualquer coisa ou peça uma ação direta:</p>
+                    <p className="text-xs text-gray-600 px-1">Pergunte qualquer coisa ou peça uma ação direta:</p>
                     {[
                       "Quais clientes precisam de atenção urgente?",
                       "Leia e corrija lib/data.ts",
@@ -554,7 +554,7 @@ export default function SupervisorWidget() {
                       <button
                         key={p}
                         onClick={() => sendMessage(p)}
-                        className="w-full text-left px-3 py-2 text-[11px] text-gray-400 bg-gray-800/60 hover:bg-gray-800 border border-gray-700/50 hover:border-gray-600 rounded-lg transition-colors"
+                        className="w-full text-left px-3 py-2 text-xs text-gray-400 bg-gray-800/60 hover:bg-gray-800 border border-gray-700/50 hover:border-gray-600 rounded-lg transition-colors"
                       >
                         {p}
                       </button>
@@ -572,7 +572,7 @@ export default function SupervisorWidget() {
                         ))}
                       </div>
                     )}
-                    <div className={`max-w-[90%] rounded-xl px-3 py-2 text-[11px] leading-relaxed whitespace-pre-wrap ${
+                    <div className={`max-w-[90%] rounded-xl px-3 py-2 text-xs leading-relaxed whitespace-pre-wrap ${
                       msg.role === "user"
                         ? "bg-brand-600 text-white rounded-br-sm"
                         : "bg-gray-800 text-gray-200 rounded-bl-sm border border-gray-700/40"
@@ -590,7 +590,7 @@ export default function SupervisorWidget() {
                 ))}
 
                 {loading && messages[messages.length - 1]?.role !== "assistant" && (
-                  <div className="flex items-center gap-1.5 text-[10px] text-gray-600 pl-1">
+                  <div className="flex items-center gap-1.5 text-xs text-gray-600 pl-1">
                     <Loader2 size={10} className="animate-spin" />Supervisor pensando...
                   </div>
                 )}
@@ -617,7 +617,7 @@ export default function SupervisorWidget() {
                   placeholder="Pergunte ou dê uma ordem ao supervisor..."
                   rows={1}
                   disabled={loading || !apiKey}
-                  className="flex-1 bg-transparent text-[11px] text-gray-200 placeholder:text-gray-600 resize-none focus:outline-none min-h-[20px] max-h-20"
+                  className="flex-1 bg-transparent text-xs text-gray-200 placeholder:text-gray-600 resize-none focus:outline-none min-h-[20px] max-h-20"
                 />
                 <button
                   onClick={() => sendMessage(input)}

@@ -12,7 +12,7 @@ import {
 import type { CrmAccount } from "@/lib/crm-types";
 
 // ── Shared styles ───────────────────────────────────────────────────────────────────────────────
-const inputCls = "w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-colors";
+const inputCls = "w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-colors";
 const selectCls = `${inputCls} cursor-pointer`;
 
 // ── Step indicator ────────────────────────────────────────────────────────────────────────────
@@ -34,14 +34,14 @@ function StepIndicator({ current }: { current: number }) {
             <div className="flex flex-col items-center gap-1">
               <div className={`w-9 h-9 rounded-full flex items-center justify-center border-2 transition-colors ${
                 done   ? "bg-emerald-500 border-emerald-500" :
-                active ? "bg-blue-600 border-blue-600"       :
+                active ? "bg-brand-600 border-blue-600"       :
                          "bg-white border-gray-300"
               }`}>
                 {done
                   ? <CheckCircle2 size={17} className="text-white" />
                   : <Icon size={15} className={active ? "text-white" : "text-gray-400"} />}
               </div>
-              <span className={`text-[11px] font-semibold whitespace-nowrap ${
+              <span className={`text-xs font-semibold whitespace-nowrap ${
                 active ? "text-blue-700" : done ? "text-emerald-600" : "text-gray-400"
               }`}>{step.label}</span>
             </div>
@@ -317,7 +317,7 @@ export default function NovoCadastroPage() {
                   <div className="flex items-center gap-2">
                     <Building2 size={15} className="text-gray-400" />
                     <h2 className="text-sm font-semibold text-gray-900">Empresa</h2>
-                    <span className="text-[11px] text-gray-400 font-normal">(opcional)</span>
+                    <span className="text-xs text-gray-400 font-normal">(opcional)</span>
                   </div>
                   <div className="flex gap-1 p-0.5 bg-gray-100 rounded-lg">
                     <button type="button"
@@ -349,7 +349,7 @@ export default function NovoCadastroPage() {
                       <div className="flex items-center justify-between px-3 py-2.5 bg-blue-50 border border-blue-200 rounded-lg">
                         <div>
                           <div className="text-sm font-semibold text-blue-900">{selectedAccount.trade_name ?? selectedAccount.account_name}</div>
-                          {selectedAccount.trade_name && <div className="text-[11px] text-blue-600">{selectedAccount.account_name}</div>}
+                          {selectedAccount.trade_name && <div className="text-xs text-blue-600">{selectedAccount.account_name}</div>}
                         </div>
                         <button type="button" onClick={() => setSelectedAccount(null)}
                           className="text-blue-400 hover:text-blue-600"><X size={14} /></button>
@@ -366,14 +366,14 @@ export default function NovoCadastroPage() {
                             className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-gray-50 transition-colors text-left">
                             <div>
                               <div className="text-sm font-medium text-gray-900">{a.trade_name ?? a.account_name}</div>
-                              <div className="text-[11px] text-gray-400">{a.industry ?? "—"} · {a.document_number ?? "sem CNPJ"}</div>
+                              <div className="text-xs text-gray-400">{a.industry ?? "—"} · {a.document_number ?? "sem CNPJ"}</div>
                             </div>
                             <ChevronRight size={13} className="text-gray-300 shrink-0" />
                           </button>
                         ))}
                       </div>
                     )}
-                    <p className="text-[11px] text-gray-400">Deixe em branco para criar lead sem empresa vinculada.</p>
+                    <p className="text-xs text-gray-400">Deixe em branco para criar lead sem empresa vinculada.</p>
                   </div>
                 )}
 
@@ -453,11 +453,11 @@ export default function NovoCadastroPage() {
                   <div className="flex items-center gap-2">
                     <User size={15} className="text-gray-400" />
                     <h2 className="text-sm font-semibold text-gray-900">Contato</h2>
-                    <span className="text-[11px] text-gray-400 font-normal">(opcional)</span>
+                    <span className="text-xs text-gray-400 font-normal">(opcional)</span>
                   </div>
                   <label className="flex items-center gap-2 cursor-pointer select-none">
                     <input type="checkbox" checked={skipContact} onChange={e => setSkipContact(e.target.checked)}
-                      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-brand-500" />
                     <span className="text-xs text-gray-500">Pular esta etapa</span>
                   </label>
                 </div>
@@ -471,7 +471,7 @@ export default function NovoCadastroPage() {
                       <input type="text" className={`${inputCls} ${contactErrors.full_name ? "border-red-400" : ""}`}
                         placeholder="Ex: João da Silva"
                         value={contactForm.full_name} onChange={e => setCon("full_name", e.target.value)} />
-                      {contactErrors.full_name && <p className="text-[11px] text-red-600 mt-1">{contactErrors.full_name}</p>}
+                      {contactErrors.full_name && <p className="text-xs text-red-600 mt-1">{contactErrors.full_name}</p>}
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
@@ -510,7 +510,7 @@ export default function NovoCadastroPage() {
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input type="checkbox" checked={contactForm.is_primary_contact}
                         onChange={e => setCon("is_primary_contact", e.target.checked)}
-                        className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                        className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-brand-500" />
                       <span className="text-sm text-gray-700">Contato principal da empresa</span>
                     </label>
                   </div>
@@ -565,7 +565,7 @@ export default function NovoCadastroPage() {
                   <div className="flex-1 max-w-xs h-2 bg-white/60 rounded-full overflow-hidden">
                     <div className={`h-full rounded-full ${scoreClr.bar} transition-all duration-500`} style={{ width: `${estimatedScore}%` }} />
                   </div>
-                  <span className="text-[11px] text-gray-500 shrink-0">
+                  <span className="text-xs text-gray-500 shrink-0">
                     {estimatedScore >= 71 ? "Quente" : estimatedScore >= 41 ? "Morno" : "Frio"}
                   </span>
                 </div>
@@ -590,7 +590,7 @@ export default function NovoCadastroPage() {
                       <option value="ADVISOR">ADVISOR</option>
                       <option value="VENTURE">VENTURE</option>
                     </select>
-                    {leadErrors.bu && <p className="text-[11px] text-red-600 mt-1">{leadErrors.bu}</p>}
+                    {leadErrors.bu && <p className="text-xs text-red-600 mt-1">{leadErrors.bu}</p>}
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1.5">Fonte do Lead</label>
@@ -615,7 +615,7 @@ export default function NovoCadastroPage() {
                       <option value="Miguel">Miguel</option>
                       <option value="Danilo">Danilo</option>
                     </select>
-                    {leadErrors.assigned_to && <p className="text-[11px] text-red-600 mt-1">{leadErrors.assigned_to}</p>}
+                    {leadErrors.assigned_to && <p className="text-xs text-red-600 mt-1">{leadErrors.assigned_to}</p>}
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1.5">Status inicial</label>

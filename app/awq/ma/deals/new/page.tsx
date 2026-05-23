@@ -14,9 +14,9 @@ import {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const inputCls =
-  "w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-400 transition-colors";
+  "w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-400 transition-colors";
 const selectCls =
-  "w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-400 transition-colors";
+  "w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-400 transition-colors";
 const labelCls = "block text-xs font-semibold text-gray-600 mb-1.5";
 
 function Lbl({ children, req }: { children: React.ReactNode; req?: boolean }) {
@@ -62,7 +62,7 @@ function ScoreSlider({
           <Icon size={12} className="text-gray-400" />
           <span className="text-xs font-semibold text-gray-600">{label}</span>
         </div>
-        <span className={`text-sm font-bold tabular-nums ${color}`}>{value}<span className="text-[10px] text-gray-400 font-normal">/25</span></span>
+        <span className={`text-sm font-bold tabular-nums ${color}`}>{value}<span className="text-xs text-gray-400 font-normal">/25</span></span>
       </div>
       <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden">
         <div
@@ -102,7 +102,7 @@ function ScoreSummary({ total }: { total: number }) {
       <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
         <div className={`h-full ${bar} rounded-full transition-all duration-300`} style={{ width: `${pct}%` }} />
       </div>
-      <p className="text-[10px] text-gray-400 text-center leading-snug">
+      <p className="text-xs text-gray-400 text-center leading-snug">
         ≥70 recomendado para IC · ≥50 para Due Diligence
       </p>
     </div>
@@ -357,7 +357,7 @@ export default function NewDealPage() {
                         >
                           <Icon size={16} className={active ? "" : "text-gray-400"} />
                           <span className="text-xs font-bold leading-none">{opt.label}</span>
-                          <span className={`text-[10px] leading-tight ${active ? "opacity-80" : "text-gray-400"}`}>{opt.sub}</span>
+                          <span className={`text-xs leading-tight ${active ? "opacity-80" : "text-gray-400"}`}>{opt.sub}</span>
                         </button>
                       );
                     })}
@@ -512,7 +512,7 @@ export default function NewDealPage() {
                   form="deal-form"
                   disabled={submitting || success}
                   onClick={handleSubmit}
-                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-bold rounded-xl transition-colors shadow-sm"
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-bold rounded-xl transition-colors shadow-sm"
                 >
                   {submitting && <Loader2 size={14} className="animate-spin" />}
                   {success ? "✓ Criado!" : submitting ? "Criando..." : "Criar Deal no Pipeline"}
@@ -526,7 +526,7 @@ export default function NewDealPage() {
                 </Link>
               </div>
 
-              <p className="text-[10px] text-gray-400 text-center leading-snug">
+              <p className="text-xs text-gray-400 text-center leading-snug">
                 Deal entra automaticamente na etapa <strong>Sourcing</strong>.<br />
                 Você pode avançá-lo pelo Kanban depois.
               </p>

@@ -17,7 +17,7 @@ import {
 const ACTIVE_STAGES = ["discovery","qualification","proposal","negotiation","closed_won","closed_lost"] as const;
 type Stage = typeof ACTIVE_STAGES[number];
 
-const inputCls = "w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-colors";
+const inputCls = "w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-colors";
 const selectCls = `${inputCls} cursor-pointer`;
 
 function Toast({ msg, type, onClose }: { msg: string; type: "success" | "error"; onClose: () => void }) {
@@ -77,7 +77,7 @@ function SearchSelect<T>({
                   onMouseDown={() => { onSelect(item.value); onQueryChange(""); setOpen(false); }}>
                   <div className="min-w-0">
                     <div className="text-sm font-medium text-gray-900 truncate">{item.label}</div>
-                    {item.sublabel && <div className="text-[11px] text-gray-400 truncate mt-0.5">{item.sublabel}</div>}
+                    {item.sublabel && <div className="text-xs text-gray-400 truncate mt-0.5">{item.sublabel}</div>}
                   </div>
                   <ChevronRight size={12} className="text-gray-300 shrink-0 ml-2" />
                 </button>
@@ -101,7 +101,7 @@ function Initials({ name, className }: { name: string; className?: string }) {
   const parts = name.trim().split(/\s+/);
   const letters = parts.length >= 2 ? parts[0][0] + parts[parts.length - 1][0] : parts[0].slice(0, 2);
   return (
-    <span className={`flex items-center justify-center rounded-lg text-[11px] font-bold uppercase select-none ${className ?? ""}`}>
+    <span className={`flex items-center justify-center rounded-lg text-xs font-bold uppercase select-none ${className ?? ""}`}>
       {letters.toUpperCase()}
     </span>
   );
@@ -130,14 +130,14 @@ function AccountCreateForm({ onCreated, onCancel, initialName, bu }: {
 
   return (
     <div className="space-y-2.5">
-      <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Nova Empresa</div>
-      {err && <div className="text-[11px] text-red-600">{err}</div>}
+      <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Nova Empresa</div>
+      {err && <div className="text-xs text-red-600">{err}</div>}
       <input autoFocus placeholder="Nome da empresa *" value={name} onChange={e => setName(e.target.value)}
         onKeyDown={e => e.key === "Enter" && (e.preventDefault(), save())} className={inputCls} />
       <div className="flex gap-2">
         <button type="button" onClick={onCancel} className="flex-1 py-1.5 text-xs font-medium text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50">Cancelar</button>
         <button type="button" onClick={save} disabled={saving || !name.trim()}
-          className="flex-1 py-1.5 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50">
+          className="flex-1 py-1.5 text-xs font-semibold text-white bg-brand-600 rounded-lg hover:bg-brand-700 disabled:opacity-50">
           {saving ? "Salvando…" : "Criar empresa"}
         </button>
       </div>
@@ -168,8 +168,8 @@ function ContactCreateForm({ accountId, onCreated, onCancel, initialName }: {
 
   return (
     <div className="space-y-2.5">
-      <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Novo Contato</div>
-      {err && <div className="text-[11px] text-red-600">{err}</div>}
+      <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Novo Contato</div>
+      {err && <div className="text-xs text-red-600">{err}</div>}
       <input autoFocus placeholder="Nome completo *" value={name} onChange={e => setName(e.target.value)}
         onKeyDown={e => e.key === "Enter" && (e.preventDefault(), save())} className={inputCls} />
       <input placeholder="Cargo (opcional)" value={jobTitle} onChange={e => setJobTitle(e.target.value)} className={inputCls} />
@@ -203,7 +203,7 @@ function EntityPanel({ label, color, icon, children }: {
     <div className={`rounded-xl border p-4 flex flex-col gap-3 transition-colors ${colors[color]}`}>
       <div className="flex items-center gap-2">
         <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${iconColors[color]}`}>{icon}</div>
-        <span className="text-[11px] font-semibold text-gray-600 uppercase tracking-wide">{label}</span>
+        <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">{label}</span>
       </div>
       {children}
     </div>
@@ -404,9 +404,9 @@ function AddOpportunityPageInner() {
             <div className={`px-5 py-3.5 flex items-center gap-2.5 border-b ${isLinked ? "bg-blue-50 border-blue-100" : "bg-gray-50 border-gray-100"}`}>
               <Link2 size={14} className={isLinked ? "text-blue-500" : "text-gray-400"} />
               <span className="text-sm font-semibold text-gray-900">Vincular Entidades</span>
-              <span className="text-[11px] text-gray-400 ml-1">— conta, contato ou importar de um lead</span>
+              <span className="text-xs text-gray-400 ml-1">— conta, contato ou importar de um lead</span>
               {isLinked && (
-                <span className="ml-auto text-[11px] font-semibold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">
+                <span className="ml-auto text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">
                   {[selectedAccount && "empresa", selectedContact && "contato", importedLead && "lead"].filter(Boolean).join(" + ")} vinculado{
                     [selectedAccount, selectedContact, importedLead].filter(Boolean).length > 1 ? "s" : ""}
                 </span>
@@ -425,7 +425,7 @@ function AddOpportunityPageInner() {
                     <div className="min-w-0 flex-1">
                       <div className="text-sm font-semibold text-gray-900 truncate">{selectedAccount.trade_name ?? selectedAccount.account_name}</div>
                       {selectedAccount.address_city && (
-                        <div className="text-[11px] text-gray-400 truncate">{selectedAccount.address_city}</div>
+                        <div className="text-xs text-gray-400 truncate">{selectedAccount.address_city}</div>
                       )}
                     </div>
                     <button type="button" onClick={() => setSelectedAccount(null)}
@@ -446,7 +446,7 @@ function AddOpportunityPageInner() {
                       onSelect={handleSelectAccount} query={accountQuery} onQueryChange={setAccountQuery}
                       onCreateNew={() => setCreatingAccount(true)} createLabel="Criar empresa" />
                     <button type="button" onClick={() => setCreatingAccount(true)}
-                      className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[11px] font-semibold text-blue-600 hover:bg-blue-50 rounded-lg border border-dashed border-blue-200 transition-colors">
+                      className="w-full flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold text-blue-600 hover:bg-blue-50 rounded-lg border border-dashed border-blue-200 transition-colors">
                       <Plus size={11} />Nova empresa
                     </button>
                   </div>
@@ -460,7 +460,7 @@ function AddOpportunityPageInner() {
                     <Initials name={selectedContact.full_name} className="w-8 h-8 bg-brand-100 text-brand-700 shrink-0" />
                     <div className="min-w-0 flex-1">
                       <div className="text-sm font-semibold text-gray-900 truncate">{selectedContact.full_name}</div>
-                      {selectedContact.job_title && <div className="text-[11px] text-gray-400 truncate">{selectedContact.job_title}</div>}
+                      {selectedContact.job_title && <div className="text-xs text-gray-400 truncate">{selectedContact.job_title}</div>}
                     </div>
                     <button type="button" onClick={() => setSelectedContact(null)}
                       className="p-1 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors">
@@ -482,7 +482,7 @@ function AddOpportunityPageInner() {
                       query={contactQuery} onQueryChange={setContactQuery}
                       onCreateNew={() => setCreatingContact(true)} createLabel="Criar contato" />
                     <button type="button" onClick={() => setCreatingContact(true)}
-                      className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[11px] font-semibold text-brand-600 hover:bg-brand-50 rounded-lg border border-dashed border-brand-200 transition-colors">
+                      className="w-full flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold text-brand-600 hover:bg-brand-50 rounded-lg border border-dashed border-brand-200 transition-colors">
                       <Plus size={11} />Novo contato
                     </button>
                   </div>
@@ -498,7 +498,7 @@ function AddOpportunityPageInner() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="text-sm font-semibold text-gray-900 truncate">{importedLead.company_name || importedLead.contact_name}</div>
-                      <div className="text-[11px] text-gray-400 truncate">Score: {importedLead.lead_score} · {importedLead.bu}</div>
+                      <div className="text-xs text-gray-400 truncate">Score: {importedLead.lead_score} · {importedLead.bu}</div>
                     </div>
                     <button type="button" onClick={() => setImportedLead(null)}
                       className="p-1 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors mt-0.5">
@@ -511,7 +511,7 @@ function AddOpportunityPageInner() {
                     items={filteredLeads} onSelect={handleImportLead}
                     query={leadQuery} onQueryChange={setLeadQuery} />
                 )}
-                <p className="text-[10px] text-gray-400 -mt-1">Pré-preenche nome, valor e prazo</p>
+                <p className="text-xs text-gray-400 -mt-1">Pré-preenche nome, valor e prazo</p>
               </EntityPanel>
 
             </div>
@@ -560,7 +560,7 @@ function AddOpportunityPageInner() {
                   <option key={s} value={s}>{STAGE_LABELS[s]} — {STAGE_PROBABILITY[s]}%</option>
                 ))}
               </select>
-              <p className="text-[11px] text-gray-400 mt-1">Probabilidade automática: <strong className="text-gray-700">{probability}%</strong></p>
+              <p className="text-xs text-gray-400 mt-1">Probabilidade automática: <strong className="text-gray-700">{probability}%</strong></p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -612,7 +612,7 @@ function AddOpportunityPageInner() {
               Cancelar
             </button>
             <button type="submit" disabled={saving}
-              className="flex-1 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2">
+              className="flex-1 py-2.5 bg-brand-600 text-white text-sm font-semibold rounded-xl hover:bg-brand-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2">
               {saving
                 ? <><Loader2 size={14} className="animate-spin" />Salvando…</>
                 : <><CheckCircle2 size={14} />Criar Oportunidade</>}

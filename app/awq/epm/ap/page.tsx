@@ -326,7 +326,7 @@ export default function APPage() {
                   <div className={`font-bold tabular-nums ${AGING_CFG[b].color}`}>
                     {fmtBRL(kpis.apAging[b] ?? 0)}
                   </div>
-                  <div className="text-[10px] text-gray-400 mt-0.5">{AGING_CFG[b].label}</div>
+                  <div className="text-xs text-gray-400 mt-0.5">{AGING_CFG[b].label}</div>
                 </div>
               ))}
             </div>
@@ -533,7 +533,7 @@ export default function APPage() {
                   ))}
                 </select>
                 {parseInt(form.installments) > 1 && form.gross_amount && (
-                  <div className="text-[10px] text-brand-600 mt-0.5">
+                  <div className="text-xs text-brand-600 mt-0.5">
                     {parseInt(form.installments)}× de {fmtBRL(Math.round(parseFloat(form.gross_amount) / parseInt(form.installments) * 100) / 100)}
                   </div>
                 )}
@@ -556,7 +556,7 @@ export default function APPage() {
                     { label: "COFINS", rate: FISCAL_DEFAULTS[form.supplier_type].cofins, amount: fiscal.cofins },
                   ].map((tax) => (
                     <div key={tax.label} className="bg-white rounded-lg p-2 border border-amber-100">
-                      <div className="text-[10px] text-gray-500 font-medium">{tax.label}</div>
+                      <div className="text-xs text-gray-500 font-medium">{tax.label}</div>
                       <div className="text-amber-700 font-bold tabular-nums">{fmtBRL(tax.amount)}</div>
                       <div className="text-[9px] text-gray-400">{pct(tax.rate)}</div>
                     </div>
@@ -597,14 +597,14 @@ export default function APPage() {
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50 text-left">
-                    <th className="py-2.5 px-3 text-gray-500 font-semibold">Venc.</th>
-                    <th className="py-2.5 px-3 text-gray-500 font-semibold">Fornecedor</th>
-                    <th className="py-2.5 px-3 text-gray-500 font-semibold">BU</th>
-                    <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Bruto</th>
-                    <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Retenções</th>
-                    <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Líquido</th>
-                    <th className="py-2.5 px-3 text-gray-500 font-semibold text-center">Status</th>
-                    <th className="py-2.5 px-3 text-gray-500 font-semibold text-center">Ações</th>
+                    <th className="py-2.5 px-3 text-gray-500 font-semibold uppercase tracking-wide">Venc.</th>
+                    <th className="py-2.5 px-3 text-gray-500 font-semibold uppercase tracking-wide">Fornecedor</th>
+                    <th className="py-2.5 px-3 text-gray-500 font-semibold uppercase tracking-wide">BU</th>
+                    <th className="py-2.5 px-3 text-gray-500 font-semibold text-right uppercase tracking-wide">Bruto</th>
+                    <th className="py-2.5 px-3 text-gray-500 font-semibold text-right uppercase tracking-wide">Retenções</th>
+                    <th className="py-2.5 px-3 text-gray-500 font-semibold text-right uppercase tracking-wide">Líquido</th>
+                    <th className="py-2.5 px-3 text-gray-500 font-semibold text-center uppercase tracking-wide">Status</th>
+                    <th className="py-2.5 px-3 text-gray-500 font-semibold text-center uppercase tracking-wide">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -622,10 +622,10 @@ export default function APPage() {
                         </td>
                         <td className="py-2.5 px-3">
                           <div className="font-medium text-gray-800">{item.supplier_name}</div>
-                          <div className="text-[10px] text-gray-400 truncate max-w-[160px]">{item.description}</div>
+                          <div className="text-xs text-gray-400 truncate max-w-[160px]">{item.description}</div>
                         </td>
                         <td className="py-2.5 px-3">
-                          <span className="px-1.5 py-0.5 bg-brand-50 text-brand-700 rounded text-[10px] font-bold">
+                          <span className="px-1.5 py-0.5 bg-brand-50 text-brand-700 rounded text-xs font-bold">
                             {item.bu_code}
                           </span>
                         </td>
@@ -639,7 +639,7 @@ export default function APPage() {
                           {fmtBRL(item.net_amount)}
                         </td>
                         <td className="py-2.5 px-3 text-center">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${sc.color} ${sc.bg}`}>
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${sc.color} ${sc.bg}`}>
                             {sc.label}
                           </span>
                         </td>
@@ -678,7 +678,7 @@ export default function APPage() {
                       expanded && (
                         <tr key={`${item.id}-detail`} className="bg-amber-50 border-b border-amber-100">
                           <td colSpan={8} className="px-4 py-3">
-                            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-[11px]">
+                            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
                               {[
                                 { label: "IRRF",   rate: item.irrf_rate,   amount: item.irrf_amount   },
                                 { label: "INSS",   rate: item.inss_rate,   amount: item.inss_amount   },
@@ -694,7 +694,7 @@ export default function APPage() {
                                 </div>
                               ))}
                             </div>
-                            <div className="mt-2 flex flex-wrap gap-4 text-[11px] text-gray-500">
+                            <div className="mt-2 flex flex-wrap gap-4 text-xs text-gray-500">
                               <span>Emissão: <strong>{fmtDate(item.issue_date)}</strong></span>
                               <span>Categoria: <strong>{item.category}</strong></span>
                               {item.cost_center && <span>CC: <strong>{item.cost_center}</strong></span>}

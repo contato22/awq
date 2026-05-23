@@ -191,12 +191,12 @@ function FinancialLinkBadge({
   note?: string;
   source?: "ai" | "heuristic";
 }) {
-  if (!status) return <span className="text-[10px] text-gray-300">—</span>;
+  if (!status) return <span className="text-xs text-gray-300">—</span>;
   const cfg  = LINK_CONFIG[status];
   const Icon = cfg.icon;
   return (
     <span
-      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${cfg.color}`}
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${cfg.color}`}
       title={note ?? ""}
     >
       <Icon size={9} />
@@ -476,7 +476,7 @@ export default function APARPage() {
                 <div>
                   <div className="text-2xl font-bold text-gray-900">{c.value}</div>
                   <div className="text-xs text-gray-500 mt-0.5">{c.label}</div>
-                  <div className="text-[10px] text-gray-400 mt-1">{c.delta}</div>
+                  <div className="text-xs text-gray-400 mt-1">{c.delta}</div>
                 </div>
               </div>
             );
@@ -486,7 +486,7 @@ export default function APARPage() {
         {/* ── BU filter bar ─────────────────────────────────────────────────── */}
         <div className="card px-4 py-3 flex items-center gap-2 flex-wrap">
           <Building2 size={13} className="text-gray-400 shrink-0" />
-          <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mr-1">BU</span>
+          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide mr-1">BU</span>
           <button
             onClick={() => handleBUChange("all")}
             className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
@@ -512,7 +512,7 @@ export default function APARPage() {
             </button>
           ))}
           {activeBU !== "all" && (
-            <span className="ml-auto text-[10px] text-gray-400">
+            <span className="ml-auto text-xs text-gray-400">
               Filtrando por {BU_MAP[activeBU].label}
             </span>
           )}
@@ -521,7 +521,7 @@ export default function APARPage() {
         {/* ── Per-BU breakdown strip (only when Consolidado) ──────────────── */}
         {activeBU === "all" && buBreakdown.length > 0 && (
           <div className="card px-4 py-3">
-            <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Breakdown por BU</div>
+            <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Breakdown por BU</div>
             <div className="flex flex-wrap gap-3">
               {buBreakdown.map((bu) => (
                 <button
@@ -531,8 +531,8 @@ export default function APARPage() {
                 >
                   <span className={`w-2 h-2 rounded-full ${bu.dot} shrink-0`} />
                   <span className={`text-xs font-bold ${bu.color}`}>{bu.short}</span>
-                  <span className="text-[10px] text-red-500 font-semibold">AP {fmtR(bu.ap)}</span>
-                  <span className="text-[10px] text-emerald-600 font-semibold">AR {fmtR(bu.ar)}</span>
+                  <span className="text-xs text-red-500 font-semibold">AP {fmtR(bu.ap)}</span>
+                  <span className="text-xs text-emerald-600 font-semibold">AR {fmtR(bu.ar)}</span>
                 </button>
               ))}
             </div>
@@ -561,7 +561,7 @@ export default function APARPage() {
                 {isAP ? <ArrowDownLeft size={15} /> : <ArrowUpRight size={15} />}
                 {isAP ? "AP — Contas a Pagar" : "AR — Contas a Receber"}
                 {count > 0 && (
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${isAP ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"}`}>
+                  <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${isAP ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"}`}>
                     {count}
                   </span>
                 )}
@@ -668,33 +668,33 @@ export default function APARPage() {
           {periodFilter === "custom" && (
             <div className="px-4 py-2.5 border-t border-blue-100 bg-blue-50/50 flex items-center gap-3 flex-wrap">
               <CalendarDays size={12} className="text-blue-500 shrink-0" />
-              <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wide">Período</span>
+              <span className="text-xs font-bold text-blue-600 uppercase tracking-wide">Período</span>
               <div className="flex items-center gap-2">
-                <label className="text-[10px] text-blue-500 font-semibold">De</label>
+                <label className="text-xs text-blue-500 font-semibold">De</label>
                 <input
                   type="date"
                   value={customFrom}
                   onChange={(e) => setCustomFrom(e.target.value)}
                   aria-label="Data inicial do filtro"
-                  className="text-xs border border-blue-200 rounded-lg px-2.5 py-1.5 bg-white text-gray-700 focus:outline-none focus:border-blue-400"
+                  className="text-xs border border-blue-200 rounded-lg px-2.5 py-1.5 bg-white text-gray-700 focus:outline-none focus:border-brand-400"
                 />
               </div>
               <span className="text-xs text-blue-300">→</span>
               <div className="flex items-center gap-2">
-                <label className="text-[10px] text-blue-500 font-semibold">Até</label>
+                <label className="text-xs text-blue-500 font-semibold">Até</label>
                 <input
                   type="date"
                   value={customTo}
                   min={customFrom || undefined}
                   onChange={(e) => setCustomTo(e.target.value)}
                   aria-label="Data final do filtro"
-                  className="text-xs border border-blue-200 rounded-lg px-2.5 py-1.5 bg-white text-gray-700 focus:outline-none focus:border-blue-400"
+                  className="text-xs border border-blue-200 rounded-lg px-2.5 py-1.5 bg-white text-gray-700 focus:outline-none focus:border-brand-400"
                 />
               </div>
               {customIsActive && (
                 <button
                   onClick={() => { setCustomFrom(""); setCustomTo(""); }}
-                  className="ml-1 text-[10px] text-blue-400 hover:text-blue-600 transition-colors flex items-center gap-1"
+                  className="ml-1 text-xs text-blue-400 hover:text-blue-600 transition-colors flex items-center gap-1"
                 >
                   <X size={10} /> Limpar datas
                 </button>
@@ -720,7 +720,7 @@ export default function APARPage() {
                   {activeTab === "ap" ? "Registrar Conta a Pagar" : "Registrar Recebível"}
                 </span>
               </div>
-              <span className="text-[10px] text-gray-400">
+              <span className="text-xs text-gray-400">
                 <span className="text-red-400 font-semibold">*</span> campo obrigatório
               </span>
             </div>
@@ -729,7 +729,7 @@ export default function APARPage() {
 
               {/* Descrição — spans 2 cols */}
               <div className="flex flex-col gap-1 lg:col-span-2">
-                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                   Descrição <span className="text-red-400">*</span>
                 </label>
                 <input
@@ -744,7 +744,7 @@ export default function APARPage() {
                   }`}
                 />
                 {formTouched && !form.description.trim() && (
-                  <span className="text-[10px] text-red-400 flex items-center gap-1">
+                  <span className="text-xs text-red-400 flex items-center gap-1">
                     <AlertTriangle size={9} /> Informe uma descrição
                   </span>
                 )}
@@ -752,7 +752,7 @@ export default function APARPage() {
 
               {/* Contraparte */}
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                   {activeTab === "ap" ? "Fornecedor" : "Cliente"}
                 </label>
                 <input
@@ -766,7 +766,7 @@ export default function APARPage() {
 
               {/* Valor */}
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                   Valor <span className="text-red-400">*</span>
                 </label>
                 <div className="relative">
@@ -785,7 +785,7 @@ export default function APARPage() {
                   />
                 </div>
                 {formTouched && !amountValid(form.amount) && (
-                  <span className="text-[10px] text-red-400 flex items-center gap-1">
+                  <span className="text-xs text-red-400 flex items-center gap-1">
                     <AlertTriangle size={9} />
                     {form.amount.trim() === "" ? "Informe o valor" : "Valor inválido (ex: 1.500,00)"}
                   </span>
@@ -794,7 +794,7 @@ export default function APARPage() {
 
               {/* Vencimento */}
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                   Vencimento <span className="text-red-400">*</span>
                 </label>
                 <input
@@ -808,7 +808,7 @@ export default function APARPage() {
                   }`}
                 />
                 {formTouched && !form.dueDate && (
-                  <span className="text-[10px] text-red-400 flex items-center gap-1">
+                  <span className="text-xs text-red-400 flex items-center gap-1">
                     <AlertTriangle size={9} /> Informe a data
                   </span>
                 )}
@@ -816,7 +816,7 @@ export default function APARPage() {
 
               {/* Categoria */}
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Categoria</label>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Categoria</label>
                 <select
                   value={form.category || categories[0]}
                   onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
@@ -828,7 +828,7 @@ export default function APARPage() {
 
               {/* BU — full row of visual chips */}
               <div className="flex flex-col gap-2 lg:col-span-3">
-                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Business Unit</label>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Business Unit</label>
                 <div className="flex flex-wrap gap-1.5">
                   {BUS.map((b) => (
                     <button
@@ -904,14 +904,14 @@ export default function APARPage() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-gray-200 text-gray-500">
-                          <th className="text-left py-2 px-3 text-xs font-semibold">Descrição</th>
-                          <th className="text-left py-2 px-3 text-xs font-semibold">BU</th>
-                          <th className="text-left py-2 px-3 text-xs font-semibold">Contraparte</th>
-                          <th className="text-left py-2 px-3 text-xs font-semibold">Categoria</th>
-                          <th className="text-left py-2 px-3 text-xs font-semibold">Vencimento</th>
-                          <th className="text-left py-2 px-3 text-xs font-semibold">Status</th>
-                          <th className="text-left py-2 px-3 text-xs font-semibold">Vínculo Fin.</th>
-                          <th className="text-right py-2 px-3 text-xs font-semibold">Valor</th>
+                          <th className="text-left py-2 px-3 text-xs font-semibold uppercase tracking-wide">Descrição</th>
+                          <th className="text-left py-2 px-3 text-xs font-semibold uppercase tracking-wide">BU</th>
+                          <th className="text-left py-2 px-3 text-xs font-semibold uppercase tracking-wide">Contraparte</th>
+                          <th className="text-left py-2 px-3 text-xs font-semibold uppercase tracking-wide">Categoria</th>
+                          <th className="text-left py-2 px-3 text-xs font-semibold uppercase tracking-wide">Vencimento</th>
+                          <th className="text-left py-2 px-3 text-xs font-semibold uppercase tracking-wide">Status</th>
+                          <th className="text-left py-2 px-3 text-xs font-semibold uppercase tracking-wide">Vínculo Fin.</th>
+                          <th className="text-right py-2 px-3 text-xs font-semibold uppercase tracking-wide">Valor</th>
                           <th className="py-2 px-3" />
                         </tr>
                       </thead>
@@ -928,7 +928,7 @@ export default function APARPage() {
                                   <div className="truncate">{item.description}</div>
                                 </td>
                                 <td className="py-2.5 px-3">
-                                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${bu.bg} ${bu.color}`}>
+                                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${bu.bg} ${bu.color}`}>
                                     <span className={`w-1.5 h-1.5 rounded-full ${bu.dot}`} />
                                     {bu.short}
                                   </span>
@@ -939,7 +939,7 @@ export default function APARPage() {
                                   {fmtDate(item.dueDate)}
                                 </td>
                                 <td className="py-2.5 px-3">
-                                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${st.color}`}>
+                                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${st.color}`}>
                                     <StatusIcon size={10} />
                                     {st.label}
                                   </span>
@@ -964,16 +964,16 @@ export default function APARPage() {
                                     </button>
                                     {confirmDelete === item.id ? (
                                       <div className="flex items-center gap-1">
-                                        <span className="text-[10px] text-red-500 font-semibold whitespace-nowrap">Excluir?</span>
+                                        <span className="text-xs text-red-500 font-semibold whitespace-nowrap">Excluir?</span>
                                         <button
                                           onClick={() => { handleDelete(item.id); setConfirmDelete(null); }}
-                                          className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-500 text-white hover:bg-red-600 transition-colors"
+                                          className="px-1.5 py-0.5 rounded text-xs font-bold bg-red-500 text-white hover:bg-red-600 transition-colors"
                                         >
                                           Sim
                                         </button>
                                         <button
                                           onClick={() => setConfirmDelete(null)}
-                                          className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
+                                          className="px-1.5 py-0.5 rounded text-xs font-semibold bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
                                         >
                                           Não
                                         </button>
@@ -1023,7 +1023,7 @@ export default function APARPage() {
                                   <div className="truncate">{item.description}</div>
                                 </td>
                                 <td className="py-2 px-3">
-                                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${bu.bg} ${bu.color}`}>
+                                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${bu.bg} ${bu.color}`}>
                                     {bu.short}
                                   </span>
                                 </td>
@@ -1031,7 +1031,7 @@ export default function APARPage() {
                                 <td className="py-2 px-3 text-xs text-gray-400">{item.category}</td>
                                 <td className="py-2 px-3 text-xs text-gray-400">{fmtDate(item.dueDate)}</td>
                                 <td className="py-2 px-3">
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700">
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
                                     <CheckCircle2 size={10} /> Liquidado
                                   </span>
                                 </td>
@@ -1053,16 +1053,16 @@ export default function APARPage() {
                                     </button>
                                     {confirmDelete === item.id ? (
                                       <div className="flex items-center gap-1">
-                                        <span className="text-[10px] text-red-400 font-semibold whitespace-nowrap">Excluir?</span>
+                                        <span className="text-xs text-red-400 font-semibold whitespace-nowrap">Excluir?</span>
                                         <button
                                           onClick={() => { handleDelete(item.id); setConfirmDelete(null); }}
-                                          className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-400 text-white hover:bg-red-500 transition-colors"
+                                          className="px-1.5 py-0.5 rounded text-xs font-bold bg-red-400 text-white hover:bg-red-500 transition-colors"
                                         >
                                           Sim
                                         </button>
                                         <button
                                           onClick={() => setConfirmDelete(null)}
-                                          className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
+                                          className="px-1.5 py-0.5 rounded text-xs font-semibold bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
                                         >
                                           Não
                                         </button>
@@ -1127,7 +1127,7 @@ export default function APARPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-4">
 
               <div className="flex flex-col gap-1 sm:col-span-2">
-                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                   Descrição <span className="text-red-400">*</span>
                 </label>
                 <input
@@ -1140,7 +1140,7 @@ export default function APARPage() {
               </div>
 
               <div className="flex flex-col gap-1 sm:col-span-2">
-                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                   {editingItem.type === "ap" ? "Fornecedor" : "Cliente"}
                 </label>
                 <input
@@ -1152,7 +1152,7 @@ export default function APARPage() {
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                   Valor <span className="text-red-400">*</span>
                 </label>
                 <div className="relative">
@@ -1169,7 +1169,7 @@ export default function APARPage() {
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                   Vencimento <span className="text-red-400">*</span>
                 </label>
                 <input
@@ -1181,7 +1181,7 @@ export default function APARPage() {
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Categoria</label>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Categoria</label>
                 <select
                   value={editForm.category}
                   onChange={(e) => setEditForm((f) => ({ ...f, category: e.target.value }))}
@@ -1194,7 +1194,7 @@ export default function APARPage() {
               </div>
 
               <div className="flex flex-col gap-2 sm:col-span-2">
-                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Business Unit</label>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Business Unit</label>
                 <div className="flex flex-wrap gap-1.5">
                   {BUS.map((b) => (
                     <button
@@ -1221,7 +1221,7 @@ export default function APARPage() {
               <button
                 type="submit"
                 disabled={!editForm.description.trim() || !amountValid(editForm.amount) || !editForm.dueDate}
-                className="flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-semibold bg-blue-600 hover:bg-blue-700 active:scale-95 text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-semibold bg-brand-600 hover:bg-brand-700 active:scale-95 text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <CheckCircle2 size={14} /> Salvar alterações
               </button>

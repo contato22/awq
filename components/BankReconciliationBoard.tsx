@@ -746,7 +746,7 @@ export default function BankReconciliationBoard({
           {importResult.transactions.length > 0 && (
             <div className="overflow-x-auto rounded-lg border border-brand-200 bg-white">
               <table className="min-w-full text-xs">
-                <thead className="bg-brand-50 text-[10px] uppercase tracking-wide text-brand-600">
+                <thead className="bg-brand-50 text-xs uppercase tracking-wide text-brand-600">
                   <tr>
                     <th className="px-3 py-1.5 text-left">Data</th>
                     <th className="px-3 py-1.5 text-left">Descrição</th>
@@ -768,7 +768,7 @@ export default function BankReconciliationBoard({
                 </tbody>
               </table>
               {importResult.transactions.length > 5 && (
-                <p className="px-3 py-1.5 text-[10px] text-gray-500 border-t border-brand-100">
+                <p className="px-3 py-1.5 text-xs text-gray-500 border-t border-brand-100">
                   + {importResult.transactions.length - 5} linha(s) adicionais
                 </p>
               )}
@@ -779,13 +779,13 @@ export default function BankReconciliationBoard({
             <div>
               <button
                 onClick={() => setShowRejected((v) => !v)}
-                className="flex items-center gap-1 text-[11px] text-amber-700 hover:underline"
+                className="flex items-center gap-1 text-xs text-amber-700 hover:underline"
               >
                 {showRejected ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                 {importResult.rejectedRows.length} linha(s) não reconhecida(s)
               </button>
               {showRejected && (
-                <ul className="mt-1 max-h-24 overflow-y-auto text-[10px] text-gray-600 space-y-0.5">
+                <ul className="mt-1 max-h-24 overflow-y-auto text-xs text-gray-600 space-y-0.5">
                   {importResult.rejectedRows.map((r, i) => (
                     <li key={i} className="font-mono truncate" title={r}>{r}</li>
                   ))}
@@ -832,19 +832,19 @@ export default function BankReconciliationBoard({
                     : "border-gray-200 hover:border-gray-300"
                 }`}
               >
-                <span className={`w-10 h-10 rounded-xl flex items-center justify-center text-[11px] font-bold tracking-wide shrink-0 ${badge.bg} ${badge.text}`}>
+                <span className={`w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold tracking-wide shrink-0 ${badge.bg} ${badge.text}`}>
                   {badge.initials}
                 </span>
                 <div className="flex-1 text-left min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-gray-900 truncate">{cur.label}</span>
                     {totalPending > 0 && (
-                      <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 shrink-0">
+                      <span className="px-1.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700 shrink-0">
                         {totalPending}
                       </span>
                     )}
                   </div>
-                  <div className="text-[11px] text-gray-400 truncate">{badge.subtitle}</div>
+                  <div className="text-xs text-gray-400 truncate">{badge.subtitle}</div>
                 </div>
                 <ChevronDown size={16} className={`text-gray-400 shrink-0 transition-transform ${showAccountDropdown ? "rotate-180" : ""}`} />
               </button>
@@ -854,7 +854,7 @@ export default function BankReconciliationBoard({
           {showAccountDropdown && (
             <div className="absolute left-0 top-full mt-1.5 z-30 bg-white border border-gray-200 rounded-xl shadow-xl py-1.5 min-w-[280px]">
               <div className="px-3 pb-1.5 pt-0.5 mb-1 border-b border-gray-100">
-                <span className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">Contas bancárias</span>
+                <span className="text-xs font-semibold uppercase tracking-widest text-gray-400">Contas bancárias</span>
               </div>
               {accounts.map((a) => {
                 const b = accountBadge(a.key, a.entity);
@@ -870,19 +870,19 @@ export default function BankReconciliationBoard({
                       isActive ? "bg-gray-50" : "hover:bg-gray-50"
                     }`}
                   >
-                    <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold tracking-wide shrink-0 ${b.bg} ${b.text}`}>
+                    <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold tracking-wide shrink-0 ${b.bg} ${b.text}`}>
                       {b.initials}
                     </span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium text-gray-900 truncate">{a.label}</span>
                         {pending > 0 && (
-                          <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 shrink-0">
+                          <span className="px-1.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700 shrink-0">
                             {pending}
                           </span>
                         )}
                       </div>
-                      <div className="text-[11px] text-gray-400 truncate">{b.subtitle}</div>
+                      <div className="text-xs text-gray-400 truncate">{b.subtitle}</div>
                     </div>
                     {isActive && <Check size={14} className="text-blue-600 shrink-0" />}
                   </button>
@@ -919,7 +919,7 @@ export default function BankReconciliationBoard({
               return !isCurrentMonth ? (
                 <button
                   onClick={() => setSelectedMonth({ year: now.getFullYear(), month: now.getMonth() })}
-                  className="px-2 py-1.5 rounded-lg text-[11px] font-medium text-blue-600 hover:bg-blue-50 transition-colors border border-blue-200"
+                  className="px-2 py-1.5 rounded-lg text-xs font-medium text-blue-600 hover:bg-blue-50 transition-colors border border-blue-200"
                 >
                   Hoje
                 </button>
@@ -969,7 +969,7 @@ export default function BankReconciliationBoard({
                     <RefreshCw size={13} className="text-emerald-600 shrink-0" />
                     <div>
                       <div className="font-medium">Sincronizar mês</div>
-                      <div className="text-[11px] text-gray-400">{MONTH_NAMES[selectedMonth.month]} de {selectedMonth.year}</div>
+                      <div className="text-xs text-gray-400">{MONTH_NAMES[selectedMonth.month]} de {selectedMonth.year}</div>
                     </div>
                   </button>
                   <button
@@ -980,7 +980,7 @@ export default function BankReconciliationBoard({
                     <RefreshCw size={13} className="text-teal-600 shrink-0" />
                     <div>
                       <div className="font-medium">Sincronizar ano completo</div>
-                      <div className="text-[11px] text-gray-400">Jan — Dez {selectedMonth.year}</div>
+                      <div className="text-xs text-gray-400">Jan — Dez {selectedMonth.year}</div>
                     </div>
                   </button>
                 </div>
@@ -1034,7 +1034,7 @@ export default function BankReconciliationBoard({
           Conciliações pendentes
           {pendentes.length > 0 && (
             <span className={
-              "ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-bold " +
+              "ml-1.5 px-1.5 py-0.5 rounded text-xs font-bold " +
               (activeTab === "pendentes" ? "bg-amber-500 text-white" : "bg-gray-200 text-gray-600")
             }>
               {pendentes.length}
@@ -1053,7 +1053,7 @@ export default function BankReconciliationBoard({
           Movimentações
           {movimentacoes.length > 0 && (
             <span className={
-              "ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-bold " +
+              "ml-1.5 px-1.5 py-0.5 rounded text-xs font-bold " +
               (activeTab === "movimentacoes" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-600")
             }>
               {movimentacoes.length}
@@ -1122,10 +1122,10 @@ export default function BankReconciliationBoard({
                   (active ? "bg-gray-100 text-gray-900" : "text-gray-500 hover:bg-gray-50")
                 }
               >
-                <div className="text-[11px] text-gray-500">{label}</div>
+                <div className="text-xs text-gray-500">{label}</div>
                 <div className={`text-lg font-bold mt-0.5 leading-none ${numColor}`}>{count}</div>
                 {amtStr && (
-                  <div className={`text-[10px] mt-0.5 font-medium ${numColor} opacity-75`}>{amtStr}</div>
+                  <div className={`text-xs mt-0.5 font-medium ${numColor} opacity-75`}>{amtStr}</div>
                 )}
               </button>
             );
@@ -1175,7 +1175,7 @@ export default function BankReconciliationBoard({
       {filtered.length > 0 && (
         <div className="grid grid-cols-[1fr_120px_1fr] gap-0 px-1">
           <div className="flex items-center gap-2">
-            <span className="w-5 h-5 rounded bg-red-500 flex items-center justify-center text-white text-[10px] font-extrabold shrink-0">
+            <span className="w-5 h-5 rounded bg-red-500 flex items-center justify-center text-white text-xs font-extrabold shrink-0">
               B
             </span>
             <span className="text-xs font-bold text-gray-700">Lançamentos do banco</span>
@@ -1257,13 +1257,13 @@ export default function BankReconciliationBoard({
 
                 {/* Footer */}
                 <div className="flex items-center justify-between mt-auto pt-1">
-                  <span className="text-[11px] text-gray-400 bg-gray-50 border border-gray-200 rounded px-2 py-0.5">
+                  <span className="text-xs text-gray-400 bg-gray-50 border border-gray-200 rounded px-2 py-0.5">
                     {tx.bank} · {tx.accountName}
                   </span>
                   {activeTab === "pendentes" && (
                     <button
                       onClick={() => handleIgnore(tx.id)}
-                      className="text-[11px] text-gray-500 border border-gray-200 rounded px-2 py-0.5 hover:border-red-300 hover:text-red-600 transition-colors"
+                      className="text-xs text-gray-500 border border-gray-200 rounded px-2 py-0.5 hover:border-red-300 hover:text-red-600 transition-colors"
                     >
                       Ignorar
                     </button>
@@ -1274,7 +1274,7 @@ export default function BankReconciliationBoard({
               {/* ── CENTER: match badge + action ────────────────────────── */}
               <div className="flex flex-col items-center justify-center gap-2 bg-gray-50 border-x border-gray-200 px-2 py-4">
                 <span className={
-                  `text-[10px] px-2 py-0.5 rounded-full border font-semibold text-center leading-tight ` +
+                  `text-xs px-2 py-0.5 rounded-full border font-semibold text-center leading-tight ` +
                   `${matchCfg.bg} ${matchCfg.text} ${matchCfg.border}`
                 }>
                   {matchCfg.label}
@@ -1284,7 +1284,7 @@ export default function BankReconciliationBoard({
                     <button
                       disabled={isSaving}
                       onClick={() => setDrawerTx(tx)}
-                      className="w-full flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold disabled:opacity-50 transition-colors"
+                      className="w-full flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold disabled:opacity-50 transition-colors"
                     >
                       <Link2 size={11} />
                       {isSaving ? "…" : "Vincular"}
@@ -1292,13 +1292,13 @@ export default function BankReconciliationBoard({
                     <button
                       disabled={isSaving}
                       onClick={() => void handleReconcile(tx.id)}
-                      className="w-full px-2 py-1 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 text-gray-600 text-[10px] disabled:opacity-50 transition-colors"
+                      className="w-full px-2 py-1 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 text-gray-600 text-xs disabled:opacity-50 transition-colors"
                     >
                       {isSaving ? "…" : "Conciliar direto"}
                     </button>
                   </div>
                 ) : (
-                  <span className="text-[10px] px-2 py-0.5 rounded-full border font-semibold bg-emerald-50 text-emerald-700 border-emerald-200">
+                  <span className="text-xs px-2 py-0.5 rounded-full border font-semibold bg-emerald-50 text-emerald-700 border-emerald-200">
                     ✓ Conciliado
                   </span>
                 )}
@@ -1313,7 +1313,7 @@ export default function BankReconciliationBoard({
                       {fmtBRL(Math.abs(tx.amount))}
                     </span>
                     {diffAmount > 0 && (
-                      <span className="text-[10px] bg-amber-50 border border-amber-200 text-amber-700 rounded px-1.5 py-0.5 whitespace-nowrap">
+                      <span className="text-xs bg-amber-50 border border-amber-200 text-amber-700 rounded px-1.5 py-0.5 whitespace-nowrap">
                         Diferença {fmtBRL(diffAmount)}
                       </span>
                     )}
@@ -1330,7 +1330,7 @@ export default function BankReconciliationBoard({
                 </p>
 
                 {/* Meta grid */}
-                <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-[11px]">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs">
                   <div>
                     <span className="text-gray-400">Cliente: </span>
                     <span className="text-gray-700">{tx.counterpartyName ?? "Não informado"}</span>
@@ -1351,13 +1351,13 @@ export default function BankReconciliationBoard({
 
                 {/* Action buttons */}
                 <div className="flex items-center gap-2 mt-auto pt-1">
-                  <button className="flex items-center gap-1 text-[11px] text-gray-600 border border-gray-200 rounded-lg px-2 py-1 hover:bg-gray-50 transition-colors">
+                  <button className="flex items-center gap-1 text-xs text-gray-600 border border-gray-200 rounded-lg px-2 py-1 hover:bg-gray-50 transition-colors">
                     Ajustar valores <ChevronDown size={10} />
                   </button>
-                  <button className="text-[11px] text-gray-600 border border-gray-200 rounded-lg px-2 py-1 hover:bg-gray-50 transition-colors">
+                  <button className="text-xs text-gray-600 border border-gray-200 rounded-lg px-2 py-1 hover:bg-gray-50 transition-colors">
                     Editar
                   </button>
-                  <button className="text-[11px] text-gray-600 border border-gray-200 rounded-lg px-2 py-1 hover:bg-gray-50 transition-colors">
+                  <button className="text-xs text-gray-600 border border-gray-200 rounded-lg px-2 py-1 hover:bg-gray-50 transition-colors">
                     Desvincular
                   </button>
                 </div>

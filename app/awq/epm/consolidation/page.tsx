@@ -181,7 +181,7 @@ export default async function ConsolidationPage() {
             <span className="text-base font-semibold text-gray-900">
               Visão de Gestão por BU — Snapshot Accrual 2026
             </span>
-            <span className="text-[10px] text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded font-medium">
+            <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded font-medium">
               Snapshot
             </span>
           </div>
@@ -206,7 +206,7 @@ export default async function ConsolidationPage() {
                       <div className="flex items-center gap-2">
                         <div className={`w-2 h-2 rounded-full ${bu.color}`} />
                         <span className="font-medium text-gray-800">{bu.name}</span>
-                        <span className="text-[10px] text-gray-400">
+                        <span className="text-xs text-gray-400">
                           {bu.economicType === "pre_revenue" ? "Pré-receita" :
                            bu.economicType === "hybrid_investment" ? "Investimento" : ""}
                         </span>

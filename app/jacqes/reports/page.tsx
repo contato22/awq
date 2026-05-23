@@ -127,7 +127,7 @@ export default function ReportsPage() {
         {/* Scheduled reports */}
         <div className="card p-5 lg:p-6">
           <div className="mb-4">
-            <h2 className="text-sm font-semibold text-gray-900">Scheduled Reports</h2>
+            <h2 className="text-base font-semibold text-gray-900">Scheduled Reports</h2>
             <p className="text-xs text-gray-500 mt-0.5">
               Automatic delivery to AWQ Group stakeholders
             </p>

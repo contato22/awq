@@ -38,7 +38,7 @@ export default function AlertBanner({ alert }: AlertBannerProps) {
       <Icon size={14} className={cn("mt-0.5 shrink-0", config.iconColor)} />
       <div className="flex-1 min-w-0">
         <div className="text-xs font-semibold">{alert.title}</div>
-        <div className="text-[11px] opacity-70 mt-0.5 leading-relaxed">{alert.message}</div>
+        <div className="text-xs opacity-70 mt-0.5 leading-relaxed">{alert.message}</div>
       </div>
     </div>
   );

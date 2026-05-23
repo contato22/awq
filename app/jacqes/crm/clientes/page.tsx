@@ -226,7 +226,7 @@ export default function ClientesPage() {
                 <thead>
                   <tr className="border-b border-gray-100">
                     {["Cliente", "Segmento", "Produto Ativo", "Ticket Mensal", "Status", "Health", "Churn Risk", "Expansão", "Owner", "Observações", ""].map(h => (
-                      <th key={h} className="px-3 py-2.5 text-left text-[11px] font-semibold text-gray-400 whitespace-nowrap">{h}</th>
+                      <th key={h} className="px-3 py-2.5 text-left text-xs font-semibold text-gray-400 whitespace-nowrap uppercase tracking-wide">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -235,13 +235,13 @@ export default function ClientesPage() {
                     <tr key={c.id} className="hover:bg-gray-50/60 transition-colors group">
                       <td className="px-3 py-3">
                         <div className="font-semibold text-gray-900">{c.nome}</div>
-                        <div className="text-[11px] text-gray-400">{c.razao_social}</div>
+                        <div className="text-xs text-gray-400">{c.razao_social}</div>
                       </td>
                       <td className="px-3 py-3 text-xs text-gray-600">{c.segmento}</td>
                       <td className="px-3 py-3 text-xs text-gray-600">{c.produto_ativo}</td>
                       <td className="px-3 py-3"><span className="font-bold text-gray-900">{fmtCurrency(c.ticket_mensal)}</span></td>
                       <td className="px-3 py-3">
-                        <span className={`inline-flex text-[11px] font-semibold px-2 py-0.5 rounded-full border ${STATUS_COLORS[c.status_conta] ?? "bg-gray-100 text-gray-500 border-gray-200"}`}>
+                        <span className={`inline-flex text-xs font-semibold px-2 py-0.5 rounded-full border ${STATUS_COLORS[c.status_conta] ?? "bg-gray-100 text-gray-500 border-gray-200"}`}>
                           {c.status_conta}
                         </span>
                       </td>
@@ -252,7 +252,7 @@ export default function ClientesPage() {
                         </div>
                       </td>
                       <td className="px-3 py-3">
-                        <span className={`inline-flex text-[11px] font-semibold px-2 py-0.5 rounded-full border ${CHURN_COLORS[c.churn_risk] ?? "bg-gray-100 text-gray-500 border-gray-200"}`}>
+                        <span className={`inline-flex text-xs font-semibold px-2 py-0.5 rounded-full border ${CHURN_COLORS[c.churn_risk] ?? "bg-gray-100 text-gray-500 border-gray-200"}`}>
                           {c.churn_risk}
                         </span>
                       </td>
@@ -264,7 +264,7 @@ export default function ClientesPage() {
                           {c.observacoes?.slice(0, 40)}{c.observacoes?.length > 40 ? "…" : ""}
                         </span>
                         {tooltip === c.id && c.observacoes && (
-                          <div className="absolute z-20 bottom-full left-0 mb-1 w-64 bg-gray-900 text-white text-[11px] rounded-lg px-3 py-2 shadow-lg pointer-events-none">
+                          <div className="absolute z-20 bottom-full left-0 mb-1 w-64 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg pointer-events-none">
                             {c.observacoes}
                           </div>
                         )}

@@ -142,12 +142,12 @@ export default async function AwqForecastPage() {
               <p className="text-xs font-semibold text-amber-800">
                 SNAPSHOT — Todos os números são dados de planejamento (accrual), não derivados de extrato bancário.
               </p>
-              <p className="text-[11px] text-amber-700 mt-0.5">
+              <p className="text-xs text-amber-700 mt-0.5">
                 Fonte: <code className="font-mono bg-amber-100 px-0.5 rounded">lib/awq-group-data.ts</code> via{" "}
                 <code className="font-mono bg-amber-100 px-0.5 rounded">lib/awq-derived-metrics.ts</code>.
                 Regime: competência (accrual) · Período: YTD Jan–Mar 2026.
               </p>
-              <p className="text-[11px] text-amber-600 mt-0.5">
+              <p className="text-xs text-amber-600 mt-0.5">
                 <strong>Projeções Abr–Dez e full-year foram removidas</strong> — sem base histórica, sem metodologia,
                 sem premissas documentadas. Run rate atual ~800K/mês vs projeções removidas 3,6M–5,1M/mês.
                 Para caixa real, acesse{" "}
@@ -171,7 +171,7 @@ export default async function AwqForecastPage() {
                   ? "Pipeline ativo — dados reais disponíveis para parte do período"
                   : "Forecast não disponível: aguardando histórico conciliado suficiente."}
               </p>
-              <p className="text-[11px] text-gray-500 mt-0.5">
+              <p className="text-xs text-gray-500 mt-0.5">
                 {hasRealData
                   ? `Extratos ingeridos: ${q.dataQuality.doneDocuments} documento(s) · ${q.dataQuality.totalTransactions} transação(ões) · Período: ${q.consolidated.periodStart ?? "—"} → ${q.consolidated.periodEnd ?? "—"}`
                   : "Nenhum extrato bancário com status=done encontrado. Os valores abaixo são inteiramente de planejamento (snapshot)."}
@@ -199,7 +199,7 @@ export default async function AwqForecastPage() {
               </div>
               <div className="text-2xl font-bold text-gray-900">{fmtR(q1SnapshotTotal)}</div>
               <div className="text-xs font-medium text-gray-400 mt-0.5">Q1 2026 — Referência de Planejamento</div>
-              <div className="text-[10px] text-gray-500 mt-1">
+              <div className="text-xs text-gray-500 mt-1">
                 Jan + Fev + Mar · accrual snapshot · base=bull=bear (sem modelo de cenários)
               </div>
             </div>
@@ -213,12 +213,12 @@ export default async function AwqForecastPage() {
                 Forecast FY 2026 — Não Disponível
               </span>
             </div>
-            <p className="text-[11px] text-gray-500 mb-3">
+            <p className="text-xs text-gray-500 mb-3">
               Projeções Abr–Dez 2026 e cenários full-year foram removidos.
               As projeções anteriores (3,6M–5,1M/mês) não tinham base histórica verificável —
               o run rate atual é ~800K/mês. Exibir aqueles números como &ldquo;forecast&rdquo; era desonesto.
             </p>
-            <p className="text-[10px] font-semibold text-gray-600 mb-2">
+            <p className="text-xs font-semibold text-gray-600 mb-2">
               Requisitos para ativar forecast real (0/8 atendidos):
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
@@ -226,8 +226,8 @@ export default async function AwqForecastPage() {
                 <div key={req.id} className="flex items-start gap-1.5">
                   <XCircle size={11} className="text-red-400 shrink-0 mt-0.5" />
                   <div>
-                    <span className="text-[10px] font-semibold text-gray-600">{req.label}</span>
-                    <span className="text-[10px] text-gray-400"> — {req.desc}</span>
+                    <span className="text-xs font-semibold text-gray-600">{req.label}</span>
+                    <span className="text-xs text-gray-400"> — {req.desc}</span>
                   </div>
                 </div>
               ))}
@@ -243,7 +243,7 @@ export default async function AwqForecastPage() {
               <p className="text-xs font-semibold text-gray-700 mb-1">
                 Lacunas de Dados — O que falta para um forecast confiável
               </p>
-              <ul className="text-[11px] text-gray-500 space-y-0.5 list-none">
+              <ul className="text-xs text-gray-500 space-y-0.5 list-none">
                 <li>• <strong>Extratos bancários ingeridos</strong>: nenhum documento com status=done. Ingira via <a href="/awq/conciliacao" className="underline text-brand-600">/awq/conciliacao</a> para que realizados reais apareçam nesta página.</li>
                 <li>• <strong>Pipeline de notas fiscais (NF-e)</strong>: não implementado. Necessário para receita accrual real (vs planejamento).</li>
                 <li>• <strong>Modelo de forecast</strong>: não configurado. Projeções Abr–Dez removidas (sem metodologia, sem base histórica). Run rate atual: ~800K/mês.</li>
@@ -259,7 +259,7 @@ export default async function AwqForecastPage() {
           {/* ── Q1 Reference Table ────────────────────────────────────────────── */}
           <div className="xl:col-span-2 card p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-gray-900">
+              <h2 className="text-base font-semibold text-gray-900">
                 Referência de Planejamento — Q1 2026
               </h2>
               <SourceBadge
@@ -269,7 +269,7 @@ export default async function AwqForecastPage() {
               />
             </div>
 
-            <div className="rounded-lg border border-amber-100 bg-amber-50/60 px-3 py-2 mb-3 text-[10px] text-amber-700">
+            <div className="rounded-lg border border-amber-100 bg-amber-50/60 px-3 py-2 mb-3 text-xs text-amber-700">
               <span className="font-semibold">Referência:</span>{" "}
               <code className="font-mono bg-amber-100 rounded px-0.5">lib/awq-group-data.ts → monthlyRevenue[]</code>
               {" "}· regime: accrual planejamento · base=bull=bear (sem modelo de cenários) ·{" "}
@@ -282,10 +282,10 @@ export default async function AwqForecastPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-200">
-                    <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Mês</th>
-                    <th className="text-right py-2 px-3 text-xs font-semibold text-amber-600">Referência (Snap)</th>
-                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-300">Realizado</th>
-                    <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Tipo</th>
+                    <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Mês</th>
+                    <th className="text-right py-2 px-3 text-xs font-semibold text-amber-600 uppercase tracking-wide">Referência (Snap)</th>
+                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-300 uppercase tracking-wide">Realizado</th>
+                    <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Tipo</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -319,7 +319,7 @@ export default async function AwqForecastPage() {
                   </tr>
                   <tr>
                     <td colSpan={4} className="pt-2 pb-1 px-3">
-                      <div className="rounded bg-gray-100 px-2 py-1.5 text-[10px] text-gray-500">
+                      <div className="rounded bg-gray-100 px-2 py-1.5 text-xs text-gray-500">
                         <strong>Abr–Dez 2026:</strong> projeções removidas — sem metodologia, sem base histórica verificável.
                         Run rate atual ~800K/mês vs projeção removida 3,6M–5,1M/mês (4–6× inflado).
                         Modelo de forecast não configurado.
@@ -337,7 +337,7 @@ export default async function AwqForecastPage() {
             {/* Forecast Accuracy */}
             <div className="card p-5">
               <div className="flex items-center justify-between mb-1">
-                <h2 className="text-sm font-semibold text-gray-900">Forecast Accuracy</h2>
+                <h2 className="text-base font-semibold text-gray-900">Forecast Accuracy</h2>
                 <SourceBadge
                   variant={hasAccuracyHistory ? "snapshot" : "empty"}
                   title="forecastAccuracyHistory[] · awq-group-data.ts"
@@ -347,19 +347,19 @@ export default async function AwqForecastPage() {
               {!hasAccuracyHistory ? (
                 <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-4 text-center">
                   <p className="text-xs font-semibold text-gray-500 mb-1">Sem histórico de acurácia disponível</p>
-                  <p className="text-[10px] text-gray-400 leading-relaxed">
+                  <p className="text-xs text-gray-400 leading-relaxed">
                     Os forecasts históricos foram emitidos com base em um modelo de negócio anterior
                     incompatível com os dados atuais (~800K/mês).
                     Comparar os dois produziria erros de ~−65% que medem a correção de modelo, não a qualidade do forecast.
                   </p>
-                  <p className="text-[10px] text-gray-400 mt-1.5">
+                  <p className="text-xs text-gray-400 mt-1.5">
                     Este campo será populado quando novos forecasts forem emitidos com base no modelo atual
                     e realizados virem de <code className="font-mono">financial-query.ts</code>.
                   </p>
                 </div>
               ) : (
                 <>
-                  <p className="text-[10px] text-amber-700 bg-amber-50 border border-amber-100 rounded px-2 py-1 mb-3">
+                  <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded px-2 py-1 mb-3">
                     <strong>Atenção:</strong> Esta métrica compara forecast de planejamento vs realizados de planejamento.
                     Não é uma medida de acurácia real até que existam realizados de extrato bancário.
                   </p>
@@ -371,7 +371,7 @@ export default async function AwqForecastPage() {
                         <div key={row.month}>
                           <div className="flex items-center justify-between mb-1">
                             <span className="text-xs text-gray-500">{row.month}</span>
-                            <div className="flex items-center gap-2 text-[11px]">
+                            <div className="flex items-center gap-2 text-xs">
                               <span className="text-gray-400">Plan: {fmtR(row.forecast)}</span>
                               <span className={`font-bold ${isPos ? "text-emerald-600" : "text-red-600"}`}>
                                 {row.error >= 0 ? "+" : ""}{row.error}%
@@ -381,7 +381,7 @@ export default async function AwqForecastPage() {
                           <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                             <div className="h-full bg-amber-400 rounded-full" style={{ width: `${acc}%` }} />
                           </div>
-                          <div className="text-[10px] text-gray-400 text-right mt-0.5">{acc.toFixed(1)}% acurácia (planejamento)</div>
+                          <div className="text-xs text-gray-400 text-right mt-0.5">{acc.toFixed(1)}% acurácia (planejamento)</div>
                         </div>
                       );
                     })}
@@ -397,7 +397,7 @@ export default async function AwqForecastPage() {
             {/* Per-BU Forecast — Empty State */}
             <div className="card p-5">
               <div className="flex items-center justify-between mb-1">
-                <h2 className="text-sm font-semibold text-gray-900">Forecast por BU — Full Year 2026</h2>
+                <h2 className="text-base font-semibold text-gray-900">Forecast por BU — Full Year 2026</h2>
                 <SourceBadge
                   variant="empty"
                   title="buForecastScenarios[] cleared — projeções sem base histórica verificável"
@@ -409,30 +409,30 @@ export default async function AwqForecastPage() {
                   <p className="text-xs font-semibold text-gray-500 mb-2">
                     Projeções por BU não disponíveis
                   </p>
-                  <p className="text-[10px] text-gray-400 leading-relaxed mb-3">
+                  <p className="text-xs text-gray-400 leading-relaxed mb-3">
                     As projeções full-year foram removidas por inconsistência grave com o run rate real:
                   </p>
                   <div className="space-y-2 mb-3">
                     <div className="flex items-start gap-1.5">
                       <XCircle size={11} className="text-red-400 shrink-0 mt-0.5" />
-                      <span className="text-[10px] text-gray-500">
+                      <span className="text-xs text-gray-500">
                         <strong>JACQES:</strong> run rate anualizado R$83K vs projeção anterior R$19,8M (238× discrepância — sem metodologia)
                       </span>
                     </div>
                     <div className="flex items-start gap-1.5">
                       <XCircle size={11} className="text-red-400 shrink-0 mt-0.5" />
-                      <span className="text-[10px] text-gray-500">
+                      <span className="text-xs text-gray-500">
                         <strong>Caza Vision:</strong> run rate anualizado R$7,25M vs projeção anterior R$12,1M (67% premium — sem base)
                       </span>
                     </div>
                     <div className="flex items-start gap-1.5">
                       <XCircle size={11} className="text-red-400 shrink-0 mt-0.5" />
-                      <span className="text-[10px] text-gray-500">
+                      <span className="text-xs text-gray-500">
                         <strong>Growth % declarado:</strong> &ldquo;vs 2025&rdquo; sem baseline 2025 verificável no data store
                       </span>
                     </div>
                   </div>
-                  <p className="text-[10px] text-gray-400">
+                  <p className="text-xs text-gray-400">
                     Para ativar: construir modelo de forecast documentado com base histórica real
                     (≥ 6 meses de extratos ingeridos via{" "}
                     <a href="/awq/conciliacao" className="underline text-brand-600">/awq/conciliacao</a>).
@@ -449,14 +449,14 @@ export default async function AwqForecastPage() {
                           <span className={`text-xs font-semibold ${bu.accent}`}>{bu.bu}</span>
                         </div>
                         <div className="flex items-center gap-1.5">
-                          <span className="text-[10px] text-emerald-600 font-bold">+{bu.growth}% vs 2025</span>
+                          <span className="text-xs text-emerald-600 font-bold">+{bu.growth}% vs 2025</span>
                           <SourceBadge variant="forecast" label="PLAN" />
                         </div>
                       </div>
                       <div className="flex items-center justify-between mb-2 rounded bg-gray-50 px-2 py-1">
-                        <span className="text-[10px] text-gray-500">YTD (snapshot)</span>
+                        <span className="text-xs text-gray-500">YTD (snapshot)</span>
                         <div className="flex items-center gap-1">
-                          <span className="text-[10px] font-bold text-amber-700">{fmtR(bu.ytd)}</span>
+                          <span className="text-xs font-bold text-amber-700">{fmtR(bu.ytd)}</span>
                           <SourceBadge variant="snapshot" label="SNAP" title="YTD de planejamento derivado de buData" />
                         </div>
                       </div>
@@ -485,8 +485,8 @@ export default async function AwqForecastPage() {
 
         {/* ── Source Metadata Footer ──────────────────────────────────────────── */}
         <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
-          <p className="text-[10px] font-semibold text-gray-500 mb-1.5">Metadados de Fonte — /awq/forecast</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-[10px] text-gray-400">
+          <p className="text-xs font-semibold text-gray-500 mb-1.5">Metadados de Fonte — /awq/forecast</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-xs text-gray-400">
             <div><span className="font-medium text-gray-500">source_type:</span> snapshot (NENHUM dado real · NENHUM forecast ativo nesta página)</div>
             <div><span className="font-medium text-gray-500">source_name:</span> lib/awq-group-data.ts via lib/awq-derived-metrics.ts</div>
             <div><span className="font-medium text-gray-500">regime:</span> accrual (competência) — não cash-basis</div>

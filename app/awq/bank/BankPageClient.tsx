@@ -76,11 +76,11 @@ function CoraLiveBalances() {
               {!loading && !hasError && (
                 <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-[10px] font-semibold text-emerald-700">Ao vivo</span>
+                  <span className="text-xs font-semibold text-emerald-700">Ao vivo</span>
                 </span>
               )}
             </div>
-            <div className="text-[11px] text-gray-400 mt-0.5">
+            <div className="text-xs text-gray-400 mt-0.5">
               {lastUpdate ? `Atualizado às ${lastUpdate}` : "Buscando saldo…"}
             </div>
           </div>
@@ -124,7 +124,7 @@ function CoraLiveBalances() {
         ) : balance ? (
           <div className="flex items-end justify-between">
             <div>
-              <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
+              <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">
                 Saldo Disponível
               </div>
               <div className="text-4xl font-bold text-gray-900 tracking-tight">
@@ -388,7 +388,7 @@ export default function BankAccountsPage() {
                   </div>
                 </div>
                 <div className={`text-2xl font-bold ${col.val}`}>{c.value}</div>
-                <div className="text-[11px] text-gray-400 mt-1">{c.sub}</div>
+                <div className="text-xs text-gray-400 mt-1">{c.sub}</div>
               </div>
             );
           })}
@@ -492,11 +492,11 @@ export default function BankAccountsPage() {
                         <div className="text-xs font-bold text-gray-900 truncate">{acct.name}</div>
                       </div>
                       {bankTag ? (
-                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded border text-[10px] font-semibold mt-0.5 ${bankTag}`}>
+                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded border text-xs font-semibold mt-0.5 ${bankTag}`}>
                           {acct.bank}
                         </span>
                       ) : (
-                        <div className="text-[10px] text-gray-400 mt-0.5">{acct.bank}</div>
+                        <div className="text-xs text-gray-400 mt-0.5">{acct.bank}</div>
                       )}
                     </div>
                     <button
@@ -511,9 +511,9 @@ export default function BankAccountsPage() {
                   <div className="mt-3 pt-3 border-t border-gray-100">
                     <div className="text-base font-bold text-gray-900">{fmtR(acct.currentBalance)}</div>
                     <div className="flex items-center gap-3 mt-1">
-                      <span className="text-[10px] text-emerald-600 font-semibold">↑ {fmtR(credits)}</span>
-                      <span className="text-[10px] text-red-500 font-semibold">↓ {fmtR(Math.abs(debits))}</span>
-                      <span className="text-[10px] text-gray-400 ml-auto">{acct.transactions.length} tx</span>
+                      <span className="text-xs text-emerald-600 font-semibold">↑ {fmtR(credits)}</span>
+                      <span className="text-xs text-red-500 font-semibold">↓ {fmtR(Math.abs(debits))}</span>
+                      <span className="text-xs text-gray-400 ml-auto">{acct.transactions.length} tx</span>
                     </div>
                   </div>
                 </div>
@@ -522,7 +522,7 @@ export default function BankAccountsPage() {
 
             {/* Ingest link */}
             <div className="p-3 rounded-xl bg-brand-50 border border-brand-100">
-              <div className="flex items-center gap-2 text-[11px] text-brand-700 mb-2">
+              <div className="flex items-center gap-2 text-xs text-brand-700 mb-2">
                 <FileUp size={11} className="shrink-0" />
                 <span className="font-medium">Importar extrato PDF?</span>
               </div>
@@ -563,7 +563,7 @@ export default function BankAccountsPage() {
                     </div>
                     <div className="text-right">
                       <div className="text-2xl font-bold text-gray-900">{fmtR(selected.currentBalance)}</div>
-                      <div className="text-[11px] text-gray-400 mt-0.5">saldo atual</div>
+                      <div className="text-xs text-gray-400 mt-0.5">saldo atual</div>
                     </div>
                   </div>
 
@@ -582,7 +582,7 @@ export default function BankAccountsPage() {
                           </div>
                           <div>
                             <div className={`text-sm font-bold ${item.color}`}>{item.value}</div>
-                            <div className="text-[10px] text-gray-500">{item.label}</div>
+                            <div className="text-xs text-gray-500">{item.label}</div>
                           </div>
                         </div>
                       );
@@ -650,11 +650,11 @@ export default function BankAccountsPage() {
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="border-b border-gray-100">
-                            <th className="text-left py-2 px-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Data</th>
-                            <th className="text-left py-2 px-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Descrição</th>
-                            <th className="text-left py-2 px-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Categoria</th>
-                            <th className="text-right py-2 px-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Valor</th>
-                            <th className="text-right py-2 px-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Saldo</th>
+                            <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Data</th>
+                            <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Descrição</th>
+                            <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Categoria</th>
+                            <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Valor</th>
+                            <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Saldo</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -668,7 +668,7 @@ export default function BankAccountsPage() {
                                 <div className="truncate">{tx.description}</div>
                               </td>
                               <td className="py-3 px-3">
-                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${CATEGORY_COLOR[tx.category] ?? "bg-gray-100 text-gray-600"}`}>
+                                <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${CATEGORY_COLOR[tx.category] ?? "bg-gray-100 text-gray-600"}`}>
                                   {CATEGORY_LABEL[tx.category] ?? tx.category}
                                 </span>
                               </td>

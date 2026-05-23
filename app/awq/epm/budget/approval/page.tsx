@@ -249,9 +249,9 @@ export default function BudgetApprovalPage() {
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50 text-left">
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold">Métrica</th>
+                  <th className="py-2.5 px-3 text-gray-500 font-semibold uppercase tracking-wide">Métrica</th>
                   {BUDGET_VERSIONS.map((v) => (
-                    <th key={v.version_name} className="py-2.5 px-3 text-gray-500 font-semibold text-right">
+                    <th key={v.version_name} className="py-2.5 px-3 text-gray-500 font-semibold text-right uppercase tracking-wide">
                       {v.scenario}
                     </th>
                   ))}

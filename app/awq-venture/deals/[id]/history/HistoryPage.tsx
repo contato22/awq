@@ -163,7 +163,7 @@ export default function HistoryPage({ params }: { params: { id: string } }) {
       {/* Campos atualmente alterados */}
       {fieldCount > 0 && (
         <div className="card p-5">
-          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Campos com Alteração Local</div>
+          <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Campos com Alteração Local</div>
           <div className="space-y-2">
             {Object.entries(override.fields ?? {}).map(([k, v]) => (
               <div key={k} className="flex items-start gap-2 text-xs">
@@ -206,7 +206,7 @@ export default function HistoryPage({ params }: { params: { id: string } }) {
 
       {/* Timeline completo */}
       <div className="card p-5">
-        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">
+        <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">
           Timeline de Eventos ({allEvents.length})
         </div>
 
@@ -224,17 +224,17 @@ export default function HistoryPage({ params }: { params: { id: string } }) {
                 }`} />
                 <div className="flex-1 surface-subtle p-3 rounded-xl">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
                       e.source === "override"
                         ? "bg-amber-50 text-amber-700 border border-amber-200"
                         : "bg-brand-50 text-brand-700 border border-brand-200"
                     }`}>
                       {e.source === "override" ? "Edit Local" : "Governança"}
                     </span>
-                    <span className="text-[10px] text-gray-400 flex items-center gap-1">
+                    <span className="text-xs text-gray-400 flex items-center gap-1">
                       <User size={9} /> {e.by}
                     </span>
-                    <span className="text-[10px] text-gray-400">{e.date ?? (e.timestamp ?? "").split("T")[0]}</span>
+                    <span className="text-xs text-gray-400">{e.date ?? (e.timestamp ?? "").split("T")[0]}</span>
                   </div>
                   <p className="text-xs text-gray-700 mt-1.5 leading-relaxed">{e.action}</p>
                 </div>
@@ -247,7 +247,7 @@ export default function HistoryPage({ params }: { params: { id: string } }) {
       {/* Audit trail estático do deal */}
       {auditTrail.length > 0 && (
         <div className="card p-5">
-          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
+          <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
             Audit Trail (Governança Static)
           </div>
           <div className="space-y-2">
@@ -263,7 +263,7 @@ export default function HistoryPage({ params }: { params: { id: string } }) {
         </div>
       )}
 
-      <div className="text-center text-[10px] text-gray-300 pb-4">
+      <div className="text-center text-xs text-gray-300 pb-4">
         Histórico local · {deal.id} · Para versionamento permanente, integrar com API
       </div>
     </div>

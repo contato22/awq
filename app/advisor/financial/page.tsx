@@ -31,7 +31,7 @@ export default function AdvisorFinancialPage() {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <h2 className="text-base font-bold text-gray-900">BU em construção · Pré-receita</h2>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-100 text-brand-700 border border-brand-200">
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-brand-100 text-brand-700 border border-brand-200">
                 PRÉ-RECEITA
               </span>
             </div>
@@ -57,7 +57,7 @@ export default function AdvisorFinancialPage() {
             <div key={m.label} className="card p-5">
               <div className="text-2xl font-bold text-gray-300">{m.value}</div>
               <div className="text-xs font-medium text-gray-400 mt-0.5">{m.label}</div>
-              <div className="text-[10px] text-gray-400 mt-1">{m.sub}</div>
+              <div className="text-xs text-gray-400 mt-1">{m.sub}</div>
             </div>
           ))}
         </div>
@@ -69,15 +69,15 @@ export default function AdvisorFinancialPage() {
             <p className="text-xs font-semibold text-brand-800">
               Por que este painel está vazio?
             </p>
-            <p className="text-[11px] text-brand-700 mt-1 leading-relaxed">
+            <p className="text-xs text-brand-700 mt-1 leading-relaxed">
               Dados financeiros da BU Advisor (AUM, receita de taxas, DRE) só serão
               exibidos quando derivados de extratos bancários ou contratos reais.
               Exibir valores não confirmados contamina o P&L consolidado da holding e
               compromete decisões operacionais.
             </p>
-            <p className="text-[11px] text-brand-600 mt-2">
+            <p className="text-xs text-brand-600 mt-2">
               Fonte autoritativa:{" "}
-              <code className="bg-brand-100 px-1 rounded text-[10px]">lib/awq-group-data.ts</code>
+              <code className="bg-brand-100 px-1 rounded text-xs">lib/awq-group-data.ts</code>
               {" "}→ buData[&quot;advisor&quot;].economicType = &quot;pre_revenue&quot;
             </p>
           </div>

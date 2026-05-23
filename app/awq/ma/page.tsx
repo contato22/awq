@@ -184,7 +184,7 @@ export default async function MaCommandCenterPage() {
               <div key={card.label} className={`bg-white rounded-xl border border-gray-200 border-l-4 ${card.accent} p-4`}>
                 <div className={`text-xl font-bold ${card.val}`}>{card.value}</div>
                 <div className="text-xs font-semibold text-gray-600 mt-0.5">{card.label}</div>
-                <div className="text-[10px] text-gray-400 mt-0.5 leading-tight">{card.sub}</div>
+                <div className="text-xs text-gray-400 mt-0.5 leading-tight">{card.sub}</div>
               </div>
             );
           })}
@@ -195,7 +195,7 @@ export default async function MaCommandCenterPage() {
 
           {/* Left: Primary module cards */}
           <div className="lg:col-span-3 space-y-3">
-            <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Módulos</p>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Módulos</p>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {primaryLinks.map(item => {
                 const Icon = item.icon;
@@ -254,7 +254,7 @@ export default async function MaCommandCenterPage() {
                 <p className="text-xs text-gray-400 mb-3">Adicione o primeiro deal M4E para começar.</p>
                 <Link
                   href="/awq/ma/deals/new"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold rounded-lg transition-colors"
                 >
                   <Plus size={11} /> Adicionar deal
                 </Link>
@@ -293,7 +293,7 @@ export default async function MaCommandCenterPage() {
         {activePortcos.length > 0 && (
           <div>
             <div className="flex items-center justify-between mb-3">
-              <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Portfolio Ativo</p>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Portfolio Ativo</p>
               <Link href="/awq/portfolio" className="text-xs text-blue-500 hover:text-blue-600 font-medium flex items-center gap-0.5">
                 Ver todos <ChevronRight size={11} />
               </Link>
@@ -317,7 +317,7 @@ export default async function MaCommandCenterPage() {
                         <div className="font-bold text-gray-900 text-sm group-hover:text-blue-600 transition-colors leading-tight">
                           {p.legal_name ?? (p as any).company_name}
                         </div>
-                        <div className="text-[10px] text-gray-400 mt-0.5">{p.portco_code}</div>
+                        <div className="text-xs text-gray-400 mt-0.5">{p.portco_code}</div>
                       </div>
                       <ArrowUpRight size={14} className="text-gray-300 group-hover:text-blue-400 transition-colors shrink-0 mt-0.5" />
                     </div>

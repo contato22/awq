@@ -85,7 +85,7 @@ export default async function MiniPlPage() {
             <div>
               <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">MRR Atual</div>
               <div className="text-2xl font-bold text-gray-900 mt-0.5">{fmt(JACQES_MRR)}</div>
-              <div className="text-[11px] text-gray-400 mt-0.5">
+              <div className="text-xs text-gray-400 mt-0.5">
                 ARR projetado: {fmt(JACQES_MRR * 12)}
               </div>
             </div>
@@ -125,15 +125,15 @@ export default async function MiniPlPage() {
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-center">
-              <div className="text-[10px] font-semibold text-emerald-600 mb-1">Pago</div>
+              <div className="text-xs font-semibold text-emerald-600 mb-1">Pago</div>
               <div className="text-base font-bold text-emerald-700">{fmt(totalPago)}</div>
             </div>
             <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-center">
-              <div className="text-[10px] font-semibold text-amber-600 mb-1">Pendente</div>
+              <div className="text-xs font-semibold text-amber-600 mb-1">Pendente</div>
               <div className="text-base font-bold text-amber-700">{fmt(totalPend)}</div>
             </div>
             <div className="rounded-lg bg-gray-50 border border-gray-200 p-3 text-center">
-              <div className="text-[10px] font-semibold text-gray-500 mb-1">Clientes</div>
+              <div className="text-xs font-semibold text-gray-500 mb-1">Clientes</div>
               <div className="text-base font-bold text-gray-700">{jacqes.customers}</div>
             </div>
           </div>

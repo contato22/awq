@@ -92,7 +92,7 @@ export default function BpmInstancesPage() {
                 key={s}
                 onClick={() => setStatus(s)}
                 className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                  statusFilter === s ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200 hover:border-blue-300"
+                  statusFilter === s ? "bg-brand-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200 hover:border-blue-300"
                 }`}
               >
                 {{ all: "Todos", in_progress: "Em andamento", approved: "Aprovados", rejected: "Rejeitados", cancelled: "Cancelados" }[s]}
@@ -104,7 +104,7 @@ export default function BpmInstancesPage() {
             placeholder="Buscar por código, processo..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="ml-auto border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-56"
+            className="ml-auto border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 w-56"
           />
         </div>
 

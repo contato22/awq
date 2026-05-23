@@ -54,7 +54,7 @@ export default function InventoryMovementsPage() {
               <thead className="bg-gray-50">
                 <tr>
                   {["Data", "Tipo", "Item", "Qtd", "Origem", "Destino", "Ref. Documento"].map((h) => (
-                    <th key={h} className="px-4 py-3 text-left text-[10px] font-semibold text-gray-500 uppercase whitespace-nowrap">{h}</th>
+                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase whitespace-nowrap tracking-wide">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -78,7 +78,7 @@ export default function InventoryMovementsPage() {
         {/* Type legend */}
         <div className="flex flex-wrap gap-2">
           {(Object.entries(TYPE_BADGE) as [MovType, string][]).map(([t, cls]) => (
-            <span key={t} className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${cls}`}>{t}</span>
+            <span key={t} className={`px-2 py-0.5 rounded-full text-xs font-semibold ${cls}`}>{t}</span>
           ))}
         </div>
       </div>

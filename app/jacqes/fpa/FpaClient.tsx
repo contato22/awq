@@ -26,7 +26,7 @@ function fmtR(n: number) {
 }
 
 const SEL_CLS =
-  "border border-gray-200 rounded-lg px-2 py-1.5 text-[11px] text-gray-700 bg-white " +
+  "border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-700 bg-white " +
   "focus:outline-none focus:ring-1 focus:ring-brand-400 cursor-pointer";
 
 // ─── Clientes — fonte única: lib/jacqes-customers.ts ─────────────────────────
@@ -77,9 +77,9 @@ function PendingSection({ title, lines, source }: { title: string; lines: string
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-gray-100">
-            <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400">Categoria</th>
-            <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400">Valor</th>
-            <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400">Estado</th>
+            <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Categoria</th>
+            <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Valor</th>
+            <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Estado</th>
           </tr>
         </thead>
         <tbody>
@@ -96,7 +96,7 @@ function PendingSection({ title, lines, source }: { title: string; lines: string
       </table>
       <div className="mt-3 flex items-start gap-2 pt-3 border-t border-gray-100">
         <Info size={11} className="text-gray-300 shrink-0 mt-0.5" />
-        <p className="text-[10px] text-gray-300 leading-relaxed">{source}</p>
+        <p className="text-xs text-gray-300 leading-relaxed">{source}</p>
       </div>
     </div>
   );
@@ -192,7 +192,7 @@ export default function FpaClient({ buData, monthlyRevenue, jacqesMRR }: FpaClie
               <button
                 key={s.id}
                 onClick={() => setSection(s.id)}
-                className={`px-3 py-2 text-[11px] font-medium rounded-lg whitespace-nowrap transition-all ${
+                className={`px-3 py-2 text-xs font-medium rounded-lg whitespace-nowrap transition-all ${
                   section === s.id
                     ? "bg-white text-brand-700 shadow-sm"
                     : "text-gray-500 hover:text-gray-800"
@@ -223,7 +223,7 @@ export default function FpaClient({ buData, monthlyRevenue, jacqesMRR }: FpaClie
                     <div className="flex-1 min-w-0">
                       <div className={`text-2xl font-bold ${c.color}`}>{c.value}</div>
                       <div className="text-xs font-medium text-gray-400 mt-0.5">{c.label}</div>
-                      <div className="text-[10px] text-gray-400 mt-1">{c.sub}</div>
+                      <div className="text-xs text-gray-400 mt-1">{c.sub}</div>
                     </div>
                   </div>
                 );
@@ -234,16 +234,16 @@ export default function FpaClient({ buData, monthlyRevenue, jacqesMRR }: FpaClie
               {/* 1.1 Receita Bruta */}
               <div className="card p-5">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-semibold text-gray-900">1.1 Receita Bruta</h3>
+                  <h3 className="text-base font-semibold text-gray-900">1.1 Receita Bruta</h3>
                   <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 border border-emerald-200">Notion CRM · Abr/26</span>
                 </div>
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-gray-200">
-                      <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400">Tipo</th>
-                      <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400">MRR</th>
-                      <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400">YTD</th>
-                      <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400">Estado</th>
+                      <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Tipo</th>
+                      <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">MRR</th>
+                      <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">YTD</th>
+                      <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Estado</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -284,15 +284,15 @@ export default function FpaClient({ buData, monthlyRevenue, jacqesMRR }: FpaClie
               {/* 1.2 Deduções */}
               <div className="card p-5">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-semibold text-gray-900">1.2 Deduções</h3>
+                  <h3 className="text-base font-semibold text-gray-900">1.2 Deduções</h3>
                   <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 border border-amber-200">parcial</span>
                 </div>
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-gray-200">
-                      <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400">Tipo</th>
-                      <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400">Valor</th>
-                      <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400">Estado</th>
+                      <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Tipo</th>
+                      <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Valor</th>
+                      <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Estado</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -323,14 +323,14 @@ export default function FpaClient({ buData, monthlyRevenue, jacqesMRR }: FpaClie
                     </tr>
                   </tfoot>
                 </table>
-                <p className="text-[10px] text-gray-400 mt-2 pl-3">* Apenas inadimplência CRM. Impostos aguardam classificação fiscal.</p>
+                <p className="text-xs text-gray-400 mt-2 pl-3">* Apenas inadimplência CRM. Impostos aguardam classificação fiscal.</p>
               </div>
             </div>
 
             {/* 1.3 Receita Líquida */}
             <div className="card p-5">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-gray-900">1.3 Receita Líquida</h3>
+                <h3 className="text-base font-semibold text-gray-900">1.3 Receita Líquida</h3>
                 <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 border border-amber-200">parcial — impostos pendentes</span>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -368,8 +368,8 @@ export default function FpaClient({ buData, monthlyRevenue, jacqesMRR }: FpaClie
                   <div key={c.label}>
                     <p className="text-xs font-semibold text-gray-500 mb-2">{c.label}</p>
                     <div className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-8 text-center">
-                      <p className="text-[11px] text-gray-400">Pendente de classificação</p>
-                      <p className="text-[10px] text-gray-300 mt-1">{c.note}</p>
+                      <p className="text-xs text-gray-400">Pendente de classificação</p>
+                      <p className="text-xs text-gray-300 mt-1">{c.note}</p>
                     </div>
                   </div>
                 ))}
@@ -403,7 +403,7 @@ export default function FpaClient({ buData, monthlyRevenue, jacqesMRR }: FpaClie
           <div className="space-y-4">
             <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 flex items-start gap-3">
               <Info size={14} className="text-gray-400 shrink-0 mt-0.5" />
-              <p className="text-[11px] text-gray-500">
+              <p className="text-xs text-gray-500">
                 COGS deve conter apenas custo direto de entrega. Não contamina Opex da BU nem SG&A alocado.
                 Aguarda classificação contábil por centro de custo.
               </p>
@@ -445,7 +445,7 @@ export default function FpaClient({ buData, monthlyRevenue, jacqesMRR }: FpaClie
               </div>
               <div className="mt-4 flex items-start gap-2">
                 <Info size={12} className="text-gray-300 shrink-0 mt-0.5" />
-                <p className="text-[10px] text-gray-300">
+                <p className="text-xs text-gray-300">
                   Referência de mercado para consultorias B2B: margem bruta típica de 50–70%. Calculará automaticamente quando COGS for classificado.
                 </p>
               </div>
@@ -458,7 +458,7 @@ export default function FpaClient({ buData, monthlyRevenue, jacqesMRR }: FpaClie
           <div className="space-y-4">
             <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 flex items-start gap-3">
               <Info size={14} className="text-gray-400 shrink-0 mt-0.5" />
-              <p className="text-[11px] text-gray-500">
+              <p className="text-xs text-gray-500">
                 Contribuição = Receita Líquida − COGS − Custos Semi-variáveis. Distinção entre Lucro Bruto e
                 Contribuição depende da identificação dos custos semi-variáveis da BU.
               </p>
@@ -476,7 +476,7 @@ export default function FpaClient({ buData, monthlyRevenue, jacqesMRR }: FpaClie
           <div className="space-y-4">
             <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 flex items-start gap-3">
               <Info size={14} className="text-gray-400 shrink-0 mt-0.5" />
-              <p className="text-[11px] text-gray-500">
+              <p className="text-xs text-gray-500">
                 Opex próprio da BU ≠ COGS e ≠ SG&A alocado. São despesas operacionais da JACQES não atribuídas diretamente a clientes.
               </p>
             </div>
@@ -498,7 +498,7 @@ export default function FpaClient({ buData, monthlyRevenue, jacqesMRR }: FpaClie
           <div className="space-y-4">
             <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 flex items-start gap-3">
               <Info size={14} className="text-gray-400 shrink-0 mt-0.5" />
-              <p className="text-[11px] text-gray-500">
+              <p className="text-xs text-gray-500">
                 SG&A alocado = parcela do overhead corporativo (holding) alocada à BU JACQES. Distinto do Opex próprio.
                 Critério de rateio ainda não definido.
               </p>
@@ -528,7 +528,7 @@ export default function FpaClient({ buData, monthlyRevenue, jacqesMRR }: FpaClie
                 <div key={c.label} className="card p-5">
                   <p className="text-xs text-gray-400 mb-1">{c.label}</p>
                   <p className="text-2xl font-bold text-gray-400">—</p>
-                  <p className="text-[10px] text-gray-300 mt-1">{c.note}</p>
+                  <p className="text-xs text-gray-300 mt-1">{c.note}</p>
                   <span className="mt-2 inline-block text-[9px] font-medium px-1.5 py-0.5 rounded bg-gray-100 text-gray-400">pendente</span>
                 </div>
               ))}
@@ -536,7 +536,7 @@ export default function FpaClient({ buData, monthlyRevenue, jacqesMRR }: FpaClie
 
             <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 flex items-start gap-2">
               <AlertTriangle size={13} className="text-amber-600 shrink-0 mt-0.5" />
-              <p className="text-[11px] text-amber-700">
+              <p className="text-xs text-amber-700">
                 Receita Bruta confirmada via Notion CRM. Deduções, COGS e Opex aguardam classificação contábil.
                 Coluna <strong>Prev</strong> exibe &quot;—&quot; enquanto Budget 2026 não for definido.
               </p>
@@ -554,7 +554,7 @@ export default function FpaClient({ buData, monthlyRevenue, jacqesMRR }: FpaClie
                   <div className="flex gap-0.5 p-0.5 bg-gray-100 rounded-lg">
                     {(["dia", "mes", "ano"] as const).map((g) => (
                       <button key={g} onClick={() => setGran(g)}
-                        className={`px-3 py-1.5 text-[11px] font-medium rounded-md transition-all ${
+                        className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
                           gran === g ? "bg-white text-brand-700 shadow-sm" : "text-gray-500 hover:text-gray-700"
                         }`}>
                         {g === "dia" ? "Dia" : g === "mes" ? "Mês" : "Ano"}
@@ -563,7 +563,7 @@ export default function FpaClient({ buData, monthlyRevenue, jacqesMRR }: FpaClie
                   </div>
                   {/* De / Até */}
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[11px] text-gray-400">De</span>
+                    <span className="text-xs text-gray-400">De</span>
                     {gran === "dia" && (
                       <input type="date" value={dateFrom} min="2021-01-01" max="2030-12-31"
                         onChange={(e) => { setDateFrom(e.target.value); if (e.target.value > dateTo) setDateTo(e.target.value); }}
@@ -583,7 +583,7 @@ export default function FpaClient({ buData, monthlyRevenue, jacqesMRR }: FpaClie
                         {ALL_YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
                       </select>
                     )}
-                    <span className="text-[11px] text-gray-400">Até</span>
+                    <span className="text-xs text-gray-400">Até</span>
                     {gran === "dia" && (
                       <input type="date" value={dateTo} min={dateFrom} max="2030-12-31"
                         onChange={(e) => { setDateTo(e.target.value); if(e.target.value<dateFrom)setDateFrom(e.target.value); }}
@@ -608,7 +608,7 @@ export default function FpaClient({ buData, monthlyRevenue, jacqesMRR }: FpaClie
                   <div className="flex gap-0.5 p-0.5 bg-gray-100 rounded-lg">
                     {(["both", "prev", "real"] as const).map((v) => (
                       <button key={v} onClick={() => setDreView(v)}
-                        className={`px-3 py-1.5 text-[11px] font-medium rounded-md transition-all ${
+                        className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
                           dreView === v ? "bg-white text-brand-700 shadow-sm" : "text-gray-500 hover:text-gray-700"
                         }`}>
                         {v === "both" ? "Prev + Real" : v === "prev" ? "Só Prev" : "Só Real"}
@@ -621,7 +621,7 @@ export default function FpaClient({ buData, monthlyRevenue, jacqesMRR }: FpaClie
               {gran === "dia" && (
                 <div className="mb-3 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 flex items-start gap-2">
                   <Info size={12} className="text-blue-500 shrink-0 mt-0.5" />
-                  <p className="text-[10px] text-blue-700">Dados por dia aguardam ingestion. Exibindo agregado por mês.</p>
+                  <p className="text-xs text-blue-700">Dados por dia aguardam ingestion. Exibindo agregado por mês.</p>
                 </div>
               )}
 
@@ -629,28 +629,28 @@ export default function FpaClient({ buData, monthlyRevenue, jacqesMRR }: FpaClie
                 <table className="w-full text-xs whitespace-nowrap border-collapse">
                   <thead>
                     <tr className="border-b border-gray-200">
-                      <th className="text-left py-2 px-3 text-[11px] font-semibold text-gray-500 min-w-[220px] bg-white sticky left-0 z-10">Linha DRE</th>
+                      <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500 min-w-[220px] bg-white sticky left-0 z-10 uppercase tracking-wide">Linha DRE</th>
                       {gran === "ano"
                         ? activeYears.map((y) => (
                             <th key={y} colSpan={dreView==="both"?2:1}
-                              className="text-center py-2 px-2 text-[10px] font-semibold text-gray-600 border-l border-gray-100 bg-gray-50">{y}</th>
+                              className="text-center py-2 px-2 text-xs font-semibold text-gray-600 border-l border-gray-100 bg-gray-50">{y}</th>
                           ))
                         : activeMIs.map((mi) => (
                             <th key={mi} colSpan={dreView==="both"?2:1}
-                              className="text-center py-2 px-2 text-[10px] font-semibold text-gray-600 border-l border-gray-100 bg-gray-50">{labelMi(mi)}</th>
+                              className="text-center py-2 px-2 text-xs font-semibold text-gray-600 border-l border-gray-100 bg-gray-50">{labelMi(mi)}</th>
                           ))
                       }
                       <th colSpan={dreView==="both"?2:1}
-                        className="text-center py-2 px-2 text-[10px] font-bold text-brand-700 border-l border-gray-200 bg-brand-50">Total</th>
+                        className="text-center py-2 px-2 text-xs font-bold text-brand-700 border-l border-gray-200 bg-brand-50">Total</th>
                     </tr>
                     <tr className="border-b-2 border-gray-200 bg-gray-50">
                       <th className="sticky left-0 z-10 bg-gray-50" />
                       {(gran==="ano"?activeYears:activeMIs).flatMap((key) => [
-                        ...(dreView!=="real"?[<th key={`ph${key}`} className="py-1.5 px-3 text-[10px] font-semibold text-center border-l border-gray-100 text-gray-400 w-[80px]">Prev</th>]:[]),
-                        ...(dreView!=="prev"?[<th key={`rh${key}`} className="py-1.5 px-3 text-[10px] font-semibold text-center text-gray-700 w-[80px]">Real</th>]:[]),
+                        ...(dreView!=="real"?[<th key={`ph${key}`} className="py-1.5 px-3 text-xs font-semibold text-center border-l border-gray-100 text-gray-400 w-[80px] uppercase tracking-wide">Prev</th>]:[]),
+                        ...(dreView!=="prev"?[<th key={`rh${key}`} className="py-1.5 px-3 text-xs font-semibold text-center text-gray-700 w-[80px] uppercase tracking-wide">Real</th>]:[]),
                       ])}
-                      {dreView!=="real" && <th className="py-1.5 px-3 text-[10px] font-semibold text-center border-l border-gray-200 text-gray-400 w-[80px]">Prev</th>}
-                      {dreView!=="prev" && <th className="py-1.5 px-3 text-[10px] font-semibold text-center text-brand-600 w-[80px]">Real</th>}
+                      {dreView!=="real" && <th className="py-1.5 px-3 text-xs font-semibold text-center border-l border-gray-200 text-gray-400 w-[80px] uppercase tracking-wide">Prev</th>}
+                      {dreView!=="prev" && <th className="py-1.5 px-3 text-xs font-semibold text-center text-brand-600 w-[80px] uppercase tracking-wide">Real</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -707,8 +707,8 @@ export default function FpaClient({ buData, monthlyRevenue, jacqesMRR }: FpaClie
             <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 flex items-start gap-3">
               <Activity size={14} className="text-blue-500 shrink-0 mt-0.5" />
               <div>
-                <p className="text-[11px] text-blue-700 font-medium">Pipeline bancário conectado</p>
-                <p className="text-[10px] text-blue-600 mt-0.5">
+                <p className="text-xs text-blue-700 font-medium">Pipeline bancário conectado</p>
+                <p className="text-xs text-blue-600 mt-0.5">
                   Dados de caixa da JACQES são lidos via Cora Bank → pipeline financeiro → /jacqes/financial.
                   Classificação por entrada/saída operacional aguarda categorização via /awq/ingest.
                 </p>
@@ -738,7 +738,7 @@ export default function FpaClient({ buData, monthlyRevenue, jacqesMRR }: FpaClie
                 <div key={c.label} className="card p-5">
                   <p className="text-xs text-gray-400 mb-1">{c.label}</p>
                   <p className={`text-2xl font-bold ${c.valueCls}`}>{c.value}</p>
-                  <p className="text-[10px] text-gray-400 mt-1">{c.note}</p>
+                  <p className="text-xs text-gray-400 mt-1">{c.note}</p>
                   <span className={`mt-2 inline-block text-[9px] font-bold px-1.5 py-0.5 rounded ${c.badgeCls}`}>{c.badge}</span>
                 </div>
               ))}
@@ -749,10 +749,10 @@ export default function FpaClient({ buData, monthlyRevenue, jacqesMRR }: FpaClie
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-200">
-                    <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400">Cliente</th>
-                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400">Valor</th>
-                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400">Referência</th>
-                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400">Status</th>
+                    <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Cliente</th>
+                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Valor</th>
+                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Referência</th>
+                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -798,7 +798,7 @@ export default function FpaClient({ buData, monthlyRevenue, jacqesMRR }: FpaClie
                     <div className="flex-1 min-w-0">
                       <div className={`text-2xl font-bold ${c.color}`}>{c.value}</div>
                       <div className="text-xs font-medium text-gray-400 mt-0.5">{c.label}</div>
-                      <div className="text-[10px] text-gray-400 mt-1">{c.sub}</div>
+                      <div className="text-xs text-gray-400 mt-1">{c.sub}</div>
                     </div>
                   </div>
                 );
@@ -811,10 +811,10 @@ export default function FpaClient({ buData, monthlyRevenue, jacqesMRR }: FpaClie
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-gray-200">
-                      <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400">Cliente</th>
-                      <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400">FEE/mês</th>
-                      <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400">% MRR</th>
-                      <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400">LTV (ref)</th>
+                      <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Cliente</th>
+                      <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">FEE/mês</th>
+                      <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">% MRR</th>
+                      <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">LTV (ref)</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -849,7 +849,7 @@ export default function FpaClient({ buData, monthlyRevenue, jacqesMRR }: FpaClie
           <div className="space-y-6">
             <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 flex items-start gap-3">
               <Info size={14} className="text-gray-400 shrink-0 mt-0.5" />
-              <p className="text-[11px] text-gray-500">
+              <p className="text-xs text-gray-500">
                 Capital allocation é leitura decisória, não DRE. Indica onde concentrar, cortar ou revisar
                 investimento de tempo, custo e esforço. Classificações derivadas dos dados disponíveis (CRM + status de pagamento).
               </p>
@@ -860,12 +860,12 @@ export default function FpaClient({ buData, monthlyRevenue, jacqesMRR }: FpaClie
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-200">
-                    <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400">Cliente</th>
-                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400">FEE</th>
-                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400">% MRR</th>
-                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400">Pgto</th>
-                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400">Decisão</th>
-                    <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400">Base</th>
+                    <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Cliente</th>
+                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">FEE</th>
+                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">% MRR</th>
+                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Pgto</th>
+                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Decisão</th>
+                    <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Base</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -908,8 +908,8 @@ export default function FpaClient({ buData, monthlyRevenue, jacqesMRR }: FpaClie
                 <div key={c.title} className="card p-5">
                   <h4 className="text-xs font-semibold text-gray-700 mb-3">{c.title}</h4>
                   <div className="rounded-lg bg-gray-50 border border-gray-100 px-3 py-6 text-center">
-                    <p className="text-[11px] text-gray-400">Sem dado confiável</p>
-                    <p className="text-[10px] text-gray-300 mt-1">{c.note}</p>
+                    <p className="text-xs text-gray-400">Sem dado confiável</p>
+                    <p className="text-xs text-gray-300 mt-1">{c.note}</p>
                   </div>
                 </div>
               ))}

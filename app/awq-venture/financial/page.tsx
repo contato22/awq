@@ -55,7 +55,7 @@ export default function AwqVentureFinancialPage() {
             <p className="text-xs font-semibold text-emerald-800">
               Dados empíricos — confirmados por print bancário Itaú Empresas (02/04/2026)
             </p>
-            <p className="text-[11px] text-emerald-700 mt-0.5">
+            <p className="text-xs text-emerald-700 mt-0.5">
               Saldo CDB DI R$15.762,62 e conta corrente R$1.193,58 validados diretamente
               pelo extrato digital. Nenhum outro ativo confirmado.
             </p>
@@ -110,7 +110,7 @@ export default function AwqVentureFinancialPage() {
                   </div>
                   <div className={`text-2xl font-bold ${card.color}`}>{card.value}</div>
                   <div className="text-xs font-medium text-gray-400 mt-0.5">{card.label}</div>
-                  <div className="text-[10px] text-gray-400 mt-1">{card.sub}</div>
+                  <div className="text-xs text-gray-400 mt-1">{card.sub}</div>
                 </div>
               </div>
             );
@@ -127,22 +127,22 @@ export default function AwqVentureFinancialPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200">
-                  <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Instrumento</th>
-                  <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Banco</th>
-                  <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Tipo</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Saldo</th>
-                  <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Status</th>
+                  <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Instrumento</th>
+                  <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Banco</th>
+                  <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Tipo</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Saldo</th>
+                  <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
                 </tr>
               </thead>
               <tbody>
                 <tr className="border-b border-gray-100 hover:bg-gray-50/80 transition-colors">
                   <td className="py-2.5 px-3">
                     <div className="text-xs font-medium text-gray-900">CDB DI</div>
-                    <div className="text-[10px] text-gray-400 mt-0.5">Renda fixa pós-fixada</div>
+                    <div className="text-xs text-gray-400 mt-0.5">Renda fixa pós-fixada</div>
                   </td>
                   <td className="py-2.5 px-3 text-xs text-gray-500">{cdbDI.banco}</td>
                   <td className="py-2.5 px-3">
-                    <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 font-medium">Investimento</span>
+                    <span className="text-xs px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 font-medium">Investimento</span>
                   </td>
                   <td className="py-2.5 px-3 text-right text-xs font-bold text-emerald-600">
                     {fmtR(cdbDI.saldoInvestido)}
@@ -154,11 +154,11 @@ export default function AwqVentureFinancialPage() {
                 <tr className="border-b border-gray-100 hover:bg-gray-50/80 transition-colors">
                   <td className="py-2.5 px-3">
                     <div className="text-xs font-medium text-gray-900">Conta Corrente</div>
-                    <div className="text-[10px] text-gray-400 mt-0.5">Saldo disponível</div>
+                    <div className="text-xs text-gray-400 mt-0.5">Saldo disponível</div>
                   </td>
                   <td className="py-2.5 px-3 text-xs text-gray-500">{cdbDI.banco}</td>
                   <td className="py-2.5 px-3">
-                    <span className="text-[10px] px-2 py-0.5 rounded bg-gray-100 text-gray-500 font-medium">Caixa</span>
+                    <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-500 font-medium">Caixa</span>
                   </td>
                   <td className="py-2.5 px-3 text-right text-xs font-bold text-gray-900">
                     {fmtR(cdbDI.contaCorrente)}
@@ -189,15 +189,15 @@ export default function AwqVentureFinancialPage() {
             <p className="text-xs font-semibold text-amber-800">
               Portfólio de startups: nenhum ativo confirmado (pré-tese)
             </p>
-            <p className="text-[11px] text-amber-700 mt-1 leading-relaxed">
+            <p className="text-xs text-amber-700 mt-1 leading-relaxed">
               A BU Venture ainda não possui investimentos em startups confirmados por
               documentos ou extratos. O único capital alocado empiricamente verificado
               é o CDB DI acima. Quando um investimento for realizado e documentado,
               os detalhes aparecerão nesta tabela.
             </p>
-            <p className="text-[11px] text-amber-600 mt-2">
+            <p className="text-xs text-amber-600 mt-2">
               Fonte autoritativa:{" "}
-              <code className="bg-amber-100 px-1 rounded text-[10px]">lib/awq-group-data.ts</code>
+              <code className="bg-amber-100 px-1 rounded text-xs">lib/awq-group-data.ts</code>
               {" "}→ buData[&quot;venture&quot;].capitalAllocated = R$ 15.762,62
             </p>
           </div>
@@ -214,7 +214,7 @@ export default function AwqVentureFinancialPage() {
             <div key={m.label} className="card p-5">
               <div className="text-2xl font-bold text-gray-900">{m.value}</div>
               <div className="text-xs font-medium text-gray-400 mt-0.5">{m.label}</div>
-              <div className="text-[10px] text-gray-400 mt-1">{m.sub}</div>
+              <div className="text-xs text-gray-400 mt-1">{m.sub}</div>
             </div>
           ))}
         </div>
@@ -222,7 +222,7 @@ export default function AwqVentureFinancialPage() {
         {/* ── Snapshot registry note ────────────────────────────────────────── */}
         <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 flex items-start gap-3">
           <Info size={14} className="text-gray-500 shrink-0 mt-0.5" />
-          <p className="text-[11px] text-gray-500">
+          <p className="text-xs text-gray-500">
             <strong>Dados removidos:</strong> portfólio anterior de 6 empresas (TechFlow R$22.4M,
             Verde Energia R$31.2M, Saúde Digital exit R$18.5M, AgriSmart, FinBridge, Logística Plus)
             totalizando R$40.5M investidos e MOIC 2.4× eram <strong>fictícios</strong> — sem extrato

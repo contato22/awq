@@ -202,7 +202,7 @@ export default function CazaVisionPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="text-lg font-bold text-gray-900 tabular-nums tracking-tight">{displayValue}</div>
-                        <div className="text-[11px] font-medium text-gray-400 mt-0.5">{kpi.label}</div>
+                        <div className="text-xs font-medium text-gray-400 mt-0.5">{kpi.label}</div>
                       </div>
                     </div>
                   );
@@ -241,8 +241,8 @@ export default function CazaVisionPage() {
                     {projectTypeRev.slice(0, 3).map((pt) => (
                       <div key={pt.type} className="text-center p-2 rounded-lg bg-gray-50">
                         <div className="text-sm font-bold text-gray-900">{pt.projetos}</div>
-                        <div className="text-[11px] text-gray-500 mt-0.5 font-medium">{pt.type.split(" ")[0]}</div>
-                        <div className="text-[11px] text-emerald-600 font-semibold">{fmtCurrency(pt.receita)}</div>
+                        <div className="text-xs text-gray-500 mt-0.5 font-medium">{pt.type.split(" ")[0]}</div>
+                        <div className="text-xs text-emerald-600 font-semibold">{fmtCurrency(pt.receita)}</div>
                       </div>
                     ))}
                   </div>
@@ -268,7 +268,7 @@ export default function CazaVisionPage() {
               lastMonth && prevMonth ? (
                 <div className="flex items-center gap-1 ml-2">
                   <ArrowUpRight size={12} className="text-emerald-600" />
-                  <span className="text-[11px] font-semibold text-emerald-600">
+                  <span className="text-xs font-semibold text-emerald-600">
                     +{pct(lastMonth.receita, prevMonth.receita)}% vs mês anterior
                   </span>
                 </div>
@@ -283,8 +283,8 @@ export default function CazaVisionPage() {
                   <div key={m.month} className="p-4 rounded-lg bg-gray-50 border border-gray-100">
                     <div className="text-xs text-gray-500 mb-2 font-medium">{m.month}</div>
                     <div className="text-lg font-bold text-gray-900 tabular-nums">{fmtCurrency(m.receita)}</div>
-                    <div className="text-[11px] text-emerald-600 font-medium mt-1">Receita</div>
-                    <div className="mt-3 pt-3 border-t border-gray-200/60 flex justify-between text-[11px]">
+                    <div className="text-xs text-emerald-600 font-medium mt-1">Receita</div>
+                    <div className="mt-3 pt-3 border-t border-gray-200/60 flex justify-between text-xs">
                       <span className="text-red-600 font-medium">{fmtCurrency(m.expenses)} despesas</span>
                       <span className="text-gray-500 font-medium">{margin}% margem</span>
                     </div>

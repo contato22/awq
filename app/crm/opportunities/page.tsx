@@ -181,7 +181,7 @@ function OppDetailModal({
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
           <div>
             <h2 className="text-sm font-bold text-gray-900">{opp.opportunity_name}</h2>
-            <p className="text-[11px] text-gray-400 font-mono mt-0.5">{opp.opportunity_code}</p>
+            <p className="text-xs text-gray-400 font-mono mt-0.5">{opp.opportunity_code}</p>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
             <X size={16} className="text-gray-500" />
@@ -318,7 +318,7 @@ function OppDetailModal({
                   <p className="text-xs font-semibold text-red-700 flex items-center gap-1.5">
                     <AlertCircle size={13} /> Confirmar exclusão da oportunidade?
                   </p>
-                  <p className="text-[11px] text-red-600">O lead e o contato associados não serão apagados.</p>
+                  <p className="text-xs text-red-600">O lead e o contato associados não serão apagados.</p>
                   <div className="flex gap-2 mt-1">
                     <button type="button" onClick={() => setConfirmDelete(false)}
                       className="flex-1 py-1.5 border border-gray-300 text-gray-700 text-xs font-medium rounded-lg hover:bg-white transition-colors">
@@ -382,7 +382,7 @@ function OppDetailModal({
                           key={type}
                           type="button"
                           onClick={() => setActForm(p => ({ ...p, activity_type: type }))}
-                          className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all ${
+                          className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${
                             isSelected
                               ? `${cfg.color} border-current shadow-sm`
                               : "text-gray-500 border-gray-200 hover:border-gray-300 hover:text-gray-700"
@@ -397,7 +397,7 @@ function OppDetailModal({
 
                   {/* Assunto */}
                   <div>
-                    <label className="block text-[11px] font-medium text-gray-600 mb-1">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
                       Assunto <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -412,7 +412,7 @@ function OppDetailModal({
                   {/* Data + Resultado */}
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="block text-[11px] font-medium text-gray-600 mb-1">
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
                         <Clock size={10} className="inline mr-1" />Data/Hora
                       </label>
                       <input
@@ -423,7 +423,7 @@ function OppDetailModal({
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-medium text-gray-600 mb-1">Resultado</label>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Resultado</label>
                       <select
                         value={actForm.outcome}
                         onChange={e => setActForm(p => ({ ...p, outcome: e.target.value }))}
@@ -439,7 +439,7 @@ function OppDetailModal({
 
                   {/* Descrição */}
                   <div>
-                    <label className="block text-[11px] font-medium text-gray-600 mb-1">Observações</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Observações</label>
                     <textarea
                       value={actForm.description}
                       onChange={e => setActForm(p => ({ ...p, description: e.target.value }))}
@@ -465,7 +465,7 @@ function OppDetailModal({
 
               {/* Histórico */}
               <div>
-                <p className="text-[11px] font-semibold text-gray-500 mb-2 flex items-center gap-1.5">
+                <p className="text-xs font-semibold text-gray-500 mb-2 flex items-center gap-1.5">
                   <MessageSquare size={11} />
                   Histórico ({activities.length})
                 </p>
@@ -498,10 +498,10 @@ function OppDetailModal({
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-semibold text-gray-800 truncate">{act.subject}</p>
                             {act.description && (
-                              <p className="text-[11px] text-gray-500 mt-0.5 line-clamp-2">{act.description}</p>
+                              <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{act.description}</p>
                             )}
                             <div className="flex items-center gap-2 mt-1">
-                              <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
+                              <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${
                                 act.status === "completed" ? "bg-emerald-50 text-emerald-600" :
                                 act.status === "scheduled" ? "bg-blue-50 text-blue-600" :
                                 "bg-gray-100 text-gray-500"
@@ -509,14 +509,14 @@ function OppDetailModal({
                                 {act.status === "completed" ? "Concluído" : act.status === "scheduled" ? "Agendado" : "Cancelado"}
                               </span>
                               {act.outcome && (
-                                <span className={`text-[10px] font-medium ${
+                                <span className={`text-xs font-medium ${
                                   act.outcome === "successful" ? "text-emerald-500" :
                                   act.outcome === "no_answer" ? "text-amber-500" : "text-red-400"
                                 }`}>
                                   {act.outcome === "successful" ? "Sucesso" : act.outcome === "no_answer" ? "Sem resposta" : "Sem sucesso"}
                                 </span>
                               )}
-                              <span className="text-[10px] text-gray-400 ml-auto">
+                              <span className="text-xs text-gray-400 ml-auto">
                                 {formatDateBR(dateStr?.slice(0, 10))}
                               </span>
                             </div>
@@ -567,9 +567,9 @@ function OppCard({
     >
       {/* Code + BU + Delete */}
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[10px] font-mono text-gray-400">{opp.opportunity_code}</span>
+        <span className="text-xs font-mono text-gray-400">{opp.opportunity_code}</span>
         <div className="flex items-center gap-1.5">
-          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${BU_COLORS[opp.bu] ?? "bg-gray-100 text-gray-600"}`}>
+          <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${BU_COLORS[opp.bu] ?? "bg-gray-100 text-gray-600"}`}>
             {opp.bu}
           </span>
           <button
@@ -593,13 +593,13 @@ function OppCard({
           {opp.account_name && (
             <div className="flex items-center gap-1">
               <Building2 size={10} className="text-gray-400 shrink-0" />
-              <span className="text-[10px] text-gray-500 truncate">{opp.account_name}</span>
+              <span className="text-xs text-gray-500 truncate">{opp.account_name}</span>
             </div>
           )}
           {opp.contact_name && (
             <div className="flex items-center gap-1">
               <User size={10} className="text-gray-400 shrink-0" />
-              <span className="text-[10px] text-gray-500 truncate">{opp.contact_name}</span>
+              <span className="text-xs text-gray-500 truncate">{opp.contact_name}</span>
             </div>
           )}
         </div>
@@ -612,7 +612,7 @@ function OppCard({
       <button
         type="button"
         onClick={onActivityClick}
-        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-[10px] font-medium mb-2 border transition-all ${
+        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium mb-2 border transition-all ${
           hasNoActivity
             ? "bg-red-50 border-red-200 text-red-600 hover:bg-red-100"
             : "bg-gray-50 border-gray-200 text-gray-500 hover:bg-brand-50 hover:border-brand-200 hover:text-brand-600"
@@ -633,10 +633,10 @@ function OppCard({
           <div className="w-5 h-5 rounded-full bg-brand-100 flex items-center justify-center text-[9px] font-bold text-brand-700">
             {opp.owner.slice(0, 1)}
           </div>
-          <span className="text-[10px] text-gray-500">{opp.owner}</span>
+          <span className="text-xs text-gray-500">{opp.owner}</span>
         </div>
         {opp.expected_close_date && (
-          <div className={`flex items-center gap-0.5 text-[10px] font-medium ${isOverdue ? "text-red-500" : isUrgent ? "text-amber-600" : "text-gray-400"}`}>
+          <div className={`flex items-center gap-0.5 text-xs font-medium ${isOverdue ? "text-red-500" : isUrgent ? "text-amber-600" : "text-gray-400"}`}>
             <Calendar size={9} />
             {formatDateBR(opp.expected_close_date)}
           </div>
@@ -644,7 +644,7 @@ function OppCard({
       </div>
 
       {(isOverdue || isUrgent) && (
-        <div className={`mt-2 text-[10px] font-semibold flex items-center gap-1 ${isOverdue ? "text-red-500" : "text-amber-600"}`}>
+        <div className={`mt-2 text-xs font-semibold flex items-center gap-1 ${isOverdue ? "text-red-500" : "text-amber-600"}`}>
           <AlertCircle size={10} />
           {isOverdue ? `${Math.abs(days!)} dias atraso` : `${days} dias restantes`}
         </div>
@@ -653,7 +653,7 @@ function OppCard({
       {opp.stage === "closed_won" && (
         <Link
           href={`/awq/ppm/add?opportunity_id=${opp.opportunity_id}&customer=${encodeURIComponent(opp.account_name ?? "")}&revenue=${opp.deal_value}&bu=${opp.bu}`}
-          className="mt-2 flex items-center justify-center gap-1 w-full text-[10px] font-semibold text-brand-600 bg-brand-50 border border-brand-200 rounded-lg py-1 hover:bg-brand-100 transition-colors"
+          className="mt-2 flex items-center justify-center gap-1 w-full text-xs font-semibold text-brand-600 bg-brand-50 border border-brand-200 rounded-lg py-1 hover:bg-brand-100 transition-colors"
           onClick={e => e.stopPropagation()}
         >
           🚀 Criar Projeto PPM
@@ -662,14 +662,14 @@ function OppCard({
 
       {confirmDelete && (
         <div className="mt-2 flex items-center justify-between gap-2 p-2 bg-red-50 border border-red-200 rounded-lg" onClick={e => e.stopPropagation()}>
-          <span className="text-[10px] text-red-600 font-medium">Apagar oportunidade?</span>
+          <span className="text-xs text-red-600 font-medium">Apagar oportunidade?</span>
           <div className="flex gap-1">
             <button type="button" onClick={e => { e.stopPropagation(); onDeleteClick(e); }}
-              className="px-2 py-0.5 bg-red-600 text-white text-[10px] font-semibold rounded hover:bg-red-700 transition-colors">
+              className="px-2 py-0.5 bg-red-600 text-white text-xs font-semibold rounded hover:bg-red-700 transition-colors">
               Apagar
             </button>
             <button type="button" onClick={e => { e.stopPropagation(); setConfirmDelete(false); }}
-              className="px-2 py-0.5 bg-white border border-gray-300 text-gray-600 text-[10px] font-medium rounded hover:bg-gray-50 transition-colors">
+              className="px-2 py-0.5 bg-white border border-gray-300 text-gray-600 text-xs font-medium rounded hover:bg-gray-50 transition-colors">
               Não
             </button>
           </div>
@@ -719,11 +719,11 @@ function KanbanColumn({
               </span>
             )}
           </div>
-          <div className="text-[10px] text-white/80">{cfg.prob}% win rate</div>
+          <div className="text-xs text-white/80">{cfg.prob}% win rate</div>
         </div>
         <div className="text-right">
           <div className="text-xs font-bold text-white">{formatBRL(total)}</div>
-          <div className="text-[10px] text-white/80">{opps.length} deals</div>
+          <div className="text-xs text-white/80">{opps.length} deals</div>
         </div>
       </div>
 
@@ -741,7 +741,7 @@ function KanbanColumn({
           />
         ))}
         {opps.length === 0 && (
-          <div className="flex items-center justify-center h-20 text-[11px] text-gray-400 border-2 border-dashed border-gray-200 rounded-lg">
+          <div className="flex items-center justify-center h-20 text-xs text-gray-400 border-2 border-dashed border-gray-200 rounded-lg">
             Arraste aqui
           </div>
         )}
@@ -752,7 +752,7 @@ function KanbanColumn({
         <div className="p-2 border-t border-gray-200">
           <Link
             href={`/crm/opportunities/add?stage=${stage}`}
-            className="flex items-center justify-center gap-1.5 w-full py-1.5 text-[11px] font-medium text-gray-500 hover:text-brand-600 hover:bg-white rounded-lg transition-colors border border-dashed border-gray-300 hover:border-brand-300"
+            className="flex items-center justify-center gap-1.5 w-full py-1.5 text-xs font-medium text-gray-500 hover:text-brand-600 hover:bg-white rounded-lg transition-colors border border-dashed border-gray-300 hover:border-brand-300"
           >
             <Plus size={12} /> Nova oportunidade
           </Link>
@@ -969,7 +969,7 @@ function PipelinePageInner() {
               </div>
               <div>
                 <div className="text-lg font-bold text-gray-900">{kpi.value}</div>
-                <div className="text-[10px] text-gray-500">{kpi.label}</div>
+                <div className="text-xs text-gray-500">{kpi.label}</div>
               </div>
             </div>
           ))}

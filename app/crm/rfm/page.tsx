@@ -208,7 +208,7 @@ function MatrixGrid({
         {/* F axis label */}
         <div className="flex items-center gap-1 mb-1">
           <span className="w-5 shrink-0" />
-          <span className="text-[10px] text-gray-400 italic">← Frequência</span>
+          <span className="text-xs text-gray-400 italic">← Frequência</span>
         </div>
         {[5,4,3,2,1].map(f => (
           <div key={f} className="flex items-center">
@@ -257,7 +257,7 @@ function MatrixGrid({
         </div>
         <div className="flex mt-0.5">
           <span className="w-5 shrink-0" />
-          <span className="text-[10px] text-gray-400 italic">Recência →</span>
+          <span className="text-xs text-gray-400 italic">Recência →</span>
         </div>
       </div>
     </div>
@@ -293,9 +293,9 @@ function SegmentLegend({
             >
               {SEG_LETTER[seg]}
             </div>
-            <span className="text-[11px] text-gray-600 flex-1 leading-tight">{seg}</span>
+            <span className="text-xs text-gray-600 flex-1 leading-tight">{seg}</span>
             {count > 0 && (
-              <span className="text-[10px] font-semibold text-gray-400">{count}</span>
+              <span className="text-xs font-semibold text-gray-400">{count}</span>
             )}
           </button>
         );
@@ -362,14 +362,14 @@ export default function RfmPage() {
         {/* BU Filter */}
         <div className="flex items-center gap-2 flex-wrap">
           <Filter size={13} className="text-gray-400 shrink-0" />
-          <span className="text-[11px] text-gray-500 shrink-0">Filtrar por BU:</span>
+          <span className="text-xs text-gray-500 shrink-0">Filtrar por BU:</span>
           {lockedBU ? (
-            <span className="px-3 py-1 rounded-full text-[11px] font-semibold bg-orange-100 text-orange-700">{lockedBU}</span>
+            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-700">{lockedBU}</span>
           ) : BUS.map(b => (
             <button
               key={b}
               onClick={() => { setBu(b); setSelectedSegment(null); }}
-              className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all ${
+              className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
                 bu === b
                   ? "bg-brand-600 text-white shadow-sm"
                   : "bg-gray-100 text-gray-500 hover:bg-gray-200"
@@ -394,7 +394,7 @@ export default function RfmPage() {
               </div>
               <div>
                 <div className="text-lg font-bold text-gray-900 truncate max-w-[120px]">{k.value}</div>
-                <div className="text-[10px] text-gray-500">{k.label}</div>
+                <div className="text-xs text-gray-500">{k.label}</div>
               </div>
             </div>
           ))}
@@ -406,7 +406,7 @@ export default function RfmPage() {
             icon={<Star size={14} className="text-brand-500" />}
             title="Matriz RFM — Grade de Segmentação"
           />
-          <p className="text-[11px] text-gray-400 mb-4">
+          <p className="text-xs text-gray-400 mb-4">
             Clique em uma célula para filtrar os clientes. Número dentro da célula = qtd de clientes.
           </p>
           <div className="flex flex-col sm:flex-row gap-6 items-start">
@@ -424,7 +424,7 @@ export default function RfmPage() {
             </div>
           </div>
           {selectedSegment && (
-            <p className="text-[11px] text-brand-600 mt-3">
+            <p className="text-xs text-brand-600 mt-3">
               Filtrando por &ldquo;{selectedSegment}&rdquo; —{" "}
               <button onClick={() => setSelectedSegment(null)} className="underline">
                 limpar filtro
@@ -457,7 +457,7 @@ export default function RfmPage() {
                     >
                       {SEG_LETTER[seg]}
                     </div>
-                    <span className="text-[10px] font-semibold text-gray-700 leading-tight truncate">{seg}</span>
+                    <span className="text-xs font-semibold text-gray-700 leading-tight truncate">{seg}</span>
                   </div>
                   <div className="text-2xl font-bold" style={{ color: meta.color }}>{count}</div>
                   <div className="text-[9px] text-gray-400">{count === 1 ? "cliente" : "clientes"}</div>
@@ -478,7 +478,7 @@ export default function RfmPage() {
               <thead>
                 <tr className="border-b border-gray-100">
                   {["Cliente", "BU", "Segmento", "Recência", "Freq.", "Monetário", "R/F/M", "Total", "Responsável"].map(h => (
-                    <th key={h} className="text-left py-2 pr-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wide whitespace-nowrap">
+                    <th key={h} className="text-left py-2 pr-3 text-xs font-semibold text-gray-400 uppercase tracking-wide whitespace-nowrap">
                       {h}
                     </th>
                   ))}
@@ -491,7 +491,7 @@ export default function RfmPage() {
                     <tr key={c.account_id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
                       <td className="py-2.5 pr-3 font-medium text-gray-900 max-w-[160px]">
                         <div className="truncate">{c.account_name}</div>
-                        {c.industry && <div className="text-[10px] text-gray-400 capitalize">{c.industry}</div>}
+                        {c.industry && <div className="text-xs text-gray-400 capitalize">{c.industry}</div>}
                       </td>
                       <td className="py-2.5 pr-3">
                         <span className="px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded text-[9px] font-semibold">
@@ -500,7 +500,7 @@ export default function RfmPage() {
                       </td>
                       <td className="py-2.5 pr-3">
                         <span
-                          className="px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap"
+                          className="px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap"
                           style={{ background: c.segment_bg, color: c.segment_color }}
                         >
                           {SEG_LETTER[c.segment]} · {c.segment}
@@ -518,7 +518,7 @@ export default function RfmPage() {
                       </td>
                       <td className="py-2.5 pr-3">
                         <span className="text-base font-bold text-gray-800">{c.rfm_score}</span>
-                        <span className="text-[10px] text-gray-400">/15</span>
+                        <span className="text-xs text-gray-400">/15</span>
                       </td>
                       <td className="py-2.5 text-gray-600">
                         <div className="flex items-center gap-1.5">
@@ -552,7 +552,7 @@ export default function RfmPage() {
               { label:"M — Monetário",   desc:"Valor total gasto. Score 5 = maior valor. Combina com R e F para calcular o score total.", color:"text-emerald-600"},
             ].map(item => (
               <div key={item.label} className="p-3 bg-white rounded-xl border border-gray-100">
-                <div className={`text-[11px] font-bold mb-1 ${item.color}`}>{item.label}</div>
+                <div className={`text-xs font-bold mb-1 ${item.color}`}>{item.label}</div>
                 <p>{item.desc}</p>
               </div>
             ))}

@@ -255,7 +255,7 @@ export default function TimesheetsPage() {
               <thead className="bg-gray-50">
                 <tr>
                   {["Data","Pessoa","Projeto","Tarefa","Horas","Billable","Valor","Descrição","Status",""].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-[10px] font-semibold text-gray-500 uppercase whitespace-nowrap">{h}</th>
+                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase whitespace-nowrap tracking-wide">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -274,7 +274,7 @@ export default function TimesheetsPage() {
                     <td className="px-4 py-3 text-xs text-gray-500">{entry.task_name ?? "—"}</td>
                     <td className="px-4 py-3 text-sm font-bold text-gray-900 whitespace-nowrap">{entry.hours}h</td>
                     <td className="px-4 py-3">
-                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${entry.is_billable ? "bg-brand-100 text-brand-700" : "bg-gray-100 text-gray-500"}`}>
+                      <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${entry.is_billable ? "bg-brand-100 text-brand-700" : "bg-gray-100 text-gray-500"}`}>
                         {entry.is_billable ? "✓ Billable" : "Non-bill"}
                       </span>
                     </td>
@@ -285,14 +285,14 @@ export default function TimesheetsPage() {
                       <div className="truncate">{entry.description ?? "—"}</div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${STATUS_BADGE[entry.status as Status]}`}>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_BADGE[entry.status as Status]}`}>
                         {STATUS_LABEL[entry.status as Status]}
                       </span>
                     </td>
                     <td className="px-4 py-3">
                       {entry.status === "submitted" && (
                         <button onClick={() => void approve(entry.entry_id)}
-                          className="flex items-center gap-1 text-[10px] text-emerald-600 hover:text-emerald-700 font-semibold"
+                          className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 font-semibold"
                         >
                           <CheckCircle2 size={12} /> Aprovar
                         </button>

@@ -219,7 +219,7 @@ export default function ForecastPage() {
           </div>
 
           {/* Legend */}
-          <div className="flex items-center gap-4 mt-3 text-[10px] text-gray-500">
+          <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
             <span className="flex items-center gap-1.5">
               <span className="w-3 h-2 rounded bg-brand-400 inline-block" /> Realizado
             </span>
@@ -269,7 +269,7 @@ export default function ForecastPage() {
                         {cashLow && <AlertTriangle size={10} className="inline ml-1 text-red-500" />}
                       </td>
                       <td className="py-2 px-3">
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
                           w.type === "actual"
                             ? "bg-brand-100 text-brand-700"
                             : "bg-gray-100 text-gray-600"
@@ -309,21 +309,21 @@ export default function ForecastPage() {
                   ].map((m) => (
                     <div key={m.label} className="bg-gray-50 rounded-xl p-2.5 text-center">
                       <div className={`text-xs font-bold tabular-nums ${s.color}`}>{m.value}</div>
-                      <div className="text-[10px] text-gray-400">{m.label}</div>
+                      <div className="text-xs text-gray-400">{m.label}</div>
                     </div>
                   ))}
                 </div>
 
                 {/* Drivers */}
                 <div className="space-y-2">
-                  <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2">
+                  <div className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">
                     Drivers
                   </div>
                   {s.drivers.map((d) => (
                     <div key={d.label} className="flex items-center justify-between text-xs border-b border-gray-50 pb-1.5">
                       <div>
                         <div className="text-gray-700">{d.label}</div>
-                        <div className="text-[10px] text-gray-400">{d.impact_line}</div>
+                        <div className="text-xs text-gray-400">{d.impact_line}</div>
                       </div>
                       <div className="text-right">
                         <span className={`font-bold tabular-nums ${s.color}`}>

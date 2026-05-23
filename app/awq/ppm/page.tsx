@@ -97,7 +97,7 @@ function HealthSummary({ g, y, r }: { g: number; y: number; r: number }) {
         ].map(({ count, color, label }) => (
           <div key={label} className="flex-1 text-center">
             <div className={`text-xl font-bold ${color.replace("bg-", "text-")}`}>{count}</div>
-            <div className="text-[10px] text-gray-500">{label}</div>
+            <div className="text-xs text-gray-500">{label}</div>
           </div>
         ))}
       </div>
@@ -138,7 +138,7 @@ function ProjectRow({ project }: { project: PpmProject }) {
         )}
       </td>
       <td className="px-4 py-3 whitespace-nowrap">
-        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${BU_CHIP[project.bu_code] ?? "bg-gray-100 text-gray-600"}`}>
+        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${BU_CHIP[project.bu_code] ?? "bg-gray-100 text-gray-600"}`}>
           {project.bu_code}
         </span>
       </td>
@@ -170,12 +170,12 @@ function ProjectRow({ project }: { project: PpmProject }) {
         {formatDateBR(project.planned_end_date)}
       </td>
       <td className="px-4 py-3 whitespace-nowrap">
-        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${HEALTH_BADGE[health]}`}>
+        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${HEALTH_BADGE[health]}`}>
           {HEALTH_LABEL[health]}
         </span>
       </td>
       <td className="px-4 py-3 whitespace-nowrap">
-        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${STATUS_BADGE[status]}`}>
+        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_BADGE[status]}`}>
           {STATUS_LABEL[status]}
         </span>
       </td>
@@ -287,7 +287,7 @@ export default function PpmPortfolioPage() {
 
         {/* Módulos PPM */}
         <section>
-          <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-3">
+          <div className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">
             Módulos PPM
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -309,7 +309,7 @@ export default function PpmPortfolioPage() {
                 </div>
                 <div className="min-w-0">
                   <div className="text-sm font-semibold text-gray-800 group-hover:text-brand-700 transition-colors">{label}</div>
-                  <div className="text-[10px] text-gray-400 truncate">{desc}</div>
+                  <div className="text-xs text-gray-400 truncate">{desc}</div>
                 </div>
                 <ChevronRight size={12} className="text-gray-300 group-hover:text-brand-400 transition-colors shrink-0 ml-auto" />
               </Link>
@@ -364,7 +364,7 @@ export default function PpmPortfolioPage() {
               <thead className="bg-gray-50">
                 <tr>
                   {["Código","Projeto","BU","PM","Progresso","Revenue","Margem","Prazo","Health","Status",""].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-[10px] font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       {h}
                     </th>
                   ))}

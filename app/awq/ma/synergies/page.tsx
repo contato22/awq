@@ -152,7 +152,7 @@ export default function SynergiesPage() {
           </h2>
           <button
             onClick={() => setShowForm(!showForm)}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
+            className="flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
           >
             <Plus size={14} />
             Nova Sinergia
@@ -219,7 +219,7 @@ export default function SynergiesPage() {
               </div>
               <div className="flex gap-3">
                 <button type="submit" disabled={saving}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm disabled:opacity-50">
+                  className="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-sm disabled:opacity-50">
                   {saving ? "Salvando..." : "Salvar"}
                 </button>
                 <button type="button" onClick={() => setShowForm(false)}
@@ -271,21 +271,21 @@ export default function SynergiesPage() {
 
                 <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-700">
                   <div>
-                    <div className="text-[10px] text-gray-600">Impacto Receita Est.</div>
+                    <div className="text-xs text-gray-600">Impacto Receita Est.</div>
                     <div className="text-sm font-semibold text-blue-400">{fmtR(s.estimated_revenue_impact)}</div>
                   </div>
                   <div>
-                    <div className="text-[10px] text-gray-600">Economia Estimada</div>
+                    <div className="text-xs text-gray-600">Economia Estimada</div>
                     <div className="text-sm font-semibold text-green-400">{fmtR(s.estimated_cost_savings)}</div>
                   </div>
                   {s.status === "realized" && (
                     <>
                       <div>
-                        <div className="text-[10px] text-gray-600">Receita Realizada</div>
+                        <div className="text-xs text-gray-600">Receita Realizada</div>
                         <div className="text-sm font-semibold text-emerald-400">{fmtR(s.actual_revenue_impact)}</div>
                       </div>
                       <div>
-                        <div className="text-[10px] text-gray-600">Realização</div>
+                        <div className="text-xs text-gray-600">Realização</div>
                         <div className="text-xs text-gray-400">{fmtDate(s.realization_date)}</div>
                       </div>
                     </>

@@ -90,12 +90,12 @@ function Field({ label, required, children, fullWidth, hint }: {
         {label}{required && <span className="text-red-500 ml-1">*</span>}
       </label>
       {children}
-      {hint && <p className="text-[10px] text-gray-400 mt-1">{hint}</p>}
+      {hint && <p className="text-xs text-gray-400 mt-1">{hint}</p>}
     </div>
   );
 }
 
-const inputCls = "w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-colors";
+const inputCls = "w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-colors";
 const selectCls = `${inputCls} cursor-pointer`;
 
 // ── Inline search combobox ────────────────────────────────────────────────────
@@ -148,7 +148,7 @@ function SearchSelect<T>({
                   onMouseDown={() => { onSelect(item.value); onQueryChange(""); setOpen(false); }}>
                   <div className="min-w-0">
                     <div className="text-sm font-medium text-gray-900 truncate">{item.label}</div>
-                    {item.sublabel && <div className="text-[11px] text-gray-400 truncate mt-0.5">{item.sublabel}</div>}
+                    {item.sublabel && <div className="text-xs text-gray-400 truncate mt-0.5">{item.sublabel}</div>}
                   </div>
                   <ChevronRight size={12} className="text-gray-300 shrink-0 ml-2" />
                 </button>
@@ -443,7 +443,7 @@ export default function AddLeadPage() {
               <div className="flex-1 max-w-xs h-2 bg-white/60 rounded-full overflow-hidden">
                 <div className={`h-full rounded-full ${scoreClr.bar} transition-all duration-500`} style={{ width: `${estimatedScore}%` }} />
               </div>
-              <span className="text-[11px] text-gray-500">
+              <span className="text-xs text-gray-500">
                 {estimatedScore >= 71 ? "Lead quente" : estimatedScore >= 41 ? "Lead morno" : "Lead frio"}
               </span>
             </div>
@@ -456,10 +456,10 @@ export default function AddLeadPage() {
               <Link2 size={14} className={isLinked ? "text-blue-500" : "text-gray-400"} />
               <div>
                 <span className="text-sm font-semibold text-gray-900">Vincular Conta &amp; Contato</span>
-                <span className="text-[11px] text-gray-400 ml-2">opcional — preenche os campos automaticamente</span>
+                <span className="text-xs text-gray-400 ml-2">opcional — preenche os campos automaticamente</span>
               </div>
               {isLinked && (
-                <span className="ml-auto text-[11px] font-semibold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">
+                <span className="ml-auto text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">
                   {[selectedAccount && "empresa", selectedContact && "contato"].filter(Boolean).join(" + ")} vinculado{(selectedAccount && selectedContact) ? "s" : ""}
                 </span>
               )}
@@ -473,7 +473,7 @@ export default function AddLeadPage() {
                   <div className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
                     <Building2 size={13} className="text-blue-600" />
                   </div>
-                  <span className="text-[11px] font-semibold text-gray-600 uppercase tracking-wide">Empresa</span>
+                  <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Empresa</span>
                 </div>
 
                 {selectedAccount ? (
@@ -487,7 +487,7 @@ export default function AddLeadPage() {
                         {selectedAccount.trade_name ?? selectedAccount.account_name}
                       </div>
                       {(selectedAccount.document_number || selectedAccount.industry) && (
-                        <div className="text-[11px] text-gray-400 truncate mt-0.5">
+                        <div className="text-xs text-gray-400 truncate mt-0.5">
                           {[selectedAccount.document_number, selectedAccount.industry ? (INDUSTRIES[selectedAccount.industry] ?? selectedAccount.industry) : undefined].filter(Boolean).join(" · ")}
                         </div>
                       )}
@@ -500,7 +500,7 @@ export default function AddLeadPage() {
                 ) : creatingAccount ? (
                   /* Quick-create form */
                   <div className="space-y-2.5">
-                    <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Nova Empresa</div>
+                    <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Nova Empresa</div>
                     {/* CNPJ quick-lookup */}
                     <div className="flex gap-1.5">
                       <input
@@ -537,7 +537,7 @@ export default function AddLeadPage() {
                       </button>
                       <button type="button" onClick={handleCreateAccount}
                         disabled={savingAcct || !newAcct.trade_name.trim()}
-                        className="flex-1 py-1.5 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors">
+                        className="flex-1 py-1.5 text-xs font-semibold text-white bg-brand-600 rounded-lg hover:bg-brand-700 disabled:opacity-50 transition-colors">
                         {savingAcct ? "Salvando…" : "Criar empresa"}
                       </button>
                     </div>
@@ -559,7 +559,7 @@ export default function AddLeadPage() {
                     />
                     <button type="button"
                       onClick={() => setCreatingAccount(true)}
-                      className="w-full flex items-center justify-center gap-1.5 py-2 text-[11px] font-semibold text-blue-600 hover:text-blue-800 hover:bg-blue-50/60 rounded-lg border border-dashed border-blue-200 transition-colors">
+                      className="w-full flex items-center justify-center gap-1.5 py-2 text-xs font-semibold text-blue-600 hover:text-blue-800 hover:bg-blue-50/60 rounded-lg border border-dashed border-blue-200 transition-colors">
                       <Plus size={11} />Criar nova empresa
                     </button>
                   </div>
@@ -572,9 +572,9 @@ export default function AddLeadPage() {
                   <div className="w-7 h-7 rounded-lg bg-brand-100 flex items-center justify-center shrink-0">
                     <User size={13} className="text-brand-600" />
                   </div>
-                  <span className="text-[11px] font-semibold text-gray-600 uppercase tracking-wide">Contato</span>
+                  <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Contato</span>
                   {selectedAccount && !selectedContact && (
-                    <span className="ml-auto text-[10px] text-blue-500 font-medium">mostrando contatos da empresa</span>
+                    <span className="ml-auto text-xs text-blue-500 font-medium">mostrando contatos da empresa</span>
                   )}
                 </div>
 
@@ -582,10 +582,10 @@ export default function AddLeadPage() {
                   /* Selected state */
                   <div className="flex items-center gap-3 p-2.5 bg-white border border-brand-200 rounded-lg shadow-sm">
                     <Initials name={selectedContact.full_name}
-                      className="w-9 h-9 bg-brand-100 text-brand-700 shrink-0 text-[11px]" />
+                      className="w-9 h-9 bg-brand-100 text-brand-700 shrink-0 text-xs" />
                     <div className="min-w-0 flex-1">
                       <div className="text-sm font-semibold text-gray-900 truncate">{selectedContact.full_name}</div>
-                      <div className="text-[11px] text-gray-400 truncate mt-0.5">
+                      <div className="text-xs text-gray-400 truncate mt-0.5">
                         {[selectedContact.job_title, selectedContact.email].filter(Boolean).join(" · ")}
                       </div>
                     </div>
@@ -597,7 +597,7 @@ export default function AddLeadPage() {
                 ) : creatingContact ? (
                   /* Quick-create form */
                   <div className="space-y-2.5">
-                    <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Novo Contato</div>
+                    <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Novo Contato</div>
                     <input autoFocus placeholder="Nome completo *" value={newCon.full_name}
                       onChange={e => setNewCon(p => ({ ...p, full_name: e.target.value }))}
                       onKeyDown={e => e.key === "Enter" && (e.preventDefault(), handleCreateContact())}
@@ -611,7 +611,7 @@ export default function AddLeadPage() {
                     {selectedAccount && (
                       <div className="flex items-center gap-2 px-2.5 py-1.5 bg-blue-50 rounded-lg border border-blue-100">
                         <Building2 size={11} className="text-blue-400 shrink-0" />
-                        <span className="text-[11px] text-blue-700 truncate">
+                        <span className="text-xs text-blue-700 truncate">
                           Será vinculado a <strong>{selectedAccount.trade_name ?? selectedAccount.account_name}</strong>
                         </span>
                       </div>
@@ -645,7 +645,7 @@ export default function AddLeadPage() {
                     />
                     <button type="button"
                       onClick={() => setCreatingContact(true)}
-                      className="w-full flex items-center justify-center gap-1.5 py-2 text-[11px] font-semibold text-brand-600 hover:text-brand-800 hover:bg-brand-50/60 rounded-lg border border-dashed border-brand-200 transition-colors">
+                      className="w-full flex items-center justify-center gap-1.5 py-2 text-xs font-semibold text-brand-600 hover:text-brand-800 hover:bg-brand-50/60 rounded-lg border border-dashed border-brand-200 transition-colors">
                       <Plus size={11} />Criar novo contato
                     </button>
                   </div>
@@ -662,14 +662,14 @@ export default function AddLeadPage() {
                 className={`${inputCls} ${errors.contact_name ? "border-red-400 focus:border-red-400 focus:ring-red-500/20" : ""}`}
                 placeholder="Rafael Moura" value={form.contact_name}
                 onChange={e => set("contact_name", e.target.value)} />
-              {errors.contact_name && <p className="text-[11px] text-red-600 mt-1">{errors.contact_name}</p>}
+              {errors.contact_name && <p className="text-xs text-red-600 mt-1">{errors.contact_name}</p>}
             </Field>
             <Field label="Empresa" required>
               <input type="text"
                 className={`${inputCls} ${errors.company_name ? "border-red-400 focus:border-red-400 focus:ring-red-500/20" : ""}`}
                 placeholder="Tech Solutions BR" value={form.company_name}
                 onChange={e => set("company_name", e.target.value)} />
-              {errors.company_name && <p className="text-[11px] text-red-600 mt-1">{errors.company_name}</p>}
+              {errors.company_name && <p className="text-xs text-red-600 mt-1">{errors.company_name}</p>}
             </Field>
             <Field label="E-mail">
               <div className="relative">
@@ -705,7 +705,7 @@ export default function AddLeadPage() {
                 <option value="ADVISOR">ADVISOR</option>
                 <option value="VENTURE">VENTURE</option>
               </select>
-              {errors.bu && <p className="text-[11px] text-red-600 mt-1">{errors.bu}</p>}
+              {errors.bu && <p className="text-xs text-red-600 mt-1">{errors.bu}</p>}
             </Field>
             <Field label="Fonte do Lead">
               <select className={selectCls} value={form.lead_source} onChange={e => set("lead_source", e.target.value)}>
@@ -725,7 +725,7 @@ export default function AddLeadPage() {
                 <option value="Miguel">Miguel</option>
                 <option value="Danilo">Danilo</option>
               </select>
-              {errors.assigned_to && <p className="text-[11px] text-red-600 mt-1">{errors.assigned_to}</p>}
+              {errors.assigned_to && <p className="text-xs text-red-600 mt-1">{errors.assigned_to}</p>}
             </Field>
             <Field label="Status inicial">
               <select className={selectCls} value={form.status} onChange={e => set("status", e.target.value)}>

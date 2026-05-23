@@ -35,8 +35,8 @@ export default function CustomerSegmentChart() {
   return (
     <div className="card p-4 lg:p-6">
       <div className="mb-4">
-        <h2 className="text-sm font-semibold text-gray-900">Customer Segments</h2>
-        <p className="text-[11px] text-gray-500 mt-0.5 font-medium">Revenue distribution by tier</p>
+        <h2 className="text-base font-semibold text-gray-900">Customer Segments</h2>
+        <p className="text-xs text-gray-500 mt-0.5 font-medium">Revenue distribution by tier</p>
       </div>
 
       {/* Mobile: horizontal bar breakdown — better touch readability than donut */}

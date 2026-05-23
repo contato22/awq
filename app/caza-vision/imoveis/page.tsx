@@ -168,7 +168,7 @@ export default function ProjetosPage() {
             <div className="card p-5">
               <div className="flex items-center gap-2 mb-4">
                 <Film size={14} className="text-brand-600" />
-                <h2 className="text-sm font-semibold text-gray-900">Projetos por Tipo</h2>
+                <h2 className="text-base font-semibold text-gray-900">Projetos por Tipo</h2>
               </div>
               <div className="space-y-2">
                 {tipoStats.map((t) => {
@@ -180,8 +180,8 @@ export default function ProjetosPage() {
                         <div className="h-full bg-brand-500 rounded-full" style={{ width: `${Math.max(pct, 2)}%` }} />
                       </div>
                       <span className="text-xs font-bold text-gray-900 w-6 text-right shrink-0 tabular-nums">{t.count}</span>
-                      <span className="text-[11px] text-gray-400 w-16 text-right shrink-0">{fmtR(t.receita)}</span>
-                      <span className="text-[10px] text-gray-400 w-8 text-right shrink-0">{pct}%</span>
+                      <span className="text-xs text-gray-400 w-16 text-right shrink-0">{fmtR(t.receita)}</span>
+                      <span className="text-xs text-gray-400 w-8 text-right shrink-0">{pct}%</span>
                     </div>
                   );
                 })}
@@ -191,7 +191,7 @@ export default function ProjetosPage() {
             <div className="card p-5">
               <div className="flex items-center gap-2 mb-4">
                 <BarChart3 size={14} className="text-emerald-600" />
-                <h2 className="text-sm font-semibold text-gray-900">Distribuição por Status</h2>
+                <h2 className="text-base font-semibold text-gray-900">Distribuição por Status</h2>
               </div>
               <div className="space-y-2">
                 {statusStats.map((s) => {
@@ -207,7 +207,7 @@ export default function ProjetosPage() {
                         <div className={`h-full rounded-full ${color}`} style={{ width: `${Math.max(pct, 2)}%` }} />
                       </div>
                       <span className="text-xs font-bold text-gray-900 w-6 text-right shrink-0 tabular-nums">{s.count}</span>
-                      <span className="text-[10px] text-gray-400 w-8 text-right shrink-0">{pct}%</span>
+                      <span className="text-xs text-gray-400 w-8 text-right shrink-0">{pct}%</span>
                     </div>
                   );
                 })}
@@ -225,7 +225,7 @@ export default function ProjetosPage() {
           <div className="card p-5">
             <div className="flex items-center gap-2 mb-4">
               <TrendingUp size={14} className="text-emerald-600" />
-              <h2 className="text-sm font-semibold text-gray-900">Análise de Margem por Projeto</h2>
+              <h2 className="text-base font-semibold text-gray-900">Análise de Margem por Projeto</h2>
             </div>
             <div className="space-y-2">
               {rows.filter(p => p.valor > 0)
@@ -235,15 +235,15 @@ export default function ProjetosPage() {
                   const margin = p.valor > 0 ? (lucro / p.valor) * 100 : 0;
                   return (
                     <div key={p.id} className="flex items-center gap-3">
-                      <span className="text-[11px] text-gray-400 w-44 shrink-0 truncate">{p.titulo || "—"}</span>
+                      <span className="text-xs text-gray-400 w-44 shrink-0 truncate">{p.titulo || "—"}</span>
                       <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
                         <div className={`h-full rounded-full ${margin >= 60 ? "bg-emerald-500" : margin >= 40 ? "bg-amber-500" : "bg-red-500"}`}
                           style={{ width: `${Math.min(margin, 100)}%` }} />
                       </div>
-                      <span className={`text-[11px] font-bold w-10 text-right shrink-0 ${margin >= 60 ? "text-emerald-600" : margin >= 40 ? "text-amber-700" : "text-red-600"}`}>
+                      <span className={`text-xs font-bold w-10 text-right shrink-0 ${margin >= 60 ? "text-emerald-600" : margin >= 40 ? "text-amber-700" : "text-red-600"}`}>
                         {margin.toFixed(0)}%
                       </span>
-                      <span className="text-[10px] text-gray-400 w-16 text-right shrink-0">{fmtR(lucro)}</span>
+                      <span className="text-xs text-gray-400 w-16 text-right shrink-0">{fmtR(lucro)}</span>
                     </div>
                   );
                 })}
@@ -265,16 +265,16 @@ export default function ProjetosPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-200">
-                    <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Projeto</th>
-                    <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Tipo</th>
-                    <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Prioridade</th>
-                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Orçamento</th>
-                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Alimentação</th>
-                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Gasolina</th>
-                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Lucro</th>
-                    <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Responsável</th>
-                    <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Competência</th>
-                    <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Status</th>
+                    <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Projeto</th>
+                    <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Tipo</th>
+                    <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Prioridade</th>
+                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Orçamento</th>
+                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Alimentação</th>
+                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Gasolina</th>
+                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Lucro</th>
+                    <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Responsável</th>
+                    <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Competência</th>
+                    <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -308,11 +308,11 @@ export default function ProjetosPage() {
                       <td className="py-2.5 px-3 text-xs text-gray-500">{fmtDate(p.prazo)}</td>
                       <td className="py-2.5 px-3">
                         {p.recebido ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-600 border border-emerald-200">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-600 border border-emerald-200">
                             <CheckCircle2 size={9} /> Recebido
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-50 text-brand-600 border border-brand-200">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-brand-50 text-brand-600 border border-brand-200">
                             <Clock size={9} /> Em Aberto
                           </span>
                         )}

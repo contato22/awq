@@ -37,7 +37,7 @@ function CircleProgress({ pct, size = 48, stroke = 4, color = "#2563eb" }: {
             strokeWidth={stroke} strokeDasharray={`${filled} ${circ}`} strokeLinecap="round" />
         )}
       </svg>
-      <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-gray-700">
+      <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-gray-700">
         {Math.round(pct)}%
       </span>
     </div>
@@ -192,7 +192,7 @@ export default function YoY2025Page() {
               <div className="text-sm font-semibold text-gray-800 mb-2">
                 R$ {fmtBRL(q.prev.valor)}
               </div>
-              <div className="grid grid-cols-3 gap-1 text-[10px] text-gray-500">
+              <div className="grid grid-cols-3 gap-1 text-xs text-gray-500">
                 {q.meses.map((m) => (
                   <div key={m.m}>
                     <div className="font-medium">{m.m}</div>
@@ -257,7 +257,7 @@ export default function YoY2025Page() {
         <div className="text-xs text-gray-400 mb-4">Antes (2025) vs Depois (Q1 2026)</div>
         <table className="w-full">
           <thead>
-            <tr className="text-xs font-semibold text-gray-900 border-b border-gray-100">
+            <tr className="text-xs font-semibold text-gray-500 uppercase tracking-wide border-b border-gray-100">
               <th className="text-left py-2 px-3 w-8">#</th>
               <th className="text-left py-2 px-3">Dimensão</th>
               <th className="text-left py-2 px-3">Antes (2025)</th>
@@ -284,7 +284,7 @@ export default function YoY2025Page() {
         <div className="text-base font-bold text-gray-900 mb-4">Detalhamento por Trimestre</div>
         <table className="w-full">
           <thead>
-            <tr className="text-xs font-semibold text-gray-900 border-b border-gray-100">
+            <tr className="text-xs font-semibold text-gray-500 uppercase tracking-wide border-b border-gray-100">
               <th className="text-left py-2 px-3">Categoria</th>
               <th className="text-right py-2 px-3">Q1</th>
               <th className="text-right py-2 px-3">Q2</th>

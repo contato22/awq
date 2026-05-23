@@ -11,7 +11,7 @@ export default function ChannelTable() {
       <SectionHeader
         icon={<Globe size={15} />}
         title="Acquisition Channels"
-        badge={<span className="text-[11px] text-gray-400 font-medium ml-1">Traffic, conversions & revenue by source</span>}
+        badge={<span className="text-xs text-gray-400 font-medium ml-1">Traffic, conversions & revenue by source</span>}
       />
 
       {/* Desktop: full table */}
@@ -79,9 +79,9 @@ export default function ChannelTable() {
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-700">{ch.channel}</span>
                 {ch.cac === 0 ? (
-                  <span className="badge-green text-[10px]">Organic</span>
+                  <span className="badge-green text-xs">Organic</span>
                 ) : (
-                  <span className="text-[10px] text-gray-400">CAC R${ch.cac}</span>
+                  <span className="text-xs text-gray-400">CAC R${ch.cac}</span>
                 )}
               </div>
               <div className="flex items-center gap-4 text-xs">

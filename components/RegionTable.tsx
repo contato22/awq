@@ -19,8 +19,8 @@ export default function RegionTable() {
         <div className="flex items-center gap-2.5">
           <Globe size={15} className="text-gray-400" />
           <div>
-            <h2 className="text-sm font-semibold text-gray-900">Regional Performance</h2>
-            <p className="text-[11px] text-gray-500 mt-0.5 font-medium">Revenue by geography</p>
+            <h2 className="text-base font-semibold text-gray-900">Regional Performance</h2>
+            <p className="text-xs text-gray-500 mt-0.5 font-medium">Revenue by geography</p>
           </div>
         </div>
       </div>

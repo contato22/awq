@@ -208,11 +208,11 @@ export default function CazaFinancialPage() {
                         : <ArrowDownRight size={11} className="text-red-600" />
                     )}
                     {card.delta && (
-                      <span className={`text-[10px] font-semibold ${card.up ? "text-emerald-600" : "text-red-600"}`}>
+                      <span className={`text-xs font-semibold ${card.up ? "text-emerald-600" : "text-red-600"}`}>
                         {card.delta}
                       </span>
                     )}
-                    <span className="text-[10px] text-gray-400">{card.sub}</span>
+                    <span className="text-xs text-gray-400">{card.sub}</span>
                   </div>
                 </div>
               </div>
@@ -236,13 +236,13 @@ export default function CazaFinancialPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-200">
-                    <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Mês</th>
-                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Receita (Orç.)</th>
-                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Alimentação</th>
-                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Gasolina</th>
-                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Total Despesas</th>
-                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Lucro</th>
-                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Margem</th>
+                    <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Mês</th>
+                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Receita (Orç.)</th>
+                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Alimentação</th>
+                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Gasolina</th>
+                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Total Despesas</th>
+                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Lucro</th>
+                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Margem</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -263,7 +263,7 @@ export default function CazaFinancialPage() {
                         <td className="py-2.5 px-3 text-right text-red-600 font-semibold text-xs">{fmtR(row.expenses)}</td>
                         <td className="py-2.5 px-3 text-right text-emerald-600 font-semibold text-xs">{fmtR(row.profit)}</td>
                         <td className="py-2.5 px-3 text-right">
-                          <span className="badge badge-green text-[10px]">{margin}%</span>
+                          <span className="badge badge-green text-xs">{margin}%</span>
                         </td>
                       </tr>
                     );

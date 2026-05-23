@@ -91,7 +91,7 @@ export default function BpmTasksPage() {
               onClick={() => setFilter(f)}
               className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
                 filter === f
-                  ? "bg-blue-600 text-white border-blue-600"
+                  ? "bg-brand-600 text-white border-blue-600"
                   : "bg-white text-gray-600 border-gray-200 hover:border-blue-300"
               }`}
             >

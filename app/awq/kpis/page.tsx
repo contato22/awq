@@ -107,7 +107,7 @@ export default async function AwqKpisPage() {
       <div className="page-container">
 
         {/* ── Data source legend ──────────────────────────────────────────── */}
-        <div className="flex flex-wrap items-center gap-4 text-[11px] text-gray-500 px-1">
+        <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500 px-1">
           <span className="flex items-center gap-1.5">
             <CheckCircle2 size={11} className="text-emerald-600" />
             <span className="font-semibold text-emerald-700">REAL</span> = base bancária ingerida
@@ -120,7 +120,7 @@ export default async function AwqKpisPage() {
             <AlertCircle size={11} className="text-gray-400" />
             <span className="font-semibold text-gray-500">SEM DADO</span> = aguardando ingestão
           </span>
-          <Link href="/awq/management" className="ml-auto text-[10px] text-brand-500 hover:text-brand-400 flex items-center gap-0.5">
+          <Link href="/awq/management" className="ml-auto text-xs text-brand-500 hover:text-brand-400 flex items-center gap-0.5">
             Gestão da base <ChevronRight size={10} />
           </Link>
         </div>
@@ -129,9 +129,9 @@ export default async function AwqKpisPage() {
         <div>
           <div className="flex items-center gap-2 mb-2">
             <CheckCircle2 size={11} className="text-emerald-600" />
-            <span className="text-[11px] font-semibold text-emerald-700 uppercase tracking-widest">Base Real — Caixa (extratos bancários)</span>
+            <span className="text-xs font-semibold text-emerald-700 uppercase tracking-widest">Base Real — Caixa (extratos bancários)</span>
             {!kpis.hasRealData && (
-              <span className="text-[10px] text-amber-600 ml-auto">Aguardando ingestão</span>
+              <span className="text-xs text-amber-600 ml-auto">Aguardando ingestão</span>
             )}
           </div>
           <div className={`grid grid-cols-1 sm:grid-cols-3 gap-4 ${!kpis.hasRealData ? "opacity-60" : ""}`}>
@@ -160,7 +160,7 @@ export default async function AwqKpisPage() {
         <div className="opacity-75">
           <div className="flex items-center gap-2 mb-2">
             <AlertCircle size={11} className="text-amber-500" />
-            <span className="text-[11px] font-semibold text-amber-600 uppercase tracking-widest">Planejamento (snapshot — accrual)</span>
+            <span className="text-xs font-semibold text-amber-600 uppercase tracking-widest">Planejamento (snapshot — accrual)</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {snapshotCards.map((card) => {
@@ -188,12 +188,12 @@ export default async function AwqKpisPage() {
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-4">
             <CheckCircle2 size={14} className="text-emerald-600" />
-            <h2 className="text-sm font-semibold text-gray-900">
+            <h2 className="text-base font-semibold text-gray-900">
               Caixa &amp; FCO por Entidade
               <MetricSourceBadge sourceType="real" />
             </h2>
             {kpis.periodLabel && (
-              <span className="ml-auto text-[11px] text-gray-400">{kpis.periodLabel}</span>
+              <span className="ml-auto text-xs text-gray-400">{kpis.periodLabel}</span>
             )}
           </div>
 
@@ -213,7 +213,7 @@ export default async function AwqKpisPage() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {/* Consolidated summary */}
               <div className="rounded-xl bg-gray-50 border border-gray-200 p-4">
-                <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
                   Consolidado AWQ
                   <MetricSourceBadge sourceType="real" />
                 </div>
@@ -242,7 +242,7 @@ export default async function AwqKpisPage() {
               {/* Per entity */}
               {entities.map((e) => (
                 <div key={e.entity} className="rounded-xl bg-gray-50 border border-gray-200 p-4">
-                  <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                  <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
                     {e.label}
                     <MetricSourceBadge sourceType="real" />
                   </div>
@@ -265,10 +265,10 @@ export default async function AwqKpisPage() {
           )}
 
           <div className="mt-3 flex gap-3">
-            <Link href="/awq/cashflow" className="text-[11px] text-brand-600 hover:text-brand-500 flex items-center gap-1">
+            <Link href="/awq/cashflow" className="text-xs text-brand-600 hover:text-brand-500 flex items-center gap-1">
               <ChevronRight size={11} /> Ver Cash Flow completo
             </Link>
-            <Link href="/awq/financial" className="text-[11px] text-brand-600 hover:text-brand-500 flex items-center gap-1">
+            <Link href="/awq/financial" className="text-xs text-brand-600 hover:text-brand-500 flex items-center gap-1">
               <ChevronRight size={11} /> Ver Financial detalhado
             </Link>
           </div>
@@ -276,7 +276,7 @@ export default async function AwqKpisPage() {
 
         {/* ── Snapshot sections (accrual) ──────────────────────────────────── */}
         <div className="rounded-xl border border-amber-100 bg-amber-50/40 px-4 pt-3 pb-1">
-          <p className="text-[11px] text-amber-700 flex items-center gap-1.5 mb-3">
+          <p className="text-xs text-amber-700 flex items-center gap-1.5 mb-3">
             <AlertCircle size={12} />
             As seções abaixo usam dados accrual (snapshot) — não verificadas pela base bancária.
             Receita, EBITDA, margem e ROIC requerem pipeline contábil ainda não disponível.
@@ -329,10 +329,10 @@ export default async function AwqKpisPage() {
                 {section.items.map((kpi) => (
                   <div key={kpi.label} className="p-3 rounded-xl bg-gray-50 border border-gray-200">
                     <div className="text-lg font-bold text-gray-700">{kpi.display}</div>
-                    <div className="text-[11px] text-gray-400 mt-0.5">{kpi.label}</div>
+                    <div className="text-xs text-gray-400 mt-0.5">{kpi.label}</div>
                     <div className="flex items-center gap-1 mt-1.5">
                       <ArrowUpRight size={10} className={kpi.up ? "text-emerald-500" : "text-red-500"} />
-                      <span className={`text-[10px] font-semibold ${kpi.up ? "text-emerald-500" : "text-red-500"}`}>{kpi.delta}</span>
+                      <span className={`text-xs font-semibold ${kpi.up ? "text-emerald-500" : "text-red-500"}`}>{kpi.delta}</span>
                     </div>
                     <MetricDetail metric={kpi.metric} compact />
                   </div>
@@ -348,22 +348,22 @@ export default async function AwqKpisPage() {
             Comparativo por BU
             <MetricSourceBadge sourceType="snapshot" />
           </h2>
-          <p className="text-[11px] text-amber-600 mb-4">
+          <p className="text-xs text-amber-600 mb-4">
             Receita, margens e ROIC são accrual (snapshot). Caixa real disponível acima.
           </p>
           <div className="table-scroll">
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-gray-200 text-gray-500">
-                  <th className="text-left  py-2 px-3 font-semibold">BU</th>
-                  <th className="text-right py-2 px-3 font-semibold">Receita</th>
-                  <th className="text-right py-2 px-3 font-semibold">M. Bruta</th>
-                  <th className="text-right py-2 px-3 font-semibold">EBITDA</th>
-                  <th className="text-right py-2 px-3 font-semibold">M. Líq.</th>
-                  <th className="text-right py-2 px-3 font-semibold">ROIC</th>
-                  <th className="text-right py-2 px-3 font-semibold">Clientes</th>
-                  <th className="text-right py-2 px-3 font-semibold">FTEs</th>
-                  <th className="text-left  py-2 px-3 font-semibold">Drill</th>
+                  <th className="text-left  py-2 px-3 font-semibold uppercase tracking-wide">BU</th>
+                  <th className="text-right py-2 px-3 font-semibold uppercase tracking-wide">Receita</th>
+                  <th className="text-right py-2 px-3 font-semibold uppercase tracking-wide">M. Bruta</th>
+                  <th className="text-right py-2 px-3 font-semibold uppercase tracking-wide">EBITDA</th>
+                  <th className="text-right py-2 px-3 font-semibold uppercase tracking-wide">M. Líq.</th>
+                  <th className="text-right py-2 px-3 font-semibold uppercase tracking-wide">ROIC</th>
+                  <th className="text-right py-2 px-3 font-semibold uppercase tracking-wide">Clientes</th>
+                  <th className="text-right py-2 px-3 font-semibold uppercase tracking-wide">FTEs</th>
+                  <th className="text-left  py-2 px-3 font-semibold uppercase tracking-wide">Drill</th>
                 </tr>
               </thead>
               <tbody>
@@ -391,7 +391,7 @@ export default async function AwqKpisPage() {
                       <td className="py-2.5 px-3 text-right text-gray-400">{bu.customers}</td>
                       <td className="py-2.5 px-3 text-right text-gray-400">{bu.ftes}</td>
                       <td className="py-2.5 px-3">
-                        <Link href={bu.hrefOverview} className="text-[10px] text-brand-600 hover:text-brand-500 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Link href={bu.hrefOverview} className="text-xs text-brand-600 hover:text-brand-500 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                           Ver <ChevronRight size={10} />
                         </Link>
                       </td>

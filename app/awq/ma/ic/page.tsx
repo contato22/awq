@@ -48,7 +48,7 @@ function DecisionBadge({ decision }: { decision: string }) {
   const c    = cfg[decision] ?? cfg.pending;
   const Icon = c.icon;
   return (
-    <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${c.cls}`}>
+    <span className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full border ${c.cls}`}>
       <Icon size={9} />
       {c.label}
     </span>
@@ -115,7 +115,7 @@ function NewMeetingModal({ onClose, onCreated }: { onClose: () => void; onCreate
             </label>
             <input
               type="date"
-              className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 transition-all"
+              className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20 transition-all"
               value={form.meeting_date}
               onChange={(e) => setForm((p) => ({ ...p, meeting_date: e.target.value }))}
             />
@@ -124,7 +124,7 @@ function NewMeetingModal({ onClose, onCreated }: { onClose: () => void; onCreate
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1.5">Tipo de Reunião</label>
             <select
-              className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 transition-all"
+              className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20 transition-all"
               value={form.meeting_type}
               onChange={(e) => setForm((p) => ({ ...p, meeting_type: e.target.value }))}
             >
@@ -138,7 +138,7 @@ function NewMeetingModal({ onClose, onCreated }: { onClose: () => void; onCreate
             <label className="block text-xs font-semibold text-gray-600 mb-1.5">Participantes</label>
             <textarea
               rows={2}
-              className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 transition-all resize-none"
+              className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20 transition-all resize-none"
               placeholder="ex: CEO, CFO, Comitê de Investimentos"
               value={form.attendees}
               onChange={(e) => setForm((p) => ({ ...p, attendees: e.target.value }))}
@@ -156,7 +156,7 @@ function NewMeetingModal({ onClose, onCreated }: { onClose: () => void; onCreate
             <button
               type="submit"
               disabled={loading}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-colors shadow-sm"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-colors shadow-sm"
             >
               {loading && <Loader2 size={12} className="animate-spin" />}
               {loading ? "Criando..." : "Criar Reunião"}
@@ -235,7 +235,7 @@ export default function IcPage() {
           </div>
           <button
             onClick={() => setShowModal(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm"
           >
             <Plus size={13} />
             Nova Reunião
@@ -283,7 +283,7 @@ export default function IcPage() {
                 <div className="flex items-center gap-2">
                   <CalendarDays size={13} className="text-brand-500" />
                   <h3 className="text-sm font-bold text-gray-800">Reuniões</h3>
-                  <span className="text-[10px] font-bold bg-brand-50 text-brand-600 border border-brand-100 px-1.5 py-0.5 rounded-full">
+                  <span className="text-xs font-bold bg-brand-50 text-brand-600 border border-brand-100 px-1.5 py-0.5 rounded-full">
                     {meetings.length}
                   </span>
                 </div>
@@ -305,7 +305,7 @@ export default function IcPage() {
                         {/* Date block */}
                         <div className="w-24 shrink-0">
                           <div className="text-xs font-bold text-gray-900">{fmtDate(m.meeting_date)}</div>
-                          <div className="text-[10px] text-gray-400 mt-0.5">{meetingTypeLabel(m.meeting_type ?? "regular")}</div>
+                          <div className="text-xs text-gray-400 mt-0.5">{meetingTypeLabel(m.meeting_type ?? "regular")}</div>
                         </div>
 
                         {/* Attendees */}
@@ -327,7 +327,7 @@ export default function IcPage() {
                         )}
 
                         {/* Status */}
-                        <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                        <span className={`shrink-0 text-xs font-bold px-2 py-0.5 rounded-full border ${
                           m.status === "completed" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
                           m.status === "scheduled" ? "bg-blue-50 text-blue-700 border-blue-200"         :
                           "bg-gray-100 text-gray-500 border-gray-200"
@@ -343,7 +343,7 @@ export default function IcPage() {
                             href={m.minutes_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold text-blue-600 hover:text-blue-700 transition-colors"
+                            className="shrink-0 inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors"
                           >
                             Ata <ExternalLink size={10} />
                           </Link>
@@ -361,7 +361,7 @@ export default function IcPage() {
               <div className="flex items-center gap-2 px-5 py-3.5 border-b border-gray-100">
                 <CheckCircle2 size={13} className="text-emerald-500" />
                 <h3 className="text-sm font-bold text-gray-800">Decisões do IC</h3>
-                <span className="text-[10px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100 px-1.5 py-0.5 rounded-full">
+                <span className="text-xs font-bold bg-emerald-50 text-emerald-600 border border-emerald-100 px-1.5 py-0.5 rounded-full">
                   {decisions.length}
                 </span>
               </div>
@@ -376,7 +376,7 @@ export default function IcPage() {
                     <thead>
                       <tr className="bg-gray-50 border-b border-gray-100">
                         {["Deal", "Decisão", "Votos", "Racional", "Data"].map((h) => (
-                          <th key={h} className="py-2.5 px-4 text-left font-semibold text-gray-500">{h}</th>
+                          <th key={h} className="py-2.5 px-4 text-left font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
                         ))}
                       </tr>
                     </thead>
@@ -390,7 +390,7 @@ export default function IcPage() {
                                 {d.deal_name ?? d.company_name ?? d.deal_id ?? "—"}
                               </div>
                               {d.deal_id && (
-                                <div className="text-[10px] text-gray-400 mt-0.5">{d.deal_id}</div>
+                                <div className="text-xs text-gray-400 mt-0.5">{d.deal_id}</div>
                               )}
                             </td>
                             <td className="py-2.5 px-4">

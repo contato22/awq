@@ -93,7 +93,7 @@ export default function EnrdPage() {
 
         {/* EPM Modules grid */}
         <section>
-          <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-3">
+          <div className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">
             Módulos EPM
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -112,7 +112,7 @@ export default function EnrdPage() {
                     <div className="text-xs font-semibold text-gray-900 group-hover:text-brand-700 transition-colors leading-tight">
                       {mod.label}
                     </div>
-                    <div className="text-[11px] text-gray-400 mt-0.5 truncate">{mod.sub}</div>
+                    <div className="text-xs text-gray-400 mt-0.5 truncate">{mod.sub}</div>
                   </div>
                 </Link>
               );
@@ -125,7 +125,7 @@ export default function EnrdPage() {
           <section className="card p-5">
             <div className="flex items-center gap-2 mb-4">
               <Users size={14} className="text-brand-600" />
-              <h2 className="text-sm font-semibold text-gray-900">CRM</h2>
+              <h2 className="text-base font-semibold text-gray-900">CRM</h2>
             </div>
             <div className="space-y-1">
               {[
@@ -138,7 +138,7 @@ export default function EnrdPage() {
                   className="flex items-center justify-between py-2.5 px-2 rounded-lg hover:bg-gray-50 transition-colors">
                   <div>
                     <div className="text-xs font-semibold text-gray-900">{item.label}</div>
-                    <div className="text-[10px] text-gray-400 mt-0.5">{item.sub}</div>
+                    <div className="text-xs text-gray-400 mt-0.5">{item.sub}</div>
                   </div>
                   <ChevronRight size={13} className="text-gray-300" />
                 </Link>
@@ -149,7 +149,7 @@ export default function EnrdPage() {
           <section className="card p-5">
             <div className="flex items-center gap-2 mb-4">
               <Briefcase size={14} className="text-cyan-700" />
-              <h2 className="text-sm font-semibold text-gray-900">PPM</h2>
+              <h2 className="text-base font-semibold text-gray-900">PPM</h2>
             </div>
             <div className="space-y-1">
               {[
@@ -160,7 +160,7 @@ export default function EnrdPage() {
                   className="flex items-center justify-between py-2.5 px-2 rounded-lg hover:bg-gray-50 transition-colors">
                   <div>
                     <div className="text-xs font-semibold text-gray-900">{item.label}</div>
-                    <div className="text-[10px] text-gray-400 mt-0.5">{item.sub}</div>
+                    <div className="text-xs text-gray-400 mt-0.5">{item.sub}</div>
                   </div>
                   <ChevronRight size={13} className="text-gray-300" />
                 </Link>

@@ -14,7 +14,7 @@ export default function EnrdFinancialPage() {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <h2 className="text-base font-bold text-gray-900">BU em estruturação</h2>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-200">
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-200">
                 OPERACIONAL
               </span>
             </div>
@@ -38,7 +38,7 @@ export default function EnrdFinancialPage() {
             <div key={m.label} className="card p-5">
               <div className="text-2xl font-bold text-gray-300">{m.value}</div>
               <div className="text-xs font-medium text-gray-400 mt-0.5">{m.label}</div>
-              <div className="text-[10px] text-gray-400 mt-1">{m.sub}</div>
+              <div className="text-xs text-gray-400 mt-1">{m.sub}</div>
             </div>
           ))}
         </div>
@@ -47,7 +47,7 @@ export default function EnrdFinancialPage() {
           <Info size={15} className="text-orange-600 shrink-0 mt-0.5" />
           <p className="text-xs text-orange-700 leading-relaxed">
             Fonte autoritativa:{" "}
-            <code className="bg-orange-100 px-1 rounded text-[10px]">lib/awq-group-data.ts</code>
+            <code className="bg-orange-100 px-1 rounded text-xs">lib/awq-group-data.ts</code>
             {" "}→ buData[&quot;enrd&quot;]. Os valores serão propagados automaticamente para o
             P&L consolidado do AWQ Group assim que alimentados.
           </p>

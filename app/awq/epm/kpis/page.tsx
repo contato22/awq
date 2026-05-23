@@ -359,7 +359,7 @@ export default async function EpmKpisPage() {
               ? "KPIs reais ativos (cash-basis)"
               : "KPIs de planejamento (snapshot) — ingerir extratos para dados reais"}
           </span>
-          <span className="ml-auto text-[10px] opacity-70">
+          <span className="ml-auto text-xs opacity-70">
             <MetricSourceBadge sourceType={dre.hasData ? "real" : "snapshot"} />
           </span>
         </div>
@@ -386,7 +386,7 @@ export default async function EpmKpisPage() {
         </Section>
 
         {/* ── Legend ───────────────────────────────────────────────── */}
-        <div className="flex items-center gap-5 text-[11px] text-gray-400">
+        <div className="flex items-center gap-5 text-xs text-gray-400">
           <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-400" /> Bom</span>
           <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-amber-400" /> Atenção</span>
           <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-red-500" /> Crítico</span>

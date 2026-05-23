@@ -106,7 +106,7 @@ function DealCard({ deal }: { deal: any }) {
                 {deal.company_name}
               </p>
               {deal.deal_name && deal.deal_name !== deal.company_name && (
-                <p className="text-[10px] text-gray-400 truncate leading-tight">{deal.deal_name}</p>
+                <p className="text-xs text-gray-400 truncate leading-tight">{deal.deal_name}</p>
               )}
             </div>
           </div>
@@ -122,10 +122,10 @@ function DealCard({ deal }: { deal: any }) {
             <span className={`text-[9px] font-bold tabular-nums ${scoreText}`}>{score}</span>
           </div>
           {deal.proposed_investment_amount && (
-            <span className="text-[10px] text-gray-400 font-medium ml-auto">{fmtR(deal.proposed_investment_amount)}</span>
+            <span className="text-xs text-gray-400 font-medium ml-auto">{fmtR(deal.proposed_investment_amount)}</span>
           )}
           {deal.media_commitment_value && !deal.proposed_investment_amount && (
-            <span className="text-[10px] text-cyan-600 font-semibold ml-auto">{fmtR(deal.media_commitment_value)} mídia</span>
+            <span className="text-xs text-cyan-600 font-semibold ml-auto">{fmtR(deal.media_commitment_value)} mídia</span>
           )}
         </div>
 
@@ -187,7 +187,7 @@ export default function DealPipelinePage() {
           </div>
           <Link
             href="/awq/ma/deals/new"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm"
           >
             <Plus size={13} />
             Novo Deal
@@ -230,7 +230,7 @@ export default function DealPipelinePage() {
                         )}
                       </div>
                     </div>
-                    <span className={`text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full ${stage.count}`}>
+                    <span className={`text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full ${stage.count}`}>
                       {stageDeals.length}
                     </span>
                   </div>
@@ -243,7 +243,7 @@ export default function DealPipelinePage() {
                           <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center mb-1.5">
                             <Plus size={12} className="text-gray-400" />
                           </div>
-                          <p className="text-[10px] text-gray-400 font-medium">Adicionar deal</p>
+                          <p className="text-xs text-gray-400 font-medium">Adicionar deal</p>
                         </div>
                       </Link>
                     ) : (
@@ -286,7 +286,7 @@ export default function DealPipelinePage() {
                       </div>
                       <div className="flex items-center gap-1.5">
                         {d.proposed_investment_amount && (
-                          <span className="text-[10px] font-bold text-emerald-600">{fmtR(d.proposed_investment_amount)}</span>
+                          <span className="text-xs font-bold text-emerald-600">{fmtR(d.proposed_investment_amount)}</span>
                         )}
                         <ChevronRight size={11} className="text-gray-300" />
                       </div>
@@ -313,7 +313,7 @@ export default function DealPipelinePage() {
                         <span className="text-xs font-semibold text-gray-800">{d.company_name}</span>
                       </div>
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] text-gray-400 max-w-[100px] truncate">{d.close_reason ?? "—"}</span>
+                        <span className="text-xs text-gray-400 max-w-[100px] truncate">{d.close_reason ?? "—"}</span>
                         <ChevronRight size={11} className="text-gray-300" />
                       </div>
                     </div>

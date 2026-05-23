@@ -83,9 +83,9 @@ function Section({ title, icon: Icon, children, action }: {
 function Stat({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) {
   return (
     <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
-      <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1">{label}</div>
+      <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">{label}</div>
       <div className={`text-xl font-bold ${color ?? "text-gray-900"}`}>{value}</div>
-      {sub && <div className="text-[10px] text-gray-400 mt-0.5">{sub}</div>}
+      {sub && <div className="text-xs text-gray-400 mt-0.5">{sub}</div>}
     </div>
   );
 }
@@ -200,10 +200,10 @@ export default function ProjectDetailPage() {
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-xs font-mono text-gray-400">{project.project_code}</span>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${HEALTH_COLOR[health]}`}>
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${HEALTH_COLOR[health]}`}>
                     {HEALTH_LABEL[health]}
                   </span>
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-brand-100 text-brand-700">{project.bu_code}</span>
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-brand-100 text-brand-700">{project.bu_code}</span>
                 </div>
                 <h1 className="text-lg font-bold text-gray-900 leading-tight">{project.project_name}</h1>
                 {project.customer_name && <p className="text-sm text-gray-500">{project.customer_name}</p>}
@@ -242,7 +242,7 @@ export default function ProjectDetailPage() {
           <div className="flex items-center gap-0 mt-4 ml-11">
             {PHASE_STEPS.map((step, i) => (
               <div key={step} className="flex items-center">
-                <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-semibold transition-all ${
+                <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all ${
                   i < phaseIdx  ? "bg-brand-100 text-brand-600" :
                   i === phaseIdx? "bg-brand-600 text-white shadow-sm" :
                   "bg-gray-100 text-gray-400"
@@ -334,7 +334,7 @@ export default function ProjectDetailPage() {
                       )}
                     </div>
                     <div className="text-xs text-gray-500 shrink-0">{formatDateBR(m.planned_date)}</div>
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
                       m.status === "achieved" ? "bg-emerald-100 text-emerald-700" :
                       m.status === "missed"   ? "bg-red-100 text-red-700" :
                       "bg-gray-100 text-gray-600"
@@ -351,9 +351,9 @@ export default function ProjectDetailPage() {
                 <div className="space-y-2">
                   {issues.map(issue => (
                     <div key={issue.issue_id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${SEV_COLOR[issue.severity]}`}>{issue.severity.toUpperCase()}</span>
+                      <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${SEV_COLOR[issue.severity]}`}>{issue.severity.toUpperCase()}</span>
                       <div className="flex-1 text-sm text-gray-700">{issue.issue_description}</div>
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${ISSUE_STATUS_COLOR[issue.status]}`}>{issue.status}</span>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${ISSUE_STATUS_COLOR[issue.status]}`}>{issue.status}</span>
                     </div>
                   ))}
                 </div>
@@ -384,14 +384,14 @@ export default function ProjectDetailPage() {
               <table className="min-w-full">
                 <thead className="bg-gray-50 border-b border-gray-100">
                   <tr>
-                    <th className="px-4 py-2 text-left text-[10px] font-semibold text-gray-500 uppercase w-8">#</th>
-                    <th className="px-4 py-2 text-left text-[10px] font-semibold text-gray-500 uppercase min-w-48">Tarefa</th>
-                    <th className="px-4 py-2 text-left text-[10px] font-semibold text-gray-500 uppercase w-24">Responsável</th>
-                    <th className="px-4 py-2 text-left text-[10px] font-semibold text-gray-500 uppercase w-20">Início</th>
-                    <th className="px-4 py-2 text-left text-[10px] font-semibold text-gray-500 uppercase w-20">Término</th>
-                    <th className="px-4 py-2 text-left text-[10px] font-semibold text-gray-500 uppercase w-16">Horas</th>
-                    <th className="px-4 py-2 text-left text-[10px] font-semibold text-gray-500 uppercase w-48">Progresso</th>
-                    <th className="px-4 py-2 text-left text-[10px] font-semibold text-gray-500 uppercase w-20">Status</th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase w-8 tracking-wide">#</th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase min-w-48 tracking-wide">Tarefa</th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase w-24 tracking-wide">Responsável</th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase w-20 tracking-wide">Início</th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase w-20 tracking-wide">Término</th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase w-16 tracking-wide">Horas</th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase w-48 tracking-wide">Progresso</th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase w-20 tracking-wide">Status</th>
                     <th className="px-4 py-2 w-8"></th>
                   </tr>
                 </thead>
@@ -422,7 +422,7 @@ export default function ProjectDetailPage() {
                           )}
                         </td>
                         <td className="px-4 py-2.5">
-                          <span className={`text-[10px] font-semibold ${color}`}>{task.status.replace("_"," ")}</span>
+                          <span className={`text-xs font-semibold ${color}`}>{task.status.replace("_"," ")}</span>
                         </td>
                         <td className="px-4 py-2.5">
                           <button onClick={() => void toggleTask(task)} title="Alternar status" className="p-1 rounded hover:bg-gray-100 transition-colors">
@@ -453,7 +453,7 @@ export default function ProjectDetailPage() {
               <table className="min-w-full divide-y divide-gray-100">
                 <thead className="bg-gray-50">
                   <tr>{["Score","Risco","Impacto","Prob.","Plano de Mitigação","Owner","Status"].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-[10px] font-semibold text-gray-500 uppercase">{h}</th>
+                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
                   ))}</tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -472,7 +472,7 @@ export default function ProjectDetailPage() {
                       </td>
                       <td className="px-4 py-3 text-xs text-gray-600">{r.owner_name ?? "—"}</td>
                       <td className="px-4 py-3">
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
                           r.status === "closed" ? "bg-gray-100 text-gray-500" :
                           r.status === "occurred" ? "bg-red-100 text-red-700" :
                           r.status === "mitigating" ? "bg-amber-100 text-amber-700" :
@@ -510,7 +510,7 @@ export default function ProjectDetailPage() {
                   <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden mb-3">
                     <div className={`h-full rounded-full ${a.allocation_pct > 100 ? "bg-red-500" : "bg-brand-500"}`} style={{ width: `${Math.min(a.allocation_pct, 100)}%` }} />
                   </div>
-                  <div className="text-[10px] text-gray-400 space-y-0.5">
+                  <div className="text-xs text-gray-400 space-y-0.5">
                     <div>{a.hours_per_week ? `${a.hours_per_week}h/semana` : "—"}</div>
                     <div>{formatDateBR(a.start_date)} → {a.end_date ? formatDateBR(a.end_date) : "—"}</div>
                     {a.billable_rate && <div>R${a.billable_rate}/h billable · R${a.cost_rate}/h custo</div>}

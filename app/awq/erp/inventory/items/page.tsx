@@ -120,7 +120,7 @@ export default function InventoryItemsPage() {
               <thead className="bg-gray-50">
                 <tr>
                   {["SKU", "Nome", "Categoria", "Unidade", "Estoque", "Est. Mínimo", "Custo Unit.", "Localização"].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-[10px] font-semibold text-gray-500 uppercase whitespace-nowrap">{h}</th>
+                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase whitespace-nowrap tracking-wide">{h}</th>
                   ))}
                 </tr>
               </thead>

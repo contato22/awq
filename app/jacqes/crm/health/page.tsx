@@ -66,7 +66,7 @@ function KpiCard({
         <Icon size={16} />
       </div>
       <div className="min-w-0">
-        <div className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">{label}</div>
+        <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">{label}</div>
         <div className="text-xl font-bold text-gray-900 mt-0.5">{value}</div>
         {sub && <div className="text-xs text-gray-400 mt-0.5">{sub}</div>}
       </div>
@@ -96,16 +96,16 @@ function HealthCard({
           <div className="text-xs text-gray-500 mt-0.5">{client?.segmento ?? "—"}</div>
         </div>
         <div className="flex flex-col items-end gap-1 shrink-0">
-          <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${churnBadge(snapshot.churn_risk)}`}>
+          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${churnBadge(snapshot.churn_risk)}`}>
             {snapshot.churn_risk} risco
           </span>
           {snapshot.churn_risk === "Alto" && (
-            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-600 text-white">
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-600 text-white">
               🚨 Ação Urgente
             </span>
           )}
           {snapshot.churn_risk === "Médio" && (
-            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500 text-white">
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-500 text-white">
               ⚠ Monitorar
             </span>
           )}
@@ -115,7 +115,7 @@ function HealthCard({
       {/* Health Score */}
       <div>
         <div className="flex items-end justify-between mb-1.5">
-          <span className="text-[11px] text-gray-400 uppercase tracking-wide">Health Score</span>
+          <span className="text-xs text-gray-400 uppercase tracking-wide">Health Score</span>
           <span className={`text-2xl font-black ${scoreColor}`}>{snapshot.health_score}</span>
         </div>
         <div className="w-full h-2 rounded-full bg-gray-100 overflow-hidden">
@@ -320,7 +320,7 @@ export default function HealthPage() {
                       </div>
                     </div>
                     <div className="text-right shrink-0">
-                      <div className="text-[11px] text-gray-400">Ação recomendada</div>
+                      <div className="text-xs text-gray-400">Ação recomendada</div>
                       <div className={`text-xs font-semibold mt-0.5 ${isAlto ? "text-red-600" : "text-amber-600"}`}>
                         {isAlto
                           ? "Contato urgente — risco de churn"

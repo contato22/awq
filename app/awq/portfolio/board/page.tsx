@@ -129,7 +129,7 @@ export default function BoardMeetingsPage() {
           </div>
           <button
             onClick={() => setShowForm(!showForm)}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm"
+            className="flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-sm"
           >
             <Plus size={14} /> Nova Reunião
           </button>
@@ -189,7 +189,7 @@ export default function BoardMeetingsPage() {
               {error && <div className="text-red-400 text-sm bg-red-500/10 rounded-lg px-3 py-2">{error}</div>}
               <div className="flex gap-3">
                 <button type="submit" disabled={saving}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm disabled:opacity-50">
+                  className="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-sm disabled:opacity-50">
                   {saving ? "Salvando..." : "Salvar"}
                 </button>
                 <button type="button" onClick={() => setShowForm(false)}

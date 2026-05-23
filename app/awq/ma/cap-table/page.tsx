@@ -158,7 +158,7 @@ export default function CapTablePage() {
           <select
             value={selectedPortco}
             onChange={e => setSelectedPortco(e.target.value)}
-            className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
             {portcos.map(p => (
               <option key={p.portco_id} value={p.portco_id}>

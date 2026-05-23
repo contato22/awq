@@ -89,7 +89,7 @@ export default function ContactsPage() {
               <thead>
                 <tr className="border-b border-gray-200">
                   {["Contato","Empresa","Cargo","Senioridade","Canais","Principal",""].map(h=>(
-                    <th key={h} className="text-left py-3 px-4 text-[11px] font-semibold text-gray-500 whitespace-nowrap">{h}</th>
+                    <th key={h} className="text-left py-3 px-4 text-xs font-semibold text-gray-500 whitespace-nowrap uppercase tracking-wide">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -110,7 +110,7 @@ export default function ContactsPage() {
                   <tr key={c.contact_id} className="border-b border-gray-100 hover:bg-gray-50/60 transition-colors">
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-full bg-brand-100 flex items-center justify-center text-[10px] font-bold text-brand-700 shrink-0">
+                        <div className="w-7 h-7 rounded-full bg-brand-100 flex items-center justify-center text-xs font-bold text-brand-700 shrink-0">
                           {c.full_name.split(" ").slice(0,2).map(n=>n[0]).join("")}
                         </div>
                         <p className="text-[13px] font-medium text-gray-900">{c.full_name}</p>
@@ -125,7 +125,7 @@ export default function ContactsPage() {
                     </td>
                     <td className="py-3 px-4 text-[12px] text-gray-600">{c.job_title ?? "—"}</td>
                     <td className="py-3 px-4">
-                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${SENIORITY_COLORS[c.seniority] ?? "bg-gray-100 text-gray-600"}`}>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${SENIORITY_COLORS[c.seniority] ?? "bg-gray-100 text-gray-600"}`}>
                         {SENIORITY_LABELS[c.seniority] ?? c.seniority}
                       </span>
                     </td>
@@ -138,13 +138,13 @@ export default function ContactsPage() {
                     </td>
                     <td className="py-3 px-4">
                       {c.is_primary_contact && (
-                        <span className="text-[10px] font-bold bg-brand-50 text-brand-700 px-1.5 py-0.5 rounded-full">Principal</span>
+                        <span className="text-xs font-bold bg-brand-50 text-brand-700 px-1.5 py-0.5 rounded-full">Principal</span>
                       )}
                     </td>
                     <td className="py-3 px-4">
                       {deletingId === c.contact_id ? (
                         <div className="flex items-center gap-1.5">
-                          <span className="text-[11px] text-red-600 font-medium whitespace-nowrap">Confirmar?</span>
+                          <span className="text-xs text-red-600 font-medium whitespace-nowrap">Confirmar?</span>
                           <button onClick={() => handleDelete(c)}
                             className="p-1 rounded-md bg-red-100 hover:bg-red-200 text-red-600 transition-colors">
                             <Check size={12} />

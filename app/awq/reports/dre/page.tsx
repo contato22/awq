@@ -55,7 +55,7 @@ export default function DREPage() {
         <select
           value={bu}
           onChange={(e) => setBu(e.target.value as BuCode | "")}
-          className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
         >
           <option value="">Consolidado</option>
           {BU_CODES.map((b) => <option key={b} value={b}>{b}</option>)}
@@ -70,7 +70,7 @@ export default function DREPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm bg-white rounded-xl border shadow-sm overflow-hidden">
             <thead>
-              <tr className="bg-gray-50 text-xs text-gray-500 border-b">
+              <tr className="bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wide border-b">
                 <th className="px-4 py-3 text-left w-48">Linha DRE</th>
                 {data.map((line) => (
                   <th key={line.month} className="px-3 py-3 text-right min-w-[110px]">

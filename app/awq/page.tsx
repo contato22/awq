@@ -55,13 +55,13 @@ function MetricCard({
             {up
               ? <ArrowUpRight size={11} className="text-emerald-600 shrink-0" />
               : <ArrowDownRight size={11} className="text-red-600 shrink-0" />}
-            <span className={`text-[11px] font-semibold ${up ? "text-emerald-600" : "text-red-600"} line-clamp-2`}>
+            <span className={`text-xs font-semibold ${up ? "text-emerald-600" : "text-red-600"} line-clamp-2`}>
               {delta}
             </span>
           </div>
         )}
-        {empty && <div className="text-[10px] text-gray-400 mt-0.5">{sub}</div>}
-        {!empty && <div className="text-[10px] text-gray-400 mt-0.5">{sub}</div>}
+        {empty && <div className="text-xs text-gray-400 mt-0.5">{sub}</div>}
+        {!empty && <div className="text-xs text-gray-400 mt-0.5">{sub}</div>}
       </div>
     </div>
   );
@@ -123,7 +123,7 @@ function EntityCashCard({ e }: { e: EntitySummary }) {
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-brand-500" />
           <span className="text-xs font-bold text-gray-900">{e.label}</span>
-          <span className="text-[10px] text-gray-400">
+          <span className="text-xs text-gray-400">
             {e.accounts.map((a) => a.bank).join(", ")}
           </span>
         </div>
@@ -134,18 +134,18 @@ function EntityCashCard({ e }: { e: EntitySummary }) {
       <div className="grid grid-cols-3 gap-2 text-center">
         <div className="bg-emerald-50 rounded-lg py-2">
           <div className="text-xs font-bold text-emerald-700 tabular-nums">{fmtBRL(e.operationalRevenue)}</div>
-          <div className="text-[10px] text-gray-500 mt-0.5">Entradas</div>
+          <div className="text-xs text-gray-500 mt-0.5">Entradas</div>
         </div>
         <div className="bg-red-50 rounded-lg py-2">
           <div className="text-xs font-bold text-red-700 tabular-nums">{fmtBRL(e.operationalExpenses)}</div>
-          <div className="text-[10px] text-gray-500 mt-0.5">Saídas</div>
+          <div className="text-xs text-gray-500 mt-0.5">Saídas</div>
         </div>
         <div className="bg-gray-50 rounded-lg py-2">
           <div className="text-xs font-bold text-gray-700 tabular-nums">{fmtBRL(e.totalCashBalance)}</div>
-          <div className="text-[10px] text-gray-500 mt-0.5">Saldo</div>
+          <div className="text-xs text-gray-500 mt-0.5">Saldo</div>
         </div>
       </div>
-      <div className="flex justify-between text-[10px] text-gray-400 pt-1 border-t border-gray-100">
+      <div className="flex justify-between text-xs text-gray-400 pt-1 border-t border-gray-100">
         <span>{e.transactionCount} transações · {ambiguousPct}% ambíguo</span>
         <span>{e.periodStart && e.periodEnd ? `${e.periodStart.slice(0, 7)} → ${e.periodEnd.slice(0, 7)}` : "—"}</span>
       </div>
@@ -208,7 +208,7 @@ export default async function AwqGroupPage() {
               Visão de Caixa — Base Bancária Real
             </span>
             {q.hasData && (
-              <span className="text-[10px] text-emerald-600 font-medium px-2 py-0.5 bg-emerald-50 rounded-full border border-emerald-200">
+              <span className="text-xs text-emerald-600 font-medium px-2 py-0.5 bg-emerald-50 rounded-full border border-emerald-200">
                 conciliado
               </span>
             )}
@@ -329,7 +329,7 @@ export default async function AwqGroupPage() {
             ["Intercompany", "Socio_PF", "Unknown"].includes(e.entity)
           ).length > 0 && (
             <div className="mt-4 pt-4 border-t border-gray-100">
-              <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2">
+              <div className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">
                 Fora do consolidado operacional
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
@@ -339,7 +339,7 @@ export default async function AwqGroupPage() {
                     <div key={e.entity} className="bg-gray-50 rounded-lg p-3 flex items-center justify-between">
                       <div>
                         <div className="text-xs font-semibold text-gray-600">{e.label}</div>
-                        <div className="text-[10px] text-gray-400 mt-0.5">{e.transactionCount} transações</div>
+                        <div className="text-xs text-gray-400 mt-0.5">{e.transactionCount} transações</div>
                       </div>
                       <div className="text-xs font-bold text-gray-500 tabular-nums">
                         {fmtBRL(e.totalCashBalance)}
@@ -385,8 +385,8 @@ export default async function AwqGroupPage() {
                       </div>
                     </div>
                     <div className="text-right w-28 shrink-0">
-                      <div className="text-[10px] text-emerald-600 font-semibold tabular-nums">{fmtBRL(m.revenue)}</div>
-                      <div className="text-[10px] text-red-600 tabular-nums">{fmtBRL(m.expenses)}</div>
+                      <div className="text-xs text-emerald-600 font-semibold tabular-nums">{fmtBRL(m.revenue)}</div>
+                      <div className="text-xs text-red-600 tabular-nums">{fmtBRL(m.expenses)}</div>
                     </div>
                     <div className={`text-xs font-bold w-20 text-right shrink-0 tabular-nums ${m.netCash >= 0 ? "text-gray-900" : "text-red-600"}`}>
                       {fmtBRL(m.netCash)}
@@ -395,10 +395,10 @@ export default async function AwqGroupPage() {
                 );
               })}
               <div className="flex items-center gap-5 pt-3 border-t border-gray-100">
-                <span className="flex items-center gap-1.5 text-[11px] text-gray-500">
+                <span className="flex items-center gap-1.5 text-xs text-gray-500">
                   <span className="w-2.5 h-2.5 rounded-sm bg-emerald-400 inline-block" /> Entradas operacionais
                 </span>
-                <span className="flex items-center gap-1.5 text-[11px] text-gray-500">
+                <span className="flex items-center gap-1.5 text-xs text-gray-500">
                   <span className="w-2.5 h-2.5 rounded-sm bg-red-400 inline-block" /> Saídas operacionais
                 </span>
               </div>
@@ -425,7 +425,7 @@ export default async function AwqGroupPage() {
                 linkHref="/awq/risk"
               />
             </div>
-            <div className="text-[10px] text-amber-600 font-medium mb-3">
+            <div className="text-xs text-amber-600 font-medium mb-3">
               Análise qualitativa (snapshot) — não derivada de extratos bancários
             </div>
             <div className="space-y-2">
@@ -437,13 +437,13 @@ export default async function AwqGroupPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
                         <span className={`text-xs font-semibold ${cfg.color}`}>{risk.title}</span>
-                        <span className="text-[10px] text-gray-400 shrink-0">{risk.bu}</span>
+                        <span className="text-xs text-gray-400 shrink-0">{risk.bu}</span>
                       </div>
-                      <div className="text-[11px] text-gray-600 mt-0.5">{risk.description}</div>
+                      <div className="text-xs text-gray-600 mt-0.5">{risk.description}</div>
                     </div>
                     <div className="text-right shrink-0">
-                      <div className={`text-[10px] font-bold ${cfg.color}`}>{risk.metric}</div>
-                      <div className="text-[10px] text-gray-400">{risk.threshold}</div>
+                      <div className={`text-xs font-bold ${cfg.color}`}>{risk.metric}</div>
+                      <div className="text-xs text-gray-400">{risk.threshold}</div>
                     </div>
                   </div>
                 );
@@ -461,7 +461,7 @@ export default async function AwqGroupPage() {
                 linkHref="/awq/allocations"
               />
             </div>
-            <div className="text-[10px] text-amber-600 font-medium mb-3">
+            <div className="text-xs text-amber-600 font-medium mb-3">
               Alocação estratégica (snapshot) — planejamento accrual, não derivado de extratos
             </div>
             <div className="space-y-3.5">
@@ -478,15 +478,15 @@ export default async function AwqGroupPage() {
                         <span className="text-xs text-gray-600 font-medium">{bu.name}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className={`text-[10px] font-bold ${flagCfg.color} ${flagCfg.bg} px-1.5 py-0.5 rounded`}>
+                        <span className={`text-xs font-bold ${flagCfg.color} ${flagCfg.bg} px-1.5 py-0.5 rounded`}>
                           {flagCfg.label}
                         </span>
                         {bu.economicType === "pre_revenue" ? (
-                          <span className="text-[10px] font-medium text-brand-600 bg-brand-50 px-1.5 py-0.5 rounded border border-brand-200">
+                          <span className="text-xs font-medium text-brand-600 bg-brand-50 px-1.5 py-0.5 rounded border border-brand-200">
                             Pré-receita
                           </span>
                         ) : bu.economicType === "hybrid_investment" ? (
-                          <span className="text-[10px] font-medium text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                          <span className="text-xs font-medium text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
                             Investimento
                           </span>
                         ) : (
@@ -500,7 +500,7 @@ export default async function AwqGroupPage() {
                       <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
                         <div className={`h-full ${bu.color} rounded-full`} style={{ width: `${share}%` }} />
                       </div>
-                      <span className="text-[11px] text-gray-500 w-14 text-right shrink-0 font-medium tabular-nums">
+                      <span className="text-xs text-gray-500 w-14 text-right shrink-0 font-medium tabular-nums">
                         {fmtBRL(bu.capitalAllocated)}
                       </span>
                     </div>

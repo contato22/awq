@@ -54,17 +54,17 @@ function StageBadge({ stage }: { stage: string }) {
   const cfg = STAGE_CONFIG[stage];
   if (!cfg) return <span className="badge badge-gray">{stage}</span>;
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${cfg.text} ${cfg.bg} ${cfg.border}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${cfg.text} ${cfg.bg} ${cfg.border}`}>
       {cfg.label}
     </span>
   );
 }
 
 function BuBadge({ bu }: { bu: string }) {
-  if (bu === "JACQES") return <span className="badge badge-blue text-[10px]">{bu}</span>;
-  if (bu === "CAZA")   return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-50 text-brand-700 ring-1 ring-brand-200/60">{bu}</span>;
-  if (bu === "ADVISOR")return <span className="badge badge-green text-[10px]">{bu}</span>;
-  return <span className="badge badge-yellow text-[10px]">{bu}</span>;
+  if (bu === "JACQES") return <span className="badge badge-blue text-xs">{bu}</span>;
+  if (bu === "CAZA")   return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-brand-50 text-brand-700 ring-1 ring-brand-200/60">{bu}</span>;
+  if (bu === "ADVISOR")return <span className="badge badge-green text-xs">{bu}</span>;
+  return <span className="badge badge-yellow text-xs">{bu}</span>;
 }
 
 function ActivityIcon({ type }: { type: string }) {
@@ -96,8 +96,8 @@ function KpiCard({ label, value, icon: Icon, iconColor, iconBg, sub }: KpiCardPr
       </div>
       <div className="min-w-0">
         <div className="text-lg font-bold text-gray-900 leading-tight">{value}</div>
-        <div className="text-[10px] text-gray-500 mt-0.5 truncate">{label}</div>
-        {sub && <div className="text-[10px] text-gray-400 truncate">{sub}</div>}
+        <div className="text-xs text-gray-500 mt-0.5 truncate">{label}</div>
+        {sub && <div className="text-xs text-gray-400 truncate">{sub}</div>}
       </div>
     </div>
   );
@@ -280,12 +280,12 @@ export default function CrmDashboardView({ buFilter: externalBu }: Props) {
         {/* BU Filter */}
         <div className="flex items-center gap-2 flex-wrap">
           <Filter size={13} className="text-gray-400 shrink-0" />
-          <span className="text-[11px] text-gray-500 shrink-0">Filtrar por BU:</span>
+          <span className="text-xs text-gray-500 shrink-0">Filtrar por BU:</span>
           {BUS.map(b => (
             <button
               key={b}
               onClick={() => setBu(b)}
-              className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all ${
+              className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
                 bu === b
                   ? "bg-brand-600 text-white shadow-sm"
                   : "bg-gray-100 text-gray-500 hover:bg-gray-200"
@@ -295,7 +295,7 @@ export default function CrmDashboardView({ buFilter: externalBu }: Props) {
             </button>
           ))}
           {isStatic && (
-            <span className="ml-auto inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700">
+            <span className="ml-auto inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
               Snapshot estático
             </span>
@@ -330,7 +330,7 @@ export default function CrmDashboardView({ buFilter: externalBu }: Props) {
               return (
                 <div key={stage} className="flex items-center gap-3">
                   <div className="w-28 shrink-0 text-right">
-                    <span className="text-[11px] font-medium text-gray-600">{cfg.label}</span>
+                    <span className="text-xs font-medium text-gray-600">{cfg.label}</span>
                   </div>
                   <div className="flex-1 h-7 bg-gray-100 rounded-lg overflow-hidden relative">
                     <div
@@ -338,13 +338,13 @@ export default function CrmDashboardView({ buFilter: externalBu }: Props) {
                       style={{ width: `${Math.max(pct, cnt > 0 ? 3 : 0)}%` }}
                     />
                     {cnt > 0 && (
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-white">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-white">
                         {cnt} deal{cnt !== 1 ? "s" : ""}
                       </span>
                     )}
                   </div>
                   <div className="w-24 shrink-0 text-right">
-                    <span className={`text-[11px] font-semibold ${cfg.text}`}>
+                    <span className={`text-xs font-semibold ${cfg.text}`}>
                       {val > 0 ? formatBRL(val) : "—"}
                     </span>
                   </div>
@@ -385,7 +385,7 @@ export default function CrmDashboardView({ buFilter: externalBu }: Props) {
                       </div>
                       <div className="text-right shrink-0">
                         <div className="text-[12px] font-bold text-gray-900">{formatBRL(o.deal_value)}</div>
-                        <div className={`text-[10px] font-medium ${isUrgent ? "text-red-600" : "text-gray-400"}`}>
+                        <div className={`text-xs font-medium ${isUrgent ? "text-red-600" : "text-gray-400"}`}>
                           {o.expected_close_date ? (isUrgent ? `${days}d restantes` : formatDateBR(o.expected_close_date)) : "—"}
                         </div>
                       </div>
@@ -403,7 +403,7 @@ export default function CrmDashboardView({ buFilter: externalBu }: Props) {
               title="Tarefas de Hoje"
               badge={
                 todayTasks.length > 0
-                  ? <span className="badge badge-blue text-[10px] ml-1">{todayTasks.length}</span>
+                  ? <span className="badge badge-blue text-xs ml-1">{todayTasks.length}</span>
                   : undefined
               }
             />
@@ -418,16 +418,16 @@ export default function CrmDashboardView({ buFilter: externalBu }: Props) {
                     <div className="flex-1 min-w-0">
                       <div className="text-[12px] font-semibold text-gray-900 truncate">{t.subject}</div>
                       {t.related_name && (
-                        <div className="text-[11px] text-gray-500 truncate">{t.related_name}</div>
+                        <div className="text-xs text-gray-500 truncate">{t.related_name}</div>
                       )}
                       {t.scheduled_at && (
-                        <div className="text-[10px] text-gray-400 mt-0.5 flex items-center gap-1">
+                        <div className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
                           <Clock size={9} />
                           {new Date(t.scheduled_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                         </div>
                       )}
                     </div>
-                    <div className="shrink-0 text-[10px] text-gray-400">{t.created_by}</div>
+                    <div className="shrink-0 text-xs text-gray-400">{t.created_by}</div>
                   </div>
                 ))}
               </div>
@@ -453,19 +453,19 @@ export default function CrmDashboardView({ buFilter: externalBu }: Props) {
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-[12px] font-semibold text-gray-900">{a.subject}</span>
                       {a.related_name && (
-                        <span className="text-[10px] text-gray-400 truncate">· {a.related_name}</span>
+                        <span className="text-xs text-gray-400 truncate">· {a.related_name}</span>
                       )}
                     </div>
                     {a.description && (
-                      <p className="text-[11px] text-gray-500 mt-0.5 line-clamp-1">{a.description}</p>
+                      <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{a.description}</p>
                     )}
                     {a.outcome && (
-                      <p className="text-[11px] text-blue-600 mt-0.5 font-medium">Resultado: {OUTCOME_LABELS[a.outcome] ?? a.outcome}</p>
+                      <p className="text-xs text-blue-600 mt-0.5 font-medium">Resultado: {OUTCOME_LABELS[a.outcome] ?? a.outcome}</p>
                     )}
                   </div>
                   <div className="shrink-0 text-right">
-                    <div className="text-[10px] text-gray-400">{formatDateBR(a.completed_at)}</div>
-                    <div className="text-[10px] text-gray-400 mt-0.5">{a.created_by}</div>
+                    <div className="text-xs text-gray-400">{formatDateBR(a.completed_at)}</div>
+                    <div className="text-xs text-gray-400 mt-0.5">{a.created_by}</div>
                   </div>
                 </div>
               ))}

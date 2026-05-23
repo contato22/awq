@@ -29,7 +29,7 @@ function fmtBRL(n: number): string {
 function VarBadge({ pct }: { pct: number }) {
   const positive = pct >= 0;
   return (
-    <span className={`text-[11px] font-bold tabular-nums ${positive ? "text-emerald-600" : "text-red-600"}`}>
+    <span className={`text-xs font-bold tabular-nums ${positive ? "text-emerald-600" : "text-red-600"}`}>
       {positive ? "+" : ""}{pct.toFixed(1)}%
       {Math.abs(pct) > 10 && (
         <AlertTriangle size={10} className={`inline ml-0.5 ${positive ? "text-emerald-400" : "text-red-400"}`} />
@@ -156,7 +156,7 @@ export default async function EpmBudgetPage() {
               <BarChart3 size={14} className="text-brand-600" />
               <span className="text-sm font-semibold text-gray-900">Budget Lines — Consolidado</span>
             </div>
-            <div className="flex items-center gap-2 text-[10px] text-gray-400">
+            <div className="flex items-center gap-2 text-xs text-gray-400">
               <span className="flex items-center gap-1">
                 <span className="w-2 h-2 rounded-sm bg-emerald-400 inline-block" /> ≤100% budget
               </span>
@@ -169,12 +169,12 @@ export default async function EpmBudgetPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50 text-left">
-                  <th className="py-2 px-3 text-xs text-gray-500 font-semibold">Linha</th>
-                  <th className="py-2 px-3 text-xs text-gray-500 font-semibold text-right">Actual</th>
-                  <th className="py-2 px-3 text-xs text-gray-500 font-semibold text-right">Budget</th>
-                  <th className="py-2 px-3 text-xs text-gray-500 font-semibold text-right">Var R$</th>
-                  <th className="py-2 px-3 text-xs text-gray-500 font-semibold text-right">Var %</th>
-                  <th className="py-2 px-3 text-xs text-gray-500 font-semibold w-24">vs. Budget</th>
+                  <th className="py-2 px-3 text-xs text-gray-500 font-semibold uppercase tracking-wide">Linha</th>
+                  <th className="py-2 px-3 text-xs text-gray-500 font-semibold text-right uppercase tracking-wide">Actual</th>
+                  <th className="py-2 px-3 text-xs text-gray-500 font-semibold text-right uppercase tracking-wide">Budget</th>
+                  <th className="py-2 px-3 text-xs text-gray-500 font-semibold text-right uppercase tracking-wide">Var R$</th>
+                  <th className="py-2 px-3 text-xs text-gray-500 font-semibold text-right uppercase tracking-wide">Var %</th>
+                  <th className="py-2 px-3 text-xs text-gray-500 font-semibold w-24 uppercase tracking-wide">vs. Budget</th>
                 </tr>
               </thead>
               <tbody>
@@ -243,11 +243,11 @@ export default async function EpmBudgetPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-200 text-left">
-                  <th className="py-2 px-2 text-xs text-gray-500 font-semibold">Categoria</th>
-                  <th className="py-2 px-2 text-xs text-gray-500 font-semibold text-right">Actual</th>
-                  <th className="py-2 px-2 text-xs text-gray-500 font-semibold text-right">Budget</th>
-                  <th className="py-2 px-2 text-xs text-gray-500 font-semibold text-right">Var %</th>
-                  <th className="py-2 px-2 text-xs text-gray-500 font-semibold w-24">Barra</th>
+                  <th className="py-2 px-2 text-xs text-gray-500 font-semibold uppercase tracking-wide">Categoria</th>
+                  <th className="py-2 px-2 text-xs text-gray-500 font-semibold text-right uppercase tracking-wide">Actual</th>
+                  <th className="py-2 px-2 text-xs text-gray-500 font-semibold text-right uppercase tracking-wide">Budget</th>
+                  <th className="py-2 px-2 text-xs text-gray-500 font-semibold text-right uppercase tracking-wide">Var %</th>
+                  <th className="py-2 px-2 text-xs text-gray-500 font-semibold w-24 uppercase tracking-wide">Barra</th>
                 </tr>
               </thead>
               <tbody>

@@ -90,7 +90,7 @@ export default async function ConciliacaoPage() {
             <AlertCircle size={16} className="text-amber-600 shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-semibold text-amber-800">Falha ao carregar dados — recarregando automaticamente</p>
-              <p className="text-[11px] text-amber-700 mt-0.5 font-mono">{loadError}</p>
+              <p className="text-xs text-amber-700 mt-0.5 font-mono">{loadError}</p>
             </div>
           </div>
         )}
@@ -142,7 +142,7 @@ export default async function ConciliacaoPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-bold text-brand-900">Recebimentos Esperados (AR)</h3>
-                <p className="text-[11px] text-brand-700 mt-0.5">
+                <p className="text-xs text-brand-700 mt-0.5">
                   Faturas pendentes no EPM — associe ao crédito bancário correspondente
                 </p>
               </div>
@@ -169,7 +169,7 @@ export default async function ConciliacaoPage() {
                       <span className={`tabular-nums font-semibold ${overdue ? "text-red-700" : "text-emerald-700"}`}>
                         {item.net_amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                       </span>
-                      <span className={`text-[10px] ${overdue ? "text-red-500 font-semibold" : "text-gray-400"}`}>
+                      <span className={`text-xs ${overdue ? "text-red-500 font-semibold" : "text-gray-400"}`}>
                         {`${d}/${m}/${y}`}{overdue ? " ⚠ vencido" : ""}
                       </span>
                     </div>
@@ -177,7 +177,7 @@ export default async function ConciliacaoPage() {
                 );
               })}
             </div>
-            <p className="text-[10px] text-brand-600">
+            <p className="text-xs text-brand-600">
               Ao receber o crédito bancário, registre em{" "}
               <Link href="/awq/epm/ar" className="underline">AR Lançamentos</Link>
               {" "}para atualizar DFC, DRE e Balanço automaticamente.
@@ -215,7 +215,7 @@ export default async function ConciliacaoPage() {
                 <item.icon size={16} className="text-brand-600 shrink-0" />
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-semibold text-gray-900">{item.label}</div>
-                  <div className="text-[10px] text-gray-500">{item.sub}</div>
+                  <div className="text-xs text-gray-500">{item.sub}</div>
                 </div>
                 <ExternalLink size={13} className="text-gray-400 group-hover:text-brand-600" />
               </Link>

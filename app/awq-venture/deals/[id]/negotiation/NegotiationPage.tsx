@@ -174,22 +174,22 @@ export default function NegotiationPage({ params }: { params: { id: string } }) 
 
       {/* Status atual */}
       <div className="card p-4">
-        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Status Atual do Deal</div>
+        <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Status Atual do Deal</div>
         <div className="flex flex-wrap gap-3">
           <div className="surface-subtle px-4 py-2 rounded-xl text-center">
-            <div className="text-[10px] text-gray-400 mb-0.5">Estágio</div>
+            <div className="text-xs text-gray-400 mb-0.5">Estágio</div>
             <div className="text-sm font-bold text-gray-900">{override.stage ?? deal.stage}</div>
           </div>
           <div className="surface-subtle px-4 py-2 rounded-xl text-center">
-            <div className="text-[10px] text-gray-400 mb-0.5">Envio</div>
+            <div className="text-xs text-gray-400 mb-0.5">Envio</div>
             <div className="text-sm font-bold text-gray-900">{override.sendStatus ?? deal.sendStatus}</div>
           </div>
           <div className="surface-subtle px-4 py-2 rounded-xl text-center">
-            <div className="text-[10px] text-gray-400 mb-0.5">Score</div>
+            <div className="text-xs text-gray-400 mb-0.5">Score</div>
             <div className="text-sm font-bold text-amber-600">{deal.dealScore.toFixed(1)}/10</div>
           </div>
           <div className="surface-subtle px-4 py-2 rounded-xl text-center">
-            <div className="text-[10px] text-gray-400 mb-0.5">Notas</div>
+            <div className="text-xs text-gray-400 mb-0.5">Notas</div>
             <div className="text-sm font-bold text-gray-900">{notes.length}</div>
           </div>
         </div>
@@ -217,10 +217,10 @@ export default function NegotiationPage({ params }: { params: { id: string } }) 
       ) : (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+            <div className="text-xs font-bold text-gray-400 uppercase tracking-widest">
               Respostas do Cliente — {clientRounds.length} rodada{clientRounds.length > 1 ? "s" : ""}
             </div>
-            <Link href={`/awq-venture/deals/${deal.id}/share`} className="flex items-center gap-1 text-[11px] text-amber-600 hover:text-amber-800">
+            <Link href={`/awq-venture/deals/${deal.id}/share`} className="flex items-center gap-1 text-xs text-amber-600 hover:text-amber-800">
               <ExternalLink size={11} /> Ver proposta do cliente
             </Link>
           </div>
@@ -251,7 +251,7 @@ export default function NegotiationPage({ params }: { params: { id: string } }) 
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-bold text-gray-900">Rodada {round.round}</span>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
                           round.finalDecision === "approved"
                             ? "bg-emerald-100 text-emerald-700"
                             : "bg-amber-100 text-amber-700"
@@ -259,7 +259,7 @@ export default function NegotiationPage({ params }: { params: { id: string } }) 
                           {round.finalDecision === "approved" ? "Proposta Aprovada" : "Com Contrapropostas"}
                         </span>
                       </div>
-                      <div className="text-[11px] text-gray-500 mt-0.5">
+                      <div className="text-xs text-gray-500 mt-0.5">
                         {round.respondedBy} · {new Date(round.submittedAt).toLocaleDateString("pt-BR")} ·{" "}
                         <span className="text-emerald-600 font-semibold">{approved} aprovadas</span>
                         {counters.length > 0 && (
@@ -275,7 +275,7 @@ export default function NegotiationPage({ params }: { params: { id: string } }) 
                   <div className="border-t border-gray-100 divide-y divide-gray-50">
                     {/* Per-section breakdown */}
                     <div className="px-5 py-4 space-y-2">
-                      <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Avaliação por seção</div>
+                      <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Avaliação por seção</div>
                       {round.sections.map((s, i) => {
                         const ui  = sectionStatusUi[s.status];
                         const SI  = ui.icon;
@@ -283,13 +283,13 @@ export default function NegotiationPage({ params }: { params: { id: string } }) 
                           <div key={s.id} className="space-y-1">
                             <div className="flex items-center justify-between py-1.5 px-3 rounded-xl bg-gray-50">
                               <span className="text-xs text-gray-700">{sectionLabels[i] ?? s.id}</span>
-                              <span className={`flex items-center gap-1 text-[11px] font-semibold ${ui.color}`}>
+                              <span className={`flex items-center gap-1 text-xs font-semibold ${ui.color}`}>
                                 <SI size={11} /> {ui.label}
                               </span>
                             </div>
                             {s.counterText && (
                               <div className="ml-3 px-3 py-2 bg-amber-50 border border-amber-100 rounded-xl">
-                                <div className="text-[10px] font-bold text-amber-600 mb-0.5">Mensagem do cliente:</div>
+                                <div className="text-xs font-bold text-amber-600 mb-0.5">Mensagem do cliente:</div>
                                 <p className="text-xs text-amber-800">{s.counterText}</p>
                               </div>
                             )}
@@ -301,14 +301,14 @@ export default function NegotiationPage({ params }: { params: { id: string } }) 
                     {/* Overall message */}
                     {round.overallMessage && (
                       <div className="px-5 py-4">
-                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1.5">Mensagem geral</div>
+                        <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5">Mensagem geral</div>
                         <p className="text-sm text-gray-700 bg-gray-50 rounded-xl px-3 py-2">{round.overallMessage}</p>
                       </div>
                     )}
 
                     {/* AWQ action buttons */}
                     <div className="px-5 py-4 bg-gray-50">
-                      <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Ação AWQ</div>
+                      <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Ação AWQ</div>
                       <div className="flex gap-2 flex-wrap">
                         <button
                           onClick={() => {
@@ -340,14 +340,14 @@ export default function NegotiationPage({ params }: { params: { id: string } }) 
 
       {/* Adicionar nota */}
       <div className="card p-5 space-y-3">
-        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Nova Nota de Negociação</div>
+        <div className="text-xs font-bold text-gray-400 uppercase tracking-widest">Nova Nota de Negociação</div>
 
         <div className="flex gap-2 flex-wrap">
           {(Object.keys(categoryConfig) as NoteCategory[]).map((c) => (
             <button
               key={c}
               onClick={() => setCategory(c)}
-              className={`text-[11px] font-medium px-2.5 py-1 rounded-lg border transition-colors ${
+              className={`text-xs font-medium px-2.5 py-1 rounded-lg border transition-colors ${
                 category === c
                   ? `${categoryConfig[c].color} ${categoryConfig[c].bg} border-current`
                   : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
@@ -383,7 +383,7 @@ export default function NegotiationPage({ params }: { params: { id: string } }) 
         />
 
         <div className="flex items-center justify-between">
-          <span className="text-[10px] text-gray-400">Nota interna — não visível ao cliente.</span>
+          <span className="text-xs text-gray-400">Nota interna — não visível ao cliente.</span>
           <button
             onClick={addNote}
             disabled={!newNote.trim()}
@@ -401,7 +401,7 @@ export default function NegotiationPage({ params }: { params: { id: string } }) 
         </div>
       ) : (
         <div className="space-y-3">
-          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">
+          <div className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">
             {notes.length} nota{notes.length !== 1 ? "s" : ""} registrada{notes.length !== 1 ? "s" : ""}
           </div>
           {[...notes].reverse().map((note: any) => {
@@ -410,17 +410,17 @@ export default function NegotiationPage({ params }: { params: { id: string } }) 
               <div key={note.id} className={`card p-4 border ${cfg.bg}`}>
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${cfg.bg} ${cfg.color}`}>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${cfg.bg} ${cfg.color}`}>
                       {cfg.label}
                     </span>
-                    <span className="text-[10px] text-gray-400 flex items-center gap-1">
+                    <span className="text-xs text-gray-400 flex items-center gap-1">
                       <User size={9} /> {note.author}
                     </span>
-                    <span className="text-[10px] text-gray-400">
+                    <span className="text-xs text-gray-400">
                       {new Date(note.createdAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}
                     </span>
                   </div>
-                  <button onClick={() => deleteNote(note.id)} className="text-gray-300 hover:text-red-400 transition-colors text-[10px] shrink-0">
+                  <button onClick={() => deleteNote(note.id)} className="text-gray-300 hover:text-red-400 transition-colors text-xs shrink-0">
                     remover
                   </button>
                 </div>
@@ -431,7 +431,7 @@ export default function NegotiationPage({ params }: { params: { id: string } }) 
         </div>
       )}
 
-      <div className="text-center text-[10px] text-gray-300 pb-4">
+      <div className="text-center text-xs text-gray-300 pb-4">
         Notas salvas localmente · {deal.id} · Para persistência permanente, integrar com API
       </div>
     </div>

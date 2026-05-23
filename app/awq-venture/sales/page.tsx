@@ -57,17 +57,17 @@ export default function VentureSalesPage() {
         {/* Data source badge */}
         <div className="flex items-center gap-2">
           {source === "loading" ? (
-            <span className="flex items-center gap-1.5 text-[11px] text-gray-400 font-medium">
+            <span className="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
               <span className="w-1.5 h-1.5 rounded-full bg-gray-300 animate-pulse" />
               Carregando dados...
             </span>
           ) : source === "live" ? (
-            <span className="flex items-center gap-1.5 text-[11px] text-emerald-600 font-semibold">
+            <span className="flex items-center gap-1.5 text-xs text-emerald-600 font-semibold">
               <Database size={11} />
               Notion — dados ao vivo
             </span>
           ) : (
-            <span className="flex items-center gap-1.5 text-[11px] text-amber-600 font-medium">
+            <span className="flex items-center gap-1.5 text-xs text-amber-600 font-medium">
               <CloudOff size={11} />
               Snapshot estático · venture-sales.json
             </span>
@@ -168,12 +168,12 @@ export default function VentureSalesPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50">
-                    <th className="text-left px-5 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">ID</th>
-                    <th className="text-left px-5 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Nome</th>
-                    <th className="text-left px-5 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Categoria</th>
-                    <th className="text-left px-5 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Canal</th>
-                    <th className="text-right px-5 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Valor</th>
-                    <th className="text-right px-5 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Data</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">ID</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Nome</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Categoria</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Canal</th>
+                    <th className="text-right px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Valor</th>
+                    <th className="text-right px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Data</th>
                   </tr>
                 </thead>
                 <tbody>

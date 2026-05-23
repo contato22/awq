@@ -45,11 +45,11 @@ export default function MobileBUScoreboard({ buData }: MobileBUScoreboardProps) 
                 </div>
                 <div>
                   <div className="text-sm font-bold text-gray-900">{bu.name}</div>
-                  <div className="text-[10px] text-gray-400">{bu.sub.split(" · ")[0]}</div>
+                  <div className="text-xs text-gray-400">{bu.sub.split(" · ")[0]}</div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${flagCfg.bg} ${flagCfg.color}`}>
+                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${flagCfg.bg} ${flagCfg.color}`}>
                   {flagCfg.label}
                 </span>
                 <ChevronRight size={14} className="text-gray-300" />
@@ -61,13 +61,13 @@ export default function MobileBUScoreboard({ buData }: MobileBUScoreboardProps) 
               {!isVenture && (
                 <>
                   <div>
-                    <div className="text-[10px] text-gray-400 flex items-center gap-1">
+                    <div className="text-xs text-gray-400 flex items-center gap-1">
                       <DollarSign size={10} /> Receita
                     </div>
                     <div className="text-sm font-bold text-gray-900">{fmtR(bu.revenue)}</div>
                   </div>
                   <div>
-                    <div className="text-[10px] text-gray-400 flex items-center gap-1">
+                    <div className="text-xs text-gray-400 flex items-center gap-1">
                       <TrendingUp size={10} /> M. Bruta
                     </div>
                     <div className="text-sm font-bold text-gray-900">{grossMargin.toFixed(0)}%</div>
@@ -75,13 +75,13 @@ export default function MobileBUScoreboard({ buData }: MobileBUScoreboardProps) 
                 </>
               )}
               <div>
-                <div className="text-[10px] text-gray-400 flex items-center gap-1">
+                <div className="text-xs text-gray-400 flex items-center gap-1">
                   <ArrowUpRight size={10} /> Lucro Líq.
                 </div>
                 <div className="text-sm font-bold text-gray-900">{fmtR(bu.netIncome)}</div>
               </div>
               <div>
-                <div className="text-[10px] text-gray-400 flex items-center gap-1">
+                <div className="text-xs text-gray-400 flex items-center gap-1">
                   <Users size={10} /> ROIC
                 </div>
                 <div className={`text-sm font-bold ${bu.roic >= 30 ? "text-emerald-600" : bu.roic >= 15 ? "text-amber-700" : "text-red-600"}`}>

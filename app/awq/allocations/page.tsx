@@ -56,7 +56,7 @@ export default async function AwqAllocationsPage() {
               <p className="text-xs font-semibold text-amber-800">
                 Capital alocado, ROIC e Cash Gerado são dados de planejamento (snapshot).
               </p>
-              <p className="text-[11px] text-amber-600 mt-0.5">
+              <p className="text-xs text-amber-600 mt-0.5">
                 Não derivados da base bancária. Para fluxo de caixa real por entidade, acesse{" "}
                 <a href="/awq/cashflow" className="underline font-medium">/awq/cashflow</a>{" "}
                 ou{" "}
@@ -123,8 +123,8 @@ export default async function AwqAllocationsPage() {
                   <div className="text-xs font-medium text-gray-400 mt-0.5">{card.label}</div>
                   <div className="flex items-center gap-1 mt-1">
                     <ArrowUpRight size={11} className="text-emerald-600" />
-                    <span className="text-[10px] font-semibold text-emerald-600">{card.delta}</span>
-                    <span className="text-[10px] text-gray-400">{card.sub}</span>
+                    <span className="text-xs font-semibold text-emerald-600">{card.delta}</span>
+                    <span className="text-xs text-gray-400">{card.sub}</span>
                   </div>
                 </div>
               </div>
@@ -139,15 +139,15 @@ export default async function AwqAllocationsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200">
-                  <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">BU</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Capital Alocado</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">% do Total</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Lucro Líq. YTD</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">ROIC</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Payback (est.)</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Cash Gen.</th>
-                  <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Flag</th>
-                  <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Drill</th>
+                  <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">BU</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Capital Alocado</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">% do Total</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Lucro Líq. YTD</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">ROIC</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Payback (est.)</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Cash Gen.</th>
+                  <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Flag</th>
+                  <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Drill</th>
                 </tr>
               </thead>
               <tbody>
@@ -163,7 +163,7 @@ export default async function AwqAllocationsPage() {
                           <div className={`w-2 h-2 rounded-full ${bu.color}`} />
                           <span className={`text-xs font-bold ${bu.accentColor}`}>{bu.name}</span>
                         </div>
-                        <div className="text-[10px] text-gray-400 ml-4">{bu.sub.split(" · ")[0]}</div>
+                        <div className="text-xs text-gray-400 ml-4">{bu.sub.split(" · ")[0]}</div>
                       </td>
                       <td className="py-2.5 px-3 text-right text-xs font-semibold text-gray-900">{fmtR(bu.capitalAllocated)}</td>
                       <td className="py-2.5 px-3 text-right text-xs text-gray-500">{share.toFixed(0)}%</td>
@@ -187,7 +187,7 @@ export default async function AwqAllocationsPage() {
                         </span>
                       </td>
                       <td className="py-2.5 px-3">
-                        <Link href={bu.hrefFinancial} className="text-[10px] text-brand-600 hover:text-brand-500 flex items-center gap-0.5 transition-colors">
+                        <Link href={bu.hrefFinancial} className="text-xs text-brand-600 hover:text-brand-500 flex items-center gap-0.5 transition-colors">
                           Detalhe <ChevronRight size={10} />
                         </Link>
                       </td>
@@ -217,7 +217,7 @@ export default async function AwqAllocationsPage() {
                       <span className="text-sm font-bold text-gray-400 w-5 shrink-0">#{i + 1}</span>
                       <div className={`w-2 h-2 rounded-full ${bu.color} shrink-0`} />
                       <span className="text-xs text-gray-400 flex-1">{bu.name}</span>
-                      <span className={`text-[10px] font-bold ${flagCfg.color}`}>{flagCfg.label}</span>
+                      <span className={`text-xs font-bold ${flagCfg.color}`}>{flagCfg.label}</span>
                       <span className={`text-xs font-bold ${bu.accentColor}`}>{ranking.getValue(bu)}</span>
                     </div>
                   );
@@ -242,14 +242,14 @@ export default async function AwqAllocationsPage() {
                       <div className="flex items-center gap-2">
                         <div className={`w-2 h-2 rounded-full ${bu.color}`} />
                         <span className="text-xs text-gray-500">{bu.name}</span>
-                        <span className={`text-[10px] font-bold ${flagCfg.color}`}>{flagCfg.label}</span>
+                        <span className={`text-xs font-bold ${flagCfg.color}`}>{flagCfg.label}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className={`text-xs font-bold ${bu.roic >= 30 ? "text-emerald-600" : "text-amber-700"}`}>
                           ROIC {bu.roic.toFixed(0)}%
                         </span>
                         <span className="text-xs text-gray-900 font-semibold">{fmtR(bu.capitalAllocated)}</span>
-                        <span className="text-[10px] text-gray-400">{share.toFixed(0)}%</span>
+                        <span className="text-xs text-gray-400">{share.toFixed(0)}%</span>
                       </div>
                     </div>
                     <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
@@ -268,10 +268,10 @@ export default async function AwqAllocationsPage() {
                 return (
                   <div key={key} className={`p-3 rounded-lg ${cfg.bg}`}>
                     <div className={`text-xs font-bold ${cfg.color} mb-1`}>{cfg.label}</div>
-                    <div className="text-[11px] text-gray-500">
+                    <div className="text-xs text-gray-500">
                       {busWithFlag.map((b) => b.name).join(", ")}
                     </div>
-                    <div className={`text-[10px] mt-1 ${cfg.color} opacity-70`}>
+                    <div className={`text-xs mt-1 ${cfg.color} opacity-70`}>
                       Capital: {fmtR(busWithFlag.reduce((s, b) => s + b.capitalAllocated, 0))}
                     </div>
                   </div>

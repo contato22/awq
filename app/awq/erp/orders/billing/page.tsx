@@ -50,7 +50,7 @@ export default function BillingPage() {
               <thead className="bg-gray-50">
                 <tr>
                   {["Nº NF", "Pedido", "Cliente", "Data Emissão", "Valor", "Status"].map((h) => (
-                    <th key={h} className="px-4 py-3 text-left text-[10px] font-semibold text-gray-500 uppercase whitespace-nowrap">{h}</th>
+                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase whitespace-nowrap tracking-wide">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -73,7 +73,7 @@ export default function BillingPage() {
 
         <div className="flex flex-wrap gap-2">
           {Object.entries(STATUS_BADGE).map(([status, cls]) => (
-            <span key={status} className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${cls}`}>{status}</span>
+            <span key={status} className={`px-2 py-0.5 rounded-full text-xs font-semibold ${cls}`}>{status}</span>
           ))}
         </div>
       </div>

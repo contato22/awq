@@ -30,9 +30,9 @@ function UtilCard({ row }: { row: UtilRow }) {
       <div className="flex items-start justify-between mb-3">
         <div>
           <div className="text-sm font-bold text-gray-900">{row.user_name}</div>
-          {row.email && <div className="text-[10px] text-gray-400">{row.email}</div>}
+          {row.email && <div className="text-xs text-gray-400">{row.email}</div>}
         </div>
-        <span className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${cfg.bg} ${cfg.color}`}>
+        <span className={`flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full border ${cfg.bg} ${cfg.color}`}>
           <Icon size={10} /> {cfg.label}
         </span>
       </div>
@@ -52,7 +52,7 @@ function UtilCard({ row }: { row: UtilRow }) {
         </div>
       </div>
 
-      <div className="text-[10px] text-gray-500 space-y-1">
+      <div className="text-xs text-gray-500 space-y-1">
         <div><span className="font-semibold text-gray-700">{row.active_projects}</span> projeto(s) ativo(s)</div>
         {row.project_names?.slice(0, 3).map(name => (
           <div key={name} className="truncate text-gray-400">· {name}</div>
@@ -287,7 +287,7 @@ export default function ResourcesPage() {
               <thead className="bg-gray-50">
                 <tr>
                   {["Pessoa","Projeto","Role","Alocação","Horas/sem","Período","Taxa Billable","Status"].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-[10px] font-semibold text-gray-500 uppercase whitespace-nowrap">{h}</th>
+                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase whitespace-nowrap tracking-wide">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -314,7 +314,7 @@ export default function ResourcesPage() {
                       {a.billable_rate ? `R$${a.billable_rate}/h` : "—"}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${a.status === "active" ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-500"}`}>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${a.status === "active" ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-500"}`}>
                         {a.status}
                       </span>
                     </td>

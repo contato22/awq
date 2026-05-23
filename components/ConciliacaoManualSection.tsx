@@ -328,12 +328,12 @@ export default function ConciliacaoManualSection() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-200">
-                <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Data</th>
-                <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Descrição</th>
-                <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Extrato Banco</th>
-                <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Lançamento Interno</th>
-                <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Diferença</th>
-                <th className="text-center py-2 px-3 text-xs font-semibold text-gray-500">Status</th>
+                <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Data</th>
+                <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Descrição</th>
+                <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Extrato Banco</th>
+                <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Lançamento Interno</th>
+                <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Diferença</th>
+                <th className="text-center py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
                 <th className="py-2 px-2" />
               </tr>
             </thead>
@@ -349,7 +349,7 @@ export default function ConciliacaoManualSection() {
                     <td className={`py-2.5 px-3 text-right text-xs font-medium ${entry.internalValue >= 0 ? "text-emerald-600" : "text-red-600"}`}>{fmtBRL(entry.internalValue)}</td>
                     <td className={`py-2.5 px-3 text-right text-xs font-semibold ${dif === 0 ? "text-gray-400" : "text-red-600"}`}>{dif === 0 ? "—" : fmtBRL(dif)}</td>
                     <td className="py-2.5 px-3 text-center">
-                      <button onClick={() => cycleStatus(entry.id)} className={`inline-flex items-center gap-1 text-[10px] font-semibold border rounded px-1.5 py-0.5 transition-opacity hover:opacity-70 ${STATUS_COLOR[entry.status]}`} title="Clique para alterar status">
+                      <button onClick={() => cycleStatus(entry.id)} className={`inline-flex items-center gap-1 text-xs font-semibold border rounded px-1.5 py-0.5 transition-opacity hover:opacity-70 ${STATUS_COLOR[entry.status]}`} title="Clique para alterar status">
                         <Icon size={9} />{STATUS_LABEL[entry.status]}
                       </button>
                     </td>
@@ -443,7 +443,7 @@ function ImportResultPanel({
         <div className="overflow-x-auto rounded border border-emerald-200 bg-white text-xs">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-emerald-100 text-[10px] uppercase tracking-wide text-gray-500">
+              <tr className="border-b border-emerald-100 text-xs uppercase tracking-wide text-gray-500">
                 <th className="px-3 py-1.5 text-left">Data</th>
                 <th className="px-3 py-1.5 text-left">Descrição</th>
                 <th className="px-3 py-1.5 text-right">Valor Banco</th>
@@ -462,7 +462,7 @@ function ImportResultPanel({
             </tbody>
           </table>
           {ok > 5 && (
-            <div className="px-3 py-1.5 text-[10px] text-gray-400 border-t border-gray-100">
+            <div className="px-3 py-1.5 text-xs text-gray-400 border-t border-gray-100">
               … e mais {ok - 5} transaç{ok - 5 === 1 ? "ão" : "ões"}
             </div>
           )}
@@ -474,7 +474,7 @@ function ImportResultPanel({
         <div>
           <button
             onClick={onToggleRejected}
-            className="flex items-center gap-1 text-[11px] text-amber-700 hover:text-amber-900"
+            className="flex items-center gap-1 text-xs text-amber-700 hover:text-amber-900"
           >
             {showRejected ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
             {bad} linha{bad === 1 ? "" : "s"} não reconhecida{bad === 1 ? "" : "s"}
@@ -482,7 +482,7 @@ function ImportResultPanel({
           {showRejected && (
             <div className="mt-2 max-h-32 overflow-y-auto rounded bg-amber-100 border border-amber-200 px-3 py-2 space-y-0.5">
               {result.rejectedRows.map((r, i) => (
-                <p key={i} className="text-[10px] font-mono text-amber-900 truncate">{r}</p>
+                <p key={i} className="text-xs font-mono text-amber-900 truncate">{r}</p>
               ))}
             </div>
           )}

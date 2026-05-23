@@ -290,8 +290,8 @@ export default async function BoardPackPage() {
                     <div className="text-xs text-gray-400 mt-0.5">{init.update}</div>
                   </div>
                   <div className="text-right shrink-0">
-                    <div className="text-[10px] text-gray-400">{init.owner}</div>
-                    <div className="text-[10px] text-gray-400">{init.deadline}</div>
+                    <div className="text-xs text-gray-400">{init.owner}</div>
+                    <div className="text-xs text-gray-400">{init.deadline}</div>
                   </div>
                 </div>
               );

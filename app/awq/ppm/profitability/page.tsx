@@ -109,7 +109,7 @@ export default function ProfitabilityPage() {
 
   const SortHeader = ({ col, label }: { col: keyof ProfitRow; label: string }) => (
     <th
-      className="px-4 py-3 text-left text-[10px] font-semibold text-gray-500 uppercase cursor-pointer hover:text-gray-700 whitespace-nowrap select-none"
+      className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase cursor-pointer hover:text-gray-700 whitespace-nowrap select-none"
       onClick={() => toggleSort(col)}
     >
       {label}{sort === col ? (asc ? " ▲" : " ▼") : ""}
@@ -173,8 +173,8 @@ export default function ProfitabilityPage() {
             <table className="min-w-full divide-y divide-gray-100">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-[10px] font-semibold text-gray-500 uppercase">Projeto</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-semibold text-gray-500 uppercase">BU</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Projeto</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">BU</th>
                   <SortHeader col="budget_revenue"   label="Rev. Budget"   />
                   <SortHeader col="actual_revenue"   label="Rev. Realiz."  />
                   <SortHeader col="budget_margin_pct" label="Margem %"     />
@@ -195,10 +195,10 @@ export default function ProfitabilityPage() {
                         <Link href={`/awq/ppm/${row.project_id}`} className="text-sm font-semibold text-gray-900 hover:text-brand-600 block">
                           {row.project_name}
                         </Link>
-                        <div className="text-[10px] text-gray-400">{row.project_code}</div>
+                        <div className="text-xs text-gray-400">{row.project_code}</div>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${BU_CHIP[row.bu_code] ?? "bg-gray-100 text-gray-600"}`}>{row.bu_code}</span>
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${BU_CHIP[row.bu_code] ?? "bg-gray-100 text-gray-600"}`}>{row.bu_code}</span>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-700">{formatBRL(row.budget_revenue)}</td>
                       <td className="px-4 py-3 text-sm text-gray-700">{row.actual_revenue > 0 ? formatBRL(row.actual_revenue) : <span className="text-gray-300">—</span>}</td>

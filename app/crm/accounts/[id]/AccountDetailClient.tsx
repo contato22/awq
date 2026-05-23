@@ -106,7 +106,7 @@ export default function AccountDetailClient() {
                   {account.trade_name && account.trade_name !== account.account_name && (
                     <p className="text-xs text-gray-500">{account.trade_name}</p>
                   )}
-                  <span className={`mt-1 inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                  <span className={`mt-1 inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${
                     account.account_type === "customer" ? "bg-emerald-50 text-emerald-700" :
                     account.account_type === "prospect" ? "bg-blue-50 text-blue-700" : "bg-gray-100 text-gray-600"
                   }`}>
@@ -200,7 +200,7 @@ export default function AccountDetailClient() {
                             <p className="text-xs font-semibold text-gray-900">{c.full_name}</p>
                             {c.is_primary_contact && <span className="text-[9px] font-bold bg-brand-100 text-brand-700 px-1.5 py-0.5 rounded-full">Principal</span>}
                           </div>
-                          <p className="text-[11px] text-gray-500">{c.job_title ?? "—"}</p>
+                          <p className="text-xs text-gray-500">{c.job_title ?? "—"}</p>
                         </div>
                         <div className="flex gap-2 shrink-0">
                           {c.email && <a href={`mailto:${c.email}`} className="text-gray-400 hover:text-blue-500"><Mail size={14} /></a>}
@@ -223,11 +223,11 @@ export default function AccountDetailClient() {
                       <div key={o.opportunity_id} className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100">
                         <div>
                           <p className="text-xs font-semibold text-gray-900">{o.opportunity_name}</p>
-                          <p className="text-[10px] text-gray-500">{o.owner} · {formatDateBR(o.expected_close_date)}</p>
+                          <p className="text-xs text-gray-500">{o.owner} · {formatDateBR(o.expected_close_date)}</p>
                         </div>
                         <div className="text-right">
                           <p className="text-sm font-bold text-gray-900">{formatBRL(o.deal_value)}</p>
-                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${STAGE_COLORS[o.stage] ?? "bg-gray-100 text-gray-600"}`}>
+                          <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${STAGE_COLORS[o.stage] ?? "bg-gray-100 text-gray-600"}`}>
                             {STAGE_PT[o.stage] ?? o.stage}
                           </span>
                         </div>
@@ -256,9 +256,9 @@ export default function AccountDetailClient() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-medium text-gray-900">{a.subject}</p>
-                          {a.description && <p className="text-[11px] text-gray-500 line-clamp-1">{a.description}</p>}
+                          {a.description && <p className="text-xs text-gray-500 line-clamp-1">{a.description}</p>}
                         </div>
-                        <span className="text-[10px] text-gray-400 shrink-0 whitespace-nowrap">{formatDateBR(a.completed_at ?? a.created_at)}</span>
+                        <span className="text-xs text-gray-400 shrink-0 whitespace-nowrap">{formatDateBR(a.completed_at ?? a.created_at)}</span>
                       </div>
                     ))}
                   </div>
