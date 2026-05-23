@@ -7,8 +7,8 @@ import {
 } from "recharts";
 import type { BankTransaction } from "@/lib/financial-db";
 import {
-  ArrowDownLeft, ArrowUpRight, FileUp, RefreshCw,
-  TrendingDown, TrendingUp,
+  ArrowDownLeft, ArrowUpRight, ChevronDown,
+  FileUp, RefreshCw, TrendingDown, TrendingUp,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -33,8 +33,8 @@ interface Props {
 
 type Period = "14d" | "30d" | "3m";
 
-interface FlowRow { label: string; cd: number; ci: number; saldo: number }
-interface FlowResult { data: FlowRow[]; totCD: number; totCI: number; saldoFinal: number }
+interface FlowRow  { label: string; cd: number; ci: number; saldo: number }
+interface FlowResult { data: FlowRow[]; totCD: number; totCI: number; saldoFinal: number; hasData: boolean }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -44,9 +44,9 @@ function fmtBRL(v: number) {
 
 function fmtK(v: number) {
   const abs = Math.abs(v);
-  if (abs >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
-  if (abs >= 1_000)     return `${Math.round(v / 1000)}k`;
-  return String(Math.round(v));
+  if (abs >= 1_000_000) return `R$${(v / 1_000_000).toFixed(1)}M`;
+  if (abs >= 1_000)     return `R$${Math.round(v / 1000)}k`;
+  return `R$${Math.round(v)}`;
 }
 
 function today() { return new Date().toISOString().slice(0, 10); }
@@ -70,7 +70,7 @@ function buildFlow(txns: BankTransaction[], period: Period): FlowResult {
     else                          { row.ci += t.amount; totCI += t.amount; }
   }
 
-  // 3m → aggregate by ISO week for a cleaner chart
+  // 3m → aggregate by ISO week
   if (period === "3m") {
     const wkMap = new Map<string, { cd: number; ci: number }>();
     for (const [date, v] of dayMap.entries()) {
@@ -88,28 +88,34 @@ function buildFlow(txns: BankTransaction[], period: Period): FlowResult {
       const [, m, d] = key.split("-");
       return { label: `${d}/${m}`, cd: Math.round(w.cd), ci: Math.round(w.ci), saldo: Math.round(running) };
     });
-    return { data, totCD, totCI, saldoFinal: running };
+    return { data, totCD, totCI, saldoFinal: running, hasData: totCD + totCI > 0 };
   }
 
-  // Daily — for 30d skip intermediate labels to avoid crowding
+  // Daily
   const step = period === "30d" ? 5 : 1;
   let running = 0;
-  const data: FlowRow[] = Array.from(dayMap.entries()).map(([date, v], idx) => {
+  const entries = Array.from(dayMap.entries());
+  const data: FlowRow[] = entries.map(([date, v], idx) => {
     running += v.cd - v.ci;
     const [, m, d] = date.split("-");
     return {
-      label: idx % step === 0 || idx === dayMap.size - 1 ? `${d}/${m}` : "",
-      cd:    Math.round(v.cd),
-      ci:    Math.round(v.ci),
-      saldo: Math.round(running),
+      label: idx % step === 0 || idx === entries.length - 1 ? `${d}/${m}` : "",
+      cd: Math.round(v.cd), ci: Math.round(v.ci), saldo: Math.round(running),
     };
   });
-  return { data, totCD, totCI, saldoFinal: running };
+  return { data, totCD, totCI, saldoFinal: running, hasData: totCD + totCI > 0 };
+}
+
+// Auto-detect the best period given available transactions
+function bestPeriod(txns: BankTransaction[]): Period {
+  if (buildFlow(txns, "14d").hasData) return "14d";
+  if (buildFlow(txns, "30d").hasData) return "30d";
+  return "3m";
 }
 
 const ACCOUNTS_CFG = [
-  { key: "AWQ_Holding", name: "Conta PJ AWQ Holding", subtitle: "AWQ Holding", initials: "AWQ", bgClass: "bg-brand-600" },
-  { key: "ENERDY",      name: "Cora Enerdy",           subtitle: "BU ENRD",     initials: "ENRD", bgClass: "bg-violet-600" },
+  { key: "AWQ_Holding", name: "Conta PJ AWQ Holding", subtitle: "AWQ Holding",               initials: "AWQ",  bgClass: "bg-brand-600"  },
+  { key: "ENERDY",      name: "Cora Enerdy",           subtitle: "Banco Integrado · BU ENRD", initials: "ENRD", bgClass: "bg-violet-600" },
 ];
 
 const PERIODS: { key: Period; label: string }[] = [
@@ -123,23 +129,23 @@ const PERIODS: { key: Period; label: string }[] = [
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function ChartTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
-  const lookup: Record<string, { name: string; color: string }> = {
-    cd:    { name: "Créditos (CD)", color: "#10b981" },
-    ci:    { name: "Débitos (CI)",  color: "#ef4444" },
-    saldo: { name: "Saldo",         color: "#3b82f6" },
+  const meta: Record<string, { name: string; color: string }> = {
+    saldo: { name: "Saldo",          color: "#d97706" },
+    cd:    { name: "Créditos (CD)",  color: "#10b981" },
+    ci:    { name: "Débitos (CI)",   color: "#ef4444" },
   };
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-lg text-xs min-w-[176px]">
+    <div className="rounded-xl border border-amber-100 bg-white/95 backdrop-blur-sm p-3 shadow-xl text-xs min-w-[180px]">
       <p className="font-bold text-gray-700 border-b border-gray-100 pb-1.5 mb-1.5">{label}</p>
       {(payload as { dataKey: string; value: number }[]).map((p) => {
-        const meta = lookup[p.dataKey] ?? { name: p.dataKey, color: "#6b7280" };
+        const m = meta[p.dataKey] ?? { name: p.dataKey, color: "#6b7280" };
         return (
           <div key={p.dataKey} className="flex items-center justify-between gap-4 py-0.5">
             <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full shrink-0" style={{ background: meta.color }} />
-              <span className="text-gray-500">{meta.name}</span>
+              <span className="w-2 h-2 rounded-full shrink-0" style={{ background: m.color }} />
+              <span className="text-gray-500">{m.name}</span>
             </div>
-            <span className="font-semibold tabular-nums text-gray-800">{fmtBRL(p.value)}</span>
+            <span className="font-bold tabular-nums" style={{ color: m.color }}>{fmtBRL(p.value)}</span>
           </div>
         );
       })}
@@ -152,11 +158,17 @@ function ChartTooltip({ active, payload, label }: any) {
 export default function FinancialOverview({ transactions, arPending, coraConfigured }: Props) {
   const todayStr = today();
 
-  const [period, setPeriod]       = useState<Period>("14d");
-  const [hidden, setHidden]       = useState<Set<string>>(new Set());
-  const [accounts, setAccounts]   = useState<AccountInfo[]>(
+  // Auto-select period with data on first render
+  const [period, setPeriod] = useState<Period>(() => bestPeriod(transactions));
+  const [hidden,  setHidden] = useState<Set<string>>(new Set());
+  const [accounts, setAccounts] = useState<AccountInfo[]>(
     ACCOUNTS_CFG.map((a) => ({ ...a, balance: null, loading: coraConfigured, error: null }))
   );
+
+  // Re-run auto-detection when transactions change (e.g. after Cora sync)
+  useEffect(() => {
+    setPeriod(bestPeriod(transactions));
+  }, [transactions]);
 
   const loadBalance = useCallback(async (key: string) => {
     try {
@@ -182,26 +194,34 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
   const recebimentosHoje = transactions
     .filter((t) => t.transactionDate === todayStr && t.direction === "credit" && t.reconciliationStatus !== "descartado")
     .reduce((s, t) => s + t.amount, 0);
+
   const pagamentosHoje = transactions
     .filter((t) => t.transactionDate === todayStr && t.direction === "debit" && t.reconciliationStatus !== "descartado")
     .reduce((s, t) => s + t.amount, 0);
-  const restanteMesAR     = arPending.reduce((s, i) => s + i.net_amount, 0);
-  const overdueAR         = arPending.filter((i) => i.due_date < todayStr).reduce((s, i) => s + i.net_amount, 0);
+
+  const restanteMesAR = arPending.reduce((s, i) => s + i.net_amount, 0);
+
+  const overdueAR = arPending
+    .filter((i) => i.due_date < todayStr)
+    .reduce((s, i) => s + i.net_amount, 0);
+
   const pendingDebitsMonth = transactions
     .filter((t) => {
       const [y, m] = t.transactionDate.split("-");
       const now = new Date();
-      return parseInt(y) === now.getFullYear() && parseInt(m) === now.getMonth() + 1
+      return (
+        parseInt(y) === now.getFullYear() && parseInt(m) === now.getMonth() + 1
         && t.direction === "debit"
         && t.reconciliationStatus !== "conciliado"
-        && t.reconciliationStatus !== "descartado";
+        && t.reconciliationStatus !== "descartado"
+      );
     })
     .reduce((s, t) => s + t.amount, 0);
 
   const totalBalance = accounts.reduce((s, a) => s + (a.balance ?? 0), 0);
   const anyLoading   = accounts.some((a) => a.loading);
 
-  const { data: flowData, totCD, totCI, saldoFinal } = useMemo(
+  const { data: flowData, totCD, totCI, saldoFinal, hasData } = useMemo(
     () => buildFlow(transactions, period),
     [transactions, period]
   );
@@ -226,11 +246,145 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
   return (
     <div className="space-y-4">
 
-      {/* ── 1. Fluxo de Caixa diário — full width, first ──────────────────── */}
-      <div className="rounded-xl border border-gray-200 bg-white p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold text-gray-800">Fluxo de Caixa diário</h3>
-          <span className="text-xs text-gray-400">Últimos 14 dias</span>
+      {/* ── 1. Fluxo de Caixa — JP Morgan style ──────────────────────────── */}
+      <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+
+        {/* Filter pill bar */}
+        <div className="flex flex-wrap items-center gap-2 px-5 pt-4 pb-3">
+          <span className="text-sm font-bold text-gray-900 mr-1">Fluxo de Caixa</span>
+          <div className="w-px h-4 bg-gray-200 mx-1" />
+          {PERIODS.map((p) => (
+            <button
+              key={p.key}
+              onClick={() => setPeriod(p.key)}
+              className={`flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-semibold border transition-all ${
+                period === p.key
+                  ? "border-amber-400 bg-amber-50 text-amber-800"
+                  : "border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700"
+              }`}
+            >
+              {p.label}
+              <ChevronDown size={10} />
+            </button>
+          ))}
+          <div className="ml-auto flex items-center gap-3">
+            {[
+              { key: "saldo", label: "Saldo",    color: "#d97706" },
+              { key: "cd",    label: "Créditos", color: "#10b981" },
+              { key: "ci",    label: "Débitos",  color: "#ef4444" },
+            ].map((s) => (
+              <button
+                key={s.key}
+                onClick={() => toggle(s.key)}
+                className={`flex items-center gap-1.5 text-[11px] font-medium transition-opacity ${hidden.has(s.key) ? "opacity-30" : "opacity-100"}`}
+              >
+                <span className="w-2.5 h-2.5 rounded-sm" style={{ background: s.color }} />
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* KPI row */}
+        <div className="grid grid-cols-3 divide-x divide-gray-100 border-t border-b border-gray-100">
+          {[
+            { key: "cd",    label: "CD — Créditos", value: totCD,      colorClass: "text-emerald-600", dotColor: "#10b981" },
+            { key: "ci",    label: "CI — Débitos",  value: totCI,      colorClass: "text-red-600",     dotColor: "#ef4444" },
+            { key: "saldo", label: "Saldo líquido", value: saldoFinal,
+              colorClass: saldoFinal >= 0 ? "text-amber-700" : "text-red-600", dotColor: "#d97706" },
+          ].map((k) => (
+            <button
+              key={k.key}
+              onClick={() => toggle(k.key)}
+              className={`px-5 py-3 text-left hover:bg-gray-50 transition-opacity ${hidden.has(k.key) ? "opacity-40" : ""}`}
+              title={hidden.has(k.key) ? "Mostrar série" : "Ocultar série"}
+            >
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: k.dotColor }} />
+                <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">{k.label}</span>
+                {k.key === "saldo" && netPct && (
+                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ml-1 ${netVariation >= 0 ? "bg-amber-50 text-amber-700" : "bg-red-50 text-red-600"}`}>
+                    {netVariation >= 0 ? "+" : ""}{netPct}%
+                  </span>
+                )}
+              </div>
+              <p className={`text-base font-bold tabular-nums ${k.colorClass}`}>{fmtBRL(k.value)}</p>
+            </button>
+          ))}
+        </div>
+
+        {/* Chart — JP Morgan golden style */}
+        <div className="bg-[#fdfcfa] px-3 pb-4 pt-3">
+          {!hasData ? (
+            <div className="h-[220px] flex flex-col items-center justify-center gap-2 text-gray-400">
+              <span className="text-2xl">📊</span>
+              <p className="text-sm font-medium text-gray-500">Sem movimentações no período selecionado</p>
+              {period !== "3m" && (
+                <p className="text-xs">
+                  Tente{" "}
+                  <button onClick={() => setPeriod("3m")} className="underline text-amber-600 font-semibold">
+                    3 meses
+                  </button>
+                  {" "}ou verifique a sincronização Cora
+                </p>
+              )}
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={220}>
+              <AreaChart data={flowData} margin={{ top: 8, right: 4, bottom: 0, left: 4 }}>
+                <defs>
+                  <linearGradient id="gradSaldoGold" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%"   stopColor="#f59e0b" stopOpacity={0.75} />
+                    <stop offset="60%"  stopColor="#fbbf24" stopOpacity={0.35} />
+                    <stop offset="100%" stopColor="#fef3c7" stopOpacity={0.05} />
+                  </linearGradient>
+                  <linearGradient id="gradCDGreen" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%"   stopColor="#10b981" stopOpacity={0.3} />
+                    <stop offset="100%" stopColor="#10b981" stopOpacity={0.02} />
+                  </linearGradient>
+                  <linearGradient id="gradCIRed" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%"   stopColor="#ef4444" stopOpacity={0.25} />
+                    <stop offset="100%" stopColor="#ef4444" stopOpacity={0.02} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="" stroke="#ede9df" strokeWidth={0.8} vertical={false} />
+                <XAxis
+                  dataKey="label"
+                  tick={{ fontSize: 10, fill: "#a8a29e" }}
+                  axisLine={false}
+                  tickLine={false}
+                  interval="preserveStartEnd"
+                />
+                <YAxis
+                  tick={{ fontSize: 10, fill: "#a8a29e" }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={fmtK}
+                  width={52}
+                />
+                <Tooltip
+                  content={<ChartTooltip />}
+                  cursor={{ stroke: "#d97706", strokeWidth: 1, strokeDasharray: "4 4" }}
+                />
+                {!hidden.has("cd") && (
+                  <Area type="monotone" dataKey="cd" name="cd"
+                    stroke="#10b981" strokeWidth={1.5} fill="url(#gradCDGreen)"
+                    dot={false} activeDot={{ r: 4, fill: "#10b981", strokeWidth: 0 }} />
+                )}
+                {!hidden.has("ci") && (
+                  <Area type="monotone" dataKey="ci" name="ci"
+                    stroke="#ef4444" strokeWidth={1.5} fill="url(#gradCIRed)"
+                    dot={false} activeDot={{ r: 4, fill: "#ef4444", strokeWidth: 0 }} />
+                )}
+                {/* Saldo — golden, primary (rendered last = on top) */}
+                {!hidden.has("saldo") && (
+                  <Area type="monotone" dataKey="saldo" name="saldo"
+                    stroke="#d97706" strokeWidth={2} fill="url(#gradSaldoGold)"
+                    dot={false} activeDot={{ r: 5, fill: "#d97706", strokeWidth: 2, stroke: "#fff" }} />
+                )}
+              </AreaChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </div>
 
@@ -258,22 +412,18 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
             )}
             {txAccounts.map((acc) => {
               const coraAcc = accounts.find((a) => a.key === acc.entity);
-              const initials =
-                acc.entity === "ENERDY" ? "ENRD" :
-                acc.entity === "JACQES" ? "JCQ"  : "AWQ";
-              const bg =
-                acc.entity === "ENERDY" ? "bg-violet-600" :
-                acc.entity === "JACQES" ? "bg-emerald-600" : "bg-brand-600";
+              const initials = acc.entity === "ENERDY" ? "ENRD" : acc.entity === "JACQES" ? "JCQ" : "AWQ";
+              const bg = acc.entity === "ENERDY" ? "bg-violet-600" : acc.entity === "JACQES" ? "bg-emerald-600" : "bg-brand-600";
               const label = (acc.name ?? acc.bank ?? "").replace(/^Conta\s+PJ\s+/i, "").trim();
               return (
                 <div key={`${acc.bank}::${acc.name}`} className="rounded-lg border border-gray-100 p-3 space-y-2 hover:border-gray-200 transition-colors">
                   <div className="flex items-center gap-2.5">
-                    <span className={`w-8 h-8 rounded-lg ${bg} flex items-center justify-center text-xs font-bold text-white tracking-wide shrink-0`}>
+                    <span className={`w-8 h-8 rounded-lg ${bg} flex items-center justify-center text-[10px] font-bold text-white tracking-wide shrink-0`}>
                       {initials}
                     </span>
                     <div className="min-w-0 flex-1">
                       <div className="text-xs font-semibold text-gray-900 truncate">{label}</div>
-                      <div className="text-xs text-gray-400">{acc.bank}</div>
+                      <div className="text-[10px] text-gray-400">{acc.bank}</div>
                     </div>
                     {coraAcc && !coraAcc.loading && coraAcc.balance !== null && (
                       <span className="text-sm font-bold text-gray-900 tabular-nums shrink-0">
@@ -284,23 +434,10 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
                       <span className="text-[10px] text-gray-400 animate-pulse shrink-0">…</span>
                     )}
                   </div>
-                  <button className="flex items-center gap-1 text-xs text-brand-600 hover:text-brand-700 hover:underline transition-colors">
+                  <button className="flex items-center gap-1 text-[11px] text-brand-600 hover:text-brand-700 hover:underline transition-colors">
                     <FileUp size={11} />
                     Importe seu extrato
                   </button>
-                  {coraAcc && (
-                    <div className="flex justify-end">
-                      {coraAcc.loading ? (
-                        <span className="text-xs text-gray-400 animate-pulse">Carregando…</span>
-                      ) : coraAcc.error ? (
-                        <span className="text-xs text-gray-400 italic">Saldo indisponível</span>
-                      ) : coraAcc.balance !== null ? (
-                        <span className="text-sm font-bold text-gray-900 tabular-nums">
-                          {fmtBRL(coraAcc.balance)}
-                        </span>
-                      ) : null}
-                    </div>
-                  )}
                 </div>
               );
             })}
@@ -316,13 +453,12 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
 
         {/* RIGHT: AR/AP + Em atraso */}
         <div className="space-y-4">
-
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* A receber hoje */}
+
             <div className="rounded-xl border border-gray-200 bg-white p-4 space-y-2">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-semibold text-gray-700">A receber hoje</p>
-                <span className="flex items-center gap-1 text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
                   <ArrowUpRight size={10} /> CD
                 </span>
               </div>
@@ -332,18 +468,19 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
                 <p className="text-sm text-gray-400 italic pt-1">Sem recebimentos hoje</p>
               )}
               {restanteMesAR > 0 && (
-                <p className="text-xs text-gray-500">Restante do mês: <span className="font-semibold">{fmtBRL(restanteMesAR)}</span></p>
+                <p className="text-[11px] text-gray-500">
+                  Restante do mês: <span className="font-semibold text-gray-700">{fmtBRL(restanteMesAR)}</span>
+                </p>
               )}
               <button className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-colors">
                 <ArrowUpRight size={12} /> Novo Recebimento
               </button>
             </div>
 
-            {/* A pagar hoje */}
             <div className="rounded-xl border border-gray-200 bg-white p-4 space-y-2">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-semibold text-gray-700">A pagar hoje</p>
-                <span className="flex items-center gap-1 text-[10px] font-semibold text-red-600 bg-red-50 px-2 py-0.5 rounded-full">
+                <span className="flex items-center gap-1 text-[10px] font-bold text-red-700 bg-red-50 px-2 py-0.5 rounded-full">
                   <ArrowDownLeft size={10} /> CI
                 </span>
               </div>
@@ -353,7 +490,9 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
                 <p className="text-sm text-gray-400 italic pt-1">Contas em dia</p>
               )}
               {pendingDebitsMonth > 0 && (
-                <p className="text-xs text-gray-500">Restante do mês: <span className="font-semibold">{fmtBRL(pendingDebitsMonth)}</span></p>
+                <p className="text-[11px] text-gray-500">
+                  Restante do mês: <span className="font-semibold text-gray-700">{fmtBRL(pendingDebitsMonth)}</span>
+                </p>
               )}
               <button className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-xs font-semibold transition-colors">
                 <ArrowDownLeft size={12} /> Novo Pagamento
@@ -361,26 +500,26 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
             </div>
           </div>
 
-          {/* Em atraso */}
           {(overdueAR > 0 || pendingDebitsMonth > 0) && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {overdueAR > 0 && (
-                <div className="rounded-xl border border-red-100 bg-red-50/40 p-4 flex items-center justify-between">
+                <div className="rounded-xl border border-amber-100 bg-amber-50/40 p-4 flex items-center justify-between">
                   <div>
                     <p className="text-[11px] font-semibold text-gray-600">Recebimentos em atraso</p>
                     <p className="text-lg font-bold text-emerald-700 tabular-nums mt-0.5">{fmtBRL(overdueAR)}</p>
                   </div>
-                  <TrendingUp size={20} className="text-red-400 shrink-0" />
+                  <TrendingUp size={20} className="text-amber-500 shrink-0" />
                 </div>
-                <p className="text-2xl font-bold text-emerald-600 tabular-nums">{fmtBRL(overdueAR)}</p>
-              </div>
-              <div className="rounded-xl border border-red-100 bg-white p-4">
-                <div className="flex items-center justify-between mb-1">
-                  <p className="text-xs font-semibold text-gray-700">Pagamentos em atraso</p>
-                  <TrendingDown size={14} className="text-red-400" />
+              )}
+              {pendingDebitsMonth > 0 && (
+                <div className="rounded-xl border border-red-100 bg-red-50/40 p-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-[11px] font-semibold text-gray-600">Pagamentos em atraso</p>
+                    <p className="text-lg font-bold text-red-700 tabular-nums mt-0.5">{fmtBRL(pendingDebitsMonth)}</p>
+                  </div>
+                  <TrendingDown size={20} className="text-red-400 shrink-0" />
                 </div>
-                <p className="text-2xl font-bold text-red-600 tabular-nums">{fmtBRL(pendingDebitsMonth)}</p>
-              </div>
+              )}
             </div>
           )}
         </div>
