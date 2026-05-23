@@ -611,7 +611,7 @@ function NavItem({
                 "flex items-center gap-2.5 px-3 py-[7px] rounded-lg text-[13px] transition-all duration-150 group",
                 "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30",
                 active
-                    ? "bg-[#F2F2ED] text-[#000000] font-semibold"
+                    ? "bg-white text-gray-900 font-semibold shadow-sm"
                     : "text-white/70 hover:text-white hover:bg-white/[0.07] font-medium"
             )}
         >
@@ -698,7 +698,7 @@ function IconBar({
     getModuleActive: (id: string) => boolean;
 }) {
     return (
-        <div className="flex flex-col h-full w-[52px] bg-[#000000] shrink-0">
+        <div className="flex flex-col h-full w-[52px] bg-[#1b55ae] shrink-0">
             {/* Logo */}
             <div className="h-[52px] flex items-center justify-center border-b border-white/[0.06] shrink-0">
                 <Link href="/awq">
@@ -716,7 +716,7 @@ function IconBar({
                     className={cn(
                         "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                         pathname === "/awq"
-                            ? "bg-[#F2F2ED] text-[#000000]"
+                            ? "bg-white text-brand-600"
                             : "text-white/60 hover:bg-white/[0.07] hover:text-white"
                     )}
                 >
@@ -740,7 +740,7 @@ function IconBar({
                             className={cn(
                                 "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                                 isOpen
-                                    ? "bg-[#F2F2ED] text-[#000000]"
+                                    ? "bg-white text-brand-600"
                                     : modActive
                                     ? "text-white"
                                     : "text-white/60 hover:bg-white/[0.07] hover:text-white"
@@ -763,7 +763,7 @@ function IconBar({
                         className={cn(
                             "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                             activePanel === "bus"
-                                ? "bg-[#F2F2ED] text-[#000000]"
+                                ? "bg-white text-brand-600"
                                 : "text-white/60 hover:bg-white/[0.07] hover:text-white"
                         )}
                     >
@@ -777,7 +777,7 @@ function IconBar({
                         className={cn(
                             "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                             activePanel === "ai"
-                                ? "bg-[#F2F2ED] text-[#000000]"
+                                ? "bg-white text-brand-600"
                                 : "text-white/60 hover:bg-white/[0.07] hover:text-white"
                         )}
                     >
@@ -790,7 +790,7 @@ function IconBar({
                     className={cn(
                         "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                         pathname.startsWith("/settings")
-                            ? "bg-[#F2F2ED] text-[#000000]"
+                            ? "bg-white text-brand-600"
                             : "text-white/60 hover:bg-white/[0.07] hover:text-white"
                     )}
                 >
@@ -879,7 +879,7 @@ function AwqSidebar({ pathname }: { pathname: string }) {
             />
 
             {activePanel && (
-                <div className="w-[220px] bg-[#000000] flex flex-col border-r border-white/[0.06] overflow-hidden">
+                <div className="w-[220px] bg-[#1b55ae] flex flex-col border-r border-white/[0.06] overflow-hidden">
                     <PanelHeader title={panelTitle} onBack={() => setActivePanel(null)} />
 
                     <nav className="flex-1 overflow-y-auto px-2 py-2 scrollbar-none">
@@ -993,7 +993,7 @@ function BUSidebar({
     return (
         <div className="flex h-full">
             {/* Icon bar */}
-            <div className="flex flex-col h-full w-[52px] bg-[#000000] shrink-0">
+            <div className="flex flex-col h-full w-[52px] bg-[#1b55ae] shrink-0">
                 {/* BU logo */}
                 <div className="h-[52px] flex items-center justify-center border-b border-white/[0.06] shrink-0">
                     <Link href={homeHref} title={buId}>
@@ -1025,7 +1025,7 @@ function BUSidebar({
                         className={cn(
                             "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                             pathname === homeHref
-                                ? "bg-[#F2F2ED] text-[#000000]"
+                                ? "bg-white text-brand-600"
                                 : "text-white/60 hover:bg-white/[0.07] hover:text-white"
                         )}
                     >
@@ -1049,7 +1049,7 @@ function BUSidebar({
                                 className={cn(
                                     "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                                     isOpen
-                                        ? "bg-[#F2F2ED] text-[#000000]"
+                                        ? "bg-white text-brand-600"
                                         : modActive
                                         ? "text-white"
                                         : "text-white/60 hover:bg-white/[0.07] hover:text-white"
@@ -1070,7 +1070,7 @@ function BUSidebar({
                         className={cn(
                             "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                             activePanel === "ai"
-                                ? "bg-[#F2F2ED] text-[#000000]"
+                                ? "bg-white text-brand-600"
                                 : "text-white/60 hover:bg-white/[0.07] hover:text-white"
                         )}
                     >
@@ -1082,7 +1082,7 @@ function BUSidebar({
                         className={cn(
                             "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                             pathname.startsWith("/settings")
-                                ? "bg-[#F2F2ED] text-[#000000]"
+                                ? "bg-white text-brand-600"
                                 : "text-white/60 hover:bg-white/[0.07] hover:text-white"
                         )}
                     >
@@ -1095,7 +1095,7 @@ function BUSidebar({
 
             {/* Panel */}
             {activePanel && (
-                <div className="w-[220px] bg-[#000000] flex flex-col border-r border-white/[0.06] overflow-hidden">
+                <div className="w-[220px] bg-[#1b55ae] flex flex-col border-r border-white/[0.06] overflow-hidden">
                     <PanelHeader
                         title={activePanel === "ai" ? "IA & Agentes" : activeMod?.label ?? ""}
                         onBack={() => setActivePanel(null)}
