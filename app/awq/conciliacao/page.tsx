@@ -27,6 +27,7 @@ import {
   BarChart3,
   CheckCircle2,
   ExternalLink,
+  GitMerge,
   LineChart,
   Zap,
 } from "lucide-react";
@@ -86,7 +87,7 @@ export default async function ConciliacaoPage() {
         title="Conciliação"
         subtitle="Fluxo de caixa operacional · conciliação bancária · DFC e DRE sincronizados automaticamente"
       />
-      <div className="p-6 space-y-6">
+      <div className="page-container">
 
         {/* ── Erro de carregamento ── */}
         {loadError && (
@@ -107,25 +108,28 @@ export default async function ConciliacaoPage() {
         />
 
         {/* ── Painel de conciliação ── */}
-        <section className="space-y-3">
+        <section className="space-y-4">
 
           {/* Header da seção com progress inline */}
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className="text-sm font-bold text-gray-900">Conciliação Bancária</h2>
-              <p className="text-xs text-gray-400 mt-0.5">
+          <div className="section-header mb-0">
+            <div className="flex items-start gap-3 min-w-0">
+              <div className="section-title">
+                <GitMerge size={15} className="text-brand-500 shrink-0" />
+                <h2>Conciliação Bancária</h2>
+              </div>
+              <p className="text-xs text-gray-400 mt-0.5 hidden sm:block">
                 Associe movimentações bancárias às suas receitas e despesas
               </p>
             </div>
             {total > 0 && (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 shrink-0">
                 <div className="flex items-center gap-2">
                   <div className="w-24 h-1.5 rounded-full bg-gray-100 overflow-hidden">
                     <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${pct}%` }} />
                   </div>
                   <span className="text-xs font-semibold text-emerald-600 whitespace-nowrap">{pct}%</span>
                 </div>
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-gray-400 whitespace-nowrap">
                   {conciliado}/{total} txns
                   {docsDone > 0 && ` · ${docsDone} extrato${docsDone > 1 ? "s" : ""}`}
                 </span>
@@ -148,10 +152,13 @@ export default async function ConciliacaoPage() {
 
         {/* ── AR Pipeline (apenas se houver itens) ── */}
         {arPending.length > 0 && (
-          <section className="rounded-2xl border border-brand-200 bg-brand-50/60 p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold text-brand-800 uppercase tracking-wide">AR · Recebimentos Esperados</h3>
-              <Link href="/awq/epm/ar/cadastro" className="text-xs text-brand-600 hover:underline flex items-center gap-1">
+          <section className="card p-5 space-y-3">
+            <div className="section-header mb-0">
+              <div className="section-title">
+                <CheckCircle2 size={14} className="text-brand-500 shrink-0" />
+                <h2>AR · Recebimentos Esperados</h2>
+              </div>
+              <Link href="/awq/epm/ar/cadastro" className="section-link">
                 Cadastro <ArrowUpRight size={11} />
               </Link>
             </div>
@@ -186,8 +193,8 @@ export default async function ConciliacaoPage() {
         )}
 
         {/* ── Footer: links para relatórios ── */}
-        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-gray-100">
-          <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mr-1">Impacto:</span>
+        <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-gray-200">
+          <span className="text-overline mr-1">Impacto em:</span>
           {[
             { href: "/awq/cashflow",  icon: Zap,      label: "DFC" },
             { href: "/awq/financial", icon: LineChart, label: "DRE" },
@@ -196,7 +203,7 @@ export default async function ConciliacaoPage() {
             <Link
               key={item.href}
               href={item.href}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 hover:border-brand-300 hover:bg-brand-50 text-xs font-semibold text-gray-600 hover:text-brand-700 transition-colors"
+              className="btn-secondary flex items-center gap-1.5 py-1.5 text-xs"
             >
               <item.icon size={11} className="text-brand-500" />
               {item.label}

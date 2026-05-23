@@ -304,41 +304,41 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
     <div className="space-y-4">
 
       {/* ── 1. Fluxo de Caixa ─────────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-gray-200 bg-white overflow-visible shadow-sm">
+      <div className="card overflow-visible">
 
         {/* Top bar: title + period dropdown + series toggles */}
         <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-4 pb-3">
           <div>
-            <h3 className="text-sm font-bold text-gray-900">Fluxo de Caixa Operacional</h3>
+            <h3 className="text-sm font-semibold text-gray-900">Fluxo de Caixa Operacional</h3>
             <p className="text-[10px] text-gray-400 mt-0.5">Excluindo transferências internas e aplicações financeiras</p>
           </div>
 
-          {/* Period dropdown — JP Morgan pill style */}
+          {/* Period dropdown */}
           <div className="relative" ref={dropRef}>
             <button
               onClick={() => setShowDrop((v) => !v)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full border text-[12px] font-semibold shadow-sm transition-all ${
-                showDrop ? "border-amber-400 bg-amber-50 text-amber-800" : "border-gray-200 bg-white text-gray-700 hover:border-amber-300"
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-[12px] font-semibold shadow-sm transition-all ${
+                showDrop ? "border-brand-300 bg-brand-50 text-brand-800" : "border-gray-200 bg-white text-gray-700 hover:border-brand-200"
               }`}
             >
-              <Calendar size={13} className="text-amber-500 shrink-0" />
+              <Calendar size={13} className="text-brand-500 shrink-0" />
               {periodLabel}
               <ChevronDown size={11} className={`text-gray-400 transition-transform duration-200 ${showDrop ? "rotate-180" : ""}`} />
             </button>
 
             {showDrop && (
-              <div className="absolute top-[calc(100%+6px)] right-0 z-50 w-72 bg-white border border-gray-200 rounded-2xl shadow-2xl overflow-hidden">
+              <div className="absolute top-[calc(100%+6px)] right-0 z-50 w-72 bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden">
                 {/* Preset options */}
                 <div className="p-2">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-2 py-1.5">Períodos rápidos</p>
+                  <p className="text-overline px-2 py-1.5">Períodos rápidos</p>
                   <div className="grid grid-cols-3 gap-1">
                     {PERIOD_OPTS.filter((p) => p.key !== "custom").map((p) => (
                       <button
                         key={p.key}
                         onClick={() => selectPeriod(p.key)}
-                        className={`flex flex-col items-start px-3 py-2 rounded-xl text-left transition-colors ${
+                        className={`flex flex-col items-start px-3 py-2 rounded-lg text-left transition-colors ${
                           period === p.key && period !== "custom"
-                            ? "bg-amber-100 text-amber-900"
+                            ? "bg-brand-50 text-brand-800"
                             : "hover:bg-gray-50 text-gray-700"
                         }`}
                       >
@@ -351,7 +351,7 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
 
                 {/* Custom date range */}
                 <div className="border-t border-gray-100 bg-gray-50/60 p-3 space-y-2.5">
-                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Período personalizado</p>
+                  <p className="text-overline">Período personalizado</p>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className="block text-[10px] text-gray-400 mb-1 font-medium">De</label>
@@ -378,7 +378,7 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
                   <button
                     onClick={applyCustom}
                     disabled={!customFrom || !customTo || customFrom > customTo}
-                    className="w-full py-2 text-[11px] font-bold bg-amber-500 hover:bg-amber-600 disabled:opacity-40 text-white rounded-xl transition-colors"
+                    className="w-full py-2 text-[11px] font-bold bg-brand-600 hover:bg-brand-700 disabled:opacity-40 text-white rounded-lg transition-colors"
                   >
                     Aplicar período
                   </button>
@@ -417,7 +417,7 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
         </div>
 
         {/* Chart — JP Morgan golden area */}
-        <div className="bg-[#fdfcf8] rounded-b-2xl px-4 pb-5 pt-4">
+        <div className="bg-[#fdfcf8] rounded-b-xl px-4 pb-5 pt-4">
           {!hasData ? (
             <div className="h-[200px] flex flex-col items-center justify-center gap-2">
               <Calendar size={24} className="text-gray-300" />
@@ -500,9 +500,9 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
       <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4">
 
         {/* LEFT: Contas bancárias */}
-        <div className="rounded-2xl border border-gray-200 bg-white p-4 space-y-3 shadow-sm">
+        <div className="card p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-[11px] font-bold uppercase tracking-widest text-gray-400">Contas bancárias</h3>
+            <h3 className="text-overline">Contas bancárias</h3>
             {coraConfigured && (
               <button
                 onClick={() => { void loadBalance("AWQ_Holding"); void loadBalance("ENERDY"); }}
@@ -560,9 +560,9 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             {/* A receber hoje */}
-            <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+            <div className="card p-4">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-[11px] font-bold uppercase tracking-wide text-gray-400">A receber hoje</p>
+                <p className="text-overline">A receber hoje</p>
                 <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
                   <ArrowUpRight size={9} /> CD
                 </span>
@@ -577,15 +577,15 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
                   Restante do mês: <span className="font-semibold text-gray-600">{fmtBRL(restanteMesAR)}</span>
                 </p>
               )}
-              <button className="w-full mt-3 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold transition-colors">
+              <button className="w-full mt-3 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-[11px] font-semibold transition-all">
                 <ArrowUpRight size={11} /> Novo Recebimento
               </button>
             </div>
 
             {/* A pagar hoje */}
-            <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+            <div className="card p-4">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-[11px] font-bold uppercase tracking-wide text-gray-400">A pagar hoje</p>
+                <p className="text-overline">A pagar hoje</p>
                 <span className="flex items-center gap-1 text-[10px] font-bold text-red-700 bg-red-50 px-2 py-0.5 rounded-full">
                   <ArrowDownLeft size={9} /> CI
                 </span>
@@ -600,7 +600,7 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
                   Restante do mês: <span className="font-semibold text-gray-600">{fmtBRL(pendingDebitsMonth)}</span>
                 </p>
               )}
-              <button className="w-full mt-3 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white text-[11px] font-bold transition-colors">
+              <button className="w-full mt-3 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-red-500 hover:bg-red-600 active:bg-red-700 text-white text-[11px] font-semibold transition-all">
                 <ArrowDownLeft size={11} /> Novo Pagamento
               </button>
             </div>
@@ -610,7 +610,7 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
           {(overdueAR > 0 || pendingDebitsMonth > 0) && (
             <div className="grid grid-cols-2 gap-4">
               {overdueAR > 0 && (
-                <div className="rounded-2xl border border-amber-100 bg-amber-50/50 p-4 flex items-center justify-between shadow-sm">
+                <div className="card p-4 flex items-center justify-between border-l-4 border-l-amber-400">
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-wide text-amber-600 mb-1">Em atraso · AR</p>
                     <p className="text-lg font-bold text-emerald-700 tabular-nums">{fmtBRL(overdueAR)}</p>
@@ -619,7 +619,7 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
                 </div>
               )}
               {pendingDebitsMonth > 0 && (
-                <div className="rounded-2xl border border-red-100 bg-red-50/50 p-4 flex items-center justify-between shadow-sm">
+                <div className="card p-4 flex items-center justify-between border-l-4 border-l-red-400">
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-wide text-red-500 mb-1">Em atraso · AP</p>
                     <p className="text-lg font-bold text-red-700 tabular-nums">{fmtBRL(pendingDebitsMonth)}</p>
