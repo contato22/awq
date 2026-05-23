@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import ARTabNav from "@/components/ARTabNav";
 import type { ARItem, ARCollection } from "@/lib/ap-ar-db";
 
 const METHODS = ["email", "phone", "whatsapp", "other"] as const;
@@ -31,11 +32,15 @@ export default function ARCollectionsPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    const today = new Date().toISOString().slice(0, 10);
     fetch("/api/epm/ar")
       .then((r) => r.json())
       .then((j) => {
         if (j.success) {
-          const overdue: ARItem[] = j.data.filter((i: ARItem) => i.status === "OVERDUE" || i.status === "PENDING");
+          const overdue: ARItem[] = j.data.filter((i: ARItem) =>
+            i.status === "OVERDUE" ||
+            (i.status === "PENDING" && i.due_date < today)
+          );
           setArItems(overdue.sort((a, b) => daysOverdue(b.due_date) - daysOverdue(a.due_date)));
         }
       })
@@ -80,10 +85,11 @@ export default function ARCollectionsPage() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      <div className="mb-6">
+      <div className="mb-4">
         <h1 className="text-2xl font-bold text-gray-900">Cobrança — AR Vencido</h1>
         <p className="text-sm text-gray-500 mt-1">Gerencie ações de cobrança por cliente</p>
       </div>
+      <ARTabNav />
 
       <div className="flex gap-4" style={{ height: "calc(100vh - 180px)" }}>
         {/* Left: overdue list */}

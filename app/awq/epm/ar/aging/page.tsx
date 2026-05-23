@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import ARTabNav from "@/components/ARTabNav";
 import type { ARItem, AgingBucket, BuCode } from "@/lib/ap-ar-db";
 
 const BUCKETS: AgingBucket[] = ["CURRENT", "1-30d", "31-60d", "61-90d", "+90d"];
@@ -48,7 +49,8 @@ export default function ARAgingPage() {
       .finally(() => setLoading(false));
   }, [filterBU]);
 
-  const overdue = items.filter((i) => i.status === "OVERDUE" || i.status === "PENDING");
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const overdue = items.filter((i) => i.status === "OVERDUE" || (i.status === "PENDING" && i.due_date < todayStr));
 
   const bucketMap = BUCKETS.reduce<Record<AgingBucket, ARItem[]>>((acc, b) => {
     acc[b] = overdue.filter((i) => getAgingBucket(i.due_date) === b);
@@ -77,6 +79,7 @@ export default function ARAgingPage() {
         <h1 className="text-2xl font-bold text-gray-900">AR Aging — Contas a Receber Vencidas</h1>
         <p className="text-sm text-gray-500 mt-1">Visão por faixa de vencimento e cliente</p>
       </div>
+      <ARTabNav />
 
       <div className="flex gap-2 flex-wrap">
         <button onClick={() => setFilterBU("")}

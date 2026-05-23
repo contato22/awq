@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import ARTabNav from "@/components/ARTabNav";
 import type { ARContract, BuCode } from "@/lib/ap-ar-db";
 
 const BUS: BuCode[] = ["AWQ", "JACQES", "CAZA", "ADVISOR", "VENTURE"];
@@ -33,10 +34,13 @@ export default function ContractsPage() {
 
   async function loadContracts() {
     setLoading(true);
-    const res = await fetch("/api/epm/ar/contracts");
-    const j   = await res.json();
-    if (j.success) setContracts(j.data);
-    setLoading(false);
+    try {
+      const res = await fetch("/api/epm/ar/contracts");
+      const j   = await res.json();
+      if (j.success) setContracts(j.data);
+    } catch { /* network error — keep empty list */ } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => { loadContracts(); }, []);
@@ -85,6 +89,7 @@ export default function ContractsPage() {
 
   return (
     <div className="p-6 space-y-6 max-w-5xl mx-auto">
+      <ARTabNav />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Contratos Recorrentes</h1>

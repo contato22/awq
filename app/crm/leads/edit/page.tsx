@@ -10,7 +10,6 @@ import {
   DollarSign, Calendar, FileText, Zap, Mail,
 } from "lucide-react";
 import type { CrmLead } from "@/lib/crm-types";
-import { supabaseClient as supabase } from "@/lib/supabase";
 
 type FormData = {
   contact_name: string;
@@ -114,10 +113,12 @@ function EditLeadPageInner() {
 
   useEffect(() => {
     if (!leadId) { setNotFound(true); setLoading(false); return; }
-    supabase!.from("crm_leads").select("*").eq("lead_id", leadId).single()
-      .then(({ data, error }) => {
-        if (error || !data) { setNotFound(true); setLoading(false); return; }
-        const lead = data as CrmLead;
+    fetch(`/api/crm/leads?lead_id=${leadId}`)
+      .then(r => r.json())
+      .then(json => {
+        const rows = (json.data ?? []) as CrmLead[];
+        const lead = rows.find(l => l.lead_id === leadId) ?? null;
+        if (!lead) { setNotFound(true); setLoading(false); return; }
         setForm({
           contact_name: lead.contact_name ?? "",
           company_name: lead.company_name ?? "",
@@ -135,7 +136,8 @@ function EditLeadPageInner() {
           qualification_notes: lead.qualification_notes ?? "",
         });
         setLoading(false);
-      });
+      })
+      .catch(() => { setNotFound(true); setLoading(false); });
   }, [leadId]);
 
   const set = useCallback(<K extends keyof FormData>(key: K, value: FormData[K]) => {
@@ -161,26 +163,30 @@ function EditLeadPageInner() {
     if (!validate()) return;
     setSubmitting(true);
     try {
-      const { error: err } = await supabase!.from("crm_leads").update({
-        contact_name: form.contact_name,
-        company_name: form.company_name,
-        email: form.email || null,
-        phone: form.phone || null,
-        job_title: form.job_title || null,
-        bu: form.bu,
-        lead_source: form.lead_source,
-        assigned_to: form.assigned_to,
-        status: form.status,
-        lead_score: estimatedScore,
-        bant_budget: form.bant_budget ? parseFloat(form.bant_budget) : null,
-        bant_authority: form.bant_authority,
-        bant_need: form.bant_need || null,
-        bant_timeline: form.bant_timeline || null,
-        qualification_notes: form.qualification_notes || null,
-        updated_at: new Date().toISOString(),
-      }).eq("lead_id", leadId);
-
-      if (err) throw new Error(err.message);
+      const res = await fetch("/api/crm/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "update", lead_id: leadId,
+          contact_name: form.contact_name,
+          company_name: form.company_name,
+          email: form.email || null,
+          phone: form.phone || null,
+          job_title: form.job_title || null,
+          bu: form.bu,
+          lead_source: form.lead_source,
+          assigned_to: form.assigned_to,
+          status: form.status,
+          lead_score: estimatedScore,
+          bant_budget: form.bant_budget ? parseFloat(form.bant_budget) : null,
+          bant_authority: form.bant_authority,
+          bant_need: form.bant_need || null,
+          bant_timeline: form.bant_timeline || null,
+          qualification_notes: form.qualification_notes || null,
+        }),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error ?? "Erro ao salvar lead");
       setToast({ message: "Lead atualizado com sucesso!", type: "success" });
       setTimeout(() => router.push("/crm/leads"), 1200);
     } catch (err) {

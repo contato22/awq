@@ -41,12 +41,28 @@ interface CoraCredentials {
   key: string;
 }
 
-function credsForAccount(account: "AWQ_Holding" | "JACQES" = "AWQ_Holding"): CoraCredentials {
+export type CoraAccount = "AWQ_Holding" | "JACQES" | "ENERDY";
+
+function credsForAccount(account: CoraAccount = "AWQ_Holding"): CoraCredentials {
   if (account === "JACQES") {
     const jId   = env("CORA_JACQES_CLIENT_ID");
     const jCert = env("CORA_JACQES_CERT");
     const jKey  = env("CORA_JACQES_KEY");
     if (jId && jCert && jKey) return { clientId: jId, cert: jCert, key: jKey };
+    // JACQES sem vars próprias → compartilha AWQ_Holding (comportamento legado intencional)
+  }
+  if (account === "ENERDY") {
+    const eId   = env("CORA_ENERDY_CLIENT_ID");
+    const eCert = env("CORA_ENERDY_CERT");
+    const eKey  = env("CORA_ENERDY_KEY");
+    // ENERDY é empresa separada — nunca usa credenciais de outra conta como fallback
+    if (!eId || !eCert || !eKey) {
+      throw new Error(
+        "Credenciais Enerdy não configuradas. " +
+        "Configure CORA_ENERDY_CLIENT_ID, CORA_ENERDY_CERT e CORA_ENERDY_KEY no Vercel."
+      );
+    }
+    return { clientId: eId, cert: eCert, key: eKey };
   }
   return {
     clientId: env("CORA_CLIENT_ID"),
@@ -65,6 +81,13 @@ export function isCoraJacqesConfigured(): boolean {
   const jCert = env("CORA_JACQES_CERT");
   const jKey  = env("CORA_JACQES_KEY");
   return !!(jId && jCert && jKey);
+}
+
+export function isCoraEnerdyConfigured(): boolean {
+  const eId   = env("CORA_ENERDY_CLIENT_ID");
+  const eCert = env("CORA_ENERDY_CERT");
+  const eKey  = env("CORA_ENERDY_KEY");
+  return !!(eId && eCert && eKey);
 }
 
 // ─── Low-level HTTPS helper (supports mTLS) ──────────────────────────────────────────────
@@ -254,7 +277,7 @@ export interface CoraStatementResult {
 export async function fetchCoraStatement(
   startDate: string,
   endDate: string,
-  account: "AWQ_Holding" | "JACQES" = "AWQ_Holding",
+  account: CoraAccount = "AWQ_Holding",
 ): Promise<CoraStatementResult> {
   const creds = credsForAccount(account);
   const token = await getAccessToken(creds);
@@ -368,7 +391,7 @@ export async function fetchCoraBalance(): Promise<CoraBalance> {
 }
 
 export async function fetchCoraBalanceForAccount(
-  account: "AWQ_Holding" | "JACQES",
+  account: CoraAccount,
 ): Promise<CoraBalance> {
   return fetchBalance(credsForAccount(account));
 }

@@ -7,7 +7,6 @@ import EmptyState from "@/components/EmptyState";
 import { Building2, Plus, Search, AlertTriangle, CheckCircle2, Trash2 } from "lucide-react";
 import type { CrmAccount } from "@/lib/crm-types";
 import { BU_OPTIONS } from "@/lib/crm-types";
-import { supabaseClient as supabase } from "@/lib/supabase";
 
 const TYPE_LABELS: Record<string, string> = {
   prospect:        "Prospect",
@@ -43,15 +42,21 @@ export default function AccountsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
-    void supabase!.from("crm_accounts").select("*").order("account_name")
-      .then(({ data }) => { setAllAccounts((data ?? []) as CrmAccount[]); setLoading(false); }, () => { setLoading(false); });
+    fetch("/api/crm/accounts")
+      .then(r => r.json())
+      .then(json => { setAllAccounts((json.data ?? []) as CrmAccount[]); setLoading(false); })
+      .catch(() => { setLoading(false); });
   }, []);
 
   async function handleDelete(id: string, name: string) {
     if (!confirm(`Excluir a conta "${name}"? Esta ação não pode ser desfeita.`)) return;
     setDeletingId(id);
     setAllAccounts(prev => prev.filter(a => a.account_id !== id));
-    await supabase!.from("crm_accounts").delete().eq("account_id", id);
+    await fetch("/api/crm/accounts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "delete", account_id: id }),
+    });
     setDeletingId(null);
   }
 

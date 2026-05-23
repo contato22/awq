@@ -1,0 +1,143 @@
+name: Auditoria Cora vs Banco
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/cora-audit.yml'
+      - 'app/api/cora/audit-probe/**'
+      - 'app/api/cora/sync-probe/**'
+      - 'middleware.ts'
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  audit:
+    name: Auditar transações Cora vs Supabase ERP
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "WAIT 120s — aguardar deploy Vercel"
+        run: sleep 120
+
+      - name: "FETCH /api/health"
+        id: health
+        continue-on-error: true
+        run: |
+          BODY=$(curl -sf --max-time 30 https://awq-brown.vercel.app/api/health || echo '{}')
+          STATUS=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 https://awq-brown.vercel.app/api/health || echo '000')
+          parse(){ echo "$BODY" | python3 -c "import json,sys; d=json.load(sys.stdin); print($1)" 2>/dev/null || echo "$2"; }
+          echo "erp_ping=$(parse "d.get('erpPing','?')" '?')"         >> $GITHUB_OUTPUT
+          echo "erp_txn=$(parse "d.get('erpTransactionCount','?')" '?')" >> $GITHUB_OUTPUT
+          echo "cora=$(parse "str(d.get('coraReady',False)).lower()" 'false')"   >> $GITHUB_OUTPUT
+          echo "jacqes=$(parse "str(d.get('coraJacqes',False)).lower()" 'false')" >> $GITHUB_OUTPUT
+          echo "sync=$(parse "str(d.get('syncReady',False)).lower()" 'false')"   >> $GITHUB_OUTPUT
+          echo "adapter=$(parse "d.get('dbAdapter','?')" '?')"        >> $GITHUB_OUTPUT
+          echo "http=$STATUS" >> $GITHUB_OUTPUT
+          echo "Body: $BODY"
+
+      - name: "FETCH /api/cora/audit-probe"
+        id: audit
+        continue-on-error: true
+        run: |
+          START=2026-01-01
+          END=$(date -u +%Y-%m-%d)
+          URL="https://awq-brown.vercel.app/api/cora/audit-probe?startDate=${START}&endDate=${END}"
+          BODY=$(curl -sf --max-time 58 "$URL" || echo '{}')
+          STATUS=$(curl -s -o /dev/null -w '%{http_code}' --max-time 58 "$URL" || echo '000')
+          echo "http=$STATUS" >> $GITHUB_OUTPUT
+          echo "HTTP $STATUS — ${BODY:0:2000}"
+          if [ "$STATUS" = "200" ]; then
+            echo "missing=$(echo "$BODY" | python3 -c 'import json,sys;d=json.load(sys.stdin);print(d.get("totalMissing",0))')"                    >> $GITHUB_OUTPUT
+            echo "cora_total=$(echo "$BODY" | python3 -c 'import json,sys;d=json.load(sys.stdin);print(sum(a.get("coraTotal",0) for a in d.get("accounts",[])))')" >> $GITHUB_OUTPUT
+            echo "db_total=$(echo "$BODY" | python3 -c 'import json,sys;d=json.load(sys.stdin);print(sum(a.get("dbTotal",0) for a in d.get("accounts",[])))')"     >> $GITHUB_OUTPUT
+          else
+            echo "missing=n/a" >> $GITHUB_OUTPUT
+            echo "cora_total=?" >> $GITHUB_OUTPUT
+            echo "db_total=?" >> $GITHUB_OUTPUT
+          fi
+
+      - name: "POST /api/cora/sync-probe (se houver gap)"
+        id: sync
+        if: steps.audit.outputs.missing != '0' && steps.audit.outputs.http == '200'
+        continue-on-error: true
+        run: |
+          START=2026-01-01
+          END=$(date -u +%Y-%m-%d)
+          BODY=$(curl -sf --max-time 58 -X POST \
+            -H 'Content-Type: application/json' \
+            -d "{\"startDate\":\"$START\",\"endDate\":\"$END\"}" \
+            https://awq-brown.vercel.app/api/cora/sync-probe || echo '{}')
+          STATUS=$(curl -s -o /dev/null -w '%{http_code}' --max-time 58 -X POST \
+            -H 'Content-Type: application/json' \
+            -d "{\"startDate\":\"$START\",\"endDate\":\"$END\"}" \
+            https://awq-brown.vercel.app/api/cora/sync-probe || echo '000')
+          echo "http=$STATUS" >> $GITHUB_OUTPUT
+          echo "synced=$(echo "$BODY" | python3 -c 'import json,sys;d=json.load(sys.stdin);print(d.get("totalSynced","?"))' 2>/dev/null || echo '?')" >> $GITHUB_OUTPUT
+          echo "HTTP $STATUS — $BODY"
+
+      - name: "Publicar resultado como Issue"
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          HORA=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          TODAY=$(date -u +%Y-%m-%d)
+
+          gh label create cora-audit --color 7057ff \
+            --description 'Resultado da auditoria Cora vs banco' \
+            --repo ${{ github.repository }} 2>/dev/null || true
+
+          AUDIT_HTTP="${{ steps.audit.outputs.http }}"
+          MISSING="${{ steps.audit.outputs.missing }}"
+          CORA_TOTAL="${{ steps.audit.outputs.cora_total }}"
+          DB_TOTAL="${{ steps.audit.outputs.db_total }}"
+          SYNC_HTTP="${{ steps.sync.outputs.http }}"
+          SYNCED="${{ steps.sync.outputs.synced }}"
+
+          if [ "$AUDIT_HTTP" = "200" ]; then
+            if [ "$MISSING" = "0" ]; then
+              RESULT="SINCRONIZADO — banco em dia com a Cora"
+            else
+              RESULT="GAP DETECTADO — $MISSING lancamentos na Cora faltam no banco"
+              if [ "$SYNC_HTTP" = "200" ]; then
+                RESULT="$RESULT | AUTO-SYNC: $SYNCED importados"
+              fi
+            fi
+          else
+            RESULT="AUDIT-PROBE HTTP $AUDIT_HTTP"
+          fi
+
+          cat > /tmp/issue_body.md << MDEOF
+          ## Auditoria Cora vs Banco — $HORA
+
+          ### Infraestrutura (/api/health)
+          | Check | Valor |
+          |---|---|
+          | erpPing | ${{ steps.health.outputs.erp_ping }} |
+          | erpTransactionCount | ${{ steps.health.outputs.erp_txn }} |
+          | coraHolding | ${{ steps.health.outputs.cora }} |
+          | coraJacqes | ${{ steps.health.outputs.jacqes }} |
+          | syncReady | ${{ steps.health.outputs.sync }} |
+          | dbAdapter | ${{ steps.health.outputs.adapter }} |
+
+          ### Auditoria Cora (2026-01-01 a $TODAY)
+          | Conta | Cora | Banco | Gap |
+          |---|---|---|---|
+          | AWQ_Holding | $CORA_TOTAL | $DB_TOTAL | $MISSING |
+
+          **Resultado: $RESULT**
+
+          ---
+          *workflow cora-audit.yml*
+          MDEOF
+
+          gh issue create \
+            --title "Auditoria Cora $HORA" \
+            --body-file /tmp/issue_body.md \
+            --label cora-audit \
+            --repo ${{ github.repository }}

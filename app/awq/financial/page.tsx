@@ -22,6 +22,7 @@ import {
   type EntitySummary,
   type FinancialQueryResult,
 } from "@/lib/financial-query";
+import { HOLDING_OPERATIONAL_ENTITIES } from "@/lib/dre-query";
 
 export const dynamic = process.env.STATIC_EXPORT === "1" ? "auto" : "force-dynamic";
 // DataSourceBanner removed — page is fully on financial-query pipeline.
@@ -223,7 +224,7 @@ export default async function AwqFinancialPage() {
   const q          = await buildFinancialQuery();
 
   const opEntities = q.entities.filter((e) =>
-    ["AWQ_Holding", "JACQES", "Caza_Vision"].includes(e.entity)
+    HOLDING_OPERATIONAL_ENTITIES.includes(e.entity)
   );
 
   const period = q.consolidated.periodStart && q.consolidated.periodEnd

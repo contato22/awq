@@ -38,6 +38,10 @@ import {
   type EntityLayer,
 } from "./financial-db";
 
+/** Entidades que compõem o consolidado operacional da Holding.
+ *  Entidades de outras empresas (ex: ENERDY) são excluídas de DRE/DFC/KPIs da Holding. */
+export const HOLDING_OPERATIONAL_ENTITIES: EntityLayer[] = ["AWQ_Holding", "JACQES", "Caza_Vision"];
+
 // ─── DRE Category groupings ───────────────────────────────────────────────────
 
 /** Operational revenue (client-facing, core business + Venture fee). */
@@ -317,8 +321,12 @@ export async function buildDreQuery(
 
   // ── Filter by entity and exclude intercompany from DRE ───────────────────
   const txns: BankTransaction[] = allTxns.filter((t) => {
-    // Entity filter
-    if (entityFilter !== "all" && t.entity !== entityFilter) return false;
+    // Entity filter — "all" = consolidado da Holding (apenas entidades operacionais)
+    if (entityFilter === "all") {
+      if (!HOLDING_OPERATIONAL_ENTITIES.includes(t.entity)) return false;
+    } else {
+      if (t.entity !== entityFilter) return false;
+    }
     // Exclude intercompany from DRE P&L lines (they appear in eliminatedSection)
     if (t.excludedFromConsolidated && (
       t.managerialCategory === "transferencia_interna_enviada" ||

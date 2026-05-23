@@ -4,9 +4,11 @@
 // Opens when user clicks "Vincular" on a pending bank transaction.
 // Flow: suggest matches → select or create AP/AR → mark as conciliado
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { X, Search, Plus, ChevronDown, Check, Loader2, ArrowUpRight, ArrowDownRight, AlertCircle } from "lucide-react";
 import type { BankTransaction, ManagerialCategory } from "@/lib/financial-db";
+import { fmtDate } from "@/lib/utils";
+import { getLeafAccounts } from "@/lib/ar-coa";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -34,7 +36,6 @@ interface Props {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const fmtBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const fmtDate = (s: string) => { const [y,m,d] = s.split("-"); return `${d}/${m}/${y}`; };
 
 const CAT_LABELS: Partial<Record<ManagerialCategory, string>> = {
   receita_recorrente: "Receita Recorrente", receita_projeto: "Receita de Projeto",
@@ -60,44 +61,16 @@ const CAT_LABELS: Partial<Record<ManagerialCategory, string>> = {
   unclassified: "Não classificado",
 };
 
-const ALL_CATS: { value: ManagerialCategory; label: string }[] = [
-  { value: "receita_recorrente",           label: "Receita Recorrente" },
-  { value: "receita_projeto",              label: "Receita de Projeto" },
-  { value: "receita_consultoria",          label: "Consultoria" },
-  { value: "receita_producao",             label: "Produção" },
-  { value: "receita_social_media",         label: "Social Media" },
-  { value: "receita_revenue_share",        label: "Revenue Share" },
-  { value: "receita_fee_venture",          label: "Fee Venture" },
-  { value: "receita_eventual",             label: "Receita Eventual" },
-  { value: "rendimento_financeiro",        label: "Rendimento Financeiro" },
-  { value: "aporte_socio",                 label: "Aporte de Sócio" },
-  { value: "transferencia_interna_recebida", label: "Transf. Interna Recebida" },
-  { value: "ajuste_bancario_credito",      label: "Ajuste Bancário" },
-  { value: "recebimento_ambiguo",          label: "Recebimento (Revisar)" },
-  { value: "fornecedor_operacional",       label: "Fornecedor" },
-  { value: "freelancer_terceiro",          label: "Freelancer" },
-  { value: "folha_remuneracao",            label: "Folha de Pagamento" },
-  { value: "prolabore_retirada",           label: "Pró-labore" },
-  { value: "imposto_tributo",              label: "Impostos/Tributos" },
-  { value: "juros_multa_iof",              label: "Juros/Multa/IOF" },
-  { value: "tarifa_bancaria",              label: "Tarifa Bancária" },
-  { value: "software_assinatura",          label: "Software/Assinatura" },
-  { value: "marketing_midia",              label: "Marketing/Mídia" },
-  { value: "deslocamento_combustivel",     label: "Deslocamento" },
-  { value: "alimentacao_representacao",    label: "Alimentação" },
-  { value: "viagem_hospedagem",            label: "Viagem/Hospedagem" },
-  { value: "aluguel_locacao",              label: "Aluguel/Locação" },
-  { value: "energia_agua_internet",        label: "Energia/Água/Internet" },
-  { value: "servicos_contabeis_juridicos", label: "Contábil/Jurídico" },
-  { value: "cartao_compra_operacional",    label: "Cartão Operacional" },
-  { value: "despesa_pessoal_misturada",    label: "Despesa Pessoal" },
-  { value: "aplicacao_financeira",         label: "Aplicação Financeira" },
-  { value: "resgate_financeiro",           label: "Resgate Financeiro" },
-  { value: "transferencia_interna_enviada","label": "Transf. Interna Enviada" },
-  { value: "reserva_limite_cartao",        label: "Reserva Cartão" },
-  { value: "despesa_ambigua",              label: "Despesa (Revisar)" },
-  { value: "unclassified",                 label: "Não classificado" },
-];
+const ALL_CATS = (Object.entries(CAT_LABELS) as [ManagerialCategory, string][])
+  .map(([value, label]) => ({ value, label }));
+
+function getName(item: APARItem): string {
+  return item._type === "AP" ? (item as APItem).supplier_name : (item as ARItem).customer_name;
+}
+
+function getDueDate(item: APARItem): string {
+  return item._type === "AP" ? (item as APItem).due_date : (item as ARItem).due_date;
+}
 
 function scoreCandidate(tx: BankTransaction, item: APARItem): Candidate {
   const txAmt = Math.abs(tx.amount);
@@ -107,7 +80,7 @@ function scoreCandidate(tx: BankTransaction, item: APARItem): Candidate {
   const amtDiff = Math.abs(txAmt - itemAmt);
   const amtRatio = amtDiff / Math.max(txAmt, 1);
   const txDate = new Date(tx.transactionDate + "T12:00:00").getTime();
-  const dueDate = new Date((item._type === "AP" ? (item as APItem).due_date : (item as ARItem).due_date) + "T12:00:00").getTime();
+  const dueDate = new Date(getDueDate(item) + "T12:00:00").getTime();
   const daysDiff = Math.abs(txDate - dueDate) / (1000 * 86400);
   const score = (1 - Math.min(amtRatio, 1)) * 0.7 + (1 - Math.min(daysDiff / 30, 1)) * 0.3;
   return { item, score, amtDiff, daysDiff };
@@ -118,8 +91,6 @@ function scoreCandidate(tx: BankTransaction, item: APARItem): Candidate {
 export default function ReconcileDrawer({ transaction: tx, isStatic = false, onClose, onConciliado }: Props) {
   const isCredit = tx.direction === "credit";
 
-  // AP/AR data
-  const [candidates, setCandidates]   = useState<Candidate[]>([]);
   const [allItems, setAllItems]       = useState<APARItem[]>([]);
   const [loading, setLoading]         = useState(true);
   const [fetchErr, setFetchErr]       = useState<string | null>(null);
@@ -136,13 +107,15 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
   const [counterparty, setCounterparty] = useState(tx.counterpartyName ?? "");
 
   // Create form state
-  const [createType, setCreateType]   = useState<"AP" | "AR">(isCredit ? "AR" : "AP");
-  const [createDesc, setCreateDesc]   = useState(tx.descriptionOriginal);
-  const [createParty, setCreateParty] = useState(tx.counterpartyName ?? "");
-  const [createDue, setCreateDue]     = useState(tx.transactionDate);
-  const [createAmt, setCreateAmt]     = useState(String(Math.abs(tx.amount)));
-  const [createCat, setCreateCat]     = useState(tx.managerialCategory === "unclassified" ? "" : (CAT_LABELS[tx.managerialCategory] ?? ""));
-  const [creating, setCreating]       = useState(false);
+  const [createType, setCreateType]       = useState<"AP" | "AR">(isCredit ? "AR" : "AP");
+  const [createDesc, setCreateDesc]       = useState(tx.descriptionOriginal);
+  const [createParty, setCreateParty]     = useState(tx.counterpartyName ?? "");
+  const [createDue, setCreateDue]         = useState(tx.transactionDate);
+  const [createAmt, setCreateAmt]         = useState(String(Math.abs(tx.amount)));
+  const [createCat, setCreateCat]         = useState(tx.managerialCategory === "unclassified" ? "" : tx.managerialCategory);
+  const [createAccCode, setCreateAccCode] = useState("");
+  const [creating, setCreating]           = useState(false);
+  const arLeafAccounts = useMemo(() => getLeafAccounts(), []);
   const searchRef = useRef<HTMLInputElement>(null);
 
   // Fetch AP/AR on mount
@@ -162,16 +135,7 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
         const ars: APARItem[] = (arData?.data ?? [])
           .filter((a) => a.status !== "RECEIVED" && a.status !== "CANCELLED")
           .map((a) => ({ ...a, _type: "AR" as const }));
-        const all: APARItem[] = [...aps, ...ars];
-        setAllItems(all);
-
-        // Expected: credit → AR (receivable), debit → AP (payable)
-        const expected = isCredit ? "AR" : "AP";
-        const scored = all
-          .filter((item) => item._type === expected)
-          .map((item) => scoreCandidate(tx, item))
-          .sort((a, b) => b.score - a.score);
-        setCandidates(scored);
+        setAllItems([...aps, ...ars]);
       } catch (e) {
         setFetchErr(e instanceof Error ? e.message : "Erro ao buscar AP/AR");
       } finally {
@@ -186,31 +150,51 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
     if (filterTab === "todos") searchRef.current?.focus();
   }, [filterTab]);
 
-  // Filtered list for "todos" tab
-  const filteredAll = allItems.filter((item) => {
+  const filteredAll = useMemo(() => {
     const q = search.toLowerCase();
-    const name = item._type === "AP" ? (item as APItem).supplier_name : (item as ARItem).customer_name;
-    return (
-      !q ||
-      name.toLowerCase().includes(q) ||
+    if (!q) return allItems;
+    return allItems.filter((item) =>
+      getName(item).toLowerCase().includes(q) ||
       item.description.toLowerCase().includes(q) ||
       String(item.gross_amount).includes(q)
     );
-  });
+  }, [search, allItems]);
 
   const selectedItem = allItems.find((i) => i.id === selectedItemId) ?? null;
 
+  // Score all items once; reused in both "sugeridos" and "todos" tabs
+  const scoreMap = useMemo(() => {
+    const m = new Map<string, { score: number; amtDiff: number; daysDiff: number }>();
+    for (const item of allItems) {
+      const { score, amtDiff, daysDiff } = scoreCandidate(tx, item);
+      m.set(item.id, { score, amtDiff, daysDiff });
+    }
+    return m;
+  }, [allItems, tx]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const candidates = useMemo(() => {
+    const expected = isCredit ? "AR" : "AP";
+    return allItems
+      .filter((item) => item._type === expected)
+      .map((item) => ({ item, ...(scoreMap.get(item.id) ?? { score: 0, amtDiff: 0, daysDiff: 0 }) }))
+      .sort((a, b) => b.score - a.score);
+  }, [allItems, scoreMap, isCredit]);
+
   // ── Actions ──────────────────────────────────────────────────────────────────
+
+  function buildPatch(): Partial<BankTransaction> {
+    return {
+      reconciliationStatus: "conciliado",
+      managerialCategory: category,
+      counterpartyName: counterparty || tx.counterpartyName,
+      classifiedAt: new Date().toISOString(),
+    };
+  }
 
   async function handleConciliarDireto() {
     setSaving(true); setSaveErr(null);
     try {
-      const patch: Partial<BankTransaction> = {
-        reconciliationStatus: "conciliado",
-        managerialCategory: category,
-        counterpartyName: counterparty || tx.counterpartyName,
-        classifiedAt: new Date().toISOString(),
-      };
+      const patch = buildPatch();
       if (!isStatic) {
         const res = await fetch(`/api/transactions/${tx.id}`, {
           method: "PATCH",
@@ -232,12 +216,7 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
     if (!selectedItem) return;
     setSaving(true); setSaveErr(null);
     try {
-      const patch: Partial<BankTransaction> = {
-        reconciliationStatus: "conciliado",
-        managerialCategory: category,
-        counterpartyName: counterparty || tx.counterpartyName,
-        classifiedAt: new Date().toISOString(),
-      };
+      const patch = buildPatch();
       if (!isStatic) {
         // 1. Update bank transaction
         const txRes = await fetch(`/api/transactions/${tx.id}`, {
@@ -314,6 +293,7 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
               due_date: createDue,
               gross_amount: grossAmt,
               source_system: "conciliacao",
+              ...(createAccCode ? { account_code: createAccCode } : {}),
             }),
           });
           if (!res.ok) {
@@ -370,25 +350,15 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
         </div>
 
         {/* Transaction detail strip */}
-        <div className="px-5 py-3 bg-gray-50 border-b border-gray-100 flex flex-wrap gap-x-6 gap-y-1.5 text-xs">
-          <div>
-            <span className="text-gray-400">Descrição: </span>
-            <span className="text-gray-800 font-medium">{tx.descriptionOriginal}</span>
-          </div>
-          <div>
-            <span className="text-gray-400">Banco: </span>
-            <span className="text-gray-700">{tx.bank} · {tx.accountName}</span>
-          </div>
+        <div className="px-5 py-2.5 bg-gray-50 border-b border-gray-100 flex flex-wrap gap-x-5 gap-y-1 text-xs items-center">
+          <span className="text-gray-700 font-medium truncate max-w-[220px]">{tx.descriptionOriginal}</span>
+          <span className="text-gray-400">{tx.bank} · {tx.accountName}</span>
           {tx.counterpartyName && (
-            <div>
-              <span className="text-gray-400">Contraparte: </span>
-              <span className="text-gray-700 font-medium">{tx.counterpartyName}</span>
-            </div>
+            <span className="text-gray-600 font-medium">{tx.counterpartyName}</span>
           )}
-          <div>
-            <span className="text-gray-400">Categoria atual: </span>
-            <span className="text-gray-700">{catLabel}</span>
-          </div>
+          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${isCredit ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-orange-50 text-orange-700 border border-orange-200"}`}>
+            {catLabel}
+          </span>
         </div>
 
         {/* Category + counterparty editable fields */}
@@ -423,7 +393,7 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
         {/* Tabs */}
         <div className="flex border-b border-gray-100 px-5">
           {([
-            { id: "sugeridos", label: `Sugeridos${candidates.length > 0 ? ` (${candidates.slice(0,5).length})` : ""}` },
+            { id: "sugeridos", label: `Sugeridos${candidates.length > 0 ? ` (${Math.min(candidates.length, 8)})` : ""}` },
             { id: "todos",     label: "Buscar AP/AR" },
             { id: "criar",     label: "Criar lançamento" },
           ] as const).map((t) => (
@@ -506,10 +476,10 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
                 <p className="text-sm text-gray-500 text-center py-6">Nenhum AP/AR aberto encontrado.</p>
               )}
               {filteredAll.map((item) => {
-                const { score, amtDiff, daysDiff } = scoreCandidate(tx, item);
+                const s = scoreMap.get(item.id) ?? { score: 0, amtDiff: 0, daysDiff: 0 };
                 return (
                   <CandidateCard
-                    key={item.id} item={item} score={score} amtDiff={amtDiff} daysDiff={daysDiff}
+                    key={item.id} item={item} score={s.score} amtDiff={s.amtDiff} daysDiff={s.daysDiff}
                     selected={selectedItemId === item.id}
                     onSelect={() => setSelectedItemId(selectedItemId === item.id ? null : item.id)}
                   />
@@ -521,70 +491,122 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
           {/* ── Criar lançamento tab ── */}
           {filterTab === "criar" && (
             <div className="space-y-3">
-              <p className="text-xs text-gray-500">
-                Cria um novo lançamento em AP/AR e já o vincula a esta transação bancária.
-              </p>
 
-              {/* AP vs AR selector */}
-              <div className="flex gap-2">
-                {(["AP", "AR"] as const).map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => setCreateType(t)}
-                    className={`flex-1 py-2 rounded-lg text-sm font-semibold border transition-colors ${
-                      createType === t
-                        ? "bg-blue-600 text-white border-blue-600"
-                        : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
-                    }`}
-                  >
-                    {t === "AP" ? "📤 A Pagar (AP)" : "📥 A Receber (AR)"}
-                  </button>
-                ))}
+              {/* AP / AR segmented control */}
+              <div className="grid grid-cols-2 rounded-xl border border-gray-200 overflow-hidden text-sm">
+                <button
+                  onClick={() => setCreateType("AP")}
+                  className={`flex items-center gap-2.5 px-4 py-3 font-semibold transition-colors ${
+                    createType === "AP"
+                      ? "bg-orange-500 text-white"
+                      : "bg-white text-gray-500 hover:bg-gray-50"
+                  }`}
+                >
+                  <ArrowUpRight size={16} className="flex-shrink-0" />
+                  <div className="text-left leading-tight">
+                    <div>A Pagar (AP)</div>
+                    <div className={`text-[10px] font-normal ${createType === "AP" ? "text-orange-100" : "text-gray-400"}`}>Despesa / fornecedor</div>
+                  </div>
+                </button>
+                <button
+                  onClick={() => setCreateType("AR")}
+                  className={`flex items-center gap-2.5 px-4 py-3 font-semibold border-l border-gray-200 transition-colors ${
+                    createType === "AR"
+                      ? "bg-emerald-500 text-white border-emerald-500"
+                      : "bg-white text-gray-500 hover:bg-gray-50"
+                  }`}
+                >
+                  <ArrowDownRight size={16} className="flex-shrink-0" />
+                  <div className="text-left leading-tight">
+                    <div>A Receber (AR)</div>
+                    <div className={`text-[10px] font-normal ${createType === "AR" ? "text-emerald-100" : "text-gray-400"}`}>Receita / cliente</div>
+                  </div>
+                </button>
               </div>
 
-              <div className="space-y-2.5">
-                <div>
-                  <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">
-                    {createType === "AP" ? "Fornecedor / Credor" : "Cliente / Devedor"}
-                  </label>
+              {/* Grouped form card */}
+              <div className="rounded-xl border border-gray-200 overflow-hidden divide-y divide-gray-100">
+
+                {/* Entity section */}
+                <div className="p-3 space-y-2 bg-white">
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                    {createType === "AP" ? "Fornecedor" : "Cliente"}
+                  </p>
                   <input
                     type="text" value={createParty} onChange={(e) => setCreateParty(e.target.value)}
                     placeholder={createType === "AP" ? "Nome do fornecedor" : "Nome do cliente"}
-                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                    className={`w-full text-sm rounded-lg px-3 py-2 border focus:outline-none focus:ring-1 focus:ring-blue-400 transition-colors ${
+                      !createParty.trim() ? "border-orange-300 bg-orange-50 placeholder-orange-300" : "border-gray-200"
+                    }`}
                   />
-                </div>
-                <div>
-                  <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">Descrição</label>
+                  {!createParty.trim() && (
+                    <p className="text-[10px] text-orange-500">Campo obrigatório</p>
+                  )}
                   <input
                     type="text" value={createDesc} onChange={(e) => setCreateDesc(e.target.value)}
                     placeholder="Descrição do lançamento"
                     className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-400"
                   />
                 </div>
-                <div className="flex gap-2">
-                  <div className="flex-1">
-                    <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">Vencimento</label>
-                    <input
-                      type="date" value={createDue} onChange={(e) => setCreateDue(e.target.value)}
-                      className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-400"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">Valor (R$)</label>
-                    <input
-                      type="text" value={createAmt} onChange={(e) => setCreateAmt(e.target.value)}
-                      placeholder="0,00"
-                      className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-400"
-                    />
+
+                {/* Amount + date section */}
+                <div className="p-3 bg-white">
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Valor e vencimento</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] text-gray-400 block mb-1">Vencimento</label>
+                      <input
+                        type="date" value={createDue} onChange={(e) => setCreateDue(e.target.value)}
+                        className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-gray-400 block mb-1">Valor (R$)</label>
+                      <div className="relative">
+                        <input
+                          type="text" value={createAmt} onChange={(e) => setCreateAmt(e.target.value)}
+                          placeholder="0,00"
+                          className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                        />
+                        {parseFloat(createAmt) !== txAmt && txAmt > 0 && (
+                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-amber-500 font-semibold">≠ tx</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">Categoria</label>
-                  <input
-                    type="text" value={createCat} onChange={(e) => setCreateCat(e.target.value)}
-                    placeholder="ex: servicos, fornecedor, folha"
-                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-400"
-                  />
+
+                {/* Classification section */}
+                <div className="p-3 space-y-2 bg-white">
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Classificação</p>
+                  <div className="relative">
+                    <select
+                      value={createCat}
+                      onChange={(e) => setCreateCat(e.target.value)}
+                      className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 pr-7 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 appearance-none"
+                    >
+                      <option value="">— categoria —</option>
+                      {ALL_CATS.map((c) => (
+                        <option key={c.value} value={c.value}>{c.label}</option>
+                      ))}
+                    </select>
+                    <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                  </div>
+                  {createType === "AR" && (
+                    <div className="relative">
+                      <select
+                        value={createAccCode}
+                        onChange={(e) => setCreateAccCode(e.target.value)}
+                        className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 pr-7 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 appearance-none"
+                      >
+                        <option value="">— conta CoA (1.1.2) —</option>
+                        {arLeafAccounts.map((n) => (
+                          <option key={n.code} value={n.code}>{n.code} · {n.label}</option>
+                        ))}
+                      </select>
+                      <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -597,10 +619,16 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
               <button
                 onClick={() => void handleCriarEConciliar()}
                 disabled={creating || saving || !createParty.trim()}
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold disabled:opacity-50 transition-colors"
+                className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white text-sm font-semibold disabled:opacity-40 transition-colors ${
+                  createType === "AP" ? "bg-orange-500 hover:bg-orange-600" : "bg-emerald-500 hover:bg-emerald-600"
+                }`}
               >
-                {creating || saving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
-                Criar e Conciliar
+                {creating || saving
+                  ? <Loader2 size={14} className="animate-spin" />
+                  : <Plus size={14} />}
+                {creating || saving
+                  ? "Criando..."
+                  : `Criar ${createType === "AP" ? "AP" : "AR"} · ${fmtBRL(parseFloat(createAmt) || txAmt)}`}
               </button>
             </div>
           )}
@@ -651,9 +679,9 @@ function CandidateCard({
   item: APARItem; score: number; amtDiff: number; daysDiff: number;
   selected: boolean; onSelect: () => void;
 }) {
-  const isAP = item._type === "AP";
-  const name = isAP ? (item as APItem).supplier_name : (item as ARItem).customer_name;
-  const dueDate = isAP ? (item as APItem).due_date : (item as ARItem).due_date;
+  const isAP    = item._type === "AP";
+  const name    = getName(item);
+  const dueDate = getDueDate(item);
   const netAmt = item.net_amount;
   const pct = Math.round(score * 100);
 

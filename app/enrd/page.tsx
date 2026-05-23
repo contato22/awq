@@ -91,28 +91,82 @@ export default function EnrdPage() {
           ))}
         </div>
 
-        {/* Quick links */}
-        <div className="card p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <Zap size={14} className="text-orange-600" />
-            <h2 className="text-sm font-semibold text-gray-900">Módulos</h2>
+        {/* EPM Modules grid */}
+        <section>
+          <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-3">
+            Módulos EPM
           </div>
-          <div className="space-y-2">
-            <Link href="/enrd/financial" className="flex items-center justify-between py-2.5 border-b border-gray-100 hover:bg-gray-50 px-2 rounded-lg transition-colors">
-              <div>
-                <div className="text-xs font-semibold text-gray-900">EPM · Financial</div>
-                <div className="text-[10px] text-gray-400 mt-0.5">Financeiro & Performance</div>
-              </div>
-              <ChevronRight size={14} className="text-gray-400" />
-            </Link>
-            <Link href="/enrd/customers" className="flex items-center justify-between py-2.5 border-b border-gray-100 hover:bg-gray-50 px-2 rounded-lg transition-colors">
-              <div>
-                <div className="text-xs font-semibold text-gray-900">CRM · Clientes</div>
-                <div className="text-[10px] text-gray-400 mt-0.5">Clientes & Relacionamento</div>
-              </div>
-              <ChevronRight size={14} className="text-gray-400" />
-            </Link>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {EPM_MODULES.map((mod) => {
+              const Icon = iconMap[mod.href] ?? DollarSign;
+              return (
+                <Link key={mod.href} href={mod.href}
+                  className="card-interactive p-4 flex flex-col gap-2 group">
+                  <div className="flex items-center justify-between">
+                    <div className={`w-8 h-8 rounded-lg ${mod.bg} flex items-center justify-center`}>
+                      <Icon size={14} className={mod.color} />
+                    </div>
+                    <ChevronRight size={13} className="text-gray-300 group-hover:text-brand-500 transition-colors" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold text-gray-900 group-hover:text-brand-700 transition-colors leading-tight">
+                      {mod.label}
+                    </div>
+                    <div className="text-[11px] text-gray-400 mt-0.5 truncate">{mod.sub}</div>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
+        </section>
+
+        {/* CRM + PPM */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <section className="card p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Users size={14} className="text-brand-600" />
+              <h2 className="text-sm font-semibold text-gray-900">CRM</h2>
+            </div>
+            <div className="space-y-1">
+              {[
+                { label: "Clientes",      sub: "Cadastro ENRD",      href: "/enrd/customers"      },
+                { label: "Dashboard CRM", sub: "Visão geral vendas",  href: "/crm"                 },
+                { label: "Leads",         sub: "Leads ENRD",         href: "/crm/leads?bu=ENRD"   },
+                { label: "Pipeline",      sub: "Oportunidades",       href: "/crm/pipeline"        },
+              ].map((item) => (
+                <Link key={item.href} href={item.href}
+                  className="flex items-center justify-between py-2.5 px-2 rounded-lg hover:bg-gray-50 transition-colors">
+                  <div>
+                    <div className="text-xs font-semibold text-gray-900">{item.label}</div>
+                    <div className="text-[10px] text-gray-400 mt-0.5">{item.sub}</div>
+                  </div>
+                  <ChevronRight size={13} className="text-gray-300" />
+                </Link>
+              ))}
+            </div>
+          </section>
+
+          <section className="card p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Briefcase size={14} className="text-cyan-700" />
+              <h2 className="text-sm font-semibold text-gray-900">PPM</h2>
+            </div>
+            <div className="space-y-1">
+              {[
+                { label: "Portfolio",     sub: "Projetos ENRD",      href: "/awq/ppm?bu=ENRD"     },
+                { label: "Novo Projeto",  sub: "Criar projeto",       href: "/awq/ppm/add?bu=ENRD" },
+              ].map((item) => (
+                <Link key={item.href} href={item.href}
+                  className="flex items-center justify-between py-2.5 px-2 rounded-lg hover:bg-gray-50 transition-colors">
+                  <div>
+                    <div className="text-xs font-semibold text-gray-900">{item.label}</div>
+                    <div className="text-[10px] text-gray-400 mt-0.5">{item.sub}</div>
+                  </div>
+                  <ChevronRight size={13} className="text-gray-300" />
+                </Link>
+              ))}
+            </div>
+          </section>
         </div>
 
       </div>

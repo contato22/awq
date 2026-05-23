@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Header from "@/components/Header";
 import Link from "next/link";
+import ARTabNav from "@/components/ARTabNav";
 import {
   ArrowUpRight, Plus, X, CheckCircle2, Trash2, Search,
   ChevronDown, ChevronUp, Receipt, Pencil,
@@ -91,6 +92,11 @@ const STATUS_CFG: Record<ARStatus, { label: string; color: string; bg: string }>
   OVERDUE:  { label: "Vencido",   color: "text-red-700",     bg: "bg-red-50"     },
   CANCELLED:{ label: "Cancelado", color: "text-gray-500",    bg: "bg-gray-100"   },
 };
+
+function effectiveStatus(item: ARItem, today: string): ARStatus {
+  if (item.status === "PENDING" && item.due_date < today) return "OVERDUE";
+  return item.status;
+}
 
 const AGING_CFG: Record<AgingBucket, { label: string; color: string }> = {
   "CURRENT": { label: "A receber", color: "text-emerald-600" },
@@ -213,16 +219,18 @@ export default function ARPage() {
   async function confirmReceive() {
     if (!recModal.received_date || !recModal.received_amount) return;
     setRecModal((m) => ({ ...m, saving: true }));
-    await fetch("/api/epm/ar", {
+    const res = await fetch("/api/epm/ar", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: recModal.id, action: "receive", received_date: recModal.received_date, received_amount: parseFloat(recModal.received_amount), receipt_ref: recModal.receipt_ref || undefined }),
     });
+    if (!res.ok) { setRecModal((m) => ({ ...m, saving: false })); return; }
     setRecModal({ open: false, id: "", item: null, received_date: today, received_amount: "", receipt_ref: "", saving: false });
     await loadData();
   }
 
   async function handleDelete(id: string) {
+    if (!window.confirm("Excluir este lançamento de AR?")) return;
     await fetch("/api/epm/ar", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -238,11 +246,12 @@ export default function ARPage() {
   async function confirmEdit() {
     if (!editModal.item) return;
     setEditModal((m) => ({ ...m, saving: true }));
-    await fetch("/api/epm/ar", {
+    const res = await fetch("/api/epm/ar", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: editModal.item.id, action: "update", customer_name: editModal.customer_name, description: editModal.description, category: editModal.category, cost_center: editModal.cost_center || undefined, reference_doc: editModal.reference_doc || undefined, due_date: editModal.due_date }),
     });
+    if (!res.ok) { setEditModal((m) => ({ ...m, saving: false })); return; }
     setEditModal({ open: false, item: null, customer_name: "", description: "", category: "", cost_center: "", reference_doc: "", due_date: "", saving: false });
     await loadData();
   }
@@ -251,7 +260,7 @@ export default function ARPage() {
 
   const filtered = items.filter((i) => {
     if (filterBU && i.bu_code !== filterBU) return false;
-    if (statusFilter !== "ALL" && i.status !== statusFilter) return false;
+    if (statusFilter !== "ALL" && effectiveStatus(i, today) !== statusFilter) return false;
     if (search !== "" &&
       !i.customer_name.toLowerCase().includes(search.toLowerCase()) &&
       !i.description.toLowerCase().includes(search.toLowerCase())) return false;
@@ -268,6 +277,7 @@ export default function ARPage() {
         subtitle={`EPM · AWQ Group · ${outstanding.length} em aberto${kpis?.dso != null ? ` · DSO ${kpis.dso}d` : ""}${kpis?.ccc != null ? ` · CCC ${kpis.ccc}d` : ""}`}
       />
       <div className="page-container">
+        <ARTabNav />
 
         {/* ── KPI cards ─────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -583,7 +593,7 @@ export default function ARPage() {
                 </thead>
                 <tbody>
                   {filtered.sort((a, b) => a.due_date.localeCompare(b.due_date)).map((item) => {
-                    const sc       = STATUS_CFG[item.status];
+                    const sc       = STATUS_CFG[effectiveStatus(item, today)];
                     const expanded = expandedId === item.id;
                     return [
                       <tr
