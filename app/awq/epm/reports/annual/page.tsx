@@ -132,9 +132,9 @@ export default async function AnnualReportPage() {
               { label: "Business Units",   value: "4 BUs"           },
               { label: "Colaboradores",    value: "7 FTEs"          },
             ].map((card) => (
-              <div key={card.label} className="bg-white/10 rounded-xl p-3 text-center">
-                <div className="text-lg font-bold text-white tabular-nums">{card.value}</div>
-                <div className="text-xs text-gray-400 mt-1">{card.label}</div>
+              <div key={card.label} className="bg-white/10 rounded-xl p-4 text-center">
+                <div className="text-xl font-bold text-white tabular-nums">{card.value}</div>
+                <div className="text-xs text-gray-400 mt-1 font-medium">{card.label}</div>
               </div>
             ))}
           </div>
@@ -144,19 +144,19 @@ export default async function AnnualReportPage() {
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-4">
             <TrendingUp size={14} className="text-emerald-600" />
-            <span className="text-sm font-semibold text-gray-900">Tendência 3 Anos — Crescimento AWQ</span>
+            <span className="text-base font-semibold text-gray-900">Tendência 3 Anos — Crescimento AWQ</span>
           </div>
           <div className="table-scroll">
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50 text-left">
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold">Período</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Receita</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Crescimento</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">EBITDA</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Margem</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Caixa Final</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">FTEs</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Período</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Receita</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Crescimento</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">EBITDA</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Margem</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Caixa Final</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">FTEs</th>
                 </tr>
               </thead>
               <tbody>
@@ -209,17 +209,17 @@ export default async function AnnualReportPage() {
         <div className="card">
           <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-100">
             <BarChart3 size={14} className="text-brand-600" />
-            <span className="text-sm font-semibold text-gray-900">DRE Anual — FY2025 vs Budget</span>
+            <span className="text-base font-semibold text-gray-900">DRE Anual — FY2025 vs Budget</span>
           </div>
           <div className="table-scroll">
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50 text-left">
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold">Linha</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Realizado</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Budget</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Var R$</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Var %</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Linha</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Realizado</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Budget</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Var R$</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Var %</th>
                 </tr>
               </thead>
               <tbody>
@@ -253,14 +253,14 @@ export default async function AnnualReportPage() {
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-4">
             <Scale size={14} className="text-brand-600" />
-            <span className="text-sm font-semibold text-gray-900">Balanço Patrimonial — 31/Dez/2025</span>
+            <span className="text-base font-semibold text-gray-900">Balanço Patrimonial — 31/Dez/2025</span>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Assets */}
             <div>
-              <div className="text-[10px] font-bold text-brand-700 uppercase tracking-widest mb-2">Ativo</div>
+              <div className="text-xs font-bold text-brand-700 uppercase tracking-wide mb-2">Ativo</div>
               <div className="space-y-1">
-                <div className="text-[11px] text-gray-500 font-semibold mt-2 mb-1">Ativo Circulante</div>
+                <div className="text-xs text-gray-500 font-semibold mt-2 mb-1">Ativo Circulante</div>
                 {Object.entries(BS_DATA.assets.current).map(([k, v]) => (
                   <div key={k} className="flex justify-between text-xs pl-3">
                     <span className="text-gray-600 capitalize">{k === "ar" ? "Contas a Receber" : k === "cash" ? "Caixa" : k === "prepaid" ? "Adiantamentos" : "Outros"}</span>
@@ -271,7 +271,7 @@ export default async function AnnualReportPage() {
                   <span className="text-gray-700">Total Circulante</span>
                   <span className="text-brand-700 tabular-nums">{fmtBRL(totalCurrentAssets)}</span>
                 </div>
-                <div className="text-[11px] text-gray-500 font-semibold mt-3 mb-1">Ativo Não Circulante</div>
+                <div className="text-xs text-gray-500 font-semibold mt-3 mb-1">Ativo Não Circulante</div>
                 {Object.entries(BS_DATA.assets.nonCurrent).map(([k, v]) => (
                   <div key={k} className="flex justify-between text-xs pl-3">
                     <span className="text-gray-600 capitalize">{k === "fixed" ? "Imobilizado" : k === "intangible" ? "Intangível" : "Investimentos LP"}</span>
@@ -290,9 +290,9 @@ export default async function AnnualReportPage() {
             </div>
             {/* Liabilities + Equity */}
             <div>
-              <div className="text-[10px] font-bold text-red-700 uppercase tracking-widest mb-2">Passivo + PL</div>
+              <div className="text-xs font-bold text-red-700 uppercase tracking-wide mb-2">Passivo + PL</div>
               <div className="space-y-1">
-                <div className="text-[11px] text-gray-500 font-semibold mt-2 mb-1">Passivo Circulante</div>
+                <div className="text-xs text-gray-500 font-semibold mt-2 mb-1">Passivo Circulante</div>
                 {Object.entries(BS_DATA.liabilities.current).map(([k, v]) => (
                   <div key={k} className="flex justify-between text-xs pl-3">
                     <span className="text-gray-600 capitalize">{k === "ap" ? "Fornecedores" : k === "taxes" ? "Obrigações Fiscais" : k === "payroll" ? "Obrigações Trabalhistas" : "Outros"}</span>
@@ -303,12 +303,12 @@ export default async function AnnualReportPage() {
                   <span className="text-gray-700">Total Passivo Circulante</span>
                   <span className="text-red-700 tabular-nums">{fmtBRL(totalCurrentLiab)}</span>
                 </div>
-                <div className="text-[11px] text-gray-500 font-semibold mt-3 mb-1">Passivo Não Circulante</div>
+                <div className="text-xs text-gray-500 font-semibold mt-3 mb-1">Passivo Não Circulante</div>
                 <div className="flex justify-between text-xs pl-3">
                   <span className="text-gray-600">Outros LP</span>
                   <span className="font-semibold tabular-nums text-gray-900">{fmtBRL(BS_DATA.liabilities.longTerm.other)}</span>
                 </div>
-                <div className="text-[11px] text-emerald-600 font-semibold mt-3 mb-1">Patrimônio Líquido</div>
+                <div className="text-xs text-emerald-600 font-semibold mt-3 mb-1">Patrimônio Líquido</div>
                 {Object.entries(BS_DATA.equity).map(([k, v]) => (
                   <div key={k} className="flex justify-between text-xs pl-3">
                     <span className="text-gray-600 capitalize">{k === "capital" ? "Capital Social" : k === "reserves" ? "Reservas" : "Lucros Acumulados"}</span>
@@ -336,7 +336,7 @@ export default async function AnnualReportPage() {
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-4">
             <DollarSign size={14} className="text-emerald-600" />
-            <span className="text-sm font-semibold text-gray-900">Demonstração de Fluxo de Caixa — FY2025 (Indireto)</span>
+            <span className="text-base font-semibold text-gray-900">Demonstração de Fluxo de Caixa — FY2025 (Indireto)</span>
           </div>
           <div className="space-y-1">
             {(() => {
@@ -347,7 +347,7 @@ export default async function AnnualReportPage() {
                 return (
                   <div key={row.label}>
                     {newSection && (
-                      <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mt-3 mb-1 pl-3">
+                      <div className="text-xs font-bold uppercase tracking-wide text-gray-400 mt-3 mb-1 pl-3">
                         {row.section === "operating" ? "Atividades Operacionais" : row.section === "investing" ? "Atividades de Investimento" : "Atividades de Financiamento"}
                       </div>
                     )}

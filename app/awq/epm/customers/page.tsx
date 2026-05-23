@@ -178,11 +178,11 @@ export default function CustomersPage() {
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50 text-left">
-                    <th className="py-2.5 px-3 text-gray-500 font-semibold">Nome</th>
-                    <th className="py-2.5 px-3 text-gray-500 font-semibold">CNPJ / CPF</th>
-                    <th className="py-2.5 px-3 text-gray-500 font-semibold">E-mail</th>
-                    <th className="py-2.5 px-3 text-gray-500 font-semibold">Telefone</th>
-                    <th className="py-2.5 px-3 text-gray-500 font-semibold">Endereço</th>
+                    <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Nome</th>
+                    <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">CNPJ / CPF</th>
+                    <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">E-mail</th>
+                    <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Telefone</th>
+                    <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Endereço</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -190,7 +190,7 @@ export default function CustomersPage() {
                     <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50">
                       <td className="py-2.5 px-3">
                         <div className="font-medium text-gray-800">{item.name}</div>
-                        {item.notes && <div className="text-[10px] text-gray-400 truncate max-w-[160px]">{item.notes}</div>}
+                        {item.notes && <div className="text-xs text-gray-400 truncate max-w-[160px]">{item.notes}</div>}
                       </td>
                       <td className="py-2.5 px-3 text-gray-500 tabular-nums">{item.doc ?? "—"}</td>
                       <td className="py-2.5 px-3 text-gray-500">{item.email ?? "—"}</td>

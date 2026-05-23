@@ -83,12 +83,12 @@ export default function ARAgingPage() {
 
       <div className="flex gap-2 flex-wrap">
         <button onClick={() => setFilterBU("")}
-          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${!filterBU ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${!filterBU ? "bg-brand-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
           Todas BUs
         </button>
         {BUS.map((b) => (
           <button key={b} onClick={() => setFilterBU(b)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${filterBU === b ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${filterBU === b ? "bg-brand-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
             {b}
           </button>
         ))}
@@ -100,14 +100,14 @@ export default function ARAgingPage() {
           <button
             key={b}
             onClick={() => setBucketFilter(bucketFilter === b ? "ALL" : b)}
-            className={`rounded-lg border p-3 text-center transition-all ${
-              bucketFilter === b ? "ring-2 ring-blue-500" : "hover:shadow-sm"
+            className={`rounded-lg border p-4 text-center transition-all ${
+              bucketFilter === b ? "ring-2 ring-brand-500" : "hover:shadow-sm"
             }`}
           >
             <div className={`text-xs font-semibold px-2 py-0.5 rounded-full ${BUCKET_COLOR[b]} mb-2`}>
               {BUCKET_LABELS[b]}
             </div>
-            <div className="text-sm font-bold text-gray-800">{fmt(bucketTotals[b])}</div>
+            <div className="text-base font-bold text-gray-800">{fmt(bucketTotals[b])}</div>
             <div className="text-xs text-gray-500">{bucketMap[b].length} itens</div>
           </button>
         ))}
@@ -129,11 +129,11 @@ export default function ARAgingPage() {
                 </div>
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="text-xs text-gray-500 border-b">
-                      <th className="px-4 py-2 text-left">Descrição</th>
-                      <th className="px-4 py-2 text-left">Vencimento</th>
-                      <th className="px-4 py-2 text-left">Faixa</th>
-                      <th className="px-4 py-2 text-right">Valor</th>
+                    <tr className="text-xs text-gray-500 font-semibold uppercase tracking-wide border-b bg-gray-50">
+                      <th className="px-4 py-2.5 text-left">Descrição</th>
+                      <th className="px-4 py-2.5 text-left">Vencimento</th>
+                      <th className="px-4 py-2.5 text-left">Faixa</th>
+                      <th className="px-4 py-2.5 text-right">Valor</th>
                     </tr>
                   </thead>
                   <tbody>

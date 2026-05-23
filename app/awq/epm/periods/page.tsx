@@ -169,12 +169,12 @@ export default function PeriodsPage() {
           ].map((s) => {
             const Icon = s.icon;
             return (
-              <div key={s.label} className="card p-4 flex items-center gap-3">
+              <div key={s.label} className="card p-5 flex items-center gap-3">
                 <div className={`w-9 h-9 rounded-xl ${s.bg} flex items-center justify-center shrink-0`}>
                   <Icon size={15} className={s.color} />
                 </div>
                 <div>
-                  <div className={`text-xl font-bold ${s.color}`}>{s.value}</div>
+                  <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
                   <div className="text-xs text-gray-400">{s.label}</div>
                 </div>
               </div>
@@ -187,7 +187,7 @@ export default function PeriodsPage() {
           <div className="card p-5">
             <div className="flex items-center gap-2 mb-4">
               <Clock size={14} className="text-amber-600" />
-              <span className="text-sm font-semibold text-gray-900">
+              <span className="text-base font-semibold text-gray-900">
                 Período em Revisão: {reviewing.period_code}
               </span>
               <span className="ml-auto text-xs text-gray-400">
@@ -206,10 +206,10 @@ export default function PeriodsPage() {
                       {item.label}
                     </div>
                     {item.note && (
-                      <div className="text-[11px] text-amber-600 mt-0.5">{item.note}</div>
+                      <div className="text-xs text-amber-600 mt-0.5">{item.note}</div>
                     )}
                   </div>
-                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
                     item.done ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
                   }`}>
                     {item.done ? "OK" : "Pendente"}
@@ -230,7 +230,7 @@ export default function PeriodsPage() {
               </button>
             </div>
             {reviewing.checklist.some((c) => !c.done) && (
-              <div className="mt-2 text-[11px] text-amber-600">
+              <div className="mt-2 text-xs text-amber-600">
                 Resolva todos os itens pendentes antes de fechar o período.
               </div>
             )}
@@ -241,7 +241,7 @@ export default function PeriodsPage() {
         <div className="card">
           <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-100">
             <Calendar size={14} className="text-brand-600" />
-            <span className="text-sm font-semibold text-gray-900">Períodos Mensais — FY2026</span>
+            <span className="text-base font-semibold text-gray-900">Períodos Mensais — FY2026</span>
           </div>
           <div className="table-scroll">
             <table className="w-full text-xs">
@@ -270,7 +270,7 @@ export default function PeriodsPage() {
                       <td className="py-2.5 px-3 text-gray-500">{p.start_date}</td>
                       <td className="py-2.5 px-3 text-gray-500">{p.end_date}</td>
                       <td className="py-2.5 px-3">
-                        <span className={`flex items-center gap-1 w-fit text-[10px] font-semibold px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.color}`}>
+                        <span className={`flex items-center gap-1 w-fit text-xs font-semibold px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.color}`}>
                           <Icon size={9} /> {cfg.label}
                         </span>
                       </td>
@@ -289,12 +289,12 @@ export default function PeriodsPage() {
                       <td className="py-2.5 px-3 text-gray-500">{p.closed_at ? p.closed_at.slice(0, 10) : "—"}</td>
                       <td className="py-2.5 px-3">
                         {p.status === "OPEN" && (
-                          <button className="text-[10px] px-2 py-1 bg-amber-100 text-amber-700 rounded-lg font-semibold hover:bg-amber-200 transition-colors whitespace-nowrap">
+                          <button className="text-xs px-2 py-1 bg-amber-100 text-amber-700 rounded-lg font-semibold hover:bg-amber-200 transition-colors whitespace-nowrap">
                             Iniciar revisão
                           </button>
                         )}
                         {p.status === "LOCKED" && (
-                          <span className="flex items-center gap-1 text-[10px] text-brand-500">
+                          <span className="flex items-center gap-1 text-xs text-brand-500">
                             <Lock size={9} /> Bloqueado
                           </span>
                         )}
@@ -311,7 +311,7 @@ export default function PeriodsPage() {
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-4">
             <FileText size={14} className="text-brand-600" />
-            <span className="text-sm font-semibold text-gray-900">Períodos Trimestrais — FY2026</span>
+            <span className="text-base font-semibold text-gray-900">Períodos Trimestrais — FY2026</span>
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             {quarters.map((p) => {
@@ -322,17 +322,17 @@ export default function PeriodsPage() {
               return (
                 <div key={p.period_code} className={`rounded-xl p-4 border ${p.status === "LOCKED" ? "border-brand-200 bg-brand-50" : p.status === "CLOSED" ? "border-brand-200 bg-brand-50" : "border-gray-200 bg-gray-50"}`}>
                   <div className="font-bold text-gray-900 mb-1">{p.period_code}</div>
-                  <div className="text-[10px] text-gray-400 mb-2">
+                  <div className="text-xs text-gray-400 mb-2">
                     {p.start_date.slice(5, 7)}/{p.start_date.slice(0,4)} → {p.end_date.slice(5, 7)}/{p.end_date.slice(0,4)}
                   </div>
-                  <span className={`flex items-center gap-1 w-fit text-[10px] font-semibold px-2 py-0.5 rounded-full mb-2 ${cfg.bg} ${cfg.color}`}>
+                  <span className={`flex items-center gap-1 w-fit text-xs font-semibold px-2 py-0.5 rounded-full mb-2 ${cfg.bg} ${cfg.color}`}>
                     <Icon size={9} /> {cfg.label}
                   </span>
-                  <div className="text-[10px] text-gray-400">
+                  <div className="text-xs text-gray-400">
                     Checklist: {doneN}/{totalN} ✓
                   </div>
                   {p.closed_by && (
-                    <div className="text-[10px] text-gray-400 mt-1">
+                    <div className="text-xs text-gray-400 mt-1">
                       Fechado por {p.closed_by}
                     </div>
                   )}

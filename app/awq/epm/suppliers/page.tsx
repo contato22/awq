@@ -211,11 +211,11 @@ export default function SuppliersPage() {
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50 text-left">
-                    <th className="py-2.5 px-3 text-gray-500 font-semibold">Nome</th>
-                    <th className="py-2.5 px-3 text-gray-500 font-semibold">CNPJ / CPF</th>
-                    <th className="py-2.5 px-3 text-gray-500 font-semibold">Tipo</th>
-                    <th className="py-2.5 px-3 text-gray-500 font-semibold">Contato</th>
-                    <th className="py-2.5 px-3 text-gray-500 font-semibold">Dados bancários</th>
+                    <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Nome</th>
+                    <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">CNPJ / CPF</th>
+                    <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Tipo</th>
+                    <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Contato</th>
+                    <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Dados bancários</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -223,11 +223,11 @@ export default function SuppliersPage() {
                     <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50">
                       <td className="py-2.5 px-3">
                         <div className="font-medium text-gray-800">{item.name}</div>
-                        {item.notes && <div className="text-[10px] text-gray-400 truncate max-w-[160px]">{item.notes}</div>}
+                        {item.notes && <div className="text-xs text-gray-400 truncate max-w-[160px]">{item.notes}</div>}
                       </td>
                       <td className="py-2.5 px-3 text-gray-500 tabular-nums">{item.doc ?? "—"}</td>
                       <td className="py-2.5 px-3">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${TYPE_COLOR[item.supplier_type]}`}>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${TYPE_COLOR[item.supplier_type]}`}>
                           {SUPPLIER_TYPE_LABELS[item.supplier_type]}
                         </span>
                       </td>

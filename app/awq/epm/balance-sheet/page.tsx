@@ -114,7 +114,7 @@ export default function BalanceSheetPage() {
 
           {/* ATIVO */}
           <div className="card p-5">
-            <h2 className="text-sm font-bold text-gray-900 mb-3 pb-2 border-b border-gray-100">ATIVO</h2>
+            <h2 className="text-base font-bold text-gray-900 mb-3 pb-2 border-b border-gray-100">ATIVO</h2>
             <div className="space-y-1 text-xs">
               {(groups["ASSET"] ?? []).map((line) => {
                 const balance = line.total_debits - line.total_credits;
@@ -140,7 +140,7 @@ export default function BalanceSheetPage() {
           {/* PASSIVO + PL */}
           <div className="space-y-5">
             <div className="card p-5">
-              <h2 className="text-sm font-bold text-gray-900 mb-3 pb-2 border-b border-gray-100">PASSIVO</h2>
+              <h2 className="text-base font-bold text-gray-900 mb-3 pb-2 border-b border-gray-100">PASSIVO</h2>
               <div className="space-y-1 text-xs">
                 {(groups["LIABILITY"] ?? []).map((line) => {
                   const balance = line.total_credits - line.total_debits;
@@ -164,7 +164,7 @@ export default function BalanceSheetPage() {
             </div>
 
             <div className="card p-5">
-              <h2 className="text-sm font-bold text-gray-900 mb-3 pb-2 border-b border-gray-100">PATRIMÔNIO LÍQUIDO</h2>
+              <h2 className="text-base font-bold text-gray-900 mb-3 pb-2 border-b border-gray-100">PATRIMÔNIO LÍQUIDO</h2>
               <div className="space-y-1 text-xs">
                 {(groups["EQUITY"] ?? []).map((line) => {
                   const balance = line.total_credits - line.total_debits;
@@ -200,16 +200,16 @@ export default function BalanceSheetPage() {
 
         {/* ── Trial Balance ─────────────────────────────────────────────── */}
         <div className="card p-5">
-          <h2 className="text-sm font-semibold text-gray-900 mb-4">Balancete Completo</h2>
+          <h2 className="text-base font-semibold text-gray-900 mb-4">Balancete Completo</h2>
           <div className="table-scroll">
             <table className="w-full text-xs">
               <thead>
-                <tr className="border-b border-gray-200 text-left">
-                  <th className="py-2 px-2 text-gray-500 font-semibold">Conta</th>
-                  <th className="py-2 px-2 text-gray-500 font-semibold">Tipo</th>
-                  <th className="py-2 px-2 text-right text-gray-500 font-semibold">Débitos</th>
-                  <th className="py-2 px-2 text-right text-gray-500 font-semibold">Créditos</th>
-                  <th className="py-2 px-2 text-right text-gray-500 font-semibold">Saldo</th>
+                <tr className="border-b border-gray-200 bg-gray-50 text-left">
+                  <th className="py-2.5 px-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Conta</th>
+                  <th className="py-2.5 px-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Tipo</th>
+                  <th className="py-2.5 px-2 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Débitos</th>
+                  <th className="py-2.5 px-2 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Créditos</th>
+                  <th className="py-2.5 px-2 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Saldo</th>
                 </tr>
               </thead>
               <tbody>

@@ -77,11 +77,11 @@ export default async function ConsolidationPage() {
             { label: "EBITDA Consolidado",   value: dreAll.hasData ? dreAll.dreEBITDA : snap.ebitda,      color: dreAll.hasData ? (dreAll.dreEBITDA >= 0 ? "text-emerald-700" : "text-red-700") : "text-emerald-700" },
             { label: "Intercompany Elim.",   value: q.consolidated.intercompanyEliminated,                color: "text-brand-700" },
           ].map((card) => (
-            <div key={card.label} className="card p-4">
-              <div className={`text-xl font-bold tabular-nums ${card.color}`}>
+            <div key={card.label} className="card p-5">
+              <div className={`text-2xl font-bold tabular-nums ${card.color}`}>
                 {(card as { isStr?: boolean }).isStr ? String(card.value) : fmtR(Number(card.value))}
               </div>
-              <div className="text-xs text-gray-400 mt-1">{card.label}</div>
+              <div className="text-xs text-gray-400 mt-1 font-medium">{card.label}</div>
             </div>
           ))}
         </div>
@@ -91,7 +91,7 @@ export default async function ConsolidationPage() {
           <div className="card p-5">
             <div className="flex items-center gap-2 mb-4">
               <Building2 size={14} className="text-brand-600" />
-              <span className="text-sm font-semibold text-gray-900">
+              <span className="text-base font-semibold text-gray-900">
                 Visão de Caixa por Entidade — Base Bancária
               </span>
             </div>
@@ -99,12 +99,12 @@ export default async function ConsolidationPage() {
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50 text-left">
-                    <th className="py-2.5 px-3 text-gray-500 font-semibold">Entidade</th>
-                    <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Entradas</th>
-                    <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Saídas</th>
-                    <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Fluxo Líq.</th>
-                    <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Saldo</th>
-                    <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Mix %</th>
+                    <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Entidade</th>
+                    <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Entradas</th>
+                    <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Saídas</th>
+                    <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Fluxo Líq.</th>
+                    <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Saldo</th>
+                    <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Mix %</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -178,7 +178,7 @@ export default async function ConsolidationPage() {
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-4">
             <BarChart3 size={14} className="text-brand-600" />
-            <span className="text-sm font-semibold text-gray-900">
+            <span className="text-base font-semibold text-gray-900">
               Visão de Gestão por BU — Snapshot Accrual 2026
             </span>
             <span className="text-[10px] text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded font-medium">
@@ -189,12 +189,12 @@ export default async function ConsolidationPage() {
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50 text-left">
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold">BU</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Receita</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">EBITDA</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">EBITDA%</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">ROIC</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Capital Alocado</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">BU</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Receita</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">EBITDA</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">EBITDA%</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">ROIC</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Capital Alocado</th>
                 </tr>
               </thead>
               <tbody>

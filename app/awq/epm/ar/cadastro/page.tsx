@@ -134,16 +134,16 @@ function PipelineStep({
       <div className="flex items-center justify-between">
         <Icon size={16} className="text-brand-500" />
         {pill && (
-          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${pillColor ?? "bg-gray-100 text-gray-600"}`}>
+          <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${pillColor ?? "bg-gray-100 text-gray-600"}`}>
             {pill}
           </span>
         )}
       </div>
-      <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">{label}</div>
+      <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</div>
       <div className="text-sm font-bold text-gray-900 tabular-nums">{value}</div>
-      <div className="text-[10px] text-gray-400">{sub}</div>
+      <div className="text-xs text-gray-400">{sub}</div>
       {to && (
-        <Link href={to} className="text-[10px] text-brand-600 hover:underline flex items-center gap-0.5 mt-auto">
+        <Link href={to} className="text-xs text-brand-600 hover:underline flex items-center gap-0.5 mt-auto">
           Ver detalhes <ArrowRight size={9} />
         </Link>
       )}
@@ -181,7 +181,7 @@ function CoaRow({
                 ? <ChevronDown size={11} className="text-gray-400 shrink-0" />
                 : <ChevronRight size={11} className="text-gray-400 shrink-0" />
             ) : <span className="w-3 shrink-0" />}
-            <span className="font-mono text-[10px] text-gray-400 shrink-0">{node.code}</span>
+            <span className="font-mono text-xs text-gray-400 shrink-0">{node.code}</span>
           </div>
         </td>
         <td className="py-2 px-2 text-xs">
@@ -206,7 +206,7 @@ function CoaRow({
         </td>
         <td className="py-2 px-2 text-center">
           {node.pddRate && (
-            <span className="text-[10px] text-brand-600 bg-brand-50 px-1.5 py-0.5 rounded font-medium">
+            <span className="text-xs text-brand-600 bg-brand-50 px-1.5 py-0.5 rounded font-medium">
               PDD {(node.pddRate * 100).toFixed(1)}%
             </span>
           )}
@@ -355,7 +355,7 @@ export default function ARCadastroPage() {
 
         {/* ── Pipeline CI/CD visualization ──────────────────────────── */}
         <section>
-          <h2 className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-3 flex items-center gap-2">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3 flex items-center gap-2">
             Pipeline CI/CD
             <span className="text-gray-300 normal-case tracking-normal font-normal">
               — AR Cadastro → Conciliação → DFC → DRE → Balanço
@@ -447,7 +447,7 @@ export default function ARCadastroPage() {
               <BarChart3 size={13} className="text-brand-500" /> AR por grupo — Balanço Patrimonial
             </h2>
             <div className="overflow-x-auto">
-              <table className="w-full text-[11px]">
+              <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-gray-200 text-left text-gray-400">
                     <th className="py-1.5 pr-3 font-semibold">Grupo</th>
@@ -479,7 +479,7 @@ export default function ARCadastroPage() {
 
         {/* ── Form toggle ───────────────────────────────────────────── */}
         <div id="ar-form-top" className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-gray-900">Plano de Contas 1.1.2 — AR</h2>
+          <h2 className="text-base font-semibold text-gray-900">Plano de Contas 1.1.2 — AR</h2>
           <button
             onClick={() => setShowForm((v) => !v)}
             className="flex items-center gap-1.5 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-semibold transition-colors"
@@ -492,7 +492,7 @@ export default function ARCadastroPage() {
         {/* ── Registration form ─────────────────────────────────────── */}
         {showForm && (
           <form onSubmit={handleSubmit} className="card p-5 border-2 border-brand-200 space-y-4">
-            <h3 className="text-sm font-semibold text-gray-900">Novo Lançamento AR</h3>
+            <h3 className="text-base font-semibold text-gray-900">Novo Lançamento AR</h3>
 
             <div className="grid grid-cols-2 gap-3 text-xs">
               {/* Account CoA selector */}

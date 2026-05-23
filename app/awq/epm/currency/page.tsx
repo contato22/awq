@@ -136,8 +136,8 @@ export default function CurrencyPage() {
             { label: "Ganho/Perda de Câmbio (YTD)",   value: fmtBRL(totalGainLoss),    color: totalGainLoss >= 0 ? "text-emerald-700" : "text-red-700" },
             { label: "Moedas com Exposição",           value: new Set(FC_TRANSACTIONS.map((t) => t.currency)).size, color: "text-brand-700" },
           ].map((card) => (
-            <div key={card.label} className="card p-4">
-              <div className={`text-xl font-bold tabular-nums ${card.color}`}>{card.value}</div>
+            <div key={card.label} className="card p-5">
+              <div className={`text-2xl font-bold tabular-nums ${card.color}`}>{card.value}</div>
               <div className="text-xs text-gray-400 mt-1">{card.label}</div>
             </div>
           ))}
@@ -147,7 +147,7 @@ export default function CurrencyPage() {
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-4">
             <RefreshCw size={14} className="text-brand-600" />
-            <span className="text-sm font-semibold text-gray-900">Taxas de Câmbio — PTAX BCB</span>
+            <span className="text-base font-semibold text-gray-900">Taxas de Câmbio — PTAX BCB</span>
             <span className="ml-auto text-xs text-gray-400">Atualizado: 30/04/2026</span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -161,14 +161,14 @@ export default function CurrencyPage() {
                     <span className="text-base">{fx.flag}</span>
                     <span className="text-xs font-bold text-gray-900">{fx.currency}</span>
                   </div>
-                  <div className="text-lg font-bold text-gray-900 tabular-nums">
+                  <div className="text-xl font-bold text-gray-900 tabular-nums">
                     R${fmtFX(fx.rate_brl, 4)}
                   </div>
-                  <div className={`flex items-center gap-1 text-[11px] font-semibold mt-1 ${up ? "text-red-600" : "text-emerald-600"}`}>
+                  <div className={`flex items-center gap-1 text-xs font-semibold mt-1 ${up ? "text-red-600" : "text-emerald-600"}`}>
                     {up ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
                     {up ? "+" : ""}{chgPct.toFixed(2)}% (30d)
                   </div>
-                  <div className="text-[10px] text-gray-400 mt-1">{fx.source}</div>
+                  <div className="text-xs text-gray-400 mt-1">{fx.source}</div>
                 </div>
               );
             })}
@@ -179,7 +179,7 @@ export default function CurrencyPage() {
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-4">
             <BarChart3 size={14} className="text-brand-600" />
-            <span className="text-sm font-semibold text-gray-900">Exposição por Moeda (em BRL)</span>
+            <span className="text-base font-semibold text-gray-900">Exposição por Moeda (em BRL)</span>
           </div>
           <div className="table-scroll">
             <table className="w-full text-xs">
@@ -243,7 +243,7 @@ export default function CurrencyPage() {
         <div className="card">
           <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-100">
             <ArrowUpDown size={14} className="text-brand-600" />
-            <span className="text-sm font-semibold text-gray-900">
+            <span className="text-base font-semibold text-gray-900">
               Transações em Moeda Estrangeira
             </span>
             <span className="ml-auto text-xs text-gray-400">{FC_TRANSACTIONS.length} transações · YTD 2026</span>
@@ -275,7 +275,7 @@ export default function CurrencyPage() {
                       <td className="py-2 px-3 text-brand-700 font-semibold">{t.entity}</td>
                       <td className="py-2 px-3 text-gray-700 max-w-[160px] truncate">{t.description}</td>
                       <td className="py-2 px-3">
-                        <span className="text-[10px] px-2 py-0.5 bg-brand-100 text-brand-700 rounded-full font-bold">
+                        <span className="text-xs px-2 py-0.5 bg-brand-100 text-brand-700 rounded-full font-bold">
                           {t.currency}
                         </span>
                       </td>

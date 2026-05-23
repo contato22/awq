@@ -68,7 +68,7 @@ function KpiTile({ kpi }: { kpi: KpiCard }) {
   return (
     <div className={`card p-4 border ${border}`}>
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-widest truncate">
+        <span className="text-xs text-gray-400 font-semibold uppercase tracking-widest truncate">
           {kpi.label}
         </span>
         <div className="flex items-center gap-1.5">
@@ -76,10 +76,10 @@ function KpiTile({ kpi }: { kpi: KpiCard }) {
           <MetricSourceBadge sourceType={kpi.sourceType} />
         </div>
       </div>
-      <div className="text-xl font-bold text-gray-900 tabular-nums">{kpi.value}</div>
-      {kpi.sub && <div className="text-[11px] text-gray-400 mt-0.5">{kpi.sub}</div>}
+      <div className="text-2xl font-bold text-gray-900 tabular-nums">{kpi.value}</div>
+      {kpi.sub && <div className="text-xs text-gray-400 mt-1">{kpi.sub}</div>}
       {kpi.threshold && (
-        <div className="text-[10px] text-gray-300 mt-1">Target: {kpi.threshold}</div>
+        <div className="text-xs text-gray-300 mt-0.5">Target: {kpi.threshold}</div>
       )}
     </div>
   );
@@ -96,7 +96,7 @@ function Section({ title, icon: Icon, children }: {
     <section>
       <div className="flex items-center gap-2 mb-3">
         <Icon size={14} className="text-brand-600" />
-        <span className="text-xs font-semibold text-gray-700 uppercase tracking-widest">{title}</span>
+        <span className="text-sm font-semibold text-gray-500 uppercase tracking-widest">{title}</span>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
         {children}
