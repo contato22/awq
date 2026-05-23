@@ -698,7 +698,7 @@ function IconBar({
     getModuleActive: (id: string) => boolean;
 }) {
     return (
-        <div className="flex flex-col h-full w-[52px] bg-[#13243e] shrink-0">
+        <div className="flex flex-col h-full w-[52px] bg-[#1b55ae] shrink-0">
             {/* Logo */}
             <div className="h-[52px] flex items-center justify-center border-b border-white/10 shrink-0">
                 <Link href="/awq">
@@ -717,7 +717,7 @@ function IconBar({
                         "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                         pathname === "/awq"
                             ? "bg-white text-brand-600"
-                            : "text-white/40 hover:bg-white/[0.07] hover:text-white/70"
+                            : "text-white/60 hover:bg-white/[0.07] hover:text-white"
                     )}
                 >
                     <LayoutDashboard size={18} />
@@ -743,7 +743,7 @@ function IconBar({
                                     ? "bg-white text-brand-600"
                                     : modActive
                                     ? "text-white"
-                                    : "text-white/40 hover:bg-white/[0.07] hover:text-white/70"
+                                    : "text-white/60 hover:bg-white/[0.07] hover:text-white"
                             )}
                         >
                             <ModIcon size={18} className="shrink-0" />
@@ -764,7 +764,7 @@ function IconBar({
                             "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                             activePanel === "bus"
                                 ? "bg-white text-brand-600"
-                                : "text-white/40 hover:bg-white/[0.07] hover:text-white/70"
+                                : "text-white/60 hover:bg-white/[0.07] hover:text-white"
                         )}
                     >
                         <Building2 size={18} />
@@ -778,7 +778,7 @@ function IconBar({
                             "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                             activePanel === "ai"
                                 ? "bg-white text-brand-600"
-                                : "text-white/40 hover:bg-white/[0.07] hover:text-white/70"
+                                : "text-white/60 hover:bg-white/[0.07] hover:text-white"
                         )}
                     >
                         <Bot size={18} />
@@ -791,7 +791,7 @@ function IconBar({
                         "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                         pathname.startsWith("/settings")
                             ? "bg-white text-brand-600"
-                            : "text-white/40 hover:bg-white/[0.07] hover:text-white/70"
+                            : "text-white/60 hover:bg-white/[0.07] hover:text-white"
                     )}
                 >
                     <Settings size={18} />
@@ -998,7 +998,7 @@ function BUSidebar({
     return (
         <div className="flex h-full">
             {/* Icon bar */}
-            <div className="flex flex-col h-full w-[52px] bg-[#13243e] shrink-0">
+            <div className="flex flex-col h-full w-[52px] bg-[#1b55ae] shrink-0">
                 {/* BU logo */}
                 <div className="h-[52px] flex items-center justify-center border-b border-white/10 shrink-0">
                     <Link href={homeHref} title={buId}>
@@ -1013,7 +1013,7 @@ function BUSidebar({
                         <Link
                             href="/business-units"
                             title="Voltar para AWQ Group"
-                            className="flex items-center justify-center py-2.5 px-1 rounded-lg w-full text-white/40 hover:bg-white/[0.07] hover:text-white/70 transition-all"
+                            className="flex items-center justify-center py-2.5 px-1 rounded-lg w-full text-white/60 hover:bg-white/[0.07] hover:text-white transition-all"
                         >
                             <ChevronLeft size={18} />
                         </Link>
@@ -1031,7 +1031,7 @@ function BUSidebar({
                             "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                             pathname === homeHref
                                 ? "bg-white text-brand-600"
-                                : "text-white/40 hover:bg-white/[0.07] hover:text-white/70"
+                                : "text-white/60 hover:bg-white/[0.07] hover:text-white"
                         )}
                     >
                         <LayoutDashboard size={18} />
@@ -1057,7 +1057,7 @@ function BUSidebar({
                                         ? "bg-white text-brand-600"
                                         : modActive
                                         ? "text-white"
-                                        : "text-white/40 hover:bg-white/[0.07] hover:text-white/70"
+                                        : "text-white/60 hover:bg-white/[0.07] hover:text-white"
                                 )}
                             >
                                 <ModIcon size={18} className="shrink-0" />
@@ -1076,7 +1076,7 @@ function BUSidebar({
                             "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                             activePanel === "ai"
                                 ? "bg-white text-brand-600"
-                                : "text-white/40 hover:bg-white/[0.07] hover:text-white/70"
+                                : "text-white/60 hover:bg-white/[0.07] hover:text-white"
                         )}
                     >
                         <Bot size={18} />
@@ -1088,7 +1088,7 @@ function BUSidebar({
                             "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                             pathname.startsWith("/settings")
                                 ? "bg-white text-brand-600"
-                                : "text-white/40 hover:bg-white/[0.07] hover:text-white/70"
+                                : "text-white/60 hover:bg-white/[0.07] hover:text-white"
                         )}
                     >
                         <Settings size={16} />
