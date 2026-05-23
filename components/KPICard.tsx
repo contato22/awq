@@ -64,10 +64,10 @@ export default function KPICard({ kpi }: KPICardProps) {
       </div>
 
       <div>
-        <div className="text-2xl font-bold text-gray-900 tabular-nums tracking-tight">
+        <div className="text-3xl font-bold text-gray-900 tabular-nums tracking-tight">
           {formatValue(kpi)}
         </div>
-        <div className="text-xs text-gray-500 font-medium mt-1">{kpi.label}</div>
+        <div className="text-sm text-gray-500 font-medium mt-1">{kpi.label}</div>
       </div>
 
       <div className="mt-3 pt-3 border-t border-gray-100">

@@ -39,17 +39,17 @@ function MetricCard({
   up?: boolean; icon: React.ElementType; color: string; bg: string; empty?: boolean;
 }) {
   return (
-    <div className="card-elevated p-4 lg:p-5 flex items-start gap-3">
-      <div className={`w-9 h-9 rounded-lg ${bg} flex items-center justify-center shrink-0`}>
-        <Icon size={16} className={color} />
+    <div className="card-elevated p-5 lg:p-6 flex items-start gap-4">
+      <div className={`w-10 h-10 rounded-xl ${bg} flex items-center justify-center shrink-0`}>
+        <Icon size={18} className={color} />
       </div>
       <div className="flex-1 min-w-0">
         {empty ? (
-          <div className="text-xs text-gray-400 mt-1 italic">—</div>
+          <div className="text-sm text-gray-400 mt-1 italic">—</div>
         ) : (
-          <div className="text-lg lg:text-xl font-bold text-gray-900 tabular-nums">{value}</div>
+          <div className="text-xl lg:text-2xl font-bold text-gray-900 tabular-nums tracking-tight">{value}</div>
         )}
-        <div className="text-[11px] font-medium text-gray-500 mt-0.5 leading-tight truncate">{label}</div>
+        <div className="text-xs font-medium text-gray-500 mt-1 leading-tight truncate">{label}</div>
         {!empty && delta && (
           <div className="flex items-center gap-1 mt-1.5">
             {up
@@ -203,8 +203,8 @@ export default async function AwqGroupPage() {
 
         {/* ── Primary financial metrics (base bancária real) ─────────────── */}
         <section>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-xs font-semibold text-gray-500 uppercase tracking-widest">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-sm font-semibold text-gray-500 uppercase tracking-widest">
               Visão de Caixa — Base Bancária Real
             </span>
             {q.hasData && (
