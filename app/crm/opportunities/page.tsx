@@ -911,31 +911,21 @@ function PipelinePageInner() {
     </>
   );
 
-  if (apiError) return (
-    <>
-      <Header title="Pipeline — CRM AWQ" subtitle="Visão kanban do funil de vendas" />
-      <div className="page-container">
-        <div className="card p-6 border border-red-200 bg-red-50">
-          <div className="flex items-start gap-3">
-            <AlertCircle size={18} className="text-red-500 shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-red-700">Erro ao carregar pipeline</p>
-              <p className="text-xs text-red-600 mt-1 font-mono break-all">{apiError}</p>
-
-              <button onClick={() => window.location.reload()} className="mt-3 px-3 py-1.5 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-700 transition-colors">
-                Tentar novamente
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-
   return (
     <>
       <Header title="Pipeline — CRM AWQ" subtitle="Visão kanban do funil de vendas" />
       <div className="page-container">
+
+        {/* Non-blocking error banner */}
+        {apiError && (
+          <div className="flex items-center gap-2 px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
+            <AlertCircle size={14} className="text-amber-500 shrink-0" />
+            <span>Não foi possível carregar os dados. </span>
+            <button onClick={() => window.location.reload()} className="underline font-semibold hover:text-amber-900">
+              Tentar novamente
+            </button>
+          </div>
+        )}
 
         {/* Detail modal */}
         {editingOpp && (
