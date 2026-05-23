@@ -612,14 +612,14 @@ function NavItem({
                 "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30",
                 active
                     ? "bg-white text-gray-900 font-semibold shadow-sm"
-                    : "text-white/70 hover:text-white hover:bg-white/[0.07] font-medium"
+                    : "text-white hover:text-white hover:bg-white/[0.07] font-medium"
             )}
         >
             <Icon
                 size={14}
                 className={cn(
                     "shrink-0 transition-colors",
-                    active ? "text-brand-600" : "text-white/40 group-hover:text-white/70"
+                    active ? "text-brand-600" : "text-white/80 group-hover:text-white"
                 )}
             />
             <span className="flex-1 truncate">{label}</span>
@@ -640,7 +640,7 @@ function NavItem({
 function SectionLabel({ children }: { children: React.ReactNode }) {
     return (
         <div className="px-3 mb-1 mt-5 first:mt-2">
-            <span className="text-[9px] font-bold text-white/30 uppercase tracking-[0.12em]">
+            <span className="text-[9px] font-bold text-white/60 uppercase tracking-[0.12em]">
                 {children}
             </span>
         </div>
@@ -717,7 +717,7 @@ function IconBar({
                         "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                         pathname === "/awq"
                             ? "bg-white text-brand-600"
-                            : "text-white/60 hover:bg-white/[0.07] hover:text-white"
+                            : "text-white hover:bg-white/[0.10] hover:text-white"
                     )}
                 >
                     <LayoutDashboard size={18} />
@@ -743,7 +743,7 @@ function IconBar({
                                     ? "bg-white text-brand-600"
                                     : modActive
                                     ? "text-white"
-                                    : "text-white/60 hover:bg-white/[0.07] hover:text-white"
+                                    : "text-white hover:bg-white/[0.10] hover:text-white"
                             )}
                         >
                             <ModIcon size={18} className="shrink-0" />
@@ -764,7 +764,7 @@ function IconBar({
                             "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                             activePanel === "bus"
                                 ? "bg-white text-brand-600"
-                                : "text-white/60 hover:bg-white/[0.07] hover:text-white"
+                                : "text-white hover:bg-white/[0.10] hover:text-white"
                         )}
                     >
                         <Building2 size={18} />
@@ -778,7 +778,7 @@ function IconBar({
                             "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                             activePanel === "ai"
                                 ? "bg-white text-brand-600"
-                                : "text-white/60 hover:bg-white/[0.07] hover:text-white"
+                                : "text-white hover:bg-white/[0.10] hover:text-white"
                         )}
                     >
                         <Bot size={18} />
@@ -791,7 +791,7 @@ function IconBar({
                         "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                         pathname.startsWith("/settings")
                             ? "bg-white text-brand-600"
-                            : "text-white/60 hover:bg-white/[0.07] hover:text-white"
+                            : "text-white hover:bg-white/[0.10] hover:text-white"
                     )}
                 >
                     <Settings size={18} />
@@ -1008,7 +1008,7 @@ function BUSidebar({
                         <Link
                             href="/business-units"
                             title="Voltar para AWQ Group"
-                            className="flex items-center justify-center py-2.5 px-1 rounded-lg w-full text-white/60 hover:bg-white/[0.07] hover:text-white transition-all"
+                            className="flex items-center justify-center py-2.5 px-1 rounded-lg w-full text-white hover:bg-white/[0.10] hover:text-white transition-all"
                         >
                             <ChevronLeft size={18} />
                         </Link>
@@ -1026,7 +1026,7 @@ function BUSidebar({
                             "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                             pathname === homeHref
                                 ? "bg-white text-brand-600"
-                                : "text-white/60 hover:bg-white/[0.07] hover:text-white"
+                                : "text-white hover:bg-white/[0.10] hover:text-white"
                         )}
                     >
                         <LayoutDashboard size={18} />
@@ -1052,7 +1052,7 @@ function BUSidebar({
                                         ? "bg-white text-brand-600"
                                         : modActive
                                         ? "text-white"
-                                        : "text-white/60 hover:bg-white/[0.07] hover:text-white"
+                                        : "text-white hover:bg-white/[0.10] hover:text-white"
                                 )}
                             >
                                 <ModIcon size={18} className="shrink-0" />
@@ -1071,7 +1071,7 @@ function BUSidebar({
                             "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                             activePanel === "ai"
                                 ? "bg-white text-brand-600"
-                                : "text-white/60 hover:bg-white/[0.07] hover:text-white"
+                                : "text-white hover:bg-white/[0.10] hover:text-white"
                         )}
                     >
                         <Bot size={18} />
@@ -1083,7 +1083,7 @@ function BUSidebar({
                             "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                             pathname.startsWith("/settings")
                                 ? "bg-white text-brand-600"
-                                : "text-white/60 hover:bg-white/[0.07] hover:text-white"
+                                : "text-white hover:bg-white/[0.10] hover:text-white"
                         )}
                     >
                         <Settings size={16} />
