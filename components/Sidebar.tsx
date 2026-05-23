@@ -714,14 +714,13 @@ function IconBar({
                     href="/awq"
                     title="Visão Geral"
                     className={cn(
-                        "flex flex-col items-center gap-0.5 py-2 px-1 rounded-lg transition-all w-full",
+                        "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                         pathname === "/awq"
                             ? "bg-white text-brand-600"
                             : "text-white/40 hover:bg-white/[0.07] hover:text-white/70"
                     )}
                 >
-                    <LayoutDashboard size={16} />
-                    <span className="text-[8px] font-semibold leading-none">Início</span>
+                    <LayoutDashboard size={18} />
                 </Link>
             </div>
 
@@ -739,7 +738,7 @@ function IconBar({
                             onClick={() => onToggle(mod.id)}
                             title={mod.label}
                             className={cn(
-                                "flex flex-col items-center gap-0.5 py-[7px] px-1 rounded-lg transition-all w-full",
+                                "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                                 isOpen
                                     ? "bg-white text-brand-600"
                                     : modActive
@@ -747,8 +746,7 @@ function IconBar({
                                     : "text-white/40 hover:bg-white/[0.07] hover:text-white/70"
                             )}
                         >
-                            <ModIcon size={16} className="shrink-0" />
-                            <span className="text-[8px] font-bold leading-none tracking-wide">{mod.label}</span>
+                            <ModIcon size={18} className="shrink-0" />
                         </button>
                     );
                 })}
@@ -763,14 +761,13 @@ function IconBar({
                         onClick={() => onToggle("bus")}
                         title="Business Units"
                         className={cn(
-                            "flex flex-col items-center gap-0.5 py-[7px] px-1 rounded-lg transition-all w-full",
+                            "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                             activePanel === "bus"
                                 ? "bg-white text-brand-600"
                                 : "text-white/40 hover:bg-white/[0.07] hover:text-white/70"
                         )}
                     >
-                        <Building2 size={16} />
-                        <span className="text-[8px] font-bold leading-none">BUs</span>
+                        <Building2 size={18} />
                     </button>
                 )}
                 {showAi && (
@@ -778,27 +775,26 @@ function IconBar({
                         onClick={() => onToggle("ai")}
                         title="IA & Agentes"
                         className={cn(
-                            "flex flex-col items-center gap-0.5 py-[7px] px-1 rounded-lg transition-all w-full",
+                            "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                             activePanel === "ai"
                                 ? "bg-white text-brand-600"
                                 : "text-white/40 hover:bg-white/[0.07] hover:text-white/70"
                         )}
                     >
-                        <Bot size={16} />
-                        <span className="text-[8px] font-bold leading-none">IA</span>
+                        <Bot size={18} />
                     </button>
                 )}
                 <Link
                     href="/settings"
                     title="Settings"
                     className={cn(
-                        "flex flex-col items-center gap-0.5 py-[7px] px-1 rounded-lg transition-all w-full",
+                        "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                         pathname.startsWith("/settings")
                             ? "bg-white text-brand-600"
                             : "text-white/40 hover:bg-white/[0.07] hover:text-white/70"
                     )}
                 >
-                    <Settings size={16} />
+                    <Settings size={18} />
                 </Link>
             </div>
 
@@ -1012,10 +1008,9 @@ function BUSidebar({
                         <Link
                             href="/business-units"
                             title="Voltar para AWQ Group"
-                            className="flex flex-col items-center gap-0.5 py-2 px-1 rounded-lg w-full text-white/40 hover:bg-white/[0.07] hover:text-white/70 transition-all"
+                            className="flex items-center justify-center py-2.5 px-1 rounded-lg w-full text-white/40 hover:bg-white/[0.07] hover:text-white/70 transition-all"
                         >
-                            <ChevronLeft size={16} />
-                            <span className="text-[8px] font-semibold leading-none">AWQ</span>
+                            <ChevronLeft size={18} />
                         </Link>
                     </div>
                 )}
@@ -1028,14 +1023,13 @@ function BUSidebar({
                         href={homeHref}
                         title="Visão Geral"
                         className={cn(
-                            "flex flex-col items-center gap-0.5 py-[7px] px-1 rounded-lg transition-all w-full",
+                            "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                             pathname === homeHref
                                 ? "bg-white text-brand-600"
                                 : "text-white/40 hover:bg-white/[0.07] hover:text-white/70"
                         )}
                     >
-                        <LayoutDashboard size={16} />
-                        <span className="text-[8px] font-semibold leading-none">Início</span>
+                        <LayoutDashboard size={18} />
                     </Link>
                 </div>
 
@@ -1053,7 +1047,7 @@ function BUSidebar({
                                 onClick={() => togglePanel(mod.id)}
                                 title={mod.label}
                                 className={cn(
-                                    "flex flex-col items-center gap-0.5 py-[7px] px-1 rounded-lg transition-all w-full",
+                                    "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                                     isOpen
                                         ? "bg-white text-brand-600"
                                         : modActive
@@ -1061,8 +1055,7 @@ function BUSidebar({
                                         : "text-white/40 hover:bg-white/[0.07] hover:text-white/70"
                                 )}
                             >
-                                <ModIcon size={16} className="shrink-0" />
-                                <span className="text-[8px] font-bold leading-none tracking-wide">{mod.label}</span>
+                                <ModIcon size={18} className="shrink-0" />
                             </button>
                         );
                     })}
@@ -1075,20 +1068,19 @@ function BUSidebar({
                         onClick={() => togglePanel("ai")}
                         title="IA & Agentes"
                         className={cn(
-                            "flex flex-col items-center gap-0.5 py-[7px] px-1 rounded-lg transition-all w-full",
+                            "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                             activePanel === "ai"
                                 ? "bg-white text-brand-600"
                                 : "text-white/40 hover:bg-white/[0.07] hover:text-white/70"
                         )}
                     >
-                        <Bot size={16} />
-                        <span className="text-[8px] font-bold leading-none">IA</span>
+                        <Bot size={18} />
                     </button>
                     <Link
                         href="/settings"
                         title="Settings"
                         className={cn(
-                            "flex flex-col items-center gap-0.5 py-[7px] px-1 rounded-lg transition-all w-full",
+                            "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                             pathname.startsWith("/settings")
                                 ? "bg-white text-brand-600"
                                 : "text-white/40 hover:bg-white/[0.07] hover:text-white/70"
