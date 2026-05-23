@@ -879,7 +879,7 @@ function AwqSidebar({ pathname }: { pathname: string }) {
             />
 
             {activePanel && (
-                <div className="w-[220px] bg-[#023E73] flex flex-col border-r border-white/[0.06] overflow-hidden">
+                <div className="w-[220px] bg-[#023373] flex flex-col border-r border-white/[0.06] overflow-hidden">
                     <PanelHeader title={panelTitle} onBack={() => setActivePanel(null)} />
 
                     <nav className="flex-1 overflow-y-auto px-2 py-2 scrollbar-none">
@@ -1095,7 +1095,7 @@ function BUSidebar({
 
             {/* Panel */}
             {activePanel && (
-                <div className="w-[220px] bg-[#023E73] flex flex-col border-r border-white/[0.06] overflow-hidden">
+                <div className="w-[220px] bg-[#023373] flex flex-col border-r border-white/[0.06] overflow-hidden">
                     <PanelHeader
                         title={activePanel === "ai" ? "IA & Agentes" : activeMod?.label ?? ""}
                         onBack={() => setActivePanel(null)}
