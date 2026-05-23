@@ -15,6 +15,7 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import BankReconciliationBoard from "@/components/BankReconciliationBoard";
 import CoraStatusPanel from "@/components/CoraStatusPanel";
+import FinancialOverview from "@/components/FinancialOverview";
 import { getAllTransactions, getAllDocuments, type BankTransaction, type FinancialDocument } from "@/lib/financial-db";
 import { getAllAR, initAPARDB } from "@/lib/ap-ar-db";
 import {
@@ -94,6 +95,13 @@ export default async function ConciliacaoPage() {
             </div>
           </div>
         )}
+
+        {/* ── Visão geral financeira (Conta Azul-style) ── */}
+        <FinancialOverview
+          transactions={transactions}
+          arPending={arPending}
+          coraConfigured={CORA_CONFIGURED}
+        />
 
         {/* ── Painel principal de conciliação ── */}
         <section className="space-y-4">

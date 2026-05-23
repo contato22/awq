@@ -1132,27 +1132,22 @@ export default function BankReconciliationBoard({
           })}
         </div>
 
-        {/* Action buttons (pendentes tab only) */}
+        {/* Action buttons (pendentes tab only) — Conta Azul style */}
         {activeTab === "pendentes" && (
           <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={toggleSelectAll}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-300 bg-white text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
             >
-              Selecionar lançamentos <ChevronDown size={12} className="text-gray-400" />
+              <Check size={12} className="text-gray-500" />
+              Ações em lote <ChevronDown size={12} className="text-gray-400" />
             </button>
             <button
               onClick={handleBulkReconcile}
               disabled={selectedIds.size === 0}
-              className="px-3 py-2 rounded-xl border border-gray-300 bg-white text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold disabled:opacity-40 transition-colors"
             >
-              Conciliar
-            </button>
-            <button className="px-3 py-2 rounded-xl border border-gray-300 bg-white text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-              Editar
-            </button>
-            <button className="px-3 py-2 rounded-xl border border-gray-300 bg-white text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-              Desvincular
+              Conciliar selecionados
             </button>
             <button
               onClick={() => {
@@ -1162,10 +1157,10 @@ export default function BankReconciliationBoard({
               disabled={selectedIds.size === 0}
               className="px-3 py-2 rounded-xl border border-gray-300 bg-white text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 transition-colors"
             >
-              Ignorar
+              Ignorar selecionados
             </button>
-            <button className="flex items-center gap-1 px-3 py-2 rounded-xl border border-gray-300 bg-white text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-              Ordenar <ChevronDown size={12} className="text-gray-400" />
+            <button className="flex items-center gap-1 px-3 py-2 rounded-xl border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 transition-colors">
+              Ordem: recente para antigo <ChevronDown size={12} className="text-gray-400" />
             </button>
           </div>
         )}
@@ -1204,7 +1199,7 @@ export default function BankReconciliationBoard({
       )}
 
       {/* ── Reconciliation items ─────────────────────────────────────────────── */}
-      <div className="space-y-3">
+      <div className="space-y-2">
         {filtered.map((tx) => {
           const { quality, diffAmount } = matchCache.get(tx.id) ?? computeMatch(tx, apArSnaps);
           const matchCfg   = MATCH_CFG[quality];
@@ -1213,20 +1208,30 @@ export default function BankReconciliationBoard({
           const isSelected = selectedIds.has(tx.id);
           const isSaving   = savingId === tx.id;
           const catLabel   = CAT_LABEL[tx.managerialCategory] ?? tx.managerialCategory;
+          const isGoodMatch = quality === "perfeito" || quality === "quase";
+
+          // Status label shown at the bottom of the right card — Conta Azul style
+          const statusLabel =
+            quality === "perfeito" ? { text: "Encontrado no financeiro", color: "text-emerald-600" } :
+            quality === "quase"    ? { text: "Correspondência provável",  color: "text-emerald-500" } :
+            quality === "ambiguo"  ? { text: "Revisar manualmente",       color: "text-amber-600"   } :
+                                     { text: "Sem correspondência",       color: "text-gray-400"    };
 
           return (
             <div
               key={tx.id}
               className={
-                "grid grid-cols-[1fr_120px_1fr] rounded-xl border overflow-hidden transition-colors " +
+                "grid grid-cols-[1fr_96px_1fr] rounded-xl border overflow-hidden transition-colors " +
                 (isSelected
-                  ? "border-amber-300 bg-amber-50/20"
-                  : "border-gray-200 bg-white hover:border-gray-300")
+                  ? "border-amber-300"
+                  : isGoodMatch
+                    ? "border-emerald-200"
+                    : "border-gray-200 hover:border-gray-300")
               }
             >
               {/* ── LEFT: Bank entry ─────────────────────────────────────── */}
-              <div className="p-4 flex flex-col gap-2">
-                {/* Date + amount */}
+              <div className={`p-4 flex flex-col gap-2 ${isSelected ? "bg-amber-50/40" : isGoodMatch ? "bg-emerald-50/30" : "bg-white"}`}>
+                {/* Date row + amount */}
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2">
                     {activeTab === "pendentes" && (
@@ -1237,33 +1242,28 @@ export default function BankReconciliationBoard({
                         className="rounded border-gray-300 text-amber-500 focus:ring-amber-400 shrink-0 mt-0.5"
                       />
                     )}
-                    <div>
-                      <span className="text-xs font-semibold text-gray-800">{dateInfo.short}</span>
-                      <span className="ml-1.5 text-xs text-gray-400">{dateInfo.weekday}</span>
-                    </div>
+                    <span className="text-xs font-semibold text-gray-700">
+                      {dateInfo.short}
+                      <span className="ml-1.5 font-normal text-gray-400">{dateInfo.weekday.toUpperCase().slice(0,3)}</span>
+                    </span>
                   </div>
-                  <span className={`text-sm font-bold whitespace-nowrap ${isCredit ? "text-emerald-600" : "text-red-600"}`}>
-                    {isCredit ? "+" : ""}{fmtBRL(Math.abs(tx.amount))}
+                  <span className={`text-sm font-bold whitespace-nowrap tabular-nums ${isCredit ? "text-emerald-600" : "text-red-600"}`}>
+                    {isCredit ? "+" : "-"}{fmtBRL(Math.abs(tx.amount))}
                   </span>
                 </div>
 
                 {/* Description */}
-                <p
-                  className="text-sm text-gray-800 font-medium truncate"
-                  title={tx.descriptionOriginal}
-                >
+                <p className="text-sm text-gray-900 font-medium truncate leading-snug" title={tx.descriptionOriginal}>
                   {tx.descriptionOriginal}
                 </p>
 
-                {/* Footer */}
-                <div className="flex items-center justify-between mt-auto pt-1">
-                  <span className="text-[11px] text-gray-400 bg-gray-50 border border-gray-200 rounded px-2 py-0.5">
-                    {tx.bank} · {tx.accountName}
-                  </span>
+                {/* Footer: bank label + Ignorar */}
+                <div className="flex items-center justify-between mt-auto pt-2">
+                  <span className="text-[10px] text-gray-400 truncate">{tx.bank}</span>
                   {activeTab === "pendentes" && (
                     <button
                       onClick={() => handleIgnore(tx.id)}
-                      className="text-[11px] text-gray-500 border border-gray-200 rounded px-2 py-0.5 hover:border-red-300 hover:text-red-600 transition-colors"
+                      className="text-[11px] text-gray-400 hover:text-red-500 transition-colors"
                     >
                       Ignorar
                     </button>
@@ -1271,32 +1271,28 @@ export default function BankReconciliationBoard({
                 </div>
               </div>
 
-              {/* ── CENTER: match badge + action ────────────────────────── */}
-              <div className="flex flex-col items-center justify-center gap-2 bg-gray-50 border-x border-gray-200 px-2 py-4">
-                <span className={
-                  `text-[10px] px-2 py-0.5 rounded-full border font-semibold text-center leading-tight ` +
-                  `${matchCfg.bg} ${matchCfg.text} ${matchCfg.border}`
-                }>
-                  {matchCfg.label}
-                </span>
+              {/* ── CENTER: Conciliar action ─────────────────────────────── */}
+              <div className={`flex flex-col items-center justify-center gap-2 border-x px-2 py-4 ${
+                isGoodMatch ? "bg-emerald-50/60 border-emerald-100" : "bg-gray-50 border-gray-200"
+              }`}>
                 {activeTab === "pendentes" ? (
-                  <div className="w-full flex flex-col gap-1">
+                  <>
                     <button
                       disabled={isSaving}
                       onClick={() => setDrawerTx(tx)}
-                      className="w-full flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold disabled:opacity-50 transition-colors"
+                      className="w-full flex items-center justify-center gap-1 px-2 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold disabled:opacity-50 transition-colors shadow-sm"
                     >
-                      <Link2 size={11} />
-                      {isSaving ? "…" : "Vincular"}
+                      {isSaving ? <Loader2 size={11} className="animate-spin" /> : <Link2 size={11} />}
+                      {isSaving ? "…" : "Conciliar"}
                     </button>
                     <button
                       disabled={isSaving}
                       onClick={() => void handleReconcile(tx.id)}
-                      className="w-full px-2 py-1 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 text-gray-600 text-[10px] disabled:opacity-50 transition-colors"
+                      className="w-full px-2 py-1 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 text-gray-500 text-[10px] disabled:opacity-50 transition-colors"
                     >
-                      {isSaving ? "…" : "Conciliar direto"}
+                      Direto
                     </button>
-                  </div>
+                  </>
                 ) : (
                   <span className="text-[10px] px-2 py-0.5 rounded-full border font-semibold bg-emerald-50 text-emerald-700 border-emerald-200">
                     ✓ Conciliado
@@ -1305,61 +1301,52 @@ export default function BankReconciliationBoard({
               </div>
 
               {/* ── RIGHT: System (AWQ) entry ──────────────────────────── */}
-              <div className="p-4 flex flex-col gap-2">
-                {/* Amount + diff + date */}
+              <div className={`p-4 flex flex-col gap-2 ${isSelected ? "bg-amber-50/40" : isGoodMatch ? "bg-emerald-50/30" : "bg-white"}`}>
+                {/* Amount + date */}
                 <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`text-sm font-bold ${isCredit ? "text-emerald-600" : "text-red-600"}`}>
+                  <div className="flex items-center gap-2 flex-wrap min-w-0">
+                    <span className={`text-sm font-bold tabular-nums ${isCredit ? "text-emerald-600" : "text-red-600"}`}>
                       {fmtBRL(Math.abs(tx.amount))}
                     </span>
                     {diffAmount > 0 && (
                       <span className="text-[10px] bg-amber-50 border border-amber-200 text-amber-700 rounded px-1.5 py-0.5 whitespace-nowrap">
-                        Diferença {fmtBRL(diffAmount)}
+                        Δ {fmtBRL(diffAmount)}
                       </span>
                     )}
                   </div>
-                  <div className="text-right shrink-0">
-                    <span className="text-xs font-semibold text-gray-800">{dateInfo.short}</span>
-                    <span className="ml-1.5 text-xs text-gray-400">{dateInfo.weekday}</span>
-                  </div>
+                  <span className="text-xs font-semibold text-gray-700 shrink-0">
+                    {dateInfo.short}
+                    <span className="ml-1.5 font-normal text-gray-400">{dateInfo.weekday.toUpperCase().slice(0,3)}</span>
+                  </span>
                 </div>
 
-                {/* Description */}
-                <p className="text-sm text-gray-800 font-medium truncate" title={tx.descriptionOriginal}>
+                {/* Description + counterparty */}
+                <p className="text-sm text-gray-900 font-medium truncate leading-snug" title={tx.descriptionOriginal}>
                   {tx.descriptionOriginal}
                 </p>
+                <p className="text-xs text-gray-500 truncate">
+                  Categoria: <span className="text-gray-700 font-medium">{catLabel}</span>
+                  {tx.counterpartyName && (
+                    <span className="ml-2 text-gray-400">· {tx.counterpartyName}</span>
+                  )}
+                </p>
 
-                {/* Meta grid */}
-                <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-[11px]">
-                  <div>
-                    <span className="text-gray-400">Cliente: </span>
-                    <span className="text-gray-700">{tx.counterpartyName ?? "Não informado"}</span>
+                {/* Footer: status label + action buttons (Conta Azul style) */}
+                <div className="flex items-center justify-between mt-auto pt-2 gap-2">
+                  <span className={`text-[11px] font-medium ${statusLabel.color}`}>
+                    {statusLabel.text}
+                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => setDrawerTx(tx)}
+                      className="text-[11px] text-gray-500 hover:text-gray-800 transition-colors"
+                    >
+                      Editar
+                    </button>
+                    <button className="text-[11px] text-gray-500 hover:text-gray-800 transition-colors">
+                      Desvincular
+                    </button>
                   </div>
-                  <div>
-                    <span className="text-gray-400">Categoria: </span>
-                    <span className="text-gray-700">{catLabel}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-400">Juros/multa: </span>
-                    <span className="text-gray-700">{fmtBRL(0)}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-400">Desconto: </span>
-                    <span className="text-gray-700">{fmtBRL(0)}</span>
-                  </div>
-                </div>
-
-                {/* Action buttons */}
-                <div className="flex items-center gap-2 mt-auto pt-1">
-                  <button className="flex items-center gap-1 text-[11px] text-gray-600 border border-gray-200 rounded-lg px-2 py-1 hover:bg-gray-50 transition-colors">
-                    Ajustar valores <ChevronDown size={10} />
-                  </button>
-                  <button className="text-[11px] text-gray-600 border border-gray-200 rounded-lg px-2 py-1 hover:bg-gray-50 transition-colors">
-                    Editar
-                  </button>
-                  <button className="text-[11px] text-gray-600 border border-gray-200 rounded-lg px-2 py-1 hover:bg-gray-50 transition-colors">
-                    Desvincular
-                  </button>
                 </div>
               </div>
             </div>
