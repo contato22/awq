@@ -12,10 +12,13 @@
 //   GitHub Pages → edições salvas no localStorage do navegador
 
 import Link from "next/link";
+import nextDynamic from "next/dynamic";
 import Header from "@/components/Header";
 import BankReconciliationBoard from "@/components/BankReconciliationBoard";
 import CoraStatusPanel from "@/components/CoraStatusPanel";
-import FinancialOverview from "@/components/FinancialOverview";
+
+// ssr: false prevents Recharts (ResizeObserver) from crashing during SSR
+const FinancialOverview = nextDynamic(() => import("@/components/FinancialOverview"), { ssr: false });
 import { getAllTransactions, getAllDocuments, type BankTransaction, type FinancialDocument } from "@/lib/financial-db";
 import { getAllAR, initAPARDB } from "@/lib/ap-ar-db";
 import {
