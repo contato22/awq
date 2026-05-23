@@ -611,7 +611,7 @@ function NavItem({
                 "flex items-center gap-2.5 px-3 py-[7px] rounded-lg text-[13px] transition-all duration-150 group",
                 "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30",
                 active
-                    ? "bg-[#000000]/15 text-[#000000] font-semibold"
+                    ? "bg-[#F2F2ED] text-[#000000] font-semibold"
                     : "text-[#000000]/70 hover:text-[#000000] hover:bg-[#000000]/[0.07] font-medium"
             )}
         >
@@ -716,7 +716,7 @@ function IconBar({
                     className={cn(
                         "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                         pathname === "/awq"
-                            ? "bg-[#000000]/20 text-[#000000]"
+                            ? "bg-[#F2F2ED] text-[#000000]"
                             : "text-[#000000]/60 hover:bg-[#000000]/[0.07] hover:text-[#000000]"
                     )}
                 >
@@ -740,7 +740,7 @@ function IconBar({
                             className={cn(
                                 "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                                 isOpen
-                                    ? "bg-[#000000]/20 text-[#000000]"
+                                    ? "bg-[#F2F2ED] text-[#000000]"
                                     : modActive
                                     ? "text-[#000000]"
                                     : "text-[#000000]/60 hover:bg-[#000000]/[0.07] hover:text-[#000000]"
@@ -763,7 +763,7 @@ function IconBar({
                         className={cn(
                             "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                             activePanel === "bus"
-                                ? "bg-[#000000]/20 text-[#000000]"
+                                ? "bg-[#F2F2ED] text-[#000000]"
                                 : "text-[#000000]/60 hover:bg-[#000000]/[0.07] hover:text-[#000000]"
                         )}
                     >
@@ -777,7 +777,7 @@ function IconBar({
                         className={cn(
                             "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                             activePanel === "ai"
-                                ? "bg-[#000000]/20 text-[#000000]"
+                                ? "bg-[#F2F2ED] text-[#000000]"
                                 : "text-[#000000]/60 hover:bg-[#000000]/[0.07] hover:text-[#000000]"
                         )}
                     >
@@ -790,7 +790,7 @@ function IconBar({
                     className={cn(
                         "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                         pathname.startsWith("/settings")
-                            ? "bg-[#000000]/20 text-[#000000]"
+                            ? "bg-[#F2F2ED] text-[#000000]"
                             : "text-[#000000]/60 hover:bg-[#000000]/[0.07] hover:text-[#000000]"
                     )}
                 >
@@ -1025,7 +1025,7 @@ function BUSidebar({
                         className={cn(
                             "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                             pathname === homeHref
-                                ? "bg-[#000000]/20 text-[#000000]"
+                                ? "bg-[#F2F2ED] text-[#000000]"
                                 : "text-[#000000]/60 hover:bg-[#000000]/[0.07] hover:text-[#000000]"
                         )}
                     >
@@ -1049,7 +1049,7 @@ function BUSidebar({
                                 className={cn(
                                     "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                                     isOpen
-                                        ? "bg-[#000000]/20 text-[#000000]"
+                                        ? "bg-[#F2F2ED] text-[#000000]"
                                         : modActive
                                         ? "text-[#000000]"
                                         : "text-[#000000]/60 hover:bg-[#000000]/[0.07] hover:text-[#000000]"
@@ -1070,7 +1070,7 @@ function BUSidebar({
                         className={cn(
                             "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                             activePanel === "ai"
-                                ? "bg-[#000000]/20 text-[#000000]"
+                                ? "bg-[#F2F2ED] text-[#000000]"
                                 : "text-[#000000]/60 hover:bg-[#000000]/[0.07] hover:text-[#000000]"
                         )}
                     >
@@ -1082,7 +1082,7 @@ function BUSidebar({
                         className={cn(
                             "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                             pathname.startsWith("/settings")
-                                ? "bg-[#000000]/20 text-[#000000]"
+                                ? "bg-[#F2F2ED] text-[#000000]"
                                 : "text-[#000000]/60 hover:bg-[#000000]/[0.07] hover:text-[#000000]"
                         )}
                     >
