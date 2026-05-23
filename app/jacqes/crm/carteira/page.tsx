@@ -126,7 +126,7 @@ export default function CarteiraActivaPage() {
                   <Icon size={16} className={card.color} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className={`text-xl font-bold ${card.color}`}>{card.value}</div>
+                  <div className={`text-2xl font-bold ${card.color}`}>{card.value}</div>
                   <div className="text-xs font-medium text-gray-400 mt-0.5 leading-tight">{card.label}</div>
                   <div className="text-xs text-gray-300 mt-0.5">{card.sub}</div>
                 </div>
@@ -178,7 +178,7 @@ export default function CarteiraActivaPage() {
                         <div className="text-xs text-gray-400 mt-0.5">{c.produto_ativo}</div>
                       </div>
                       <div className="text-right shrink-0">
-                        <div className="text-xl font-bold text-gray-900">{fmtCurrency(c.ticket_mensal)}</div>
+                        <div className="text-2xl font-bold text-gray-900">{fmtCurrency(c.ticket_mensal)}</div>
                         <div className="text-xs text-gray-400">/ mês</div>
                       </div>
                     </div>
@@ -246,7 +246,7 @@ export default function CarteiraActivaPage() {
                 { label: "Em Risco",    value: mrrRisco,    count: emRisco.length,   color: "bg-red-500",     text: "text-red-600",     bg: "bg-red-50"      },
               ].map(row => (
                 <div key={row.label} className={`rounded-xl ${row.bg} px-4 py-3 text-center`}>
-                  <div className={`text-xl font-bold ${row.text}`}>{fmtCurrency(row.value)}</div>
+                  <div className={`text-2xl font-bold ${row.text}`}>{fmtCurrency(row.value)}</div>
                   <div className="text-xs text-gray-500 mt-0.5">{row.label}</div>
                   <div className="text-xs text-gray-400">{row.count} cliente{row.count !== 1 ? "s" : ""}</div>
                 </div>

@@ -369,7 +369,7 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value as ManagerialCategory)}
-                className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2 pr-7 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 appearance-none"
+                className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2 pr-7 bg-white focus:outline-none focus:ring-1 focus:ring-brand-400 appearance-none"
               >
                 {ALL_CATS.map((c) => (
                   <option key={c.value} value={c.value}>{c.label}</option>
@@ -385,7 +385,7 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
               value={counterparty}
               onChange={(e) => setCounterparty(e.target.value)}
               placeholder={tx.counterpartyName ?? "Nome do cliente/fornecedor"}
-              className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-brand-400"
             />
           </div>
         </div>
@@ -402,7 +402,7 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
               onClick={() => setFilterTab(t.id)}
               className={`px-4 py-2.5 text-xs font-semibold border-b-2 transition-colors ${
                 filterTab === t.id
-                  ? "border-blue-500 text-blue-600"
+                  ? "border-brand-500 text-brand-600"
                   : "border-transparent text-gray-500 hover:text-gray-700"
               }`}
             >
@@ -437,9 +437,9 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
                   <p className="text-sm text-gray-500 font-medium">Nenhum lançamento sugerido</p>
                   <p className="text-xs text-gray-400 mt-1">Tente buscar manualmente ou crie um novo lançamento.</p>
                   <div className="flex gap-2 justify-center mt-3">
-                    <button onClick={() => setFilterTab("todos")} className="text-xs text-blue-600 hover:underline">Buscar AP/AR</button>
+                    <button onClick={() => setFilterTab("todos")} className="text-xs text-brand-600 hover:underline">Buscar AP/AR</button>
                     <span className="text-gray-300">·</span>
-                    <button onClick={() => setFilterTab("criar")} className="text-xs text-blue-600 hover:underline">Criar lançamento</button>
+                    <button onClick={() => setFilterTab("criar")} className="text-xs text-brand-600 hover:underline">Criar lançamento</button>
                   </div>
                 </div>
               )}
@@ -464,7 +464,7 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Buscar por nome, descrição ou valor…"
-                  className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-400"
+                  className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-400"
                 />
               </div>
               {loading && (
@@ -535,7 +535,7 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
                   <input
                     type="text" value={createParty} onChange={(e) => setCreateParty(e.target.value)}
                     placeholder={createType === "AP" ? "Nome do fornecedor" : "Nome do cliente"}
-                    className={`w-full text-sm rounded-lg px-3 py-2 border focus:outline-none focus:ring-1 focus:ring-blue-400 transition-colors ${
+                    className={`w-full text-sm rounded-lg px-3 py-2 border focus:outline-none focus:ring-1 focus:ring-brand-400 transition-colors ${
                       !createParty.trim() ? "border-orange-300 bg-orange-50 placeholder-orange-300" : "border-gray-200"
                     }`}
                   />
@@ -545,7 +545,7 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
                   <input
                     type="text" value={createDesc} onChange={(e) => setCreateDesc(e.target.value)}
                     placeholder="Descrição do lançamento"
-                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-brand-400"
                   />
                 </div>
 
@@ -557,7 +557,7 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
                       <label className="text-xs text-gray-400 block mb-1">Vencimento</label>
                       <input
                         type="date" value={createDue} onChange={(e) => setCreateDue(e.target.value)}
-                        className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                        className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-brand-400"
                       />
                     </div>
                     <div>
@@ -566,7 +566,7 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
                         <input
                           type="text" value={createAmt} onChange={(e) => setCreateAmt(e.target.value)}
                           placeholder="0,00"
-                          className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                          className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-brand-400"
                         />
                         {parseFloat(createAmt) !== txAmt && txAmt > 0 && (
                           <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-amber-500 font-semibold">≠ tx</span>
@@ -583,7 +583,7 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
                     <select
                       value={createCat}
                       onChange={(e) => setCreateCat(e.target.value)}
-                      className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 pr-7 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 appearance-none"
+                      className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 pr-7 bg-white focus:outline-none focus:ring-1 focus:ring-brand-400 appearance-none"
                     >
                       <option value="">— categoria —</option>
                       {ALL_CATS.map((c) => (
@@ -597,7 +597,7 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
                       <select
                         value={createAccCode}
                         onChange={(e) => setCreateAccCode(e.target.value)}
-                        className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 pr-7 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 appearance-none"
+                        className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 pr-7 bg-white focus:outline-none focus:ring-1 focus:ring-brand-400 appearance-none"
                       >
                         <option value="">— conta CoA (1.1.2) —</option>
                         {arLeafAccounts.map((n) => (

@@ -101,7 +101,7 @@ function AddActivityPageInner() {
           </div>
 
           <div className="card p-5 space-y-4">
-            <h2 className="text-sm font-semibold text-gray-900">Vinculação</h2>
+            <h2 className="text-base font-semibold text-gray-900">Vinculação</h2>
             <div className="grid grid-cols-2 gap-4">
               <div><label className="block text-xs font-medium text-gray-700 mb-1">Tipo de entidade</label>
                 <select value={form.related_to_type} onChange={e=>{set("related_to_type",e.target.value); set("related_to_id","");}}
@@ -128,7 +128,7 @@ function AddActivityPageInner() {
           </div>
 
           <div className="card p-5 space-y-4">
-            <h2 className="text-sm font-semibold text-gray-900">Data & Resultado</h2>
+            <h2 className="text-base font-semibold text-gray-900">Data & Resultado</h2>
             <div className="grid grid-cols-2 gap-4">
               <div><label className="block text-xs font-medium text-gray-700 mb-1">Data/Hora</label>
                 <input type="datetime-local" value={form.scheduled_at} onChange={e=>set("scheduled_at",e.target.value)}

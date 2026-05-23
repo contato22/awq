@@ -204,7 +204,7 @@ export default function ConciliacaoManualSection() {
                 <Icon size={16} className={c.color} />
               </div>
               <div>
-                <div className={`text-xl font-bold ${c.color}`}>{c.value}</div>
+                <div className={`text-2xl font-bold ${c.color}`}>{c.value}</div>
                 <div className="text-xs text-gray-500">{c.label}</div>
               </div>
             </div>

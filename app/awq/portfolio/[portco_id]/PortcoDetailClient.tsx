@@ -240,9 +240,9 @@ export default function PortcoDetailClient({ params }: { params: { portco_id: st
       value:  fmtPct(portco.awq_ownership_pct),
       sub:    null,
       icon:   TrendingUp,
-      color:  "text-blue-600",
-      bg:     "bg-blue-50",
-      border: "border-l-blue-500",
+      color:  "text-brand-600",
+      bg:     "bg-brand-50",
+      border: "border-l-brand-500",
     },
     {
       label:  "Valuation Atual",
@@ -332,7 +332,7 @@ export default function PortcoDetailClient({ params }: { params: { portco_id: st
               onClick={() => setTab(key)}
               className={`flex items-center gap-1.5 px-3.5 py-2.5 text-xs font-semibold whitespace-nowrap border-b-2 transition-colors ${
                 tab === key
-                  ? "border-blue-600 text-blue-600"
+                  ? "border-brand-600 text-brand-600"
                   : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
               }`}
             >
@@ -420,7 +420,7 @@ export default function PortcoDetailClient({ params }: { params: { portco_id: st
             <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2">
               <BarChart3 size={13} className="text-gray-400" />
               <h3 className="text-sm font-bold text-gray-800">KPIs Mensais</h3>
-              <span className="text-xs font-bold bg-blue-50 text-blue-600 border border-blue-100 px-1.5 py-0.5 rounded-full ml-auto">
+              <span className="text-xs font-bold bg-brand-50 text-brand-600 border border-brand-100 px-1.5 py-0.5 rounded-full ml-auto">
                 {kpis.length} registros
               </span>
             </div>
@@ -432,7 +432,7 @@ export default function PortcoDetailClient({ params }: { params: { portco_id: st
                   <thead>
                     <tr className="bg-gray-50 border-b border-gray-100">
                       {["Data","MRR","ARR","Burn","Runway","MoM","Headcount","Notas"].map((h) => (
-                        <th key={h} className={`py-2.5 px-3 font-semibold text-gray-500 ${["Data","Notas"].includes(h) ? "text-left" : "text-right"}`}>{h}</th>
+                        <th key={h} className={`py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide ${["Data","Notas"].includes(h) ? "text-left" : "text-right"}`}>{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -492,7 +492,7 @@ export default function PortcoDetailClient({ params }: { params: { portco_id: st
                     <thead>
                       <tr className="bg-gray-50 border-b border-gray-100">
                         {["Nome","Tipo","Ações","% Participação","Vesting","Data Início","Cliff","Notas"].map((h) => (
-                          <th key={h} className={`py-2.5 px-3 font-semibold text-gray-500 ${["Ações","% Participação"].includes(h) ? "text-right" : "text-left"}`}>{h}</th>
+                          <th key={h} className={`py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide ${["Ações","% Participação"].includes(h) ? "text-right" : "text-left"}`}>{h}</th>
                         ))}
                       </tr>
                     </thead>
@@ -509,7 +509,7 @@ export default function PortcoDetailClient({ params }: { params: { portco_id: st
                             </td>
                             <td className="py-2.5 px-3 text-right text-gray-700">{s.shares?.toLocaleString("pt-BR") ?? "—"}</td>
                             <td className="py-2.5 px-3 text-right">
-                              <span className="font-bold text-blue-600">{fmtPct(s.ownership_pct)}</span>
+                              <span className="font-bold text-brand-600">{fmtPct(s.ownership_pct)}</span>
                             </td>
                             <td className="py-2.5 px-3 text-gray-500">{s.vesting_schedule ?? "—"}</td>
                             <td className="py-2.5 px-3 text-gray-500">{fmtDate(s.vesting_start_date)}</td>
@@ -617,7 +617,7 @@ export default function PortcoDetailClient({ params }: { params: { portco_id: st
                     <thead>
                       <tr className="bg-gray-50 border-b border-gray-100">
                         {["Tipo","Descrição","Valor","BU Executora","Data Prevista","Status","Aprovado"].map((h) => (
-                          <th key={h} className={`py-2.5 px-3 font-semibold text-gray-500 ${h === "Valor" ? "text-right" : "text-left"}`}>{h}</th>
+                          <th key={h} className={`py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide ${h === "Valor" ? "text-right" : "text-left"}`}>{h}</th>
                         ))}
                       </tr>
                     </thead>
@@ -680,7 +680,7 @@ export default function PortcoDetailClient({ params }: { params: { portco_id: st
             </p>
             <Link
               href="/awq/ma/deals"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-600 hover:text-brand-700 transition-colors"
             >
               Ver pipeline do deal <ExternalLink size={11} />
             </Link>

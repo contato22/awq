@@ -54,21 +54,21 @@ export default function DFCPage() {
         <>
           {/* Summary cards */}
           <div className="grid grid-cols-3 gap-4">
-            <div className="bg-emerald-50 rounded-xl border border-emerald-100 p-4 text-center">
+            <div className="bg-emerald-50 rounded-xl border border-emerald-100 p-5 text-center">
               <div className="text-xs font-semibold text-emerald-600 uppercase tracking-wide mb-1">Total Entradas</div>
-              <div className="text-xl font-bold text-emerald-700">
+              <div className="text-2xl font-bold text-emerald-700">
                 {fmt(data.reduce((s, l) => s + l.totalInflows, 0))}
               </div>
             </div>
-            <div className="bg-red-50 rounded-xl border border-red-100 p-4 text-center">
+            <div className="bg-red-50 rounded-xl border border-red-100 p-5 text-center">
               <div className="text-xs font-semibold text-red-600 uppercase tracking-wide mb-1">Total Saídas</div>
-              <div className="text-xl font-bold text-red-700">
+              <div className="text-2xl font-bold text-red-700">
                 {fmt(data.reduce((s, l) => s + l.totalOutflows, 0))}
               </div>
             </div>
-            <div className="bg-brand-50 rounded-xl border border-brand-100 p-4 text-center">
+            <div className="bg-brand-50 rounded-xl border border-brand-100 p-5 text-center">
               <div className="text-xs font-semibold text-brand-600 uppercase tracking-wide mb-1">Saldo Líquido</div>
-              <div className={`text-xl font-bold ${data.reduce((s, l) => s + l.netCash, 0) >= 0 ? "text-brand-700" : "text-red-700"}`}>
+              <div className={`text-2xl font-bold ${data.reduce((s, l) => s + l.netCash, 0) >= 0 ? "text-brand-700" : "text-red-700"}`}>
                 {fmt(data.reduce((s, l) => s + l.netCash, 0))}
               </div>
             </div>

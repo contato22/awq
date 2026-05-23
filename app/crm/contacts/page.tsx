@@ -58,7 +58,7 @@ export default function ContactsPage() {
             { label: "Diretores",      value: contacts.filter(c=>c.seniority==="director").length },
             { label: "Primários",      value: contacts.filter(c=>c.is_primary_contact).length },
           ].map(k => (
-            <div key={k.label} className="card p-4">
+            <div key={k.label} className="card p-5">
               <div className="text-2xl font-bold text-gray-900">{k.value}</div>
               <div className="text-xs text-gray-500 mt-0.5">{k.label}</div>
             </div>

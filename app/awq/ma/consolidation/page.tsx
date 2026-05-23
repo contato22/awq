@@ -132,7 +132,7 @@ export default function ConsolidationPage() {
                         <Icon size={14} className={c.color} />
                         <span className="text-xs text-gray-500">{c.label}</span>
                       </div>
-                      <div className={`text-xl font-bold ${c.color}`}>{c.value}</div>
+                      <div className={`text-2xl font-bold ${c.color}`}>{c.value}</div>
                     </div>
                   );
                 })}
@@ -150,21 +150,21 @@ export default function ConsolidationPage() {
                     <ArrowUpDown size={14} className="text-gray-400" />
                     <span className="text-xs text-gray-500">Total Transações IC</span>
                   </div>
-                  <div className="text-xl font-bold text-white">{fmtR(snapshot.intercompany.total_transactions)}</div>
+                  <div className="text-2xl font-bold text-white">{fmtR(snapshot.intercompany.total_transactions)}</div>
                 </div>
                 <div className="bg-green-500/5 rounded-xl border border-green-700/30 p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <CheckCircle2 size={14} className="text-green-400" />
                     <span className="text-xs text-gray-500">Eliminado</span>
                   </div>
-                  <div className="text-xl font-bold text-green-400">{fmtR(snapshot.intercompany.total_eliminated)}</div>
+                  <div className="text-2xl font-bold text-green-400">{fmtR(snapshot.intercompany.total_eliminated)}</div>
                 </div>
                 <div className="bg-amber-500/5 rounded-xl border border-amber-700/30 p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <AlertTriangle size={14} className="text-amber-400" />
                     <span className="text-xs text-gray-500">Pendente Eliminação</span>
                   </div>
-                  <div className="text-xl font-bold text-amber-400">{fmtR(snapshot.intercompany.pending_elimination)}</div>
+                  <div className="text-2xl font-bold text-amber-400">{fmtR(snapshot.intercompany.pending_elimination)}</div>
                 </div>
               </div>
             </div>

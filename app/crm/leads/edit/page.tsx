@@ -70,7 +70,7 @@ function FormSection({ icon, title, children }: { icon: ReactNode; title: string
     <div className="card p-5">
       <div className="flex items-center gap-2 mb-4">
         <span className="text-gray-400">{icon}</span>
-        <h2 className="text-sm font-semibold text-gray-900">{title}</h2>
+        <h2 className="text-base font-semibold text-gray-900">{title}</h2>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">{children}</div>
     </div>
@@ -365,7 +365,7 @@ function EditLeadPageInner() {
           <div className="card p-5">
             <div className="flex items-center gap-2 mb-4">
               <span className="text-gray-400"><FileText size={15} /></span>
-              <h2 className="text-sm font-semibold text-gray-900">Notas de Qualificação</h2>
+              <h2 className="text-base font-semibold text-gray-900">Notas de Qualificação</h2>
             </div>
             <textarea rows={4} className={`${inputCls} resize-none`}
               placeholder="Descreva o contexto do lead, dores identificadas, próximos passos…"

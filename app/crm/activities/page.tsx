@@ -90,7 +90,7 @@ export default function ActivitiesPage() {
             { label: "Concluídas hoje", value: completedToday, color: "text-emerald-600" },
             { label: "Ligações", value: activities.filter(a=>a.activity_type==="call").length, color: "text-brand-600" },
           ].map(k => (
-            <div key={k.label} className="card p-4">
+            <div key={k.label} className="card p-5">
               <div className={`text-2xl font-bold ${k.color}`}>{k.value}</div>
               <div className="text-xs text-gray-500 mt-0.5">{k.label}</div>
             </div>

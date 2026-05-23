@@ -34,7 +34,7 @@ function StepIndicator({ current }: { current: number }) {
             <div className="flex flex-col items-center gap-1">
               <div className={`w-9 h-9 rounded-full flex items-center justify-center border-2 transition-colors ${
                 done   ? "bg-emerald-500 border-emerald-500" :
-                active ? "bg-brand-600 border-blue-600"       :
+                active ? "bg-brand-600 border-brand-600"       :
                          "bg-white border-gray-300"
               }`}>
                 {done
@@ -42,7 +42,7 @@ function StepIndicator({ current }: { current: number }) {
                   : <Icon size={15} className={active ? "text-white" : "text-gray-400"} />}
               </div>
               <span className={`text-xs font-semibold whitespace-nowrap ${
-                active ? "text-blue-700" : done ? "text-emerald-600" : "text-gray-400"
+                active ? "text-brand-700" : done ? "text-emerald-600" : "text-gray-400"
               }`}>{step.label}</span>
             </div>
             {i < STEPS.length - 1 && (
@@ -316,7 +316,7 @@ export default function NovoCadastroPage() {
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <Building2 size={15} className="text-gray-400" />
-                    <h2 className="text-sm font-semibold text-gray-900">Empresa</h2>
+                    <h2 className="text-base font-semibold text-gray-900">Empresa</h2>
                     <span className="text-xs text-gray-400 font-normal">(opcional)</span>
                   </div>
                   <div className="flex gap-1 p-0.5 bg-gray-100 rounded-lg">
@@ -348,11 +348,11 @@ export default function NovoCadastroPage() {
                     {selectedAccount ? (
                       <div className="flex items-center justify-between px-3 py-2.5 bg-blue-50 border border-blue-200 rounded-lg">
                         <div>
-                          <div className="text-sm font-semibold text-blue-900">{selectedAccount.trade_name ?? selectedAccount.account_name}</div>
-                          {selectedAccount.trade_name && <div className="text-xs text-blue-600">{selectedAccount.account_name}</div>}
+                          <div className="text-sm font-semibold text-gray-900">{selectedAccount.trade_name ?? selectedAccount.account_name}</div>
+                          {selectedAccount.trade_name && <div className="text-xs text-brand-600">{selectedAccount.account_name}</div>}
                         </div>
                         <button type="button" onClick={() => setSelectedAccount(null)}
-                          className="text-blue-400 hover:text-blue-600"><X size={14} /></button>
+                          className="text-gray-400 hover:text-brand-600"><X size={14} /></button>
                       </div>
                     ) : (
                       <div className="border border-gray-200 rounded-lg overflow-hidden divide-y divide-gray-100">
@@ -452,12 +452,12 @@ export default function NovoCadastroPage() {
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <User size={15} className="text-gray-400" />
-                    <h2 className="text-sm font-semibold text-gray-900">Contato</h2>
+                    <h2 className="text-base font-semibold text-gray-900">Contato</h2>
                     <span className="text-xs text-gray-400 font-normal">(opcional)</span>
                   </div>
                   <label className="flex items-center gap-2 cursor-pointer select-none">
                     <input type="checkbox" checked={skipContact} onChange={e => setSkipContact(e.target.checked)}
-                      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-brand-500" />
+                      className="w-4 h-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500" />
                     <span className="text-xs text-gray-500">Pular esta etapa</span>
                   </label>
                 </div>
@@ -510,7 +510,7 @@ export default function NovoCadastroPage() {
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input type="checkbox" checked={contactForm.is_primary_contact}
                         onChange={e => setCon("is_primary_contact", e.target.checked)}
-                        className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-brand-500" />
+                        className="w-4 h-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500" />
                       <span className="text-sm text-gray-700">Contato principal da empresa</span>
                     </label>
                   </div>
@@ -575,7 +575,7 @@ export default function NovoCadastroPage() {
               <div className="card p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <UserPlus size={15} className="text-gray-400" />
-                  <h2 className="text-sm font-semibold text-gray-900">Qualificação</h2>
+                  <h2 className="text-base font-semibold text-gray-900">Qualificação</h2>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -632,7 +632,7 @@ export default function NovoCadastroPage() {
               <div className="card p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <DollarSign size={15} className="text-gray-400" />
-                  <h2 className="text-sm font-semibold text-gray-900">BANT</h2>
+                  <h2 className="text-base font-semibold text-gray-900">BANT</h2>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -677,10 +677,10 @@ export default function NovoCadastroPage() {
                     </label>
                     <label className="flex items-center gap-3 mt-2 cursor-pointer">
                       <div onClick={() => setLead("bant_authority", !leadForm.bant_authority)}
-                        className={`w-10 h-5 rounded-full relative transition-colors duration-200 cursor-pointer ${leadForm.bant_authority ? "bg-blue-500" : "bg-gray-200"}`}>
+                        className={`w-10 h-5 rounded-full relative transition-colors duration-200 cursor-pointer ${leadForm.bant_authority ? "bg-brand-500" : "bg-gray-200"}`}>
                         <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${leadForm.bant_authority ? "translate-x-5" : "translate-x-0.5"}`} />
                       </div>
-                      <span className={`text-sm font-medium ${leadForm.bant_authority ? "text-blue-700" : "text-gray-600"}`}>
+                      <span className={`text-sm font-medium ${leadForm.bant_authority ? "text-brand-700" : "text-gray-600"}`}>
                         {leadForm.bant_authority ? "Sim, é o decisor" : "Não é o decisor"}
                       </span>
                     </label>
@@ -692,7 +692,7 @@ export default function NovoCadastroPage() {
               <div className="card p-5">
                 <div className="flex items-center gap-2 mb-3">
                   <FileText size={15} className="text-gray-400" />
-                  <h2 className="text-sm font-semibold text-gray-900">Notas de Qualificação</h2>
+                  <h2 className="text-base font-semibold text-gray-900">Notas de Qualificação</h2>
                 </div>
                 <textarea rows={3} className={`${inputCls} resize-none`}
                   placeholder="Descreva o contexto, dores identificadas, próximos passos…"

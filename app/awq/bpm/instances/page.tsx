@@ -92,7 +92,7 @@ export default function BpmInstancesPage() {
                 key={s}
                 onClick={() => setStatus(s)}
                 className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                  statusFilter === s ? "bg-brand-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200 hover:border-blue-300"
+                  statusFilter === s ? "bg-brand-600 text-white border-brand-600" : "bg-white text-gray-600 border-gray-200 hover:border-brand-300"
                 }`}
               >
                 {{ all: "Todos", in_progress: "Em andamento", approved: "Aprovados", rejected: "Rejeitados", cancelled: "Cancelados" }[s]}

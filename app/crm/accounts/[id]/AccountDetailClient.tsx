@@ -156,7 +156,7 @@ export default function AccountDetailClient() {
             </div>
 
             {/* Health */}
-            <div className="card p-4">
+            <div className="card p-5">
               <h3 className="text-xs font-semibold text-gray-700 mb-3">Saúde da Conta</h3>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-2xl font-bold text-gray-900">{account.health_score}</span>

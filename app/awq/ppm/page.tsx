@@ -96,7 +96,7 @@ function HealthSummary({ g, y, r }: { g: number; y: number; r: number }) {
           { count: r, color: "bg-red-500",      label: "Off Track" },
         ].map(({ count, color, label }) => (
           <div key={label} className="flex-1 text-center">
-            <div className={`text-xl font-bold ${color.replace("bg-", "text-")}`}>{count}</div>
+            <div className={`text-2xl font-bold ${color.replace("bg-", "text-")}`}>{count}</div>
             <div className="text-xs text-gray-500">{label}</div>
           </div>
         ))}

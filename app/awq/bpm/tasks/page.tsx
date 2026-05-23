@@ -60,7 +60,7 @@ export default function BpmTasksPage() {
           </div>
           <div className="flex items-center gap-3">
             {unread > 0 && (
-              <span className="flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-full px-3 py-1 text-xs font-medium">
+              <span className="flex items-center gap-1.5 bg-brand-50 text-brand-700 border border-brand-200 rounded-full px-3 py-1 text-xs font-medium">
                 <Bell className="h-3.5 w-3.5" /> {unread} não lidas
               </span>
             )}
@@ -91,8 +91,8 @@ export default function BpmTasksPage() {
               onClick={() => setFilter(f)}
               className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
                 filter === f
-                  ? "bg-brand-600 text-white border-blue-600"
-                  : "bg-white text-gray-600 border-gray-200 hover:border-blue-300"
+                  ? "bg-brand-600 text-white border-brand-600"
+                  : "bg-white text-gray-600 border-gray-200 hover:border-brand-300"
               }`}
             >
               {{ all: "Todas", overdue: "SLA Vencido", today: "Hoje", upcoming: "Próximas" }[f]}
@@ -222,7 +222,7 @@ function renderPriority(p: string) {
 
 function QuickLink({ href, label, desc }: { href: string; label: string; desc: string }) {
   return (
-    <Link href={href} className="bg-white rounded-xl border border-gray-200 p-4 hover:border-blue-300 hover:shadow-sm transition-all group block">
+    <Link href={href} className="bg-white rounded-xl border border-gray-200 p-4 hover:border-brand-300 hover:shadow-sm transition-all group block">
       <div className="font-semibold text-gray-800 text-sm group-hover:text-blue-700">{label}</div>
       <div className="text-xs text-gray-500 mt-1">{desc}</div>
     </Link>

@@ -88,7 +88,7 @@ function buildDailyFlow(txns: BankTransaction[]) {
 }
 
 const ACCOUNTS_CFG = [
-  { key: "AWQ_Holding", name: "Conta PJ AWQ Holding", subtitle: "AWQ Holding", initials: "AWQ", bgClass: "bg-blue-600" },
+  { key: "AWQ_Holding", name: "Conta PJ AWQ Holding", subtitle: "AWQ Holding", initials: "AWQ", bgClass: "bg-brand-600" },
   { key: "ENERDY",      name: "Cora Enerdy",           subtitle: "BU ENRD",     initials: "ENRD", bgClass: "bg-violet-600" },
 ];
 
@@ -173,7 +173,7 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
       <div className="rounded-xl border border-gray-200 bg-white p-4 space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-bold text-gray-800">Fluxo de Caixa diário</h3>
-          <span className="text-[10px] text-gray-400">Últimos 14 dias</span>
+          <span className="text-xs text-gray-400">Últimos 14 dias</span>
         </div>
         <ResponsiveContainer width="100%" height={180}>
           <AreaChart data={dailyData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
@@ -242,29 +242,29 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
                 acc.entity === "JACQES" ? "JCQ"  : "AWQ";
               const bg =
                 acc.entity === "ENERDY" ? "bg-violet-600" :
-                acc.entity === "JACQES" ? "bg-emerald-600" : "bg-blue-600";
+                acc.entity === "JACQES" ? "bg-emerald-600" : "bg-brand-600";
               const label = (acc.name ?? acc.bank ?? "").replace(/^Conta\s+PJ\s+/i, "").trim();
               return (
                 <div key={`${acc.bank}::${acc.name}`} className="rounded-lg border border-gray-100 p-3 space-y-2 hover:border-gray-200 transition-colors">
                   <div className="flex items-center gap-2.5">
-                    <span className={`w-8 h-8 rounded-lg ${bg} flex items-center justify-center text-[10px] font-bold text-white tracking-wide shrink-0`}>
+                    <span className={`w-8 h-8 rounded-lg ${bg} flex items-center justify-center text-xs font-bold text-white tracking-wide shrink-0`}>
                       {initials}
                     </span>
                     <div className="min-w-0">
                       <div className="text-xs font-semibold text-gray-900 truncate">{label}</div>
-                      <div className="text-[10px] text-gray-400">{acc.bank}</div>
+                      <div className="text-xs text-gray-400">{acc.bank}</div>
                     </div>
                   </div>
-                  <button className="flex items-center gap-1 text-[11px] text-brand-600 hover:text-brand-700 hover:underline transition-colors">
+                  <button className="flex items-center gap-1 text-xs text-brand-600 hover:text-brand-700 hover:underline transition-colors">
                     <FileUp size={11} />
                     Importe seu extrato
                   </button>
                   {coraAcc && (
                     <div className="flex justify-end">
                       {coraAcc.loading ? (
-                        <span className="text-[11px] text-gray-400 animate-pulse">Carregando…</span>
+                        <span className="text-xs text-gray-400 animate-pulse">Carregando…</span>
                       ) : coraAcc.error ? (
-                        <span className="text-[10px] text-gray-400 italic">Saldo indisponível</span>
+                        <span className="text-xs text-gray-400 italic">Saldo indisponível</span>
                       ) : coraAcc.balance !== null ? (
                         <span className="text-sm font-bold text-gray-900 tabular-nums">
                           {fmtBRL(coraAcc.balance)}
@@ -296,12 +296,12 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
                 <ArrowUpRight size={14} className="text-emerald-500" />
               </div>
               {recebimentosHoje > 0 ? (
-                <p className="text-xl font-bold text-emerald-600 tabular-nums">{fmtBRL(recebimentosHoje)}</p>
+                <p className="text-2xl font-bold text-emerald-600 tabular-nums">{fmtBRL(recebimentosHoje)}</p>
               ) : (
                 <p className="text-xs text-gray-400 italic">Não há recebimentos hoje.</p>
               )}
               {restanteMesAR > 0 && (
-                <p className="text-[11px] text-gray-500">Restante do mês: <span className="font-semibold">{fmtBRL(restanteMesAR)}</span></p>
+                <p className="text-xs text-gray-500">Restante do mês: <span className="font-semibold">{fmtBRL(restanteMesAR)}</span></p>
               )}
               <button className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-colors">
                 <ArrowUpRight size={12} />
@@ -315,12 +315,12 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
                 <ArrowDownLeft size={14} className="text-red-500" />
               </div>
               {pagamentosHoje > 0 ? (
-                <p className="text-xl font-bold text-red-600 tabular-nums">{fmtBRL(pagamentosHoje)}</p>
+                <p className="text-2xl font-bold text-red-600 tabular-nums">{fmtBRL(pagamentosHoje)}</p>
               ) : (
                 <p className="text-xs text-gray-400 italic">Não há pagamentos hoje.</p>
               )}
               {pendingDebitsMonth > 0 && (
-                <p className="text-[11px] text-gray-500">Restante do mês: <span className="font-semibold">{fmtBRL(pendingDebitsMonth)}</span></p>
+                <p className="text-xs text-gray-500">Restante do mês: <span className="font-semibold">{fmtBRL(pendingDebitsMonth)}</span></p>
               )}
               <button className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-xs font-semibold transition-colors">
                 <ArrowDownLeft size={12} />
@@ -337,14 +337,14 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
                   <p className="text-xs font-semibold text-gray-700">Recebimentos em atraso</p>
                   <TrendingUp size={14} className="text-red-400" />
                 </div>
-                <p className="text-xl font-bold text-emerald-600 tabular-nums">{fmtBRL(overdueAR)}</p>
+                <p className="text-2xl font-bold text-emerald-600 tabular-nums">{fmtBRL(overdueAR)}</p>
               </div>
               <div className="rounded-xl border border-red-100 bg-white p-4">
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-xs font-semibold text-gray-700">Pagamentos em atraso</p>
                   <TrendingDown size={14} className="text-red-400" />
                 </div>
-                <p className="text-xl font-bold text-red-600 tabular-nums">{fmtBRL(pendingDebitsMonth)}</p>
+                <p className="text-2xl font-bold text-red-600 tabular-nums">{fmtBRL(pendingDebitsMonth)}</p>
               </div>
             </div>
           )}

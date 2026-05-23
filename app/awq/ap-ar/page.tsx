@@ -1135,7 +1135,7 @@ export default function APARPage() {
                   autoFocus
                   value={editForm.description}
                   onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
-                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-500 transition-colors"
+                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-500 transition-colors"
                 />
               </div>
 
@@ -1147,7 +1147,7 @@ export default function APARPage() {
                   type="text"
                   value={editForm.entity}
                   onChange={(e) => setEditForm((f) => ({ ...f, entity: e.target.value }))}
-                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-500 transition-colors"
+                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-500 transition-colors"
                 />
               </div>
 
@@ -1163,7 +1163,7 @@ export default function APARPage() {
                     placeholder="0,00"
                     value={editForm.amount}
                     onChange={(e) => setEditForm((f) => ({ ...f, amount: sanitizeAmount(e.target.value) }))}
-                    className="w-full text-sm border border-gray-200 rounded-lg pl-9 pr-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-500 transition-colors"
+                    className="w-full text-sm border border-gray-200 rounded-lg pl-9 pr-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-500 transition-colors"
                   />
                 </div>
               </div>
@@ -1176,7 +1176,7 @@ export default function APARPage() {
                   type="date"
                   value={editForm.dueDate}
                   onChange={(e) => setEditForm((f) => ({ ...f, dueDate: e.target.value }))}
-                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none focus:border-blue-500 transition-colors"
+                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none focus:border-brand-500 transition-colors"
                 />
               </div>
 
@@ -1185,7 +1185,7 @@ export default function APARPage() {
                 <select
                   value={editForm.category}
                   onChange={(e) => setEditForm((f) => ({ ...f, category: e.target.value }))}
-                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none focus:border-blue-500 transition-colors"
+                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none focus:border-brand-500 transition-colors"
                 >
                   {(editingItem.type === "ap" ? AP_CATEGORIES : AR_CATEGORIES).map((c) => (
                     <option key={c} value={c}>{c}</option>

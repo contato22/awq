@@ -69,7 +69,7 @@ function PendingSection({ title, lines, source }: { title: string; lines: string
   return (
     <div className="card p-5">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-gray-700">{title}</h3>
+        <h3 className="text-base font-semibold text-gray-700">{title}</h3>
         <span className="text-[9px] font-bold px-2 py-0.5 rounded bg-gray-100 text-gray-400 border border-gray-200">
           sem dado confirmado
         </span>
@@ -378,7 +378,7 @@ export default function FpaClient({ buData, monthlyRevenue, jacqesMRR }: FpaClie
 
             {/* MRR evolution */}
             <div className="card p-5">
-              <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 Evolução MRR — Jan–Abr/26
                 <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 border border-emerald-200">EMPÍRICO</span>
               </h3>
@@ -426,7 +426,7 @@ export default function FpaClient({ buData, monthlyRevenue, jacqesMRR }: FpaClie
         {section === "lucro-bruto" && (
           <div className="space-y-4">
             <div className="card p-5">
-              <h3 className="text-sm font-semibold text-gray-900 mb-4">3. Lucro Bruto</h3>
+              <h3 className="text-base font-semibold text-gray-900 mb-4">3. Lucro Bruto</h3>
               <div className="rounded-lg bg-gray-50 border border-gray-200 px-4 py-4 mb-4 font-mono text-xs text-gray-600 space-y-1">
                 <p>Lucro Bruto = Receita Líquida − COGS</p>
                 <p>= {fmtR(JACQES_MRR)} (MRR) − <span className="text-gray-400">[COGS pendente]</span></p>
@@ -545,7 +545,7 @@ export default function FpaClient({ buData, monthlyRevenue, jacqesMRR }: FpaClie
             {/* DRE Matricial */}
             <div className="card p-5">
               <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-                <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
                   DRE — {periodLabel}
                   <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 border border-amber-200">snapshot</span>
                 </h3>
@@ -745,7 +745,7 @@ export default function FpaClient({ buData, monthlyRevenue, jacqesMRR }: FpaClie
             </div>
 
             <div className="card p-5">
-              <h3 className="text-sm font-semibold text-gray-900 mb-4">9.1 Contas a Receber — Detalhe</h3>
+              <h3 className="text-base font-semibold text-gray-900 mb-4">9.1 Contas a Receber — Detalhe</h3>
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-200">
@@ -807,7 +807,7 @@ export default function FpaClient({ buData, monthlyRevenue, jacqesMRR }: FpaClie
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
               <div className="card p-5">
-                <h3 className="text-sm font-semibold text-gray-900 mb-4">10.3 Economia por Cliente</h3>
+                <h3 className="text-base font-semibold text-gray-900 mb-4">10.3 Economia por Cliente</h3>
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-gray-200">
@@ -856,7 +856,7 @@ export default function FpaClient({ buData, monthlyRevenue, jacqesMRR }: FpaClie
             </div>
 
             <div className="card p-5">
-              <h3 className="text-sm font-semibold text-gray-900 mb-4">11.1 Decisão por Cliente</h3>
+              <h3 className="text-base font-semibold text-gray-900 mb-4">11.1 Decisão por Cliente</h3>
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-200">

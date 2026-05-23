@@ -189,7 +189,7 @@ export default function CapTablePage() {
                     <Icon size={14} className={c.color} />
                     <span className="text-xs text-gray-500">{c.label}</span>
                   </div>
-                  <div className={`text-xl font-bold ${c.color}`}>{c.value}</div>
+                  <div className={`text-2xl font-bold ${c.color}`}>{c.value}</div>
                 </div>
               );
             })}

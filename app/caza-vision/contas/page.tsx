@@ -118,7 +118,7 @@ function KpiCard({ icon: Icon, color, value, label }: {
     <div className="card p-4 flex items-center gap-3">
       <Icon size={16} className={`shrink-0 ${color}`} />
       <div className="min-w-0">
-        <div className="text-xl font-bold text-gray-900 leading-tight">{value}</div>
+        <div className="text-2xl font-bold text-gray-900 leading-tight">{value}</div>
         <div className="text-xs text-gray-400 mt-0.5 truncate">{label}</div>
       </div>
     </div>
@@ -396,7 +396,7 @@ export default function ContasPage() {
               </div>
 
               {/* Perfil — view or edit */}
-              <div className="card p-4">
+              <div className="card p-5">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2 text-gray-400">
                     <Briefcase size={13} />
@@ -491,7 +491,7 @@ export default function ContasPage() {
               </div>
 
               {/* Projetos — cross-linked from caza-properties, zero duplication */}
-              <div className="card p-4">
+              <div className="card p-5">
                 <div className="flex items-center gap-2 text-gray-400 mb-3">
                   <Film size={13} />
                   <span className="text-xs font-semibold text-gray-700">Projetos</span>
@@ -548,7 +548,7 @@ export default function ContasPage() {
               </div>
 
               {/* CRM — cross-linked from oportunidades, zero duplication */}
-              <div className="card p-4">
+              <div className="card p-5">
                 <div className="flex items-center gap-2 text-gray-400 mb-3">
                   <TrendingUp size={13} />
                   <span className="text-xs font-semibold text-gray-700">CRM — Oportunidades</span>

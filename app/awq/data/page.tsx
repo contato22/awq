@@ -188,7 +188,7 @@ export default async function AwqDataPage() {
 
         {/* ── 5.1 Executive Header ─────────────────────────────────────────── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="card p-4">
+          <div className="card p-5">
             <div className="flex items-center gap-2 mb-2">
               <Package size={14} className="text-emerald-600" />
               <span className="text-xs font-semibold text-gray-500">Documentos Ingeridos</span>
@@ -198,7 +198,7 @@ export default async function AwqDataPage() {
               {doneDocs.length} concluidos · {processingDocs.length} processando · {errorDocs.length} erro
             </div>
           </div>
-          <div className="card p-4">
+          <div className="card p-5">
             <div className="flex items-center gap-2 mb-2">
               <Database size={14} className="text-blue-600" />
               <span className="text-xs font-semibold text-gray-500">Transacoes Classificadas</span>
@@ -208,7 +208,7 @@ export default async function AwqDataPage() {
               {confirmedTxns.length} confirmadas · {ambiguousTxns.length} ambiguas
             </div>
           </div>
-          <div className="card p-4">
+          <div className="card p-5">
             <div className="flex items-center gap-2 mb-2">
               <AlertTriangle size={14} className="text-amber-600" />
               <span className="text-xs font-semibold text-gray-500">Dashboards em Snapshot</span>
@@ -218,7 +218,7 @@ export default async function AwqDataPage() {
               de {activeRoutes.length} rotas ativas · {pipelineRoutes.length} no pipeline
             </div>
           </div>
-          <div className="card p-4">
+          <div className="card p-5">
             <div className="flex items-center gap-2 mb-2">
               <Shield size={14} className={q.hasData ? "text-emerald-600" : "text-amber-600"} />
               <span className="text-xs font-semibold text-gray-500">Pipeline Status</span>
