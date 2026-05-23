@@ -1,105 +1,106 @@
-const values = [
+const pillars = [
   {
-    title: "Resultado real",
-    description: "Métricas que importam, não vaidade. Cada empresa do grupo é avaliada por crescimento sustentável e geração de caixa.",
-    icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-      </svg>
-    ),
+    number: "01",
+    title: "Resultado acima de tudo",
+    body:  "Métricas que importam, não vaidade. Crescimento sustentável e geração de caixa real como norte de cada decisão.",
   },
   {
+    number: "02",
     title: "Ecossistema integrado",
-    description: "As empresas do grupo se fortalecem mutuamente. Clientes, aprendizados e recursos fluem entre as verticais.",
-    icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-      </svg>
-    ),
+    body:  "Clientes, aprendizados e recursos fluem entre as verticais. O crescimento de uma empresa potencializa as demais.",
   },
   {
+    number: "03",
     title: "Transparência radical",
-    description: "Dados, finanças e decisões abertas internamente. Governança sólida como base para crescimento duradouro.",
-    icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-      </svg>
-    ),
+    body:  "Dados, finanças e decisões abertas internamente. Governança sólida como fundação para crescimento duradouro.",
   },
   {
+    number: "04",
     title: "Velocidade com qualidade",
-    description: "Executamos rápido sem negligenciar o padrão. Iteração constante orientada por dados e feedback real do mercado.",
-    icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-      </svg>
-    ),
+    body:  "Executamos rápido sem negligenciar o padrão. Iteração orientada por dados e feedback real do mercado.",
   },
-];
-
-const stats = [
-  { value: "5", label: "Empresas ativas" },
-  { value: "2021", label: "Fundado em" },
-  { value: "BR", label: "Brasil" },
-  { value: "∞", label: "Ambição" },
 ];
 
 export default function About() {
   return (
-    <section id="sobre" className="py-32 relative">
-      {/* Divider */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-px bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none" />
+    <section id="sobre" className="py-32 bg-navy-900 relative overflow-hidden">
+      {/* Decorative large serif text */}
+      <div
+        className="absolute -right-8 top-1/2 -translate-y-1/2 font-serif font-bold text-white/[0.02] select-none pointer-events-none leading-none"
+        aria-hidden
+        style={{ fontSize: "clamp(80px, 14vw, 200px)" }}
+      >
+        GRUPO
+      </div>
 
-      <div className="max-w-6xl mx-auto px-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
-          {/* Left — text */}
+      <div className="max-w-7xl mx-auto px-8 relative z-10">
+
+        {/* Header row */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 mb-20">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/5 text-white/40 text-xs font-medium mb-6">
-              Sobre o grupo
+            <div className="flex items-center gap-4 mb-8">
+              <span className="rule w-8" />
+              <span className="label">Sobre o grupo</span>
             </div>
-            <h2 className="text-4xl sm:text-5xl font-bold text-white tracking-tight leading-tight mb-6">
-              Um grupo construído{" "}
-              <span className="text-white/30">por empreendedores,</span>{" "}
+            <h2
+              className="font-serif text-white leading-tight"
+              style={{ fontSize: "clamp(32px, 4vw, 56px)" }}
+            >
+              Construído por<br />
+              <em className="text-gold-400 not-italic">empreendedores,</em><br />
               para empreendedores.
             </h2>
-            <p className="text-white/40 text-base leading-relaxed mb-6">
-              O AWQ Group nasceu da convicção de que empresas boas deveriam ter acesso às mesmas
-              ferramentas, pessoas e capital que as grandes corporações. Somos um grupo de
-              empreendedores que construímos negócios do zero e aprendemos na prática o que
-              funciona.
-            </p>
-            <p className="text-white/40 text-base leading-relaxed mb-10">
-              Cada empresa do portfólio resolve um problema real. Juntas, elas formam um
-              ecossistema onde o crescimento de uma potencializa as demais. Esse é o modelo
-              AWQ: complementaridade com propósito.
-            </p>
-
-            {/* Stats */}
-            <div className="grid grid-cols-4 gap-4">
-              {stats.map((s) => (
-                <div key={s.label} className="text-center">
-                  <div className="text-2xl font-bold text-white mb-1">{s.value}</div>
-                  <div className="text-xs text-white/30">{s.label}</div>
-                </div>
-              ))}
-            </div>
           </div>
 
-          {/* Right — values */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {values.map((v) => (
-              <div
-                key={v.title}
-                className="rounded-2xl border border-white/5 bg-white/[0.03] hover:bg-white/[0.06] p-5 transition-colors duration-200"
-              >
-                <div className="w-9 h-9 rounded-xl bg-awq-600/20 text-awq-400 flex items-center justify-center mb-4">
-                  {v.icon}
-                </div>
-                <h3 className="text-white font-semibold text-sm mb-2">{v.title}</h3>
-                <p className="text-white/35 text-sm leading-relaxed">{v.description}</p>
-              </div>
-            ))}
+          <div className="flex flex-col justify-end gap-5">
+            <p className="text-ink-200/45 font-sans text-base leading-relaxed">
+              O AWQ Group nasceu da convicção de que boas empresas deveriam ter
+              acesso às mesmas ferramentas, pessoas e capital que as grandes
+              corporações. Somos empreendedores que construímos negócios do zero
+              e aprendemos na prática o que funciona.
+            </p>
+            <p className="text-ink-200/45 font-sans text-base leading-relaxed">
+              Cada empresa do portfólio resolve um problema real. Juntas, elas
+              formam um ecossistema onde o crescimento de uma amplifica as
+              demais. Esse é o modelo AWQ: complementaridade com propósito.
+            </p>
+          </div>
+        </div>
+
+        {/* Pillars */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-0 border border-white/[0.06]">
+          {pillars.map((p, i) => (
+            <div
+              key={p.number}
+              className={`p-8 group hover:bg-navy-800/60 transition-colors duration-300 ${
+                i < 3 ? "border-r border-white/[0.06]" : ""
+              }`}
+            >
+              <span className="font-serif text-gold-500/25 text-4xl font-medium block mb-6 group-hover:text-gold-500/50 transition-colors">
+                {p.number}
+              </span>
+              <h3 className="text-white font-sans font-semibold text-sm mb-3 leading-snug">
+                {p.title}
+              </h3>
+              <p className="text-ink-300/40 font-sans text-sm leading-relaxed">
+                {p.body}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        {/* Mission statement */}
+        <div className="mt-20 pt-16 border-t border-white/[0.05]">
+          <div className="max-w-3xl">
+            <span className="label block mb-6">Nossa missão</span>
+            <blockquote
+              className="font-serif text-white/70 italic leading-relaxed"
+              style={{ fontSize: "clamp(20px, 2.5vw, 32px)" }}
+            >
+              "Construir um grupo de empresas que genuinamente melhora a vida
+              de clientes, colaboradores e comunidades — com disciplina
+              financeira, criatividade e propósito."
+            </blockquote>
           </div>
         </div>
       </div>

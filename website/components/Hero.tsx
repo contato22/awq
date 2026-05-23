@@ -2,77 +2,94 @@ export default function Hero() {
   return (
     <section
       id="hero"
-      className="relative min-h-screen flex items-center justify-center overflow-hidden"
+      className="relative min-h-screen flex flex-col justify-end pb-24 overflow-hidden bg-navy-950"
     >
-      {/* Background mesh gradient */}
+      {/* Deep background gradient */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-awq-700/20 rounded-full blur-[120px]" />
-        <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-violet-700/15 rounded-full blur-[100px]" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-awq-950/40 rounded-full blur-[80px]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_60%_40%,#0E1E31_0%,#040C17_70%)]" />
       </div>
 
-      {/* Grid overlay */}
+      {/* Vertical rule left */}
+      <div className="absolute left-8 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-white/[0.06] to-transparent pointer-events-none hidden lg:block" />
+
+      {/* Corner label — top right */}
+      <div className="absolute top-8 right-8 hidden lg:flex flex-col items-end gap-1 pointer-events-none">
+        <span className="label text-ink-300/30">Est. 2021</span>
+        <span className="label text-ink-300/30">Brasil</span>
+      </div>
+
+      {/* Large background wordmark */}
       <div
-        className="absolute inset-0 pointer-events-none opacity-[0.03]"
-        style={{
-          backgroundImage:
-            "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)",
-          backgroundSize: "60px 60px",
-        }}
-      />
+        className="absolute bottom-0 right-0 select-none pointer-events-none overflow-hidden"
+        aria-hidden
+      >
+        <span
+          className="font-serif font-bold text-white/[0.025] leading-none block"
+          style={{ fontSize: "clamp(120px, 22vw, 320px)" }}
+        >
+          AWQ
+        </span>
+      </div>
 
       {/* Content */}
-      <div className="relative z-10 max-w-4xl mx-auto px-6 text-center">
-        {/* Badge */}
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-awq-500/30 bg-awq-500/10 text-awq-400 text-xs font-medium mb-8 animate-fade-in">
-          <span className="w-1.5 h-1.5 rounded-full bg-awq-400 animate-pulse" />
-          Grupo AWQ · Brasil
+      <div className="relative z-10 max-w-7xl mx-auto px-8 w-full">
+
+        {/* Label */}
+        <div className="flex items-center gap-4 mb-10 animate-fade-in">
+          <span className="rule w-10 animate-line-grow" />
+          <span className="label">Grupo AWQ · Plataforma Central</span>
         </div>
 
         {/* Headline */}
-        <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold text-white leading-tight tracking-tight mb-6 animate-fade-up">
-          Construímos{" "}
-          <span className="bg-gradient-to-r from-awq-400 to-violet-400 bg-clip-text text-transparent">
-            empresas
-          </span>
-          <br />
-          que geram impacto.
+        <h1
+          className="font-serif text-white leading-[1.05] tracking-tight mb-8 animate-fade-up"
+          style={{ fontSize: "clamp(44px, 7vw, 104px)", animationDelay: "0.1s" }}
+        >
+          Construímos<br />
+          <em className="text-gold-400 not-italic">empresas que</em><br />
+          geram impacto.
         </h1>
 
-        {/* Subheading */}
-        <p
-          className="text-lg sm:text-xl text-white/50 leading-relaxed max-w-2xl mx-auto mb-12 animate-fade-up"
-          style={{ animationDelay: "0.15s" }}
-        >
-          O Grupo AWQ reúne empresas de agência, produção de conteúdo, consultoria,
-          energia limpa e investimentos. Um ecossistema construído para crescer junto.
-        </p>
+        {/* Divider */}
+        <div className="w-24 h-px bg-gold-500/40 mb-8 animate-fade-in" style={{ animationDelay: "0.25s" }} />
 
-        {/* CTAs */}
+        {/* Subheadline + CTAs row */}
         <div
-          className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-up"
+          className="flex flex-col lg:flex-row lg:items-end gap-10 lg:gap-20 animate-fade-up"
           style={{ animationDelay: "0.3s" }}
         >
-          <a
-            href="#portfolio"
-            className="px-8 py-3.5 rounded-xl bg-awq-600 hover:bg-awq-500 text-white font-semibold text-sm transition-all duration-200 shadow-xl shadow-awq-600/30 hover:shadow-awq-500/40 hover:-translate-y-0.5"
-          >
-            Conheça nossas empresas
-          </a>
-          <a
-            href="#sobre"
-            className="px-8 py-3.5 rounded-xl border border-white/10 hover:border-white/20 bg-white/5 hover:bg-white/8 text-white/70 hover:text-white font-medium text-sm transition-all duration-200"
-          >
-            Sobre o grupo
-          </a>
+          <p className="max-w-md text-ink-200/50 font-sans text-base lg:text-lg leading-relaxed">
+            O Grupo AWQ reúne empresas complementares em agência, produção de
+            conteúdo, consultoria, energia limpa e investimentos — um ecossistema
+            construído para crescer junto.
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-start gap-4">
+            <a
+              href="#empresas"
+              className="group inline-flex items-center gap-3 px-7 py-3.5 bg-gold-500 hover:bg-gold-400 text-navy-950 font-sans font-semibold text-[13px] tracking-wider uppercase transition-all duration-200"
+            >
+              Nossas empresas
+              <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+              </svg>
+            </a>
+            <a
+              href="#sobre"
+              className="inline-flex items-center gap-3 px-7 py-3.5 border border-white/10 hover:border-white/20 text-ink-100/60 hover:text-white font-sans font-medium text-[13px] tracking-wider uppercase transition-all duration-200"
+            >
+              Sobre o grupo
+            </a>
+          </div>
         </div>
 
-        {/* Scroll indicator */}
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-white/20 animate-fade-in" style={{ animationDelay: "1s" }}>
-          <span className="text-xs tracking-widest uppercase">scroll</span>
-          <svg className="w-4 h-4 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
+        {/* Scroll hint */}
+        <div
+          className="hidden lg:flex items-center gap-3 mt-20 animate-fade-in"
+          style={{ animationDelay: "0.9s" }}
+        >
+          <div className="w-px h-12 bg-gradient-to-b from-gold-500/60 to-transparent" />
+          <span className="label text-ink-300/25 text-[10px]">scroll</span>
         </div>
       </div>
     </section>

@@ -1,179 +1,134 @@
 const companies = [
   {
-    id: "jacqes",
+    index: "01",
     name: "JACQES",
-    tagline: "Agência de Marketing",
+    type: "Agência de Marketing",
     description:
-      "Estratégia, branding e performance para marcas que querem crescer com consistência. Da identidade ao resultado mensurável.",
-    accent: "from-blue-500 to-awq-600",
-    border: "border-awq-600/30",
-    glow: "bg-awq-600/10",
-    glowHover: "group-hover:bg-awq-600/20",
-    icon: (
-      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-      </svg>
-    ),
-    tags: ["Branding", "Performance", "Social Media"],
+      "Estratégia, branding e performance para marcas que querem crescer com consistência. Da identidade visual ao resultado mensurável.",
+    services: ["Branding", "Performance", "Social Media", "Estratégia"],
     status: "Ativo",
+    accent: "#3B6FE8",
   },
   {
-    id: "caza",
+    index: "02",
     name: "Caza Vision",
-    tagline: "Produtora de Conteúdo",
+    type: "Produtora de Conteúdo",
     description:
-      "Vídeos publicitários, filmes institucionais, eventos ao vivo e conteúdo digital. Narrativa visual que converte.",
-    accent: "from-emerald-500 to-teal-600",
-    border: "border-emerald-600/30",
-    glow: "bg-emerald-600/10",
-    glowHover: "group-hover:bg-emerald-600/20",
-    icon: (
-      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.36a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-      </svg>
-    ),
-    tags: ["Vídeo", "Live", "Conteúdo Digital"],
+      "Vídeos publicitários, filmes institucionais, cobertura de eventos e conteúdo digital. Narrativa visual que conecta e converte.",
+    services: ["Vídeo Publicitário", "Eventos", "Conteúdo Digital", "Fotografia"],
     status: "Ativo",
+    accent: "#2A9D6E",
   },
   {
-    id: "advisor",
+    index: "03",
     name: "AWQ Advisor",
-    tagline: "Consultoria Estratégica",
+    type: "Consultoria Estratégica",
     description:
-      "Diagnóstico, estruturação e aceleração de negócios. Atuamos em estratégia, finanças e governança para empresas em crescimento.",
-    accent: "from-violet-500 to-purple-600",
-    border: "border-violet-600/30",
-    glow: "bg-violet-600/10",
-    glowHover: "group-hover:bg-violet-600/20",
-    icon: (
-      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-      </svg>
-    ),
-    tags: ["Estratégia", "Finanças", "Governança"],
+      "Diagnóstico, estruturação e aceleração de negócios. Estratégia, finanças e governança para empresas em crescimento acelerado.",
+    services: ["Estratégia", "Finanças", "Governança", "Aceleração"],
     status: "Ativo",
+    accent: "#8B5CF6",
   },
   {
-    id: "venture",
+    index: "04",
     name: "AWQ Venture",
-    tagline: "Investimentos & Incubação",
+    type: "Investimentos & Incubação",
     description:
-      "Capital, mentoria e rede para founders early-stage. Investimos em startups onde tecnologia encontra propósito.",
-    accent: "from-amber-500 to-orange-500",
-    border: "border-amber-600/30",
-    glow: "bg-amber-600/10",
-    glowHover: "group-hover:bg-amber-600/20",
-    icon: (
-      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-      </svg>
-    ),
-    tags: ["Venture Capital", "Incubação", "Mentoria"],
+      "Capital, mentoria e rede para founders early-stage. Investimos em startups onde tecnologia encontra propósito e escalabilidade.",
+    services: ["Venture Capital", "Incubação", "Mentoria", "Deal Flow"],
     status: "Ativo",
+    accent: "#C9A140",
   },
   {
-    id: "enrd",
+    index: "05",
     name: "ENRD",
-    tagline: "Energia Solar",
+    type: "Energia Solar",
     description:
-      "Agência especializada em energia solar. Comercialização, projetos e financiamento para residências e empresas transitarem para energia limpa.",
-    accent: "from-orange-500 to-yellow-500",
-    border: "border-orange-600/30",
-    glow: "bg-orange-600/10",
-    glowHover: "group-hover:bg-orange-600/20",
-    icon: (
-      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-      </svg>
-    ),
-    tags: ["Solar", "Energia Limpa", "ESG"],
+      "Agência especializada em energia solar fotovoltaica. Projetos, financiamento e instalação para residências e empresas.",
+    services: ["Energia Solar", "Projetos FV", "Financiamento", "ESG"],
     status: "Ativo",
+    accent: "#E8832A",
   },
 ];
 
 export default function Portfolio() {
   return (
-    <section id="portfolio" className="py-32 relative">
-      {/* Section glow */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-      </div>
+    <section id="empresas" className="py-32 bg-navy-950">
+      <div className="max-w-7xl mx-auto px-8">
 
-      <div className="max-w-6xl mx-auto px-6">
-        {/* Header */}
-        <div className="text-center mb-20">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/5 text-white/40 text-xs font-medium mb-6">
-            Portfólio
+        {/* Section header */}
+        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-8 mb-20">
+          <div>
+            <div className="flex items-center gap-4 mb-6">
+              <span className="rule w-8" />
+              <span className="label">Portfólio</span>
+            </div>
+            <h2
+              className="font-serif text-white leading-tight"
+              style={{ fontSize: "clamp(32px, 4.5vw, 60px)" }}
+            >
+              Nossas empresas
+            </h2>
           </div>
-          <h2 className="text-4xl sm:text-5xl font-bold text-white tracking-tight mb-4">
-            Nossas empresas
-          </h2>
-          <p className="text-white/40 text-lg max-w-xl mx-auto">
-            Cinco verticais complementares que formam um ecossistema integrado de crescimento.
+          <p className="max-w-sm text-ink-300/45 font-sans text-sm leading-relaxed lg:text-right">
+            Cinco verticais complementares que formam um ecossistema integrado —
+            cada empresa resolve um problema real.
           </p>
         </div>
 
-        {/* Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {companies.map((c, i) => (
+        {/* Companies list */}
+        <div className="flex flex-col divide-y divide-white/[0.05]">
+          {companies.map((c) => (
             <div
-              key={c.id}
-              className={`group relative rounded-2xl border ${c.border} bg-white/[0.03] hover:bg-white/[0.06] p-6 transition-all duration-300 hover:-translate-y-1 overflow-hidden`}
-              style={{ animationDelay: `${i * 0.08}s` }}
+              key={c.index}
+              className="group grid grid-cols-1 lg:grid-cols-[80px_1fr_1fr_200px] gap-6 lg:gap-10 py-10 hover:bg-navy-900/50 transition-colors duration-300 -mx-4 px-4"
             >
-              {/* Card glow on hover */}
-              <div
-                className={`absolute inset-0 rounded-2xl ${c.glow} ${c.glowHover} transition-all duration-300 pointer-events-none`}
-              />
-
-              {/* Icon */}
-              <div className={`relative inline-flex items-center justify-center w-11 h-11 rounded-xl bg-gradient-to-br ${c.accent} text-white mb-5 shadow-lg`}>
-                {c.icon}
+              {/* Index */}
+              <div className="flex items-start pt-1">
+                <span className="font-serif text-gold-500/30 text-2xl font-medium group-hover:text-gold-500/60 transition-colors">
+                  {c.index}
+                </span>
               </div>
 
-              {/* Name & tagline */}
-              <div className="relative mb-3">
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 className="text-white font-semibold text-lg">{c.name}</h3>
-                  <span className="text-[10px] text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full font-medium">
-                    {c.status}
+              {/* Name + type */}
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <div
+                    className="w-2 h-2 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: c.accent }}
+                  />
+                  <span className="text-[11px] font-sans font-medium tracking-widest uppercase"
+                    style={{ color: c.accent }}>
+                    {c.type}
                   </span>
                 </div>
-                <p className={`text-sm font-medium bg-gradient-to-r ${c.accent} bg-clip-text text-transparent`}>
-                  {c.tagline}
-                </p>
+                <h3 className="font-serif text-white text-2xl lg:text-3xl font-medium leading-tight">
+                  {c.name}
+                </h3>
               </div>
 
               {/* Description */}
-              <p className="relative text-sm text-white/40 leading-relaxed mb-5">
+              <p className="text-ink-200/45 font-sans text-sm leading-relaxed self-center">
                 {c.description}
               </p>
 
-              {/* Tags */}
-              <div className="relative flex flex-wrap gap-2">
-                {c.tags.map((tag) => (
+              {/* Services */}
+              <div className="flex flex-wrap content-start gap-2">
+                {c.services.map((s) => (
                   <span
-                    key={tag}
-                    className="text-[11px] text-white/30 bg-white/5 border border-white/8 px-2.5 py-1 rounded-full"
+                    key={s}
+                    className="text-[10px] font-sans tracking-wide text-ink-300/40 border border-white/[0.07] px-2.5 py-1 group-hover:border-white/[0.12] transition-colors"
                   >
-                    {tag}
+                    {s}
                   </span>
                 ))}
               </div>
             </div>
           ))}
-
-          {/* Coming soon card */}
-          <div className="relative rounded-2xl border border-white/5 bg-white/[0.02] p-6 flex flex-col items-center justify-center text-center min-h-[240px]">
-            <div className="w-11 h-11 rounded-xl border border-white/10 bg-white/5 flex items-center justify-center mb-4">
-              <svg className="w-5 h-5 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
-              </svg>
-            </div>
-            <p className="text-sm text-white/20 font-medium">Mais em breve</p>
-            <p className="text-xs text-white/10 mt-1">O portfólio está crescendo.</p>
-          </div>
         </div>
+
+        {/* Bottom rule */}
+        <div className="mt-0 h-px bg-gradient-to-r from-gold-500/30 via-transparent to-transparent" />
       </div>
     </section>
   );

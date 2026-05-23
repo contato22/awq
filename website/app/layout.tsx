@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "AWQ Group",
-  description: "Grupo de empresas focado em crescimento, criatividade e impacto. Agência, produtora, consultoria e investimentos.",
-  keywords: ["AWQ", "AWQ Group", "agência", "marketing", "produtora", "consultoria", "investimentos"],
+  title: "AWQ Group — Construindo o futuro",
+  description:
+    "O Grupo AWQ é um ecossistema de empresas focadas em crescimento, criatividade e impacto. Agência, produtora, consultoria, energia e investimentos.",
+  keywords: ["AWQ Group", "AWQ", "agência", "investimentos", "consultoria", "Brasil"],
   openGraph: {
     title: "AWQ Group",
-    description: "Grupo de empresas focado em crescimento, criatividade e impacto.",
+    description: "Ecossistema de empresas focadas em crescimento e impacto.",
     url: "https://awq.com.br",
     siteName: "AWQ Group",
     locale: "pt_BR",
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" className="grain">
       <body>{children}</body>
     </html>
   );
