@@ -367,13 +367,12 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
               {overdueAR > 0 && (
                 <div className="rounded-xl border border-red-100 bg-red-50/40 p-4 flex items-center justify-between">
                   <div>
-                    <p className="text-[11px] font-semibold text-gray-600">Recebimentos em atraso</p>
-                    <p className="text-lg font-bold text-emerald-700 tabular-nums mt-0.5">{fmtBRL(overdueAR)}</p>
+                    <p className="text-xs font-semibold text-gray-600">Recebimentos em atraso</p>
+                    <p className="text-2xl font-bold text-emerald-700 tabular-nums mt-0.5">{fmtBRL(overdueAR)}</p>
                   </div>
                   <TrendingUp size={20} className="text-red-400 shrink-0" />
                 </div>
-                <p className="text-2xl font-bold text-emerald-600 tabular-nums">{fmtBRL(overdueAR)}</p>
-              </div>
+              )}
               <div className="rounded-xl border border-red-100 bg-white p-4">
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-xs font-semibold text-gray-700">Pagamentos em atraso</p>
