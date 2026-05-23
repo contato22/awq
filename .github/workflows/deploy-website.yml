@@ -1,0 +1,38 @@
+name: Deploy awq.com.br
+
+on:
+  push:
+    branches: [main]
+    paths: ["website/**"]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Deploy to Vercel
+        id: deploy
+        working-directory: website
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          URL=$(vercel deploy --prod --yes --token "$VERCEL_TOKEN" 2>&1 | tail -1)
+          echo "url=$URL" >> $GITHUB_OUTPUT
+          echo "Deployed to: $URL"
+
+      - name: Add domain awq.com.br
+        working-directory: website
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          vercel domains add awq.com.br --token "$VERCEL_TOKEN" --yes 2>&1 || true
+          vercel alias set ${{ steps.deploy.outputs.url }} awq.com.br --token "$VERCEL_TOKEN" 2>&1 || true
