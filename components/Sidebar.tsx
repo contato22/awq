@@ -716,7 +716,7 @@ function IconBar({
                     className={cn(
                         "flex flex-col items-center gap-0.5 py-2 px-1 rounded-lg transition-all w-full",
                         pathname === "/awq"
-                            ? "bg-white/20 text-white"
+                            ? "bg-white text-brand-600"
                             : "text-white/40 hover:bg-white/[0.07] hover:text-white/70"
                     )}
                 >
@@ -1035,7 +1035,7 @@ function BUSidebar({
                         className={cn(
                             "flex flex-col items-center gap-0.5 py-[7px] px-1 rounded-lg transition-all w-full",
                             pathname === homeHref
-                                ? "bg-white/20 text-white"
+                                ? "bg-white text-brand-600"
                                 : "text-white/40 hover:bg-white/[0.07] hover:text-white/70"
                         )}
                     >
