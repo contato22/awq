@@ -611,15 +611,15 @@ function NavItem({
                 "flex items-center gap-2.5 px-3 py-[7px] rounded-lg text-[13px] transition-all duration-150 group",
                 "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30",
                 active
-                    ? "bg-white text-gray-900 font-semibold shadow-sm"
-                    : "text-white/70 hover:text-white hover:bg-white/[0.07] font-medium"
+                    ? "bg-[#000000]/15 text-[#000000] font-semibold"
+                    : "text-[#000000]/70 hover:text-[#000000] hover:bg-[#000000]/[0.07] font-medium"
             )}
         >
             <Icon
                 size={14}
                 className={cn(
                     "shrink-0 transition-colors",
-                    active ? "text-brand-600" : "text-white/40 group-hover:text-white/70"
+                    active ? "text-brand-600" : "text-[#000000]/40 group-hover:text-[#000000]/70"
                 )}
             />
             <span className="flex-1 truncate">{label}</span>
@@ -629,7 +629,7 @@ function NavItem({
                     size={10}
                     className={cn(
                         "shrink-0 transition-colors fill-current",
-                        active ? "text-gray-400" : "text-white/30 group-hover:text-white/60"
+                        active ? "text-gray-400" : "text-[#000000]/30 group-hover:text-[#000000]/60"
                     )}
                 />
             )}
@@ -640,7 +640,7 @@ function NavItem({
 function SectionLabel({ children }: { children: React.ReactNode }) {
     return (
         <div className="px-3 mb-1 mt-5 first:mt-2">
-            <span className="text-[9px] font-bold text-white/30 uppercase tracking-[0.12em]">
+            <span className="text-[9px] font-bold text-[#000000]/40 uppercase tracking-[0.12em]">
                 {children}
             </span>
         </div>
@@ -649,8 +649,8 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 function PanelFooter() {
     return (
-        <div className="px-2 py-3 border-t border-white/10 shrink-0">
-            <button className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-white/35 hover:text-white/60 hover:bg-white/10 transition-all text-[11px]">
+        <div className="px-2 py-3 border-t border-[#000000]/[0.07] shrink-0">
+            <button className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-[#000000]/35 hover:text-[#000000]/60 hover:bg-[#000000]/[0.05] transition-all text-[11px]">
                 <ThumbsUp size={11} />
                 <span>Avalie o nosso design</span>
             </button>
@@ -664,7 +664,7 @@ function SlimUserButton() {
     const name = user?.name ?? user?.email ?? "?";
     const initials = name.split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase() || "?";
     return (
-        <div className="px-1.5 py-3 border-t border-white/10 shrink-0">
+        <div className="px-1.5 py-3 border-t border-[#000000]/[0.07] shrink-0">
             <button
                 onClick={() => void signOut({ callbackUrl: "/login" })}
                 title="Sair"
@@ -673,7 +673,7 @@ function SlimUserButton() {
                 <div className="w-7 h-7 rounded-full bg-gradient-to-br from-awq-gold to-amber-600 flex items-center justify-center text-[10px] font-bold text-gray-900">
                     {initials}
                 </div>
-                <LogOut size={9} className="text-white/25 group-hover:text-red-400 transition-colors" />
+                <LogOut size={9} className="text-[#000000]/25 group-hover:text-red-400 transition-colors" />
             </button>
         </div>
     );
@@ -698,9 +698,9 @@ function IconBar({
     getModuleActive: (id: string) => boolean;
 }) {
     return (
-        <div className="flex flex-col h-full w-[52px] bg-[#0487D9] shrink-0">
+        <div className="flex flex-col h-full w-[52px] bg-[#9BA7C0] shrink-0">
             {/* Logo */}
-            <div className="h-[52px] flex items-center justify-center border-b border-white/10 shrink-0">
+            <div className="h-[52px] flex items-center justify-center border-b border-[#000000]/[0.06] shrink-0">
                 <Link href="/awq">
                     <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-awq-gold to-amber-600 flex items-center justify-center shadow-md">
                         <Zap size={15} className="text-gray-900" />
@@ -716,15 +716,15 @@ function IconBar({
                     className={cn(
                         "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                         pathname === "/awq"
-                            ? "bg-white text-brand-600"
-                            : "text-white/60 hover:bg-white/[0.07] hover:text-white"
+                            ? "bg-[#000000]/20 text-[#000000]"
+                            : "text-[#000000]/60 hover:bg-[#000000]/[0.07] hover:text-[#000000]"
                     )}
                 >
                     <LayoutDashboard size={18} />
                 </Link>
             </div>
 
-            <div className="mx-2 my-1 border-t border-white/10 shrink-0" />
+            <div className="mx-2 my-1 border-t border-[#000000]/[0.06] shrink-0" />
 
             {/* Module icons */}
             <nav className="flex-1 overflow-y-auto px-1.5 py-0.5 space-y-0.5 scrollbar-none">
@@ -740,10 +740,10 @@ function IconBar({
                             className={cn(
                                 "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                                 isOpen
-                                    ? "bg-white text-brand-600"
+                                    ? "bg-[#000000]/20 text-[#000000]"
                                     : modActive
-                                    ? "text-white"
-                                    : "text-white/60 hover:bg-white/[0.07] hover:text-white"
+                                    ? "text-[#000000]"
+                                    : "text-[#000000]/60 hover:bg-[#000000]/[0.07] hover:text-[#000000]"
                             )}
                         >
                             <ModIcon size={18} className="shrink-0" />
@@ -752,7 +752,7 @@ function IconBar({
                 })}
             </nav>
 
-            <div className="mx-2 my-1 border-t border-white/10 shrink-0" />
+            <div className="mx-2 my-1 border-t border-[#000000]/[0.06] shrink-0" />
 
             {/* Bottom icons */}
             <div className="px-1.5 pb-1 space-y-0.5 shrink-0">
@@ -763,8 +763,8 @@ function IconBar({
                         className={cn(
                             "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                             activePanel === "bus"
-                                ? "bg-white text-brand-600"
-                                : "text-white/60 hover:bg-white/[0.07] hover:text-white"
+                                ? "bg-[#000000]/20 text-[#000000]"
+                                : "text-[#000000]/60 hover:bg-[#000000]/[0.07] hover:text-[#000000]"
                         )}
                     >
                         <Building2 size={18} />
@@ -777,8 +777,8 @@ function IconBar({
                         className={cn(
                             "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                             activePanel === "ai"
-                                ? "bg-white text-brand-600"
-                                : "text-white/60 hover:bg-white/[0.07] hover:text-white"
+                                ? "bg-[#000000]/20 text-[#000000]"
+                                : "text-[#000000]/60 hover:bg-[#000000]/[0.07] hover:text-[#000000]"
                         )}
                     >
                         <Bot size={18} />
@@ -790,8 +790,8 @@ function IconBar({
                     className={cn(
                         "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                         pathname.startsWith("/settings")
-                            ? "bg-white text-brand-600"
-                            : "text-white/60 hover:bg-white/[0.07] hover:text-white"
+                            ? "bg-[#000000]/20 text-[#000000]"
+                            : "text-[#000000]/60 hover:bg-[#000000]/[0.07] hover:text-[#000000]"
                     )}
                 >
                     <Settings size={18} />
@@ -806,14 +806,14 @@ function IconBar({
 // ── Panel helpers ─────────────────────────────────────────────────────────────
 function PanelHeader({ title, onBack }: { title: string; onBack: () => void }) {
     return (
-        <div className="h-[52px] flex items-center gap-2 px-3 border-b border-white/10 shrink-0">
+        <div className="h-[52px] flex items-center gap-2 px-3 border-b border-[#000000]/[0.07] shrink-0">
             <button
                 onClick={onBack}
-                className="p-1 text-white/40 hover:text-white/80 transition-colors rounded-md hover:bg-white/10 shrink-0"
+                className="p-1 text-[#000000]/40 hover:text-[#000000]/80 transition-colors rounded-md hover:bg-[#000000]/[0.07] shrink-0"
             >
                 <ChevronLeft size={15} />
             </button>
-            <span className="text-[13px] font-semibold text-white truncate">{title}</span>
+            <span className="text-[13px] font-semibold text-[#000000] truncate">{title}</span>
         </div>
     );
 }
@@ -852,11 +852,6 @@ function AwqSidebar({ pathname }: { pathname: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [pathname]);
 
-    useEffect(() => {
-        const el = navRef.current?.querySelector('[aria-current="page"]') as HTMLElement | null;
-        el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-    }, [pathname, activePanel]);
-
     const togglePanel = (id: string) => setActivePanel((p) => (p === id ? null : id));
 
     const getModuleActive = (id: string) => {
@@ -884,26 +879,26 @@ function AwqSidebar({ pathname }: { pathname: string }) {
             />
 
             {activePanel && (
-                <div className="w-[220px] bg-[#0487D9] flex flex-col border-r border-white/[0.06] overflow-hidden">
+                <div className="w-[220px] bg-[#9BA7C0] flex flex-col border-r border-[#000000]/[0.06] overflow-hidden">
                     <PanelHeader title={panelTitle} onBack={() => setActivePanel(null)} />
 
-                    <nav ref={navRef} className="flex-1 overflow-y-auto px-2 py-2 scrollbar-none">
+                    <nav className="flex-1 overflow-y-auto px-2 py-2 scrollbar-none">
                         {activePanel === "bus" && (
                             <div className="space-y-1 mt-1">
                                 {businessUnits.map((bu) => (
                                     <Link
                                         key={bu.id}
                                         href={bu.href}
-                                        className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-white/10 hover:border-awq-gold/30 hover:bg-white/10 transition-all group"
+                                        className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-[#000000]/[0.07] hover:border-awq-gold/30 hover:bg-[#000000]/[0.04] transition-all group"
                                     >
                                         <div className={cn("w-6 h-6 rounded-lg flex items-center justify-center shrink-0", bu.color)}>
                                             <bu.icon size={12} className="text-white" />
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <div className="text-[12px] font-semibold text-white/80 group-hover:text-white truncate">{bu.label}</div>
-                                            <div className="text-[10px] text-white/30 truncate">{bu.sub}</div>
+                                            <div className="text-[12px] font-semibold text-[#000000]/80 group-hover:text-[#000000] truncate">{bu.label}</div>
+                                            <div className="text-[10px] text-[#000000]/30 truncate">{bu.sub}</div>
                                         </div>
-                                        <ChevronRight size={11} className="text-white/25 group-hover:text-awq-gold shrink-0" />
+                                        <ChevronRight size={11} className="text-[#000000]/25 group-hover:text-awq-gold shrink-0" />
                                     </Link>
                                 ))}
                             </div>
@@ -998,9 +993,9 @@ function BUSidebar({
     return (
         <div className="flex h-full">
             {/* Icon bar */}
-            <div className="flex flex-col h-full w-[52px] bg-[#0487D9] shrink-0">
+            <div className="flex flex-col h-full w-[52px] bg-[#9BA7C0] shrink-0">
                 {/* BU logo */}
-                <div className="h-[52px] flex items-center justify-center border-b border-white/10 shrink-0">
+                <div className="h-[52px] flex items-center justify-center border-b border-[#000000]/[0.06] shrink-0">
                     <Link href={homeHref} title={buId}>
                         <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center shadow-md", colors.iconBg)}>
                             <HeaderIcon size={15} className="text-white" />
@@ -1013,14 +1008,14 @@ function BUSidebar({
                         <Link
                             href="/business-units"
                             title="Voltar para AWQ Group"
-                            className="flex items-center justify-center py-2.5 px-1 rounded-lg w-full text-white/60 hover:bg-white/[0.07] hover:text-white transition-all"
+                            className="flex items-center justify-center py-2.5 px-1 rounded-lg w-full text-[#000000]/60 hover:bg-[#000000]/[0.07] hover:text-[#000000] transition-all"
                         >
                             <ChevronLeft size={18} />
                         </Link>
                     </div>
                 )}
 
-                <div className="mx-2 my-1 border-t border-white/10 shrink-0" />
+                <div className="mx-2 my-1 border-t border-[#000000]/[0.06] shrink-0" />
 
                 {/* Home */}
                 <div className="px-1.5 shrink-0">
@@ -1030,15 +1025,15 @@ function BUSidebar({
                         className={cn(
                             "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                             pathname === homeHref
-                                ? "bg-white text-brand-600"
-                                : "text-white/60 hover:bg-white/[0.07] hover:text-white"
+                                ? "bg-[#000000]/20 text-[#000000]"
+                                : "text-[#000000]/60 hover:bg-[#000000]/[0.07] hover:text-[#000000]"
                         )}
                     >
                         <LayoutDashboard size={18} />
                     </Link>
                 </div>
 
-                <div className="mx-2 my-1 border-t border-white/10 shrink-0" />
+                <div className="mx-2 my-1 border-t border-[#000000]/[0.06] shrink-0" />
 
                 {/* Module icons */}
                 <nav className="flex-1 overflow-y-auto px-1.5 py-0.5 space-y-0.5 scrollbar-none">
@@ -1054,10 +1049,10 @@ function BUSidebar({
                                 className={cn(
                                     "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                                     isOpen
-                                        ? "bg-white text-brand-600"
+                                        ? "bg-[#000000]/20 text-[#000000]"
                                         : modActive
-                                        ? "text-white"
-                                        : "text-white/60 hover:bg-white/[0.07] hover:text-white"
+                                        ? "text-[#000000]"
+                                        : "text-[#000000]/60 hover:bg-[#000000]/[0.07] hover:text-[#000000]"
                                 )}
                             >
                                 <ModIcon size={18} className="shrink-0" />
@@ -1066,7 +1061,7 @@ function BUSidebar({
                     })}
                 </nav>
 
-                <div className="mx-2 my-1 border-t border-white/10 shrink-0" />
+                <div className="mx-2 my-1 border-t border-[#000000]/[0.06] shrink-0" />
 
                 <div className="px-1.5 pb-1 space-y-0.5 shrink-0">
                     <button
@@ -1075,8 +1070,8 @@ function BUSidebar({
                         className={cn(
                             "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                             activePanel === "ai"
-                                ? "bg-white text-brand-600"
-                                : "text-white/60 hover:bg-white/[0.07] hover:text-white"
+                                ? "bg-[#000000]/20 text-[#000000]"
+                                : "text-[#000000]/60 hover:bg-[#000000]/[0.07] hover:text-[#000000]"
                         )}
                     >
                         <Bot size={18} />
@@ -1087,8 +1082,8 @@ function BUSidebar({
                         className={cn(
                             "flex items-center justify-center py-2.5 px-1 rounded-lg transition-all w-full",
                             pathname.startsWith("/settings")
-                                ? "bg-white text-brand-600"
-                                : "text-white/60 hover:bg-white/[0.07] hover:text-white"
+                                ? "bg-[#000000]/20 text-[#000000]"
+                                : "text-[#000000]/60 hover:bg-[#000000]/[0.07] hover:text-[#000000]"
                         )}
                     >
                         <Settings size={16} />
@@ -1100,7 +1095,7 @@ function BUSidebar({
 
             {/* Panel */}
             {activePanel && (
-                <div className="w-[220px] bg-[#0487D9] flex flex-col border-r border-white/[0.06] overflow-hidden">
+                <div className="w-[220px] bg-[#9BA7C0] flex flex-col border-r border-[#000000]/[0.06] overflow-hidden">
                     <PanelHeader
                         title={activePanel === "ai" ? "IA & Agentes" : activeMod?.label ?? ""}
                         onBack={() => setActivePanel(null)}
@@ -1154,7 +1149,6 @@ function AwqVentureSidebar({ pathname }: { pathname: string }) {
 function EnrdSidebar({ pathname }: { pathname: string }) {
     return <BUSidebar buId="enrd" label="ENRD" homeHref="/enrd" headerIcon={Zap} modules={ENRD_MODULES} pathname={pathname} />;
 }
-
 
 // ── Root Sidebar ──────────────────────────────────────────────────────────────
 export default function Sidebar() {

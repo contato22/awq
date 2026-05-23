@@ -204,7 +204,7 @@ export default function PoCPage() {
               <YAxis tickFormatter={fmtK} tick={{ fontSize: 11, fill: "#9ca3af" }} axisLine={false} tickLine={false} width={50} />
               <Tooltip formatter={(v: number) => v != null ? `R$ ${fmtBRL(v)}` : "—"} />
               <Legend iconType="plainline" wrapperStyle={{ fontSize: 11 }} />
-              <Line type="monotone" dataKey="total"  name="Total Fechados" stroke="#312e81" strokeWidth={2} dot={false} connectNulls={false} />
+              <Line type="monotone" dataKey="total"  name="Total Fechados" stroke="#1476c6" strokeWidth={2} dot={false} connectNulls={false} />
               <Line type="monotone" dataKey="om"     name="O&M"            stroke="#f97316" strokeWidth={2} dot={false} connectNulls={false} />
               <Line type="monotone" dataKey="seguro" name="Seguro"         stroke="#9ca3af" strokeWidth={2} dot={false} connectNulls={false} />
               <Line type="monotone" dataKey="meta"   name="Meta Vesting"   stroke="#111827" strokeWidth={1.5} strokeDasharray="6 3" dot={false} />
