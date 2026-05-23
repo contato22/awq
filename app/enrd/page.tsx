@@ -12,7 +12,7 @@ const EPM_MODULES = [
   { label: "Financial (ENRD)",    sub: "Dados da BU · Estruturação",   href: "/enrd/financial",              color: "text-orange-600",  bg: "bg-orange-50"  },
   { label: "P&L (DRE)",          sub: "Demonstração de Resultado",     href: "/awq/epm/pl",                  color: "text-emerald-600", bg: "bg-emerald-50" },
   { label: "Balanço Patrimonial",sub: "Ativo = Passivo + PL",          href: "/awq/epm/balance-sheet",       color: "text-brand-600",   bg: "bg-brand-50"   },
-  { label: "Budget vs Actual",   sub: "Variance analysis",             href: "/awq/epm/budget",              color: "text-violet-600",  bg: "bg-violet-50"  },
+  { label: "Budget vs Actual",   sub: "Variance analysis",             href: "/awq/epm/budget",              color: "text-brand-600",  bg: "bg-brand-50"  },
   { label: "KPI Dashboard",      sub: "MRR, EBITDA, Runway…",          href: "/awq/epm/kpis",                color: "text-cyan-700",    bg: "bg-cyan-50"    },
   { label: "Contas a Pagar",     sub: "AP · Aging · DPO",              href: "/awq/epm/ap",                  color: "text-red-600",     bg: "bg-red-50"     },
   { label: "Contas a Receber",   sub: "AR · Aging · DSO",              href: "/awq/epm/ar",                  color: "text-emerald-600", bg: "bg-emerald-50" },
@@ -59,7 +59,7 @@ export default function EnrdPage() {
             { label: "Financial",     href: "/enrd/financial",        icon: DollarSign,   color: "text-orange-600",  bg: "bg-orange-50"  },
             { label: "CRM Clientes",  href: "/enrd/customers",        icon: Users,        color: "text-brand-600",   bg: "bg-brand-50"   },
             { label: "Leads",         href: "/crm/leads?bu=ENRD",     icon: TrendingUp,   color: "text-emerald-600", bg: "bg-emerald-50" },
-            { label: "Pipeline",      href: "/crm/pipeline",          icon: Target,       color: "text-violet-600",  bg: "bg-violet-50"  },
+            { label: "Pipeline",      href: "/crm/pipeline",          icon: Target,       color: "text-brand-600",  bg: "bg-brand-50"  },
             { label: "PPM Portfolio", href: "/awq/ppm?bu=ENRD",       icon: Briefcase,    color: "text-cyan-700",    bg: "bg-cyan-50"    },
           ].map((item) => {
             const Icon = item.icon;

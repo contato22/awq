@@ -280,7 +280,7 @@ export default async function EpmOverviewPage() {
               { label: "JACQES",       sub: "Agência · FP&A",            href: "/jacqes/fpa",              color: "text-brand-600",   bg: "bg-brand-50"   },
               { label: "Caza Vision",  sub: "Produtora · Financial",      href: "/caza-vision/financial",   color: "text-emerald-600", bg: "bg-emerald-50" },
               { label: "AWQ Venture",  sub: "Investimentos · Financial",  href: "/awq-venture/financial",   color: "text-amber-600",   bg: "bg-amber-50"   },
-              { label: "Advisor",      sub: "Consultoria · Financial",    href: "/advisor/financial",       color: "text-violet-600",  bg: "bg-violet-50"  },
+              { label: "Advisor",      sub: "Consultoria · Financial",    href: "/advisor/financial",       color: "text-brand-600",  bg: "bg-brand-50"  },
               { label: "ENRD",         sub: "Agência Solar · Financial",  href: "/enrd/financial",          color: "text-orange-600",  bg: "bg-orange-50"  },
             ].map((bu) => (
               <Link key={bu.href} href={bu.href}

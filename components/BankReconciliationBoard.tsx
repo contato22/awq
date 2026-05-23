@@ -127,7 +127,7 @@ function accountBadge(key: string, entity: string): {
   };
   if (entity === "ENERDY" || key.toLowerCase().includes("enerdy")) return {
     initials: "ENRD",
-    bg: "bg-violet-600",
+    bg: "bg-brand-600",
     text: "text-white",
     subtitle: "Banco Integrado · BU ENRD",
   };
