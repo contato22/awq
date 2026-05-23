@@ -75,12 +75,19 @@ const ADVISOR_PREFIXES = ["/advisor"];
 const VENTURE_PREFIXES = ["/awq-venture"];
 const ENRD_PREFIXES = ["/enrd"];
 const CRM_PREFIXES = ["/crm"];
-function isJacqesRoute(p: string) { return JACQES_PREFIXES.some((x) => p.startsWith(x)); }
-function isCazaRoute(p: string)   { return CAZA_PREFIXES.some((x) => p.startsWith(x)); }
-function isAdvisorRoute(p: string){ return ADVISOR_PREFIXES.some((x) => p.startsWith(x)); }
-function isVentureRoute(p: string){ return VENTURE_PREFIXES.some((x) => p.startsWith(x)); }
-function isEnrdRoute(p: string)   { return ENRD_PREFIXES.some((x) => p.startsWith(x)); }
-function isCrmRoute(p: string)    { return CRM_PREFIXES.some((x) => p === x || p.startsWith(x + "/")); }
+const BU_CRM_SLUGS = ["jacqes", "caza", "advisor", "venture", "enrd"];
+const BU_CRM_PREFIXES = BU_CRM_SLUGS.map(s => `/crm/${s}`);
+function isJacqesRoute(p: string)  { return JACQES_PREFIXES.some((x) => p.startsWith(x)); }
+function isCazaRoute(p: string)    { return CAZA_PREFIXES.some((x) => p.startsWith(x)); }
+function isAdvisorRoute(p: string) { return ADVISOR_PREFIXES.some((x) => p.startsWith(x)); }
+function isVentureRoute(p: string) { return VENTURE_PREFIXES.some((x) => p.startsWith(x)); }
+function isEnrdRoute(p: string)    { return ENRD_PREFIXES.some((x) => p.startsWith(x)); }
+function isCrmRoute(p: string)     { return CRM_PREFIXES.some((x) => p === x || p.startsWith(x + "/")); }
+function isBuCrmRoute(p: string)   { return BU_CRM_PREFIXES.some((x) => p === x || p.startsWith(x + "/")); }
+function getBuFromCrmPath(p: string): string | null {
+    const m = p.match(/^\/crm\/(jacqes|caza|advisor|venture|enrd)/);
+    return m ? m[1] : null;
+}
 
 const EPM_PREFIXES = [
     "/awq/epm", "/awq/financial", "/awq/budget", "/awq/forecast",
@@ -1145,6 +1152,85 @@ function EnrdSidebar({ pathname }: { pathname: string }) {
     return <BUSidebar buId="enrd" label="ENRD" homeHref="/enrd" headerIcon={Zap} modules={ENRD_MODULES} pathname={pathname} />;
 }
 
+// ── BU CRM sidebar ────────────────────────────────────────────────────────────
+
+const BU_CRM_META: Record<string, { label: string; subtitle: string; iconBg: string; dotBg: string }> = {
+    jacqes:  { label: "JACQES",       subtitle: "Agência",       iconBg: "bg-blue-600",    dotBg: "bg-blue-500"    },
+    caza:    { label: "Caza Vision",   subtitle: "Produtora",     iconBg: "bg-emerald-600", dotBg: "bg-emerald-500" },
+    advisor: { label: "Advisor",       subtitle: "Consultoria",   iconBg: "bg-violet-600",  dotBg: "bg-violet-500"  },
+    venture: { label: "AWQ Venture",   subtitle: "Investimentos", iconBg: "bg-amber-600",   dotBg: "bg-amber-500"   },
+    enrd:    { label: "ENRD",          subtitle: "Solar",         iconBg: "bg-orange-600",  dotBg: "bg-orange-500"  },
+};
+
+function buCrmNav(slug: string) {
+    return [
+        { label: "Dashboard",   href: `/crm/${slug}`,            icon: Target       },
+        { label: "Pipeline",    href: `/crm/${slug}/pipeline`,   icon: LayoutList   },
+        { label: "Leads",       href: `/crm/${slug}/leads`,      icon: UserPlus     },
+        { label: "Contas",      href: `/crm/${slug}/accounts`,   icon: Building2    },
+        { label: "Contatos",    href: `/crm/${slug}/contacts`,   icon: Users        },
+        { label: "Atividades",  href: `/crm/${slug}/activities`, icon: Activity     },
+        { label: "Analytics",   href: `/crm/${slug}/analytics`,  icon: BarChart3    },
+        { label: "Matriz RFM",  href: `/crm/${slug}/rfm`,        icon: PieChart     },
+    ];
+}
+
+function BuCrmSidebar({ bu, pathname }: { bu: string; pathname: string }) {
+    const meta = BU_CRM_META[bu] ?? BU_CRM_META.jacqes;
+    const homeHref = `/crm/${bu}`;
+    const isActive = (href: string) =>
+        href === homeHref ? pathname === homeHref : pathname === href || pathname.startsWith(href + "/");
+
+    return (
+        <div className="flex h-full">
+            {/* Icon bar */}
+            <div className="flex flex-col h-full w-[52px] bg-[#0a1929] shrink-0">
+                <div className="h-[52px] flex items-center justify-center border-b border-white/[0.06] shrink-0">
+                    <Link href={homeHref} title={meta.label}>
+                        <div className={`w-8 h-8 rounded-xl ${meta.iconBg} flex items-center justify-center shadow-md`}>
+                            <Target size={15} className="text-white" />
+                        </div>
+                    </Link>
+                </div>
+                <div className="px-1.5 pt-1.5 shrink-0">
+                    <Link
+                        href="/crm"
+                        title="CRM Hub"
+                        className="flex flex-col items-center gap-0.5 py-2 px-1 rounded-lg w-full text-white/40 hover:bg-white/[0.07] hover:text-white/70 transition-all"
+                    >
+                        <ChevronLeft size={16} />
+                        <span className="text-[8px] font-semibold leading-none">CRM</span>
+                    </Link>
+                </div>
+                <SlimUserButton />
+            </div>
+
+            {/* Nav panel */}
+            <div className="flex-1 bg-[#102030] flex flex-col border-r border-white/[0.06] overflow-hidden min-w-[200px]">
+                <div className="h-[52px] flex items-center px-4 border-b border-white/[0.06] shrink-0">
+                    <span className="text-[13px] font-semibold text-white">{meta.label}</span>
+                    <span className="ml-2 text-[10px] text-white/30">{meta.subtitle}</span>
+                </div>
+                <nav className="flex-1 overflow-y-auto px-2 py-2 scrollbar-none">
+                    <SectionLabel>CRM</SectionLabel>
+                    <div className="space-y-0.5 mt-1">
+                        {buCrmNav(bu).map((item) => (
+                            <NavItem key={item.href} {...item} active={isActive(item.href)} />
+                        ))}
+                    </div>
+                    <SectionLabel>IA & Agentes</SectionLabel>
+                    <div className="space-y-0.5 mt-1">
+                        {aiNav.map((item) => (
+                            <NavItem key={item.href} {...item} active={isActive(item.href)} />
+                        ))}
+                    </div>
+                </nav>
+                <PanelFooter />
+            </div>
+        </div>
+    );
+}
+
 // ── CRM sidebar ───────────────────────────────────────────────────────────────
 const crmNav = [
     { label: "Dashboard CRM",  href: "/crm",                  icon: Target       },
@@ -1202,6 +1288,22 @@ function CrmSidebar({ pathname }: { pathname: string }) {
                             <NavItem key={item.href} {...item} active={isActive(item.href)} />
                         ))}
                     </div>
+                    <SectionLabel>Business Units</SectionLabel>
+                    <div className="space-y-0.5 mt-1">
+                        {Object.entries(BU_CRM_META).map(([slug, meta]) => {
+                            const href = `/crm/${slug}`;
+                            const active = pathname === href || pathname.startsWith(href + "/");
+                            return (
+                                <Link key={slug} href={href}
+                                    className={`flex items-center gap-2.5 px-3 py-[7px] rounded-lg text-[13px] font-medium transition-colors ${
+                                        active ? "bg-brand-600 text-white" : "text-white/70 hover:bg-white/[0.07] hover:text-white"
+                                    }`}>
+                                    <div className={`w-2 h-2 rounded-full shrink-0 ${meta.dotBg}`} />
+                                    {meta.label}
+                                </Link>
+                            );
+                        })}
+                    </div>
                     <SectionLabel>IA & Agentes</SectionLabel>
                     <div className="space-y-0.5 mt-1">
                         {aiNav.map((item) => (
@@ -1225,6 +1327,8 @@ export default function Sidebar() {
     if (isAdvisorRoute(pathname)) return <div className="flex flex-col h-full"><AdvisorSidebar pathname={pathname} /></div>;
     if (isVentureRoute(pathname)) return <div className="flex flex-col h-full"><AwqVentureSidebar pathname={pathname} /></div>;
     if (isEnrdRoute(pathname))    return <div className="flex flex-col h-full"><EnrdSidebar pathname={pathname} /></div>;
+    const buSlug = getBuFromCrmPath(pathname);
+    if (buSlug)                   return <div className="flex flex-col h-full"><BuCrmSidebar bu={buSlug} pathname={pathname} /></div>;
     if (isCrmRoute(pathname))     return <div className="flex flex-col h-full"><CrmSidebar pathname={pathname} /></div>;
 
     return <div className="flex flex-col h-full"><AwqSidebar pathname={pathname} /></div>;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
+import { useCrmBuContext } from "@/lib/crm-bu-context";
 
 const ROLE_BU_LOCK: Record<string, string> = {
   enrd: "ENRD",
@@ -8,13 +9,17 @@ const ROLE_BU_LOCK: Record<string, string> = {
 };
 
 /**
- * Returns [lockedBU, sessionLoading].
- * lockedBU is the BU this role is restricted to (e.g. "ENRD"), or null for unrestricted roles.
- * sessionLoading is true while the session is still being fetched — callers should
- * delay data loads until sessionLoading is false to avoid fetching unfiltered data.
+ * Returns { lockedBU, sessionLoading }.
+ * Priority: URL-based BU context (/crm/[bu]/ layout) > session role lock > null.
  */
 export function useLockedBU(): { lockedBU: string | null; sessionLoading: boolean } {
+  const ctxBu = useCrmBuContext();
   const { data: session, status } = useSession();
+
+  if (ctxBu !== null) {
+    return { lockedBU: ctxBu, sessionLoading: false };
+  }
+
   const role = (session?.user as { role?: string })?.role ?? "";
   return {
     lockedBU: ROLE_BU_LOCK[role] ?? null,

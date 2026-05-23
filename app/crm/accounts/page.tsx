@@ -7,6 +7,7 @@ import EmptyState from "@/components/EmptyState";
 import { Building2, Plus, Search, AlertTriangle, CheckCircle2, Trash2 } from "lucide-react";
 import type { CrmAccount } from "@/lib/crm-types";
 import { BU_OPTIONS } from "@/lib/crm-types";
+import { useLockedBU } from "@/lib/use-locked-bu";
 
 const TYPE_LABELS: Record<string, string> = {
   prospect:        "Prospect",
@@ -33,12 +34,15 @@ function HealthBadge({ score }: { score: number }) {
 }
 
 export default function AccountsPage() {
+  const { lockedBU } = useLockedBU();
   const [allAccounts, setAllAccounts] = useState<CrmAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("Todos");
-  const [filterBu, setFilterBu] = useState("Todos");
+  const [filterBu, setFilterBu] = useState(lockedBU ?? "Todos");
   const [filterOwner, setFilterOwner] = useState("Todos");
+
+  useEffect(() => { if (lockedBU) setFilterBu(lockedBU); }, [lockedBU]);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -116,14 +120,18 @@ export default function AccountsPage() {
               </button>
             ))}
           </div>
-          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
-            {["Todos", ...BU_OPTIONS].map(b => (
-              <button key={b} onClick={() => setFilterBu(b)}
-                className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${filterBu === b ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"}`}>
-                {b}
-              </button>
-            ))}
-          </div>
+          {lockedBU ? (
+            <span className="px-3 py-1.5 bg-orange-50 border border-orange-200 rounded-lg text-xs font-semibold text-orange-700">{lockedBU}</span>
+          ) : (
+            <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+              {["Todos", ...BU_OPTIONS].map(b => (
+                <button key={b} onClick={() => setFilterBu(b)}
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${filterBu === b ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"}`}>
+                  {b}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
             {["Todos", "Miguel", "Danilo"].map(o => (
               <button key={o} onClick={() => setFilterOwner(o)}
