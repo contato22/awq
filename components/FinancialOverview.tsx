@@ -39,6 +39,11 @@ interface FlowResult {
   saldoFinal: number; hasData: boolean;
 }
 
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+// Must mirror HOLDING_OPERATIONAL_ENTITIES in lib/dre-query.ts — ENERDY is excluded
+const OPERATIONAL_ENTITIES = new Set(["AWQ_Holding", "JACQES", "Caza_Vision"]);
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function fmtBRL(v: number) {
@@ -84,6 +89,8 @@ function buildFlowRange(txns: BankTransaction[], range: DateRange): FlowResult {
 
   let totCD = 0, totCI = 0;
   for (const t of txns) {
+    // Same scope as DRE/DFC: only operational Holding entities, no ENERDY
+    if (!OPERATIONAL_ENTITIES.has(t.entity)) continue;
     // Same exclusion rule as DRE/DFC — skip intercompany/investment/card-reserve
     if (t.excludedFromConsolidated) continue;
     if (t.transactionDate < from || t.transactionDate > to) continue;
@@ -257,15 +264,16 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
 
   // AR / AP
   const recebimentosHoje = transactions
-    .filter((t) => !t.excludedFromConsolidated && t.transactionDate === todayStr && t.direction === "credit" && t.reconciliationStatus !== "descartado")
+    .filter((t) => OPERATIONAL_ENTITIES.has(t.entity) && !t.excludedFromConsolidated && t.transactionDate === todayStr && t.direction === "credit" && t.reconciliationStatus !== "descartado")
     .reduce((s, t) => s + t.amount, 0);
   const pagamentosHoje = transactions
-    .filter((t) => !t.excludedFromConsolidated && t.transactionDate === todayStr && t.direction === "debit" && t.reconciliationStatus !== "descartado")
+    .filter((t) => OPERATIONAL_ENTITIES.has(t.entity) && !t.excludedFromConsolidated && t.transactionDate === todayStr && t.direction === "debit" && t.reconciliationStatus !== "descartado")
     .reduce((s, t) => s + t.amount, 0);
   const restanteMesAR      = arPending.reduce((s, i) => s + i.net_amount, 0);
   const overdueAR          = arPending.filter((i) => i.due_date < todayStr).reduce((s, i) => s + i.net_amount, 0);
   const pendingDebitsMonth = transactions
     .filter((t) => {
+      if (!OPERATIONAL_ENTITIES.has(t.entity)) return false;
       if (t.excludedFromConsolidated) return false;
       const [y, m] = t.transactionDate.split("-");
       const now = new Date();
