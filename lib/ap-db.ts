@@ -307,8 +307,13 @@ export async function deleteAPEntry(id: string): Promise<void> {
     writeJsonFallback(all);
     return;
   }
-  const { error } = await db.from("ap_entries").delete().eq("id", id);
-  if (error) throw new Error(`AP delete failed: ${error.message}`);
+  try {
+    const { error } = await db.from("ap_entries").delete().eq("id", id);
+    if (error) throw new Error(`AP delete failed: ${error.message}`);
+  } catch {
+    const all = readJsonFallback().filter(e => e.id !== id);
+    writeJsonFallback(all);
+  }
 }
 
 // ── Aggregations ───────────────────────────────────────────────────────────────
