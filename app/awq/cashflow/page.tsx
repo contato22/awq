@@ -116,6 +116,7 @@ function MonthlyBridgeChart({ entries }: { entries: MonthlyEntry[] }) {
   const ENTITY_COLORS: Record<EntityLayer, string> = {
     AWQ_Holding:  "bg-brand-500",
     JACQES:       "bg-brand-500",
+    ENERDY:       "bg-violet-500",
     Caza_Vision:  "bg-emerald-500",
     Intercompany: "bg-gray-300",
     Socio_PF:     "bg-amber-400",
