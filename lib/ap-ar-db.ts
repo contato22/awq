@@ -264,25 +264,55 @@ async function ensureStorageBucket(): Promise<void> {
   _bucketEnsured = true;
 }
 
-async function storeRead<T>(file: string, empty: T): Promise<T> {
-  const client = storageClient();
-  if (!client) return empty;
+// In local dev (no VERCEL env) with no storage client, fall back to JSON files under public/data/
+const LOCAL_DATA_DIR = path.join(process.cwd(), "public", "data");
+
+function localReadJSON<T>(file: string, empty: T): T {
   try {
-    const { data, error } = await client.storage.from(STORAGE_BUCKET).download(file);
-    if (error || !data) return empty;
-    return JSON.parse(await data.text()) as T;
+    const raw = fs.readFileSync(path.join(LOCAL_DATA_DIR, file), "utf-8");
+    return JSON.parse(raw) as T;
   } catch { return empty; }
 }
 
-async function storeWrite<T>(file: string, value: T): Promise<void> {
-  await ensureStorageBucket();
+function localWriteJSON<T>(file: string, value: T): void {
+  fs.mkdirSync(LOCAL_DATA_DIR, { recursive: true });
+  fs.writeFileSync(path.join(LOCAL_DATA_DIR, file), JSON.stringify(value, null, 2), "utf-8");
+}
+
+async function storeRead<T>(file: string, empty: T): Promise<T> {
   const client = storageClient();
-  if (!client) throw new Error("[ap-ar-db] no supabase client available");
+  if (!client) {
+    if (!process.env.VERCEL) return localReadJSON(file, empty);
+    return empty;
+  }
+  try {
+    const { data, error } = await client.storage.from(STORAGE_BUCKET).download(file);
+    if (error || !data) {
+      if (!process.env.VERCEL) return localReadJSON(file, empty);
+      return empty;
+    }
+    return JSON.parse(await data.text()) as T;
+  } catch {
+    if (!process.env.VERCEL) return localReadJSON(file, empty);
+    return empty;
+  }
+}
+
+async function storeWrite<T>(file: string, value: T): Promise<void> {
+  const client = storageClient();
+  if (!client) {
+    if (!process.env.VERCEL) { localWriteJSON(file, value); return; }
+    throw new Error("[ap-ar-db] no supabase client available");
+  }
+  await ensureStorageBucket();
   const bytes = Buffer.from(JSON.stringify(value));
   const { error } = await client.storage.from(STORAGE_BUCKET).upload(file, bytes, {
     upsert: true, contentType: "application/json",
   });
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (!process.env.VERCEL) { localWriteJSON(file, value); return; }
+    throw new Error(error.message);
+  }
 }
 
 interface APStore { items: APItem[]; last_updated: string }
@@ -614,8 +644,9 @@ export async function deleteAP(id: string): Promise<boolean> {
   const store = await readAPStore();
   const before = store.items.length;
   store.items = store.items.filter((i) => i.id !== id);
+  if (store.items.length === before) return false;
   await writeAPStore(store);
-  return store.items.length < before;
+  return true;
 }
 
 export async function updateAP(
@@ -773,8 +804,9 @@ export async function deleteAR(id: string): Promise<boolean> {
   const store = await readARStore();
   const before = store.items.length;
   store.items = store.items.filter((i) => i.id !== id);
+  if (store.items.length === before) return false;
   await writeARStore(store);
-  return store.items.length < before;
+  return true;
 }
 
 export async function updateAR(
