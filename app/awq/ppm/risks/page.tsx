@@ -251,7 +251,7 @@ export default function RisksPage() {
           </div>
           <div className="flex gap-3 flex-wrap">
             {[{s:1,l:"Baixo (1-2)"},{s:4,l:"Médio (3-5)"},{s:6,l:"Alto (6-9)"}].map(({s,l}) => (
-              <span key={s} className={`text-[10px] font-bold px-2 py-1 rounded border ${SCORE_COLOR(s)}`}>{l}</span>
+              <span key={s} className={`text-xs font-bold px-2 py-1 rounded border ${SCORE_COLOR(s)}`}>{l}</span>
             ))}
           </div>
         </div>
@@ -262,7 +262,7 @@ export default function RisksPage() {
             <thead className="bg-gray-50">
               <tr>
                 {["Score","Risco","Projeto","Impacto","Prob.","Mitigação","Status","Data",""].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-[10px] font-semibold text-gray-500 uppercase whitespace-nowrap">{h}</th>
+                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase whitespace-nowrap tracking-wide">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -294,7 +294,7 @@ export default function RisksPage() {
                     <div className="text-xs text-gray-600 line-clamp-2">{risk.mitigation_plan ?? "—"}</div>
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${STATUS_BADGE[risk.status as RiskStatus]}`}>
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_BADGE[risk.status as RiskStatus]}`}>
                       {STATUS_LABEL[risk.status as RiskStatus]}
                     </span>
                   </td>
@@ -303,7 +303,7 @@ export default function RisksPage() {
                   </td>
                   <td className="px-4 py-3">
                     {risk.project_id && (
-                      <Link href={`/awq/ppm/${risk.project_id}#risks`} className="text-[10px] text-gray-400 hover:text-brand-600">Ver →</Link>
+                      <Link href={`/awq/ppm/${risk.project_id}#risks`} className="text-xs text-gray-400 hover:text-brand-600">Ver →</Link>
                     )}
                   </td>
                 </tr>

@@ -155,7 +155,7 @@ export default function PortfolioDashboardPage() {
                 </div>
                 <div className="min-w-0">
                   <div className="text-lg font-bold text-gray-900 leading-none truncate">{card.value}</div>
-                  <div className="text-[10px] text-gray-500 mt-1 leading-tight">{card.label}</div>
+                  <div className="text-xs text-gray-500 mt-1 leading-tight">{card.label}</div>
                 </div>
               </div>
             );
@@ -202,15 +202,15 @@ export default function PortfolioDashboardPage() {
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50 text-gray-500">
-                    <th className="text-left  py-3 px-4 font-semibold">Empresa</th>
-                    <th className="text-right py-3 px-4 font-semibold">% AWQ</th>
-                    <th className="text-right py-3 px-4 font-semibold">Val. Entrada</th>
-                    <th className="text-right py-3 px-4 font-semibold">Val. Atual</th>
-                    <th className="text-right py-3 px-4 font-semibold">Múltiplo</th>
-                    <th className="text-right py-3 px-4 font-semibold">MRR</th>
-                    <th className="text-right py-3 px-4 font-semibold">Runway</th>
-                    <th className="text-right py-3 px-4 font-semibold">Mídia %</th>
-                    <th className="text-left  py-3 px-4 font-semibold">Ações</th>
+                    <th className="text-left  py-3 px-4 font-semibold uppercase tracking-wide">Empresa</th>
+                    <th className="text-right py-3 px-4 font-semibold uppercase tracking-wide">% AWQ</th>
+                    <th className="text-right py-3 px-4 font-semibold uppercase tracking-wide">Val. Entrada</th>
+                    <th className="text-right py-3 px-4 font-semibold uppercase tracking-wide">Val. Atual</th>
+                    <th className="text-right py-3 px-4 font-semibold uppercase tracking-wide">Múltiplo</th>
+                    <th className="text-right py-3 px-4 font-semibold uppercase tracking-wide">MRR</th>
+                    <th className="text-right py-3 px-4 font-semibold uppercase tracking-wide">Runway</th>
+                    <th className="text-right py-3 px-4 font-semibold uppercase tracking-wide">Mídia %</th>
+                    <th className="text-left  py-3 px-4 font-semibold uppercase tracking-wide">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -242,7 +242,7 @@ export default function PortfolioDashboardPage() {
                           <td className="py-3 px-4">
                             <div className="font-semibold text-gray-900">{row.company_name ?? row.legal_name ?? "—"}</div>
                             {row.portco_code && (
-                              <div className="text-[10px] text-gray-400">{row.portco_code}</div>
+                              <div className="text-xs text-gray-400">{row.portco_code}</div>
                             )}
                           </td>
                           <td className="py-3 px-4 text-right text-gray-600 font-medium">
@@ -272,7 +272,7 @@ export default function PortfolioDashboardPage() {
                                     style={{ width: `${Math.min(mediaPct, 100)}%` }}
                                   />
                                 </div>
-                                <span className="text-cyan-600 text-[10px] font-bold">
+                                <span className="text-cyan-600 text-xs font-bold">
                                   {fmtPct(mediaPct)}
                                 </span>
                               </div>
@@ -283,7 +283,7 @@ export default function PortfolioDashboardPage() {
                           <td className="py-3 px-4">
                             <Link
                               href={`/awq/portfolio/${row.portco_id}`}
-                              className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-500 hover:text-blue-700 transition-colors"
+                              className="inline-flex items-center gap-1 text-xs font-semibold text-blue-500 hover:text-blue-700 transition-colors"
                             >
                               Detalhes <ChevronRight size={10} />
                             </Link>

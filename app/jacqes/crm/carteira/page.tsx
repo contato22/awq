@@ -127,8 +127,8 @@ export default function CarteiraActivaPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className={`text-xl font-bold ${card.color}`}>{card.value}</div>
-                  <div className="text-[10px] font-medium text-gray-400 mt-0.5 leading-tight">{card.label}</div>
-                  <div className="text-[10px] text-gray-300 mt-0.5">{card.sub}</div>
+                  <div className="text-xs font-medium text-gray-400 mt-0.5 leading-tight">{card.label}</div>
+                  <div className="text-xs text-gray-300 mt-0.5">{card.sub}</div>
                 </div>
               </div>
             );
@@ -171,21 +171,21 @@ export default function CarteiraActivaPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-semibold text-gray-900 text-sm">{c.nome}</span>
-                          <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${STATUS_BADGE[c.status_conta] ?? "bg-gray-100 text-gray-500 border-gray-200"}`}>
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${STATUS_BADGE[c.status_conta] ?? "bg-gray-100 text-gray-500 border-gray-200"}`}>
                             {c.status_conta}
                           </span>
                         </div>
-                        <div className="text-[11px] text-gray-400 mt-0.5">{c.produto_ativo}</div>
+                        <div className="text-xs text-gray-400 mt-0.5">{c.produto_ativo}</div>
                       </div>
                       <div className="text-right shrink-0">
                         <div className="text-xl font-bold text-gray-900">{fmtCurrency(c.ticket_mensal)}</div>
-                        <div className="text-[10px] text-gray-400">/ mês</div>
+                        <div className="text-xs text-gray-400">/ mês</div>
                       </div>
                     </div>
 
                     {/* Health score bar */}
                     <div>
-                      <div className="flex items-center justify-between text-[10px] text-gray-400 mb-1">
+                      <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
                         <span>Health Score</span>
                         <span className="font-semibold text-gray-600">{c.health_score}</span>
                       </div>
@@ -211,7 +211,7 @@ export default function CarteiraActivaPage() {
                     </div>
 
                     {/* Última interação */}
-                    <div className="text-[11px] text-gray-400">
+                    <div className="text-xs text-gray-400">
                       Última interação: <span className="text-gray-600 font-medium">0 dias atrás</span>
                     </div>
 
@@ -247,8 +247,8 @@ export default function CarteiraActivaPage() {
               ].map(row => (
                 <div key={row.label} className={`rounded-xl ${row.bg} px-4 py-3 text-center`}>
                   <div className={`text-xl font-bold ${row.text}`}>{fmtCurrency(row.value)}</div>
-                  <div className="text-[11px] text-gray-500 mt-0.5">{row.label}</div>
-                  <div className="text-[10px] text-gray-400">{row.count} cliente{row.count !== 1 ? "s" : ""}</div>
+                  <div className="text-xs text-gray-500 mt-0.5">{row.label}</div>
+                  <div className="text-xs text-gray-400">{row.count} cliente{row.count !== 1 ? "s" : ""}</div>
                 </div>
               ))}
             </div>
@@ -269,7 +269,7 @@ export default function CarteiraActivaPage() {
                 { label: "Em Atenção", color: "bg-amber-400"   },
                 { label: "Em Risco",   color: "bg-red-500"     },
               ].map(l => (
-                <div key={l.label} className="flex items-center gap-1.5 text-[11px] text-gray-500">
+                <div key={l.label} className="flex items-center gap-1.5 text-xs text-gray-500">
                   <span className={`w-2.5 h-2.5 rounded-full ${l.color}`} />
                   {l.label}
                 </div>

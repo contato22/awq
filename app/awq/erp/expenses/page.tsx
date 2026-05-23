@@ -132,7 +132,7 @@ export default function ExpensesPage() {
               <thead className="bg-gray-50">
                 <tr>
                   {["Data", "Colaborador", "Categoria", "Descrição", "Valor", "Status"].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-[10px] font-semibold text-gray-500 uppercase whitespace-nowrap">{h}</th>
+                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase whitespace-nowrap tracking-wide">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -157,12 +157,12 @@ export default function ExpensesPage() {
                       <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">{new Date(e.expense_date).toLocaleDateString("pt-BR")}</td>
                       <td className="px-4 py-3 text-sm text-gray-900">{e.submitter_name}</td>
                       <td className="px-4 py-3">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${CATEGORIA_BADGE[e.category] ?? "bg-gray-100 text-gray-600"}`}>{e.category}</span>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${CATEGORIA_BADGE[e.category] ?? "bg-gray-100 text-gray-600"}`}>{e.category}</span>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-700 max-w-xs truncate">{e.title}</td>
                       <td className="px-4 py-3 text-sm text-gray-900 tabular-nums font-medium">{fmt(Number(e.amount))}</td>
                       <td className="px-4 py-3">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${STATUS_BADGE[e.status] ?? "bg-gray-100 text-gray-500"}`}>{e.status}</span>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${STATUS_BADGE[e.status] ?? "bg-gray-100 text-gray-500"}`}>{e.status}</span>
                       </td>
                     </tr>
                   ))

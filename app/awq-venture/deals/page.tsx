@@ -114,7 +114,7 @@ export default function DealsIndexPage() {
               </div>
               <div>
                 <div className="text-lg font-bold text-gray-900">{s.value}</div>
-                <div className="text-[11px] text-gray-500">{s.label}</div>
+                <div className="text-xs text-gray-500">{s.label}</div>
               </div>
             </div>
           );
@@ -124,7 +124,7 @@ export default function DealsIndexPage() {
       {/* ── Deal Table ───────────────────────────────────────────────────── */}
       <div className="card overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-gray-900">Todas as Propostas</h2>
+          <h2 className="text-base font-semibold text-gray-900">Todas as Propostas</h2>
           <div className="flex items-center gap-3">
             <span className="text-xs text-gray-400 hidden sm:block">Clique em uma linha para abrir o workspace</span>
             <Link
@@ -139,15 +139,15 @@ export default function DealsIndexPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/60">
-                <th className="text-left py-2.5 px-4 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Empresa</th>
-                <th className="text-left py-2.5 px-4 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Setor</th>
-                <th className="text-left py-2.5 px-4 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Stage</th>
-                <th className="text-right py-2.5 px-4 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Ticket</th>
-                <th className="text-right py-2.5 px-4 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Score</th>
-                <th className="text-left py-2.5 px-4 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Risco</th>
-                <th className="text-left py-2.5 px-4 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Prioridade</th>
-                <th className="text-left py-2.5 px-4 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Status Envio</th>
-                <th className="text-left py-2.5 px-4 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Responsável</th>
+                <th className="text-left py-2.5 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Empresa</th>
+                <th className="text-left py-2.5 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Setor</th>
+                <th className="text-left py-2.5 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Stage</th>
+                <th className="text-right py-2.5 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Ticket</th>
+                <th className="text-right py-2.5 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Score</th>
+                <th className="text-left py-2.5 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Risco</th>
+                <th className="text-left py-2.5 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Prioridade</th>
+                <th className="text-left py-2.5 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status Envio</th>
+                <th className="text-left py-2.5 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Responsável</th>
                 <th className="py-2.5 px-4 w-8"></th>
               </tr>
             </thead>
@@ -162,11 +162,11 @@ export default function DealsIndexPage() {
                   >
                     <td className="py-3 px-4">
                       <div className="font-semibold text-gray-900 text-sm">{d.companyName}</div>
-                      <div className="text-[11px] text-gray-400 mt-0.5">{d.id} · {d.operationType}</div>
+                      <div className="text-xs text-gray-400 mt-0.5">{d.id} · {d.operationType}</div>
                     </td>
                     <td className="py-3 px-4 text-sm text-gray-500">{d.identification.sector}</td>
                     <td className="py-3 px-4">
-                      <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-1 rounded-full ${stageColor[d.stage] ?? "text-gray-500 bg-gray-100"}`}>
+                      <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-full ${stageColor[d.stage] ?? "text-gray-500 bg-gray-100"}`}>
                         <StageIcon size={10} />
                         {d.stage}
                       </span>
@@ -180,7 +180,7 @@ export default function DealsIndexPage() {
                       </span>
                     </td>
                     <td className="py-3 px-4">
-                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${riskColor[d.riskLevel] ?? "text-gray-500"}`}>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${riskColor[d.riskLevel] ?? "text-gray-500"}`}>
                         {d.riskLevel}
                       </span>
                     </td>
@@ -212,11 +212,11 @@ export default function DealsIndexPage() {
                         <div className="font-semibold text-gray-900 text-sm">{d.companyName || "Sem nome"}</div>
                         <span className="text-[9px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-full uppercase tracking-wide">Novo</span>
                       </div>
-                      <div className="text-[11px] text-gray-400 mt-0.5">{d.id} · {d.dealType}</div>
+                      <div className="text-xs text-gray-400 mt-0.5">{d.id} · {d.dealType}</div>
                     </td>
                     <td className="py-3 px-4 text-sm text-gray-500">{d.sector || "—"}</td>
                     <td className="py-3 px-4">
-                      <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-1 rounded-full ${stageColor[d.stage] ?? "text-gray-500 bg-gray-100"}`}>
+                      <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-full ${stageColor[d.stage] ?? "text-gray-500 bg-gray-100"}`}>
                         <StageIcon size={10} />
                         {d.stage}
                       </span>
@@ -228,7 +228,7 @@ export default function DealsIndexPage() {
                       <span className="text-sm text-gray-400">—</span>
                     </td>
                     <td className="py-3 px-4">
-                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${riskColor[d.riskLevel] ?? "text-gray-500"}`}>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${riskColor[d.riskLevel] ?? "text-gray-500"}`}>
                         {d.riskLevel}
                       </span>
                     </td>

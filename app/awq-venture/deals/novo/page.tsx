@@ -21,7 +21,7 @@ import type { CustomDeal } from "../custom-deal-utils";
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <div>
-      <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
         {label}{required && <span className="text-red-400 ml-0.5">*</span>}
       </label>
       {children}
@@ -149,7 +149,7 @@ export default function NovoDealPage() {
           </div>
 
           <div className="border-t border-gray-100 pt-4">
-            <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-3">Contato Principal</p>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Contato Principal</p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <Field label="Nome">
                 <input className={inputCls} value={form.contactName} onChange={(e) => set("contactName", e.target.value)} placeholder="Nome do contato" />
@@ -255,7 +255,7 @@ export default function NovoDealPage() {
           <Field label="Notas e contexto adicional">
             <textarea className={inputCls} rows={4} value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="Informações adicionais, contexto do deal, alertas internos, origem do contato…" />
           </Field>
-          <div className="text-[10px] text-gray-400 bg-gray-50 rounded-lg px-3 py-2">
+          <div className="text-xs text-gray-400 bg-gray-50 rounded-lg px-3 py-2">
             Deal salvo no banco de dados (Supabase). Se o banco não estiver disponível, armazenado localmente.
           </div>
         </div>

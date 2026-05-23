@@ -175,7 +175,7 @@ export default async function EpmOverviewPage() {
               ].map((item) => (
                 <div key={item.label} className="bg-gray-50 rounded-xl py-4">
                   <div className={`text-lg font-bold tabular-nums ${item.color}`}>{item.value}</div>
-                  <div className="text-[11px] text-gray-500 mt-1">{item.label}</div>
+                  <div className="text-xs text-gray-500 mt-1">{item.label}</div>
                 </div>
               ))}
             </div>
@@ -213,7 +213,7 @@ export default async function EpmOverviewPage() {
             ].map((item) => (
               <div key={item.label} className="bg-gray-50 rounded-xl p-3 text-center">
                 <div className={`text-sm font-bold tabular-nums ${item.color}`}>{item.value}</div>
-                <div className="text-[10px] text-gray-400 mt-0.5">{item.label}</div>
+                <div className="text-xs text-gray-400 mt-0.5">{item.label}</div>
               </div>
             ))}
           </div>
@@ -258,7 +258,7 @@ export default async function EpmOverviewPage() {
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-gray-400 shrink-0">{e.transaction_date}</span>
                     <span className="text-gray-600 truncate">{e.description}</span>
-                    <span className="text-[10px] text-gray-400 shrink-0">{e.account_code}</span>
+                    <span className="text-xs text-gray-400 shrink-0">{e.account_code}</span>
                   </div>
                   <div className="text-right shrink-0 ml-3">
                     {e.debit_amount  > 0 && <span className="text-red-600 font-semibold tabular-nums">D {fmtBRL(e.debit_amount)}</span>}
@@ -272,7 +272,7 @@ export default async function EpmOverviewPage() {
 
         {/* ── Business Units — EPM shortcuts ──────────────────────────────── */}
         <section>
-          <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-3">
+          <div className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">
             Business Units — Acesso Direto EPM
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -295,7 +295,7 @@ export default async function EpmOverviewPage() {
                   <div className="text-xs font-semibold text-gray-900 group-hover:text-brand-700 transition-colors leading-tight">
                     {bu.label}
                   </div>
-                  <div className="text-[11px] text-gray-400 mt-0.5 truncate">{bu.sub}</div>
+                  <div className="text-xs text-gray-400 mt-0.5 truncate">{bu.sub}</div>
                 </div>
               </Link>
             ))}
@@ -304,7 +304,7 @@ export default async function EpmOverviewPage() {
 
         {/* ── Module Cards grid ────────────────────────────────────────────── */}
         <section>
-          <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-3">
+          <div className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">
             Módulos EPM
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -323,7 +323,7 @@ export default async function EpmOverviewPage() {
                     <div className="text-xs font-semibold text-gray-900 group-hover:text-brand-700 transition-colors leading-tight">
                       {mod.label}
                     </div>
-                    <div className="text-[11px] text-gray-400 mt-0.5 truncate">{mod.sub}</div>
+                    <div className="text-xs text-gray-400 mt-0.5 truncate">{mod.sub}</div>
                   </div>
                 </Link>
               );

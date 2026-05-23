@@ -149,7 +149,7 @@ export default function AnalyticsPage() {
               </div>
               <div>
                 <div className="text-lg font-bold text-gray-900">{k.value}</div>
-                <div className="text-[10px] text-gray-500">{k.label}</div>
+                <div className="text-xs text-gray-500">{k.label}</div>
               </div>
             </div>
           ))}
@@ -176,10 +176,10 @@ export default function AnalyticsPage() {
                 <div key={s.stage} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full" style={{ background: s.color }} />
-                    <span className="text-[11px] text-gray-600">{s.stage}</span>
+                    <span className="text-xs text-gray-600">{s.stage}</span>
                   </div>
                   <div className="text-right">
-                    <div className="text-[11px] font-bold text-gray-900">{formatBRL(s.value)}</div>
+                    <div className="text-xs font-bold text-gray-900">{formatBRL(s.value)}</div>
                     <div className="text-[9px] text-gray-400">{s.count} {s.count === 1 ? "negócio" : "negócios"}</div>
                   </div>
                 </div>
@@ -206,10 +206,10 @@ export default function AnalyticsPage() {
                 <div key={b.bu} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full" style={{ background: b.color }} />
-                    <span className="text-[11px] text-gray-600">{b.bu}</span>
+                    <span className="text-xs text-gray-600">{b.bu}</span>
                   </div>
                   <div className="text-right">
-                    <div className="text-[11px] font-bold text-gray-900">{formatBRL(b.value)}</div>
+                    <div className="text-xs font-bold text-gray-900">{formatBRL(b.value)}</div>
                     <div className="text-[9px] text-gray-400">{b.count} {b.count === 1 ? "negócio" : "negócios"}</div>
                   </div>
                 </div>
@@ -239,7 +239,7 @@ export default function AnalyticsPage() {
                     { label: "Win Rate", value: `${rep.winRate}%` },
                   ].map(m => (
                     <div key={m.label}>
-                      <div className="text-[10px] text-gray-500">{m.label}</div>
+                      <div className="text-xs text-gray-500">{m.label}</div>
                       <div className="text-sm font-bold text-gray-900">{m.value}</div>
                     </div>
                   ))}
@@ -261,7 +261,7 @@ export default function AnalyticsPage() {
             ].map(m => (
               <div key={m.label} className="text-center p-3 bg-gray-50 rounded-xl">
                 <div className={`text-2xl font-bold ${m.color}`}>{m.value}</div>
-                <div className="text-[11px] text-gray-500 mt-0.5">{m.label}</div>
+                <div className="text-xs text-gray-500 mt-0.5">{m.label}</div>
               </div>
             ))}
           </div>
@@ -275,7 +275,7 @@ export default function AnalyticsPage() {
             </div>
             <div>
               <div className="text-sm font-semibold text-gray-900">Matriz RFM</div>
-              <div className="text-[11px] text-gray-500">Segmentação de clientes por Recência, Frequência e Valor</div>
+              <div className="text-xs text-gray-500">Segmentação de clientes por Recência, Frequência e Valor</div>
             </div>
           </div>
           <ArrowRight size={16} className="text-gray-400 group-hover:text-brand-600 transition-colors shrink-0" />

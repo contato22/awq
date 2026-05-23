@@ -110,14 +110,14 @@ export default function AwqVenturePipelinePage() {
                     </div>
                     <span className="text-xs font-semibold text-gray-300">{stage}</span>
                   </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-800 text-gray-400">
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-gray-800 text-gray-400">
                     {stageDeals.length}
                   </span>
                 </div>
 
                 <div className="space-y-2">
                   {stageDeals.length === 0 && (
-                    <div className="text-[10px] text-gray-700 text-center py-4">Nenhum deal</div>
+                    <div className="text-xs text-gray-700 text-center py-4">Nenhum deal</div>
                   )}
                   {stageDeals.map((deal) => (
                     <Link
@@ -128,19 +128,19 @@ export default function AwqVenturePipelinePage() {
                       <div className="flex items-start justify-between gap-2">
                         <div>
                           <div className="text-xs font-semibold text-gray-100 group-hover:text-white transition-colors">{deal.company}</div>
-                          <div className="text-[10px] text-gray-600">{deal.sector}</div>
+                          <div className="text-xs text-gray-600">{deal.sector}</div>
                         </div>
                         <span className={`shrink-0 ${priorityBadge[deal.priority] ?? "badge"} text-[9px]`}>
                           {deal.priority}
                         </span>
                       </div>
-                      <p className="text-[10px] text-gray-500 leading-relaxed">{deal.description}</p>
+                      <p className="text-xs text-gray-500 leading-relaxed">{deal.description}</p>
                       <div className="flex items-center justify-between pt-1 border-t border-gray-800">
-                        <span className="text-[10px] font-bold text-amber-400">{fmtR(deal.ticket)}</span>
-                        <span className="text-[10px] text-gray-600">{deal.eta}</span>
+                        <span className="text-xs font-bold text-amber-400">{fmtR(deal.ticket)}</span>
+                        <span className="text-xs text-gray-600">{deal.eta}</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] text-gray-600">Score: <span className="text-gray-300 font-semibold">{deal.score}</span></span>
+                        <span className="text-xs text-gray-600">Score: <span className="text-gray-300 font-semibold">{deal.score}</span></span>
                         <ArrowRight size={10} className="text-gray-700 group-hover:text-gray-400 transition-colors" />
                       </div>
                     </Link>
@@ -158,14 +158,14 @@ export default function AwqVenturePipelinePage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-800">
-                  <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Empresa</th>
-                  <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Setor</th>
-                  <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Stage</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Ticket</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Score</th>
-                  <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Prioridade</th>
-                  <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Origem</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">ETA</th>
+                  <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Empresa</th>
+                  <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Setor</th>
+                  <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Stage</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Ticket</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Score</th>
+                  <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Prioridade</th>
+                  <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Origem</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">ETA</th>
                   <th className="py-2 px-3 w-8"></th>
                 </tr>
               </thead>
@@ -176,11 +176,11 @@ export default function AwqVenturePipelinePage() {
                     <tr key={d.id} className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors group cursor-pointer" onClick={() => router.push(`/awq-venture/deals/${d.id}`)}>
                       <td className="py-2.5 px-3">
                         <div className="text-xs font-medium text-gray-200">{d.company}</div>
-                        <div className="text-[10px] text-gray-600 mt-0.5 truncate max-w-[180px]">{d.description.slice(0, 50)}…</div>
+                        <div className="text-xs text-gray-600 mt-0.5 truncate max-w-[180px]">{d.description.slice(0, 50)}…</div>
                       </td>
                       <td className="py-2.5 px-3 text-xs text-gray-500">{d.sector}</td>
                       <td className="py-2.5 px-3">
-                        <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold">
+                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold">
                           <StageIcon size={10} className={color} />
                           <span className="text-gray-300">{d.stage}</span>
                         </span>

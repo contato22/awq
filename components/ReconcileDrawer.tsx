@@ -356,7 +356,7 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
           {tx.counterpartyName && (
             <span className="text-gray-600 font-medium">{tx.counterpartyName}</span>
           )}
-          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${isCredit ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-orange-50 text-orange-700 border border-orange-200"}`}>
+          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${isCredit ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-orange-50 text-orange-700 border border-orange-200"}`}>
             {catLabel}
           </span>
         </div>
@@ -364,7 +364,7 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
         {/* Category + counterparty editable fields */}
         <div className="px-5 py-3 border-b border-gray-100 flex gap-3 flex-wrap">
           <div className="flex-1 min-w-[180px]">
-            <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">Categoria</label>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Categoria</label>
             <div className="relative">
               <select
                 value={category}
@@ -379,7 +379,7 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
             </div>
           </div>
           <div className="flex-1 min-w-[180px]">
-            <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">Contraparte</label>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Contraparte</label>
             <input
               type="text"
               value={counterparty}
@@ -505,7 +505,7 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
                   <ArrowUpRight size={16} className="flex-shrink-0" />
                   <div className="text-left leading-tight">
                     <div>A Pagar (AP)</div>
-                    <div className={`text-[10px] font-normal ${createType === "AP" ? "text-orange-100" : "text-gray-400"}`}>Despesa / fornecedor</div>
+                    <div className={`text-xs font-normal ${createType === "AP" ? "text-orange-100" : "text-gray-400"}`}>Despesa / fornecedor</div>
                   </div>
                 </button>
                 <button
@@ -519,7 +519,7 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
                   <ArrowDownRight size={16} className="flex-shrink-0" />
                   <div className="text-left leading-tight">
                     <div>A Receber (AR)</div>
-                    <div className={`text-[10px] font-normal ${createType === "AR" ? "text-emerald-100" : "text-gray-400"}`}>Receita / cliente</div>
+                    <div className={`text-xs font-normal ${createType === "AR" ? "text-emerald-100" : "text-gray-400"}`}>Receita / cliente</div>
                   </div>
                 </button>
               </div>
@@ -529,7 +529,7 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
 
                 {/* Entity section */}
                 <div className="p-3 space-y-2 bg-white">
-                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
                     {createType === "AP" ? "Fornecedor" : "Cliente"}
                   </p>
                   <input
@@ -540,7 +540,7 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
                     }`}
                   />
                   {!createParty.trim() && (
-                    <p className="text-[10px] text-orange-500">Campo obrigatório</p>
+                    <p className="text-xs text-orange-500">Campo obrigatório</p>
                   )}
                   <input
                     type="text" value={createDesc} onChange={(e) => setCreateDesc(e.target.value)}
@@ -551,17 +551,17 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
 
                 {/* Amount + date section */}
                 <div className="p-3 bg-white">
-                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Valor e vencimento</p>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Valor e vencimento</p>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-[10px] text-gray-400 block mb-1">Vencimento</label>
+                      <label className="text-xs text-gray-400 block mb-1">Vencimento</label>
                       <input
                         type="date" value={createDue} onChange={(e) => setCreateDue(e.target.value)}
                         className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-400"
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] text-gray-400 block mb-1">Valor (R$)</label>
+                      <label className="text-xs text-gray-400 block mb-1">Valor (R$)</label>
                       <div className="relative">
                         <input
                           type="text" value={createAmt} onChange={(e) => setCreateAmt(e.target.value)}
@@ -578,7 +578,7 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
 
                 {/* Classification section */}
                 <div className="p-3 space-y-2 bg-white">
-                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Classificação</p>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Classificação</p>
                   <div className="relative">
                     <select
                       value={createCat}
@@ -658,7 +658,7 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
               <button
                 onClick={() => void handleVincularEConciliar()}
                 disabled={saving}
-                className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 text-sm bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-semibold transition-colors disabled:opacity-50"
               >
                 {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
                 Vincular e Conciliar
@@ -706,13 +706,13 @@ function CandidateCard({
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold border ${isAP ? "bg-red-50 text-red-600 border-red-200" : "bg-emerald-50 text-emerald-600 border-emerald-200"}`}>
+              <span className={`text-xs px-1.5 py-0.5 rounded font-semibold border ${isAP ? "bg-red-50 text-red-600 border-red-200" : "bg-emerald-50 text-emerald-600 border-emerald-200"}`}>
                 {isAP ? "AP" : "AR"}
               </span>
               <span className="text-sm font-semibold text-gray-900 truncate">{name}</span>
             </div>
             <p className="text-xs text-gray-500 truncate mt-0.5">{item.description}</p>
-            <p className="text-[11px] text-gray-400 mt-0.5">
+            <p className="text-xs text-gray-400 mt-0.5">
               Venc. {fmtDate(dueDate)} · {Math.round(daysDiff)} dias de diferença
             </p>
           </div>
@@ -720,9 +720,9 @@ function CandidateCard({
         <div className="text-right shrink-0">
           <p className="text-sm font-bold text-gray-800">{fmtBRL(netAmt)}</p>
           {amtDiff > 0 && (
-            <p className="text-[10px] text-amber-600">Δ {fmtBRL(amtDiff)}</p>
+            <p className="text-xs text-amber-600">Δ {fmtBRL(amtDiff)}</p>
           )}
-          <span className={`text-[10px] px-1.5 py-0.5 rounded border font-medium mt-1 inline-block ${quality.cls}`}>
+          <span className={`text-xs px-1.5 py-0.5 rounded border font-medium mt-1 inline-block ${quality.cls}`}>
             {quality.label}
           </span>
         </div>

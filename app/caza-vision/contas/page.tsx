@@ -66,10 +66,10 @@ function healthCls(score: number) {
 }
 
 const STATUS_BADGE: Record<string, string> = {
-  "Ativo":       "bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-semibold px-2 py-0.5 rounded-full",
-  "Em Proposta": "bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-semibold px-2 py-0.5 rounded-full",
-  "Inativo":     "bg-gray-100 text-gray-500 border border-gray-200 text-[10px] font-semibold px-2 py-0.5 rounded-full",
-  "Perdido":     "bg-red-50 text-red-600 border border-red-200 text-[10px] font-semibold px-2 py-0.5 rounded-full",
+  "Ativo":       "bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-semibold px-2 py-0.5 rounded-full",
+  "Em Proposta": "bg-amber-50 text-amber-700 border border-amber-200 text-xs font-semibold px-2 py-0.5 rounded-full",
+  "Inativo":     "bg-gray-100 text-gray-500 border border-gray-200 text-xs font-semibold px-2 py-0.5 rounded-full",
+  "Perdido":     "bg-red-50 text-red-600 border border-red-200 text-xs font-semibold px-2 py-0.5 rounded-full",
 };
 
 const TYPE_CLS: Record<string, string> = {
@@ -119,7 +119,7 @@ function KpiCard({ icon: Icon, color, value, label }: {
       <Icon size={16} className={`shrink-0 ${color}`} />
       <div className="min-w-0">
         <div className="text-xl font-bold text-gray-900 leading-tight">{value}</div>
-        <div className="text-[11px] text-gray-400 mt-0.5 truncate">{label}</div>
+        <div className="text-xs text-gray-400 mt-0.5 truncate">{label}</div>
       </div>
     </div>
   );
@@ -128,7 +128,7 @@ function KpiCard({ icon: Icon, color, value, label }: {
 function ProfileRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-start gap-2 py-1.5 border-b border-gray-50 last:border-0">
-      <span className="text-[10px] text-gray-400 font-medium w-28 shrink-0 pt-0.5">{label}</span>
+      <span className="text-xs text-gray-400 font-medium w-28 shrink-0 pt-0.5">{label}</span>
       <span className="text-xs text-gray-800 font-medium flex-1 break-all">{value || "—"}</span>
     </div>
   );
@@ -265,14 +265,14 @@ export default function ContasPage() {
                 <table className="w-full">
                   <thead>
                     <tr className="bg-gray-50/60 border-b border-gray-100">
-                      <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Cliente</th>
-                      {!sel && <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Segmento</th>}
-                      {!sel && <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Modelo</th>}
-                      <th className="text-right px-4 py-2.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wide">LTV</th>
-                      <th className="text-center px-4 py-2.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Proj.</th>
-                      {!sel && <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Último</th>}
-                      <th className="text-center px-4 py-2.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Health</th>
-                      <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Status</th>
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Cliente</th>
+                      {!sel && <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Segmento</th>}
+                      {!sel && <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Modelo</th>}
+                      <th className="text-right px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">LTV</th>
+                      <th className="text-center px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Proj.</th>
+                      {!sel && <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Último</th>}
+                      <th className="text-center px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Health</th>
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -288,7 +288,7 @@ export default function ContasPage() {
                         >
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2.5">
-                              <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px] font-bold shrink-0">
+                              <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold shrink-0">
                                 {initials(c.name)}
                               </div>
                               <div className="min-w-0">
@@ -314,7 +314,7 @@ export default function ContasPage() {
                             </td>
                           )}
                           <td className="px-4 py-3 text-center">
-                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${healthCls(health)}`}>
+                            <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full border ${healthCls(health)}`}>
                               {health}
                             </span>
                           </td>
@@ -379,10 +379,10 @@ export default function ContasPage() {
                 {/* Health bar */}
                 <div className="mt-3 pt-3 border-t border-gray-100">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-[10px] text-gray-400 font-medium flex items-center gap-1">
+                    <span className="text-xs text-gray-400 font-medium flex items-center gap-1">
                       <HeartPulse size={10} /> Health Score
                     </span>
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${healthCls(sel.health_score ?? 80)}`}>
+                    <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full border ${healthCls(sel.health_score ?? 80)}`}>
                       {sel.health_score ?? 80}
                     </span>
                   </div>
@@ -403,7 +403,7 @@ export default function ContasPage() {
                     <span className="text-xs font-semibold text-gray-700">Perfil da Conta</span>
                   </div>
                   {!editing && (
-                    <button onClick={startEdit} className="text-[10px] text-emerald-600 hover:text-emerald-700 font-semibold">
+                    <button onClick={startEdit} className="text-xs text-emerald-600 hover:text-emerald-700 font-semibold">
                       Editar
                     </button>
                   )}
@@ -421,7 +421,7 @@ export default function ContasPage() {
                       { k: "owner",         l: "Account Manager", t: "text"   },
                     ] as const).map(f => (
                       <div key={f.k}>
-                        <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-0.5">{f.l}</label>
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-0.5">{f.l}</label>
                         <input
                           type={f.t}
                           value={form[f.k]}
@@ -431,7 +431,7 @@ export default function ContasPage() {
                       </div>
                     ))}
                     <div>
-                      <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-0.5">Modelo Contrato</label>
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-0.5">Modelo Contrato</label>
                       <select
                         value={form.modelo_contrato}
                         onChange={e => setForm(p => ({ ...p, modelo_contrato: e.target.value }))}
@@ -441,7 +441,7 @@ export default function ContasPage() {
                       </select>
                     </div>
                     <div>
-                      <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-0.5">
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-0.5">
                         Health Score — {form.health_score}
                       </label>
                       <input
@@ -452,7 +452,7 @@ export default function ContasPage() {
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-0.5">Observações</label>
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-0.5">Observações</label>
                       <textarea
                         rows={2}
                         value={form.observacoes}
@@ -482,7 +482,7 @@ export default function ContasPage() {
                     <ProfileRow label="Cliente desde"  value={fmtDate(sel.since)} />
                     {(sel.observacoes ?? "") && (
                       <div className="mt-2 pt-2 border-t border-gray-100">
-                        <div className="text-[10px] text-gray-400 font-medium mb-1">Observações</div>
+                        <div className="text-xs text-gray-400 font-medium mb-1">Observações</div>
                         <div className="text-xs text-gray-600 leading-relaxed">{sel.observacoes}</div>
                       </div>
                     )}
@@ -496,7 +496,7 @@ export default function ContasPage() {
                   <Film size={13} />
                   <span className="text-xs font-semibold text-gray-700">Projetos</span>
                   <span className="badge badge-blue ml-auto">{selSt.projs.length}</span>
-                  <Link href="/caza-vision/imoveis" className="text-[10px] text-emerald-600 hover:text-emerald-700 flex items-center gap-0.5 font-semibold ml-1">
+                  <Link href="/caza-vision/imoveis" className="text-xs text-emerald-600 hover:text-emerald-700 flex items-center gap-0.5 font-semibold ml-1">
                     Ver todos <ExternalLink size={10} />
                   </Link>
                 </div>
@@ -553,7 +553,7 @@ export default function ContasPage() {
                   <TrendingUp size={13} />
                   <span className="text-xs font-semibold text-gray-700">CRM — Oportunidades</span>
                   <span className="badge badge-blue ml-auto">{selSt.clientOpps.length}</span>
-                  <Link href="/caza-vision/crm/oportunidades" className="text-[10px] text-emerald-600 hover:text-emerald-700 flex items-center gap-0.5 font-semibold ml-1">
+                  <Link href="/caza-vision/crm/oportunidades" className="text-xs text-emerald-600 hover:text-emerald-700 flex items-center gap-0.5 font-semibold ml-1">
                     Abrir CRM <ExternalLink size={10} />
                   </Link>
                 </div>

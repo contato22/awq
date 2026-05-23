@@ -72,7 +72,7 @@ function SetupScreen({ onSave }: { onSave: (key: string) => void }) {
       </div>
       <div>
         <div className="text-sm font-semibold text-gray-400">Configurar Open Claw</div>
-        <div className="text-[11px] text-gray-500 mt-1 leading-relaxed">
+        <div className="text-xs text-gray-500 mt-1 leading-relaxed">
           Insira sua chave da API Anthropic para ativar o agente. A chave é salva localmente no seu navegador.
         </div>
       </div>
@@ -107,7 +107,7 @@ function SetupScreen({ onSave }: { onSave: (key: string) => void }) {
         href="https://console.anthropic.com"
         target="_blank"
         rel="noopener noreferrer"
-        className="flex items-center gap-1 text-[11px] text-brand-600 hover:text-brand-500 transition-colors"
+        className="flex items-center gap-1 text-xs text-brand-600 hover:text-brand-500 transition-colors"
       >
         Obter chave no console.anthropic.com
         <ExternalLink size={10} />
@@ -251,7 +251,7 @@ export default function OpenClawWidget() {
             </div>
             <div className="flex-1">
               <div className="text-xs font-semibold text-gray-400">OpenClaw</div>
-              <div className="text-[10px] text-gray-400 mt-0.5">
+              <div className="text-xs text-gray-400 mt-0.5">
                 {apiKey ? buLabel : "Configuração necessária"}
               </div>
             </div>
@@ -294,8 +294,8 @@ export default function OpenClawWidget() {
                         <Sparkles size={11} className="text-gray-900" />
                       </div>
                       <div>
-                        <p className="text-[11px] font-medium text-gray-400">OpenClaw</p>
-                        <p className="text-[10px] text-gray-400">Contexto: {buLabel}</p>
+                        <p className="text-xs font-medium text-gray-400">OpenClaw</p>
+                        <p className="text-xs text-gray-400">Contexto: {buLabel}</p>
                       </div>
                     </div>
                     <div className="space-y-1.5">
@@ -303,7 +303,7 @@ export default function OpenClawWidget() {
                       <button
                         key={p}
                         onClick={() => sendMessage(p)}
-                        className="w-full text-left px-3 py-2 text-[11px] text-gray-400 bg-gray-100/60 hover:bg-gray-100 border border-gray-300/50 hover:border-gray-600 rounded-lg transition-colors"
+                        className="w-full text-left px-3 py-2 text-xs text-gray-400 bg-gray-100/60 hover:bg-gray-100 border border-gray-300/50 hover:border-gray-600 rounded-lg transition-colors"
                       >
                         {p}
                       </button>
@@ -319,7 +319,7 @@ export default function OpenClawWidget() {
                         <Bot size={10} className="text-gray-900" />
                       </div>
                     )}
-                    <div className={`max-w-[85%] rounded-xl px-3 py-2 text-[11px] leading-relaxed whitespace-pre-wrap ${
+                    <div className={`max-w-[85%] rounded-xl px-3 py-2 text-xs leading-relaxed whitespace-pre-wrap ${
                       msg.role === "user"
                         ? "bg-brand-600 text-gray-900 rounded-br-sm"
                         : "bg-gray-100 text-gray-400 rounded-bl-sm border border-gray-300/40"
@@ -339,7 +339,7 @@ export default function OpenClawWidget() {
                 ))}
 
                 {error && (
-                  <div className="flex items-start gap-1.5 px-3 py-2 bg-red-950/40 border border-red-800/50 rounded-lg text-[10px] text-red-600">
+                  <div className="flex items-start gap-1.5 px-3 py-2 bg-red-950/40 border border-red-800/50 rounded-lg text-xs text-red-600">
                     <AlertCircle size={11} className="shrink-0 mt-0.5" />
                     <span>{error}</span>
                   </div>
@@ -366,7 +366,7 @@ export default function OpenClawWidget() {
                     }}
                     placeholder={`Pergunte sobre ${buLabel}...`}
                     rows={1}
-                    className="flex-1 bg-transparent text-[11px] text-gray-400 placeholder:text-gray-400 resize-none focus:outline-none min-h-[20px] max-h-20"
+                    className="flex-1 bg-transparent text-xs text-gray-400 placeholder:text-gray-400 resize-none focus:outline-none min-h-[20px] max-h-20"
                     disabled={loading}
                   />
                   <button

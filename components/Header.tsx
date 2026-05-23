@@ -78,7 +78,7 @@ export default function Header({ title, subtitle }: HeaderProps) {
           </button>
 
           {/* Live chip */}
-          <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-brand-50 border border-brand-100 rounded-lg text-[11px] font-semibold" style={{ color: "#023373" }}>
+          <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-brand-50 border border-brand-100 rounded-lg text-xs font-semibold" style={{ color: "#023373" }}>
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
             Live · {new Date().toLocaleString("pt-BR", { month: "short", year: "numeric" })}
           </div>

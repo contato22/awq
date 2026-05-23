@@ -286,14 +286,14 @@ export default function OpenClaw() {
           </button>
         </div>
         <div className="flex items-center justify-between mt-1.5">
-          <p className="text-[10px] text-gray-400">
+          <p className="text-xs text-gray-400">
             Powered by Claude · JACQES · Mar 2026
           </p>
           <div className="flex items-center gap-3">
             {messages.length > 0 && (
               <button
                 onClick={() => { setMessages([]); setError(null); }}
-                className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-gray-400 transition-colors"
+                className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-400 transition-colors"
                 title="Nova conversa"
               >
                 <RotateCcw size={10} />Nova conversa
@@ -301,7 +301,7 @@ export default function OpenClaw() {
             )}
             <button
               onClick={() => { setApiKey(null); localStorage.removeItem(LS_KEY); setMessages([]); setError(null); }}
-              className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-gray-500 transition-colors"
+              className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-500 transition-colors"
               title="Trocar chave de API"
             >
               <Key size={10} />Trocar chave

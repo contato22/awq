@@ -35,13 +35,13 @@ export default function ContractLifecyclePage() {
             <div key={stage.key} className={`border rounded-xl p-4 text-center ${stage.color}`}>
               <div className="text-xs font-semibold mb-1">{stage.label}</div>
               <div className="text-2xl font-bold">0</div>
-              <div className="text-[10px] opacity-70 mt-0.5">contratos</div>
+              <div className="text-xs opacity-70 mt-0.5">contratos</div>
             </div>
           ))}
         </div>
 
         {/* Arrow flow indicator */}
-        <div className="flex items-center gap-1 text-[10px] text-gray-400 font-semibold overflow-x-auto pb-1">
+        <div className="flex items-center gap-1 text-xs text-gray-400 font-semibold overflow-x-auto pb-1">
           {STAGES.map((stage, i) => (
             <span key={stage.key} className="flex items-center gap-1 shrink-0">
               <span>{stage.label}</span>
@@ -60,7 +60,7 @@ export default function ContractLifecyclePage() {
               <thead className="bg-gray-50">
                 <tr>
                   {["Nº Contrato", "Contraparte", "Objeto", "Estágio Atual", "Valor Total", "Término"].map((h) => (
-                    <th key={h} className="px-4 py-3 text-left text-[10px] font-semibold text-gray-500 uppercase whitespace-nowrap">{h}</th>
+                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase whitespace-nowrap tracking-wide">{h}</th>
                   ))}
                 </tr>
               </thead>

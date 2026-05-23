@@ -94,7 +94,7 @@ function CategoryBreakdown({
         const pct = revenue && revenue > 0 ? (line.amount / revenue) * 100 : 0;
         return (
           <div key={line.label} className="flex items-center justify-between py-1">
-            <span className="text-[11px] text-gray-500">{line.label}</span>
+            <span className="text-xs text-gray-500">{line.label}</span>
             <div className="flex items-center gap-3">
               <div className="w-20 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                 <div
@@ -102,7 +102,7 @@ function CategoryBreakdown({
                   style={{ width: `${Math.min(pct, 100)}%` }}
                 />
               </div>
-              <span className="text-[11px] font-semibold tabular-nums text-gray-600 w-20 text-right">
+              <span className="text-xs font-semibold tabular-nums text-gray-600 w-20 text-right">
                 {fmtBRL(line.amount)}
               </span>
             </div>
@@ -249,7 +249,7 @@ function DreWaterfall({ dre, snapRevenue, snap }: { dre: DreResult; snapRevenue:
       {/* BELOW THE LINE */}
       {dre.hasData && (dre.intercompanyEliminated > 0 || dre.financialApplications > 0) && (
         <div className="mt-4 pt-3 border-t border-gray-100 space-y-1">
-          <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1">
+          <div className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">
             Itens excluídos do P&L
           </div>
           {dre.intercompanyEliminated > 0 && (
@@ -303,11 +303,11 @@ function BudgetComparison({ snap, BUDGET_LINES }: { snap: SnapConsolidated; BUDG
         <table className="w-full text-xs">
           <thead>
             <tr className="border-b border-gray-200 text-left">
-              <th className="py-2 px-2 text-gray-500 font-semibold">Linha</th>
-              <th className="py-2 px-2 text-gray-500 font-semibold text-right">Actual</th>
-              <th className="py-2 px-2 text-gray-500 font-semibold text-right">Budget</th>
-              <th className="py-2 px-2 text-gray-500 font-semibold text-right">Variância</th>
-              <th className="py-2 px-2 text-gray-500 font-semibold text-right">Var %</th>
+              <th className="py-2 px-2 text-gray-500 font-semibold uppercase tracking-wide">Linha</th>
+              <th className="py-2 px-2 text-gray-500 font-semibold text-right uppercase tracking-wide">Actual</th>
+              <th className="py-2 px-2 text-gray-500 font-semibold text-right uppercase tracking-wide">Budget</th>
+              <th className="py-2 px-2 text-gray-500 font-semibold text-right uppercase tracking-wide">Variância</th>
+              <th className="py-2 px-2 text-gray-500 font-semibold text-right uppercase tracking-wide">Var %</th>
             </tr>
           </thead>
           <tbody>

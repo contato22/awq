@@ -77,7 +77,7 @@ function Stat({ label, value, sub, color = "text-gray-900" }: {
     <div>
       <div className={`text-2xl font-bold tabular-nums ${color}`}>{value}</div>
       <div className="text-xs font-medium text-gray-500 mt-0.5">{label}</div>
-      {sub && <div className="text-[10px] text-gray-400 mt-0.5">{sub}</div>}
+      {sub && <div className="text-xs text-gray-400 mt-0.5">{sub}</div>}
     </div>
   );
 }
@@ -131,7 +131,7 @@ export default async function ManagementPage() {
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
           <h1 className="text-2xl font-bold text-gray-900">Gestão da Base Financeira</h1>
-          <span className="text-[10px] font-bold px-2 py-1 rounded bg-gray-100 border border-gray-200 text-gray-500 uppercase tracking-widest">
+          <span className="text-xs font-bold px-2 py-1 rounded bg-gray-100 border border-gray-200 text-gray-500 uppercase tracking-widest">
             Governança
           </span>
         </div>
@@ -158,7 +158,7 @@ export default async function ManagementPage() {
           <div>
             <div className="text-sm font-bold text-amber-800">
               Ambiente: GitHub Pages (exportação estática)
-              <span className="ml-2 text-[10px] font-bold px-2 py-0.5 rounded bg-amber-200 text-amber-800 uppercase tracking-widest">SEM SERVIDOR</span>
+              <span className="ml-2 text-xs font-bold px-2 py-0.5 rounded bg-amber-200 text-amber-800 uppercase tracking-widest">SEM SERVIDOR</span>
             </div>
             <div className="text-xs text-amber-700 mt-1 leading-relaxed">
               Este ambiente não suporta ingestão real de extratos bancários. Não há servidor,
@@ -179,12 +179,12 @@ export default async function ManagementPage() {
           <div className="flex-1 min-w-0">
             <div className="text-sm font-bold text-emerald-800">
               Ambiente: Servidor ativo
-              <span className="ml-2 text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-200 text-emerald-800 uppercase tracking-widest">PIPELINE DISPONÍVEL</span>
+              <span className="ml-2 text-xs font-bold px-2 py-0.5 rounded bg-emerald-200 text-emerald-800 uppercase tracking-widest">PIPELINE DISPONÍVEL</span>
             </div>
             <div className="text-xs text-emerald-700 mt-1">
               API routes disponíveis. Ingestão real operacional. Pipeline pode receber e processar extratos.
             </div>
-            <div className="mt-2 text-[11px] font-mono">
+            <div className="mt-2 text-xs font-mono">
               <span className="text-gray-500">URL operacional: </span>
               {operationalUrl ? (
                 <a href={operationalUrl} target="_blank" rel="noopener noreferrer"
@@ -209,7 +209,7 @@ export default async function ManagementPage() {
             <div className={`text-xs font-bold uppercase tracking-widest mb-1 ${USE_DB ? "text-emerald-700" : "text-amber-700"}`}>
               {USE_DB ? "✓ Banco: Neon Postgres" : "⚠ Banco: JSON filesystem"}
             </div>
-            <div className={`text-[11px] leading-relaxed ${USE_DB ? "text-emerald-600" : "text-amber-600"}`}>
+            <div className={`text-xs leading-relaxed ${USE_DB ? "text-emerald-600" : "text-amber-600"}`}>
               {USE_DB
                 ? "DATABASE_URL configurada — documents e transactions persistidos no Neon. Dados sobrevivem a reinicializações e deployments."
                 : "DATABASE_URL ausente — usando JSON local (public/data/financial/). Dados perdidos entre deployments no Vercel. Correto apenas para desenvolvimento local."}
@@ -219,7 +219,7 @@ export default async function ManagementPage() {
             <div className={`text-xs font-bold uppercase tracking-widest mb-1 ${USE_BLOB ? "text-emerald-700" : "text-amber-700"}`}>
               {USE_BLOB ? "✓ PDF Storage: Vercel Blob" : "⚠ PDF Storage: filesystem local"}
             </div>
-            <div className={`text-[11px] leading-relaxed ${USE_BLOB ? "text-emerald-600" : "text-amber-600"}`}>
+            <div className={`text-xs leading-relaxed ${USE_BLOB ? "text-emerald-600" : "text-amber-600"}`}>
               {USE_BLOB
                 ? "BLOB_READ_WRITE_TOKEN configurada — PDFs armazenados no Vercel Blob. Persistentes e acessíveis entre funções serverless."
                 : "BLOB_READ_WRITE_TOKEN ausente — PDFs escritos em public/data/financial/pdfs/. Efêmero no Vercel serverless. Correto apenas para desenvolvimento local."}
@@ -244,7 +244,7 @@ export default async function ManagementPage() {
                 { key: "NEXTAUTH_URL",           ok: hasAuthUrl, label: "Auth URL",     desc: "URL base para callbacks de autenticação" },
               ].map(({ key, ok, label, desc }) => (
                 <div key={key} className={`rounded-lg border p-3 ${ok ? "bg-white border-emerald-200" : "bg-red-50 border-red-200"}`}>
-                  <div className={`text-[10px] font-bold mb-1 ${ok ? "text-emerald-700" : "text-red-700"}`}>
+                  <div className={`text-xs font-bold mb-1 ${ok ? "text-emerald-700" : "text-red-700"}`}>
                     {ok ? "✓" : "✕"} {label}
                   </div>
                   <div className="text-[9px] font-mono text-gray-500 mb-1 truncate">{key}</div>
@@ -253,7 +253,7 @@ export default async function ManagementPage() {
               ))}
             </div>
             {!infraComplete && (
-              <div className="mt-3 text-[11px] text-red-700">
+              <div className="mt-3 text-xs text-red-700">
                 Configure as variáveis ausentes no Vercel Dashboard → Project → Settings → Environment Variables.
                 Sem elas: PDFs são efêmeros (sem Blob), dados são perdidos no redeploy (sem DB), extração falha (sem API Key).
               </div>
@@ -299,28 +299,28 @@ export default async function ManagementPage() {
                   <span className="text-xs font-bold text-gray-900">{cov.account.bank}</span>
                   <span className="text-xs text-gray-500">·</span>
                   <span className="text-xs text-gray-700">{cov.account.accountName}</span>
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
+                  <span className={`text-xs font-bold px-1.5 py-0.5 rounded border ${
                     entityColor[cov.account.entity] ?? "text-gray-500 bg-gray-100 border-gray-200"
                   }`}>
                     {cov.account.entity.replace("_", " ")}
                   </span>
-                  <span className="text-[10px] text-gray-400 border border-gray-200 rounded px-1.5 py-0.5">
+                  <span className="text-xs text-gray-400 border border-gray-200 rounded px-1.5 py-0.5">
                     {usageLabel[cov.account.usage] ?? cov.account.usage}
                   </span>
                   {cov.account.closedAt && (
-                    <span className="text-[10px] text-red-600 bg-red-50 border border-red-200 rounded px-1.5 py-0.5">
+                    <span className="text-xs text-red-600 bg-red-50 border border-red-200 rounded px-1.5 py-0.5">
                       Encerrada {cov.account.closedAt}
                     </span>
                   )}
                 </div>
-                <div className="text-[10px] text-gray-500 mb-1">{cov.account.notes}</div>
+                <div className="text-xs text-gray-500 mb-1">{cov.account.notes}</div>
                 {covered ? (
-                  <div className="text-[10px] text-emerald-600 font-medium">
+                  <div className="text-xs text-emerald-600 font-medium">
                     ✓ Extrato ingerido · período: {cov.periodStart ?? "?"} → {cov.periodEnd ?? "?"} ·
                     saldo final: {cov.closingBalance != null ? `R$${cov.closingBalance.toLocaleString("pt-BR")}` : "—"}
                   </div>
                 ) : (
-                  <div className="text-[10px] text-amber-700 font-medium">
+                  <div className="text-xs text-amber-700 font-medium">
                     ⚠ Sem extrato ingerido —{" "}
                     <Link href="/awq/conciliacao" className="underline">ingerir agora</Link>
                     {" · "}parser esperado: <span className="font-mono">{cov.account.parserFormat}</span>
@@ -399,7 +399,7 @@ export default async function ManagementPage() {
             </ul>
           )}
           {diag.lastUpdated && (
-            <div className="text-[10px] text-gray-400 mt-2">
+            <div className="text-xs text-gray-400 mt-2">
               Última atualização: {diag.lastUpdated}
             </div>
           )}
@@ -463,31 +463,31 @@ export default async function ManagementPage() {
         {SNAPSHOT_REGISTRY.map((src, i) => (
           <Card key={i}>
             <div className="flex items-start gap-3 flex-wrap">
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded shrink-0 ${STATUS_BADGE[src.status]}`}>
+              <span className={`text-xs font-bold px-2 py-0.5 rounded shrink-0 ${STATUS_BADGE[src.status]}`}>
                 {STATUS_LABEL[src.status]}
               </span>
               <div className="flex-1 min-w-0">
                 <div className="text-xs font-semibold text-gray-700 font-mono mb-1">{src.file}</div>
                 <div className="text-xs text-gray-500 mb-2">{src.scope}</div>
-                <div className="text-[10px] text-gray-400 mb-1">
+                <div className="text-xs text-gray-400 mb-1">
                   <span className="font-semibold text-gray-500">Período:</span> {src.period}
                 </div>
-                <div className="text-[10px] text-gray-400 mb-1">
+                <div className="text-xs text-gray-400 mb-1">
                   <span className="font-semibold text-gray-500">Consumidores:</span>{" "}
                   {src.consumers.join(", ")}
                 </div>
                 {src.migratesTo && (
-                  <div className="text-[10px] text-blue-600 mb-1">
+                  <div className="text-xs text-blue-600 mb-1">
                     <span className="font-semibold">Migra para:</span> {src.migratesTo}
                   </div>
                 )}
                 {src.migrationBlocker && (
-                  <div className="text-[10px] text-amber-600">
+                  <div className="text-xs text-amber-600">
                     <span className="font-semibold">Bloqueio:</span> {src.migrationBlocker}
                   </div>
                 )}
                 {src.notes && (
-                  <div className="text-[10px] text-gray-400 mt-1 italic">{src.notes}</div>
+                  <div className="text-xs text-gray-400 mt-1 italic">{src.notes}</div>
                 )}
               </div>
             </div>
@@ -501,16 +501,16 @@ export default async function ManagementPage() {
       {/* Real-only pages */}
       {realPages.length > 0 && (
         <div className="mb-4">
-          <div className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-2">
+          <div className="text-xs font-bold text-emerald-600 uppercase tracking-widest mb-2">
             Páginas com dados reais (pipeline canônico)
           </div>
           <div className="space-y-2">
             {realPages.map((r) => (
               <div key={r.href} className="flex items-start gap-3 p-3 bg-emerald-50 rounded-lg border border-emerald-100">
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 border border-emerald-200 shrink-0">REAL</span>
+                <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 border border-emerald-200 shrink-0">REAL</span>
                 <div className="flex-1">
                   <div className="text-xs font-semibold text-gray-800">{r.label} <span className="font-mono text-gray-400">{r.href}</span></div>
-                  <div className="text-[10px] text-gray-500 mt-0.5">{r.dataSource}</div>
+                  <div className="text-xs text-gray-500 mt-0.5">{r.dataSource}</div>
                 </div>
               </div>
             ))}
@@ -521,16 +521,16 @@ export default async function ManagementPage() {
       {/* Hybrid pages */}
       {hybridPages.length > 0 && (
         <div className="mb-4">
-          <div className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2">
+          <div className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-2">
             Páginas híbridas (real + snapshot)
           </div>
           <div className="space-y-2">
             {hybridPages.map((r) => (
               <div key={r.href} className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 border border-blue-200 shrink-0">HÍBRIDO</span>
+                <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 border border-blue-200 shrink-0">HÍBRIDO</span>
                 <div className="flex-1">
                   <div className="text-xs font-semibold text-gray-800">{r.label} <span className="font-mono text-gray-400">{r.href}</span></div>
-                  <div className="text-[10px] text-gray-500 mt-0.5">{r.dataSource}</div>
+                  <div className="text-xs text-gray-500 mt-0.5">{r.dataSource}</div>
                 </div>
               </div>
             ))}
@@ -541,16 +541,16 @@ export default async function ManagementPage() {
       {/* Snapshot-only pages */}
       {snapshotPages.length > 0 && (
         <div className="mb-4">
-          <div className="text-[10px] font-bold text-amber-600 uppercase tracking-widest mb-2">
+          <div className="text-xs font-bold text-amber-600 uppercase tracking-widest mb-2">
             Páginas snapshot (accrual planejamento — sem dados reais)
           </div>
           <div className="space-y-2">
             {snapshotPages.map((r) => (
               <div key={r.href} className="flex items-start gap-3 p-3 bg-amber-50 rounded-lg border border-amber-100">
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-200 shrink-0">SNAPSHOT</span>
+                <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-200 shrink-0">SNAPSHOT</span>
                 <div className="flex-1">
                   <div className="text-xs font-semibold text-gray-800">{r.label} <span className="font-mono text-gray-400">{r.href}</span></div>
-                  <div className="text-[10px] text-gray-500 mt-0.5">{r.dataSource}</div>
+                  <div className="text-xs text-gray-500 mt-0.5">{r.dataSource}</div>
                 </div>
               </div>
             ))}
@@ -561,16 +561,16 @@ export default async function ManagementPage() {
       {/* System/other pages */}
       {systemPages.length > 0 && (
         <div className="mb-6">
-          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
+          <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">
             Páginas de sistema (sem dados financeiros diretos)
           </div>
           <div className="space-y-2">
             {systemPages.map((r) => (
               <div key={r.href} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-200 text-gray-600 border border-gray-300 shrink-0">SISTEMA</span>
+                <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-gray-200 text-gray-600 border border-gray-300 shrink-0">SISTEMA</span>
                 <div className="flex-1">
                   <div className="text-xs font-semibold text-gray-800">{r.label} <span className="font-mono text-gray-400">{r.href}</span></div>
-                  <div className="text-[10px] text-gray-500 mt-0.5">{r.dataSource}</div>
+                  <div className="text-xs text-gray-500 mt-0.5">{r.dataSource}</div>
                 </div>
               </div>
             ))}
@@ -595,7 +595,7 @@ export default async function ManagementPage() {
                 {pct(diag.confirmedTransactions, diag.totalTransactions)}
               </span>
             </div>
-            <div className="text-[10px] text-gray-400 mt-1">
+            <div className="text-xs text-gray-400 mt-1">
               {diag.confirmedTransactions.toLocaleString("pt-BR")} / {diag.totalTransactions.toLocaleString("pt-BR")} transações classificadas
             </div>
           </div>
@@ -613,7 +613,7 @@ export default async function ManagementPage() {
                 {pct(diag.doneDocuments, diag.totalDocumentsIngested)}
               </span>
             </div>
-            <div className="text-[10px] text-gray-400 mt-1">
+            <div className="text-xs text-gray-400 mt-1">
               {diag.doneDocuments} / {diag.totalDocumentsIngested} documentos com status=done
             </div>
           </div>
@@ -648,7 +648,7 @@ export default async function ManagementPage() {
                 <span className="text-xs text-gray-500">par{diag.intercompanyPairs !== 1 ? "es" : ""} eliminado{diag.intercompanyPairs !== 1 ? "s" : ""}</span>
               </div>
             )}
-            <div className="text-[10px] text-gray-400 mt-1">
+            <div className="text-xs text-gray-400 mt-1">
               {diag.intercompanyPairs > 0
                 ? "Transações intercompany excluídas do consolidado operacional"
                 : "Aguardando extratos de múltiplas entidades"}
@@ -710,7 +710,7 @@ export default async function ManagementPage() {
             },
           ].map((rule, i) => (
             <div key={i} className="flex items-start gap-3">
-              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 mt-0.5 ${
+              <span className={`text-xs font-bold px-1.5 py-0.5 rounded shrink-0 mt-0.5 ${
                 rule.status === "enforced"
                   ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
                   : "bg-amber-100 text-amber-700 border border-amber-200"
@@ -719,8 +719,8 @@ export default async function ManagementPage() {
               </span>
               <div>
                 <div className="text-xs font-semibold text-gray-800">{rule.rule}</div>
-                <div className="text-[10px] text-gray-500 mt-0.5">{rule.description}</div>
-                <div className="text-[10px] text-gray-400 mt-0.5 font-mono">{rule.enforcement}</div>
+                <div className="text-xs text-gray-500 mt-0.5">{rule.description}</div>
+                <div className="text-xs text-gray-400 mt-0.5 font-mono">{rule.enforcement}</div>
               </div>
             </div>
           ))}
@@ -728,7 +728,7 @@ export default async function ManagementPage() {
       </Card>
 
       {/* ── Footer ─────────────────────────────────────────────────────────── */}
-      <div className="text-[10px] text-gray-400 border-t border-gray-200 pt-4">
+      <div className="text-xs text-gray-400 border-t border-gray-200 pt-4">
         Arquitetura financeira AWQ · Dados reais via{" "}
         <span className="font-mono">lib/financial-query.ts → lib/financial-db.ts</span> ·
         Planejamento via{" "}

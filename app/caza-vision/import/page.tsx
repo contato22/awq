@@ -88,7 +88,7 @@ export default function CazaImportPage() {
               <p className="text-xs font-semibold text-blue-800">
                 Importação manual — Notion é fonte de referência, não fonte operacional.
               </p>
-              <p className="text-[11px] text-blue-600 mt-0.5">
+              <p className="text-xs text-blue-600 mt-0.5">
                 Os dados importados são gravados na base interna AWQ (Neon Postgres).
                 Após a importação, edições devem ser feitas diretamente na base interna.
                 O token Notion é lido de <code className="bg-blue-100 px-1 rounded">NOTION_TOKEN</code> no ambiente do servidor — nunca exposto ao cliente.
@@ -161,8 +161,8 @@ export default function CazaImportPage() {
             <XCircle size={14} className="text-red-600 shrink-0 mt-0.5" />
             <div>
               <p className="text-xs font-semibold text-red-800">Erro na importação</p>
-              <p className="text-[11px] text-red-600 mt-0.5">{errMsg}</p>
-              <p className="text-[11px] text-red-500 mt-1">
+              <p className="text-xs text-red-600 mt-0.5">{errMsg}</p>
+              <p className="text-xs text-red-500 mt-1">
                 Verifique se <code className="bg-red-100 px-1 rounded">NOTION_TOKEN</code> está configurado no ambiente Vercel
                 e se os IDs dos bancos de dados Notion estão corretos.
               </p>
@@ -198,7 +198,7 @@ export default function CazaImportPage() {
                   <div key={s.label} className="text-center p-3 rounded-lg bg-gray-50 border border-gray-100">
                     <Icon size={14} className={`${s.color} mx-auto mb-1`} />
                     <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
-                    <div className="text-[10px] text-gray-500 mt-0.5">{s.label}</div>
+                    <div className="text-xs text-gray-500 mt-0.5">{s.label}</div>
                   </div>
                 );
               })}
@@ -211,7 +211,7 @@ export default function CazaImportPage() {
                 </p>
                 <ul className="space-y-1">
                   {summary.errors.map((e, i) => (
-                    <li key={i} className="text-[11px] text-red-600 font-mono">{e}</li>
+                    <li key={i} className="text-xs text-red-600 font-mono">{e}</li>
                   ))}
                 </ul>
               </div>
@@ -230,7 +230,7 @@ export default function CazaImportPage() {
         {/* Architecture note */}
         <div className="card p-5 bg-gray-50 border-gray-200">
           <h3 className="text-xs font-semibold text-gray-700 mb-2">Arquitetura de dados</h3>
-          <div className="space-y-1 text-[11px] text-gray-500">
+          <div className="space-y-1 text-xs text-gray-500">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-brand-400 shrink-0" />
               <span><strong>Notion</strong> — fonte de referência / importação (nunca consultado em tempo real)</span>

@@ -154,10 +154,10 @@ export default function GanttPage() {
           <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
             {/* Month header */}
             <div className="flex border-b border-gray-200 bg-gray-50">
-              <div className="w-80 shrink-0 px-4 py-2 text-[10px] font-semibold text-gray-500 uppercase border-r border-gray-200">Projeto / Tarefa</div>
+              <div className="w-80 shrink-0 px-4 py-2 text-xs font-semibold text-gray-500 uppercase border-r border-gray-200">Projeto / Tarefa</div>
               <div className="flex-1 flex relative px-2 py-2 overflow-hidden">
                 {months.map(m => (
-                  <div key={m} className="flex-1 text-center text-[10px] text-gray-500 font-medium">
+                  <div key={m} className="flex-1 text-center text-xs text-gray-500 font-medium">
                     {m.slice(5,7)}/{m.slice(2,4)}
                   </div>
                 ))}
@@ -182,7 +182,7 @@ export default function GanttPage() {
                       <div className="w-80 shrink-0 px-4 py-2.5 border-r border-gray-200 flex items-center gap-2">
                         <span className={`w-2 h-2 rounded-full shrink-0 ${HEALTH_DOT[health] ?? "bg-gray-400"}`} />
                         <span className="text-xs font-bold text-gray-800 truncate flex-1">{project.project_name}</span>
-                        <span className="text-[10px] text-gray-400 shrink-0">{isOpen ? "▼" : "▶"}</span>
+                        <span className="text-xs text-gray-400 shrink-0">{isOpen ? "▼" : "▶"}</span>
                       </div>
                       <div className="flex-1 px-2 py-2 flex items-center gap-2">
                         <GanttBar
@@ -193,7 +193,7 @@ export default function GanttPage() {
                           status={project.status === "active" ? "in_progress" : project.status === "completed" ? "completed" : "not_started"}
                           pct={project.completion_pct ?? 0}
                         />
-                        <span className="text-[10px] text-gray-500 shrink-0 w-8 text-right">{(project.completion_pct ?? 0).toFixed(0)}%</span>
+                        <span className="text-xs text-gray-500 shrink-0 w-8 text-right">{(project.completion_pct ?? 0).toFixed(0)}%</span>
                       </div>
                     </div>
 
@@ -202,8 +202,8 @@ export default function GanttPage() {
                       <div key={task.task_id} className="flex items-center hover:bg-gray-50 transition-colors">
                         <div className="w-80 shrink-0 px-4 py-2 border-r border-gray-100 flex items-center gap-2 pl-8">
                           <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_COLOR[task.status]?.replace("bg-","bg-") ?? "bg-gray-300"}`} />
-                          <span className="text-[11px] text-gray-600 truncate flex-1">{task.task_name}</span>
-                          {task.wbs_code && <span className="text-[10px] font-mono text-gray-400 shrink-0">{task.wbs_code}</span>}
+                          <span className="text-xs text-gray-600 truncate flex-1">{task.task_name}</span>
+                          {task.wbs_code && <span className="text-xs font-mono text-gray-400 shrink-0">{task.wbs_code}</span>}
                         </div>
                         <div className="flex-1 px-2 py-1.5 flex items-center gap-2">
                           {task.start_date && task.due_date ? (
@@ -216,10 +216,10 @@ export default function GanttPage() {
                                 status={task.status}
                                 pct={task.completion_pct}
                               />
-                              <span className="text-[10px] text-gray-400 shrink-0 w-8 text-right">{task.completion_pct}%</span>
+                              <span className="text-xs text-gray-400 shrink-0 w-8 text-right">{task.completion_pct}%</span>
                             </>
                           ) : (
-                            <span className="text-[10px] text-gray-300">sem datas</span>
+                            <span className="text-xs text-gray-300">sem datas</span>
                           )}
                         </div>
                       </div>
@@ -233,7 +233,7 @@ export default function GanttPage() {
             </div>
 
             {/* Today marker legend */}
-            <div className="px-4 py-3 border-t border-gray-100 bg-gray-50 flex items-center gap-4 text-[10px] text-gray-500">
+            <div className="px-4 py-3 border-t border-gray-100 bg-gray-50 flex items-center gap-4 text-xs text-gray-500">
               <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" /> Concluído</div>
               <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-brand-500 inline-block" /> Em Andamento</div>
               <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-red-400 inline-block" /> Bloqueado</div>

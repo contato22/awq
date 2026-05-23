@@ -32,8 +32,8 @@ const typeColor: Record<string, string> = { Marca: "text-brand-600", Agência: "
 const statusCfg: Record<string, string> = {
   "Ativo":       "badge badge-green",
   "Em Proposta": "badge badge-yellow",
-  "Inativo":     "bg-gray-100 text-gray-500 border border-gray-200 text-[10px] font-semibold px-2 py-0.5 rounded-full",
-  "Perdido":     "bg-red-50 text-red-600 border border-red-200 text-[10px] font-semibold px-2 py-0.5 rounded-full",
+  "Inativo":     "bg-gray-100 text-gray-500 border border-gray-200 text-xs font-semibold px-2 py-0.5 rounded-full",
+  "Perdido":     "bg-red-50 text-red-600 border border-red-200 text-xs font-semibold px-2 py-0.5 rounded-full",
 };
 
 const EMPTY_FORM = { name: "", email: "", phone: "", type: "Marca", budget_anual: "", status: "Ativo", segmento: "", since: "" };
@@ -41,7 +41,7 @@ type ClientForm = typeof EMPTY_FORM;
 
 function ClientFormFields({ values, onChange }: { values: ClientForm; onChange: (k: string, v: string) => void }) {
   const cls = "mt-1 w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300 bg-white";
-  const lbl = "text-[11px] font-semibold text-gray-500 uppercase tracking-wide";
+  const lbl = "text-xs font-semibold text-gray-500 uppercase tracking-wide";
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
       {([
@@ -241,7 +241,7 @@ export default function ClientesPage() {
 
         {showForm && (
           <div className="card p-5 border border-brand-200 bg-brand-50/30">
-            <p className="text-sm font-semibold text-gray-900">Cadastrar Novo Cliente</p>
+            <p className="text-base font-semibold text-gray-900">Cadastrar Novo Cliente</p>
             {error && <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mt-2">{error}</div>}
             <ClientFormFields values={form} onChange={(k, v) => setForm((f) => ({ ...f, [k]: v }))} />
             <div className="flex justify-end gap-2 mt-4">
@@ -257,7 +257,7 @@ export default function ClientesPage() {
 
         {editingId && (
           <div className="card p-5 border border-emerald-200 bg-emerald-50/20">
-            <p className="text-sm font-semibold text-gray-900">Editar Cliente</p>
+            <p className="text-base font-semibold text-gray-900">Editar Cliente</p>
             {error && <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mt-2">{error}</div>}
             <ClientFormFields values={editForm} onChange={(k, v) => setEditForm((f) => ({ ...f, [k]: v }))} />
             <div className="flex justify-end gap-2 mt-4">
@@ -306,7 +306,7 @@ export default function ClientesPage() {
                       <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${share}%` }} />
                     </div>
                     <span className="text-xs font-semibold text-gray-900 w-16 text-right shrink-0">{fmtR(c.budget_anual)}</span>
-                    <span className="text-[10px] text-gray-400 w-10 text-right shrink-0">{share.toFixed(0)}%</span>
+                    <span className="text-xs text-gray-400 w-10 text-right shrink-0">{share.toFixed(0)}%</span>
                     <span className={`${statusCfg[c.status] ?? "badge"} shrink-0`}>{c.status}</span>
                   </div>
                 );
@@ -326,13 +326,13 @@ export default function ClientesPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-200">
-                    <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Cliente</th>
-                    <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Perfil</th>
-                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Budget</th>
-                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">%</th>
-                    <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Segmento</th>
-                    <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Desde</th>
-                    <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Status</th>
+                    <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Cliente</th>
+                    <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Perfil</th>
+                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Budget</th>
+                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">%</th>
+                    <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Segmento</th>
+                    <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Desde</th>
+                    <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
                     <th className="py-2 px-3 w-20" />
                   </tr>
                 </thead>
@@ -346,8 +346,8 @@ export default function ClientesPage() {
                         className={`border-b border-gray-100 transition-colors ${isEditing ? "bg-emerald-50/40" : "hover:bg-gray-50/80"}`}>
                         <td className="py-2.5 px-3">
                           <div className="text-gray-700 font-medium text-xs">{c.name}</div>
-                          <div className="text-[10px] text-gray-400 mt-0.5">{c.email}</div>
-                          <div className="text-[10px] text-gray-400">{c.phone}</div>
+                          <div className="text-xs text-gray-400 mt-0.5">{c.email}</div>
+                          <div className="text-xs text-gray-400">{c.phone}</div>
                         </td>
                         <td className="py-2.5 px-3">
                           <div className={`flex items-center gap-1.5 text-xs ${typeColor[c.type] ?? "text-gray-400"}`}>
@@ -363,16 +363,16 @@ export default function ClientesPage() {
                             : <span className="text-gray-400">—</span>}
                         </td>
                         <td className="py-2.5 px-3 text-xs text-gray-500">{c.segmento || "—"}</td>
-                        <td className="py-2.5 px-3 text-[11px] text-gray-400">{c.since || "—"}</td>
+                        <td className="py-2.5 px-3 text-xs text-gray-400">{c.since || "—"}</td>
                         <td className="py-2.5 px-3"><span className={statusCfg[c.status] ?? "badge"}>{c.status || "—"}</span></td>
                         <td className="py-2.5 px-3 text-right">
                           {isDeleting ? (
                             <div className="flex items-center gap-1 justify-end">
-                              <span className="text-[10px] text-red-600 font-medium">Excluir?</span>
+                              <span className="text-xs text-red-600 font-medium">Excluir?</span>
                               <button onClick={() => handleDelete(c.id)}
-                                className="text-[10px] font-semibold text-white bg-red-500 hover:bg-red-600 px-2 py-0.5 rounded">Sim</button>
+                                className="text-xs font-semibold text-white bg-red-500 hover:bg-red-600 px-2 py-0.5 rounded">Sim</button>
                               <button onClick={() => setDeletingId(null)}
-                                className="text-[10px] font-semibold text-gray-500 px-1.5 py-0.5 rounded border border-gray-200">Não</button>
+                                className="text-xs font-semibold text-gray-500 px-1.5 py-0.5 rounded border border-gray-200">Não</button>
                             </div>
                           ) : (
                             <div className="flex items-center gap-1 justify-end">

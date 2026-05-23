@@ -61,7 +61,7 @@ function AgentCard({ agent, onRun }: { agent: AgentResult; onRun: (id: string) =
           </div>
           <div>
             <div className="text-sm font-semibold text-gray-400">{agent.name}</div>
-            <div className="text-[10px] text-gray-400 mt-0.5">{agent.role}</div>
+            <div className="text-xs text-gray-400 mt-0.5">{agent.role}</div>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -91,24 +91,24 @@ function AgentCard({ agent, onRun }: { agent: AgentResult; onRun: (id: string) =
 
       <div className="min-h-[60px]">
         {agent.status === "idle" && (
-          <p className="text-[11px] text-gray-400 italic">Clique em ▶ para executar análise automática</p>
+          <p className="text-xs text-gray-400 italic">Clique em ▶ para executar análise automática</p>
         )}
         {agent.status === "running" && !agent.content && (
-          <div className="flex items-center gap-2 text-[11px] text-gray-500">
+          <div className="flex items-center gap-2 text-xs text-gray-500">
             <Loader2 size={11} className="animate-spin" />
             Analisando dados...
           </div>
         )}
         {agent.content && (
-          <div className="text-[11px] text-gray-400 leading-relaxed whitespace-pre-wrap">{agent.content}</div>
+          <div className="text-xs text-gray-400 leading-relaxed whitespace-pre-wrap">{agent.content}</div>
         )}
         {agent.status === "error" && (
-          <p className="text-[11px] text-red-600">{agent.errorMsg ?? "Falha ao executar agente"}</p>
+          <p className="text-xs text-red-600">{agent.errorMsg ?? "Falha ao executar agente"}</p>
         )}
       </div>
 
       {agent.timestamp && (
-        <div className="mt-3 pt-2 border-t border-gray-200 text-[10px] text-gray-400">
+        <div className="mt-3 pt-2 border-t border-gray-200 text-xs text-gray-400">
           Última análise: {agent.timestamp}
         </div>
       )}
@@ -356,7 +356,7 @@ export default function AgentsPanel() {
       <div>
         <div className="flex items-center gap-2 mb-3">
           <Bot size={14} className="text-gray-500" />
-          <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+          <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
             Agentes por BU — Auto-gerenciamento
           </span>
         </div>
@@ -371,7 +371,7 @@ export default function AgentsPanel() {
         <div>
           <div className="flex items-center gap-2 mb-3">
             <Building2 size={14} className="text-gray-500" />
-            <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+            <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
               AWQ Master Agent — Gestão de Portfolio
             </span>
           </div>

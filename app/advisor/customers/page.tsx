@@ -24,7 +24,7 @@ const statusBadge: Record<string, string> = {
   "Ativo":         "badge badge-green",
   "Em Negociação": "badge badge-yellow",
   "Pausado":       "badge badge-yellow",
-  "Encerrado":     "bg-red-50 text-red-600 border border-red-200 text-[10px] font-semibold px-2 py-0.5 rounded-full",
+  "Encerrado":     "bg-red-50 text-red-600 border border-red-200 text-xs font-semibold px-2 py-0.5 rounded-full",
 };
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -87,15 +87,15 @@ export default function AdvisorCustomersPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-200">
-                    <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Cliente</th>
-                    <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Serviço</th>
-                    <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Segmento</th>
-                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">AUM</th>
-                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Fee Mensal</th>
-                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">NPS</th>
-                    <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Responsável</th>
-                    <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Desde</th>
-                    <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Status</th>
+                    <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Cliente</th>
+                    <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Serviço</th>
+                    <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Segmento</th>
+                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">AUM</th>
+                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Fee Mensal</th>
+                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">NPS</th>
+                    <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Responsável</th>
+                    <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Desde</th>
+                    <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -103,8 +103,8 @@ export default function AdvisorCustomersPage() {
                     <tr key={c.id} className="border-b border-gray-100 hover:bg-gray-50/80 transition-colors">
                       <td className="py-2.5 px-3">
                         <div className="text-gray-700 font-semibold text-xs">{c.name}</div>
-                        {c.contato_email && <div className="text-[10px] text-gray-400 mt-0.5">{c.contato_email}</div>}
-                        {c.contato_phone && <div className="text-[10px] text-gray-400">{c.contato_phone}</div>}
+                        {c.contato_email && <div className="text-xs text-gray-400 mt-0.5">{c.contato_email}</div>}
+                        {c.contato_phone && <div className="text-xs text-gray-400">{c.contato_phone}</div>}
                       </td>
                       <td className="py-2.5 px-3 text-xs text-gray-500">{c.tipo_servico || "—"}</td>
                       <td className="py-2.5 px-3 text-xs text-gray-500">{c.segmento || "—"}</td>
@@ -124,7 +124,7 @@ export default function AdvisorCustomersPage() {
                           : <span className="text-gray-400">—</span>}
                       </td>
                       <td className="py-2.5 px-3 text-xs text-gray-500">{c.responsavel || "—"}</td>
-                      <td className="py-2.5 px-3 text-[11px] text-gray-400">{c.since || "—"}</td>
+                      <td className="py-2.5 px-3 text-xs text-gray-400">{c.since || "—"}</td>
                       <td className="py-2.5 px-3">
                         <span className={statusBadge[c.status] ?? "badge"}>{c.status || "—"}</span>
                       </td>

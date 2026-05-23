@@ -76,7 +76,7 @@ export default async function AwqBudgetPage() {
               <p className="text-xs font-semibold text-amber-800">
                 Esta página usa dados de snapshot (accrual) — não verificados pela base bancária.
               </p>
-              <p className="text-[11px] text-amber-600 mt-0.5">
+              <p className="text-xs text-amber-600 mt-0.5">
                 Budget e &quot;actual&quot; de receita/EBITDA são da base de planejamento, não dos extratos bancários ingeridos.
                 Para caixa real por BU, acesse{" "}
                 <a href="/awq/cashflow" className="underline font-medium">/awq/cashflow</a>{" "}
@@ -142,9 +142,9 @@ export default async function AwqBudgetPage() {
                   <div className="text-xs font-medium text-gray-400 mt-0.5">{card.label}</div>
                   <div className="flex items-center gap-1 mt-1">
                     {card.up ? <ArrowUpRight size={11} className="text-emerald-600" /> : <ArrowDownRight size={11} className="text-red-600" />}
-                    <span className={`text-[10px] font-semibold ${card.up ? "text-emerald-600" : "text-red-600"}`}>{card.delta}</span>
+                    <span className={`text-xs font-semibold ${card.up ? "text-emerald-600" : "text-red-600"}`}>{card.delta}</span>
                   </div>
-                  <div className="text-[10px] text-gray-400 mt-0.5">{card.sub}</div>
+                  <div className="text-xs text-gray-400 mt-0.5">{card.sub}</div>
                 </div>
               </div>
             );
@@ -158,16 +158,16 @@ export default async function AwqBudgetPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200">
-                  <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Linha</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">JACQES Budget</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-brand-600">JACQES Real</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Var.%</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Caza Budget</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-emerald-600">Caza Real</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Var.%</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Advisor Budget</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-brand-700">Advisor Real</th>
-                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Var.%</th>
+                  <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Linha</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">JACQES Budget</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-brand-600 uppercase tracking-wide">JACQES Real</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Var.%</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Caza Budget</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-emerald-600 uppercase tracking-wide">Caza Real</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Var.%</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Advisor Budget</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-brand-700 uppercase tracking-wide">Advisor Real</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Var.%</th>
                 </tr>
               </thead>
               <tbody>
@@ -221,7 +221,7 @@ export default async function AwqBudgetPage() {
                         : <CheckCircle2 size={11} className="text-emerald-600" />}
                       <span className="text-xs text-gray-500">{cat.category}</span>
                     </div>
-                    <div className="flex items-center gap-3 text-[11px]">
+                    <div className="flex items-center gap-3 text-xs">
                       <span className="text-gray-500">Budget: {fmtR(cat.budget)}</span>
                       <span className={`font-semibold ${overBudget ? "text-red-600" : "text-emerald-600"}`}>
                         Real: {fmtR(cat.actual)}
@@ -256,7 +256,7 @@ export default async function AwqBudgetPage() {
                   <div className="flex items-center gap-2 mb-3">
                     <div className={`w-3 h-3 rounded-full ${bu.color}`} />
                     <span className={`text-sm font-bold ${bu.accentColor}`}>{bu.name}</span>
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isAbove ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"}`}>
+                    <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${isAbove ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"}`}>
                       {v >= 0 ? "+" : ""}{v.toFixed(1)}%
                     </span>
                   </div>

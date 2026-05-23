@@ -102,7 +102,7 @@ export default function BpmProcessesPage() {
                 <div className="space-y-2">
                   {selected.workflow_steps.map((step, i) => (
                     <div key={step.step_id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                      <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
+                      <div className="w-6 h-6 bg-brand-600 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
                         {i + 1}
                       </div>
                       <div>

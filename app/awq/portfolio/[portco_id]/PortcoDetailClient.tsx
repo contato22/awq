@@ -96,7 +96,7 @@ function StatusBadge({ status }: { status: string }) {
   };
   const c = cfg[status] ?? cfg.inactive;
   return (
-    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${c.cls}`}>
+    <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${c.cls}`}>
       {c.label}
     </span>
   );
@@ -127,8 +127,8 @@ function OwnershipBar({ rows }: { rows: any[] }) {
         {sorted.map((r, i) => (
           <div key={r.cap_id ?? i} className="flex items-center gap-1">
             <div className={`w-2 h-2 rounded-full ${OWNER_COLORS[i % OWNER_COLORS.length]} shrink-0`} />
-            <span className="text-[10px] text-gray-600">{r.shareholder_name}</span>
-            <span className="text-[10px] font-bold text-gray-800">{fmtPct(r.ownership_pct)}</span>
+            <span className="text-xs text-gray-600">{r.shareholder_name}</span>
+            <span className="text-xs font-bold text-gray-800">{fmtPct(r.ownership_pct)}</span>
           </div>
         ))}
       </div>
@@ -310,11 +310,11 @@ export default function PortcoDetailClient({ params }: { params: { portco_id: st
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="text-lg font-bold text-gray-900 leading-tight">{card.value}</div>
-                    <div className="text-[10px] text-gray-500 mt-0.5 leading-tight">{card.label}</div>
+                    <div className="text-xs text-gray-500 mt-0.5 leading-tight">{card.label}</div>
                   </div>
                 </div>
                 {card.sub && (
-                  <div className={`mt-2.5 flex items-center gap-1 text-[10px] font-semibold ${card.sub.up ? "text-emerald-600" : "text-red-500"}`}>
+                  <div className={`mt-2.5 flex items-center gap-1 text-xs font-semibold ${card.sub.up ? "text-emerald-600" : "text-red-500"}`}>
                     {card.sub.up ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
                     {card.sub.text}
                   </div>
@@ -396,7 +396,7 @@ export default function PortcoDetailClient({ params }: { params: { portco_id: st
 
               {mediaPct != null && (
                 <div className="px-5 py-4 border-t border-gray-100 space-y-2">
-                  <div className="flex justify-between text-[10px]">
+                  <div className="flex justify-between text-xs">
                     <span className="text-gray-500 font-medium">Progresso de Entrega</span>
                     <span className={`font-bold ${mediaPct >= 75 ? "text-emerald-600" : mediaPct >= 40 ? "text-amber-600" : "text-cyan-600"}`}>
                       {fmtPct(mediaPct)}
@@ -420,7 +420,7 @@ export default function PortcoDetailClient({ params }: { params: { portco_id: st
             <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2">
               <BarChart3 size={13} className="text-gray-400" />
               <h3 className="text-sm font-bold text-gray-800">KPIs Mensais</h3>
-              <span className="text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-100 px-1.5 py-0.5 rounded-full ml-auto">
+              <span className="text-xs font-bold bg-blue-50 text-blue-600 border border-blue-100 px-1.5 py-0.5 rounded-full ml-auto">
                 {kpis.length} registros
               </span>
             </div>
@@ -480,7 +480,7 @@ export default function PortcoDetailClient({ params }: { params: { portco_id: st
               <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2">
                 <FileText size={13} className="text-gray-400" />
                 <h3 className="text-sm font-bold text-gray-800">Estrutura de Capital</h3>
-                <span className="text-[10px] font-bold bg-gray-100 text-gray-500 border border-gray-200 px-1.5 py-0.5 rounded-full ml-auto">
+                <span className="text-xs font-bold bg-gray-100 text-gray-500 border border-gray-200 px-1.5 py-0.5 rounded-full ml-auto">
                   {capTable.length} sócios
                 </span>
               </div>
@@ -503,7 +503,7 @@ export default function PortcoDetailClient({ params }: { params: { portco_id: st
                           <tr key={s.cap_id ?? i} className="hover:bg-blue-50/40 transition-colors">
                             <td className="py-2.5 px-3 font-semibold text-gray-900">{s.shareholder_name ?? "—"}</td>
                             <td className="py-2.5 px-3">
-                              <span className="text-[10px] font-semibold bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full">
+                              <span className="text-xs font-semibold bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full">
                                 {shareholderTypeLabel(s.shareholder_type)}
                               </span>
                             </td>
@@ -544,12 +544,12 @@ export default function PortcoDetailClient({ params }: { params: { portco_id: st
                         </div>
                         <div>
                           <div className="text-sm font-bold text-gray-900">{fmtDate(b.meeting_date)}</div>
-                          <span className="text-[10px] font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                          <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
                             {meetingTypeLabel(b.meeting_type)}
                           </span>
                         </div>
                       </div>
-                      <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                      <span className={`shrink-0 text-xs font-bold px-2 py-0.5 rounded-full border ${
                         b.status === "completed" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
                         b.status === "scheduled" ? "bg-blue-50 text-blue-700 border-blue-200"         :
                         "bg-gray-100 text-gray-500 border-gray-200"
@@ -594,7 +594,7 @@ export default function PortcoDetailClient({ params }: { params: { portco_id: st
                     style={{ width: `${Math.min(mediaPct, 100)}%` }}
                   />
                 </div>
-                <div className="flex justify-between text-[10px] text-gray-400 mt-1.5">
+                <div className="flex justify-between text-xs text-gray-400 mt-1.5">
                   <span>{fmtR(portco.media_delivered_value)} entregue</span>
                   <span>Meta: {fmtR(portco.media_commitment_value)}</span>
                 </div>
@@ -605,7 +605,7 @@ export default function PortcoDetailClient({ params }: { params: { portco_id: st
               <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2">
                 <Tv2 size={13} className="text-gray-400" />
                 <h3 className="text-sm font-bold text-gray-800">Entregáveis de Mídia</h3>
-                <span className="text-[10px] font-bold bg-cyan-50 text-cyan-600 border border-cyan-100 px-1.5 py-0.5 rounded-full ml-auto">
+                <span className="text-xs font-bold bg-cyan-50 text-cyan-600 border border-cyan-100 px-1.5 py-0.5 rounded-full ml-auto">
                   {mediaDelivs.length} itens
                 </span>
               </div>
@@ -628,25 +628,25 @@ export default function PortcoDetailClient({ params }: { params: { portco_id: st
                           <tr key={m.deliverable_id ?? i} className="hover:bg-blue-50/40 transition-colors">
                             <td className="py-2.5 px-3">
                               {m.media_type ? (
-                                <span className="text-[10px] font-semibold text-cyan-700 bg-cyan-50 border border-cyan-200 px-2 py-0.5 rounded-full">
+                                <span className="text-xs font-semibold text-cyan-700 bg-cyan-50 border border-cyan-200 px-2 py-0.5 rounded-full">
                                   {m.media_type}
                                 </span>
                               ) : (
-                                <span className="text-gray-300 text-[10px]">—</span>
+                                <span className="text-gray-300 text-xs">—</span>
                               )}
                             </td>
                             <td className="py-2.5 px-3 text-gray-700 max-w-[220px] truncate">{m.description ?? "—"}</td>
                             <td className="py-2.5 px-3 text-right font-bold text-gray-900">{fmtR(m.value)}</td>
                             <td className="py-2.5 px-3">
                               {m.executing_bu ? (
-                                <span className="text-[10px] font-semibold bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full">
+                                <span className="text-xs font-semibold bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full">
                                   {m.executing_bu}
                                 </span>
                               ) : <span className="text-gray-300">—</span>}
                             </td>
                             <td className="py-2.5 px-3 text-gray-500">{fmtDate(m.scheduled_date)}</td>
                             <td className="py-2.5 px-3">
-                              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${st.cls}`}>
+                              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${st.cls}`}>
                                 {st.label}
                               </span>
                             </td>

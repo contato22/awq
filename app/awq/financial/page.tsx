@@ -107,7 +107,7 @@ function EntityCashPL({ e, totalRevenue }: { e: EntitySummary; totalRevenue: num
 
       {/* Coverage bar */}
       <div className="space-y-1">
-        <div className="flex justify-between text-[10px] text-gray-400">
+        <div className="flex justify-between text-xs text-gray-400">
           <span>Mix de entradas</span>
           <span>{share.toFixed(0)}% do total consolidado</span>
         </div>
@@ -117,7 +117,7 @@ function EntityCashPL({ e, totalRevenue }: { e: EntitySummary; totalRevenue: num
       </div>
 
       {/* Confidence */}
-      <div className="flex justify-between text-[10px] text-gray-400 pt-1 border-t border-gray-100">
+      <div className="flex justify-between text-xs text-gray-400 pt-1 border-t border-gray-100">
         <span>
           {e.confirmedCount}/{e.transactionCount} confirmados
           {e.ambiguousCount > 0 && (
@@ -150,11 +150,11 @@ function ExpenseBreakdown({ q }: { q: FinancialQueryResult }) {
         <table className="w-full text-xs">
           <thead>
             <tr className="border-b border-gray-200">
-              <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Categoria</th>
-              <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Entidade</th>
-              <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Txns</th>
-              <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Valor</th>
-              <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">% Total</th>
+              <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Categoria</th>
+              <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Entidade</th>
+              <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Txns</th>
+              <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Valor</th>
+              <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">% Total</th>
             </tr>
           </thead>
           <tbody>
@@ -162,7 +162,7 @@ function ExpenseBreakdown({ q }: { q: FinancialQueryResult }) {
               <tr key={i} className={`border-b border-gray-100 hover:bg-gray-50 ${row.isAmbiguous ? "text-amber-700" : "text-gray-700"}`}>
                 <td className="py-2 px-3">
                   {row.categoryLabel}
-                  {row.isAmbiguous && <span className="ml-1 text-[10px] text-amber-500">(ambíguo)</span>}
+                  {row.isAmbiguous && <span className="ml-1 text-xs text-amber-500">(ambíguo)</span>}
                 </td>
                 <td className="py-2 px-3 text-gray-400">{ENTITY_LABELS[row.entity] ?? row.entity}</td>
                 <td className="py-2 px-3 text-right text-gray-400">{row.transactionCount}</td>
@@ -196,14 +196,14 @@ function RevenueByCounterparty({ q }: { q: FinancialQueryResult }) {
             <div key={i}>
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-[10px] font-bold text-gray-300 w-4">#{i + 1}</span>
+                  <span className="text-xs font-bold text-gray-300 w-4">#{i + 1}</span>
                   <span className="text-xs text-gray-700 truncate">{r.counterparty}</span>
-                  <span className="text-[10px] text-gray-400 shrink-0">
+                  <span className="text-xs text-gray-400 shrink-0">
                     {ENTITY_LABELS[r.entity] ?? r.entity}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 shrink-0 ml-2">
-                  <span className="text-[10px] text-gray-400">{r.transactionCount}x</span>
+                  <span className="text-xs text-gray-400">{r.transactionCount}x</span>
                   <span className="text-xs font-bold text-emerald-600 tabular-nums">{fmtBRL(r.amount)}</span>
                 </div>
               </div>
@@ -292,13 +292,13 @@ export default async function AwqFinancialPage() {
                       {card.up
                         ? <ArrowUpRight size={11} className="text-emerald-600" />
                         : <ArrowDownRight size={11} className="text-red-600" />}
-                      <span className={`text-[10px] font-semibold ${card.up ? "text-emerald-600" : "text-red-600"}`}>
+                      <span className={`text-xs font-semibold ${card.up ? "text-emerald-600" : "text-red-600"}`}>
                         {card.sub}
                       </span>
                     </div>
                   )}
                   {!q.hasData && (
-                    <div className="text-[10px] text-gray-400 mt-1">Aguardando extratos</div>
+                    <div className="text-xs text-gray-400 mt-1">Aguardando extratos</div>
                   )}
                 </div>
               </div>

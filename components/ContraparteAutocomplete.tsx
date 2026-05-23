@@ -169,10 +169,10 @@ export default function ContraparteAutocomplete({
             {selected.nomeFantasia || selected.razaoSocial}
           </div>
           <div className="flex items-center gap-1.5 mt-0.5">
-            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${tipoConf.bg} ${tipoConf.color}`}>
+            <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${tipoConf.bg} ${tipoConf.color}`}>
               {tipoConf.label}
             </span>
-            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${papelConf.bg} ${papelConf.color}`}>
+            <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${papelConf.bg} ${papelConf.color}`}>
               {papelConf.label}
             </span>
           </div>
@@ -240,10 +240,10 @@ export default function ContraparteAutocomplete({
                           {c.nomeFantasia || c.razaoSocial}
                         </div>
                         <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="text-[10px] text-gray-400">
+                          <span className="text-xs text-gray-400">
                             {c.cnpjCpf.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5")}
                           </span>
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${pc.bg} ${pc.color}`}>
+                          <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${pc.bg} ${pc.color}`}>
                             {pc.label}
                           </span>
                         </div>
@@ -303,7 +303,7 @@ export default function ContraparteAutocomplete({
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Tipo *</label>
+                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Tipo *</label>
                   <select
                     value={quick.tipo}
                     onChange={(e) => setQuick((q) => ({ ...q, tipo: e.target.value }))}
@@ -316,7 +316,7 @@ export default function ContraparteAutocomplete({
                   </select>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Papel *</label>
+                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Papel *</label>
                   <select
                     value={quick.papel}
                     onChange={(e) => setQuick((q) => ({ ...q, papel: e.target.value as ContraprtePapel }))}
@@ -330,7 +330,7 @@ export default function ContraparteAutocomplete({
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Razão Social *</label>
+                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Razão Social *</label>
                 <input
                   type="text" value={quick.razaoSocial}
                   onChange={(e) => setQuick((q) => ({ ...q, razaoSocial: e.target.value }))}
@@ -341,7 +341,7 @@ export default function ContraparteAutocomplete({
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">
+                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
                     {quick.tipo === "pj" ? "CNPJ *" : quick.tipo === "estrangeiro" ? "ID Fiscal" : "CPF *"}
                   </label>
                   <input
@@ -352,7 +352,7 @@ export default function ContraparteAutocomplete({
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Regime Tributário</label>
+                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Regime Tributário</label>
                   <select
                     value={quick.regime}
                     onChange={(e) => setQuick((q) => ({ ...q, regime: e.target.value }))}
@@ -367,7 +367,7 @@ export default function ContraparteAutocomplete({
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Email financeiro</label>
+                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Email financeiro</label>
                   <input
                     type="email" value={quick.emailFinanceiro}
                     onChange={(e) => setQuick((q) => ({ ...q, emailFinanceiro: e.target.value }))}
@@ -376,7 +376,7 @@ export default function ContraparteAutocomplete({
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">BU</label>
+                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">BU</label>
                   <select
                     value={quick.bu}
                     onChange={(e) => setQuick((q) => ({ ...q, bu: e.target.value }))}

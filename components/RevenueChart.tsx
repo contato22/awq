@@ -31,7 +31,7 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-lg min-w-[150px]">
-      <div className="text-[11px] font-semibold text-gray-400 mb-1.5">{label} 2025</div>
+      <div className="text-xs font-semibold text-gray-400 mb-1.5">{label} 2025</div>
       {payload.map((entry) => (
         <div key={entry.name} className="flex items-center justify-between gap-4 text-xs py-0.5">
           <div className="flex items-center gap-1.5">
@@ -52,8 +52,8 @@ export default function RevenueChart() {
     <div className="card p-4 lg:p-6">
       <div className="flex items-center justify-between mb-4 lg:mb-5">
         <div>
-          <h2 className="text-sm font-semibold text-gray-900">Revenue Overview</h2>
-          <p className="text-[11px] text-gray-500 mt-0.5 font-medium">Monthly P&amp;L — FY 2025</p>
+          <h2 className="text-base font-semibold text-gray-900">Revenue Overview</h2>
+          <p className="text-xs text-gray-500 mt-0.5 font-medium">Monthly P&amp;L — FY 2025</p>
         </div>
         <div className="flex gap-1">
           {["6M", "9M", "1Y"].map((range, i) => (
@@ -156,20 +156,20 @@ export default function RevenueChart() {
 
       {/* Legend — responsive */}
       <div className="flex items-center justify-center gap-5 mt-3 pt-3 border-t border-gray-100">
-        <span className="flex items-center gap-1.5 text-[11px] text-gray-500 font-medium">
+        <span className="flex items-center gap-1.5 text-xs text-gray-500 font-medium">
           <span className="w-2.5 h-2.5 rounded-sm inline-block bg-brand-500" />
           Revenue
         </span>
-        <span className="hidden lg:flex items-center gap-1.5 text-[11px] text-gray-500 font-medium">
+        <span className="hidden lg:flex items-center gap-1.5 text-xs text-gray-500 font-medium">
           <span className="w-2.5 h-2.5 rounded-sm inline-block bg-emerald-500" />
           Profit
         </span>
-        <span className="hidden lg:flex items-center gap-1.5 text-[11px] text-gray-500 font-medium">
+        <span className="hidden lg:flex items-center gap-1.5 text-xs text-gray-500 font-medium">
           <span className="w-2.5 h-2.5 rounded-sm inline-block bg-amber-500" />
           Expenses
         </span>
         {isMobile && (
-          <span className="text-[10px] text-gray-400 italic">Mais linhas no desktop</span>
+          <span className="text-xs text-gray-400 italic">Mais linhas no desktop</span>
         )}
       </div>
     </div>

@@ -369,7 +369,7 @@ export default function EliminationsPage() {
                       </td>
                       <td className="py-2 px-3 text-right tabular-nums font-bold text-gray-900">{fmtBRL(t.amount)}</td>
                       <td className="py-2 px-3">
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${scfg.bg} ${scfg.color}`}>
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${scfg.bg} ${scfg.color}`}>
                           {scfg.label}
                         </span>
                       </td>

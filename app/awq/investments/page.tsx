@@ -44,18 +44,18 @@ export const dynamic = process.env.STATIC_EXPORT === "1" ? "auto" : "force-dynam
 function ConfidenceBadge({ status }: { status: InvestmentEntry["reconciledStatus"] }) {
   if (status === "conciliado")
     return (
-      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-1.5 py-0.5">
+      <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-1.5 py-0.5">
         <CheckCircle2 size={9} /> Conciliado
       </span>
     );
   if (status === "revisão pendente")
     return (
-      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5">
+      <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5">
         <Clock size={9} /> Revisão
       </span>
     );
   return (
-    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-gray-500 bg-gray-100 border border-gray-200 rounded px-1.5 py-0.5">
+    <span className="inline-flex items-center gap-1 text-xs font-semibold text-gray-500 bg-gray-100 border border-gray-200 rounded px-1.5 py-0.5">
       <HelpCircle size={9} /> Ambíguo
     </span>
   );
@@ -69,7 +69,7 @@ function ConfidenceChip({ level }: { level: InvestmentEntry["classificationConfi
     unclassifiable: "text-gray-500 bg-gray-100 border-gray-200",
   };
   return (
-    <span className={`inline-flex text-[10px] font-semibold border rounded px-1.5 py-0.5 ${map[level] ?? ""}`}>
+    <span className={`inline-flex text-xs font-semibold border rounded px-1.5 py-0.5 ${map[level] ?? ""}`}>
       {level}
     </span>
   );
@@ -91,10 +91,10 @@ function EmpiricalInvestmentPanel({ s }: { s: Awaited<ReturnType<typeof getHoldi
           <p className="text-sm font-bold text-amber-800">
             Posição Empírica Confirmada — Print Bancário
           </p>
-          <p className="text-[11px] text-amber-600 mt-0.5">
+          <p className="text-xs text-amber-600 mt-0.5">
             Fonte: {s.source} · Referência: {s.asOf} · Confiança: print bancário
           </p>
-          <p className="text-[11px] text-amber-600 mt-0.5">
+          <p className="text-xs text-amber-600 mt-0.5">
             Esta posição será substituída automaticamente após ingesta do extrato PDF em{" "}
             <a href="/awq/conciliacao" className="underline font-medium">/awq/conciliacao</a>.
           </p>
@@ -104,33 +104,33 @@ function EmpiricalInvestmentPanel({ s }: { s: Awaited<ReturnType<typeof getHoldi
       {/* Investment position */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
         <div className="rounded-lg bg-white border border-amber-200 p-4">
-          <div className="text-[10px] font-bold text-amber-700 uppercase tracking-wider mb-1">
+          <div className="text-xs font-bold text-amber-700 uppercase tracking-wider mb-1">
             Saldo Total Investido
           </div>
           <div className="text-2xl font-bold text-gray-900">{fmtBRL(s.totalInvestedReal)}</div>
-          <div className="text-[11px] text-gray-500 mt-1">{s.investmentType}</div>
-          <div className="text-[10px] text-gray-400">{s.investmentBank}</div>
-          <div className="mt-2 text-[10px] font-semibold text-amber-700 bg-amber-100 border border-amber-200 rounded px-1.5 py-0.5 inline-flex items-center gap-1">
+          <div className="text-xs text-gray-500 mt-1">{s.investmentType}</div>
+          <div className="text-xs text-gray-400">{s.investmentBank}</div>
+          <div className="mt-2 text-xs font-semibold text-amber-700 bg-amber-100 border border-amber-200 rounded px-1.5 py-0.5 inline-flex items-center gap-1">
             <Camera size={8} /> print confirmado
           </div>
         </div>
         <div className="rounded-lg bg-white border border-gray-200 p-4">
-          <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">
+          <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
             Caixa Operacional Holding
           </div>
           <div className="text-xl font-bold text-gray-900">{fmtBRL(s.operationalCash)}</div>
-          <div className="text-[11px] text-gray-500 mt-1">Cora AWQ — saldo disponível</div>
-          <div className="text-[10px] text-red-500 mt-1 font-semibold">
+          <div className="text-xs text-gray-500 mt-1">Cora AWQ — saldo disponível</div>
+          <div className="text-xs text-red-500 mt-1 font-semibold">
             ≠ investimento
           </div>
         </div>
         <div className="rounded-lg bg-white border border-gray-200 p-4">
-          <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">
+          <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
             Saldo em Conta Itaú
           </div>
           <div className="text-xl font-bold text-gray-900">{fmtBRL(s.investmentAccountCash)}</div>
-          <div className="text-[11px] text-gray-500 mt-1">Itaú Empresas — conta corrente</div>
-          <div className="text-[10px] text-red-500 mt-1 font-semibold">
+          <div className="text-xs text-gray-500 mt-1">Itaú Empresas — conta corrente</div>
+          <div className="text-xs text-red-500 mt-1 font-semibold">
             ≠ saldo investido
           </div>
         </div>
@@ -144,19 +144,19 @@ function EmpiricalInvestmentPanel({ s }: { s: Awaited<ReturnType<typeof getHoldi
             Última aplicação confirmada:
           </span>
           <span className="text-xs font-bold text-red-600">− {fmtBRL(s.lastApplicationAmount)}</span>
-          <span className="text-[11px] text-gray-400">APLICACAO CDB DI · {s.lastApplicationDate}</span>
-          <span className="ml-auto text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-1.5 py-0.5">
+          <span className="text-xs text-gray-400">APLICACAO CDB DI · {s.lastApplicationDate}</span>
+          <span className="ml-auto text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-1.5 py-0.5">
             aplicacao_financeira ✓
           </span>
         </div>
-        <div className="text-[10px] text-gray-400 mt-1 ml-5">
+        <div className="text-xs text-gray-400 mt-1 ml-5">
           Classificação correta: excluída do P&amp;L operacional
         </div>
       </div>
 
       {/* NOT investment section */}
       <div className="rounded-lg border border-red-100 bg-red-50/60 p-3">
-        <p className="text-[11px] font-bold text-red-700 mb-2 flex items-center gap-1.5">
+        <p className="text-xs font-bold text-red-700 mb-2 flex items-center gap-1.5">
           <XCircle size={12} /> Itens excluídos da contagem de investimento (evidência empírica)
         </p>
         <div className="space-y-1">
@@ -168,7 +168,7 @@ function EmpiricalInvestmentPanel({ s }: { s: Awaited<ReturnType<typeof getHoldi
             { label: "Saldo em conta Itaú (operacional)", amount: s.investmentAccountCash, cat: "conta_corrente" },
             { label: "Caixa Cora (operacional)", amount: s.operationalCash, cat: "caixa_operacional" },
           ].map((item) => (
-            <div key={item.label} className="flex items-center justify-between text-[11px]">
+            <div key={item.label} className="flex items-center justify-between text-xs">
               <span className="text-gray-600 flex items-center gap-1">
                 <XCircle size={9} className="text-red-400" />
                 {item.label}
@@ -197,7 +197,7 @@ function NoDataBanner({ message, gaps }: { message: string; gaps: string[] }) {
           {gaps.length > 0 && (
             <ul className="mt-2 space-y-0.5">
               {gaps.map((g) => (
-                <li key={g} className="text-[11px] text-amber-600 flex items-center gap-1.5">
+                <li key={g} className="text-xs text-amber-600 flex items-center gap-1.5">
                   <span className="w-1 h-1 rounded-full bg-amber-500 shrink-0" />
                   {g}
                 </li>
@@ -236,7 +236,7 @@ function LedgerTable({
           <Landmark size={15} className="text-brand-500" />
         )}
         {title}
-        <span className="ml-auto text-[11px] font-normal text-gray-400">
+        <span className="ml-auto text-xs font-normal text-gray-400">
           {entries.length} registro(s)
         </span>
       </h2>
@@ -247,14 +247,14 @@ function LedgerTable({
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-200">
-                <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400 w-24">Data</th>
-                <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400">Banco · Conta</th>
-                <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400 hidden lg:table-cell">Entidade</th>
-                <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400 hidden xl:table-cell">Descrição</th>
-                <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400">Categoria</th>
-                <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400">Valor</th>
-                <th className="text-center py-2 px-3 text-xs font-semibold text-gray-400 hidden md:table-cell">Status</th>
-                <th className="text-center py-2 px-3 text-xs font-semibold text-gray-400 hidden lg:table-cell">Confiança</th>
+                <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400 w-24 uppercase tracking-wide">Data</th>
+                <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Banco · Conta</th>
+                <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400 hidden lg:table-cell uppercase tracking-wide">Entidade</th>
+                <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400 hidden xl:table-cell uppercase tracking-wide">Descrição</th>
+                <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Categoria</th>
+                <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Valor</th>
+                <th className="text-center py-2 px-3 text-xs font-semibold text-gray-400 hidden md:table-cell uppercase tracking-wide">Status</th>
+                <th className="text-center py-2 px-3 text-xs font-semibold text-gray-400 hidden lg:table-cell uppercase tracking-wide">Confiança</th>
               </tr>
             </thead>
             <tbody>
@@ -272,7 +272,7 @@ function LedgerTable({
                   </td>
                   <td className="py-2 px-3 text-xs">
                     <div className="font-medium text-gray-800 truncate max-w-[140px]">{e.accountName}</div>
-                    <div className="text-[10px] text-gray-400">{e.bank}</div>
+                    <div className="text-xs text-gray-400">{e.bank}</div>
                   </td>
                   <td className="py-2 px-3 text-xs text-gray-500 hidden lg:table-cell">
                     {ENTITY_LABELS[e.entity] ?? e.entity}
@@ -314,7 +314,7 @@ function EntityCard({ s }: { s: EntityInvestmentSummary }) {
         <div>
           <div className="text-xs font-bold text-gray-900">{s.label}</div>
           {s.lastActivity && (
-            <div className="text-[10px] text-gray-400 mt-0.5">
+            <div className="text-xs text-gray-400 mt-0.5">
               Última mov.: {fmtDate(s.lastActivity)}
             </div>
           )}
@@ -337,14 +337,14 @@ function EntityCard({ s }: { s: EntityInvestmentSummary }) {
           </span>
         </div>
         {s.ambiguousCount > 0 && (
-          <div className="text-[10px] text-amber-600 flex items-center gap-1 mt-1">
+          <div className="text-xs text-amber-600 flex items-center gap-1 mt-1">
             <AlertCircle size={9} /> {s.ambiguousCount} item(ns) em revisão
           </div>
         )}
       </div>
       {s.accounts.length > 0 && (
         <div className="mt-2 pt-2 border-t border-gray-100">
-          <div className="text-[10px] text-gray-400">Contas: {s.accounts.join(", ")}</div>
+          <div className="text-xs text-gray-400">Contas: {s.accounts.join(", ")}</div>
         </div>
       )}
     </div>
@@ -416,7 +416,7 @@ export default async function AwqInvestmentsPage() {
             </p>
             <ul className="space-y-0.5">
               {q.coverageGaps.map((g) => (
-                <li key={g} className="text-[11px] text-amber-600 flex items-center gap-1.5">
+                <li key={g} className="text-xs text-amber-600 flex items-center gap-1.5">
                   <span className="w-1 h-1 rounded-full bg-amber-400 shrink-0" />
                   {g}
                 </li>
@@ -483,8 +483,8 @@ export default async function AwqInvestmentsPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-xl font-bold text-gray-900 truncate">{card.value}</div>
-                  <div className="text-[10px] font-medium text-gray-400 mt-0.5">{card.label}</div>
-                  <div className="text-[10px] text-gray-400 mt-0.5 leading-tight">{card.sub}</div>
+                  <div className="text-xs font-medium text-gray-400 mt-0.5">{card.label}</div>
+                  <div className="text-xs text-gray-400 mt-0.5 leading-tight">{card.sub}</div>
                 </div>
               </div>
             );
@@ -495,7 +495,7 @@ export default async function AwqInvestmentsPage() {
         {canonical.note && (
           <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 flex items-start gap-2">
             <AlertCircle size={12} className="text-gray-400 shrink-0 mt-0.5" />
-            <p className="text-[11px] text-gray-500 leading-relaxed">{canonical.note}</p>
+            <p className="text-xs text-gray-500 leading-relaxed">{canonical.note}</p>
           </div>
         )}
 
@@ -505,13 +505,13 @@ export default async function AwqInvestmentsPage() {
             <MinusCircle size={15} className="text-brand-500" />
             Separação: Operacional vs Investimento / Patrimonial
           </h2>
-          <p className="text-[11px] text-gray-400 mb-4">
+          <p className="text-xs text-gray-400 mb-4">
             Aplicações e resgates são excluídos do FCO operacional.
             Não inflam receita nem despesa consolidada.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-4">
-              <div className="text-[10px] font-semibold text-emerald-600 uppercase tracking-wider mb-1">FCO Operacional</div>
+              <div className="text-xs font-semibold text-emerald-600 uppercase tracking-wider mb-1">FCO Operacional</div>
               <div className="text-xl font-bold text-gray-900">{fmtBRL(op.operationalNet)}</div>
               <div className="mt-2 space-y-1 text-xs">
                 <div className="flex justify-between">
@@ -523,13 +523,13 @@ export default async function AwqInvestmentsPage() {
                   <span className="text-red-500">{fmtBRL(op.totalExpenses)}</span>
                 </div>
               </div>
-              <div className="mt-2 text-[10px] text-emerald-600">
+              <div className="mt-2 text-xs text-emerald-600">
                 Receitas e despesas operacionais classificadas
               </div>
             </div>
 
             <div className="rounded-xl bg-gray-50 border border-gray-100 p-4">
-              <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Investimento / Patrimonial</div>
+              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Investimento / Patrimonial</div>
               <div className="text-xl font-bold text-gray-900">{fmtBRL(q.netInvested)}</div>
               <div className="mt-2 space-y-1 text-xs">
                 <div className="flex justify-between">
@@ -541,19 +541,19 @@ export default async function AwqInvestmentsPage() {
                   <span className="text-emerald-600 font-semibold">{fmtBRL(q.totalRedemptions)}</span>
                 </div>
               </div>
-              <div className="mt-2 text-[10px] text-gray-400">
+              <div className="mt-2 text-xs text-gray-400">
                 Excluído do consolidado operacional
               </div>
             </div>
 
             <div className="rounded-xl bg-brand-50 border border-brand-100 p-4">
-              <div className="text-[10px] font-semibold text-brand-600 uppercase tracking-wider mb-1">Em Revisão</div>
+              <div className="text-xs font-semibold text-brand-600 uppercase tracking-wider mb-1">Em Revisão</div>
               <div className="text-xl font-bold text-gray-900">{q.ambiguousCount}</div>
               <div className="mt-2 text-xs text-gray-500">
                 Transferências internas não pareadas — possivelmente investimento,
                 aguardando classificação manual.
               </div>
-              <div className="mt-2 text-[10px] text-amber-600">
+              <div className="mt-2 text-xs text-amber-600">
                 Rendimentos não identificáveis automaticamente
               </div>
             </div>
@@ -607,12 +607,12 @@ export default async function AwqInvestmentsPage() {
             ].map((s) => (
               <div key={s.label} className="text-center">
                 <div className="text-xl font-bold text-gray-900">{s.value}</div>
-                <div className="text-[10px] text-gray-400 mt-0.5">{s.label}</div>
+                <div className="text-xs text-gray-400 mt-0.5">{s.label}</div>
               </div>
             ))}
           </div>
           {q.affectedAccounts.length > 0 && (
-            <div className="text-[11px] text-gray-400">
+            <div className="text-xs text-gray-400">
               Contas: {q.affectedAccounts.join(" · ")}
             </div>
           )}
@@ -620,15 +620,15 @@ export default async function AwqInvestmentsPage() {
 
         {/* ── Methodology disclaimer ───────────────────────────────────────── */}
         <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
-          <p className="text-[11px] text-gray-500 leading-relaxed">
+          <p className="text-xs text-gray-500 leading-relaxed">
             <span className="font-semibold text-gray-700">Área de Investimentos</span> —
             Esta página apresenta exclusivamente movimentações patrimoniais identificadas nos extratos bancários ingeridos.
-            Aplicações (<code className="font-mono bg-gray-100 px-1 rounded text-[10px]">aplicacao_financeira</code>) e
-            resgates (<code className="font-mono bg-gray-100 px-1 rounded text-[10px]">resgate_financeiro</code>) são
+            Aplicações (<code className="font-mono bg-gray-100 px-1 rounded text-xs">aplicacao_financeira</code>) e
+            resgates (<code className="font-mono bg-gray-100 px-1 rounded text-xs">resgate_financeiro</code>) são
             excluídos do FCO operacional e não inflam receita nem despesa consolidada da AWQ.
             O saldo líquido investido representa fluxo de caixa observável — não valor de mercado dos ativos.
             Rendimentos só poderão ser calculados quando a categoria{" "}
-            <code className="font-mono bg-gray-100 px-1 rounded text-[10px]">rendimento_financeiro</code>{" "}
+            <code className="font-mono bg-gray-100 px-1 rounded text-xs">rendimento_financeiro</code>{" "}
             for criada e transações forem classificadas. Dados 100% originados dos extratos bancários reais.
           </p>
         </div>

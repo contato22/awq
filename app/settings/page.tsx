@@ -21,7 +21,7 @@ function SettingsSection({ icon: Icon, title, description, children }: SettingsS
         </div>
         <div>
           <div className="text-sm font-semibold text-gray-900">{title}</div>
-          <div className="text-[11px] text-gray-500 mt-0.5 font-medium">{description}</div>
+          <div className="text-xs text-gray-500 mt-0.5 font-medium">{description}</div>
         </div>
       </div>
       <div className="space-y-4">{children}</div>
@@ -46,7 +46,7 @@ function Toggle({ label, description, defaultChecked = false }: {
     >
       <div className="pr-4">
         <div className="text-sm text-gray-700 font-medium group-hover:text-gray-900 transition-colors">{label}</div>
-        {description && <div className="text-[11px] text-gray-400 mt-0.5">{description}</div>}
+        {description && <div className="text-xs text-gray-400 mt-0.5">{description}</div>}
       </div>
       <div
         className={cn(
@@ -150,12 +150,12 @@ export default function SettingsPage() {
               { name: "Danilo", email: "danilo@jacqes.com", role: "CS Ops" },
             ].map((member) => (
               <div key={member.email} className="flex items-center gap-3 py-3">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-500 to-brand-400 flex items-center justify-center text-[10px] font-bold text-white shrink-0">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-500 to-brand-400 flex items-center justify-center text-xs font-bold text-white shrink-0">
                   {member.name.split(" ").map((n) => n[0]).join("")}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium text-gray-900 truncate">{member.name}</div>
-                  <div className="text-[11px] text-gray-400 truncate">{member.email}</div>
+                  <div className="text-xs text-gray-400 truncate">{member.email}</div>
                 </div>
                 <span className="badge-blue shrink-0">{member.role}</span>
               </div>
@@ -179,7 +179,7 @@ export default function SettingsPage() {
               <div key={source.name} className="flex items-center justify-between py-3">
                 <div>
                   <div className="text-sm font-medium text-gray-900">{source.name}</div>
-                  <div className="text-[11px] text-gray-400 font-medium">Último sync: {source.lastSync}</div>
+                  <div className="text-xs text-gray-400 font-medium">Último sync: {source.lastSync}</div>
                 </div>
                 <span
                   className={source.status === "Conectado" ? "badge-green" : "badge-red"}

@@ -204,9 +204,9 @@ export default function CazaUnitEconomicsPage() {
                           <div className="flex items-center gap-2">
                             <Film size={11} className="text-gray-500" />
                             <span className="text-xs text-gray-500">{t.type}</span>
-                            <span className="text-[10px] text-gray-400">{t.projetos}p</span>
+                            <span className="text-xs text-gray-400">{t.projetos}p</span>
                           </div>
-                          <div className="flex items-center gap-3 text-[11px]">
+                          <div className="flex items-center gap-3 text-xs">
                             <span className="text-gray-500">ticket: {fmtR(t.avgValue)}</span>
                             <span className="text-gray-900 font-semibold">{fmtR(t.receita)}</span>
                             <span className="text-gray-500">{pct.toFixed(0)}%</span>
@@ -235,11 +235,11 @@ export default function CazaUnitEconomicsPage() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-gray-200">
-                          <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500">Responsável</th>
-                          <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Projetos</th>
-                          <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Receita</th>
-                          <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Lucro</th>
-                          <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Ticket</th>
+                          <th className="text-left  py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Responsável</th>
+                          <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Projetos</th>
+                          <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Receita</th>
+                          <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Lucro</th>
+                          <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Ticket</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -252,7 +252,7 @@ export default function CazaUnitEconomicsPage() {
                               <td className="py-2.5 px-3 text-right text-xs font-semibold text-gray-900">{fmtR(d.receita)}</td>
                               <td className="py-2.5 px-3 text-right text-xs">
                                 <span className="text-emerald-600 font-semibold">{fmtR(d.lucro)}</span>
-                                <span className="text-[10px] text-gray-400 ml-1">{margin}%</span>
+                                <span className="text-xs text-gray-400 ml-1">{margin}%</span>
                               </td>
                               <td className="py-2.5 px-3 text-right text-xs text-gray-500">{fmtR(d.ticketMedio)}</td>
                             </tr>
@@ -284,7 +284,7 @@ export default function CazaUnitEconomicsPage() {
             <div className="card p-5">
               <div className="flex items-center gap-2 mb-4">
                 <Users size={14} className="text-brand-600" />
-                <h2 className="text-sm font-semibold text-gray-900">Top Projetos por Margem</h2>
+                <h2 className="text-base font-semibold text-gray-900">Top Projetos por Margem</h2>
               </div>
               <div className="space-y-2">
                 {[...projects]
@@ -299,17 +299,17 @@ export default function CazaUnitEconomicsPage() {
                     const margin = p.valor > 0 ? ((p.lucro ?? 0) / p.valor) * 100 : 0;
                     return (
                       <div key={p.id} className="flex items-center gap-3">
-                        <span className="text-[11px] text-gray-400 w-44 shrink-0 truncate">{p.titulo || "—"}</span>
+                        <span className="text-xs text-gray-400 w-44 shrink-0 truncate">{p.titulo || "—"}</span>
                         <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
                           <div
                             className={`h-full rounded-full ${margin >= 60 ? "bg-emerald-500" : margin >= 40 ? "bg-amber-500" : "bg-red-500"}`}
                             style={{ width: `${Math.min(Math.max(margin, 0), 100)}%` }}
                           />
                         </div>
-                        <span className={`text-[11px] font-bold w-10 text-right shrink-0 ${margin >= 60 ? "text-emerald-600" : margin >= 40 ? "text-amber-700" : "text-red-600"}`}>
+                        <span className={`text-xs font-bold w-10 text-right shrink-0 ${margin >= 60 ? "text-emerald-600" : margin >= 40 ? "text-amber-700" : "text-red-600"}`}>
                           {margin.toFixed(0)}%
                         </span>
-                        <span className="text-[10px] text-gray-400 w-16 text-right shrink-0">{fmtR(p.lucro ?? 0)}</span>
+                        <span className="text-xs text-gray-400 w-16 text-right shrink-0">{fmtR(p.lucro ?? 0)}</span>
                       </div>
                     );
                   })}

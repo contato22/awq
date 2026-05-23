@@ -64,7 +64,7 @@ export default function InventoryValuationPage() {
               <thead className="bg-gray-50">
                 <tr>
                   {["Produto", "Unidade", "Qtd", "Custo Médio", "Valor Total"].map((h) => (
-                    <th key={h} className="px-4 py-3 text-left text-[10px] font-semibold text-gray-500 uppercase whitespace-nowrap">{h}</th>
+                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase whitespace-nowrap tracking-wide">{h}</th>
                   ))}
                 </tr>
               </thead>

@@ -86,12 +86,12 @@ function Field({ label, required, children, fullWidth, hint }: {
         {label}{required && <span className="text-red-500 ml-1">*</span>}
       </label>
       {children}
-      {hint && <p className="text-[10px] text-gray-400 mt-1">{hint}</p>}
+      {hint && <p className="text-xs text-gray-400 mt-1">{hint}</p>}
     </div>
   );
 }
 
-const inputCls = "w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-colors";
+const inputCls = "w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-colors";
 const selectCls = `${inputCls} cursor-pointer`;
 
 function EditLeadPageInner() {
@@ -247,7 +247,7 @@ function EditLeadPageInner() {
               <div className="flex-1 max-w-xs h-2 bg-white/60 rounded-full overflow-hidden">
                 <div className={`h-full rounded-full ${scoreClr.bar} transition-all duration-500`} style={{ width: `${estimatedScore}%` }} />
               </div>
-              <span className="text-[11px] text-gray-500">
+              <span className="text-xs text-gray-500">
                 {estimatedScore >= 71 ? "Lead quente" : estimatedScore >= 41 ? "Lead morno" : "Lead frio"}
               </span>
             </div>
@@ -257,12 +257,12 @@ function EditLeadPageInner() {
             <Field label="Nome completo" required>
               <input type="text" className={`${inputCls} ${errors.contact_name ? "border-red-400" : ""}`}
                 value={form.contact_name} onChange={e => set("contact_name", e.target.value)} />
-              {errors.contact_name && <p className="text-[11px] text-red-600 mt-1">{errors.contact_name}</p>}
+              {errors.contact_name && <p className="text-xs text-red-600 mt-1">{errors.contact_name}</p>}
             </Field>
             <Field label="Empresa" required>
               <input type="text" className={`${inputCls} ${errors.company_name ? "border-red-400" : ""}`}
                 value={form.company_name} onChange={e => set("company_name", e.target.value)} />
-              {errors.company_name && <p className="text-[11px] text-red-600 mt-1">{errors.company_name}</p>}
+              {errors.company_name && <p className="text-xs text-red-600 mt-1">{errors.company_name}</p>}
             </Field>
             <Field label="E-mail">
               <div className="relative">
@@ -302,7 +302,7 @@ function EditLeadPageInner() {
                 <option value="ADVISOR">ADVISOR</option>
                 <option value="VENTURE">VENTURE</option>
               </select>
-              {errors.bu && <p className="text-[11px] text-red-600 mt-1">{errors.bu}</p>}
+              {errors.bu && <p className="text-xs text-red-600 mt-1">{errors.bu}</p>}
             </Field>
             <Field label="Fonte do Lead">
               <select className={selectCls} value={form.lead_source} onChange={e => set("lead_source", e.target.value)}>
@@ -322,7 +322,7 @@ function EditLeadPageInner() {
                 <option value="Miguel">Miguel</option>
                 <option value="Danilo">Danilo</option>
               </select>
-              {errors.assigned_to && <p className="text-[11px] text-red-600 mt-1">{errors.assigned_to}</p>}
+              {errors.assigned_to && <p className="text-xs text-red-600 mt-1">{errors.assigned_to}</p>}
             </Field>
           </FormSection>
 

@@ -20,7 +20,7 @@ const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
   contacted:   { label: "Contato",        cls: "badge badge-yellow" },
   qualified:   { label: "Qualificado",    cls: "badge badge-green" },
   unqualified: { label: "Desqualificado", cls: "badge badge-red" },
-  converted:   { label: "Convertido",     cls: "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-50 text-brand-700 ring-1 ring-brand-200/60" },
+  converted:   { label: "Convertido",     cls: "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-brand-50 text-brand-700 ring-1 ring-brand-200/60" },
 };
 
 const BU_LIST = ["Todos", "JACQES", "CAZA", "ADVISOR", "VENTURE", "ENRD"] as const;
@@ -43,16 +43,16 @@ function ScoreBar({ score }: { score: number }) {
       <div className="w-16 h-2 bg-gray-100 rounded-full overflow-hidden">
         <div className={`h-full rounded-full ${color} transition-all`} style={{ width: `${score}%` }} />
       </div>
-      <span className={`text-[11px] font-bold ${textColor}`}>{score}</span>
+      <span className={`text-xs font-bold ${textColor}`}>{score}</span>
     </div>
   );
 }
 
 function BuBadge({ bu }: { bu: string }) {
-  if (bu === "JACQES") return <span className="badge badge-blue text-[10px]">{bu}</span>;
-  if (bu === "CAZA")   return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-50 text-brand-700 ring-1 ring-brand-200/60">{bu}</span>;
-  if (bu === "ADVISOR") return <span className="badge badge-green text-[10px]">{bu}</span>;
-  return <span className="badge badge-yellow text-[10px]">{bu}</span>;
+  if (bu === "JACQES") return <span className="badge badge-blue text-xs">{bu}</span>;
+  if (bu === "CAZA")   return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-brand-50 text-brand-700 ring-1 ring-brand-200/60">{bu}</span>;
+  if (bu === "ADVISOR") return <span className="badge badge-green text-xs">{bu}</span>;
+  return <span className="badge badge-yellow text-xs">{bu}</span>;
 }
 
 export default function LeadsPage() {
@@ -198,7 +198,7 @@ export default function LeadsPage() {
             </div>
             <div>
               <div className="text-xl font-bold text-gray-900">{kpiTotal}</div>
-              <div className="text-[10px] text-gray-500">Total de leads</div>
+              <div className="text-xs text-gray-500">Total de leads</div>
             </div>
           </div>
           <div className="card p-4 flex items-center gap-3">
@@ -207,7 +207,7 @@ export default function LeadsPage() {
             </div>
             <div>
               <div className="text-xl font-bold text-gray-900">{kpiNew}</div>
-              <div className="text-[10px] text-gray-500">Leads novos</div>
+              <div className="text-xs text-gray-500">Leads novos</div>
             </div>
           </div>
           <div className="card p-4 flex items-center gap-3">
@@ -216,7 +216,7 @@ export default function LeadsPage() {
             </div>
             <div>
               <div className="text-xl font-bold text-gray-900">{kpiQualified}</div>
-              <div className="text-[10px] text-gray-500">Qualificados</div>
+              <div className="text-xs text-gray-500">Qualificados</div>
             </div>
           </div>
           <div className="card p-4 flex items-center gap-3">
@@ -225,7 +225,7 @@ export default function LeadsPage() {
             </div>
             <div>
               <div className="text-xl font-bold text-gray-900">{kpiScoreAvg}</div>
-              <div className="text-[10px] text-gray-500">Score médio</div>
+              <div className="text-xs text-gray-500">Score médio</div>
             </div>
           </div>
         </div>
@@ -238,7 +238,7 @@ export default function LeadsPage() {
                 onClick={() => setStatusFilter(tab.key)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                   statusFilter === tab.key
-                    ? "bg-blue-600 text-white"
+                    ? "bg-brand-600 text-white"
                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
               >
@@ -252,7 +252,7 @@ export default function LeadsPage() {
             <select
               value={buFilter}
               onChange={e => setBuFilter(e.target.value)}
-              className="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
+              className="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400"
             >
               {BU_LIST.map(b => <option key={b}>{b}</option>)}
             </select>
@@ -264,7 +264,7 @@ export default function LeadsPage() {
               placeholder="Buscar lead..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-44 pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
+              className="w-44 pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400"
             />
           </div>
         </div>
@@ -275,7 +275,7 @@ export default function LeadsPage() {
               icon={<Users size={15} />}
               title="Leads"
               badge={
-                <span className="badge badge-gray ml-1 text-[10px]">{filtered.length}</span>
+                <span className="badge badge-gray ml-1 text-xs">{filtered.length}</span>
               }
             />
           </div>
@@ -298,15 +298,15 @@ export default function LeadsPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50/60">
-                    <th className="text-left py-3 px-4 text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Lead / Empresa</th>
-                    <th className="text-left py-3 px-3 text-[10px] font-semibold text-gray-500 uppercase tracking-wide">BU</th>
-                    <th className="text-left py-3 px-3 text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Status</th>
-                    <th className="text-left py-3 px-3 text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Score</th>
-                    <th className="text-left py-3 px-3 text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Budget (BANT)</th>
-                    <th className="text-left py-3 px-3 text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Need</th>
-                    <th className="text-left py-3 px-3 text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Responsável</th>
-                    <th className="text-left py-3 px-3 text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Criado em</th>
-                    <th className="text-left py-3 px-4 text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Ações</th>
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Lead / Empresa</th>
+                    <th className="text-left py-3 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">BU</th>
+                    <th className="text-left py-3 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
+                    <th className="text-left py-3 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Score</th>
+                    <th className="text-left py-3 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Budget (BANT)</th>
+                    <th className="text-left py-3 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Need</th>
+                    <th className="text-left py-3 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Responsável</th>
+                    <th className="text-left py-3 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Criado em</th>
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -318,45 +318,45 @@ export default function LeadsPage() {
                       <tr key={lead.lead_id} className="hover:bg-gray-50 transition-colors">
                         <td className="py-3 px-4">
                           <div className="font-semibold text-gray-900 text-[12px]">{lead.contact_name}</div>
-                          <div className="text-[11px] text-gray-500 truncate max-w-[160px]">{lead.company_name}</div>
+                          <div className="text-xs text-gray-500 truncate max-w-[160px]">{lead.company_name}</div>
                           {lead.job_title && (
-                            <div className="text-[10px] text-gray-400 truncate max-w-[160px]">{lead.job_title}</div>
+                            <div className="text-xs text-gray-400 truncate max-w-[160px]">{lead.job_title}</div>
                           )}
                         </td>
                         <td className="py-3 px-3"><BuBadge bu={lead.bu} /></td>
                         <td className="py-3 px-3">
-                          <span className={`${statusCfg?.cls ?? "badge badge-gray"} text-[10px]`}>
+                          <span className={`${statusCfg?.cls ?? "badge badge-gray"} text-xs`}>
                             {statusCfg?.label ?? lead.status}
                           </span>
                         </td>
                         <td className="py-3 px-3"><ScoreBar score={lead.lead_score} /></td>
                         <td className="py-3 px-3">
-                          <span className="text-[11px] font-medium text-gray-700">{formatBRL(lead.bant_budget)}</span>
+                          <span className="text-xs font-medium text-gray-700">{formatBRL(lead.bant_budget)}</span>
                           {lead.bant_authority && (
-                            <div className="text-[10px] text-emerald-600 font-medium mt-0.5">Decisor</div>
+                            <div className="text-xs text-emerald-600 font-medium mt-0.5">Decisor</div>
                           )}
                         </td>
                         <td className="py-3 px-3">
-                          <span className={`text-[11px] font-semibold ${needColor}`}>{needLabel}</span>
+                          <span className={`text-xs font-semibold ${needColor}`}>{needLabel}</span>
                         </td>
                         <td className="py-3 px-3">
                           <div className="flex items-center gap-1.5">
                             <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-[9px] font-bold text-blue-700">
                               {lead.assigned_to.charAt(0)}
                             </div>
-                            <span className="text-[11px] text-gray-600">{lead.assigned_to}</span>
+                            <span className="text-xs text-gray-600">{lead.assigned_to}</span>
                           </div>
                         </td>
-                        <td className="py-3 px-3 text-[11px] text-gray-400">{formatDateBR(lead.created_at)}</td>
+                        <td className="py-3 px-3 text-xs text-gray-400">{formatDateBR(lead.created_at)}</td>
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-1.5">
                             <Link href={`/crm/leads/edit?id=${lead.lead_id}`}
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">
                               <Pencil size={10} />
                               Editar
                             </Link>
                             <Link href={`/crm/activities/add?related_to_type=lead&related_to_id=${lead.lead_id}`}
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">
                               <ExternalLink size={10} />
                               Atividade
                             </Link>
@@ -364,7 +364,7 @@ export default function LeadsPage() {
                               <button
                                 onClick={() => handleConvert(lead)}
                                 disabled={converting === lead.lead_id}
-                                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-medium bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition-colors disabled:opacity-50">
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition-colors disabled:opacity-50">
                                 <ChevronRight size={10} />
                                 {converting === lead.lead_id ? "…" : "Converter"}
                               </button>
@@ -372,7 +372,7 @@ export default function LeadsPage() {
                             <button
                               onClick={() => handleDelete(lead)}
                               disabled={deleting === lead.lead_id}
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-medium bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors disabled:opacity-50">
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors disabled:opacity-50">
                               <Trash2 size={10} />
                               {deleting === lead.lead_id ? "…" : "Apagar"}
                             </button>

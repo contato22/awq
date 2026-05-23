@@ -274,13 +274,13 @@ export default function CoraStatusPanel({
           <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
           <Wifi size={15} className="text-emerald-600" />
           <span className="text-sm font-bold text-gray-900">Cora Bank</span>
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 border border-emerald-200 text-emerald-700 font-semibold uppercase tracking-wide">
+          <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 border border-emerald-200 text-emerald-700 font-semibold uppercase tracking-wide">
             Live
           </span>
-          <span className="text-[11px] text-gray-400">{ACCOUNTS.length} contas</span>
+          <span className="text-xs text-gray-400">{ACCOUNTS.length} contas</span>
         </div>
 
-        <div className="flex items-center gap-2 text-[11px] text-gray-500">
+        <div className="flex items-center gap-2 text-xs text-gray-500">
           {syncingAll ? (
             <span className="flex items-center gap-1.5 text-emerald-700 font-medium">
               <Loader2 size={12} className="animate-spin" />
@@ -306,7 +306,7 @@ export default function CoraStatusPanel({
             title="Debug Cora API"
           >
             {loadingDebug ? <Loader2 size={10} className="animate-spin" /> : <FlaskConical size={10} />}
-            <span className="text-[10px]">Debug</span>
+            <span className="text-xs">Debug</span>
           </button>
         </div>
       </div>
@@ -328,7 +328,7 @@ export default function CoraStatusPanel({
               ? "Diagnóstico Cora — resposta bruta:"
               : `Cora retornou 0 transações para "${diagInfo?.account}"`}
           </div>
-          <pre className="bg-white border border-amber-200 rounded p-2 text-[10px] text-gray-700 overflow-x-auto max-h-48 leading-relaxed whitespace-pre-wrap">
+          <pre className="bg-white border border-amber-200 rounded p-2 text-xs text-gray-700 overflow-x-auto max-h-48 leading-relaxed whitespace-pre-wrap">
             {JSON.stringify(coraDebug ?? diagInfo?.debug, null, 2)}
           </pre>
         </div>
@@ -356,11 +356,11 @@ export default function CoraStatusPanel({
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2.5">
                   <div className={`w-9 h-9 rounded-xl ${c.badgeBg} flex items-center justify-center shrink-0`}>
-                    <span className={`text-[11px] font-bold tracking-wider ${c.badgeText}`}>{acc.initials}</span>
+                    <span className={`text-xs font-bold tracking-wider ${c.badgeText}`}>{acc.initials}</span>
                   </div>
                   <div>
                     <div className="text-sm font-bold text-gray-900 leading-tight">{acc.name}</div>
-                    <div className="text-[10px] text-gray-400 mt-0.5">{acc.subtitle ?? acc.entity}</div>
+                    <div className="text-xs text-gray-400 mt-0.5">{acc.subtitle ?? acc.entity}</div>
                   </div>
                 </div>
                 <div className="shrink-0 pt-0.5">
@@ -378,7 +378,7 @@ export default function CoraStatusPanel({
               <div className={`rounded-lg border ${c.balanceBorder} ${c.balanceBg} px-3 py-2.5`}>
                 <div className="flex items-center gap-1.5 mb-1">
                   <Activity size={11} className={c.balanceLabel} />
-                  <span className={`text-[10px] font-semibold ${c.balanceLabel} uppercase tracking-wide`}>Saldo disponível</span>
+                  <span className={`text-xs font-semibold ${c.balanceLabel} uppercase tracking-wide`}>Saldo disponível</span>
                 </div>
                 {loadingBal ? (
                   <div className={`flex items-center gap-1.5 text-sm ${c.balanceLabel}`}>
@@ -387,13 +387,13 @@ export default function CoraStatusPanel({
                 ) : balErr ? (
                   <div className="flex items-start gap-1.5">
                     <WifiOff size={12} className="text-amber-500 shrink-0 mt-0.5" />
-                    <span className="text-[11px] text-amber-700 leading-snug">{balErr}</span>
+                    <span className="text-xs text-amber-700 leading-snug">{balErr}</span>
                   </div>
                 ) : bal ? (
                   <div>
                     <div className={`text-xl font-bold ${c.balanceValue}`}>{fmtBRL(bal.available)}</div>
                     {bal.blocked != null && bal.blocked > 0 && (
-                      <div className={`text-[11px] ${c.balanceLabel} mt-0.5`}>
+                      <div className={`text-xs ${c.balanceLabel} mt-0.5`}>
                         Bloqueado: {fmtBRL(bal.blocked)}
                       </div>
                     )}
@@ -405,27 +405,27 @@ export default function CoraStatusPanel({
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <div className="flex items-center gap-2">
                   {pending > 0 ? (
-                    <span className="px-2 py-0.5 rounded-full bg-amber-100 border border-amber-200 text-amber-800 text-[11px] font-semibold">
+                    <span className="px-2 py-0.5 rounded-full bg-amber-100 border border-amber-200 text-amber-800 text-xs font-semibold">
                       {pending} pendente{pending > 1 ? "s" : ""}
                     </span>
                   ) : txCount > 0 ? (
-                    <span className="px-2 py-0.5 rounded-full bg-emerald-100 border border-emerald-200 text-emerald-800 text-[11px] font-semibold">
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-100 border border-emerald-200 text-emerald-800 text-xs font-semibold">
                       Em dia
                     </span>
                   ) : (
-                    <span className="px-2 py-0.5 rounded-full bg-gray-100 border border-gray-200 text-gray-500 text-[11px]">
+                    <span className="px-2 py-0.5 rounded-full bg-gray-100 border border-gray-200 text-gray-500 text-xs">
                       Sem transações
                     </span>
                   )}
                   {txCount > 0 && (
-                    <span className="text-[10px] text-gray-400">{txCount} tx</span>
+                    <span className="text-xs text-gray-400">{txCount} tx</span>
                   )}
                 </div>
 
                 <button
                   onClick={() => void runSyncSingle(acc)}
                   disabled={isSyncing}
-                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[11px] font-medium transition-colors disabled:opacity-40 ${c.syncBtn} ${c.syncBtnHover}`}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-xs font-medium transition-colors disabled:opacity-40 ${c.syncBtn} ${c.syncBtnHover}`}
                   title={`Sincronizar ${acc.name}`}
                 >
                   {isSyncingThis
@@ -438,19 +438,19 @@ export default function CoraStatusPanel({
 
               {/* Última sync / erro individual */}
               {syncErr && (
-                <div className="flex items-start gap-1.5 text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-lg px-2.5 py-1.5">
+                <div className="flex items-start gap-1.5 text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg px-2.5 py-1.5">
                   <AlertTriangle size={11} className="shrink-0 mt-0.5" />
                   {syncErr}
                 </div>
               )}
               {!syncErr && lastSync && (
-                <div className="flex items-center gap-1 text-[10px] text-gray-400">
+                <div className="flex items-center gap-1 text-xs text-gray-400">
                   <Clock size={9} />
                   Última sync: {lastSync}
                 </div>
               )}
               {!syncErr && !lastSync && !isSyncingThis && (
-                <div className="text-[10px] text-gray-400">Aguardando primeira sync…</div>
+                <div className="text-xs text-gray-400">Aguardando primeira sync…</div>
               )}
             </div>
           );
@@ -458,7 +458,7 @@ export default function CoraStatusPanel({
       </div>
 
       {/* Footer */}
-      <div className="px-5 py-2.5 border-t border-gray-100 bg-gray-50/60 flex items-center justify-between text-[11px] text-gray-400">
+      <div className="px-5 py-2.5 border-t border-gray-100 bg-gray-50/60 flex items-center justify-between text-xs text-gray-400">
         <span>
           Novas transações entram como <strong className="text-gray-600">pendente</strong> e são classificadas automaticamente.
         </span>

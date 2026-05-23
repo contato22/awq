@@ -75,7 +75,7 @@ function SectionCard({
         <div className="w-7 h-7 rounded-lg bg-brand-50 flex items-center justify-center shrink-0">
           <Icon size={13} className="text-brand-600" />
         </div>
-        <h2 className="text-sm font-semibold text-gray-900">{title}</h2>
+        <h2 className="text-base font-semibold text-gray-900">{title}</h2>
       </div>
       <div className="p-5">{children}</div>
     </div>
@@ -85,7 +85,7 @@ function SectionCard({
 function FieldRow({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div>
-      <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-0.5">{label}</div>
+      <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">{label}</div>
       <div className="text-sm text-gray-800 leading-snug">{value ?? "—"}</div>
     </div>
   );
@@ -106,7 +106,7 @@ function MaturityDots({ level, label }: { level: number; label: string }) {
             }`}
           />
         ))}
-        <span className="ml-1 text-[11px] font-bold text-gray-500">{level}/5</span>
+        <span className="ml-1 text-xs font-bold text-gray-500">{level}/5</span>
       </div>
     </div>
   );
@@ -115,8 +115,8 @@ function MaturityDots({ level, label }: { level: number; label: string }) {
 function InfoChip({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-50 border border-gray-100">
-      <span className="text-[10px] text-gray-400 uppercase tracking-wide font-semibold">{label}</span>
-      <span className="text-[11px] font-medium text-gray-700">{value}</span>
+      <span className="text-xs text-gray-400 uppercase tracking-wide font-semibold">{label}</span>
+      <span className="text-xs font-medium text-gray-700">{value}</span>
     </div>
   );
 }
@@ -143,7 +143,7 @@ function ScoreRing({ score }: { score: number }) {
           {score.toFixed(1)}
         </text>
       </svg>
-      <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Deal Score</span>
+      <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Deal Score</span>
     </div>
   );
 }
@@ -214,15 +214,15 @@ function PreviewCliente({ deal }: { deal: DealWorkspace }) {
         <div className="bg-gray-50 rounded-xl p-4 grid grid-cols-3 gap-4">
           <div className="text-center">
             <div className="text-lg font-bold text-gray-900">{deal.valuationRange}</div>
-            <div className="text-[11px] text-gray-400">Faixa de Valuation</div>
+            <div className="text-xs text-gray-400">Faixa de Valuation</div>
           </div>
           <div className="text-center">
             <div className="text-lg font-bold text-amber-600">{fmtR(fin.estimatedInvestment)}</div>
-            <div className="text-[11px] text-gray-400">Investimento Estimado</div>
+            <div className="text-xs text-gray-400">Investimento Estimado</div>
           </div>
           <div className="text-center">
             <div className="text-lg font-bold text-brand-600">{fin.targetOwnership}%</div>
-            <div className="text-[11px] text-gray-400">Participação Pretendida</div>
+            <div className="text-xs text-gray-400">Participação Pretendida</div>
           </div>
         </div>
 
@@ -249,9 +249,9 @@ function PreviewCliente({ deal }: { deal: DealWorkspace }) {
             <div className="space-y-3">
               {ps.stages.map((s, i) => (
                 <div key={i} className="flex items-start gap-3">
-                  <div className="w-6 h-6 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">{i + 1}</div>
+                  <div className="w-6 h-6 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">{i + 1}</div>
                   <div>
-                    <div className="text-sm font-semibold text-gray-900">{s.label}</div>
+                    <div className="text-base font-semibold text-gray-900">{s.label}</div>
                     <div className="text-xs text-gray-500">{s.description} · {s.targetDate}</div>
                   </div>
                 </div>
@@ -320,7 +320,7 @@ function PreviewInterno({ deal }: { deal: DealWorkspace }) {
             ["Score",              deal.dealScore.toFixed(1) + "/10"],
           ].map(([l, v]) => (
             <div key={l} className="bg-gray-800 rounded-lg p-3">
-              <div className="text-[10px] text-gray-500 uppercase tracking-wide">{l}</div>
+              <div className="text-xs text-gray-500 uppercase tracking-wide">{l}</div>
               <div className="text-base font-bold text-white mt-0.5">{v}</div>
             </div>
           ))}
@@ -328,14 +328,14 @@ function PreviewInterno({ deal }: { deal: DealWorkspace }) {
 
         {/* Tese */}
         <div>
-          <div className="text-[10px] text-gray-500 uppercase tracking-widest font-semibold mb-1">Racional</div>
+          <div className="text-xs text-gray-500 uppercase tracking-widest font-semibold mb-1">Racional</div>
           <p className="text-gray-300 leading-relaxed text-xs">{deal.strategicThesis.strategicRationale}</p>
         </div>
 
         {/* Diagnóstico */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <div className="text-[10px] text-gray-500 uppercase tracking-widest font-semibold mb-1">Pontos Fortes</div>
+            <div className="text-xs text-gray-500 uppercase tracking-widest font-semibold mb-1">Pontos Fortes</div>
             <ul className="space-y-1">
               {deal.assetDiagnosis.strengths.slice(0, 4).map((s, i) => (
                 <li key={i} className="flex items-start gap-1.5 text-xs text-gray-300">
@@ -346,7 +346,7 @@ function PreviewInterno({ deal }: { deal: DealWorkspace }) {
             </ul>
           </div>
           <div>
-            <div className="text-[10px] text-gray-500 uppercase tracking-widest font-semibold mb-1">Fragilidades</div>
+            <div className="text-xs text-gray-500 uppercase tracking-widest font-semibold mb-1">Fragilidades</div>
             <ul className="space-y-1">
               {deal.assetDiagnosis.weaknesses.slice(0, 4).map((w, i) => (
                 <li key={i} className="flex items-start gap-1.5 text-xs text-gray-300">
@@ -360,7 +360,7 @@ function PreviewInterno({ deal }: { deal: DealWorkspace }) {
 
         {/* Risco */}
         <div>
-          <div className="text-[10px] text-gray-500 uppercase tracking-widest font-semibold mb-2">Risco</div>
+          <div className="text-xs text-gray-500 uppercase tracking-widest font-semibold mb-2">Risco</div>
           <div className="grid grid-cols-2 gap-3">
             {[
               ["Jurídico",     deal.riskDiligence.legalRisks],
@@ -369,7 +369,7 @@ function PreviewInterno({ deal }: { deal: DealWorkspace }) {
               ["Integração",   deal.riskDiligence.integrationRisks],
             ].map(([l, v]) => (
               <div key={l} className="bg-gray-800 rounded-lg p-3">
-                <div className="text-[10px] text-gray-500 uppercase tracking-wide mb-1">{l}</div>
+                <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">{l}</div>
                 <p className="text-xs text-gray-300 leading-relaxed line-clamp-3">{v}</p>
               </div>
             ))}
@@ -379,7 +379,7 @@ function PreviewInterno({ deal }: { deal: DealWorkspace }) {
         {/* Pendências */}
         {deal.riskDiligence.diligencePending.length > 0 && (
           <div>
-            <div className="text-[10px] text-gray-500 uppercase tracking-widest font-semibold mb-1">Pendências de Diligência</div>
+            <div className="text-xs text-gray-500 uppercase tracking-widest font-semibold mb-1">Pendências de Diligência</div>
             <ul className="space-y-1">
               {deal.riskDiligence.diligencePending.map((p, i) => (
                 <li key={i} className="flex items-center gap-1.5 text-xs text-amber-300">
@@ -392,7 +392,7 @@ function PreviewInterno({ deal }: { deal: DealWorkspace }) {
         )}
 
         {/* Governança */}
-        <div className="border-t border-gray-800 pt-3 text-[11px] text-gray-500 flex flex-wrap gap-4">
+        <div className="border-t border-gray-800 pt-3 text-xs text-gray-500 flex flex-wrap gap-4">
           <span>Criado por <span className="text-gray-300">{deal.governance.createdBy}</span></span>
           <span>Atualizado por <span className="text-gray-300">{deal.governance.updatedBy}</span></span>
           <span>v{deal.governance.version}</span>
@@ -746,7 +746,7 @@ function StatusChangeModal({
         </div>
         <div className="px-5 py-4 space-y-4">
           <div>
-            <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Estágio do Deal</label>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Estágio do Deal</label>
             <div className="relative">
               <select value={stage} onChange={(e) => setStage(e.target.value as DealStage)}
                 className="w-full appearance-none rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-400 pr-8">
@@ -756,7 +756,7 @@ function StatusChangeModal({
             </div>
           </div>
           <div>
-            <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Status de Envio / Proposta</label>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Status de Envio / Proposta</label>
             <div className="relative">
               <select value={sendStatus} onChange={(e) => setSendStatus(e.target.value as DealSendStatus)}
                 className="w-full appearance-none rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-400 pr-8">
@@ -765,7 +765,7 @@ function StatusChangeModal({
               <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             </div>
           </div>
-          <div className="text-[10px] text-gray-400 bg-gray-50 rounded-lg px-3 py-2">
+          <div className="text-xs text-gray-400 bg-gray-50 rounded-lg px-3 py-2">
             Alteração salva localmente. Para persistência permanente, integrar com API.
           </div>
         </div>
@@ -868,7 +868,7 @@ function StickySidebar({
 
       {/* Actions */}
       <div className="card p-4 space-y-2">
-        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Ações</div>
+        <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Ações</div>
 
         <button className="btn-secondary w-full flex items-center justify-center gap-2 text-xs">
           <Save size={13} />
@@ -907,7 +907,7 @@ function StickySidebar({
 
         <button
           onClick={onChangeStatus}
-          className="w-full flex items-center justify-center gap-2 text-[11px] text-gray-600 hover:text-gray-900 hover:bg-gray-100 py-2 rounded-lg transition-colors font-medium"
+          className="w-full flex items-center justify-center gap-2 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-100 py-2 rounded-lg transition-colors font-medium"
         >
           <Settings size={12} />
           Alterar Status
@@ -916,20 +916,20 @@ function StickySidebar({
         {!proposalDeleted ? (
           <button
             onClick={onDeleteProposal}
-            className="w-full flex items-center justify-center gap-2 text-[11px] text-red-500 hover:text-red-700 hover:bg-red-50 py-2 rounded-lg transition-colors"
+            className="w-full flex items-center justify-center gap-2 text-xs text-red-500 hover:text-red-700 hover:bg-red-50 py-2 rounded-lg transition-colors"
           >
             <Trash2 size={12} />
             Excluir Proposta
           </button>
         ) : (
-          <div className="text-center text-[10px] text-red-400 bg-red-50 rounded-lg py-2 px-3">
+          <div className="text-center text-xs text-red-400 bg-red-50 rounded-lg py-2 px-3">
             Proposta excluída localmente
           </div>
         )}
 
         <div className="border-t border-gray-100 my-1" />
 
-        <button className="w-full flex items-center justify-center gap-2 text-[11px] text-gray-400 hover:text-gray-700 hover:bg-gray-100 py-2 rounded-lg transition-colors">
+        <button className="w-full flex items-center justify-center gap-2 text-xs text-gray-400 hover:text-gray-700 hover:bg-gray-100 py-2 rounded-lg transition-colors">
           <Building2 size={12} />
           Publicar Resumo na Holding
         </button>
@@ -937,7 +937,7 @@ function StickySidebar({
 
       {/* Quick KPIs */}
       <div className="card p-4 space-y-2">
-        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Financeiro</div>
+        <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Financeiro</div>
         {[
           ["Valuation Proposto", fmtR(deal.financials.proposedValuation)],
           ["Receita Estimada",   fmtR(deal.financials.estimatedRevenue)],
@@ -946,8 +946,8 @@ function StickySidebar({
           ["Upside Esperado",    fmtPct(deal.financials.expectedUpside)],
         ].map(([l, v]) => (
           <div key={l} className="flex items-center justify-between py-0.5 border-b border-gray-50 last:border-0">
-            <span className="text-[11px] text-gray-500">{l}</span>
-            <span className="text-[11px] font-bold text-gray-900">{v}</span>
+            <span className="text-xs text-gray-500">{l}</span>
+            <span className="text-xs font-bold text-gray-900">{v}</span>
           </div>
         ))}
       </div>
@@ -1080,7 +1080,7 @@ export default function DealWorkspacePage({
           <div className="flex items-center gap-3 shrink-0">
             <div className="text-right">
               <div className="text-2xl font-bold text-amber-600">{fmtR(deal.proposedValue)}</div>
-              <div className="text-[11px] text-gray-400">Valor Proposto</div>
+              <div className="text-xs text-gray-400">Valor Proposto</div>
             </div>
             <ScoreRing score={deal.dealScore} />
           </div>
@@ -1151,7 +1151,7 @@ export default function DealWorkspacePage({
                 { label: "Confiança Financeira",value: confLabel[deal.financials.revenueConfidence] ?? deal.financials.revenueConfidence, color: "text-gray-700" },
               ].map(({ label, value, color }) => (
                 <div key={label} className="surface-subtle p-3 rounded-xl">
-                  <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-0.5">{label}</div>
+                  <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">{label}</div>
                   <div className={`text-base font-bold ${color} tabular-nums`}>{value}</div>
                 </div>
               ))}
@@ -1160,7 +1160,7 @@ export default function DealWorkspacePage({
 
           {/* §3 Identificação ────────────────────────────────────────────── */}
           <SectionCard id="identificacao" icon={Building2} title="Identificação da Empresa-Alvo">
-            <div className="text-[10px] text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 flex items-center gap-2 mb-3">
+            <div className="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 flex items-center gap-2 mb-3">
               <Pencil size={10} className="shrink-0" /> Clique em qualquer campo para editar.
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1193,7 +1193,7 @@ export default function DealWorkspacePage({
                 { label: "Encaixe AWQ Venture",      key: "thesis.awqFit",       value: deal.strategicThesis.awqVentureFit       },
               ].map(({ label, key, value }) => (
                 <div key={label} className="surface-subtle p-4 rounded-xl">
-                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1.5">{label}</div>
+                  <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5">{label}</div>
                   <EditableText fieldKey={key} value={value} overrideFields={overrideFields} onSave={saveField} />
                 </div>
               ))}
@@ -1204,33 +1204,33 @@ export default function DealWorkspacePage({
           <SectionCard id="diagnostico" icon={BarChart2} title="Diagnóstico do Ativo">
             <div className="space-y-5">
               <div className="surface-subtle p-4 rounded-xl">
-                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1.5">Diagnóstico Resumido</div>
+                <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5">Diagnóstico Resumido</div>
                 <EditableText fieldKey="diag.summary" value={deal.assetDiagnosis.summary} overrideFields={overrideFields} onSave={saveField} />
               </div>
 
               <div className="surface-subtle p-4 rounded-xl space-y-2">
-                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Maturidade</div>
+                <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Maturidade</div>
                 <MaturityDots level={overrideNumeric["diag.opMaturity"] ?? deal.assetDiagnosis.operationalMaturity} label="Maturidade Operacional" />
                 <MaturityDots level={overrideNumeric["diag.comMaturity"] ?? deal.assetDiagnosis.commercialMaturity}  label="Maturidade Comercial"   />
                 <div className="flex gap-4 mt-1">
-                  <span className="text-[10px] text-gray-400">Operacional: <EditableNumber fieldKey="diag.opMaturity" value={deal.assetDiagnosis.operationalMaturity} overrideNumeric={overrideNumeric} onSave={saveNumericField} format="raw" placeholder="1–5" /></span>
-                  <span className="text-[10px] text-gray-400">Comercial: <EditableNumber fieldKey="diag.comMaturity" value={deal.assetDiagnosis.commercialMaturity} overrideNumeric={overrideNumeric} onSave={saveNumericField} format="raw" placeholder="1–5" /></span>
+                  <span className="text-xs text-gray-400">Operacional: <EditableNumber fieldKey="diag.opMaturity" value={deal.assetDiagnosis.operationalMaturity} overrideNumeric={overrideNumeric} onSave={saveNumericField} format="raw" placeholder="1–5" /></span>
+                  <span className="text-xs text-gray-400">Comercial: <EditableNumber fieldKey="diag.comMaturity" value={deal.assetDiagnosis.commercialMaturity} overrideNumeric={overrideNumeric} onSave={saveNumericField} format="raw" placeholder="1–5" /></span>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="surface-subtle p-4 rounded-xl">
-                  <div className="text-[10px] font-bold text-emerald-500 uppercase tracking-wide mb-2">Pontos Fortes</div>
+                  <div className="text-xs font-bold text-emerald-500 uppercase tracking-wide mb-2">Pontos Fortes</div>
                   <EditableStringArray fieldKey="diag.strengths" items={deal.assetDiagnosis.strengths} overrideArrays={overrideArrays} onSave={saveArrayField} icon={CheckCircle2} iconClass="text-emerald-500" emptyText="A preencher." />
                 </div>
                 <div className="surface-subtle p-4 rounded-xl">
-                  <div className="text-[10px] font-bold text-red-400 uppercase tracking-wide mb-2">Fragilidades</div>
+                  <div className="text-xs font-bold text-red-400 uppercase tracking-wide mb-2">Fragilidades</div>
                   <EditableStringArray fieldKey="diag.weaknesses" items={deal.assetDiagnosis.weaknesses} overrideArrays={overrideArrays} onSave={saveArrayField} icon={XCircle} iconClass="text-red-400" emptyText="A preencher." />
                 </div>
               </div>
 
               <div className="surface-subtle p-4 rounded-xl">
-                <div className="text-[10px] font-bold text-amber-500 uppercase tracking-wide mb-2">Riscos Identificados</div>
+                <div className="text-xs font-bold text-amber-500 uppercase tracking-wide mb-2">Riscos Identificados</div>
                 <EditableStringArray fieldKey="diag.risks" items={deal.assetDiagnosis.risks} overrideArrays={overrideArrays} onSave={saveArrayField} icon={AlertTriangle} iconClass="text-amber-500" emptyText="Nenhum risco mapeado." />
               </div>
             </div>
@@ -1260,12 +1260,12 @@ export default function DealWorkspacePage({
               </div>
 
               <div className="surface-subtle p-4 rounded-xl">
-                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1.5">Estrutura da Oferta</div>
+                <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5">Estrutura da Oferta</div>
                 <EditableText fieldKey="fin.offerStructure" value={deal.financials.offerStructure} overrideFields={overrideFields} onSave={saveField} />
               </div>
 
               <div className="surface-subtle p-4 rounded-xl">
-                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1.5">Observações Financeiras</div>
+                <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5">Observações Financeiras</div>
                 <EditableText fieldKey="fin.notes" value={deal.financials.financialNotes} overrideFields={overrideFields} onSave={saveField} />
               </div>
             </div>
@@ -1282,31 +1282,31 @@ export default function DealWorkspacePage({
                   { label: "Riscos de Integração", key: "risk.integ",   value: deal.riskDiligence.integrationRisks },
                 ].map(({ label, key, value }) => (
                   <div key={label} className="surface-subtle p-4 rounded-xl">
-                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1.5">{label}</div>
+                    <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5">{label}</div>
                     <EditableText fieldKey={key} value={value} overrideFields={overrideFields} onSave={saveField} />
                   </div>
                 ))}
               </div>
 
               <div className="surface-subtle p-4 rounded-xl">
-                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Kill Criteria</div>
+                <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Kill Criteria</div>
                 <EditableText fieldKey="risk.killCriteria" value={overrideFields["risk.killCriteria"] ?? ""} overrideFields={overrideFields} onSave={saveField} placeholder="Condições que encerram o deal…" />
               </div>
 
               <div className="surface-subtle p-4 rounded-xl">
-                <div className="text-[10px] font-bold text-amber-500 uppercase tracking-wide mb-2">Pendências de Diligência</div>
+                <div className="text-xs font-bold text-amber-500 uppercase tracking-wide mb-2">Pendências de Diligência</div>
                 <EditableStringArray fieldKey="risk.pending" items={deal.riskDiligence.diligencePending} overrideArrays={overrideArrays} onSave={saveArrayField} icon={Clock} iconClass="text-amber-500" emptyText="Sem pendências registradas." />
               </div>
 
               <div className="surface-subtle p-4 rounded-xl">
-                <div className={`text-[10px] font-bold uppercase tracking-wide mb-2 ${(overrideArrays["risk.blockers"] ?? deal.riskDiligence.blockers).length > 0 ? "text-red-500" : "text-emerald-500"}`}>
+                <div className={`text-xs font-bold uppercase tracking-wide mb-2 ${(overrideArrays["risk.blockers"] ?? deal.riskDiligence.blockers).length > 0 ? "text-red-500" : "text-emerald-500"}`}>
                   Blockers
                 </div>
                 <EditableStringArray fieldKey="risk.blockers" items={deal.riskDiligence.blockers} overrideArrays={overrideArrays} onSave={saveArrayField} icon={AlertTriangle} iconClass="text-red-500" emptyText="Nenhum blocker identificado." />
               </div>
 
               <div className="surface-subtle p-4 rounded-xl">
-                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Condições Precedentes</div>
+                <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Condições Precedentes</div>
                 <EditableText fieldKey="risk.precedentConditions" value={overrideFields["risk.precedentConditions"] ?? ""} overrideFields={overrideFields} onSave={saveField} placeholder="Condições que devem ser satisfeitas antes do fechamento…" />
               </div>
             </div>
@@ -1332,24 +1332,24 @@ export default function DealWorkspacePage({
               </div>
             ) : (
             <div className="space-y-4">
-              <div className="text-[10px] text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 flex items-center gap-2">
+              <div className="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 flex items-center gap-2">
                 <Pencil size={10} className="shrink-0" />
                 Clique em qualquer campo para editar. Alterações salvas localmente.
               </div>
 
               <div className="surface-subtle p-4 rounded-xl">
-                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1.5">Proposta Econômica</div>
+                <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5">Proposta Econômica</div>
                 <EditableText fieldKey="economicProposal" value={deal.proposalStructure.economicProposal} overrideFields={overrideFields} onSave={saveField} />
               </div>
 
               <div className="surface-subtle p-4 rounded-xl">
-                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1.5">Forma de Pagamento</div>
+                <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5">Forma de Pagamento</div>
                 <EditableText fieldKey="paymentStructure" value={deal.proposalStructure.paymentStructure} overrideFields={overrideFields} onSave={saveField} />
               </div>
 
               {deal.proposalStructure.stages.length > 0 && (
                 <div className="surface-subtle p-4 rounded-xl">
-                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-3">Etapas</div>
+                  <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Etapas</div>
                   <div className="relative space-y-3 pl-4">
                     <div className="absolute left-1.5 top-2 bottom-2 w-px bg-gray-200" />
                     {deal.proposalStructure.stages.map((s, i) => (
@@ -1358,7 +1358,7 @@ export default function DealWorkspacePage({
                         <div className="flex-1">
                           <EditableText fieldKey={`stage_${i}_label`} value={s.label} overrideFields={overrideFields} onSave={saveField} multiline={false} className="font-bold text-gray-900 text-xs" />
                           <EditableText fieldKey={`stage_${i}_desc`} value={s.description} overrideFields={overrideFields} onSave={saveField} className="text-gray-500 text-xs mt-0.5" />
-                          <EditableText fieldKey={`stage_${i}_date`} value={s.targetDate} overrideFields={overrideFields} onSave={saveField} multiline={false} className="text-brand-600 text-[10px] font-semibold mt-0.5" />
+                          <EditableText fieldKey={`stage_${i}_date`} value={s.targetDate} overrideFields={overrideFields} onSave={saveField} multiline={false} className="text-brand-600 text-xs font-semibold mt-0.5" />
                         </div>
                       </div>
                     ))}
@@ -1368,7 +1368,7 @@ export default function DealWorkspacePage({
 
               {deal.proposalStructure.conditions.length > 0 && (
                 <div className="surface-subtle p-4 rounded-xl">
-                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Condicionantes</div>
+                  <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Condicionantes</div>
                   <ul className="space-y-1.5">
                     {deal.proposalStructure.conditions.map((c, i) => (
                       <li key={i} className="flex items-start gap-2">
@@ -1382,12 +1382,12 @@ export default function DealWorkspacePage({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="surface-subtle p-4 rounded-xl">
-                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1.5">Cronograma</div>
+                  <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5">Cronograma</div>
                   <EditableText fieldKey="timeline" value={deal.proposalStructure.timeline} overrideFields={overrideFields} onSave={saveField} />
                 </div>
 
                 <div className="surface-subtle p-4 rounded-xl">
-                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Próximos Passos</div>
+                  <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Próximos Passos</div>
                   <EditableNextSteps
                     steps={deal.proposalStructure.nextSteps}
                     overrideSteps={override.nextSteps}
@@ -1431,14 +1431,14 @@ export default function DealWorkspacePage({
               </div>
 
               <div className="surface-subtle p-4 rounded-xl">
-                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Audit Trail</div>
+                <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Audit Trail</div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="border-b border-gray-100">
-                        <th className="text-left py-1.5 pr-4 font-semibold text-gray-500 whitespace-nowrap">Data</th>
-                        <th className="text-left py-1.5 pr-4 font-semibold text-gray-500 whitespace-nowrap">Por</th>
-                        <th className="text-left py-1.5 font-semibold text-gray-500">Ação</th>
+                        <th className="text-left py-1.5 pr-4 font-semibold text-gray-500 whitespace-nowrap uppercase tracking-wide">Data</th>
+                        <th className="text-left py-1.5 pr-4 font-semibold text-gray-500 whitespace-nowrap uppercase tracking-wide">Por</th>
+                        <th className="text-left py-1.5 font-semibold text-gray-500 uppercase tracking-wide">Ação</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">

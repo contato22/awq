@@ -91,7 +91,7 @@ export default function SecurityPage() {
         <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">Normalização de Roles</h2>
         <div className="overflow-x-auto rounded-xl border border-gray-200">
           <table className="min-w-full text-xs">
-            <thead><tr className="bg-gray-50 border-b border-gray-200 text-gray-600 font-semibold"><th className="px-3 py-2 text-left">JWT Role</th><th className="px-3 py-2 text-left">Canônico</th><th className="px-3 py-2 text-left">Usuário</th></tr></thead>
+            <thead><tr className="bg-gray-50 border-b border-gray-200 text-gray-600 font-semibold uppercase tracking-wide"><th className="px-3 py-2 text-left">JWT Role</th><th className="px-3 py-2 text-left">Canônico</th><th className="px-3 py-2 text-left">Usuário</th></tr></thead>
             <tbody className="divide-y divide-gray-100">
               <tr><td className="px-3 py-2 font-mono text-amber-700">analyst</td><td className="px-3 py-2 font-mono text-blue-700">finance</td><td className="px-3 py-2 text-gray-600">p.nair@jacqes.com</td></tr>
               <tr><td className="px-3 py-2 font-mono text-amber-700">cs-ops</td><td className="px-3 py-2 font-mono text-blue-700">operator</td><td className="px-3 py-2 text-gray-600">danilo@jacqes.com</td></tr>
@@ -106,7 +106,7 @@ export default function SecurityPage() {
         <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">Matriz RBAC</h2>
         <div className="overflow-x-auto rounded-xl border border-gray-200">
           <table className="min-w-full text-xs">
-            <thead><tr className="bg-gray-50 border-b border-gray-200"><th className="px-3 py-2 text-left font-semibold text-gray-600">Camada</th>{CANONICAL_ROLES.map(r => <th key={r} className="px-3 py-2 text-center font-semibold text-gray-600 capitalize">{r}</th>)}</tr></thead>
+            <thead><tr className="bg-gray-50 border-b border-gray-200"><th className="px-3 py-2 text-left font-semibold text-gray-600 uppercase tracking-wide">Camada</th>{CANONICAL_ROLES.map(r => <th key={r} className="px-3 py-2 text-center font-semibold text-gray-600 capitalize uppercase tracking-wide">{r}</th>)}</tr></thead>
             <tbody className="divide-y divide-gray-100">
               {ALL_LAYERS.map(layer => (
                 <tr key={layer} className="hover:bg-gray-50/60">
@@ -127,14 +127,14 @@ export default function SecurityPage() {
         <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">APIs Sensíveis — Guard Status ({totalApis})</h2>
         <div className="overflow-x-auto rounded-xl border border-gray-200">
           <table className="min-w-full text-xs">
-            <thead><tr className="bg-gray-50 border-b border-gray-200 text-gray-600 font-semibold"><th className="px-3 py-2 text-left">Pattern</th><th className="px-3 py-2 text-left">Camada</th><th className="px-3 py-2 text-left">Guard</th><th className="px-3 py-2 text-left">Auth</th><th className="px-3 py-2 text-left">Ação</th><th className="px-3 py-2 text-left">Descrição</th></tr></thead>
+            <thead><tr className="bg-gray-50 border-b border-gray-200 text-gray-600 font-semibold uppercase tracking-wide"><th className="px-3 py-2 text-left">Pattern</th><th className="px-3 py-2 text-left">Camada</th><th className="px-3 py-2 text-left">Guard</th><th className="px-3 py-2 text-left">Auth</th><th className="px-3 py-2 text-left">Ação</th><th className="px-3 py-2 text-left">Descrição</th></tr></thead>
             <tbody className="divide-y divide-gray-100">
               {SENSITIVE_APIS.map(api => (
                 <tr key={api.pattern} className="hover:bg-gray-50/60">
                   <td className="px-3 py-2 font-mono text-gray-800 whitespace-nowrap">{api.pattern}</td>
                   <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{LAYER_LABELS[api.layer] ?? api.layer}</td>
-                  <td className="px-3 py-2"><span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${GUARD_STATUS_COLOR[api.guardStatus]}`}>{api.guardStatus}</span></td>
-                  <td className="px-3 py-2"><span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${AUTH_COLOR[api.authEnforcement]}`}>{api.authEnforcement}</span></td>
+                  <td className="px-3 py-2"><span className={`px-1.5 py-0.5 rounded text-xs font-semibold ${GUARD_STATUS_COLOR[api.guardStatus]}`}>{api.guardStatus}</span></td>
+                  <td className="px-3 py-2"><span className={`px-1.5 py-0.5 rounded text-xs font-semibold ${AUTH_COLOR[api.authEnforcement]}`}>{api.authEnforcement}</span></td>
                   <td className="px-3 py-2"><ActionBadge action={api.requiredAction} /></td>
                   <td className="px-3 py-2 text-gray-500 max-w-xs">{api.description}</td>
                 </tr>
@@ -149,14 +149,14 @@ export default function SecurityPage() {
         <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">Rotas UI — Prontidão v3 ({totalRoutes})</h2>
         <div className="overflow-x-auto rounded-xl border border-gray-200">
           <table className="min-w-full text-xs">
-            <thead><tr className="bg-gray-50 border-b border-gray-200 text-gray-600 font-semibold"><th className="px-3 py-2 text-left">Path</th><th className="px-3 py-2 text-left">Camada</th><th className="px-3 py-2 text-left">Sensibilidade</th><th className="px-3 py-2 text-left">v3 Status</th><th className="px-3 py-2 text-left">Descrição</th></tr></thead>
+            <thead><tr className="bg-gray-50 border-b border-gray-200 text-gray-600 font-semibold uppercase tracking-wide"><th className="px-3 py-2 text-left">Path</th><th className="px-3 py-2 text-left">Camada</th><th className="px-3 py-2 text-left">Sensibilidade</th><th className="px-3 py-2 text-left">v3 Status</th><th className="px-3 py-2 text-left">Descrição</th></tr></thead>
             <tbody className="divide-y divide-gray-100">
               {SENSITIVE_ROUTES.map(route => (
                 <tr key={route.path} className="hover:bg-gray-50/60">
                   <td className="px-3 py-2 font-mono text-gray-800 whitespace-nowrap">{route.path}</td>
                   <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{LAYER_LABELS[route.layer] ?? route.layer}</td>
-                  <td className="px-3 py-2"><span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase ${SENSITIVITY_COLOR[route.sensitivity]}`}>{route.sensitivity}</span></td>
-                  <td className="px-3 py-2"><span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${ROUTE_GUARD_COLOR[route.routeGuardStatus ?? "registered"]}`}>{route.routeGuardStatus ?? "registered"}</span></td>
+                  <td className="px-3 py-2"><span className={`px-1.5 py-0.5 rounded text-xs font-semibold uppercase ${SENSITIVITY_COLOR[route.sensitivity]}`}>{route.sensitivity}</span></td>
+                  <td className="px-3 py-2"><span className={`px-1.5 py-0.5 rounded text-xs font-semibold ${ROUTE_GUARD_COLOR[route.routeGuardStatus ?? "registered"]}`}>{route.routeGuardStatus ?? "registered"}</span></td>
                   <td className="px-3 py-2 text-gray-500 max-w-xs">{route.description}</td>
                 </tr>
               ))}

@@ -167,7 +167,7 @@ export default async function BusinessUnitsPage() {
                   <div className={`w-11 h-11 rounded-xl ${bu.bgColor} flex items-center justify-center`}>
                     <Icon size={20} className={bu.textColor} />
                   </div>
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${bu.badgeColor}`}>{bu.status}</span>
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${bu.badgeColor}`}>{bu.status}</span>
                 </div>
 
                 {/* Name */}
@@ -181,7 +181,7 @@ export default async function BusinessUnitsPage() {
                   {bu.kpis.map((kpi) => (
                     <div key={kpi.label} className="text-center">
                       <div className="text-sm font-bold text-gray-900 tabular-nums">{kpi.value}</div>
-                      <div className="text-[10px] text-gray-500 mt-0.5">{kpi.label}</div>
+                      <div className="text-xs text-gray-500 mt-0.5">{kpi.label}</div>
                     </div>
                   ))}
                 </div>

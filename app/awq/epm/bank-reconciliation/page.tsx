@@ -139,13 +139,13 @@ export default function BankReconciliationPage() {
               <label className="block text-xs font-medium text-gray-600 mb-1">Data *</label>
               <input required type="date" value={form.txn_date}
                 onChange={(e) => setForm((f) => ({ ...f, txn_date: e.target.value }))}
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Tipo *</label>
               <select value={form.txn_type}
                 onChange={(e) => setForm((f) => ({ ...f, txn_type: e.target.value as "credit" | "debit" }))}
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
                 <option value="credit">Crédito (entrada)</option>
                 <option value="debit">Débito (saída)</option>
               </select>
@@ -155,20 +155,20 @@ export default function BankReconciliationPage() {
               <input required type="number" min="0.01" step="0.01" value={form.amount}
                 onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
                 placeholder="0.00"
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
             </div>
             <div className="col-span-2">
               <label className="block text-xs font-medium text-gray-600 mb-1">Descrição *</label>
               <input required value={form.description}
                 onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                 placeholder="Ex: PIX recebido — Cliente ABC"
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">BU</label>
               <select value={form.bu_code}
                 onChange={(e) => setForm((f) => ({ ...f, bu_code: e.target.value as BuCode | "" }))}
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
                 <option value="">Sem BU</option>
                 {BUS.map((b) => <option key={b} value={b}>{b}</option>)}
               </select>
@@ -178,7 +178,7 @@ export default function BankReconciliationPage() {
               <input value={form.bank_ref}
                 onChange={(e) => setForm((f) => ({ ...f, bank_ref: e.target.value }))}
                 placeholder="TxID PIX, NSU, etc."
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
             </div>
           </div>
           <div className="flex justify-end gap-3">

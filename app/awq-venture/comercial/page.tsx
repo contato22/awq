@@ -103,14 +103,14 @@ function ProposalPreviewOverlay({
           </div>
           <div>
             <div className="text-sm font-bold text-gray-900">Preview Enviável — {opp.company}</div>
-            <div className="text-[11px] text-gray-500">
+            <div className="text-xs text-gray-500">
               {p.proposalId} · v{p.version} ·{" "}
               <span className={proposalStatusColor[p.status]}>{p.status}</span>
             </div>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 text-[10px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5">
+          <div className="flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5">
             <AlertTriangle size={10} />
             Uso interno — não é o link do cliente
           </div>
@@ -128,7 +128,7 @@ function ProposalPreviewOverlay({
 
         {/* Capa */}
         <div className="border border-gray-200 rounded-2xl p-8 text-center space-y-3 bg-gradient-to-b from-amber-50 to-white">
-          <div className="text-[10px] font-bold tracking-widest text-amber-600 uppercase">
+          <div className="text-xs font-bold tracking-widest text-amber-600 uppercase">
             AWQ Venture · Proposta Comercial Confidencial
           </div>
           <h1 className="text-2xl font-bold text-gray-900">{p.title}</h1>
@@ -199,11 +199,11 @@ function ProposalPreviewOverlay({
             <div className="space-y-2">
               {p.schedule.map((s, i) => (
                 <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-gray-50">
-                  <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center shrink-0 text-[10px] font-bold text-amber-700">{i+1}</div>
+                  <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center shrink-0 text-xs font-bold text-amber-700">{i+1}</div>
                   <div>
                     <div className="text-xs font-semibold text-gray-900">{s.phase}</div>
-                    <div className="text-[11px] text-gray-500">{s.description}</div>
-                    <div className="text-[10px] text-amber-600 mt-0.5">{s.targetDate}</div>
+                    <div className="text-xs text-gray-500">{s.description}</div>
+                    <div className="text-xs text-amber-600 mt-0.5">{s.targetDate}</div>
                   </div>
                 </div>
               ))}
@@ -234,7 +234,7 @@ function ProposalPreviewOverlay({
         )}
 
         {/* Rodapé da proposta */}
-        <div className="border-t border-gray-200 pt-6 text-center text-[10px] text-gray-400 space-y-1">
+        <div className="border-t border-gray-200 pt-6 text-center text-xs text-gray-400 space-y-1">
           <div>AWQ Venture · Documento Confidencial · Para uso exclusivo do destinatário</div>
           <div>Gerado em {new Date().toLocaleDateString("pt-BR")} · {p.proposalId} v{p.version}</div>
           <div className="text-[9px]">
@@ -327,7 +327,7 @@ export default function ComercialPage() {
               </div>
               <div>
                 <div className="text-lg font-bold text-gray-900">{k.value}</div>
-                <div className="text-[11px] text-gray-500">{k.label}</div>
+                <div className="text-xs text-gray-500">{k.label}</div>
                 {k.quality && <QualityBadge q={k.quality as DataQuality} />}
               </div>
             </div>
@@ -368,7 +368,7 @@ export default function ComercialPage() {
             ].map((s) => (
               <div key={s.label} className="card p-4 text-center">
                 <div className="text-2xl font-bold text-gray-900">{s.value}</div>
-                <div className="text-[11px] text-gray-500 mt-1">{s.label}</div>
+                <div className="text-xs text-gray-500 mt-1">{s.label}</div>
               </div>
             ))}
           </div>
@@ -376,7 +376,7 @@ export default function ComercialPage() {
           {/* Contratos ativos */}
           <div className="card overflow-hidden">
             <div className="px-5 py-3.5 border-b border-gray-100">
-              <h3 className="text-sm font-semibold text-gray-900">Contratos Ativos</h3>
+              <h3 className="text-base font-semibold text-gray-900">Contratos Ativos</h3>
             </div>
             {activeContracts.length === 0 ? (
               <div className="px-5 py-8 text-center text-sm text-gray-400">
@@ -391,8 +391,8 @@ export default function ComercialPage() {
                         <Building2 size={14} className="text-emerald-600" />
                       </div>
                       <div>
-                        <div className="text-sm font-semibold text-gray-900">{o.company}</div>
-                        <div className="text-[11px] text-gray-500">{o.sector} · {o.dealType}</div>
+                        <div className="text-base font-semibold text-gray-900">{o.company}</div>
+                        <div className="text-xs text-gray-500">{o.sector} · {o.dealType}</div>
                       </div>
                     </div>
                     <div className="text-right">
@@ -408,14 +408,14 @@ export default function ComercialPage() {
                       )}
                     </div>
                     <div>
-                      <span className={`text-[11px] font-semibold px-2 py-1 rounded-full ${stageColor[o.stage] ?? "text-gray-500 bg-gray-100"}`}>
+                      <span className={`text-xs font-semibold px-2 py-1 rounded-full ${stageColor[o.stage] ?? "text-gray-500 bg-gray-100"}`}>
                         {o.stage}
                       </span>
                     </div>
                     {o.proposal && (
                       <button
                         onClick={() => setPreviewOpp(o)}
-                        className="flex items-center gap-1.5 text-[11px] font-medium text-amber-600 hover:text-amber-800 transition-colors"
+                        className="flex items-center gap-1.5 text-xs font-medium text-amber-600 hover:text-amber-800 transition-colors"
                       >
                         <Eye size={12} />
                         Preview
@@ -434,8 +434,8 @@ export default function ComercialPage() {
                 <FileText size={14} className="text-amber-700" />
               </div>
               <div>
-                <div className="text-sm font-semibold text-gray-900">Deals M&A / Aquisições</div>
-                <div className="text-[11px] text-gray-500">
+                <div className="text-base font-semibold text-gray-900">Deals M&A / Aquisições</div>
+                <div className="text-xs text-gray-500">
                   Pipeline de aquisições e investimentos em /awq-venture/deals
                 </div>
               </div>
@@ -454,7 +454,7 @@ export default function ComercialPage() {
       {section === "pipeline" && (
         <div className="card overflow-hidden">
           <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-gray-900">Pipeline Comercial</h3>
+            <h3 className="text-base font-semibold text-gray-900">Pipeline Comercial</h3>
             <span className="text-xs text-gray-400">{opps.length} oportunidades</span>
           </div>
           <div className="overflow-x-auto">
@@ -462,7 +462,7 @@ export default function ComercialPage() {
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50/60">
                   {["Empresa", "Tipo", "Stage", "Fee/Mês", "ARR", "Contrato", "Prob.", "Prioridade", "Responsável", "Próxima Ação", ""].map((h) => (
-                    <th key={h} className="text-left py-2.5 px-4 text-[11px] font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
+                    <th key={h} className="text-left py-2.5 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
                       {h}
                     </th>
                   ))}
@@ -473,11 +473,11 @@ export default function ComercialPage() {
                   <tr key={o.id} className="hover:bg-gray-50 transition-colors group">
                     <td className="py-3 px-4">
                       <div className="font-semibold text-gray-900 text-sm">{o.company}</div>
-                      <div className="text-[10px] text-gray-400 mt-0.5">{o.id} · {o.sector}</div>
+                      <div className="text-xs text-gray-400 mt-0.5">{o.id} · {o.sector}</div>
                     </td>
-                    <td className="py-3 px-4 text-[11px] text-gray-600 whitespace-nowrap">{o.dealType}</td>
+                    <td className="py-3 px-4 text-xs text-gray-600 whitespace-nowrap">{o.dealType}</td>
                     <td className="py-3 px-4">
-                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${stageColor[o.stage] ?? "text-gray-500 bg-gray-100"}`}>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${stageColor[o.stage] ?? "text-gray-500 bg-gray-100"}`}>
                         {o.stage}
                       </span>
                     </td>
@@ -490,7 +490,7 @@ export default function ComercialPage() {
                           <QualityBadge q={o.economics.monthlyFeeQuality} />
                         </div>
                       ) : (
-                        <span className="text-[11px] text-gray-300">—</span>
+                        <span className="text-xs text-gray-300">—</span>
                       )}
                     </td>
                     <td className="py-3 px-4 text-right">
@@ -502,7 +502,7 @@ export default function ComercialPage() {
                           <QualityBadge q={o.economics.arrQuality} />
                         </div>
                       ) : (
-                        <span className="text-[11px] text-gray-300">—</span>
+                        <span className="text-xs text-gray-300">—</span>
                       )}
                     </td>
                     <td className="py-3 px-4 text-right">
@@ -514,7 +514,7 @@ export default function ComercialPage() {
                           <QualityBadge q={o.economics.contractValueQuality} />
                         </div>
                       ) : (
-                        <span className="text-[11px] text-gray-300">—</span>
+                        <span className="text-xs text-gray-300">—</span>
                       )}
                     </td>
                     <td className="py-3 px-4 text-center">
@@ -523,7 +523,7 @@ export default function ComercialPage() {
                       </span>
                     </td>
                     <td className="py-3 px-4">
-                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
                         o.priority === "Alta" ? "text-red-700 bg-red-50" :
                         o.priority === "Média" ? "text-amber-700 bg-amber-50" :
                         "text-gray-600 bg-gray-100"
@@ -531,15 +531,15 @@ export default function ComercialPage() {
                         {o.priority}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-[11px] text-gray-500">{o.responsible}</td>
+                    <td className="py-3 px-4 text-xs text-gray-500">{o.responsible}</td>
                     <td className="py-3 px-4 max-w-[200px]">
-                      <div className="text-[11px] text-gray-500 truncate">{o.nextAction}</div>
+                      <div className="text-xs text-gray-500 truncate">{o.nextAction}</div>
                     </td>
                     <td className="py-3 px-4">
                       {o.proposal && (
                         <button
                           onClick={() => setPreviewOpp(o)}
-                          className="flex items-center gap-1 text-[11px] text-amber-600 hover:text-amber-800 transition-colors"
+                          className="flex items-center gap-1 text-xs text-amber-600 hover:text-amber-800 transition-colors"
                         >
                           <Eye size={11} />
                           Preview
@@ -576,12 +576,12 @@ export default function ComercialPage() {
                     <div>
                       <div className="flex items-center gap-2">
                         <h3 className="text-base font-bold text-gray-900">{o.company}</h3>
-                        <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${stageColor[o.stage] ?? ""}`}>
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${stageColor[o.stage] ?? ""}`}>
                           {o.stage}
                         </span>
                       </div>
                       <div className="text-xs text-gray-500 mt-0.5">{p.title}</div>
-                      <div className="text-[11px] text-gray-400 mt-0.5">
+                      <div className="text-xs text-gray-400 mt-0.5">
                         {p.proposalId} · v{p.version} · Atualizado: {p.updatedAt}
                       </div>
                     </div>
@@ -614,27 +614,27 @@ export default function ComercialPage() {
                     {p.monthlyFee !== null && p.feeQuality !== "sem_dado" && (
                       <div className="text-center p-2 rounded-lg bg-amber-50">
                         <div className="text-sm font-bold text-amber-700">R${p.monthlyFee.toLocaleString("pt-BR")}</div>
-                        <div className="text-[10px] text-amber-600">Fee mensal</div>
+                        <div className="text-xs text-amber-600">Fee mensal</div>
                         <QualityBadge q={p.feeQuality} />
                       </div>
                     )}
                     <div className="text-center p-2 rounded-lg bg-gray-50">
                       <div className="text-sm font-bold text-gray-700">{p.contractDuration}</div>
-                      <div className="text-[10px] text-gray-500">Prazo</div>
+                      <div className="text-xs text-gray-500">Prazo</div>
                     </div>
                     <div className="text-center p-2 rounded-lg bg-gray-50">
                       <div className="text-sm font-bold text-gray-700">{p.advanceCriteria.length}</div>
-                      <div className="text-[10px] text-gray-500">Critérios de avanço</div>
+                      <div className="text-xs text-gray-500">Critérios de avanço</div>
                     </div>
                   </div>
 
                   {/* Próximos passos */}
                   {p.nextSteps.length > 0 && (
                     <div>
-                      <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Próximos passos</div>
+                      <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Próximos passos</div>
                       <ul className="space-y-0.5">
                         {p.nextSteps.slice(0, 3).map((s, i) => (
-                          <li key={i} className="flex items-start gap-1.5 text-[11px] text-gray-600">
+                          <li key={i} className="flex items-start gap-1.5 text-xs text-gray-600">
                             <span className="text-amber-500 mt-0.5">→</span>{s}
                           </li>
                         ))}
@@ -672,9 +672,9 @@ export default function ComercialPage() {
                   <div key={o.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
                     <div>
                       <span className="text-sm font-medium text-gray-700">{o.company}</span>
-                      <span className="ml-2 text-[11px] text-gray-400">{o.dealType}</span>
+                      <span className="ml-2 text-xs text-gray-400">{o.dealType}</span>
                     </div>
-                    <span className="text-[10px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Sem proposta</span>
+                    <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Sem proposta</span>
                   </div>
                 ))}
               </div>

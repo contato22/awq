@@ -31,7 +31,7 @@ export default function SectionHeader({
       {linkLabel && linkHref && (
         <Link
           href={linkHref}
-          className="text-[11px] text-brand-600 hover:text-brand-700 flex items-center gap-1 transition-colors font-medium shrink-0 ml-4"
+          className="text-xs text-brand-600 hover:text-brand-700 flex items-center gap-1 transition-colors font-medium shrink-0 ml-4"
         >
           {linkLabel}
           <ChevronRight size={12} />

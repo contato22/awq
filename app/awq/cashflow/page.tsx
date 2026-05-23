@@ -49,7 +49,7 @@ function NoDataBanner({ gaps }: { gaps: string[] }) {
           {gaps.length > 0 && (
             <ul className="mt-2 space-y-0.5">
               {gaps.map((g) => (
-                <li key={g} className="text-[11px] text-amber-600 flex items-center gap-1.5">
+                <li key={g} className="text-xs text-amber-600 flex items-center gap-1.5">
                   <span className="w-1 h-1 rounded-full bg-amber-500 shrink-0" />
                   {g}
                 </li>
@@ -91,7 +91,7 @@ function KpiCard({
           {positive
             ? <ArrowUpRight size={11} className="text-emerald-600" />
             : <ArrowDownRight size={11} className="text-red-600" />}
-          <span className="text-[10px] text-gray-400">{sub}</span>
+          <span className="text-xs text-gray-400">{sub}</span>
         </div>
       </div>
     </div>
@@ -140,7 +140,7 @@ function MonthlyBridgeChart({ entries }: { entries: MonthlyEntry[] }) {
 
           return (
             <div key={month} className="flex-1 min-w-[80px]">
-              <div className="text-[10px] font-semibold text-gray-500 mb-1.5 text-center">
+              <div className="text-xs font-semibold text-gray-500 mb-1.5 text-center">
                 {monthLabel}
               </div>
               <div className="space-y-1">
@@ -158,7 +158,7 @@ function MonthlyBridgeChart({ entries }: { entries: MonthlyEntry[] }) {
                 </div>
               </div>
               <div className="text-center mt-1.5">
-                <span className={`text-[10px] font-bold ${net >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                <span className={`text-xs font-bold ${net >= 0 ? "text-emerald-600" : "text-red-600"}`}>
                   {net >= 0 ? "+" : ""}{fmtBRL(net)}
                 </span>
               </div>
@@ -176,7 +176,7 @@ function MonthlyBridgeChart({ entries }: { entries: MonthlyEntry[] }) {
           );
         })}
       </div>
-      <div className="flex items-center gap-4 mt-3 text-[10px] text-gray-400">
+      <div className="flex items-center gap-4 mt-3 text-xs text-gray-400">
         <span className="flex items-center gap-1">
           <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" /> Entradas
         </span>
@@ -280,7 +280,7 @@ export default async function AwqCashflowPage() {
             </p>
             <ul className="space-y-0.5">
               {gap.map((g) => (
-                <li key={g} className="text-[11px] text-amber-600 flex items-center gap-1.5">
+                <li key={g} className="text-xs text-amber-600 flex items-center gap-1.5">
                   <span className="w-1 h-1 rounded-full bg-amber-400 shrink-0" />
                   {g}
                 </li>
@@ -304,7 +304,7 @@ export default async function AwqCashflowPage() {
             <h2 className="text-sm font-semibold text-gray-900 mb-1">
               FCO Waterfall — Visão de Caixa
             </h2>
-            <p className="text-[11px] text-gray-400 mb-4">
+            <p className="text-xs text-gray-400 mb-4">
               Baseado exclusivamente nos extratos ingeridos. Capex e distribuições
               não estão disponíveis nesta base.
             </p>
@@ -353,7 +353,7 @@ export default async function AwqCashflowPage() {
             <h2 className="text-sm font-semibold text-gray-900 mb-1">
               Bridge Mensal — Entradas vs Saídas
             </h2>
-            <p className="text-[11px] text-gray-400 mb-4">
+            <p className="text-xs text-gray-400 mb-4">
               Fluxo operacional por mês, excluindo transferências intercompany.
             </p>
             <MonthlyBridgeChart entries={q.monthlyBridge} />
@@ -371,13 +371,13 @@ export default async function AwqCashflowPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-200">
-                    <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Entidade</th>
-                    <th className="text-right py-2 px-3 text-xs font-semibold text-emerald-600">Entradas</th>
-                    <th className="text-right py-2 px-3 text-xs font-semibold text-red-600">Saídas</th>
-                    <th className="text-right py-2 px-3 text-xs font-semibold text-brand-600">FCO</th>
-                    <th className="text-right py-2 px-3 text-xs font-semibold text-amber-700">Pró-labore</th>
-                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-600">Caixa</th>
-                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400">Docs</th>
+                    <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Entidade</th>
+                    <th className="text-right py-2 px-3 text-xs font-semibold text-emerald-600 uppercase tracking-wide">Entradas</th>
+                    <th className="text-right py-2 px-3 text-xs font-semibold text-red-600 uppercase tracking-wide">Saídas</th>
+                    <th className="text-right py-2 px-3 text-xs font-semibold text-brand-600 uppercase tracking-wide">FCO</th>
+                    <th className="text-right py-2 px-3 text-xs font-semibold text-amber-700 uppercase tracking-wide">Pró-labore</th>
+                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">Caixa</th>
+                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Docs</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -429,7 +429,7 @@ export default async function AwqCashflowPage() {
                 </tbody>
               </table>
             </div>
-            <p className="text-[10px] text-gray-400 mt-2 flex items-center gap-1">
+            <p className="text-xs text-gray-400 mt-2 flex items-center gap-1">
               <MinusCircle size={10} /> Eliminação intercompany aplicada:{" "}
               <span className="font-semibold">{fmtBRL(c.intercompanyEliminated)}</span>
             </p>
@@ -457,10 +457,10 @@ export default async function AwqCashflowPage() {
                         <span className="text-xs font-medium text-brand-700">
                           {acc.accountName}
                         </span>
-                        <span className="text-[10px] text-gray-400">{ENTITY_LABELS[acc.entity]}</span>
-                        <span className="text-[10px] bg-gray-100 text-gray-500 rounded px-1">{acc.bank}</span>
+                        <span className="text-xs text-gray-400">{ENTITY_LABELS[acc.entity]}</span>
+                        <span className="text-xs bg-gray-100 text-gray-500 rounded px-1">{acc.bank}</span>
                       </div>
-                      <div className="flex items-center gap-3 text-[11px]">
+                      <div className="flex items-center gap-3 text-xs">
                         <span className="text-gray-400">
                           Entradas:{" "}
                           <span className="text-emerald-600 font-semibold">{fmtBRL(acc.totalCredits)}</span>
@@ -476,7 +476,7 @@ export default async function AwqCashflowPage() {
                         style={{ width: `${Math.min(share, 100)}%` }}
                       />
                     </div>
-                    <div className="flex justify-between mt-0.5 text-[10px] text-gray-400">
+                    <div className="flex justify-between mt-0.5 text-xs text-gray-400">
                       <span>Abertura: {fmtBRL(acc.openingBalance)}</span>
                       <span>Saídas: {fmtBRL(acc.totalDebits)}</span>
                       <span>
@@ -511,12 +511,12 @@ export default async function AwqCashflowPage() {
             ].map((s) => (
               <div key={s.label} className="text-center">
                 <div className="text-xl font-bold text-gray-900">{s.value.toLocaleString("pt-BR")}</div>
-                <div className="text-[10px] text-gray-400 mt-0.5">{s.label}</div>
+                <div className="text-xs text-gray-400 mt-0.5">{s.label}</div>
               </div>
             ))}
           </div>
           {q.dataQuality.intercompanyPairs > 0 && (
-            <p className="text-[11px] text-gray-400 mt-3">
+            <p className="text-xs text-gray-400 mt-3">
               {q.dataQuality.intercompanyPairs} par(es) intercompany identificado(s) e eliminado(s) da consolidação.
             </p>
           )}
@@ -524,7 +524,7 @@ export default async function AwqCashflowPage() {
 
         {/* ── Methodology disclaimer ───────────────────────────────────────── */}
         <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
-          <p className="text-[11px] text-gray-500">
+          <p className="text-xs text-gray-500">
             <span className="font-semibold text-gray-700">Visão de Caixa</span> —
             Esta página apresenta fluxo de caixa na base de regime de caixa, não DRE accrual.
             Receitas = créditos classificados como receita_*. Despesas = débitos em categorias operacionais.

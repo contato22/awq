@@ -136,7 +136,7 @@ export default function AssetsPage() {
               <thead className="bg-gray-50">
                 <tr>
                   {["Código", "Descrição", "Categoria", "Localização", "Valor Aquisição", "Data Aquisição", "Status"].map((h) => (
-                    <th key={h} className="px-4 py-3 text-left text-[10px] font-semibold text-gray-500 uppercase whitespace-nowrap">{h}</th>
+                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase whitespace-nowrap tracking-wide">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -171,7 +171,7 @@ export default function AssetsPage() {
                         {a.acquisition_date ? new Date(a.acquisition_date).toLocaleDateString("pt-BR") : "—"}
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${STATUS_BADGE[a.status] ?? "bg-gray-100 text-gray-500"}`}>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${STATUS_BADGE[a.status] ?? "bg-gray-100 text-gray-500"}`}>
                           {a.status}
                         </span>
                       </td>

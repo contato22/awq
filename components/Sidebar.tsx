@@ -640,7 +640,7 @@ function NavItem({
 function SectionLabel({ children }: { children: React.ReactNode }) {
     return (
         <div className="px-3 mb-1.5 mt-5 first:mt-2">
-            <span className="text-[10px] font-bold text-white/50 uppercase tracking-[0.10em]">
+            <span className="text-xs font-bold text-white/50 uppercase tracking-[0.10em]">
                 {children}
             </span>
         </div>
@@ -670,7 +670,7 @@ function SlimUserButton() {
                 title="Sair"
                 className="flex flex-col items-center gap-0.5 w-full py-1.5 rounded-lg hover:bg-red-500/10 transition-colors group"
             >
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-awq-gold to-amber-600 flex items-center justify-center text-[10px] font-bold text-gray-900">
+                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-awq-gold to-amber-600 flex items-center justify-center text-xs font-bold text-gray-900">
                     {initials}
                 </div>
                 <LogOut size={9} className="text-white/25 group-hover:text-red-400 transition-colors" />
@@ -896,7 +896,7 @@ function AwqSidebar({ pathname }: { pathname: string }) {
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="text-[12px] font-semibold text-white/80 group-hover:text-white truncate">{bu.label}</div>
-                                            <div className="text-[10px] text-white/30 truncate">{bu.sub}</div>
+                                            <div className="text-xs text-white/30 truncate">{bu.sub}</div>
                                         </div>
                                         <ChevronRight size={11} className="text-white/25 group-hover:text-awq-gold shrink-0" />
                                     </Link>

@@ -131,7 +131,7 @@ export default function PortcoKpisPage() {
   const f = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm(prev => ({ ...prev, [k]: e.target.value }));
 
-  const inputCls = "w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-gray-900 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-400 transition-colors";
+  const inputCls = "w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-gray-900 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-400 transition-colors";
   const labelCls = "text-xs font-medium text-gray-600 mb-1.5 block";
 
   return (
@@ -147,7 +147,7 @@ export default function PortcoKpisPage() {
           <select
             value={selectedPortco}
             onChange={e => setSelectedPortco(e.target.value)}
-            className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
             {portcos.map(p => (
               <option key={p.portco_id} value={p.portco_id}>{p.legal_name}</option>
@@ -171,7 +171,7 @@ export default function PortcoKpisPage() {
             </div>
 
             <div>
-              <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">Financeiro</h3>
+              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Financeiro</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className={labelCls}>MRR (R$)</label>
@@ -192,7 +192,7 @@ export default function PortcoKpisPage() {
                   <label className={labelCls}>Burn Rate (R$, negativo)</label>
                   <input type="number" value={form.burn_rate} onChange={f("burn_rate")}
                     className={inputCls} placeholder="ex: -15000" />
-                  <p className="text-[11px] text-gray-400 mt-1">Use valor negativo se queimando caixa</p>
+                  <p className="text-xs text-gray-400 mt-1">Use valor negativo se queimando caixa</p>
                 </div>
                 <div>
                   <label className={labelCls}>Saldo de Caixa (R$)</label>
@@ -203,7 +203,7 @@ export default function PortcoKpisPage() {
             </div>
 
             <div>
-              <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">Crescimento & Time</h3>
+              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Crescimento & Time</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className={labelCls}>Crescimento MoM (%)</label>
@@ -221,7 +221,7 @@ export default function PortcoKpisPage() {
             <div>
               <label className={labelCls}>Notas / Highlights do Mês</label>
               <textarea value={form.notes} onChange={f("notes")} rows={3}
-                className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-gray-900 text-sm resize-none placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-400 transition-colors"
+                className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-gray-900 text-sm resize-none placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-400 transition-colors"
                 placeholder="Principais eventos, conquistas ou desafios do mês..." />
             </div>
 
@@ -233,7 +233,7 @@ export default function PortcoKpisPage() {
             )}
 
             <button type="submit"
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg text-sm font-semibold transition-colors">
+              className="flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-6 py-2.5 rounded-lg text-sm font-semibold transition-colors">
               <TrendingUp size={14} />
               Salvar KPIs
             </button>
@@ -256,7 +256,7 @@ export default function PortcoKpisPage() {
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50">
                     {["Mês", "MRR", "ARR", "Burn Rate", "Caixa", "Runway", "MoM%", "Headcount", "Notas"].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-gray-500 font-semibold">{h}</th>
+                      <th key={h} className="px-4 py-3 text-left text-gray-500 font-semibold uppercase tracking-wide">{h}</th>
                     ))}
                   </tr>
                 </thead>

@@ -70,7 +70,7 @@ export default function FiscalPage() {
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
               <h2 className="text-base font-bold text-gray-900">Módulo em Estruturação</h2>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-200">
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-200">
                 PLANEJADO
               </span>
             </div>
@@ -109,7 +109,7 @@ export default function FiscalPage() {
                 <div>
                   <div className="text-sm font-semibold text-gray-700">{m.title}</div>
                   <div className="text-xs text-gray-400 mt-0.5">{m.desc}</div>
-                  <div className="text-[10px] text-gray-300 mt-1.5 font-medium">{m.status}</div>
+                  <div className="text-xs text-gray-300 mt-1.5 font-medium">{m.status}</div>
                 </div>
               </div>
             ))}

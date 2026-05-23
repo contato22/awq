@@ -26,7 +26,7 @@ interface MetricSourceBadgeProps {
 
 export function MetricSourceBadge({ sourceType, size = "xs" }: MetricSourceBadgeProps) {
   const s = SOURCE_TYPE_STYLE[sourceType];
-  const textSize = size === "xs" ? "text-[9px]" : "text-[10px]";
+  const textSize = size === "xs" ? "text-[9px]" : "text-xs";
   return (
     <span
       className={`inline-flex items-center font-bold px-1.5 py-0.5 rounded border ${s.border} ${s.bg} ${s.text} ${textSize} ml-1 shrink-0`}
@@ -46,7 +46,7 @@ interface MetricDetailProps {
 export function MetricDetail({ metric, compact = true }: MetricDetailProps) {
   const s = SOURCE_TYPE_STYLE[metric.source_type];
   return (
-    <div className={`text-[10px] text-gray-400 mt-1 space-y-0.5 ${compact ? "" : "border-t border-gray-100 pt-2 mt-2"}`}>
+    <div className={`text-xs text-gray-400 mt-1 space-y-0.5 ${compact ? "" : "border-t border-gray-100 pt-2 mt-2"}`}>
       <div className="flex items-center gap-1 flex-wrap">
         <span className={`font-bold ${s.text}`}>{SOURCE_TYPE_LABELS[metric.source_type]}</span>
         <span className="text-gray-300">·</span>
@@ -77,7 +77,7 @@ interface MetricEmptyProps {
 
 export function MetricEmpty({ label = "Sem dado confiável", linkHref, linkLabel }: MetricEmptyProps) {
   return (
-    <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
+    <div className="flex items-center gap-1.5 text-xs text-gray-400">
       <span className="w-1.5 h-1.5 rounded-full bg-gray-300 shrink-0" />
       <span>{label}</span>
       {linkHref && (

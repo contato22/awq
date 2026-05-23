@@ -127,11 +127,11 @@ export default function AwqVenturePortfolioPage() {
                     </div>
                     <div>
                       <div className="text-sm font-bold text-white">{p.company}</div>
-                      <div className="text-[10px] text-gray-500">{p.founders} · {p.location}</div>
+                      <div className="text-xs text-gray-500">{p.founders} · {p.location}</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${stageColors[p.stage] ?? "bg-gray-800 text-gray-400"}`}>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${stageColors[p.stage] ?? "bg-gray-800 text-gray-400"}`}>
                       {p.stage}
                     </span>
                     <span className={`inline-flex items-center gap-1 ${statusBadge[p.status] ?? "badge"}`}>
@@ -148,36 +148,36 @@ export default function AwqVenturePortfolioPage() {
                 {p.stage === "Advisory" ? (
                   <div className="grid grid-cols-3 gap-2 pt-1 border-t border-gray-800">
                     <div>
-                      <div className="text-[10px] text-gray-600 mb-0.5">Fee Mensal</div>
+                      <div className="text-xs text-gray-600 mb-0.5">Fee Mensal</div>
                       <div className="text-xs font-bold text-amber-400">{fmtR((p as typeof p & { contractFee?: number }).contractFee ?? 0)}</div>
                     </div>
                     <div>
-                      <div className="text-[10px] text-gray-600 mb-0.5">ARR Advisory</div>
+                      <div className="text-xs text-gray-600 mb-0.5">ARR Advisory</div>
                       <div className="text-xs font-bold text-emerald-400">{fmtR(((p as typeof p & { contractFee?: number }).contractFee ?? 0) * 12)}</div>
                     </div>
                     <div>
-                      <div className="text-[10px] text-gray-600 mb-0.5">Contrato Total</div>
+                      <div className="text-xs text-gray-600 mb-0.5">Contrato Total</div>
                       <div className="text-xs font-bold text-white">{fmtR(p.currentVal)}</div>
                     </div>
                   </div>
                 ) : (
                 <div className="grid grid-cols-4 gap-2 pt-1 border-t border-gray-800">
                   <div>
-                    <div className="text-[10px] text-gray-600 mb-0.5">Investido</div>
+                    <div className="text-xs text-gray-600 mb-0.5">Investido</div>
                     <div className="text-xs font-bold text-white">{fmtR(p.invested)}</div>
                   </div>
                   <div>
-                    <div className="text-[10px] text-gray-600 mb-0.5">{p.status === "Exitado" ? "Retornado" : "Valor Atual"}</div>
+                    <div className="text-xs text-gray-600 mb-0.5">{p.status === "Exitado" ? "Retornado" : "Valor Atual"}</div>
                     <div className={`text-xs font-bold ${p.status === "Exitado" ? "text-brand-400" : "text-white"}`}>{fmtR(val)}</div>
                   </div>
                   <div>
-                    <div className="text-[10px] text-gray-600 mb-0.5">MOIC</div>
+                    <div className="text-xs text-gray-600 mb-0.5">MOIC</div>
                     <div className={`text-xs font-bold ${moic >= 2 ? "text-emerald-400" : moic >= 1 ? "text-amber-400" : "text-red-400"}`}>
                       {fmtMult(moic)}
                     </div>
                   </div>
                   <div>
-                    <div className="text-[10px] text-gray-600 mb-0.5">IRR</div>
+                    <div className="text-xs text-gray-600 mb-0.5">IRR</div>
                     <div className={`text-xs font-bold ${p.irr >= 0 ? "text-emerald-400" : "text-red-400"}`}>
                       {p.irr >= 0 ? "+" : ""}{p.irr.toFixed(1)}%
                     </div>
@@ -192,15 +192,15 @@ export default function AwqVenturePortfolioPage() {
                       ? <ArrowUpRight size={12} className="text-emerald-400" />
                       : <ArrowDownRight size={12} className="text-red-400" />)}
                     {p.stage !== "Advisory" && (
-                    <span className={`text-[10px] font-semibold ${r >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                    <span className={`text-xs font-semibold ${r >= 0 ? "text-emerald-400" : "text-red-400"}`}>
                       ROIC {r >= 0 ? "+" : ""}{r.toFixed(0)}%
                     </span>
                     )}
                     {p.ownership > 0 && (
-                      <span className="text-[10px] text-gray-600 ml-2">· {p.ownership}% participação</span>
+                      <span className="text-xs text-gray-600 ml-2">· {p.ownership}% participação</span>
                     )}
                   </div>
-                  <span className="text-[10px] text-gray-600">desde {p.entryDate}</span>
+                  <span className="text-xs text-gray-600">desde {p.entryDate}</span>
                 </div>
               </div>
             );

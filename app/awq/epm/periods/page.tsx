@@ -247,14 +247,14 @@ export default function PeriodsPage() {
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50 text-left">
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold">Período</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold">Início</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold">Fim</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold">Status</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold">Checklist</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold">Fechado por</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold">Data</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold w-20" />
+                  <th className="py-2.5 px-3 text-gray-500 font-semibold uppercase tracking-wide">Período</th>
+                  <th className="py-2.5 px-3 text-gray-500 font-semibold uppercase tracking-wide">Início</th>
+                  <th className="py-2.5 px-3 text-gray-500 font-semibold uppercase tracking-wide">Fim</th>
+                  <th className="py-2.5 px-3 text-gray-500 font-semibold uppercase tracking-wide">Status</th>
+                  <th className="py-2.5 px-3 text-gray-500 font-semibold uppercase tracking-wide">Checklist</th>
+                  <th className="py-2.5 px-3 text-gray-500 font-semibold uppercase tracking-wide">Fechado por</th>
+                  <th className="py-2.5 px-3 text-gray-500 font-semibold uppercase tracking-wide">Data</th>
+                  <th className="py-2.5 px-3 text-gray-500 font-semibold w-20 uppercase tracking-wide" />
                 </tr>
               </thead>
               <tbody>

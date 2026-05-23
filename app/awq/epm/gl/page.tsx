@@ -110,29 +110,29 @@ export default function GLPage() {
                         {fmtDate(debit.transaction_date)}
                       </td>
                       <td className="py-2.5 px-3">
-                        <span className="px-1.5 py-0.5 bg-brand-50 text-brand-700 rounded text-[10px] font-bold">
+                        <span className="px-1.5 py-0.5 bg-brand-50 text-brand-700 rounded text-xs font-bold">
                           {debit.bu_code}
                         </span>
                       </td>
                       <td className="py-2.5 px-3 max-w-[180px]">
                         <div className="text-gray-800 truncate">{debit.description}</div>
                         {debit.reference_doc && (
-                          <div className="text-[10px] text-gray-400">{debit.reference_doc}</div>
+                          <div className="text-xs text-gray-400">{debit.reference_doc}</div>
                         )}
                       </td>
                       <td className="py-2.5 px-3 max-w-[140px]">
-                        <div className="font-mono text-[10px] text-gray-400">{debit.account_code}</div>
+                        <div className="font-mono text-xs text-gray-400">{debit.account_code}</div>
                         <div className="text-gray-700 truncate">{debit.account_name}</div>
                       </td>
                       <td className="py-2.5 px-3 max-w-[140px]">
-                        <div className="font-mono text-[10px] text-gray-400">{credit.account_code}</div>
+                        <div className="font-mono text-xs text-gray-400">{credit.account_code}</div>
                         <div className="text-gray-700 truncate">{credit.account_name}</div>
                       </td>
                       <td className="py-2.5 px-3 text-right tabular-nums font-semibold text-gray-800">
                         {fmtBRL(debit.debit_amount)}
                       </td>
                       <td className="py-2.5 px-3 text-center">
-                        <span className="text-[10px] text-gray-400">
+                        <span className="text-xs text-gray-400">
                           {SOURCE_LABELS[debit.source_system] ?? debit.source_system}
                         </span>
                       </td>
@@ -157,21 +157,21 @@ export default function GLPage() {
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-gray-200">
-                    <th className="text-left py-2 px-2 text-gray-500 font-semibold">Conta</th>
-                    <th className="text-left py-2 px-2 text-gray-500 font-semibold">Tipo</th>
-                    <th className="text-right py-2 px-2 text-gray-500 font-semibold">Débitos</th>
-                    <th className="text-right py-2 px-2 text-gray-500 font-semibold">Créditos</th>
-                    <th className="text-right py-2 px-2 text-gray-500 font-semibold">Saldo</th>
+                    <th className="text-left py-2 px-2 text-gray-500 font-semibold uppercase tracking-wide">Conta</th>
+                    <th className="text-left py-2 px-2 text-gray-500 font-semibold uppercase tracking-wide">Tipo</th>
+                    <th className="text-right py-2 px-2 text-gray-500 font-semibold uppercase tracking-wide">Débitos</th>
+                    <th className="text-right py-2 px-2 text-gray-500 font-semibold uppercase tracking-wide">Créditos</th>
+                    <th className="text-right py-2 px-2 text-gray-500 font-semibold uppercase tracking-wide">Saldo</th>
                   </tr>
                 </thead>
                 <tbody>
                   {trialBal.map((l) => (
                     <tr key={l.account_code} className="border-b border-gray-50 hover:bg-gray-50">
                       <td className="py-1.5 px-2">
-                        <span className="font-mono text-[10px] text-gray-400 mr-1">{l.account_code}</span>
+                        <span className="font-mono text-xs text-gray-400 mr-1">{l.account_code}</span>
                         {l.account_name}
                       </td>
-                      <td className="py-1.5 px-2 text-gray-400 text-[10px]">{l.account_type}</td>
+                      <td className="py-1.5 px-2 text-gray-400 text-xs">{l.account_type}</td>
                       <td className="py-1.5 px-2 text-right tabular-nums text-red-600">{fmtBRL(l.total_debits)}</td>
                       <td className="py-1.5 px-2 text-right tabular-nums text-emerald-600">{fmtBRL(l.total_credits)}</td>
                       <td className={`py-1.5 px-2 text-right font-semibold tabular-nums ${l.net_balance >= 0 ? "text-gray-800" : "text-red-600"}`}>

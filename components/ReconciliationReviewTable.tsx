@@ -217,7 +217,7 @@ function ApArLinkBadge({ status, note }: { status: ApArLinkStatus; note: string 
   const Icon = cfg.icon;
   return (
     <span
-      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px] font-medium ${cfg.color}`}
+      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-xs font-medium ${cfg.color}`}
       title={note}
     >
       <Icon size={9} />
@@ -494,7 +494,7 @@ export default function ReconciliationReviewTable({
 
         <div className="ml-auto flex items-center gap-2">
           {isStatic && (
-            <span className="text-[10px] text-blue-600 bg-blue-50 px-2 py-1 rounded border border-blue-200">
+            <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded border border-blue-200">
               GitHub Pages · edições no localStorage
             </span>
           )}
@@ -545,7 +545,7 @@ export default function ReconciliationReviewTable({
           {importResult.transactions.length > 0 && (
             <div className="overflow-x-auto rounded-lg border border-brand-200 bg-white">
               <table className="min-w-full text-xs">
-                <thead className="bg-brand-50 text-[10px] uppercase tracking-wide text-brand-600">
+                <thead className="bg-brand-50 text-xs uppercase tracking-wide text-brand-600">
                   <tr>
                     <th className="px-3 py-1.5 text-left">Data</th>
                     <th className="px-3 py-1.5 text-left">Descrição</th>
@@ -567,7 +567,7 @@ export default function ReconciliationReviewTable({
                 </tbody>
               </table>
               {importResult.transactions.length > 5 && (
-                <p className="px-3 py-1.5 text-[10px] text-gray-500 border-t border-brand-100">
+                <p className="px-3 py-1.5 text-xs text-gray-500 border-t border-brand-100">
                   + {importResult.transactions.length - 5} linha(s) adicionais
                 </p>
               )}
@@ -579,13 +579,13 @@ export default function ReconciliationReviewTable({
             <div>
               <button
                 onClick={() => setShowRejected((v) => !v)}
-                className="flex items-center gap-1 text-[11px] text-amber-700 hover:underline"
+                className="flex items-center gap-1 text-xs text-amber-700 hover:underline"
               >
                 {showRejected ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                 {importResult.rejectedRows.length} linha(s) não reconhecida(s)
               </button>
               {showRejected && (
-                <ul className="mt-1 max-h-24 overflow-y-auto text-[10px] text-gray-600 space-y-0.5">
+                <ul className="mt-1 max-h-24 overflow-y-auto text-xs text-gray-600 space-y-0.5">
                   {importResult.rejectedRows.map((r, i) => (
                     <li key={i} className="font-mono truncate" title={r}>{r}</li>
                   ))}
@@ -623,7 +623,7 @@ export default function ReconciliationReviewTable({
           </div>
         ) : (
           <table className="min-w-full text-sm">
-            <thead className="bg-gray-50 text-[11px] uppercase tracking-wide text-gray-500">
+            <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
               <tr>
                 <th className="px-3 py-2 text-left">Data</th>
                 <th className="px-3 py-2 text-left">Descrição</th>
@@ -661,12 +661,12 @@ export default function ReconciliationReviewTable({
                         <input
                           type="text"
                           placeholder="Contraparte (opcional)"
-                          className="mt-1 w-full text-[11px] border border-gray-300 rounded px-1.5 py-1"
+                          className="mt-1 w-full text-xs border border-gray-300 rounded px-1.5 py-1"
                           value={draft.counterpartyName ?? ""}
                           onChange={(e) => setDraft((d) => ({ ...d, counterpartyName: e.target.value || null }))}
                         />
                       ) : t.counterpartyName ? (
-                        <div className="text-[11px] text-gray-500">{t.counterpartyName}</div>
+                        <div className="text-xs text-gray-500">{t.counterpartyName}</div>
                       ) : null}
                     </td>
 
@@ -700,12 +700,12 @@ export default function ReconciliationReviewTable({
 
                     {/* DFC — derived badge */}
                     <td className="px-3 py-2">
-                      <span className={"text-[10px] px-1.5 py-0.5 rounded " + dfc.color}>{dfc.label}</span>
+                      <span className={"text-xs px-1.5 py-0.5 rounded " + dfc.color}>{dfc.label}</span>
                     </td>
 
                     {/* DRE — derived badge */}
                     <td className="px-3 py-2">
-                      <span className={"text-[10px] px-1.5 py-0.5 rounded " + dre.color}>{dre.label}</span>
+                      <span className={"text-xs px-1.5 py-0.5 rounded " + dre.color}>{dre.label}</span>
                     </td>
 
                     {/* Status — EDITABLE */}
@@ -721,7 +721,7 @@ export default function ReconciliationReviewTable({
                           ))}
                         </select>
                       ) : (
-                        <span className={"text-[11px] px-2 py-0.5 rounded border " + STATUS_COLORS[status]}>
+                        <span className={"text-xs px-2 py-0.5 rounded border " + STATUS_COLORS[status]}>
                           {STATUS_LABELS[status]}
                         </span>
                       )}
@@ -744,11 +744,11 @@ export default function ReconciliationReviewTable({
                           <input
                             type="text"
                             placeholder="Nota de conciliação"
-                            className="w-full text-[11px] border border-gray-300 rounded px-1.5 py-1"
+                            className="w-full text-xs border border-gray-300 rounded px-1.5 py-1"
                             value={draft.classificationNote ?? ""}
                             onChange={(e) => setDraft((d) => ({ ...d, classificationNote: e.target.value || null }))}
                           />
-                          <label className="flex items-center gap-1 mt-1 text-[10px] text-gray-600">
+                          <label className="flex items-center gap-1 mt-1 text-xs text-gray-600">
                             <input
                               type="checkbox"
                               checked={Boolean(draft.excludedFromConsolidated)}
@@ -756,7 +756,7 @@ export default function ReconciliationReviewTable({
                             />
                             Excluir do consolidado
                           </label>
-                          <label className="flex items-center gap-1 text-[10px] text-gray-600">
+                          <label className="flex items-center gap-1 text-xs text-gray-600">
                             <input
                               type="checkbox"
                               checked={Boolean(draft.isIntercompany)}
@@ -766,7 +766,7 @@ export default function ReconciliationReviewTable({
                           </label>
                         </>
                       ) : (
-                        <span className="text-[11px] text-gray-500 truncate block" title={t.classificationNote ?? ""}>
+                        <span className="text-xs text-gray-500 truncate block" title={t.classificationNote ?? ""}>
                           {t.classificationNote ?? "—"}
                         </span>
                       )}

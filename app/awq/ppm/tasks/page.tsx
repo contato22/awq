@@ -288,21 +288,21 @@ function TaskDrawer({
           <div className="flex items-start gap-2">
             <div className="flex-1 min-w-0">
               {task.project_name && (
-                <p className="text-[10px] text-brand-500 font-medium mb-0.5 truncate uppercase tracking-wide">{task.project_name}</p>
+                <p className="text-xs text-brand-500 font-medium mb-0.5 truncate uppercase tracking-wide">{task.project_name}</p>
               )}
               <p className="text-sm font-bold text-gray-900 leading-snug line-clamp-2">{task.task_name}</p>
               <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                 {task.task_type === "milestone" && (
-                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold"><Flag size={8} />Marco</span>
+                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-bold"><Flag size={8} />Marco</span>
                 )}
                 {task.task_type === "phase" && (
-                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-brand-100 text-brand-700 text-[10px] font-bold"><Layers size={8} />Fase</span>
+                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-brand-100 text-brand-700 text-xs font-bold"><Layers size={8} />Fase</span>
                 )}
                 {task.wbs_code && (
-                  <span className="text-[10px] font-mono text-gray-400">{task.wbs_code}</span>
+                  <span className="text-xs font-mono text-gray-400">{task.wbs_code}</span>
                 )}
                 {isDirty && (
-                  <span className="text-[10px] font-semibold text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-1.5 py-0.5">editado</span>
+                  <span className="text-xs font-semibold text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-1.5 py-0.5">editado</span>
                 )}
               </div>
             </div>
@@ -316,7 +316,7 @@ function TaskDrawer({
           </div>
 
           {/* Keyboard hint */}
-          <p className="text-[10px] text-gray-400 mt-2">
+          <p className="text-xs text-gray-400 mt-2">
             <kbd className="font-mono bg-gray-100 px-1 rounded text-[9px]">Esc</kbd> fechar ·{" "}
             <kbd className="font-mono bg-gray-100 px-1 rounded text-[9px]">⌘ Enter</kbd> salvar
           </p>
@@ -360,7 +360,7 @@ function TaskDrawer({
               className="w-full text-sm text-gray-900 font-medium border border-gray-200 rounded-xl px-3 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 placeholder:text-gray-300"
               placeholder="Nome da tarefa…"
             />
-            <p className="text-[10px] text-gray-400 text-right mt-0.5">{form.task_name.length}/300</p>
+            <p className="text-xs text-gray-400 text-right mt-0.5">{form.task_name.length}/300</p>
           </div>
 
           {/* Status picker — uses static STATUS_STYLE classes */}
@@ -427,7 +427,7 @@ function TaskDrawer({
               onChange={e => setField("completion_pct", Number(e.target.value))}
               className="w-full accent-brand-600 cursor-pointer"
             />
-            <div className="flex justify-between text-[10px] text-gray-400 mt-0.5">
+            <div className="flex justify-between text-xs text-gray-400 mt-0.5">
               <span>0%</span><span>50%</span><span>100%</span>
             </div>
           </div>
@@ -491,7 +491,7 @@ function TaskDrawer({
               <Package size={14} className="text-brand-500" />
               <div>
                 <p className="text-sm font-medium text-gray-700">Entregável</p>
-                <p className="text-[11px] text-gray-400">Marcar como entrega para o cliente</p>
+                <p className="text-xs text-gray-400">Marcar como entrega para o cliente</p>
               </div>
             </div>
             <div className={`relative w-9 h-5 rounded-full transition-colors duration-200 ${form.is_deliverable ? "bg-brand-500" : "bg-gray-200"}`}>
@@ -505,7 +505,7 @@ function TaskDrawer({
         {/* Footer */}
         <div className="shrink-0 px-5 py-4 border-t border-gray-100 bg-gray-50/80">
           {saveErr && (
-            <p className="text-[11px] text-red-600 mb-3 flex items-center gap-1">
+            <p className="text-xs text-red-600 mb-3 flex items-center gap-1">
               <AlertCircle size={11} /> {saveErr}
             </p>
           )}
@@ -566,16 +566,16 @@ function TaskCard({
           </p>
           <div className="flex items-center gap-1 shrink-0">
             {task.task_type === "milestone" && (
-              <span title="Marco" className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold"><Flag size={8} />Marco</span>
+              <span title="Marco" className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-bold"><Flag size={8} />Marco</span>
             )}
             {task.task_type === "phase" && (
-              <span title="Fase" className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-brand-100 text-brand-700 text-[10px] font-bold"><Layers size={8} />Fase</span>
+              <span title="Fase" className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-brand-100 text-brand-700 text-xs font-bold"><Layers size={8} />Fase</span>
             )}
             {task.is_deliverable && (
               <span title="Entregável" className="inline-flex items-center justify-center w-4 h-4 rounded bg-brand-100"><Package size={9} className="text-brand-600" /></span>
             )}
             {task.wbs_code && (
-              <span className="text-[10px] font-mono text-gray-400">{task.wbs_code}</span>
+              <span className="text-xs font-mono text-gray-400">{task.wbs_code}</span>
             )}
             <span className="opacity-0 group-hover:opacity-60 transition-opacity">
               <Pencil size={11} className="text-brand-400" />
@@ -585,7 +585,7 @@ function TaskCard({
 
         {/* Project */}
         {task.project_name && (
-          <p className="text-[11px] text-brand-600 font-medium mb-2 truncate">{task.project_name}</p>
+          <p className="text-xs text-brand-600 font-medium mb-2 truncate">{task.project_name}</p>
         )}
 
         {/* Meta */}
@@ -595,25 +595,25 @@ function TaskCard({
               <span className={`inline-flex items-center justify-center w-[18px] h-[18px] rounded-full text-[9px] font-bold shrink-0 ${avatarColor(task.assigned_name)}`}>
                 {initials(task.assigned_name)}
               </span>
-              <span className="text-[11px] text-gray-600 truncate">{task.assigned_name}</span>
+              <span className="text-xs text-gray-600 truncate">{task.assigned_name}</span>
             </div>
           )}
           {task.due_date && (
             <div className="flex items-center gap-1.5">
               <Calendar size={11} className={overdue ? "text-red-400" : "text-gray-300"} />
               {overdue ? (
-                <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-red-600">
+                <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-red-600">
                   <AlertCircle size={10} />Atrasado · {formatDateBR(task.due_date)}
                 </span>
               ) : (
-                <span className="text-[11px] text-gray-500">{formatDateBR(task.due_date)}</span>
+                <span className="text-xs text-gray-500">{formatDateBR(task.due_date)}</span>
               )}
             </div>
           )}
           {task.estimated_hours && (
             <div className="flex items-center gap-1.5">
               <Clock size={11} className="text-gray-300" />
-              <span className="text-[11px] text-gray-500">
+              <span className="text-xs text-gray-500">
                 {task.actual_hours}h<span className="text-gray-400"> / {task.estimated_hours}h est.</span>
               </span>
             </div>
@@ -622,7 +622,7 @@ function TaskCard({
 
         {/* Blocked reason */}
         {task.status === "blocked" && task.blocked_reason && (
-          <p className="text-[11px] text-red-700 bg-red-50 border border-red-100 rounded-lg px-2 py-1.5 mb-2 leading-relaxed">
+          <p className="text-xs text-red-700 bg-red-50 border border-red-100 rounded-lg px-2 py-1.5 mb-2 leading-relaxed">
             {task.blocked_reason}
           </p>
         )}
@@ -631,8 +631,8 @@ function TaskCard({
         {pct > 0 && pct < 100 && (
           <div className="mb-2">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] text-gray-400">Progresso</span>
-              <span className="text-[10px] font-semibold text-brand-600">{pct}%</span>
+              <span className="text-xs text-gray-400">Progresso</span>
+              <span className="text-xs font-semibold text-brand-600">{pct}%</span>
             </div>
             <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
               <div className="h-full bg-brand-500 rounded-full transition-all duration-300" style={{ width: `${pct}%` }} />
@@ -652,7 +652,7 @@ function TaskCard({
             <button
               key={target}
               onClick={() => onMove(target)}
-              className={`inline-flex items-center gap-0.5 text-[10px] font-semibold px-2 py-0.5 rounded-full border transition-colors ${st.border} ${st.text} hover:${st.bg}`}
+              className={`inline-flex items-center gap-0.5 text-xs font-semibold px-2 py-0.5 rounded-full border transition-colors ${st.border} ${st.text} hover:${st.bg}`}
             >
               <ChevronRight size={10} />
               {MOVE_LABEL[target]}
@@ -789,7 +789,7 @@ export default function TasksPage() {
               <div className="flex items-center gap-2 mt-0.5">
                 <span className="text-xs text-gray-400">{tasks.length} tarefas</span>
                 {!loading && overdueCount > 0 && (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-red-600 bg-red-50 border border-red-200 rounded-full px-2 py-0.5">
+                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 bg-red-50 border border-red-200 rounded-full px-2 py-0.5">
                     <AlertCircle size={10} />{overdueCount} atrasada{overdueCount !== 1 ? "s" : ""}
                   </span>
                 )}
@@ -897,7 +897,7 @@ export default function TasksPage() {
                     <span className="text-sm font-semibold text-gray-700">{col.label}</span>
                     <div className="ml-auto flex items-center gap-1.5">
                       {colOverdue > 0 && (
-                        <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-red-600 bg-red-100 border border-red-200 rounded-full px-1.5 py-0.5 leading-none">
+                        <span className="inline-flex items-center gap-0.5 text-xs font-bold text-red-600 bg-red-100 border border-red-200 rounded-full px-1.5 py-0.5 leading-none">
                           <AlertTriangle size={9} className="shrink-0" />{colOverdue}
                         </span>
                       )}

@@ -70,11 +70,11 @@ function RiskCard({ risk }: { risk: RiskCategory }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-bold text-gray-900">{risk.title}</span>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${sev.badge}`}>
+            <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${sev.badge}`}>
               {risk.severity === "high" ? "Alto" : risk.severity === "medium" ? "Médio" : "Baixo"}
             </span>
           </div>
-          <div className="text-[11px] text-gray-500 mt-0.5">{risk.current}</div>
+          <div className="text-xs text-gray-500 mt-0.5">{risk.current}</div>
         </div>
       </div>
 
@@ -84,24 +84,24 @@ function RiskCard({ risk }: { risk: RiskCategory }) {
             key={i}
             className={`flex items-center justify-between py-1 px-2 rounded ${d.isTotal ? "bg-gray-100" : ""}`}
           >
-            <span className={`text-[11px] ${d.isTotal ? "font-bold text-gray-400" : "text-gray-500"}`}>
+            <span className={`text-xs ${d.isTotal ? "font-bold text-gray-400" : "text-gray-500"}`}>
               {d.label}
               {d.days !== undefined && (
-                <span className="ml-1 text-[10px] text-amber-600">({d.days}d)</span>
+                <span className="ml-1 text-xs text-amber-600">({d.days}d)</span>
               )}
             </span>
             <div className="flex items-center gap-2">
               {d.mrr !== 0 && (
-                <span className={`text-[11px] font-semibold ${d.mrr < 0 ? "text-red-600" : "text-gray-900"}`}>
+                <span className={`text-xs font-semibold ${d.mrr < 0 ? "text-red-600" : "text-gray-900"}`}>
                   {fmtR(d.mrr)}
                 </span>
               )}
               {d.share !== 0 && (
-                <span className={`text-[11px] font-semibold ${d.share < 0 ? "text-red-600" : "text-gray-400"}`}>
+                <span className={`text-xs font-semibold ${d.share < 0 ? "text-red-600" : "text-gray-400"}`}>
                   {d.share > 0 ? d.share + "%" : d.share + "pp"}
                 </span>
               )}
-              <span className={`text-[10px] font-bold ${
+              <span className={`text-xs font-bold ${
                 d.risk === "Crítico" || d.risk === "Alto" ? "text-red-600"
                   : d.risk === "Médio" || d.risk === "Atenção" ? "text-amber-700"
                   : "text-emerald-600"
@@ -115,12 +115,12 @@ function RiskCard({ risk }: { risk: RiskCategory }) {
 
       <div className="pt-2 border-t border-gray-200 space-y-1">
         <div className="flex items-center gap-1.5">
-          <span className="text-[10px] text-gray-400">Limite:</span>
-          <span className="text-[10px] text-gray-400">{risk.threshold}</span>
+          <span className="text-xs text-gray-400">Limite:</span>
+          <span className="text-xs text-gray-400">{risk.threshold}</span>
         </div>
         <div className="flex items-start gap-1.5">
           <AlertTriangle size={9} className={`${colors.text} shrink-0 mt-0.5`} />
-          <span className={`text-[10px] font-semibold ${colors.text}`}>{risk.action}</span>
+          <span className={`text-xs font-semibold ${colors.text}`}>{risk.action}</span>
         </div>
       </div>
     </div>
@@ -165,7 +165,7 @@ export default async function AwqRiskPage() {
               <p className="text-xs font-semibold text-amber-800">
                 Sinais de risco qualitativos — dados de planejamento (snapshot), não derivados da base bancária.
               </p>
-              <p className="text-[11px] text-amber-600 mt-0.5">
+              <p className="text-xs text-amber-600 mt-0.5">
                 Concentração, recebíveis e margens abaixo são análise de planejamento gerencial.
                 Posição de caixa real aparece na seção inferior (pipeline bancário).
               </p>
@@ -203,7 +203,7 @@ export default async function AwqRiskPage() {
             Posição de Caixa Real por Entidade
             <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 border border-emerald-200">REAL</span>
           </h2>
-          <p className="text-[11px] text-gray-400 mb-4">
+          <p className="text-xs text-gray-400 mb-4">
             FCO e caixa da base bancária ingerida — os sinais de risco acima usam snapshot de planejamento.
           </p>
           {!kpis.hasRealData ? (
@@ -215,7 +215,7 @@ export default async function AwqRiskPage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
               <div className="rounded-xl bg-gray-50 border border-gray-200 p-3">
-                <div className="text-[10px] font-semibold text-gray-400 uppercase mb-1.5">Consolidado AWQ</div>
+                <div className="text-xs font-semibold text-gray-400 uppercase mb-1.5">Consolidado AWQ</div>
                 <div className="space-y-1 text-xs">
                   <div className="flex justify-between">
                     <span className="text-gray-500">Entradas</span>
@@ -239,7 +239,7 @@ export default async function AwqRiskPage() {
               </div>
               {entities.map((e) => (
                 <div key={e.entity} className="rounded-xl bg-gray-50 border border-gray-200 p-3">
-                  <div className="text-[10px] font-semibold text-gray-400 uppercase mb-1.5">
+                  <div className="text-xs font-semibold text-gray-400 uppercase mb-1.5">
                     {e.label}
                   </div>
                   <div className="space-y-1 text-xs">
@@ -271,18 +271,18 @@ export default async function AwqRiskPage() {
         {/* ── Risk Heatmap by BU ────────────────────────────────────────────── */}
         <div className="card p-5">
           <h2 className="text-sm font-semibold text-gray-900 mb-1">Risk Exposure por BU</h2>
-          <p className="text-[11px] text-gray-400 mb-4">Avaliação qualitativa — snapshot de planejamento.</p>
+          <p className="text-xs text-gray-400 mb-4">Avaliação qualitativa — snapshot de planejamento.</p>
           <div className="table-scroll">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200">
-                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">BU</th>
-                  <th className="text-center py-2 px-3 text-xs font-semibold text-gray-500">Concentração</th>
-                  <th className="text-center py-2 px-3 text-xs font-semibold text-gray-500">Recebíveis</th>
-                  <th className="text-center py-2 px-3 text-xs font-semibold text-gray-500">Margem</th>
-                  <th className="text-center py-2 px-3 text-xs font-semibold text-gray-500">Cash</th>
-                  <th className="text-center py-2 px-3 text-xs font-semibold text-gray-500">Forecast</th>
-                  <th className="text-center py-2 px-3 text-xs font-semibold text-gray-500">Score Geral</th>
+                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">BU</th>
+                  <th className="text-center py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Concentração</th>
+                  <th className="text-center py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Recebíveis</th>
+                  <th className="text-center py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Margem</th>
+                  <th className="text-center py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Cash</th>
+                  <th className="text-center py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Forecast</th>
+                  <th className="text-center py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Score Geral</th>
                 </tr>
               </thead>
               <tbody>
@@ -299,7 +299,7 @@ export default async function AwqRiskPage() {
                       : "bg-emerald-50 text-emerald-600";
                     return (
                       <td className="py-2.5 px-3 text-center">
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${color}`}>{v}</span>
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${color}`}>{v}</span>
                       </td>
                     );
                   };
@@ -324,7 +324,7 @@ export default async function AwqRiskPage() {
               </tbody>
             </table>
           </div>
-          <p className="text-[10px] text-amber-600 mt-2">
+          <p className="text-xs text-amber-600 mt-2">
             ⚠ Avaliação qualitativa baseada em análise de planejamento — não derivada da base bancária.
           </p>
         </div>

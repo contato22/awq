@@ -152,25 +152,25 @@ export default function ActivitiesPage() {
                               {a.description && <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{a.description}</p>}
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
-                              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[a.status] ?? ""}`}>
+                              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[a.status] ?? ""}`}>
                                 {a.status === "scheduled" ? "Agendada" : a.status === "completed" ? "Concluída" : "Cancelada"}
                               </span>
                               {a.status === "scheduled" && (
                                 <button onClick={() => completeActivity(a.activity_id)} disabled={completing === a.activity_id}
-                                  className="text-[11px] text-emerald-600 font-medium hover:underline disabled:opacity-50">
+                                  className="text-xs text-emerald-600 font-medium hover:underline disabled:opacity-50">
                                   {completing === a.activity_id ? "…" : "Concluir"}
                                 </button>
                               )}
                             </div>
                           </div>
                           <div className="flex items-center gap-3 mt-2">
-                            <span className="flex items-center gap-1 text-[10px] text-gray-400">
+                            <span className="flex items-center gap-1 text-xs text-gray-400">
                               <Clock size={10} />
                               {a.scheduled_at ? fmtDatetime(a.scheduled_at) : formatDateBR(a.created_at)}
                             </span>
-                            <span className="text-[10px] text-gray-400">{a.created_by}</span>
+                            <span className="text-xs text-gray-400">{a.created_by}</span>
                             {a.outcome && (
-                              <span className={`text-[10px] font-medium ${a.outcome === "successful" ? "text-emerald-600" : "text-red-500"}`}>
+                              <span className={`text-xs font-medium ${a.outcome === "successful" ? "text-emerald-600" : "text-red-500"}`}>
                                 {a.outcome === "successful" ? "✓ Sucesso" : a.outcome === "no_answer" ? "Sem resposta" : "Sem sucesso"}
                               </span>
                             )}

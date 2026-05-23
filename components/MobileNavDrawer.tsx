@@ -376,7 +376,7 @@ function NavLink({
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <div className="px-3 mb-1 mt-5">
-      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+      <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">
         {children}
       </span>
     </div>
@@ -399,13 +399,13 @@ function BUContextBar({
       <div className={cn("flex items-center gap-3 px-3 py-2.5 rounded-xl border", colorClass)}>
         <div className="flex-1 min-w-0">
           <div className="text-sm font-bold truncate">{label}</div>
-          <div className="text-[10px] opacity-70 truncate">{sub}</div>
+          <div className="text-xs opacity-70 truncate">{sub}</div>
         </div>
       </div>
       <Link
         href="/business-units"
         onClick={onNavigate}
-        className="flex items-center gap-1.5 text-[11px] text-gray-400 hover:text-brand-600 transition-colors mt-2 px-1"
+        className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-brand-600 transition-colors mt-2 px-1"
       >
         <ChevronLeft size={12} />
         Voltar para AWQ Group
@@ -568,7 +568,7 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
             </div>
             <div>
               <div className="text-sm font-bold text-gray-900">AWQ Group</div>
-              <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+              <div className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
                 Plataforma Central
               </div>
             </div>
@@ -911,7 +911,7 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-semibold text-gray-800">{bu.label}</div>
-                      <div className="text-[10px] text-gray-400">{bu.sub}</div>
+                      <div className="text-xs text-gray-400">{bu.sub}</div>
                     </div>
                     <ChevronRight size={14} className="text-gray-300" />
                   </Link>
@@ -950,7 +950,7 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
             </div>
             <div className="flex-1 min-w-0">
               <span className="text-sm font-semibold text-gray-800">Admin</span>
-              <div className="text-[10px] text-gray-400">Administrador</div>
+              <div className="text-xs text-gray-400">Administrador</div>
             </div>
           </div>
         </div>

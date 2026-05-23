@@ -53,7 +53,7 @@ export default function WarehousesPage() {
               <thead className="bg-gray-50">
                 <tr>
                   {["Código", "Nome", "Endereço", "Capacidade", "Responsável", "Status"].map((h) => (
-                    <th key={h} className="px-4 py-3 text-left text-[10px] font-semibold text-gray-500 uppercase whitespace-nowrap">{h}</th>
+                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase whitespace-nowrap tracking-wide">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -77,7 +77,7 @@ export default function WarehousesPage() {
         {/* Status legend */}
         <div className="flex flex-wrap gap-2">
           {(Object.entries(STATUS_BADGE) as [WhStatus, string][]).map(([s, cls]) => (
-            <span key={s} className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${cls}`}>{s}</span>
+            <span key={s} className={`px-2 py-0.5 rounded-full text-xs font-semibold ${cls}`}>{s}</span>
           ))}
         </div>
       </div>

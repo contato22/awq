@@ -185,11 +185,11 @@ export default function CurrencyPage() {
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50 text-left">
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold">Moeda</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Receitas (BRL)</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Despesas (BRL)</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Ativos (BRL)</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">G/P Câmbio</th>
+                  <th className="py-2.5 px-3 text-gray-500 font-semibold uppercase tracking-wide">Moeda</th>
+                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right uppercase tracking-wide">Receitas (BRL)</th>
+                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right uppercase tracking-wide">Despesas (BRL)</th>
+                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right uppercase tracking-wide">Ativos (BRL)</th>
+                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right uppercase tracking-wide">G/P Câmbio</th>
                 </tr>
               </thead>
               <tbody>
@@ -252,15 +252,15 @@ export default function CurrencyPage() {
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50 text-left">
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold">Data</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold">BU</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold">Descrição</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold">Moeda</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Valor FC</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Taxa Booking</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">BRL Booking</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">BRL Atual</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">G/P Câmbio</th>
+                  <th className="py-2.5 px-3 text-gray-500 font-semibold uppercase tracking-wide">Data</th>
+                  <th className="py-2.5 px-3 text-gray-500 font-semibold uppercase tracking-wide">BU</th>
+                  <th className="py-2.5 px-3 text-gray-500 font-semibold uppercase tracking-wide">Descrição</th>
+                  <th className="py-2.5 px-3 text-gray-500 font-semibold uppercase tracking-wide">Moeda</th>
+                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right uppercase tracking-wide">Valor FC</th>
+                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right uppercase tracking-wide">Taxa Booking</th>
+                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right uppercase tracking-wide">BRL Booking</th>
+                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right uppercase tracking-wide">BRL Atual</th>
+                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right uppercase tracking-wide">G/P Câmbio</th>
                 </tr>
               </thead>
               <tbody>

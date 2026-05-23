@@ -31,9 +31,9 @@ function UtilCard({ row }: { row: UtilRow }) {
       <div className="flex items-start justify-between mb-3">
         <div>
           <div className="text-sm font-bold text-gray-900">{row.user_name}</div>
-          {row.email && <div className="text-[10px] text-gray-400">{row.email}</div>}
+          {row.email && <div className="text-xs text-gray-400">{row.email}</div>}
         </div>
-        <span className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${cfg.bg} ${cfg.border} ${cfg.color}`}>
+        <span className={`flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full border ${cfg.bg} ${cfg.border} ${cfg.color}`}>
           <Icon size={10} /> {cfg.label}
         </span>
       </div>
@@ -50,13 +50,13 @@ function UtilCard({ row }: { row: UtilRow }) {
           />
         </div>
         {over && (
-          <div className="text-[10px] text-red-500 font-medium mt-1">
+          <div className="text-xs text-red-500 font-medium mt-1">
             ⚠ {row.total_allocation_pct - 100}% acima da capacidade
           </div>
         )}
       </div>
 
-      <div className="text-[10px] text-gray-500 space-y-1">
+      <div className="text-xs text-gray-500 space-y-1">
         <div><span className="font-semibold text-gray-700">{row.active_projects}</span> projeto(s) ativo(s)</div>
         {row.project_names?.slice(0, 3).map(name => (
           <div key={name} className="truncate text-gray-400">· {name}</div>
@@ -145,7 +145,7 @@ export default function UtilizationPage() {
               { label: "Disponível (<50%)",          count: available, total: utilization.length, color: "bg-emerald-500" },
             ].map(({ label, count, total, color }) => (
               <div key={label} className="flex items-center gap-3">
-                <div className="w-44 text-[11px] text-gray-500 shrink-0">{label}</div>
+                <div className="w-44 text-xs text-gray-500 shrink-0">{label}</div>
                 <div className="flex-1 h-2.5 bg-gray-100 rounded-full overflow-hidden">
                   <div className={`h-full ${color} rounded-full transition-all`} style={{ width: total > 0 ? `${(count / total) * 100}%` : "0%" }} />
                 </div>

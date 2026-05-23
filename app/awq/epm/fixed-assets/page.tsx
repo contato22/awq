@@ -177,7 +177,7 @@ export default function FixedAssetsPage() {
                         {a.asset_name}
                       </td>
                       <td className="py-2 px-3">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${CAT_COLORS[a.asset_category] ?? "bg-gray-100 text-gray-600"}`}>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${CAT_COLORS[a.asset_category] ?? "bg-gray-100 text-gray-600"}`}>
                           {a.asset_category}
                         </span>
                       </td>
@@ -194,7 +194,7 @@ export default function FixedAssetsPage() {
                               style={{ width: `${Math.min(pct, 100)}%` }}
                             />
                           </div>
-                          <span className={`text-[10px] font-semibold ${near ? "text-red-600" : "text-gray-500"}`}>
+                          <span className={`text-xs font-semibold ${near ? "text-red-600" : "text-gray-500"}`}>
                             {pct.toFixed(0)}%
                           </span>
                           {near && <AlertTriangle size={9} className="text-red-400 shrink-0" />}
@@ -230,7 +230,7 @@ export default function FixedAssetsPage() {
           <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2">
             {depSchedule.map((row, i) => (
               <div key={row.month} className={`rounded-xl p-3 text-center ${i === 0 ? "bg-brand-50 border border-brand-200" : "bg-gray-50"}`}>
-                <div className="text-[10px] text-gray-400 font-semibold mb-1">{row.month}</div>
+                <div className="text-xs text-gray-400 font-semibold mb-1">{row.month}</div>
                 <div className={`text-sm font-bold tabular-nums ${i === 0 ? "text-brand-700" : "text-red-600"}`}>
                   {fmtBRL(row.amount)}
                 </div>
@@ -271,7 +271,7 @@ export default function FixedAssetsPage() {
                         style={{ width: `${100 - deprPct}%` }}
                       />
                     </div>
-                    <div className="text-[10px] text-gray-400 mt-0.5">{(100 - deprPct).toFixed(0)}% valor residual restante</div>
+                    <div className="text-xs text-gray-400 mt-0.5">{(100 - deprPct).toFixed(0)}% valor residual restante</div>
                   </div>
                 );
               })}
@@ -288,17 +288,17 @@ export default function FixedAssetsPage() {
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-gray-200 text-left">
-                    <th className="py-2 px-2 text-gray-500 font-semibold">Categoria</th>
-                    <th className="py-2 px-2 text-gray-500 font-semibold text-right">Qtd</th>
-                    <th className="py-2 px-2 text-gray-500 font-semibold text-right">Custo Total</th>
-                    <th className="py-2 px-2 text-gray-500 font-semibold text-right">Valor Líquido</th>
+                    <th className="py-2 px-2 text-gray-500 font-semibold uppercase tracking-wide">Categoria</th>
+                    <th className="py-2 px-2 text-gray-500 font-semibold text-right uppercase tracking-wide">Qtd</th>
+                    <th className="py-2 px-2 text-gray-500 font-semibold text-right uppercase tracking-wide">Custo Total</th>
+                    <th className="py-2 px-2 text-gray-500 font-semibold text-right uppercase tracking-wide">Valor Líquido</th>
                   </tr>
                 </thead>
                 <tbody>
                   {catCapex.map((c) => (
                     <tr key={c.category} className="border-b border-gray-50 hover:bg-gray-50">
                       <td className="py-2 px-2">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${CAT_COLORS[c.category] ?? "bg-gray-100 text-gray-600"}`}>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${CAT_COLORS[c.category] ?? "bg-gray-100 text-gray-600"}`}>
                           {c.category}
                         </span>
                       </td>

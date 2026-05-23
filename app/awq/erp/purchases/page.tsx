@@ -127,7 +127,7 @@ export default function PurchasesPage() {
               <thead className="bg-gray-50">
                 <tr>
                   {["Nº Pedido", "Fornecedor", "BU", "Data", "Previsão", "Valor Total", "Status"].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-[10px] font-semibold text-gray-500 uppercase whitespace-nowrap">{h}</th>
+                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase whitespace-nowrap tracking-wide">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -158,7 +158,7 @@ export default function PurchasesPage() {
                         R$ {Number(p.total_amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${STATUS_BADGE[p.status] ?? "bg-gray-100 text-gray-500"}`}>{p.status}</span>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${STATUS_BADGE[p.status] ?? "bg-gray-100 text-gray-500"}`}>{p.status}</span>
                       </td>
                     </tr>
                   ))
@@ -170,7 +170,7 @@ export default function PurchasesPage() {
 
         <div className="flex flex-wrap gap-2">
           {(Object.entries(STATUS_BADGE) as [PurchaseStatus, string][]).map(([status, cls]) => (
-            <span key={status} className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${cls}`}>{status}</span>
+            <span key={status} className={`px-2 py-0.5 rounded-full text-xs font-semibold ${cls}`}>{status}</span>
           ))}
         </div>
       </div>

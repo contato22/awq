@@ -48,7 +48,7 @@ export default function KPICard({ kpi }: KPICardProps) {
         </div>
         <div
           className={cn(
-            "flex items-center gap-0.5 text-[11px] font-semibold px-2 py-0.5 rounded-full",
+            "flex items-center gap-0.5 text-xs font-semibold px-2 py-0.5 rounded-full",
             isPositive
               ? "text-emerald-700 bg-emerald-50"
               : "text-red-700 bg-red-50"
@@ -71,7 +71,7 @@ export default function KPICard({ kpi }: KPICardProps) {
       </div>
 
       <div className="mt-3 pt-3 border-t border-gray-100">
-        <span className="text-[11px] text-gray-400">
+        <span className="text-xs text-gray-400">
           vs anterior:{" "}
           <span className={cn("font-semibold", isPositive ? "text-emerald-600" : "text-red-600")}>
             {isPositive ? "+" : ""}

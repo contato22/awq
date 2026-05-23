@@ -231,7 +231,7 @@ function NavItem({ item }: { item: Item }) {
               href={sub.href}
               className="flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-gray-50 transition-colors group"
             >
-              <span className="text-[11px] text-gray-500 group-hover:text-gray-800 transition-colors">
+              <span className="text-xs text-gray-500 group-hover:text-gray-800 transition-colors">
                 {sub.label}
               </span>
               <ChevronRight size={9} className="text-gray-300 group-hover:text-gray-500 transition-colors" />

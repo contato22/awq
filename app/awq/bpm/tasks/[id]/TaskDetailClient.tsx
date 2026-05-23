@@ -123,7 +123,7 @@ export default function TaskDetailClient() {
           )}
           <Link
             href="/awq/bpm/tasks"
-            className="inline-block bg-blue-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+            className="inline-block bg-brand-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-brand-700 transition-colors"
           >
             Voltar para Minhas Tarefas
           </Link>
@@ -221,7 +221,7 @@ export default function TaskDetailClient() {
               rows={3}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
               placeholder="Adicione comentários sobre esta decisão..."
             />
           </div>

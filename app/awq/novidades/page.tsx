@@ -293,7 +293,7 @@ export default function NovidadesPage() {
                 {/* Date header */}
                 <div className="flex items-center gap-2 mb-3">
                   <CalendarDays size={12} className="text-gray-400 shrink-0" />
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">
                     {fmtDataLonga(date)}
                   </span>
                   {date === hoje && (
