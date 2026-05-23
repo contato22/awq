@@ -382,11 +382,15 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
           }
           // Link the new AP entry to this bank transaction
           const { entry } = await res.json() as { entry: { id: string } };
-          await fetch(`/api/ap/entries/${entry.id}`, {
+          const patchRes = await fetch(`/api/ap/entries/${entry.id}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ status: "pago", paymentDate: tx.transactionDate, bankTransactionId: tx.id }),
           });
+          if (!patchRes.ok) {
+            const patchBody = await patchRes.json() as { error?: string };
+            throw new Error(patchBody.error ?? "Falha ao vincular AP à transação");
+          }
         } else {
           const res = await fetch("/api/epm/ar", {
             method: "POST",
