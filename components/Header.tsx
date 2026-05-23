@@ -21,11 +21,11 @@ export default function Header({ title, subtitle }: HeaderProps) {
         style={{ borderTop: "2.5px solid #0487D9" }}
       >
         <div className="min-w-0">
-          <h1 className="text-[15px] font-bold tracking-tight truncate" style={{ color: "#023373" }}>
+          <h1 className="text-lg font-bold tracking-tight truncate" style={{ color: "#023373" }}>
             {title}
           </h1>
           {subtitle && (
-            <p className="text-[11px] text-gray-400 mt-0.5 font-medium truncate tracking-wide">
+            <p className="text-xs text-gray-400 mt-0.5 font-medium truncate tracking-wide">
               {subtitle}
             </p>
           )}

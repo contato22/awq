@@ -57,12 +57,12 @@ function EntityCashPL({ e, totalRevenue }: { e: EntitySummary; totalRevenue: num
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <div className="text-sm font-bold text-gray-900">{e.label}</div>
-          <div className="text-[10px] text-gray-400 mt-0.5">
+          <div className="text-base font-bold text-gray-900">{e.label}</div>
+          <div className="text-xs text-gray-400 mt-0.5">
             {e.accounts.map((a) => `${a.bank} · ${a.accountName}`).join(" | ")}
           </div>
         </div>
-        <div className={`text-lg font-bold tabular-nums ${netPositive ? "text-emerald-600" : "text-red-600"}`}>
+        <div className={`text-xl font-bold tabular-nums tracking-tight ${netPositive ? "text-emerald-600" : "text-red-600"}`}>
           {fmtBRL(e.operationalNetCash)}
         </div>
       </div>
@@ -143,7 +143,7 @@ function ExpenseBreakdown({ q }: { q: FinancialQueryResult }) {
   return (
     <div className="card p-5">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-semibold text-gray-900">Despesas por Categoria — Base Bancária</h2>
+        <h2 className="text-base font-semibold text-gray-900">Despesas por Categoria — Base Bancária</h2>
         <span className="text-xs text-gray-500 tabular-nums">Total: {fmtBRL(total)}</span>
       </div>
       <div className="table-scroll">
@@ -186,7 +186,7 @@ function RevenueByCounterparty({ q }: { q: FinancialQueryResult }) {
   return (
     <div className="card p-5">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-semibold text-gray-900">Entradas por Contraparte — Top 20</h2>
+        <h2 className="text-base font-semibold text-gray-900">Entradas por Contraparte — Top 20</h2>
         <span className="text-xs text-gray-500 tabular-nums">Total: {fmtBRL(total)}</span>
       </div>
       <div className="space-y-2">
@@ -282,11 +282,11 @@ export default async function AwqFinancialPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   {q.hasData ? (
-                    <div className="text-2xl font-bold text-gray-900 tabular-nums">{card.value}</div>
+                    <div className="text-2xl lg:text-3xl font-bold text-gray-900 tabular-nums tracking-tight">{card.value}</div>
                   ) : (
                     <div className="text-base font-medium text-gray-300 mt-1">—</div>
                   )}
-                  <div className="text-xs font-medium text-gray-400 mt-0.5">{card.label}</div>
+                  <div className="text-sm font-medium text-gray-400 mt-1">{card.label}</div>
                   {q.hasData && (
                     <div className="flex items-center gap-1 mt-1">
                       {card.up
