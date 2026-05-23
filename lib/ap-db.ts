@@ -1,10 +1,16 @@
 // ─── AP DB — Contas a Pagar (Accounts Payable) ────────────────────────────────
-// Server-only module. Uses the same Supabase priority chain as financial-db.ts.
+// Server-only module. Storage priority:
+//   1. sql (DATABASE_URL direct postgres) — auto-provisions ap_entries via initDB()
+//   2. supabase (financial DB service role)
+//   3. anonClient (financial DB anon)
+//   4. erpAdmin / erpAnon (ERP DB — fallback only)
+//   5. JSON file (dev / read-only FS — silently skipped on Vercel)
 // DO NOT import in client components — use @/lib/ap-shared for types.
 
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
+import { sql, initDB } from "@/lib/db";
 import { supabase, erpAdmin, erpAnon, anonClient } from "@/lib/supabase";
 import type { EntityLayer } from "@/lib/financial-db";
 import type {
@@ -16,7 +22,12 @@ import { effectiveStatus } from "@/lib/ap-shared";
 export type { APStatus, APEntry, APSummary, CreateAPEntryInput, UpdateAPEntryInput } from "@/lib/ap-shared";
 export { effectiveStatus } from "@/lib/ap-shared";
 
-const db = supabase ?? erpAdmin ?? erpAnon ?? anonClient;
+// Trigger auto-migration of ap_entries in the financial DB at module load.
+// initDB() never throws — errors are only logged internally.
+const _dbReady: Promise<void> = initDB();
+
+// Supabase REST fallback — prefer financial DB (not IP-restricted on Vercel)
+const db = supabase ?? anonClient ?? erpAdmin ?? erpAnon;
 
 const AP_FILE = path.join(process.cwd(), "public", "data", "financial", "ap-entries.json");
 
@@ -70,6 +81,17 @@ function fromRow(row: Record<string, unknown>): APEntry {
 // ── CRUD ───────────────────────────────────────────────────────────────────────
 
 export async function getAllAPEntries(): Promise<APEntry[]> {
+  await _dbReady;
+
+  if (sql) {
+    try {
+      const rows = await sql`SELECT * FROM ap_entries ORDER BY due_date ASC`;
+      return rows.map(r => fromRow(r as Record<string, unknown>));
+    } catch {
+      // fall through to Supabase REST
+    }
+  }
+
   if (!db) return readJsonFallback();
   try {
     const { data, error } = await db
@@ -95,6 +117,8 @@ export async function getAPEntriesByStatus(status: APStatus): Promise<APEntry[]>
 }
 
 export async function createAPEntry(input: CreateAPEntryInput): Promise<APEntry> {
+  await _dbReady;
+
   const now = new Date().toISOString();
   const entry: APEntry = {
     id:                 crypto.randomUUID(),
@@ -120,6 +144,29 @@ export async function createAPEntry(input: CreateAPEntryInput): Promise<APEntry>
     approvedBy:         null,
     approvedAt:         null,
   };
+
+  if (sql) {
+    try {
+      await sql`
+        INSERT INTO ap_entries (
+          id, account_code, account_description, managerial_category,
+          supplier_name, supplier_document, entity, amount, currency,
+          issue_date, due_date, status, invoice_number, description,
+          notes, created_at, created_by
+        ) VALUES (
+          ${entry.id}, ${entry.accountCode}, ${entry.accountDescription},
+          ${entry.managerialCategory}, ${entry.supplierName}, ${entry.supplierDocument},
+          ${entry.entity}, ${entry.amount}, ${entry.currency},
+          ${entry.issueDate}, ${entry.dueDate}, ${entry.status},
+          ${entry.invoiceNumber}, ${entry.description}, ${entry.notes},
+          ${entry.createdAt}, ${entry.createdBy}
+        )
+      `;
+      return entry;
+    } catch {
+      // fall through to Supabase REST
+    }
+  }
 
   if (!db) {
     const all = readJsonFallback();
@@ -151,8 +198,8 @@ export async function createAPEntry(input: CreateAPEntryInput): Promise<APEntry>
   try {
     const { error } = await db.from("ap_entries").insert(row);
     if (error) throw new Error(`AP insert failed: ${error.message}`);
-  } catch (e) {
-    // Supabase unreachable (IP restriction, no service key) — persist locally
+  } catch {
+    // Supabase unreachable — persist locally
     const all = readJsonFallback();
     all.push(entry);
     writeJsonFallback(all);
@@ -161,7 +208,49 @@ export async function createAPEntry(input: CreateAPEntryInput): Promise<APEntry>
 }
 
 export async function updateAPEntry(id: string, input: UpdateAPEntryInput): Promise<void> {
+  await _dbReady;
+
   const now = new Date().toISOString();
+
+  if (sql) {
+    try {
+      const patch: Record<string, unknown> = { updated_at: now };
+      if (input.status            !== undefined) patch.status               = input.status;
+      if (input.paymentDate       !== undefined) patch.payment_date         = input.paymentDate;
+      if (input.bankTransactionId !== undefined) patch.bank_transaction_id  = input.bankTransactionId;
+      if (input.approvedBy        !== undefined) patch.approved_by          = input.approvedBy;
+      if (input.approvedAt        !== undefined) patch.approved_at          = input.approvedAt;
+      if (input.notes             !== undefined) patch.notes                = input.notes;
+      if (input.amount            !== undefined) patch.amount               = input.amount;
+      if (input.dueDate           !== undefined) patch.due_date             = input.dueDate;
+      if (input.invoiceNumber     !== undefined) patch.invoice_number       = input.invoiceNumber;
+      if (input.description       !== undefined) patch.description          = input.description;
+
+      // Build SET clause from patch keys
+      const entries = Object.entries(patch);
+      if (entries.length === 1) return; // only updated_at — nothing to update
+
+      // Use parameterized raw update
+      await sql`
+        UPDATE ap_entries
+        SET updated_at = ${now},
+            status               = COALESCE(${input.status ?? null},               status),
+            payment_date         = COALESCE(${input.paymentDate ?? null},          payment_date),
+            bank_transaction_id  = COALESCE(${input.bankTransactionId ?? null},    bank_transaction_id),
+            approved_by          = COALESCE(${input.approvedBy ?? null},           approved_by),
+            approved_at          = COALESCE(${input.approvedAt ?? null},           approved_at),
+            notes                = COALESCE(${input.notes ?? null},                notes),
+            amount               = COALESCE(${input.amount ?? null},               amount),
+            due_date             = COALESCE(${input.dueDate ?? null},              due_date),
+            invoice_number       = COALESCE(${input.invoiceNumber ?? null},        invoice_number),
+            description          = COALESCE(${input.description ?? null},          description)
+        WHERE id = ${id}
+      `;
+      return;
+    } catch {
+      // fall through to Supabase REST
+    }
+  }
 
   if (!db) {
     const all = readJsonFallback();
@@ -198,6 +287,17 @@ export async function updateAPEntry(id: string, input: UpdateAPEntryInput): Prom
 }
 
 export async function deleteAPEntry(id: string): Promise<void> {
+  await _dbReady;
+
+  if (sql) {
+    try {
+      await sql`DELETE FROM ap_entries WHERE id = ${id}`;
+      return;
+    } catch {
+      // fall through
+    }
+  }
+
   if (!db) {
     const all = readJsonFallback().filter(e => e.id !== id);
     writeJsonFallback(all);
@@ -207,7 +307,7 @@ export async function deleteAPEntry(id: string): Promise<void> {
   if (error) throw new Error(`AP delete failed: ${error.message}`);
 }
 
-// ── Aggregations (dashboard + CI/CD integration with DRE / DFC / Balanço) ──────
+// ── Aggregations ───────────────────────────────────────────────────────────────
 
 export async function getAPSummary(entity: EntityLayer | "all" = "all"): Promise<APSummary> {
   const entries = await getAPEntriesByEntity(entity);
@@ -251,7 +351,6 @@ export async function getAPSummary(entity: EntityLayer | "all" = "all"): Promise
   return summary;
 }
 
-// Returns open AP entries for Balance Sheet (Passivo Circulante)
 export async function getOpenAPForBalanco(entity: EntityLayer | "all" = "all"): Promise<APEntry[]> {
   const entries = await getAPEntriesByEntity(entity);
   const today = new Date();
@@ -261,13 +360,11 @@ export async function getOpenAPForBalanco(entity: EntityLayer | "all" = "all"): 
   });
 }
 
-// Returns paid APs for DFC (cash outflows)
 export async function getPaidAPForDFC(entity: EntityLayer | "all" = "all"): Promise<APEntry[]> {
   const entries = await getAPEntriesByEntity(entity);
   return entries.filter(e => e.status === "pago" && e.paymentDate);
 }
 
-// Returns AP accruals for DRE by managerialCategory (regime competência)
 export async function getAPAccrualsForDRE(
   entity: EntityLayer | "all" = "all",
   period?: { start: string; end: string }
