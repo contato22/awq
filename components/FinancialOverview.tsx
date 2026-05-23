@@ -44,6 +44,23 @@ interface FlowResult {
 // Must mirror HOLDING_OPERATIONAL_ENTITIES in lib/dre-query.ts — ENERDY is excluded
 const OPERATIONAL_ENTITIES = new Set(["AWQ_Holding", "JACQES", "Caza_Vision"]);
 
+// Mirrors REVENUE_CATS / OPERATIONAL_EXPENSE_CATS in lib/financial-query.ts
+// Cannot import that file in client components (uses Node fs). Keep in sync manually.
+const REVENUE_CATS = new Set([
+  "receita_recorrente", "receita_projeto", "receita_consultoria",
+  "receita_producao", "receita_social_media", "receita_revenue_share",
+  "receita_fee_venture", "receita_eventual", "rendimento_financeiro",
+  "ajuste_bancario_credito",
+]);
+const OPERATIONAL_EXPENSE_CATS = new Set([
+  "fornecedor_operacional", "freelancer_terceiro", "folha_remuneracao",
+  "prolabore_retirada", "imposto_tributo", "juros_multa_iof",
+  "tarifa_bancaria", "software_assinatura", "marketing_midia",
+  "deslocamento_combustivel", "alimentacao_representacao", "viagem_hospedagem",
+  "aluguel_locacao", "energia_agua_internet", "servicos_contabeis_juridicos",
+  "cartao_compra_operacional", "despesa_pessoal_misturada", "despesa_ambigua",
+]);
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function fmtBRL(v: number) {
@@ -96,8 +113,13 @@ function buildFlowRange(txns: BankTransaction[], range: DateRange): FlowResult {
     if (t.transactionDate < from || t.transactionDate > to) continue;
     if (!dayMap.has(t.transactionDate)) continue;
     const row = dayMap.get(t.transactionDate)!;
-    if (t.direction === "credit") { row.cd += t.amount; totCD += t.amount; }
-    else                          { row.ci += t.amount; totCI += t.amount; }
+    const cat = t.managerialCategory;
+    // Same category filter as DFC — validated cash, not raw bank direction
+    if (REVENUE_CATS.has(cat) && t.direction === "credit") {
+      row.cd += t.amount; totCD += t.amount;
+    } else if (OPERATIONAL_EXPENSE_CATS.has(cat) && t.direction === "debit") {
+      row.ci += t.amount; totCI += t.amount;
+    }
   }
 
   // Weekly aggregation when range > 60 days
@@ -165,8 +187,8 @@ function ChartTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   const meta: Record<string, { name: string; color: string }> = {
     saldo: { name: "Saldo líquido", color: "#d97706" },
-    cd:    { name: "Créditos",      color: "#10b981" },
-    ci:    { name: "Débitos",       color: "#ef4444" },
+    cd:    { name: "Entradas DFC",  color: "#10b981" },
+    ci:    { name: "Saídas DFC",    color: "#ef4444" },
   };
   return (
     <div className="rounded-xl border border-amber-200 bg-white shadow-2xl text-xs min-w-[190px] overflow-hidden">
@@ -300,7 +322,8 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
   ), [transactions]);
 
   const netVariation = totCD - totCI;
-  const netPct = totCI > 0 ? ((netVariation / totCI) * 100).toFixed(1) : null;
+  // Margem líquida = (CD − CI) / CD — bounded [-∞, 100%], significativo independente do volume
+  const netPct = totCD > 0 ? ((netVariation / totCD) * 100).toFixed(1) : null;
   const toggle = (key: string) => setHidden((prev) => {
     const next = new Set(prev);
     next.has(key) ? next.delete(key) : next.add(key);
@@ -399,8 +422,8 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
         {/* KPI row — clickable series toggles */}
         <div className="grid grid-cols-3 divide-x divide-gray-100 border-t border-b border-gray-100">
           {[
-            { key: "cd",    label: "CD — Créditos", value: totCD,      color: "text-emerald-600", dotC: "#10b981" },
-            { key: "ci",    label: "CI — Débitos",  value: totCI,      color: "text-red-600",     dotC: "#ef4444" },
+            { key: "cd",    label: "Entradas · Receitas DFC", value: totCD,      color: "text-emerald-600", dotC: "#10b981" },
+            { key: "ci",    label: "Saídas · Despesas DFC",  value: totCI,      color: "text-red-600",     dotC: "#ef4444" },
             { key: "saldo", label: "Saldo líquido", value: saldoFinal,
               color: saldoFinal >= 0 ? "text-amber-700" : "text-red-600", dotC: "#d97706" },
           ].map((k) => (
@@ -415,7 +438,7 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
                 <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">{k.label}</span>
                 {k.key === "saldo" && netPct && (
                   <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${netVariation >= 0 ? "bg-amber-50 text-amber-700" : "bg-red-50 text-red-600"}`}>
-                    {netVariation >= 0 ? "+" : ""}{netPct}%
+                    {netPct}% líquido
                   </span>
                 )}
               </div>
@@ -572,7 +595,7 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
               <div className="flex items-center justify-between mb-2">
                 <p className="text-overline">A receber hoje</p>
                 <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
-                  <ArrowUpRight size={9} /> CD
+                  <ArrowUpRight size={9} /> Entrada
                 </span>
               </div>
               {recebimentosHoje > 0 ? (
@@ -595,7 +618,7 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
               <div className="flex items-center justify-between mb-2">
                 <p className="text-overline">A pagar hoje</p>
                 <span className="flex items-center gap-1 text-[10px] font-bold text-red-700 bg-red-50 px-2 py-0.5 rounded-full">
-                  <ArrowDownLeft size={9} /> CI
+                  <ArrowDownLeft size={9} /> Saída
                 </span>
               </div>
               {pagamentosHoje > 0 ? (
