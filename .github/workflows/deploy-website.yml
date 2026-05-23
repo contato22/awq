@@ -1,4 +1,4 @@
-name: Deploy awq.com.br
+name: Deploy awq.com.br → GitHub Pages
 
 on:
   push:
@@ -6,8 +6,17 @@ on:
     paths: ["website/**"]
   workflow_dispatch:
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -15,24 +24,29 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
+          cache-dependency-path: website/package-lock.json
 
-      - name: Install Vercel CLI
-        run: npm install -g vercel@latest
-
-      - name: Deploy to Vercel
-        id: deploy
+      - name: Install dependencies
+        run: npm ci
         working-directory: website
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: |
-          URL=$(vercel deploy --prod --yes --token "$VERCEL_TOKEN" 2>&1 | tail -1)
-          echo "url=$URL" >> $GITHUB_OUTPUT
-          echo "Deployed to: $URL"
 
-      - name: Add domain awq.com.br
+      - name: Build static export
+        run: npm run build
         working-directory: website
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: |
-          vercel domains add awq.com.br --token "$VERCEL_TOKEN" --yes 2>&1 || true
-          vercel alias set ${{ steps.deploy.outputs.url }} awq.com.br --token "$VERCEL_TOKEN" 2>&1 || true
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: website/out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
