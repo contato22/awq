@@ -1,13 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Area, AreaChart, CartesianGrid, ResponsiveContainer,
   Tooltip, XAxis, YAxis,
 } from "recharts";
 import type { BankTransaction } from "@/lib/financial-db";
 import {
-  ArrowDownLeft, ArrowUpRight, ChevronDown,
+  ArrowDownLeft, ArrowUpRight, Calendar, ChevronDown,
   FileUp, RefreshCw, TrendingDown, TrendingUp,
 } from "lucide-react";
 
@@ -31,10 +31,13 @@ interface Props {
   coraConfigured: boolean;
 }
 
-type Period = "14d" | "30d" | "3m";
-
-interface FlowRow  { label: string; cd: number; ci: number; saldo: number }
-interface FlowResult { data: FlowRow[]; totCD: number; totCI: number; saldoFinal: number; hasData: boolean }
+type Period = "7d" | "14d" | "30d" | "3m" | "6m" | "1y" | "custom";
+interface DateRange { from: string; to: string }
+interface FlowRow   { label: string; cd: number; ci: number; saldo: number }
+interface FlowResult {
+  data: FlowRow[]; totCD: number; totCI: number;
+  saldoFinal: number; hasData: boolean;
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -55,23 +58,43 @@ function dateAgo(days: number) {
   return new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
 }
 
-function buildFlow(txns: BankTransaction[], period: Period): FlowResult {
-  const totalDays = period === "14d" ? 14 : period === "30d" ? 30 : 90;
-  const since = dateAgo(totalDays - 1);
+function addDays(date: string, days: number) {
+  return new Date(new Date(date).getTime() + days * 86_400_000).toISOString().slice(0, 10);
+}
 
+function periodToRange(period: Exclude<Period, "custom">): DateRange {
+  const daysMap: Record<Exclude<Period, "custom">, number> = {
+    "7d": 7, "14d": 14, "30d": 30, "3m": 90, "6m": 180, "1y": 365,
+  };
+  return { from: dateAgo(daysMap[period] - 1), to: today() };
+}
+
+// Excludes internal transfers, investments, card reserves — same logic as DRE/DFC
+function buildFlowRange(txns: BankTransaction[], range: DateRange): FlowResult {
+  const { from, to } = range;
+
+  const diffDays =
+    Math.round((new Date(to).getTime() - new Date(from).getTime()) / 86_400_000) + 1;
+
+  // Build day map
   const dayMap = new Map<string, { cd: number; ci: number }>();
-  for (let i = totalDays - 1; i >= 0; i--) dayMap.set(dateAgo(i), { cd: 0, ci: 0 });
+  for (let i = 0; i < diffDays; i++) {
+    dayMap.set(addDays(from, i), { cd: 0, ci: 0 });
+  }
 
   let totCD = 0, totCI = 0;
   for (const t of txns) {
-    if (t.transactionDate < since || !dayMap.has(t.transactionDate)) continue;
+    // Same exclusion rule as DRE/DFC — skip intercompany/investment/card-reserve
+    if (t.excludedFromConsolidated) continue;
+    if (t.transactionDate < from || t.transactionDate > to) continue;
+    if (!dayMap.has(t.transactionDate)) continue;
     const row = dayMap.get(t.transactionDate)!;
     if (t.direction === "credit") { row.cd += t.amount; totCD += t.amount; }
     else                          { row.ci += t.amount; totCI += t.amount; }
   }
 
-  // 3m → aggregate by ISO week
-  if (period === "3m") {
+  // Weekly aggregation when range > 60 days
+  if (diffDays > 60) {
     const wkMap = new Map<string, { cd: number; ci: number }>();
     for (const [date, v] of dayMap.entries()) {
       const d = new Date(date);
@@ -91,37 +114,41 @@ function buildFlow(txns: BankTransaction[], period: Period): FlowResult {
     return { data, totCD, totCI, saldoFinal: running, hasData: totCD + totCI > 0 };
   }
 
-  // Daily
-  const step = period === "30d" ? 5 : 1;
+  // Daily — skip intermediate labels on longer ranges
+  const labelStep = diffDays > 21 ? Math.ceil(diffDays / 8) : 1;
   let running = 0;
   const entries = Array.from(dayMap.entries());
   const data: FlowRow[] = entries.map(([date, v], idx) => {
     running += v.cd - v.ci;
     const [, m, d] = date.split("-");
     return {
-      label: idx % step === 0 || idx === entries.length - 1 ? `${d}/${m}` : "",
+      label: idx % labelStep === 0 || idx === entries.length - 1 ? `${d}/${m}` : "",
       cd: Math.round(v.cd), ci: Math.round(v.ci), saldo: Math.round(running),
     };
   });
   return { data, totCD, totCI, saldoFinal: running, hasData: totCD + totCI > 0 };
 }
 
-// Auto-detect the best period given available transactions
-function bestPeriod(txns: BankTransaction[]): Period {
-  if (buildFlow(txns, "14d").hasData) return "14d";
-  if (buildFlow(txns, "30d").hasData) return "30d";
-  return "3m";
+function bestPeriod(txns: BankTransaction[]): Exclude<Period, "custom"> {
+  for (const p of ["7d", "14d", "30d", "3m", "6m", "1y"] as const) {
+    if (buildFlowRange(txns, periodToRange(p)).hasData) return p;
+  }
+  return "1y";
 }
+
+const PERIOD_OPTS: { key: Period; label: string; sub: string }[] = [
+  { key: "7d",     label: "7 dias",    sub: "Esta semana"      },
+  { key: "14d",    label: "14 dias",   sub: "2 semanas"        },
+  { key: "30d",    label: "30 dias",   sub: "Último mês"       },
+  { key: "3m",     label: "3 meses",   sub: "Trimestre"        },
+  { key: "6m",     label: "6 meses",   sub: "Semestre"         },
+  { key: "1y",     label: "1 ano",     sub: "Anual"            },
+  { key: "custom", label: "Período personalizado", sub: "" },
+];
 
 const ACCOUNTS_CFG = [
   { key: "AWQ_Holding", name: "Conta PJ AWQ Holding", subtitle: "AWQ Holding",               initials: "AWQ",  bgClass: "bg-brand-600"  },
   { key: "ENERDY",      name: "Cora Enerdy",           subtitle: "Banco Integrado · BU ENRD", initials: "ENRD", bgClass: "bg-violet-600" },
-];
-
-const PERIODS: { key: Period; label: string }[] = [
-  { key: "14d", label: "14 dias" },
-  { key: "30d", label: "30 dias" },
-  { key: "3m",  label: "3 meses" },
 ];
 
 // ─── Custom Tooltip ───────────────────────────────────────────────────────────
@@ -130,25 +157,29 @@ const PERIODS: { key: Period; label: string }[] = [
 function ChartTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   const meta: Record<string, { name: string; color: string }> = {
-    saldo: { name: "Saldo",          color: "#d97706" },
-    cd:    { name: "Créditos (CD)",  color: "#10b981" },
-    ci:    { name: "Débitos (CI)",   color: "#ef4444" },
+    saldo: { name: "Saldo líquido", color: "#d97706" },
+    cd:    { name: "Créditos",      color: "#10b981" },
+    ci:    { name: "Débitos",       color: "#ef4444" },
   };
   return (
-    <div className="rounded-xl border border-amber-100 bg-white/95 backdrop-blur-sm p-3 shadow-xl text-xs min-w-[180px]">
-      <p className="font-bold text-gray-700 border-b border-gray-100 pb-1.5 mb-1.5">{label}</p>
-      {(payload as { dataKey: string; value: number }[]).map((p) => {
-        const m = meta[p.dataKey] ?? { name: p.dataKey, color: "#6b7280" };
-        return (
-          <div key={p.dataKey} className="flex items-center justify-between gap-4 py-0.5">
-            <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full shrink-0" style={{ background: m.color }} />
-              <span className="text-gray-500">{m.name}</span>
+    <div className="rounded-xl border border-amber-200 bg-white shadow-2xl text-xs min-w-[190px] overflow-hidden">
+      <div className="bg-amber-50 px-3 py-2 border-b border-amber-100">
+        <p className="font-bold text-amber-900">{label}</p>
+      </div>
+      <div className="p-3 space-y-1.5">
+        {(payload as { dataKey: string; value: number }[]).map((p) => {
+          const m = meta[p.dataKey] ?? { name: p.dataKey, color: "#6b7280" };
+          return (
+            <div key={p.dataKey} className="flex items-center justify-between gap-6">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: m.color }} />
+                <span className="text-gray-500">{m.name}</span>
+              </div>
+              <span className="font-bold tabular-nums" style={{ color: m.color }}>{fmtBRL(p.value)}</span>
             </div>
-            <span className="font-bold tabular-nums" style={{ color: m.color }}>{fmtBRL(p.value)}</span>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -158,18 +189,52 @@ function ChartTooltip({ active, payload, label }: any) {
 export default function FinancialOverview({ transactions, arPending, coraConfigured }: Props) {
   const todayStr = today();
 
-  // Auto-select period with data on first render
-  const [period, setPeriod] = useState<Period>(() => bestPeriod(transactions));
-  const [hidden,  setHidden] = useState<Set<string>>(new Set());
-  const [accounts, setAccounts] = useState<AccountInfo[]>(
+  const [period, setPeriod]     = useState<Period>(() => bestPeriod(transactions));
+  const [range,  setRange]      = useState<DateRange>(() => periodToRange(bestPeriod(transactions)));
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo,   setCustomTo]   = useState("");
+  const [showDrop,  setShowDrop]  = useState(false);
+  const [hidden,    setHidden]    = useState<Set<string>>(new Set());
+  const [accounts,  setAccounts]  = useState<AccountInfo[]>(
     ACCOUNTS_CFG.map((a) => ({ ...a, balance: null, loading: coraConfigured, error: null }))
   );
+  const dropRef = useRef<HTMLDivElement>(null);
 
-  // Re-run auto-detection when transactions change (e.g. after Cora sync)
+  // Auto-detect best period when transactions change (post-Cora sync)
   useEffect(() => {
-    setPeriod(bestPeriod(transactions));
+    const best = bestPeriod(transactions);
+    setPeriod(best);
+    setRange(periodToRange(best));
   }, [transactions]);
 
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropRef.current && !dropRef.current.contains(e.target as Node)) setShowDrop(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const selectPeriod = (p: Period) => {
+    if (p === "custom") return; // handled by applyCustom
+    setPeriod(p);
+    setRange(periodToRange(p as Exclude<Period, "custom">));
+    setShowDrop(false);
+  };
+
+  const applyCustom = () => {
+    if (!customFrom || !customTo || customFrom > customTo) return;
+    setPeriod("custom");
+    setRange({ from: customFrom, to: customTo });
+    setShowDrop(false);
+  };
+
+  const periodLabel = period === "custom"
+    ? (() => { const [, fm, fd] = range.from.split("-"); const [, tm, td] = range.to.split("-"); return `${fd}/${fm} — ${td}/${tm}`; })()
+    : (PERIOD_OPTS.find(p => p.key === period)?.label ?? period);
+
+  // Cora balances
   const loadBalance = useCallback(async (key: string) => {
     try {
       const res  = await fetch(`/api/cora/balance?account=${key}`);
@@ -190,31 +255,24 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
     void loadBalance("ENERDY");
   }, [coraConfigured, loadBalance]);
 
-  // AR / AP summaries
+  // AR / AP
   const recebimentosHoje = transactions
-    .filter((t) => t.transactionDate === todayStr && t.direction === "credit" && t.reconciliationStatus !== "descartado")
+    .filter((t) => !t.excludedFromConsolidated && t.transactionDate === todayStr && t.direction === "credit" && t.reconciliationStatus !== "descartado")
     .reduce((s, t) => s + t.amount, 0);
-
   const pagamentosHoje = transactions
-    .filter((t) => t.transactionDate === todayStr && t.direction === "debit" && t.reconciliationStatus !== "descartado")
+    .filter((t) => !t.excludedFromConsolidated && t.transactionDate === todayStr && t.direction === "debit" && t.reconciliationStatus !== "descartado")
     .reduce((s, t) => s + t.amount, 0);
-
-  const restanteMesAR = arPending.reduce((s, i) => s + i.net_amount, 0);
-
-  const overdueAR = arPending
-    .filter((i) => i.due_date < todayStr)
-    .reduce((s, i) => s + i.net_amount, 0);
-
+  const restanteMesAR      = arPending.reduce((s, i) => s + i.net_amount, 0);
+  const overdueAR          = arPending.filter((i) => i.due_date < todayStr).reduce((s, i) => s + i.net_amount, 0);
   const pendingDebitsMonth = transactions
     .filter((t) => {
+      if (t.excludedFromConsolidated) return false;
       const [y, m] = t.transactionDate.split("-");
       const now = new Date();
-      return (
-        parseInt(y) === now.getFullYear() && parseInt(m) === now.getMonth() + 1
+      return parseInt(y) === now.getFullYear() && parseInt(m) === now.getMonth() + 1
         && t.direction === "debit"
         && t.reconciliationStatus !== "conciliado"
-        && t.reconciliationStatus !== "descartado"
-      );
+        && t.reconciliationStatus !== "descartado";
     })
     .reduce((s, t) => s + t.amount, 0);
 
@@ -222,8 +280,8 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
   const anyLoading   = accounts.some((a) => a.loading);
 
   const { data: flowData, totCD, totCI, saldoFinal, hasData } = useMemo(
-    () => buildFlow(transactions, period),
-    [transactions, period]
+    () => buildFlowRange(transactions, range),
+    [transactions, range]
   );
 
   const txAccounts = useMemo(() => Array.from(
@@ -235,7 +293,6 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
 
   const netVariation = totCD - totCI;
   const netPct = totCI > 0 ? ((netVariation / totCI) * 100).toFixed(1) : null;
-
   const toggle = (key: string) => setHidden((prev) => {
     const next = new Set(prev);
     next.has(key) ? next.delete(key) : next.add(key);
@@ -246,141 +303,192 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
   return (
     <div className="space-y-4">
 
-      {/* ── 1. Fluxo de Caixa — JP Morgan style ──────────────────────────── */}
-      <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+      {/* ── 1. Fluxo de Caixa ─────────────────────────────────────────────── */}
+      <div className="rounded-2xl border border-gray-200 bg-white overflow-visible shadow-sm">
 
-        {/* Filter pill bar */}
-        <div className="flex flex-wrap items-center gap-2 px-5 pt-4 pb-3">
-          <span className="text-sm font-bold text-gray-900 mr-1">Fluxo de Caixa</span>
-          <div className="w-px h-4 bg-gray-200 mx-1" />
-          {PERIODS.map((p) => (
+        {/* Top bar: title + period dropdown + series toggles */}
+        <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-4 pb-3">
+          <div>
+            <h3 className="text-sm font-bold text-gray-900">Fluxo de Caixa Operacional</h3>
+            <p className="text-[10px] text-gray-400 mt-0.5">Excluindo transferências internas e aplicações financeiras</p>
+          </div>
+
+          {/* Period dropdown — JP Morgan pill style */}
+          <div className="relative" ref={dropRef}>
             <button
-              key={p.key}
-              onClick={() => setPeriod(p.key)}
-              className={`flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-semibold border transition-all ${
-                period === p.key
-                  ? "border-amber-400 bg-amber-50 text-amber-800"
-                  : "border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700"
+              onClick={() => setShowDrop((v) => !v)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full border text-[12px] font-semibold shadow-sm transition-all ${
+                showDrop ? "border-amber-400 bg-amber-50 text-amber-800" : "border-gray-200 bg-white text-gray-700 hover:border-amber-300"
               }`}
             >
-              {p.label}
-              <ChevronDown size={10} />
+              <Calendar size={13} className="text-amber-500 shrink-0" />
+              {periodLabel}
+              <ChevronDown size={11} className={`text-gray-400 transition-transform duration-200 ${showDrop ? "rotate-180" : ""}`} />
             </button>
-          ))}
-          <div className="ml-auto flex items-center gap-3">
-            {[
-              { key: "saldo", label: "Saldo",    color: "#d97706" },
-              { key: "cd",    label: "Créditos", color: "#10b981" },
-              { key: "ci",    label: "Débitos",  color: "#ef4444" },
-            ].map((s) => (
-              <button
-                key={s.key}
-                onClick={() => toggle(s.key)}
-                className={`flex items-center gap-1.5 text-[11px] font-medium transition-opacity ${hidden.has(s.key) ? "opacity-30" : "opacity-100"}`}
-              >
-                <span className="w-2.5 h-2.5 rounded-sm" style={{ background: s.color }} />
-                {s.label}
-              </button>
-            ))}
+
+            {showDrop && (
+              <div className="absolute top-[calc(100%+6px)] right-0 z-50 w-72 bg-white border border-gray-200 rounded-2xl shadow-2xl overflow-hidden">
+                {/* Preset options */}
+                <div className="p-2">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-2 py-1.5">Períodos rápidos</p>
+                  <div className="grid grid-cols-3 gap-1">
+                    {PERIOD_OPTS.filter((p) => p.key !== "custom").map((p) => (
+                      <button
+                        key={p.key}
+                        onClick={() => selectPeriod(p.key)}
+                        className={`flex flex-col items-start px-3 py-2 rounded-xl text-left transition-colors ${
+                          period === p.key && period !== "custom"
+                            ? "bg-amber-100 text-amber-900"
+                            : "hover:bg-gray-50 text-gray-700"
+                        }`}
+                      >
+                        <span className="text-[11px] font-bold">{p.label}</span>
+                        <span className="text-[9px] text-gray-400">{p.sub}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Custom date range */}
+                <div className="border-t border-gray-100 bg-gray-50/60 p-3 space-y-2.5">
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Período personalizado</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] text-gray-400 mb-1 font-medium">De</label>
+                      <input
+                        type="date"
+                        value={customFrom}
+                        max={customTo || todayStr}
+                        onChange={(e) => setCustomFrom(e.target.value)}
+                        className="w-full text-[11px] border border-gray-200 rounded-lg px-2.5 py-2 focus:border-amber-400 focus:outline-none bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-gray-400 mb-1 font-medium">Até</label>
+                      <input
+                        type="date"
+                        value={customTo}
+                        min={customFrom}
+                        max={todayStr}
+                        onChange={(e) => setCustomTo(e.target.value)}
+                        className="w-full text-[11px] border border-gray-200 rounded-lg px-2.5 py-2 focus:border-amber-400 focus:outline-none bg-white"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    onClick={applyCustom}
+                    disabled={!customFrom || !customTo || customFrom > customTo}
+                    className="w-full py-2 text-[11px] font-bold bg-amber-500 hover:bg-amber-600 disabled:opacity-40 text-white rounded-xl transition-colors"
+                  >
+                    Aplicar período
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* KPI row */}
+        {/* KPI row — clickable series toggles */}
         <div className="grid grid-cols-3 divide-x divide-gray-100 border-t border-b border-gray-100">
           {[
-            { key: "cd",    label: "CD — Créditos", value: totCD,      colorClass: "text-emerald-600", dotColor: "#10b981" },
-            { key: "ci",    label: "CI — Débitos",  value: totCI,      colorClass: "text-red-600",     dotColor: "#ef4444" },
+            { key: "cd",    label: "CD — Créditos", value: totCD,      color: "text-emerald-600", dotC: "#10b981" },
+            { key: "ci",    label: "CI — Débitos",  value: totCI,      color: "text-red-600",     dotC: "#ef4444" },
             { key: "saldo", label: "Saldo líquido", value: saldoFinal,
-              colorClass: saldoFinal >= 0 ? "text-amber-700" : "text-red-600", dotColor: "#d97706" },
+              color: saldoFinal >= 0 ? "text-amber-700" : "text-red-600", dotC: "#d97706" },
           ].map((k) => (
             <button
               key={k.key}
               onClick={() => toggle(k.key)}
-              className={`px-5 py-3 text-left hover:bg-gray-50 transition-opacity ${hidden.has(k.key) ? "opacity-40" : ""}`}
               title={hidden.has(k.key) ? "Mostrar série" : "Ocultar série"}
+              className={`px-5 py-3.5 text-left hover:bg-gray-50 active:bg-gray-100 transition-all ${hidden.has(k.key) ? "opacity-35" : ""}`}
             >
-              <div className="flex items-center gap-1.5 mb-0.5">
-                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: k.dotColor }} />
-                <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">{k.label}</span>
+              <div className="flex items-center gap-1.5 mb-1">
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: k.dotC }} />
+                <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">{k.label}</span>
                 {k.key === "saldo" && netPct && (
-                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ml-1 ${netVariation >= 0 ? "bg-amber-50 text-amber-700" : "bg-red-50 text-red-600"}`}>
+                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${netVariation >= 0 ? "bg-amber-50 text-amber-700" : "bg-red-50 text-red-600"}`}>
                     {netVariation >= 0 ? "+" : ""}{netPct}%
                   </span>
                 )}
               </div>
-              <p className={`text-base font-bold tabular-nums ${k.colorClass}`}>{fmtBRL(k.value)}</p>
+              <p className={`text-lg font-bold tabular-nums leading-tight ${k.color}`}>{fmtBRL(k.value)}</p>
             </button>
           ))}
         </div>
 
-        {/* Chart — JP Morgan golden style */}
-        <div className="bg-[#fdfcfa] px-3 pb-4 pt-3">
+        {/* Chart — JP Morgan golden area */}
+        <div className="bg-[#fdfcf8] rounded-b-2xl px-4 pb-5 pt-4">
           {!hasData ? (
-            <div className="h-[220px] flex flex-col items-center justify-center gap-2 text-gray-400">
-              <span className="text-2xl">📊</span>
-              <p className="text-sm font-medium text-gray-500">Sem movimentações no período selecionado</p>
-              {period !== "3m" && (
-                <p className="text-xs">
-                  Tente{" "}
-                  <button onClick={() => setPeriod("3m")} className="underline text-amber-600 font-semibold">
-                    3 meses
-                  </button>
-                  {" "}ou verifique a sincronização Cora
-                </p>
+            <div className="h-[200px] flex flex-col items-center justify-center gap-2">
+              <Calendar size={24} className="text-gray-300" />
+              <p className="text-sm font-medium text-gray-400">Sem movimentações no período</p>
+              {period !== "1y" && (
+                <button
+                  onClick={() => { setPeriod("1y"); setRange(periodToRange("1y")); }}
+                  className="text-xs font-semibold text-amber-600 underline"
+                >
+                  Ver 1 ano completo
+                </button>
               )}
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={220}>
-              <AreaChart data={flowData} margin={{ top: 8, right: 4, bottom: 0, left: 4 }}>
+              <AreaChart data={flowData} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
                 <defs>
                   <linearGradient id="gradSaldoGold" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%"   stopColor="#f59e0b" stopOpacity={0.75} />
-                    <stop offset="60%"  stopColor="#fbbf24" stopOpacity={0.35} />
-                    <stop offset="100%" stopColor="#fef3c7" stopOpacity={0.05} />
+                    <stop offset="0%"   stopColor="#f59e0b" stopOpacity={0.82} />
+                    <stop offset="50%"  stopColor="#fbbf24" stopOpacity={0.4}  />
+                    <stop offset="100%" stopColor="#fef3c7" stopOpacity={0.04} />
                   </linearGradient>
                   <linearGradient id="gradCDGreen" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%"   stopColor="#10b981" stopOpacity={0.3} />
+                    <stop offset="0%"   stopColor="#10b981" stopOpacity={0.35} />
                     <stop offset="100%" stopColor="#10b981" stopOpacity={0.02} />
                   </linearGradient>
                   <linearGradient id="gradCIRed" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%"   stopColor="#ef4444" stopOpacity={0.25} />
+                    <stop offset="0%"   stopColor="#ef4444" stopOpacity={0.28} />
                     <stop offset="100%" stopColor="#ef4444" stopOpacity={0.02} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="" stroke="#ede9df" strokeWidth={0.8} vertical={false} />
+
+                {/* Dense solid horizontal gridlines — JP Morgan style */}
+                <CartesianGrid strokeDasharray="" stroke="#ece8df" strokeWidth={0.75} vertical={false} />
+
                 <XAxis
                   dataKey="label"
-                  tick={{ fontSize: 10, fill: "#a8a29e" }}
+                  tick={{ fontSize: 10, fill: "#b5b0a8" }}
                   axisLine={false}
                   tickLine={false}
                   interval="preserveStartEnd"
                 />
                 <YAxis
-                  tick={{ fontSize: 10, fill: "#a8a29e" }}
+                  tick={{ fontSize: 10, fill: "#b5b0a8" }}
                   axisLine={false}
                   tickLine={false}
                   tickFormatter={fmtK}
-                  width={52}
+                  width={56}
                 />
                 <Tooltip
                   content={<ChartTooltip />}
-                  cursor={{ stroke: "#d97706", strokeWidth: 1, strokeDasharray: "4 4" }}
+                  cursor={{ stroke: "#d97706", strokeWidth: 1, strokeDasharray: "4 3" }}
                 />
+
+                {/* CD — secondary green area */}
                 {!hidden.has("cd") && (
-                  <Area type="monotone" dataKey="cd" name="cd"
+                  <Area type="monotone" dataKey="cd"
                     stroke="#10b981" strokeWidth={1.5} fill="url(#gradCDGreen)"
                     dot={false} activeDot={{ r: 4, fill: "#10b981", strokeWidth: 0 }} />
                 )}
+                {/* CI — secondary red area */}
                 {!hidden.has("ci") && (
-                  <Area type="monotone" dataKey="ci" name="ci"
+                  <Area type="monotone" dataKey="ci"
                     stroke="#ef4444" strokeWidth={1.5} fill="url(#gradCIRed)"
                     dot={false} activeDot={{ r: 4, fill: "#ef4444", strokeWidth: 0 }} />
                 )}
-                {/* Saldo — golden, primary (rendered last = on top) */}
+                {/* Saldo — golden primary area (on top) */}
                 {!hidden.has("saldo") && (
-                  <Area type="monotone" dataKey="saldo" name="saldo"
-                    stroke="#d97706" strokeWidth={2} fill="url(#gradSaldoGold)"
-                    dot={false} activeDot={{ r: 5, fill: "#d97706", strokeWidth: 2, stroke: "#fff" }} />
+                  <Area type="monotone" dataKey="saldo"
+                    stroke="#d97706" strokeWidth={2.5} fill="url(#gradSaldoGold)"
+                    dot={false} activeDot={{ r: 5, fill: "#d97706", stroke: "#fff", strokeWidth: 2 }} />
                 )}
               </AreaChart>
             </ResponsiveContainer>
@@ -389,16 +497,16 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
       </div>
 
       {/* ── 2. Contas + AR/AP ─────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4">
 
         {/* LEFT: Contas bancárias */}
-        <div className="rounded-xl border border-gray-200 bg-white p-4 space-y-3">
+        <div className="rounded-2xl border border-gray-200 bg-white p-4 space-y-3 shadow-sm">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500">Contas bancárias</h3>
+            <h3 className="text-[11px] font-bold uppercase tracking-widest text-gray-400">Contas bancárias</h3>
             {coraConfigured && (
               <button
                 onClick={() => { void loadBalance("AWQ_Holding"); void loadBalance("ENERDY"); }}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="text-gray-300 hover:text-gray-500 transition-colors"
                 title="Atualizar saldos"
               >
                 <RefreshCw size={12} className={anyLoading ? "animate-spin" : ""} />
@@ -416,8 +524,8 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
               const bg = acc.entity === "ENERDY" ? "bg-violet-600" : acc.entity === "JACQES" ? "bg-emerald-600" : "bg-brand-600";
               const label = (acc.name ?? acc.bank ?? "").replace(/^Conta\s+PJ\s+/i, "").trim();
               return (
-                <div key={`${acc.bank}::${acc.name}`} className="rounded-lg border border-gray-100 p-3 space-y-2 hover:border-gray-200 transition-colors">
-                  <div className="flex items-center gap-2.5">
+                <div key={`${acc.bank}::${acc.name}`} className="rounded-xl border border-gray-100 p-3 hover:border-gray-200 transition-colors">
+                  <div className="flex items-center gap-2.5 mb-2">
                     <span className={`w-8 h-8 rounded-lg ${bg} flex items-center justify-center text-[10px] font-bold text-white tracking-wide shrink-0`}>
                       {initials}
                     </span>
@@ -430,13 +538,10 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
                         {fmtBRL(coraAcc.balance)}
                       </span>
                     )}
-                    {coraAcc?.loading && (
-                      <span className="text-[10px] text-gray-400 animate-pulse shrink-0">…</span>
-                    )}
+                    {coraAcc?.loading && <span className="text-[10px] text-gray-300 animate-pulse shrink-0">…</span>}
                   </div>
                   <button className="flex items-center gap-1 text-[11px] text-brand-600 hover:text-brand-700 hover:underline transition-colors">
-                    <FileUp size={11} />
-                    Importe seu extrato
+                    <FileUp size={11} /> Importe seu extrato
                   </button>
                 </div>
               );
@@ -445,7 +550,7 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
 
           {coraConfigured && !anyLoading && totalBalance > 0 && (
             <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-              <span className="text-xs font-semibold text-gray-600">Saldo total</span>
+              <span className="text-xs font-semibold text-gray-500">Saldo total</span>
               <span className="text-sm font-bold text-gray-900 tabular-nums">{fmtBRL(totalBalance)}</span>
             </div>
           )}
@@ -453,68 +558,73 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
 
         {/* RIGHT: AR/AP + Em atraso */}
         <div className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
-            <div className="rounded-xl border border-gray-200 bg-white p-4 space-y-2">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold text-gray-700">A receber hoje</p>
+          <div className="grid grid-cols-2 gap-4">
+            {/* A receber hoje */}
+            <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-gray-400">A receber hoje</p>
                 <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
-                  <ArrowUpRight size={10} /> CD
+                  <ArrowUpRight size={9} /> CD
                 </span>
               </div>
               {recebimentosHoje > 0 ? (
                 <p className="text-2xl font-bold text-emerald-600 tabular-nums">{fmtBRL(recebimentosHoje)}</p>
               ) : (
-                <p className="text-sm text-gray-400 italic pt-1">Sem recebimentos hoje</p>
+                <p className="text-sm text-gray-400 italic">Sem recebimentos hoje</p>
               )}
               {restanteMesAR > 0 && (
-                <p className="text-[11px] text-gray-500">
-                  Restante do mês: <span className="font-semibold text-gray-700">{fmtBRL(restanteMesAR)}</span>
+                <p className="text-[11px] text-gray-400 mt-1.5">
+                  Restante do mês: <span className="font-semibold text-gray-600">{fmtBRL(restanteMesAR)}</span>
                 </p>
               )}
-              <button className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-colors">
-                <ArrowUpRight size={12} /> Novo Recebimento
+              <button className="w-full mt-3 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold transition-colors">
+                <ArrowUpRight size={11} /> Novo Recebimento
               </button>
             </div>
 
-            <div className="rounded-xl border border-gray-200 bg-white p-4 space-y-2">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold text-gray-700">A pagar hoje</p>
+            {/* A pagar hoje */}
+            <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-gray-400">A pagar hoje</p>
                 <span className="flex items-center gap-1 text-[10px] font-bold text-red-700 bg-red-50 px-2 py-0.5 rounded-full">
-                  <ArrowDownLeft size={10} /> CI
+                  <ArrowDownLeft size={9} /> CI
                 </span>
               </div>
               {pagamentosHoje > 0 ? (
                 <p className="text-2xl font-bold text-red-600 tabular-nums">{fmtBRL(pagamentosHoje)}</p>
               ) : (
-                <p className="text-sm text-gray-400 italic pt-1">Contas em dia</p>
+                <p className="text-sm text-gray-400 italic">Contas em dia</p>
               )}
               {pendingDebitsMonth > 0 && (
-                <p className="text-[11px] text-gray-500">
-                  Restante do mês: <span className="font-semibold text-gray-700">{fmtBRL(pendingDebitsMonth)}</span>
+                <p className="text-[11px] text-gray-400 mt-1.5">
+                  Restante do mês: <span className="font-semibold text-gray-600">{fmtBRL(pendingDebitsMonth)}</span>
                 </p>
               )}
-              <button className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-xs font-semibold transition-colors">
-                <ArrowDownLeft size={12} /> Novo Pagamento
+              <button className="w-full mt-3 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white text-[11px] font-bold transition-colors">
+                <ArrowDownLeft size={11} /> Novo Pagamento
               </button>
             </div>
           </div>
 
+          {/* Em atraso */}
           {(overdueAR > 0 || pendingDebitsMonth > 0) && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               {overdueAR > 0 && (
-                <div className="rounded-xl border border-amber-100 bg-amber-50/40 p-4 flex items-center justify-between">
+                <div className="rounded-2xl border border-amber-100 bg-amber-50/50 p-4 flex items-center justify-between shadow-sm">
                   <div>
-                    <p className="text-xs font-semibold text-gray-600">Recebimentos em atraso</p>
-                    <p className="text-2xl font-bold text-emerald-700 tabular-nums mt-0.5">{fmtBRL(overdueAR)}</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-amber-600 mb-1">Em atraso · AR</p>
+                    <p className="text-lg font-bold text-emerald-700 tabular-nums">{fmtBRL(overdueAR)}</p>
                   </div>
-                  <TrendingUp size={20} className="text-amber-500 shrink-0" />
+                  <TrendingUp size={20} className="text-amber-400 shrink-0" />
                 </div>
               )}
-              <div className="rounded-xl border border-red-100 bg-white p-4">
-                <div className="flex items-center justify-between mb-1">
-                  <p className="text-xs font-semibold text-gray-700">Pagamentos em atraso</p>
-                  <TrendingDown size={14} className="text-red-400" />
+              {pendingDebitsMonth > 0 && (
+                <div className="rounded-2xl border border-red-100 bg-red-50/50 p-4 flex items-center justify-between shadow-sm">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-red-500 mb-1">Em atraso · AP</p>
+                    <p className="text-lg font-bold text-red-700 tabular-nums">{fmtBRL(pendingDebitsMonth)}</p>
+                  </div>
+                  <TrendingDown size={20} className="text-red-400 shrink-0" />
                 </div>
               )}
             </div>
