@@ -287,9 +287,9 @@ export default function ARPage() {
             { label: "Recebido",     value: fmtBRL(kpis?.totalARReceived    ?? 0), color: "text-emerald-700", bg: "bg-emerald-50" },
             { label: "DSO estimado", value: kpis?.dso != null ? `${kpis.dso}d` : "—", color: "text-amber-700", bg: "bg-amber-50" },
           ].map((c) => (
-            <div key={c.label} className={`card p-4 text-center ${c.bg}`}>
-              <div className={`text-xl font-bold tabular-nums ${c.color}`}>{c.value}</div>
-              <div className="text-[11px] text-gray-500 mt-0.5">{c.label}</div>
+            <div key={c.label} className={`card p-5 text-center ${c.bg}`}>
+              <div className={`text-2xl font-bold tabular-nums ${c.color}`}>{c.value}</div>
+              <div className="text-xs text-gray-500 mt-1 font-medium">{c.label}</div>
             </div>
           ))}
         </div>
@@ -349,7 +349,7 @@ export default function ARPage() {
         <div className="flex gap-2 flex-wrap">
           {(["ALL", "PENDING", "OVERDUE", "PARTIAL", "RECEIVED", "CANCELLED"] as const).map((s) => (
             <button key={s} onClick={() => setStatusFilter(s)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${statusFilter === s ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${statusFilter === s ? "bg-brand-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
               {s === "ALL" ? "Todos" : STATUS_CFG[s].label}
             </button>
           ))}

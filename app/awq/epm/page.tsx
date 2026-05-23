@@ -129,7 +129,7 @@ export default async function EpmOverviewPage() {
 
         {/* ── P&L Summary Cards ────────────────────────────────────────────── */}
         <section>
-          <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-3">
+          <div className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">
             P&L Consolidado — Visão Rápida
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -143,12 +143,12 @@ export default async function EpmOverviewPage() {
             ].map((card) => {
               const Icon = card.icon;
               return (
-                <div key={card.label} className="card p-4 flex flex-col gap-1">
-                  <div className={`w-7 h-7 rounded-lg ${card.bg} flex items-center justify-center`}>
-                    <Icon size={13} className={card.color} />
+                <div key={card.label} className="card p-4 flex flex-col gap-1.5">
+                  <div className={`w-8 h-8 rounded-xl ${card.bg} flex items-center justify-center`}>
+                    <Icon size={15} className={card.color} />
                   </div>
-                  <div className="text-base font-bold text-gray-900 tabular-nums mt-1">{card.value}</div>
-                  <div className="text-[10px] text-gray-400 font-medium">{card.label}</div>
+                  <div className="text-lg font-bold text-gray-900 tabular-nums">{card.value}</div>
+                  <div className="text-xs text-gray-400 font-medium">{card.label}</div>
                 </div>
               );
             })}

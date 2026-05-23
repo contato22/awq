@@ -160,9 +160,9 @@ export default function ForecastPage() {
             { label: "Mínimo Projetado",      value: fmtBRL(minCash),   color: minCash < 150_000 ? "text-red-700" : "text-amber-700" },
             { label: "Máximo Projetado",      value: fmtBRL(maxCash),   color: "text-gray-700"    },
           ].map((card) => (
-            <div key={card.label} className="card p-4">
-              <div className={`text-xl font-bold tabular-nums ${card.color}`}>{card.value}</div>
-              <div className="text-xs text-gray-400 mt-1">{card.label}</div>
+            <div key={card.label} className="card p-5">
+              <div className={`text-2xl font-bold tabular-nums ${card.color}`}>{card.value}</div>
+              <div className="text-xs text-gray-400 mt-1 font-medium">{card.label}</div>
             </div>
           ))}
         </div>
@@ -178,7 +178,7 @@ export default function ForecastPage() {
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-4">
             <Activity size={14} className="text-brand-600" />
-            <span className="text-sm font-semibold text-gray-900">
+            <span className="text-base font-semibold text-gray-900">
               Rolling 13-Week Cash Forecast
             </span>
             <span className="ml-auto text-xs text-gray-400">Base: {fmtBRL(412_000)} em 28/04/2026</span>
@@ -236,19 +236,19 @@ export default function ForecastPage() {
         <div className="card">
           <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-100">
             <BarChart3 size={14} className="text-brand-600" />
-            <span className="text-sm font-semibold text-gray-900">Detalhe Semanal</span>
+            <span className="text-base font-semibold text-gray-900">Detalhe Semanal</span>
           </div>
           <div className="table-scroll">
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50 text-left">
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold">Semana</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold">Início</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Entradas</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Saídas</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Net</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Saldo Cumulativo</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold">Tipo</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Semana</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Início</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Entradas</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Saídas</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Net</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Saldo Cumulativo</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Tipo</th>
                 </tr>
               </thead>
               <tbody>
@@ -289,7 +289,7 @@ export default function ForecastPage() {
         <div className="mt-2">
           <div className="flex items-center gap-2 mb-4">
             <Calculator size={14} className="text-brand-600" />
-            <h2 className="text-sm font-bold text-gray-900">Driver-Based Forecasting — Cenários FY2026</h2>
+            <h2 className="text-base font-bold text-gray-900">Driver-Based Forecasting — Cenários FY2026</h2>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -343,17 +343,17 @@ export default function ForecastPage() {
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-4">
             <Target size={14} className="text-amber-600" />
-            <span className="text-sm font-semibold text-gray-900">Análise de Sensibilidade — Receita vs Drivers</span>
+            <span className="text-base font-semibold text-gray-900">Análise de Sensibilidade — Receita vs Drivers</span>
           </div>
           <div className="table-scroll">
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50 text-left">
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold">Driver</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-center">Bear</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-center bg-brand-50">Base ✓</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-center">Bull</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Impacto/Contrato</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Driver</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-center">Bear</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-center bg-brand-50">Base ✓</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-center">Bull</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Impacto/Contrato</th>
                 </tr>
               </thead>
               <tbody>

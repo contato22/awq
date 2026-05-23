@@ -93,14 +93,14 @@ export default function GLPage() {
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50">
-                    <th className="text-left py-2.5 px-3 text-gray-500 font-semibold">Data</th>
-                    <th className="text-left py-2.5 px-3 text-gray-500 font-semibold">BU</th>
-                    <th className="text-left py-2.5 px-3 text-gray-500 font-semibold">Histórico</th>
-                    <th className="text-left py-2.5 px-3 text-gray-500 font-semibold">Débito</th>
-                    <th className="text-left py-2.5 px-3 text-gray-500 font-semibold">Crédito</th>
-                    <th className="text-right py-2.5 px-3 text-gray-500 font-semibold">Valor</th>
-                    <th className="text-center py-2.5 px-3 text-gray-500 font-semibold">Origem</th>
-                    <th className="text-center py-2.5 px-3 text-gray-500 font-semibold">Ok</th>
+                    <th className="text-left py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Data</th>
+                    <th className="text-left py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">BU</th>
+                    <th className="text-left py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Histórico</th>
+                    <th className="text-left py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Débito</th>
+                    <th className="text-left py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Crédito</th>
+                    <th className="text-right py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Valor</th>
+                    <th className="text-center py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Origem</th>
+                    <th className="text-center py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Ok</th>
                   </tr>
                 </thead>
                 <tbody>

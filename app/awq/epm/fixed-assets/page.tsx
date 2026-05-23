@@ -135,9 +135,9 @@ export default function FixedAssetsPage() {
             { label: "Depreciação Acumulada",  value: fmtBRL(totalDepr),         color: "text-red-700"     },
             { label: "Depr. Mensal Corrente",  value: fmtBRL(monthlyDeprTotal),  color: "text-amber-700"   },
           ].map((card) => (
-            <div key={card.label} className="card p-4">
-              <div className={`text-xl font-bold tabular-nums ${card.color}`}>{card.value}</div>
-              <div className="text-xs text-gray-400 mt-1">{card.label}</div>
+            <div key={card.label} className="card p-5">
+              <div className={`text-2xl font-bold tabular-nums ${card.color}`}>{card.value}</div>
+              <div className="text-xs text-gray-400 mt-1 font-medium">{card.label}</div>
             </div>
           ))}
         </div>
@@ -146,22 +146,22 @@ export default function FixedAssetsPage() {
         <div className="card">
           <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-100">
             <Package size={14} className="text-brand-600" />
-            <span className="text-sm font-semibold text-gray-900">Registro de Ativos</span>
+            <span className="text-base font-semibold text-gray-900">Registro de Ativos</span>
             <span className="ml-auto text-xs text-gray-400">{activeAssets.length} ativos ativos</span>
           </div>
           <div className="table-scroll">
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50 text-left">
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold">Código</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold">Ativo</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold">Categoria</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold">BU</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Custo</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Depr. Acum.</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Valor Líquido</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold text-right">Depr/Mês</th>
-                  <th className="py-2.5 px-3 text-gray-500 font-semibold">% Depreciado</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Código</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Ativo</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Categoria</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">BU</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Custo</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Depr. Acum.</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Valor Líquido</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Depr/Mês</th>
+                  <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">% Depreciado</th>
                 </tr>
               </thead>
               <tbody>
@@ -222,7 +222,7 @@ export default function FixedAssetsPage() {
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-4">
             <TrendingDown size={14} className="text-red-500" />
-            <span className="text-sm font-semibold text-gray-900">
+            <span className="text-base font-semibold text-gray-900">
               Cronograma de Depreciação — Próximos 12 Meses
             </span>
             <span className="ml-auto text-xs text-gray-400">Método: Linha Reta</span>
@@ -250,7 +250,7 @@ export default function FixedAssetsPage() {
           <div className="card p-5">
             <div className="flex items-center gap-2 mb-4">
               <Building2 size={14} className="text-brand-600" />
-              <span className="text-sm font-semibold text-gray-900">CAPEX por Business Unit</span>
+              <span className="text-base font-semibold text-gray-900">CAPEX por Business Unit</span>
             </div>
             <div className="space-y-3">
               {buCapex.map((b) => {
@@ -282,7 +282,7 @@ export default function FixedAssetsPage() {
           <div className="card p-5">
             <div className="flex items-center gap-2 mb-4">
               <BarChart3 size={14} className="text-brand-600" />
-              <span className="text-sm font-semibold text-gray-900">CAPEX por Categoria</span>
+              <span className="text-base font-semibold text-gray-900">CAPEX por Categoria</span>
             </div>
             <div className="table-scroll">
               <table className="w-full text-xs">

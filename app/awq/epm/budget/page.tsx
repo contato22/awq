@@ -136,7 +136,7 @@ export default async function EpmBudgetPage() {
             const positive    = variance >= 0;
             return (
               <div key={l.label} className="card p-5">
-                <div className="text-[10px] text-gray-400 font-semibold uppercase tracking-widest mb-2">
+                <div className="text-xs text-gray-400 font-semibold uppercase tracking-widest mb-2">
                   {l.label}
                 </div>
                 <div className="text-2xl font-bold text-gray-900 tabular-nums">{fmtBRL(l.actual)}</div>

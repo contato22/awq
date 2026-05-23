@@ -65,11 +65,11 @@ function DRE_Row({
     <div className={`flex items-center justify-between py-2 ${indent ? "pl-6" : ""} ${
       bold ? "border-t border-gray-200 mt-1" : "border-b border-gray-50"
     }`}>
-      <div className={`text-xs ${bold ? "font-bold text-gray-900" : "text-gray-600"}`}>
+      <div className={`${bold ? "text-sm font-bold text-gray-900" : "text-xs text-gray-600"}`}>
         {label}
-        {sub && <span className="text-[10px] text-gray-400 ml-1.5">{sub}</span>}
+        {sub && <span className="text-xs text-gray-400 ml-1.5">{sub}</span>}
       </div>
-      <div className={`text-xs font-${bold ? "bold" : "semibold"} tabular-nums ${colorClass}`}>
+      <div className={`${bold ? "text-sm font-bold" : "text-xs font-semibold"} tabular-nums ${colorClass}`}>
         {value < 0 ? `(${fmtBRL(Math.abs(value))})` : fmtBRL(value)}{pct}
       </div>
     </div>
@@ -152,8 +152,8 @@ function DreWaterfall({ dre, snapRevenue, snap }: { dre: DreResult; snapRevenue:
   return (
     <div className="card p-5 lg:p-6 space-y-1">
       <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">
-        <span className="text-sm font-bold text-gray-900">DRE Gerencial — AWQ Group Consolidado</span>
-        <span className="text-[10px] text-gray-400">
+        <span className="text-base font-bold text-gray-900">DRE Gerencial — AWQ Group Consolidado</span>
+        <span className="text-xs text-gray-400">
           {dre.hasData
             ? `${dre.periodStart?.slice(0,7)} → ${dre.periodEnd?.slice(0,7)}`
             : "Snapshot YTD 2026"}
@@ -374,8 +374,8 @@ export default async function EpmPLPage() {
                   <Icon size={16} className={card.color} />
                 </div>
                 <div>
-                  <div className="text-lg font-bold text-gray-900 tabular-nums">{display}</div>
-                  <div className="text-[11px] text-gray-400 mt-0.5">{card.label}</div>
+                  <div className="text-xl lg:text-2xl font-bold text-gray-900 tabular-nums">{display}</div>
+                  <div className="text-xs text-gray-400 mt-1">{card.label}</div>
                 </div>
               </div>
             );
