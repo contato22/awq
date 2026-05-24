@@ -31,7 +31,7 @@ interface Props {
   coraConfigured: boolean;
 }
 
-type Period = "7d" | "14d" | "30d" | "3m" | "6m" | "1y" | "custom";
+type Period = "all" | "7d" | "14d" | "30d" | "3m" | "6m" | "1y" | "custom";
 interface DateRange { from: string; to: string }
 
 type EntityKey = "AWQ_Holding" | "JACQES" | "Caza_Vision";
@@ -89,6 +89,7 @@ const ACCOUNTS_CFG = [
 ];
 
 const PERIOD_OPTS: { key: Period; label: string; sub: string }[] = [
+  { key: "all",    label: "Tudo",      sub: "Todo período"     },
   { key: "7d",     label: "7 dias",    sub: "Esta semana"      },
   { key: "14d",    label: "14 dias",   sub: "2 semanas"        },
   { key: "30d",    label: "30 dias",   sub: "Último mês"       },
@@ -121,11 +122,21 @@ function addDays(date: string, days: number) {
   return new Date(new Date(date).getTime() + days * 86_400_000).toISOString().slice(0, 10);
 }
 
-function periodToRange(period: Exclude<Period, "custom">): DateRange {
-  const daysMap: Record<Exclude<Period, "custom">, number> = {
+function periodToRange(period: Exclude<Period, "all" | "custom">): DateRange {
+  const daysMap: Record<Exclude<Period, "all" | "custom">, number> = {
     "7d": 7, "14d": 14, "30d": 30, "3m": 90, "6m": 180, "1y": 365,
   };
   return { from: dateAgo(daysMap[period] - 1), to: today() };
+}
+
+// Full data range — from earliest eligible transaction to today
+function allDataRange(txns: BankTransaction[]): DateRange {
+  let earliest = today();
+  for (const t of txns) {
+    if (!OPERATIONAL_ENTITIES.has(t.entity) || t.excludedFromConsolidated) continue;
+    if (t.transactionDate < earliest) earliest = t.transactionDate;
+  }
+  return { from: earliest, to: today() };
 }
 
 function emptyDay(): Record<EntityKey, { rev: number; exp: number }> {
@@ -219,11 +230,9 @@ function buildCashGen(txns: BankTransaction[], range: DateRange): CashGenResult 
   };
 }
 
-function bestPeriod(txns: BankTransaction[]): Exclude<Period, "custom"> {
-  for (const p of ["7d", "14d", "30d", "3m", "6m", "1y"] as const) {
-    if (buildCashGen(txns, periodToRange(p)).hasData) return p;
-  }
-  return "1y";
+function bestPeriod(_txns: BankTransaction[]): Exclude<Period, "custom"> {
+  // Always default to full data range so the chart matches account totals
+  return "all";
 }
 
 // ─── Tooltip ─────────────────────────────────────────────────────────────────
@@ -269,8 +278,8 @@ function CashGenTooltip({ active, payload, label }: any) {
 export default function FinancialOverview({ transactions, arPending, coraConfigured }: Props) {
   const todayStr = today();
 
-  const [period, setPeriod] = useState<Period>(() => bestPeriod(transactions));
-  const [range,  setRange]  = useState<DateRange>(() => periodToRange(bestPeriod(transactions)));
+  const [period, setPeriod] = useState<Period>("all");
+  const [range,  setRange]  = useState<DateRange>(() => allDataRange(transactions));
   const [customFrom, setCustomFrom] = useState("");
   const [customTo,   setCustomTo]   = useState("");
   const [showDrop,   setShowDrop]   = useState(false);
@@ -281,10 +290,8 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
   const dropRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const best = bestPeriod(transactions);
-    setPeriod(best);
-    setRange(periodToRange(best));
-  }, [transactions]);
+    if (period === "all") setRange(allDataRange(transactions));
+  }, [transactions, period]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -297,7 +304,7 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
   const selectPeriod = (p: Period) => {
     if (p === "custom") return;
     setPeriod(p);
-    setRange(periodToRange(p as Exclude<Period, "custom">));
+    setRange(p === "all" ? allDataRange(transactions) : periodToRange(p as Exclude<Period, "all" | "custom">));
     setShowDrop(false);
   };
 
@@ -308,7 +315,7 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
     setShowDrop(false);
   };
 
-  const periodLabel = period === "custom"
+  const periodLabel = period === "custom" || period === "all"
     ? (() => { const [, fm, fd] = range.from.split("-"); const [, tm, td] = range.to.split("-"); return `${fd}/${fm} — ${td}/${tm}`; })()
     : (PERIOD_OPTS.find(p => p.key === period)?.label ?? period);
 
@@ -514,10 +521,10 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
             <div className="h-[200px] flex flex-col items-center justify-center gap-2">
               <Calendar size={24} className="text-gray-300" />
               <p className="text-sm font-medium text-gray-400">Sem movimentações no período</p>
-              {period !== "1y" && (
-                <button onClick={() => { setPeriod("1y"); setRange(periodToRange("1y")); }}
+              {period !== "all" && (
+                <button onClick={() => { setPeriod("all"); setRange(allDataRange(transactions)); }}
                   className="text-xs font-semibold text-brand-600 underline">
-                  Ver 1 ano completo
+                  Ver todo o período
                 </button>
               )}
             </div>
