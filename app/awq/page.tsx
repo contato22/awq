@@ -39,7 +39,7 @@ function MetricCard({
   up?: boolean; icon: React.ElementType; color: string; bg: string; empty?: boolean;
 }) {
   return (
-    <div className="card-elevated p-5 lg:p-6 flex items-start gap-4">
+    <div className="card p-5 lg:p-6 flex items-start gap-4">
       <div className={`w-10 h-10 rounded-xl ${bg} flex items-center justify-center shrink-0`}>
         <Icon size={18} className={color} />
       </div>
@@ -121,28 +121,28 @@ function EntityCashCard({ e }: { e: EntitySummary }) {
     <div className="card p-4 space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-brand-500" />
-          <span className="text-xs font-bold text-gray-900">{e.label}</span>
-          <span className="text-xs text-gray-400">
+          <div className="w-1.5 h-1.5 rounded-full bg-brand-400 shrink-0" />
+          <span className="text-xs font-semibold text-gray-800">{e.label}</span>
+          <span className="text-[10px] text-gray-400">
             {e.accounts.map((a) => a.bank).join(", ")}
           </span>
         </div>
-        <span className={`text-sm font-bold tabular-nums ${netPositive ? "text-emerald-600" : "text-red-600"}`}>
+        <span className={`text-sm font-bold tabular-nums ${netPositive ? "text-emerald-600" : "text-red-500"}`}>
           {fmtBRL(e.operationalNetCash)}
         </span>
       </div>
       <div className="grid grid-cols-3 gap-2 text-center">
-        <div className="bg-emerald-50 rounded-lg py-2">
-          <div className="text-xs font-bold text-emerald-700 tabular-nums">{fmtBRL(e.operationalRevenue)}</div>
-          <div className="text-xs text-gray-500 mt-0.5">Entradas</div>
+        <div className="rounded-lg py-2 border border-emerald-100 bg-emerald-50/60">
+          <div className="text-xs font-semibold text-emerald-700 tabular-nums">{fmtBRL(e.operationalRevenue)}</div>
+          <div className="text-[10px] text-gray-400 mt-0.5">Entradas</div>
         </div>
-        <div className="bg-red-50 rounded-lg py-2">
-          <div className="text-xs font-bold text-red-700 tabular-nums">{fmtBRL(e.operationalExpenses)}</div>
-          <div className="text-xs text-gray-500 mt-0.5">Saídas</div>
+        <div className="rounded-lg py-2 border border-red-100 bg-red-50/60">
+          <div className="text-xs font-semibold text-red-600 tabular-nums">{fmtBRL(e.operationalExpenses)}</div>
+          <div className="text-[10px] text-gray-400 mt-0.5">Saídas</div>
         </div>
-        <div className="bg-gray-50 rounded-lg py-2">
-          <div className="text-xs font-bold text-gray-700 tabular-nums">{fmtBRL(e.totalCashBalance)}</div>
-          <div className="text-xs text-gray-500 mt-0.5">Saldo</div>
+        <div className="rounded-lg py-2 border border-gray-100 bg-gray-50">
+          <div className="text-xs font-semibold text-gray-700 tabular-nums">{fmtBRL(e.totalCashBalance)}</div>
+          <div className="text-[10px] text-gray-400 mt-0.5">Saldo</div>
         </div>
       </div>
       <div className="flex justify-between text-xs text-gray-400 pt-1 border-t border-gray-100">
@@ -196,7 +196,7 @@ export default async function AwqGroupPage() {
         title="AWQ Group — Control Tower"
         subtitle={q.hasData ? `Base bancária real · ${period}` : "Holding · Visão consolidada · Aguardando extratos"}
       />
-      <div className="page-container">
+      <div className="page-content">
 
         {/* ── Data source banner ─────────────────────────────────────────── */}
         {q.hasData ? <PipelineBadge q={q} /> : <NoDataBanner />}
@@ -204,7 +204,7 @@ export default async function AwqGroupPage() {
         {/* ── Primary financial metrics (base bancária real) ─────────────── */}
         <section>
           <div className="flex items-center gap-2 mb-4">
-            <span className="text-sm font-semibold text-gray-500 uppercase tracking-widest">
+            <span className="text-xs font-semibold text-gray-400 tracking-wide">
               Visão de Caixa — Base Bancária Real
             </span>
             {q.hasData && (
@@ -329,7 +329,7 @@ export default async function AwqGroupPage() {
             ["Intercompany", "Socio_PF", "Unknown"].includes(e.entity)
           ).length > 0 && (
             <div className="mt-4 pt-4 border-t border-gray-100">
-              <div className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">
+              <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">
                 Fora do consolidado operacional
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">

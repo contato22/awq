@@ -169,9 +169,9 @@ function ChartTooltip({ active, payload, label }: any) {
     ci:    { name: "Débitos",       color: "#ef4444" },
   };
   return (
-    <div className="rounded-xl border border-amber-200 bg-white shadow-2xl text-xs min-w-[190px] overflow-hidden">
-      <div className="bg-amber-50 px-3 py-2 border-b border-amber-100">
-        <p className="font-bold text-amber-900">{label}</p>
+    <div className="rounded-xl border border-gray-200 bg-white shadow-lg text-xs min-w-[190px] overflow-hidden">
+      <div className="bg-gray-50 px-3 py-2 border-b border-gray-100">
+        <p className="font-semibold text-gray-700">{label}</p>
       </div>
       <div className="p-3 space-y-1.5">
         {(payload as { dataKey: string; value: number }[]).map((p) => {
@@ -317,8 +317,8 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
         {/* Top bar: title + period dropdown + series toggles */}
         <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-4 pb-3">
           <div>
-            <h3 className="text-sm font-semibold text-gray-900">Fluxo de Caixa Operacional</h3>
-            <p className="text-[10px] text-gray-400 mt-0.5">Excluindo transferências internas e aplicações financeiras</p>
+            <h3 className="text-sm font-semibold text-gray-800">Fluxo de Caixa Operacional</h3>
+            <p className="text-[10px] text-gray-400 mt-0.5">Excl. transferências internas e aplicações</p>
           </div>
 
           {/* Period dropdown */}
@@ -399,33 +399,33 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
         {/* KPI row — clickable series toggles */}
         <div className="grid grid-cols-3 divide-x divide-gray-100 border-t border-b border-gray-100">
           {[
-            { key: "cd",    label: "CD — Créditos", value: totCD,      color: "text-emerald-600", dotC: "#10b981" },
-            { key: "ci",    label: "CI — Débitos",  value: totCI,      color: "text-red-600",     dotC: "#ef4444" },
-            { key: "saldo", label: "Saldo líquido", value: saldoFinal,
-              color: saldoFinal >= 0 ? "text-amber-700" : "text-red-600", dotC: "#d97706" },
+            { key: "cd",    label: "Créditos",     value: totCD,      color: "text-emerald-600", dotC: "#10b981" },
+            { key: "ci",    label: "Débitos",       value: totCI,      color: "text-red-500",     dotC: "#ef4444" },
+            { key: "saldo", label: "Saldo",         value: saldoFinal,
+              color: saldoFinal >= 0 ? "text-amber-600" : "text-red-500", dotC: "#d97706" },
           ].map((k) => (
             <button
               key={k.key}
               onClick={() => toggle(k.key)}
               title={hidden.has(k.key) ? "Mostrar série" : "Ocultar série"}
-              className={`px-5 py-3.5 text-left hover:bg-gray-50 active:bg-gray-100 transition-all ${hidden.has(k.key) ? "opacity-35" : ""}`}
+              className={`px-3 sm:px-5 py-3.5 text-left hover:bg-gray-50 active:bg-gray-100 transition-all ${hidden.has(k.key) ? "opacity-35" : ""}`}
             >
-              <div className="flex items-center gap-1.5 mb-1">
-                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: k.dotC }} />
-                <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">{k.label}</span>
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: k.dotC }} />
+                <span className="text-[10px] font-medium text-gray-400 tracking-wide">{k.label}</span>
                 {k.key === "saldo" && netPct && (
-                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${netVariation >= 0 ? "bg-amber-50 text-amber-700" : "bg-red-50 text-red-600"}`}>
+                  <span className={`hidden sm:inline text-[9px] font-bold px-1.5 py-0.5 rounded-full ${netVariation >= 0 ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"}`}>
                     {netVariation >= 0 ? "+" : ""}{netPct}%
                   </span>
                 )}
               </div>
-              <p className={`text-lg font-bold tabular-nums leading-tight ${k.color}`}>{fmtBRL(k.value)}</p>
+              <p className={`text-base sm:text-lg font-bold tabular-nums leading-tight ${k.color}`}>{fmtBRL(k.value)}</p>
             </button>
           ))}
         </div>
 
-        {/* Chart — JP Morgan golden area */}
-        <div className="bg-[#fdfcf8] rounded-b-xl px-4 pb-5 pt-4">
+        {/* Chart */}
+        <div className="bg-white rounded-b-xl px-4 pb-5 pt-4">
           {!hasData ? (
             <div className="h-[200px] flex flex-col items-center justify-center gap-2">
               <Calendar size={24} className="text-gray-300" />
@@ -458,8 +458,7 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
                   </linearGradient>
                 </defs>
 
-                {/* Dense solid horizontal gridlines — JP Morgan style */}
-                <CartesianGrid strokeDasharray="" stroke="#ece8df" strokeWidth={0.75} vertical={false} />
+                <CartesianGrid strokeDasharray="" stroke="#f1f5f9" strokeWidth={0.75} vertical={false} />
 
                 <XAxis
                   dataKey="label"
@@ -510,7 +509,7 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
         {/* LEFT: Contas bancárias */}
         <div className="card p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-overline">Contas bancárias</h3>
+            <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest">Contas bancárias</h3>
             {coraConfigured && (
               <button
                 onClick={() => { void loadBalance("AWQ_Holding"); void loadBalance("ENERDY"); }}
@@ -585,7 +584,7 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
                   Restante do mês: <span className="font-semibold text-gray-600">{fmtBRL(restanteMesAR)}</span>
                 </p>
               )}
-              <button className="w-full mt-3 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-[11px] font-semibold transition-all">
+              <button className="w-full mt-3 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[11px] font-semibold transition-all">
                 <ArrowUpRight size={11} /> Novo Recebimento
               </button>
             </div>
@@ -608,7 +607,7 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
                   Restante do mês: <span className="font-semibold text-gray-600">{fmtBRL(pendingDebitsMonth)}</span>
                 </p>
               )}
-              <button className="w-full mt-3 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-red-500 hover:bg-red-600 active:bg-red-700 text-white text-[11px] font-semibold transition-all">
+              <button className="w-full mt-3 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 text-[11px] font-semibold transition-all">
                 <ArrowDownLeft size={11} /> Novo Pagamento
               </button>
             </div>
