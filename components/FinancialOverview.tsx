@@ -288,8 +288,8 @@ function CashGenTooltip({ active, payload, label }: any) {
 export default function FinancialOverview({ transactions, arPending, coraConfigured, openingBalance = 0 }: Props) {
   const todayStr = today();
 
-  const [period, setPeriod] = useState<Period>("all");
-  const [range,  setRange]  = useState<DateRange>(() => allDataRange(transactions));
+  const [period, setPeriod] = useState<Period>("1d");
+  const [range,  setRange]  = useState<DateRange>(() => periodToRange("1d"));
   const [customFrom, setCustomFrom] = useState("");
   const [customTo,   setCustomTo]   = useState("");
   const [showDrop,   setShowDrop]   = useState(false);

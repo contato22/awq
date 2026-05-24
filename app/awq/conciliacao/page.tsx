@@ -12,13 +12,9 @@
 //   GitHub Pages → edições salvas no localStorage do navegador
 
 import Link from "next/link";
-import nextDynamic from "next/dynamic";
 import Header from "@/components/Header";
 import BankReconciliationBoard from "@/components/BankReconciliationBoard";
 import CoraStatusPanel from "@/components/CoraStatusPanel";
-
-// ssr: false prevents Recharts (ResizeObserver) from crashing during SSR
-const FinancialOverview = nextDynamic(() => import("@/components/FinancialOverview"), { ssr: false });
 import { getAllTransactions, getAllDocuments, type BankTransaction, type FinancialDocument } from "@/lib/financial-db";
 import { getAllAR, initAPARDB } from "@/lib/ap-ar-db";
 import {
@@ -81,11 +77,6 @@ export default async function ConciliacaoPage() {
   const pct        = total > 0 ? Math.round((conciliado / total) * 100) : 0;
   const docsDone   = documents.filter((d) => d.status === "done").length;
 
-  // Sum opening balances from ingested documents — used by FinancialOverview for "Caixa" series
-  const openingBalance = documents
-    .filter((d) => d.status === "done" && d.openingBalance != null)
-    .reduce((s, d) => s + (d.openingBalance ?? 0), 0);
-
   return (
     <>
       <Header
@@ -104,14 +95,6 @@ export default async function ConciliacaoPage() {
             </div>
           </div>
         )}
-
-        {/* ── Visão geral financeira: chart + contas + AR/AP ── */}
-        <FinancialOverview
-          transactions={transactions}
-          arPending={arPending}
-          coraConfigured={CORA_CONFIGURED}
-          openingBalance={openingBalance}
-        />
 
         {/* ── Painel de conciliação ── */}
         <section className="space-y-4">

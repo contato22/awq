@@ -1,6 +1,7 @@
 import Header from "@/components/Header";
 import SectionHeader from "@/components/SectionHeader";
 import Link from "next/link";
+import nextDynamic from "next/dynamic";
 import { ExpandableQuickNav } from "@/components/ExpandableQuickNav";
 import {
   DollarSign, TrendingUp, BarChart3, Zap, ArrowUpRight, ArrowDownRight,
@@ -17,6 +18,16 @@ import {
   type FinancialQueryResult,
   type EntitySummary,
 } from "@/lib/financial-query";
+import { getAllTransactions, getAllDocuments } from "@/lib/financial-db";
+import { getAllAR, initAPARDB } from "@/lib/ap-ar-db";
+
+const FinancialOverview = nextDynamic(() => import("@/components/FinancialOverview"), { ssr: false });
+
+const CORA_CONFIGURED = !!(
+  process.env.CORA_CLIENT_ID &&
+  process.env.CORA_CERT &&
+  process.env.CORA_KEY
+);
 
 export const dynamic = process.env.STATIC_EXPORT === "1" ? "auto" : "force-dynamic";
 
@@ -162,6 +173,33 @@ export default async function AwqGroupPage() {
     getBUData(),
     getAllocFlags(),
   ]);
+
+  // Raw transactions + AR for FinancialOverview chart
+  let ovTxns:          import("@/lib/financial-db").BankTransaction[] = [];
+  let ovArPending:     { id: string; customer_name: string; net_amount: number; due_date: string }[] = [];
+  let ovOpeningBal     = 0;
+  try {
+    const [txns, docs] = await Promise.all([getAllTransactions(), getAllDocuments()]);
+    ovTxns = txns;
+    ovOpeningBal = docs
+      .filter((d) => d.status === "done" && d.openingBalance != null)
+      .reduce((s, d) => s + (d.openingBalance ?? 0), 0);
+  } catch { /* ignore — FinancialOverview shows empty state */ }
+  try {
+    await initAPARDB();
+    const arItems = await getAllAR();
+    const horizon = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+    ovArPending = arItems
+      .filter((i) => (i.status === "PENDING" || i.status === "PARTIAL") && i.due_date <= horizon)
+      .sort((a, b) => a.due_date.localeCompare(b.due_date))
+      .slice(0, 8)
+      .map((i) => ({
+        id: i.id,
+        customer_name: i.customer_name,
+        net_amount: i.status === "PARTIAL" ? i.net_amount - (i.received_amount ?? 0) : i.net_amount,
+        due_date: i.due_date,
+      }));
+  } catch { /* AR unavailable */ }
   const highRisks   = riskSignals.filter((r) => r.severity === "high").length;
   const mediumRisks = riskSignals.filter((r) => r.severity === "medium").length;
 
@@ -200,6 +238,14 @@ export default async function AwqGroupPage() {
 
         {/* ── Data source banner ─────────────────────────────────────────── */}
         {q.hasData ? <PipelineBadge q={q} /> : <NoDataBanner />}
+
+        {/* ── Geração de Caixa ── */}
+        <FinancialOverview
+          transactions={ovTxns}
+          arPending={ovArPending}
+          coraConfigured={CORA_CONFIGURED}
+          openingBalance={ovOpeningBal}
+        />
 
         {/* ── Primary financial metrics (base bancária real) ─────────────── */}
         <section>
