@@ -404,6 +404,26 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
     ? ((genResult.totalNet / genResult.totalRevenue) * 100).toFixed(1)
     : null;
 
+  // Best estimate of current total cash balance (all time, not period-filtered)
+  const allTimeNet = useMemo(() => {
+    let net = 0;
+    for (const t of transactions) {
+      if (!OPERATIONAL_ENTITIES.has(t.entity) || t.excludedFromConsolidated) continue;
+      if (t.direction === "credit") net += t.amount;
+      else net -= t.amount;
+    }
+    return net;
+  }, [transactions]);
+
+  const caixaTotal = coraConfigured && !anyLoading && totalBalance > 0
+    ? totalBalance
+    : openingBalance > 0
+      ? openingBalance + allTimeNet
+      : allTimeNet;
+  const caixaLabel = coraConfigured && !anyLoading && totalBalance > 0
+    ? "Saldo real (Cora)"
+    : openingBalance > 0 ? "Estimado" : "Fluxo acumulado";
+
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-4">
@@ -478,11 +498,11 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
           </div>
         </div>
 
-        {/* KPI row — one per active entity + total */}
+        {/* KPI row — one per active entity + total + caixa */}
         <div className={`grid divide-x divide-gray-100 border-t border-b border-gray-100 ${
-          activeEntities.length === 0 ? "grid-cols-1" :
-          activeEntities.length === 1 ? "grid-cols-2" :
-          activeEntities.length === 2 ? "grid-cols-3" : "grid-cols-4"
+          activeEntities.length === 0 ? "grid-cols-2" :
+          activeEntities.length === 1 ? "grid-cols-3" :
+          activeEntities.length === 2 ? "grid-cols-4" : "grid-cols-5"
         }`}>
           {activeEntities.map((e) => {
             const stats = genResult.byEntity[e.key];
@@ -523,6 +543,21 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
               +{fmtK(genResult.totalRevenue)} / −{fmtK(genResult.totalExpenses)}
             </p>
           </button>
+
+          {/* Caixa Total — current balance estimate */}
+          <button onClick={() => toggle("caixa")}
+            title={hidden.has("caixa") ? "Mostrar caixa" : "Ocultar caixa"}
+            className={`px-4 py-3 text-left hover:bg-amber-50/60 transition-all ${hidden.has("caixa") ? "opacity-35" : ""}`}>
+            <div className="flex items-center gap-1.5 mb-1">
+              <span className="w-2 h-2 rounded-full shrink-0 bg-amber-500" />
+              <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Caixa Total</span>
+              {anyLoading && <span className="text-[9px] text-gray-300 animate-pulse">•••</span>}
+            </div>
+            <p className={`text-base font-bold tabular-nums leading-tight ${caixaTotal >= 0 ? "text-amber-600" : "text-red-600"}`}>
+              {fmtBRL(caixaTotal)}
+            </p>
+            <p className="text-[9px] text-gray-400 mt-0.5">{caixaLabel}</p>
+          </button>
         </div>
 
         {/* Chart — stacked bars per entity + running total line */}
@@ -561,7 +596,7 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
                     dot={false} activeDot={{ r: 4, fill: "#023373", stroke: "#fff", strokeWidth: 2 }} />
                 )}
                 {/* Caixa — total gerado + saldo de abertura = posição real em conta */}
-                {!hidden.has("caixa") && openingBalance > 0 && (
+                {!hidden.has("caixa") && (
                   <Line type="monotone" dataKey="caixa" stroke="#d97706" strokeWidth={2.5}
                     strokeDasharray="6 3"
                     dot={false} activeDot={{ r: 4, fill: "#d97706", stroke: "#fff", strokeWidth: 2 }} />
@@ -585,13 +620,11 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
                 <span className="w-8 h-0.5 rounded bg-[#023373] shrink-0" />
                 Total gerado
               </button>
-              {openingBalance > 0 && (
-                <button onClick={() => toggle("caixa")}
-                  className={`flex items-center gap-1.5 text-[10px] font-medium transition-opacity ${hidden.has("caixa") ? "opacity-30" : "text-gray-600"}`}>
-                  <span className="w-8 h-0 border-t-2 border-dashed border-amber-500 shrink-0" />
-                  Caixa
-                </button>
-              )}
+              <button onClick={() => toggle("caixa")}
+                className={`flex items-center gap-1.5 text-[10px] font-medium transition-opacity ${hidden.has("caixa") ? "opacity-30" : "text-gray-600"}`}>
+                <span className="w-8 h-0 border-t-2 border-dashed border-amber-500 shrink-0" />
+                Caixa
+              </button>
             </div>
           )}
         </div>
