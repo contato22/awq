@@ -186,6 +186,25 @@ function buildCashGen(txns: BankTransaction[], range: DateRange, openingBal = 0)
     byEntity[ek].net = byEntity[ek].revenue - byEntity[ek].expenses;
   }
 
+  // For single-day (Hoje): expand into hourly buckets so the chart always renders
+  if (diffDays === 1) {
+    const HOUR_SLOTS = [0, 3, 6, 9, 12, 15, 18, 21];
+    const todaySums = dayMap.get(from) ?? emptyDay();
+    let rt = 0;
+    const data: CashGenRow[] = HOUR_SLOTS.map(h => {
+      // Transactions have no time component — place them at 9h (business hours)
+      const sums = h === 9 ? todaySums : emptyDay();
+      const awq  = Math.round(sums.AWQ_Holding.rev - sums.AWQ_Holding.exp);
+      const jcq  = Math.round(sums.JACQES.rev - sums.JACQES.exp);
+      const caza = Math.round(sums.Caza_Vision.rev - sums.Caza_Vision.exp);
+      rt += awq + jcq + caza;
+      return { label: `${h}h`, AWQ_Holding: awq, JACQES: jcq, Caza_Vision: caza, total: Math.round(rt), caixa: Math.round(rt + openingBal) };
+    });
+    const totalRevenue  = Object.values(byEntity).reduce((s, e) => s + e.revenue, 0);
+    const totalExpenses = Object.values(byEntity).reduce((s, e) => s + e.expenses, 0);
+    return { data, byEntity, totalRevenue, totalExpenses, totalNet: totalRevenue - totalExpenses, hasData: totalRevenue + totalExpenses > 0 };
+  }
+
   // Weekly aggregation when range > 60 days
   type Bucket = { label: string; sums: ReturnType<typeof emptyDay> };
   let buckets: Bucket[];
@@ -562,52 +581,45 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
 
         {/* Chart — stacked bars per entity + running total line */}
         <div className="bg-[#fafaf8] rounded-b-xl px-4 pb-5 pt-4">
-          {!genResult.hasData ? (
-            <div className="h-[200px] flex flex-col items-center justify-center gap-2">
-              <Calendar size={24} className="text-gray-300" />
-              <p className="text-sm font-medium text-gray-400">Sem movimentações no período</p>
-              {period !== "all" && (
-                <button onClick={() => { setPeriod("all"); setRange(allDataRange(transactions)); }}
-                  className="text-xs font-semibold text-brand-600 underline">
-                  Ver todo o período
-                </button>
+          <ResponsiveContainer width="100%" height={230}>
+            <ComposedChart data={genResult.data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+              <CartesianGrid strokeDasharray="" stroke="#ece8df" strokeWidth={0.75} vertical={false} />
+              <XAxis dataKey="label" tick={{ fontSize: 10, fill: "#b5b0a8" }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
+              <YAxis tick={{ fontSize: 10, fill: "#b5b0a8" }} axisLine={false} tickLine={false} tickFormatter={fmtK} width={56} />
+              <ReferenceLine y={0} stroke="#d1d5db" strokeWidth={1} />
+              <Tooltip content={<CashGenTooltip />} cursor={{ fill: "rgba(4,135,217,0.05)" }} />
+
+              {/* Stacked bars — net cash per entity */}
+              {ENTITY_CFG.map((e) =>
+                !hidden.has(e.key) ? (
+                  <Bar key={e.key} dataKey={e.key} stackId="gen"
+                    fill={e.color} fillOpacity={0.82} maxBarSize={32} />
+                ) : null
               )}
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height={230}>
-              <ComposedChart data={genResult.data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-                <CartesianGrid strokeDasharray="" stroke="#ece8df" strokeWidth={0.75} vertical={false} />
-                <XAxis dataKey="label" tick={{ fontSize: 10, fill: "#b5b0a8" }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
-                <YAxis tick={{ fontSize: 10, fill: "#b5b0a8" }} axisLine={false} tickLine={false} tickFormatter={fmtK} width={56} />
-                <ReferenceLine y={0} stroke="#d1d5db" strokeWidth={1} />
-                <Tooltip content={<CashGenTooltip />} cursor={{ fill: "rgba(4,135,217,0.05)" }} />
 
-                {/* Stacked bars — net cash per entity */}
-                {ENTITY_CFG.map((e) =>
-                  !hidden.has(e.key) ? (
-                    <Bar key={e.key} dataKey={e.key} stackId="gen"
-                      fill={e.color} fillOpacity={0.82} maxBarSize={32} />
-                  ) : null
-                )}
-
-                {/* Total gerado — cumulative net from 0 */}
-                {!hidden.has("total") && (
-                  <Line type="monotone" dataKey="total" stroke="#023373" strokeWidth={2}
-                    dot={false} activeDot={{ r: 4, fill: "#023373", stroke: "#fff", strokeWidth: 2 }} />
-                )}
-                {/* Caixa — total gerado + saldo de abertura = posição real em conta */}
-                {!hidden.has("caixa") && (
-                  <Line type="monotone" dataKey="caixa" stroke="#d97706" strokeWidth={2.5}
-                    strokeDasharray="6 3"
-                    dot={false} activeDot={{ r: 4, fill: "#d97706", stroke: "#fff", strokeWidth: 2 }} />
-                )}
-              </ComposedChart>
-            </ResponsiveContainer>
+              {/* Total gerado — cumulative net from 0 */}
+              {!hidden.has("total") && (
+                <Line type="monotone" dataKey="total" stroke="#023373" strokeWidth={2}
+                  dot={false} activeDot={{ r: 4, fill: "#023373", stroke: "#fff", strokeWidth: 2 }} />
+              )}
+              {/* Caixa — total gerado + saldo de abertura = posição real em conta */}
+              {!hidden.has("caixa") && (
+                <Line type="monotone" dataKey="caixa" stroke="#d97706" strokeWidth={2.5}
+                  strokeDasharray="6 3"
+                  dot={false} activeDot={{ r: 4, fill: "#d97706", stroke: "#fff", strokeWidth: 2 }} />
+              )}
+            </ComposedChart>
+          </ResponsiveContainer>
+          {!genResult.hasData && (
+            <p className="text-center text-[11px] text-gray-400 -mt-2 mb-1">
+              Sem movimentações hoje ·{" "}
+              <button onClick={() => { setPeriod("all"); setRange(allDataRange(transactions)); }}
+                className="text-brand-500 hover:underline">ver todo o histórico</button>
+            </p>
           )}
 
           {/* Legend */}
-          {genResult.hasData && (
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 pt-3 border-t border-[#ece8df]">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 pt-3 border-t border-[#ece8df]">
               {activeEntities.map((e) => (
                 <button key={e.key} onClick={() => toggle(e.key)}
                   className={`flex items-center gap-1.5 text-[10px] font-medium transition-opacity ${hidden.has(e.key) ? "opacity-30" : "text-gray-600"}`}>
@@ -626,7 +638,6 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
                 Caixa
               </button>
             </div>
-          )}
         </div>
       </div>
 
