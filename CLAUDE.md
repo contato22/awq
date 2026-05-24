@@ -8,6 +8,20 @@ Deploy: Vercel (produção em `awq-brown.vercel.app`).
 
 ---
 
+## Estrutura do Grupo AWQ
+
+O Grupo AWQ é composto por múltiplas entidades. As já mapeadas na plataforma:
+
+| Entidade | Tipo | Observações |
+|----------|------|-------------|
+| AWQ Holding | Holding principal | Conta PJ Cora ativa |
+| JACQES | Empresa operacional | Conta PJ Cora própria |
+| **AWQ Venture** | **Fundo de investimentos** | Em estruturação |
+
+**AWQ Venture** é o fundo de investimentos do grupo. Quando funcionalidades ou módulos forem criados para esta entidade, seguir o padrão de entity key `AWQ_Venture`.
+
+---
+
 ## CRÍTICO — Segredos nunca vão para o git
 
 Os seguintes segredos ficam **apenas** nas Vercel Environment Variables. Nunca no código, nunca em `.env.local` commitado:
