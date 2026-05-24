@@ -81,6 +81,11 @@ export default async function ConciliacaoPage() {
   const pct        = total > 0 ? Math.round((conciliado / total) * 100) : 0;
   const docsDone   = documents.filter((d) => d.status === "done").length;
 
+  // Sum opening balances from ingested documents — used by FinancialOverview for "Caixa" series
+  const openingBalance = documents
+    .filter((d) => d.status === "done" && d.openingBalance != null)
+    .reduce((s, d) => s + (d.openingBalance ?? 0), 0);
+
   return (
     <>
       <Header
@@ -105,6 +110,7 @@ export default async function ConciliacaoPage() {
           transactions={transactions}
           arPending={arPending}
           coraConfigured={CORA_CONFIGURED}
+          openingBalance={openingBalance}
         />
 
         {/* ── Painel de conciliação ── */}

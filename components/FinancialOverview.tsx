@@ -29,9 +29,10 @@ interface Props {
   transactions: BankTransaction[];
   arPending: ARItem[];
   coraConfigured: boolean;
+  openingBalance?: number; // sum of document opening balances (from page SSR)
 }
 
-type Period = "all" | "7d" | "14d" | "30d" | "3m" | "6m" | "1y" | "custom";
+type Period = "all" | "1d" | "7d" | "14d" | "30d" | "3m" | "6m" | "1y" | "custom";
 interface DateRange { from: string; to: string }
 
 type EntityKey = "AWQ_Holding" | "JACQES" | "Caza_Vision";
@@ -41,7 +42,8 @@ interface CashGenRow {
   AWQ_Holding: number;
   JACQES: number;
   Caza_Vision: number;
-  total: number;
+  total: number;  // cumulative net generated (starts at 0)
+  caixa: number;  // total + opening balance = approximate account balance
 }
 
 interface EntityStats { revenue: number; expenses: number; net: number }
@@ -90,6 +92,7 @@ const ACCOUNTS_CFG = [
 
 const PERIOD_OPTS: { key: Period; label: string; sub: string }[] = [
   { key: "all",    label: "Tudo",      sub: "Todo período"     },
+  { key: "1d",     label: "Hoje",      sub: "Dia atual"        },
   { key: "7d",     label: "7 dias",    sub: "Esta semana"      },
   { key: "14d",    label: "14 dias",   sub: "2 semanas"        },
   { key: "30d",    label: "30 dias",   sub: "Último mês"       },
@@ -124,7 +127,7 @@ function addDays(date: string, days: number) {
 
 function periodToRange(period: Exclude<Period, "all" | "custom">): DateRange {
   const daysMap: Record<Exclude<Period, "all" | "custom">, number> = {
-    "7d": 7, "14d": 14, "30d": 30, "3m": 90, "6m": 180, "1y": 365,
+    "1d": 1, "7d": 7, "14d": 14, "30d": 30, "3m": 90, "6m": 180, "1y": 365,
   };
   return { from: dateAgo(daysMap[period] - 1), to: today() };
 }
@@ -143,8 +146,9 @@ function emptyDay(): Record<EntityKey, { rev: number; exp: number }> {
   return { AWQ_Holding: { rev: 0, exp: 0 }, JACQES: { rev: 0, exp: 0 }, Caza_Vision: { rev: 0, exp: 0 } };
 }
 
-// Cash generation per entity — same category methodology as DFC/DRE
-function buildCashGen(txns: BankTransaction[], range: DateRange): CashGenResult {
+// Cash generation per entity — all bank credits vs debits (excludedFromConsolidated removed)
+// Matches account balance: CD = all inflows, CI = all outflows, net ≈ account balance change
+function buildCashGen(txns: BankTransaction[], range: DateRange, openingBal = 0): CashGenResult {
   const { from, to } = range;
   const diffDays = Math.round((new Date(to).getTime() - new Date(from).getTime()) / 86_400_000) + 1;
 
@@ -159,7 +163,7 @@ function buildCashGen(txns: BankTransaction[], range: DateRange): CashGenResult 
 
   for (const t of txns) {
     if (!OPERATIONAL_ENTITIES.has(t.entity)) continue;
-    if (t.excludedFromConsolidated) continue;
+    if (t.excludedFromConsolidated) continue;        // skip intercompany / investments
     if (t.transactionDate < from || t.transactionDate > to) continue;
     if (!dayMap.has(t.transactionDate)) continue;
 
@@ -167,12 +171,12 @@ function buildCashGen(txns: BankTransaction[], range: DateRange): CashGenResult 
     if (!(ek in byEntity)) continue;
 
     const day = dayMap.get(t.transactionDate)!;
-    const cat = t.managerialCategory;
 
-    if (REVENUE_CATS.has(cat) && t.direction === "credit") {
+    // All bank credits = entradas, all bank debits = saídas (matches Cora/account balance)
+    if (t.direction === "credit") {
       day[ek].rev += t.amount;
       byEntity[ek].revenue += t.amount;
-    } else if (OPERATIONAL_EXPENSE_CATS.has(cat) && t.direction === "debit") {
+    } else {
       day[ek].exp += t.amount;
       byEntity[ek].expenses += t.amount;
     }
@@ -218,7 +222,12 @@ function buildCashGen(txns: BankTransaction[], range: DateRange): CashGenResult 
     const jcq  = Math.round(sums.JACQES.rev - sums.JACQES.exp);
     const caza = Math.round(sums.Caza_Vision.rev - sums.Caza_Vision.exp);
     runningTotal += awq + jcq + caza;
-    return { label, AWQ_Holding: awq, JACQES: jcq, Caza_Vision: caza, total: Math.round(runningTotal) };
+    return {
+      label,
+      AWQ_Holding: awq, JACQES: jcq, Caza_Vision: caza,
+      total: Math.round(runningTotal),
+      caixa: Math.round(runningTotal + openingBal),
+    };
   });
 
   const totalRevenue  = Object.values(byEntity).reduce((s, e) => s + e.revenue, 0);
@@ -238,10 +247,11 @@ function bestPeriod(_txns: BankTransaction[]): Exclude<Period, "custom"> {
 // ─── Tooltip ─────────────────────────────────────────────────────────────────
 
 const TOOLTIP_META: Record<string, { name: string; color: string }> = {
-  AWQ_Holding: { name: "AWQ Holding", color: "#0487D9" },
-  JACQES:      { name: "JACQES",      color: "#10b981" },
-  Caza_Vision: { name: "Caza Vision", color: "#8b5cf6" },
-  total:       { name: "Total acumulado", color: "#023373" },
+  AWQ_Holding: { name: "AWQ Holding",       color: "#0487D9" },
+  JACQES:      { name: "JACQES",            color: "#10b981" },
+  Caza_Vision: { name: "Caza Vision",       color: "#8b5cf6" },
+  total:       { name: "Total gerado",      color: "#023373" },
+  caixa:       { name: "Caixa (saldo est.)", color: "#d97706" },
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -275,7 +285,7 @@ function CashGenTooltip({ active, payload, label }: any) {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function FinancialOverview({ transactions, arPending, coraConfigured }: Props) {
+export default function FinancialOverview({ transactions, arPending, coraConfigured, openingBalance = 0 }: Props) {
   const todayStr = today();
 
   const [period, setPeriod] = useState<Period>("all");
@@ -370,7 +380,7 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
   const totalBalance = accounts.reduce((s, a) => s + (a.balance ?? 0), 0);
   const anyLoading   = accounts.some((a) => a.loading);
 
-  const genResult = useMemo(() => buildCashGen(transactions, range), [transactions, range]);
+  const genResult = useMemo(() => buildCashGen(transactions, range, openingBalance), [transactions, range, openingBalance]);
 
   const txAccounts = useMemo(() => Array.from(
     new Map(transactions.map((t) => [
@@ -405,7 +415,7 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
         <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-4 pb-3">
           <div>
             <h3 className="text-sm font-semibold text-gray-900">Geração de Caixa · Por Conta</h3>
-            <p className="text-[10px] text-gray-400 mt-0.5">Receitas − Despesas operacionais · exclui intercompany e aplicações</p>
+            <p className="text-[10px] text-gray-400 mt-0.5">Entradas − Saídas bancárias · exclui transferências intercompany e aplicações financeiras</p>
           </div>
 
           {/* Period dropdown */}
@@ -545,10 +555,16 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
                   ) : null
                 )}
 
-                {/* Running total line */}
+                {/* Total gerado — cumulative net from 0 */}
                 {!hidden.has("total") && (
-                  <Line type="monotone" dataKey="total" stroke="#023373" strokeWidth={2.5}
+                  <Line type="monotone" dataKey="total" stroke="#023373" strokeWidth={2}
                     dot={false} activeDot={{ r: 4, fill: "#023373", stroke: "#fff", strokeWidth: 2 }} />
+                )}
+                {/* Caixa — total gerado + saldo de abertura = posição real em conta */}
+                {!hidden.has("caixa") && openingBalance > 0 && (
+                  <Line type="monotone" dataKey="caixa" stroke="#d97706" strokeWidth={2.5}
+                    strokeDasharray="6 3"
+                    dot={false} activeDot={{ r: 4, fill: "#d97706", stroke: "#fff", strokeWidth: 2 }} />
                 )}
               </ComposedChart>
             </ResponsiveContainer>
@@ -567,8 +583,15 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
               <button onClick={() => toggle("total")}
                 className={`flex items-center gap-1.5 text-[10px] font-medium transition-opacity ${hidden.has("total") ? "opacity-30" : "text-gray-600"}`}>
                 <span className="w-8 h-0.5 rounded bg-[#023373] shrink-0" />
-                Total acumulado
+                Total gerado
               </button>
+              {openingBalance > 0 && (
+                <button onClick={() => toggle("caixa")}
+                  className={`flex items-center gap-1.5 text-[10px] font-medium transition-opacity ${hidden.has("caixa") ? "opacity-30" : "text-gray-600"}`}>
+                  <span className="w-8 h-0 border-t-2 border-dashed border-amber-500 shrink-0" />
+                  Caixa
+                </button>
+              )}
             </div>
           )}
         </div>
