@@ -17,11 +17,9 @@ export default function Header({ title, subtitle }: HeaderProps) {
 
   return (
     <>
-      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b border-gray-200/80 flex items-center justify-between gap-4 px-6 lg:px-8 py-3.5"
-        style={{ borderTop: "2.5px solid #0487D9" }}
-      >
+      <header className="sticky top-0 z-30 bg-white border-b border-gray-200 flex items-center justify-between gap-4 px-6 lg:px-8 py-3.5">
         <div className="min-w-0">
-          <h1 className="text-lg font-bold tracking-tight truncate" style={{ color: "#023373" }}>
+          <h1 className="text-lg font-semibold text-gray-900 tracking-tight truncate">
             {title}
           </h1>
           {subtitle && (
@@ -78,7 +76,7 @@ export default function Header({ title, subtitle }: HeaderProps) {
           </button>
 
           {/* Live chip */}
-          <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-brand-50 border border-brand-100 rounded-lg text-xs font-semibold" style={{ color: "#023373" }}>
+          <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-medium text-gray-600">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
             Live · {new Date().toLocaleString("pt-BR", { month: "short", year: "numeric" })}
           </div>
