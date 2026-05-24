@@ -17,8 +17,6 @@ import Header from "@/components/Header";
 import BankReconciliationBoard from "@/components/BankReconciliationBoard";
 import CoraStatusPanel from "@/components/CoraStatusPanel";
 import { getAllTransactions, getAllDocuments, type BankTransaction, type FinancialDocument } from "@/lib/financial-db";
-
-const FinancialOverview = nextDynamic(() => import("@/components/FinancialOverview"), { ssr: false });
 import { getAllAR, initAPARDB } from "@/lib/ap-ar-db";
 import {
   AlertCircle,
@@ -30,6 +28,9 @@ import {
   LineChart,
   Zap,
 } from "lucide-react";
+
+// ssr: false prevents Recharts (ResizeObserver) from crashing during SSR
+const FinancialOverview = nextDynamic(() => import("@/components/FinancialOverview"), { ssr: false });
 
 export const dynamic = process.env.STATIC_EXPORT === "1" ? "auto" : "force-dynamic";
 
