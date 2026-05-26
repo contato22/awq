@@ -229,12 +229,8 @@ function computeMatch(
   }
 
   if (!isFinite(bestDiff)) {
-    // No AP/AR candidate — quality is based on category classification
-    const ambiguous =
-      tx.managerialCategory === "despesa_ambigua" ||
-      tx.managerialCategory === "recebimento_ambiguo" ||
-      tx.managerialCategory === "unclassified";
-    return { quality: ambiguous ? "sem_match" : "quase", diffAmount: 0 };
+    // No real AP/AR candidate found — never show "Quase lá" without a system match
+    return { quality: "sem_match", diffAmount: 0 };
   }
 
   const rel = bestDiff / Math.max(Math.abs(tx.amount), 1);
@@ -327,6 +323,10 @@ export default function BankReconciliationBoard({
   const [isImporting, setIsImporting]   = useState(false);
   const [showRejected, setShowRejected] = useState(false);
   const [showIgnored, setShowIgnored]   = useState(false);
+  // reviewedIds: tx IDs the user opened via "Ajustar valores" — unlocks "Conciliar" in CENTER
+  const [reviewedIds, setReviewedIds]   = useState<Set<string>>(new Set());
+  // unlinkedIds: tx IDs where user clicked "Desvincular" — clears AI match, enables direct Conciliar
+  const [unlinkedIds, setUnlinkedIds]   = useState<Set<string>>(new Set());
   const [isSyncing, setIsSyncing]             = useState(false);
   const [showSyncMenu, setShowSyncMenu]       = useState(false);
   const [showAccountDropdown, setShowAccountDropdown] = useState(false);
@@ -552,6 +552,18 @@ export default function BankReconciliationBoard({
     applyPatch(id, { reconciliationStatus: "conciliado", ...updatedTx });
     showToast("ok", "Conciliado com sucesso.");
     setDrawerTx(null);
+  }
+
+  // ── Ajustar valores — opens drawer AND marks tx as reviewed, enabling Conciliar ──
+  function handleAjustar(tx: BankTransaction) {
+    setReviewedIds((prev) => { const n = new Set(prev); n.add(tx.id); return n; });
+    setDrawerTx(tx);
+  }
+
+  // ── Desvincular — clears AI match and enables direct Conciliar without drawer ──
+  function handleUnlink(id: string) {
+    setUnlinkedIds((prev) => { const n = new Set(prev); n.add(id); return n; });
+    setReviewedIds((prev) => { const n = new Set(prev); n.delete(id); return n; });
   }
 
   // ── Ignorar ──────────────────────────────────────────────────────────────────
@@ -1215,7 +1227,10 @@ export default function BankReconciliationBoard({
       <div className="space-y-2">
         {filtered.map((tx) => {
 
-          const { quality, diffAmount } = matchCache.get(tx.id) ?? computeMatch(tx, apArSnaps);
+          const rawMatch   = matchCache.get(tx.id) ?? computeMatch(tx, apArSnaps);
+          // Desvincular overrides the AI-derived quality to "sem_match"
+          const quality    = unlinkedIds.has(tx.id) ? "sem_match" : rawMatch.quality;
+          const diffAmount = rawMatch.diffAmount;
           const matchCfg   = MATCH_CFG[quality];
           const isCredit   = tx.direction === "credit";
           const dateInfo   = fmtDate(tx.transactionDate);
@@ -1223,6 +1238,8 @@ export default function BankReconciliationBoard({
           const isSaving   = savingId === tx.id;
           const catLabel   = CAT_LABEL[tx.managerialCategory] ?? tx.managerialCategory;
           const isGoodMatch = quality === "perfeito" || quality === "quase";
+          // Conciliar is unlocked after "Ajustar valores" OR "Desvincular"
+          const canConciliar = reviewedIds.has(tx.id) || unlinkedIds.has(tx.id);
 
           // Status label shown at the bottom of the right card — Conta Azul style
           const statusLabel =
@@ -1304,19 +1321,13 @@ export default function BankReconciliationBoard({
                 {activeTab === "pendentes" ? (
                   <>
                     <button
-                      disabled={isSaving}
-                      onClick={() => setDrawerTx(tx)}
-                      className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold disabled:opacity-50 transition-colors shadow-sm"
+                      disabled={isSaving || !canConciliar}
+                      onClick={() => void handleReconcile(tx.id)}
+                      title={!canConciliar ? "Clique em 'Ajustar valores' para revisar antes de conciliar" : undefined}
+                      className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
                     >
                       {isSaving ? <Loader2 size={12} className="animate-spin" /> : <Link2 size={12} />}
                       {isSaving ? "…" : "Conciliar"}
-                    </button>
-                    <button
-                      disabled={isSaving}
-                      onClick={() => void handleReconcile(tx.id)}
-                      className="w-full px-2 py-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-500 text-[11px] disabled:opacity-50 transition-colors"
-                    >
-                      Direto
                     </button>
                   </>
                 ) : (
@@ -1373,15 +1384,31 @@ export default function BankReconciliationBoard({
 
                 {/* Action buttons */}
                 <div className="flex items-center gap-1.5 mt-auto pt-0.5">
-                  <button className="flex items-center gap-1 text-[11px] text-gray-600 border border-gray-200 rounded-lg px-2.5 py-1 hover:bg-gray-50 transition-colors font-medium">
-                    Ajustar valores <ChevronDown size={10} />
+                  <button
+                    onClick={() => handleAjustar(tx)}
+                    className={`flex items-center gap-1 text-[11px] border rounded-lg px-2.5 py-1 hover:bg-gray-50 transition-colors font-medium ${
+                      reviewedIds.has(tx.id)
+                        ? "border-emerald-300 text-emerald-700 bg-emerald-50"
+                        : "border-gray-200 text-gray-600"
+                    }`}
+                  >
+                    {reviewedIds.has(tx.id) ? "✓ Revisado" : "Ajustar valores"} <ChevronDown size={10} />
                   </button>
                   <button onClick={() => setDrawerTx(tx)} className="text-[11px] text-gray-600 border border-gray-200 rounded-lg px-2.5 py-1 hover:bg-gray-50 transition-colors">
                     Editar
                   </button>
-                  <button className="text-[11px] text-gray-500 border border-gray-200 rounded-lg px-2.5 py-1 hover:border-red-200 hover:text-red-500 transition-colors">
-                    Desvincular
-                  </button>
+                  {!unlinkedIds.has(tx.id) ? (
+                    <button
+                      onClick={() => handleUnlink(tx.id)}
+                      className="text-[11px] text-gray-500 border border-gray-200 rounded-lg px-2.5 py-1 hover:border-red-200 hover:text-red-500 transition-colors"
+                    >
+                      Desvincular
+                    </button>
+                  ) : (
+                    <span className="text-[11px] text-gray-400 border border-dashed border-gray-200 rounded-lg px-2.5 py-1 select-none">
+                      Desvinculado
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
