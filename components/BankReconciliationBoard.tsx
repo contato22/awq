@@ -1323,8 +1323,12 @@ export default function BankReconciliationBoard({
                     <button
                       disabled={isSaving || !canConciliar}
                       onClick={() => void handleReconcile(tx.id)}
-                      title={!canConciliar ? "Clique em 'Ajustar valores' para revisar antes de conciliar" : undefined}
-                      className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
+                      title={!canConciliar ? "Revise via 'Ajustar valores' ou clique 'Desvincular' para conciliar direto" : undefined}
+                      className={`w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
+                        canConciliar && !isSaving
+                          ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm cursor-pointer"
+                          : "bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed"
+                      }`}
                     >
                       {isSaving ? <Loader2 size={12} className="animate-spin" /> : <Link2 size={12} />}
                       {isSaving ? "…" : "Conciliar"}
@@ -1389,10 +1393,17 @@ export default function BankReconciliationBoard({
                     className={`flex items-center gap-1 text-[11px] border rounded-lg px-2.5 py-1 hover:bg-gray-50 transition-colors font-medium ${
                       reviewedIds.has(tx.id)
                         ? "border-emerald-300 text-emerald-700 bg-emerald-50"
-                        : "border-gray-200 text-gray-600"
+                        : unlinkedIds.has(tx.id)
+                          ? "border-gray-200 text-gray-400"
+                          : "border-gray-200 text-gray-600"
                     }`}
                   >
-                    {reviewedIds.has(tx.id) ? "✓ Revisado" : "Ajustar valores"} <ChevronDown size={10} />
+                    {reviewedIds.has(tx.id)
+                      ? "✓ Revisado"
+                      : unlinkedIds.has(tx.id)
+                        ? <><span>Ajustar (opcional)</span><ChevronDown size={10} /></>
+                        : <><span>Ajustar valores</span><ChevronDown size={10} /></>
+                    }
                   </button>
                   <button onClick={() => setDrawerTx(tx)} className="text-[11px] text-gray-600 border border-gray-200 rounded-lg px-2.5 py-1 hover:bg-gray-50 transition-colors">
                     Editar
