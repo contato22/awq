@@ -17,6 +17,11 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
   // so we hide the default white MobileHeader on /awq for mobile.
   const hideMobileHeader = pathname === "/awq";
 
+  // OpenClaw + Supervisor FABs collide with the redesigned bottom nav on /awq
+  // mobile (OpenClaw covers the Cadastros tap target). Hide them below lg only
+  // on the AWQ home; desktop and other routes keep them.
+  const hideFloatingWidgetsOnMobile = pathname === "/awq";
+
   useEffect(() => {
     const handler = () => setDrawerOpen(true);
     window.addEventListener("awq:open-mobile-drawer", handler);
@@ -43,8 +48,10 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
           {children}
         </main>
 
-        <OpenClawWidget />
-        <SupervisorWidget />
+        <div className={hideFloatingWidgetsOnMobile ? "hidden lg:block" : undefined}>
+          <OpenClawWidget />
+          <SupervisorWidget />
+        </div>
       </div>
 
       {/* Mobile Nav Drawer — slide-out overlay below lg */}
