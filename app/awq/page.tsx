@@ -19,9 +19,10 @@ import {
   type EntitySummary,
 } from "@/lib/financial-query";
 import { getAllTransactions, getAllDocuments } from "@/lib/financial-db";
-import { getAllAR, initAPARDB } from "@/lib/ap-ar-db";
+import { getAllAR, getAllAP, initAPARDB } from "@/lib/ap-ar-db";
 
 const FinancialOverview = nextDynamic(() => import("@/components/FinancialOverview"), { ssr: false });
+const MobileHomeAwq = nextDynamic(() => import("@/components/MobileHomeAwq"), { ssr: false });
 
 const CORA_CONFIGURED = !!(
   process.env.CORA_CLIENT_ID &&
@@ -185,10 +186,19 @@ export default async function AwqGroupPage() {
       .filter((d) => d.status === "done" && d.openingBalance != null)
       .reduce((s, d) => s + (d.openingBalance ?? 0), 0);
   } catch { /* ignore — FinancialOverview shows empty state */ }
+  // Mobile snapshot (today + overdue)
+  let mobileTodayReceivable = 0;
+  let mobileTodayPayable    = 0;
+  let mobilePendingCount    = 0;
+  let mobileOverdueItems: import("@/components/MobileHomeAwq").OverdueItem[] = [];
   try {
     await initAPARDB();
-    const arItems = await getAllAR();
-    const horizon = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+    const [arItems, apItems] = await Promise.all([getAllAR(), getAllAP()]);
+    const today    = new Date().toISOString().slice(0, 10);
+    const horizon  = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+    const remaining = (it: { net_amount: number; received_amount?: number; status: string }) =>
+      it.status === "PARTIAL" ? it.net_amount - (it.received_amount ?? 0) : it.net_amount;
+
     ovArPending = arItems
       .filter((i) => (i.status === "PENDING" || i.status === "PARTIAL") && i.due_date <= horizon)
       .sort((a, b) => a.due_date.localeCompare(b.due_date))
@@ -196,10 +206,42 @@ export default async function AwqGroupPage() {
       .map((i) => ({
         id: i.id,
         customer_name: i.customer_name,
-        net_amount: i.status === "PARTIAL" ? i.net_amount - (i.received_amount ?? 0) : i.net_amount,
+        net_amount: remaining(i),
         due_date: i.due_date,
       }));
-  } catch { /* AR unavailable */ }
+
+    mobileTodayReceivable = arItems
+      .filter((i) => (i.status === "PENDING" || i.status === "PARTIAL") && i.due_date === today)
+      .reduce((s, i) => s + remaining(i), 0);
+    mobileTodayPayable = apItems
+      .filter((i) => (i.status === "PENDING" || i.status === "SCHEDULED") && i.due_date === today)
+      .reduce((s, i) => s + i.net_amount, 0);
+
+    const overdueAR = arItems
+      .filter((i) => (i.status === "PENDING" || i.status === "PARTIAL") && i.due_date < today)
+      .map((i) => ({
+        id: i.id,
+        party: i.customer_name,
+        amount: remaining(i),
+        due_date: i.due_date,
+        type: "AR" as const,
+        days_overdue: Math.floor((Date.parse(today) - Date.parse(i.due_date)) / 86400000),
+      }));
+    const overdueAP = apItems
+      .filter((i) => (i.status === "PENDING" || i.status === "SCHEDULED" || i.status === "OVERDUE") && i.due_date < today)
+      .map((i) => ({
+        id: i.id,
+        party: i.supplier_name,
+        amount: i.net_amount,
+        due_date: i.due_date,
+        type: "AP" as const,
+        days_overdue: Math.floor((Date.parse(today) - Date.parse(i.due_date)) / 86400000),
+      }));
+
+    mobileOverdueItems = [...overdueAR, ...overdueAP]
+      .sort((a, b) => b.days_overdue - a.days_overdue);
+    mobilePendingCount = overdueAR.length + overdueAP.length;
+  } catch { /* AR/AP unavailable */ }
   const highRisks   = riskSignals.filter((r) => r.severity === "high").length;
   const mediumRisks = riskSignals.filter((r) => r.severity === "medium").length;
 
@@ -230,6 +272,19 @@ export default async function AwqGroupPage() {
 
   return (
     <>
+      {/* ── Mobile home (Conta Azul / Cora-style) ─────────────────── */}
+      <MobileHomeAwq
+        companyName="AWQ Group"
+        cashBalance={q.consolidated.totalCashBalance}
+        pendingRequestsCount={mobilePendingCount}
+        todayReceivable={mobileTodayReceivable}
+        todayPayable={mobileTodayPayable}
+        overdueItems={mobileOverdueItems}
+        hasData={q.hasData}
+      />
+
+      {/* ── Desktop dashboard (Control Tower) ─────────────────────── */}
+      <div className="hidden lg:block">
       <Header
         title="AWQ Group — Control Tower"
         subtitle={q.hasData ? `Base bancária real · ${period}` : "Holding · Visão consolidada · Aguardando extratos"}
@@ -579,6 +634,7 @@ export default async function AwqGroupPage() {
           <ExpandableQuickNav />
         </section>
 
+      </div>
       </div>
     </>
   );
