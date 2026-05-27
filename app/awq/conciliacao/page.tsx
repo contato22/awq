@@ -184,7 +184,7 @@ export default async function ConciliacaoPage() {
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
                       <span className={`tabular-nums font-semibold ${overdue ? "text-red-700" : "text-emerald-700"}`}>
-                        {item.net_amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                        {(item.net_amount ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                       </span>
                       <span className={`text-[10px] ${overdue ? "text-red-500 font-semibold" : "text-gray-400"}`}>
                         {`${d}/${m}/${y}`}{overdue ? " ⚠" : ""}

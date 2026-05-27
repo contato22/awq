@@ -14,12 +14,12 @@ import { getLeafAccounts } from "@/lib/ar-coa";
 
 interface APItem {
   id: string; bu_code: string; supplier_name: string; description: string;
-  category: string; due_date: string; gross_amount: number; net_amount: number;
+  category: string; due_date: string; gross_amount: number | null; net_amount: number | null;
   status: string; paid_date?: string; supplier_doc?: string;
 }
 interface ARItem {
   id: string; bu_code: string; customer_name: string; description: string;
-  category: string; due_date: string; gross_amount: number; net_amount: number;
+  category: string; due_date: string; gross_amount: number | null; net_amount: number | null;
   status: string; received_date?: string; customer_doc?: string;
 }
 type APARItem = (APItem & { _type: "AP" }) | (ARItem & { _type: "AR" });
@@ -35,7 +35,7 @@ interface Props {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const fmtBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const fmtBRL = (v: number | null | undefined) => (v ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 const CAT_LABELS: Partial<Record<ManagerialCategory, string>> = {
   receita_recorrente: "Receita Recorrente", receita_projeto: "Receita de Projeto",
@@ -74,9 +74,9 @@ function getDueDate(item: APARItem): string {
 
 function scoreCandidate(tx: BankTransaction, item: APARItem): Candidate {
   const txAmt = Math.abs(tx.amount);
-  const itemAmt = item._type === "AP"
+  const itemAmt = (item._type === "AP"
     ? (item as APItem).net_amount
-    : (item as ARItem).net_amount;
+    : (item as ARItem).net_amount) ?? 0;
   const amtDiff = Math.abs(txAmt - itemAmt);
   const amtRatio = amtDiff / Math.max(txAmt, 1);
   const txDate = new Date(tx.transactionDate + "T12:00:00").getTime();
@@ -156,7 +156,7 @@ export default function ReconcileDrawer({ transaction: tx, isStatic = false, onC
     return allItems.filter((item) =>
       getName(item).toLowerCase().includes(q) ||
       item.description.toLowerCase().includes(q) ||
-      String(item.gross_amount).includes(q)
+      String(item.gross_amount ?? 0).includes(q)
     );
   }, [search, allItems]);
 
@@ -682,7 +682,7 @@ function CandidateCard({
   const isAP    = item._type === "AP";
   const name    = getName(item);
   const dueDate = getDueDate(item);
-  const netAmt = item.net_amount;
+  const netAmt = item.net_amount ?? 0;
   const pct = Math.round(score * 100);
 
   const quality =
