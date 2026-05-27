@@ -13,10 +13,12 @@
 
 import { useState, useEffect, useCallback } from "react";
 import type { ElementType } from "react";
+import Link from "next/link";
 import Header from "@/components/Header";
 import {
   ArrowDownLeft,
   ArrowUpRight,
+  ArrowRight,
   Plus,
   Trash2,
   AlertTriangle,
@@ -34,6 +36,8 @@ import {
   Link2,
   Unlink,
   RefreshCw,
+  Receipt,
+  Users,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -458,6 +462,47 @@ export default function APARPage() {
     <>
       <Header title="AP & AR" subtitle="Contas a Pagar · Contas a Receber · Tesouraria" />
       <div className="px-8 py-6 space-y-5">
+
+        {/* ── Navigation hub — relatórios e listagens AP/AR ──────────────── */}
+        <div className="card p-5">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <div className="text-sm font-bold text-gray-800">Relatórios & Listagens AP/AR</div>
+              <div className="text-xs text-gray-500 mt-0.5">
+                Acesso centralizado aos módulos de Contas a Pagar, Contas a Receber, Aging e Clientes
+              </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            {[
+              { href: "/awq/epm/ap",        label: "Contas a Pagar",   sub: "AP — obrigações",        icon: ArrowDownLeft, color: "text-red-600",     bg: "bg-red-50",     hover: "hover:border-red-300"     },
+              { href: "/awq/epm/ap/aging",  label: "AP Aging",         sub: "Análise por vencimento", icon: Receipt,       color: "text-orange-600",  bg: "bg-orange-50",  hover: "hover:border-orange-300"  },
+              { href: "/awq/epm/ar",        label: "Contas a Receber", sub: "AR — direitos",          icon: ArrowUpRight,  color: "text-emerald-600", bg: "bg-emerald-50", hover: "hover:border-emerald-300" },
+              { href: "/awq/epm/ar/aging",  label: "AR Aging",         sub: "Análise por vencimento", icon: Receipt,       color: "text-amber-700",   bg: "bg-amber-50",   hover: "hover:border-amber-300"   },
+              { href: "/awq/epm/customers", label: "Clientes (AR)",    sub: "Base de clientes",       icon: Users,         color: "text-brand-600",   bg: "bg-brand-50",   hover: "hover:border-brand-300"   },
+            ].map((nav) => {
+              const Icon = nav.icon;
+              return (
+                <Link
+                  key={nav.href}
+                  href={nav.href}
+                  className={`group flex flex-col gap-2 p-4 rounded-xl border border-gray-200 bg-white transition-all hover:shadow-md ${nav.hover}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className={`w-9 h-9 rounded-lg ${nav.bg} flex items-center justify-center shrink-0`}>
+                      <Icon size={16} className={nav.color} />
+                    </div>
+                    <ArrowRight size={13} className="text-gray-300 group-hover:text-gray-600 transition-colors" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-gray-900 leading-tight">{nav.label}</div>
+                    <div className="text-xs text-gray-500 mt-0.5">{nav.sub}</div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
 
         {/* ── Summary cards ────────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
