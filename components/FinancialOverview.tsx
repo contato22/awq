@@ -319,25 +319,28 @@ function buildFlowMonthly(txns: BankTransaction[], openingBal: number): FlowResu
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function FlowTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
-  const meta: Record<string, { name: string; color: string }> = {
-    recebimentos: { name: "Recebimentos", color: "#16a34a" },
-    pagamentos:   { name: "Pagamentos",   color: "#dc2626" },
-    saldo:        { name: "Saldo",        color: "#1e3a5f" },
+  const meta: Record<string, { name: string; sub: string; color: string }> = {
+    recebimentos: { name: "AR",    sub: "Recebimentos realizados", color: "#16a34a" },
+    pagamentos:   { name: "AP",    sub: "Pagamentos realizados",   color: "#dc2626" },
+    saldo:        { name: "Saldo", sub: "Posição acumulada",       color: "#1e3a5f" },
   };
   return (
-    <div className="rounded-xl border border-gray-200 bg-white shadow-2xl text-xs min-w-[200px] overflow-hidden">
+    <div className="rounded-xl border border-gray-200 bg-white shadow-2xl text-xs min-w-[210px] overflow-hidden">
       <div className="bg-gray-50 px-3 py-2 border-b border-gray-100">
         <p className="font-bold text-gray-900">Fluxo de caixa · {label}</p>
       </div>
-      <div className="p-3 space-y-1.5">
+      <div className="p-3 space-y-2">
         {(payload as { dataKey: string; value: number }[]).map((p) => {
-          const m = meta[p.dataKey] ?? { name: p.dataKey, color: "#6b7280" };
-          const displayVal = Math.abs(p.value); // pagamentos stored negative
+          const m = meta[p.dataKey] ?? { name: p.dataKey, sub: "", color: "#6b7280" };
+          const displayVal = Math.abs(p.value);
           return (
             <div key={p.dataKey} className="flex items-center justify-between gap-6">
               <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full shrink-0" style={{ background: m.color }} />
-                <span className="text-gray-500">{m.name}</span>
+                <div>
+                  <span className="font-bold text-gray-800">{m.name}</span>
+                  {m.sub && <span className="text-gray-400 ml-1">{m.sub}</span>}
+                </div>
               </div>
               <span className="font-bold tabular-nums" style={{ color: m.color }}>
                 {fmtBRL(displayVal)}
@@ -472,8 +475,8 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
     ? "Saldo real (Cora)"
     : openingBalance > 0 ? "Estimado" : "Fluxo acumulado";
 
-  // Chart bar sizing
-  const maxBarSz = viewMode === "diario" ? 10 : 20;
+  // Chart bar sizing — single stack per x-position so can be wider
+  const maxBarSz = viewMode === "diario" ? 18 : 36;
 
   // Month nav label
   const monthLabel = `${MONTH_NAMES_PT[parseInt(monthNav.slice(5)) - 1]} ${monthNav.slice(0, 4)}`;
@@ -563,31 +566,31 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
             );
           })}
 
-          {/* Recebimentos KPI */}
+          {/* AR · Recebimentos KPI */}
           <div className="px-4 py-3 text-left">
             <div className="flex items-center gap-1.5 mb-1">
               <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-              <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Recebimentos</span>
+              <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">AR · Recebimentos</span>
             </div>
             <p className="text-base font-bold tabular-nums leading-tight text-emerald-700">
               {fmtBRL(flowResult.totalIn)}
             </p>
             <p className="text-[9px] text-gray-400 mt-0.5">
-              {viewMode === "diario" ? monthLabel : "Histórico"}
+              {viewMode === "diario" ? monthLabel : "Histórico"} · realizado
             </p>
           </div>
 
-          {/* Pagamentos KPI */}
+          {/* AP · Pagamentos KPI */}
           <div className="px-4 py-3 text-left">
             <div className="flex items-center gap-1.5 mb-1">
               <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
-              <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Pagamentos</span>
+              <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">AP · Pagamentos</span>
             </div>
             <p className="text-base font-bold tabular-nums leading-tight text-red-700">
               {fmtBRL(flowResult.totalOut)}
             </p>
             <p className="text-[9px] text-gray-400 mt-0.5">
-              {viewMode === "diario" ? monthLabel : "Histórico"}
+              {viewMode === "diario" ? monthLabel : "Histórico"} · realizado
             </p>
           </div>
 
@@ -629,10 +632,32 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
         </div>
 
         {/* Chart — Conta Azul style */}
-        <div className="bg-[#fafaf8] rounded-b-xl px-4 pb-5 pt-4">
-          <ResponsiveContainer width="100%" height={240}>
-            <ComposedChart data={flowResult.data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
-              barGap={1} barCategoryGap="20%">
+        <div className="bg-[#fafaf8] rounded-b-xl px-4 pb-5 pt-3">
+
+          {/* Legend at top-right — matches Conta Azul layout */}
+          <div className="flex items-center justify-end gap-4 mb-2 text-[10px] font-medium text-gray-500">
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded-sm bg-[#16a34a] opacity-80 shrink-0" />
+              AR · Recebimentos
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded-sm bg-[#dc2626] opacity-75 shrink-0" />
+              AP · Pagamentos
+            </div>
+            <button onClick={() => toggle("total")}
+              className={`flex items-center gap-1.5 transition-opacity ${hidden.has("total") ? "opacity-30" : ""}`}>
+              <span className="inline-flex items-center gap-0.5 shrink-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#1e3a5f]" />
+                <span className="w-3 h-px bg-[#1e3a5f]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#1e3a5f]" />
+              </span>
+              Saldo
+            </button>
+          </div>
+
+          <ResponsiveContainer width="100%" height={230}>
+            <ComposedChart data={flowResult.data} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}
+              barCategoryGap="30%">
               <CartesianGrid strokeDasharray="" stroke="#ece8df" strokeWidth={0.75} vertical={false} />
               <XAxis
                 dataKey="label"
@@ -651,34 +676,35 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
               <ReferenceLine y={0} stroke="#d1d5db" strokeWidth={1} />
               <Tooltip content={<FlowTooltip />} cursor={{ fill: "rgba(4,135,217,0.04)" }} />
 
-              {/* Green bars — Recebimentos (positive → up) */}
+              {/* AR — green bars going UP from 0 (stackId so same x pos as AP) */}
               <Bar
                 dataKey="recebimentos"
+                stackId="flow"
                 fill="#16a34a"
-                fillOpacity={0.80}
+                fillOpacity={0.82}
                 maxBarSize={maxBarSz}
                 radius={[2, 2, 0, 0]}
               />
 
-              {/* Red bars — Pagamentos (negative → down) */}
+              {/* AP — red bars going DOWN from 0 (negative values, same stackId) */}
               <Bar
                 dataKey="pagamentos"
+                stackId="flow"
                 fill="#dc2626"
-                fillOpacity={0.75}
+                fillOpacity={0.78}
                 maxBarSize={maxBarSz}
                 radius={[0, 0, 2, 2]}
               />
 
-              {/* Saldo line — navy dotted */}
+              {/* Saldo — navy line with small dots (like Conta Azul) */}
               {!hidden.has("total") && (
                 <Line
                   type="monotone"
                   dataKey="saldo"
                   stroke="#1e3a5f"
                   strokeWidth={2}
-                  strokeDasharray="5 3"
-                  dot={{ r: 2, fill: "#1e3a5f", stroke: "#1e3a5f" }}
-                  activeDot={{ r: 4, fill: "#1e3a5f", stroke: "#fff", strokeWidth: 2 }}
+                  dot={{ r: 3, fill: "#1e3a5f", stroke: "#fff", strokeWidth: 1.5 }}
+                  activeDot={{ r: 5, fill: "#1e3a5f", stroke: "#fff", strokeWidth: 2 }}
                 />
               )}
             </ComposedChart>
@@ -694,30 +720,19 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
             </p>
           )}
 
-          {/* Legend */}
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-1 mt-3 pt-3 border-t border-[#ece8df] text-[10px] font-medium text-gray-600">
-            <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-sm bg-[#16a34a] opacity-80 shrink-0" />
-              Recebimentos
+          {/* Bottom legend row — entity toggles only */}
+          {activeEntities.length > 0 && (
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 pt-2 border-t border-[#ece8df] text-[10px] font-medium text-gray-500">
+              <span className="text-[9px] text-gray-300 uppercase tracking-wide">Por entidade:</span>
+              {activeEntities.map((e) => (
+                <button key={e.key} onClick={() => toggle(e.key)}
+                  className={`flex items-center gap-1.5 transition-opacity ${hidden.has(e.key) ? "opacity-30" : ""}`}>
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ background: e.color }} />
+                  {e.label}
+                </button>
+              ))}
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-sm bg-[#dc2626] opacity-75 shrink-0" />
-              Pagamentos
-            </div>
-            <button onClick={() => toggle("total")}
-              className={`flex items-center gap-1.5 transition-opacity ${hidden.has("total") ? "opacity-30" : ""}`}>
-              <span className="w-8 h-0 border-t-2 border-dashed border-[#1e3a5f] shrink-0" />
-              Saldo
-            </button>
-            {/* Active entity badges — click to toggle */}
-            {activeEntities.map((e) => (
-              <button key={e.key} onClick={() => toggle(e.key)}
-                className={`flex items-center gap-1.5 transition-opacity ${hidden.has(e.key) ? "opacity-30" : ""}`}>
-                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: e.color }} />
-                {e.label}
-              </button>
-            ))}
-          </div>
+          )}
         </div>
       </div>
 
