@@ -1,13 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Bar, CartesianGrid, ComposedChart, Line, ReferenceLine,
   ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
 import type { BankTransaction } from "@/lib/financial-db";
 import {
-  ArrowDownLeft, ArrowUpRight, Calendar, ChevronDown,
+  ArrowDownLeft, ArrowUpRight, ChevronLeft, ChevronRight,
   FileUp, RefreshCw, TrendingDown, TrendingUp,
 } from "lucide-react";
 
@@ -32,52 +32,43 @@ interface Props {
   openingBalance?: number; // sum of document opening balances (from page SSR)
 }
 
-type Period = "all" | "1d" | "7d" | "14d" | "30d" | "3m" | "6m" | "1y" | "custom";
-interface DateRange { from: string; to: string }
+type ViewMode = "diario" | "mensal";
 
-type EntityKey = "AWQ_Holding" | "JACQES" | "Caza_Vision";
-
-interface CashGenRow {
+// Conta Azul–style flow chart row
+interface FlowRow {
   label: string;
-  AWQ_Holding: number;
-  JACQES: number;
-  Caza_Vision: number;
-  total: number;  // cumulative net generated (starts at 0)
-  caixa: number;  // total + opening balance = approximate account balance
+  recebimentos: number;   // positive (credits — green bars going up)
+  pagamentos: number;     // negative (debits — red bars going down)
+  saldo: number;          // running balance (navy dotted line)
 }
 
-interface EntityStats { revenue: number; expenses: number; net: number }
+interface FlowResult {
+  data: FlowRow[];
+  totalIn: number;    // total credits (positive)
+  totalOut: number;   // total debits (positive)
+  net: number;        // totalIn − totalOut
+  hasData: boolean;
+}
 
+// Entity-level stats for KPI strip
+interface DateRange { from: string; to: string }
+type EntityKey = "AWQ_Holding" | "JACQES" | "Caza_Vision";
+interface CashGenRow {
+  label: string;
+  AWQ_Holding: number; JACQES: number; Caza_Vision: number;
+  total: number; caixa: number;
+}
+interface EntityStats { revenue: number; expenses: number; net: number }
 interface CashGenResult {
   data: CashGenRow[];
   byEntity: Record<EntityKey, EntityStats>;
-  totalRevenue: number;
-  totalExpenses: number;
-  totalNet: number;
-  hasData: boolean;
+  totalRevenue: number; totalExpenses: number; totalNet: number; hasData: boolean;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 // Must mirror HOLDING_OPERATIONAL_ENTITIES in lib/dre-query.ts — ENERDY is excluded
 const OPERATIONAL_ENTITIES = new Set<string>(["AWQ_Holding", "JACQES", "Caza_Vision"]);
-
-// Mirrors REVENUE_CATS / OPERATIONAL_EXPENSE_CATS in lib/financial-query.ts
-// Cannot import that file in client components (uses Node fs). Keep in sync manually.
-const REVENUE_CATS = new Set([
-  "receita_recorrente", "receita_projeto", "receita_consultoria",
-  "receita_producao", "receita_social_media", "receita_revenue_share",
-  "receita_fee_venture", "receita_eventual", "rendimento_financeiro",
-  "ajuste_bancario_credito",
-]);
-const OPERATIONAL_EXPENSE_CATS = new Set([
-  "fornecedor_operacional", "freelancer_terceiro", "folha_remuneracao",
-  "prolabore_retirada", "imposto_tributo", "juros_multa_iof",
-  "tarifa_bancaria", "software_assinatura", "marketing_midia",
-  "deslocamento_combustivel", "alimentacao_representacao", "viagem_hospedagem",
-  "aluguel_locacao", "energia_agua_internet", "servicos_contabeis_juridicos",
-  "cartao_compra_operacional", "despesa_pessoal_misturada", "despesa_ambigua",
-]);
 
 const ENTITY_CFG: { key: EntityKey; label: string; color: string; initials: string; bg: string }[] = [
   { key: "AWQ_Holding", label: "AWQ Holding", color: "#0487D9", initials: "AWQ",  bg: "bg-brand-600"   },
@@ -90,49 +81,37 @@ const ACCOUNTS_CFG = [
   { key: "ENERDY",      name: "Cora Enerdy",           subtitle: "Banco Integrado · BU ENRD", initials: "ENRD", bgClass: "bg-violet-600" },
 ];
 
-const PERIOD_OPTS: { key: Period; label: string; sub: string }[] = [
-  { key: "all",    label: "Tudo",      sub: "Todo período"     },
-  { key: "1d",     label: "Hoje",      sub: "Dia atual"        },
-  { key: "7d",     label: "7 dias",    sub: "Esta semana"      },
-  { key: "14d",    label: "14 dias",   sub: "2 semanas"        },
-  { key: "30d",    label: "30 dias",   sub: "Último mês"       },
-  { key: "3m",     label: "3 meses",   sub: "Trimestre"        },
-  { key: "6m",     label: "6 meses",   sub: "Semestre"         },
-  { key: "1y",     label: "1 ano",     sub: "Anual"            },
-  { key: "custom", label: "Período personalizado", sub: "" },
-];
+const MONTH_NAMES_PT   = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+const MONTH_NAMES_SHORT = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function fmtBRL(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
-
 function fmtK(v: number) {
   const abs = Math.abs(v);
   if (abs >= 1_000_000) return `${v < 0 ? "-" : ""}R$${(Math.abs(v) / 1_000_000).toFixed(1)}M`;
   if (abs >= 1_000)     return `${v < 0 ? "-" : ""}R$${Math.round(Math.abs(v) / 1000)}k`;
   return `R$${Math.round(v)}`;
 }
-
 function today() { return new Date().toISOString().slice(0, 10); }
-
 function dateAgo(days: number) {
   return new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
 }
 
-function addDays(date: string, days: number) {
-  return new Date(new Date(date).getTime() + days * 86_400_000).toISOString().slice(0, 10);
+function prevMonth(m: string): string {
+  const [y, mo] = m.split("-").map(Number);
+  return mo === 1 ? `${y - 1}-12` : `${y}-${String(mo - 1).padStart(2, "0")}`;
+}
+function nextMonth(m: string): string {
+  const [y, mo] = m.split("-").map(Number);
+  return mo === 12 ? `${y + 1}-01` : `${y}-${String(mo + 1).padStart(2, "0")}`;
+}
+function daysInMonthFn(year: number, month: number): number {
+  return new Date(year, month, 0).getDate(); // day 0 = last day of prev month
 }
 
-function periodToRange(period: Exclude<Period, "all" | "custom">): DateRange {
-  const daysMap: Record<Exclude<Period, "all" | "custom">, number> = {
-    "1d": 1, "7d": 7, "14d": 14, "30d": 30, "3m": 90, "6m": 180, "1y": 365,
-  };
-  return { from: dateAgo(daysMap[period] - 1), to: today() };
-}
-
-// Full data range — from earliest eligible transaction to today
 function allDataRange(txns: BankTransaction[]): DateRange {
   let earliest = today();
   for (const t of txns) {
@@ -142,29 +121,31 @@ function allDataRange(txns: BankTransaction[]): DateRange {
   return { from: earliest, to: today() };
 }
 
-function emptyDay(): Record<EntityKey, { rev: number; exp: number }> {
+function emptyEntityDay(): Record<EntityKey, { rev: number; exp: number }> {
   return { AWQ_Holding: { rev: 0, exp: 0 }, JACQES: { rev: 0, exp: 0 }, Caza_Vision: { rev: 0, exp: 0 } };
 }
 
-// Cash generation per entity — all bank credits vs debits (excludedFromConsolidated removed)
-// Matches account balance: CD = all inflows, CI = all outflows, net ≈ account balance change
+function addDays(date: string, days: number) {
+  return new Date(new Date(date).getTime() + days * 86_400_000).toISOString().slice(0, 10);
+}
+
+// ─── Build entity KPI data (kept for KPI strip only) ─────────────────────────
+
 function buildCashGen(txns: BankTransaction[], range: DateRange, openingBal = 0): CashGenResult {
   const { from, to } = range;
   const diffDays = Math.round((new Date(to).getTime() - new Date(from).getTime()) / 86_400_000) + 1;
 
-  // Net from eligible transactions BEFORE this period — gives the balance at period start
   let prePeriodNet = 0;
   for (const t of txns) {
     if (!OPERATIONAL_ENTITIES.has(t.entity) || t.excludedFromConsolidated) continue;
     if (t.transactionDate < from) {
-      if (t.direction === "credit") prePeriodNet += t.amount;
-      else prePeriodNet -= t.amount;
+      prePeriodNet += t.direction === "credit" ? t.amount : -t.amount;
     }
   }
-  const startBal = openingBal + prePeriodNet; // balance at the very start of this period
+  const startBal = openingBal + prePeriodNet;
 
-  const dayMap = new Map<string, ReturnType<typeof emptyDay>>();
-  for (let i = 0; i < diffDays; i++) dayMap.set(addDays(from, i), emptyDay());
+  const dayMap = new Map<string, ReturnType<typeof emptyEntityDay>>();
+  for (let i = 0; i < diffDays; i++) dayMap.set(addDays(from, i), emptyEntityDay());
 
   const byEntity: Record<EntityKey, EntityStats> = {
     AWQ_Holding: { revenue: 0, expenses: 0, net: 0 },
@@ -174,52 +155,22 @@ function buildCashGen(txns: BankTransaction[], range: DateRange, openingBal = 0)
 
   for (const t of txns) {
     if (!OPERATIONAL_ENTITIES.has(t.entity)) continue;
-    if (t.excludedFromConsolidated) continue;        // skip intercompany / investments
+    if (t.excludedFromConsolidated) continue;
     if (t.transactionDate < from || t.transactionDate > to) continue;
     if (!dayMap.has(t.transactionDate)) continue;
-
     const ek = t.entity as EntityKey;
     if (!(ek in byEntity)) continue;
-
     const day = dayMap.get(t.transactionDate)!;
-
-    // All bank credits = entradas, all bank debits = saídas (matches Cora/account balance)
-    if (t.direction === "credit") {
-      day[ek].rev += t.amount;
-      byEntity[ek].revenue += t.amount;
-    } else {
-      day[ek].exp += t.amount;
-      byEntity[ek].expenses += t.amount;
-    }
+    if (t.direction === "credit") { day[ek].rev += t.amount; byEntity[ek].revenue += t.amount; }
+    else { day[ek].exp += t.amount; byEntity[ek].expenses += t.amount; }
   }
 
   for (const ek of Object.keys(byEntity) as EntityKey[]) {
     byEntity[ek].net = byEntity[ek].revenue - byEntity[ek].expenses;
   }
 
-  // For single-day (Hoje): expand into 30-minute buckets (00:00–23:30) for intraday view
-  if (diffDays === 1) {
-    const todaySums = dayMap.get(from) ?? emptyDay();
-    let rt = 0;
-    const data: CashGenRow[] = Array.from({ length: 48 }, (_, i) => {
-      const h = Math.floor(i / 2);
-      const m = (i % 2) * 30;
-      const label = `${String(h).padStart(2, "0")}:${m === 0 ? "00" : "30"}`;
-      // Transactions have no time component — place them at 09:00 (slot 18)
-      const sums = i === 18 ? todaySums : emptyDay();
-      const awq  = Math.round(sums.AWQ_Holding.rev - sums.AWQ_Holding.exp);
-      const jcq  = Math.round(sums.JACQES.rev - sums.JACQES.exp);
-      const caza = Math.round(sums.Caza_Vision.rev - sums.Caza_Vision.exp);
-      rt += awq + jcq + caza;
-      return { label, AWQ_Holding: awq, JACQES: jcq, Caza_Vision: caza, total: Math.round(rt), caixa: Math.round(rt + startBal) };
-    });
-    const totalRevenue  = Object.values(byEntity).reduce((s, e) => s + e.revenue, 0);
-    const totalExpenses = Object.values(byEntity).reduce((s, e) => s + e.expenses, 0);
-    return { data, byEntity, totalRevenue, totalExpenses, totalNet: totalRevenue - totalExpenses, hasData: totalRevenue + totalExpenses > 0 };
-  }
-
   // Weekly aggregation when range > 60 days
-  type Bucket = { label: string; sums: ReturnType<typeof emptyDay> };
+  type Bucket = { label: string; sums: ReturnType<typeof emptyEntityDay> };
   let buckets: Bucket[];
 
   if (diffDays > 60) {
@@ -231,7 +182,7 @@ function buildCashGen(txns: BankTransaction[], range: DateRange, openingBal = 0)
       const wk = sun.toISOString().slice(0, 10);
       if (!wkMap.has(wk)) {
         const [, m, dd] = wk.split("-");
-        wkMap.set(wk, { label: `${dd}/${m}`, sums: emptyDay() });
+        wkMap.set(wk, { label: `${dd}/${m}`, sums: emptyEntityDay() });
       }
       const b = wkMap.get(wk)!;
       for (const ek of ["AWQ_Holding", "JACQES", "Caza_Vision"] as EntityKey[]) {
@@ -254,58 +205,142 @@ function buildCashGen(txns: BankTransaction[], range: DateRange, openingBal = 0)
     const jcq  = Math.round(sums.JACQES.rev - sums.JACQES.exp);
     const caza = Math.round(sums.Caza_Vision.rev - sums.Caza_Vision.exp);
     runningTotal += awq + jcq + caza;
-    return {
-      label,
-      AWQ_Holding: awq, JACQES: jcq, Caza_Vision: caza,
-      total: Math.round(runningTotal),
-      caixa: Math.round(runningTotal + startBal),  // starts at balance before period
-    };
+    return { label, AWQ_Holding: awq, JACQES: jcq, Caza_Vision: caza,
+             total: Math.round(runningTotal), caixa: Math.round(runningTotal + startBal) };
   });
 
   const totalRevenue  = Object.values(byEntity).reduce((s, e) => s + e.revenue, 0);
   const totalExpenses = Object.values(byEntity).reduce((s, e) => s + e.expenses, 0);
-  return {
-    data, byEntity, totalRevenue, totalExpenses,
-    totalNet: totalRevenue - totalExpenses,
-    hasData: totalRevenue + totalExpenses > 0,
-  };
+  return { data, byEntity, totalRevenue, totalExpenses, totalNet: totalRevenue - totalExpenses,
+           hasData: totalRevenue + totalExpenses > 0 };
 }
 
-function bestPeriod(_txns: BankTransaction[]): Exclude<Period, "custom"> {
-  // Always default to full data range so the chart matches account totals
-  return "all";
+// ─── Build Conta Azul–style flow data ────────────────────────────────────────
+
+function buildFlowDaily(txns: BankTransaction[], month: string, openingBal: number): FlowResult {
+  const year  = parseInt(month.slice(0, 4));
+  const mon   = parseInt(month.slice(5, 7));
+  const nDays = daysInMonthFn(year, mon);
+  const from  = `${month}-01`;
+  const to    = `${month}-${String(nDays).padStart(2, "0")}`;
+
+  // Balance at start of this month
+  let prePeriodNet = 0;
+  for (const t of txns) {
+    if (!OPERATIONAL_ENTITIES.has(t.entity) || t.excludedFromConsolidated) continue;
+    if (t.transactionDate < from) {
+      prePeriodNet += t.direction === "credit" ? t.amount : -t.amount;
+    }
+  }
+  const startBal = openingBal + prePeriodNet;
+
+  // Day buckets
+  const dayMap = new Map<string, { in: number; out: number }>();
+  for (let d = 1; d <= nDays; d++) {
+    dayMap.set(`${month}-${String(d).padStart(2, "0")}`, { in: 0, out: 0 });
+  }
+
+  for (const t of txns) {
+    if (!OPERATIONAL_ENTITIES.has(t.entity) || t.excludedFromConsolidated) continue;
+    if (t.transactionDate < from || t.transactionDate > to) continue;
+    const bucket = dayMap.get(t.transactionDate);
+    if (!bucket) continue;
+    if (t.direction === "credit") bucket.in  += t.amount;
+    else                          bucket.out += t.amount;
+  }
+
+  let runningSaldo = startBal;
+  let totalIn = 0, totalOut = 0;
+
+  const data: FlowRow[] = Array.from(dayMap.entries()).map(([date, { in: inc, out }]) => {
+    runningSaldo += inc - out;
+    totalIn  += inc;
+    totalOut += out;
+    return {
+      label: String(parseInt(date.slice(8))),
+      recebimentos:  Math.round(inc),
+      pagamentos:   -Math.round(out),  // negative → bars go below zero
+      saldo:         Math.round(runningSaldo),
+    };
+  });
+
+  return { data, totalIn: Math.round(totalIn), totalOut: Math.round(totalOut),
+           net: Math.round(totalIn - totalOut), hasData: totalIn + totalOut > 0 };
+}
+
+function buildFlowMonthly(txns: BankTransaction[], openingBal: number): FlowResult {
+  const eligible = txns.filter((t) => OPERATIONAL_ENTITIES.has(t.entity) && !t.excludedFromConsolidated);
+  if (eligible.length === 0) return { data: [], totalIn: 0, totalOut: 0, net: 0, hasData: false };
+
+  const minMonth = eligible.reduce(
+    (min, t) => { const mk = t.transactionDate.slice(0, 7); return mk < min ? mk : min; },
+    eligible[0].transactionDate.slice(0, 7)
+  );
+  const curMonth = today().slice(0, 7);
+
+  const monthMap = new Map<string, { in: number; out: number }>();
+  let m = minMonth;
+  while (m <= curMonth) {
+    monthMap.set(m, { in: 0, out: 0 });
+    m = nextMonth(m);
+  }
+
+  for (const t of eligible) {
+    const mk = t.transactionDate.slice(0, 7);
+    const bucket = monthMap.get(mk);
+    if (!bucket) continue;
+    if (t.direction === "credit") bucket.in  += t.amount;
+    else                          bucket.out += t.amount;
+  }
+
+  let runningSaldo = openingBal;
+  let totalIn = 0, totalOut = 0;
+
+  const data: FlowRow[] = Array.from(monthMap.entries()).map(([mk, { in: inc, out }]) => {
+    runningSaldo += inc - out;
+    totalIn  += inc;
+    totalOut += out;
+    const mi = parseInt(mk.slice(5)) - 1;
+    const yr = mk.slice(0, 4);
+    return {
+      label: `${MONTH_NAMES_SHORT[mi]}/${yr.slice(2)}`,
+      recebimentos:  Math.round(inc),
+      pagamentos:   -Math.round(out),
+      saldo:         Math.round(runningSaldo),
+    };
+  });
+
+  return { data, totalIn: Math.round(totalIn), totalOut: Math.round(totalOut),
+           net: Math.round(totalIn - totalOut), hasData: totalIn + totalOut > 0 };
 }
 
 // ─── Tooltip ─────────────────────────────────────────────────────────────────
 
-const TOOLTIP_META: Record<string, { name: string; color: string }> = {
-  AWQ_Holding: { name: "AWQ Holding",       color: "#0487D9" },
-  JACQES:      { name: "JACQES",            color: "#10b981" },
-  Caza_Vision: { name: "Caza Vision",       color: "#8b5cf6" },
-  total:       { name: "Total gerado",      color: "#023373" },
-  caixa:       { name: "Caixa (posição)",    color: "#d97706" },
-};
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function CashGenTooltip({ active, payload, label }: any) {
+function FlowTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
+  const meta: Record<string, { name: string; color: string }> = {
+    recebimentos: { name: "Recebimentos", color: "#16a34a" },
+    pagamentos:   { name: "Pagamentos",   color: "#dc2626" },
+    saldo:        { name: "Saldo",        color: "#1e3a5f" },
+  };
   return (
-    <div className="rounded-xl border border-brand-200 bg-white shadow-2xl text-xs min-w-[200px] overflow-hidden">
-      <div className="bg-brand-50 px-3 py-2 border-b border-brand-100">
-        <p className="font-bold text-brand-900">Geração de caixa · {label}</p>
+    <div className="rounded-xl border border-gray-200 bg-white shadow-2xl text-xs min-w-[200px] overflow-hidden">
+      <div className="bg-gray-50 px-3 py-2 border-b border-gray-100">
+        <p className="font-bold text-gray-900">Fluxo de caixa · {label}</p>
       </div>
       <div className="p-3 space-y-1.5">
         {(payload as { dataKey: string; value: number }[]).map((p) => {
-          const m = TOOLTIP_META[p.dataKey] ?? { name: p.dataKey, color: "#6b7280" };
+          const m = meta[p.dataKey] ?? { name: p.dataKey, color: "#6b7280" };
+          const displayVal = Math.abs(p.value); // pagamentos stored negative
           return (
             <div key={p.dataKey} className="flex items-center justify-between gap-6">
               <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full shrink-0" style={{ background: m.color }} />
                 <span className="text-gray-500">{m.name}</span>
               </div>
-              <span className={`font-bold tabular-nums ${p.value >= 0 ? "" : "text-red-600"}`}
-                style={{ color: p.value >= 0 ? m.color : undefined }}>
-                {fmtBRL(p.value)}
+              <span className="font-bold tabular-nums" style={{ color: m.color }}>
+                {fmtBRL(displayVal)}
               </span>
             </div>
           );
@@ -320,46 +355,35 @@ function CashGenTooltip({ active, payload, label }: any) {
 export default function FinancialOverview({ transactions, arPending, coraConfigured, openingBalance = 0 }: Props) {
   const todayStr = today();
 
-  const [period, setPeriod] = useState<Period>("1d");
-  const [range,  setRange]  = useState<DateRange>(() => periodToRange("1d"));
-  const [customFrom, setCustomFrom] = useState("");
-  const [customTo,   setCustomTo]   = useState("");
-  const [showDrop,   setShowDrop]   = useState(false);
-  const [hidden,     setHidden]     = useState<Set<string>>(new Set());
-  const [accounts,   setAccounts]   = useState<AccountInfo[]>(
+  const [viewMode,  setViewMode]  = useState<ViewMode>("diario");
+  const [monthNav,  setMonthNav]  = useState<string>(() => today().slice(0, 7));
+  const [hidden,    setHidden]    = useState<Set<string>>(new Set());
+  const [accounts,  setAccounts]  = useState<AccountInfo[]>(
     ACCOUNTS_CFG.map((a) => ({ ...a, balance: null, loading: coraConfigured, error: null }))
   );
-  const dropRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (period === "all") setRange(allDataRange(transactions));
-  }, [transactions, period]);
+  const toggle = (key: string) => setHidden((prev) => {
+    const next = new Set(prev);
+    next.has(key) ? next.delete(key) : next.add(key);
+    return next;
+  });
 
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (dropRef.current && !dropRef.current.contains(e.target as Node)) setShowDrop(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
+  // Month-range for entity KPI strip (matches the chart)
+  const genRange = useMemo<DateRange>(() => {
+    if (viewMode === "mensal") return allDataRange(transactions);
+    const year  = parseInt(monthNav.slice(0, 4));
+    const mon   = parseInt(monthNav.slice(5));
+    const nDays = daysInMonthFn(year, mon);
+    return { from: `${monthNav}-01`, to: `${monthNav}-${String(nDays).padStart(2, "0")}` };
+  }, [viewMode, monthNav, transactions]);
 
-  const selectPeriod = (p: Period) => {
-    if (p === "custom") return;
-    setPeriod(p);
-    setRange(p === "all" ? allDataRange(transactions) : periodToRange(p as Exclude<Period, "all" | "custom">));
-    setShowDrop(false);
-  };
+  const genResult = useMemo(() => buildCashGen(transactions, genRange, openingBalance),
+    [transactions, genRange, openingBalance]);
 
-  const applyCustom = () => {
-    if (!customFrom || !customTo || customFrom > customTo) return;
-    setPeriod("custom");
-    setRange({ from: customFrom, to: customTo });
-    setShowDrop(false);
-  };
-
-  const periodLabel = period === "custom" || period === "all"
-    ? (() => { const [, fm, fd] = range.from.split("-"); const [, tm, td] = range.to.split("-"); return `${fd}/${fm} — ${td}/${tm}`; })()
-    : (PERIOD_OPTS.find(p => p.key === period)?.label ?? period);
+  const flowResult = useMemo(() => {
+    if (viewMode === "diario") return buildFlowDaily(transactions, monthNav, openingBalance);
+    return buildFlowMonthly(transactions, openingBalance);
+  }, [transactions, viewMode, monthNav, openingBalance]);
 
   const loadBalance = useCallback(async (key: string) => {
     try {
@@ -381,7 +405,7 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
     void loadBalance("ENERDY");
   }, [coraConfigured, loadBalance]);
 
-  // AR / AP summary
+  // Today's AR/AP (from bank transactions)
   const recebimentosHoje = transactions
     .filter((t) => OPERATIONAL_ENTITIES.has(t.entity) && !t.excludedFromConsolidated
       && t.transactionDate === todayStr && t.direction === "credit"
@@ -412,8 +436,6 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
   const totalBalance = accounts.reduce((s, a) => s + (a.balance ?? 0), 0);
   const anyLoading   = accounts.some((a) => a.loading);
 
-  const genResult = useMemo(() => buildCashGen(transactions, range, openingBalance), [transactions, range, openingBalance]);
-
   const txAccounts = useMemo(() => Array.from(
     new Map(transactions.map((t) => [
       `${t.bank}::${t.accountName}`,
@@ -421,13 +443,7 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
     ])).values()
   ), [transactions]);
 
-  const toggle = (key: string) => setHidden((prev) => {
-    const next = new Set(prev);
-    next.has(key) ? next.delete(key) : next.add(key);
-    return next;
-  });
-
-  // Only show entities that have movements in this period
+  // Only entities with movements in the selected period
   const activeEntities = ENTITY_CFG.filter(
     (e) => genResult.byEntity[e.key].revenue + genResult.byEntity[e.key].expenses > 0
   );
@@ -436,7 +452,7 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
     ? ((genResult.totalNet / genResult.totalRevenue) * 100).toFixed(1)
     : null;
 
-  // Best estimate of current total cash balance (all time, not period-filtered)
+  // Best estimate of current total cash balance (all time)
   const allTimeNet = useMemo(() => {
     let net = 0;
     for (const t of transactions) {
@@ -456,97 +472,88 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
     ? "Saldo real (Cora)"
     : openingBalance > 0 ? "Estimado" : "Fluxo acumulado";
 
+  // Chart bar sizing
+  const maxBarSz = viewMode === "diario" ? 10 : 20;
+
+  // Month nav label
+  const monthLabel = `${MONTH_NAMES_PT[parseInt(monthNav.slice(5)) - 1]} ${monthNav.slice(0, 4)}`;
+  const isCurrentMonth = monthNav >= today().slice(0, 7);
+
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-4">
 
-      {/* ── 1. Geração de Caixa ───────────────────────────────────────────── */}
+      {/* ── 1. Fluxo de Caixa (Conta Azul style) ─────────────────────────── */}
       <div className="card overflow-visible">
 
-        {/* Top bar */}
+        {/* Top bar: title + Diário/Mensal toggle + month nav */}
         <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-4 pb-3">
           <div>
-            <h3 className="text-sm font-semibold text-gray-900">Geração de Caixa · Por Conta</h3>
-            <p className="text-[10px] text-gray-400 mt-0.5">Entradas − Saídas bancárias · exclui transferências intercompany e aplicações financeiras</p>
+            <h3 className="text-sm font-semibold text-gray-900">Fluxo de Caixa</h3>
+            <p className="text-[10px] text-gray-400 mt-0.5">
+              Recebimentos e pagamentos realizados · exclui intercompany e aplicações
+            </p>
           </div>
 
-          {/* Period dropdown */}
-          <div className="relative" ref={dropRef}>
-            <button
-              onClick={() => setShowDrop((v) => !v)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-[12px] font-semibold shadow-sm transition-all ${
-                showDrop ? "border-brand-300 bg-brand-50 text-brand-800" : "border-gray-200 bg-white text-gray-700 hover:border-brand-200"
-              }`}
-            >
-              <Calendar size={13} className="text-brand-500 shrink-0" />
-              {periodLabel}
-              <ChevronDown size={11} className={`text-gray-400 transition-transform duration-200 ${showDrop ? "rotate-180" : ""}`} />
-            </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Diário / Mensal toggle */}
+            <div className="flex rounded-lg overflow-hidden border border-gray-200 text-[11px] font-semibold">
+              <button
+                onClick={() => setViewMode("diario")}
+                className={`px-3 py-1.5 transition-colors ${viewMode === "diario" ? "bg-brand-600 text-white" : "bg-white text-gray-500 hover:bg-gray-50"}`}
+              >
+                Diário
+              </button>
+              <button
+                onClick={() => setViewMode("mensal")}
+                className={`px-3 py-1.5 border-l border-gray-200 transition-colors ${viewMode === "mensal" ? "bg-brand-600 text-white" : "bg-white text-gray-500 hover:bg-gray-50"}`}
+              >
+                Mensal
+              </button>
+            </div>
 
-            {showDrop && (
-              <div className="absolute top-[calc(100%+6px)] right-0 z-50 w-72 bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden">
-                <div className="p-2">
-                  <p className="text-overline px-2 py-1.5">Períodos rápidos</p>
-                  <div className="grid grid-cols-3 gap-1">
-                    {PERIOD_OPTS.filter((p) => p.key !== "custom").map((p) => (
-                      <button
-                        key={p.key}
-                        onClick={() => selectPeriod(p.key)}
-                        className={`flex flex-col items-start px-3 py-2 rounded-lg text-left transition-colors ${
-                          period === p.key && period !== "custom"
-                            ? "bg-brand-50 text-brand-800"
-                            : "hover:bg-gray-50 text-gray-700"
-                        }`}
-                      >
-                        <span className="text-[11px] font-bold">{p.label}</span>
-                        <span className="text-[9px] text-gray-400">{p.sub}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="border-t border-gray-100 bg-gray-50/60 p-3 space-y-2.5">
-                  <p className="text-overline">Período personalizado</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-[10px] text-gray-400 mb-1 font-medium">De</label>
-                      <input type="date" value={customFrom} max={customTo || todayStr}
-                        onChange={(e) => setCustomFrom(e.target.value)}
-                        className="w-full text-[11px] border border-gray-200 rounded-lg px-2.5 py-2 focus:border-brand-400 focus:outline-none bg-white" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] text-gray-400 mb-1 font-medium">Até</label>
-                      <input type="date" value={customTo} min={customFrom} max={todayStr}
-                        onChange={(e) => setCustomTo(e.target.value)}
-                        className="w-full text-[11px] border border-gray-200 rounded-lg px-2.5 py-2 focus:border-brand-400 focus:outline-none bg-white" />
-                    </div>
-                  </div>
-                  <button onClick={applyCustom} disabled={!customFrom || !customTo || customFrom > customTo}
-                    className="w-full py-2 text-[11px] font-bold bg-brand-600 hover:bg-brand-700 disabled:opacity-40 text-white rounded-lg transition-colors">
-                    Aplicar período
-                  </button>
-                </div>
+            {/* Month navigation — only in Diário mode */}
+            {viewMode === "diario" && (
+              <div className="flex items-center gap-0.5 text-[11px] font-semibold text-gray-700 border border-gray-200 rounded-lg bg-white overflow-hidden">
+                <button
+                  onClick={() => setMonthNav(prevMonth(monthNav))}
+                  className="px-2 py-1.5 hover:bg-gray-50 transition-colors text-gray-400 hover:text-gray-700"
+                  title="Mês anterior"
+                >
+                  <ChevronLeft size={13} />
+                </button>
+                <span className="px-2 py-1.5 min-w-[130px] text-center tabular-nums">{monthLabel}</span>
+                <button
+                  onClick={() => setMonthNav(nextMonth(monthNav))}
+                  disabled={isCurrentMonth}
+                  className="px-2 py-1.5 hover:bg-gray-50 transition-colors text-gray-400 hover:text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
+                  title="Próximo mês"
+                >
+                  <ChevronRight size={13} />
+                </button>
               </div>
             )}
           </div>
         </div>
 
-        {/* KPI row — one per active entity + total + caixa */}
+        {/* KPI strip — Recebimentos / Pagamentos / Saldo líquido / Caixa Total */}
         <div className={`grid divide-x divide-gray-100 border-t border-b border-gray-100 ${
-          activeEntities.length === 0 ? "grid-cols-2" :
-          activeEntities.length === 1 ? "grid-cols-3" :
-          activeEntities.length === 2 ? "grid-cols-4" : "grid-cols-5"
+          activeEntities.length === 0 ? "grid-cols-3" :
+          activeEntities.length === 1 ? "grid-cols-4" :
+          activeEntities.length === 2 ? "grid-cols-5" : "grid-cols-6"
         }`}>
+          {/* Entity pills (hidden by default from KPI; can toggle) */}
           {activeEntities.map((e) => {
             const stats = genResult.byEntity[e.key];
             return (
               <button key={e.key} onClick={() => toggle(e.key)}
                 title={hidden.has(e.key) ? "Mostrar conta" : "Ocultar conta"}
-                className={`px-4 py-3 text-left hover:bg-gray-50 transition-all ${hidden.has(e.key) ? "opacity-35" : ""}`}>
+                className={`px-3 py-3 text-left hover:bg-gray-50 transition-all ${hidden.has(e.key) ? "opacity-35" : ""}`}>
                 <div className="flex items-center gap-1.5 mb-1">
                   <span className="w-2 h-2 rounded-full shrink-0" style={{ background: e.color }} />
                   <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide truncate">{e.label}</span>
                 </div>
-                <p className={`text-base font-bold tabular-nums leading-tight ${stats.net >= 0 ? "text-gray-900" : "text-red-600"}`}>
+                <p className={`text-sm font-bold tabular-nums leading-tight ${stats.net >= 0 ? "text-gray-900" : "text-red-600"}`}>
                   {fmtBRL(stats.net)}
                 </p>
                 <p className="text-[9px] text-gray-400 mt-0.5 tabular-nums">
@@ -555,33 +562,62 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
               </button>
             );
           })}
-          {/* Total */}
+
+          {/* Recebimentos KPI */}
+          <div className="px-4 py-3 text-left">
+            <div className="flex items-center gap-1.5 mb-1">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+              <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Recebimentos</span>
+            </div>
+            <p className="text-base font-bold tabular-nums leading-tight text-emerald-700">
+              {fmtBRL(flowResult.totalIn)}
+            </p>
+            <p className="text-[9px] text-gray-400 mt-0.5">
+              {viewMode === "diario" ? monthLabel : "Histórico"}
+            </p>
+          </div>
+
+          {/* Pagamentos KPI */}
+          <div className="px-4 py-3 text-left">
+            <div className="flex items-center gap-1.5 mb-1">
+              <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
+              <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Pagamentos</span>
+            </div>
+            <p className="text-base font-bold tabular-nums leading-tight text-red-700">
+              {fmtBRL(flowResult.totalOut)}
+            </p>
+            <p className="text-[9px] text-gray-400 mt-0.5">
+              {viewMode === "diario" ? monthLabel : "Histórico"}
+            </p>
+          </div>
+
+          {/* Total gerado (net) */}
           <button onClick={() => toggle("total")}
-            title={hidden.has("total") ? "Mostrar total" : "Ocultar total"}
+            title={hidden.has("total") ? "Mostrar saldo" : "Ocultar saldo"}
             className={`px-4 py-3 text-left hover:bg-gray-50 transition-all ${hidden.has("total") ? "opacity-35" : ""}`}>
             <div className="flex items-center gap-1.5 mb-1">
-              <span className="w-2 h-2 rounded-full shrink-0 bg-[#023373]" />
-              <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Total</span>
+              <span className="w-2 h-2 rounded-full bg-[#1e3a5f] shrink-0" />
+              <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Saldo líquido</span>
               {netPct && (
                 <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${genResult.totalNet >= 0 ? "bg-brand-50 text-brand-700" : "bg-red-50 text-red-600"}`}>
-                  {netPct}% margem
+                  {netPct}%
                 </span>
               )}
             </div>
-            <p className={`text-base font-bold tabular-nums leading-tight ${genResult.totalNet >= 0 ? "text-[#023373]" : "text-red-600"}`}>
-              {fmtBRL(genResult.totalNet)}
+            <p className={`text-base font-bold tabular-nums leading-tight ${flowResult.net >= 0 ? "text-[#1e3a5f]" : "text-red-600"}`}>
+              {fmtBRL(flowResult.net)}
             </p>
-            <p className="text-[9px] text-gray-400 mt-0.5 tabular-nums">
-              +{fmtK(genResult.totalRevenue)} / −{fmtK(genResult.totalExpenses)}
+            <p className="text-[9px] text-gray-400 mt-0.5">
+              Receb − Pagto
             </p>
           </button>
 
-          {/* Caixa Total — current balance estimate */}
+          {/* Caixa Total */}
           <button onClick={() => toggle("caixa")}
             title={hidden.has("caixa") ? "Mostrar caixa" : "Ocultar caixa"}
             className={`px-4 py-3 text-left hover:bg-amber-50/60 transition-all ${hidden.has("caixa") ? "opacity-35" : ""}`}>
             <div className="flex items-center gap-1.5 mb-1">
-              <span className="w-2 h-2 rounded-full shrink-0 bg-amber-500" />
+              <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
               <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Caixa Total</span>
               {anyLoading && <span className="text-[9px] text-gray-300 animate-pulse">•••</span>}
             </div>
@@ -592,65 +628,96 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
           </button>
         </div>
 
-        {/* Chart — stacked bars per entity + running total line */}
+        {/* Chart — Conta Azul style */}
         <div className="bg-[#fafaf8] rounded-b-xl px-4 pb-5 pt-4">
-          <ResponsiveContainer width="100%" height={230}>
-            <ComposedChart data={genResult.data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+          <ResponsiveContainer width="100%" height={240}>
+            <ComposedChart data={flowResult.data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
+              barGap={1} barCategoryGap="20%">
               <CartesianGrid strokeDasharray="" stroke="#ece8df" strokeWidth={0.75} vertical={false} />
-              <XAxis dataKey="label" tick={{ fontSize: 10, fill: "#b5b0a8" }} axisLine={false} tickLine={false} interval={period === "1d" ? 5 : "preserveStartEnd"} />
-              <YAxis tick={{ fontSize: 10, fill: "#b5b0a8" }} axisLine={false} tickLine={false} tickFormatter={fmtK} width={56} />
+              <XAxis
+                dataKey="label"
+                tick={{ fontSize: 10, fill: "#b5b0a8" }}
+                axisLine={false}
+                tickLine={false}
+                interval={viewMode === "diario" ? 4 : "preserveStartEnd"}
+              />
+              <YAxis
+                tick={{ fontSize: 10, fill: "#b5b0a8" }}
+                axisLine={false}
+                tickLine={false}
+                tickFormatter={fmtK}
+                width={56}
+              />
               <ReferenceLine y={0} stroke="#d1d5db" strokeWidth={1} />
-              <Tooltip content={<CashGenTooltip />} cursor={{ fill: "rgba(4,135,217,0.05)" }} />
+              <Tooltip content={<FlowTooltip />} cursor={{ fill: "rgba(4,135,217,0.04)" }} />
 
-              {/* Stacked bars — net cash per entity */}
-              {ENTITY_CFG.map((e) =>
-                !hidden.has(e.key) ? (
-                  <Bar key={e.key} dataKey={e.key} stackId="gen"
-                    fill={e.color} fillOpacity={0.82} maxBarSize={32} />
-                ) : null
-              )}
+              {/* Green bars — Recebimentos (positive → up) */}
+              <Bar
+                dataKey="recebimentos"
+                fill="#16a34a"
+                fillOpacity={0.80}
+                maxBarSize={maxBarSz}
+                radius={[2, 2, 0, 0]}
+              />
 
-              {/* Total gerado — cumulative net from 0 */}
+              {/* Red bars — Pagamentos (negative → down) */}
+              <Bar
+                dataKey="pagamentos"
+                fill="#dc2626"
+                fillOpacity={0.75}
+                maxBarSize={maxBarSz}
+                radius={[0, 0, 2, 2]}
+              />
+
+              {/* Saldo line — navy dotted */}
               {!hidden.has("total") && (
-                <Line type="monotone" dataKey="total" stroke="#023373" strokeWidth={2}
-                  dot={false} activeDot={{ r: 4, fill: "#023373", stroke: "#fff", strokeWidth: 2 }} />
-              )}
-              {/* Caixa — total gerado + saldo de abertura = posição real em conta */}
-              {!hidden.has("caixa") && (
-                <Line type="monotone" dataKey="caixa" stroke="#d97706" strokeWidth={2.5}
-                  strokeDasharray="6 3"
-                  dot={false} activeDot={{ r: 4, fill: "#d97706", stroke: "#fff", strokeWidth: 2 }} />
+                <Line
+                  type="monotone"
+                  dataKey="saldo"
+                  stroke="#1e3a5f"
+                  strokeWidth={2}
+                  strokeDasharray="5 3"
+                  dot={{ r: 2, fill: "#1e3a5f", stroke: "#1e3a5f" }}
+                  activeDot={{ r: 4, fill: "#1e3a5f", stroke: "#fff", strokeWidth: 2 }}
+                />
               )}
             </ComposedChart>
           </ResponsiveContainer>
-          {!genResult.hasData && (
+
+          {!flowResult.hasData && (
             <p className="text-center text-[11px] text-gray-400 -mt-2 mb-1">
-              Sem movimentações hoje ·{" "}
-              <button onClick={() => { setPeriod("all"); setRange(allDataRange(transactions)); }}
-                className="text-brand-500 hover:underline">ver todo o histórico</button>
+              Sem movimentações {viewMode === "diario" ? `em ${monthLabel}` : "no histórico"} ·{" "}
+              {viewMode === "diario" && (
+                <button onClick={() => setViewMode("mensal")}
+                  className="text-brand-500 hover:underline">ver todo o histórico</button>
+              )}
             </p>
           )}
 
           {/* Legend */}
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 pt-3 border-t border-[#ece8df]">
-              {activeEntities.map((e) => (
-                <button key={e.key} onClick={() => toggle(e.key)}
-                  className={`flex items-center gap-1.5 text-[10px] font-medium transition-opacity ${hidden.has(e.key) ? "opacity-30" : "text-gray-600"}`}>
-                  <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: e.color }} />
-                  {e.label}
-                </button>
-              ))}
-              <button onClick={() => toggle("total")}
-                className={`flex items-center gap-1.5 text-[10px] font-medium transition-opacity ${hidden.has("total") ? "opacity-30" : "text-gray-600"}`}>
-                <span className="w-8 h-0.5 rounded bg-[#023373] shrink-0" />
-                Total gerado
-              </button>
-              <button onClick={() => toggle("caixa")}
-                className={`flex items-center gap-1.5 text-[10px] font-medium transition-opacity ${hidden.has("caixa") ? "opacity-30" : "text-gray-600"}`}>
-                <span className="w-8 h-0 border-t-2 border-dashed border-amber-500 shrink-0" />
-                Caixa
-              </button>
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-1 mt-3 pt-3 border-t border-[#ece8df] text-[10px] font-medium text-gray-600">
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded-sm bg-[#16a34a] opacity-80 shrink-0" />
+              Recebimentos
             </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded-sm bg-[#dc2626] opacity-75 shrink-0" />
+              Pagamentos
+            </div>
+            <button onClick={() => toggle("total")}
+              className={`flex items-center gap-1.5 transition-opacity ${hidden.has("total") ? "opacity-30" : ""}`}>
+              <span className="w-8 h-0 border-t-2 border-dashed border-[#1e3a5f] shrink-0" />
+              Saldo
+            </button>
+            {/* Active entity badges — click to toggle */}
+            {activeEntities.map((e) => (
+              <button key={e.key} onClick={() => toggle(e.key)}
+                className={`flex items-center gap-1.5 transition-opacity ${hidden.has(e.key) ? "opacity-30" : ""}`}>
+                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: e.color }} />
+                {e.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -679,7 +746,6 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
               const initials = acc.entity === "ENERDY" ? "ENRD" : (cfg?.initials ?? "AWQ");
               const bg = acc.entity === "ENERDY" ? "bg-violet-600" : (cfg?.bg ?? "bg-brand-600");
               const label = (acc.name ?? acc.bank ?? "").replace(/^Conta\s+PJ\s+/i, "").trim();
-              // Net cash generated by this entity in the selected period
               const entityNet = acc.entity in genResult.byEntity
                 ? genResult.byEntity[acc.entity as EntityKey].net
                 : null;
