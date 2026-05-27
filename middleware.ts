@@ -87,6 +87,6 @@ export default withAuth(
 
 export const config = {
   matcher: [
-    "/((?!login|api/auth|api/health|api/cora/audit-probe|api/cora/sync-probe|_next/static|_next/image|favicon\\.ico).*)",
+    "/((?!login|api/auth|api/health|api/cora/audit-probe|api/cora/sync-probe|api/cora/cron-sync|_next/static|_next/image|favicon\\.ico).*)",
   ],
 };
