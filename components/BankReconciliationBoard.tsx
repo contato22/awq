@@ -718,13 +718,16 @@ export default function BankReconciliationBoard({
         <div
           role="status"
           className={
-            "fixed top-4 right-4 z-50 rounded-xl px-4 py-3 text-sm shadow-lg border max-w-xs " +
+            "fixed top-4 right-4 z-50 rounded-xl px-4 py-3 text-sm shadow-xl border max-w-xs flex items-start gap-2.5 " +
             (toast.kind === "ok"   ? "bg-emerald-50 border-emerald-200 text-emerald-800" :
              toast.kind === "info" ? "bg-blue-50 border-blue-200 text-blue-800" :
                                      "bg-red-50 border-red-200 text-red-800")
           }
         >
-          {toast.msg}
+          <span className="shrink-0 text-base leading-none mt-0.5">
+            {toast.kind === "ok" ? "✅" : toast.kind === "info" ? "ℹ️" : "❌"}
+          </span>
+          <span>{toast.msg}</span>
         </div>
       )}
 
@@ -1009,29 +1012,38 @@ export default function BankReconciliationBoard({
         </div>
       </div>
 
-      {/* ── Info + balance strip (Conta Azul style) ─────────────────────────────── */}
-      <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3 px-5 py-4 rounded-xl bg-white border border-gray-200 shadow-sm">
-        <div className="text-xs text-gray-400 space-y-1">
+      {/* ── Info + balance strip ─────────────────────────────────────────────── */}
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 px-5 py-3.5 rounded-xl bg-white border border-gray-200 shadow-sm">
+        {/* LEFT: last update info */}
+        <div className="text-[11px] text-gray-400 flex flex-wrap gap-x-4 gap-y-0.5">
           {lastExtracted && (
-            <div>Data da última atualização: <strong className="text-gray-600">{lastExtracted}</strong></div>
+            <span>Atualizado em <strong className="text-gray-600">{lastExtracted}</strong></span>
           )}
           {lastImported && (
-            <div>Data do último lançamento importado: <strong className="text-gray-600">{lastImported}</strong></div>
+            <span>Último lançamento <strong className="text-gray-600">{lastImported}</strong></span>
           )}
           {!lastExtracted && !lastImported && (
-            <div className="italic">Nenhum dado sincronizado ainda</div>
+            <span className="italic">Sem dados sincronizados</span>
           )}
         </div>
-        <div className="flex items-stretch gap-0 divide-x divide-gray-100">
-          <div className="pr-6 text-right">
-            <div className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-1">Saldo conciliado</div>
-            <div className={`text-xl font-bold tabular-nums ${balanceConciliado >= 0 ? "text-gray-900" : "text-red-600"}`}>
+        {/* RIGHT: KPI balances */}
+        <div className="flex items-center gap-6">
+          <div className="text-right">
+            <div className="text-[10px] font-medium text-gray-400 mb-0.5 flex items-center gap-1 justify-end">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+              Conciliado
+            </div>
+            <div className={`text-lg font-bold tabular-nums leading-none ${balanceConciliado >= 0 ? "text-gray-900" : "text-red-600"}`}>
               {fmtBRL(Math.abs(balanceConciliado))}
             </div>
           </div>
-          <div className="pl-6 text-right">
-            <div className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-1">Valor pendente de conciliação</div>
-            <div className={`text-xl font-bold tabular-nums ${pendingAmount > 0 ? "text-amber-500" : "text-gray-300"}`}>
+          <div className="w-px h-8 bg-gray-100" />
+          <div className="text-right">
+            <div className="text-[10px] font-medium text-gray-400 mb-0.5 flex items-center gap-1 justify-end">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
+              Em aberto
+            </div>
+            <div className={`text-lg font-bold tabular-nums leading-none ${pendingAmount > 0 ? "text-amber-500" : "text-gray-300"}`}>
               {fmtBRL(pendingAmount)}
             </div>
           </div>
@@ -1080,129 +1092,93 @@ export default function BankReconciliationBoard({
         </button>
       </div>
 
-      {/* ── Search bar ──────────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[240px] max-w-sm">
-          <Search
-            size={14}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-          />
+      {/* ── Search + direction filter + actions — single consolidated row ─────── */}
+      <div className="flex flex-wrap items-stretch gap-2">
+
+        {/* Search */}
+        <div className="relative min-w-[200px] flex-1 max-w-sm">
+          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
           <input
             ref={searchRef}
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Pesquise o lançamento bancário"
-            className="w-full pl-9 pr-8 py-2 text-sm border border-gray-300 rounded-xl bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-400"
+            placeholder="Pesquisar lançamento…"
+            className="w-full h-full pl-8 pr-7 py-2 text-xs border border-gray-200 rounded-xl bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-400"
           />
           {search && (
-            <button
-              onClick={() => setSearch("")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-            >
-              <X size={13} />
+            <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              <X size={12} />
             </button>
           )}
         </div>
-        {search && (
-          <button
-            onClick={() => setSearch("")}
-            className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700"
-          >
-            <X size={12} /> Limpar filtros
-          </button>
-        )}
-        {activeTab === "pendentes" && ignorados.length > 0 && (
-          <button
-            onClick={() => setShowIgnored((v) => !v)}
-            className="ml-auto flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors"
-          >
-            {showIgnored ? <EyeOff size={12} /> : <Eye size={12} />}
-            {showIgnored ? "Ocultar ignorados" : `Ver lançamentos ignorados (${ignorados.length})`}
-          </button>
-        )}
-      </div>
 
-      {/* ── Direction tabs + action bar ──────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-3 justify-between">
-
-        {/* Direction filter tabs */}
-        <div className="flex rounded-xl border border-gray-200 bg-white overflow-hidden divide-x divide-gray-200">
+        {/* Direction filter pills */}
+        <div className="flex rounded-xl border border-gray-200 bg-white overflow-hidden divide-x divide-gray-200 shrink-0">
           {(["todos", "recebimentos", "pagamentos"] as DirectionFilter[]).map((f) => {
-            const label  = f === "todos" ? "Todos" : f === "recebimentos" ? "Recebimentos" : "Pagamentos";
-            const count  = counts[f];
+            const label = f === "todos" ? "Todos" : f === "recebimentos" ? "Recebimentos" : "Pagamentos";
+            const count = counts[f];
             const active = dirFilter === f;
-            const numColor =
-              f === "recebimentos" ? "text-emerald-600" :
-              f === "pagamentos"   ? "text-red-600" :
-                                     "text-gray-700";
-            const amtStr =
-              f === "recebimentos" ? fmtBRL(amounts.recebimentos) :
-              f === "pagamentos"   ? fmtBRL(amounts.pagamentos) :
-                                     null;
+            const numColor = f === "recebimentos" ? "text-emerald-600" : f === "pagamentos" ? "text-red-600" : "text-gray-700";
+            const amtStr  = f === "recebimentos" ? fmtBRL(amounts.recebimentos) : f === "pagamentos" ? fmtBRL(amounts.pagamentos) : null;
             return (
-              <button
-                key={f}
-                onClick={() => setDirFilter(f)}
-                className={
-                  "px-5 py-2 text-xs font-medium transition-colors text-center min-w-[100px] " +
-                  (active ? "bg-gray-100 text-gray-900" : "text-gray-500 hover:bg-gray-50")
-                }
+              <button key={f} onClick={() => setDirFilter(f)}
+                className={`px-4 py-1.5 text-xs font-medium transition-colors text-center min-w-[88px] ${active ? "bg-gray-100 text-gray-900" : "text-gray-500 hover:bg-gray-50"}`}
               >
-                <div className="text-xs text-gray-500">{label}</div>
-                <div className={`text-lg font-bold mt-0.5 leading-none ${numColor}`}>{count}</div>
-                {amtStr && (
-                  <div className={`text-xs mt-0.5 font-medium ${numColor} opacity-75`}>{amtStr}</div>
-                )}
+                <div className="text-[10px] text-gray-400">{label}</div>
+                <div className={`text-base font-bold leading-none mt-0.5 ${numColor}`}>{count}</div>
+                {amtStr && <div className={`text-[10px] mt-0.5 ${numColor} opacity-70 tabular-nums`}>{amtStr}</div>}
               </button>
             );
           })}
         </div>
 
-        {/* Action buttons (pendentes tab only) — Conta Azul style */}
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* Bulk actions (pendentes only) */}
         {activeTab === "pendentes" && (
-          <div className="flex items-center gap-2 flex-wrap">
-            <button
-              onClick={toggleSelectAll}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-300 bg-white text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              <Check size={12} className="text-gray-500" />
-              Ações em lote <ChevronDown size={12} className="text-gray-400" />
-            </button>
-            <button
-              onClick={handleBulkReconcile}
-              disabled={selectedIds.size === 0}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold disabled:opacity-40 transition-colors"
-            >
-              Conciliar selecionados
-            </button>
-            <button
-              onClick={() => {
-                for (const id of selectedIds) handleIgnore(id);
-                setSelectedIds(new Set());
-              }}
-              disabled={selectedIds.size === 0}
-              className="px-3 py-2 rounded-xl border border-gray-300 bg-white text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 transition-colors"
-            >
-              Ignorar selecionados
-            </button>
-            <button className="flex items-center gap-1 px-3 py-2 rounded-xl border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 transition-colors">
-              Ordem: recente para antigo <ChevronDown size={12} className="text-gray-400" />
+          <div className="flex items-center gap-1.5 shrink-0">
+            {selectedIds.size > 0 && (
+              <>
+                <button onClick={handleBulkReconcile}
+                  className="flex items-center gap-1 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-colors">
+                  <Check size={11} /> Conciliar {selectedIds.size}
+                </button>
+                <button onClick={() => { for (const id of selectedIds) handleIgnore(id); setSelectedIds(new Set()); }}
+                  className="px-3 py-2 rounded-xl border border-gray-200 bg-white text-xs text-gray-600 hover:bg-gray-50 transition-colors">
+                  Ignorar {selectedIds.size}
+                </button>
+              </>
+            )}
+            <button onClick={toggleSelectAll}
+              className="flex items-center gap-1 px-3 py-2 rounded-xl border border-gray-200 bg-white text-xs text-gray-500 hover:bg-gray-50 transition-colors">
+              <Check size={11} />
+              {selectedIds.size === filtered.length && filtered.length > 0 ? "Desmarcar" : "Selecionar todos"}
             </button>
           </div>
+        )}
+
+        {/* Ignorados toggle */}
+        {activeTab === "pendentes" && ignorados.length > 0 && (
+          <button onClick={() => setShowIgnored((v) => !v)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 bg-white text-xs text-gray-500 hover:bg-gray-50 transition-colors shrink-0">
+            {showIgnored ? <EyeOff size={12} /> : <Eye size={12} />}
+            {ignorados.length}
+          </button>
         )}
       </div>
 
       {/* ── Column headers ───────────────────────────────────────────────────── */}
       {filtered.length > 0 && (
-        <div className="grid grid-cols-[1fr_120px_1fr] gap-0 rounded-xl overflow-hidden border border-gray-200">
+        <div className="grid grid-cols-[1fr_112px_1fr] gap-0 rounded-xl overflow-hidden border border-gray-200">
           <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 border-r border-gray-200">
             <span className="w-6 h-6 rounded-md bg-[#E74C3C] flex items-center justify-center text-white text-[10px] font-extrabold shrink-0">B</span>
             <span className="text-xs font-bold text-gray-700">Lançamentos do banco</span>
           </div>
           <div className="bg-gray-50 border-r border-gray-200" />
           <div className="flex items-center gap-2 justify-end px-4 py-2.5 bg-gray-50">
-            <span className="text-xs font-bold text-gray-700">Lançamentos da Conta AWQ</span>
+            <span className="text-xs font-bold text-gray-700">Classificação AWQ</span>
             <span className="w-6 h-6 rounded-md bg-brand-600 flex items-center justify-center shrink-0">
               <Building2 size={11} className="text-white" />
             </span>
@@ -1212,14 +1188,27 @@ export default function BankReconciliationBoard({
 
       {/* ── Empty state ──────────────────────────────────────────────────────── */}
       {filtered.length === 0 && (
-        <div className="rounded-xl border border-gray-200 bg-white py-14 text-center">
-          <CheckCircle2 size={36} className="text-emerald-400 mx-auto mb-3" />
+        <div className="rounded-xl border border-dashed border-gray-200 bg-white py-16 text-center">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gray-50 border border-gray-200 mb-4">
+            <CheckCircle2 size={28} className="text-emerald-400" />
+          </div>
           <p className="text-sm font-semibold text-gray-700">
             {activeTab === "pendentes"
-              ? "Nenhum lançamento pendente neste período"
-              : "Nenhuma movimentação conciliada"}
+              ? search || dirFilter !== "todos"
+                ? "Nenhum resultado para os filtros aplicados"
+                : "Tudo conciliado · nenhum lançamento pendente"
+              : "Nenhuma movimentação conciliada neste mês"}
           </p>
-          <p className="text-xs text-gray-400 mt-1">Tente outro mês ou ajuste os filtros</p>
+          <p className="text-xs text-gray-400 mt-1.5">
+            {search
+              ? <button onClick={() => setSearch("")} className="text-brand-500 hover:underline">Limpar busca</button>
+              : dirFilter !== "todos"
+                ? <button onClick={() => setDirFilter("todos")} className="text-brand-500 hover:underline">Ver todos os tipos</button>
+                : activeTab === "pendentes"
+                  ? "Importe um extrato ou sincronize via Cora para aparecerem os lançamentos"
+                  : "Navegue para o mês com movimentações ou revise a aba Pendentes"
+            }
+          </p>
         </div>
       )}
 
@@ -1252,7 +1241,7 @@ export default function BankReconciliationBoard({
             <div
               key={tx.id}
               className={
-                "grid grid-cols-[1fr_96px_1fr] rounded-xl border overflow-hidden transition-colors " +
+                "grid grid-cols-[1fr_112px_1fr] rounded-xl border overflow-hidden transition-colors " +
                 (isSelected
                   ? "border-amber-300"
                   : isGoodMatch
@@ -1311,9 +1300,9 @@ export default function BankReconciliationBoard({
               </div>
 
               {/* ── CENTER: match badge + action ────────────────────────── */}
-              <div className="flex flex-col items-center justify-center gap-2.5 bg-gray-50/80 border-x border-gray-200 px-2 py-4">
+              <div className="flex flex-col items-center justify-center gap-2 bg-gray-50/80 border-x border-gray-200 px-2 py-4">
                 <span className={
-                  `text-[10px] px-2.5 py-1 rounded-full border font-bold text-center leading-none ` +
+                  `text-[10px] px-2 py-1 rounded-full border font-bold text-center leading-none w-full text-center ` +
                   `${matchCfg.bg} ${matchCfg.text} ${matchCfg.border}`
                 }>
                   {matchCfg.label}
@@ -1323,105 +1312,135 @@ export default function BankReconciliationBoard({
                     <button
                       disabled={isSaving || !canConciliar}
                       onClick={() => void handleReconcile(tx.id)}
-                      title={!canConciliar ? "Revise via 'Ajustar valores' ou clique 'Desvincular' para conciliar direto" : undefined}
-                      className={`w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
+                      className={`w-full flex items-center justify-center gap-1 px-2 py-2 rounded-xl text-xs font-bold transition-colors ${
                         canConciliar && !isSaving
                           ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm cursor-pointer"
                           : "bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed"
                       }`}
                     >
-                      {isSaving ? <Loader2 size={12} className="animate-spin" /> : <Link2 size={12} />}
+                      {isSaving ? <Loader2 size={11} className="animate-spin" /> : <Link2 size={11} />}
                       {isSaving ? "…" : "Conciliar"}
                     </button>
+                    {!canConciliar && (
+                      <p className="text-[9px] text-gray-400 text-center leading-tight px-0.5">
+                        Ajuste →<br />para liberar
+                      </p>
+                    )}
                   </>
                 ) : (
-                  <span className="text-xs px-2 py-0.5 rounded-full border font-semibold bg-emerald-50 text-emerald-700 border-emerald-200">
+                  <span className="text-[10px] px-2 py-0.5 rounded-full border font-semibold bg-emerald-50 text-emerald-700 border-emerald-200 w-full text-center">
                     ✓ Conciliado
                   </span>
                 )}
               </div>
 
-              {/* ── RIGHT: System (AWQ) entry ──────────────────────────── */}
-              <div className={`p-4 flex flex-col gap-2.5 ${isSelected ? "bg-amber-50/40" : isGoodMatch ? "bg-emerald-50/20" : "bg-white"}`}>
-                {/* Amount + diff badge + date */}
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 flex-wrap min-w-0">
-                    <span className={`text-base font-bold tabular-nums ${isCredit ? "text-emerald-600" : "text-red-600"}`}>
-                      {fmtBRL(Math.abs(tx.amount))}
-                    </span>
-                    {diffAmount > 0 && (
-                      <span className="inline-flex items-center text-[10px] font-bold bg-amber-50 border border-amber-300 text-amber-700 rounded-full px-2 py-0.5 whitespace-nowrap">
-                        Diferença {fmtBRL(diffAmount)}
+              {/* ── RIGHT: System (AWQ) classification ─────────────── */}
+              {(() => {
+                const CONF_BADGE: Record<string, { label: string; cls: string }> = {
+                  certain:   { label: "Certo",     cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+                  probable:  { label: "Provável",  cls: "bg-blue-50 text-blue-700 border-blue-200"         },
+                  possible:  { label: "Possível",  cls: "bg-amber-50 text-amber-700 border-amber-200"      },
+                  manual:    { label: "Manual",    cls: "bg-gray-100 text-gray-600 border-gray-200"        },
+                  ambiguous: { label: "Revisar",   cls: "bg-orange-50 text-orange-700 border-orange-200"  },
+                };
+                const confKey = tx.classificationConfidence ?? "ambiguous";
+                const conf = CONF_BADGE[confKey] ?? CONF_BADGE.ambiguous;
+                const entityColors: Record<string, string> = {
+                  AWQ_Holding: "bg-brand-600",
+                  JACQES:      "bg-emerald-600",
+                  Caza_Vision: "bg-violet-600",
+                  ENERDY:      "bg-teal-600",
+                };
+                const entityBg = entityColors[tx.entity] ?? "bg-gray-500";
+                const entityInitials =
+                  tx.entity === "AWQ_Holding" ? "AWQ" :
+                  tx.entity === "Caza_Vision" ? "CAZA" :
+                  (tx.entity ?? "?").slice(0, 4).toUpperCase();
+
+                return (
+                  <div className={`p-4 flex flex-col gap-2.5 ${isSelected ? "bg-amber-50/40" : isGoodMatch ? "bg-emerald-50/20" : "bg-white"}`}>
+                    {/* Row 1: amount + entity badge + diff */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className={`text-base font-bold tabular-nums ${isCredit ? "text-emerald-600" : "text-red-600"}`}>
+                          {fmtBRL(Math.abs(tx.amount))}
+                        </span>
+                        {diffAmount > 0 && (
+                          <span className="inline-flex items-center text-[10px] font-bold bg-amber-50 border border-amber-300 text-amber-700 rounded-full px-2 py-0.5 whitespace-nowrap shrink-0">
+                            Δ {fmtBRL(diffAmount)}
+                          </span>
+                        )}
+                      </div>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md text-white shrink-0 ${entityBg}`}>
+                        {entityInitials}
                       </span>
+                    </div>
+
+                    {/* Row 2: category (primary classification) */}
+                    <p className={`text-sm font-semibold leading-snug ${isCredit ? "text-emerald-800" : "text-gray-800"}`}>
+                      {catLabel}
+                    </p>
+
+                    {/* Row 3: counterparty + confidence */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs text-gray-500 truncate min-w-0 flex-1">
+                        {tx.counterpartyName
+                          ? <><span className="text-gray-400">Contraparte: </span>{tx.counterpartyName}</>
+                          : <span className="text-gray-300 italic">Sem contraparte</span>
+                        }
+                      </span>
+                      <span className={`text-[10px] font-semibold border rounded-full px-2 py-0.5 shrink-0 ${conf.cls}`}>
+                        {conf.label}
+                      </span>
+                    </div>
+
+                    {/* Row 4: classification note (if available) */}
+                    {tx.classificationNote && (
+                      <p className="text-[10px] text-gray-400 italic leading-snug line-clamp-1" title={tx.classificationNote}>
+                        {tx.classificationNote}
+                      </p>
                     )}
-                  </div>
-                  <span className="text-xs font-semibold text-gray-700 shrink-0">
-                    {dateInfo.short}
-                    <span className="ml-1.5 font-normal text-gray-400">{dateInfo.weekday}</span>
-                  </span>
-                </div>
 
-                {/* Description */}
-                <p className="text-sm text-gray-900 leading-snug line-clamp-2" title={tx.descriptionOriginal}>
-                  {tx.descriptionOriginal}
-                </p>
+                    {/* Row 5: account name */}
+                    <p className="text-[10px] text-gray-400 truncate">
+                      {(tx.accountName ?? tx.bank ?? "").replace(/^Conta\s+PJ\s+/i, "").trim() || tx.bank}
+                    </p>
 
-                {/* Meta grid — 2 col */}
-                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs border-t border-gray-50 pt-2">
-                  <div className="flex items-baseline gap-1 min-w-0">
-                    <span className="text-gray-400 shrink-0">Cliente:</span>
-                    <span className="text-gray-700 truncate">{tx.counterpartyName ?? "Não informado"}</span>
+                    {/* Action buttons */}
+                    <div className="flex items-center gap-1.5 mt-auto pt-0.5">
+                      <button
+                        onClick={() => handleAjustar(tx)}
+                        className={`flex items-center gap-1 text-[11px] border rounded-lg px-2.5 py-1 hover:bg-gray-50 transition-colors font-medium ${
+                          reviewedIds.has(tx.id)
+                            ? "border-emerald-300 text-emerald-700 bg-emerald-50"
+                            : unlinkedIds.has(tx.id)
+                              ? "border-gray-200 text-gray-400"
+                              : "border-gray-200 text-gray-600"
+                        }`}
+                      >
+                        {reviewedIds.has(tx.id)
+                          ? "✓ Revisado"
+                          : unlinkedIds.has(tx.id)
+                            ? <><span>Ajustar (opcional)</span><ChevronDown size={10} /></>
+                            : <><span>Ajustar valores</span><ChevronDown size={10} /></>
+                        }
+                      </button>
+                      {!unlinkedIds.has(tx.id) ? (
+                        <button
+                          onClick={() => handleUnlink(tx.id)}
+                          className="text-[11px] text-gray-400 border border-gray-200 rounded-lg px-2.5 py-1 hover:border-red-200 hover:text-red-500 transition-colors"
+                        >
+                          Desvincular
+                        </button>
+                      ) : (
+                        <span className="text-[11px] text-gray-400 border border-dashed border-gray-200 rounded-lg px-2.5 py-1 select-none">
+                          Desvinculado
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-baseline gap-1 min-w-0">
-                    <span className="text-gray-400 shrink-0">Categoria:</span>
-                    <span className="text-gray-700 truncate">{catLabel}</span>
-                  </div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-gray-400 shrink-0">Juros/multa:</span>
-                    <span className="text-gray-600">{fmtBRL(0)}</span>
-                  </div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-gray-400 shrink-0">Desconto:</span>
-                    <span className="text-gray-600">{fmtBRL(0)}</span>
-                  </div>
-                </div>
-
-                {/* Action buttons */}
-                <div className="flex items-center gap-1.5 mt-auto pt-0.5">
-                  <button
-                    onClick={() => handleAjustar(tx)}
-                    className={`flex items-center gap-1 text-[11px] border rounded-lg px-2.5 py-1 hover:bg-gray-50 transition-colors font-medium ${
-                      reviewedIds.has(tx.id)
-                        ? "border-emerald-300 text-emerald-700 bg-emerald-50"
-                        : unlinkedIds.has(tx.id)
-                          ? "border-gray-200 text-gray-400"
-                          : "border-gray-200 text-gray-600"
-                    }`}
-                  >
-                    {reviewedIds.has(tx.id)
-                      ? "✓ Revisado"
-                      : unlinkedIds.has(tx.id)
-                        ? <><span>Ajustar (opcional)</span><ChevronDown size={10} /></>
-                        : <><span>Ajustar valores</span><ChevronDown size={10} /></>
-                    }
-                  </button>
-                  <button onClick={() => setDrawerTx(tx)} className="text-[11px] text-gray-600 border border-gray-200 rounded-lg px-2.5 py-1 hover:bg-gray-50 transition-colors">
-                    Editar
-                  </button>
-                  {!unlinkedIds.has(tx.id) ? (
-                    <button
-                      onClick={() => handleUnlink(tx.id)}
-                      className="text-[11px] text-gray-500 border border-gray-200 rounded-lg px-2.5 py-1 hover:border-red-200 hover:text-red-500 transition-colors"
-                    >
-                      Desvincular
-                    </button>
-                  ) : (
-                    <span className="text-[11px] text-gray-400 border border-dashed border-gray-200 rounded-lg px-2.5 py-1 select-none">
-                      Desvinculado
-                    </span>
-                  )}
-                </div>
-              </div>
+                );
+              })()}
             </div>
           );
         })}
