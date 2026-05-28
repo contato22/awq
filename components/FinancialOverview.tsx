@@ -441,7 +441,7 @@ export default function FinancialOverview({ transactions, arPending, coraConfigu
     })
     .reduce((s, t) => s + t.amount, 0);
 
-  const totalBalance = accounts.reduce((s, a) => s + (a.balance ?? 0), 0);
+  const totalBalance = accounts.filter((a) => a.key !== "ENERDY").reduce((s, a) => s + (a.balance ?? 0), 0);
   const anyLoading   = accounts.some((a) => a.loading);
 
   const txAccounts = useMemo(() => Array.from(

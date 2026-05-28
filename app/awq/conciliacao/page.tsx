@@ -82,7 +82,8 @@ export default async function ConciliacaoPage() {
   const docsDone   = documents.filter((d) => d.status === "done").length;
 
   const openingBalance = documents
-    .filter((d) => d.status === "done" && d.openingBalance != null)
+    .filter((d) => d.status === "done" && d.openingBalance != null
+      && d.entity !== "ENERDY")
     .reduce((s, d) => s + (d.openingBalance ?? 0), 0);
 
   return (
