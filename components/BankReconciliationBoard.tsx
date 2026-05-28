@@ -27,6 +27,7 @@ import type {
   ReconciliationStatus,
 } from "@/lib/financial-db";
 import type { ImportResult, ImportedTransaction } from "@/lib/financial/importers/types";
+import { todayBRT, nowBRT } from "@/lib/date-brt";
 import {
   AlertTriangle,
   Building2,
@@ -312,8 +313,8 @@ export default function BankReconciliationBoard({
       const d = new Date(last + "T12:00:00");
       return { year: d.getFullYear(), month: d.getMonth() };
     }
-    const n = new Date();
-    return { year: n.getFullYear(), month: n.getMonth() };
+    const n = nowBRT();
+    return { year: n.year, month: n.month };
   });
   const [selectedIds, setSelectedIds]   = useState<Set<string>>(new Set());
   const [savingId, setSavingId]         = useState<string | null>(null);
@@ -697,7 +698,7 @@ export default function BankReconciliationBoard({
 
   function handleCoraSyncYear() {
     const start = `${selectedMonth.year}-01-01`;
-    const end   = new Date().toISOString().slice(0, 10);
+    const end   = todayBRT();
     void runCoraSync(start, end);
   }
 
@@ -936,11 +937,11 @@ export default function BankReconciliationBoard({
               <ChevronRight size={16} />
             </button>
             {(() => {
-              const now = new Date();
-              const isCurrentMonth = selectedMonth.year === now.getFullYear() && selectedMonth.month === now.getMonth();
+              const brt = nowBRT();
+              const isCurrentMonth = selectedMonth.year === brt.year && selectedMonth.month === brt.month;
               return !isCurrentMonth ? (
                 <button
-                  onClick={() => setSelectedMonth({ year: now.getFullYear(), month: now.getMonth() })}
+                  onClick={() => setSelectedMonth({ year: brt.year, month: brt.month })}
                   className="px-2 py-1.5 rounded-lg text-xs font-medium text-blue-600 hover:bg-blue-50 transition-colors border border-blue-200"
                 >
                   Hoje

@@ -25,17 +25,10 @@ import { classifyTransaction } from "@/lib/financial-classifier";
 import type { BankTransaction, EntityLayer } from "@/lib/financial-db";
 import { USE_SUPABASE, USE_ERP_ADMIN } from "@/lib/supabase";
 import { USE_DB } from "@/lib/db";
+import { todayBRT, daysAgoBRT } from "@/lib/date-brt";
 
 export const runtime    = "nodejs";
 export const maxDuration = 60; // sync de períodos longos (até 5+ meses)
-
-function today() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function daysAgo(n: number) {
-  return new Date(Date.now() - n * 24 * 3600_000).toISOString().slice(0, 10);
-}
 
 function isValidDate(s: string) {
   return /^\d{4}-\d{2}-\d{2}$/.test(s);
@@ -82,8 +75,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   const accountName = body.accountName ?? "Conta PJ AWQ Holding";
   const entity      = (body.entity ?? "AWQ_Holding") as EntityLayer;
-  const startDate   = isValidDate(body.startDate ?? "") ? body.startDate! : daysAgo(30);
-  const endDate     = isValidDate(body.endDate   ?? "") ? body.endDate!   : today();
+  const startDate   = isValidDate(body.startDate ?? "") ? body.startDate! : daysAgoBRT(30);
+  const endDate     = isValidDate(body.endDate   ?? "") ? body.endDate!   : todayBRT();
   const force       = body.force === true;
 
   // BU isolation: usuário BU-locked só pode sincronizar a conta Cora da própria BU.

@@ -95,9 +95,10 @@ function fmtK(v: number) {
   if (abs >= 1_000)     return `${v < 0 ? "-" : ""}R$${Math.round(Math.abs(v) / 1000)}k`;
   return `R$${Math.round(v)}`;
 }
-function today() { return new Date().toISOString().slice(0, 10); }
+const BRT = "America/Sao_Paulo";
+function today() { return new Date().toLocaleDateString("sv", { timeZone: BRT }); }
 function dateAgo(days: number) {
-  return new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
+  return new Date(Date.now() - days * 86_400_000).toLocaleDateString("sv", { timeZone: BRT });
 }
 
 function prevMonth(m: string): string {

@@ -18,18 +18,11 @@ import { classifyTransaction } from "@/lib/financial-classifier";
 import type { BankTransaction, EntityLayer } from "@/lib/financial-db";
 import { USE_SUPABASE, USE_ERP_ADMIN } from "@/lib/supabase";
 import { USE_DB } from "@/lib/db";
+import { todayBRT, daysAgoBRT } from "@/lib/date-brt";
 
 export const runtime     = "nodejs";
 export const dynamic     = "force-dynamic";
 export const maxDuration = 60;
-
-function today(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function daysAgo(n: number): string {
-  return new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
-}
 
 interface AccountResult {
   entity: string;
@@ -61,8 +54,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   }
 
   // ── Período: últimos 8 dias (garante cobertura sem gaps em caso de falha anterior) ──
-  const startDate = daysAgo(8);
-  const endDate   = today();
+  const startDate = daysAgoBRT(8);
+  const endDate   = todayBRT();
 
   // ── Contas configuradas ───────────────────────────────────────────────────────
   const accounts: Array<{ entity: EntityLayer; accountName: string }> = [
