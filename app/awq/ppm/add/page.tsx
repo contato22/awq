@@ -214,9 +214,15 @@ function AddProjectPageInner() {
                 <input value={form.customer_name} onChange={set("customer_name")} placeholder="Nome do cliente" className={INPUT} />
               </Field>
               <Field label="Business Unit" required>
-                <select value={form.bu_code} onChange={set("bu_code")} className={INPUT}>
-                  {BU_OPTIONS.map(b => <option key={b} value={b}>{b}</option>)}
-                </select>
+                {sessionUser?.role === "enrd" ? (
+                  <div className={`${INPUT} flex items-center bg-orange-50 border-orange-200 text-orange-700 font-semibold`}>
+                    {form.bu_code}
+                  </div>
+                ) : (
+                  <select value={form.bu_code} onChange={set("bu_code")} className={INPUT}>
+                    {BU_OPTIONS.map(b => <option key={b} value={b}>{b}</option>)}
+                  </select>
+                )}
               </Field>
             </div>
             <div className="grid grid-cols-3 gap-4">

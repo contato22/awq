@@ -245,24 +245,34 @@ export default function PpmPortfolioPage() {
             </div>
             <div>
               <h1 className="text-lg font-bold text-gray-900">Portfolio de Projetos</h1>
-              <p className="text-xs text-gray-500">PPM — AWQ Group · {metrics?.total_projects ?? 0} projetos</p>
+              <p className="text-xs text-gray-500">{lockedBU ? `PPM — Agência ${lockedBU}` : "PPM — AWQ Group"} · {metrics?.total_projects ?? 0} projetos</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={() => void load()} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
               <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
             </button>
+            {!lockedBU && (
+              <>
+                <Link
+                  href="/awq/ppm/resources"
+                  className="text-sm text-gray-600 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Recursos
+                </Link>
+                <Link
+                  href="/awq/ppm/profitability"
+                  className="text-sm text-gray-600 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Rentabilidade
+                </Link>
+              </>
+            )}
             <Link
-              href="/awq/ppm/resources"
+              href="/awq/ppm/calendar"
               className="text-sm text-gray-600 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors"
             >
-              Recursos
-            </Link>
-            <Link
-              href="/awq/ppm/profitability"
-              className="text-sm text-gray-600 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              Rentabilidade
+              Calendário
             </Link>
             <Link
               href="/awq/ppm/add"
@@ -292,16 +302,16 @@ export default function PpmPortfolioPage() {
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { href: "/awq/ppm",              label: "Portfolio",     icon: Briefcase,     desc: "Visão geral dos projetos",   color: "text-brand-600",   bg: "bg-brand-50"   },
-              { href: "/awq/ppm/calendar",      label: "Calendário",    icon: Calendar,      desc: "Início e entregas por mês",  color: "text-violet-600",  bg: "bg-violet-50"  },
-              { href: "/awq/ppm/gantt",         label: "Gantt",         icon: GanttChart,    desc: "Linha do tempo e marcos",    color: "text-brand-600",  bg: "bg-brand-50"  },
-              { href: "/awq/ppm/tasks",         label: "Tarefas",       icon: ClipboardList, desc: "Kanban e gestão de tarefas", color: "text-amber-700",   bg: "bg-amber-50"   },
-              { href: "/awq/ppm/timesheets",    label: "Timesheets",    icon: Clock,         desc: "Apontamento de horas",       color: "text-cyan-700",    bg: "bg-cyan-50"    },
-              { href: "/awq/ppm/resources",     label: "Recursos",      icon: Users,         desc: "Alocação de pessoas",        color: "text-emerald-600", bg: "bg-emerald-50" },
-              { href: "/awq/ppm/utilization",   label: "Utilização",    icon: BarChart3,     desc: "Capacidade e ocupação",      color: "text-brand-600",  bg: "bg-brand-50"  },
-              { href: "/awq/ppm/profitability", label: "Rentabilidade", icon: TrendingUp,    desc: "EVM · CPI · SPI · Margem",   color: "text-emerald-700", bg: "bg-emerald-50" },
-              { href: "/awq/ppm/risks",         label: "Riscos",        icon: AlertTriangle, desc: "Registro e mitigação",       color: "text-red-600",     bg: "bg-red-50"     },
-            ].map(({ href, label, icon: Icon, desc, color, bg }) => (
+              { href: "/awq/ppm",              label: "Portfolio",     icon: Briefcase,     desc: "Visão geral dos projetos",   color: "text-brand-600",   bg: "bg-brand-50",   simple: true  },
+              { href: "/awq/ppm/calendar",      label: "Calendário",    icon: Calendar,      desc: "Início e entregas por mês",  color: "text-violet-600",  bg: "bg-violet-50",  simple: true  },
+              { href: "/awq/ppm/gantt",         label: "Gantt",         icon: GanttChart,    desc: "Linha do tempo e marcos",    color: "text-brand-600",  bg: "bg-brand-50",   simple: true  },
+              { href: "/awq/ppm/tasks",         label: "Tarefas",       icon: ClipboardList, desc: "Kanban e gestão de tarefas", color: "text-amber-700",   bg: "bg-amber-50",   simple: true  },
+              { href: "/awq/ppm/timesheets",    label: "Timesheets",    icon: Clock,         desc: "Apontamento de horas",       color: "text-cyan-700",    bg: "bg-cyan-50",    simple: true  },
+              { href: "/awq/ppm/resources",     label: "Recursos",      icon: Users,         desc: "Alocação de pessoas",        color: "text-emerald-600", bg: "bg-emerald-50", simple: false },
+              { href: "/awq/ppm/utilization",   label: "Utilização",    icon: BarChart3,     desc: "Capacidade e ocupação",      color: "text-brand-600",  bg: "bg-brand-50",   simple: false },
+              { href: "/awq/ppm/profitability", label: "Rentabilidade", icon: TrendingUp,    desc: "EVM · CPI · SPI · Margem",   color: "text-emerald-700", bg: "bg-emerald-50", simple: false },
+              { href: "/awq/ppm/risks",         label: "Riscos",        icon: AlertTriangle, desc: "Registro e mitigação",       color: "text-red-600",     bg: "bg-red-50",     simple: false },
+            ].filter(m => !lockedBU || m.simple).map(({ href, label, icon: Icon, desc, color, bg }) => (
               <Link key={href} href={href}
                 className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl p-3.5 hover:border-brand-200 hover:shadow-sm transition-all group"
               >
