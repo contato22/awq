@@ -13,14 +13,9 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  // MobileHomeAwq (the redesigned mobile home) has its own blue header,
-  // so we hide the default white MobileHeader on /awq for mobile.
+  // MobileHomeAwq (the redesigned mobile home) has its own teal header,
+  // so we hide the default MobileHeader on /awq for mobile.
   const hideMobileHeader = pathname === "/awq";
-
-  // OpenClaw + Supervisor FABs collide with the redesigned bottom nav on /awq
-  // mobile (OpenClaw covers the Cadastros tap target). Hide them below lg only
-  // on the AWQ home; desktop and other routes keep them.
-  const hideFloatingWidgetsOnMobile = pathname === "/awq";
 
   useEffect(() => {
     const handler = () => setDrawerOpen(true);
@@ -48,7 +43,9 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
           {children}
         </main>
 
-        <div className={hideFloatingWidgetsOnMobile ? "hidden lg:block" : undefined}>
+        {/* OpenClaw + Supervisor FABs are desktop-only — on mobile they
+            covered the bottom nav and added visual noise. */}
+        <div className="hidden lg:block">
           <OpenClawWidget />
           <SupervisorWidget />
         </div>

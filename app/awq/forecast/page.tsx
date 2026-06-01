@@ -127,7 +127,7 @@ export default async function AwqForecastPage() {
   return (
     <>
       <Header
-        title="Forecast — AWQ Group"
+        title="Forecast"
         subtitle="Estado vazio honesto · Requisitos para ativar forecast real · Q1 2026 referência snapshot"
       />
       <div className="page-container">

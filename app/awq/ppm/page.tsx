@@ -245,7 +245,7 @@ export default function PpmPortfolioPage() {
             </div>
             <div>
               <h1 className="text-lg font-bold text-gray-900">Portfolio de Projetos</h1>
-              <p className="text-xs text-gray-500">{lockedBU ? `PPM — Agência ${lockedBU}` : "PPM — AWQ Group"} · {metrics?.total_projects ?? 0} projetos</p>
+              <p className="text-xs text-gray-500">{lockedBU ? `PPM — Agência ${lockedBU}` : "PPM"} · {metrics?.total_projects ?? 0} projetos</p>
             </div>
           </div>
           <div className="flex items-center gap-2">

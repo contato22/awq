@@ -234,8 +234,8 @@ export default async function AwqFinancialPage() {
   return (
     <>
       <Header
-        title="Financial — AWQ Group"
-        subtitle={`Visão de Caixa por Entidade · ${period}`}
+        title="Financeiro"
+        subtitle={`Caixa por entidade · ${period}`}
       />
       <div className="page-container">
 

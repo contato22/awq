@@ -89,7 +89,7 @@ export default async function ConciliacaoPage() {
     <>
       <Header
         title="Conciliação"
-        subtitle="Fluxo de caixa operacional · conciliação bancária · DFC e DRE sincronizados automaticamente"
+        subtitle="Conciliação bancária · DFC e DRE sincronizados"
       />
       <div className="page-container">
 

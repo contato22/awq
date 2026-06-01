@@ -181,7 +181,7 @@ export default async function AwqDataPage() {
   return (
     <>
       <Header
-        title="Base de Dados — AWQ Group"
+        title="Base de Dados"
         subtitle="Gestao, auditoria e governanca da camada de storage / source of truth / data layer"
       />
       <div className="page-container">
@@ -318,7 +318,7 @@ export default async function AwqDataPage() {
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
               <div className="text-xs font-bold text-amber-800 mb-2">TypeScript Hardcoded (Snapshots)</div>
               <div className="space-y-1 text-xs text-amber-700">
-                <div><code>lib/awq-group-data.ts</code> — AWQ Group</div>
+                <div><code>lib/awq-group-data.ts</code></div>
                 <div><code>lib/data.ts</code> — JACQES</div>
                 <div><code>lib/caza-data.ts</code> — Caza Vision</div>
                 <div><code>public/data/venture-sales.json</code> — Venture</div>

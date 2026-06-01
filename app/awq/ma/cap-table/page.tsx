@@ -149,7 +149,7 @@ export default function CapTablePage() {
 
   return (
     <>
-      <Header title="Cap Table" subtitle="Gestão de Participações — AWQ Group" />
+      <Header title="Cap Table" subtitle="Gestão de Participações" />
       <div className="px-6 py-6 space-y-6">
 
         {/* Portco selector */}

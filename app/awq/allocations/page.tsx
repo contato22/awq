@@ -43,7 +43,7 @@ export default async function AwqAllocationsPage() {
   return (
     <>
       <Header
-        title="Allocations — AWQ Group"
+        title="Allocations"
         subtitle="Capital por BU · ROIC · Payback · Expand / Maintain / Review / Cut"
       />
       <div className="page-container">
