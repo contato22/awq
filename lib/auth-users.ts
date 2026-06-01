@@ -61,9 +61,9 @@ export const USERS: AuthUser[] = [
   },
   {
     id: "7",
-    name: "Kazadem",
+    name: "Gabriel Cazadem",
     email: "Kazadem2@gmail.com",
-    passwordHash: "$2b$10$GsdHM8of19be3dKaFRNU4umIXN6fMANar/wNKzWwEKywoZMPz7zxi",
+    passwordHash: "$2b$10$Flk/HaeWLP9UkDxCIh5Qpu8T/PIRjrj6ocMnrw/CW84QdCTEB2E1.",
     role: "enrd",
     homeRoute: "/enrd",
   },
