@@ -88,7 +88,8 @@ export const USERS: AuthUser[] = [
 //   cs-ops:  ["/"]                           — full access (permissive, MVP)
 //   caza:    ["/caza-vision", "/crm"]        — Caza Vision BU only; no holding, no other BUs
 //   enrd:    ["/enrd", "/crm", "/awq/ppm"]  — ENRD BU + CRM + PPM compartilhados
-//   jacqes:  ["/jacqes", "/crm", "/csops"]  — JACQES BU + CRM + CS Ops compartilhados
+//   jacqes:  ["/jacqes", "/crm", "/csops", "/awq/bpm", "/awq/ppm"]
+//                                          — JACQES BU + CRM + CS Ops + BPM + PPM compartilhados
 //
 // CLASSIFICATION: Security layer = authentication REAL, authorization ENFORCED for "caza", "enrd" and "jacqes".
 //
@@ -99,7 +100,7 @@ export const ROLE_ALLOWED_PREFIXES: Record<Role, string[]> = {
   "cs-ops": ["/"],             // full access — permissive by design (MVP)
   caza:     ["/caza-vision", "/crm"],           // Caza Vision BU + CRM compartilhado
   enrd:     ["/crm", "/awq/ppm"],               // ENRD: CRM + PPM compartilhados (BI vive sob /crm)
-  jacqes:   ["/jacqes", "/crm", "/csops"],      // JACQES BU + CRM + CS Ops compartilhados
+  jacqes:   ["/jacqes", "/crm", "/csops", "/awq/bpm", "/awq/ppm"], // JACQES BU + CRM + CS Ops + BPM/PPM compartilhados
 };
 
 // Routes denied to specific roles even when within an allowed prefix.
