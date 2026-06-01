@@ -160,7 +160,7 @@ function SearchSelect<T>({
               className={`w-full flex items-center gap-2 px-3 py-2.5 text-[12px] font-semibold text-blue-600 hover:bg-blue-50 transition-colors ${items.length > 0 ? "border-t border-gray-100" : ""}`}>
               <Plus size={13} />
               {createLabel ?? "Criar novo"}
-              {query.trim() && <span className="text-blue-400 font-normal">"{query.trim()}"</span>}
+              {query.trim() && <span className="text-blue-400 font-normal">&ldquo;{query.trim()}&rdquo;</span>}
             </button>
           )}
         </div>

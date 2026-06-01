@@ -316,8 +316,13 @@ function buildFlowMonthly(txns: BankTransaction[], openingBal: number): FlowResu
 
 // ─── Tooltip ─────────────────────────────────────────────────────────────────
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function FlowTooltip({ active, payload, label }: any) {
+type FlowTooltipProps = {
+  active?: boolean;
+  payload?: Array<{ dataKey: string; value: number }>;
+  label?: string;
+};
+
+function FlowTooltip({ active, payload, label }: FlowTooltipProps) {
   if (!active || !payload?.length) return null;
   const meta: Record<string, { name: string; sub: string; color: string }> = {
     recebimentos: { name: "AR",    sub: "Recebimentos realizados", color: "#16a34a" },
@@ -330,7 +335,7 @@ function FlowTooltip({ active, payload, label }: any) {
         <p className="font-bold text-gray-900">Fluxo de caixa · {label}</p>
       </div>
       <div className="p-3 space-y-2">
-        {(payload as { dataKey: string; value: number }[]).map((p) => {
+        {payload.map((p) => {
           const m = meta[p.dataKey] ?? { name: p.dataKey, sub: "", color: "#6b7280" };
           const displayVal = Math.abs(p.value);
           return (
