@@ -265,8 +265,8 @@ export default async function AwqCashflowPage() {
   return (
     <>
       <Header
-        title="Cash Flow — AWQ Group"
-        subtitle={`Fluxo de caixa operacional · Visão de Caixa · ${periodLabel}`}
+        title="Fluxo de Caixa"
+        subtitle={`Visão de Caixa · ${periodLabel}`}
       />
       <div className="page-container">
 

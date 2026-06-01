@@ -63,7 +63,7 @@ export default async function AwqBudgetPage() {
   return (
     <>
       <Header
-        title="Budget — AWQ Group"
+        title="Budget"
         subtitle="Budget vs Actual consolidado por BU · YTD Jan–Mar 2026"
       />
       <div className="page-container">

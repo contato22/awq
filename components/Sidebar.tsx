@@ -552,6 +552,11 @@ const ENRD_MODULES: BUModule[] = [
         { label: "Tarefas",        href: "/awq/ppm/tasks",        icon: ClipboardList },
         { label: "Novo Projeto",   href: "/awq/ppm/add?bu=ENRD",  icon: FolderOpen    },
     ]},
+    { id: "bpm", label: "BPM", description: "Workflows & Aprovações",     icon: Activity,   items: [
+        { label: "Minha Fila",     href: "/awq/bpm/tasks",                 icon: ClipboardList },
+        { label: "Processos",      href: "/awq/bpm/processes",             icon: Activity      },
+        { label: "Instâncias",     href: "/awq/bpm/instances",             icon: Layers        },
+    ]},
     { id: "bi", label: "BI", description: "Analytics & Relatórios",       icon: PieChart,   items: [
         { label: "Analytics", href: "/crm/analytics", icon: BarChart3 },
         { label: "Pipeline",  href: "/crm/pipeline",  icon: Activity  },

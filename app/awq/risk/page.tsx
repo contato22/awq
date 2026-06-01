@@ -152,7 +152,7 @@ export default async function AwqRiskPage() {
   return (
     <>
       <Header
-        title="Risk — AWQ Group"
+        title="Risk"
         subtitle="Risk signals · Concentração · Recebíveis · Margem · Cash · Forecast"
       />
       <div className="page-container">
