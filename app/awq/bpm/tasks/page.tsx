@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import {
   Clock, AlertTriangle, CheckCircle2, ClipboardList, Bell,
   ArrowRight, RefreshCw, Filter,
@@ -13,14 +14,15 @@ import { formatBRL } from "@/lib/utils";
 
 const USER_NAMES: Record<string, string> = {
   "1": "Alex Whitmore", "2": "Sam Chen", "3": "Priya Nair", "4": "Danilo", "5": "Miguel",
+  "6": "Daniel Chiappetta", "7": "Gabriel Cazadem", "8": "Danilo Jaques Jacinto",
 };
 
 type Filter = "all" | "overdue" | "today" | "upcoming";
 
-// In a real app this comes from session; hardcode Miguel (owner) as demo default
-const CURRENT_USER_ID = "5";
-
 export default function BpmTasksPage() {
+  const { data: session, status: sessionStatus } = useSession();
+  const sessionUserId = (session?.user as { id?: string } | undefined)?.id ?? null;
+
   const [tasks, setTasks]       = useState<WorkQueueItem[]>([]);
   const [stats, setStats]       = useState<WorkQueueStats>({ total: 0, overdue: 0, due_today: 0, due_this_week: 0 });
   const [filter, setFilter]     = useState<Filter>("all");
@@ -28,11 +30,12 @@ export default function BpmTasksPage() {
   const [unread, setUnread]     = useState(0);
 
   const loadTasks = useCallback(async (f: Filter = "all") => {
+    if (!sessionUserId) return;
     setLoading(true);
     try {
       const [tasksRes, notifRes] = await Promise.all([
-        fetch(`/api/bpm/my-tasks?user_id=${CURRENT_USER_ID}&filter=${f}`),
-        fetch(`/api/bpm/mark-notification-read?user_id=${CURRENT_USER_ID}`),
+        fetch(`/api/bpm/my-tasks?user_id=${sessionUserId}&filter=${f}`),
+        fetch(`/api/bpm/mark-notification-read?user_id=${sessionUserId}`),
       ]);
       const tasksJson = await tasksRes.json();
       const notifJson = await notifRes.json();
@@ -41,9 +44,12 @@ export default function BpmTasksPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [sessionUserId]);
 
-  useEffect(() => { loadTasks(filter); }, [filter, loadTasks]);
+  useEffect(() => {
+    if (sessionStatus === "loading") return;
+    void loadTasks(filter);
+  }, [filter, loadTasks, sessionStatus]);
 
   const overdue  = tasks.filter((t) => t.sla_breached);
   const today    = tasks.filter((t) => !t.sla_breached && t.sla_due_date && new Date(t.sla_due_date) <= new Date(Date.now() + 24 * 3600_000));
