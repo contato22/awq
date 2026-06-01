@@ -38,6 +38,17 @@ function isoPlusYear() {
 }
 
 export async function GET(req: NextRequest) {
+  try {
+    return await runSeed(req);
+  } catch (err) {
+    return NextResponse.json(
+      { ok: false, fatal: String(err), stack: err instanceof Error ? err.stack : undefined },
+      { status: 500 },
+    );
+  }
+}
+
+async function runSeed(req: NextRequest) {
   const token = await getToken({ req });
   if (!token || token.email !== OWNER_EMAIL) {
     return NextResponse.json(
@@ -49,13 +60,32 @@ export async function GET(req: NextRequest) {
   const today    = isoToday();
   const yearOut  = isoPlusYear();
   const results: Array<Record<string, unknown>> = [];
+  const diagnostics: Record<string, unknown> = {};
 
-  // ── 1. Snapshot atual para idempotência ────────────────────────────────
-  const existingClients = await listCrmClients();
-  const existingClientNames = new Set(existingClients.map((c) => c.nome.toLowerCase().trim()));
+  // ── 1. Snapshot atual para idempotência (cada lookup isolado) ──────────
+  let existingClientNames = new Set<string>();
+  try {
+    const existingClients = await listCrmClients();
+    existingClientNames = new Set(existingClients.map((c) => c.nome.toLowerCase().trim()));
+  } catch (err) {
+    diagnostics.listCrmClients = String(err);
+  }
 
-  const existingProjectsResp = await listProjects({ bu_code: "JACQES" });
-  const existingProjectNames = new Set(existingProjectsResp.map((p) => p.project_name.toLowerCase().trim()));
+  let existingProjectNames = new Set<string>();
+  try {
+    const existingProjectsResp = await listProjects({ bu_code: "JACQES" });
+    existingProjectNames = new Set(existingProjectsResp.map((p) => p.project_name.toLowerCase().trim()));
+  } catch (err) {
+    diagnostics.listProjects = String(err);
+  }
+
+  let existingAccountNames = new Set<string>();
+  try {
+    const existingAccounts = await listAccounts({ bu: "JACQES" });
+    existingAccountNames = new Set(existingAccounts.map((a) => a.account_name.toLowerCase().trim()));
+  } catch (err) {
+    diagnostics.listAccounts = String(err);
+  }
 
   let existingAccountNames = new Set<string>();
   try {
@@ -158,6 +188,7 @@ export async function GET(req: NextRequest) {
     runBy:     token.email,
     runAt:     new Date().toISOString(),
     summary:   `${results.length} entradas processadas`,
+    diagnostics,
     results,
   });
 }
