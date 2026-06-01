@@ -11,9 +11,12 @@
 //
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
-import { createCrmClient, listCrmClients } from "@/lib/jacqes-crm-db";
 import { createProject, listProjects } from "@/lib/ppm-db";
 import { createAccount, listAccounts } from "@/lib/crm-db";
+
+// NOTA: removido o insert em jacqes_crm_clients (lib/jacqes-crm-db) — aquela
+// tabela vive no Supabase legacy (DATABASE_URL) que está inacessível em prod.
+// O CRM visível em /crm lê crm_accounts no Supabase ativo (ERP).
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -63,14 +66,6 @@ async function runSeed(req: NextRequest) {
   const diagnostics: Record<string, unknown> = {};
 
   // ── 1. Snapshot atual para idempotência (cada lookup isolado) ──────────
-  let existingClientNames = new Set<string>();
-  try {
-    const existingClients = await listCrmClients();
-    existingClientNames = new Set(existingClients.map((c) => c.nome.toLowerCase().trim()));
-  } catch (err) {
-    diagnostics.listCrmClients = String(err);
-  }
-
   let existingProjectNames = new Set<string>();
   try {
     const existingProjectsResp = await listProjects({ bu_code: "JACQES" });
@@ -87,43 +82,9 @@ async function runSeed(req: NextRequest) {
     diagnostics.listAccounts = String(err);
   }
 
-  let existingAccountNames = new Set<string>();
-  try {
-    const existingAccounts = await listAccounts({ bu: "JACQES" });
-    existingAccountNames = new Set(existingAccounts.map((a) => a.account_name.toLowerCase().trim()));
-  } catch {
-    // crm_accounts indisponível — segue sem dedupe da camada compartilhada
-  }
-
   // ── 2. Inserts ─────────────────────────────────────────────────────────
   for (const e of ENTRIES) {
     const entryResult: Record<string, unknown> = { nome: e.nome };
-
-    // CRM
-    if (existingClientNames.has(e.nome.toLowerCase().trim())) {
-      entryResult.crm = "skipped (já existe)";
-    } else {
-      try {
-        const client = await createCrmClient({
-          nome:               e.nome,
-          razao_social:       "",
-          cnpj:               "",
-          segmento:           e.segmento,
-          produto_ativo:      "Retainer mensal",
-          ticket_mensal:      e.ticket,
-          inicio_relacao:     today,
-          owner:              OWNER_NAME,
-          status_conta:       "Ativo",
-          health_score:       80,
-          churn_risk:         "Baixo",
-          potencial_expansao: 0,
-          observacoes:        `Lançado por ${OWNER_NAME} em ${today}`,
-        });
-        entryResult.crm = { id: client.id, ticket_mensal: client.ticket_mensal };
-      } catch (err) {
-        entryResult.crm = { error: String(err) };
-      }
-    }
 
     // PPM
     const projectName = `JACQES — Retainer: ${e.nome}`;
