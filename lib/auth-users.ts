@@ -91,8 +91,18 @@ export const ROLE_ALLOWED_PREFIXES: Record<Role, string[]> = {
   enrd:     ["/crm", "/awq/ppm"],               // ENRD: CRM + PPM compartilhados (BI vive sob /crm)
 };
 
+// Routes denied to specific roles even when within an allowed prefix.
+// For ENRD agency PMs we hide the enterprise-grade PPM modules
+// (capacity/EVM/risk register) — they're irrelevant for a small BU
+// and only add noise.
+const ROLE_DENY_PREFIXES: Partial<Record<Role, string[]>> = {
+  enrd: ["/awq/ppm/resources", "/awq/ppm/utilization", "/awq/ppm/profitability", "/awq/ppm/risks"],
+};
+
 export function canAccess(role: Role, pathname: string): boolean {
   if (role === "owner") return true;
+  const denied = ROLE_DENY_PREFIXES[role];
+  if (denied?.some(p => pathname === p || pathname.startsWith(p + "/"))) return false;
   const allowed = ROLE_ALLOWED_PREFIXES[role];
   return allowed.some((prefix) => prefix === "/" || pathname === prefix || pathname.startsWith(prefix + "/"));
 }
