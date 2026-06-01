@@ -11,7 +11,7 @@
 
 import { NextResponse } from "next/server";
 import { USE_DB, USE_BLOB, sql, initDB } from "@/lib/db";
-import { isCoraConfigured, isCoraJacqesConfigured } from "@/lib/cora-api";
+import { isCoraConfigured, isCoraJacqesConfigured, isCoraEnerdyConfigured } from "@/lib/cora-api";
 import { USE_SUPABASE, USE_ERP_ADMIN, erpAnon } from "@/lib/supabase";
 
 export const runtime = "nodejs";
@@ -53,6 +53,7 @@ export async function GET(): Promise<NextResponse> {
     // Cora
     coraHolding: isCoraConfigured(),
     coraJacqes:  isCoraJacqesConfigured(),
+    coraEnerdy:  isCoraEnerdyConfigured(),
   };
 
   // DB adapter priority (mirrors financial-db.ts logic)
@@ -122,7 +123,8 @@ export async function GET(): Promise<NextResponse> {
 
     // Readiness summary
     syncReady,   // true = can write Cora data to DB
-    coraReady,   // true = can call Cora API
+    coraReady,        // true = can call Cora API (AWQ Holding)
+    coraEnerdyReady: presence.coraEnerdy,  // true = ENERDY tem credenciais separadas
     allGreen: syncReady && coraReady,
   });
 }
