@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   X,
   Zap,
@@ -27,6 +28,7 @@ import {
   ChevronRight,
   ChevronLeft,
   Tag,
+  Calendar,
   GanttChart,
   Clock,
   AlertTriangle,
@@ -388,11 +390,13 @@ function BUContextBar({
   sub,
   colorClass,
   onNavigate,
+  hideBack,
 }: {
   label: string;
   sub: string;
   colorClass: string;
   onNavigate: () => void;
+  hideBack?: boolean;
 }) {
   return (
     <div className="px-3 pt-3">
@@ -402,14 +406,16 @@ function BUContextBar({
           <div className="text-xs opacity-70 truncate">{sub}</div>
         </div>
       </div>
-      <Link
-        href="/business-units"
-        onClick={onNavigate}
-        className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-brand-600 transition-colors mt-2 px-1"
-      >
-        <ChevronLeft size={12} />
-        Voltar para AWQ Group
-      </Link>
+      {!hideBack && (
+        <Link
+          href="/business-units"
+          onClick={onNavigate}
+          className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-brand-600 transition-colors mt-2 px-1"
+        >
+          <ChevronLeft size={12} />
+          Voltar para AWQ Group
+        </Link>
+      )}
     </div>
   );
 }
@@ -446,7 +452,9 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
   const cazaMode     = isCazaRoute(pathname);
   const advisorMode  = isAdvisorRoute(pathname);
   const ventureMode  = isVentureRoute(pathname);
-  const enrdMode     = isEnrdRoute(pathname);
+  const { data: session } = useSession();
+  const userRole = (session?.user as { role?: string } | undefined)?.role;
+  const enrdMode     = isEnrdRoute(pathname) || userRole === "enrd";
   const crmMode      = isCrmRoute(pathname);
   const epmMode      = isEpmRoute(pathname);
   const ppmMode      = isPpmRoute(pathname);
@@ -501,6 +509,7 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
         sub="Agência Solar · AWQ Group"
         colorClass="bg-orange-50 border-orange-200 text-orange-700"
         onNavigate={onClose}
+        hideBack={userRole === "enrd"}
       />
     );
   } else if (crmMode) {
@@ -681,25 +690,8 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
           {/* ── ENRD ─────────────────────────────────────── */}
           {enrdMode && (
             <>
-              <SectionLabel>EPM · Financeiro & Performance</SectionLabel>
-              <div className="space-y-0.5">
-                <NavLink href="/enrd/financial"              icon={DollarSign}    label="Financial (ENRD)"    active={isActive("/enrd/financial")}              onNavigate={onClose} />
-                <NavLink href="/awq/epm/pl"                  icon={LineChart}     label="P&L (DRE)"           active={isActive("/awq/epm/pl")}                  onNavigate={onClose} />
-                <NavLink href="/awq/epm/balance-sheet"       icon={Scale}         label="Balanço Patrimonial" active={isActive("/awq/epm/balance-sheet")}       onNavigate={onClose} />
-                <NavLink href="/awq/epm/budget"              icon={Target}        label="Budget vs Actual"    active={isActive("/awq/epm/budget")}              onNavigate={onClose} />
-                <NavLink href="/awq/epm/kpis"                icon={PieChart}      label="KPI Dashboard"       active={isActive("/awq/epm/kpis")}                onNavigate={onClose} />
-                <NavLink href="/awq/epm/ap"                  icon={ArrowDownLeft} label="Contas a Pagar"      active={isActive("/awq/epm/ap")}                  onNavigate={onClose} />
-                <NavLink href="/awq/epm/ar"                  icon={ArrowUpRight}  label="Contas a Receber"    active={isActive("/awq/epm/ar")}                  onNavigate={onClose} />
-                <NavLink href="/awq/epm/gl"                  icon={ListOrdered}   label="Razão Geral (GL)"    active={isActive("/awq/epm/gl")}                  onNavigate={onClose} />
-                <NavLink href="/awq/epm/bank-reconciliation" icon={Landmark}      label="Conciliação"         active={isActive("/awq/epm/bank-reconciliation")} onNavigate={onClose} />
-                <NavLink href="/awq/epm/forecast"            icon={Activity}      label="Forecast"            active={isActive("/awq/epm/forecast")}            onNavigate={onClose} />
-                <NavLink href="/awq/epm/fixed-assets"        icon={Package}       label="Ativo Imobilizado"   active={isActive("/awq/epm/fixed-assets")}        onNavigate={onClose} />
-                <NavLink href="/awq/epm/cost-centers"        icon={LayoutGrid}    label="Centros de Custo"    active={isActive("/awq/epm/cost-centers")}        onNavigate={onClose} />
-                <NavLink href="/awq/epm/periods"             icon={Lock}          label="Períodos"            active={isActive("/awq/epm/periods")}             onNavigate={onClose} />
-              </div>
               <SectionLabel>CRM · Clientes & Relacionamento</SectionLabel>
               <div className="space-y-0.5">
-                <NavLink href="/enrd/customers"    icon={Users}    label="Clientes"      active={isActive("/enrd/customers")}    onNavigate={onClose} />
                 <NavLink href="/crm"               icon={Target}   label="Dashboard CRM" active={isActive("/crm")}               onNavigate={onClose} />
                 <NavLink href="/crm/leads?bu=ENRD" icon={UserPlus} label="Leads"         active={isActive("/crm/leads")}        onNavigate={onClose} />
                 <NavLink href="/crm/pipeline"      icon={Activity} label="Pipeline"      active={isActive("/crm/pipeline")}     onNavigate={onClose} />
@@ -707,9 +699,9 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
               <SectionLabel>PPM · Projetos & Portfólio</SectionLabel>
               <div className="space-y-0.5">
                 <NavLink href="/awq/ppm?bu=ENRD"    icon={Briefcase}    label="Portfolio"    active={isActive("/awq/ppm")}            onNavigate={onClose} />
+                <NavLink href="/awq/ppm/calendar"   icon={Calendar}     label="Calendário"   active={isActive("/awq/ppm/calendar")}   onNavigate={onClose} />
                 <NavLink href="/awq/ppm/gantt"      icon={GanttChart}   label="Gantt"        active={isActive("/awq/ppm/gantt")}      onNavigate={onClose} />
                 <NavLink href="/awq/ppm/tasks"      icon={ClipboardList}label="Tarefas"      active={isActive("/awq/ppm/tasks")}      onNavigate={onClose} />
-                <NavLink href="/awq/ppm/timesheets" icon={Clock}        label="Timesheets"   active={isActive("/awq/ppm/timesheets")} onNavigate={onClose} />
               </div>
               <SectionLabel>BI · Analytics & Relatórios</SectionLabel>
               <div className="space-y-0.5">
@@ -946,11 +938,12 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
         <div className="px-4 py-4 border-t border-gray-100 shrink-0">
           <div className="flex items-center gap-3 px-1">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-awq-gold to-amber-600 flex items-center justify-center text-xs font-bold text-gray-900 shrink-0">
-              AD
+              {((session?.user as { name?: string } | undefined)?.name ?? "AD")
+                .split(" ").map(s => s[0]).join("").slice(0, 2).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
-              <span className="text-sm font-semibold text-gray-800">Admin</span>
-              <div className="text-xs text-gray-400">Administrador</div>
+              <span className="text-sm font-semibold text-gray-800">{(session?.user as { name?: string } | undefined)?.name ?? "Admin"}</span>
+              <div className="text-xs text-gray-400 capitalize">{userRole ?? "Administrador"}</div>
             </div>
           </div>
         </div>

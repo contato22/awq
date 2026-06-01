@@ -11,15 +11,16 @@ export async function GET(req: NextRequest) {
     const lockedBU = (req.headers.get("x-bu-lock") ?? undefined) as BuCode | undefined;
 
     const p = req.nextUrl.searchParams;
+    const buFilter = lockedBU ?? ((p.get("bu_code") ?? undefined) as BuCode | undefined);
     const [projects, metrics] = await Promise.all([
       listProjects({
-        bu_code:      lockedBU ?? ((p.get("bu_code") ?? undefined) as BuCode | undefined),
+        bu_code:      buFilter,
         status:       (p.get("status")       ?? undefined) as ProjectStatus | undefined,
         health_status:(p.get("health_status") ?? undefined) as HealthStatus | undefined,
         project_type: (p.get("project_type") ?? undefined) as ProjectType | undefined,
         search:        p.get("search")       ?? undefined,
       }),
-      getPortfolioMetrics(),
+      getPortfolioMetrics({ bu_code: buFilter }),
     ]);
     return ok({ projects, metrics });
   } catch (e) {
@@ -29,7 +30,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const lockedBU = (req.headers.get("x-bu-lock") ?? undefined) as BuCode | undefined;
     const body = await req.json();
+    if (lockedBU) body.bu_code = lockedBU;
     const { project_name, bu_code, project_type, contract_type, start_date, planned_end_date, budget_cost, budget_revenue } = body;
 
     if (!project_name)    return err("project_name is required");

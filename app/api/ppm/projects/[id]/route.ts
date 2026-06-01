@@ -5,6 +5,7 @@ import {
   listTimeEntries, listRisks, listIssues,
   SEED_PROJECTS,
 } from "@/lib/ppm-db";
+import type { BuCode } from "@/lib/ppm-types";
 
 export function generateStaticParams() {
   return SEED_PROJECTS.map(p => ({ id: p.project_id }));
@@ -13,11 +14,14 @@ export function generateStaticParams() {
 function ok(data: unknown)          { return NextResponse.json({ success: true,  data }); }
 function err(msg: string, s = 400)  { return NextResponse.json({ success: false, error: msg }, { status: s }); }
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const { id } = params;
-    const [project, tasks, milestones, allocations, timeEntries, risks, issues] = await Promise.all([
-      getProject(id),
+    const lockedBU = (req.headers.get("x-bu-lock") ?? undefined) as BuCode | undefined;
+    const project = await getProject(id);
+    if (!project) return err("Project not found", 404);
+    if (lockedBU && project.bu_code !== lockedBU) return err("Project not found", 404);
+    const [tasks, milestones, allocations, timeEntries, risks, issues] = await Promise.all([
       listTasks(id),
       listMilestones(id),
       listAllocations(id),
@@ -25,7 +29,6 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       listRisks(id),
       listIssues(id),
     ]);
-    if (!project) return err("Project not found", 404);
     return ok({ project, tasks, milestones, allocations, timeEntries, risks, issues });
   } catch (e) {
     return err((e as Error).message, 500);

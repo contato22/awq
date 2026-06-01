@@ -527,32 +527,17 @@ const VENTURE_MODULES: BUModule[] = [
 ];
 
 const ENRD_MODULES: BUModule[] = [
-    { id: "epm", label: "EPM", description: "Financeiro & Performance",  icon: DollarSign, items: [
-        { label: "Financial (ENRD)",    href: "/enrd/financial",              icon: DollarSign    },
-        { label: "P&L (DRE)",           href: "/awq/epm/pl",                  icon: LineChart     },
-        { label: "Balanço Patrimonial", href: "/awq/epm/balance-sheet",       icon: Scale         },
-        { label: "Budget vs Actual",    href: "/awq/epm/budget",              icon: Target        },
-        { label: "KPI Dashboard",       href: "/awq/epm/kpis",                icon: PieChart      },
-        { label: "Contas a Pagar",      href: "/awq/epm/ap",                  icon: ArrowDownLeft },
-        { label: "Contas a Receber",    href: "/awq/epm/ar",                  icon: ArrowUpRight  },
-        { label: "Razão Geral (GL)",    href: "/awq/epm/gl",                  icon: ListOrdered   },
-        { label: "Conciliação",         href: "/awq/epm/bank-reconciliation", icon: Landmark      },
-        { label: "Forecast",            href: "/awq/epm/forecast",            icon: Activity      },
-        { label: "Ativo Imobilizado",   href: "/awq/epm/fixed-assets",        icon: Package       },
-        { label: "Centros de Custo",    href: "/awq/epm/cost-centers",        icon: LayoutGrid    },
-        { label: "Períodos",            href: "/awq/epm/periods",             icon: Lock          },
-    ]},
     { id: "crm", label: "CRM", description: "Clientes & Relacionamento", icon: Users,      items: [
-        { label: "Clientes",      href: "/enrd/customers",     icon: Users    },
         { label: "Dashboard CRM", href: "/crm",                icon: Target   },
         { label: "Leads",         href: "/crm/leads?bu=ENRD",  icon: UserPlus },
         { label: "Pipeline",      href: "/crm/pipeline",       icon: Activity },
     ]},
     { id: "ppm", label: "PPM", description: "Projetos & Portfólio",      icon: Briefcase,  items: [
-        { label: "Portfolio",      href: "/awq/ppm?bu=ENRD",     icon: Briefcase     },
-        { label: "Gantt",          href: "/awq/ppm/gantt",       icon: GanttChart    },
-        { label: "Tarefas",        href: "/awq/ppm/tasks",       icon: ClipboardList },
-        { label: "Novo Projeto",   href: "/awq/ppm/add?bu=ENRD", icon: FolderOpen    },
+        { label: "Portfolio",      href: "/awq/ppm?bu=ENRD",      icon: Briefcase     },
+        { label: "Calendário",     href: "/awq/ppm/calendar",     icon: Calendar      },
+        { label: "Gantt",          href: "/awq/ppm/gantt",        icon: GanttChart    },
+        { label: "Tarefas",        href: "/awq/ppm/tasks",        icon: ClipboardList },
+        { label: "Novo Projeto",   href: "/awq/ppm/add?bu=ENRD",  icon: FolderOpen    },
     ]},
     { id: "bi", label: "BI", description: "Analytics & Relatórios",       icon: PieChart,   items: [
         { label: "Analytics", href: "/crm/analytics", icon: BarChart3 },
@@ -1147,14 +1132,17 @@ function AwqVentureSidebar({ pathname }: { pathname: string }) {
 }
 
 function EnrdSidebar({ pathname }: { pathname: string }) {
-    return <BUSidebar buId="enrd" label="ENRD" homeHref="/enrd" headerIcon={Zap} modules={ENRD_MODULES} pathname={pathname} />;
+    return <BUSidebar buId="enrd" label="ENRD" homeHref="/awq/ppm?bu=ENRD" headerIcon={Zap} modules={ENRD_MODULES} pathname={pathname} />;
 }
 
 // ── Root Sidebar ──────────────────────────────────────────────────────────────
 export default function Sidebar() {
     const rawPathname = usePathname();
     const pathname = rawPathname ?? "";
+    const { data: session } = useSession();
+    const role = (session?.user as { role?: string } | undefined)?.role;
 
+    if (role === "enrd")          return <div className="flex flex-col h-full"><EnrdSidebar pathname={pathname} /></div>;
     if (isJacqesRoute(pathname))  return <div className="flex flex-col h-full"><JacqesSidebar pathname={pathname} /></div>;
     if (isCazaRoute(pathname))    return <div className="flex flex-col h-full"><CazaSidebar pathname={pathname} /></div>;
     if (isAdvisorRoute(pathname)) return <div className="flex flex-col h-full"><AdvisorSidebar pathname={pathname} /></div>;
