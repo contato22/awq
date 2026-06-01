@@ -67,6 +67,15 @@ export const USERS: AuthUser[] = [
     role: "enrd",
     homeRoute: "/enrd",
   },
+  {
+    // Owner da BU JACQES — corresponde à conta Cora "JACQES" (entity JACQES em lib/cora-api.ts).
+    id: "8",
+    name: "Danilo Jaques Jacinto",
+    email: "awqmac@gmail.com",
+    passwordHash: "$2b$10$yND0CGXI9V34.YNNAQMZceFgQd75ORehzXwgz2WXRHlUPbXLC1yvy",
+    role: "admin",
+    homeRoute: "/jacqes",
+  },
 ];
 
 // ── RBAC route prefixes ───────────────────────────────────────────────────────
