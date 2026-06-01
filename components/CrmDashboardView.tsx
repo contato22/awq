@@ -23,6 +23,7 @@ const BU_LABELS: Record<string, string> = {
   CAZA: "Caza Vision",
   ADVISOR: "Advisor",
   VENTURE: "AWQ Venture",
+  ENRD: "ENRD",
 };
 
 const OUTCOME_LABELS: Record<string, string> = {
@@ -64,6 +65,7 @@ function BuBadge({ bu }: { bu: string }) {
   if (bu === "JACQES") return <span className="badge badge-blue text-xs">{bu}</span>;
   if (bu === "CAZA")   return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-brand-50 text-brand-700 ring-1 ring-brand-200/60">{bu}</span>;
   if (bu === "ADVISOR")return <span className="badge badge-green text-xs">{bu}</span>;
+  if (bu === "ENRD")   return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 ring-1 ring-purple-200/60">{bu}</span>;
   return <span className="badge badge-yellow text-xs">{bu}</span>;
 }
 
@@ -104,7 +106,7 @@ function KpiCard({ label, value, icon: Icon, iconColor, iconBg, sub }: KpiCardPr
 }
 
 // ─── BU filter options ────────────────────────────────────────────────────────
-const BUS = ["Todos", "JACQES", "CAZA", "ADVISOR", "VENTURE"] as const;
+const BUS = ["Todos", "JACQES", "CAZA", "ENRD", "ADVISOR", "VENTURE"] as const;
 type BuFilter = typeof BUS[number];
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -124,6 +126,7 @@ export default function CrmDashboardView({ buFilter: externalBu }: Props) {
   const [opps, setOpps] = useState<CrmOpportunity[]>([]);
   const [activities, setActivities] = useState<CrmActivity[]>([]);
   const [analytics, setAnalytics] = useState<Record<string, number>>({});
+  const [byBU, setByBU] = useState<Record<string, { count: number; value: number; weighted: number }>>({});
   const [loading, setLoading] = useState(true);
   const [isStatic, setIsStatic] = useState(false);
 
@@ -157,6 +160,15 @@ export default function CrmDashboardView({ buFilter: externalBu }: Props) {
 
       setOpps(filteredOpps as CrmOpportunity[]);
       setActivities(filteredActs as CrmActivity[]);
+      const buAgg: Record<string, { count: number; value: number; weighted: number }> = {};
+      for (const o of allOpps) {
+        if (o.stage === "closed_won" || o.stage === "closed_lost") continue;
+        const b = (buAgg[o.bu] ??= { count: 0, value: 0, weighted: 0 });
+        b.count++;
+        b.value += o.deal_value;
+        b.weighted += o.deal_value * o.probability / 100;
+      }
+      setByBU(buAgg);
       setAnalytics({
         leadsNew: bf ? (filteredOpps.length > 0 ? 1 : 0) : 3,
         openOpportunities: openSeed.length,
@@ -192,6 +204,7 @@ export default function CrmDashboardView({ buFilter: externalBu }: Props) {
           const allOpps = (Object.values(pipeJson.data.byStage as Record<string, CrmOpportunity[]>).flat())
             .filter((o: CrmOpportunity) => !buFilter || o.bu === buFilter);
           setOpps(allOpps);
+          setByBU((analJson.data.byBU ?? {}) as Record<string, { count: number; value: number; weighted: number }>);
           const filteredActs = (actJson.data as CrmActivity[]).filter(
             (a) => !buFilter || a.related_to_type !== "opportunity" || allOpps.some(o => o.opportunity_id === a.related_to_id)
           );
@@ -353,6 +366,49 @@ export default function CrmDashboardView({ buFilter: externalBu }: Props) {
             })}
           </div>
         </div>
+
+        {/* ── Pipeline por BU ───────────────────────────────────────────────── */}
+        {!buFilter && Object.keys(byBU).length > 0 && (() => {
+          const buEntries = Object.entries(byBU)
+            .filter(([, b]) => b.count > 0 || b.value > 0)
+            .sort((a, b) => b[1].value - a[1].value);
+          if (buEntries.length === 0) return null;
+          const maxBuVal = Math.max(...buEntries.map(([, b]) => b.value), 1);
+          return (
+            <div className="card p-5">
+              <SectionHeader
+                icon={<Users size={15} />}
+                title="Pipeline por Business Unit"
+              />
+              <div className="space-y-3">
+                {buEntries.map(([code, b]) => {
+                  const pct = (b.value / maxBuVal) * 100;
+                  return (
+                    <div key={code} className="flex items-center gap-3">
+                      <div className="w-28 shrink-0 text-right">
+                        <BuBadge bu={code} />
+                      </div>
+                      <div className="flex-1 h-7 bg-gray-100 rounded-lg overflow-hidden relative">
+                        <div
+                          className="h-full rounded-lg bg-brand-500 transition-all duration-700"
+                          style={{ width: `${Math.max(pct, b.count > 0 ? 3 : 0)}%` }}
+                        />
+                        {b.count > 0 && (
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-white">
+                            {b.count} deal{b.count !== 1 ? "s" : ""} · forecast {formatBRL(Math.round(b.weighted))}
+                          </span>
+                        )}
+                      </div>
+                      <div className="w-28 shrink-0 text-right">
+                        <span className="text-xs font-semibold text-gray-700">{formatBRL(b.value)}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* ── Two columns ───────────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
