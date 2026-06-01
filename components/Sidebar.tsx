@@ -466,11 +466,18 @@ const JACQES_MODULES: BUModule[] = [
         { label: "Relatórios",  href: "/jacqes/reports",        icon: FileText   },
     ]},
     { id: "crm",  label: "CRM",    description: "Vendas & Relacionamento",  icon: Users,      items: [
-        { label: "Dashboard CRM",  href: "/crm",               icon: Target       },
-        { label: "Leads",          href: "/crm/leads",         icon: UserPlus     },
-        { label: "Pipeline",       href: "/crm/pipeline",      icon: Activity     },
-        { label: "Clientes",       href: "/crm/customers",     icon: Users        },
-        { label: "Oportunidades",  href: "/crm/opportunities", icon: ArrowUpRight },
+        { label: "Dashboard CRM",  href: "/crm",                     icon: Target       },
+        { label: "Leads",          href: "/crm/leads?bu=JACQES",     icon: UserPlus     },
+        { label: "Pipeline",       href: "/crm/pipeline",            icon: Activity     },
+        { label: "Clientes",       href: "/crm/accounts",            icon: Users        },
+        { label: "Oportunidades",  href: "/crm/opportunities",       icon: ArrowUpRight },
+    ]},
+    { id: "ppm",  label: "PPM",    description: "Projetos & Portfólio",     icon: Briefcase,  items: [
+        { label: "Portfolio",      href: "/awq/ppm?bu=JACQES",       icon: Briefcase     },
+        { label: "Calendário",     href: "/awq/ppm/calendar",        icon: Calendar      },
+        { label: "Gantt",          href: "/awq/ppm/gantt",           icon: GanttChart    },
+        { label: "Tarefas",        href: "/awq/ppm/tasks",           icon: ClipboardList },
+        { label: "Novo Projeto",   href: "/awq/ppm/add?bu=JACQES",   icon: FolderOpen    },
     ]},
     { id: "bi",   label: "BI",     description: "Analytics & Relatórios",   icon: PieChart,   items: [
         { label: "Mini P&L",       href: "/jacqes/pl",             icon: LineChart  },

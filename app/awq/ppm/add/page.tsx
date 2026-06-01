@@ -50,7 +50,9 @@ function AddProjectPageInner() {
   const searchParams = useSearchParams();
   const { data: session } = useSession();
   const sessionUser = session?.user as { name?: string; role?: string } | undefined;
-  const defaultBU   = sessionUser?.role === "enrd" ? "ENRD" : "CAZA";
+  const defaultBU   = sessionUser?.role === "enrd" ? "ENRD"
+                    : sessionUser?.role === "jacqes" ? "JACQES"
+                    : "CAZA";
   const defaultPM   = sessionUser?.name ?? "Miguel";
   const [saving, setSaving] = useState(false);
   const [error,  setError]  = useState("");
@@ -109,7 +111,9 @@ function AddProjectPageInner() {
     const buFromUrl = searchParams?.get("bu");
     setForm(f => ({
       ...f,
-      bu_code: buFromUrl ?? (sessionUser.role === "enrd" ? "ENRD" : f.bu_code),
+      bu_code: buFromUrl ?? (sessionUser.role === "enrd" ? "ENRD"
+                          : sessionUser.role === "jacqes" ? "JACQES"
+                          : f.bu_code),
       project_manager: f.project_manager === "Miguel" && sessionUser.name ? sessionUser.name : f.project_manager,
     }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -216,6 +220,10 @@ function AddProjectPageInner() {
               <Field label="Business Unit" required>
                 {sessionUser?.role === "enrd" ? (
                   <div className={`${INPUT} flex items-center bg-orange-50 border-orange-200 text-orange-700 font-semibold`}>
+                    {form.bu_code}
+                  </div>
+                ) : sessionUser?.role === "jacqes" ? (
+                  <div className={`${INPUT} flex items-center bg-brand-50 border-brand-200 text-brand-700 font-semibold`}>
                     {form.bu_code}
                   </div>
                 ) : (
