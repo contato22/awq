@@ -66,11 +66,12 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   }
   // ENERDY deliberadamente excluída do cron consolidado — entidade separada
 
-  // ── Busca transações já salvas para deduplicar ────────────────────────────────
-  let existingIds = new Set<string>();
+  // ── Busca transações já salvas para deduplicar e corrigir datas UTC→BRT ────────
+  // Mapa id → transactionDate para detectar datas gravadas erradas (UTC em vez de BRT)
+  let existingDates = new Map<string, string>();
   try {
     const existing = await getAllTransactions();
-    existingIds = new Set(existing.map((t) => t.id));
+    existingDates = new Map(existing.map((t) => [t.id, t.transactionDate]));
   } catch {
     // Primeira execução — sem histórico ainda
   }
@@ -91,10 +92,14 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
       for (const entry of coraEntries) {
         const txId = `cora-${entry.id}`;
-        if (existingIds.has(txId)) {
+        const storedDate = existingDates.get(txId);
+        if (storedDate !== undefined && storedDate === entry.date) {
+          // Mesma data → sem mudança, pular
           skipped++;
           continue;
         }
+        // storedDate undefined → novo lançamento
+        // storedDate !== entry.date → data errada (UTC vs BRT), corrigir via upsert
 
         const cls = classifyTransaction(entry.description, entry.amount, entry.direction, acc.entity);
 
@@ -128,7 +133,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
           classifiedAt:             cls.category !== "unclassified" ? now : null,
         });
 
-        existingIds.add(txId);
+        existingDates.set(txId, entry.date);
       }
 
       if (newTxns.length > 0) {

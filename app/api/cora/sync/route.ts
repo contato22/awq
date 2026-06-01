@@ -117,7 +117,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   // ── Deduplication ———————————————————————————————————————————————————————————
   let existing: Awaited<ReturnType<typeof getAllTransactions>> = [];
   try { existing = await getAllTransactions(); } catch { /* no prior transactions */ }
-  const existingIds = new Set(existing.map((t) => t.id));
+  const existingDates = new Map(existing.map((t) => [t.id, t.transactionDate]));
 
   const docId = `cora-api-${startDate}-${endDate}`;
   const now   = new Date().toISOString();
@@ -127,8 +127,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   for (const entry of coraEntries) {
     const txId = `cora-${entry.id}`;
-    // force=true bypasses dedup so existing Cora entries are re-imported with correct values
-    if (!force && existingIds.has(txId)) { skipped++; continue; }
+    // force=true ou data errada (UTC vs BRT) → upsert para corrigir
+    const storedDate = existingDates.get(txId);
+    if (!force && storedDate !== undefined && storedDate === entry.date) { skipped++; continue; }
 
     const classification = classifyTransaction(
       entry.description,

@@ -58,7 +58,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   let existing: Awaited<ReturnType<typeof getAllTransactions>> = [];
   try { existing = await getAllTransactions(); } catch { /* no prior transactions */ }
-  const existingIds = new Set(existing.map((t) => t.id));
+  // Map id → transactionDate para detectar e corrigir datas UTC gravadas erradas
+  const existingDates = new Map(existing.map((t) => [t.id, t.transactionDate]));
 
   const now    = new Date().toISOString();
   const results: AccountResult[] = [];
@@ -75,7 +76,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
       for (const entry of coraEntries) {
         const txId = `cora-${entry.id}`;
-        if (existingIds.has(txId)) { skipped++; continue; }
+        const storedDate = existingDates.get(txId);
+        if (storedDate !== undefined && storedDate === entry.date) { skipped++; continue; }
+        // storedDate !== entry.date → data UTC gravada errada, corrigir via upsert
 
         const cls = classifyTransaction(entry.description, entry.amount, entry.direction, acc.entity);
 
@@ -107,7 +110,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           classifiedAt:            cls.category !== "unclassified" ? now : null,
         });
 
-        existingIds.add(txId);
+        existingDates.set(txId, entry.date);
       }
 
       if (newTxns.length > 0) {
