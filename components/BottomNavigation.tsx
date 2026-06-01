@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { useState } from "react";
 import {
   LayoutDashboard,
@@ -13,6 +14,9 @@ import {
   ShoppingCart,
   Wallet,
   ClipboardList,
+  Briefcase,
+  Calendar,
+  Users,
   Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -142,9 +146,31 @@ function AwqBottomNav({ pathname }: { pathname: string }) {
   );
 }
 
+const ENRD_TABS: NavTab[] = [
+  { label: "Projetos",   href: "/awq/ppm?bu=ENRD",  icon: Briefcase,     match: (p) => p === "/awq/ppm" },
+  { label: "Calendário", href: "/awq/ppm/calendar", icon: Calendar,      match: (p) => p.startsWith("/awq/ppm/calendar") },
+  { label: "Tarefas",    href: "/awq/ppm/tasks",    icon: ClipboardList, match: (p) => p.startsWith("/awq/ppm/tasks") },
+  { label: "CRM",        href: "/crm",              icon: Users,         match: (p) => p.startsWith("/crm") },
+];
+
 export default function BottomNavigation() {
   const rawPathname = usePathname();
   const pathname = rawPathname ?? "";
+  const { data: session } = useSession();
+  const role = (session?.user as { role?: string } | undefined)?.role;
+
+  if (role === "enrd") {
+    return (
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 safe-area-bottom">
+        <div className="flex items-stretch">
+          {ENRD_TABS.map((tab) => (
+            <NavLink key={tab.href} tab={tab} pathname={pathname} />
+          ))}
+        </div>
+      </nav>
+    );
+  }
+
   const ctx = getContext(pathname);
 
   if (ctx === "awq") {

@@ -11,8 +11,8 @@ export async function GET(req: NextRequest) {
     const lockedBU = (req.headers.get("x-bu-lock") ?? undefined) as BuCode | undefined;
 
     const [metrics, utilization, projects] = await Promise.all([
-      getPortfolioMetrics(),
-      getResourceUtilization(),
+      getPortfolioMetrics({ bu_code: lockedBU }),
+      getResourceUtilization({ bu_code: lockedBU }),
       listProjects(lockedBU ? { bu_code: lockedBU } : {}),
     ]);
 

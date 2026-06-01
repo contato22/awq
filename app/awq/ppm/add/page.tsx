@@ -4,6 +4,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { ArrowLeft, Save, Briefcase, ExternalLink } from "lucide-react";
 
@@ -47,13 +48,17 @@ const INPUT = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:
 function AddProjectPageInner() {
   const router       = useRouter();
   const searchParams = useSearchParams();
+  const { data: session } = useSession();
+  const sessionUser = session?.user as { name?: string; role?: string } | undefined;
+  const defaultBU   = sessionUser?.role === "enrd" ? "ENRD" : "CAZA";
+  const defaultPM   = sessionUser?.name ?? "Miguel";
   const [saving, setSaving] = useState(false);
   const [error,  setError]  = useState("");
   const [form, setForm] = useState({
     project_name:     "",
     customer_name:    "",
     opportunity_id:   "",
-    bu_code:          "CAZA",
+    bu_code:          defaultBU,
     project_type:     "one_off",
     service_category: "video_production",
     contract_type:    "fixed_price",
@@ -62,7 +67,7 @@ function AddProjectPageInner() {
     budget_hours:     "",
     budget_cost:      "",
     budget_revenue:   "",
-    project_manager:  "Miguel",
+    project_manager:  defaultPM,
     priority:         "medium",
     description:      "",
     objectives:       "",
@@ -96,6 +101,19 @@ function AddProjectPageInner() {
       }));
     }
   }, [searchParams]);
+
+  // Re-apply session-derived defaults once the client session arrives
+  // (initial SSR render has no session, so defaultBU/defaultPM fall back to CAZA/Miguel).
+  useEffect(() => {
+    if (!sessionUser) return;
+    const buFromUrl = searchParams?.get("bu");
+    setForm(f => ({
+      ...f,
+      bu_code: buFromUrl ?? (sessionUser.role === "enrd" ? "ENRD" : f.bu_code),
+      project_manager: f.project_manager === "Miguel" && sessionUser.name ? sessionUser.name : f.project_manager,
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionUser?.role, sessionUser?.name]);
 
   if (IS_STATIC) {
     return (
@@ -196,9 +214,15 @@ function AddProjectPageInner() {
                 <input value={form.customer_name} onChange={set("customer_name")} placeholder="Nome do cliente" className={INPUT} />
               </Field>
               <Field label="Business Unit" required>
-                <select value={form.bu_code} onChange={set("bu_code")} className={INPUT}>
-                  {BU_OPTIONS.map(b => <option key={b} value={b}>{b}</option>)}
-                </select>
+                {sessionUser?.role === "enrd" ? (
+                  <div className={`${INPUT} flex items-center bg-orange-50 border-orange-200 text-orange-700 font-semibold`}>
+                    {form.bu_code}
+                  </div>
+                ) : (
+                  <select value={form.bu_code} onChange={set("bu_code")} className={INPUT}>
+                    {BU_OPTIONS.map(b => <option key={b} value={b}>{b}</option>)}
+                  </select>
+                )}
               </Field>
             </div>
             <div className="grid grid-cols-3 gap-4">
@@ -257,16 +281,21 @@ function AddProjectPageInner() {
           <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm space-y-4">
             <h2 className="text-sm font-bold text-gray-800 uppercase tracking-wide border-b border-gray-100 pb-2">Financeiro</h2>
             <div className="grid grid-cols-3 gap-4">
-              <Field label="Revenue Orçado (R$)" required>
-                <input type="number" value={form.budget_revenue} onChange={set("budget_revenue")} placeholder="320000" className={INPUT} />
+              <Field label={form.project_type === "retainer" ? "Revenue Mensal · MRR (R$)" : "Revenue Orçado (R$)"} required>
+                <input type="number" value={form.budget_revenue} onChange={set("budget_revenue")} placeholder={form.project_type === "retainer" ? "1500" : "320000"} className={INPUT} />
               </Field>
-              <Field label="Custo Orçado (R$)" required>
-                <input type="number" value={form.budget_cost} onChange={set("budget_cost")} placeholder="85000" className={INPUT} />
+              <Field label={form.project_type === "retainer" ? "Custo Mensal de Entrega (R$)" : "Custo Orçado (R$)"} required>
+                <input type="number" value={form.budget_cost} onChange={set("budget_cost")} placeholder={form.project_type === "retainer" ? "0" : "85000"} className={INPUT} />
               </Field>
-              <Field label="Horas Orçadas">
-                <input type="number" value={form.budget_hours} onChange={set("budget_hours")} placeholder="240" className={INPUT} />
+              <Field label={form.project_type === "retainer" ? "Horas/Mês" : "Horas Orçadas"}>
+                <input type="number" value={form.budget_hours} onChange={set("budget_hours")} placeholder={form.project_type === "retainer" ? "20" : "240"} className={INPUT} />
               </Field>
             </div>
+            {form.project_type === "retainer" && (
+              <div className="bg-violet-50 border border-violet-200 rounded-lg px-4 py-2 text-xs text-violet-700">
+                Em projetos retainer, o "Revenue Mensal" é o MRR. O valor total do contrato é calculado como MRR × meses entre início e término.
+              </div>
+            )}
             {marginPct && (
               <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-2 text-sm text-emerald-700">
                 Margem projetada: <strong>{marginPct}%</strong>
