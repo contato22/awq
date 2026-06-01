@@ -384,7 +384,7 @@ export default async function AwqInvestmentsPage() {
   return (
     <>
       <Header
-        title="Investimentos — AWQ Group"
+        title="Investimentos"
         subtitle={`Aplicações e resgates financeiros · Patrimônio segregado · ${periodLabel}`}
       />
       <div className="page-container">

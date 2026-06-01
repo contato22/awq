@@ -152,7 +152,7 @@ function DreWaterfall({ dre, snapRevenue, snap }: { dre: DreResult; snapRevenue:
   return (
     <div className="card p-5 lg:p-6 space-y-1">
       <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">
-        <span className="text-base font-bold text-gray-900">DRE Gerencial — AWQ Group Consolidado</span>
+        <span className="text-base font-bold text-gray-900">DRE Gerencial Consolidado</span>
         <span className="text-xs text-gray-400">
           {dre.hasData
             ? `${dre.periodStart?.slice(0,7)} → ${dre.periodEnd?.slice(0,7)}`

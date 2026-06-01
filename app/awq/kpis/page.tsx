@@ -101,7 +101,7 @@ export default async function AwqKpisPage() {
   return (
     <>
       <Header
-        title="KPIs — AWQ Group"
+        title="KPIs"
         subtitle="Scorecard consolidado · Visão de Caixa (real) + Accrual (snapshot)"
       />
       <div className="page-container">
