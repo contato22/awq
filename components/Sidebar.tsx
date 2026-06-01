@@ -1109,7 +1109,9 @@ function BUSidebar({
 
 // ── BU sidebar wrappers ───────────────────────────────────────────────────────
 function JacqesSidebar({ pathname }: { pathname: string }) {
-    return <BUSidebar buId="jacqes" label="JACQES" homeHref="/jacqes" headerIcon={BarChart3} modules={JACQES_MODULES} pathname={pathname} />;
+    const { data: session } = useSession();
+    const isJacqesOnly = (session?.user as { role?: string } | undefined)?.role === "jacqes";
+    return <BUSidebar buId="jacqes" label="JACQES" homeHref="/jacqes" headerIcon={BarChart3} modules={JACQES_MODULES} pathname={pathname} showBack={!isJacqesOnly} />;
 }
 
 function CazaSidebar({ pathname }: { pathname: string }) {
@@ -1143,6 +1145,7 @@ export default function Sidebar() {
     const role = (session?.user as { role?: string } | undefined)?.role;
 
     if (role === "enrd")          return <div className="flex flex-col h-full"><EnrdSidebar pathname={pathname} /></div>;
+    if (role === "jacqes")        return <div className="flex flex-col h-full"><JacqesSidebar pathname={pathname} /></div>;
     if (isJacqesRoute(pathname))  return <div className="flex flex-col h-full"><JacqesSidebar pathname={pathname} /></div>;
     if (isCazaRoute(pathname))    return <div className="flex flex-col h-full"><CazaSidebar pathname={pathname} /></div>;
     if (isAdvisorRoute(pathname)) return <div className="flex flex-col h-full"><AdvisorSidebar pathname={pathname} /></div>;

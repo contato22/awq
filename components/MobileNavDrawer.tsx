@@ -448,12 +448,12 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
 
-  const jacqesMode   = isJacqesRoute(pathname);
+  const { data: session } = useSession();
+  const userRole = (session?.user as { role?: string } | undefined)?.role;
+  const jacqesMode   = isJacqesRoute(pathname) || userRole === "jacqes";
   const cazaMode     = isCazaRoute(pathname);
   const advisorMode  = isAdvisorRoute(pathname);
   const ventureMode  = isVentureRoute(pathname);
-  const { data: session } = useSession();
-  const userRole = (session?.user as { role?: string } | undefined)?.role;
   const enrdMode     = isEnrdRoute(pathname) || userRole === "enrd";
   const crmMode      = isCrmRoute(pathname);
   const epmMode      = isEpmRoute(pathname);
@@ -473,6 +473,7 @@ export default function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps)
         sub="Agência · AWQ Group"
         colorClass="bg-brand-50 border-brand-200 text-brand-700"
         onNavigate={onClose}
+        hideBack={userRole === "jacqes"}
       />
     );
   } else if (cazaMode) {
