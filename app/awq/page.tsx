@@ -226,7 +226,8 @@ export default async function AwqGroupPage() {
         due_date: i.due_date,
         type: "AR" as const,
         days_overdue: Math.floor((Date.parse(today) - Date.parse(i.due_date)) / 86400000),
-      }));
+      }))
+      .filter((o) => o.amount > 0.005);
     const overdueAP = apItems
       .filter((i) => (i.status === "PENDING" || i.status === "SCHEDULED" || i.status === "OVERDUE") && i.due_date < today)
       .map((i) => ({
@@ -236,7 +237,8 @@ export default async function AwqGroupPage() {
         due_date: i.due_date,
         type: "AP" as const,
         days_overdue: Math.floor((Date.parse(today) - Date.parse(i.due_date)) / 86400000),
-      }));
+      }))
+      .filter((o) => o.amount > 0.005);
 
     mobileOverdueItems = [...overdueAR, ...overdueAP]
       .sort((a, b) => b.days_overdue - a.days_overdue);
@@ -270,12 +272,17 @@ export default async function AwqGroupPage() {
     ? `${q.consolidated.periodStart.slice(0, 7)} → ${q.consolidated.periodEnd.slice(0, 7)}`
     : "Período não definido";
 
+  // Mobile home shows the Cora Holding (AWQ_Holding) balance only — not the
+  // consolidated group total, so the saldo matches the Cora app exactly.
+  const holdingEntity = q.entities.find((e) => e.entity === "AWQ_Holding");
+  const mobileCashBalance = holdingEntity?.totalCashBalance ?? 0;
+
   return (
     <>
       {/* ── Mobile home (Conta Azul / Cora-style) ─────────────────── */}
       <MobileHomeAwq
         companyName="AWQ Group"
-        cashBalance={q.consolidated.totalCashBalance}
+        cashBalance={mobileCashBalance}
         pendingRequestsCount={mobilePendingCount}
         todayReceivable={mobileTodayReceivable}
         todayPayable={mobileTodayPayable}

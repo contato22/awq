@@ -6,20 +6,30 @@ import {
   Eye,
   EyeOff,
   UserCircle2,
-  ChevronDown,
-  ChevronRight,
   ArrowUp,
   ArrowDown,
   DollarSign,
   AlertCircle,
+  ChevronRight,
 } from "lucide-react";
+
+/**
+ * Brazilian Real formatter.
+ *  < R$ 100k  → "R$ 8.485,00"  (full, with cents)
+ *  < R$ 1mi   → "R$ 85,5 mil"
+ *  < R$ 1bi   → "R$ 1,2 mi"
+ *  >= R$ 1bi  → "R$ 1,5 bi"
+ */
 function fmtBRL(n: number): string {
-  const abs  = Math.abs(n);
+  const abs = Math.abs(n);
   const sign = n < 0 ? "-" : "";
-  if (abs >= 1_000_000_000) return sign + "R$" + (abs / 1_000_000_000).toFixed(2) + "B";
-  if (abs >= 1_000_000)     return sign + "R$" + (abs / 1_000_000).toFixed(2) + "M";
-  if (abs >= 1_000)         return sign + "R$" + (abs / 1_000).toFixed(1) + "K";
-  return sign + "R$" + abs.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (abs >= 1_000_000_000)
+    return sign + "R$ " + (abs / 1_000_000_000).toLocaleString("pt-BR", { maximumFractionDigits: 2 }) + " bi";
+  if (abs >= 1_000_000)
+    return sign + "R$ " + (abs / 1_000_000).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + " mi";
+  if (abs >= 100_000)
+    return sign + "R$ " + (abs / 1_000).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + " mil";
+  return sign + "R$ " + abs.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 export interface OverdueItem {
@@ -47,6 +57,17 @@ function dispatchDrawer() {
   }
 }
 
+/**
+ * Mobile home that mirrors the Conta Azul Pro reference exactly:
+ * a short teal header strip (company name + eye + user), then stacked white
+ * cards on a gray page — Saldo + solicitações in one card, "Sua empresa hoje"
+ * in another, "Em atraso" last.
+ *
+ * Teal hex picked to match Conta Azul's brand strip in the reference image.
+ */
+const TEAL = "#2DBFEB";
+const TEAL_LINK = "text-[#0EA5C9]";
+
 export default function MobileHomeAwq({
   companyName,
   cashBalance,
@@ -58,41 +79,42 @@ export default function MobileHomeAwq({
 }: Props) {
   const [hidden, setHidden] = useState(false);
   const fmt = (v: number) => (hidden ? "R$ ••••••" : fmtBRL(v));
+  const hasOverdue = overdueItems.length > 0;
 
   return (
     <div className="lg:hidden flex flex-col bg-gray-50 min-h-screen -mt-px">
-      {/* ── Header azul ──────────────────────────────────────────── */}
-      <div className="bg-gradient-to-b from-brand-600 to-brand-700 px-4 pt-5 pb-10 text-white relative">
-        <div className="flex items-center justify-between">
+      {/* ── Teal header strip (Conta Azul style) ─────────────────── */}
+      <div
+        className="px-4 py-4 text-white flex items-center justify-between"
+        style={{ backgroundColor: TEAL }}
+      >
+        <button
+          onClick={dispatchDrawer}
+          className="text-sm font-semibold -ml-1 px-1 py-1 rounded-lg active:bg-white/10"
+        >
+          {companyName}
+        </button>
+        <div className="flex items-center gap-1">
           <button
-            onClick={() => {/* future: entity selector */}}
-            className="flex items-center gap-1.5 -ml-1 px-1.5 py-1 rounded-lg active:bg-white/10"
+            onClick={() => setHidden((h) => !h)}
+            className="p-2 rounded-lg active:bg-white/10"
+            aria-label={hidden ? "Mostrar valores" : "Ocultar valores"}
           >
-            <span className="text-base font-semibold">{companyName}</span>
-            <ChevronDown size={16} className="opacity-80" />
+            {hidden ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setHidden((h) => !h)}
-              className="p-2 rounded-lg active:bg-white/10"
-              aria-label={hidden ? "Mostrar valores" : "Ocultar valores"}
-            >
-              {hidden ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
-            <button
-              onClick={dispatchDrawer}
-              className="p-2 rounded-lg active:bg-white/10"
-              aria-label="Menu"
-            >
-              <UserCircle2 size={20} />
-            </button>
-          </div>
+          <button
+            onClick={dispatchDrawer}
+            className="p-2 rounded-lg active:bg-white/10"
+            aria-label="Menu"
+          >
+            <UserCircle2 size={20} />
+          </button>
         </div>
       </div>
 
       {/* ── Conteúdo ─────────────────────────────────────────────── */}
-      <div className="-mt-6 px-4 space-y-4 pb-32">
-        {/* Saldo da Conta PJ + Solicitações pendentes */}
+      <div className="px-4 pt-4 space-y-4 pb-32">
+        {/* Saldo da Conta PJ + Solicitações pendentes (single card) */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <Link
             href="/awq/bank"
@@ -104,9 +126,7 @@ export default function MobileHomeAwq({
                 {fmt(cashBalance)}
               </div>
             </div>
-            <span className="text-sm font-semibold text-brand-600 shrink-0">
-              Acessar
-            </span>
+            <span className={`text-sm font-semibold shrink-0 ${TEAL_LINK}`}>Acessar</span>
           </Link>
 
           <div className="h-px bg-gray-100 mx-4" />
@@ -119,7 +139,7 @@ export default function MobileHomeAwq({
               <span className="font-semibold text-gray-900">{pendingRequestsCount}</span>{" "}
               {pendingRequestsCount === 1 ? "solicitação pendente" : "solicitações pendentes"}
             </span>
-            <span className="text-sm font-semibold text-brand-600">Ver</span>
+            <span className={`text-sm font-semibold ${TEAL_LINK}`}>Ver</span>
           </Link>
         </div>
 
@@ -127,10 +147,10 @@ export default function MobileHomeAwq({
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 pt-4 pb-3">
           <h2 className="text-base font-bold text-gray-900 mb-3">Sua empresa hoje</h2>
 
-          <div className="space-y-2.5">
+          <div className="space-y-3">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center shrink-0">
-                <DollarSign size={16} className="text-brand-600" />
+              <div className="w-9 h-9 rounded-full bg-sky-50 flex items-center justify-center shrink-0">
+                <DollarSign size={16} className="text-sky-500" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-xs text-gray-500">Saldo</div>
@@ -141,24 +161,24 @@ export default function MobileHomeAwq({
             </div>
 
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
-                <ArrowUp size={16} className="text-emerald-600" strokeWidth={2.5} />
+              <div className="w-9 h-9 rounded-full bg-emerald-50 flex items-center justify-center shrink-0">
+                <ArrowUp size={16} className="text-emerald-500" strokeWidth={2.5} />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-xs text-gray-500">A receber hoje</div>
-                <div className="text-base font-bold text-emerald-700 tabular-nums leading-tight">
+                <div className="text-base font-bold text-gray-900 tabular-nums leading-tight">
                   {fmt(todayReceivable)}
                 </div>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center shrink-0">
-                <ArrowDown size={16} className="text-red-600" strokeWidth={2.5} />
+              <div className="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center shrink-0">
+                <ArrowDown size={16} className="text-red-500" strokeWidth={2.5} />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-xs text-gray-500">A pagar hoje</div>
-                <div className="text-base font-bold text-red-700 tabular-nums leading-tight">
+                <div className="text-base font-bold text-gray-900 tabular-nums leading-tight">
                   {fmt(todayPayable)}
                 </div>
               </div>
@@ -167,36 +187,28 @@ export default function MobileHomeAwq({
 
           <Link
             href="/awq/cashflow"
-            className="block text-center text-sm font-semibold text-brand-600 mt-3 py-2 -mb-1 active:bg-brand-50 rounded-lg"
+            className={`block text-center text-sm font-semibold mt-3 py-2 -mb-1 rounded-lg active:bg-gray-50 ${TEAL_LINK}`}
           >
             Ver fluxo de caixa
           </Link>
         </div>
 
-        {/* Em atraso */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-4">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-base font-bold text-gray-900">Em atraso</h2>
-            {overdueItems.length > 0 && (
-              <Link href="/awq/ap-ar?filter=overdue" className="text-xs font-semibold text-brand-600">
+        {/* Em atraso — only shown when there are real (non-zero) overdue items */}
+        {hasOverdue ? (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-base font-bold text-gray-900">Em atraso</h2>
+              <Link href="/awq/ap-ar?filter=overdue" className={`text-xs font-semibold ${TEAL_LINK}`}>
                 Ver todos
               </Link>
-            )}
-          </div>
-
-          {overdueItems.length === 0 ? (
-            <div className="flex items-center gap-3 py-2 text-sm text-gray-400">
-              <AlertCircle size={16} className="text-gray-300" />
-              {hasData ? "Nenhum item em atraso" : "Aguardando dados"}
             </div>
-          ) : (
             <ul className="divide-y divide-gray-100 -mx-1">
               {overdueItems.slice(0, 5).map((item) => {
                 const isReceivable = item.type === "AR";
                 return (
                   <li key={item.id} className="flex items-center gap-3 px-1 py-2.5">
                     <div
-                      className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                      className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
                         isReceivable ? "bg-emerald-50" : "bg-red-50"
                       }`}
                     >
@@ -207,9 +219,7 @@ export default function MobileHomeAwq({
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-gray-900 truncate">
-                        {item.party}
-                      </div>
+                      <div className="text-sm font-medium text-gray-900 truncate">{item.party}</div>
                       <div className="text-xs text-gray-500">
                         Venceu há {item.days_overdue} {item.days_overdue === 1 ? "dia" : "dias"}
                       </div>
@@ -228,26 +238,22 @@ export default function MobileHomeAwq({
                 );
               })}
             </ul>
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-4">
+            <h2 className="text-base font-bold text-gray-900 mb-2">Em atraso</h2>
+            <div className="flex items-center gap-3 py-1 text-sm text-gray-400">
+              <AlertCircle size={16} className="text-gray-300" />
+              {hasData ? "Nenhum item em atraso" : "Aguardando dados"}
+            </div>
+          </div>
+        )}
 
-        {/* Atalhos para módulos profundos */}
-        <div className="grid grid-cols-2 gap-3 pt-2">
-          <Link
-            href="/awq/risk"
-            className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-3 active:bg-gray-50"
-          >
-            <div className="text-xs text-gray-500">Riscos</div>
-            <div className="text-sm font-semibold text-gray-900 mt-0.5">Control Tower</div>
-          </Link>
-          <Link
-            href="/awq/kpis"
-            className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-3 active:bg-gray-50"
-          >
-            <div className="text-xs text-gray-500">KPIs</div>
-            <div className="text-sm font-semibold text-gray-900 mt-0.5">Indicadores</div>
-          </Link>
-        </div>
+        {!hasData && (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
+            Aguardando dados do banco — sincronize com a Cora para ver saldos atualizados.
+          </div>
+        )}
       </div>
     </div>
   );
