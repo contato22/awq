@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { listActivities, createActivity } from "@/lib/crm-db";
+import { listActivities, createActivity, listAccounts, listOpportunities, listLeads } from "@/lib/crm-db";
 import type { CrmActivity } from "@/lib/crm-types";
+import { getForcedBu } from "@/lib/api-guard";
 
 function ok(data: unknown) { return NextResponse.json({ success: true, data }); }
 function err(msg: string, status = 500) { return NextResponse.json({ success: false, error: msg }, { status }); }
@@ -8,11 +9,27 @@ function err(msg: string, status = 500) { return NextResponse.json({ success: fa
 export async function GET(req: NextRequest) {
   try {
     const p = req.nextUrl.searchParams;
-    const data = await listActivities({
+    const forcedBu = await getForcedBu(req);
+    let data = await listActivities({
       related_to_type: p.get("related_to_type") ?? undefined,
       related_to_id:   p.get("related_to_id")   ?? undefined,
       created_by:      p.get("created_by")       ?? undefined,
     });
+
+    // BU isolation: filter activities to those tied to entities of the locked BU
+    if (forcedBu) {
+      const [accs, opps, leads] = await Promise.all([
+        listAccounts({ bu: forcedBu }),
+        listOpportunities({ bu: forcedBu }),
+        listLeads({ bu: forcedBu }),
+      ]);
+      const allowed = new Set<string>([
+        ...accs.map(a => a.account_id),
+        ...opps.map(o => o.opportunity_id),
+        ...leads.map(l => l.lead_id),
+      ]);
+      data = data.filter(a => allowed.has(a.related_to_id));
+    }
     return ok(data);
   } catch (e) { return err(String(e)); }
 }

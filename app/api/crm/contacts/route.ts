@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { initCrmDB, listContacts, createContact, deleteContact } from "@/lib/crm-db";
+import { initCrmDB, listContacts, createContact, deleteContact, listAccounts } from "@/lib/crm-db";
+import { getForcedBu } from "@/lib/api-guard";
 
 function ok(data: unknown) { return NextResponse.json({ success: true, data }); }
 function err(msg: string, status = 500) { return NextResponse.json({ success: false, error: msg }, { status }); }
@@ -8,10 +9,16 @@ export async function GET(req: NextRequest) {
   try {
     await initCrmDB();
     const p = req.nextUrl.searchParams;
-    const rows = await listContacts({
+    const forcedBu = await getForcedBu(req);
+    let rows = await listContacts({
       account_id: p.get("account_id") ?? undefined,
       search:     p.get("search")     ?? undefined,
     });
+    if (forcedBu) {
+      const accs = await listAccounts({ bu: forcedBu });
+      const allowed = new Set(accs.map(a => a.account_id));
+      rows = rows.filter(c => c.account_id && allowed.has(c.account_id));
+    }
     return ok(rows);
   } catch (e) { return err(String(e)); }
 }

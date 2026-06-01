@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { createCrmClient, listCrmClients } from "@/lib/jacqes-crm-db";
 import { createProject, listProjects } from "@/lib/ppm-db";
+import { createAccount, listAccounts } from "@/lib/crm-db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -55,6 +56,14 @@ export async function GET(req: NextRequest) {
 
   const existingProjectsResp = await listProjects({ bu_code: "JACQES" });
   const existingProjectNames = new Set(existingProjectsResp.map((p) => p.project_name.toLowerCase().trim()));
+
+  let existingAccountNames = new Set<string>();
+  try {
+    const existingAccounts = await listAccounts({ bu: "JACQES" });
+    existingAccountNames = new Set(existingAccounts.map((a) => a.account_name.toLowerCase().trim()));
+  } catch {
+    // crm_accounts indisponível — segue sem dedupe da camada compartilhada
+  }
 
   // ── 2. Inserts ─────────────────────────────────────────────────────────
   for (const e of ENTRIES) {
@@ -116,6 +125,28 @@ export async function GET(req: NextRequest) {
         entryResult.ppm = { project_id: project.project_id, budget_revenue: project.budget_revenue };
       } catch (err) {
         entryResult.ppm = { error: String(err) };
+      }
+    }
+
+    // CRM compartilhado (crm_accounts) — necessário para a entrada aparecer em /crm
+    if (existingAccountNames.has(e.nome.toLowerCase().trim())) {
+      entryResult.crm_shared = "skipped (já existe)";
+    } else {
+      try {
+        const account = await createAccount({
+          account_name:            e.nome,
+          industry:                e.segmento,
+          account_type:            "customer",
+          bu:                      "JACQES",
+          owner:                   OWNER_NAME,
+          annual_revenue_estimate: e.ticket * 12,
+          health_score:            80,
+          churn_risk:              "low",
+          created_by:              OWNER_EMAIL,
+        });
+        entryResult.crm_shared = { account_id: account.account_id, bu: account.bu };
+      } catch (err) {
+        entryResult.crm_shared = { error: String(err) };
       }
     }
 
